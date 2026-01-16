@@ -77,7 +77,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary leave-room">
-                    {{ $isLogin ? 'Continuar' : 'Cerrar' }}
+                    {{ $isLogged ? 'Continuar' : 'Cerrar' }}
                 </button>
             </div>
         </div>

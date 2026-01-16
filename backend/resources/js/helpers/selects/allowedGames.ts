@@ -1,5 +1,5 @@
-import { getAppDataProperty } from '@js/data/index' // Leer dinámicamente de AppData
-import { Game } from '@js/types/dataModels'
+import { getAppDataProperty } from '@js/core/appData' // Leer dinámicamente de AppData
+import { Game } from '@/js/types/data-models'
 
 // ==========================
 //   Constantes

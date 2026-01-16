@@ -95,7 +95,7 @@
         let dateTimeRooms = @json($dateTimeRooms);
         let timestamp = new Date(dateTimeRooms['timestamp']);
         let arrRooms = [];
-        let isLogin = false;
+        let isLogged = false;
         let roomId = false;
         let ctnPrice = 1;
         let numCtns = 1;
@@ -186,7 +186,7 @@
                 },
                 success: function(res) {
                     const room = res.room;
-                    isLogin = Number(res.isLogin);
+                    isLogged = Number(res.isLogged);
                     ctnPrice = room.ctnPrice;
                     numCtns = 1;
 
@@ -223,7 +223,7 @@
 
         $(document).on("click", "#btn-purchase-ctns", function() {
             // Procesar compra de cartones
-            if (isLogin || player === 'GAMES') return;
+            if (isLogged || player === 'GAMES') return;
 
             $.ajax({
                 url: route('bingo.generateCarton'),

@@ -1,4 +1,4 @@
-import { getAppDataProperty, type AppData } from '@js/data/index';
+import { getAppDataProperty, type AppData } from '@js/core/appData';
 import { getAppDataSync } from '@js/app';
 
 /**

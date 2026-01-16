@@ -1,11 +1,11 @@
-// js/system.ts
+// js/app.ts
 import '@js/utils/mounApp' // loader / wrapper global (side effects controlados)
 
 import Alpine from 'alpinejs'
 import { tableSelection } from '@js/alpine/tableSelection'
 import { loadModule } from '@js/helpers/module/loadModule'
 import { initFormCrud } from '@js/helpers/form/formCrudLoadModule'
-import { initAppData, getAppData, type AppData } from '@js/data'
+import { initAppData, getAppData, type AppData } from '@js/core/appData'
 import { initGlobalSafe } from '@js/utils/global'
 import { initLogout } from '@js/helpers/user/logout'
 

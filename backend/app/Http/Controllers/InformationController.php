@@ -17,35 +17,35 @@ class InformationController extends Controller
 
     public function terms(): Response
     {
-        return Inertia::render('shared/utils/info/Terms', [
+        return Inertia::render('Shared/Utils/Info/Terms', [
             'title' => 'Términos y Condiciones',
         ]);
     }
 
     public function about(): Response
     {
-        return Inertia::render('shared/utils/info/About', [
+        return Inertia::render('Shared/Utils/Info/About', [
             'title' => 'Quiénes Somos',
         ]);
     }
 
     public function privacy(): Response
     {
-        return Inertia::render('shared/utils/info/Privacy', [
+        return Inertia::render('Shared/Utils/Info/Privacy', [
             'title' => 'Política de Privacidad',
         ]);
     }
 
     public function helpCenter(): Response
     {
-        return Inertia::render('shared/utils/info/HelpCenter', [
+        return Inertia::render('Shared/Utils/Info/HelpCenter', [
             'title' => 'Centro de Ayuda',
         ]);
     }
 
     public function powerOfKnowledge(): Response
     {
-        return Inertia::render('shared/utils/info/games/PowerOfKnowledge', [
+        return Inertia::render('Shared/Utils/Info/games/PowerOfKnowledge', [
             'title' => 'El Poder del Saber',
         ]);
     }

@@ -34,7 +34,7 @@ class PublicController extends Controller
     {
         $register = $this->settings->getParameterStatus('REGISTER');
 
-        return Inertia::render('auth/Login', [
+        return Inertia::render('Auth/Login', [
             'inertiaOnly' => true,
             // 'register' => (bool) $register,
             // 'loginUrl' => route('login'),

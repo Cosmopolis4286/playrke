@@ -1,5 +1,5 @@
 // helpers/form/formCrudLoadModule.ts
-import { getAppDataProperty } from '@js/data';
+import { getAppDataProperty } from '@js/core/appData';
 import { loadModule } from '@js/helpers/module/loadModule';
 import type { ModuleType } from '@js/helpers/module/types/formModule.types';
 import { setFormCrudState } from './state/formCrudState';

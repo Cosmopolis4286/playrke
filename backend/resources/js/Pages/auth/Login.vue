@@ -1,3 +1,13 @@
+<script setup lang="ts">
+  import GuestLayout from '@js/Layouts/GuestLayout.vue'
+  import { Link } from '@inertiajs/vue3'
+  import { useLogin } from '@js/composables/auth/useLogin'
+  import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
+
+  const { form, errors, loading, isBusy, submit } = useLogin()
+  const { showPassword, togglePassword } = usePasswordToggle()
+</script>
+
 <template>
   <GuestLayout title="Iniciar sesión">
     <template #header-text>
@@ -57,13 +67,3 @@
     </template>
   </GuestLayout>
 </template>
-
-<script setup lang="ts">
-  import GuestLayout from '@js/Layouts/GuestLayout.vue'
-  import { Link } from '@inertiajs/vue3'
-  import { useLogin } from '@js/composables/auth/useLogin'
-  import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
-
-  const { form, errors, loading, isBusy, submit } = useLogin()
-  const { showPassword, togglePassword } = usePasswordToggle()
-</script>

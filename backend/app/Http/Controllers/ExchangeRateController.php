@@ -11,7 +11,12 @@ use App\Http\Requests\UpdateExchangeRateRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
+/**
+ * Controlador para la gestión de tasas de cambio
+ */
 class ExchangeRateController extends Controller
 {
     use UserTrait;
@@ -21,14 +26,17 @@ class ExchangeRateController extends Controller
     ) {}
 
     /**
-     * Listado de tasas de cambio
+     * Muestra el listado de tasas de cambio usando Inertia.
+     *
+     * @param Request $request
+     * @return Response|RedirectResponse
      */
-    public function index(Request $request): View|RedirectResponse
+    public function index(Request $request): Response|RedirectResponse
     {
         return $this->handleService(function () use ($request) {
             $context = $this->service->context($request);
 
-            return view('modules.exchange-rate.index', $context->toView());
+            return Inertia::render('ExchangeRate/Index', $context->toView());
         }, 'No se pudo cargar la lista de tasas de cambios.');
     }
 

@@ -29,7 +29,7 @@ class RegisteredUserController extends Controller
         // Obtener países activos con solo id y name
         $countries = app(CountryRepository::class)->getActive()->all(['id', 'name']);
 
-        return Inertia::render('auth/Register', [
+        return Inertia::render('Auth/Register', [
             'inertiaOnly' => true,
             'countries' => $countries,
             'registerUrl' => route('register'),

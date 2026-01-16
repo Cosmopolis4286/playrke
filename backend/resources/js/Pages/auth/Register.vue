@@ -1,3 +1,24 @@
+<script setup lang="ts">
+  import GuestLayout from '@js/Layouts/GuestLayout.vue'
+  import { Link } from '@inertiajs/vue3'
+  import AuthDropdown from '@js/Components/Auth/AuthDropdown.vue'
+  import { useRegisterForm } from '@/js/composables/auth/useRegister'
+  import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
+
+  interface Country {
+    id: number
+    name: string
+  }
+
+  // Props con lista de países
+  const props = defineProps<{ countries: Country[] }>()
+
+  // Usar composable que maneja formulario, loading, submit y validación
+  const { form, errors, loading, isBusy, submit, touched, submitted, markTouched } =
+    useRegisterForm()
+  const { showPassword, togglePassword } = usePasswordToggle()
+</script>
+
 <template>
   <GuestLayout title="Registrarse">
     <template #form-content>
@@ -144,24 +165,3 @@
     </template>
   </GuestLayout>
 </template>
-
-<script setup lang="ts">
-  import GuestLayout from '@js/Layouts/GuestLayout.vue'
-  import { Link } from '@inertiajs/vue3'
-  import AuthDropdown from '@js/components/auth/AuthDropdown.vue'
-  import { useRegisterForm } from '@/js/composables/auth/useRegister'
-  import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
-
-  interface Country {
-    id: number
-    name: string
-  }
-
-  // Props con lista de países
-  const props = defineProps<{ countries: Country[] }>()
-
-  // Usar composable que maneja formulario, loading, submit y validación
-  const { form, errors, loading, isBusy, submit, touched, submitted, markTouched } =
-    useRegisterForm()
-  const { showPassword, togglePassword } = usePasswordToggle()
-</script>

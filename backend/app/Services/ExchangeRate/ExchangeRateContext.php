@@ -35,18 +35,19 @@ class ExchangeRateContext
      */
     public function resolve(Request $request): ExchangeRateContextDTO
     {
-        [$user, $isLogin] = $this->resolveUser($request);
+        [$user, $isLogged] = $this->resolveUser($request);
 
         $commerce = $user->commerce
             ?? throw new DomainException('Comercio no encontrado');
 
-        if ($isLogin) {
+        if ($isLogged) {
             // Opción para actualizar tasas automáticamente para usuarios autenticados.
             // app(ExchangeRateUpdater::class)->updateRates($user->id, true);
         }
 
         return new ExchangeRateContextDTO(
-            bladeLayout: $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
+            isLogged: $isLogged,
+            bladeLayout: $isLogged ? 'layouts.layout-auth' : 'layouts.layout-guest',
             title: 'Tasas de Cambio',
             name: 'exchange-rate',
             returnBtn: true,
@@ -54,7 +55,7 @@ class ExchangeRateContext
                 'type' => 'commerce',
                 'id' => encrypt($commerce->id),
             ],
-            currencies: $isLogin
+            currencies: $isLogged
                 ? $this->resolveAvailableCurrencies($user->id, $commerce->id)
                 : [],
             exchangeRates: $this->commerceExchangeRate->getAvailableExchangeRates($commerce->id)

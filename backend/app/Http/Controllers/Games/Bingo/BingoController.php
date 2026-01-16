@@ -141,7 +141,7 @@ class BingoController extends Controller
             case 'commerce': // Comercio
                 $creatorId = $creator['id'];
 
-                $isLogin = true;
+                $isLogged = true;
                 $currency = $data['currency'];
                 $currencySym = Currency::getValue($currency, 'symbol');
                 $exchangeRate = CommerceExchangeRate::getCommerceCurrencyValue($creatorId, $currency);
@@ -153,7 +153,7 @@ class BingoController extends Controller
 
                 $creatorId = $creator['id'];
 
-                $isLogin = false;
+                $isLogged = false;
                 $currency = $data['currency'];
                 $custCurrency = CustomerExchangeRate::getById($currency, ['currency', 'exchange_rate']);
                 $currencySym = $custCurrency->currency;
@@ -223,7 +223,7 @@ class BingoController extends Controller
         $creator['id'] = encrypt($creator['id']);
 
         $viewData = [
-            'bladeLayout' => $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
+            'bladeLayout' => $isLogged ? 'layouts.layout-auth' : 'layouts.layout-guest',
             'title' => 'Bingo Salas de Juego',
             'currencySymbol' => $currencySym,
             'currency' => encrypt($currency),
@@ -367,7 +367,7 @@ class BingoController extends Controller
             $data['currency'] = $currency;
             $data['commerce_id'] = $creator['id'];
 
-            if ($data['isLogin']) {
+            if ($data['isLogged']) {
                 $data['playerUser'] = $player;
                 $columnBalance = $data['currency'] == 1 ? 'usdt' : 'balance';
                 $exchangeRate = CommerceExchangeRate::getCommerceCurrencyValue($creator['id'], $data['currency']);
@@ -480,7 +480,7 @@ class BingoController extends Controller
 
             // Adicionar datos al conjunto
             $data['creator'] = $creator;
-            $data['isLogin'] = $request->is_login ?? false;
+            $data['isLogged'] = $request->is_login ?? false;
 
             $response = $this->handleCartonByCreator($creator, $roomCtnPrice, $data, $request);
 
@@ -530,7 +530,7 @@ class BingoController extends Controller
 
             if (isset($data['commerce_id']) || isset($data['seller'])) {
                 // Usuario Fuera de Sesion
-                if (!isset($data['isLogin'])) {
+                if (!isset($data['isLogged'])) {
                     if (!isset($data['roomUser'])) $data['roomUser'] = $cartonStore;
                     $data = $this->handleExternalPlayers($data);
                 }
@@ -614,7 +614,7 @@ class BingoController extends Controller
                 if (!$room) return ['error' => 'Sala no disponible'];
 
                 $roomId = $room->id;
-                $isLogin = false;
+                $isLogged = false;
 
                 $customer = Customer::getById($creatorId, ['name', 'customer_id', 'logo', 'token']);
                 $customerId = $customer->customer_id;
@@ -664,7 +664,7 @@ class BingoController extends Controller
 
                     if (!$room) return ['error' => 'Sala no disponible'];
 
-                    $isLogin = false;
+                    $isLogged = false;
 
                     $roomUser = $playerLink->room_user;
 
@@ -682,7 +682,7 @@ class BingoController extends Controller
                     if (!$room) return ['error' => 'Sala no disponible'];
 
                     if (isset($data['player'])) {
-                        $isLogin = true;
+                        $isLogged = true;
                         $player = decrypt($data['player']);
                         $currencyId = Wallet::getValue($player, 'currency') ?? 1;
                         $currencySym = Currency::getValue($currencyId, 'symbol');
@@ -691,7 +691,7 @@ class BingoController extends Controller
 
                         $roomUser =  BingoRoomUser::getValueByColumn($roomId, 'player_user', $player, 'id');
                     } else {
-                        $isLogin = false;
+                        $isLogged = false;
                         $currencyId = $data['currency'];
                         $currencySym = Currency::getValue($currencyId, 'symbol');
 
@@ -790,9 +790,9 @@ class BingoController extends Controller
         $prizePool = BingoRoom::getValueById($roomId, 'prize_pool');
 
         $viewData = [
-            'bladeLayout' => $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
+            'bladeLayout' => $isLogged ? 'layouts.layout-auth' : 'layouts.layout-guest',
             'title' => 'BingoCash',
-            'isLogin' => $isLogin,
+            'isLogged' => $isLogged,
             'creatorType' => $creator['type'],
             'creatorId' => encrypt($creatorId),
             'room' => $room,
@@ -1053,7 +1053,7 @@ class BingoController extends Controller
             case 'commerce_id': // Comercio
                 $creatorId = decrypt($creator['id']);
 
-                $isLogin = true;
+                $isLogged = true;
                 $currencySym = Currency::getValue($currency, 'symbol');
                 $exchangeRate = CommerceExchangeRate::getCommerceCurrencyValue($creatorId, $currency);
 
@@ -1082,7 +1082,7 @@ class BingoController extends Controller
             case 'customer': // Cliente
 
                 $creatorId = decrypt($creator['id']);
-                $isLogin = $returnBtn = false;
+                $isLogged = $returnBtn = false;
 
                 $customerExchangeRate = CustomerExchangeRate::getById($currency);
                 $exchangeRate = $customerExchangeRate->exchange_rate;
@@ -1141,7 +1141,7 @@ class BingoController extends Controller
         $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
 
         $viewData = [
-            'bladeLayout' => $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
+            'bladeLayout' => $isLogged ? 'layouts.layout-auth' : 'layouts.layout-guest',
             'title' => 'Salas de Bingo',
             'subtitle' => $view === 'private' ? 'Privadas' : 'Publicas',
             'view' => strtoupper($view),
@@ -1261,7 +1261,7 @@ class BingoController extends Controller
 
         if (!$customer) {
             // Cliente no logueado → buscar por token
-            $isLogin = false;
+            $isLogged = false;
             $customerId = Customer::getValueByToken($creatorId, 'id');
 
             if (!$customerId) {
@@ -1269,7 +1269,7 @@ class BingoController extends Controller
             }
         } else {
             // Cliente logueado
-            $isLogin = true;
+            $isLogged = true;
             $customerId = $customer->id;
         }
 
@@ -1284,7 +1284,7 @@ class BingoController extends Controller
             return redirect()->route('bingo.room-summary', [
                 'roomType' => $roomType,
                 'creatorType' => 'customer',
-                'creatorId' => $isLogin ? encrypt($customerId) : $customerId,
+                'creatorId' => $isLogged ? encrypt($customerId) : $customerId,
                 'currency' => encrypt($currencies[0]->id)
             ]);
         }
@@ -1305,7 +1305,7 @@ class BingoController extends Controller
             return redirect()->route('bingo.room-summary', [
                 'roomType' => $roomType,
                 'creatorType' => 'customer',
-                'creatorId' => $isLogin ? encrypt($customerId) : $customerId,
+                'creatorId' => $isLogged ? encrypt($customerId) : $customerId,
             ]);
         }
 
@@ -2244,12 +2244,12 @@ class BingoController extends Controller
         $creatorType = User::getUserTypePrefix($creatorUser);
 
         if ($creatorType === 'customer') {
-            $isLogin = false;
+            $isLogged = false;
             $custCurrency = CustomerExchangeRate::getById($currency, ['currency', 'exchange_rate']);
             $currency = $custCurrency->currency;
             $exchangeRate = $custCurrency->exchange_rate;
         } else {
-            $isLogin = ($currency == 1) ? $this->wallet()->usdt : $this->wallet()->balance;
+            $isLogged = ($currency == 1) ? $this->wallet()->usdt : $this->wallet()->balance;
 
             if ($currency != 1) {
                 $commerce = Commerce::getValueByUserId($creatorUser, 'commerce_id');
@@ -2275,7 +2275,7 @@ class BingoController extends Controller
             'ctnPrice' => number_format(($ctnPrice), 2, '.')
         ];
 
-        return response()->json(['room' => $room, 'isLogin' => $isLogin]);
+        return response()->json(['room' => $room, 'isLogged' => $isLogged]);
     }
 
     public function copy($id)
@@ -2539,7 +2539,7 @@ class BingoController extends Controller
             case 'admin': // Admin
                 break;
             case 'commerce_id': // Comercio
-                $isLogin = true;
+                $isLogged = true;
 
                 $commerce = Commerce::getById($creatorId, ['user', 'currency', 'uuid_code']);
 
@@ -2550,7 +2550,7 @@ class BingoController extends Controller
                 break;
             case 'customer': // Cliente
 
-                $isLogin = $returnBtn = false;
+                $isLogged = $returnBtn = false;
 
                 $customer = Customer::getById($creatorId, ['user', 'customer_id', 'token']);
                 $token = $customer->token;
@@ -2595,7 +2595,7 @@ class BingoController extends Controller
         $timeZone = TimeZone::getById($timeZoneID, ['name', 'utc']);
 
         $viewData = [
-            'bladeLayout' => $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
+            'bladeLayout' => $isLogged ? 'layouts.layout-auth' : 'layouts.layout-guest',
             'title' => 'Salas de Bingo',
             'name' => 'bingo-automatic-room',
             'returnBtn' => $returnBtn ?? true,
@@ -2668,7 +2668,7 @@ class BingoController extends Controller
             case 'admin': // Admin
                 break;
             case 'commerce_id': // Comercio
-                $isLogin = true;
+                $isLogged = true;
 
                 $exchangeRate = CommerceExchangeRate::getCommerceCurrencyValue($userData['id'], $currency);
 
@@ -2703,7 +2703,7 @@ class BingoController extends Controller
         ];
 
         $viewData = [
-            'bladeLayout' => $isLogin ? 'layouts.layout-auth' : 'layouts.layout-guest',
+            'bladeLayout' => $isLogged ? 'layouts.layout-auth' : 'layouts.layout-guest',
             'title' => 'Salas de Bingo',
             'subtitle' => 'Otras Salas Publicas',
             'name' => 'bingo',

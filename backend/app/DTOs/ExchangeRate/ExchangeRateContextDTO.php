@@ -5,6 +5,7 @@ namespace App\DTOs\ExchangeRate;
 final class ExchangeRateContextDTO
 {
     public function __construct(
+        public readonly bool $isLogged,
         public readonly string $bladeLayout,
         public readonly string $title,
         public readonly string $name,
@@ -17,6 +18,7 @@ final class ExchangeRateContextDTO
     public function toView(): array
     {
         return [
+            'isLogged'       => $this->isLogged,
             'bladeLayout'   => $this->bladeLayout,
             'title'         => $this->title,
             'name'          => $this->name,
