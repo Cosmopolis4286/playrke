@@ -5,7 +5,7 @@ namespace App\Services\ExchangeRate;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateContextDTO;
 use App\Models\Currency;
-use App\Services\Currencies\CurrencyDirectoryService;
+use App\Services\Currencies\CurrencyService;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,19 +14,19 @@ class ExchangeRateContext
 {
     public function __construct(
         protected CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
-        protected CurrencyDirectoryService $currencyDirectory
+        protected CurrencyService $currency
     ) {}
 
     public function resolve(Request $request): ExchangeRateContextDTO
     {
-        [$user, $isLogin] = $this->resolveUser($request);
+        [$userId, $isLogin] = $this->resolveUser($request);
 
         $commerce = $user->commerce
             ?? throw new DomainException('Comercio no encontrado');
 
         if ($isLogin) {
-            app(ExchangeRateUpdater::class)
-                ->updateRates($user->id, true);
+            // app(ExchangeRateUpdater::class)
+            //     ->updateRates($user->id, true);
         }
 
         return new ExchangeRateContextDTO(
@@ -39,7 +39,7 @@ class ExchangeRateContext
                 'id' => encrypt($commerce->id),
             ],
             currencies: $isLogin
-                ? $this->resolveAvailableCurrencies($user, $commerce->id)
+                ? $this->resolveAvailableCurrencies($userId, $commerce->id)
                 : [],
             exchangeRates: $this->commerceExchangeRate
                 ->getAvailableExchangeRates($commerce->id)
@@ -53,7 +53,7 @@ class ExchangeRateContext
     private function resolveUser(Request $request): array
     {
         if (Auth::check()) {
-            return [Auth::user(), true];
+            return [Auth::id(), true];
         }
 
         $user = $request->attributes->get('public_user');
@@ -67,10 +67,10 @@ class ExchangeRateContext
     /**
      * Resolver monedas disponibles para el comercio
      */
-    private function resolveAvailableCurrencies($user, string $creatorId): array
+    private function resolveAvailableCurrencies(int $userId, string $creatorId): array
     {
         $currencyIds = array_filter(
-            $this->getAvailableCurrencies($user),
+            $this->currency->getAvailableCurrencies($userId),
             fn($id) => $id !== 1
         );
 

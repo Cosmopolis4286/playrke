@@ -4,7 +4,7 @@ namespace App\Services\Users;
 
 use App\Models\User;
 use App\Models\Shared\UniqueCode;
-use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Contracts\UserRepositoryInterface;
 use App\Services\BaseService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;

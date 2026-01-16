@@ -5,7 +5,7 @@ namespace App\Services\Users\Roles\Customer;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Roles\Customer\Customer;
-use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Contracts\UserRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;

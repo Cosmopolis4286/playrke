@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Contracts\UserRepositoryInterface;
 use Illuminate\Http\JsonResponse;
 
 class DemoCredentialsController extends Controller

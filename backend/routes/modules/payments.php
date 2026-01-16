@@ -1,11 +1,11 @@
 <?php
 
-use App\Http\Controllers\Payments\DirectoryController;
+use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\Directories\Fiat\Brazil\PixController;
 use App\Http\Controllers\Directories\Fiat\Colombia\PaymentAccountController;
 use App\Http\Controllers\Directories\Fiat\Venezuela\PagoMovilController;
-use App\Http\Controllers\Payments\PaymentController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Users\ReportsController;
 use Illuminate\Support\Facades\Route;
 
