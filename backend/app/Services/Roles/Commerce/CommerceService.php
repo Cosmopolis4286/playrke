@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Users\Roles\Commerce;
+namespace App\Services\Roles\Commerce;
 
 use App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface;
 use App\Contracts\UserRepositoryInterface;
@@ -9,6 +9,9 @@ use App\DTOs\Users\Roles\CommerceDTO;
 use App\Http\Resources\Users\Roles\CommerceResource;
 use App\Contracts\Roles\Commerce\CommerceGameRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
+use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
+use App\Models\Pivots\Roles\Commerce\CommerceGame;
+use App\Models\Roles\Commerce;
 use App\Services\BaseService;
 use App\Services\Users\UserService;
 use Illuminate\Support\Facades\DB;
@@ -339,7 +342,7 @@ class CommerceService extends BaseService
             $commerce->forceDelete();
 
             // Verificar que el usuario no tenga otros comercios activos (sin contar los eliminados físicamente)
-            $activeCommercesCount = \App\Models\Roles::where('user_id', $commerce->user_id)
+            $activeCommercesCount = Commerce::where('user_id', $commerce->user_id)
                 ->where('id', '<>', $commerce->id)
                 ->where('status', '!=', 'DELETED')
                 ->count();

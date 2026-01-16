@@ -25,9 +25,7 @@ class CommerceController extends Controller
     public function index(): View|RedirectResponse
     {
         return $this->handleService(function () {
-            return view('commerce.index', [
-                'commerces' => $this->service->getAll(),
-            ]);
+            return view('commerce.index', ['commerces' => $this->service->getAll()]);
         }, 'No se pudo cargar la lista de comercios.');
     }
 
@@ -53,9 +51,7 @@ class CommerceController extends Controller
     public function show(Commerce $commerce): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => [
-                'data' => $this->service->getByCommerce($commerce),
-            ],
+            fn() => ['data' => $this->service->getByCommerce($commerce)],
             'No se pudo cargar la información del comercio.'
         );
     }
@@ -73,9 +69,7 @@ class CommerceController extends Controller
 
                 $this->service->update($commerce, $request->toDTO());
 
-                return [
-                    'message' => '✅ Actualización exitosa',
-                ];
+                return ['message' => '✅ Actualización exitosa'];
             },
             'Hubo un error al editar el comercio.'
         );

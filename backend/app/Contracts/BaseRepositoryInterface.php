@@ -7,111 +7,141 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
- * Contrato base para todos los repositorios
- * Define métodos comunes que todos los repositorios deben implementar
+ * Interface BaseRepositoryInterface
+ *
+ * Contrato base para todos los repositorios del sistema.
+ *
+ * Define operaciones CRUD comunes y métodos de consulta reutilizables.
+ * Este contrato representa la capa de acceso a datos y NO debe contener
+ * lógica de negocio.
+ *
+ * ⚠️ Nota:
+ * - Algunos métodos existen por compatibilidad legacy.
+ * - Los repositorios concretos pueden extender este contrato con métodos específicos.
  */
 interface BaseRepositoryInterface
 {
     /**
-     * Obtener todos los registros
+     * Obtener todos los registros.
      *
-     * @param array $columns Columnas a seleccionar
-     * @return Collection
+     * @param array<int,string> $columns Columnas a seleccionar
+     * @return Collection<int, Model>
      */
     public function all(array $columns = ['*']): Collection;
 
     /**
-     * Buscar un registro por ID
+     * Buscar un registro por ID.
      *
      * @param string|int $id ID del registro
-     * @param array $columns Columnas a seleccionar
+     * @param array<int,string> $columns Columnas a seleccionar
      * @return Model|null
      */
     public function find(string|int $id, array $columns = ['*']): ?Model;
 
     /**
-     * Buscar un registro por ID o lanzar excepción
+     * Buscar un registro por ID o lanzar excepción.
      *
      * @param string|int $id ID del registro
-     * @param array $columns Columnas a seleccionar
+     * @param array<int,string> $columns Columnas a seleccionar
+     *
      * @return Model
+     *
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     public function findOrFail(string|int $id, array $columns = ['*']): Model;
 
     /**
-     * Obtener valor específico por ID del registro.
+     * Obtener el valor de un campo específico por ID.
      *
-     * @param string|int $id ID del vendedor
+     * Útil para consultas simples sin hidratar el modelo completo.
+     *
+     * @param string|int $id ID del registro
      * @param string $field Campo a obtener
-     * @return mixed Valor del campo o null
+     *
+     * @return mixed|null
      */
     public function getValueById(string|int $id, string $field): mixed;
 
-        /**
-     * Obtener registros por IDs (método legacy)
+    /**
+     * Obtener registros por un conjunto de IDs.
      *
-     * @param array $Ids Array de IDs
-     * @param array $fields Campos a seleccionar
-     * @return Collection
+     * ⚠️ Método legacy: preferir consultas más expresivas cuando sea posible.
+     *
+     * @param array<int,string|int> $Ids IDs a buscar
+     * @param array<int,string> $fields Campos a seleccionar
+     *
+     * @return Collection<int, Model>
      */
     public function getByIds(array $Ids, array $fields = ['*']): Collection;
 
     /**
-     * Verificar existencia por campo dinámico.
+     * Verificar si existe un registro por un campo dinámico.
      *
-     * @param string $field
-     * @param mixed  $value
+     * @param string $field Nombre del campo
+     * @param mixed $value Valor a comparar
+     *
      * @return bool
      */
     public function existsByField(string $field, mixed $value): bool;
 
     /**
-     * Crear un nuevo registro
+     * Crear un nuevo registro.
      *
-     * @param array $data Datos para crear el registro
+     * ⚠️ El array representa datos ya validados.
+     * ⚠️ La lógica de negocio debe ocurrir antes de este punto.
+     *
+     * @param array<string,mixed> $data Datos para crear el registro
      * @return Model
      */
     public function create(array $data): Model;
 
     /**
-     * Actualizar un registro existente
+     * Actualizar un registro existente.
      *
-     * @param string|int $id ID del registro a actualizar
-     * @param array $data Datos para actualizar
+     * @param string|int $id ID del registro
+     * @param array<string,mixed> $data Datos a actualizar
+     *
      * @return Model
      */
     public function update(string|int $id, array $data): Model;
 
     /**
-     * Eliminar un registro
+     * Eliminar un registro.
      *
-     * @param string|int $id ID del registro a eliminar
+     * La implementación decide si es soft delete o hard delete.
+     *
+     * @param string|int $id ID del registro
      * @return bool
      */
     public function delete(string|int $id): bool;
 
     /**
-     * Buscar registros con condiciones
+     * Buscar registros por condiciones simples.
      *
-     * @param array $conditions Condiciones de búsqueda
-     * @param array $columns Columnas a seleccionar
-     * @return Collection
+     * @param array<string,mixed> $conditions Condiciones de búsqueda
+     * @param array<int,string> $columns Columnas a seleccionar
+     *
+     * @return Collection<int, Model>
      */
     public function where(array $conditions, array $columns = ['*']): Collection;
 
     /**
-     * Paginar resultados
+     * Paginar resultados.
      *
      * @param int $perPage Registros por página
-     * @param array $columns Columnas a seleccionar
+     * @param array<int,string> $columns Columnas a seleccionar
      * @param int $page Página actual
+     *
      * @return LengthAwarePaginator
      */
-    public function paginate(int $perPage = 15, array $columns = ['*'], int $page = 1): LengthAwarePaginator;
+    public function paginate(
+        int $perPage = 15,
+        array $columns = ['*'],
+        int $page = 1
+    ): LengthAwarePaginator;
 
     /**
-     * Verificar si existe un registro
+     * Verificar si existe un registro por ID.
      *
      * @param string|int $id ID del registro
      * @return bool
@@ -119,38 +149,43 @@ interface BaseRepositoryInterface
     public function exists(string|int $id): bool;
 
     /**
-     * Contar registros
+     * Contar registros con condiciones opcionales.
      *
-     * @param array $conditions Condiciones de conteo
+     * @param array<string,mixed> $conditions Condiciones de conteo
      * @return int
      */
     public function count(array $conditions = []): int;
 
     /**
-     * Buscar primer registro que coincida
+     * Obtener el primer registro que coincida con las condiciones.
      *
-     * @param array $conditions Condiciones de búsqueda
-     * @param array $columns Columnas a seleccionar
+     * @param array<string,mixed> $conditions Condiciones de búsqueda
+     * @param array<int,string> $columns Columnas a seleccionar
+     *
      * @return Model|null
      */
     public function first(array $conditions, array $columns = ['*']): ?Model;
 
     /**
-     * Obtiene todos los registros con relaciones cargadas.
+     * Obtener todos los registros con relaciones cargadas.
      *
-     * @param array $relations Relaciones Eloquent a cargar (ej: ['country:id,name', 'user:id,email'])
-     * @param array $fields Campos a seleccionar en la tabla principal
+     * @param array<int,string> $relations Relaciones Eloquent
+     * @param array<int,string> $fields Campos de la tabla principal
      *
-     * @return Collection
+     * @return Collection<int, Model>
      */
-    public function getAllWithRelations(array $relations = [], array $fields = ['*']): Collection;
+    public function getAllWithRelations(
+        array $relations = [],
+        array $fields = ['*']
+    ): Collection;
 
     /**
-     * Obtiene registros por estado.
+     * Obtener registros filtrados por estado.
      *
      * @param string $status Estado del registro
-     * @param array $fields Campos a seleccionar
-     * @return Collection
+     * @param array<int,string> $fields Campos a seleccionar
+     *
+     * @return Collection<int, Model>
      */
     public function getByStatus(string $status, array $fields = ['*']): Collection;
 }

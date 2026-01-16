@@ -7,6 +7,8 @@ use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Game;
+use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
+use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\Roles\Seller;
 use App\Models\Shared\UniqueCode;
 use App\Models\User;
