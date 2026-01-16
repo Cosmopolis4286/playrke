@@ -3,6 +3,8 @@
 namespace App\Repositories\Roles\Commerce;
 
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
+use App\DTOs\ExchangeRate\ExchangeRateDTO;
+use App\Infrastructure\Persistence\ExchangeRate\ExchangeRateMapper;
 use App\Models\Pivots\Roles\Commerce\CommerceExchangeRate;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
@@ -20,6 +22,13 @@ class CommerceExchangeRateRepository extends BaseRepository implements CommerceE
     public function __construct(CommerceExchangeRate $model)
     {
         parent::__construct($model);
+    }
+
+    public function createFromDto(ExchangeRateDTO $dto): CommerceExchangeRate
+    {
+        return CommerceExchangeRate::create(
+            ExchangeRateMapper::toPersistence($dto)
+        );
     }
 
     /**
