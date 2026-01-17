@@ -1,3 +1,11 @@
+<script setup lang="ts">
+const props = defineProps<{
+  currencies: { type: Array<T>; required: true };
+  isExternalUser: boolean;
+  selectedCurrency: { type: [String, Number, null]; default: null };
+}>();
+</script>
+
 <template>
   <div class="mb-2">
     <button
@@ -23,11 +31,3 @@
     </button>
   </div>
 </template>
-
-<script setup>
-  const props = defineProps({
-    currencies: { type: Array, required: true },
-    creator: { type: Object, required: true },
-    selectedCurrency: { type: [String, Number, null], default: null }
-  })
-</script>

@@ -1,4 +1,5 @@
-import type { Currency, Country } from './data-models'
+import type { Currency } from './currency'
+import type { Country } from './country'
 
 export type ExchangeRateStatus = 'ACTIVE' | 'INACTIVE' | 'DIRECTORY'
 
@@ -13,9 +14,4 @@ export interface ExchangeRate {
       iso_code_2?: string
     }
   }
-}
-
-export interface Creator {
-  readonly id: number | string
-  readonly type: 'customer' | 'company' | 'seller'
 }

@@ -11,12 +11,14 @@ use App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface;
 use App\Contracts\Roles\Treasurer\OtherTreasurersRepositoryInterface;
 use App\Contracts\TimeZoneRepositoryInterface;
 use App\Http\Controllers\Controller;
+use App\Services\Roles\Admin\AdminService;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Users\UserTrait;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Controlador Admin refactorizado
@@ -33,6 +35,7 @@ class AdminController extends Controller
      * Constructor con inyección de dependencias
      */
     public function __construct(
+        protected AdminService $service,
         protected CommerceRepositoryInterface $commerces,
         protected CustomerRepositoryInterface $customers,
         protected TreasurerRepositoryInterface $treasurers,
@@ -52,6 +55,8 @@ class AdminController extends Controller
             'title' => 'Dashboard Admin',
         ]);
     }
+
+
 
     /**
      * Vista de comercializadoras
@@ -75,6 +80,20 @@ class AdminController extends Controller
                 'moduleFile' => 'modules/users/roles/admin/commerce/form/commerceForm.ts',
             ]
         ]);
+    }
+
+    /**
+     * Muestra el listado de comercializadoras usando Inertia.
+     *
+     * @param Request $request
+     * @return Response|RedirectResponse
+     */
+    public function commercesNew(): Response|RedirectResponse
+    {
+        return $this->handleService(function () {
+            $context = $this->service->context('commerce');
+            return Inertia::render('Roles/Admin/Commerce/Index', $context->toView());
+        }, 'No se pudo cargar la lista de comercializadoras.');
     }
 
     /**

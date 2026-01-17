@@ -5,23 +5,15 @@
   import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
   import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
   import { useExchangeRate } from '@js/composables/exchangeRate/useExchangeRate'
-
-  /**
-   * Tipos locales
-   */
-  interface Creator {
-    type: string
-    id: string | number
-  }
+  import type { ExchangeRate } from "@js/types/exchange-rate";
 
   interface ExchangeRatePageProps {
     title: string
     subtitle?: string
     btnCardHeader?: Record<string, unknown>
     currencies: unknown[]
-    creator: Creator
-    exchangeRates: unknown[]
-    isLogged: boolean
+    exchangeRates: ExchangeRate[]
+    isExternalUser: boolean
   }
 
   /**
@@ -69,8 +61,7 @@
 
         <ExchangeRateTable
           :exchangeRates="exchangeRates"
-          :creator="creator"
-          :isLogged="isLogged"
+          :isExternalUser="isExternalUser"
           @edit="edit"
           @change-status="changeStatus"
           @delete="remove"

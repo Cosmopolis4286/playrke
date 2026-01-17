@@ -50,14 +50,11 @@ class ExchangeRateContext
             bladeLayout: $isLogged ? 'layouts.layout-auth' : 'layouts.layout-guest',
             title: 'Tasas de Cambio',
             name: 'exchange-rate',
-            returnBtn: true,
             creator: [
                 'type' => 'commerce',
                 'id' => encrypt($commerce->id),
             ],
-            currencies: $isLogged
-                ? $this->resolveAvailableCurrencies($user->id, $commerce->id)
-                : [],
+            currencies: $this->resolveAvailableCurrencies($user->id),
             exchangeRates: $this->commerceExchangeRate->getAvailableExchangeRates($commerce->id)
         );
     }
@@ -79,11 +76,10 @@ class ExchangeRateContext
         return [$user, false];
     }
 
-    private function resolveAvailableCurrencies(int $userId, string $creatorId): array
+    private function resolveAvailableCurrencies(int $userId): array
     {
         // Obtener monedas disponibles para el usuario y filtrar el id 1
         $currencyIds = collect($this->currency->getAvailableCurrencies($userId))
-            ->filter(fn($id) => $id !== 1)
             ->values()
             ->all();
 
@@ -91,6 +87,6 @@ class ExchangeRateContext
             return [];
         }
 
-        return [];
+        return $currencyIds;
     }
 }

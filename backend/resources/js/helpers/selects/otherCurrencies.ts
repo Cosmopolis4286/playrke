@@ -1,6 +1,7 @@
 // backend/resources/js/helpers/selects/otherCurrencies.ts
 import { getAppDataProperty } from '@js/core/appData' // Leer dinámicamente de AppData
-import { Currency, TimeZone } from '@/js/types/data-models'
+import type { Currency } from '@/js/types/currency'
+import type { TimeZone } from '@/js/types/time-zone'
 
 // ==========================
 //   Constantes

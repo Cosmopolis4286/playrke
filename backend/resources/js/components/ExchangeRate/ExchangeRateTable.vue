@@ -1,15 +1,13 @@
 <script setup lang="ts">
   import { computed } from 'vue'
-  import type { ExchangeRate, Creator } from '@js/types/exchange-rate'
+  import type { ExchangeRate } from '@js/types/exchange-rate'
 
   /**
    * Props del componente ExchangeRateTable
    */
   const props = defineProps<{
     exchangeRates: ExchangeRate[]
-    creator: Creator
-    isAdmin: boolean
-    isLogged?: boolean
+    isExternalUser: boolean
   }>()
 
   /**
@@ -22,9 +20,9 @@
   }>()
 
   /**
-   * Indica si el creador es un customer
+   * Indica si un usuario externo
    */
-  const isCustomer = computed(() => props.creator.type === 'customer')
+  const isExternalUser = computed(() => props.isExternalUser === true)
 
   /**
    * Obtiene el ISO del país de forma segura
@@ -42,7 +40,7 @@
     <table class="table-striped table-bordered w-100 my-2 table">
       <thead>
         <tr>
-          <th v-if="!isCustomer">País</th>
+          <th v-if="!isExternalUser">País</th>
           <th>Moneda</th>
           <th>Cambio</th>
           <th>%</th>
@@ -54,18 +52,18 @@
       <tbody>
         <tr v-for="item in exchangeRates" :key="item.id">
           <!-- País -->
-          <td v-if="!isCustomer">
+          <td v-if="!isExternalUser">
             {{ item.Currency?.Country?.name || 'Todos' }}
           </td>
 
           <!-- Moneda -->
           <td>
-            {{ isCustomer ? item.currency : item.Currency?.description }}
+            {{ isExternalUser ? item.currency : item.Currency?.description }}
           </td>
 
           <!-- Cambio -->
           <td>
-            <template v-if="!isCustomer">
+            <template v-if="!isExternalUser">
               {{ item.Currency?.symbol }}
             </template>
             {{ item.exchange_rate }}
@@ -118,7 +116,7 @@
               </button>
 
               <button
-                v-if="isAdmin || isCustomer"
+                v-if="isExternalUser"
                 class="btn btn-sm btn-danger"
                 type="button"
                 title="Eliminar"
