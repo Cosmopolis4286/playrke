@@ -1,15 +1,13 @@
 <script setup lang="ts">
   import { ref } from 'vue'
 
-  import CardHeader from '@js/Components/Common/CardHeader.vue'
+  import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
   import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
   import { useExchangeRate } from '@js/composables/exchangeRate/useExchangeRate'
   import type { ExchangeRatePageProps } from '@js/types/exchange-rate'
 
   const title = 'Tasas de Cambio'
-  const subtitle = ''
-  const btnCardHeader = []
   /**
    * Props tipadas correctamente para Inertia
    */
@@ -41,7 +39,7 @@
 <template>
   <div class="col-12">
     <div class="card">
-      <CardHeader :title="title" :subtitle="subtitle" :btnCardHeader="btnCardHeader" />
+      <CardHeader :title="title" />
 
       <div class="card-body">
         <ExchangeRateButtons

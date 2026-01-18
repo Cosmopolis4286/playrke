@@ -1,8 +1,8 @@
 <?php
 
-namespace App\DTOs\Roles\Admin;
+namespace App\DTOs\Roles\Admin\Commerce;
 
-final class AdminContextDTO
+final class AdminCommerceContextDTO
 {
     public function __construct(
         public readonly bool $isLogged,

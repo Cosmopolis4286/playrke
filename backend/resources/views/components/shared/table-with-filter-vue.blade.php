@@ -13,7 +13,7 @@
 
 @once
     @push('stack-scripts')
-        @vite(['resources/js/components/shared/table-filter-bridge-init.ts'])
+        @vite(['resources/js/helpers/table/table-filter-bridge-init.ts'])
 
         <script>
             document.addEventListener('DOMContentLoaded', () => {

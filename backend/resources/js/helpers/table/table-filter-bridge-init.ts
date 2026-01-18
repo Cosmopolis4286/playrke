@@ -1,4 +1,4 @@
-// components/shared/table-filter-bridge-init.ts
+// helpers/table/table-filter-bridge-init.ts
 import { createVueAppWithSharedComponents } from '@js/helpers/vue/registerSharedComponents'
 
 /**

@@ -1,4 +1,12 @@
-<!-- /components/common/CardHeader.vue -->
+<script setup>
+  const props = defineProps({
+    btnCardHeader: { type: Object, default: null },
+    returnBtn: { type: Boolean, default: true },
+    subtitle: { type: String, default: '' },
+    title: { type: String, default: '' }
+  })
+</script>
+
 <template>
   <div class="card-header">
     <div class="d-flex align-items-center justify-content-between">
@@ -8,7 +16,7 @@
         </a>
         <div>
           <div :class="subtitle ? 'mb-n3' : 'mb-n2'" class="d-flex">
-            <h5 v-html="cardTitle || title"></h5>
+            <h5 v-html="title"></h5>
             <a
               v-if="btnCardHeader?.route && btnCardHeader?.icon"
               :href="btnCardHeader.route"
@@ -31,13 +39,3 @@
     </div>
   </div>
 </template>
-
-<script setup>
-  const props = defineProps({
-    title: { type: String, default: '' },
-    cardTitle: { type: String, default: null },
-    subtitle: { type: String, default: null },
-    returnBtn: { type: Boolean, default: true },
-    btnCardHeader: { type: Object, default: null }
-  })
-</script>

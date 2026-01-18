@@ -4,7 +4,7 @@ namespace App\Services\Roles\Admin;
 
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
-use App\DTOs\Roles\Admin\AdminContextDTO;
+use App\DTOs\Roles\Admin\AdminCommerceContextDTO;
 use DomainException;
 
 class AdminContextService
@@ -24,11 +24,11 @@ class AdminContextService
      * para el comercio asociado y listado de tasas de cambio.
      * Para usuarios públicos, muestra un layout de invitado y oculta las monedas.
      *
-     * @return \App\DTOs\Roles\Admin\AdminContextDTO Contexto listo para la vista.
+     * @return \App\DTOs\Roles\Admin\Commerce\AdminCommerceContextDTO Contexto listo para la vista.
      *
      * @throws \DomainException Si no se encuentra el comercio asociado al usuario.
      */
-    public function resolve(string $context): AdminContextDTO
+    public function resolve(string $context): AdminCommerceContextDTO
     {
         return match ($context) {
             'commerce' => $this->commerceContext(),
@@ -44,7 +44,7 @@ class AdminContextService
             'user:id,email',
         ]);
 
-        return new AdminContextDTO(
+        return new AdminCommerceContextDTO(
             title: 'Tasas de Cambio',
             currencies: $this->currencies->getActive(),
             commerces: $commerces,
@@ -63,7 +63,7 @@ class AdminContextService
             'user:id,email',
         ]);
 
-        return new AdminContextDTO(
+        return new AdminCommerceContextDTO(
             title: 'Tasas de Cambio',
             currencies: $this->currencies->getActive(),
             customers: $customers,

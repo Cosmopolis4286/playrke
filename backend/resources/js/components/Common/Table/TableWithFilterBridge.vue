@@ -1,44 +1,3 @@
-<template>
-  <TableWithFilter
-    :table-id="tableId"
-    :title="title"
-    :columns="parsedColumns"
-    :rows="parsedRows"
-    :filters="parsedFilters"
-    :search-placeholder="searchPlaceholder"
-    :debounce-delay="debounceDelay"
-    :empty-message="emptyMessage"
-    :show-create-button="showCreateButton"
-    :show-edit-button="showEditButton"
-    :show-delete-button="showDeleteButton"
-    @create="handleCreate"
-    @edit="handleEdit"
-    @delete="handleDelete"
-    @selection-change="handleSelectionChange"
-  >
-    <!-- Reenvío de todos los slots recibidos -->
-    <template v-for="(_, name) in $slots" #[name]="slotData" :key="name">
-      <slot :name="name" v-bind="slotData" />
-    </template>
-
-    <!-- Botones adicionales a la derecha del eliminar -->
-    <template #action-buttons="{ selectedIds }">
-      <button
-        v-for="(btn, i) in visibleExtraButtons"
-        :key="i"
-        :class="['btn', 'btn-sm', btn.class || 'btn-secondary', 'ml-2']"
-        :disabled="btn.disabled ? btn.disabled(selectedIds) : false"
-        @click="() => btn.onClick(selectedIds)"
-        type="button"
-      >
-        <i v-if="btn.icon" :class="btn.icon"></i>
-        {{ btn.label }}
-        <span v-if="shouldShowCount(btn, selectedIds)"> ({{ selectedIds.length }}) </span>
-      </button>
-    </template>
-  </TableWithFilter>
-</template>
-
 <script setup lang="ts">
   import { computed, ref } from 'vue'
   import TableWithFilter from './TableWithFilter.vue'
@@ -292,9 +251,50 @@
       new CustomEvent('table-selection-updated', {
         detail: {
           tableId: props.tableId,
-          selectedIds: [...selectedIds.value],
+          selectedIds: [...selectedIds.value]
         }
       })
     )
   }
 </script>
+
+<template>
+  <TableWithFilter
+    :table-id="tableId"
+    :title="title"
+    :columns="parsedColumns"
+    :rows="parsedRows"
+    :filters="parsedFilters"
+    :search-placeholder="searchPlaceholder"
+    :debounce-delay="debounceDelay"
+    :empty-message="emptyMessage"
+    :show-create-button="showCreateButton"
+    :show-edit-button="showEditButton"
+    :show-delete-button="showDeleteButton"
+    @create="handleCreate"
+    @edit="handleEdit"
+    @delete="handleDelete"
+    @selection-change="handleSelectionChange"
+  >
+    <!-- Reenvío de todos los slots recibidos -->
+    <template v-for="(_, name) in $slots" #[name]="slotData" :key="name">
+      <slot :name="name" v-bind="slotData" />
+    </template>
+
+    <!-- Botones adicionales a la derecha del eliminar -->
+    <template #action-buttons="{ selectedIds }">
+      <button
+        v-for="(btn, i) in visibleExtraButtons"
+        :key="i"
+        :class="['btn', 'btn-sm', btn.class || 'btn-secondary', 'ml-2']"
+        :disabled="btn.disabled ? btn.disabled(selectedIds) : false"
+        @click="() => btn.onClick(selectedIds)"
+        type="button"
+      >
+        <i v-if="btn.icon" :class="btn.icon"></i>
+        {{ btn.label }}
+        <span v-if="shouldShowCount(btn, selectedIds)"> ({{ selectedIds.length }}) </span>
+      </button>
+    </template>
+  </TableWithFilter>
+</template>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { ref } from 'vue'
 
-  import CardHeader from '@js/Components/Common/CardHeader.vue'
+  import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
   import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
   import { useExchangeRate } from '@js/composables/exchangeRate/useExchangeRate'
@@ -53,29 +53,7 @@
 </script>
 
 <template>
-  <div class="col-12">
-    <div class="card">
-      <CardHeader :title="title" :subtitle="subtitle" :btnCardHeader="btnCardHeader" />
+      <TableWithFilterBridge
 
-      <div class="card-body">
-        <ExchangeRateButtons
-          :currencies="currencies"
-          :creator="creator"
-          :selectedCurrency="selectedCurrency"
-          @create="create"
-          @historical="goHistorical"
-          @update="updateExchangeRates"
-        />
-
-        <ExchangeRateTable
-          :exchangeRates="exchangeRates"
-          :creator="creator"
-          :isLogged="isLogged"
-          @edit="edit"
-          @change-status="changeStatus"
-          @delete="remove"
-        />
-      </div>
-    </div>
-  </div>
+    />
 </template>
