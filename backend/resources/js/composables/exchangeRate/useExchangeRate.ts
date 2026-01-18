@@ -1,11 +1,5 @@
 import { ref, Ref } from 'vue'
 
-interface Creator {
-  type: string
-  id: string | number
-  // otros campos que pueda tener creator si los necesitas
-}
-
 interface UseExchangeRateReturn {
   loading: Ref<boolean>
   create: () => void
@@ -17,10 +11,10 @@ interface UseExchangeRateReturn {
 
 /**
  * Composable para manejar operaciones sobre tasas de cambio
- * @param {Creator} creator El creador (customer o user)
+ * @param {String} tokenId Token del usuario conectado por API
  * @returns {UseExchangeRateReturn} Funciones y estados para manejar exchange rate
  */
-export function useExchangeRate(creator: Creator): UseExchangeRateReturn {
+export function useExchangeRate(tokenId: String = ''): UseExchangeRateReturn {
   const loading = ref<boolean>(false)
 
   /**

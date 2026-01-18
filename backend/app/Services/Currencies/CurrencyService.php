@@ -7,6 +7,7 @@ use App\Contracts\Roles\RoleUserRepositoryInterface;
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
 use App\Contracts\UserRepositoryInterface;
 use App\Services\Roles\Commerce\CommerceCurrencyService;
+use App\Services\Roles\RoleUserService;
 use App\Services\Roles\Seller\SellerCurrencyService;
 
 class CurrencyService
@@ -17,6 +18,7 @@ class CurrencyService
         protected CommerceRepositoryInterface $commerceRepository,
         protected SellerRepositoryInterface $sellerRepository,
         protected CommerceCurrencyService $commerceCurrencyService,
+        protected RoleUserService $roleUserService
         // protected SellerCurrencyService $sellerCurrencyService,
     ) {}
 
@@ -28,7 +30,7 @@ class CurrencyService
      */
     public function getAvailableCurrencies(int $userId): array
     {
-        $userRolePrefix = $this->getActiveUserRolePrefix($userId);
+        $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
         if (!$userRolePrefix) {
             return [];
@@ -52,31 +54,6 @@ class CurrencyService
             default:
                 return [];
         }
-    }
-
-    /**
-     * Resuelve el prefijo del tipo de usuario.
-     *
-     * @param int $userId
-     * @return string|null
-     */
-    /**
-     * Resuelve el prefijo del tipo de usuario basándose en roles activos.
-     */
-    protected function getActiveUserRolePrefix(int $userId): ?string
-    {
-        // Obtener roles activos asignados al usuario
-        $activeRoles = $this->roleUserRepository->getActiveByUser($userId);
-
-        foreach ($activeRoles as $roleUser) {
-            $role = $roleUser->role;
-            if ($role && $role->prefix) {
-                // Retornamos el primer prefijo encontrado (ajustar lógica si hay más de uno)
-                return strtolower($role->prefix);
-            }
-        }
-
-        return null;
     }
 
     /**

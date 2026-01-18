@@ -5,17 +5,11 @@
   import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
   import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
   import { useExchangeRate } from '@js/composables/exchangeRate/useExchangeRate'
-  import type { ExchangeRate } from "@js/types/exchange-rate";
+  import type { ExchangeRatePageProps } from '@js/types/exchange-rate'
 
-  interface ExchangeRatePageProps {
-    title: string
-    subtitle?: string
-    btnCardHeader?: Record<string, unknown>
-    currencies: unknown[]
-    exchangeRates: ExchangeRate[]
-    isExternalUser: boolean
-  }
-
+  const title = 'Tasas de Cambio'
+  const subtitle = ''
+  const btnCardHeader = []
   /**
    * Props tipadas correctamente para Inertia
    */
@@ -25,13 +19,13 @@
    * Composable
    */
   const { loading, create, edit, changeStatus, remove, updateExchangeRates } = useExchangeRate(
-    props.creator
+    props.tokenId
   )
 
   /**
    * Estado local
    */
-  const selectedCurrency = ref<string | number | null>(null)
+  const selectedCurrency = ref<string | number>('')
 
   /**
    * Navega al histórico
@@ -39,7 +33,7 @@
   function goHistorical(): void {
     if (!selectedCurrency.value) return
 
-    const url = `/exchange-rate/historical/${selectedCurrency.value}?creatorType=${props.creator.type}&creatorId=${props.creator.id}`
+    const url = `/exchange-rate/historical/${selectedCurrency.value}?tokenId=${props.tokenId}`
     window.location.href = url
   }
 </script>
@@ -52,7 +46,6 @@
       <div class="card-body">
         <ExchangeRateButtons
           :currencies="currencies"
-          :creator="creator"
           :selectedCurrency="selectedCurrency"
           @create="create"
           @historical="goHistorical"
@@ -61,7 +54,7 @@
 
         <ExchangeRateTable
           :exchangeRates="exchangeRates"
-          :isExternalUser="isExternalUser"
+          :tokenId="tokenId"
           @edit="edit"
           @change-status="changeStatus"
           @delete="remove"

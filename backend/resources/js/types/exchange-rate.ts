@@ -15,3 +15,9 @@ export interface ExchangeRate {
     }
   }
 }
+
+export interface ExchangeRatePageProps {
+  currencies: Currency[]
+  exchangeRates: ExchangeRate[]
+  tokenId?: string
+}

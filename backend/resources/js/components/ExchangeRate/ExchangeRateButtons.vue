@@ -1,9 +1,11 @@
 <script setup lang="ts">
-const props = defineProps<{
-  currencies: { type: Array<T>; required: true };
-  isExternalUser: boolean;
-  selectedCurrency: { type: [String, Number, null]; default: null };
-}>();
+  import type { Currency } from '@/js/types/currency'
+
+  const props = defineProps<{
+    currencies: Currency[]
+    selectedCurrency: { type: string | number; default: '' }
+    tokenId?: string
+  }>()
 </script>
 
 <template>

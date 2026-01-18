@@ -21,6 +21,10 @@
          * Layout Blade por defecto
          */
         $layoutComponent = $page['props']['bladeLayout'] ?? 'layouts.layout-auth';
+
+        if ($page['props']['isLogged']) {
+            $layoutComponent = $isLogged ? 'layouts.layout-auth' : 'layouts.layout-guest';
+        }
     @endphp
 
     @if ($inertiaOnly)

@@ -4,8 +4,8 @@ namespace App\Services\ExchangeRate;
 
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateContextDTO;
-use App\Models\Currency;
 use App\Services\Currencies\CurrencyService;
+use App\Services\Roles\RoleUserService;
 use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +14,8 @@ class ExchangeRateContext
 {
     public function __construct(
         protected CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
-        protected CurrencyService $currency
+        protected CurrencyService $currency,
+        protected RoleUserService $roleUserService
     ) {}
 
     /**
@@ -35,27 +36,17 @@ class ExchangeRateContext
      */
     public function resolve(Request $request): ExchangeRateContextDTO
     {
-        [$user, $isLogged] = $this->resolveUser($request);
-
-        $commerce = $user->commerce
-            ?? throw new DomainException('Comercio no encontrado');
+        [$userId, $isLogged] = $this->resolveUser($request);
 
         if ($isLogged) {
             // Opción para actualizar tasas automáticamente para usuarios autenticados.
-            // app(ExchangeRateUpdater::class)->updateRates($user->id, true);
+            // app(ExchangeRateUpdater::class)->updateRates($userId);
         }
 
         return new ExchangeRateContextDTO(
-            isLogged: $isLogged,
-            bladeLayout: $isLogged ? 'layouts.layout-auth' : 'layouts.layout-guest',
-            title: 'Tasas de Cambio',
-            name: 'exchange-rate',
-            creator: [
-                'type' => 'commerce',
-                'id' => encrypt($commerce->id),
-            ],
-            currencies: $this->resolveAvailableCurrencies($user->id),
-            exchangeRates: $this->commerceExchangeRate->getAvailableExchangeRates($commerce->id)
+            currencies: $this->resolveAvailableCurrencies($userId),
+            exchangeRates: $this->resolveAvailableExchangeRates($userId),
+            tokenId: !$isLogged ? $userId : ''
         );
     }
 
@@ -65,20 +56,22 @@ class ExchangeRateContext
     private function resolveUser(Request $request): array
     {
         if (Auth::check()) {
-            return [Auth::user(), true];
+            return ['userId' => Auth::id(), 'isLogged' => true];
         }
 
-        $user = $request->attributes->get('public_user');
-        if (!$user) {
+        $userId = $request->attributes->get('public_user');
+        if (!$userId) {
             abort(404);
+        } else {
+            $userId = null;
         }
 
-        return [$user, false];
+        return ['userId' => $userId, 'isLogged' => false];
     }
 
     private function resolveAvailableCurrencies(int $userId): array
     {
-        // Obtener monedas disponibles para el usuario y filtrar el id 1
+        // Obtener monedas disponibles para el usuario
         $currencyIds = collect($this->currency->getAvailableCurrencies($userId))
             ->values()
             ->all();
@@ -88,5 +81,49 @@ class ExchangeRateContext
         }
 
         return $currencyIds;
+    }
+
+    private function resolveAvailableExchangeRates(int $userId): array
+    {
+        $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        if (!$userRolePrefix) {
+            return [];
+        }
+
+        switch ($userRolePrefix) {
+            case 'player': // Jugador
+                return $this->handlePlayerCurrencies($userId);
+
+            case 'admin':
+                // TODO: Definir lógica para admin si aplica
+                return [];
+
+            case 'commerce': // Comercio
+                return $this->handleCommerceCurrencies($userId);
+
+            case 'seller':
+            case 'customer': // Cliente
+                return $this->handleSellerCurrencies($userId);
+
+            default:
+                return [];
+        }
+
+        // Obtener tasas de cambio disponibles del usuario
+        $exchangeRatesIds = collect($this->currency->getAvailableCurrencies($userId))
+            ->values()
+            ->all();
+
+        if (empty($exchangeRatesIds)) {
+            return [];
+        }
+
+        return $exchangeRatesIds;
+    }
+
+    private function handleCommerceCurrencies($commerceId): array {
+       return $this->commerceExchangeRate->getAvailableExchangeRates($commerce->id)
+
     }
 }
