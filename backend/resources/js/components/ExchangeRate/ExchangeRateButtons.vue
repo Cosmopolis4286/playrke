@@ -1,17 +1,23 @@
 <script setup lang="ts">
+  import { computed } from 'vue'
   import type { Currency } from '@/js/types/currency'
 
   const props = defineProps<{
     currencies: Currency[]
+    roleUser: string
     selectedCurrency: Array<string>
-    tokenId?: string
   }>()
+
+  /**
+   * Indica si un usuario externo con token
+   */
+  const extUser = computed(() => props.roleUser === 'company' || props.roleUser === 'customer')
 </script>
 
 <template>
   <div class="mb-2">
     <button
-      v-if="currencies.length || tokenId"
+      v-if="currencies.length || extUser"
       @click="$emit('create')"
       class="btn btn-sm btn-success"
       type="button"

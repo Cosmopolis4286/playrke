@@ -2,30 +2,26 @@
 
 namespace App\DTOs\Roles\Admin\Commerce;
 
-final class AdminCommerceContextDTO
+use App\DTOs\Roles\Admin\AdminContextDTO;
+
+final class AdminCommerceContextDTO implements AdminContextDTO
 {
     public function __construct(
-        public readonly bool $isLogged,
-        public readonly string $bladeLayout,
-        public readonly string $title,
-        public readonly string $name,
-        public readonly bool $returnBtn,
-        public readonly array $creator,
-        public readonly array $currencies,
-        public readonly mixed $exchangeRates
+        public readonly object $commerces,
+        public readonly object $countries,
+        public readonly object $currencies,
+        public readonly object $games,
+        public readonly object $timeZones
     ) {}
 
     public function toView(): array
     {
         return [
-            'isLogged'       => $this->isLogged,
-            'bladeLayout'   => $this->bladeLayout,
-            'title'         => $this->title,
-            'name'          => $this->name,
-            'returnBtn'     => $this->returnBtn,
-            'creator'       => $this->creator,
-            'currencies'    => $this->currencies,
-            'exchangeRates' => $this->exchangeRates,
+            'commerces' => $this->commerces,
+            'countries' => $this->countries,
+            'currencies' => $this->currencies,
+            'games' => $this->games,
+            'timeZones' => $this->timeZones
         ];
     }
 }

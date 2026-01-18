@@ -7,7 +7,7 @@
    */
   const props = defineProps<{
     exchangeRates: ExchangeRate[]
-    tokenId?: string
+    roleUser: string
   }>()
 
   /**
@@ -22,7 +22,7 @@
   /**
    * Indica si un usuario externo con token
    */
-  const tokenId = computed(() => props.tokenId)
+  const extUser = computed(() => props.roleUser === 'company' || props.roleUser === 'customer')
 
   /**
    * Obtiene el ISO del país de forma segura
@@ -40,7 +40,7 @@
     <table class="table-striped table-bordered w-100 my-2 table">
       <thead>
         <tr>
-          <th v-if="!tokenId">País</th>
+          <th v-if="!extUser">País</th>
           <th>Moneda</th>
           <th>Cambio</th>
           <th>%</th>
@@ -52,18 +52,18 @@
       <tbody>
         <tr v-for="item in exchangeRates" :key="item.id">
           <!-- País -->
-          <td v-if="!tokenId">
+          <td v-if="!extUser">
             {{ item.Currency?.Country?.name || 'Todos' }}
           </td>
 
           <!-- Moneda -->
           <td>
-            {{ tokenId ? item.currency : item.Currency?.description }}
+            {{ extUser ? item.currency : item.Currency?.description }}
           </td>
 
           <!-- Cambio -->
           <td>
-            <template v-if="!tokenId">
+            <template v-if="!extUser">
               {{ item.Currency?.symbol }}
             </template>
             {{ item.exchange_rate }}
@@ -116,7 +116,7 @@
               </button>
 
               <button
-                v-if="tokenId"
+                v-if="extUser"
                 class="btn btn-sm btn-danger"
                 type="button"
                 title="Eliminar"

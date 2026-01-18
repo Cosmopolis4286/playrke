@@ -4,6 +4,7 @@
   const props = defineProps<{
     currencies: Currency[]
     selectedCurrency: Array<string>
+    roleUser: string
     tokenId?: string
   }>()
 </script>
@@ -11,11 +12,17 @@
 <template>
   <div class="form-group">
     <label for="currency">Divisa*</label>
-    @if ($creator['type'] === 'customer')
-    <input type="text" id="currency" class="form-control" name="currency" />
-    @else
-    <select id="currency" class="form-control" name="currency"></select>
-    @endif
+    <input
+      v-if="roleUser === 'company' || roleUser === 'customer'"
+      type="text"
+      id="currency"
+      class="form-control"
+      name="currency"
+    />
+    <select v-else v-model="selectedCurrency" id="currency" class="form-control" name="currency">
+      <option disabled value="">Seleccione una moneda</option>
+      <!-- <option v-for="(label, key) in source" :key="key" :value="key">{{ label }}</option> -->
+    </select>
   </div>
   <div class="form-group">
     <label for="exchange-rate">Cambio*</label>
@@ -27,7 +34,6 @@
       class="form-control"
       name="exchange_rate"
     />
-    <input type="hidden" id="creator" name="creator" value="{{ json_encode($creator) }}" />
   </div>
   <div
     id="alert-exchange-rate"

@@ -10,7 +10,8 @@
 </script>
 
 <template>
-  <Modal
+    <ExchangeRateForm/>
+  <!-- <Modal
 
-  />
+  /> -->
 </template>

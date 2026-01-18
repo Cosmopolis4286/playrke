@@ -2,16 +2,25 @@
 
 namespace App\Services\Roles\Admin;
 
+use App\Contracts\CountryRepositoryInterface;
+use App\Contracts\CurrencyRepositoryInterface;
+use App\Contracts\GameRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
-use App\DTOs\Roles\Admin\AdminCommerceContextDTO;
+use App\Contracts\TimeZoneRepositoryInterface;
+use App\DTOs\Roles\Admin\AdminContextDTO;
+use App\DTOs\Roles\Admin\Commerce\AdminCommerceContextDTO;
 use DomainException;
 
 class AdminContextService
 {
     public function __construct(
+        protected CountryRepositoryInterface $countries,
+        protected CurrencyRepositoryInterface $currencies,
         protected CommerceRepositoryInterface $commerces,
         protected CustomerRepositoryInterface $customers,
+        protected GameRepositoryInterface $games,
+        protected TimeZoneRepositoryInterface $timeZones
     ) {}
 
     /**
@@ -24,11 +33,11 @@ class AdminContextService
      * para el comercio asociado y listado de tasas de cambio.
      * Para usuarios públicos, muestra un layout de invitado y oculta las monedas.
      *
-     * @return \App\DTOs\Roles\Admin\Commerce\AdminCommerceContextDTO Contexto listo para la vista.
+     * @return \App\DTOs\Roles\Admin\AdminContextDTO Contexto listo para la vista.
      *
      * @throws \DomainException Si no se encuentra el comercio asociado al usuario.
      */
-    public function resolve(string $context): AdminCommerceContextDTO
+    public function resolve(string $context): AdminContextDTO
     {
         return match ($context) {
             'commerce' => $this->commerceContext(),
@@ -37,7 +46,7 @@ class AdminContextService
         };
     }
 
-    private function commerceContext()
+    private function commerceContext(): AdminCommerceContextDTO
     {
         $commerces = $this->commerces->getAllWithRelations([
             'country:id,name',
@@ -45,18 +54,15 @@ class AdminContextService
         ]);
 
         return new AdminCommerceContextDTO(
-            title: 'Tasas de Cambio',
-            currencies: $this->currencies->getActive(),
             commerces: $commerces,
             countries: $this->countries->getActive(),
+            currencies: $this->currencies->getActive(),
             games: $this->games->getActive(),
-            timeZones: $this->timeZones->getActive(),
-            enableFormCrud: true,
-            moduleFile: 'modules/users/roles/admin/commerce/form/commerceForm.ts',
+            timeZones: $this->timeZones->getActive()
         );
     }
 
-    private function customerContetx()
+    private function customerContetx(): AdminCommerceContextDTO
     {
         $customers = $this->customers->getAllWithRelations([
             'country:id,name',
@@ -64,14 +70,11 @@ class AdminContextService
         ]);
 
         return new AdminCommerceContextDTO(
-            title: 'Tasas de Cambio',
-            currencies: $this->currencies->getActive(),
-            customers: $customers,
+            commerces: $customers,
             countries: $this->countries->getActive(),
+            currencies: $this->currencies->getActive(),
             games: $this->games->getActive(),
-            timeZones: $this->timeZones->getActive(),
-            enableFormCrud: true,
-            moduleFile: 'modules/users/roles/admin/commerce/form/commerceForm.ts',
+            timeZones: $this->timeZones->getActive()
         );
     }
 }

@@ -56,8 +56,6 @@ class AdminController extends Controller
         ]);
     }
 
-
-
     /**
      * Vista de comercializadoras
      */
@@ -92,7 +90,8 @@ class AdminController extends Controller
     {
         return $this->handleService(function () {
             $context = $this->service->context('commerce');
-            return Inertia::render('Roles/Admin/Commerce/Index', $context->toView());
+
+            return Inertia::render('Roles/Admin/Commerce/Index', $context);
         }, 'No se pudo cargar la lista de comercializadoras.');
     }
 

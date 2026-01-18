@@ -28,6 +28,8 @@
     showDeleteButton?: boolean
   }>()
 
+  console.log('PRRPRPr', props)
+
   // Valores por defecto para props opcionales
   const searchPlaceholder = props.searchPlaceholder ?? 'Buscar en la tabla...'
   const debounceDelay = props.debounceDelay ?? 300
@@ -125,6 +127,7 @@
 
   // Formatear celda
   const formatCell = (row, column) => {
+    console.log('row', row, 'column', column)
     const value = getNestedValue(row, column.key)
 
     // Si la columna permite HTML, retornar directamente

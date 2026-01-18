@@ -44,9 +44,12 @@ class ExchangeRateContext
             // app(ExchangeRateUpdater::class)->updateRates($userId);
         }
 
+        $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId) ?? '';
+
         return new ExchangeRateContextDTO(
             currencies: $this->resolveAvailableCurrencies($userId),
-            exchangeRates: $this->resolveAvailableExchangeRates($userId),
+            exchangeRates: $this->resolveAvailableExchangeRates($userRolePrefix, $userId),
+            roleUser: $userRolePrefix,
             tokenId: !$isLogged ? $userId : ''
         );
     }
@@ -83,14 +86,8 @@ class ExchangeRateContext
         return $currencyIds;
     }
 
-    private function resolveAvailableExchangeRates(int $userId): Collection
+    private function resolveAvailableExchangeRates(string $userRolePrefix, int $userId): Collection
     {
-        $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
-
-        if (!$userRolePrefix) {
-            return collect();
-        }
-
         switch ($userRolePrefix) {
             case 'admin': // Administrador
                 // TODO: Definir lógica para admin si aplica

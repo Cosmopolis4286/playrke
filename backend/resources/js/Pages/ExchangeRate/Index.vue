@@ -46,15 +46,16 @@
       <div class="card-body">
         <ExchangeRateButtons
           :currencies="currencies"
-          :selectedCurrency="selectedCurrency"
+          :role-user="roleUser"
+          :selected-currency="selectedCurrency"
           @create="create"
           @historical="goHistorical"
           @update="updateExchangeRates"
         />
 
         <ExchangeRateTable
-          :exchangeRates="exchangeRates"
-          :tokenId="tokenId"
+          :exchange-rates="exchangeRates"
+          :role-user="roleUser"
           @edit="edit"
           @change-status="changeStatus"
           @delete="remove"

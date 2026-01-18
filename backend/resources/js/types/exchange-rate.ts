@@ -19,5 +19,6 @@ export interface ExchangeRate {
 export interface ExchangeRatePageProps {
   currencies: Currency[]
   exchangeRates: ExchangeRate[]
+  roleUser: string
   tokenId?: string
 }

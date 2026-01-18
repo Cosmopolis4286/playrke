@@ -17,6 +17,8 @@
    */
   const props = defineProps<AdminCommercePageProps>()
 
+  console.log('props', props)
+
   const commerces = props.commerces
 
   const countryOptions = computed<Option[]>
