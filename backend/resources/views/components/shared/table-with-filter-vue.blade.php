@@ -17,10 +17,7 @@
 
         <script>
             document.addEventListener('DOMContentLoaded', () => {
-                window.initTableFilterBridge?.(
-                    '{{ $tableId }}',
-                    '{{ $moduleId }}'
-                );
+                window.initTableFilterBridge?.('{{ $tableId }}', '{{ $moduleId }}');
             });
         </script>
     @endpush

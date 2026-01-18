@@ -1,35 +1,7 @@
 <script setup lang="ts">
   import { computed, ref } from 'vue'
   import TableWithFilter from './TableWithFilter.vue'
-
-  /**
-   * Estructura para los botones extra que se muestran en la tabla.
-   */
-  interface ExtraButton {
-    /** Texto visible en el botón */
-    label: string
-    /** Clases CSS para ícono (FontAwesome, etc.) */
-    icon?: string
-    /** Clases CSS para el botón (ej: 'btn-info') */
-    class?: string
-    /**
-     * Controla si el botón se muestra.
-     * Puede ser booleano o función que recibe IDs seleccionados.
-     */
-    show?: boolean | ((selectedIds: string[]) => boolean)
-    /**
-     * Controla si el botón está deshabilitado.
-     * Recibe IDs seleccionados y retorna booleano.
-     */
-    disabled?: (selectedIds: string[]) => boolean
-    /** Nombre de la acción que realizará el botón */
-    action?: string
-    /**
-     * Función que se ejecuta al hacer click en el botón.
-     * Recibe los IDs seleccionados.
-     */
-    onClick: (selectedIds: string[]) => void
-  }
+  import type { ExtraButton } from '@js/types/common/table/extra-buttons'
 
   /** Props recibidas desde el componente padre */
   const props = defineProps({

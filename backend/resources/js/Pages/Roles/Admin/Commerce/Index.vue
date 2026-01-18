@@ -1,59 +1,77 @@
 <script setup lang="ts">
-  import { ref } from 'vue'
-
+  import { computed } from 'vue'
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
-  import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
-  import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
-  import { useExchangeRate } from '@js/composables/exchangeRate/useExchangeRate'
+  import type { AdminCommercePageProps } from '@js/types/roles/admin/admin-commerce'
+  import type { ExtraButton } from '@js/types/common/table/extra-buttons'
 
   /**
    * Tipos locales
    */
-  interface Creator {
-    type: string
-    id: string | number
-  }
-
-  interface ExchangeRatePageProps {
-    title: string
-    subtitle?: string
-    btnCardHeader?: Record<string, unknown>
-    currencies: unknown[]
-    creator: Creator
-    exchangeRates: unknown[]
-    isLogged: boolean
+  interface Option {
+    value: string
+    label: string
   }
 
   /**
    * Props tipadas correctamente para Inertia
    */
-  const props = defineProps<ExchangeRatePageProps>()
+  const props = defineProps<AdminCommercePageProps>()
+
+  const commerces = props.commerces
+
+  const countryOptions = computed<Option[]>
+  props.countries.map(c => ({
+    value: c.name,
+    label: c.name
+  }))
+
+  const filters = [
+    {
+      key: 'country_name',
+      label: 'País',
+      placeholder: 'Filtrar por país',
+      options: countryOptions
+    },
+    {
+      key: 'status',
+      label: 'Estado',
+      placeholder: 'Filtrar por estado',
+      options: [
+        { value: 'ACTIVE', label: 'Activo' },
+        { value: 'INACTIVE', label: 'Inactivo' },
+        { value: 'DELETED', label: 'Eliminado' }
+      ] as Option[]
+    }
+  ]
+
+  const extraButtons: ExtraButton[] = [
+    {
+      label: '',
+      icon: 'fas fa-exchange-alt',
+      class: 'btn-secondary',
+      show: false,
+      action: 'changeStatus'
+    },
+    { label: '', icon: 'fas fa-key', class: 'btn-dark', show: false, action: 'resetPassword' }
+  ]
 
   /**
    * Composable
    */
-  const { loading, create, edit, changeStatus, remove, updateExchangeRates } = useExchangeRate(
-    props.creator
-  )
-
-  /**
-   * Estado local
-   */
-  const selectedCurrency = ref<string | number | null>(null)
-
-  /**
-   * Navega al histórico
-   */
-  function goHistorical(): void {
-    if (!selectedCurrency.value) return
-
-    const url = `/exchange-rate/historical/${selectedCurrency.value}?creatorType=${props.creator.type}&creatorId=${props.creator.id}`
-    window.location.href = url
-  }
+  //   const { loading, create, edit, changeStatus, remove, updateAdminCommerces } = useAdminCommerce(
+  //     props.creator
+  //   )
 </script>
 
 <template>
-      <TableWithFilterBridge
-
-    />
+  <TableWithFilterBridge
+    tableId="commerce-table"
+    title="Comercializadoras"
+    :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']"
+    :rows="commerces"
+    :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
+    :filters="filters"
+    search-placeholder="Buscar por nombre, email, teléfono..."
+    :extra-buttons="extraButtons"
+  />
 </template>
