@@ -22,8 +22,8 @@
          */
         $layoutComponent = $page['props']['bladeLayout'] ?? 'layouts.layout-auth';
 
-        if ($page['props']['isLogged']) {
-            $layoutComponent = $isLogged ? 'layouts.layout-auth' : 'layouts.layout-guest';
+        if (isset($page['props']['isLogged'])) {
+            $layoutComponent = $page['props']['isLogged'] ? 'layouts.layout-auth' : 'layouts.layout-guest';
         }
     @endphp
 

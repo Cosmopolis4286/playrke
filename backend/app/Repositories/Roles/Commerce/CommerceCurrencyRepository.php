@@ -26,52 +26,14 @@ class CommerceCurrencyRepository extends BaseRepository implements CommerceCurre
      * Obtiene monedas disponibles para un comercio
      *
      * @param mixed $commerceId ID del comercio
-     * @param mixed|null $exceptCurrencyId ID de moneda a excluir
      * @return array
      */
-    public function getAvailableCurrencies($commerceId, $exceptCurrencyId = null): array
+    public function getAvailableCurrencies($commerceId): array
     {
-        $query = $this->model->select('currency_id')
-            ->where('commerce_id', $commerceId)
-            ->where('status', 'ACTIVE');
-
-        if ($exceptCurrencyId !== null) {
-            $query->where('currency_id', '<>', $exceptCurrencyId);
-        }
-
-        return $query->distinct()->pluck('currency_id')->toArray();
-    }
-
-    /**
-     * Obtiene todos los países y monedas disponibles para un comercio
-     *
-     * @param mixed $commerceId ID del comercio
-     * @param array $fields Campos a seleccionar
-     * @return Collection
-     */
-    public function getAllAvailableCountriesCurrencies($commerceId, array $fields = ['*']): Collection
-    {
-        return $this->model->select($fields)
+        return $this->model->select('currency_id')
             ->where('commerce_id', $commerceId)
             ->where('status', 'ACTIVE')
-            ->orderBy('country_id')
-            ->get();
-    }
-
-    /**
-     * Obtiene países disponibles para un comercio
-     *
-     * @param mixed $commerceId ID del comercio
-     * @return array
-     */
-    public function getAvailableCountries($commerceId): array
-    {
-        return $this->model->select('country_id')
-            ->where('commerce_id', $commerceId)
-            ->where('status', 'ACTIVE')
-            ->distinct()
-            ->pluck('country_id')
-            ->toArray();
+            ->distinct()->pluck('currency_id')->toArray();
     }
 
     /**
@@ -86,17 +48,6 @@ class CommerceCurrencyRepository extends BaseRepository implements CommerceCurre
     }
 
     /**
-     * Obtiene registros por país
-     *
-     * @param mixed $countryId ID del país
-     * @return Collection
-     */
-    public function getByCountry($countryId): Collection
-    {
-        return $this->model->where('country_id', $countryId)->get();
-    }
-
-    /**
      * Obtiene registros por moneda
      *
      * @param mixed $currencyId ID de la moneda
@@ -105,17 +56,6 @@ class CommerceCurrencyRepository extends BaseRepository implements CommerceCurre
     public function getByCurrency($currencyId): Collection
     {
         return $this->model->where('currency_id', $currencyId)->get();
-    }
-
-    /**
-     * Obtiene registros por usuario creador
-     *
-     * @param mixed $creatorUserId ID del usuario creador
-     * @return Collection
-     */
-    public function getByCreatorUser($creatorUserId): Collection
-    {
-        return $this->model->where('creator_user_id', $creatorUserId)->get();
     }
 
     /**
@@ -147,22 +87,6 @@ class CommerceCurrencyRepository extends BaseRepository implements CommerceCurre
     public function getInactiveRecords(): Collection
     {
         return $this->model->where('status', 'INACTIVE')->get();
-    }
-
-    /**
-     * Verifica si existe combinación comercio-país-moneda
-     *
-     * @param mixed $commerceId ID del comercio
-     * @param mixed $countryId ID del país
-     * @param mixed $currencyId ID de la moneda
-     * @return bool
-     */
-    public function existsCombination($commerceId, $countryId, $currencyId): bool
-    {
-        return $this->model->where('commerce_id', $commerceId)
-            ->where('country_id', $countryId)
-            ->where('currency_id', $currencyId)
-            ->exists();
     }
 
     /**

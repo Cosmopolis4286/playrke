@@ -25,7 +25,7 @@
   /**
    * Estado local
    */
-  const selectedCurrency = ref<string | number>('')
+  const selectedCurrency = ref<Array<string>>([''])
 
   /**
    * Navega al histórico

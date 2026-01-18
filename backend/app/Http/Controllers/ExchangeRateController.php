@@ -6,8 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\ExchangeRate\ExchangeRateService;
 use App\Traits\Users\UserTrait;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
-use App\Http\Requests\StoreExchangeRateRequest;
-use App\Http\Requests\UpdateExchangeRateRequest;
+use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -36,8 +35,6 @@ class ExchangeRateController extends Controller
         return $this->handleService(function () use ($request) {
             $context = $this->service->context($request);
 
-            dd($context);
-
             return Inertia::render('ExchangeRate/Index', $context->toView());
         }, 'No se pudo cargar la lista de tasas de cambios.');
     }
@@ -45,7 +42,7 @@ class ExchangeRateController extends Controller
     /**
      * Crear tasa de cambio
      */
-    public function store(StoreExchangeRateRequest $request): RedirectResponse
+    public function store(ExchangeRateRequest $request): RedirectResponse
     {
         $this->service->create(
             ExchangeRateDTO::fromRequest($request)
@@ -57,7 +54,7 @@ class ExchangeRateController extends Controller
     /**
      * Actualizar tasa de cambio
      */
-    public function update(UpdateExchangeRateRequest $request, string $payload): RedirectResponse
+    public function update(ExchangeRateRequest $request, string $payload): RedirectResponse
     {
         $this->service->update(
             ExchangeRateDTO::fromPayload($payload, $request)

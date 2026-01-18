@@ -3,7 +3,7 @@
 
   const props = defineProps<{
     currencies: Currency[]
-    selectedCurrency: { type: string | number; default: '' }
+    selectedCurrency: Array<string>
     tokenId?: string
   }>()
 </script>
@@ -11,7 +11,7 @@
 <template>
   <div class="mb-2">
     <button
-      v-if="currencies.length || creator.type === 'customer'"
+      v-if="currencies.length || tokenId"
       @click="$emit('create')"
       class="btn btn-sm btn-success"
       type="button"

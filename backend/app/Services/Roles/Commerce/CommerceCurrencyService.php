@@ -16,16 +16,15 @@ class CommerceCurrencyService
      * Obtiene monedas disponibles para un comercio, opcionalmente excluyendo una moneda.
      *
      * @param mixed $commerceId ID del comercio.
-     * @param mixed|null $exceptCurrencyId ID de moneda a excluir (opcional).
      * @return array Lista de IDs de monedas disponibles.
      */
-    public function getAvailableCurrencies($commerceId, $exceptCurrencyId = null): array
+    public function getAvailableCurrencies($commerceId): array
     {
         if (!$commerceId) {
             throw new DomainException('El ID del comercio es requerido.');
         }
 
-        return $this->repository->getAvailableCurrencies($commerceId, $exceptCurrencyId);
+        return $this->repository->getAvailableCurrencies($commerceId);
     }
 
     /**

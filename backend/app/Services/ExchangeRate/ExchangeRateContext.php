@@ -7,6 +7,7 @@ use App\DTOs\ExchangeRate\ExchangeRateContextDTO;
 use App\Services\Currencies\CurrencyService;
 use App\Services\Roles\RoleUserService;
 use DomainException;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -56,17 +57,16 @@ class ExchangeRateContext
     private function resolveUser(Request $request): array
     {
         if (Auth::check()) {
-            return ['userId' => Auth::id(), 'isLogged' => true];
+            return [Auth::id(), true];
         }
 
         $userId = $request->attributes->get('public_user');
+
         if (!$userId) {
             abort(404);
-        } else {
-            $userId = null;
         }
 
-        return ['userId' => $userId, 'isLogged' => false];
+        return [$userId, false];
     }
 
     private function resolveAvailableCurrencies(int $userId): array
@@ -83,47 +83,43 @@ class ExchangeRateContext
         return $currencyIds;
     }
 
-    private function resolveAvailableExchangeRates(int $userId): array
+    private function resolveAvailableExchangeRates(int $userId): Collection
     {
         $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
         if (!$userRolePrefix) {
-            return [];
+            return collect();
         }
 
         switch ($userRolePrefix) {
-            case 'player': // Jugador
-                return $this->handlePlayerCurrencies($userId);
-
-            case 'admin':
+            case 'admin': // Administrador
                 // TODO: Definir lógica para admin si aplica
-                return [];
-
+                return  collect();
             case 'commerce': // Comercio
-                return $this->handleCommerceCurrencies($userId);
-
-            case 'seller':
+                return $this->handleCommerceExchangeRates($userId);
             case 'customer': // Cliente
-                return $this->handleSellerCurrencies($userId);
-
+                return collect();
+            case 'player': // Jugador
+                return $this->handlePlayerExchangeRates($userId);
+            case 'seller': // Vendedor
+                return $this->handleSellerExchangeRates($userId);
             default:
-                return [];
+                return  collect();
         }
-
-        // Obtener tasas de cambio disponibles del usuario
-        $exchangeRatesIds = collect($this->currency->getAvailableCurrencies($userId))
-            ->values()
-            ->all();
-
-        if (empty($exchangeRatesIds)) {
-            return [];
-        }
-
-        return $exchangeRatesIds;
     }
 
-    private function handleCommerceCurrencies($commerceId): array {
-       return $this->commerceExchangeRate->getAvailableExchangeRates($commerce->id)
+    private function handlePlayerExchangeRates(int $userId): Collection
+    {
+        return $this->commerceExchangeRate->getAvailableExchangeRates($userId);
+    }
 
+    private function handleSellerExchangeRates(int $sellerId): Collection
+    {
+        return collect();
+    }
+
+    private function handleCommerceExchangeRates(int $commerceId): Collection
+    {
+        return $this->commerceExchangeRate->getAvailableExchangeRates($commerceId);
     }
 }
