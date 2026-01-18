@@ -4,6 +4,7 @@
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
   import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
+  import ExchangeRateModalForm from '@js/Components/ExchangeRate/ExchangeRateModalForm.vue'
   import { useExchangeRate } from '@js/composables/exchangeRate/useExchangeRate'
   import type { ExchangeRatePageProps } from '@js/types/exchange-rate'
 
@@ -60,4 +61,5 @@
       </div>
     </div>
   </div>
+  <ExchangeRateModalForm />
 </template>

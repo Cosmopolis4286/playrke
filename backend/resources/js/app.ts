@@ -1,6 +1,5 @@
 // js/app.ts
 import '@js/utils/mounApp' // loader / wrapper global (side effects controlados)
-
 import Alpine from 'alpinejs'
 import { tableSelection } from '@js/alpine/tableSelection'
 import { loadModule } from '@js/helpers/module/loadModule'
