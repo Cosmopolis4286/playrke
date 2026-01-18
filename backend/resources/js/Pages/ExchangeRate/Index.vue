@@ -9,6 +9,7 @@
   import type { ExchangeRatePageProps } from '@js/types/exchange-rate'
 
   const title = 'Tasas de Cambio'
+
   /**
    * Props tipadas correctamente para Inertia
    */

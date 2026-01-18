@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Contracts\SettingRepositoryInterface;
 use App\Http\Controllers\Controller;
 use App\Models\Currency;
 use App\Models\User;
@@ -22,18 +23,29 @@ use Inertia\Response;
 class RegisteredUserController extends Controller
 {
     /**
+     * Inyecta el repositorio en el constructor
+     */
+    public function __construct(
+        protected SettingRepositoryInterface $settings
+    ) {}
+
+    /**
      * Display the registration view.
      */
-    public function create(): Response
+    public function create(): Response|RedirectResponse
     {
         // Obtener países activos con solo id y name
         $countries = app(CountryRepository::class)->getActive()->all(['id', 'name']);
+        $register = $this->settings->getParameterStatus('REGISTER');
+
+        if (!$register) {
+            return redirect()->route('login');
+        }
 
         return Inertia::render('Auth/Register', [
             'inertiaOnly' => true,
             'countries' => $countries,
-            'registerUrl' => route('register'),
-            'loginUrl' => route('login'),
+            'register' => (bool) $register,
         ]);
     }
 

@@ -4,6 +4,13 @@
   import { useLogin } from '@js/composables/auth/useLogin'
   import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
 
+  /**
+   * Props tipadas correctamente para Inertia
+   */
+  const props = defineProps<{
+    register: Boolean
+  }>()
+
   const { form, errors, loading, isBusy, submit } = useLogin()
   const { showPassword, togglePassword } = usePasswordToggle()
 </script>
@@ -51,7 +58,7 @@
           </button>
         </fieldset>
         <button type="submit" class="auth-form__submit" :disabled="isBusy">
-          <span class="auth-form__submit-text">Iniciar sesión</span>
+          <span class="auth-form__submit-text">Iniciar Sesión</span>
           <span v-if="loading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
         </button>
         <p class="auth-form__helper">
@@ -59,7 +66,7 @@
         </p>
       </form>
     </template>
-    <template #footer-content>
+    <template v-if="register" #footer-content>
       <Link href="/register" class="auth-footer__link">
         <span>¿No tienes una cuenta?</span>
         <strong>Crear una</strong>

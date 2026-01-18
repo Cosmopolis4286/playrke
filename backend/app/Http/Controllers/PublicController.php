@@ -15,17 +15,11 @@ use Illuminate\Support\Facades\View;
 class PublicController extends Controller
 {
     /**
-     * @var SettingRepositoryInterface
-     */
-    protected SettingRepositoryInterface $settings;
-
-    /**
      * Inyecta el repositorio en el constructor
      */
-    public function __construct(SettingRepositoryInterface $settings)
-    {
-        $this->settings = $settings;
-    }
+    public function __construct(
+        protected SettingRepositoryInterface $settings
+    ) {}
 
     /**
      * Página de inicio / login con estado de registro
@@ -36,13 +30,7 @@ class PublicController extends Controller
 
         return Inertia::render('Auth/Login', [
             'inertiaOnly' => true,
-            // 'register' => (bool) $register,
-            // 'loginUrl' => route('login'),
-            // 'passwordRequestUrl' => route('password.request'),
-            // 'registerUrl' => route('register'),
-            // 'html' => View::make('auth.login', [
-            //     'register' => $register,
-            // ])->render(),
+            'register' => (bool) $register,
         ]);
     }
 

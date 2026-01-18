@@ -3,49 +3,24 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
-use App\Models\Country;
-use App\Models\Currency;
-use App\Repositories\CurrencyRepository;
-use App\Repositories\CountryRepository;
-use App\Contracts\SettingRepositoryInterface;
 
+use App\Http\Requests\Auth\LoginRequest;
+use App\Models\{Country, Currency};
+use App\Repositories\{CountryRepository, CurrencyRepository};
+use App\Contracts\SettingRepositoryInterface;
 use Illuminate\Http\{Request, JsonResponse};
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
-use Illuminate\Support\Facades\View;
 
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * @var SettingRepositoryInterface
-     */
-    protected SettingRepositoryInterface $settings;
-
-    /**
      * Inyecta el repositorio en el constructor
      */
-    public function __construct(SettingRepositoryInterface $settings)
-    {
-        $this->settings = $settings;
-    }
-
-    // /**
-    //  * Display the login view.
-    //  * Ya no se usa - Nuxt maneja las vistas
-    //  */
-    // public function create(): JsonResponse
-    // {
-    //     $register = (new SettingRepository(new Setting()))->getParameterStatus('REGISTER');
-
-    //     return response()->json([
-    //         'register' => (bool)$register,
-    //         'loginUrl' => route('login'),
-    //         'passwordRequestUrl' => route('password.request'),
-    //         'registerUrl' => route('register'),
-    //     ]);
-    // }
+    public function __construct(
+        protected SettingRepositoryInterface $settings
+    ) {}
 
     /**
      * Página de inicio / login con estado de registro
@@ -56,13 +31,7 @@ class AuthenticatedSessionController extends Controller
 
         return Inertia::render('Auth/Login', [
             'inertiaOnly' => true,
-            // 'register' => (bool) $register,
-            // 'loginUrl' => route('login'),
-            // 'passwordRequestUrl' => route('password.request'),
-            // 'registerUrl' => route('register'),
-            // 'html' => View::make('auth.login', [
-            //     'register' => $register,
-            // ])->render(),
+            'register' => (bool) $register,
         ]);
     }
 
@@ -108,25 +77,25 @@ class AuthenticatedSessionController extends Controller
         // Retornar JSON con datos del usuario para Nuxt
         return response()->json([
             'success' => true,
-            'user' => [
-                'id' => (string)$user->id,
-                'username' => $user->username,
-                'first_name' => $user->first_name,
-                'last_name' => $user->last_name,
-                'email' => $user->email,
-                'avatar' => $user->avatar ?? null,
-                'roles' => [$userRole], // Roles como array de strings
-                'permissions' => [], // TODO: obtener permisos reales
-                'status' => $user->status ?? 'active',
-                'email_verified_at' => $user->email_verified_at?->toISOString(),
-                'created_at' => $user->created_at?->toISOString(),
-                'updated_at' => $user->updated_at?->toISOString(),
-            ],
-            'session' => [
-                'countryCode' => $countryIsoCode,
-                'currency' => $currency,
-                'userRole' => $userRole,
-            ]
+            // 'user' => [
+            //     'id' => (string)$user->id,
+            //     'username' => $user->username,
+            //     'first_name' => $user->first_name,
+            //     'last_name' => $user->last_name,
+            //     'email' => $user->email,
+            //     'avatar' => $user->avatar ?? null,
+            //     'roles' => [$userRole], // Roles como array de strings
+            //     'permissions' => [], // TODO: obtener permisos reales
+            //     'status' => $user->status ?? 'active',
+            //     'email_verified_at' => $user->email_verified_at?->toISOString(),
+            //     'created_at' => $user->created_at?->toISOString(),
+            //     'updated_at' => $user->updated_at?->toISOString(),
+            // ],
+            // 'session' => [
+            //     'countryCode' => $countryIsoCode,
+            //     'currency' => $currency,
+            //     'userRole' => $userRole,
+            // ]
         ]);
     }
 
