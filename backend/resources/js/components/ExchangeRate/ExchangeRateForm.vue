@@ -1,12 +1,13 @@
 <script setup lang="ts">
-  import type { Currency } from '@/js/types/currency'
+import type { Currency } from "@/js/types/currency";
 
-  const props = defineProps<{
-    currencies: Currency[]
-    selectedCurrency: Array<string>
-    roleUser: string
-    tokenId?: string
-  }>()
+const props = defineProps<{
+  currencies: Currency[];
+  selectedCurrency: Array<string>;
+  roleUser: string;
+  tokenId?: string;
+}>();
+console.log(props.currencies);
 </script>
 
 <template>
@@ -19,9 +20,11 @@
       class="form-control"
       name="currency"
     />
-    <select v-else  id="currency" class="form-control" name="currency">
+    <select v-else id="currency" class="form-control" name="currency">
       <option disabled value="">Seleccione una moneda</option>
-      <!-- <option v-for="(label, key) in source" :key="key" :value="key">{{ label }}</option> -->
+      <option v-for="(label, key) in currencies" :key="key" :value="key">
+        {{ label }}
+      </option>
     </select>
   </div>
   <div class="form-group">

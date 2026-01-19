@@ -1,15 +1,12 @@
 <script setup lang="ts">
-  interface BtnCardHeader {
-    icon?: string
-    route?: string
-  }
+  import { CardHeaderPageProps } from '@/js/types/common/card/card'
 
-  const props = defineProps<{
-    btnCardHeader: BtnCardHeader
-    returnBtn: { type: Boolean; default: true }
-    subtitle: string
-    title: string
-  }>()
+  /**
+   * Props tipadas correctamente para Inertia
+   */
+  const props = withDefaults(defineProps<CardHeaderPageProps>(), {
+    returnBtn: true
+  })
 </script>
 
 <template>

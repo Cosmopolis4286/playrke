@@ -4,9 +4,10 @@ import { ref } from "vue";
 import CardHeader from "@js/Components/Common/Card/CardHeader.vue";
 import ExchangeRateButtons from "@js/Components/ExchangeRate/ExchangeRateButtons.vue";
 import ExchangeRateTable from "@js/Components/ExchangeRate/ExchangeRateTable.vue";
-import ExchangeRateModalForm from "@js/Components/ExchangeRate/ExchangeRateModalForm.vue";
 import { useExchangeRate } from "@js/composables/exchangeRate/useExchangeRate";
 import type { ExchangeRatePageProps } from "@js/types/exchange-rate";
+import Modal from "@/js/Components/Common/Modal/Modal.vue";
+import ExchangeRateForm from "@/js/Components/ExchangeRate/ExchangeRateForm.vue";
 
 /**
  * Props tipadas correctamente para Inertia
@@ -18,6 +19,8 @@ const props = defineProps<ExchangeRatePageProps>();
  */
 const {
   loading,
+  showModalForm,
+  submit,
   create,
   edit,
   changeStatus,
@@ -29,8 +32,6 @@ const {
  * Estado local
  */
 const selectedCurrency = ref<Array<string>>([""]);
-
-const showModalForm = ref<Boolean>(false);
 
 /**
  * Navega al histórico
@@ -68,5 +69,18 @@ function goHistorical(): void {
       </div>
     </div>
   </div>
-  <ExchangeRateModalForm v-if="showModalForm" />
+  <Modal
+    v-model="showModalForm"
+    title="Nueva tasa"
+    show-confirm
+    :loading="loading"
+    :on-submit="submit"
+  >
+    <ExchangeRateForm
+      :currencies="currencies"
+      :selected-currency="selectedCurrency"
+      :role-user="roleUser"
+      :token-id="tokenId"
+    />
+  </Modal>
 </template>
