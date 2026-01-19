@@ -11,7 +11,7 @@
 
 @section('content')
     <div class="container-fluid">
-        <div class="col-12 @if ($layout === 'layouts.layout-guest') mt-2 @endif">
+        <div class="col-12 @if ($layout === 'layouts.guest-layout') mt-2 @endif">
             <div id="container-spinner" class="mt-1">
                 <div class="spinner-border text-primary" role="status">
                     <span class="sr-only"></span>

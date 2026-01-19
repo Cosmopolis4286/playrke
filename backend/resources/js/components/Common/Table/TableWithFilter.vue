@@ -2,6 +2,7 @@
   import { ref, computed } from 'vue'
   import TableFilter from './TableFilter.vue'
   import CardHeader from '../Card/CardHeader.vue'
+  import { Column } from '@/js/types/common/table/table'
 
   interface FilterOption {
     label: string
@@ -17,7 +18,7 @@
   const props = defineProps<{
     tableId: string
     title: string
-    columns: Array<{ key: string; label: string; sortable?: boolean; html?: boolean }>
+    columns: Column[]
     rows: Array<Record<string, any>>
     filters?: Filter[]
     searchPlaceholder?: string
@@ -28,7 +29,7 @@
     showDeleteButton?: boolean
   }>()
 
-  console.log('PRRPRPr', props)
+  console.log('columns', props.columns)
 
   // Valores por defecto para props opcionales
   const searchPlaceholder = props.searchPlaceholder ?? 'Buscar en la tabla...'
@@ -51,6 +52,7 @@
   const filteredRows = computed(() => {
     let result = [...props.rows]
 
+    console.log('result', result)
     // Aplicar búsqueda
     if (currentFilters.value.search) {
       const searchLower = currentFilters.value.search.toLowerCase()
@@ -127,7 +129,6 @@
 
   // Formatear celda
   const formatCell = (row, column) => {
-    console.log('row', row, 'column', column)
     const value = getNestedValue(row, column.key)
 
     // Si la columna permite HTML, retornar directamente
@@ -206,8 +207,8 @@
                   :indeterminate.prop="someSelected"
                 />
               </th>
-              <th v-for="column in columns" :key="column.key">
-                {{ column.label }}
+              <th v-for="column in columns">
+                {{ column.label || column }}
               </th>
             </tr>
           </thead>

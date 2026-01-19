@@ -20,10 +20,10 @@
         /**
          * Layout Blade por defecto
          */
-        $layoutComponent = $page['props']['bladeLayout'] ?? 'layouts.layout-auth';
+        $layoutComponent = $page['props']['bladeLayout'] ?? 'layouts.auth-layout';
 
         if (isset($page['props']['isLogged'])) {
-            $layoutComponent = $page['props']['isLogged'] ? 'layouts.layout-auth' : 'layouts.layout-guest';
+            $layoutComponent = $page['props']['isLogged'] ? 'layouts.auth-layout' : 'layouts.guest-layout';
         }
     @endphp
 

@@ -1,4 +1,4 @@
-<x-layouts.layout-auth :title="$title" loadSelect2="true">
+<x-layouts.auth-layout :title="$title" loadSelect2="true">
     {{-- Tabla de comercios con Vue + Filtros --}}
     <x-shared.table-with-filter-vue
         :title="$title"
@@ -42,4 +42,4 @@
             </script>
         @endpush
     @endonce
-</x-layouts.layout-auth>
+</x-layouts.auth-layout>

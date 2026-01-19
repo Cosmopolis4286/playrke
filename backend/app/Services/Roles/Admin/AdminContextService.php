@@ -10,6 +10,7 @@ use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\TimeZoneRepositoryInterface;
 use App\DTOs\Roles\Admin\AdminContextDTO;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceContextDTO;
+use App\DTOs\Roles\Admin\Customer\AdminCustomerContextDTO;
 use DomainException;
 
 class AdminContextService
@@ -48,28 +49,31 @@ class AdminContextService
 
     private function commerceContext(): AdminCommerceContextDTO
     {
-        $commerces = $this->commerces->getAllWithRelations([
-            'country:id,name',
-            'user:id,email',
-        ]);
+        $commerces = $this->commerces->getAllWithRelations(
+            [
+                'country:id,name',
+                'user:id,email',
+            ],
+            ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
+        );
 
         return new AdminCommerceContextDTO(
             commerces: $commerces,
-            countries: $this->countries->getActive(),
-            currencies: $this->currencies->getActive(),
-            games: $this->games->getActive(),
-            timeZones: $this->timeZones->getActive()
+            countries: $this->countries->getActive(['id', 'name']),
+            currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
+            games: $this->games->getActive(['id', 'name']),
+            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id'])
         );
     }
 
-    private function customerContetx(): AdminCommerceContextDTO
+    private function customerContetx(): AdminCustomerContextDTO
     {
         $customers = $this->customers->getAllWithRelations([
             'country:id,name',
             'user:id,email',
         ]);
 
-        return new AdminCommerceContextDTO(
+        return new AdminCustomerContextDTO(
             commerces: $customers,
             countries: $this->countries->getActive(),
             currencies: $this->currencies->getActive(),

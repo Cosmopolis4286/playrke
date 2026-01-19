@@ -1,4 +1,4 @@
-@extends('layouts.layout-auth')
+@extends('layouts.auth-layout')
 @section('title', $title)
 @section('content')
     <div class="col-12">

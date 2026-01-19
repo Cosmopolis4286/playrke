@@ -1,30 +1,11 @@
 // js/app.ts
-import '@js/utils/mounApp' // loader / wrapper global (side effects controlados)
-import Alpine from 'alpinejs'
-import { tableSelection } from '@js/alpine/tableSelection'
+import '@js/utils/loader/loaderApp'
 import { loadModule } from '@js/helpers/module/loadModule'
 import { initFormCrud } from '@js/helpers/form/formCrudLoadModule'
 import { initAppData, getAppData, type AppData } from '@js/core/appData'
 import { initGlobalSafe } from '@js/utils/global'
-import { initLogout } from '@js/helpers/user/logout'
 
 let bootstrapPromise: Promise<void> | null = null
-
-/**
- * Inicializa Alpine UNA sola vez
- */
-function initAlpine(): void {
-    if ((window as any).__ALPINE_STARTED__) return
-
-    Alpine.data('tableSelection', tableSelection)
-        ; (window as any).Alpine = Alpine
-    Alpine.start()
-        ; (window as any).__ALPINE_STARTED__ = true
-
-    if (import.meta.env.DEV) {
-        console.log('✅ Alpine.js iniciado')
-    }
-}
 
 /**
  * Bootstrap global del sistema
@@ -48,12 +29,9 @@ export function bootstrapSystem(): Promise<void> {
                 console.log('🚀 appData listo:', appData)
             }
 
-            // 2️⃣ Alpine + helpers globales
-            initAlpine()
             await initGlobalSafe()
-            initLogout()
 
-            // 3️⃣ Módulos legacy / opcionales
+            // 2️⃣ Módulos legacy / opcionales
             if (appData.moduleFile) {
                 await loadModule(appData.moduleFile)
 
@@ -85,22 +63,13 @@ export function getAppDataSync(): Readonly<AppData> {
     return getAppData()
 }
 
-/**
- * Notificar a Vue que la app está lista
- */
-function notifyVueReady() {
-    (window as any).vueAppIsReady?.();
-}
-
 // 🔹 Ejecutar bootstrapSystem de forma segura al cargar DOM
 if (!(window as any)._bootstrapAttached) {
     (window as any)._bootstrapAttached = true;
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', bootstrapSystem, { once: true });
-        document.addEventListener('DOMContentLoaded', notifyVueReady, { once: true });
     } else {
         bootstrapSystem();
-        notifyVueReady();
     }
 }
 

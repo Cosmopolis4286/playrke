@@ -1,4 +1,4 @@
-<x-layouts.layout-auth :title="$title" loadSelect2="true">
+<x-layouts.auth-layout :title="$title" loadSelect2="true">
     {{-- Tabla de clientes --}}
     <x-shared.table-with-selection :title="$title" :rows="$pageData['customers']" :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']" :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
         module-id="customer-form" context="customer" table-id="customer-table" />
@@ -12,4 +12,4 @@
             </script>
         @endpush
     @endonce
-</x-layouts.layout-auth>
+</x-layouts.auth-layout>

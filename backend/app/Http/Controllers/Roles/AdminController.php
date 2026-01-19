@@ -61,19 +61,22 @@ class AdminController extends Controller
      */
     public function commerces(): View
     {
-        $commerces = $this->commerces->getAllWithRelations([
-            'country:id,name',
-            'user:id,email',
-        ]);
+        $commerces = $this->commerces->getAllWithRelations(
+            [
+                'country:id,name',
+                'user:id,email',
+            ],
+            ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
+        );
 
         return view('modules.users.roles.admin.commerce.index', [
             'title' => 'Comercializadoras',
             'pageData' => [
-                'currencies' => $this->currencies->getActive(),
+                'currencies' => $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
                 'commerces'  => $commerces,
-                'countries' => $this->countries->getActive(),
-                'games'     => $this->games->getActive(),
-                'timeZones' => $this->timeZones->getActive(),
+                'countries' => $this->countries->getActive(['id', 'name']),
+                'games'     => $this->games->getActive(['id', 'name']),
+                'timeZones' => $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
                 'enableFormCrud' => true,
                 'moduleFile' => 'modules/users/roles/admin/commerce/form/commerceForm.ts',
             ]

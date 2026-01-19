@@ -1,4 +1,4 @@
-@extends('layouts.layout-auth')
+@extends('layouts.auth-layout')
 <title>Mi Perfil - PlayRKE</title>
 @section('content')
     <div class="row">

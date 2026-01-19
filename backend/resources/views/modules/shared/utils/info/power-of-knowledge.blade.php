@@ -1,4 +1,4 @@
-@extends ('layouts.layout-auth')
+@extends ('layouts.auth-layout')
 @section('title', 'El Poder del Saber')
 @section('content')
     <div class="card mb-3 m-auto" style="max-width: 825px;">

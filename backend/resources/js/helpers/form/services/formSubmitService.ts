@@ -1,6 +1,6 @@
 import axios from '@js/plugins/axios'
 import { showToast } from '@js/utils/toastNotify'
-import { ajaxStart, ajaxStop } from '@js/utils/loader'
+import { ajaxStart, ajaxStop } from '@/js/utils/loader/loaderAjax'
 import { validateAndFocus } from '@js/utils/form/fieldValidation'
 
 export type SubmitMethod = 'post' | 'put' | 'patch' | 'delete'

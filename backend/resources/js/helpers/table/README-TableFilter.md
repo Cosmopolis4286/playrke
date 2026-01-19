@@ -220,7 +220,7 @@ window.addEventListener('table:selection-change', (e) => {
 
 ```blade
 {{-- En tu vista index.blade.php --}}
-<x-layouts.layout-auth :title="$title">
+<x-layouts.auth-layout :title="$title">
     <x-shared.table-with-filter-vue
         :title="$title"
         :rows="$users"
@@ -252,7 +252,7 @@ window.addEventListener('table:selection-change', (e) => {
         table-id="users-table"
         search-placeholder="Buscar usuarios por nombre o email..."
     />
-</x-layouts.layout-auth>
+</x-layouts.auth-layout>
 ```
 
 ---
