@@ -72,6 +72,7 @@ function goHistorical(): void {
   <Modal
     v-model="showModalForm"
     title="Nueva tasa"
+    static
     show-confirm
     :loading="loading"
     :on-submit="submit"

@@ -2,33 +2,32 @@
 
 namespace App\Services\Currencies;
 
+use App\Contracts\CurrencyRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
-use App\Contracts\Roles\RoleUserRepositoryInterface;
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
 use App\Contracts\UserRepositoryInterface;
 use App\Services\Roles\Commerce\CommerceCurrencyService;
 use App\Services\Roles\RoleUserService;
-use App\Services\Roles\Seller\SellerCurrencyService;
 
 class CurrencyService
 {
     public function __construct(
-        protected RoleUserRepositoryInterface $roleUserRepository,
+        protected CurrencyRepositoryInterface $currencyRepository,
         protected UserRepositoryInterface $userRepository,
         protected CommerceRepositoryInterface $commerceRepository,
         protected SellerRepositoryInterface $sellerRepository,
         protected CommerceCurrencyService $commerceCurrencyService,
         protected RoleUserService $roleUserService
-        // protected SellerCurrencyService $sellerCurrencyService,
     ) {}
 
     /**
      * Obtiene las monedas disponibles según el tipo de usuario.
      *
      * @param int $userId ID del usuario.
+     * @param bool $withCurrency Obtener informacion de las monedas.
      * @return array Listado de IDs o códigos de moneda disponibles.
      */
-    public function getAvailableCurrencies(int $userId): array
+    public function getAvailableCurrencies(int $userId, bool $withCurrency = true): array|object
     {
         $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
@@ -36,24 +35,32 @@ class CurrencyService
             return [];
         }
 
+        $currenciesIds = [];
+
         switch ($userRolePrefix) {
             case 'player': // Jugador
-                return $this->handlePlayerCurrencies($userId);
-
+                $currenciesIds = $this->handlePlayerCurrencies($userId);
+                break;
             case 'admin':
                 // TODO: Definir lógica para admin si aplica
                 return [];
-
+                break;
             case 'commerce': // Comercio
-                return $this->handleCommerceCurrencies($userId);
-
+                $currenciesIds = $this->handleCommerceCurrencies($userId);
+                break;
             case 'seller':
             case 'customer': // Cliente
-                return $this->handleSellerCurrencies($userId);
-
+                $currenciesIds = $this->handleSellerCurrencies($userId);
+                break;
             default:
                 return [];
         }
+
+        if ($withCurrency) {
+            return $this->currencyRepository->getByIds($currenciesIds);
+        }
+
+        return $currenciesIds;
     }
 
     /**

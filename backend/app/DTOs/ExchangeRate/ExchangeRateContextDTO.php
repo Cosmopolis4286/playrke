@@ -2,10 +2,12 @@
 
 namespace App\DTOs\ExchangeRate;
 
-final class ExchangeRateContextDTO
+use App\DTOs\ContextDTO;
+
+final class ExchangeRateContextDTO implements ContextDTO
 {
     public function __construct(
-        public readonly array $currencies,
+        public readonly array|object $currencies,
         public readonly mixed $exchangeRates,
         public readonly string $roleUser,
         public readonly string $tokenId

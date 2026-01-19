@@ -3,6 +3,7 @@
 namespace App\Models\Pivots\Roles\Commerce;
 
 use App\Models\Currency;
+use App\Models\Roles\Commerce;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 

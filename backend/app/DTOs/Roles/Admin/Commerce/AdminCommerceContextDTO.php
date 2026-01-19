@@ -2,9 +2,9 @@
 
 namespace App\DTOs\Roles\Admin\Commerce;
 
-use App\DTOs\Roles\Admin\AdminContextDTO;
+use App\DTOs\ContextDTO;
 
-final class AdminCommerceContextDTO implements AdminContextDTO
+final class AdminCommerceContextDTO implements ContextDTO
 {
     public function __construct(
         public readonly object $commerces,

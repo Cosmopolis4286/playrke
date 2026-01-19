@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use App\Models\Users\Player\External\ExternalPlayers;
 use App\Models\Roles\Seller;
+use App\Models\Users\Player\External\ExternalPlayer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use BradieTilley\Snowflake\Snowflake;
@@ -81,7 +81,7 @@ class Country extends Model
      */
     public function externalPlayers(): HasMany
     {
-        return $this->hasMany(ExternalPlayers::class, 'country_id');
+        return $this->hasMany(ExternalPlayer::class, 'country_id');
     }
 
     // ========================

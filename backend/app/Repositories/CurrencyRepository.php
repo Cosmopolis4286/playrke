@@ -368,19 +368,4 @@ class CurrencyRepository extends BaseRepository implements CurrencyRepositoryInt
     {
         return $this->model->whereIn('id', $currencyIds)->pluck('country_id')->toArray();
     }
-
-    public function getAvailableForCommerceExcludingAssigned(string $creatorId, array $currencyIds): array
-    {
-        if (empty($currencyIds)) {
-            return [];
-        }
-
-        return $this->model->query()
-            ->whereIn('id', $currencyIds)
-            ->whereDoesntHave('commerceExchangeRates', function ($query) use ($creatorId) {
-                $query->where('commerce_id', $creatorId);
-            })
-            ->get(['id', 'symbol', 'description'])
-            ->toArray();
-    }
 }

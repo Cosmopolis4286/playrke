@@ -35,7 +35,7 @@ class ExchangeRateController extends Controller
         return $this->handleService(function () use ($request) {
             $context = $this->service->context($request);
 
-            return Inertia::render('ExchangeRate/Index', $context->toView());
+            return Inertia::render('ExchangeRate/Index', $context);
         }, 'No se pudo cargar la lista de tasas de cambios.');
     }
 

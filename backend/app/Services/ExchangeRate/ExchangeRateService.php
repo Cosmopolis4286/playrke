@@ -27,9 +27,9 @@ class ExchangeRateService
     /**
      * Obtener contexto para visualización de tasas.
      */
-    public function context(Request $request): ExchangeRateContextDTO
+    public function context(Request $request): array
     {
-        return $this->context->resolve($request);
+        return $this->context->resolve($request)->toView();
     }
 
     /**

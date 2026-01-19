@@ -8,7 +8,7 @@ use App\Contracts\GameRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\TimeZoneRepositoryInterface;
-use App\DTOs\Roles\Admin\AdminContextDTO;
+use App\DTOs\Roles\Admin\ContextDTO;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceContextDTO;
 use App\DTOs\Roles\Admin\Customer\AdminCustomerContextDTO;
 use DomainException;
@@ -34,11 +34,11 @@ class AdminContextService
      * para el comercio asociado y listado de tasas de cambio.
      * Para usuarios públicos, muestra un layout de invitado y oculta las monedas.
      *
-     * @return \App\DTOs\Roles\Admin\AdminContextDTO Contexto listo para la vista.
+     * @return \App\DTOs\Roles\Admin\ContextDTO Contexto listo para la vista.
      *
      * @throws \DomainException Si no se encuentra el comercio asociado al usuario.
      */
-    public function resolve(string $context): AdminContextDTO
+    public function resolve(string $context): ContextDTO
     {
         return match ($context) {
             'commerce' => $this->commerceContext(),

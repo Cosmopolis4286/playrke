@@ -72,18 +72,10 @@ class ExchangeRateContext
         return [$userId, false];
     }
 
-    private function resolveAvailableCurrencies(int $userId): array
+    private function resolveAvailableCurrencies(int $userId): array|object
     {
         // Obtener monedas disponibles para el usuario
-        $currencyIds = collect($this->currency->getAvailableCurrencies($userId))
-            ->values()
-            ->all();
-
-        if (empty($currencyIds)) {
-            return [];
-        }
-
-        return $currencyIds;
+        return $this->currency->getAvailableCurrencies($userId, true);
     }
 
     private function resolveAvailableExchangeRates(string $userRolePrefix, int $userId): Collection
