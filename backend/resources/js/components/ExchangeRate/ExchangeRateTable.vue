@@ -35,8 +35,6 @@
 
 <template>
   <div class="table-responsive">
-    <h6>Valores en base a Un Dólar (1 USD)</h6>
-
     <table class="table-striped table-bordered w-100 my-2 table">
       <thead>
         <tr>
@@ -96,7 +94,7 @@
           <td>
             <div class="btn-group btn-group-toggle">
               <button
-                v-if="item.status === 'ACTIVE' || item.exchange_rate === 0"
+                v-if="item.status === 'ACTIVE'"
                 class="btn btn-sm btn-primary"
                 type="button"
                 title="Editar Tasa de Cambio"
@@ -116,7 +114,6 @@
               </button>
 
               <button
-                v-if="extUser"
                 class="btn btn-sm btn-danger"
                 type="button"
                 title="Eliminar"

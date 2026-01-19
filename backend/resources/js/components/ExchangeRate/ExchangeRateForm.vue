@@ -19,7 +19,7 @@
       class="form-control"
       name="currency"
     />
-    <select v-else v-model="selectedCurrency" id="currency" class="form-control" name="currency">
+    <select v-else  id="currency" class="form-control" name="currency">
       <option disabled value="">Seleccione una moneda</option>
       <!-- <option v-for="(label, key) in source" :key="key" :value="key">{{ label }}</option> -->
     </select>

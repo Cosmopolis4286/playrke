@@ -1,10 +1,15 @@
-<script setup>
-  const props = defineProps({
-    btnCardHeader: { type: Object, default: null },
-    returnBtn: { type: Boolean, default: true },
-    subtitle: { type: String, default: '' },
-    title: { type: String, default: '' }
-  })
+<script setup lang="ts">
+  interface BtnCardHeader {
+    icon?: string
+    route?: string
+  }
+
+  const props = defineProps<{
+    btnCardHeader: BtnCardHeader
+    returnBtn: { type: Boolean; default: true }
+    subtitle: string
+    title: string
+  }>()
 </script>
 
 <template>
@@ -15,7 +20,7 @@
           <i class="fas fa-arrow-circle-left" style="font-size: 20px"></i>
         </a>
         <div>
-          <div :class="subtitle ? 'mb-n3' : 'mb-n2'" class="d-flex">
+          <div class="d-flex">
             <h5 v-html="title"></h5>
             <a
               v-if="btnCardHeader?.route && btnCardHeader?.icon"
@@ -25,7 +30,7 @@
               <i :class="btnCardHeader.icon"></i>
             </a>
           </div>
-          <small v-if="subtitle">{{ subtitle }}</small>
+          <h6 v-if="subtitle" class="mt-n2 mb-n1">{{ subtitle }}</h6>
         </div>
       </div>
       <div
