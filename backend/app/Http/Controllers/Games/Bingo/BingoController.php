@@ -59,7 +59,7 @@ use App\Services\Users\Customer\HandleTransactions;
 
 // Traits
 use App\Traits\Games\BingoTrait;
-use App\Traits\Games\Shared\GameTrait;
+use App\Traits\Games\GameTrait;
 use App\Traits\Helpers\EncryptTrait;
 use App\Traits\Helpers\FiltersTrait;
 use App\Traits\Users\Roles\Customer\CustomerTrait;

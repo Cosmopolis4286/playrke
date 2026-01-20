@@ -1,15 +1,9 @@
 // ======================================================
 // Archivo: resources/js/routes/bingocashRoutes.ts
 // Descripción: Rutas del módulo bingocashRoutes
-// Fecha de actualización (GMT): 2026-01-20T11:54:46Z
+// Fecha de actualización (GMT): 2026-01-20T13:36:15Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
-
-/** Todas las rutas del módulo */
-export type BingocashRoutesRoutes = typeof bingocashRoutes
-
-/** Nombre de ruta */
-export type BingocashRoutesRouteName = keyof BingocashRoutesRoutes
 
 export const bingocashRoutes = {
   outGame: "/bingocash/game-room/{uuidCode}/{room?}/{currency?}",

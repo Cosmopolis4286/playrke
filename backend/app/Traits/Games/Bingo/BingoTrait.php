@@ -38,8 +38,8 @@ use App\Services\Games\Bingo\HandleBingoRoomsService;
 use App\Services\Users\Roles\Customer\HandleTransactions;
 
 // Traits
-use App\Traits\Games\Shared\GameTrait;
-use App\Traits\Games\Shared\SeamlessWallet;
+use App\Traits\Games\GameTrait;
+use App\Traits\Games\SeamlessWallet;
 use App\Traits\Users\PlayerLinkTrait;
 use App\Traits\Users\UserTrait;
 

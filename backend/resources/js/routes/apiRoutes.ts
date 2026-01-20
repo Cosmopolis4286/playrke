@@ -1,15 +1,9 @@
 // ======================================================
 // Archivo: resources/js/routes/apiRoutes.ts
 // Descripción: Rutas del módulo apiRoutes
-// Fecha de actualización (GMT): 2026-01-20T11:54:46Z
+// Fecha de actualización (GMT): 2026-01-20T13:36:15Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
-
-/** Todas las rutas del módulo */
-export type ApiRoutesRoutes = typeof apiRoutes
-
-/** Nombre de ruta */
-export type ApiRoutesRouteName = keyof ApiRoutesRoutes
 
 export const apiRoutes = {
   user: "/api/user",

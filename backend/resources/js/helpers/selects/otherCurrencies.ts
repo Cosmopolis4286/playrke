@@ -58,11 +58,11 @@ export function insertOtherCurrencies(): void {
   // Filtrar monedas: TODAS las monedas EXCEPTO la principal
   arrCurrencies
     .filter(c => String(c.id) !== String(mainCurrencyId))
-    .sort((a, b) => a.symbol.localeCompare(b.symbol, 'es', { sensitivity: 'base' }))
-    .forEach(({ id, symbol, description }) => {
+    .sort((a, b) => a.iso_code.localeCompare(b.iso_code, 'es', { sensitivity: 'base' }))
+    .forEach(({ id, iso_code, name }) => {
       const option = document.createElement('option')
       option.value = String(id)
-      option.textContent = `(${symbol}) ${description}`
+      option.textContent = `(${iso_code}) ${name}`
       if (_selectedCurrencies.some(sc => String(sc) === String(id))) option.selected = true
       otherCurrencies.appendChild(option)
     })
@@ -113,7 +113,7 @@ function updateMainCurrencyByCountry(selectedCountry: string): void {
   // Filtrar monedas por país seleccionado
   const currenciesInCountry = arrCurrencies
     .filter(c => String(c.country_id) === String(selectedCountry))
-    .sort((a, b) => a.symbol.localeCompare(b.symbol, 'es', { sensitivity: 'base' }))
+    .sort((a, b) => a.iso_code.localeCompare(b.iso_code, 'es', { sensitivity: 'base' }))
 
   if (currenciesInCountry.length === 0) {
     console.warn(`⚠️ No hay monedas para el país con ID ${selectedCountry}`)
@@ -131,12 +131,12 @@ function updateMainCurrencyByCountry(selectedCountry: string): void {
   }
 
   // Agregar todas las monedas del país al select
-  currenciesInCountry.forEach(({ id, symbol, description }, index) => {
+  currenciesInCountry.forEach(({ id, iso_code, name }, index) => {
     // Si solo hay una moneda, seleccionarla automáticamente
     const shouldBeSelected = !hasMultipleCurrencies && index === 0
 
     const option = new Option(
-      `(${symbol}) ${description}`,
+      `(${iso_code}) ${name}`,
       String(id),
       shouldBeSelected,
       shouldBeSelected

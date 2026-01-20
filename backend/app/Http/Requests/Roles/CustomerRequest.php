@@ -4,7 +4,7 @@ namespace App\Http\Requests\Roles;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Services\Auth\PermissionService;
-use App\DTOs\Users\Roles\CustomerDTO;
+use App\DTOs\Roles\CustomerDTO;
 
 /**
  * Request para validar datos de un Cliente (Customer).

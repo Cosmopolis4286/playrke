@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs\Users\Roles;
+namespace App\DTOs\Roles;
 
 /**
  * Data Transfer Object para Commerce.

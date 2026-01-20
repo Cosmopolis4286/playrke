@@ -1,15 +1,9 @@
 // ======================================================
 // Archivo: resources/js/routes/sellerRoutes.ts
 // Descripción: Rutas del módulo sellerRoutes
-// Fecha de actualización (GMT): 2026-01-20T11:54:46Z
+// Fecha de actualización (GMT): 2026-01-20T13:36:15Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
-
-/** Todas las rutas del módulo */
-export type SellerRoutesRoutes = typeof sellerRoutes
-
-/** Nombre de ruta */
-export type SellerRoutesRouteName = keyof SellerRoutesRoutes
 
 export const sellerRoutes = {
   create: "/seller",

@@ -5,7 +5,7 @@ namespace App\Services\Roles\Commerce;
 use App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface;
 use App\Contracts\UserRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
-use App\DTOs\Users\Roles\CommerceDTO;
+use App\DTOs\Roles\CommerceDTO;
 use App\Http\Resources\Users\Roles\CommerceResource;
 use App\Contracts\Roles\Commerce\CommerceGameRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;

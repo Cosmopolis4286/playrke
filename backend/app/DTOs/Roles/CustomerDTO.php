@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs\Users\Roles;
+namespace App\DTOs\Roles;
 
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -12,7 +12,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * - Soporta instanciación desde arrays validados o FormRequest.
  * - Facilita el paso de datos tipados entre capas (Controller -> Service).
  *
- * @package App\DTOs\Users\Roles
+ * @package App\DTOs\Roles
  */
 class CustomerDTO
 {

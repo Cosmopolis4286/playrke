@@ -2,7 +2,7 @@
 
 namespace App\Services\Users\Roles\Customer;
 
-use App\Traits\Games\Shared\SeamlessWallet;
+use App\Traits\Games\SeamlessWallet;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
