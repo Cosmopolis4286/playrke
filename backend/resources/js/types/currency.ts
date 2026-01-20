@@ -6,5 +6,6 @@ export interface Currency {
   readonly symbol: string
   readonly description: string
   readonly name: string
-  readonly country_id: number // ID del país asociado
+  readonly country_id: number
+  readonly iso_code: string
 }

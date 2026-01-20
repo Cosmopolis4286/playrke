@@ -1,4 +1,12 @@
 import { ref, Ref } from 'vue'
+import backendClient from '@/js/plugins/axios'
+
+interface ExchangeRate {
+    id?: string | number
+    currency: string
+    exchange_rate: number
+    // otros campos si tienes
+}
 
 /**
  * Contrato público del composable useExchangeRate
@@ -9,6 +17,9 @@ interface UseExchangeRateReturn {
 
     /** Controla la visualización del modal */
     showModalForm: Ref<boolean>
+
+    /** Datos de la tasa (para crear o editar) */
+    exchangeRateData: Ref<Partial<ExchangeRate>>
 
     /**
      * Envía el formulario de tasa de cambio.
@@ -22,7 +33,7 @@ interface UseExchangeRateReturn {
     create: () => void
 
     /** Abre el modal en modo edición */
-    edit: (id: string | number) => void
+    edit: (id: string | number) => Promise<void>
 
     /** Cambia el estado de una tasa */
     changeStatus: (id: string | number) => void
@@ -39,7 +50,7 @@ interface UseExchangeRateReturn {
  *
  * Responsabilidades:
  * - Control de estado del modal
- * - Submit del formulario
+ * - Submit del formulario (POST / PUT)
  * - Operaciones CRUD
  * - Estados de carga
  *
@@ -52,8 +63,12 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
     const loading = ref<boolean>(false)
     const showModalForm = ref<boolean>(false)
 
+    // Estado reactivo para datos del formulario (nuevo o editar)
+    const exchangeRateData = ref<Partial<ExchangeRate>>({})
+
     /**
      * Envía el formulario de tasa de cambio.
+     * Hace POST si no existe id, PUT si edita.
      *
      * @returns {Promise<boolean>}
      * - true  → operación exitosa (cerrar modal)
@@ -61,12 +76,19 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      */
     async function submit(): Promise<boolean> {
         loading.value = true
-
         try {
-            // 🔁 Simulación de request (reemplazar por Inertia / fetch real)
-            await new Promise(resolve => setTimeout(resolve, 800))
+            if (!exchangeRateData.value) throw new Error('No hay datos para enviar')
 
-            console.log('Submit exchange rate')
+            if (exchangeRateData.value.id) {
+                // Editar - PUT /exchange-rate/{id}
+                await backendClient.put(
+                    `/exchange-rate/${exchangeRateData.value.id}`,
+                    exchangeRateData.value
+                )
+            } else {
+                // Crear - POST /exchange-rate
+                await backendClient.post('/exchange-rate', exchangeRateData.value)
+            }
 
             return true
         } catch (error) {
@@ -78,20 +100,33 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
     }
 
     /**
-     * Abre el modal para crear una nueva tasa
+     * Abre el modal para crear una nueva tasa con datos vacíos
      */
     function create(): void {
+        exchangeRateData.value = {
+            currency: '',
+            exchange_rate: 0,
+        }
         showModalForm.value = true
     }
 
     /**
      * Abre el modal para editar una tasa existente
+     * Carga datos desde backend y asigna a exchangeRateData
      *
      * @param id Identificador de la tasa
      */
-    function edit(id: string | number): void {
-        console.log('Editar tasa de cambio:', id)
-        showModalForm.value = true
+    async function edit(id: string | number): Promise<void> {
+        loading.value = true
+        try {
+            const response = await backendClient.get(`/exchange-rate/${id}`)
+            exchangeRateData.value = response.data
+            showModalForm.value = true
+        } catch (error) {
+            console.error('Error cargando tasa:', error)
+        } finally {
+            loading.value = false
+        }
     }
 
     /**
@@ -101,6 +136,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      */
     function changeStatus(id: string | number): void {
         console.log('Cambiar status:', id)
+        // Puedes implementar aquí llamada PUT a /exchange-rate/{id}/status
     }
 
     /**
@@ -110,6 +146,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      */
     function remove(id: string | number): void {
         console.log('Eliminar tasa de cambio:', id)
+        // Puedes implementar llamada DELETE a /exchange-rate/{id}
     }
 
     /**
@@ -119,8 +156,8 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         loading.value = true
 
         try {
-            const response = await fetch('/exchange-rate/getExchangeRates')
-            const data = await response.json()
+            const response = await backendClient.get('/exchange-rate/getExchangeRates')
+            const data = response.data
 
             alert(data.message)
 
@@ -137,11 +174,12 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
     return {
         loading,
         showModalForm,
+        exchangeRateData,
         submit,
         create,
         edit,
         changeStatus,
         remove,
-        updateExchangeRates
+        updateExchangeRates,
     }
 }

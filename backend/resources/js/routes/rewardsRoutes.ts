@@ -1,43 +1,11 @@
 // ======================================================
 // Archivo: resources/js/routes/rewardsRoutes.ts
 // Descripción: Rutas del módulo rewardsRoutes
-// Fecha de actualización (GMT): 2025-09-14T05:40:45Z
+// Fecha de actualización (GMT): 2026-01-20T01:45:55Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
 
-import { route as baseRoute } from './helper.js';
-
 export const rewardsRoutes = {
-    "index": "/rewards",
-    "create": "/rewards",
-    "show": "/rewards/{id}",
-    "update": "/rewards/{id}",
-    "destroy": "/rewards/{id}"
+  index: "/rewards",
+  country: "/rewards/{countryCode}",
 } as const;
-
-/**
- * Retorna la URL de la ruta especificada usando las rutas del módulo.
- */
-export function route(name, params) {
-    return baseRoute(rewardsRoutes, name, params);
-}
-
-/**
- * Retorna la URL de una ruta específica dentro de rewardsRoutes.
- * Reemplaza los placeholders con los parámetros proporcionados.
- * Elimina los opcionales que no tengan valor.
- */
-export function getRoute(name, params) {
-    let url = rewardsRoutes[name];
-
-    if (params) {
-        Object.entries(params).forEach(([key, value]) => {
-            url = url.replace(new RegExp("{"+key+"\??}", "g"), String(value));
-        });
-    }
-
-    // Elimina cualquier placeholder opcional que no tenga valor
-    url = url.replace(/\/{[^}]+\?}/g, "");
-
-    return url;
-}
