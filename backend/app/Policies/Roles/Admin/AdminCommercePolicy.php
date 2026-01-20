@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Policies\Users\Commerce;
+namespace App\Policies\Roles\Admin;
 
-use App\Models\Roles;
+use App\Models\Roles\Commerce;
 use App\Models\User;
-use App\Policies\Users\RolePolicy;
+use App\Policies\Roles\BaseRolePolicy;
 
 /**
  * Policy de autorización para el dominio Commerce.
@@ -14,7 +14,7 @@ use App\Policies\Users\RolePolicy;
  * - Comercios en estados DELETED o BLOCKED no pueden mutar
  * - Compatible con authorizeResource()
  */
-class CommercePolicy extends RolePolicy
+class AdminCommercePolicy extends BaseRolePolicy
 {
     /**
      * Rol requerido para operar sobre comercios.
@@ -46,7 +46,7 @@ class CommercePolicy extends RolePolicy
     public function changeStatus(User $user, Commerce $commerce): bool
     {
         return $this->hasAccess($user)
-            && $this->canOperate($commerce);
+            && $this->canMutate($commerce);
     }
 
     /**
@@ -61,6 +61,6 @@ class CommercePolicy extends RolePolicy
     public function resetPassword(User $user, Commerce $commerce): bool
     {
         return $this->hasAccess($user)
-            && $this->canOperate($commerce);
+            && $this->canMutate($commerce);
     }
 }

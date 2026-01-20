@@ -1,9 +1,15 @@
 // ======================================================
 // Archivo: resources/js/routes/adminRoutes.ts
 // Descripción: Rutas del módulo adminRoutes
-// Fecha de actualización (GMT): 2026-01-20T01:45:55Z
+// Fecha de actualización (GMT): 2026-01-20T11:54:46Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
+
+/** Todas las rutas del módulo */
+export type AdminRoutesRoutes = typeof adminRoutes
+
+/** Nombre de ruta */
+export type AdminRoutesRouteName = keyof AdminRoutesRoutes
 
 export const adminRoutes = {
   dashboard: "/admin",

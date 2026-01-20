@@ -44,11 +44,11 @@ class ExchangeRateController extends Controller
      */
     public function store(ExchangeRateRequest $request): RedirectResponse
     {
-        $this->service->create(
-            ExchangeRateDTO::fromRequest($request)
-        );
-
-        return back()->with('message', 'La tasa de cambio ha sido cargada con éxito');
+        return $this->handleService(function () use ($request) {
+            $this->service->create(
+                ExchangeRateDTO::fromRequest($request)
+            );
+        }, 'La tasa de cambio ha sido cargada con éxito');
     }
 
     /**

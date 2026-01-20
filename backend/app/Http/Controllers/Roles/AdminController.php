@@ -78,7 +78,7 @@ class AdminController extends Controller
                 'games'     => $this->games->getActive(['id', 'name']),
                 'timeZones' => $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
                 'enableFormCrud' => true,
-                'moduleFile' => 'modules/users/roles/admin/commerce/form/commerceForm.ts',
+                'moduleFile' => 'modules/roles/admin/commerce/form/commerceForm.ts',
             ]
         ]);
     }

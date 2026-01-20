@@ -13,7 +13,7 @@ import {
   clearValidationErrors,
   resetFormAndContainers
 } from '@js/helpers/form/formHelpers'
-import { commerceAdminRoutes } from '@js/routes/commerceRoutes'
+import { commerceAdminRoutes } from '@js/routes/roles/admin/commerce/commerceAdminRoutes'
 
 // ==========================
 // Constantes globales

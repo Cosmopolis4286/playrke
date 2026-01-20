@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Roles;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Users\Roles\CommerceRequest;
+use App\Http\Requests\Roles\CommerceRequest;
 use App\Models\Roles\Commerce;
 use App\Services\Roles\Commerce\CommerceService;
 use Illuminate\Http\JsonResponse;

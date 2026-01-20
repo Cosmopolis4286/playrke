@@ -1,9 +1,15 @@
 // ======================================================
 // Archivo: resources/js/routes/commerceRoutes.ts
 // Descripción: Rutas del módulo commerceRoutes
-// Fecha de actualización (GMT): 2026-01-20T01:45:55Z
+// Fecha de actualización (GMT): 2026-01-20T11:54:46Z
 // Generado automáticamente con make:ts-routes-modules
 // ======================================================
+
+/** Todas las rutas del módulo */
+export type CommerceRoutesRoutes = typeof commerceRoutes
+
+/** Nombre de ruta */
+export type CommerceRoutesRouteName = keyof CommerceRoutesRoutes
 
 export const commerceRoutes = {
   rewards: "/commerce/rewards",

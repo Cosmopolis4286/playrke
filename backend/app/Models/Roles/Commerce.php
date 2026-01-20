@@ -3,7 +3,6 @@
 namespace App\Models\Roles;
 
 use App\Models\BaseModel;
-use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Game;
@@ -12,20 +11,15 @@ use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\Roles\Seller;
 use App\Models\Shared\UniqueCode;
 use App\Models\User;
-use App\Traits\Auditable;
-use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Modelo para comercios
  */
 class Commerce extends BaseModel
 {
-    use SnowflakeId, HasHashedRouteKey, SoftDeletes, Auditable;
-
     protected $table = 'commerces';
 
     protected $fillable = [

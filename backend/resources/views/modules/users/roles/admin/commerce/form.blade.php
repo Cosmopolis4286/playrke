@@ -1,7 +1,7 @@
 <form id="commerce-form" novalidate>
     <div class="row">
         <!-- Nombre -->
-        <x-form.input label="Nombre Comercio" name="name" required col="col-sm-12 col-md-6" />
+        <x-form.input label="Nombre Comercio" name="name" required col="col-sm-6" />
 
         <!-- Username -->
         <x-form.input label="Username" name="username" minlength="5" maxlength="20" required col="col-sm-6" />

@@ -81,21 +81,14 @@ backendClient.interceptors.request.use(
         const xsrfToken = getCookie('XSRF-TOKEN');
 
         if (xsrfToken) {
-            config.headers.set('X-XSRF-TOKEN', xsrfToken);
-        }
-
-        // Log de debug para detectar llamadas duplicadas
-        if (import.meta.env.DEV && config.url?.includes('/api/auth/')) {
-            console.log(`📤 Request: ${config.method?.toUpperCase()} ${config.url}`, {
-                retry: config._retry,
-                timestamp: new Date().toISOString()
-            });
+            config.headers['X-XSRF-TOKEN'] = xsrfToken;
         }
 
         return config;
     },
     (error) => Promise.reject(error)
 );
+
 
 /**
  * Interceptor RESPONSE

@@ -1,36 +1,54 @@
-// helpers/form/services/getInfoService.ts
 import axios from '@js/plugins/axios'
 import { formCrudState as crud } from '../state/formCrudState'
-import { route } from '@js/routes/helper'
+import { buildRoute, buildParamsForSinglePlaceholder } from '@js/routes/helper'
 import { showToast } from '@js/utils/toastNotify'
 
+/**
+ * Obtiene información usando la ruta 'show' y el ID cifrado.
+ * Detecta automáticamente el placeholder requerido en la ruta y construye la URL.
+ *
+ * @param encryptId ID cifrado que se usará como parámetro de la ruta.
+ * @returns Promise<boolean> indica éxito o fallo.
+ */
 export async function getInfo(encryptId: string): Promise<boolean> {
-  if (!encryptId) return false
+    if (!encryptId) return false
 
-  const url = route(crud.routes, 'show', { id: encryptId })
+    // Extraer placeholders de la ruta 'show'
+    const extractPlaceholders = (route: string): string[] =>
+        Array.from(route.matchAll(/{([^}]+)}/g)).map(match => match[1])
 
-  try {
-    const { data } = await axios.get(url)
+    const routePattern = crud.routes.show
+    const placeholders = extractPlaceholders(routePattern)
 
-    // Validar respuesta exitosa según tu API
-    if (data?.success === false) {
-      // Manejar error específico de API
-      console.error('Error al cargar info:', data.message)
-      showToast(data.message, 'error')
-      // Podés lanzar error o mostrar notificación
-      throw new Error(data.message || 'Error desconocido al cargar info')
+    if (placeholders.length > 1) {
+        throw new Error(`La ruta 'show' tiene múltiples placeholders, no soportado automáticamente.`)
     }
 
-    if (data?.data) {
-      crud.insertInfo?.('edit', data.data)
-      return true
-    } else {
-      // No hay datos pero no es error HTTP
-      console.warn('No hay datos disponibles para el ID:', encryptId)
+    // Construir parámetros solo si hay un placeholder
+    const params = buildParamsForSinglePlaceholder(crud.routes, 'show', encryptId);
+
+    // Construir URL con buildRoute, sin pasar params si no hay placeholders
+    const url = buildRoute(crud.routes, 'show', params ?? {})
+
+    try {
+        const { data } = await axios.get(url)
+
+        if (data?.success === false) {
+            console.error('Error al cargar info:', data.message)
+            showToast(data.message, 'error')
+            throw new Error(data.message || 'Error desconocido al cargar info')
+        }
+
+        if (data?.data) {
+            crud.insertInfo?.('edit', data.data)
+            return true
+        }
+
+        console.warn('No hay datos disponibles para el ID:', encryptId)
+    } catch (error: any) {
+        console.error('Error en getInfo:', error.message || error)
+        showToast('Error en getInfo!', 'error')
     }
-  } catch (error: any) {
-    // Captura errores HTTP o de red
-    console.error('Error en getInfo:', error.message || error)
-    showToast('Error en getInfo!', 'error')
-  }
+
+    return false
 }

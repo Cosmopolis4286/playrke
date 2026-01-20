@@ -1,49 +1,56 @@
-// resources/js/routes/helper.ts
-
-/**
- * Tipo que representa un grupo de rutas.
- * Puede contener rutas estáticas (string) o rutas dinámicas (función que devuelve string).
- */
 type RoutesGroup = Record<string, string | ((...args: any[]) => string)>;
 
-/**
- * URL base tomada de las variables de entorno (.env).
- * Ejemplo en .env local:
- *   VITE_APP_URL=http://localhost/playrke/public
- * Ejemplo en producción:
- *   VITE_APP_URL=https://tusitio.com
- *
- * Si no se define, se usará `window.location.origin` como fallback.
- */
 const BASE_URL = import.meta.env.VITE_APP_URL?.replace(/\/+$/, '') || window.location.origin;
 
 /**
- * Reemplaza los placeholders {clave} en una URL por los valores proporcionados.
+ * Reemplaza los placeholders en formato {clave} dentro de una URL por los valores indicados.
  *
- * @param url URL con placeholders.
- * @param params Objeto de parámetros para reemplazar.
- * @returns URL con placeholders reemplazados.
+ * @param url URL que contiene placeholders.
+ * @param params Objeto con claves y valores para reemplazar en la URL.
+ * @returns URL con los placeholders reemplazados por valores codificados.
  */
 function replacePlaceholders(url: string, params?: Record<string, string | number>): string {
     if (!params) return url;
-    for (const [key, value] of Object.entries(params)) {
-        url = url.replace(
-            new RegExp(`{${key}}`, 'g'),
-            encodeURIComponent(String(value))
-        );
-    }
-    return url;
+    return Array.from(url.matchAll(/{([^}]+)}/g)).reduce((acc, match) => {
+        const key = match[1];
+        if (params[key] !== undefined) {
+            return acc.replace(new RegExp(`{${key}}`, 'g'), encodeURIComponent(String(params[key])));
+        }
+        return acc;
+    }, url);
 }
 
 /**
- * Construye una URL a partir de un grupo de rutas tipadas.
- * Soporta rutas definidas como strings con placeholders o funciones que generen strings.
+ * Construye una URL completa a partir de un conjunto de rutas tipadas,
+ * ya sea rutas definidas como strings con placeholders o funciones que generan strings.
  *
- * @param routes Objeto con rutas (clave → string o función).
- * @param name Clave de la ruta a obtener.
- * @param params Parámetros para la ruta (objeto si es string, argumentos si es función).
- * @returns URL completa (con dominio y path base).
- * @throws Error si la ruta no existe.
+ * Para rutas string, se puede pasar un objeto con parámetros para reemplazar los placeholders.
+ * Para rutas función, se pasan los argumentos que recibe la función.
+ *
+ * @template T Tipo del objeto de rutas.
+ * @template K Clave de la ruta dentro del objeto.
+ *
+ * @param routes Objeto que contiene las rutas, pueden ser strings o funciones.
+ * @param name Nombre de la ruta a construir.
+ * @param args Parámetros para la ruta:
+ *   - Si la ruta es función, los argumentos de la función.
+ *   - Si la ruta es string, un único objeto opcional con los valores para los placeholders.
+ *
+ * @returns URL completa con la base configurada y la ruta interpolada.
+ *
+ * @throws Error si la ruta no existe en el objeto.
+ *
+ * @example
+ * ```ts
+ * // Ruta string con placeholder:
+ * buildRoute(adminRoutes, 'commerceShow', { commerce: 123 });
+ *
+ * // Ruta función con argumentos:
+ * buildRoute(customRoutes, 'userProfile', 45);
+ *
+ * // Ruta string sin parámetros:
+ * buildRoute(adminRoutes, 'dashboard');
+ * ```
  */
 export function buildRoute<
     T extends RoutesGroup,
@@ -51,38 +58,49 @@ export function buildRoute<
 >(
     routes: T,
     name: K,
-    ...params: T[K] extends (...args: infer P) => string ? P : []
+    ...args: T[K] extends (...args: infer P) => string ? P : [Record<string, string | number>?]
 ): string {
     const route = routes[name];
     if (!route) throw new Error(`Ruta no definida: ${String(name)}`);
 
-    let path: string;
     if (typeof route === 'function') {
-        // Si la ruta es función, llamamos con los parámetros
-        path = route(...params);
+        return `${BASE_URL}${route(...(args as any))}`;
     } else {
-        // Si la ruta es string, reemplazamos placeholders usando el primer parámetro como objeto
-        const paramsObj = params[0] as Record<string, string | number> | undefined;
-        path = replacePlaceholders(route, paramsObj);
+        const params = args[0] as Record<string, string | number> | undefined;
+        return `${BASE_URL}${replacePlaceholders(route, params)}`;
     }
-
-    return `${BASE_URL}${path}`;
 }
 
 /**
- * Obtiene la URL para una ruta simple (solo rutas tipo string).
- * Ideal para módulos generados automáticamente.
+ * Dada una ruta con placeholders, construye el objeto params para un valor único.
+ * Si hay más de un placeholder lanza error.
  *
- * @param routes Objeto de rutas (clave → URL con o sin placeholders).
- * @param name Clave de la ruta.
- * @param params Objeto con parámetros para reemplazar en la URL.
- * @returns URL completa (con dominio y path base).
+ * @param routes Objeto de rutas string con placeholders.
+ * @param routeName Nombre de la ruta a usar.
+ * @param paramValue Valor para el placeholder único.
+ * @returns Objeto params con clave del placeholder y valor dado.
+ * @throws Error si la ruta tiene más de un placeholder.
  */
-export function route<T extends Record<string, string>>(
-    routes: T,
-    name: keyof T,
-    params?: Record<string, string | number>
-): string {
-    const path = replacePlaceholders(routes[name] as string, params);
-    return `${BASE_URL}${path}`;
+export function buildParamsForSinglePlaceholder(
+    routes: Record<string, string>,
+    routeName: string,
+    paramValue: string | number
+): Record<string, string | number> | undefined {
+    const extractPlaceholders = (route: string): string[] =>
+        Array.from(route.matchAll(/{([^}]+)}/g)).map(match => match[1]);
+
+    const routePattern = routes[routeName];
+    if (!routePattern) throw new Error(`Ruta '${routeName}' no encontrada.`);
+
+    const placeholders = extractPlaceholders(routePattern);
+
+    if (placeholders.length > 1) {
+        throw new Error(
+            `La ruta '${routeName}' tiene múltiples placeholders, no soportado automáticamente.`
+        );
+    }
+
+    if (placeholders.length === 0) return undefined;
+
+    return { [placeholders[0]]: paramValue };
 }

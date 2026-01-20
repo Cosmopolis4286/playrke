@@ -1,7 +1,7 @@
 import { formCrudState as crud } from '../state/formCrudState'
 import { resetForm } from '../formHelpers'
 import { getInfo } from './getInfoService'
-import { route } from '@js/routes/helper'
+import { buildRoute, buildParamsForSinglePlaceholder } from '@js/routes/helper'
 
 /**
  * Configura el formulario antes de enviarlo
@@ -17,11 +17,11 @@ export function prepareForm(
   try {
     const actionUrl = ['PUT', 'PATCH', 'DELETE'].includes(methodUpper)
       ? id
-        ? route(crud.routes, routeName, { id })
+        ? buildRoute(crud.routes, routeName, { id })
         : (() => {
             throw new Error(`'id' requerido para ${methodUpper}`)
           })()
-      : route(crud.routes, routeName)
+      : buildRoute(crud.routes, routeName)
 
     form.action = actionUrl
     form.method = methodUpper
