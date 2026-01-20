@@ -54,9 +54,4 @@ class Treasurer extends Model
   {
     return self::select($fields)->where('user', $user)->first();
   }
-
-  public static function getValueByUserId($user, $value)
-  {
-    return self::where('user', $user)->value($value);
-  }
 }

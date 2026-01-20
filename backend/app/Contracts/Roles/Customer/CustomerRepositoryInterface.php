@@ -18,8 +18,6 @@ interface CustomerRepositoryInterface extends BaseRepositoryInterface
 
     public function existsByColumn(string $column, $value): bool;
 
-    public function getValueByUserId($userId, string $column);
-
     public function getValueByToken(string $token, string $column);
 
     public function getValueByCustomerCode(string $customerCode, string $column);

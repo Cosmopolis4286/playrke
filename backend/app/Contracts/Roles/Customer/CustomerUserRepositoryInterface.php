@@ -10,8 +10,6 @@ interface CustomerUserRepositoryInterface extends BaseRepositoryInterface
 {
     public function getByUserId($customerId, string $userId): ?CustomerUser;
 
-    public function getValueByUserId($customerId, string $userId, string $column);
-
     public function getByToken($customerId, string $token): ?CustomerUser;
 
     public function getValueByToken($customerId, string $token, string $column);

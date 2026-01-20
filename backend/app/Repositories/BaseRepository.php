@@ -61,6 +61,14 @@ abstract class BaseRepository implements BaseRepositoryInterface
     /**
      * {@inheritDoc}
      */
+    public function getValueByUserId(string|int $userId, string $field): mixed
+    {
+        return $this->model->where('user_id', $userId)->value($field);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function getByIds(array $Ids, array $fields = ['*']): Collection
     {
         return $this->model->whereIn('id', $Ids)->get($fields);

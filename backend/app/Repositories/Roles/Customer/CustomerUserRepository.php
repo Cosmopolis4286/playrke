@@ -23,13 +23,6 @@ class CustomerUserRepository extends BaseRepository implements CustomerUserRepos
             ->first();
     }
 
-    public function getValueByUserId($customerId, string $userId, string $column)
-    {
-        return $this->model->where('customer_id', $customerId)
-            ->where('user_id', $userId)
-            ->value($column);
-    }
-
     public function getByToken($customerId, string $token): ?CustomerUser
     {
         return $this->model->where('customer_id', $customerId)

@@ -21,15 +21,6 @@ interface CommerceRepositoryInterface extends BaseRepositoryInterface
     public function getByUserId($userId, array $fields = ['*']): ?Commerce;
 
     /**
-     * Obtiene valor por ID de usuario
-     *
-     * @param mixed $userId ID del usuario
-     * @param string $field Campo a obtener
-     * @return mixed
-     */
-    public function getValueByUserId($userId, string $field);
-
-    /**
      * Obtiene comercio por código UUID
      *
      * @param string $code Código UUID

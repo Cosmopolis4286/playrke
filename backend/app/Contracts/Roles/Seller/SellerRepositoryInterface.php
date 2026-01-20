@@ -236,15 +236,6 @@ interface SellerRepositoryInterface extends BaseRepositoryInterface
     public function getCurrencyByIdId(string $sellerId): ?string;
 
     /**
-     * Obtener valor específico por ID de usuario.
-     *
-     * @param string $userId ID del usuario
-     * @param string $field Campo a obtener (por defecto 'id')
-     * @return mixed Valor del campo o null
-     */
-    public function getValueByUserId(string $userId, string $field = 'id'): mixed;
-
-    /**
      * Actualización masiva de estado para múltiples vendedores.
      *
      * @param array $sellerIds IDs de los vendedores

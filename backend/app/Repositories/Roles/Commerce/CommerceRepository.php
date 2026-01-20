@@ -37,18 +37,6 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryInt
     }
 
     /**
-     * Obtiene valor por ID de usuario
-     *
-     * @param mixed $userId ID del usuario
-     * @param string $field Campo a obtener
-     * @return mixed
-     */
-    public function getValueByUserId($userId, string $field)
-    {
-        return $this->model->where('user_id', $userId)->value($field);
-    }
-
-    /**
      * Obtiene comercio por código UUID
      *
      * @param string $code Código UUID

@@ -5,6 +5,7 @@ namespace App\Services\ExchangeRate;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
+use App\Services\Roles\RoleUserService;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
@@ -13,20 +14,36 @@ class ExchangeRateCrud
     public function __construct(
         protected CommerceExchangeRateRepositoryInterface $commerce,
         protected CustomerExchangeRateRepositoryInterface $customer,
+        protected RoleUserService $roleUserService
     ) {}
 
     /**
      * Crea un nuevo tipo de cambio para un rol específico.
      *
      * @param ExchangeRateDTO $dto
-     * @param string $role Rol del propietario: 'commerce' | 'customer'
+     * @param int $userId ID del usuario
      * @return void
      *
-     * @throws DomainException Si el rol no es válido
+     * @throws \DomainException Si el rol no es válido o no identificado.
      */
-    public function create(ExchangeRateDTO $dto, string $role): void
+    public function create(ExchangeRateDTO $dto, int $userId): void
     {
-        DB::transaction(fn() => $this->repo($role)->create($dto->toArray()));
+        $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        if (!$rolePrefix) {
+            throw new \DomainException('Rol inválido o no identificado.');
+        }
+
+        // Nombre de la columna foreign key asociada al rol
+        $roleForeignKey = "{$rolePrefix}_id";
+
+        $rolePrefixID = $this->repo($rolePrefix)->getValueByUserId($userId, $roleForeignKey);
+
+        $data = $dto->toArray() + [$roleForeignKey => $rolePrefixID];
+
+        dd($data);
+
+        DB::transaction(fn() => $this->repo($rolePrefix)->create($data));
     }
 
     /**

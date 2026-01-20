@@ -422,18 +422,6 @@ class Seller extends Model
     }
 
     /**
-     * Obtener valor específico por ID de usuario (método heredado).
-     *
-     * @param string $userId ID del usuario
-     * @param string $field Campo a obtener
-     * @return mixed
-     */
-    public static function getValueByUserId(string $userId, string $field = 'id'): mixed
-    {
-        return self::where('user', $userId)->value($field);
-    }
-
-    /**
      * Mutator para validar la comisión antes de guardar.
      *
      * @param float $value

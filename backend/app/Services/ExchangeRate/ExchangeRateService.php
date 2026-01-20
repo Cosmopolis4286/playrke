@@ -41,16 +41,15 @@ class ExchangeRateService
     }
 
     /**
-     * Resolver contexto de usuario según autenticación o token.
+     * Resolver el ID del usuario según autenticación o token.
      *
      * @param string|null $token
      * @return string|null
      */
-    private function resolveRole(?string $token = null): ?string
+    private function resolveUserId(?string $token = null): int
     {
         if (Auth::check()) {
-            // Retornar el primer prefijo del rol asignado al usuario autenticado
-            return Auth::user()->roles()->pluck('prefix')->first();
+            return Auth::id();
         }
 
         return $token;
@@ -72,11 +71,18 @@ class ExchangeRateService
      *
      * @param ExchangeRateDTO $dto
      * @return void
+     *
+     * @throws \DomainException Si el userId no es válido o no se puede resolver.
      */
     public function create(ExchangeRateDTO $dto): void
     {
-        $role = $this->resolveRole($dto->token ?? null);
-        $this->crud->create($dto, $role);
+        $userId = $this->resolveUserId($dto->tokenId ?? null);
+
+        if (!$userId) {
+            throw new \DomainException('Usuario inválido o no identificado.');
+        }
+
+        $this->crud->create($dto, $userId);
     }
 
     /**

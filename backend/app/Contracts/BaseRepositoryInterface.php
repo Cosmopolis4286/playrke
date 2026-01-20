@@ -63,6 +63,18 @@ interface BaseRepositoryInterface
     public function getValueById(string|int $id, string $field): mixed;
 
     /**
+     * Obtener el valor de un campo específico por user_id (ID del usuario).
+     *
+     * Útil para consultas simples sin hidratar el modelo completo.
+     *
+     * @param string|int $userId ID del usuario del registro
+     * @param string $field Campo a obtener
+     *
+     * @return mixed|null
+     */
+    public function getValueByUserId(string|int $userId, string $field): mixed;
+
+    /**
      * Obtener registros por un conjunto de IDs.
      *
      * ⚠️ Método legacy: preferir consultas más expresivas cuando sea posible.

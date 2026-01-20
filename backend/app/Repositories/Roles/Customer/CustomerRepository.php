@@ -40,11 +40,6 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         return $this->model->where($column, $value)->exists();
     }
 
-    public function getValueByUserId($userId, string $column)
-    {
-        return $this->model->where('user_id', $userId)->value($column);
-    }
-
     public function getValueByToken(string $token, string $column)
     {
         return $this->model->where('token', $token)->value($column);

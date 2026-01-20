@@ -377,14 +377,6 @@ class SellerRepository extends BaseRepository implements SellerRepositoryInterfa
     /**
      * {@inheritDoc}
      */
-    public function getValueByUserId(string $userId, string $field = 'id'): mixed
-    {
-        return $this->model->where('user', $userId)->value($field);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function bulkUpdateStatus(array $sellerIds, bool $status): int
     {
         return $this->model->whereIn('id', $sellerIds)
