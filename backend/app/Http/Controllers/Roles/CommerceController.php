@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Roles;
 
+use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Roles\CommerceRequest;
 use App\Models\Roles\Commerce;
@@ -36,7 +37,7 @@ class CommerceController extends Controller
     {
         return $this->handleServiceJson(function () use ($request) {
 
-            $result = $this->service->create($request->toDTO());
+            $result = $this->service->create($request->toDTO(AdminCommerceDTO::class));
 
             return [
                 'message'  => '✅ Registro exitoso',
@@ -67,7 +68,7 @@ class CommerceController extends Controller
         return $this->handleServiceJson(
             function () use ($request, $commerce) {
 
-                $this->service->update($commerce, $request->toDTO());
+                $this->service->update($commerce, $request->toDTO(AdminCommerceDTO::class));
 
                 return ['message' => '✅ Actualización exitosa'];
             },

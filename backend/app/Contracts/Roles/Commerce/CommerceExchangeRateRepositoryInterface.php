@@ -13,21 +13,6 @@ use Illuminate\Database\Eloquent\Collection;
 interface CommerceExchangeRateRepositoryInterface extends BaseRepositoryInterface
 {
     /**
-     * Crear una nueva tasa de cambio a partir de un DTO de dominio.
-     *
-     * El repository es responsable de:
-     * - Traducir el DTO a estructura de persistencia
-     * - Aplicar defaults de base de datos
-     * - Persistir el registro
-     *
-     * ⚠️ No contiene lógica de negocio.
-     *
-     * @param ExchangeRateDTO $dto DTO de dominio con los datos de la tasa
-     * @return CommerceExchangeRate Entidad persistida
-     */
-    public function createFromDto(ExchangeRateDTO $dto): CommerceExchangeRate;
-
-    /**
      * Obtiene todas las tasas de cambio por moneda
      *
      * @param mixed $commerceId ID del comercio

@@ -25,7 +25,7 @@ class CurrencyRepository extends BaseRepository implements CurrencyRepositoryInt
      * @param array $columns Columnas a seleccionar
      * @return Currency|null
      */
-    public function findByIsoCode(string $isoCode, array $columns = ['*']): ?Currency
+    public function findByIsoCode(string $isoCode, array $columns = ['*']): Collection
     {
         return $this->model->where('iso_code', strtoupper($isoCode))->first($columns);
     }

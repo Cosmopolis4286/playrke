@@ -24,13 +24,6 @@ class CommerceExchangeRateRepository extends BaseRepository implements CommerceE
         parent::__construct($model);
     }
 
-    public function createFromDto(ExchangeRateDTO $dto): CommerceExchangeRate
-    {
-        return CommerceExchangeRate::create(
-            ExchangeRateMapper::toPersistence($dto)
-        );
-    }
-
     /**
      * Obtiene todas las tasas de cambio por moneda
      *

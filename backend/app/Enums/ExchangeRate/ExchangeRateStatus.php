@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Domain\ExchangeRate;
+namespace App\Enums\ExchangeRate;
 
 enum ExchangeRateStatus: string
 {

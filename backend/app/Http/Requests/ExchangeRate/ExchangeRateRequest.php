@@ -4,6 +4,7 @@ namespace App\Http\Requests\ExchangeRate;
 
 use App\Http\Requests\BaseRequest;
 use App\Services\Auth\PermissionService;
+use Illuminate\Validation\Rule;
 
 /**
  * Request para validar datos de una Tasa de Cambio (ExchangeRate).
@@ -14,7 +15,7 @@ use App\Services\Auth\PermissionService;
  * {
  *   "currency": "USD",
  *   "exchange_rate": 1.25,
- *   "token?": "customer"
+ *   "token": "customer"
  * }
  */
 class ExchangeRateRequest extends BaseRequest
@@ -43,8 +44,6 @@ class ExchangeRateRequest extends BaseRequest
 
         /**
          * Reglas base para la moneda.
-         * Si el token NO es commerce ni customer,
-         * la moneda debe existir en la tabla currencies.
          */
         $currencyRules = [
             $isUpdate ? 'sometimes' : 'required',
@@ -52,19 +51,25 @@ class ExchangeRateRequest extends BaseRequest
             'size:3',
         ];
 
-        if ($token) {
-            $currencyRules[] = 'exists:currencies,code';
-            'token' => [
-                'string',
-                'in:admin,commerce,customer',
-            ],
+        /**
+         * Si el token es distinto de admin,
+         * la moneda debe existir en la tabla currencies.
+         */
+        if ($token !== 'admin') {
+            $currencyRules[] = 'exists:currencies,iso_code';
         }
 
         return [
             /**
              * Rol de usuario al que aplica la tasa de cambio.
              */
-
+            'token' => [
+                'sometimes',
+                'string',
+                Rule::exists('public_tokens', 'token_hash')->where(function ($query) {
+                    $query->where('status', 'ACTIVE');
+                }),
+            ],
 
             /**
              * Código de moneda ISO 4217 (ej: USD, EUR).
@@ -90,8 +95,7 @@ class ExchangeRateRequest extends BaseRequest
     public function messages(): array
     {
         return [
-            'token.required' => 'El token es obligatorio.',
-            'token.in' => 'El token no es válido.',
+            'token.exists' => 'El token no es válido o está inactivo.',
 
             'currency.required' => 'La moneda es obligatoria.',
             'currency.size' => 'La moneda debe tener exactamente 3 caracteres.',

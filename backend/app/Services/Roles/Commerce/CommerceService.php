@@ -5,7 +5,7 @@ namespace App\Services\Roles\Commerce;
 use App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface;
 use App\Contracts\UserRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
-use App\DTOs\Roles\CommerceDTO;
+use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Http\Resources\Users\Roles\CommerceResource;
 use App\Contracts\Roles\Commerce\CommerceGameRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
@@ -13,7 +13,7 @@ use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\Roles\Commerce;
 use App\Services\BaseService;
-use App\Services\Users\UserService;
+use App\Services\UserService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -39,10 +39,10 @@ class CommerceService extends BaseService
     /**
      * Crear un comercio completo (User + Commerce + Wallet + Codes).
      *
-     * @param CommerceDTO $dto
+     * @param AdminCommerceDTO $dto
      * @return array{commerce:\App\Models\Roles,password:string}
      */
-    public function create(CommerceDTO $dto): array
+    public function create(AdminCommerceDTO $dto): array
     {
         return DB::transaction(function () use ($dto) {
 
@@ -109,10 +109,10 @@ class CommerceService extends BaseService
      * Actualizar comercio y sus relaciones.
      *
      * @param Commerce $commerce
-     * @param CommerceDTO $dto
+     * @param AdminCommerceDTO $dto
      * @return void
      */
-    public function update(Commerce $commerce, CommerceDTO $dto): void
+    public function update(Commerce $commerce, AdminCommerceDTO $dto): void
     {
         DB::transaction(function () use ($commerce, $dto) {
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Factories\ExchangeRate\ExchangeRateFactory;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
 use App\Services\ExchangeRate\ExchangeRateService;
@@ -17,6 +18,7 @@ use Inertia\Response;
 class ExchangeRateController extends Controller
 {
     public function __construct(
+        protected ExchangeRateFactory $factory,
         protected ExchangeRateService $service
     ) {}
 
@@ -56,11 +58,11 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($request) {
-                $this->service->create($request->toDTO(ExchangeRateDTO::class));
+                $dto = $this->factory->fromRequest($request->validated());
 
-                return [
-                    'message' => '✅ Registro exitoso',
-                ];
+                $this->service->create($dto);
+
+                return ['message' => '✅ Registro exitoso'];
             },
             'Hubo un error al registrar la tasa de cambio.'
         );
@@ -158,7 +160,7 @@ class ExchangeRateController extends Controller
         string $currency
     ) {
         return $this->handleService(
-            fn () => view(
+            fn() => view(
                 'modules.all.exchange-rate.historical',
                 $this->service->historical($type, $creatorId, $currency)
             ),

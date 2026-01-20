@@ -17,9 +17,18 @@ interface CurrencyRepositoryInterface extends BaseRepositoryInterface
      *
      * @param string $isoCode Código ISO de la moneda
      * @param array $columns Columnas a seleccionar
-     * @return Currency|null
+     * @return Collection<Currency>
      */
-    public function findByIsoCode(string $isoCode, array $columns = ['*']): ?Currency;
+    public function findByIsoCode(string $isoCode, array $columns = ['*']): Collection;
+
+    /**
+     * Obtener valor por código ISO (método legacy)
+     *
+     * @param string $isoCode Código ISO
+     * @param string $field Campo a obtener
+     * @return mixed
+     */
+    public function getValueByISOCode(string $isoCode, string $field): mixed;
 
     /**
      * Obtener monedas por tipo

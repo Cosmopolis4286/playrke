@@ -2,18 +2,20 @@
 
 namespace App\DTOs\ExchangeRate;
 
-use DomainException;
-
 final class ExchangeRateDTO
 {
     /**
      * DTO de dominio para Tasa de Cambio.
      *
+     * Objeto inmutable que transporta datos ya resueltos
+     * entre capas del dominio y aplicación.
+     *
      * @param int|null $id           Identificador de la tasa (solo en update)
-     * @param int      $currencyId   ID interno de la moneda
+     * @param int      $currencyId   ID interno de la moneda (YA RESUELTO)
      * @param float    $amount       Valor de la tasa de cambio
-     * @param float    $percentage   Porcentaje adicional (opcional)
+     * @param float    $percentage   Porcentaje adicional
      * @param string   $status       Estado de la tasa (ACTIVE / INACTIVE)
+     * @param string|null $token     Token de usuario conectado por API
      */
     public function __construct(
         public readonly ?int $id,
@@ -21,27 +23,8 @@ final class ExchangeRateDTO
         public readonly float $amount,
         public readonly float $percentage,
         public readonly string $status,
+        public readonly string $token
     ) {}
-
-    /**
-     * Construye el DTO a partir de datos validados del Request.
-     *
-     * Espera un payload con las claves:
-     * - currency (código ISO 4217)
-     * - exchange_rate
-     *
-     * @param array<string, mixed> $data
-     */
-    public static function fromArray(array $data): self
-    {
-        return new self(
-            $data['id'] ?? null,
-            self::resolveCurrencyId($data['currency']),
-            (float) $data['exchange_rate'],
-            0.0,
-            $data['status'] ?? 'ACTIVE',
-        );
-    }
 
     /**
      * Datos listos para persistencia en el repositorio.
@@ -56,18 +39,5 @@ final class ExchangeRateDTO
             'percentage'  => $this->percentage,
             'status'      => $this->status,
         ], static fn($value) => $value !== null);
-    }
-
-    /**
-     * Resuelve el ID interno de la moneda a partir del código ISO.
-     *
-     * Esta lógica pertenece al dominio, no al Controller ni al Request.
-     */
-    private static function resolveCurrencyId(string $currencyCode): int
-    {
-        return (int) \App\Models\Currency::query()
-            ->where('code', $currencyCode)
-            ->value('id')
-            ?? throw new DomainException("Moneda inválida: {$currencyCode}");
     }
 }

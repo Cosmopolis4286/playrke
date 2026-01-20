@@ -24,7 +24,7 @@ class PublicToken extends Model
     public function scopeValid($query)
     {
         return $query
-            ->where('status', true)
+            ->where('status', 'ACTIVE')
             ->where(function ($q) {
                 $q->whereNull('expires_at')
                     ->orWhere('expires_at', '>', now());

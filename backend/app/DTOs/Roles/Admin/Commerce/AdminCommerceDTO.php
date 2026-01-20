@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs\Roles;
+namespace App\DTOs\Roles\Admin\Commerce;
 
 /**
  * Data Transfer Object para Commerce.
@@ -10,7 +10,7 @@ namespace App\DTOs\Roles;
  * - Compatible con create y update
  * - Sin lógica de negocio
  */
-final class CommerceDTO
+final class AdminCommerceDTO
 {
     /**
      * @param array<int,string>|null $otherCurrencies
