@@ -2,102 +2,167 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Services\ExchangeRate\ExchangeRateService;
-use App\Traits\Users\UserTrait;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
+use App\Services\ExchangeRate\ExchangeRateService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Controlador para la gestión de tasas de cambio
+ * Controlador para la gestión de tasas de cambio.
  */
 class ExchangeRateController extends Controller
 {
-    use UserTrait;
-
     public function __construct(
         protected ExchangeRateService $service
     ) {}
 
     /**
-     * Muestra el listado de tasas de cambio usando Inertia.
+     * Muestra el listado de tasas de cambio utilizando Inertia.
+     *
+     * Este endpoint renderiza una vista Inertia y no devuelve una respuesta JSON.
+     * El manejo de excepciones y redirecciones se realiza mediante `handleService`.
      *
      * @param Request $request
-     * @return Response|RedirectResponse
+     *
+     * @return Response
      */
-    public function index(Request $request): Response|RedirectResponse
+    public function index(Request $request): Response
     {
-        return $this->handleService(function () use ($request) {
-            $context = $this->service->context($request);
-
-            return Inertia::render('ExchangeRate/Index', $context);
-        }, 'No se pudo cargar la lista de tasas de cambios.');
-    }
-
-    /**
-     * Crear tasa de cambio
-     */
-    public function store(ExchangeRateRequest $request): RedirectResponse
-    {
-        return $this->handleService(function () use ($request) {
-            $this->service->create(
-                ExchangeRateDTO::fromRequest($request)
-            );
-        }, 'La tasa de cambio ha sido cargada con éxito');
-    }
-
-    /**
-     * Actualizar tasa de cambio
-     */
-    public function update(ExchangeRateRequest $request, string $payload): RedirectResponse
-    {
-        $this->service->update(
-            ExchangeRateDTO::fromPayload($payload, $request)
+        return $this->handleService(
+            function () use ($request) {
+                return Inertia::render(
+                    'ExchangeRate/Index',
+                    $this->service->context($request)
+                );
+            },
+            'No se pudo cargar la lista de tasas de cambios.'
         );
-
-        return back()->with('message', 'La información fue actualizada con éxito');
     }
 
     /**
-     * Eliminar tasa de cambio
+     * Crear una nueva tasa de cambio.
+     *
+     * Endpoint JSON para uso vía AJAX / API.
+     *
+     * @param ExchangeRateRequest $request
+     *
+     * @return JsonResponse
+     */
+    public function store(ExchangeRateRequest $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request) {
+                $this->service->create($request->toDTO(ExchangeRateDTO::class));
+
+                return [
+                    'message' => '✅ Registro exitoso',
+                ];
+            },
+            'Hubo un error al registrar la tasa de cambio.'
+        );
+    }
+
+    /**
+     * Actualizar una tasa de cambio existente.
+     *
+     * @param ExchangeRateRequest $request
+     * @param string $payload
+     *
+     * @return RedirectResponse
+     */
+    public function update(
+        ExchangeRateRequest $request,
+        string $payload
+    ): RedirectResponse {
+        return $this->handleService(
+            function () use ($request, $payload) {
+                $this->service->update(
+                    ExchangeRateDTO::fromPayload($payload, $request)
+                );
+
+                return back()->with(
+                    'message',
+                    'La información fue actualizada con éxito'
+                );
+            },
+            'No se pudo actualizar la tasa de cambio.'
+        );
+    }
+
+    /**
+     * Eliminar una tasa de cambio.
+     *
+     * @param string $payload
+     *
+     * @return RedirectResponse
      */
     public function delete(string $payload): RedirectResponse
     {
-        $this->service->delete(
-            ExchangeRateDTO::fromPayload($payload)
-        );
+        return $this->handleService(
+            function () use ($payload) {
+                $this->service->delete(
+                    ExchangeRateDTO::fromPayload($payload)
+                );
 
-        return back()->with('message', 'La tasa de cambio fue eliminada');
+                return back()->with(
+                    'message',
+                    'La tasa de cambio fue eliminada'
+                );
+            },
+            'No se pudo eliminar la tasa de cambio.'
+        );
     }
 
     /**
-     * Cambiar estado ACTIVE / INACTIVE
+     * Cambiar el estado de una tasa de cambio (ACTIVE / INACTIVE).
+     *
+     * @param string $payload
+     *
+     * @return RedirectResponse
      */
     public function changeStatus(string $payload): RedirectResponse
     {
-        $this->service->toggleStatus(
-            ExchangeRateDTO::fromPayload($payload)
-        );
+        return $this->handleService(
+            function () use ($payload) {
+                $this->service->toggleStatus(
+                    ExchangeRateDTO::fromPayload($payload)
+                );
 
-        return back()->with('message', 'Status actualizado');
+                return back()->with(
+                    'message',
+                    'Estado actualizado correctamente'
+                );
+            },
+            'No se pudo actualizar el estado.'
+        );
     }
 
     /**
-     * Histórico de tasas
+     * Mostrar el histórico de tasas de cambio.
+     *
+     * Renderiza una vista Blade tradicional.
+     *
+     * @param string $type
+     * @param string $creatorId
+     * @param string $currency
+     *
+     * @return \Illuminate\Contracts\View\View
      */
     public function historical(
         string $type,
         string $creatorId,
         string $currency
-    ): View {
-        return view(
-            'modules.all.exchange-rate.historical',
-            $this->service->historical($type, $creatorId, $currency)
+    ) {
+        return $this->handleService(
+            fn () => view(
+                'modules.all.exchange-rate.historical',
+                $this->service->historical($type, $creatorId, $currency)
+            ),
+            'No se pudo cargar el histórico de tasas.'
         );
     }
 }

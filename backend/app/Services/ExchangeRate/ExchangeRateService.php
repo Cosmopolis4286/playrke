@@ -18,11 +18,16 @@ use Illuminate\Http\Request;
  */
 class ExchangeRateService
 {
+    //* Contexto al que aplica la tasa*/
+    protected $role;
+
     public function __construct(
         protected ExchangeRateContext $context,
         protected ExchangeRateCrud $crud,
         protected ExchangeRateUpdater $updater,
-    ) {}
+    ) {
+        $this->role = 'commerce';
+    }
 
     /**
      * Obtener contexto para visualización de tasas.
@@ -37,7 +42,8 @@ class ExchangeRateService
      */
     public function create(ExchangeRateDTO $dto): void
     {
-        $this->crud->create($dto);
+        dd($dto, $this->role);
+        $this->crud->create($dto, $this->role);
     }
 
     /**

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Users;
+namespace App\Services;
 
 use App\Models\User;
 use App\Models\Shared\UniqueCode;

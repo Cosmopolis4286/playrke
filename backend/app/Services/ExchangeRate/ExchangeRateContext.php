@@ -9,7 +9,6 @@ use App\Services\Roles\RoleUserService;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class ExchangeRateContext
 {
@@ -37,7 +36,7 @@ class ExchangeRateContext
      */
     public function resolve(Request $request): ExchangeRateContextDTO
     {
-        [$userId, $isLogged] = $this->resolveUser($request);
+        [$userId, $isLogged] = $this->roleUserService->resolveUser($request);
 
         if ($isLogged) {
             // Opción para actualizar tasas automáticamente para usuarios autenticados.
@@ -52,24 +51,6 @@ class ExchangeRateContext
             roleUser: $userRolePrefix,
             tokenId: !$isLogged ? $userId : ''
         );
-    }
-
-    /**
-     * Resolver usuario autenticado o público
-     */
-    private function resolveUser(Request $request): array
-    {
-        if (Auth::check()) {
-            return [Auth::id(), true];
-        }
-
-        $userId = $request->attributes->get('public_user');
-
-        if (!$userId) {
-            abort(404);
-        }
-
-        return [$userId, false];
     }
 
     private function resolveAvailableCurrencies(int $userId): array|object

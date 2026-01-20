@@ -2,68 +2,72 @@
 
 namespace App\DTOs\ExchangeRate;
 
-use InvalidArgumentException;
+use DomainException;
 
-/**
- * Data Transfer Object para ExchangeRate.
- *
- * Centraliza los datos necesarios para crear, actualizar
- * y modificar el estado de una tasa de cambio, desacoplando
- * la capa HTTP del dominio.
- */
 final class ExchangeRateDTO
 {
+    /**
+     * DTO de dominio para Tasa de Cambio.
+     *
+     * @param int|null $id           Identificador de la tasa (solo en update)
+     * @param int      $currencyId   ID interno de la moneda
+     * @param float    $amount       Valor de la tasa de cambio
+     * @param float    $percentage   Porcentaje adicional (opcional)
+     * @param string   $status       Estado de la tasa (ACTIVE / INACTIVE)
+     */
     public function __construct(
-        public readonly string $creatorType,   // commerce | customer
-        public readonly string $currencyId,
-        public readonly float $value,
-        public readonly ?string $id = null,     // Usado en update / delete / toggle
+        public readonly ?int $id,
+        public readonly int $currencyId,
+        public readonly float $amount,
+        public readonly float $percentage,
+        public readonly string $status,
     ) {}
 
     /**
-     * Crear DTO desde un request validado.
+     * Construye el DTO a partir de datos validados del Request.
+     *
+     * Espera un payload con las claves:
+     * - currency (código ISO 4217)
+     * - exchange_rate
+     *
+     * @param array<string, mixed> $data
      */
     public static function fromArray(array $data): self
     {
-        if (!isset($data['creator_type'])) {
-            throw new InvalidArgumentException('creator_type es requerido');
-        }
-
         return new self(
-            creatorType: $data['creator_type'],
-            currencyId: $data['currency_id'],
-            value: (float) $data['value'],
-            id: $data['id'] ?? null,
+            $data['id'] ?? null,
+            self::resolveCurrencyId($data['currency']),
+            (float) $data['exchange_rate'],
+            0.0,
+            $data['status'] ?? 'ACTIVE',
         );
     }
 
     /**
-     * Crear DTO desde un payload cifrado (URLs / botones).
-     */
-    public static function fromPayload(string $payload): self
-    {
-        $data = json_decode(urldecode($payload), true);
-
-        if (!$data || !isset($data['creatorType'], $data['id'])) {
-            throw new InvalidArgumentException('Payload inválido');
-        }
-
-        return new self(
-            creatorType: $data['creatorType'],
-            currencyId: $data['currency'] ?? '',
-            value: isset($data['exchange_rate']) ? (float) $data['exchange_rate'] : 0,
-            id: decrypt($data['id']),
-        );
-    }
-
-    /**
-     * Convertir DTO a array para persistencia.
+     * Datos listos para persistencia en el repositorio.
+     *
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {
-        return [
+        return array_filter([
             'currency_id' => $this->currencyId,
-            'value'       => $this->value,
-        ];
+            'amount'      => $this->amount,
+            'percentage'  => $this->percentage,
+            'status'      => $this->status,
+        ], static fn($value) => $value !== null);
+    }
+
+    /**
+     * Resuelve el ID interno de la moneda a partir del código ISO.
+     *
+     * Esta lógica pertenece al dominio, no al Controller ni al Request.
+     */
+    private static function resolveCurrencyId(string $currencyCode): int
+    {
+        return (int) \App\Models\Currency::query()
+            ->where('code', $currencyCode)
+            ->value('id')
+            ?? throw new DomainException("Moneda inválida: {$currencyCode}");
     }
 }

@@ -2,18 +2,16 @@
 
 namespace App\Http\Requests\Roles;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\BaseRequest;
 use App\Services\Auth\PermissionService;
-use App\DTOs\Roles\CommerceDTO;
 
 /**
  * Request para validar datos de una Comercializadora (Commerce).
  *
  * - Se usa tanto para creación como actualización.
  * - Aplica reglas dinámicas según el contexto.
- * - Convierte los datos validados en un DTO.
  */
-class CommerceRequest extends FormRequest
+class CommerceRequest extends BaseRequest
 {
     /**
      * Determina si el usuario está autorizado a realizar esta acción.
@@ -33,8 +31,8 @@ class CommerceRequest extends FormRequest
      */
     public function rules(): array
     {
-        $commerceId = $this->getCommerceId();
-        $isUpdate   = $this->isUpdate();
+        $commerceId = $this->getId(['commerce', 'id']);
+        $isUpdate   = $this->isUpdate(['commerce', 'id']);
 
         $rules = [
             'country'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
@@ -84,38 +82,5 @@ class CommerceRequest extends FormRequest
             'other_currencies.*.exists' => 'Una o más monedas adicionales no son válidas.',
             'allowed_games.*.exists' => 'Uno o más juegos permitidos no son válidos.',
         ];
-    }
-
-    /**
-     * Convierte los datos validados en un DTO (Data Transfer Object).
-     *
-     * Esto permite que el Service reciba un objeto estructurado
-     * en lugar de arrays sin tipar.
-     *
-     * @return CommerceDTO
-     */
-    public function toDTO(): CommerceDTO
-    {
-        return CommerceDTO::fromArray($this->validated());
-    }
-
-    /**
-     * Determina si la acción actual es una actualización.
-     *
-     * @return bool
-     */
-    private function isUpdate(): bool
-    {
-        return $this->route('commerce') !== null;
-    }
-
-    /**
-     * Obtiene el ID del comercio si la acción es "update".
-     *
-     * @return int|null
-     */
-    private function getCommerceId(): ?int
-    {
-        return $this->route('commerce')?->id;
     }
 }

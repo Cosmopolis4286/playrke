@@ -3,6 +3,8 @@
 namespace App\Services\Roles;
 
 use App\Contracts\Roles\RoleUserRepositoryInterface;
+use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Request;
 
 class RoleUserService
 {
@@ -33,5 +35,39 @@ class RoleUserService
         }
 
         return null;
+    }
+
+    /**
+     * Resuelve el contexto del usuario que realiza la operación.
+     *
+     * Determina si la solicitud proviene de un usuario autenticado
+     * o de un usuario público identificado en la request.
+     *
+     * Retorna una tupla con:
+     * - ID del usuario
+     * - Flag indicando si es un usuario autenticado
+     *
+     * @param \Illuminate\Http\Request $request
+     *
+     * @return array{0:int,1:bool} [
+     *     int  $userId,        // Identificador del usuario
+     *     bool $isAuthenticated // true si está autenticado
+     * ]
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     */
+    public function resolveUser(Request $request): array
+    {
+        if (Auth::check()) {
+            return [Auth::id(), true];
+        }
+
+        $userId = $request->attributes->get('public_user');
+
+        if (!$userId) {
+            abort(404);
+        }
+
+        return [$userId, false];
     }
 }

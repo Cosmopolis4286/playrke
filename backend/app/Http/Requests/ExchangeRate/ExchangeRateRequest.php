@@ -2,18 +2,22 @@
 
 namespace App\Http\Requests\ExchangeRate;
 
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\BaseRequest;
 use App\Services\Auth\PermissionService;
-use App\DTOs\Roles\CommerceDTO;
 
 /**
- * Request para validar datos de una Comercializadora (Commerce).
+ * Request para validar datos de una Tasa de Cambio (ExchangeRate).
  *
- * - Se usa tanto para creación como actualización.
- * - Aplica reglas dinámicas según el contexto.
- * - Convierte los datos validados en un DTO.
+ * Se utiliza tanto para creación como actualización.
+ *
+ * Payload esperado:
+ * {
+ *   "currency": "USD",
+ *   "exchange_rate": 1.25,
+ *   "token?": "customer"
+ * }
  */
-class ExchangeRateRequest extends FormRequest
+class ExchangeRateRequest extends BaseRequest
 {
     /**
      * Determina si el usuario está autorizado a realizar esta acción.
@@ -22,44 +26,60 @@ class ExchangeRateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Solo permite usuarios con prefix "admin"
-        return PermissionService::checkPrefix('admin');
+        return PermissionService::checkPrefix(['admin', 'commerce']);
     }
 
     /**
-     * Reglas de validación dinámicas.
+     * Reglas de validación dinámicas según:
+     * - create / update
+     * - valor del campo "token"
      *
      * @return array<string, mixed>
      */
     public function rules(): array
     {
-        $commerceId = $this->getCommerceId();
-        $isUpdate   = $this->isUpdate();
+        $isUpdate = $this->isUpdate();
+        $token = $this->input('token');
 
-        $rules = [
-            'country'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
-            'currency'       => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
-            'time_zone'      => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
-            'phone'          => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20'],
-            'name'           => [$isUpdate ? 'sometimes' : 'required', 'string'],
-            'other_currencies'   => ['sometimes', 'array'],
-            'other_currencies.*' => ['string', 'exists:currencies,id'],
-            'allowed_games'      => ['sometimes', 'array'],
-            'allowed_games.*'    => ['string', 'exists:games,id'],
+        /**
+         * Reglas base para la moneda.
+         * Si el token NO es commerce ni customer,
+         * la moneda debe existir en la tabla currencies.
+         */
+        $currencyRules = [
+            $isUpdate ? 'sometimes' : 'required',
+            'string',
+            'size:3',
         ];
 
-        // Regla unique para phone
-        $rules['phone'][] = $commerceId
-            ? 'unique:commerces,phone,' . $commerceId
-            : 'unique:commerces,phone';
-
-        // Solo creación
-        if (!$isUpdate) {
-            $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username'];
-            $rules['email']    = ['required', 'email', 'max:40', 'unique:users,email'];
+        if ($token) {
+            $currencyRules[] = 'exists:currencies,code';
+            'token' => [
+                'string',
+                'in:admin,commerce,customer',
+            ],
         }
 
-        return $rules;
+        return [
+            /**
+             * Rol de usuario al que aplica la tasa de cambio.
+             */
+
+
+            /**
+             * Código de moneda ISO 4217 (ej: USD, EUR).
+             */
+            'currency' => $currencyRules,
+
+            /**
+             * Valor de la tasa de cambio.
+             */
+            'exchange_rate' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'numeric',
+                'gt:0',
+            ],
+        ];
     }
 
     /**
@@ -70,52 +90,16 @@ class ExchangeRateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'username.required' => 'El nombre de usuario es obligatorio.',
-            'username.unique'   => 'El nombre de usuario no está disponible.',
-            'email.required'    => 'El correo electrónico es obligatorio.',
-            'email.email'       => 'El correo electrónico debe ser válido.',
-            'email.unique'      => 'Este correo ya está registrado.',
-            'phone.required'    => 'El teléfono es obligatorio.',
-            'phone.unique'      => 'El número ya está registrado.',
-            'name.required'     => 'El nombre del comercio es obligatorio.',
-            'country.required'  => 'El país es obligatorio.',
-            'currency.required' => 'La moneda principal es obligatoria.',
-            'time_zone.required' => 'La zona horaria es obligatoria.',
-            'other_currencies.*.exists' => 'Una o más monedas adicionales no son válidas.',
-            'allowed_games.*.exists' => 'Uno o más juegos permitidos no son válidos.',
+            'token.required' => 'El token es obligatorio.',
+            'token.in' => 'El token no es válido.',
+
+            'currency.required' => 'La moneda es obligatoria.',
+            'currency.size' => 'La moneda debe tener exactamente 3 caracteres.',
+            'currency.exists' => 'La moneda seleccionada no es válida.',
+
+            'exchange_rate.required' => 'La tasa de cambio es obligatoria.',
+            'exchange_rate.numeric' => 'La tasa de cambio debe ser numérica.',
+            'exchange_rate.gt' => 'La tasa de cambio debe ser mayor a cero.',
         ];
-    }
-
-    /**
-     * Convierte los datos validados en un DTO (Data Transfer Object).
-     *
-     * Esto permite que el Service reciba un objeto estructurado
-     * en lugar de arrays sin tipar.
-     *
-     * @return CommerceDTO
-     */
-    public function toDTO(): CommerceDTO
-    {
-        return CommerceDTO::fromArray($this->validated());
-    }
-
-    /**
-     * Determina si la acción actual es una actualización.
-     *
-     * @return bool
-     */
-    private function isUpdate(): bool
-    {
-        return $this->route('commerce') !== null;
-    }
-
-    /**
-     * Obtiene el ID del comercio si la acción es "update".
-     *
-     * @return int|null
-     */
-    private function getCommerceId(): ?int
-    {
-        return $this->route('commerce')?->id;
     }
 }

@@ -1,47 +1,49 @@
 <script setup lang="ts">
-import { ref } from "vue";
+  import { ref } from 'vue'
 
-import CardHeader from "@js/Components/Common/Card/CardHeader.vue";
-import ExchangeRateButtons from "@js/Components/ExchangeRate/ExchangeRateButtons.vue";
-import ExchangeRateTable from "@js/Components/ExchangeRate/ExchangeRateTable.vue";
-import { useExchangeRate } from "@js/composables/exchangeRate/useExchangeRate";
-import type { ExchangeRatePageProps } from "@js/types/exchange-rate";
-import Modal from "@/js/Components/Common/Modal/Modal.vue";
-import ExchangeRateForm from "@/js/Components/ExchangeRate/ExchangeRateForm.vue";
+  import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
+  import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
+  import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
+  import { useExchangeRate } from '@js/composables/exchangeRate/useExchangeRate'
+  import type { ExchangeRatePageProps } from '@js/types/exchange-rate'
+  import Modal from '@/js/Components/Common/Modal/Modal.vue'
+  import ExchangeRateForm from '@/js/Components/ExchangeRate/ExchangeRateForm.vue'
 
-/**
- * Props tipadas correctamente para Inertia
- */
-const props = defineProps<ExchangeRatePageProps>();
+  /**
+   * Props tipadas correctamente para Inertia
+   */
+  const props = defineProps<ExchangeRatePageProps>()
 
-/**
- * Composable
- */
-const {
-  loading,
-  showModalForm,
-  submit,
-  create,
-  edit,
-  changeStatus,
-  remove,
-  updateExchangeRates,
-} = useExchangeRate(props.tokenId);
+  /**
+   * Composable
+   */
+  const {
+    loading,
+    showModalForm,
+    modalTitle,
+    exchangeRateData,
+    submit,
+    create,
+    edit,
+    changeStatus,
+    remove,
+    updateExchangeRates
+  } = useExchangeRate(props.tokenId)
 
-/**
- * Estado local
- */
-const selectedCurrency = ref<Array<string>>([""]);
+  /**
+   * Estado local
+   */
+  const selectedCurrency = ref<Array<string>>([''])
 
-/**
- * Navega al histórico
- */
-function goHistorical(): void {
-  if (!selectedCurrency.value) return;
+  /**
+   * Navega al histórico
+   */
+  function goHistorical(): void {
+    if (!selectedCurrency.value) return
 
-  const url = `/exchange-rate/historical/${selectedCurrency.value}?tokenId=${props.tokenId}`;
-  window.location.href = url;
-}
+    const url = `/exchange-rate/historical/${selectedCurrency.value}?tokenId=${props.tokenId}`
+    window.location.href = url
+  }
 </script>
 
 <template>
@@ -71,17 +73,15 @@ function goHistorical(): void {
   </div>
   <Modal
     v-model="showModalForm"
-    title="Nueva tasa"
-    static
+    :title="modalTitle"
     show-confirm
     :loading="loading"
     :on-submit="submit"
   >
     <ExchangeRateForm
       :currencies="currencies"
-      :selected-currency="selectedCurrency"
       :role-user="roleUser"
-      :token-id="tokenId"
+      :model-value="exchangeRateData"
     />
   </Modal>
 </template>

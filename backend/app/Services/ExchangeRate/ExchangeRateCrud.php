@@ -15,11 +15,10 @@ class ExchangeRateCrud
         protected CustomerExchangeRateRepositoryInterface $customer,
     ) {}
 
-    public function create(ExchangeRateDTO $dto): void
+    public function create(ExchangeRateDTO $dto, string $context): void
     {
-        DB::transaction(function () use ($dto) {
-            $this->repo($dto->creatorType)
-                ->createFromDto($dto);
+        DB::transaction(function () use ($dto, $context) {
+            $this->repo($context)->createFromDto($dto);
         });
     }
 
@@ -28,8 +27,7 @@ class ExchangeRateCrud
         throw_if(!$dto->id, DomainException::class);
 
         DB::transaction(function () use ($dto) {
-            $this->repo($dto->creatorType)
-                ->updateFromDto($dto);
+            $this->repo($context)->updateFromDto($dto);
         });
     }
 
@@ -37,24 +35,22 @@ class ExchangeRateCrud
     {
         throw_if(!$dto->id, DomainException::class);
 
-        $this->repo($dto->creatorType)
-            ->delete($dto->id);
+        $this->repo($context)->delete($dto->id);
     }
 
     public function toggleStatus(ExchangeRateDTO $dto): void
     {
         throw_if(!$dto->id, DomainException::class);
 
-        $this->repo($dto->creatorType)
-            ->toggleStatus($dto->id);
+        $this->repo($context)->toggleStatus($dto->id);
     }
 
-    private function repo(string $type)
+    private function repo(string $context)
     {
-        return match ($type) {
+        return match ($context) {
             'commerce' => $this->commerce,
             'customer' => $this->customer,
-            default => throw new DomainException('Tipo inválido'),
+            default => throw new DomainException("Rol/Contexto inválido: {$context}"),
         };
     }
 }

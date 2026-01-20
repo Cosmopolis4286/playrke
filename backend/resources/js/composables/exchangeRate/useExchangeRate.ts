@@ -5,7 +5,7 @@ interface ExchangeRate {
     id?: string | number
     currency: string
     exchange_rate: number
-    // otros campos si tienes
+    token?: string
 }
 
 /**
@@ -17,6 +17,9 @@ interface UseExchangeRateReturn {
 
     /** Controla la visualización del modal */
     showModalForm: Ref<boolean>
+
+    /** Controla el titulo del modal */
+    modalTitle: Ref<string>
 
     /** Datos de la tasa (para crear o editar) */
     exchangeRateData: Ref<Partial<ExchangeRate>>
@@ -61,6 +64,7 @@ interface UseExchangeRateReturn {
  */
 export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
     const loading = ref<boolean>(false)
+    const modalTitle = ref<string>('')
     const showModalForm = ref<boolean>(false)
 
     // Estado reactivo para datos del formulario (nuevo o editar)
@@ -103,10 +107,16 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      * Abre el modal para crear una nueva tasa con datos vacíos
      */
     function create(): void {
+        modalTitle.value = "Registar Tasa de Cambio"
         exchangeRateData.value = {
             currency: '',
             exchange_rate: 0,
         }
+
+        if (tokenId) {
+            exchangeRateData.value.token = tokenId
+        }
+
         showModalForm.value = true
     }
 
@@ -121,6 +131,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         try {
             const response = await backendClient.get(`/exchange-rate/${id}`)
             exchangeRateData.value = response.data
+            modalTitle.value = "Editar Tasa de Cambio"
             showModalForm.value = true
         } catch (error) {
             console.error('Error cargando tasa:', error)
@@ -173,6 +184,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
     return {
         loading,
+        modalTitle,
         showModalForm,
         exchangeRateData,
         submit,

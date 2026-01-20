@@ -8,10 +8,14 @@ namespace App\DTOs\Roles;
  * - Inmutable
  * - Tipado
  * - Compatible con create y update
- * - Sin lógica innecesaria
+ * - Sin lógica de negocio
  */
 final class CommerceDTO
 {
+    /**
+     * @param array<int,string>|null $otherCurrencies
+     * @param array<int,string>|null $allowedGames
+     */
     public function __construct(
         public readonly ?string $username,
         public readonly ?string $email,
@@ -20,15 +24,10 @@ final class CommerceDTO
         public readonly ?string $currency,
         public readonly ?string $phone,
         public readonly ?string $name,
-        /** @var array<int,string>|null */
         public readonly ?array $otherCurrencies,
-        /** @var array<int,string>|null */
         public readonly ?array $allowedGames,
     ) {}
 
-    /**
-     * Crear DTO desde array validado.
-     */
     public static function fromArray(array $data): self
     {
         return new self(
@@ -39,16 +38,15 @@ final class CommerceDTO
             $data['currency'] ?? null,
             $data['phone'] ?? null,
             $data['name'] ?? null,
-            $data['other_currencies'] ?? null,
-            $data['allowed_games'] ?? null,
+            isset($data['other_currencies'])
+                ? array_values((array) $data['other_currencies'])
+                : null,
+            isset($data['allowed_games'])
+                ? array_values((array) $data['allowed_games'])
+                : null,
         );
     }
 
-    /**
-     * Exportar a array listo para persistencia.
-     *
-     * (Solo valores no nulos)
-     */
     public function toArray(): array
     {
         return array_filter([
@@ -61,6 +59,20 @@ final class CommerceDTO
             'name'             => $this->name,
             'other_currencies' => $this->otherCurrencies,
             'allowed_games'    => $this->allowedGames,
-        ], static fn($value) => $value !== null);
+        ], static function ($value) {
+            if ($value === null) {
+                return false;
+            }
+
+            if (is_string($value)) {
+                return $value !== '';
+            }
+
+            if (is_array($value)) {
+                return $value !== [];
+            }
+
+            return true;
+        });
     }
 }
