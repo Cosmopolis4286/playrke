@@ -16,6 +16,11 @@
   const commerces = props.commerces
 
   /**
+   * Columnas de la tabla
+   */
+  const columns = props.columns
+
+  /**
    * Opciones de país normalizadas
    * Se expone como array plano (NO computed en filtros)
    */
@@ -78,6 +83,9 @@
     :rows="commerces"
     :filters="filters"
     search-placeholder="Buscar por nombre, email, teléfono..."
+    showCreateButton
+    showEditButton
+    showDeleteButton
     :extra-buttons="extraButtons"
   />
 </template>

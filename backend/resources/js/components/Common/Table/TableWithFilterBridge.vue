@@ -55,6 +55,7 @@
 
   /** Emite evento global con acción y IDs */
   function emitTableCrudEvent(action: string, ids: string[] = selectedIds.value) {
+    console.log('evento')
     window.dispatchEvent(
       new CustomEvent('table:crud', {
         detail: { action, encryptIds: ids, tableId: props.tableId }
