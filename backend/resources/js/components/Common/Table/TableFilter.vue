@@ -132,10 +132,11 @@
       <!-- Búsqueda -->
       <div class="col-md-6 col-lg-4 mb-2">
         <div class="input-group">
-          <span class="input-group-text">
-            <i class="fas fa-search" />
-          </span>
-
+          <div class="input-group-prepend">
+            <span class="input-group-text">
+              <i class="fas fa-search" />
+            </span>
+          </div>
           <input
             v-model="searchQuery"
             type="text"
@@ -143,15 +144,16 @@
             :placeholder="searchPlaceholder"
             @input="handleSearch"
           />
-
-          <button
-            v-if="searchQuery"
-            class="btn btn-outline-secondary"
-            type="button"
-            @click="clearSearch"
-          >
-            <i class="fas fa-times" />
-          </button>
+          <div class="input-group-append">
+            <button
+              v-if="searchQuery"
+              class="btn btn-outline-secondary"
+              type="button"
+              @click="clearSearch"
+            >
+              <i class="fas fa-times" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -167,27 +169,29 @@
           </option>
         </select>
       </div>
-
-      <!-- Limpiar -->
-      <div v-if="hasActiveFilters" class="col-md-12 col-lg-4 d-flex align-items-end mb-2">
-        <button class="btn btn-sm btn-outline-danger w-100" type="button" @click="clearAllFilters">
-          <i class="fas fa-filter-circle-xmark" />
-          Limpiar filtros
-        </button>
-      </div>
     </div>
 
     <!-- Pills -->
-    <div v-if="hasActiveFilters" class="active-filters mt-2">
-      <span v-if="searchQuery" class="badge badge-secondary">
-        "{{ searchQuery }}"
-        <i class="fas fa-times ml-1" @click="clearSearch" />
-      </span>
-
-      <span v-for="[key, value] in activeFilterEntries" :key="key" class="badge badge-info">
-        {{ getFilterLabel(key) }}: {{ value }}
-        <i class="fas fa-times ml-1" style="cursor: pointer" @click="clearFilter(key)" />
-      </span>
+    <div class="row">
+      <div class="col-12">
+        <div v-if="hasActiveFilters" class="active-filters mt-2">
+          <!-- Limpiar -->
+          <button class="btn btn-sm btn-outline-danger" type="button" @click="clearAllFilters">
+            <i class="fas fa-filter-circle-xmark" />
+            Limpiar filtros
+          </button>
+          <!-- Filtro-Buscar -->
+          <span v-if="searchQuery" class="badge badge-secondary">
+            "{{ searchQuery }}"
+            <i class="fas fa-times ml-1" @click="clearSearch" />
+          </span>
+          <!-- Filtro-Selects -->
+          <span v-for="[key, value] in activeFilterEntries" :key="key" class="badge badge-info">
+            {{ getFilterLabel(key) }}: {{ value }}
+            <i class="fas fa-times ml-1" style="cursor: pointer" @click="clearFilter(key)" />
+          </span>
+        </div>
+      </div>
     </div>
   </div>
 </template>

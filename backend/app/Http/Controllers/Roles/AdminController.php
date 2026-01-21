@@ -57,7 +57,7 @@ class AdminController extends Controller
     /**
      * Vista de comercializadoras
      */
-    public function commerces1(): View
+    public function commerces(): View
     {
         $commerces = $this->commerces->getAllWithRelations(
             [
@@ -89,7 +89,7 @@ class AdminController extends Controller
      *
      * @return Response
      */
-    public function commerces()
+    public function commerces1()
     {
         return $this->handleService(
             function () {
