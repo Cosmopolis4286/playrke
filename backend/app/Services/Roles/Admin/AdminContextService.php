@@ -49,12 +49,12 @@ class AdminContextService
 
     private function commerceContext(): AdminCommerceContextDTO
     {
-        $commerces = $this->commerces->getAllWithRelations(
-            [
-                'country:id,name',
-                'user:id,email',
-            ],
-            ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
+        $commerces = $this->commerces->paginateWithRelations(
+            perPage: 15,
+            page: 1,
+            relations: ['country:id,name', 'user:id,email'],
+            conditions: [],
+            fields: ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
         );
 
         return new AdminCommerceContextDTO(

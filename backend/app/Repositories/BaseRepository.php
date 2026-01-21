@@ -211,6 +211,46 @@ abstract class BaseRepository implements BaseRepositoryInterface
     /**
      * {@inheritDoc}
      */
+    public function paginateWithRelations(
+        int $perPage = 15,
+        int $page = 1,
+        array $relations = [],
+        array $conditions = [],
+        array $fields = ['*']
+    ): LengthAwarePaginator {
+        $query = $this->model->newQuery();
+
+        // Seleccionar columnas específicas
+        $query->select($fields);
+
+        // Cargar relaciones
+        if (!empty($relations)) {
+            $query->with($relations);
+        }
+
+        // Aplicar condiciones where (AND)
+        foreach ($conditions as $field => $value) {
+            if (is_array($value)) {
+                // Por ejemplo ['field' => ['operator', 'value']]
+                [$operator, $val] = $value;
+                $query->where($field, $operator, $val);
+            } else {
+                $query->where($field, $value);
+            }
+        }
+
+        // Retornar paginación, Laravel manejará página actual automáticamente si está en request
+        return $query->paginate(
+            $perPage,
+            ['*'],
+            'page',
+            $page
+        );
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function getByStatus(string $status,  array $fields = ['*']): Collection
     {
         return $this->model->where('status', $status)->get($fields);

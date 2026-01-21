@@ -191,6 +191,26 @@ interface BaseRepositoryInterface
         array $fields = ['*']
     ): Collection;
 
+
+    /**
+     * Paginar resultados con relaciones y filtros opcionales.
+     *
+     * @param int $perPage Registros por página
+     * @param int $page Página actual
+     * @param array<int,string> $relations Relaciones Eloquent a cargar
+     * @param array<string,mixed> $conditions Condiciones de filtrado (campo => valor)
+     * @param array<int,string> $fields Columnas a seleccionar
+     *
+     * @return LengthAwarePaginator
+     */
+    public function paginateWithRelations(
+        int $perPage = 15,
+        int $page = 1,
+        array $relations = [],
+        array $conditions = [],
+        array $fields = ['*']
+    ): LengthAwarePaginator;
+
     /**
      * Obtener registros filtrados por estado.
      *

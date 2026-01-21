@@ -57,7 +57,7 @@ class AdminController extends Controller
     /**
      * Vista de comercializadoras
      */
-    public function commerces(): View
+    public function commerces1(): View
     {
         $commerces = $this->commerces->getAllWithRelations(
             [
@@ -89,17 +89,11 @@ class AdminController extends Controller
      *
      * @return Response
      */
-    public function commerces1()
+    public function commerces()
     {
         return $this->handleService(
             function () {
-                $rolePrefix = 'commerces';
-                $context = $this->service->context($rolePrefix);
-
-                $columns = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-                $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_label'];
-
-                $context = $this->processContextTableData($context, $rolePrefix, $columns, $rowKeys);
+                $context = $this->service->context('commerces');
 
                 return Inertia::render('Roles/Admin/Commerce/Index', $context);
             },
