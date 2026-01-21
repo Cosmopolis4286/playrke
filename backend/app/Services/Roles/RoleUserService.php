@@ -2,14 +2,19 @@
 
 namespace App\Services\Roles;
 
+use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
+use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\Roles\RoleUserRepositoryInterface;
+use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Request;
 
 class RoleUserService
 {
     public function __construct(
-        protected RoleUserRepositoryInterface $repository,
+        protected RoleUserRepositoryInterface $roleUserRepository,
+        protected CommerceRepositoryInterface $commerceRepository,
+        protected CustomerRepositoryInterface $customerRepository
     ) {}
 
     /**
@@ -24,7 +29,7 @@ class RoleUserService
     public function getActiveUserRolePrefix(int $userId): ?string
     {
         // Obtener roles activos asignados al usuario
-        $activeRoles = $this->repository->getActiveByUser($userId);
+        $activeRoles = $this->roleUserRepository->getActiveByUser($userId);
 
         foreach ($activeRoles as $roleUser) {
             $role = $roleUser->role;
@@ -69,5 +74,31 @@ class RoleUserService
         }
 
         return [$userId, false];
+    }
+
+    /**
+     * Obtiene el ID asociado al usuario según su rol activo o un rol especificado.
+     *
+     * Si no se proporciona un rol, se obtiene el rol activo del usuario automáticamente.
+     * Soporta roles 'commerce' y 'customer'.
+     *
+     * @param int $userId ID del usuario
+     * @param string|null $role Prefijo del rol opcional ('commerce', 'customer')
+     *
+     * @return int ID asociado al usuario según el rol
+     *
+     * @throws \DomainException Si el rol es inválido o no soportado
+     */
+    public function getUserRoleEntityId(int $userId, ?string $role): int
+    {
+        if (!$role) {
+            $role = $this->getActiveUserRolePrefix($userId);
+        }
+
+        return match ($role) {
+            'commerce' => $this->commerceRepository->getValueByUserId($userId, 'id'),
+            'customer' => $this->customerRepository->getValueByUserId($userId, 'id'),
+            default => throw new DomainException("Rol inválido: {$role}"),
+        };
     }
 }

@@ -37,11 +37,9 @@ class ExchangeRateCrud
         // Nombre de la columna foreign key asociada al rol
         $roleForeignKey = "{$rolePrefix}_id";
 
-        $rolePrefixID = $this->repo($rolePrefix)->getValueByUserId($userId, $roleForeignKey);
+        $rolePrefixID = $this->roleUserService->getUserRoleEntityId($userId, $rolePrefix);
 
         $data = $dto->toArray() + [$roleForeignKey => $rolePrefixID];
-
-        dd($data);
 
         DB::transaction(fn() => $this->repo($rolePrefix)->create($data));
     }
