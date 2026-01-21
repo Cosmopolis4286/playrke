@@ -21,11 +21,12 @@
 
   const commerces = props.commerces
 
-  const countryOptions = computed<Option[]>
+ const countryOptions = computed<Option[]>(() =>
   props.countries.map(c => ({
     value: c.name,
     label: c.name
   }))
+)
 
   const filters = [
     {
@@ -69,9 +70,8 @@
   <TableWithFilterBridge
     tableId="commerce-table"
     title="Comercializadoras"
-    :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']"
+    :columns="columns"
     :rows="commerces"
-    :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
     :filters="filters"
     search-placeholder="Buscar por nombre, email, teléfono..."
     :extra-buttons="extraButtons"

@@ -9,5 +9,6 @@ export interface AdminCommercePageProps {
     countries: Country[],
     currencies: Currency[],
     games: Game[],
-    timeZones: TimeZone[]
+    timeZones: TimeZone[],
+    columns: Array<string>
 }

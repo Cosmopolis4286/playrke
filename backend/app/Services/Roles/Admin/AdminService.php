@@ -19,18 +19,10 @@ class AdminService
     ) {}
 
     /**
-     * Obtener contexto para visualización de tasas.
+     * Obtener contexto para visualización de vidtas.
      */
     public function context(string $context): array
     {
         return $this->context->resolve($context)->toView();
     }
-
-    /**
-     * Crear una nueva tasa de cambio.
-     */
-    // public function create(AdminDTO $dto): void
-    // {
-    //     $this->crud->create($dto);
-    // }
 }

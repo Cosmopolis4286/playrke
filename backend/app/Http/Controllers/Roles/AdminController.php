@@ -12,13 +12,11 @@ use App\Contracts\Roles\Treasurer\OtherTreasurersRepositoryInterface;
 use App\Contracts\TimeZoneRepositoryInterface;
 use App\Http\Controllers\Controller;
 use App\Services\Roles\Admin\AdminService;
-use App\Traits\Helpers\EncryptTrait;
-use App\Traits\Users\UserTrait;
+use App\Traits\HashedTableDataTrait;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Controlador Admin refactorizado
@@ -29,7 +27,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  */
 class AdminController extends Controller
 {
-    use UserTrait, EncryptTrait;
+    use HashedTableDataTrait;
 
     /**
      * Constructor con inyección de dependencias
@@ -59,7 +57,7 @@ class AdminController extends Controller
     /**
      * Vista de comercializadoras
      */
-    public function commerces(): View
+    public function commerces1(): View
     {
         $commerces = $this->commerces->getAllWithRelations(
             [
@@ -84,18 +82,29 @@ class AdminController extends Controller
     }
 
     /**
-     * Muestra el listado de comercializadoras usando Inertia.
+     * Muestra el listado de comercializadoras utilizando Inertia.
      *
-     * @param Request $request
-     * @return Response|RedirectResponse
+     * Este endpoint renderiza una vista Inertia y no devuelve una respuesta JSON.
+     * El manejo de excepciones y redirecciones se realiza mediante `handleService`.
+     *
+     * @return Response
      */
-    public function commercesNew(): Response|RedirectResponse
+    public function commerces()
     {
-        return $this->handleService(function () {
-            $context = $this->service->context('commerce');
+        return $this->handleService(
+            function () {
+                $rolePrefix = 'commerces';
+                $context = $this->service->context($rolePrefix);
 
-            return Inertia::render('Roles/Admin/Commerce/Index', $context);
-        }, 'No se pudo cargar la lista de comercializadoras.');
+                $columns = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
+                $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_label'];
+
+                $context = $this->processContextTableData($context, $rolePrefix, $columns, $rowKeys);
+
+                return Inertia::render('Roles/Admin/Commerce/Index', $context);
+            },
+            'No se pudo cargar la lista de comercializadoras.'
+        );
     }
 
     /**
