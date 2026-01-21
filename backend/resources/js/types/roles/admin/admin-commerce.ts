@@ -3,6 +3,7 @@ import type { Country } from '../../country'
 import { Game } from '../../game'
 import { TimeZone } from '../../time-zone'
 import { Commerce } from '../commerce/commerce'
+import { Column } from '../../common/table/column'
 
 export interface AdminCommercePageProps {
     commerces: Commerce[],
@@ -10,5 +11,5 @@ export interface AdminCommercePageProps {
     currencies: Currency[],
     games: Game[],
     timeZones: TimeZone[],
-    columns: Array<string>
+    columns: Column[]
 }

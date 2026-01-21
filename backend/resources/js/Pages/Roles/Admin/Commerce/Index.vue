@@ -3,37 +3,39 @@
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import type { AdminCommercePageProps } from '@js/types/roles/admin/admin-commerce'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
+  import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
 
   /**
-   * Tipos locales
-   */
-  interface Option {
-    value: string
-    label: string
-  }
-
-  /**
-   * Props tipadas correctamente para Inertia
+   * Props tipadas para Inertia
    */
   const props = defineProps<AdminCommercePageProps>()
 
-  console.log('props', props)
-
+  /**
+   * Filas de la tabla
+   */
   const commerces = props.commerces
 
- const countryOptions = computed<Option[]>(() =>
-  props.countries.map(c => ({
-    value: c.name,
-    label: c.name
-  }))
-)
+  /**
+   * Opciones de país normalizadas
+   * Se expone como array plano (NO computed en filtros)
+   */
+  const countryOptions = computed<TableFilterOption[]>(() =>
+    props.countries.map(country => ({
+      value: country.name,
+      label: country.name
+    }))
+  )
 
-  const filters = [
+  /**
+   * Filtros de tabla
+   * ⚠️ options debe ser siempre un array, no un ComputedRef
+   */
+  const filters = computed<readonly TableFilter[]>(() => [
     {
       key: 'country_name',
       label: 'País',
       placeholder: 'Filtrar por país',
-      options: countryOptions
+      options: countryOptions.value
     },
     {
       key: 'status',
@@ -43,10 +45,13 @@
         { value: 'ACTIVE', label: 'Activo' },
         { value: 'INACTIVE', label: 'Inactivo' },
         { value: 'DELETED', label: 'Eliminado' }
-      ] as Option[]
+      ]
     }
-  ]
+  ])
 
+  /**
+   * Botones extra de acciones
+   */
   const extraButtons: ExtraButton[] = [
     {
       label: '',
@@ -55,15 +60,14 @@
       show: false,
       action: 'changeStatus'
     },
-    { label: '', icon: 'fas fa-key', class: 'btn-dark', show: false, action: 'resetPassword' }
+    {
+      label: '',
+      icon: 'fas fa-key',
+      class: 'btn-dark',
+      show: false,
+      action: 'resetPassword'
+    }
   ]
-
-  /**
-   * Composable
-   */
-  //   const { loading, create, edit, changeStatus, remove, updateAdminCommerces } = useAdminCommerce(
-  //     props.creator
-  //   )
 </script>
 
 <template>

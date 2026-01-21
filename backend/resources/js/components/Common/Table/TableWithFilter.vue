@@ -1,29 +1,23 @@
-<script setup lang="ts">
+<script setup lang="ts" name="TableWithFilter">
   import { ref, computed } from 'vue'
   import TableFilter from './TableFilter.vue'
   import CardHeader from '../Card/CardHeader.vue'
-  import { Column } from '@/js/types/common/table/column'
+  import type { Column } from '@/js/types/common/table/column'
 
-  /**
-   * Opciones para filtros
-   */
+  /** Opciones para filtros */
   interface FilterOption {
     label: string
     value: string
   }
 
-  /**
-   * Definición de filtro
-   */
+  /** Definición de filtro */
   interface Filter {
     key: string
     label: string
     options: FilterOption[]
   }
 
-  /**
-   * Props del componente
-   */
+  /** Props del componente */
   const props = defineProps<{
     tableId: string
     title: string
@@ -53,21 +47,20 @@
     (e: 'selection-change', ids: string[]): void
   }>()
 
-  /** IDs seleccionados actualmente */
+  /** IDs seleccionados en la tabla */
   const selectedIds = ref<string[]>([])
 
-  /** Estado de filtros y búsqueda */
+  /** Estado actual de filtros y búsqueda */
   const currentFilters = ref<{ search: string; filters: Record<string, string> }>({
     search: '',
     filters: {}
   })
 
   /**
-   * Obtiene el valor de una clave en el objeto,
-   * evita error si clave no existe.
+   * Obtiene valor seguro de propiedad en objeto, evita errores si no existe.
    * @param obj Objeto de datos
-   * @param key Clave para extraer valor (plana, sin nested)
-   * @returns Valor encontrado o string vacío
+   * @param key Clave para extraer
+   * @returns Valor o cadena vacía
    */
   function getNestedValue(obj: Record<string, any>, key: string): any {
     return obj?.[key] ?? ''
@@ -75,8 +68,8 @@
 
   /**
    * Escapa texto para evitar inyección HTML
-   * @param text Texto a escapar
-   * @returns Texto escapado
+   * @param text Texto crudo
+   * @returns Texto seguro para HTML
    */
   function escapeHtml(text: string): string {
     const map: Record<string, string> = {
@@ -90,27 +83,24 @@
   }
 
   /**
-   * Formatea el contenido de una celda,
-   * escapa texto a menos que se permita HTML
-   * @param row Fila actual
+   * Formatea contenido de celda según configuración HTML
+   * @param row Fila de datos
    * @param column Columna actual
-   * @returns Contenido HTML seguro o raw si html=true
+   * @returns Contenido seguro o con HTML
    */
   function formatCell(row: Record<string, any>, column: Column): string {
     const value = getNestedValue(row, column.key)
     return column.html ? value : escapeHtml(value)
   }
 
-  /**
-   * Filtra filas según búsqueda y filtros activos
-   */
+  /** Filtra filas según búsqueda y filtros activos */
   const filteredRows = computed(() => {
-    let result = [...props.rows]
+    let rows = props.rows
 
-    // Filtro por búsqueda en cualquier columna
+    // Filtro de búsqueda global (cualquier columna)
     if (currentFilters.value.search) {
       const searchLower = currentFilters.value.search.toLowerCase()
-      result = result.filter(row =>
+      rows = rows.filter(row =>
         props.columns.some(col => {
           const val = getNestedValue(row, col.key)
           return String(val).toLowerCase().includes(searchLower)
@@ -118,30 +108,27 @@
       )
     }
 
-    // Filtros por opciones seleccionadas
-    Object.entries(currentFilters.value.filters).forEach(([key, value]) => {
-      if (value) {
-        result = result.filter(row => String(getNestedValue(row, key)) === value)
+    // Filtros por columna
+    Object.entries(currentFilters.value.filters).forEach(([key, val]) => {
+      if (val) {
+        rows = rows.filter(row => String(getNestedValue(row, key)) === val)
       }
     })
 
-    return result
+    return rows
   })
 
-  /** Indica si todas las filas filtradas están seleccionadas */
-  const allSelected = computed(() => {
-    return filteredRows.value.length > 0 && selectedIds.value.length === filteredRows.value.length
-  })
+  /** Indica si todas las filas visibles están seleccionadas */
+  const allSelected = computed(
+    () => filteredRows.value.length > 0 && selectedIds.value.length === filteredRows.value.length
+  )
 
-  /** Indica si hay alguna selección parcial */
-  const someSelected = computed(() => {
-    return selectedIds.value.length > 0 && selectedIds.value.length < filteredRows.value.length
-  })
+  /** Indica si hay selección parcial */
+  const someSelected = computed(
+    () => selectedIds.value.length > 0 && selectedIds.value.length < filteredRows.value.length
+  )
 
-  /**
-   * Cambia el filtro actual y limpia selección inválida
-   * @param filterData Nuevos filtros y búsqueda
-   */
+  /** Cambia filtro y limpia selección inválida */
   function handleFilter(filterData: { search: string; filters: Record<string, string> }): void {
     currentFilters.value = filterData
     selectedIds.value = selectedIds.value.filter(id =>
@@ -150,27 +137,25 @@
     emitSelectionChange()
   }
 
-  /** Selecciona o deselecciona una fila */
+  /** Alterna selección de fila */
   function toggleRow(id: string): void {
-    const index = selectedIds.value.indexOf(id)
-    if (index >= 0) selectedIds.value.splice(index, 1)
-    else selectedIds.value.push(id)
+    const idx = selectedIds.value.indexOf(id)
+    idx >= 0 ? selectedIds.value.splice(idx, 1) : selectedIds.value.push(id)
     emitSelectionChange()
   }
 
-  /** Selecciona o deselecciona todas las filas filtradas */
+  /** Alterna selección total */
   function toggleAll(): void {
-    if (allSelected.value) selectedIds.value = []
-    else selectedIds.value = filteredRows.value.map(row => row.id)
+    selectedIds.value = allSelected.value ? [] : filteredRows.value.map(r => r.id)
     emitSelectionChange()
   }
 
-  /** Verifica si un ID está seleccionado */
+  /** Indica si fila está seleccionada */
   function isSelected(id: string): boolean {
     return selectedIds.value.includes(id)
   }
 
-  /** Emite evento de cambio de selección */
+  /** Emite evento con IDs seleccionados */
   function emitSelectionChange(): void {
     emit('selection-change', [...selectedIds.value])
   }
@@ -178,12 +163,9 @@
 
 <template>
   <div class="card">
-    <!-- Card Header -->
-    <CardHeader :title="props.title" />
+    <CardHeader :title="title" />
 
-    <!-- Card Body -->
     <div class="card-body">
-      <!-- Filtros -->
       <TableFilter
         :search-placeholder="searchPlaceholder"
         :filters="filters"
@@ -191,8 +173,7 @@
         @filter="handleFilter"
       />
 
-      <!-- Botones de acciones -->
-      <div class="mb-3" v-if="selectedIds.length > 0 || showCreateButton">
+      <div class="mb-3" v-if="selectedIds.length || showCreateButton">
         <button v-if="showCreateButton" class="btn btn-sm btn-success" @click="$emit('create')">
           <i class="fas fa-plus"></i> Crear
         </button>
@@ -214,11 +195,9 @@
           {{ selectedIds.length > 1 ? ` (${selectedIds.length})` : '' }}
         </button>
 
-        <!-- Slot para botones personalizados -->
         <slot name="action-buttons" :selectedIds="selectedIds"></slot>
       </div>
 
-      <!-- Tabla -->
       <div class="table-responsive mt-2">
         <table :id="tableId" class="table-striped table-bordered w-100 my-2 table">
           <thead>
@@ -226,14 +205,12 @@
               <th class="text-center" style="width: 40px">
                 <input
                   type="checkbox"
-                  @change="toggleAll"
                   :checked="allSelected"
                   :indeterminate.prop="someSelected"
+                  @change="toggleAll"
                 />
               </th>
-              <th v-for="column in columns" :key="column.key">
-                {{ column.label }}
-              </th>
+              <th v-for="column in columns" :key="column.key">{{ column.label }}</th>
             </tr>
           </thead>
           <tbody>
@@ -261,8 +238,6 @@
                 </slot>
               </td>
             </tr>
-
-            <!-- Empty state -->
             <tr v-if="filteredRows.length === 0">
               <td :colspan="columns.length + 1" class="text-muted py-4 text-center">
                 <i class="fas fa-inbox fa-2x mb-2"></i>
@@ -273,14 +248,13 @@
         </table>
       </div>
 
-      <!-- Información de resultados -->
       <div
+        v-if="filteredRows.length"
         class="d-flex justify-content-between align-items-center mt-2"
-        v-if="filteredRows.length > 0"
       >
         <small class="text-muted">
           Mostrando {{ filteredRows.length }} de {{ rows.length }} registros
-          <span v-if="selectedIds.length > 0">({{ selectedIds.length }} seleccionados)</span>
+          <span v-if="selectedIds.length"> ({{ selectedIds.length }} seleccionados)</span>
         </small>
       </div>
     </div>

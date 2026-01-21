@@ -1,16 +1,17 @@
-<script setup lang="ts">
+<script setup lang="ts" name="TableWithFilterBridge">
   import { computed, ref } from 'vue'
   import TableWithFilter from './TableWithFilter.vue'
   import type { Column } from '@/js/types/common/table/column'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
+  import { TableFilter } from '@/js/types/common/table/table-filter'
 
   /** Props recibidas desde el componente padre */
   const props = defineProps<{
     tableId: string
     title: string
-    columns: Column[] | string
+    columns: Column[]
     rows: Array<Record<string, any>> | string
-    filters?: Array<any> | string
+    filters?: readonly TableFilter[]
     searchPlaceholder?: string
     debounceDelay?: number
     emptyMessage?: string
