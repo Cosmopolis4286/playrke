@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { ref, computed } from 'vue'
 
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
@@ -13,6 +13,13 @@
    * Props tipadas correctamente para Inertia
    */
   const props = defineProps<ExchangeRatePageProps>()
+
+  /**
+   * Indica si es un usuario con privilegios
+   */
+  const hasPrivilegedRole = computed(
+    () => props.roleUser === 'company' || props.roleUser === 'customer'
+  )
 
   /**
    * Composable
@@ -34,7 +41,6 @@
    * Estado local
    */
   const selectedCurrency = ref<Array<string>>([''])
-
   const currencies = props.currencies
   const exchangeRates = props.exchangeRates
 
@@ -55,8 +61,6 @@
         : null
     }
   })
-
-  console.log('usedCurrencies', usedCurrencies)
 
   /**
    * Referencias
@@ -87,7 +91,7 @@
         <ExchangeRateButtons
           :currencies="currencies"
           :usedCurrencies="usedCurrencies"
-          :role-user="roleUser"
+          :has-privileged-role="hasPrivilegedRole"
           :selected-currency="selectedCurrency"
           @create="create"
           @historical="goHistorical"
@@ -97,7 +101,7 @@
         <ExchangeRateTable
           :usedCurrencies="usedCurrencies"
           :exchange-rates="exchangeRates"
-          :role-user="roleUser"
+          :has-privileged-role="hasPrivilegedRole"
           @edit="edit"
           @change-status="changeStatus"
           @delete="remove"
@@ -119,7 +123,7 @@
       ref="exchangeRateFormRef"
       :currencies="currencies"
       :usedCurrencies="usedCurrencies"
-      :role-user="roleUser"
+      :has-privileged-role="hasPrivilegedRole"
       :model-value="exchangeRateData"
     />
   </Modal>

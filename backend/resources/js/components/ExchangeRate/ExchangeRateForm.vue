@@ -1,43 +1,86 @@
 <script setup lang="ts" name="ExchangeRateForm">
+  /* =======================
+   * Imports
+   * ======================= */
   import { ref, watch, computed, toRefs } from 'vue'
   import type { Currency } from '@/js/types/currency'
+  import type { UsedCurrency } from '@/js/types/exchange-rate'
 
+  /* =======================
+   * Props
+   * ======================= */
   const props = defineProps<{
+    usedCurrencies?: UsedCurrency[]
     currencies: Currency[]
-    roleUser: string
+    hasPrivilegedRole: boolean
     modelValue: {
       currency?: string
       exchange_rate?: number | null
     }
   }>()
 
+  /* =======================
+   * Emits
+   * ======================= */
   const emit = defineEmits<{
     (e: 'submit'): void
-    (e: 'update:modelValue', value: { currency?: string; exchange_rate?: number | null }): void
+    (
+      e: 'update:modelValue',
+      value: {
+        currency?: string
+        exchange_rate?: number | null
+      }
+    ): void
   }>()
 
-  // Se extraen refs reactivas de modelValue
+  /* =======================
+   * State / Refs
+   * ======================= */
   const { modelValue } = toRefs(props)
 
-  // Errores de validación
-  const errors = ref<{ currency?: string; exchange_rate?: string }>({})
+  const errors = ref<{
+    currency?: string
+    exchange_rate?: string
+  }>({})
 
+  /* =======================
+   * Computed
+   * ======================= */
+  const availableCurrencies = computed<Currency[]>(() => {
+    if (!props.usedCurrencies?.length) {
+      return props.currencies
+    }
+
+    const usedIsoCodes = new Set(props.usedCurrencies.map(currency => currency.iso_code))
+
+    return props.currencies.filter(currency => !usedIsoCodes.has(currency.iso_code))
+  })
+
+  const isValid = computed(() => {
+    return !errors.value.currency && !errors.value.exchange_rate
+  })
+
+  /* =======================
+   * Constants
+   * ======================= */
   const maskOptions = {
     mask: Number,
-    scale: 2, // 2 decimales
+    scale: 2,
     thousandsSeparator: '',
     padFractionalZeros: false,
     normalizeZeros: true,
     radix: '.',
-    mapToRadix: [','] // aceptar coma como decimal también si quieres
+    mapToRadix: [',']
   }
 
-  // Validar campos
-  const validate = () => {
+  /* =======================
+   * Methods
+   * ======================= */
+  const validate = (): void => {
     errors.value.currency = ''
     errors.value.exchange_rate = ''
 
-    if (!modelValue.value.currency || modelValue.value.currency.trim() === '') {
+    if (!modelValue.value.currency?.trim()) {
       errors.value.currency = 'La divisa es requerida.'
     }
 
@@ -50,37 +93,27 @@
     }
   }
 
-  // Computed que indica si formulario es válido
-  const isValid = computed(() => {
-    return !errors.value.currency && !errors.value.exchange_rate
-  })
-
-  // Cuando cambie el formulario, emitir para sincronizar
-  watch(
-    modelValue,
-    newVal => {
-      emit('update:modelValue', newVal)
-    },
-    { deep: true }
-  )
-
-  // Validar cambios en props.modelValue automáticamente
-  watch(
-    () => [modelValue.value.currency, modelValue.value.exchange_rate],
-    () => validate(),
-    { immediate: true }
-  )
-
-  // Función submit para emitir si válido
   const submit = (): boolean => {
     validate()
-    if (isValid.value) {
-      emit('submit')
-      return true
-    }
-    return false
+
+    if (!isValid.value) return false
+
+    emit('submit')
+    return true
   }
 
+  /* =======================
+   * Watchers
+   * ======================= */
+  watch(modelValue, newValue => emit('update:modelValue', newValue), { deep: true })
+
+  watch(() => [modelValue.value.currency, modelValue.value.exchange_rate], validate, {
+    immediate: true
+  })
+
+  /* =======================
+   * Expose
+   * ======================= */
   defineExpose({
     submit,
     get isValid() {
@@ -95,7 +128,7 @@
       <label>Divisa*</label>
 
       <input
-        v-if="roleUser === 'company' || roleUser === 'customer'"
+        v-if="hasPrivilegedRole"
         type="text"
         class="form-control"
         v-model="modelValue.currency"
@@ -105,7 +138,11 @@
 
       <select v-else class="form-control" v-model="modelValue.currency" required @blur="validate">
         <option disabled value="">Seleccione una moneda</option>
-        <option v-for="currency in currencies" :key="currency.id" :value="currency.iso_code">
+        <option
+          v-for="currency in availableCurrencies"
+          :key="currency.id"
+          :value="currency.iso_code"
+        >
           {{ currency.name }} ({{ currency.symbol }})
         </option>
       </select>
@@ -130,6 +167,11 @@
       <small v-if="errors.exchange_rate" class="text-danger mt-1">
         {{ errors.exchange_rate }}
       </small>
+
+      <div class="alert alert-primary mb-n2 mt-2" role="alert">
+        El tipo de cambio ingresado representa el valor de la moneda seleccionada equivalente a
+        <strong>1 USD</strong>.
+      </div>
     </div>
   </form>
 </template>

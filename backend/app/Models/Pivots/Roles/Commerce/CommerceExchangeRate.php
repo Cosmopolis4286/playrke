@@ -2,15 +2,15 @@
 
 namespace App\Models\Pivots\Roles\Commerce;
 
+use App\Models\Pivots\BasePivot;
 use App\Models\Currency;
 use App\Models\Roles\Commerce;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * Modelo para tasas de cambio de comercios
  */
-class CommerceExchangeRate extends Pivot
+class CommerceExchangeRate extends BasePivot
 {
     public $incrementing = false;
     protected $primaryKey = null;

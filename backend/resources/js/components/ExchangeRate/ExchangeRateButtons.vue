@@ -6,7 +6,7 @@
   const props = defineProps<{
     currencies: Currency[]
     usedCurrencies?: UsedCurrency[]
-    roleUser: string
+    hasPrivilegedRole: boolean
     selectedCurrency: Array<string>
   }>()
 
@@ -14,15 +14,10 @@
   const usedCurrencies = props.usedCurrencies ?? []
 
   /**
-   * Indica si un usuario externo con token
-   */
-  const extUser = computed(() => props.roleUser === 'company' || props.roleUser === 'customer')
-
-  /**
    * Indica si es posible registrar una nueva tasa de cambio
    */
   const canCreate = computed(() => {
-    if (extUser.value) return true
+    if (props.hasPrivilegedRole) return true
 
     const totalCurrencies = currencies.length
     const usedCount = usedCurrencies.length

@@ -8,7 +8,7 @@
   const props = defineProps<{
     usedCurrencies?: UsedCurrency[]
     exchangeRates: ExchangeRate[]
-    roleUser: string
+    hasPrivilegedRole: boolean
   }>()
 
   /**
@@ -19,11 +19,6 @@
     (e: 'change-status', id: number | string): void
     (e: 'delete', id: number | string): void
   }>()
-
-  /**
-   * Indica si un usuario con rol externo
-   */
-  const extUser = computed(() => props.roleUser === 'company' || props.roleUser === 'customer')
 
   type CurrencyValueKey = 'name' | 'iso_code' | 'country_iso_code'
 
@@ -74,7 +69,7 @@
 
           <!-- Cambio -->
           <td>
-            <template v-if="!extUser">
+            <template v-if="!hasPrivilegedRole">
               {{ getValueByCurrencyId(item?.currency_id, 'iso_code') }}
             </template>
             {{ Number(item.exchange_rate).toFixed(2) }}
