@@ -20,7 +20,7 @@
   }>()
 
   /**
-   * Indica si un usuario externo con token
+   * Indica si un usuario con rol externo
    */
   const extUser = computed(() => props.roleUser === 'company' || props.roleUser === 'customer')
 
@@ -38,7 +38,6 @@
     <table class="table-striped table-bordered w-100 my-2 table">
       <thead>
         <tr>
-          <th v-if="!extUser">País</th>
           <th>Moneda</th>
           <th>Cambio</th>
           <th>%</th>
@@ -49,11 +48,6 @@
 
       <tbody>
         <tr v-for="item in exchangeRates" :key="item.id">
-          <!-- País -->
-          <td v-if="!extUser">
-            {{ item.Currency?.Country?.name || 'Todos' }}
-          </td>
-
           <!-- Moneda -->
           <td>
             {{ extUser ? item.currency : item.Currency?.description }}
@@ -69,7 +63,7 @@
 
           <!-- Porcentaje -->
           <td>
-            {{ item.pct !== 0 ? `${item.pct}%` : '-' }}
+            {{ item.percentage !== 0 ? `${item.percentage}%` : '-' }}
           </td>
 
           <!-- Status -->

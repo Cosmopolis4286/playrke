@@ -7,7 +7,7 @@ export interface ExchangeRate {
   readonly id: number
   readonly currency?: string
   readonly exchange_rate: number
-  readonly pct: number
+  readonly percentage: number
   readonly status: ExchangeRateStatus
   readonly Currency?: Currency & {
     Country?: Country & {

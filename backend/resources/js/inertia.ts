@@ -1,73 +1,53 @@
-import { createApp, h, type DefineComponent } from 'vue'
+import { createApp, h, type DefineComponent, Directive } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
-import { InertiaProgress } from '@inertiajs/progress'
 import { createHead } from '@vueuse/head'
+import NProgress from 'nprogress'
+import 'nprogress/nprogress.css'
+import { Inertia } from '@inertiajs/inertia'
+import VueImaskPlugin from './plugins/vue-imask-plugin'
 
-// ─────────────────────────────────────────────────────────────
-// Inertia Progress
-// ─────────────────────────────────────────────────────────────
-InertiaProgress.init({
-  color: '#8b5cf6',
-  showSpinner: false
-})
-
-// ─────────────────────────────────────────────────────────────
-// Pages (glob estático, Vite cachea automáticamente)
-// ─────────────────────────────────────────────────────────────
-const pages = import.meta.glob<{ default: DefineComponent }>('@js/Pages/**/*.vue')
-
-// ─────────────────────────────────────────────────────────────
-// Inertia App
-// ─────────────────────────────────────────────────────────────
-if (import.meta.env.DEV) {
-  console.info('🔵 Inicializando Inertia App')
-}
+/**
+ * Importa de forma dinámica todos los componentes Vue en /resources/js/Pages.
+ */
+const pages = import.meta.glob<{ default: DefineComponent }>('/resources/js/Pages/**/*.vue')
 
 createInertiaApp({
-  /**
-   * Resolver de páginas Inertia
-   * - Determinístico (sin Object.keys / find)
-   * - Compatible dev + build
-   * - Falla explícitamente si la página no existe
-   */
-  resolve: async (name): Promise<DefineComponent> => {
-    const pageImport = pages[`/resources/js/Pages/${name}.vue`]
+    resolve: async (name): Promise<DefineComponent> => {
+        const path = `/resources/js/Pages/${name}.vue`
+        const pageImport = pages[path]
 
-    if (!pageImport) {
-      console.error(`[Inertia] Página no encontrada: ${name}`)
+        if (!pageImport) {
+            const notFound = pages['/resources/js/Pages/Errors/404.vue']
+            if (!notFound) throw new Error('[Inertia] Falta Pages/Errors/404.vue')
+            return (await notFound()).default
+        }
 
-      const notFound = pages['/resources/js/Pages/Errors/404.vue']
+        const module = await pageImport()
+        if (!module?.default) throw new Error(`[Inertia] ${name} no exporta un componente por defecto`)
+        return module.default
+    },
 
-      if (!notFound) {
-        throw new Error('[Inertia] Falta Pages/Errors/404.vue')
-      }
+    /**
+     * Setup principal donde se crea la app Vue y se registra la directiva y plugins.
+     */
+    setup({ el, App, props, plugin }) {
+        const head = createHead()
+        const app = createApp({ render: () => h(App, props) })
 
-      return (await notFound()).default
-    }
+        app.use(VueImaskPlugin) // Registro de la directiva v-mask
 
-    const module = await pageImport()
+        app.use(plugin)
+        app.use(head)
+        app.mount(el)
 
-    if (!module?.default) {
-      throw new Error(`[Inertia] ${name} no exporta un componente por defecto`)
-    }
+        // Configuración de NProgress para indicar carga en navegación Inertia
+        Inertia.on('start', () => NProgress.start())
+        Inertia.on('finish', () => NProgress.done())
+        Inertia.on('error', () => NProgress.done())
+    },
 
-    return module.default
-  },
-
-  /**
-   * Bootstrap Vue
-   */
-  setup({ el, App, props, plugin }) {
-    const head = createHead()
-
-    createApp({ render: () => h(App, props) })
-      .use(plugin)
-      .use(head)
-      .mount(el)
-  },
-
-  /**
-   * Título dinámico
-   */
-  title: title => (title ? `PlayRKE - ${title}` : 'PlayRKE')
+    /**
+     * Formato del título dinámico de la página.
+     */
+    title: (title) => (title ? `PlayRKE - ${title}` : 'PlayRKE'),
 })

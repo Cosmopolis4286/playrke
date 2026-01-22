@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { ref, computed } from 'vue'
 
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
@@ -36,6 +36,15 @@
   const selectedCurrency = ref<Array<string>>([''])
 
   /**
+   * Referencias
+   */
+  interface ExchangeRateFormExpose {
+    submit: () => boolean
+    isValid: boolean
+  }
+
+  const exchangeRateFormRef = ref<ExchangeRateFormExpose | null>(null)
+  /**
    * Navega al histórico
    */
   function goHistorical(): void {
@@ -71,14 +80,18 @@
       </div>
     </div>
   </div>
+
   <Modal
     v-model="showModalForm"
     :title="modalTitle"
+    static
     show-confirm
     :loading="loading"
     :on-submit="submit"
+    :confirm-disabled="!(exchangeRateFormRef?.isValid ?? false)"
   >
     <ExchangeRateForm
+      ref="exchangeRateFormRef"
       :currencies="currencies"
       :role-user="roleUser"
       :model-value="exchangeRateData"
