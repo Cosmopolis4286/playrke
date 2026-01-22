@@ -58,10 +58,7 @@ class CurrencyService
         }
 
         if ($withCurrency && $withCountry) {
-            return $this->currencyRepository->getAllWithRelations(
-                ['country:id,name', 'user:id,email'],
-                ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
-            );
+            return $this->currencyRepository->getByIdsWithRelations(['country'], $currenciesIds);
         } else if ($withCurrency) {
             return $this->currencyRepository->getByIds($currenciesIds);
         }

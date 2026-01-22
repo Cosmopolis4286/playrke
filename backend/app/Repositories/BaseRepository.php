@@ -211,7 +211,7 @@ abstract class BaseRepository implements BaseRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function getByIdsWithRelations(array $Ids, array $fields = ['*'], array $relations = []): Collection
+    public function getByIdsWithRelations(array $relations = [], array $Ids, array $fields = ['*']): Collection
     {
         return $this->model->with($relations)->whereIn('id', $Ids)->get($fields);
     }

@@ -1,5 +1,4 @@
 import type { Currency } from './currency'
-import type { Country } from './country'
 
 export type ExchangeRateStatus = 'ACTIVE' | 'INACTIVE' | 'DIRECTORY'
 
@@ -21,5 +20,10 @@ export interface ExchangeRatePageProps {
 export interface UsedCurrency {
     id: number
     name: string
-    iso_code: string
+    iso_code: string,
+    country?: {
+        id: number
+        name: string
+        iso_code: string
+    } | null
 }

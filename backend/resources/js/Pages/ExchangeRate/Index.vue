@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
+  import { ref } from 'vue'
 
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
@@ -42,9 +42,16 @@
   const usedCurrencies: UsedCurrency[] = exchangeRates.map(rate => {
     const currency = currencies.find(c => c.id === rate.currency_id)
     return {
-      id: Number(rate.currency_id), // convertir a number
+      id: Number(rate.currency_id),
       name: currency?.name ?? 'Desconocido',
-      iso_code: currency?.iso_code ?? 'Desconocido'
+      iso_code: currency?.iso_code ?? 'Desconocido',
+      country: currency?.country
+        ? {
+            id: currency.country.id,
+            name: currency.country.name,
+            iso_code: currency.country.iso_code_3
+          }
+        : null
     }
   })
 
