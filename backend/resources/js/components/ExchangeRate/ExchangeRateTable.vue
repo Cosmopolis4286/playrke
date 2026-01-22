@@ -11,7 +11,6 @@
     roleUser: string
   }>()
 
-  console.log(props.usedCurrencies)
   /**
    * Eventos emitidos por el componente
    */
@@ -26,22 +25,30 @@
    */
   const extUser = computed(() => props.roleUser === 'company' || props.roleUser === 'customer')
 
-  /**
-   * Obtiene el nombre de la moneda de forma segura
-   * @param currencyId ID de la moneda
-   */
-  function getCurrencyName(currencyId?: number | string): string | undefined {
-    const currency = props.usedCurrencies?.find(c => c.id === currencyId)
-    return currency?.name
-  }
+  type CurrencyValueKey = 'name' | 'iso_code' | 'country_iso_code'
 
   /**
-   * Obtiene el ISO del país de forma segura
+   * Obtiene un valor de la moneda de forma segura por ID
    * @param currencyId ID de la moneda
+   * @param key Valor a obtener
    */
-  function getCountryIso(currencyId?: number | string): string | undefined {
-    const currency = props.usedCurrencies?.find(c => c.id === currencyId)
-    return currency?.iso_code
+  function getValueByCurrencyId(
+    currencyId?: number | string,
+    key: CurrencyValueKey = 'name'
+  ): string | undefined {
+    if (currencyId == null) return undefined
+
+    const currency = props.usedCurrencies?.find(c => c.id == currencyId)
+
+    if (!currency) return undefined
+
+    const map: Record<CurrencyValueKey, string | undefined> = {
+      name: currency.name,
+      iso_code: currency.iso_code,
+      country_iso_code: currency.country?.name
+    }
+
+    return map[key]
   }
 </script>
 
@@ -62,13 +69,13 @@
         <tr v-for="item in exchangeRates" :key="item.id">
           <!-- Moneda -->
           <td>
-            {{ getCurrencyName(item?.currency_id) }}
+            {{ getValueByCurrencyId(item?.currency_id, 'name') }}
           </td>
 
           <!-- Cambio -->
           <td>
             <template v-if="!extUser">
-              <!-- {{ item.Currency?.symbol }} -->
+              {{ getValueByCurrencyId(item?.currency_id, 'iso_code') }}
             </template>
             {{ Number(item.exchange_rate).toFixed(2) }}
           </td>
@@ -88,7 +95,7 @@
 
             <a
               v-else-if="item.status === 'DIRECTORY'"
-              :href="`/directory/${getCountryIso(item?.currency_id)}`"
+              :href="`/directory/${getValueByCurrencyId(item?.currency_id, 'country_iso_code')}`"
               class="badge badge-danger"
               title="Registrar Datos Bancarios"
             >

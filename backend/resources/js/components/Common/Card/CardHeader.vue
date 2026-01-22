@@ -27,7 +27,7 @@
               <i :class="btnCardHeader.icon"></i>
             </a>
           </div>
-          <h6 v-if="subtitle" class="mt-n2 mb-n1">{{ subtitle }}</h6>
+          <h6 v-if="subtitle" class="mt-n2 mb-n1" style="font-size: 13px;">{{ subtitle }}</h6>
         </div>
       </div>
       <div

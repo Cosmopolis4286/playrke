@@ -42,8 +42,6 @@
   const usedCurrencies: UsedCurrency[] = exchangeRates.map(rate => {
     const currency = currencies.find(c => c.id == rate.currency_id)
 
-    console.log('teste', currency)
-
     return {
       id: rate.currency_id,
       name: currency?.name ?? 'Desconocido',
