@@ -25,9 +25,10 @@ class CurrencyService
      *
      * @param int $userId ID del usuario.
      * @param bool $withCurrency Obtener informacion de las monedas.
+     * @param bool $withCountry Obtener informacion del pais de las monedas.
      * @return array Listado de IDs o códigos de moneda disponibles.
      */
-    public function getAvailableCurrencies(int $userId, bool $withCurrency = true): array|object
+    public function getAvailableCurrencies(int $userId, ?bool $withCurrency,  ?bool $withCountry): array|object
     {
         $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
@@ -56,7 +57,12 @@ class CurrencyService
                 return [];
         }
 
-        if ($withCurrency) {
+        if ($withCurrency && $withCountry) {
+            return $this->currencyRepository->getAllWithRelations(
+                ['country:id,name', 'user:id,email'],
+                ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
+            );
+        } else if ($withCurrency) {
             return $this->currencyRepository->getByIds($currenciesIds);
         }
 

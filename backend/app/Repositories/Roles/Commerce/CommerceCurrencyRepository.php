@@ -28,7 +28,7 @@ class CommerceCurrencyRepository extends BaseRepository implements CommerceCurre
      * @param mixed $commerceId ID del comercio
      * @return array
      */
-    public function getAvailableCurrencies($commerceId): array
+    public function getAvailableCurrenciesIds($commerceId): array
     {
         return $this->model->select('currency_id')
             ->where('commerce_id', $commerceId)

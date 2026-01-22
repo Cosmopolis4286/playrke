@@ -16,7 +16,7 @@ interface CommerceCurrencyRepositoryInterface extends BaseRepositoryInterface
      * @param mixed $commerceId ID del comercio
      * @return array
      */
-    public function getAvailableCurrencies($commerceId): array;
+    public function getAvailableCurrenciesIds($commerceId): array;
 
     /**
      * Obtiene registros por comercio

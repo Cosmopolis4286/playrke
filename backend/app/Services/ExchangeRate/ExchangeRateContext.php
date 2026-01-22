@@ -39,7 +39,7 @@ class ExchangeRateContext
             : '';
 
         return new ExchangeRateContextDTO(
-            currencies: $isLogged ? $this->currency->getAvailableCurrencies($userId, true) : collect(),
+            currencies: $isLogged ? $this->currency->getAvailableCurrencies($userId, true, true) : collect(),
             exchangeRates: $this->resolveExchangeRatesByRole($userRolePrefix, $userId),
             roleUser: $userRolePrefix,
             tokenId: $isLogged ? '' : $userId

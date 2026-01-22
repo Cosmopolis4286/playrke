@@ -24,7 +24,7 @@ class CommerceCurrencyService
             throw new DomainException('El ID del comercio es requerido.');
         }
 
-        return $this->repository->getAvailableCurrencies($commerceId);
+        return $this->repository->getAvailableCurrenciesIds($commerceId);
     }
 
     /**
