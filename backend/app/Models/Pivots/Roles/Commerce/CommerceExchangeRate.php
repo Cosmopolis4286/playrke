@@ -40,7 +40,7 @@ class CommerceExchangeRate extends BasePivot
     protected $fillable = [
         'commerce_id',
         'currency_id',
-        'exchange_rate',
+        'amount',
         'percentage',
         'status',
     ];
@@ -51,7 +51,7 @@ class CommerceExchangeRate extends BasePivot
     protected $casts = [
         'commerce_id'   => 'string',
         'currency_id'   => 'string',
-        'exchange_rate' => 'decimal:4',
+        'amount' => 'decimal:4',
         'percentage'    => 'float',
     ];
 

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-  import { computed } from 'vue'
   import type { ExchangeRate, UsedCurrency } from '@js/types/exchange-rate'
 
   /**
@@ -72,7 +71,7 @@
             <template v-if="!hasPrivilegedRole">
               {{ getValueByCurrencyId(item?.currency_id, 'iso_code') }}
             </template>
-            {{ Number(item.exchange_rate).toFixed(2) }}
+            {{ Number(item.amount).toFixed(2) }}
           </td>
 
           <!-- Porcentaje -->
@@ -112,7 +111,7 @@
               </button>
 
               <button
-                v-if="item.exchange_rate > 0"
+                v-if="item.amount > 0"
                 class="btn btn-sm btn-secondary"
                 type="button"
                 title="Cambiar Status"

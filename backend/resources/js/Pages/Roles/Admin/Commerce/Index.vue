@@ -1,26 +1,19 @@
 <script setup lang="ts">
   import { computed } from 'vue'
+
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import type { AdminCommercePageProps } from '@js/types/roles/admin/admin-commerce'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
+  import Modal from '@/js/Components/Common/Modal/Modal.vue'
+  import AdminCommerceForm from '@/js/Components/Roles/Admin/Commerce/AdminCommerceForm.vue'
 
   /**
    * Props tipadas para Inertia
    */
   const props = defineProps<AdminCommercePageProps>()
 
-  /**
-   * Filas de la tabla
-   */
-  const commerces = props.commerces
-
-  /**
-   * Columnas de la tabla
-   */
-  const columns = props.columns
-
-  /**
+     /**
    * Opciones de país normalizadas
    * Se expone como array plano (NO computed en filtros)
    */
@@ -88,4 +81,22 @@
     showDeleteButton
     :extra-buttons="extraButtons"
   />
+
+  <!-- <Modal
+    v-model="showModalForm"
+    :title="modalTitle"
+    static
+    show-confirm
+    :loading="loading"
+    :on-submit="submit"
+    :confirm-disabled="!(exchangeRateFormRef?.isValid ?? false)"
+  >
+    <AdminCommerceForm
+      ref="exchangeRateFormRef"
+      :currencies="currencies"
+      :usedCurrencies="usedCurrencies"
+      :has-privileged-role="hasPrivilegedRole"
+      :model-value="exchangeRateData"
+    />
+  </Modal> -->
 </template>

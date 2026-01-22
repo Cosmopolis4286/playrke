@@ -3,8 +3,6 @@
 namespace App\Repositories\Roles\Commerce;
 
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
-use App\DTOs\ExchangeRate\ExchangeRateDTO;
-use App\Infrastructure\Persistence\ExchangeRate\ExchangeRateMapper;
 use App\Models\Pivots\Roles\Commerce\CommerceExchangeRate;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
@@ -37,7 +35,7 @@ class CommerceExchangeRateRepository extends BaseRepository implements CommerceE
             ->where('currency_id', $currencyId)
             ->where('status', 'ACTIVE')
             ->orderByDesc('id')
-            ->get(['currency_id', 'exchange_rate', 'percentage']);
+            ->get(['currency_id', 'amount', 'percentage']);
     }
 
     /**
@@ -48,7 +46,7 @@ class CommerceExchangeRateRepository extends BaseRepository implements CommerceE
      * @param string $field Campo a obtener
      * @return mixed
      */
-    public function getCommerceCurrencyValue($commerceId, $currencyId, string $field = 'exchange_rate')
+    public function getCommerceCurrencyValue($commerceId, $currencyId, string $field = 'amount')
     {
         return $this->model->where('commerce_id', $commerceId)
             ->where('currency_id', $currencyId)
@@ -68,7 +66,7 @@ class CommerceExchangeRateRepository extends BaseRepository implements CommerceE
         return $this->model->where('commerce_id', $commerceId)
             ->where('status', 'ACTIVE')
             ->orderByDesc('id')
-            ->get(['currency_id', 'exchange_rate']);
+            ->get(['currency_id', 'amount']);
     }
 
     /**
@@ -79,7 +77,7 @@ class CommerceExchangeRateRepository extends BaseRepository implements CommerceE
      */
     public function getValuesByCurrency($currencyId): Collection
     {
-        return $this->model->select('exchange_rate')
+        return $this->model->select('amount')
             ->where('currency_id', $currencyId)
             ->where('status', 'ACTIVE')
             ->get();
@@ -136,7 +134,7 @@ class CommerceExchangeRateRepository extends BaseRepository implements CommerceE
                 ->first();
 
             // Solo crear nuevo si no existe o si el valor cambió
-            if (!$lastRate || $lastRate->exchange_rate != $amount) {
+            if (!$lastRate || $lastRate->amount != $amount) {
                 // Desactivar la tasa anterior si existe
                 if ($lastRate) {
                     $lastRate->update(['status' => 'OLD']);
@@ -148,7 +146,7 @@ class CommerceExchangeRateRepository extends BaseRepository implements CommerceE
                 $this->model->create([
                     'commerce_id' => $commerceId,
                     'currency_id' => $currencyId,
-                    'exchange_rate' => $amount,
+                    'amount' => $amount,
                     'percentage' => $percentage,
                     'status' => $status
                 ]);

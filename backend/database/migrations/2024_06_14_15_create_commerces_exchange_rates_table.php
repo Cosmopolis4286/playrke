@@ -26,7 +26,7 @@ return new class extends Migration
                 ->comment('Moneda asociada a la tasa');
 
             // Datos de la tasa
-            $table->decimal('exchange_rate', 12, 4)
+            $table->decimal('amount', 12, 4)
                 ->default(1)
                 ->comment('Valor de cambio de la moneda');
 

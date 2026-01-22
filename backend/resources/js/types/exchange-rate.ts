@@ -5,7 +5,7 @@ export type ExchangeRateStatus = 'ACTIVE' | 'INACTIVE' | 'DIRECTORY'
 export interface ExchangeRate {
     readonly id: number
     readonly currency_id?: number | string
-    readonly exchange_rate: number
+    readonly amount: number
     readonly percentage: number
     readonly status: ExchangeRateStatus
 }

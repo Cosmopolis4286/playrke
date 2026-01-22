@@ -28,7 +28,7 @@ interface CommerceExchangeRateRepositoryInterface extends BaseRepositoryInterfac
      * @param string $field Campo a obtener
      * @return mixed
      */
-    public function getCommerceCurrencyValue($commerceId, $currencyId, string $field = 'exchange_rate');
+    public function getCommerceCurrencyValue($commerceId, $currencyId, string $field = 'amount');
 
     /**
      * Obtiene todas las tasas de cambio de un comercio

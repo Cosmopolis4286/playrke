@@ -18,7 +18,9 @@ return new class extends Migration
                 ->comment('Cliente asociado');
 
             $table->string('currency_id', 20)->comment('Moneda asociada');
-            $table->decimal('exchange_rate', 15, 6)->default(1)->comment('Tipo de cambio');
+            $table->decimal('amount', 12, 4)
+                ->default(1)
+                ->comment('Valor de cambio de la moneda');
 
             $table->foreignSnowflake('user_id')
                 ->nullable()
