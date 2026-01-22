@@ -28,7 +28,7 @@ use App\Models\BingoPatterns;
 use App\Models\Currency;
 use App\Models\Commerce;
 use App\Models\CommerceCurrency;
-use App\Models\Pivots\ExchangeRate\CommerceExchangeRate;
+use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\Customer;
 use App\Models\CustomerExchangeRate;

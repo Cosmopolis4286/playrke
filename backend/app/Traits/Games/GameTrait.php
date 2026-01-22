@@ -6,7 +6,7 @@ use App\Models\BingoCreator;
 use App\Models\BingoRoom;
 use App\Models\BingoRoomConfig;
 use App\Models\CurrencyGameRoom;
-use App\Models\Pivots\ExchangeRate\CommerceExchangeRate;
+use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\CustomerExchangeRate;
 use App\Models\GameExchangeRate;
 use App\Models;

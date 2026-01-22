@@ -4,10 +4,10 @@ namespace App\Traits\Users;
 
 use App\Models\Country;
 use App\Models\Currency;
-use App\Models\ExchangeRate\CommerceExchangeRate;
+use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
-use App\Models\Roles\Customer\Customer;
+use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
 use App\Models\Roles\SellerCurrency;
 use App\Models\Roles\Treasurer\Treasurer;

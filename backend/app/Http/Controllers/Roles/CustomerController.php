@@ -107,7 +107,7 @@ class CustomerController extends Controller
             $realId = (string) $decodedIds[0];
 
             // Buscar el customer con su usuario
-            $customer = \App\Models\Roles\Customer\Customer::with('user')->findOrFail($realId);
+            $customer = \App\Models\Roles\Customer::with('user')->findOrFail($realId);
 
             // Usar transacción para eliminar todo
             DB::transaction(function () use ($customer) {
@@ -155,7 +155,7 @@ class CustomerController extends Controller
             $realId = (string) $decodedIds[0];
 
             // Buscar el customer con su usuario
-            $customer = \App\Models\Roles\Customer\Customer::with('user')->findOrFail($realId);
+            $customer = \App\Models\Roles\Customer::with('user')->findOrFail($realId);
 
             // Obtener el nuevo estado desde la request o usar DELETED por defecto
             $newStatus = request('status', 'DELETED');
@@ -214,7 +214,7 @@ class CustomerController extends Controller
             $realId = (string) $decodedIds[0];
 
             // Buscar el customer con su usuario
-            $customer = \App\Models\Roles\Customer\Customer::with('user')->findOrFail($realId);
+            $customer = \App\Models\Roles\Customer::with('user')->findOrFail($realId);
 
             // Generar una nueva contraseña aleatoria
             $newPassword = Str::random(12);

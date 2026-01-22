@@ -3,7 +3,7 @@
 namespace App\Models\Roles\Customer;
 
 use App\Models\Currency;
-use App\Models\Roles\Customer\Customer;
+use App\Models\Roles\Customer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

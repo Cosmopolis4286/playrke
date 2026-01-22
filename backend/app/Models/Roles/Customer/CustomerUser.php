@@ -2,7 +2,7 @@
 
 namespace App\Models\Roles\Customer;
 
-use App\Models\Roles\Customer\Customer;
+use App\Models\Roles\Customer;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Traits\SnowflakeId;

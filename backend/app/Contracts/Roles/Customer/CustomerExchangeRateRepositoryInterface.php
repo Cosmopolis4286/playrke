@@ -3,7 +3,7 @@
 namespace App\Contracts\Roles\Customer;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Roles\Customer\CustomerExchangeRate;
+use App\Models\Roles\CustomerExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 
 interface CustomerExchangeRateRepositoryInterface extends BaseRepositoryInterface

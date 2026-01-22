@@ -4,7 +4,7 @@ namespace App\Services\Currencies;
 
 use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
-use App\Models\Roles\Customer\Customer;
+use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
 use App\Contracts\CurrencyRepositoryInterface;
 use App\Contracts\Roles\RoleUserRepositoryInterface;
