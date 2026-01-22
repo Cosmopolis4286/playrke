@@ -4,21 +4,22 @@ import type { Country } from './country'
 export type ExchangeRateStatus = 'ACTIVE' | 'INACTIVE' | 'DIRECTORY'
 
 export interface ExchangeRate {
-  readonly id: number
-  readonly currency?: string
-  readonly exchange_rate: number
-  readonly percentage: number
-  readonly status: ExchangeRateStatus
-  readonly Currency?: Currency & {
-    Country?: Country & {
-      iso_code_2?: string
-    }
-  }
+    readonly id: number
+    readonly currency_id?: number | string
+    readonly exchange_rate: number
+    readonly percentage: number
+    readonly status: ExchangeRateStatus
 }
 
 export interface ExchangeRatePageProps {
-  currencies: Currency[]
-  exchangeRates: ExchangeRate[]
-  roleUser: string
-  tokenId?: string
+    currencies: Currency[]
+    exchangeRates: ExchangeRate[]
+    roleUser: string
+    tokenId?: string
+}
+
+export interface UsedCurrency {
+    id: number
+    name: string
+    iso_code: string
 }

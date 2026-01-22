@@ -191,6 +191,16 @@ interface BaseRepositoryInterface
         array $fields = ['*']
     ): Collection;
 
+    /**
+     * Obtener registros por IDs con campos seleccionados y relaciones cargadas.
+     *
+     * @param array<int|string> $Ids IDs a buscar
+     * @param array<int,string> $fields Campos a seleccionar
+     * @param array<int,string> $relations Relaciones Eloquent a cargar
+     *
+     * @return Collection<int, Model>
+     */
+    public function getByIdsWithRelations(array $Ids, array $fields = ['*'], array $relations = []): Collection;
 
     /**
      * Paginar resultados con relaciones y filtros opcionales.

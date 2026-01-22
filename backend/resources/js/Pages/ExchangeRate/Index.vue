@@ -5,7 +5,7 @@
   import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
   import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
   import { useExchangeRate } from '@js/composables/exchangeRate/useExchangeRate'
-  import type { ExchangeRatePageProps } from '@js/types/exchange-rate'
+  import type { ExchangeRatePageProps, UsedCurrency } from '@js/types/exchange-rate'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import ExchangeRateForm from '@/js/Components/ExchangeRate/ExchangeRateForm.vue'
 
@@ -34,6 +34,19 @@
    * Estado local
    */
   const selectedCurrency = ref<Array<string>>([''])
+
+  const currencies = props.currencies
+  const exchangeRates = props.exchangeRates
+
+  // Arreglo con ids de currencies usados en exchangeRates
+  const usedCurrencies: UsedCurrency[] = exchangeRates.map(rate => {
+    const currency = currencies.find(c => c.id === rate.currency_id)
+    return {
+      id: Number(rate.currency_id), // convertir a number
+      name: currency?.name ?? 'Desconocido',
+      iso_code: currency?.iso_code ?? 'Desconocido'
+    }
+  })
 
   /**
    * Referencias
@@ -71,6 +84,7 @@
         />
 
         <ExchangeRateTable
+          :usedCurrencies="usedCurrencies"
           :exchange-rates="exchangeRates"
           :role-user="roleUser"
           @edit="edit"
@@ -93,6 +107,7 @@
     <ExchangeRateForm
       ref="exchangeRateFormRef"
       :currencies="currencies"
+      :usedCurrencies="usedCurrencies"
       :role-user="roleUser"
       :model-value="exchangeRateData"
     />

@@ -1,11 +1,12 @@
 <script setup lang="ts">
   import { computed } from 'vue'
-  import type { ExchangeRate } from '@js/types/exchange-rate'
+  import type { ExchangeRate, UsedCurrency } from '@js/types/exchange-rate'
 
   /**
    * Props del componente ExchangeRateTable
    */
   const props = defineProps<{
+    usedCurrencies?: UsedCurrency[]
     exchangeRates: ExchangeRate[]
     roleUser: string
   }>()
@@ -29,7 +30,8 @@
    * @param item ExchangeRate
    */
   function getCountryIso(item: ExchangeRate): string | undefined {
-    return item.Currency?.Country?.iso_code_2?.toLowerCase()
+    const currency = props.usedCurrencies?.find(c => c.id === item.currency_id)
+    return currency?.iso_code
   }
 </script>
 
@@ -58,7 +60,7 @@
             <template v-if="!extUser">
               {{ item.Currency?.symbol }}
             </template>
-            {{ item.exchange_rate }}
+            {{ Number(item.exchange_rate).toFixed(2) }}
           </td>
 
           <!-- Porcentaje -->
