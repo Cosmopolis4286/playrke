@@ -24,13 +24,10 @@ class CommerceExchangeRate extends BasePivot
 
     /**
      * El pivot no tiene primary key tradicional.
+     *
+     * Eloquent espera un string, no null.
      */
-    protected $primaryKey = null;
-
-    /**
-     * Tipo de clave (requerido por Eloquent aunque no exista PK).
-     */
-    protected $keyType = 'string';
+    protected $primaryKey = '';
 
     /**
      * Tabla asociada al pivot.
@@ -59,6 +56,20 @@ class CommerceExchangeRate extends BasePivot
     ];
 
     /**
+     * Indica si el modelo usa timestamps.
+     *
+     * Ajusta a false si la tabla no los tiene.
+     */
+    public $timestamps = true;
+
+    /**
+     * Define las claves que forman la identidad compuesta para auditoría.
+     *
+     * @var array<int, string>
+     */
+    protected array $pivotIdentityKeys = ['commerce_id', 'currency_id'];
+
+    /**
      * Relación con el comercio.
      */
     public function commerce(): BelongsTo
@@ -72,21 +83,5 @@ class CommerceExchangeRate extends BasePivot
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
-    }
-
-    /**
-     * Identidad compuesta del pivot para auditoría.
-     *
-     * Este método es consumido por el trait Auditable
-     * cuando el modelo no tiene una clave primaria.
-     *
-     * @return array<string, string>
-     */
-    protected function getPivotIdentity(): array
-    {
-        return [
-            'commerce_id' => $this->commerce_id,
-            'currency_id' => $this->currency_id,
-        ];
     }
 }

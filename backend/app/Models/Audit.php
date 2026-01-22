@@ -21,6 +21,7 @@ class Audit extends Model
     ];
 
     protected $casts = [
+        'auditable_id' => 'array',
         'old_values' => 'array',
         'new_values' => 'array',
     ];

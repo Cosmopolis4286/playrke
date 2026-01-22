@@ -31,27 +31,30 @@ trait Auditable
      * Boot del trait Auditable.
      *
      * Registra los listeners de eventos del modelo.
-     *
-     * @return void
      */
     protected static function bootAuditable(): void
     {
         static::created(fn($model) => $model->auditChanges('created'));
         static::updated(fn($model) => $model->auditChanges('updated'));
-        static::deleted(fn($model) => $model->auditChanges('deleted'));
+
+        static::deleted(function ($model) {
+            $event = method_exists($model, 'isForceDeleting') && $model->isForceDeleting()
+                ? 'force_deleted'
+                : 'deleted';
+
+            $model->auditChanges($event);
+        });
 
         /**
-         * Eventos disponibles solo si el modelo usa SoftDeletes.
+         * Evento disponible solo si el modelo usa SoftDeletes.
          */
         static::restored(fn($model) => $model->auditChanges('restored'));
-        static::forceDeleted(fn($model) => $model->auditChanges('force_deleted'));
     }
 
     /**
      * Registra un evento de auditoría.
      *
      * @param string $event
-     * @return void
      */
     protected function auditChanges(string $event): void
     {
@@ -71,7 +74,9 @@ trait Auditable
              * Modelo auditado (polimórfico).
              */
             'auditable_type' => $this->getMorphClass(),
-            'auditable_id'   => $this->getAuditableId(),
+            'auditable_id'   => $this->serializeValue(
+                $this->getAuditableId()
+            ),
 
             /**
              * Evento ejecutado.
@@ -81,8 +86,12 @@ trait Auditable
             /**
              * Cambios.
              */
-            'old_values' => $this->getOldValues($event),
-            'new_values' => $this->getNewValues($event),
+            'old_values' => $this->serializeValue(
+                $this->getOldValues($event)
+            ),
+            'new_values' => $this->serializeValue(
+                $this->getNewValues($event)
+            ),
 
             /**
              * Contexto de ejecución.
@@ -98,8 +107,6 @@ trait Auditable
      *
      * - Modelos normales: clave primaria
      * - Pivots: identidad compuesta definida por el modelo
-     *
-     * @return int|string|array|null
      */
     protected function getAuditableId(): int|string|array|null
     {
@@ -119,6 +126,12 @@ trait Auditable
      *
      * Debe ser sobrescrito por cada pivot auditable.
      *
+     * Ejemplo:
+     * [
+     *   'commerce_id' => 1,
+     *   'currency_id' => 2
+     * ]
+     *
      * @return array<string, mixed>
      */
     protected function getPivotIdentity(): array
@@ -128,27 +141,59 @@ trait Auditable
 
     /**
      * Obtiene los valores anteriores del modelo según el evento.
-     *
-     * @param string $event
-     * @return array|null
      */
     protected function getOldValues(string $event): ?array
     {
-        return in_array($event, ['updated', 'deleted', 'restored', 'force_deleted'], true)
-            ? $this->getOriginal()
-            : null;
+        if (! in_array($event, ['updated', 'deleted', 'restored', 'force_deleted'], true)) {
+            return null;
+        }
+
+        return $this->filterAuditableAttributes(
+            $this->getOriginal()
+        );
     }
 
     /**
      * Obtiene los valores nuevos del modelo según el evento.
-     *
-     * @param string $event
-     * @return array|null
      */
     protected function getNewValues(string $event): ?array
     {
-        return in_array($event, ['created', 'updated', 'restored'], true)
-            ? $this->getAttributes()
-            : null;
+        if (! in_array($event, ['created', 'updated', 'restored'], true)) {
+            return null;
+        }
+
+        return $this->filterAuditableAttributes(
+            $this->getAttributes()
+        );
+    }
+
+    /**
+     * Filtra atributos no relevantes para auditoría.
+     */
+    protected function filterAuditableAttributes(array $values): array
+    {
+        return collect($values)
+            ->except(['created_at', 'updated_at', 'deleted_at'])
+            ->toArray();
+    }
+
+    /**
+     * Serializa valores para persistencia segura en base de datos.
+     *
+     * - int|string => se devuelve tal cual
+     * - array      => JSON
+     * - null       => null
+     */
+    protected function serializeValue(mixed $value): string|int|null
+    {
+        if (is_null($value)) {
+            return null;
+        }
+
+        if (is_array($value)) {
+            return json_encode($value, JSON_THROW_ON_ERROR);
+        }
+
+        return $value;
     }
 }

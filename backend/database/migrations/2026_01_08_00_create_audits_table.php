@@ -28,19 +28,24 @@ class CreateAuditsTable extends Migration
             /**
              * Entidad auditada (polimórfica).
              *
-             * - auditable_type : clase del modelo
+             * - auditable_type : clase FQCN del modelo
              * - auditable_id   : ID simple o identidad compuesta (JSON)
              *
              * NO se usa morphs() para soportar pivots sin PK.
              */
-            $table->string('auditable_type');
-            $table->json('auditable_id');
+            $table->string('auditable_type')
+                ->comment('Clase FQCN del modelo auditado');
+
+            $table->json('auditable_id')
+                ->nullable()
+                ->comment('ID simple o identidad compuesta del modelo');
 
             // Índice para consultas polimórficas
             $table->index(['auditable_type']);
 
             // Evento auditado
-            $table->string('event', 30)->index();
+            $table->string('event', 30)
+                ->index();
             // created | updated | deleted | restored | force_deleted
 
             // Cambios
