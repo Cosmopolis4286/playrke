@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Shared\PrizePool\PrizePoolType;
+use App\Models\Games\Shared\PrizePool\PrizePoolType;
 use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
 

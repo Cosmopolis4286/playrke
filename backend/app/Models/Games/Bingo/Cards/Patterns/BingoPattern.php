@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Bingo\Cards\Patterns;
+namespace App\Models\Games\Bingo\Cards\Patterns;
 
 use App\Models\User;
 use App\Traits\SnowflakeId;
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa los patrones de cartones de bingo utilizados en el juego.
  * Incluye información sobre tipo de patrón, nombre, usuario, cajas y estado.
  *
- * @package App\Models\Bingo\Cards\Patterns
+ * @package App\Models\Games\Bingo\Cards\Patterns
  * @author Sistema PlayRKE
  * @version 1.0
  *

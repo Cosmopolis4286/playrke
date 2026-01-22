@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Shared\PrizePool;
+namespace App\Models\Games\Shared\PrizePool;
 
 use App\Models\Games\Shared\GameMode\GameMode;
 use App\Models\Game;

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Shared\PrizePool;
+namespace App\Models\Games\Shared\PrizePool;
 
-use App\Models\Shared\PrizePool\GamePrizePoolType;
+use App\Models\Games\Shared\PrizePool\GamePrizePoolType;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;

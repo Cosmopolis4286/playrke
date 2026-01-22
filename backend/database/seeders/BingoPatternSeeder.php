@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Bingo\Cards\Patterns\BingoPattern;
+use App\Models\Games\Bingo\Cards\Patterns\BingoPattern;
 use Illuminate\Database\Seeder;
 
 class BingoPatternSeeder extends Seeder

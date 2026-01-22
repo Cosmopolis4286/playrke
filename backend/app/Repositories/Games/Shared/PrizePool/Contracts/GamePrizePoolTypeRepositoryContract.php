@@ -3,7 +3,7 @@
 namespace App\Repositories\Shared\PrizePool\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Shared\PrizePool\GamePrizePoolType;
+use App\Models\Games\Shared\PrizePool\GamePrizePoolType;
 use Illuminate\Database\Eloquent\Collection;
 
 interface GamePrizePoolTypeRepositoryContract extends BaseRepositoryInterface

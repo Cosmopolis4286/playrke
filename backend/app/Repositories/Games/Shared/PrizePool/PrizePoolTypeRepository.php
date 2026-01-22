@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Shared\PrizePool;
 
-use App\Models\Shared\PrizePool\PrizePoolType;
+use App\Models\Games\Shared\PrizePool\PrizePoolType;
 use App\Repositories\BaseRepository;
 use App\Repositories\Shared\PrizePool\Contracts\PrizePoolTypeRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
