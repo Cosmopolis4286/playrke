@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Models\Audit;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
 
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Request;
  * - updated
  * - deleted
  * - restored
+ * - force_deleted
  *
  * Diseñado para funcionar correctamente en:
  * - Requests HTTP
@@ -34,30 +36,21 @@ trait Auditable
      */
     protected static function bootAuditable(): void
     {
-        static::created(function ($model) {
-            $model->auditChanges('created');
-        });
-
-        static::updated(function ($model) {
-            $model->auditChanges('updated');
-        });
-
-        static::deleted(function ($model) {
-            $model->auditChanges('deleted');
-        });
+        static::created(fn($model) => $model->auditChanges('created'));
+        static::updated(fn($model) => $model->auditChanges('updated'));
+        static::deleted(fn($model) => $model->auditChanges('deleted'));
 
         /**
-         * Evento disponible solo si el modelo usa SoftDeletes.
+         * Eventos disponibles solo si el modelo usa SoftDeletes.
          */
-        static::restored(function ($model) {
-            $model->auditChanges('restored');
-        });
+        static::restored(fn($model) => $model->auditChanges('restored'));
+        static::forceDeleted(fn($model) => $model->auditChanges('force_deleted'));
     }
 
     /**
      * Registra un evento de auditoría.
      *
-     * @param string $event Tipo de evento (created, updated, deleted, restored)
+     * @param string $event
      * @return void
      */
     protected function auditChanges(string $event): void
@@ -65,14 +58,12 @@ trait Auditable
         Audit::create([
             /**
              * Usuario humano que ejecutó la acción.
-             * Será null para seeders, jobs, commands o acciones del sistema.
+             * Null para system / jobs / CLI.
              */
             'user_id' => Auth::id(),
 
             /**
              * Tipo de actor que originó la acción.
-             * user   => acción humana autenticada
-             * system => seeders, jobs, CLI, procesos automáticos
              */
             'actor_type' => Auth::check() ? 'user' : 'system',
 
@@ -80,7 +71,7 @@ trait Auditable
              * Modelo auditado (polimórfico).
              */
             'auditable_type' => $this->getMorphClass(),
-            'auditable_id' => $this->getKey(),
+            'auditable_id'   => $this->getAuditableId(),
 
             /**
              * Evento ejecutado.
@@ -88,23 +79,51 @@ trait Auditable
             'event' => $event,
 
             /**
-             * Valores anteriores (cuando aplica).
+             * Cambios.
              */
             'old_values' => $this->getOldValues($event),
-
-            /**
-             * Valores nuevos (cuando aplica).
-             */
             'new_values' => $this->getNewValues($event),
 
             /**
-             * Contexto de la ejecución.
-             * En CLI o jobs pueden ser null.
+             * Contexto de ejecución.
              */
-            'url' => Request::instance()?->fullUrl(),
+            'url'        => Request::instance()?->fullUrl(),
             'ip_address' => Request::instance()?->ip(),
             'user_agent' => Request::instance()?->userAgent(),
         ]);
+    }
+
+    /**
+     * Obtiene el identificador auditable del modelo.
+     *
+     * - Modelos normales: clave primaria
+     * - Pivots: identidad compuesta definida por el modelo
+     *
+     * @return int|string|array|null
+     */
+    protected function getAuditableId(): int|string|array|null
+    {
+        if (! is_null($this->getKey())) {
+            return $this->getKey();
+        }
+
+        if ($this instanceof Pivot) {
+            return $this->getPivotIdentity();
+        }
+
+        return null;
+    }
+
+    /**
+     * Identidad compuesta del pivot.
+     *
+     * Debe ser sobrescrito por cada pivot auditable.
+     *
+     * @return array<string, mixed>
+     */
+    protected function getPivotIdentity(): array
+    {
+        return [];
     }
 
     /**
@@ -115,7 +134,7 @@ trait Auditable
      */
     protected function getOldValues(string $event): ?array
     {
-        return in_array($event, ['updated', 'deleted', 'restored'], true)
+        return in_array($event, ['updated', 'deleted', 'restored', 'force_deleted'], true)
             ? $this->getOriginal()
             : null;
     }

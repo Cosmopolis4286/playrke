@@ -25,9 +25,19 @@ class CreateAuditsTable extends Migration
                 ->index();
             // system | user | job | command | webhook
 
-            // Entidad auditada (polimórfica)
-            // morphs() YA crea índice compuesto (auditable_type, auditable_id)
-            $table->morphs('auditable');
+            /**
+             * Entidad auditada (polimórfica).
+             *
+             * - auditable_type : clase del modelo
+             * - auditable_id   : ID simple o identidad compuesta (JSON)
+             *
+             * NO se usa morphs() para soportar pivots sin PK.
+             */
+            $table->string('auditable_type');
+            $table->json('auditable_id');
+
+            // Índice para consultas polimórficas
+            $table->index(['auditable_type']);
 
             // Evento auditado
             $table->string('event', 30)->index();

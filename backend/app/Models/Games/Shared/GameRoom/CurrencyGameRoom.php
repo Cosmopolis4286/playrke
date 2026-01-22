@@ -3,7 +3,7 @@
 namespace App\Models\Shared\GameRoom;
 
 use App\Models\Game;
-use App\Models\Shared\GameMode\GameModes;
+use App\Models\Games\Shared\GameMode\GameModes;
 use App\Models\Bingo\Rooms\BingoRoom;
 use App\Models\Currency;
 use App\Traits\SnowflakeId;

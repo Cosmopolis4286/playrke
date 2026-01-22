@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Shared\Utils;
 
-use App\Models\Shared\Utils\GamePrize;
+use App\Models\Games\Shared\Utils\GamePrize;
 use App\Repositories\BaseRepository;
 use App\Repositories\Shared\Utils\Contracts\GamePrizeRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;

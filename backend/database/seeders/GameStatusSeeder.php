@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Shared\Utils\GameStatus;
+use App\Models\Games\Shared\Utils\GameStatus;
 use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
 

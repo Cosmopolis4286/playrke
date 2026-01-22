@@ -3,7 +3,7 @@
 namespace App\Repositories\Shared\GameMode\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Shared\GameMode\GameMode;
+use App\Models\Games\Shared\GameMode\GameMode;
 use Illuminate\Database\Eloquent\Collection;
 
 interface GameModeRepositoryContract extends BaseRepositoryInterface

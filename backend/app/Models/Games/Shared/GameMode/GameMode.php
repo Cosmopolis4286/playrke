@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Shared\GameMode;
+namespace App\Models\Games\Shared\GameMode;
 
 use App\Models\Shared\PrizePool\GamePrizePoolType;
 use App\Traits\SnowflakeId;

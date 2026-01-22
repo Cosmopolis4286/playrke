@@ -8,33 +8,58 @@ use App\Models\Roles\Commerce;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Modelo para tasas de cambio de comercios
+ * Modelo Pivot para tasas de cambio de comercios.
+ *
+ * Este pivot:
+ * - No posee clave primaria propia
+ * - Se identifica por una clave compuesta
+ * - Es auditable mediante identidad serializada
  */
 class CommerceExchangeRate extends BasePivot
 {
+    /**
+     * El pivot no es autoincremental.
+     */
     public $incrementing = false;
+
+    /**
+     * El pivot no tiene primary key tradicional.
+     */
     protected $primaryKey = null;
+
+    /**
+     * Tipo de clave (requerido por Eloquent aunque no exista PK).
+     */
     protected $keyType = 'string';
 
+    /**
+     * Tabla asociada al pivot.
+     */
     protected $table = 'commerces_exchange_rates';
 
+    /**
+     * Atributos asignables.
+     */
     protected $fillable = [
         'commerce_id',
         'currency_id',
         'exchange_rate',
         'percentage',
-        'status'
-    ];
-
-    protected $casts = [
-        'commerce_id' => 'string',
-        'currency_id' => 'string',
-        'exchange_rate' => 'decimal:4',
-        'percentage' => 'float'
+        'status',
     ];
 
     /**
-     * Relación con el comercio
+     * Casts de atributos.
+     */
+    protected $casts = [
+        'commerce_id'   => 'string',
+        'currency_id'   => 'string',
+        'exchange_rate' => 'decimal:4',
+        'percentage'    => 'float',
+    ];
+
+    /**
+     * Relación con el comercio.
      */
     public function commerce(): BelongsTo
     {
@@ -42,10 +67,26 @@ class CommerceExchangeRate extends BasePivot
     }
 
     /**
-     * Relación con la moneda
+     * Relación con la moneda.
      */
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
+    }
+
+    /**
+     * Identidad compuesta del pivot para auditoría.
+     *
+     * Este método es consumido por el trait Auditable
+     * cuando el modelo no tiene una clave primaria.
+     *
+     * @return array<string, string>
+     */
+    protected function getPivotIdentity(): array
+    {
+        return [
+            'commerce_id' => $this->commerce_id,
+            'currency_id' => $this->currency_id,
+        ];
     }
 }

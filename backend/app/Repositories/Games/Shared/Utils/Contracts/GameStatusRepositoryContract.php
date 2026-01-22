@@ -3,7 +3,7 @@
 namespace App\Repositories\Shared\Utils\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Shared\Utils\GameStatus;
+use App\Models\Games\Shared\Utils\GameStatus;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

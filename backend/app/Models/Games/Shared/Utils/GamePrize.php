@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Shared\Utils;
+namespace App\Models\Games\Shared\Utils;
 
 use App\Models\Game;
 use App\Traits\SnowflakeId;

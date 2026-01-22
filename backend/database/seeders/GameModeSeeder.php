@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Shared\GameMode\GameMode;
+use App\Models\Games\Shared\GameMode\GameMode;
 
 class GameModeSeeder extends Seeder
 {
