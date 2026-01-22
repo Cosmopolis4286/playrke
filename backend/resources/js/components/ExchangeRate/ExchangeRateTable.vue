@@ -11,6 +11,7 @@
     roleUser: string
   }>()
 
+  console.log(props.usedCurrencies)
   /**
    * Eventos emitidos por el componente
    */
@@ -26,11 +27,20 @@
   const extUser = computed(() => props.roleUser === 'company' || props.roleUser === 'customer')
 
   /**
-   * Obtiene el ISO del país de forma segura
-   * @param item ExchangeRate
+   * Obtiene el nombre de la moneda de forma segura
+   * @param currencyId ID de la moneda
    */
-  function getCountryIso(item: ExchangeRate): string | undefined {
-    const currency = props.usedCurrencies?.find(c => c.id === item.currency_id)
+  function getCurrencyName(currencyId?: number | string): string | undefined {
+    const currency = props.usedCurrencies?.find(c => c.id === currencyId)
+    return currency?.name
+  }
+
+  /**
+   * Obtiene el ISO del país de forma segura
+   * @param currencyId ID de la moneda
+   */
+  function getCountryIso(currencyId?: number | string): string | undefined {
+    const currency = props.usedCurrencies?.find(c => c.id === currencyId)
     return currency?.iso_code
   }
 </script>
@@ -52,13 +62,13 @@
         <tr v-for="item in exchangeRates" :key="item.id">
           <!-- Moneda -->
           <td>
-            {{ extUser ? item.currency : item.Currency?.description }}
+            {{ getCurrencyName(item?.currency_id) }}
           </td>
 
           <!-- Cambio -->
           <td>
             <template v-if="!extUser">
-              {{ item.Currency?.symbol }}
+              <!-- {{ item.Currency?.symbol }} -->
             </template>
             {{ Number(item.exchange_rate).toFixed(2) }}
           </td>
@@ -77,8 +87,8 @@
             </span>
 
             <a
-              v-else-if="item.status === 'DIRECTORY' && getCountryIso(item)"
-              :href="`/directory/${getCountryIso(item)}`"
+              v-else-if="item.status === 'DIRECTORY'"
+              :href="`/directory/${getCountryIso(item?.currency_id)}`"
               class="badge badge-danger"
               title="Registrar Datos Bancarios"
             >

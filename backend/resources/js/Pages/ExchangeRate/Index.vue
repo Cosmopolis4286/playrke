@@ -40,9 +40,12 @@
 
   // Arreglo con ids de currencies usados en exchangeRates
   const usedCurrencies: UsedCurrency[] = exchangeRates.map(rate => {
-    const currency = currencies.find(c => c.id === rate.currency_id)
+    const currency = currencies.find(c => c.id == rate.currency_id)
+
+    console.log('teste', currency)
+
     return {
-      id: Number(rate.currency_id),
+      id: rate.currency_id,
       name: currency?.name ?? 'Desconocido',
       iso_code: currency?.iso_code ?? 'Desconocido',
       country: currency?.country
@@ -54,6 +57,8 @@
         : null
     }
   })
+
+  console.log('usedCurrencies', usedCurrencies)
 
   /**
    * Referencias
@@ -83,6 +88,7 @@
       <div class="card-body">
         <ExchangeRateButtons
           :currencies="currencies"
+          :usedCurrencies="usedCurrencies"
           :role-user="roleUser"
           :selected-currency="selectedCurrency"
           @create="create"
