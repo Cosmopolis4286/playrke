@@ -6,7 +6,7 @@ use App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface;
 use App\Contracts\UserRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
-use App\Http\Resources\Users\Roles\CommerceResource;
+use App\Http\Resources\Roles\CommerceResource;
 use App\Contracts\Roles\Commerce\CommerceGameRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Models\Pivots\Roles\Commerce\CommerceCurrency;

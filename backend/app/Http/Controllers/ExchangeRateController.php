@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Factories\ExchangeRate\ExchangeRateFactory;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
+use App\Models\ExchangeRate;
 use App\Services\ExchangeRate\ExchangeRateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -69,6 +70,17 @@ class ExchangeRateController extends Controller
     }
 
     /**
+     * Mostrar detalle de tasa de cambio
+     */
+    public function show(string $id): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => ['data' => $this->service->getByExchangeRate($id)],
+            'No se pudo cargar la información de la tasa de cambio.'
+        );
+    }
+
+    /**
      * Actualizar una tasa de cambio existente.
      *
      * @param ExchangeRateRequest $request
@@ -120,26 +132,21 @@ class ExchangeRateController extends Controller
     }
 
     /**
-     * Cambiar el estado de una tasa de cambio (ACTIVE / INACTIVE).
+     * Cambiar el estado de una tasa de cambio.
      *
-     * @param string $payload
+     * @param ExchangeRate $exchangeRate
+     * @param Request $request
      *
-     * @return RedirectResponse
+     * @return JsonResponse
      */
-    public function changeStatus(string $payload): RedirectResponse
+    public function changeStatus(ExchangeRate $exchangeRate): JsonResponse
     {
-        return $this->handleService(
-            function () use ($payload) {
-                $this->service->toggleStatus(
-                    ExchangeRateDTO::fromPayload($payload)
-                );
-
-                return back()->with(
-                    'message',
-                    'Estado actualizado correctamente'
-                );
+        return $this->handleServiceJson(
+            function () use ($exchangeRate) {
+                $this->service->changeStatus($exchangeRate);
+                return ['message' => '✅ Estado actualizado correctamente',];
             },
-            'No se pudo actualizar el estado.'
+            'No se pudo cambiar el estado de la tasa de cambio.'
         );
     }
 

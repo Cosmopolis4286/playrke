@@ -7,6 +7,7 @@ use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Services\Roles\RoleUserService;
 use DomainException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class ExchangeRateCrud
@@ -45,6 +46,22 @@ class ExchangeRateCrud
     }
 
     /**
+     * Obtener tasa de cambio para visualización.
+     * @param string $exchangeRateId
+     * @param int $userId
+     */
+    public function show(string $exchangeRateId, int $userId): ?Model
+    {
+        $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        if (!$rolePrefix) {
+            throw new \DomainException('Rol inválido o no identificado.');
+        }
+
+        return $this->repo($rolePrefix)->find($exchangeRateId, ['id', 'amount', 'status']);
+    }
+
+    /**
      * Actualiza un tipo de cambio existente.
      *
      * @param ExchangeRateDTO $dto Debe contener ID válido
@@ -74,22 +91,6 @@ class ExchangeRateCrud
         throw_if(!$dto->id, DomainException::class, 'ID requerido para eliminar.');
 
         $this->repo($role)->delete($dto->id);
-    }
-
-    /**
-     * Cambia el estado (activo/inactivo) del tipo de cambio.
-     *
-     * @param ExchangeRateDTO $dto Debe contener ID válido
-     * @param string $role Rol del propietario: 'commerce' | 'customer'
-     * @return void
-     *
-     * @throws DomainException Si el ID no está definido o rol inválido
-     */
-    public function toggleStatus(ExchangeRateDTO $dto, string $role): void
-    {
-        throw_if(!$dto->id, DomainException::class, 'ID requerido para cambiar estado.');
-
-        $this->repo($role)->toggleStatus($dto->id);
     }
 
     /**

@@ -3,6 +3,8 @@
 namespace App\Services\ExchangeRate;
 
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
+use App\Services\BaseService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,7 +18,7 @@ use Illuminate\Support\Facades\Auth;
  *
  * NO contiene lógica HTTP ni infraestructura.
  */
-class ExchangeRateService
+class ExchangeRateService extends BaseService
 {
     /**
      * Contexto al que aplica la tasa (prefijo de rol o token público).
@@ -41,10 +43,12 @@ class ExchangeRateService
     }
 
     /**
-     * Resolver el ID del usuario según autenticación o token.
+     * Resuelve el ID del usuario basado en la autenticación o token proporcionado.
      *
-     * @param string|null $token
-     * @return string|null
+     * @param string|null $token Token público opcional para identificar usuario.
+     * @return int ID del usuario autenticado o derivado del token.
+     *
+     * @throws \DomainException Cuando no se puede resolver un ID válido de usuario.
      */
     private function resolveUserId(?string $token = null): int
     {
@@ -52,7 +56,11 @@ class ExchangeRateService
             return Auth::id();
         }
 
-        return $token;
+        if ($token) {
+            return (int) $token;
+        }
+
+        throw new \DomainException('Usuario inválido o no identificado.');
     }
 
     /**
@@ -76,13 +84,20 @@ class ExchangeRateService
      */
     public function create(ExchangeRateDTO $dto): void
     {
-        $userId = $this->resolveUserId($dto->tokenId ?? null);
-
-        if (!$userId) {
-            throw new \DomainException('Usuario inválido o no identificado.');
-        }
-
+        $userId = $this->resolveUserId($dto->tokenId);
         $this->crud->create($dto, $userId);
+    }
+
+    /**
+     * Obtener tasa de cambio para visualización.
+     * @param string $exchangeRateId
+     * @return array
+     * @throws \DomainException Si el userId no es válido o no se puede resolver.
+     */
+    public function getByExchangeRate(string $exchangeRateId): ?Model
+    {
+        $userId = $this->resolveUserId();
+        return $this->crud->show($exchangeRateId, $userId);
     }
 
     /**

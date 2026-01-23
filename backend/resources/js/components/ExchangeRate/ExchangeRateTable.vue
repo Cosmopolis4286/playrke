@@ -99,7 +99,6 @@
 
           <!-- Acciones -->
           <td>
-          {{ item }}
             <div class="btn-group btn-group-toggle">
               <button
                 v-if="item.status === 'ACTIVE'"
