@@ -4,7 +4,7 @@
   import CardHeader from '@js/Components/Common/CardHeader.vue'
   import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
   import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
-  import { useExchangeRate } from '@js/composables/exchangeRate/useExchangeRate'
+  import { useExchangeRate } from '@/js/composables/exchange-rate/useExchangeRate'
   import type { ExchangeRatePageProps } from '@js/types/exchange-rate'
 
   const title = 'Tasas de Cambio'

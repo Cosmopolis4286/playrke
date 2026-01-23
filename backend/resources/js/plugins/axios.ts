@@ -1,118 +1,144 @@
-import axios from 'axios';
-import type { Method } from 'axios';
+import axios, {
+    type AxiosInstance,
+    type AxiosResponse,
+    type AxiosError,
+    type Method,
+    type InternalAxiosRequestConfig,
+} from 'axios'
 
 /**
  * URL base del backend (Laravel)
- * - API_BASE_URL apunta a /api
- * - BACKEND_BASE_URL se deja vacío para usar URLs relativas (mismo dominio)
  *
- * NOTA: Como la app Blade y el backend Laravel corren en el mismo servidor,
- * usamos URLs relativas sin baseURL para evitar problemas de CORS.
+ * NOTA:
+ * - Se usan URLs relativas porque Blade + SPA
+ *   viven en el mismo dominio.
+ * - Evita problemas de CORS y cookies.
  */
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-const BACKEND_BASE_URL = ''; // Usar URLs relativas
+const BACKEND_BASE_URL = ''
 
 /**
- * Cliente principal para comunicar el frontend con el backend Laravel.
+ * Extensión del config interno de Axios
+ * para soportar reintentos controlados.
+ */
+interface RetryAxiosRequestConfig extends InternalAxiosRequestConfig {
+    _retry?: boolean
+}
+
+/**
+ * Cliente Axios principal para comunicación con Laravel.
+ *
  * Maneja:
  * - Cookies (Sanctum)
  * - CSRF
  * - Autenticación por sesión
  */
-export const backendClient = axios.create({
+export const backendClient: AxiosInstance = axios.create({
     baseURL: BACKEND_BASE_URL,
     withCredentials: true,
-    timeout: 10000,
+    timeout: 10_000,
     headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
     },
-});
+})
 
 /**
- * Solicita la cookie CSRF necesaria para Sanctum (SPA auth).
- * Laravel responderá seteando la cookie XSRF-TOKEN.
+ * Solicita la cookie CSRF requerida por Sanctum.
  *
- * @returns {Promise<void>}
+ * Laravel setea automáticamente `XSRF-TOKEN`.
  */
 export async function getCsrfCookie(): Promise<void> {
-    try {
-        await backendClient.get('/sanctum/csrf-cookie');
-    } catch (error) {
-        console.error('Error al obtener el token CSRF:', error);
-        throw error;
-    }
+    await backendClient.get('/sanctum/csrf-cookie')
 }
 
 /**
- * Elimina tokens y datos de autenticación almacenados en localStorage.
+ * Limpia cualquier rastro de autenticación local.
+ *
+ * ⚠️ No borra cookies (eso lo hace el backend),
+ * solo storage del frontend.
  */
 export function clearAuthTokens(): void {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user_data');
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user_data')
 }
 
 /**
- * Obtiene el valor de una cookie por nombre.
+ * Obtiene una cookie por nombre.
  *
- * @param {string} name
- * @returns {string | null}
+ * @param name Nombre de la cookie
  */
 function getCookie(name: string): string | null {
-    const cookies = document.cookie?.split('; ') ?? [];
+    const cookies = document.cookie?.split('; ') ?? []
+
     for (const cookie of cookies) {
-        const [key, value] = cookie.split('=');
-        if (key === name) return decodeURIComponent(value);
+        const [key, value] = cookie.split('=')
+        if (key === name) {
+            return decodeURIComponent(value)
+        }
     }
-    return null;
+
+    return null
 }
 
 /**
- * Interceptor REQUEST
- * Inyecta automáticamente el token CSRF en cada request.
+ * Determina si la request apunta a rutas de autenticación.
  *
- * ⚠️ Importante:
- * No tipar manualmente `config` para evitar conflictos
- * con `InternalAxiosRequestConfig` de Axios v1+
+ * Evita loops de redirección.
  */
+function isAuthRoute(url?: string): boolean {
+    if (!url) return false
+    return url.includes('/auth') || url.includes('/login')
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               REQUEST INTERCEPTOR                          */
+/* -------------------------------------------------------------------------- */
+
 backendClient.interceptors.request.use(
-    (config) => {
-        const xsrfToken = getCookie('XSRF-TOKEN');
+    (config: InternalAxiosRequestConfig) => {
+        const xsrfToken = getCookie('XSRF-TOKEN')
 
         if (xsrfToken) {
-            config.headers['X-XSRF-TOKEN'] = xsrfToken;
+            config.headers['X-XSRF-TOKEN'] = xsrfToken
         }
 
-        return config;
+        return config
     },
-    (error) => Promise.reject(error)
-);
+    (error: AxiosError) => Promise.reject(error)
+)
 
+/* -------------------------------------------------------------------------- */
+/*                               RESPONSE INTERCEPTOR                         */
+/* -------------------------------------------------------------------------- */
 
-/**
- * Interceptor RESPONSE
- * Maneja errores globales de autenticación.
- */
 backendClient.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        const originalRequest = error.config;
+    (response: AxiosResponse) => response,
+    (error: AxiosError) => {
+        const config = error.config as RetryAxiosRequestConfig | undefined
+        const status = error.response?.status
 
-        // NO reintentar rutas de autenticación para evitar duplicaciones
-        const isAuthRoute = originalRequest?.url?.includes('/api/auth/');
+        if (
+            status === 401 &&
+            config &&
+            !config._retry &&
+            !isAuthRoute(config.url)
+        ) {
+            config._retry = true
 
-        if (error.response?.status === 401 && !originalRequest._retry && !isAuthRoute) {
-            originalRequest._retry = true;
-            clearAuthTokens();
-            window.location.href = '/auth/login';
+            clearAuthTokens()
+
+            // Redirección forzada a login
+            window.location.href = '/auth/login'
         }
 
-        return Promise.reject(error);
+        return Promise.reject(error)
     }
-);
+)
 
-// Exportaciones adicionales
-export { axios, Method };
+/* -------------------------------------------------------------------------- */
+/*                                   EXPORTS                                  */
+/* -------------------------------------------------------------------------- */
 
-export default backendClient;
+export { axios, Method }
+export default backendClient

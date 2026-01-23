@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { computed, ref } from 'vue'
+  import type { UsedCurrency } from '@/js/types/exchange-rate'
   import type { Currency } from '@/js/types/currency'
-  import { UsedCurrency } from '@/js/types/exchange-rate'
 
   const props = defineProps<{
     currencies: Currency[]
