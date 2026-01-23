@@ -4,7 +4,8 @@ import backendClient from '@/js/plugins/axios'
 interface ExchangeRate {
     id?: string | number
     currency: string
-    exchange_rate: number
+    amount: number
+    status: string
     token?: string
 }
 
@@ -110,7 +111,8 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         modalTitle.value = "Registar Tasa de Cambio"
         exchangeRateData.value = {
             currency: '',
-            exchange_rate: 0,
+            amount: 0,
+            status: 'I'
         }
 
         if (tokenId) {

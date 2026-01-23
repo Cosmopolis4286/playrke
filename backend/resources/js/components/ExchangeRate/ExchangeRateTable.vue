@@ -47,8 +47,8 @@
 </script>
 
 <template>
-  <div class="table-responsive">
-    <table class="table-striped table-bordered w-100 my-2 table">
+  <div class="table-responsive mt-3">
+    <table class="table-striped table-bordered w-100 table">
       <thead>
         <tr>
           <th>Moneda</th>

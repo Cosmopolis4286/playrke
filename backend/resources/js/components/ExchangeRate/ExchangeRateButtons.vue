@@ -27,29 +27,22 @@
 </script>
 
 <template>
-  <div class="row">
-    <div class="col-12">
-      <button
-        v-if="canCreate"
-        @click="$emit('create')"
-        class="btn btn-sm btn-success"
-        type="button"
-      >
-        <i class="fas fa-plus-square"></i> Añadir
-      </button>
+  <div class="mt-n1">
+    <button v-if="canCreate" @click="$emit('create')" class="btn btn-sm btn-success" type="button">
+      <i class="fas fa-plus-square"></i> Añadir
+    </button>
 
-      <button
-        :disabled="!selectedCurrency"
-        @click="$emit('historical')"
-        class="btn btn-sm btn-primary ml-2"
-        type="button"
-      >
-        <i class="fa-solid fa-money-bill-trend-up"></i> Histórico
-      </button>
+    <button
+      :disabled="!selectedCurrency"
+      @click="$emit('historical')"
+      class="btn btn-sm btn-primary ml-2"
+      type="button"
+    >
+      <i class="fa-solid fa-money-bill-trend-up"></i> Histórico
+    </button>
 
-      <button @click="$emit('update')" class="btn btn-sm btn-secondary ml-2" type="button">
-        <i class="fa-solid fa-rotate"></i> Actualizar
-      </button>
-    </div>
+    <button @click="$emit('update')" class="btn btn-sm btn-secondary ml-2" type="button">
+      <i class="fa-solid fa-rotate"></i> Actualizar
+    </button>
   </div>
 </template>

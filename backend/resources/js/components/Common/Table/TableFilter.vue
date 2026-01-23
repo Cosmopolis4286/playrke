@@ -127,10 +127,10 @@
 </script>
 
 <template>
-  <div class="table-filter-container mb-3">
+  <div class="table-filter-container">
     <div class="row">
       <!-- Búsqueda -->
-      <div class="col-md-6 col-lg-4 mb-2">
+      <div class="col-md-6 col-lg-4 my-1">
         <div class="input-group">
           <div class="input-group-prepend">
             <span class="input-group-text">
@@ -158,7 +158,7 @@
       </div>
 
       <!-- Filtros -->
-      <div v-for="filter in filters" :key="filter.key" class="col-md-6 col-lg-4 mb-2">
+      <div v-for="filter in filters" :key="filter.key" class="col-md-6 col-lg-4 my-1">
         <select v-model="activeFilters[filter.key]" class="form-control" @change="emitChange">
           <option value="">
             {{ filter.placeholder ?? `Todos los ${filter.label}` }}

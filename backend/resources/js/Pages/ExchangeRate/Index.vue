@@ -86,7 +86,6 @@
 </script>
 
 <template>
-  <div class="col-12">
     <div class="card">
       <CardHeader title="Tasas de Cambio" subtitle="Valores en base a Un Dólar (1 USD)" />
 
@@ -111,7 +110,6 @@
         />
       </div>
     </div>
-  </div>
 
   <Modal
     v-model="showModalForm"

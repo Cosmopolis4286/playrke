@@ -15,7 +15,8 @@
     hasPrivilegedRole: boolean
     modelValue: {
       currency?: string
-      exchange_rate?: number | null
+      amount?: number
+      status?: string
     }
   }>()
 
@@ -28,7 +29,7 @@
       e: 'update:modelValue',
       value: {
         currency?: string
-        exchange_rate?: number | null
+        amount?: number | null
       }
     ): void
   }>()
@@ -40,7 +41,7 @@
 
   const errors = ref<{
     currency?: string
-    exchange_rate?: string
+    amount?: string
   }>({})
 
   /* =======================
@@ -59,7 +60,7 @@
   })
 
   const isValid = computed(() => {
-    return !errors.value.currency && !errors.value.exchange_rate
+    return !errors.value.currency && !errors.value.amount
   })
 
   /* =======================
@@ -80,18 +81,18 @@
    * ======================= */
   const validate = (): void => {
     errors.value.currency = ''
-    errors.value.exchange_rate = ''
+    errors.value.amount = ''
 
     if (!modelValue.value.currency?.trim()) {
       errors.value.currency = 'La divisa es requerida.'
     }
 
     if (
-      modelValue.value.exchange_rate === null ||
-      modelValue.value.exchange_rate === undefined ||
-      modelValue.value.exchange_rate <= 0
+      modelValue.value.amount === null ||
+      modelValue.value.amount === undefined ||
+      modelValue.value.amount <= 0
     ) {
-      errors.value.exchange_rate = 'El cambio debe ser un número mayor a cero.'
+      errors.value.amount = 'El cambio debe ser mayor a cero.'
     }
   }
 
@@ -109,7 +110,7 @@
    * ======================= */
   watch(modelValue, newValue => emit('update:modelValue', newValue), { deep: true })
 
-  watch(() => [modelValue.value.currency, modelValue.value.exchange_rate], validate, {
+  watch(() => [modelValue.value.currency, modelValue.value.amount], validate, {
     immediate: true
   })
 
@@ -126,54 +127,69 @@
 
 <template>
   <form @submit.prevent="submit" novalidate>
-    <div class="form-group">
-      <label>Divisa*</label>
+    <div class="form-row">
+      <div class="form-group col-md-6">
+        <label>Divisa*</label>
 
-      <input
-        v-if="hasPrivilegedRole"
-        type="text"
-        class="form-control"
-        v-model="modelValue.currency"
-        required
-        @blur="validate"
-      />
+        <input
+          v-if="hasPrivilegedRole"
+          type="text"
+          class="form-control"
+          v-model="modelValue.currency"
+          required
+          @blur="validate"
+        />
 
-      <select v-else class="form-control" v-model="modelValue.currency" required @blur="validate">
-        <option disabled value="">Seleccione una moneda</option>
-        <option
-          v-for="currency in availableCurrencies"
-          :key="currency.id"
-          :value="currency.iso_code"
-        >
-          {{ currency.name }} ({{ currency.symbol }})
-        </option>
-      </select>
+        <select v-else class="form-control" v-model="modelValue.currency" required @blur="validate">
+          <option disabled value="">Seleccione una moneda</option>
+          <option
+            v-for="currency in availableCurrencies"
+            :key="currency.id"
+            :value="currency.iso_code"
+          >
+            {{ currency.name }} ({{ currency.symbol }})
+          </option>
+        </select>
+        <small v-if="errors.currency" class="text-danger mt-1">{{ errors.currency }}</small>
+      </div>
 
-      <small v-if="errors.currency" class="text-danger mt-1">{{ errors.currency }}</small>
+      <div class="form-group col-md-6">
+        <label>Cambio*</label>
+
+        <input
+          type="text"
+          class="form-control"
+          v-model="modelValue.amount"
+          v-mask="maskOptions"
+          placeholder="0.00"
+          @blur="validate"
+          required
+          inputmode="decimal"
+        />
+
+        <small v-if="errors.amount" class="text-danger mt-1">
+          {{ errors.amount }}
+        </small>
+      </div>
     </div>
 
     <div class="form-group">
-      <label>Cambio*</label>
-
-      <input
-        type="text"
-        class="form-control"
-        v-model="modelValue.exchange_rate"
-        v-mask="maskOptions"
-        placeholder="0.00"
-        @blur="validate"
-        required
-        inputmode="decimal"
-      />
-
-      <small v-if="errors.exchange_rate" class="text-danger mt-1">
-        {{ errors.exchange_rate }}
-      </small>
-
-      <div class="alert alert-primary mb-n2 mt-2" role="alert">
-        El tipo de cambio ingresado representa el valor de la moneda seleccionada equivalente a
-        <strong>1 USD</strong>.
+      <div class="custom-control custom-switch">
+        <input
+          type="checkbox"
+          class="custom-control-input"
+          v-model="modelValue.status"
+          id="custom-switch-status"
+        />
+        <label class="custom-control-label" for="custom-switch-status">
+          Activar Tasa de Cambio
+        </label>
       </div>
+    </div>
+
+    <div class="alert alert-primary mb-0" role="alert">
+      El tipo de cambio ingresado representa el valor de la moneda seleccionada equivalente a
+      <strong>1 USD</strong>.
     </div>
   </form>
 </template>

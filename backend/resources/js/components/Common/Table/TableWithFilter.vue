@@ -173,7 +173,7 @@
         @filter="handleFilter"
       />
 
-      <div class="mb-3" v-if="selectedIds.length || showCreateButton">
+      <div class="mt-3" v-if="selectedIds.length || showCreateButton">
         <button v-if="showCreateButton" class="btn btn-sm btn-success" @click="$emit('create')">
           <i class="fas fa-plus"></i> Crear
         </button>
