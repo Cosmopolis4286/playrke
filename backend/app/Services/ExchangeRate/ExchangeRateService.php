@@ -31,16 +31,17 @@ class ExchangeRateService extends BaseService
      * Constructor del servicio.
      *
      * @param RoleUserService $roleUserService
-     * @param ExchangeRateContext $context
-     * @param ExchangeRateCrud $crud
-     * @param ExchangeRateUpdater $updater
+     * @param ExchangeRateContextService $context
+     * @param ExchangeRateCrudService $crud
+     * @param ExchangeRateUpdaterService $updater
      */
     public function __construct(
         protected RoleUserService $roleUserService,
-        protected ExchangeRateContext $context,
-        protected ExchangeRateCrud $crud,
-        protected ExchangeRateUpdater $updater,
+        protected ExchangeRateContextService $context,
+        protected ExchangeRateCrudService $crud,
+        protected ExchangeRateUpdaterService $updater,
     ) {}
+
     /**
      * Obtener contexto para visualización de tasas.
      *
@@ -82,6 +83,12 @@ class ExchangeRateService extends BaseService
         return $this->crud->show($exchangeRateId, $userId);
     }
 
+
+    public function changeExchangeRateStatus(string $id): void
+    {
+        return $this->changeStatus();
+    }
+
     /**
      * Actualizar tasas desde proveedor externo.
      *
@@ -93,4 +100,12 @@ class ExchangeRateService extends BaseService
         $userId = $this->roleUserService->resolveUser($token)['id'];
         return $this->updater->updateRates($userId);
     }
+
+    /**
+     * Obtener contexto para visualización del historico de tasas de cambio.
+     *
+     * @param Request $request
+     * @return array
+     */
+    public function historicalContext() {}
 }

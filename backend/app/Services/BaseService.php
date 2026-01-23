@@ -136,7 +136,7 @@ abstract class BaseService
     public function changeStatus(
         Model $model,
         ?string $newStatus = null,
-        string $userRelation = 'user'
+        ?string $userRelation = null
     ): void {
         $status = $newStatus ?? ($model->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
 
@@ -145,10 +145,12 @@ abstract class BaseService
         DB::transaction(function () use ($model, $status, $userRelation) {
             $model->update(['status' => $status]);
 
-            $model->loadMissing($userRelation);
+            if ($userRelation) {
+                $model->loadMissing($userRelation);
 
-            if ($model->$userRelation instanceof Model) {
-                $model->$userRelation->update(['status' => $status]);
+                if ($model->$userRelation instanceof Model) {
+                    $model->$userRelation->update(['status' => $status]);
+                }
             }
         });
     }

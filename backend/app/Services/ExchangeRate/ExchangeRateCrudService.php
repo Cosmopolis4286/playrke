@@ -10,7 +10,7 @@ use App\Services\Roles\RoleUserService;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 
-class ExchangeRateCrud
+class ExchangeRateCrudService
 {
     public function __construct(
         protected CommerceExchangeRateRepositoryInterface $commerce,

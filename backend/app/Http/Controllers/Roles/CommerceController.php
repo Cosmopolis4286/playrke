@@ -125,7 +125,7 @@ class CommerceController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($commerce) {
-                $this->service->changeStatus($commerce);
+                $this->service->changeStatus($commerce, null, 'user');
                 return ['message' => '✅ Estado actualizado correctamente',];
             },
             'No se pudo cambiar el estado del comercio.'

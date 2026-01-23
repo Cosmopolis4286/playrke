@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Factories\ExchangeRate\ExchangeRateFactory;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
-use App\Models\ExchangeRate;
 use App\Services\ExchangeRate\ExchangeRateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -84,24 +83,18 @@ class ExchangeRateController extends Controller
      * Actualizar una tasa de cambio existente.
      *
      * @param ExchangeRateRequest $request
-     * @param string $payload
      *
      * @return RedirectResponse
      */
-    public function update(
-        ExchangeRateRequest $request,
-        string $payload
-    ): RedirectResponse {
-        return $this->handleService(
-            function () use ($request, $payload) {
-                $this->service->update(
-                    ExchangeRateDTO::fromPayload($payload, $request)
-                );
+    public function update(ExchangeRateRequest $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request) {
+                $dto = $this->factory->fromRequest($request->validated());
 
-                return back()->with(
-                    'message',
-                    'La información fue actualizada con éxito'
-                );
+                $this->service->update($dto);
+
+                return ['message' => '✅ Actualización exitosa'];
             },
             'No se pudo actualizar la tasa de cambio.'
         );
@@ -134,16 +127,15 @@ class ExchangeRateController extends Controller
     /**
      * Cambiar el estado de una tasa de cambio.
      *
-     * @param ExchangeRate $exchangeRate
-     * @param Request $request
+     * @param string $id
      *
      * @return JsonResponse
      */
-    public function changeStatus(ExchangeRate $exchangeRate): JsonResponse
+    public function changeStatus(string $id): JsonResponse
     {
         return $this->handleServiceJson(
-            function () use ($exchangeRate) {
-                $this->service->changeStatus($exchangeRate);
+            function () use ($id) {
+                $this->service->changeExchangeRateStatus($id);
                 return ['message' => '✅ Estado actualizado correctamente',];
             },
             'No se pudo cambiar el estado de la tasa de cambio.'
@@ -151,27 +143,25 @@ class ExchangeRateController extends Controller
     }
 
     /**
-     * Mostrar el histórico de tasas de cambio.
+     * Muestra el historico de tasas de cambio utilizando Inertia.
      *
-     * Renderiza una vista Blade tradicional.
+     * Este endpoint renderiza una vista Inertia y no devuelve una respuesta JSON.
+     * El manejo de excepciones y redirecciones se realiza mediante `handleService`.
      *
-     * @param string $type
-     * @param string $creatorId
-     * @param string $currency
+     * @param Request $request
      *
-     * @return \Illuminate\Contracts\View\View
+     * @return Response
      */
-    public function historical(
-        string $type,
-        string $creatorId,
-        string $currency
-    ) {
+    public function historical(Request $request): Response
+    {
         return $this->handleService(
-            fn() => view(
-                'modules.all.exchange-rate.historical',
-                $this->service->historical($type, $creatorId, $currency)
-            ),
-            'No se pudo cargar el histórico de tasas.'
+            function () use ($request) {
+                return Inertia::render(
+                    'ExchangeRate/Index',
+                    $this->service->historicalContext($request)
+                );
+            },
+            'No se pudo cargar la lista de tasas de cambios.'
         );
     }
 

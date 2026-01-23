@@ -5,7 +5,7 @@ namespace App\Services\ExchangeRate;
 use App\Contracts\ExchangeRateRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 
-final class ExchangeRateUpdater
+final class ExchangeRateUpdaterService
 {
 
     public function __construct(
