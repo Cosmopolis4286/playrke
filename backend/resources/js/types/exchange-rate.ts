@@ -21,6 +21,7 @@ export interface UsedCurrency {
     id: number | string
     name: string
     iso_code: string,
+    type: string,
     country?: {
         id: number
         name: string

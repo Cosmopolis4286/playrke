@@ -23,6 +23,7 @@ class Commerce extends BaseModel
     protected $table = 'commerces';
 
     protected $fillable = [
+        'id',
         'name',
         'country_id',
         'phone',

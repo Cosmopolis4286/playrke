@@ -38,6 +38,9 @@ return new class extends Migration
 
             $table->timestamps();
 
+            // Soft deletes
+            $table->softDeletes();
+
             // Índices para optimizar búsquedas frecuentes
             $table->primary(['commerce_id', 'currency_id']);
             $table->index(['commerce_id', 'currency_id'], 'idx_commerce_currency');

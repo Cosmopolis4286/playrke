@@ -31,7 +31,7 @@ use App\Models\CommerceCurrency;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Country;
 use App\Models\Customer;
-use App\Models\CustomerExchangeRate;
+use App\Models\Roles\Customer\CustomerExchangeRate;
 use App\Models\CustomerGame;
 use App\Models\CustomerUser;
 use App\Models\GameConfig;

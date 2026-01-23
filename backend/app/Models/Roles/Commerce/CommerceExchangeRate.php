@@ -45,7 +45,7 @@ class CommerceExchangeRate extends BaseModel
      * Casts de atributos.
      */
     protected $casts = [
-        'id' => 'bigint',
+        'id' => 'string',
         'commerce_id' => 'string',
         'currency_id' => 'string',
         'amount' => 'decimal:4',

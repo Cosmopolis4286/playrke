@@ -48,12 +48,14 @@
    * ======================= */
   const availableCurrencies = computed<Currency[]>(() => {
     if (!props.usedCurrencies?.length) {
-      return props.currencies
+      return props.currencies.filter(currency => currency.type === 'FIAT')
     }
 
     const usedIsoCodes = new Set(props.usedCurrencies.map(currency => currency.iso_code))
 
-    return props.currencies.filter(currency => !usedIsoCodes.has(currency.iso_code))
+    return props.currencies.filter(
+      currency => currency.type === 'FIAT' && !usedIsoCodes.has(currency.iso_code)
+    )
   })
 
   const isValid = computed(() => {

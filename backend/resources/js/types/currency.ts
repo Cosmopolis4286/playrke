@@ -10,5 +10,6 @@ export interface Currency {
     readonly name: string
     readonly country_id: number
     readonly iso_code: string
+    readonly type: string
     readonly country?: Country // relación opcional incluida
 }

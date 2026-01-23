@@ -52,6 +52,7 @@
       id: rate.currency_id,
       name: currency?.name ?? 'Desconocido',
       iso_code: currency?.iso_code ?? 'Desconocido',
+      type: currency?.type,
       country: currency?.country
         ? {
             id: currency.country.id,
@@ -61,6 +62,8 @@
         : null
     }
   })
+
+  console.log('usedCurrencies', usedCurrencies)
 
   /**
    * Referencias

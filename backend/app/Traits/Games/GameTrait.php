@@ -7,7 +7,7 @@ use App\Models\BingoRoom;
 use App\Models\BingoRoomConfig;
 use App\Models\CurrencyGameRoom;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
-use App\Models\CustomerExchangeRate;
+use App\Models\Roles\Customer\CustomerExchangeRate;
 use App\Models\GameExchangeRate;
 use App\Models;
 use App\Models\Role;
