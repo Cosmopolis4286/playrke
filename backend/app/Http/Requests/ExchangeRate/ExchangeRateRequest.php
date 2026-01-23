@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
  * Payload esperado:
  * {
  *   "currency": "USD",
- *   "exchange_rate": 1.25,
+ *   "amount": 1.25,
  *   "token": "customer"
  * }
  */
@@ -79,7 +79,7 @@ class ExchangeRateRequest extends BaseRequest
             /**
              * Valor de la tasa de cambio.
              */
-            'exchange_rate' => [
+            'amount' => [
                 $isUpdate ? 'sometimes' : 'required',
                 'numeric',
                 'gt:0',
@@ -101,9 +101,9 @@ class ExchangeRateRequest extends BaseRequest
             'currency.size' => 'La moneda debe tener exactamente 3 caracteres.',
             'currency.exists' => 'La moneda seleccionada no es válida.',
 
-            'exchange_rate.required' => 'La tasa de cambio es obligatoria.',
-            'exchange_rate.numeric' => 'La tasa de cambio debe ser numérica.',
-            'exchange_rate.gt' => 'La tasa de cambio debe ser mayor a cero.',
+            'amount.required' => 'La tasa de cambio es obligatoria.',
+            'amount.numeric' => 'La tasa de cambio debe ser numérica.',
+            'amount.gt' => 'La tasa de cambio debe ser mayor a cero.',
         ];
     }
 }

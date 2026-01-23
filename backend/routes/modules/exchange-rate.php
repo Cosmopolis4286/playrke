@@ -13,7 +13,7 @@ route_group(
     [
         'index'        => ['method' => 'get', 'uri' => ''],
         'store'        => ['method' => 'post', 'uri' => ''],
-        'updateAll'    => ['method' => 'get', 'uri' => 'update-all'],
+        'updateAll'    => ['method' => 'put', 'uri' => 'update-all'],
         'show'         => ['method' => 'get', 'uri' => '{id}'],
         'update'       => ['method' => 'put', 'uri' => '{id}'],
         'destroy'      => ['method' => 'delete', 'uri' => '{id}'],

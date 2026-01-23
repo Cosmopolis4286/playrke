@@ -18,7 +18,7 @@ final class ExchangeRateFactory
      * @param array<string, mixed> $data Datos de entrada, típicamente request validated.
      * @return ExchangeRateDTO
      *
-     * @throws InvalidArgumentException Si falta moneda o exchange_rate.
+     * @throws InvalidArgumentException Si falta moneda o amount (valor de la tasa de cambio).
      */
     public function fromRequest(array $data): ExchangeRateDTO
     {
@@ -26,8 +26,8 @@ final class ExchangeRateFactory
             throw new InvalidArgumentException('El campo "currency" es obligatorio.');
         }
 
-        if (!isset($data['exchange_rate'])) {
-            throw new InvalidArgumentException('El campo "exchange_rate" es obligatorio.');
+        if (!isset($data['amount'])) {
+            throw new InvalidArgumentException('El campo "amount" es obligatorio.');
         }
 
         $currencyId = $this->currencyRepository->getValueByISOCode($data['currency'], 'id');
@@ -39,7 +39,7 @@ final class ExchangeRateFactory
         return new ExchangeRateDTO(
             $data['id'] ?? null,
             $currencyId,
-            (float) $data['exchange_rate'],
+            (float) $data['amount'],
             $data['percentage'] ?? 0.0,
             $data['status'] ?? 'ACTIVE',
             $data['tokenId'] ?? null,

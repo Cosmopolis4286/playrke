@@ -180,9 +180,6 @@ class ExchangeRateController extends Controller
      *
      * El token se recibe como query param (?token=...).
      * La respuesta se maneja mediante `handleServiceJson`.
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function updateAll(Request $request): JsonResponse
     {
@@ -190,7 +187,7 @@ class ExchangeRateController extends Controller
             fn() => [
                 'data' => $this->service->updateRates(
                     $request->query('token')
-                )
+                ),
             ],
             'No se pudo actualizar los valores de las tasas de cambio.'
         );

@@ -159,7 +159,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      */
     async function updateExchangeRates(): Promise<void> {
         try {
-            const response = await backendClient.get('/exchange-rate/update-all')
+            const response = await backendClient.put('/exchange-rate/update-all')
             const data = response.data
 
             if (data.type === 'success') {
