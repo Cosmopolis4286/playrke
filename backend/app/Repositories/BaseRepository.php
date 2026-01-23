@@ -200,6 +200,17 @@ abstract class BaseRepository implements BaseRepositoryInterface
     /**
      * {@inheritDoc}
      */
+    public function findWithRelations(array $relations = [], string|int $id, array $fields = ['*']): ?Model
+    {
+        return $this->model
+            ->with($relations)
+            ->select('id', 'currency_id', 'amount', 'status')
+            ->find($id);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function getAllWithRelations(array $relations = [], array $fields = ['*']): Collection
     {
         return $this->model

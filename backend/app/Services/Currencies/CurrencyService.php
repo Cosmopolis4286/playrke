@@ -32,10 +32,6 @@ class CurrencyService
     {
         $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if (!$userRolePrefix) {
-            return [];
-        }
-
         $currenciesIds = [];
 
         switch ($userRolePrefix) {

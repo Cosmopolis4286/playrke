@@ -5,9 +5,9 @@ namespace App\Services\ExchangeRate;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
+use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Services\Roles\RoleUserService;
 use DomainException;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
 class ExchangeRateCrud
@@ -31,10 +31,6 @@ class ExchangeRateCrud
     {
         $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if (!$rolePrefix) {
-            throw new \DomainException('Rol inválido o no identificado.');
-        }
-
         // Nombre de la columna foreign key asociada al rol
         $roleForeignKey = "{$rolePrefix}_id";
 
@@ -47,18 +43,23 @@ class ExchangeRateCrud
 
     /**
      * Obtener tasa de cambio para visualización.
+     *
      * @param string $exchangeRateId
      * @param int $userId
+     *
+     * @return ExchangeRateResource
      */
-    public function show(string $exchangeRateId, int $userId): ?Model
+    public function show(string $exchangeRateId, int $userId): ExchangeRateResource
     {
         $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if (!$rolePrefix) {
-            throw new \DomainException('Rol inválido o no identificado.');
-        }
+        $exchangeRate = $this->repo($rolePrefix)->findWithRelations(
+            ['currency:id,iso_code'],
+            $exchangeRateId,
+            ['id', 'currency_id', 'amount', 'status']
+        );
 
-        return $this->repo($rolePrefix)->find($exchangeRateId, ['id', 'amount', 'status']);
+        return new ExchangeRateResource($exchangeRate);
     }
 
     /**

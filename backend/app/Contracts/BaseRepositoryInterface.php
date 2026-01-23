@@ -179,6 +179,17 @@ interface BaseRepositoryInterface
     public function first(array $conditions, array $columns = ['*']): ?Model;
 
     /**
+     * Busca un registro por ID cargando relaciones específicas.
+     *
+     * @param array<int,string> $relations Relaciones Eloquent a cargar
+     * @param string|int $id ID del registro a buscar
+     * @param array<int,string> $fields Campos a seleccionar
+     *
+     * @return Model|null Retorna el modelo con las relaciones cargadas o null si no se encuentra
+     */
+    public function findWithRelations(array $relations = [], string|int $id, array $fields = ['*']): ?Model;
+
+    /**
      * Obtener todos los registros con relaciones cargadas.
      *
      * @param array<int,string> $relations Relaciones Eloquent

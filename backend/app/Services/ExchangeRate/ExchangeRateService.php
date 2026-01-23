@@ -3,9 +3,9 @@
 namespace App\Services\ExchangeRate;
 
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
+use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Services\BaseService;
 use App\Services\Roles\RoleUserService;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
 /**
@@ -69,13 +69,16 @@ class ExchangeRateService extends BaseService
 
     /**
      * Obtener tasa de cambio para visualización.
+     *
      * @param string $exchangeRateId
-     * @return array
+     *
+     * @return ExchangeRateResource
      * @throws \DomainException Si el userId no es válido o no se puede resolver.
      */
-    public function getByExchangeRate(string $exchangeRateId): ?Model
+    public function getByExchangeRate(string $exchangeRateId): ExchangeRateResource
     {
         $userId = $this->roleUserService->resolveUser()['id'];
+
         return $this->crud->show($exchangeRateId, $userId);
     }
 

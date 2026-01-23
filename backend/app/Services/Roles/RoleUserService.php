@@ -18,28 +18,25 @@ class RoleUserService
     ) {}
 
     /**
-     * Resuelve el prefijo del tipo de usuario.
+     * Resuelve el prefijo del tipo de usuario basándose en roles activos.
      *
      * @param int $userId
-     * @return string|null
+     * @return string
+     *
+     * @throws \DomainException Si no se encuentra un rol válido
      */
-    /**
-     * Resuelve el prefijo del tipo de usuario basándose en roles activos.
-     */
-    public function getActiveUserRolePrefix(int $userId): ?string
+    public function getActiveUserRolePrefix(int $userId): string
     {
-        // Obtener roles activos asignados al usuario
         $activeRoles = $this->roleUserRepository->getActiveByUser($userId);
 
         foreach ($activeRoles as $roleUser) {
-            $role = $roleUser->role;
-            if ($role && $role->prefix) {
-                // Retornamos el primer prefijo encontrado (ajustar lógica si hay más de uno)
-                return strtolower($role->prefix);
+            $prefix = $roleUser->role->prefix ?? null;
+            if ($prefix) {
+                return strtolower($prefix);
             }
         }
 
-        return null;
+        throw new \DomainException('Rol inválido o no identificado.');
     }
 
     /**
