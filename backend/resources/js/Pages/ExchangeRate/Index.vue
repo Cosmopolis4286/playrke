@@ -25,7 +25,6 @@
    * Composable
    */
   const {
-    loading,
     showModalForm,
     modalTitle,
     exchangeRateData,
@@ -84,37 +83,36 @@
 </script>
 
 <template>
-    <div class="card">
-      <CardHeader title="Tasas de Cambio" subtitle="Valores en base a Un Dólar (1 USD)" />
+  <div class="card">
+    <CardHeader title="Tasas de Cambio" subtitle="Valores en base a Un Dólar (1 USD)" />
 
-      <div class="card-body">
-        <ExchangeRateButtons
-          :currencies="currencies"
-          :usedCurrencies="usedCurrencies"
-          :has-privileged-role="hasPrivilegedRole"
-          :selected-currency="selectedCurrency"
-          @create="create"
-          @historical="goHistorical"
-          @update="updateExchangeRates"
-        />
+    <div class="card-body">
+      <ExchangeRateButtons
+        :currencies="currencies"
+        :usedCurrencies="usedCurrencies"
+        :has-privileged-role="hasPrivilegedRole"
+        :selected-currency="selectedCurrency"
+        @create="create"
+        @historical="goHistorical"
+        @update="updateExchangeRates"
+      />
 
-        <ExchangeRateTable
-          :usedCurrencies="usedCurrencies"
-          :exchange-rates="exchangeRates"
-          :has-privileged-role="hasPrivilegedRole"
-          @edit="edit"
-          @change-status="changeStatus"
-          @delete="remove"
-        />
-      </div>
+      <ExchangeRateTable
+        :usedCurrencies="usedCurrencies"
+        :exchange-rates="exchangeRates"
+        :has-privileged-role="hasPrivilegedRole"
+        @edit="edit"
+        @change-status="changeStatus"
+        @delete="remove"
+      />
     </div>
+  </div>
 
   <Modal
     v-model="showModalForm"
     :title="modalTitle"
     static
     show-confirm
-    :loading="loading"
     :on-submit="submit"
     :confirm-disabled="!(exchangeRateFormRef?.isValid ?? false)"
   >

@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
 /*
 |--------------------------------------------------------------------------
 | Routes Index - Punto de entrada limpio y organizado
@@ -20,9 +18,9 @@ require __DIR__ . '/modules/api-public.php';      // APIs públicas
 // ====================================
 // RUTAS PROTEGIDAS (requieren login)
 // ====================================
-require __DIR__ . '/modules/dashboard.php';       // TODO: Crear controllers faltantes
-require __DIR__ . '/modules/user-profile.php';    // TODO: Crear ProfileController
-require __DIR__ . '/modules/content.php';         // TODO: Crear InformationController
+require __DIR__ . '/modules/dashboard.php';
+require __DIR__ . '/modules/user-profile.php';
+require __DIR__ . '/modules/content.php';
 
 // ====================================
 // RUTAS POR ROLES DE USUARIO
@@ -38,6 +36,7 @@ require __DIR__ . '/modules/seller.php';          // TODO: Revisar controllers
 // RUTAS DE NEGOCIO ESPECÍFICAS
 // ====================================
 require __DIR__ . '/modules/games/bingo.php';    // TODO: Revisar controllers
+require __DIR__ . '/modules/exchange-rate.php';
 require __DIR__ . '/modules/payments.php';        // TODO: Revisar controllers
 // require __DIR__ . '/modules/wallets.php';         // TODO: Revisar controllers
 // require __DIR__ . '/modules/reports.php';         // TODO: Revisar controllers

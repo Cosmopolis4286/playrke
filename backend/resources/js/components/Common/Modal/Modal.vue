@@ -27,7 +27,6 @@
     static?: boolean
     showConfirm?: boolean
     confirmText?: string
-    loading?: boolean
     confirmDisabled?: boolean
 
     /**
@@ -44,6 +43,7 @@
   }>()
 
   const modalRef = ref<HTMLElement | null>(null)
+  const submitting = ref(false)
   let lastFocused: Element | null = null
 
   const isBouncing = ref(false)
@@ -80,16 +80,17 @@
    * Confirmación con cierre condicional
    */
   const confirm = async () => {
-    if (!props.onSubmit) {
-      close()
-      return
-    }
+    if (!props.onSubmit || submitting.value) return
+
+    submitting.value = true
 
     try {
       const result = await props.onSubmit()
       if (result === true) close()
     } catch {
-      // Mantener abierto si falla
+      // mantener abierto
+    } finally {
+      submitting.value = false
     }
   }
 
@@ -211,10 +212,10 @@
                 <button
                   v-if="showConfirm"
                   class="btn btn-sm btn-primary"
-                  :disabled="loading || confirmDisabled"
+                  :disabled="submitting || confirmDisabled"
                   @click="confirm"
                 >
-                  {{ loading ? 'Guardando...' : (confirmText ?? 'Guardar') }}
+                  {{ submitting ? 'Guardando...' : (confirmText ?? 'Guardar') }}
                 </button>
               </slot>
             </div>

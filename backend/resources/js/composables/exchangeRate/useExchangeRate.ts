@@ -13,9 +13,6 @@ interface ExchangeRate {
  * Contrato público del composable useExchangeRate
  */
 interface UseExchangeRateReturn {
-    /** Estado global de carga (submit, fetch, etc.) */
-    loading: Ref<boolean>
-
     /** Controla la visualización del modal */
     showModalForm: Ref<boolean>
 
@@ -64,7 +61,6 @@ interface UseExchangeRateReturn {
  * @returns {UseExchangeRateReturn}
  */
 export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
-    const loading = ref<boolean>(false)
     const modalTitle = ref<string>('')
     const showModalForm = ref<boolean>(false)
 
@@ -80,7 +76,6 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      * - false → error (mantener modal abierto)
      */
     async function submit(): Promise<boolean> {
-        loading.value = true
         try {
             if (!exchangeRateData.value) throw new Error('No hay datos para enviar')
 
@@ -100,7 +95,6 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
             console.error('Error en submit:', error)
             return false
         } finally {
-            loading.value = false
         }
     }
 
@@ -129,7 +123,6 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      * @param id Identificador de la tasa
      */
     async function edit(id: string | number): Promise<void> {
-        loading.value = true
         try {
             const response = await backendClient.get(`/exchange-rate/${id}`)
             exchangeRateData.value = response.data
@@ -138,7 +131,6 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         } catch (error) {
             console.error('Error cargando tasa:', error)
         } finally {
-            loading.value = false
         }
     }
 
@@ -166,8 +158,6 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      * Actualiza tasas de cambio desde backend
      */
     async function updateExchangeRates(): Promise<void> {
-        loading.value = true
-
         try {
             const response = await backendClient.get('/exchange-rate/update-all')
             const data = response.data
@@ -178,12 +168,10 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         } catch (error) {
             console.error('Error actualizando tasas:', error)
         } finally {
-            loading.value = false
         }
     }
 
     return {
-        loading,
         modalTitle,
         showModalForm,
         exchangeRateData,

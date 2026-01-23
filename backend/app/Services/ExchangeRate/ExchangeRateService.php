@@ -103,12 +103,12 @@ class ExchangeRateService extends BaseService
     /**
      * Actualizar tasas desde proveedor externo.
      *
-     * @param int|null $userId
-     * @param bool $check
+     * @param string $token ID del token de usuario por api publica (opcinal)
      * @return bool
      */
-    public function updateRates(?int $userId = null, bool $check = false): bool
+    public function updateRates(?string $token = null): bool
     {
-        return $this->updater->updateRates($userId, $check);
+        $userId = $this->resolveUserId($token);
+        return $this->updater->updateRates($userId);
     }
 }

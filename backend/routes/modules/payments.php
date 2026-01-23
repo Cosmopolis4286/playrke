@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\DirectoryController;
-use App\Http\Controllers\ExchangeRateController;
 use App\Http\Controllers\Directories\Fiat\Brazil\PixController;
 use App\Http\Controllers\Directories\Fiat\Colombia\PaymentAccountController;
 use App\Http\Controllers\Directories\Fiat\Venezuela\PagoMovilController;
@@ -14,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 | Rutas de Métodos de Pago
 |--------------------------------------------------------------------------
 | Gestión de todos los métodos de pago: Pago Móvil, PIX, Colombia,
-| tasas de cambio, directorios de datos y comprobantes de pago.
+| directorios de datos y comprobantes de pago.
 */
 
 // ====================================
@@ -31,36 +30,6 @@ route_group('directory', 'directory.', ['auth'], DirectoryController::class, [
 Route::middleware('auth')
     ->get('payment/proof/{fileName}', [PaymentController::class, 'showPaymentProof'])
     ->name('payment.proof');
-
-// ====================================
-// TASAS DE CAMBIO
-// ====================================
-route_group(
-    'exchange-rate',
-    'exchange-rate.',
-    ['auth'],
-    ExchangeRateController::class,
-    [
-        'index'        => ['method' => 'get', 'uri' => ''],
-        'store'        => ['method' => 'post', 'uri' => ''],
-        'show'         => ['method' => 'get', 'uri' => '{id}'],
-        'update'       => ['method' => 'put', 'uri' => '{id}'],
-        'destroy'      => ['method' => 'delete', 'uri' => '{id}'],
-        'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
-        'updateAll'    => ['method' => 'put', 'uri' => 'update-all'],
-    ]
-);
-
-route_public(
-    'exchange-rate/public',
-    'exchange-rate.public.',
-    ExchangeRateController::class,
-    [
-        'index' => ['method' => 'get', 'uri' => ''],
-    ],
-    'exchange_rates:read'
-);
-
 
 // ====================================
 // PAGO MÓVIL (VENEZUELA)

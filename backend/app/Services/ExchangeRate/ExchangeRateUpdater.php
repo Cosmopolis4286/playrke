@@ -13,8 +13,9 @@ final class ExchangeRateUpdater
         protected ExchangeRateRepositoryInterface $exchange
     ) {}
 
-    public function updateRates(?int $userId = null, bool $checkUpdate = false): bool
+    public function updateRates(int $userId): bool
     {
+        dd($userId);
         DB::transaction(function () use ($userId, $checkUpdate) {
 
             $creator = $userId

@@ -1,0 +1,32 @@
+<?php
+
+use App\Http\Controllers\ExchangeRateController;
+
+// ====================================
+// TASAS DE CAMBIO
+// ====================================
+route_group(
+    'exchange-rate',
+    'exchange-rate.',
+    ['auth'],
+    ExchangeRateController::class,
+    [
+        'index'        => ['method' => 'get', 'uri' => ''],
+        'store'        => ['method' => 'post', 'uri' => ''],
+        'updateAll'    => ['method' => 'get', 'uri' => 'update-all'],
+        'show'         => ['method' => 'get', 'uri' => '{id}'],
+        'update'       => ['method' => 'put', 'uri' => '{id}'],
+        'destroy'      => ['method' => 'delete', 'uri' => '{id}'],
+        'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
+    ]
+);
+
+route_public(
+    'exchange-rate/public',
+    'exchange-rate.public.',
+    ExchangeRateController::class,
+    [
+        'index' => ['method' => 'get', 'uri' => ''],
+    ],
+    'exchange_rates:read'
+);
