@@ -80,72 +80,74 @@
 </script>
 <template>
   <form @submit.prevent="submit" novalidate>
-    <div class="form-group col-md-6">
-      <label>Divisa*</label>
-      <!-- Input libre solo para roles privilegiados -->
-      <input
-        v-if="hasPrivilegedRole"
-        type="text"
-        class="form-control"
-        v-model="form.currency"
-        :disabled="isEditMode"
-        @blur="validate"
-      />
-      <!-- Select normal -->
-      <select
-        v-else
-        class="form-control"
-        v-model="form.currency"
-        :disabled="isEditMode"
-        @blur="validate"
-      >
-        <option disabled value="">Seleccione una moneda</option>
-        <option
-          v-for="currency in availableCurrencies"
-          :key="currency.id"
-          :value="currency.iso_code"
-        >
-          {{ currency.name }} ({{ currency.symbol }})
-        </option>
-      </select>
-
-      <small v-if="errors.currency" class="text-danger">
-        {{ errors.currency }}
-      </small>
-    </div>
-
-    <div class="form-group col-md-6">
-      <label>Cambio*</label>
-      <input
-        type="text"
-        class="form-control"
-        v-model="form.amount"
-        v-mask="maskOptions"
-        placeholder="0.00"
-        inputmode="decimal"
-        @blur="validate"
-      />
-      <small v-if="errors.amount" class="text-danger">
-        {{ errors.amount }}
-      </small>
-    </div>
-    <div class="form-group">
-      <div class="custom-control custom-switch">
+    <div class="row">
+      <div class="form-group col-md-6">
+        <label>Divisa*</label>
+        <!-- Input libre solo para roles privilegiados -->
         <input
-          id="exchange-rate-status"
-          type="checkbox"
-          class="custom-control-input"
-          v-model="form.status"
+          v-if="hasPrivilegedRole"
+          type="text"
+          class="form-control"
+          v-model="form.currency"
+          :disabled="isEditMode"
+          @blur="validate"
         />
-        <label class="custom-control-label" for="exchange-rate-status">
-          Activar Tasa de Cambio
-        </label>
-      </div>
-    </div>
+        <!-- Select normal -->
+        <select
+          v-else
+          class="form-control"
+          v-model="form.currency"
+          :disabled="isEditMode"
+          @blur="validate"
+        >
+          <option disabled value="">Seleccione una moneda</option>
+          <option
+            v-for="currency in availableCurrencies"
+            :key="currency.id"
+            :value="currency.iso_code"
+          >
+            {{ currency.name }} ({{ currency.symbol }})
+          </option>
+        </select>
 
-    <div class="alert alert-primary mb-0">
-      El tipo de cambio ingresado representa el valor de la moneda seleccionada equivalente a
-      <strong>1 USD</strong>.
+        <small v-if="errors.currency" class="text-danger">
+          {{ errors.currency }}
+        </small>
+      </div>
+
+      <div class="form-group col-md-6">
+        <label>Cambio*</label>
+        <input
+          type="text"
+          class="form-control"
+          v-model="form.amount"
+          v-mask="maskOptions"
+          placeholder="0.00"
+          inputmode="decimal"
+          @blur="validate"
+        />
+        <small v-if="errors.amount" class="text-danger">
+          {{ errors.amount }}
+        </small>
+      </div>
+
+      <div class="form-group col-12">
+        <div class="custom-control custom-switch">
+          <input
+            id="exchange-rate-status"
+            type="checkbox"
+            class="custom-control-input"
+            v-model="form.status"
+          />
+          <label class="custom-control-label" for="exchange-rate-status">
+            Activar Tasa de Cambio
+          </label>
+        </div>
+      </div>
+      <div class="alert alert-primary mb-0">
+        El tipo de cambio ingresado representa el valor de la moneda seleccionada equivalente a
+        <strong>1 USD</strong>.
+      </div>
     </div>
   </form>
 </template>
