@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Traits\Games;
+namespace App\Traits\Games\Bingo;
 
 // Models
 use App\Models\BingoCreator;

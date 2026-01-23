@@ -63,8 +63,6 @@
     }
   })
 
-  console.log('usedCurrencies', usedCurrencies)
-
   /**
    * Referencias
    */

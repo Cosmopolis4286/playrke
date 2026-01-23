@@ -3,7 +3,7 @@
 // use App\Http\Controllers\CookieController;
 
 use App\Http\Controllers\Games\GameController;
-use App\Http\Controllers\Rewards\RewardsController;
+use App\Http\Controllers\RewardsController;
 use Illuminate\Support\Facades\Route;
 
 /*

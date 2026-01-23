@@ -169,10 +169,8 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         loading.value = true
 
         try {
-            const response = await backendClient.get('/exchange-rate/getExchangeRates')
+            const response = await backendClient.get('/exchange-rate/update-all')
             const data = response.data
-
-            alert(data.message)
 
             if (data.type === 'success') {
                 window.location.reload()

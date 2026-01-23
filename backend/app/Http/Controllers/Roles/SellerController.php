@@ -10,7 +10,7 @@ use App\Models\ExternalPlayers;
 use App\Models\Seller;
 use App\Models\DocumentType;
 use App\Traits\Helpers\EncryptTrait;
-use App\Traits\Games\BingoTrait;
+use App\Traits\Games\Bingo\BingoTrait;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\BingoCreator;

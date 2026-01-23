@@ -174,4 +174,22 @@ class ExchangeRateController extends Controller
             'No se pudo cargar el histórico de tasas.'
         );
     }
+
+    /**
+     * Actualiza todos los valores ('amount') de las tasas de cambio, consultando una API publica.
+     *
+     * Este endpoint renderiza una vista Inertia y devuelve una respuesta JSON.
+     * El manejo de excepciones y redirecciones se realiza mediante `handleServiceJson`.
+     *
+     * @param string $token ID del token de usuario por api publica (opcinal)
+     *
+     * @return JsonResponse
+     */
+    public function updateAll(?string $token = null): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => ['data' => $this->service->updateRates($token)],
+            'No se pudo actualizar los valores de las tasas de cambio.'
+        );
+    }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Rewards;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 
