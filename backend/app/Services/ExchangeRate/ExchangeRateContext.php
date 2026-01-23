@@ -25,14 +25,14 @@ class ExchangeRateContext
      * Usuarios autenticados reciben monedas y tasas según su rol.
      * Usuarios públicos obtienen tokenId para acceso limitado.
      *
-     * @param Request $request Instancia de la petición HTTP.
+     * @param string|null $token Token público opcional para identificar usuario.
      * @return ExchangeRateContextDTO Contexto listo para la vista.
      *
      * @throws DomainException Si no se puede resolver el rol activo.
      */
-    public function resolve(Request $request): ExchangeRateContextDTO
+    public function resolve(?string $token = null): ExchangeRateContextDTO
     {
-        [$userId, $isLogged] = $this->roleUserService->resolveUser($request);
+        ['id' => $userId, 'authenticated' => $isLogged] = $this->roleUserService->resolveUser($token);
 
         $userRolePrefix = $isLogged
             ? $this->roleUserService->getActiveUserRolePrefix($userId) ?? ''
@@ -61,7 +61,6 @@ class ExchangeRateContext
 
         return match ($role) {
             'commerce' => $this->commerceExchangeRate->getAvailableExchangeRates($entityId),
-            // Otros roles pueden retornar vacío o implementar lógica específica
             'customer', 'admin' => collect(),
             default => collect(),
         };

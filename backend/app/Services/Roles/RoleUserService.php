@@ -43,37 +43,43 @@ class RoleUserService
     }
 
     /**
-     * Resuelve el contexto del usuario que realiza la operación.
+     * Resuelve el contexto del usuario que ejecuta la operación.
      *
-     * Determina si la solicitud proviene de un usuario autenticado
-     * o de un usuario público identificado en la request.
+     * Prioridad:
+     * 1. Usuario autenticado (Auth)
+     * 2. Usuario público identificado por token
      *
-     * Retorna una tupla con:
-     * - ID del usuario
-     * - Flag indicando si es un usuario autenticado
+     * @param string|null $token Token público opcional.
      *
-     * @param \Illuminate\Http\Request $request
-     *
-     * @return array{0:int,1:bool} [
-     *     int  $userId,        // Identificador del usuario
-     *     bool $isAuthenticated // true si está autenticado
-     * ]
+     * @return array{
+     *   id: int,
+     *   authenticated: bool
+     * }
      *
      * @throws \Symfony\Component\HttpKernel\Exception\HttpException
      */
-    public function resolveUser(Request $request): array
+    public function resolveUser(?string $token = null): array
     {
         if (Auth::check()) {
-            return [Auth::id(), true];
+            return [
+                'id' => Auth::id(),
+                'authenticated' => true,
+            ];
         }
 
-        $userId = $request->attributes->get('public_user');
+        if ($token) {
+            // Aquí deberías resolver el userId real a partir del token
+            // Ej: $userId = $this->tokenResolver->resolve($token);
 
-        if (!$userId) {
-            abort(404);
+            $userId = (int) $token; // placeholder válido mientras tanto
+
+            return [
+                'id' => $userId,
+                'authenticated' => false,
+            ];
         }
 
-        return [$userId, false];
+        abort(404, 'Usuario no identificado.');
     }
 
     /**

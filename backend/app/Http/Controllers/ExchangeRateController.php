@@ -176,19 +176,22 @@ class ExchangeRateController extends Controller
     }
 
     /**
-     * Actualiza todos los valores ('amount') de las tasas de cambio, consultando una API publica.
+     * Actualiza todas las tasas de cambio consultando un proveedor externo.
      *
-     * Este endpoint renderiza una vista Inertia y devuelve una respuesta JSON.
-     * El manejo de excepciones y redirecciones se realiza mediante `handleServiceJson`.
+     * El token se recibe como query param (?token=...).
+     * La respuesta se maneja mediante `handleServiceJson`.
      *
-     * @param string $token ID del token de usuario por api publica (opcinal)
-     *
+     * @param Request $request
      * @return JsonResponse
      */
-    public function updateAll(?string $token = null): JsonResponse
+    public function updateAll(Request $request): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => ['data' => $this->service->updateRates($token)],
+            fn() => [
+                'data' => $this->service->updateRates(
+                    $request->query('token')
+                )
+            ],
             'No se pudo actualizar los valores de las tasas de cambio.'
         );
     }

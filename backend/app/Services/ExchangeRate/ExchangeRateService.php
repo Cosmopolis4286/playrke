@@ -4,9 +4,9 @@ namespace App\Services\ExchangeRate;
 
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Services\BaseService;
+use App\Services\Roles\RoleUserService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 /**
  * Servicio de dominio para gestión de tasas de cambio.
@@ -30,39 +30,17 @@ class ExchangeRateService extends BaseService
     /**
      * Constructor del servicio.
      *
+     * @param RoleUserService $roleUserService
      * @param ExchangeRateContext $context
      * @param ExchangeRateCrud $crud
      * @param ExchangeRateUpdater $updater
      */
     public function __construct(
+        protected RoleUserService $roleUserService,
         protected ExchangeRateContext $context,
         protected ExchangeRateCrud $crud,
         protected ExchangeRateUpdater $updater,
-    ) {
-        // No asignar $role aquí, se resuelve dinámicamente en cada operación
-    }
-
-    /**
-     * Resuelve el ID del usuario basado en la autenticación o token proporcionado.
-     *
-     * @param string|null $token Token público opcional para identificar usuario.
-     * @return int ID del usuario autenticado o derivado del token.
-     *
-     * @throws \DomainException Cuando no se puede resolver un ID válido de usuario.
-     */
-    private function resolveUserId(?string $token = null): int
-    {
-        if (Auth::check()) {
-            return Auth::id();
-        }
-
-        if ($token) {
-            return (int) $token;
-        }
-
-        throw new \DomainException('Usuario inválido o no identificado.');
-    }
-
+    ) {}
     /**
      * Obtener contexto para visualización de tasas.
      *
@@ -71,7 +49,8 @@ class ExchangeRateService extends BaseService
      */
     public function context(Request $request): array
     {
-        return $this->context->resolve($request)->toView();
+        $token = $request->attributes->get('public_user');
+        return $this->context->resolve($token)->toView();
     }
 
     /**
@@ -84,7 +63,7 @@ class ExchangeRateService extends BaseService
      */
     public function create(ExchangeRateDTO $dto): void
     {
-        $userId = $this->resolveUserId($dto->tokenId);
+        $userId = $this->roleUserService->resolveUser($dto->tokenId)['id'];
         $this->crud->create($dto, $userId);
     }
 
@@ -96,7 +75,7 @@ class ExchangeRateService extends BaseService
      */
     public function getByExchangeRate(string $exchangeRateId): ?Model
     {
-        $userId = $this->resolveUserId();
+        $userId = $this->roleUserService->resolveUser()['id'];
         return $this->crud->show($exchangeRateId, $userId);
     }
 
@@ -108,7 +87,7 @@ class ExchangeRateService extends BaseService
      */
     public function updateRates(?string $token = null): bool
     {
-        $userId = $this->resolveUserId($token);
+        $userId = $this->roleUserService->resolveUser($token)['id'];
         return $this->updater->updateRates($userId);
     }
 }
