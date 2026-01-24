@@ -78,19 +78,21 @@ class ExchangeRateCrudService
      * Actualiza un tipo de cambio existente.
      *
      * @param ExchangeRateDTO $dto Debe contener un ID válido.
-     * @param string $role Rol del propietario: 'commerce' | 'customer'.
+     * @param string $userId ID de usuario
      * @return bool True si la transacción fue exitosa, false en caso de error.
      *
-     * @throws \DomainException Si el ID no está definido o el rol es inválido.
+     * @throws \DomainException Si el ID no está definido o el ID de usuario no es inválido.
      */
-    public function update(ExchangeRateDTO $dto, string $role): bool
+    public function update(ExchangeRateDTO $dto, string $userId): bool
     {
         try {
+            $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
+
             $exchangeRateId = $dto->id;
             throw_if(!$exchangeRateId, \DomainException::class, 'ID requerido para actualizar.');
 
             // Obtener el valor anterior del monto para calcular el porcentaje
-            $oldAmount = $this->repo($role)->getValueById($exchangeRateId, 'amount');
+            $oldAmount = $this->repo($rolePrefix)->getValueById($exchangeRateId, 'amount');
             if ($oldAmount == 0) {
                 throw new \DomainException('El monto anterior no puede ser cero para calcular el porcentaje.');
             }
@@ -103,8 +105,8 @@ class ExchangeRateCrudService
             $data = $dto->toArray();
             $data['percentage'] = $percentage ?? 0;
 
-            DB::transaction(function () use ($role, $exchangeRateId, $data) {
-                $this->repo($role)->update($exchangeRateId, $data);
+            DB::transaction(function () use ($rolePrefix, $exchangeRateId, $data) {
+                $this->repo($rolePrefix)->update($exchangeRateId, $data);
             });
 
             return true;
@@ -139,17 +141,17 @@ class ExchangeRateCrudService
     /**
      * Devuelve el repositorio correspondiente según el rol.
      *
-     * @param string $role
+     * @param string $rolePrefix (prefijo)
      * @return CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface
      *
      * @throws DomainException Si el rol no es válido
      */
-    private function repo(string $role): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface
+    private function repo(string $rolePrefix): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface
     {
-        return match ($role) {
+        return match ($rolePrefix) {
             'commerce' => $this->commerce,
             'customer' => $this->customer,
-            default => throw new DomainException("Rol inválido: {$role}"),
+            default => throw new DomainException("Rol inválido: {$rolePrefix}"),
         };
     }
 }

@@ -89,8 +89,7 @@ class ExchangeRateService extends BaseService
     public function update(ExchangeRateDTO $dto): bool
     {
         $userId = $this->roleUserService->resolveUser($dto->tokenId)['id'];
-        $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
-        return $this->crud->update($dto, $rolePrefix);
+        return $this->crud->update($dto, $userId);
     }
 
     /**
