@@ -2,14 +2,14 @@
 
 namespace App\Contracts\Roles\Commerce;
 
-use App\Contracts\BaseRepositoryInterface;
+use App\Contracts\ExchangeRate\RoleExchangeRateRepositoryInterface;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de tasas de cambio de comercios
  */
-interface CommerceExchangeRateRepositoryInterface extends BaseRepositoryInterface
+interface CommerceExchangeRateRepositoryInterface extends RoleExchangeRateRepositoryInterface
 {
     /**
      * Obtiene todas las tasas de cambio por moneda
@@ -81,14 +81,6 @@ interface CommerceExchangeRateRepositoryInterface extends BaseRepositoryInterfac
      * @return Collection
      */
     public function getByCommerce($commerceId): Collection;
-
-    /**
-     * Obtiene registros por moneda
-     *
-     * @param mixed $currencyId ID de la moneda
-     * @return Collection
-     */
-    public function getByCurrency($currencyId): Collection;
 
     /**
      * Obtiene tasas activas

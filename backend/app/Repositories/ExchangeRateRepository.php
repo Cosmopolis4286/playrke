@@ -2,35 +2,25 @@
 
 namespace App\Repositories;
 
-use App\Models\ExchangeRate;
 use App\Repositories\BaseRepository;
 use App\Contracts\ExchangeRateRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 /**
  * Repositorio para la gestión de tipos de cambio.
  *
- * Implementa las operaciones específicas para el modelo ExchangeRate,
+ * Implementa las operaciones específicas para el modelo de tasas de cambio
  * incluyendo gestión de valores, conversiones y estadísticas.
  */
 class ExchangeRateRepository extends BaseRepository implements ExchangeRateRepositoryInterface
 {
     /**
-     * Constructor del repositorio.
-     *
-     * @param ExchangeRate $model Instancia del modelo ExchangeRate
-     */
-    public function __construct(ExchangeRate $model)
-    {
-        parent::__construct($model);
-    }
-
-    /**
      * {@inheritDoc}
      */
-    public function getByCurrency(string $currencyId): ?ExchangeRate
+    public function getByCurrency(string $currencyId): ?Model
     {
         return $this->model->where('currency_id', $currencyId)->first();
     }
@@ -62,7 +52,7 @@ class ExchangeRateRepository extends BaseRepository implements ExchangeRateRepos
     /**
      * {@inheritDoc}
      */
-    public function createExchangeRate(string $currencyId, float $value): ExchangeRate
+    public function createExchangeRate(string $currencyId, float $value): Model
     {
         // Validar datos antes de crear
         $errors = $this->validateExchangeRateData([
@@ -321,7 +311,7 @@ class ExchangeRateRepository extends BaseRepository implements ExchangeRateRepos
     /**
      * {@inheritDoc}
      */
-    public function createOrUpdateByCurrency(string $currencyId, float $value): ExchangeRate
+    public function createOrUpdateByCurrency(string $currencyId, float $value): Model
     {
         if (!$this->isValidValue($value)) {
             throw new \InvalidArgumentException('Valor de tipo de cambio inválido');

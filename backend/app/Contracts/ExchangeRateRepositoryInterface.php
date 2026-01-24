@@ -3,8 +3,10 @@
 namespace App\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
+use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Models\ExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Contrato para el repositorio de tipos de cambio.
@@ -18,9 +20,9 @@ interface ExchangeRateRepositoryInterface extends BaseRepositoryInterface
      * Obtener tipo de cambio por moneda.
      *
      * @param string $currencyId ID de la moneda
-     * @return ExchangeRate|null El tipo de cambio encontrado o null
+     * @return Model|null El tipo de cambio encontrado o null
      */
-    public function getByCurrency(string $currencyId): ?ExchangeRate;
+    public function getByCurrency(string $currencyId): ?Model;
 
     /**
      * Obtener todos los tipos de cambio con sus monedas.
@@ -53,7 +55,7 @@ interface ExchangeRateRepositoryInterface extends BaseRepositoryInterface
      * @param float $value Valor del tipo de cambio
      * @return ExchangeRate El tipo de cambio creado
      */
-    public function createExchangeRate(string $currencyId, float $value): ExchangeRate;
+    public function createExchangeRate(string $currencyId, float $value): Model;
 
     /**
      * Actualizar el valor de un tipo de cambio.
@@ -198,9 +200,9 @@ interface ExchangeRateRepositoryInterface extends BaseRepositoryInterface
      *
      * @param string $currencyId ID de la moneda
      * @param float $value Valor del tipo de cambio
-     * @return ExchangeRate El tipo de cambio creado o actualizado
+     * @return Model El tipo de cambio creado o actualizado
      */
-    public function createOrUpdateByCurrency(string $currencyId, float $value): ExchangeRate;
+    public function createOrUpdateByCurrency(string $currencyId, float $value): Model;
 
     /**
      * Obtiene las tasas de cambio crudas desde la fuente.

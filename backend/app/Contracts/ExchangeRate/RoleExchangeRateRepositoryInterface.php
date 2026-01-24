@@ -1,0 +1,24 @@
+<?php
+
+namespace App\Contracts\ExchangeRate;
+
+use App\Contracts\ExchangeRateRepositoryInterface;
+use App\DTOs\ExchangeRate\ExchangeRateDTO;
+use Illuminate\Database\Eloquent\Model;
+
+interface RoleExchangeRateRepositoryInterface
+{
+    /**
+     * Crea, actualiza o restaura una tasa de cambio por entidad de rol y moneda.
+     *
+     * - Si existe y está soft-deleted → se restaura y actualiza
+     * - Si existe y está activa → se actualiza
+     * - Si no existe → se crea
+     *
+     * @param int $roleEntityId
+     * @param ExchangeRateDTO $dto
+     *
+     * @return Model
+     */
+    public function createOrRestoreByCurrency(int $roleEntityId, ExchangeRateDTO $dto): Model;
+}

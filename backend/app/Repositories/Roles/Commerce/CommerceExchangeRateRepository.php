@@ -4,13 +4,14 @@ namespace App\Repositories\Roles\Commerce;
 
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
-use App\Repositories\BaseRepository;
+use App\Repositories\ExchangeRate\RoleExchangeRateRepository;
+use App\Repositories\ExchangeRateRepository;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repository para manejar operaciones de tasas de cambio de comercios
  */
-class CommerceExchangeRateRepository extends BaseRepository implements CommerceExchangeRateRepositoryInterface
+class CommerceExchangeRateRepository extends RoleExchangeRateRepository implements CommerceExchangeRateRepositoryInterface
 {
     /**
      * Constructor del repository
@@ -167,17 +168,6 @@ class CommerceExchangeRateRepository extends BaseRepository implements CommerceE
     public function getByCommerce($commerceId): Collection
     {
         return $this->model->where('commerce_id', $commerceId)->get();
-    }
-
-    /**
-     * Obtiene registros por moneda
-     *
-     * @param mixed $currencyId ID de la moneda
-     * @return Collection
-     */
-    public function getByCurrency($currencyId): Collection
-    {
-        return $this->model->where('currency_id', $currencyId)->get();
     }
 
     /**

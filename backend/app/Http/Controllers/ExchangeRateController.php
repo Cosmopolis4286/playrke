@@ -3,11 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Factories\ExchangeRate\ExchangeRateFactory;
-use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
 use App\Services\ExchangeRate\ExchangeRateService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -58,9 +56,14 @@ class ExchangeRateController extends Controller
             function () use ($request) {
                 $dto = $this->factory->fromRequest($request->validated());
 
-                $this->service->create($dto);
+                $response = $this->service->create($dto);
 
-                return ['message' => '✅ Registro exitoso'];
+                if ($response === true) {
+                    return ['message' => '✅ Registro exitoso'];
+                }
+
+                // Si es false, no retorna nada para que se considere error
+                return false;
             },
             'Hubo un error al registrar la tasa de cambio.'
         );
@@ -116,8 +119,14 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($id) {
-                $this->service->softDeleteExchangeRate($id);
-                return ['message' => '✅ Tasa de cambio eliminado correctamente'];
+                $response = $this->service->softDeleteExchangeRate($id);
+
+                if ($response === true) {
+                    return ['message' => '✅ Tasa de cambio eliminado correctamente'];
+                }
+
+                // Si es false, no retorna nada para que se considere error
+                return false;
             },
             'No se pudo eliminar la ta de cambio.'
         );
@@ -153,14 +162,12 @@ class ExchangeRateController extends Controller
      */
     public function historical(Request $request): Response
     {
-        return $this->handleService(
-            function () use ($request) {
-                return Inertia::render(
-                    'ExchangeRate/Index',
-                    $this->service->historicalContext($request)
-                );
-            },
-            'No se pudo cargar la lista de tasas de cambios.'
+        return $this->handleServiceInertia(
+            fn() => Inertia::render(
+                'ExchangeRate/Index',
+                $this->service->historicalContext($request)
+            ),
+            'No se pudo cargar el historico de tasas de cambios.'
         );
     }
 
