@@ -23,7 +23,7 @@ class PlayHistoryRepository extends BaseRepository implements PlayHistoryReposit
      */
     public function __construct(PlayHistory $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

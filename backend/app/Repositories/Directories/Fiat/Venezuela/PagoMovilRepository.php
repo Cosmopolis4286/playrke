@@ -22,7 +22,7 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
      */
     public function __construct(PagoMovil $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

@@ -23,7 +23,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
      */
     public function __construct(PrizePoolType $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

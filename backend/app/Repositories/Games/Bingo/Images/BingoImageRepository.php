@@ -34,7 +34,7 @@ class BingoImageRepository extends BaseRepository implements BingoImageRepositor
      */
     public function __construct(BingoImage $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

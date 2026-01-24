@@ -20,7 +20,7 @@ class CommerceExchangeRateRepository extends RoleExchangeRateRepository implemen
      */
     public function __construct(CommerceExchangeRate $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

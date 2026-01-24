@@ -24,7 +24,7 @@ class SellerRoomLimitsRepository extends BaseRepository implements SellerRoomLim
      */
     public function __construct(SellerRoomLimits $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

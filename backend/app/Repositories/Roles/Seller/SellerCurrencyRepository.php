@@ -23,7 +23,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
      */
     public function __construct(SellerCurrency $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

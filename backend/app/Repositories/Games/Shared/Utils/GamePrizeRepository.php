@@ -12,7 +12,7 @@ class GamePrizeRepository extends BaseRepository implements GamePrizeRepositoryC
 {
     public function __construct(GamePrize $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getValueByDescription($gameId, string $description, string $column = 'id')

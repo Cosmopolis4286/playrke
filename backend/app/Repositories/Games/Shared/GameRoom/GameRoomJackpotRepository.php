@@ -11,7 +11,7 @@ class GameRoomJackpotRepository extends BaseRepository implements GameRoomJackpo
 {
     public function __construct(GameRoomJackpot $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getByCurrency($currencyId): Collection

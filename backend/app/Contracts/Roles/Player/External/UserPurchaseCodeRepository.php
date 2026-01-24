@@ -13,7 +13,7 @@ class UserPurchaseCodeRepository extends BaseRepository implements UserPurchaseC
 {
     public function __construct(UserPurchaseCode $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getByUser(string $userId)

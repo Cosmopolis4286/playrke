@@ -19,7 +19,7 @@ class BingoRoomConfigRepository extends BaseRepository implements BingoRoomConfi
      */
     public function __construct(BingoRoomConfig $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

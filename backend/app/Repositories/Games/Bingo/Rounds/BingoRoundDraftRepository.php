@@ -19,7 +19,7 @@ class BingoRoundDraftRepository extends BaseRepository implements BingoRoundDraf
      */
     public function __construct(BingoRoundDraft $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

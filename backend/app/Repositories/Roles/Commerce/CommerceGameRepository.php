@@ -19,7 +19,7 @@ class CommerceGameRepository extends BaseRepository implements CommerceGameRepos
      */
     public function __construct(CommerceGame $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

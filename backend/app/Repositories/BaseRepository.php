@@ -19,14 +19,6 @@ abstract class BaseRepository implements BaseRepositoryInterface
     protected Model $model;
 
     /**
-     * Constructor del repositorio base
-     */
-    public function __construct(Model $model)
-    {
-        $this->model = $model;
-    }
-
-    /**
      * {@inheritDoc}
      */
     public function all(array $columns = ['*']): Collection
@@ -69,9 +61,9 @@ abstract class BaseRepository implements BaseRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function getByIds(array $Ids, array $fields = ['*']): Collection
+    public function getByIds(array $ids, array $fields = ['*']): Collection
     {
-        return $this->model->whereIn('id', $Ids)->get($fields);
+        return $this->model->whereIn('id', $ids)->get($fields);
     }
 
     /**
@@ -116,7 +108,7 @@ abstract class BaseRepository implements BaseRepositoryInterface
      */
     public function where(array $conditions, array $columns = ['*']): Collection
     {
-        $query = $this->model->query();
+        $query = $this->model->newQuery();
 
         foreach ($conditions as $field => $value) {
             if (is_array($value)) {
@@ -150,7 +142,7 @@ abstract class BaseRepository implements BaseRepositoryInterface
      */
     public function count(array $conditions = []): int
     {
-        $query = $this->model->query();
+        $query = $this->model->newQuery();
 
         foreach ($conditions as $field => $value) {
             if (is_array($value)) {
@@ -168,7 +160,7 @@ abstract class BaseRepository implements BaseRepositoryInterface
      */
     public function first(array $conditions, array $columns = ['*']): ?Model
     {
-        $query = $this->model->query();
+        $query = $this->model->newQuery();
 
         foreach ($conditions as $field => $value) {
             if (is_array($value)) {
@@ -200,11 +192,15 @@ abstract class BaseRepository implements BaseRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function findWithRelations(array $relations = [], string|int $id, array $fields = ['*']): ?Model
-    {
+    public function findWithRelations(
+        array $relations = [],
+        string|int $id,
+        array $fields = ['*']
+    ): ?Model {
         return $this->model
+            ->newQuery()
+            ->select($fields)
             ->with($relations)
-            ->select('id', 'currency_id', 'amount', 'status')
             ->find($id);
     }
 
@@ -222,9 +218,9 @@ abstract class BaseRepository implements BaseRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function getByIdsWithRelations(array $relations = [], array $Ids, array $fields = ['*']): Collection
+    public function getByIdsWithRelations(array $relations = [], array $ids, array $fields = ['*']): Collection
     {
-        return $this->model->with($relations)->whereIn('id', $Ids)->get($fields);
+        return $this->model->with($relations)->whereIn('id', $ids)->get($fields);
     }
 
     /**

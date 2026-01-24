@@ -12,7 +12,7 @@ class GameModeRepository extends BaseRepository implements GameModeRepositoryCon
 {
     public function __construct(GameMode $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getActiveGameModes(): Collection

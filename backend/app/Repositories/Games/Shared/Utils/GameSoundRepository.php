@@ -11,7 +11,7 @@ class GameSoundRepository extends BaseRepository implements GameSoundRepositoryC
 {
     public function __construct(GameSound $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getActiveSounds(): Collection

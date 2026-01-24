@@ -23,7 +23,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
 {
     public function __construct(Reward $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

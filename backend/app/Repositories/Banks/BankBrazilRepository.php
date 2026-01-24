@@ -21,7 +21,7 @@ class BankBrazilRepository extends BaseRepository implements BankBrazilRepositor
      */
     public function __construct(BankBrazil $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

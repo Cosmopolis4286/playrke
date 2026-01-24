@@ -11,7 +11,7 @@ class GameModeAssignmentRepository extends BaseRepository implements GameModeAss
 {
     public function __construct(GameModeAssignment $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getByGame($gameId): Collection

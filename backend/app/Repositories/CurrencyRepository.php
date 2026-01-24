@@ -13,9 +13,14 @@ use Illuminate\Database\Eloquent\Collection;
  */
 class CurrencyRepository extends BaseRepository implements CurrencyRepositoryInterface
 {
+    /**
+     * Constructor del repository
+     *
+     * @param Currency $model
+     */
     public function __construct(Currency $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

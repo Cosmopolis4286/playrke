@@ -79,12 +79,12 @@ interface BaseRepositoryInterface
      *
      * ⚠️ Método legacy: preferir consultas más expresivas cuando sea posible.
      *
-     * @param array<int,string|int> $Ids IDs a buscar
+     * @param array<int,string|int> $ids IDs a buscar
      * @param array<int,string> $fields Campos a seleccionar
      *
      * @return Collection<int, Model>
      */
-    public function getByIds(array $Ids, array $fields = ['*']): Collection;
+    public function getByIds(array $ids, array $fields = ['*']): Collection;
 
     /**
      * Verificar si existe un registro por un campo dinámico.
@@ -206,12 +206,12 @@ interface BaseRepositoryInterface
      * Obtener registros por IDs con campos seleccionados y relaciones cargadas.
      *
      * @param array<int,string> $relations Relaciones Eloquent a cargar
-     * @param array<int|string> $Ids IDs a buscar
+     * @param array<int|string> $ids IDs a buscar
      * @param array<int,string> $fields Campos a seleccionar
      *
      * @return Collection<int, Model>
      */
-    public function getByIdsWithRelations(array $relations = [], array $Ids, array $fields = ['*']): Collection;
+    public function getByIdsWithRelations(array $relations = [], array $ids, array $fields = ['*']): Collection;
 
     /**
      * Paginar resultados con relaciones y filtros opcionales.

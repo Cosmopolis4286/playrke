@@ -15,7 +15,7 @@ class CountryRepository extends BaseRepository implements CountryRepositoryInter
 {
     public function __construct(Country $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

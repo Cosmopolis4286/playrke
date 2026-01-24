@@ -12,7 +12,7 @@ class ExternalPlayerRepository extends BaseRepository implements ExternalPlayerR
 {
     public function __construct(ExternalPlayer $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getByLink(string $playerLink): ?ExternalPlayer

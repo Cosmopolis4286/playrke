@@ -35,7 +35,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function __construct(BingoDraw $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

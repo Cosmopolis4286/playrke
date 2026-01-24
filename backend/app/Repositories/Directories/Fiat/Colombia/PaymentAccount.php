@@ -22,7 +22,7 @@ class PaymentAccountRepository extends BaseRepository implements PaymentAccountR
      */
     public function __construct(PaymentAccount $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

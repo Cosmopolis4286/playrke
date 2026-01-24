@@ -20,7 +20,7 @@ class CurrencyGameRoomRepository extends BaseRepository implements CurrencyGameR
      */
     public function __construct(CurrencyGameRoom $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

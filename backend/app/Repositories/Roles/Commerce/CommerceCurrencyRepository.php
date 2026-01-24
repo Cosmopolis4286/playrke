@@ -19,7 +19,7 @@ class CommerceCurrencyRepository extends BaseRepository implements CommerceCurre
      */
     public function __construct(CommerceCurrency $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

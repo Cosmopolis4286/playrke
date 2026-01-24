@@ -12,7 +12,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
 {
     public function __construct(Company $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function findBySlug(string $slug): ?Company

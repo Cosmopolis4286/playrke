@@ -2,8 +2,8 @@
 
 namespace App\Repositories\ExchangeRate;
 
+use App\Contracts\ExchangeRate\RoleExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
-use App\Repositories\BaseRepository;
 use App\Repositories\ExchangeRateRepository;
 use App\Traits\ExchangeRate\ResolvesExchangeRateForeignKey;
 use Illuminate\Database\Eloquent\Model;
@@ -14,24 +14,21 @@ use Illuminate\Database\Eloquent\Model;
  * Implementa las operaciones específicas para el modelo ExchangeRate,
  * incluyendo gestión de valores, conversiones y estadísticas.
  */
-class RoleExchangeRateRepository extends ExchangeRateRepository
+class RoleExchangeRateRepository extends ExchangeRateRepository implements RoleExchangeRateRepositoryInterface
 {
     use ResolvesExchangeRateForeignKey;
 
-    public function createOrRestoreByCurrency(
-        int $roleEntityId,
-        ExchangeRateDTO $dto
-    ): Model {
+    public function createOrRestoreByCurrency(int $roleEntityId, ExchangeRateDTO $dto): Model
+    {
         $data = $dto->toArray();
+
+        $foreignKeyData = $this->foreignKeyData($roleEntityId);
+        $foreignKeyColumn = array_key_first($foreignKeyData);
 
         $model = $this->model
             ->withTrashed()
             ->where('currency_id', $dto->currencyId)
-            ->where(
-                fn($q) =>
-                $q->where('commerce_id', $roleEntityId)
-                    ->orWhere('customer_id', $roleEntityId)
-            )
+            ->where($foreignKeyColumn, $roleEntityId)
             ->first();
 
         if ($model) {
@@ -40,8 +37,6 @@ class RoleExchangeRateRepository extends ExchangeRateRepository
             return $model;
         }
 
-        return $this->model->create(
-            $data + $this->foreignKeyData($roleEntityId)
-        );
+        return $this->model->create($data + $foreignKeyData);
     }
 }

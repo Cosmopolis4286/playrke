@@ -11,7 +11,7 @@ class GamePrizePoolTypeRepository extends BaseRepository implements GamePrizePoo
 {
     public function __construct(GamePrizePoolType $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getByGame($gameId): Collection

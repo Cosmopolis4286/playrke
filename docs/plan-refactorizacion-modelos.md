@@ -152,7 +152,7 @@ class [Nombre]Repository extends BaseRepository implements [Nombre]RepositoryCon
      */
     public function __construct([Modelo] $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

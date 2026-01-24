@@ -15,7 +15,7 @@ class GameConfigRepository extends BaseRepository implements GameConfigRepositor
 {
     public function __construct(GameConfig $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

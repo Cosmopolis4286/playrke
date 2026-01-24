@@ -23,7 +23,7 @@ class PixKeyRepository extends BaseRepository implements PixKeyRepositoryInterfa
      */
     public function __construct(PixKey $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

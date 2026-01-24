@@ -19,7 +19,7 @@ class BingoRoomUserRepository extends BaseRepository implements BingoRoomUserRep
      */
     public function __construct(BingoRoomUser $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

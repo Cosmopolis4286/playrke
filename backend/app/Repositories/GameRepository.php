@@ -15,7 +15,7 @@ class GameRepository extends BaseRepository implements GameRepositoryInterface
 {
     public function __construct(Game $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

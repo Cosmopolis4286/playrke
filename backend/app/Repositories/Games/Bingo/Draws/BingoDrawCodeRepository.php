@@ -27,7 +27,7 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
      */
     public function __construct(BingoDrawCode $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

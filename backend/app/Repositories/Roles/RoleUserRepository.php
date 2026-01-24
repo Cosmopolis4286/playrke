@@ -26,7 +26,7 @@ class RoleUserRepository extends BaseRepository implements RoleUserRepositoryInt
      */
     public function __construct(RoleUser $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

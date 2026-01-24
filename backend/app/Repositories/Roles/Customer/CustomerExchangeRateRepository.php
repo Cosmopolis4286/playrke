@@ -2,18 +2,13 @@
 
 namespace App\Repositories\Roles\Customer;
 
-use App\Repositories\BaseRepository;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\Models\Roles\Customer\CustomerExchangeRate;
+use App\Repositories\ExchangeRate\RoleExchangeRateRepository;
 use Illuminate\Database\Eloquent\Collection;
 
-class CustomerExchangeRateRepository extends BaseRepository implements CustomerExchangeRateRepositoryInterface
+class CustomerExchangeRateRepository extends RoleExchangeRateRepository implements CustomerExchangeRateRepositoryInterface
 {
-    public function __construct(CustomerExchangeRate $model)
-    {
-        parent::__construct($model);
-    }
-
     public function getAllExchangeRatesByCurrency($customerId, string $currencyId): Collection
     {
         return $this->model->where('customer_id', $customerId)

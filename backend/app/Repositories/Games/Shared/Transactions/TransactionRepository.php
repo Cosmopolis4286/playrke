@@ -24,7 +24,7 @@ class TransactionRepository extends BaseRepository implements TransactionReposit
      */
     public function __construct(Transaction $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

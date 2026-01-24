@@ -23,7 +23,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
 {
     public function __construct(BingoCardPriceDraft $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

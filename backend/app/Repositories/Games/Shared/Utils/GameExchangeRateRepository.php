@@ -11,7 +11,7 @@ class GameExchangeRateRepository extends BaseRepository implements GameExchangeR
 {
     public function __construct(GameExchangeRate $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getGameExchangeRateValue($gameId, int $room, $currencyId, string $column = 'exchange_rate')

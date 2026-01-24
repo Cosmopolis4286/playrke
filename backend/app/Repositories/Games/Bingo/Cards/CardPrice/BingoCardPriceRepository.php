@@ -22,7 +22,7 @@ class BingoCardPriceRepository extends BaseRepository implements BingoCardPriceR
 {
     public function __construct(BingoCardPrice $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

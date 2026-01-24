@@ -13,7 +13,7 @@ class CustomerUserRepository extends BaseRepository implements CustomerUserRepos
 {
     public function __construct(CustomerUser $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getByUserId($customerId, string $userId): ?CustomerUser

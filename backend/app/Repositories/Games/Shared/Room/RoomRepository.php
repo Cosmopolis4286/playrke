@@ -22,7 +22,7 @@ class RoomRepository extends BaseRepository implements RoomRepositoryContract
      */
     public function __construct(Room $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

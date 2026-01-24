@@ -22,7 +22,7 @@ class OtherTreasurersRepository extends BaseRepository implements OtherTreasurer
      */
     public function __construct(OtherTreasurers $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

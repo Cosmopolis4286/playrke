@@ -13,7 +13,7 @@ class UniqueCodeRepository extends BaseRepository implements UniqueCodeRepositor
 {
     public function __construct(UniqueCode $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getByCode(string $code)

@@ -2,7 +2,6 @@
 
 namespace App\Contracts\ExchangeRate;
 
-use App\Contracts\ExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use Illuminate\Database\Eloquent\Model;
 

@@ -15,7 +15,7 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
 {
     public function __construct(BinanceAccounts $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

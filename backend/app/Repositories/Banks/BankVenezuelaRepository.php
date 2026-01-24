@@ -15,7 +15,7 @@ class BankVenezuelaRepository extends BaseRepository implements BankVenezuelaRep
 {
     public function __construct(BankVenezuela $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

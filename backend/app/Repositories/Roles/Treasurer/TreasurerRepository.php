@@ -14,7 +14,7 @@ class TreasurerRepository extends BaseRepository implements TreasurerRepositoryI
 {
     public function __construct(Treasurer $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getByCountry(string $countryId): Collection

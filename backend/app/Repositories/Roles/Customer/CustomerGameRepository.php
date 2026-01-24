@@ -11,7 +11,7 @@ class CustomerGameRepository extends BaseRepository implements CustomerGameRepos
 {
     public function __construct(CustomerGame $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getByGameID($customerId, $gameId): ?CustomerGame

@@ -17,7 +17,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryC
 {
     public function __construct(BingoRoom $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

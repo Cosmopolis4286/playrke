@@ -38,7 +38,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
      */
     public function __construct(BingoPattern $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

@@ -23,7 +23,7 @@ class SellerRepository extends BaseRepository implements SellerRepositoryInterfa
      */
     public function __construct(Seller $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

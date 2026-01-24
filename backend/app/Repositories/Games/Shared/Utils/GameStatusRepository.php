@@ -22,7 +22,7 @@ class GameStatusRepository extends BaseRepository implements GameStatusRepositor
      */
     public function __construct(GameStatus $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

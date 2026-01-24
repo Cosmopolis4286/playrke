@@ -36,7 +36,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      */
     public function __construct(BingoRoomAutomatic $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

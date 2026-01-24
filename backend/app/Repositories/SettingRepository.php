@@ -22,7 +22,7 @@ class SettingRepository extends BaseRepository implements SettingRepositoryInter
 {
     public function __construct(Setting $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

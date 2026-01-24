@@ -11,7 +11,7 @@ class DocumentTypeRepository extends BaseRepository implements DocumentTypeRepos
 {
     public function __construct(DocumentType $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /** ----------------------------------------

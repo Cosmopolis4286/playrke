@@ -19,7 +19,7 @@ class BingoRoundRepository extends BaseRepository implements BingoRoundRepositor
      */
     public function __construct(BingoRound $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

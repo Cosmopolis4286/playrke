@@ -24,7 +24,7 @@ class BingoCardPrizePaymentRepository extends BaseRepository implements BingoCar
 {
     public function __construct(BingoCardPrizePayment $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

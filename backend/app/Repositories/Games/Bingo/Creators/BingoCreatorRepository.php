@@ -26,7 +26,7 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
      */
     public function __construct(BingoCreator $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

@@ -22,7 +22,7 @@ class PhoneNumbersRepository extends BaseRepository implements PhoneNumbersRepos
      */
     public function __construct(PhoneNumbers $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

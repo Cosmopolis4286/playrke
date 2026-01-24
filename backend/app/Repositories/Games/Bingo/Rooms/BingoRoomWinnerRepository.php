@@ -19,7 +19,7 @@ class BingoRoomWinnerRepository extends BaseRepository implements BingoRoomWinne
      */
     public function __construct(BingoRoomWinner $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

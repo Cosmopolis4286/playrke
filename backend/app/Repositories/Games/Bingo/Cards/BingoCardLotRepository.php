@@ -23,7 +23,7 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
 {
     public function __construct(BingoCardLot $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

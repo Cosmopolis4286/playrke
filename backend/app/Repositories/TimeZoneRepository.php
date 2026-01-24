@@ -24,7 +24,7 @@ class TimeZoneRepository extends BaseRepository implements TimeZoneRepositoryInt
      */
     public function __construct(TimeZone $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

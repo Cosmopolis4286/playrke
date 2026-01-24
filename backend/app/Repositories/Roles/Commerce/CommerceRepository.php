@@ -19,7 +19,7 @@ class CommerceRepository extends BaseRepository implements CommerceRepositoryInt
      */
     public function __construct(Commerce $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

@@ -22,7 +22,7 @@ class WalletRepository extends BaseRepository implements WalletRepositoryInterfa
 {
     public function __construct(Wallet $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

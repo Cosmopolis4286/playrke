@@ -16,7 +16,7 @@ class CommandLogRepository extends BaseRepository implements CommandLogRepositor
 {
     public function __construct(CommandLog $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

@@ -23,7 +23,7 @@ class BingoCardPaymentRepository extends BaseRepository implements BingoCardPaym
 {
     public function __construct(BingoCardPayment $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     /**

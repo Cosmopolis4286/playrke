@@ -12,7 +12,7 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 {
     public function __construct(Customer $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getByUserId($userId): ?Customer

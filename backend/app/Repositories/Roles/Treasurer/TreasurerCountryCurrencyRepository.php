@@ -13,7 +13,7 @@ class TreasurerCountryCurrencyRepository extends BaseRepository implements Treas
 {
     public function __construct(TreasurerCountryCurrency $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getByTreasurer(string $treasurerId)

@@ -12,7 +12,7 @@ class GameRuleRepository extends BaseRepository implements GameRuleRepositoryCon
 {
     public function __construct(GameRule $model)
     {
-        parent::__construct($model);
+        $this->model = $model;
     }
 
     public function getByUser($userId): Collection
