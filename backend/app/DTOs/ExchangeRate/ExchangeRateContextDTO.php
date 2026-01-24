@@ -9,7 +9,7 @@ use App\DTOs\ContextDTO;
  *
  * Transporta información necesaria para la vista o capa superior.
  */
-final class ExchangeRateContextServiceDTO implements ContextDTO
+final class ExchangeRateContextDTO implements ContextDTO
 {
     /**
      * @param array|object $currencies    Lista u objeto con monedas disponibles.

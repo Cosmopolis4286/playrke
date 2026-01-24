@@ -3,7 +3,7 @@
 namespace App\Services\ExchangeRate;
 
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
-use App\DTOs\ExchangeRate\ExchangeRateContextServiceDTO;
+use App\DTOs\ExchangeRate\ExchangeRateContextDTO;
 use App\Services\Currencies\CurrencyService;
 use App\Services\Roles\RoleUserService;
 use DomainException;
@@ -25,11 +25,11 @@ class ExchangeRateContextService
      * Usuarios públicos obtienen tokenId para acceso limitado.
      *
      * @param string|null $token Token público opcional para identificar usuario.
-     * @return ExchangeRateContextServiceDTO Contexto listo para la vista.
+     * @return ExchangeRateContextDTO Contexto listo para la vista.
      *
      * @throws DomainException Si no se puede resolver el rol activo.
      */
-    public function resolve(?string $token = null): ExchangeRateContextServiceDTO
+    public function resolve(?string $token = null): ExchangeRateContextDTO
     {
         ['id' => $userId, 'authenticated' => $isLogged] = $this->roleUserService->resolveUser($token);
 
@@ -37,7 +37,7 @@ class ExchangeRateContextService
             ? $this->roleUserService->getActiveUserRolePrefix($userId) ?? ''
             : '';
 
-        return new ExchangeRateContextServiceDTO(
+        return new ExchangeRateContextDTO(
             currencies: $isLogged ? $this->currency->getAvailableCurrencies($userId, true, true) : collect(),
             exchangeRates: $this->resolveExchangeRatesByRole($userRolePrefix, $userId),
             roleUser: $userRolePrefix,

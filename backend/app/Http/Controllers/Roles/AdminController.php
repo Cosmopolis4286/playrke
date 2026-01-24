@@ -89,9 +89,9 @@ class AdminController extends Controller
      *
      * @return Response
      */
-    public function commerces1()
+    public function commerces1(): Response
     {
-        return $this->handleService(
+        return $this->handleServiceInertia(
             function () {
                 $context = $this->service->context('commerces');
 

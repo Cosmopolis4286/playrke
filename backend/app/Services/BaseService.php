@@ -132,27 +132,40 @@ abstract class BaseService
 
     /**
      * Cambio de estado genérico.
+     *
+     * @param Model $model Modelo a actualizar
+     * @param string|null $newStatus Nuevo estado a asignar (opcional)
+     * @param string|null $userRelation Nombre de la relación de usuario para actualizar estado (opcional)
+     *
+     * @return bool True si la transacción fue exitosa, false en caso de error
      */
     public function changeStatus(
         Model $model,
         ?string $newStatus = null,
         ?string $userRelation = null
-    ): void {
+    ): bool {
         $status = $newStatus ?? ($model->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
 
         $this->assertValidStatus($status);
 
-        DB::transaction(function () use ($model, $status, $userRelation) {
-            $model->update(['status' => $status]);
+        try {
+            DB::transaction(function () use ($model, $status, $userRelation) {
+                $model->update(['status' => $status]);
 
-            if ($userRelation) {
-                $model->loadMissing($userRelation);
+                if ($userRelation) {
+                    $model->loadMissing($userRelation);
 
-                if ($model->$userRelation instanceof Model) {
-                    $model->$userRelation->update(['status' => $status]);
+                    if ($model->$userRelation instanceof Model) {
+                        $model->$userRelation->update(['status' => $status]);
+                    }
                 }
-            }
-        });
+            });
+
+            return true;
+        } catch (\Throwable $e) {
+            // Loguear error si es necesario
+            return false;
+        }
     }
 
     /**

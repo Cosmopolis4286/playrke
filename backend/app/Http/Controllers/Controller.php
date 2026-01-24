@@ -8,10 +8,15 @@ use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Session;
 use Throwable;
 
+/**
+ * Controlador base que proporciona métodos auxiliares para manejo centralizado
+ * de excepciones, logging y respuestas comunes (web, JSON y Inertia).
+ */
 abstract class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
@@ -22,10 +27,10 @@ abstract class Controller extends BaseController
      * @template TReturn
      *
      * @param callable(): TReturn $callback Acción principal a ejecutar.
-     * @param string $errorMessage Mensaje de error para log y respuesta.
-     * @param callable(Throwable): mixed $onError Callback para manejo de error.
+     * @param string $errorMessage Mensaje para registrar en logs y mostrar en respuesta.
+     * @param callable(Throwable): mixed $onError Callback para manejar el error capturado.
      *
-     * @return TReturn|mixed Resultado del callback o del manejo de error.
+     * @return TReturn|mixed Resultado del callback o resultado del manejador de errores.
      */
     protected function executeSafely(
         callable $callback,
@@ -35,7 +40,6 @@ abstract class Controller extends BaseController
         try {
             return $callback();
         } catch (Throwable $e) {
-            // Registro explícito con mensaje y traza para mejor debugging
             Log::error($errorMessage, [
                 'exception_message' => $e->getMessage(),
                 'exception_trace' => $e->getTraceAsString(),
@@ -47,7 +51,6 @@ abstract class Controller extends BaseController
                 Log::critical('Error en el handler de error: ' . $inner->getMessage(), [
                     'exception_trace' => $inner->getTraceAsString(),
                 ]);
-
                 abort(500, 'Error interno del servidor.');
             }
         }
@@ -56,10 +59,12 @@ abstract class Controller extends BaseController
     /**
      * Maneja un servicio web tradicional con redirección y manejo de errores.
      *
-     * @param callable $callback Acción a ejecutar.
-     * @param string $errorMessage Mensaje para mostrar en caso de error.
+     * En caso de error realiza redirect back con mensaje de error en sesión.
      *
-     * @return mixed|RedirectResponse Resultado del callback o redirect con error.
+     * @param callable $callback Acción a ejecutar que retorna la respuesta válida.
+     * @param string $errorMessage Mensaje a mostrar en caso de error.
+     *
+     * @return mixed|RedirectResponse Resultado del callback o redirección con error.
      */
     protected function handleService(callable $callback, string $errorMessage)
     {
@@ -76,7 +81,10 @@ abstract class Controller extends BaseController
     /**
      * Maneja un servicio JSON/AJAX con respuesta estructurada y manejo de errores.
      *
-     * @param callable $callback Acción a ejecutar que devuelve un array o null.
+     * En caso de éxito responde con { success: true, ...datos }.
+     * En error responde con { success: false, message: errorMessage } y código HTTP definido.
+     *
+     * @param callable $callback Acción a ejecutar que retorna array o null.
      * @param string $errorMessage Mensaje para respuesta en caso de error.
      * @param int $statusCode Código HTTP para respuesta de error.
      *
@@ -97,6 +105,32 @@ abstract class Controller extends BaseController
                 'success' => false,
                 'message' => $errorMessage,
             ], $statusCode)
+        );
+    }
+
+    /**
+     * Maneja un servicio Inertia con renderizado y manejo centralizado de errores.
+     *
+     * En caso de éxito retorna la vista Inertia.
+     * En error renderiza el componente Inertia definido mostrando el mensaje de error.
+     *
+     * @param callable(): InertiaResponse $callback Acción que retorna la vista Inertia.
+     * @param string $errorMessage Mensaje para mostrar en caso de error.
+     * @param string $errorComponent Nombre del componente Inertia para mostrar en errores (por defecto 'ErrorPage').
+     *
+     * @return InertiaResponse Respuesta Inertia válida.
+     */
+    protected function handleServiceInertia(
+        callable $callback,
+        string $errorMessage,
+        string $errorComponent = 'ErrorPage'
+    ): InertiaResponse {
+        return $this->executeSafely(
+            $callback,
+            $errorMessage,
+            fn() => Inertia::render($errorComponent, [
+                'message' => $errorMessage,
+            ])->toResponse(request())->setStatusCode(500)
         );
     }
 }

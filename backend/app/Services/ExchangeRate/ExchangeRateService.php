@@ -4,8 +4,13 @@ namespace App\Services\ExchangeRate;
 
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
+use App\Models\Roles\Commerce;
+use App\Models\Roles\Commerce\CommerceExchangeRate;
+use App\Models\Roles\Customer;
+use App\Models\Roles\Customer\CustomerExchangeRate;
 use App\Services\BaseService;
 use App\Services\Roles\RoleUserService;
+use DomainException;
 use Illuminate\Http\Request;
 
 /**
@@ -83,10 +88,30 @@ class ExchangeRateService extends BaseService
         return $this->crud->show($exchangeRateId, $userId);
     }
 
-
-    public function changeExchangeRateStatus(string $id): void
+    /**
+     * Cambia el estado (activo/inactivo) de una tasa de cambio según el rol del usuario.
+     *
+     * @param string $exchangeRateId ID de la tasa de cambio
+     *
+     * @throws \DomainException Si el rol es inválido
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Si no se encuentra la tasa
+     *
+     * @return bool True si la transacción fue exitosa, false en caso de error
+     */
+    public function changeExchangeRateStatus(string $exchangeRateId, ?string $status = null): bool
     {
-        return $this->changeStatus();
+        $userId = $this->roleUserService->resolveUser()['id'];
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        $modelClass = match ($role) {
+            'commerce' => CommerceExchangeRate::class,
+            'customer' => CustomerExchangeRate::class,
+            default => throw new DomainException("Rol inválido: {$role}"),
+        };
+
+        $model = $modelClass::findOrFail($exchangeRateId);
+
+        return $this->changeStatus($model, $status);
     }
 
     /**

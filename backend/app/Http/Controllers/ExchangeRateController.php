@@ -25,22 +25,20 @@ class ExchangeRateController extends Controller
     /**
      * Muestra el listado de tasas de cambio utilizando Inertia.
      *
-     * Este endpoint renderiza una vista Inertia y no devuelve una respuesta JSON.
-     * El manejo de excepciones y redirecciones se realiza mediante `handleService`.
+     * Este endpoint renderiza una vista Inertia y maneja excepciones con
+     * manejo centralizado mediante `handleServiceInertia`.
      *
      * @param Request $request
      *
-     * @return Response
+     * @return \Inertia\Response
      */
     public function index(Request $request): Response
     {
-        return $this->handleService(
-            function () use ($request) {
-                return Inertia::render(
-                    'ExchangeRate/Index',
-                    $this->service->context($request)
-                );
-            },
+        return $this->handleServiceInertia(
+            fn() => Inertia::render(
+                'ExchangeRate/Index',
+                $this->service->context($request)
+            ),
             'No se pudo cargar la lista de tasas de cambios.'
         );
     }
