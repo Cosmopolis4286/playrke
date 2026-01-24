@@ -58,76 +58,71 @@ abstract class BaseService
      * @param string|null $status Estado a aplicar (ej: DELETED)
      * @param array $relationsToDetach Relaciones many-to-many a detach
      * @param string|null $userRelation Relación belongsTo hacia User (ej: 'user')
+     * @return bool Retorna true si se eliminó correctamente, false en caso de error
      */
     public function softDelete(
         string|int|Model $model,
         ?string $status = 'DELETED',
         array $relationsToDetach = [],
         ?string $userRelation = null
-    ): void {
-        DB::transaction(function () use ($model, $status, $relationsToDetach, $userRelation) {
+    ): bool {
+        try {
+            DB::transaction(function () use ($model, $status, $relationsToDetach, $userRelation) {
 
-            /** @var Model $model */
-            $model = $model instanceof Model
-                ? $model
-                : $this->repository->findOrFail($model);
+                /** @var Model $model */
+                $model = $model instanceof Model
+                    ? $model
+                    : $this->repository->findOrFail($model);
 
-            // Validar SoftDeletes en modelo principal
-            if (!in_array(SoftDeletes::class, class_uses_recursive($model), true)) {
-                throw new RuntimeException('El modelo no soporta SoftDeletes');
-            }
-
-            if ($model->trashed()) {
-                return;
-            }
-
-            /* ---------------------------------------------
-         | Actualizar status del modelo principal
-         ---------------------------------------------*/
-            if ($status !== null && isset($model->status)) {
-                $this->assertValidStatus($status);
-                $model->status = $status;
-                $model->save();
-            }
-
-            /* ---------------------------------------------
-         | Detach relaciones many-to-many
-         ---------------------------------------------*/
-            foreach ($relationsToDetach as $relation) {
-                if (method_exists($model, $relation)) {
-                    $model->$relation()->detach();
+                if (!in_array(SoftDeletes::class, class_uses_recursive($model), true)) {
+                    throw new RuntimeException('El modelo no soporta SoftDeletes');
                 }
-            }
 
-            /* ---------------------------------------------
-         | Soft delete del usuario relacionado (opcional)
-         ---------------------------------------------*/
-            if ($userRelation && method_exists($model, $userRelation)) {
-                $model->loadMissing($userRelation);
+                if ($model->trashed()) {
+                    return;
+                }
 
-                $user = $model->$userRelation;
+                if ($status !== null && isset($model->status)) {
+                    $this->assertValidStatus($status);
+                    $model->status = $status;
+                    $model->save();
+                }
 
-                if ($user instanceof Model) {
-                    if (!in_array(SoftDeletes::class, class_uses_recursive($user), true)) {
-                        throw new RuntimeException('El usuario no soporta SoftDeletes');
+                foreach ($relationsToDetach as $relation) {
+                    if (method_exists($model, $relation)) {
+                        $model->$relation()->detach();
                     }
+                }
 
-                    if (!$user->trashed()) {
-                        if ($status !== null && isset($user->status)) {
-                            $user->status = $status;
-                            $user->save();
+                if ($userRelation && method_exists($model, $userRelation)) {
+                    $model->loadMissing($userRelation);
+
+                    $user = $model->$userRelation;
+
+                    if ($user instanceof Model) {
+                        if (!in_array(SoftDeletes::class, class_uses_recursive($user), true)) {
+                            throw new RuntimeException('El usuario no soporta SoftDeletes');
                         }
 
-                        $user->delete();
+                        if (!$user->trashed()) {
+                            if ($status !== null && isset($user->status)) {
+                                $user->status = $status;
+                                $user->save();
+                            }
+
+                            $user->delete();
+                        }
                     }
                 }
-            }
 
-            /* ---------------------------------------------
-         | Soft delete del modelo principal
-         ---------------------------------------------*/
-            $model->delete();
-        });
+                $model->delete();
+            });
+
+            return true;
+        } catch (\Throwable $e) {
+            // Aquí podrías loguear el error si quieres
+            return false;
+        }
     }
 
     /**

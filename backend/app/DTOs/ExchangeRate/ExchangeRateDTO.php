@@ -14,7 +14,6 @@ final class ExchangeRateDTO
      * @param int|null    $id         Identificador de la tasa (solo en update).
      * @param int         $currencyId ID interno de la moneda (YA RESUELTO).
      * @param float       $amount     Valor de la tasa de cambio.
-     * @param float       $percentage Porcentaje adicional.
      * @param string      $status     Estado de la tasa (ACTIVE / INACTIVE).
      * @param string|null $tokenId    Token de usuario conectado por API (opcional).
      */
@@ -22,7 +21,6 @@ final class ExchangeRateDTO
         public readonly ?int $id,
         public readonly int $currencyId,
         public readonly float $amount,
-        public readonly float $percentage,
         public readonly string $status,
         public readonly ?string $tokenId = null
     ) {}
@@ -39,7 +37,6 @@ final class ExchangeRateDTO
         return [
             'currency_id' => $this->currencyId,
             'amount'      => $this->amount,
-            'percentage'  => $this->percentage,
             'status'      => $this->status,
         ];
     }

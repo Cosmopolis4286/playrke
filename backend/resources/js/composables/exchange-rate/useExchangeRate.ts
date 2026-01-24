@@ -165,13 +165,13 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
     }
 
     /**
-     * Elimina una tasa de cambio
+     * Elimina una tasa de cambio (soft delete)
      *
      * @param id Identificador de la tasa
      */
     async function remove(id: string | number): Promise<void> {
         try {
-            await backendClient.delete(`/exchange-rate/${id}`)
+            await backendClient.put(`/exchange-rate/${id}/delete`)
         } catch (error) {
             console.error('Error eliminando tasa:', error)
         }

@@ -9,6 +9,7 @@ class ExchangeRateResource extends JsonResource
     public function toArray($request): array
     {
         return [
+            'id' => $this->id,
             'currency' => $this->currency->iso_code,
             'amount' => floatval($this->amount),
             'status' => $this->status,

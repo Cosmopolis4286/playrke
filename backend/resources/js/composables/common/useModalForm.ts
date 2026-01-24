@@ -49,7 +49,6 @@ export function useModalForm(
      * Modo actual del formulario
      * Se deriva del estado del modelo (create / edit)
      */
-    console.log('exchangeRateData', exchangeRateData)
     const formMode = computed<'create' | 'edit'>(() =>
         exchangeRateData.value?.id ? 'edit' : 'create'
     )

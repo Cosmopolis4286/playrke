@@ -4,6 +4,7 @@ import { ref, watch, computed } from 'vue'
  * Modelo del formulario de tasa de cambio
  */
 export interface ExchangeRateFormModel {
+    id?: string
     currency?: string
     amount?: number
     status?: string
@@ -116,6 +117,7 @@ export function useExchangeRateForm(
         form,
         value => {
             emit('update:modelValue', {
+                id: '333',
                 currency: value.currency,
                 amount: value.amount ?? undefined,
                 status: value.status ? 'ACTIVE' : 'INACTIVE'

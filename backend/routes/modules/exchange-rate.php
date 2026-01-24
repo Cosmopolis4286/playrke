@@ -16,6 +16,7 @@ route_group(
         'updateAll'    => ['method' => 'put', 'uri' => 'update-all'],
         'show'         => ['method' => 'get', 'uri' => '{id}'],
         'update'       => ['method' => 'put', 'uri' => '{id}'],
+        'delete'       => ['method' => 'put', 'uri' => '{id}/delete'],
         'destroy'      => ['method' => 'delete', 'uri' => '{id}'],
         'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
     ]

@@ -44,7 +44,7 @@ class ExchangeRateController extends Controller
     }
 
     /**
-     * Crear una nueva tasa de cambio.
+     * Crear/registrar una tasa de cambio.
      *
      * Endpoint JSON para uso vía AJAX / API.
      *
@@ -67,7 +67,10 @@ class ExchangeRateController extends Controller
     }
 
     /**
-     * Mostrar detalle de tasa de cambio
+     * Mostrar detalle de una tasa de cambio por su ID.
+     *
+     * @param string $id Identificador de la tasa de cambio.
+     * @return \Illuminate\Http\JsonResponse
      */
     public function show(string $id): JsonResponse
     {
@@ -81,44 +84,42 @@ class ExchangeRateController extends Controller
      * Actualizar una tasa de cambio existente.
      *
      * @param ExchangeRateRequest $request
-     *
-     * @return RedirectResponse
+     * @param mixed $id
+     * @return JsonResponse
      */
-    public function update(ExchangeRateRequest $request): JsonResponse
+    public function update(ExchangeRateRequest $request, $id): JsonResponse
     {
         return $this->handleServiceJson(
-            function () use ($request) {
-                $dto = $this->factory->fromRequest($request->validated());
+            function () use ($request, $id) {
+                $dto = $this->factory->fromRequest($request->validated(), $id);
 
-                $this->service->update($dto);
+                $response = $this->service->update($dto);
 
-                return ['message' => '✅ Actualización exitosa'];
+                if ($response === true) {
+                    return ['message' => '✅ Actualización exitosa'];
+                }
+
+                // Si es false, no retorna nada para que se considere error
+                return false;
             },
             'No se pudo actualizar la tasa de cambio.'
         );
     }
 
     /**
-     * Eliminar una tasa de cambio.
+     * Eliminar tasa de cambio (soft delete)
      *
-     * @param string $payload
-     *
-     * @return RedirectResponse
+     * @param string $id
+     * @return JsonResponse
      */
-    public function delete(string $payload): RedirectResponse
+    public function delete(string $id): JsonResponse
     {
-        return $this->handleService(
-            function () use ($payload) {
-                $this->service->delete(
-                    ExchangeRateDTO::fromPayload($payload)
-                );
-
-                return back()->with(
-                    'message',
-                    'La tasa de cambio fue eliminada'
-                );
+        return $this->handleServiceJson(
+            function () use ($id) {
+                $this->service->softDeleteExchangeRate($id);
+                return ['message' => '✅ Tasa de cambio eliminado correctamente'];
             },
-            'No se pudo eliminar la tasa de cambio.'
+            'No se pudo eliminar la ta de cambio.'
         );
     }
 

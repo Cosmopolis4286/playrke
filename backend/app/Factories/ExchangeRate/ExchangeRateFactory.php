@@ -16,11 +16,12 @@ final class ExchangeRateFactory
      * Crea un ExchangeRateDTO a partir de un arreglo de datos (request).
      *
      * @param array<string, mixed> $data Datos de entrada, típicamente request validated.
+     * @param string $exchangeRateId
      * @return ExchangeRateDTO
      *
      * @throws InvalidArgumentException Si falta moneda o amount (valor de la tasa de cambio).
      */
-    public function fromRequest(array $data): ExchangeRateDTO
+    public function fromRequest(array $data, ?string $exchangeRateId = null): ExchangeRateDTO
     {
         if (empty($data['currency'])) {
             throw new InvalidArgumentException('El campo "currency" es obligatorio.');
@@ -37,10 +38,9 @@ final class ExchangeRateFactory
         }
 
         return new ExchangeRateDTO(
-            $data['id'] ?? null,
+            $data['id'] ?? $exchangeRateId,
             $currencyId,
             (float) $data['amount'],
-            $data['percentage'] ?? 0.0,
             $data['status'] ?? 'ACTIVE',
             $data['tokenId'] ?? null,
         );

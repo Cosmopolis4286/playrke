@@ -25,6 +25,7 @@
    * Obtiene un valor de la moneda de forma segura por ID
    * @param currencyId ID de la moneda
    * @param key Valor a obtener
+   * @returns Valor correspondiente o undefined
    */
   function getValueByCurrencyId(
     currencyId?: number | string,
@@ -43,6 +44,30 @@
     }
 
     return map[key]
+  }
+
+  // Mapeo para status: texto, clase, y si es link, url y title
+  type StatusInfo =
+    | { text: string; class: string; isLink: false }
+    | {
+        text: string
+        class: string
+        isLink: true
+        getUrl: (item: ExchangeRate) => string
+        title: string
+      }
+
+  const statusMap: Record<string, StatusInfo> = {
+    INACTIVE: { text: 'Inactiva', class: 'badge-secondary', isLink: false },
+    ACTIVE: { text: 'Disponible', class: 'badge-success', isLink: false },
+    DIRECTORY: {
+      text: 'Falta Directorio',
+      class: 'badge-danger',
+      isLink: true,
+      getUrl: (item: ExchangeRate) =>
+        `/directory/${getValueByCurrencyId(item.currency_id, 'country_iso_code')}`,
+      title: 'Registrar Datos Bancarios'
+    }
   }
 </script>
 
@@ -81,20 +106,20 @@
 
           <!-- Status -->
           <td>
-            <span v-if="item.status === 'INACTIVE'" class="badge badge-secondary"> No/Disp </span>
-
-            <span v-else-if="item.status === 'ACTIVE'" class="badge badge-success">
-              Disponible
-            </span>
-
-            <a
-              v-else-if="item.status === 'DIRECTORY'"
-              :href="`/directory/${getValueByCurrencyId(item?.currency_id, 'country_iso_code')}`"
-              class="badge badge-danger"
-              title="Registrar Datos Bancarios"
-            >
-              Falta Directorio
-            </a>
+            <template v-if="statusMap[item.status]">
+              <a
+                v-if="statusMap[item.status].isLink"
+                :href="(statusMap[item.status] as { getUrl: Function }).getUrl(item)"
+                :class="['badge', statusMap[item.status].class]"
+                :title="(statusMap[item.status] as { title: string }).title"
+              >
+                {{ statusMap[item.status].text }}
+              </a>
+              <span v-else :class="['badge', statusMap[item.status].class]">
+                {{ statusMap[item.status].text }}
+              </span>
+            </template>
+            <span v-else class="badge badge-light">Desconocido</span>
           </td>
 
           <!-- Acciones -->

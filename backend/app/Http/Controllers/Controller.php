@@ -60,8 +60,9 @@ abstract class Controller extends BaseController
      * Maneja un servicio web tradicional con redirección y manejo de errores.
      *
      * En caso de error realiza redirect back con mensaje de error en sesión.
+     * Si el callback retorna false, se considera como error y se redirige con mensaje.
      *
-     * @param callable $callback Acción a ejecutar que retorna la respuesta válida.
+     * @param callable $callback Acción a ejecutar que retorna la respuesta válida o bool.
      * @param string $errorMessage Mensaje a mostrar en caso de error.
      *
      * @return mixed|RedirectResponse Resultado del callback o redirección con error.
@@ -69,7 +70,15 @@ abstract class Controller extends BaseController
     protected function handleService(callable $callback, string $errorMessage)
     {
         return $this->executeSafely(
-            $callback,
+            function () use ($callback, $errorMessage) {
+                $result = $callback();
+
+                if ($result === false) {
+                    throw new \RuntimeException($errorMessage);
+                }
+
+                return $result;
+            },
             $errorMessage,
             fn(Throwable $e) => redirect()
                 ->back()
@@ -81,10 +90,13 @@ abstract class Controller extends BaseController
     /**
      * Maneja un servicio JSON/AJAX con respuesta estructurada y manejo de errores.
      *
-     * En caso de éxito responde con { success: true, ...datos }.
+     * En caso de éxito responde con:
+     * - { success: true } si retorna true,
+     * - { success: true, ...datos } si retorna array,
      * En error responde con { success: false, message: errorMessage } y código HTTP definido.
+     * Si el callback retorna false se considera error.
      *
-     * @param callable $callback Acción a ejecutar que retorna array o null.
+     * @param callable $callback Acción a ejecutar que retorna bool|array|null.
      * @param string $errorMessage Mensaje para respuesta en caso de error.
      * @param int $statusCode Código HTTP para respuesta de error.
      *
@@ -96,10 +108,19 @@ abstract class Controller extends BaseController
         int $statusCode = 500
     ): JsonResponse {
         return $this->executeSafely(
-            fn() => response()->json([
-                'success' => true,
-                ...($callback() ?? []),
-            ]),
+            function () use ($callback) {
+                $result = $callback();
+
+                if ($result === false) {
+                    throw new \RuntimeException('Operación fallida');
+                }
+
+                if ($result === true) {
+                    return response()->json(['success' => true]);
+                }
+
+                return response()->json(['success' => true, ...($result ?? [])]);
+            },
             $errorMessage,
             fn() => response()->json([
                 'success' => false,
@@ -113,8 +134,9 @@ abstract class Controller extends BaseController
      *
      * En caso de éxito retorna la vista Inertia.
      * En error renderiza el componente Inertia definido mostrando el mensaje de error.
+     * Si el callback retorna false se considera error.
      *
-     * @param callable(): InertiaResponse $callback Acción que retorna la vista Inertia.
+     * @param callable(): InertiaResponse|bool $callback Acción que retorna la vista Inertia o bool.
      * @param string $errorMessage Mensaje para mostrar en caso de error.
      * @param string $errorComponent Nombre del componente Inertia para mostrar en errores (por defecto 'ErrorPage').
      *
@@ -126,7 +148,15 @@ abstract class Controller extends BaseController
         string $errorComponent = 'ErrorPage'
     ): InertiaResponse {
         return $this->executeSafely(
-            $callback,
+            function () use ($callback, $errorMessage, $errorComponent) {
+                $result = $callback();
+
+                if ($result === false) {
+                    throw new \RuntimeException($errorMessage);
+                }
+
+                return $result;
+            },
             $errorMessage,
             fn() => Inertia::render($errorComponent, [
                 'message' => $errorMessage,

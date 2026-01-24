@@ -21,24 +21,36 @@ class ExchangeRateCrudService
     /**
      * Crea un nuevo tipo de cambio para un rol específico.
      *
-     * @param ExchangeRateDTO $dto
-     * @param int $userId ID del usuario
-     * @return void
+     * @param ExchangeRateDTO $dto Datos para crear la tasa de cambio.
+     * @param int $userId ID del usuario.
+     * @return bool True si la transacción fue exitosa, false en caso de error.
      *
      * @throws \DomainException Si el rol no es válido o no identificado.
      */
-    public function create(ExchangeRateDTO $dto, int $userId): void
+    public function create(ExchangeRateDTO $dto, int $userId): bool
     {
-        $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
+        try {
+            $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        // Nombre de la columna foreign key asociada al rol
-        $roleForeignKey = "{$rolePrefix}_id";
+            $roleForeignKey = "{$rolePrefix}_id";
 
-        $rolePrefixID = $this->roleUserService->getUserRoleEntityId($userId, $rolePrefix);
+            $rolePrefixID = $this->roleUserService->getUserRoleEntityId($userId, $rolePrefix);
 
-        $data = $dto->toArray() + [$roleForeignKey => $rolePrefixID];
+            if (!$rolePrefixID) {
+                throw new \DomainException("No se encontró entidad asociada al rol '{$rolePrefix}' para el usuario: {$userId}");
+            }
 
-        DB::transaction(fn() => $this->repo($rolePrefix)->create($data));
+            $data = $dto->toArray() + [$roleForeignKey => $rolePrefixID];
+
+            DB::transaction(function () use ($rolePrefix, $data) {
+                $this->repo($rolePrefix)->create($data);
+            });
+
+            return true;
+        } catch (\Throwable $e) {
+            // Aquí puedes hacer un log del error si quieres
+            return false;
+        }
     }
 
     /**
@@ -65,17 +77,41 @@ class ExchangeRateCrudService
     /**
      * Actualiza un tipo de cambio existente.
      *
-     * @param ExchangeRateDTO $dto Debe contener ID válido
-     * @param string $role Rol del propietario: 'commerce' | 'customer'
-     * @return void
+     * @param ExchangeRateDTO $dto Debe contener un ID válido.
+     * @param string $role Rol del propietario: 'commerce' | 'customer'.
+     * @return bool True si la transacción fue exitosa, false en caso de error.
      *
-     * @throws DomainException Si el ID no está definido o rol inválido
+     * @throws \DomainException Si el ID no está definido o el rol es inválido.
      */
-    public function update(ExchangeRateDTO $dto, string $role): void
+    public function update(ExchangeRateDTO $dto, string $role): bool
     {
-        throw_if(!$dto->id, DomainException::class, 'ID requerido para actualizar.');
+        try {
+            $exchangeRateId = $dto->id;
+            throw_if(!$exchangeRateId, \DomainException::class, 'ID requerido para actualizar.');
 
-        DB::transaction(fn() => $this->repo($role)->update($dto->id, $dto->toArray()));
+            // Obtener el valor anterior del monto para calcular el porcentaje
+            $oldAmount = $this->repo($role)->getValueById($exchangeRateId, 'amount');
+            if ($oldAmount == 0) {
+                throw new \DomainException('El monto anterior no puede ser cero para calcular el porcentaje.');
+            }
+
+            // Calcular el porcentaje de cambio (nuevo / viejo * 100)
+            if ($dto->amount <> $oldAmount) {
+                $percentage = ($dto->amount * 100) / $oldAmount;
+            }
+
+            $data = $dto->toArray();
+            $data['percentage'] = $percentage ?? 0;
+
+            DB::transaction(function () use ($role, $exchangeRateId, $data) {
+                $this->repo($role)->update($exchangeRateId, $data);
+            });
+
+            return true;
+        } catch (\Throwable $e) {
+            // Aquí podrías hacer logging del error si lo deseas
+            return false;
+        }
     }
 
     /**
@@ -83,15 +119,21 @@ class ExchangeRateCrudService
      *
      * @param ExchangeRateDTO $dto Debe contener ID válido
      * @param string $role Rol del propietario: 'commerce' | 'customer'
-     * @return void
+     * @return bool True si la transacción fue exitosa, false en caso de error.
      *
-     * @throws DomainException Si el ID no está definido o rol inválido
+     * @throws DomainException Si el ID no está definido
      */
-    public function delete(ExchangeRateDTO $dto, string $role): void
+    public function delete(ExchangeRateDTO $dto, string $role): bool
     {
         throw_if(!$dto->id, DomainException::class, 'ID requerido para eliminar.');
 
-        $this->repo($role)->delete($dto->id);
+        try {
+            $this->repo($role)->delete($dto->id);
+            return true;
+        } catch (\Throwable $e) {
+            // Puedes agregar aquí logging si lo deseas
+            return false;
+        }
     }
 
     /**
