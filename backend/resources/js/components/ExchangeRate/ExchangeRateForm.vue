@@ -2,7 +2,7 @@
   import { computed } from 'vue'
   import { useExchangeRateForm } from '@/js/composables/exchange-rate/useExchangeRateForm'
   import type { Currency } from '@/js/types/currency'
-  import type { UsedCurrency } from '@/js/types/exchange-rate'
+  import type { ExchangeRate, UsedCurrency } from '@/js/types/exchange-rate'
 
   /**
    * Props
@@ -11,11 +11,7 @@
     usedCurrencies?: UsedCurrency[]
     currencies: Currency[]
     hasPrivilegedRole: boolean
-    modelValue: {
-      currency?: string
-      amount?: number
-      status?: string
-    }
+    modelValue: Partial<ExchangeRate>
   }>()
 
   /**
@@ -88,7 +84,7 @@
           v-if="hasPrivilegedRole"
           type="text"
           class="form-control"
-          v-model="form.currency"
+          v-model="form.currency_id"
           :disabled="isEditMode"
           @blur="validate"
         />
@@ -96,7 +92,7 @@
         <select
           v-else
           class="form-control"
-          v-model="form.currency"
+          v-model="form.currency_id"
           :disabled="isEditMode"
           @blur="validate"
         >
@@ -110,8 +106,8 @@
           </option>
         </select>
 
-        <small v-if="errors.currency" class="text-danger">
-          {{ errors.currency }}
+        <small v-if="errors.currency_id" class="text-danger">
+          {{ errors.currency_id }}
         </small>
       </div>
 

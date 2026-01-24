@@ -23,15 +23,15 @@ final class ExchangeRateFactory
      */
     public function fromRequest(array $data, ?string $exchangeRateId = null): ExchangeRateDTO
     {
-        if (empty($data['currency'])) {
-            throw new InvalidArgumentException('El campo "currency" es obligatorio.');
+        if (empty($data['currency_id'])) {
+            throw new InvalidArgumentException('El campo "currency_id" es obligatorio.');
         }
 
         if (!isset($data['amount'])) {
             throw new InvalidArgumentException('El campo "amount" es obligatorio.');
         }
 
-        $currencyId = $this->currencyRepository->getValueByISOCode($data['currency'], 'id');
+        $currencyId = $this->currencyRepository->getValueByISOCode($data['currency_id'], 'id');
 
         if ($currencyId === null) {
             throw new InvalidArgumentException('Moneda no encontrada para el código ISO proporcionado.');

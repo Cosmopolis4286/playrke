@@ -10,7 +10,7 @@ class ExchangeRateResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'currency' => $this->currency->iso_code,
+            'currency_id' => $this->currency->iso_code,
             'amount' => floatval($this->amount),
             'status' => $this->status,
         ];

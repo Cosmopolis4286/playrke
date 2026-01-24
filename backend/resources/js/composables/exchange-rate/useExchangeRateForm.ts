@@ -1,14 +1,5 @@
 import { ref, watch, computed } from 'vue'
-
-/**
- * Modelo del formulario de tasa de cambio
- */
-export interface ExchangeRateFormModel {
-    id?: string
-    currency?: string
-    amount?: number
-    status?: string
-}
+import type { ExchangeRate } from '@/js/types/exchange-rate'
 
 /**
  * Composable para manejar el formulario de Exchange Rate
@@ -17,19 +8,21 @@ export interface ExchangeRateFormModel {
  * @param emit Emit de Vue para sync con v-model
  */
 export function useExchangeRateForm(
-    modelValue: ExchangeRateFormModel,
-    emit: (event: 'update:modelValue', value: ExchangeRateFormModel) => void
+    modelValue: Partial<ExchangeRate>,
+    emit: (event: 'update:modelValue', value: ExchangeRate) => void
 ) {
     /* =======================
      * State
      * ======================= */
     const form = ref({
-        currency: '',
+        currency_id: '',
         amount: null as number | null,
         status: false
     })
 
-    const errors = ref<{ currency?: string; amount?: string }>({})
+    const exchangeRateId = ref(modelValue.id)
+
+    const errors = ref<{ currency_id?: string; amount?: string }>({})
 
     /* =======================
      * Mask
@@ -51,13 +44,13 @@ export function useExchangeRateForm(
     /**
      * Indica si el formulario está en modo edición
      */
-    const isEditMode = computed(() => !!modelValue?.currency)
+    const isEditMode = computed(() => !!modelValue?.currency_id)
 
     /**
      * Estado de validez del formulario
      */
     const isValid = computed(
-        () => !errors.value.currency && !errors.value.amount
+        () => !errors.value.currency_id && !errors.value.amount
     )
 
     /* =======================
@@ -69,7 +62,7 @@ export function useExchangeRateForm(
      */
     const reset = () => {
         form.value = {
-            currency: '',
+            currency_id: '',
             amount: null,
             status: false
         }
@@ -82,8 +75,8 @@ export function useExchangeRateForm(
     const validate = () => {
         errors.value = {}
 
-        if (!form.value.currency) {
-            errors.value.currency = 'La divisa es requerida.'
+        if (!form.value.currency_id) {
+            errors.value.currency_id = 'La divisa es requerida.'
         }
 
         if (!form.value.amount || form.value.amount <= 0) {
@@ -102,7 +95,7 @@ export function useExchangeRateForm(
         () => modelValue,
         value => {
             form.value = {
-                currency: value.currency ?? '',
+                currency_id: value.currency_id.toString() ?? '',
                 amount: value.amount ?? null,
                 status: value.status === 'ACTIVE'
             }
@@ -117,8 +110,8 @@ export function useExchangeRateForm(
         form,
         value => {
             emit('update:modelValue', {
-                id: '333',
-                currency: value.currency,
+                id: exchangeRateId.value,
+                currency_id: value.currency_id,
                 amount: value.amount ?? undefined,
                 status: value.status ? 'ACTIVE' : 'INACTIVE'
             })
@@ -130,7 +123,7 @@ export function useExchangeRateForm(
      * Validación reactiva
      */
     watch(
-        () => [form.value.currency, form.value.amount],
+        () => [form.value.currency_id, form.value.amount],
         validate,
         { immediate: true }
     )

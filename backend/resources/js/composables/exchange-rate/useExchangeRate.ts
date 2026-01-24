@@ -1,13 +1,6 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
-
-interface ExchangeRate {
-    id?: string | number
-    currency: string
-    amount: number
-    status: string
-    token?: string
-}
+import { ExchangeRate } from '@/js/types/exchange-rate'
 
 /**
  * Contrato público del composable useExchangeRate
@@ -106,7 +99,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      */
     function create(): void {
         exchangeRateData.value = {
-            currency: '',
+            currency_id: '',
             amount: 0,
             status: 'INACTIVE',
             token: tokenId || undefined,
@@ -138,7 +131,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
             // Normalización de datos para el formulario
             exchangeRateData.value = {
                 id: data.id,
-                currency: data.currency,
+                currency_id: data.currency_id,
                 amount: Number(data.amount),
                 status: data.status,
                 token: tokenId || undefined,

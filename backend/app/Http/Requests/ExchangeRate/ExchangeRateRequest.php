@@ -13,7 +13,7 @@ use Illuminate\Validation\Rule;
  *
  * Payload esperado:
  * {
- *   "currency": "USD",
+ *   "currency_id": "USD",
  *   "amount": 1.25,
  *   "token": "customer"
  * }
@@ -74,7 +74,7 @@ class ExchangeRateRequest extends BaseRequest
             /**
              * Código de moneda ISO 4217 (ej: USD, EUR).
              */
-            'currency' => $currencyRules,
+            'currency_id' => $currencyRules,
 
             /**
              * Valor de la tasa de cambio.
@@ -97,9 +97,9 @@ class ExchangeRateRequest extends BaseRequest
         return [
             'token.exists' => 'El token no es válido o está inactivo.',
 
-            'currency.required' => 'La moneda es obligatoria.',
-            'currency.size' => 'La moneda debe tener exactamente 3 caracteres.',
-            'currency.exists' => 'La moneda seleccionada no es válida.',
+            'currency_id.required' => 'La moneda es obligatoria.',
+            'currency_id.size' => 'La moneda debe tener exactamente 3 caracteres.',
+            'currency_id.exists' => 'La moneda seleccionada no es válida.',
 
             'amount.required' => 'La tasa de cambio es obligatoria.',
             'amount.numeric' => 'La tasa de cambio debe ser numérica.',
