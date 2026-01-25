@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Domain\Common\Status;
+namespace App\Domain\ExchangeRate\Status;
 
 use InvalidArgumentException;
 
 /**
  * Servicio de dominio responsable de validar y
- * resolver transiciones de estado simples.
+ * resolver transiciones de estado de las tasas de cambio.
  *
  * No conoce persistencia, modelos ni framework.
  */
-final class StatusChanger
+final class ExchangeRateStatus
 {
     /**
      * Estados permitidos por defecto.

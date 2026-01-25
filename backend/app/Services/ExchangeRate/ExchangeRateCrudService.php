@@ -4,7 +4,6 @@ namespace App\Services\ExchangeRate;
 
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
-use App\Domain\Common\Status\StatusChanger;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Services\Roles\RoleUserService;
@@ -28,7 +27,6 @@ final class ExchangeRateCrudService
         private CustomerExchangeRateRepositoryInterface $customer,
         private RoleUserService $roleUserService,
         private ExchangeRateDomainService $domain,
-        private StatusChanger $statusChanger,
     ) {}
 
     /**
@@ -79,9 +77,7 @@ final class ExchangeRateCrudService
     {
         throw_if(!$dto->id, DomainException::class, 'ID requerido');
 
-        $repo = $this->repo(
-            $this->resolveRole($userId)
-        );
+        $repo = $this->repo($this->resolveRole($userId));
 
         return DB::transaction(function () use ($repo, $dto) {
             $oldAmount = $repo->getValueById($dto->id, 'amount');
@@ -97,17 +93,15 @@ final class ExchangeRateCrudService
     }
 
     /**
-     * Elimina una tasa de cambio.
+     * Elimina una tasa de cambio según el rol.
      *
      * @throws DomainException
      */
-    public function delete(ExchangeRateDTO $dto, string $role): bool
+    public function deleteByRole(string $id, int $userId): bool
     {
-        throw_if(!$dto->id, DomainException::class, 'ID requerido para eliminar');
+        $repo = $this->repo($this->resolveRole($userId));
 
-        $this->repo($role)->delete($dto->id);
-
-        return true;
+        return $repo->delete($id);
     }
 
     /**
@@ -117,13 +111,9 @@ final class ExchangeRateCrudService
      */
     public function changeStatusByRole(string $id, int $userId): bool
     {
-        $repo = $this->repo(
-            $this->resolveRole($userId)
-        );
+        $repo = $this->repo($this->resolveRole($userId));
 
-        return $repo->toggleStatus(
-            $repo->findOrFail($id)
-        );
+        return $repo->toggleStatus($repo->findOrFail($id));
     }
 
     /* =====================================================

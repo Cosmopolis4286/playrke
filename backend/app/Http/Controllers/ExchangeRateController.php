@@ -33,10 +33,11 @@ class ExchangeRateController extends Controller
     public function index(Request $request): Response
     {
         return $this->handleServiceInertia(
-            fn() => Inertia::render(
-                'ExchangeRate/Index',
-                $this->service->context($request->attributes->get('public_user'))
-            ),
+            function () use ($request) {
+                $response = $this->service->context($request->attributes->get('public_user'));
+
+                return Inertia::render('ExchangeRate/Index', $response);
+            },
             'No se pudo cargar la lista de tasas de cambios.'
         );
     }

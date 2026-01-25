@@ -5,7 +5,6 @@ namespace App\Repositories\Roles\Commerce;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Repositories\ExchangeRate\RoleExchangeRateRepository;
-use App\Repositories\ExchangeRateRepository;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

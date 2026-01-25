@@ -35,9 +35,7 @@ final class ExchangeRateService
      */
     public function context(?string $publicToken = null): array
     {
-        return $this->context
-            ->resolve($publicToken)
-            ->toView();
+        return $this->context->resolve($publicToken)->toView();
     }
 
     /**

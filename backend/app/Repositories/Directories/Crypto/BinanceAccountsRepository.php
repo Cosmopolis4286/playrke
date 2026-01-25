@@ -227,19 +227,6 @@ class BinanceAccountsRepository extends BaseRepository implements BinanceAccount
     }
 
     /**
-     * Cambiar estado de cuenta
-     *
-     * @param string $accountId ID de la cuenta
-     * @param string $status Nuevo estado
-     * @return bool
-     */
-    public function changeStatus(string $accountId, string $status): bool
-    {
-        return $this->model->where('id', $accountId)
-            ->update(['status' => strtoupper($status)]) > 0;
-    }
-
-    /**
      * Obtener tipos de cuenta disponibles
      *
      * @param string|null $excludeType Tipo a excluir

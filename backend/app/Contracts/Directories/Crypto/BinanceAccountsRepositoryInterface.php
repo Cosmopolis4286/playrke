@@ -136,13 +136,4 @@ interface BinanceAccountsRepositoryInterface extends BaseRepositoryInterface
      * @return Collection<BinanceAccounts>
      */
     public function getAllWithUser(array $columns = ['*']): Collection;
-
-    /**
-     * Cambiar estado de cuenta
-     *
-     * @param string $accountId ID de la cuenta
-     * @param string $status Nuevo estado
-     * @return bool
-     */
-    public function changeStatus(string $accountId, string $status): bool;
 }

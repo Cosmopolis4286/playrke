@@ -172,19 +172,6 @@ class GameRepository extends BaseRepository implements GameRepositoryInterface
     }
 
     /**
-     * Cambiar estado de un juego
-     *
-     * @param string $gameId ID del juego
-     * @param string $status Nuevo estado
-     * @return bool
-     */
-    public function changeStatus(string $gameId, string $status): bool
-    {
-        return $this->model->where('id', $gameId)
-            ->update(['status' => strtoupper($status)]) > 0;
-    }
-
-    /**
      * Verificar si un juego está activo
      *
      * @param string $gameId ID del juego

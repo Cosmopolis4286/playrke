@@ -160,7 +160,7 @@ abstract class Controller extends BaseController
             $errorMessage,
             fn() => Inertia::render($errorComponent, [
                 'message' => $errorMessage,
-            ])->toResponse(request())->setStatusCode(500)
+            ])->status(500)
         );
     }
 }

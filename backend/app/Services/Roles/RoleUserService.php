@@ -6,6 +6,7 @@ use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\Roles\RoleUserRepositoryInterface;
 use DomainException;
+use Illuminate\Support\Facades\Auth;
 
 final class RoleUserService
 {
@@ -27,7 +28,7 @@ final class RoleUserService
     {
         $role = $this->roleUserRepository
             ->getActiveByUser($userId)
-            ->first(fn ($roleUser) => !empty($roleUser->role?->prefix))
+            ->first(fn($roleUser) => !empty($roleUser->role?->prefix))
             ?->role
             ?->prefix;
 
@@ -41,23 +42,17 @@ final class RoleUserService
     /**
      * Resuelve el usuario que ejecuta la acción.
      *
-     * ⚠️ Este método NO depende de Auth ni HTTP.
-     * El caller debe pasar explícitamente el contexto.
-     *
-     * @param int|null $authenticatedUserId
      * @param string|null $publicToken
      *
      * @return array{id:int, authenticated:bool}
      *
      * @throws DomainException
      */
-    public function resolveUser(
-        ?int $authenticatedUserId = null,
-        ?string $publicToken = null
-    ): array {
-        if ($authenticatedUserId) {
+    public function resolveUser(?string $publicToken = null): array
+    {
+        if (Auth::check()) {
             return [
-                'id' => $authenticatedUserId,
+                'id' => Auth::id(),
                 'authenticated' => true,
             ];
         }

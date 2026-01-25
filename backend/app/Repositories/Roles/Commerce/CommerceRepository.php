@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Roles\Commerce;
 
-use App\Repositories\BaseRepository;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Models\Roles\Commerce;
+use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
