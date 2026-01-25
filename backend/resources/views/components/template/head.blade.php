@@ -1,4 +1,4 @@
-@props(['title' => ''])
+@props(['title' => '', 'inertia' => false, 'page' => []])
 
 <head>
     {{-- Meta básicos --}}
@@ -34,8 +34,8 @@
     {{-- Estilos específicos por vista --}}
     {{ $slot }}
 
-    @if (isset($inertia))
+    @if ($inertia && !empty($page))
         @vite('resources/js/inertia.ts')
-        @inertiaHead
+        @inertiaHead()
     @endif
 </head>

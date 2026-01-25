@@ -25,7 +25,7 @@ Route::middleware('guest')->group(function () {
     Route::post('register', [RegisteredUserController::class, 'store']);
 
     // Login de usuario
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login')->defaults('inertiaOnly', true);
     // Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
     // Olvidé mi contraseña (formulario para solicitar reset link)

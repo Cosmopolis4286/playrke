@@ -11,7 +11,7 @@ route_group(
     ['auth'],
     ExchangeRateController::class,
     [
-        'index'        => ['method' => 'get', 'uri' => ''],
+        'index'        => ['method' => 'get', 'uri' => '', 'defaults' => ['inertiaOnly' => false]],
         'store'        => ['method' => 'post', 'uri' => ''],
         'updateAll'    => ['method' => 'put', 'uri' => 'update-all'],
         'listFiltered' => ['method' => 'get', 'uri' => 'list-filtered'],

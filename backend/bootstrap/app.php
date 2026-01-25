@@ -40,6 +40,11 @@ return Application::configure(
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
+        /** Habiltar Middleware de Inetia*/
+        $middleware->web(append: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
+        ]);
+
         /**
          * Habilitar credenciales en CORS para permitir cookies cross-origin
          */

@@ -51,6 +51,12 @@ function route_group(
 
                 $route = Route::$method($uri, $action)->name($routeName);
 
+                if (!empty($config['defaults']) && is_array($config['defaults'])) {
+                    foreach ($config['defaults'] as $key => $value) {
+                        $route->defaults($key, $value);
+                    }
+                }
+
                 if (!empty($routeMiddlewares)) {
                     $route->middleware($routeMiddlewares);
                 }

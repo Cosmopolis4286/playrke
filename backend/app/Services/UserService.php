@@ -2,21 +2,20 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Models\Shared\UniqueCode;
 use App\Contracts\UserRepositoryInterface;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-class UserService extends
+final class UserService
 {
     /**
-     * @param UserRepositoryInterface $repository
+     * Contructor
      */
-    public function __construct(UserRepositoryInterface $repository)
-    {
-        parent::__construct($repository);
-    }
+    public function __construct(
+        protected UserRepositoryInterface $repository
+    ) {}
 
     /* =====================================================
      | Creación de usuarios y códigos
@@ -31,7 +30,6 @@ class UserService extends
      */
     public function createUserFromDTO(object $dto, string $plainPassword): User
     {
-        /** @var User $user */
         $user = $this->repository->create([
             'username'          => $dto->username,
             'email'             => $dto->email,

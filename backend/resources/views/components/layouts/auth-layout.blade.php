@@ -2,11 +2,12 @@
     'title' => 'Tablero',
     'loadDataTables' => true,
     'loadSelect2' => false,
+    'inertia' => false,
 ])
 
 <!DOCTYPE html>
 <html lang="en">
-<x-template.head :title="$title" />
+<x-template.head :title="$title" :inertia="$inertia" />
 
 <body class="hold-transition sidebar-mini layout-fixed overflow-hidden">
     {{-- Loader visible mientras la app se carga --}}

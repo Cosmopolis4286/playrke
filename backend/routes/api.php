@@ -31,7 +31,7 @@ use App\Http\Controllers\Api\Auth\DemoCredentialsController;
 Route::middleware('web')->get('user', [AuthController::class, 'user'])->name('api.user');
 
 Route::middleware('web')->prefix('auth')->group(function () {
-    Route::post('login', [AuthController::class, 'login'])->name('api.auth.login');
+    Route::post('login', [AuthController::class, 'login'])->name('api.auth.login')->defaults('inertiaOnly', true);
     Route::post('register', [AuthController::class, 'register'])->name('api.auth.register');
     Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('api.auth.forgot-password');
     Route::post('resetPassword', [AuthController::class, 'resetPassword'])->name('api.auth.resetPassword');

@@ -29,10 +29,7 @@ class AuthenticatedSessionController extends Controller
     {
         $register = $this->settings->getParameterStatus('REGISTER');
 
-        return Inertia::render('Auth/Login', [
-            'inertiaOnly' => true,
-            'register' => (bool) $register,
-        ]);
+        return Inertia::render('Auth/Login', ['register' => (bool) $register]);
     }
 
     /**
