@@ -34,11 +34,31 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceInertia(
             function () use ($request) {
-                $response = $this->service->context($request->attributes->get('public_user'));
+                $response = $this->service->context($request->query('token', null));
 
                 return Inertia::render('ExchangeRate/Index', $response);
             },
             'No se pudo cargar la lista de tasas de cambios.'
+        );
+    }
+
+    /**
+     * Endpoint API para obtener tasas según rol y token (listado filtrado).
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function listFiltered(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request) {
+                $token = $request->query('token', null);
+
+                $data = $this->service->getAll($token);
+
+                return ['data' => $data];
+            },
+            'No se pudo cargar la lista de tasas de cambio.'
         );
     }
 
@@ -166,7 +186,7 @@ class ExchangeRateController extends Controller
         return $this->handleServiceInertia(
             fn() => Inertia::render(
                 'ExchangeRate/Index',
-                $this->service->historicalContext($request->attributes->get('public_user'))
+                $this->service->historicalContext($request->query('token', null))
             ),
             'No se pudo cargar el historico de tasas de cambios.'
         );

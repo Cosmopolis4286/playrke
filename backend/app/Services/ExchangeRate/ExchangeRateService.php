@@ -39,6 +39,17 @@ final class ExchangeRateService
     }
 
     /**
+     * Obtener todas las tasas de cambio filtradas según contexto y rol.
+     *
+     * @param string|null $publicToken Token público opcional
+     * @return array
+     */
+    public function getAll(?string $publicToken = null): array
+    {
+        return $this->context->resolve($publicToken)->exchangeRates->toArray();
+    }
+
+    /**
      * Crear una tasa de cambio.
      *
      * @param ExchangeRateDTO $dto
@@ -50,7 +61,7 @@ final class ExchangeRateService
     {
         return $this->crud->create(
             $dto,
-            $this->resolveUserId(null, $dto->tokenId)
+            $this->resolveUserId($dto->tokenId)
         );
     }
 
@@ -82,7 +93,7 @@ final class ExchangeRateService
     {
         return $this->crud->update(
             $dto,
-            $this->resolveUserId(null, $dto->tokenId)
+            $this->resolveUserId($dto->tokenId)
         );
     }
 
@@ -121,15 +132,15 @@ final class ExchangeRateService
     /**
      * Actualizar tasas desde proveedor externo.
      *
-     * @param string|null $token
+     * @param string|null $publicToken
      * @return bool
      *
      * @throws DomainException
      */
-    public function updateRates(?string $token = null): bool
+    public function updateRates(?string $publicToken = null): bool
     {
         return $this->updater->updateRates(
-            $this->resolveUserId(null, $token)
+            $this->resolveUserId($publicToken)
         );
     }
 
@@ -150,15 +161,14 @@ final class ExchangeRateService
     /**
      * Resuelve el ID del usuario autenticado o desde un token público.
      *
-     * @param int|null $authenticatedUserId
      * @param string|null $publicToken
      * @return int
      *
      * @throws DomainException
      */
-    private function resolveUserId(?int $authenticatedUserId = null, ?string $publicToken = null): int
+    private function resolveUserId(?string $publicToken = null): int
     {
-        $user = $this->roleUserService->resolveUser($authenticatedUserId, $publicToken);
+        $user = $this->roleUserService->resolveUser($publicToken);
 
         if (empty($user['id'])) {
             throw new DomainException('No se pudo resolver el usuario');

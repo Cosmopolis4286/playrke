@@ -9,6 +9,12 @@ interface UseExchangeRateReturn {
     /** Datos de la tasa (para crear o editar) */
     exchangeRateData: Ref<Partial<ExchangeRate>>
 
+    /** Lista reactiva de tasas de cambio */
+    exchangeRates: Ref<ExchangeRate[]>
+
+    /** Inicializa la lista local de tasas */
+    setInitialExchangeRates: (initialRates: ExchangeRate[]) => void
+
     /**
      * Envía el formulario de tasa de cambio.
      * Debe retornar:
@@ -31,6 +37,9 @@ interface UseExchangeRateReturn {
 
     /** Sincroniza tasas desde backend */
     updateExchangeRates: () => Promise<void>
+
+    /** Obtiene y actualiza la lista filtrada de tasas desde backend */
+    fetchExchangeRates: () => Promise<void>
 }
 
 /**
@@ -41,6 +50,7 @@ interface UseExchangeRateReturn {
  * - Manejo del estado del formulario
  * - Envío de datos (POST / PUT)
  * - Sincronización masiva desde backend
+ * - Gestión local de la lista de tasas
  *
  * ⚠️ No controla UI directamente (el componente decide cerrar el modal)
  *
@@ -53,6 +63,39 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
     /** Datos reactivos del formulario (crear / editar) */
     const exchangeRateData = ref<Partial<ExchangeRate>>({})
+
+    /** Lista reactiva local de tasas de cambio */
+    const exchangeRates = ref<ExchangeRate[]>([])
+
+    /**
+     * Inicializa la lista local de tasas
+     * @param initialRates Lista inicial para sincronizar estado local
+     */
+    function setInitialExchangeRates(initialRates: ExchangeRate[]) {
+        exchangeRates.value = [...initialRates]
+    }
+
+    /**
+     * Obtiene y actualiza la lista filtrada de tasas desde backend.
+     */
+    async function fetchExchangeRates(): Promise<void> {
+        if (loading.value) return
+
+        try {
+            loading.value = true
+            const response = await backendClient.get<{ success: boolean; data: ExchangeRate[] }>('/exchange-rate/list-filtered', {
+                params: { token: tokenId }
+            })
+            const data = response.data?.data
+            if (Array.isArray(data)) {
+                exchangeRates.value = data
+            }
+        } catch (error) {
+            console.error('Error al obtener las tasas de cambio:', error)
+        } finally {
+            loading.value = false
+        }
+    }
 
     /**
      * Envía el formulario de tasa de cambio.
@@ -75,14 +118,14 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
             if (exchangeRateData.value.id) {
                 // Editar tasa existente
-                await backendClient.put(
-                    `/exchange-rate/${exchangeRateData.value.id}`,
-                    exchangeRateData.value
-                )
+                await backendClient.put(`/exchange-rate/${exchangeRateData.value.id}`, exchangeRateData.value)
             } else {
                 // Crear nueva tasa
                 await backendClient.post('/exchange-rate', exchangeRateData.value)
             }
+
+            // Actualizar lista tras operación exitosa sin recargar página
+            await fetchExchangeRates()
 
             return true
         } catch (error) {
@@ -102,7 +145,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
             currency_id: '',
             amount: 0,
             status: 'INACTIVE',
-            token: tokenId || undefined,
+            token: tokenId || undefined
         }
     }
 
@@ -117,24 +160,19 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
         try {
             loading.value = true
-            const response = await backendClient.get<{ success: boolean; data: ExchangeRate }>(
-                `/exchange-rate/${id}`
-            )
-
-            // Acceso seguro a los datos dentro de la respuesta
+            const response = await backendClient.get<{ success: boolean; data: ExchangeRate }>(`/exchange-rate/${id}`)
             const data = response.data?.data
 
             if (!data) {
                 throw new Error('No se encontró la tasa de cambio')
             }
 
-            // Normalización de datos para el formulario
             exchangeRateData.value = {
                 id: data.id,
                 currency_id: data.currency_id,
                 amount: Number(data.amount),
                 status: data.status,
-                token: tokenId || undefined,
+                token: tokenId || undefined
             }
         } catch (error) {
             console.error('Error cargando tasa:', error)
@@ -150,8 +188,10 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      */
     async function changeStatus(id: string | number): Promise<void> {
         try {
-            // Implementar llamada PUT para cambiar estado
             await backendClient.put(`/exchange-rate/${id}/status`)
+
+            // Actualizar lista tras cambio exitoso sin recargar página
+            await fetchExchangeRates()
         } catch (error) {
             console.error('Error cambiando estado:', error)
         }
@@ -165,6 +205,9 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
     async function remove(id: string | number): Promise<void> {
         try {
             await backendClient.put(`/exchange-rate/${id}/delete`)
+
+            // Actualizar lista tras eliminación exitosa sin recargar página
+            await fetchExchangeRates()
         } catch (error) {
             console.error('Error eliminando tasa:', error)
         }
@@ -180,7 +223,9 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         try {
             loading.value = true
             await backendClient.put('/exchange-rate/update-all')
-            window.location.reload()
+
+            // Actualiza la lista tras sincronización sin recargar
+            await fetchExchangeRates()
         } catch (error) {
             console.error('Error actualizando tasas:', error)
         } finally {
@@ -190,11 +235,14 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
     return {
         exchangeRateData,
+        exchangeRates,
+        setInitialExchangeRates,
         submit,
         create,
         edit,
         changeStatus,
         remove,
         updateExchangeRates,
+        fetchExchangeRates
     }
 }

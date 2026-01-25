@@ -18,41 +18,39 @@
   const props = defineProps<ExchangeRatePageProps>()
 
   /**
-   * Determina si el usuario tiene privilegios
+   * Determina si el usuario tiene privilegios (company o customer)
    */
-  const hasPrivilegedRole = computed(
-    () => props.roleUser === 'company' || props.roleUser === 'customer'
-  )
+  const hasPrivilegedRole = computed(() => ['company', 'customer'].includes(props.roleUser))
 
   /**
-   * Composable de negocio (no UI)
-   */
-  const { exchangeRateData, create, edit, changeStatus, remove, updateExchangeRates, submit } =
-    useExchangeRate(props.tokenId)
-
-  /**
-   * Composable de UI (modal + formulario)
+   * Composable de negocio para manejo de tasas
    */
   const {
-    showModalForm,
-    modalTitle,
-    formMode,
-    formRef: exchangeRateFormRef,
-    handleSubmit
-  } = useModalForm(exchangeRateData, submit)
+    exchangeRateData,
+    exchangeRates,
+    setInitialExchangeRates,
+    create,
+    edit,
+    changeStatus,
+    remove,
+    updateExchangeRates,
+    submit
+  } = useExchangeRate(props.tokenId)
+
+  // Inicializar exchangeRates con las props
+  setInitialExchangeRates(props.exchangeRates)
 
   /**
-   * Estado local de selección
+   * Propiedades y estado local
    */
   const selectedCurrency = ref<string[]>([])
   const currencies = props.currencies
-  const exchangeRates = props.exchangeRates
 
   /**
-   * Monedas usadas en las tasas (derivado)
+   * Computed que genera las monedas usadas en las tasas para presentación
    */
   const usedCurrencies = computed<UsedCurrency[]>(() =>
-    exchangeRates.map(rate => {
+    exchangeRates.value.map(rate => {
       const currency = currencies.find(c => c.id === rate.currency_id)
 
       return {
@@ -72,7 +70,18 @@
   )
 
   /**
-   * Abre el modal en modo creación
+   * Composable para el modal y formulario
+   */
+  const {
+    showModalForm,
+    modalTitle,
+    formMode,
+    formRef: exchangeRateFormRef,
+    handleSubmit
+  } = useModalForm(exchangeRateData, submit)
+
+  /**
+   * Abre el modal en modo creación, inicializando datos
    */
   function handleCreate(): void {
     create()
@@ -80,9 +89,9 @@
   }
 
   /**
-   * Abre el modal en modo edición
+   * Abre el modal en modo edición cargando datos existentes
    *
-   * @param id Identificador de la tasa
+   * @param id Identificador de la tasa a editar
    */
   async function handleEdit(id: string | number): Promise<void> {
     await edit(id)
@@ -90,7 +99,7 @@
   }
 
   /**
-   * Navega al histórico de tasas
+   * Navega a la vista histórica filtrando por las monedas seleccionadas
    */
   function goHistorical(): void {
     if (!selectedCurrency.value.length) return
@@ -99,6 +108,7 @@
       `/exchange-rate/historical/${selectedCurrency.value}` + `?tokenId=${props.tokenId}`
   }
 </script>
+
 <template>
   <div class="card">
     <CardHeader title="Tasas de Cambio" subtitle="Valores en base a Un Dólar (1 USD)" />

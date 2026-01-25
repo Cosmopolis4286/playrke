@@ -14,6 +14,7 @@ route_group(
         'index'        => ['method' => 'get', 'uri' => ''],
         'store'        => ['method' => 'post', 'uri' => ''],
         'updateAll'    => ['method' => 'put', 'uri' => 'update-all'],
+        'listFiltered' => ['method' => 'get', 'uri' => 'list-filtered'],
         'show'         => ['method' => 'get', 'uri' => '{id}'],
         'update'       => ['method' => 'put', 'uri' => '{id}'],
         'delete'       => ['method' => 'put', 'uri' => '{id}/delete'],
