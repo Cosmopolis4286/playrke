@@ -12,12 +12,11 @@ use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\Roles\Commerce;
-use App\Services\BaseService;
 use App\Services\UserService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
-class CommerceService extends BaseService
+final class CommerceService
 {
     public function __construct(
         protected UserRepositoryInterface $userRepository,

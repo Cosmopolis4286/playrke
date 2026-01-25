@@ -6,102 +6,108 @@ use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\Roles\RoleUserRepositoryInterface;
 use DomainException;
-use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpFoundation\Request;
 
-class RoleUserService
+final class RoleUserService
 {
     public function __construct(
-        protected RoleUserRepositoryInterface $roleUserRepository,
-        protected CommerceRepositoryInterface $commerceRepository,
-        protected CustomerRepositoryInterface $customerRepository
+        private readonly RoleUserRepositoryInterface $roleUserRepository,
+        private readonly CommerceRepositoryInterface $commerceRepository,
+        private readonly CustomerRepositoryInterface $customerRepository,
     ) {}
 
     /**
-     * Resuelve el prefijo del tipo de usuario basándose en roles activos.
+     * Obtiene el prefijo del rol activo del usuario.
      *
      * @param int $userId
      * @return string
      *
-     * @throws \DomainException Si no se encuentra un rol válido
+     * @throws DomainException
      */
     public function getActiveUserRolePrefix(int $userId): string
     {
-        $activeRoles = $this->roleUserRepository->getActiveByUser($userId);
+        $role = $this->roleUserRepository
+            ->getActiveByUser($userId)
+            ->first(fn ($roleUser) => !empty($roleUser->role?->prefix))
+            ?->role
+            ?->prefix;
 
-        foreach ($activeRoles as $roleUser) {
-            $prefix = $roleUser->role->prefix ?? null;
-            if ($prefix) {
-                return strtolower($prefix);
-            }
+        if (!$role) {
+            throw new DomainException('Rol inválido o no identificado.');
         }
 
-        throw new \DomainException('Rol inválido o no identificado.');
+        return strtolower($role);
     }
 
     /**
-     * Resuelve el contexto del usuario que ejecuta la operación.
+     * Resuelve el usuario que ejecuta la acción.
      *
-     * Prioridad:
-     * 1. Usuario autenticado (Auth)
-     * 2. Usuario público identificado por token
+     * ⚠️ Este método NO depende de Auth ni HTTP.
+     * El caller debe pasar explícitamente el contexto.
      *
-     * @param string|null $token Token público opcional.
+     * @param int|null $authenticatedUserId
+     * @param string|null $publicToken
      *
-     * @return array{
-     *   id: int,
-     *   authenticated: bool
-     * }
+     * @return array{id:int, authenticated:bool}
      *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     * @throws DomainException
      */
-    public function resolveUser(?string $token = null): array
-    {
-        if (Auth::check()) {
+    public function resolveUser(
+        ?int $authenticatedUserId = null,
+        ?string $publicToken = null
+    ): array {
+        if ($authenticatedUserId) {
             return [
-                'id' => Auth::id(),
+                'id' => $authenticatedUserId,
                 'authenticated' => true,
             ];
         }
 
-        if ($token) {
-            // Aquí deberías resolver el userId real a partir del token
-            // Ej: $userId = $this->tokenResolver->resolve($token);
-
-            $userId = (int) $token; // placeholder válido mientras tanto
-
+        if ($publicToken) {
             return [
-                'id' => $userId,
+                'id' => $this->resolveUserIdFromToken($publicToken),
                 'authenticated' => false,
             ];
         }
 
-        abort(404, 'Usuario no identificado.');
+        throw new DomainException('Usuario no identificado.');
     }
 
     /**
-     * Obtiene el ID asociado al usuario según su rol activo o un rol especificado.
+     * Obtiene el ID de la entidad asociada al usuario según su rol.
      *
-     * Si no se proporciona un rol, se obtiene el rol activo del usuario automáticamente.
-     * Soporta roles 'commerce' y 'customer'.
+     * @param int $userId
+     * @param string|null $role
      *
-     * @param int $userId ID del usuario
-     * @param string|null $role Prefijo del rol opcional ('commerce', 'customer')
+     * @return int
      *
-     * @return int ID asociado al usuario según el rol
-     *
-     * @throws \DomainException Si el rol es inválido o no soportado
+     * @throws DomainException
      */
-    public function getUserRoleEntityId(int $userId, ?string $role): int
+    public function getUserRoleEntityId(int $userId, ?string $role = null): int
     {
-        if (!$role) {
-            $role = $this->getActiveUserRolePrefix($userId);
-        }
+        $role ??= $this->getActiveUserRolePrefix($userId);
 
         return match ($role) {
             'commerce' => $this->commerceRepository->getValueByUserId($userId, 'id'),
             'customer' => $this->customerRepository->getValueByUserId($userId, 'id'),
             default => throw new DomainException("Rol inválido: {$role}"),
         };
+    }
+
+    /**
+     * Resuelve el userId real desde un token público.
+     *
+     * @param string $token
+     * @return int
+     *
+     * @throws DomainException
+     */
+    private function resolveUserIdFromToken(string $token): int
+    {
+        // Placeholder → aquí luego entra TokenResolver / ApiKey / JWT, etc.
+        if (!is_numeric($token)) {
+            throw new DomainException('Token inválido.');
+        }
+
+        return (int) $token;
     }
 }

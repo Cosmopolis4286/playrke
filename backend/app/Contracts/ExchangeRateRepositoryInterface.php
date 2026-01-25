@@ -203,11 +203,4 @@ interface ExchangeRateRepositoryInterface extends BaseRepositoryInterface
      * @return Model El tipo de cambio creado o actualizado
      */
     public function createOrUpdateByCurrency(string $currencyId, float $value): Model;
-
-    /**
-     * Obtiene las tasas de cambio crudas desde la fuente.
-     *
-     * @return array<int, ExchangeRateDTO>
-     */
-    public function fetch(): array;
 }

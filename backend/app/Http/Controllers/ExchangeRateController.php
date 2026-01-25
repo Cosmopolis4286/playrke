@@ -35,7 +35,7 @@ class ExchangeRateController extends Controller
         return $this->handleServiceInertia(
             fn() => Inertia::render(
                 'ExchangeRate/Index',
-                $this->service->context($request)
+                $this->service->context($request->attributes->get('public_user'))
             ),
             'No se pudo cargar la lista de tasas de cambios.'
         );
@@ -78,7 +78,7 @@ class ExchangeRateController extends Controller
     public function show(string $id): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => ['data' => $this->service->getByExchangeRate($id)],
+            fn() => ['data' => $this->service->show($id)],
             'No se pudo cargar la información de la tasa de cambio.'
         );
     }
@@ -119,7 +119,7 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($id) {
-                $response = $this->service->softDeleteExchangeRate($id);
+                $response = $this->service->delete($id);
 
                 if ($response === true) {
                     return ['message' => '✅ Tasa de cambio eliminado correctamente'];
@@ -143,7 +143,7 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($id) {
-                $this->service->changeExchangeRateStatus($id);
+                $this->service->toggleStatus($id);
                 return ['message' => '✅ Estado actualizado correctamente',];
             },
             'No se pudo cambiar el estado de la tasa de cambio.'
@@ -165,7 +165,7 @@ class ExchangeRateController extends Controller
         return $this->handleServiceInertia(
             fn() => Inertia::render(
                 'ExchangeRate/Index',
-                $this->service->historicalContext($request)
+                $this->service->historicalContext($request->attributes->get('public_user'))
             ),
             'No se pudo cargar el historico de tasas de cambios.'
         );

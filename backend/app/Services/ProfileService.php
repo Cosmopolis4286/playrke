@@ -3,11 +3,10 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Services\BaseService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
-class ProfileService extends BaseService
+class ProfileService
 {
     public function __construct() {}
 

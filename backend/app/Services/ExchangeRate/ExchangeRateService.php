@@ -4,78 +4,72 @@ namespace App\Services\ExchangeRate;
 
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
-use App\Models\Roles\Commerce\CommerceExchangeRate;
-use App\Models\Roles\Customer\CustomerExchangeRate;
-use App\Services\BaseService;
 use App\Services\Roles\RoleUserService;
 use DomainException;
-use Illuminate\Http\Request;
 
 /**
- * Servicio de dominio para gestión de tasas de cambio.
+ * Servicio de aplicación para exponer
+ * los casos de uso del dominio ExchangeRate.
  *
  * Responsabilidades:
- * - Exponer casos de uso del dominio
- * - Orquestar servicios especializados
- * - Mantener a los controllers desacoplados
+ * - Resolver contexto de usuario
+ * - Delegar operaciones a servicios especializados
+ * - Mantener controllers desacoplados
  *
- * NO contiene lógica HTTP ni infraestructura.
+ * NO contiene lógica de dominio ni infraestructura.
  */
-class ExchangeRateService extends BaseService
+final class ExchangeRateService
 {
-    /**
-     * Constructor del servicio.
-     *
-     * @param RoleUserService $roleUserService
-     * @param ExchangeRateContextService $context
-     * @param ExchangeRateCrudService $crud
-     * @param ExchangeRateUpdaterService $updater
-     */
     public function __construct(
-        protected RoleUserService $roleUserService,
-        protected ExchangeRateContextService $context,
-        protected ExchangeRateCrudService $crud,
-        protected ExchangeRateUpdaterService $updater,
+        private RoleUserService $roleUserService,
+        private ExchangeRateContextService $context,
+        private ExchangeRateCrudService $crud,
+        private ExchangeRateUpdaterService $updater,
     ) {}
 
     /**
      * Obtener contexto para visualización de tasas.
      *
-     * @param Request $request
+     * @param string|null $publicToken Token público de API
      * @return array
      */
-    public function context(Request $request): array
+    public function context(?string $publicToken = null): array
     {
-        $token = $request->attributes->get('public_user');
-        return $this->context->resolve($token)->toView();
+        return $this->context
+            ->resolve($publicToken)
+            ->toView();
     }
 
     /**
-     * Crear/registrar una tasa de cambio.
+     * Crear una tasa de cambio.
      *
      * @param ExchangeRateDTO $dto
      * @return bool
      *
-     * @throws \DomainException Si el userId no es válido o no se puede resolver.
+     * @throws DomainException
      */
     public function create(ExchangeRateDTO $dto): bool
     {
-        $userId = $this->roleUserService->resolveUser($dto->tokenId)['id'];
-        return $this->crud->create($dto, $userId);
+        return $this->crud->create(
+            $dto,
+            $this->resolveUserId(null, $dto->tokenId)
+        );
     }
 
     /**
-     * Obtener tasa de cambio para visualización.
+     * Obtener una tasa de cambio para visualización.
      *
      * @param string $exchangeRateId
-     *
      * @return ExchangeRateResource
-     * @throws \DomainException Si el userId no es válido o no se puede resolver.
+     *
+     * @throws DomainException
      */
-    public function getByExchangeRate(string $exchangeRateId): ExchangeRateResource
+    public function show(string $exchangeRateId): ExchangeRateResource
     {
-        $userId = $this->roleUserService->resolveUser()['id'];
-        return $this->crud->show($exchangeRateId, $userId);
+        return $this->crud->show(
+            $exchangeRateId,
+            $this->resolveUserId()
+        );
     }
 
     /**
@@ -84,94 +78,94 @@ class ExchangeRateService extends BaseService
      * @param ExchangeRateDTO $dto
      * @return bool
      *
-     * @throws \DomainException Si el userId no es válido o no se puede resolver.
+     * @throws DomainException
      */
     public function update(ExchangeRateDTO $dto): bool
     {
-        $userId = $this->roleUserService->resolveUser($dto->tokenId)['id'];
-        return $this->crud->update($dto, $userId);
+        return $this->crud->update(
+            $dto,
+            $this->resolveUserId(null, $dto->tokenId)
+        );
     }
 
     /**
-     * Obtiene la clase del modelo correspondiente según el ID del usuario.
+     * Alternar estado (ACTIVE / INACTIVE) de una tasa de cambio.
      *
-     * @param string|null $userId El ID del usuario. Si es nulo, se resuelve el usuario actual.
-     * @return class-string|null La clase del modelo asociada al rol del usuario o null si no hay usuario.
-     *
-     * @throws \DomainException Cuando el rol es inválido.
-     */
-    private function getModelClassByUserId(?string $userId = null): ?string
-    {
-        if (!$userId) {
-            $user = $this->roleUserService->resolveUser();
-            if (empty($user['id'])) {
-                return null;
-            }
-            $userId = $user['id'];
-        }
-
-        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
-
-        return match ($role) {
-            'commerce' => CommerceExchangeRate::class,
-            'customer' => CustomerExchangeRate::class,
-            default => throw new DomainException("Rol inválido: {$role}"),
-        };
-    }
-
-    /**
-     * Cambia el estado (activo/inactivo) de una tasa de cambio según el rol del usuario.
-     *
-     * @param string $exchangeRateId ID de la tasa de cambio
-     *
-     * @throws \DomainException Si el rol es inválido
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Si no se encuentra la tasa
-     *
-     * @return bool True si la transacción fue exitosa, false en caso de error
-     */
-    public function changeExchangeRateStatus(string $exchangeRateId, ?string $status = null): bool
-    {
-        $modelClass = $this->getModelClassByUserId();
-        $model = $modelClass::findOrFail($exchangeRateId);
-
-        return $this->changeStatus($model, $status);
-    }
-
-    /**
-     * Eliminar comercio (soft delete)
-     *
-     * @param string $exchangeRateId ID de la tasa de cambio
-     *
-     * @throws \DomainException Si el rol es inválido
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Si no se encuentra la tasa
-     *
-     * @return bool True si la transacción fue exitosa, false en caso de error
-     */
-    public function softDeleteExchangeRate(string $exchangeRateId): bool
-    {
-        $modelClass = $this->getModelClassByUserId();
-        $model = $modelClass::findOrFail($exchangeRateId);
-
-        return $this->softDelete($model);
-    }
-
-    /**
-     * Actualizar todas las tasas de cambio desde proveedor externo.
-     *
-     * @param string $token ID del token de usuario por api publica (opcinal)
+     * @param string $exchangeRateId
      * @return bool
+     *
+     * @throws DomainException
+     */
+    public function toggleStatus(string $exchangeRateId): bool
+    {
+        return $this->crud->changeStatusByRole(
+            $exchangeRateId,
+            $this->resolveUserId()
+        );
+    }
+
+    /**
+     * Eliminar una tasa de cambio (soft delete).
+     *
+     * @param string $exchangeRateId
+     * @return bool
+     *
+     * @throws DomainException
+     */
+    public function delete(string $exchangeRateId): bool
+    {
+        return $this->crud->deleteByRole(
+            $exchangeRateId,
+            $this->resolveUserId()
+        );
+    }
+
+    /**
+     * Actualizar tasas desde proveedor externo.
+     *
+     * @param string|null $token
+     * @return bool
+     *
+     * @throws DomainException
      */
     public function updateRates(?string $token = null): bool
     {
-        $userId = $this->roleUserService->resolveUser($token)['id'];
-        return $this->updater->updateRates($userId);
+        return $this->updater->updateRates(
+            $this->resolveUserId(null, $token)
+        );
     }
 
     /**
-     * Obtener contexto para visualización del historico de tasas de cambio.
+     * Obtener contexto histórico de tasas.
      *
-     * @param Request $request
      * @return array
      */
-    public function historicalContext() {}
+    public function historicalContext(): array
+    {
+        return [];
+    }
+
+    /* =====================================================
+     | Helpers internos
+     |=====================================================*/
+
+    /**
+     * Resuelve el ID del usuario autenticado o desde un token público.
+     *
+     * @param int|null $authenticatedUserId
+     * @param string|null $publicToken
+     * @return int
+     *
+     * @throws DomainException
+     */
+    private function resolveUserId(?int $authenticatedUserId = null, ?string $publicToken = null): int
+    {
+        $user = $this->roleUserService->resolveUser($authenticatedUserId, $publicToken);
+
+        if (empty($user['id'])) {
+            throw new DomainException('No se pudo resolver el usuario');
+        }
+
+        return (int) $user['id'];
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Services\ExchangeRate;
 
 use App\Contracts\ExchangeRateRepositoryInterface;
+use App\Models\Currency;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Roles\Customer\CustomerExchangeRate;
 use App\Services\Roles\RoleUserService;

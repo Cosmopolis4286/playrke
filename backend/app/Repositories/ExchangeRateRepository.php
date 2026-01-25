@@ -326,17 +326,4 @@ class ExchangeRateRepository extends BaseRepository implements ExchangeRateRepos
 
         return $this->createExchangeRate($currencyId, $value);
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function fetch(): array
-    {
-        $response = Http::timeout(10)
-            ->get('https://smcvenezuela.xyz/dolarsmcbot/binance-api.php')
-            ->throw()
-            ->json();
-
-        return $response;
-    }
 }

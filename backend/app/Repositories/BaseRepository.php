@@ -3,9 +3,13 @@
 namespace App\Repositories;
 
 use App\Contracts\BaseRepositoryInterface;
+use App\Domain\Common\Status\StatusChanger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 /**
  * Repositorio base que implementa funcionalidad común
@@ -17,6 +21,10 @@ abstract class BaseRepository implements BaseRepositoryInterface
      * Instancia del modelo Eloquent
      */
     protected Model $model;
+
+    public function __construct(
+        private StatusChanger $statusChanger
+    ) {}
 
     /**
      * {@inheritDoc}
@@ -269,5 +277,102 @@ abstract class BaseRepository implements BaseRepositoryInterface
     public function getByStatus(string $status,  array $fields = ['*']): Collection
     {
         return $this->model->where('status', $status)->get($fields);
+    }
+
+    public function softDelete(
+        int|string|Model $model,
+        ?string $status = 'DELETED',
+        array $relationsToDetach = [],
+        ?string $userRelation = null
+    ): bool {
+        try {
+            DB::transaction(function () use ($model, $status, $relationsToDetach, $userRelation) {
+
+                $model = $model instanceof Model
+                    ? $model
+                    : $this->findOrFail($model);
+
+                if (!in_array(SoftDeletes::class, class_uses_recursive($model), true)) {
+                    throw new RuntimeException('El modelo no soporta SoftDeletes');
+                }
+
+                if ($model->trashed()) {
+                    return;
+                }
+
+                if ($status !== null && isset($model->status)) {
+                    $model->update(['status' => $status]);
+                }
+
+                foreach ($relationsToDetach as $relation) {
+                    if (method_exists($model, $relation)) {
+                        $model->$relation()->detach();
+                    }
+                }
+
+                if ($userRelation && method_exists($model, $userRelation)) {
+                    $model->loadMissing($userRelation);
+
+                    $user = $model->$userRelation;
+
+                    if ($user instanceof Model) {
+                        if (!in_array(SoftDeletes::class, class_uses_recursive($user), true)) {
+                            throw new RuntimeException('El usuario no soporta SoftDeletes');
+                        }
+
+                        if (!$user->trashed()) {
+                            if ($status !== null && isset($user->status)) {
+                                $user->update(['status' => $status]);
+                            }
+
+                            $user->delete();
+                        }
+                    }
+                }
+
+                $model->delete();
+            });
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function changeStatus(
+        Model $model,
+        ?string $newStatus = null,
+        ?string $userRelation = null
+    ): bool {
+        $status = $newStatus
+            ?? ($model->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE');
+
+        try {
+            DB::transaction(function () use ($model, $status, $userRelation) {
+
+                $model->update(['status' => $status]);
+
+                if ($userRelation) {
+                    $model->loadMissing($userRelation);
+
+                    if ($model->$userRelation instanceof Model) {
+                        $model->$userRelation->update(['status' => $status]);
+                    }
+                }
+            });
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function toggleStatus(Model $model): bool
+    {
+        $newStatus = $this->statusChanger->toggle(
+            (string) $model->status
+        );
+
+        return $this->changeStatus($model, $newStatus);
     }
 }

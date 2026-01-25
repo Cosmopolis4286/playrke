@@ -4,6 +4,7 @@ namespace App\Services\ExchangeRate;
 
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
+use App\Domain\Common\Status\StatusChanger;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Services\Roles\RoleUserService;
@@ -11,86 +12,56 @@ use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class ExchangeRateCrudService
+/**
+ * Servicio de aplicación responsable de operaciones CRUD
+ * sobre ExchangeRate según el rol activo del usuario.
+ *
+ * Orquesta:
+ * - Resolución de rol
+ * - Reglas de dominio
+ * - Persistencia vía repositorios
+ */
+final class ExchangeRateCrudService
 {
     public function __construct(
-        protected CommerceExchangeRateRepositoryInterface $commerce,
-        protected CustomerExchangeRateRepositoryInterface $customer,
-        protected RoleUserService $roleUserService
+        private CommerceExchangeRateRepositoryInterface $commerce,
+        private CustomerExchangeRateRepositoryInterface $customer,
+        private RoleUserService $roleUserService,
+        private ExchangeRateDomainService $domain,
+        private StatusChanger $statusChanger,
     ) {}
+
     /**
-     * Crea o restaura una tasa de cambio para el rol activo del usuario.
+     * Crea o restaura una tasa de cambio para el rol activo.
      *
-     * @param ExchangeRateDTO $dto
-     * @param int $userId
-     *
-     * @return bool
-     *
-     * @throws \DomainException
+     * @throws DomainException
      */
     public function create(ExchangeRateDTO $dto, int $userId): bool
     {
-        $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
+        $role = $this->resolveRole($userId);
+        $roleEntityId = $this->resolveRoleEntityId($userId, $role);
 
-        if (!$rolePrefix) {
-            Log::warning('Role prefix no identificado', compact('userId'));
-            throw new DomainException("No se pudo identificar el rol del usuario {$userId}");
-        }
+        return DB::transaction(function () use ($dto, $role, $roleEntityId, $userId) {
+            $this->repo($role)->createOrRestoreByCurrency($roleEntityId, $dto);
 
-        $roleEntityId = $this->roleUserService->getUserRoleEntityId($userId, $rolePrefix);
-
-        if (!$roleEntityId) {
-            Log::warning('Entidad de rol no encontrada', [
+            Log::info('ExchangeRate creado/restaurado', [
                 'user_id'     => $userId,
-                'role_prefix' => $rolePrefix,
+                'role'        => $role,
+                'currency_id' => $dto->currencyId,
             ]);
 
-            throw new DomainException(
-                "No se encontró entidad asociada al rol '{$rolePrefix}' para el usuario {$userId}"
-            );
-        }
-
-        try {
-            return DB::transaction(function () use ($dto, $userId, $rolePrefix, $roleEntityId) {
-
-                $repo = $this->repo($rolePrefix);
-
-                $repo->createOrRestoreByCurrency($roleEntityId, $dto);
-
-                Log::info('ExchangeRate creado/restaurado correctamente', [
-                    'user_id'     => $userId,
-                    'role_prefix' => $rolePrefix,
-                    'currency_id' => $dto->currencyId,
-                ]);
-
-                return true;
-            });
-        } catch (\Throwable $e) {
-            Log::error('Error al crear/restaurar ExchangeRate', [
-                'exception'   => $e,
-                'user_id'     => $userId,
-                'role_prefix' => $rolePrefix ?? null,
-                'currency_id' => $dto->currencyId ?? null,
-            ]);
-
-            return false;
-        }
+            return true;
+        });
     }
 
-
     /**
-     * Obtener tasa de cambio para visualización.
-     *
-     * @param string $exchangeRateId
-     * @param int $userId
-     *
-     * @return ExchangeRateResource
+     * Obtiene una tasa de cambio para visualización.
      */
     public function show(string $exchangeRateId, int $userId): ExchangeRateResource
     {
-        $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
-
-        $exchangeRate = $this->repo($rolePrefix)->findWithRelations(
+        $exchangeRate = $this->repo(
+            $this->resolveRole($userId)
+        )->findWithRelations(
             ['currency:id,iso_code'],
             $exchangeRateId,
             ['id', 'currency_id', 'amount', 'status']
@@ -100,87 +71,111 @@ class ExchangeRateCrudService
     }
 
     /**
-     * Actualiza un tipo de cambio existente.
+     * Actualiza una tasa de cambio existente.
      *
-     * @param ExchangeRateDTO $dto Debe contener un ID válido.
-     * @param string $userId ID de usuario
-     * @param string|null $rolePrefix Rol del usuario (opcional)
-     * @return bool True si la transacción fue exitosa, false en caso de error.
-     *
-     * @throws \DomainException Si el ID no está definido o el ID de usuario no es inválido.
+     * @throws DomainException
      */
-    public function update(ExchangeRateDTO $dto, string $userId, ?string $rolePrefix = null): bool
+    public function update(ExchangeRateDTO $dto, int $userId): bool
     {
-        try {
-            if (!$rolePrefix) $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
+        throw_if(!$dto->id, DomainException::class, 'ID requerido');
 
-            $exchangeRateId = $dto->id;
-            throw_if(!$exchangeRateId, \DomainException::class, 'ID requerido para actualizar.');
+        $repo = $this->repo(
+            $this->resolveRole($userId)
+        );
 
-            // Obtener el valor anterior del monto para calcular el porcentaje
-            $oldAmount = $this->repo($rolePrefix)->getValueById($exchangeRateId, 'amount');
-            if ($oldAmount == 0) {
-                throw new \DomainException('El monto anterior no puede ser cero para calcular el porcentaje.');
-            }
+        return DB::transaction(function () use ($repo, $dto) {
+            $oldAmount = $repo->getValueById($dto->id, 'amount');
 
-            // Calcular el porcentaje de cambio (nuevo / viejo * 100)
-            if ($dto->amount <> $oldAmount) {
-                $percentage = ($dto->amount * 100) / $oldAmount;
-            }
-
-            $data = $dto->toArray();
-            $data['percentage'] = $percentage ?? 0;
-            $data['deleted_at'] = null;
-
-            dd($dto);
-
-            DB::transaction(function () use ($rolePrefix, $exchangeRateId, $data) {
-                $this->repo($rolePrefix)->update($exchangeRateId, $data);
-            });
+            $repo->update($dto->id, [
+                ...$dto->toArray(),
+                'percentage' => $this->domain->calculatePercentage($oldAmount, $dto->amount),
+                'deleted_at' => null,
+            ]);
 
             return true;
-        } catch (\Throwable $e) {
-            // Aquí podrías hacer logging del error si lo deseas
-            return false;
-        }
+        });
     }
 
     /**
-     * Elimina un tipo de cambio por ID.
+     * Elimina una tasa de cambio.
      *
-     * @param ExchangeRateDTO $dto Debe contener ID válido
-     * @param string $role Rol del propietario: 'commerce' | 'customer'
-     * @return bool True si la transacción fue exitosa, false en caso de error.
-     *
-     * @throws DomainException Si el ID no está definido
+     * @throws DomainException
      */
     public function delete(ExchangeRateDTO $dto, string $role): bool
     {
-        throw_if(!$dto->id, DomainException::class, 'ID requerido para eliminar.');
+        throw_if(!$dto->id, DomainException::class, 'ID requerido para eliminar');
 
-        try {
-            $this->repo($role)->delete($dto->id);
-            return true;
-        } catch (\Throwable $e) {
-            // Puedes agregar aquí logging si lo deseas
-            return false;
-        }
+        $this->repo($role)->delete($dto->id);
+
+        return true;
     }
 
     /**
-     * Devuelve el repositorio correspondiente según el rol.
+     * Alterna el estado de una tasa de cambio según el rol.
      *
-     * @param string $rolePrefix (prefijo)
-     * @return CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface
-     *
-     * @throws DomainException Si el rol no es válido
+     * @throws DomainException
      */
-    private function repo(string $rolePrefix): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface
+    public function changeStatusByRole(string $id, int $userId): bool
     {
-        return match ($rolePrefix) {
+        $repo = $this->repo(
+            $this->resolveRole($userId)
+        );
+
+        return $repo->toggleStatus(
+            $repo->findOrFail($id)
+        );
+    }
+
+    /* =====================================================
+     | Resolución de dependencias de dominio
+     |=====================================================*/
+
+    /**
+     * Resuelve el rol activo del usuario.
+     *
+     * @throws DomainException
+     */
+    private function resolveRole(int $userId): string
+    {
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        if (!$role) {
+            throw new DomainException("No se pudo resolver el rol del usuario {$userId}");
+        }
+
+        return $role;
+    }
+
+    /**
+     * Resuelve el ID de la entidad asociada al rol.
+     *
+     * @throws DomainException
+     */
+    private function resolveRoleEntityId(int $userId, string $role): int
+    {
+        $roleEntityId = $this->roleUserService->getUserRoleEntityId($userId, $role);
+
+        if (!$roleEntityId) {
+            throw new DomainException(
+                "No se encontró entidad asociada al rol '{$role}' para el usuario {$userId}"
+            );
+        }
+
+        return $roleEntityId;
+    }
+
+    /**
+     * Devuelve el repositorio correspondiente al rol.
+     *
+     * @throws DomainException
+     */
+    private function repo(
+        string $role
+    ): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface {
+        return match ($role) {
             'commerce' => $this->commerce,
             'customer' => $this->customer,
-            default => throw new DomainException("Rol inválido: {$rolePrefix}"),
+            default    => throw new DomainException("Rol inválido: {$role}"),
         };
     }
 }

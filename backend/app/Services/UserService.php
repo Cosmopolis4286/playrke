@@ -5,11 +5,10 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\Shared\UniqueCode;
 use App\Contracts\UserRepositoryInterface;
-use App\Services\BaseService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-class UserService extends BaseService
+class UserService extends
 {
     /**
      * @param UserRepositoryInterface $repository

@@ -241,4 +241,49 @@ interface BaseRepositoryInterface
      * @return Collection<int, Model>
      */
     public function getByStatus(string $status, array $fields = ['*']): Collection;
+
+    /**
+     * Soft delete genérico con soporte de relaciones.
+     *
+     * @param int|string|Model $model
+     * @param string|null $status Estado a aplicar (ej: DELETED)
+     * @param array<int, string> $relationsToDetach Relaciones many-to-many
+     * @param string|null $userRelation Relación belongsTo hacia User
+     *
+     * @return bool
+     */
+    public function softDelete(
+        int|string|Model $model,
+        ?string $status = 'DELETED',
+        array $relationsToDetach = [],
+        ?string $userRelation = null
+    ): bool;
+
+    /**
+     * Cambiar estado del modelo (y usuario relacionado opcional).
+     *
+     * @param Model $model
+     * @param string|null $newStatus Nuevo estado (opcional)
+     * @param string|null $userRelation Relación belongsTo hacia User
+     *
+     * @return bool
+     */
+    public function changeStatus(
+        Model $model,
+        ?string $newStatus = null,
+        ?string $userRelation = null
+    ): bool;
+
+    /**
+     * Alterna el estado del modelo entre ACTIVE e INACTIVE.
+     *
+     * El cálculo del nuevo estado se delega al StatusChanger
+     * para respetar reglas de dominio.
+     *
+     * @param Model $model
+     * @return bool
+     *
+     * @throws \InvalidArgumentException Si el estado no permite transición
+     */
+    public function toggleStatus(Model $model): bool;
 }
