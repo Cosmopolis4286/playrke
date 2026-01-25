@@ -33,9 +33,7 @@ return new class extends Migration
                 ->default(1)
                 ->comment('Valor de cambio de la moneda');
 
-            $table->double('percentage', 8, 2)
-                ->default(0)
-                ->comment('Porcentaje adicional asociado a la tasa');
+            $table->decimal('percentage', 8, 3)->default(0)->comment('Porcentaje de subida/bajada');
 
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'DELETED', 'OLD', 'DIRECTORY'])
                 ->default('ACTIVE')
@@ -46,8 +44,9 @@ return new class extends Migration
             // Soft deletes
             $table->softDeletes();
 
-            // Restricción única por comercio y moneda
-            $table->unique(['commerce_id', 'currency_id'], 'commerce_currency_unique');
+            // Índices compuestos para consultas frecuentes
+            $table->index(['commerce_id', 'currency_id']);
+            $table->index(['commerce_id', 'status']);
         });
     }
 

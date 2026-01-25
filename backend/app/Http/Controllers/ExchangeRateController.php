@@ -36,6 +36,8 @@ class ExchangeRateController extends Controller
             function () use ($request) {
                 $response = $this->service->context($request->query('token', null));
 
+                $response['title'] = 'Tasas de Cambio';
+
                 return Inertia::render('ExchangeRate/Index', $response);
             },
             'No se pudo cargar la lista de tasas de cambios.'

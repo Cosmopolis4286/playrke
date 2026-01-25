@@ -12,7 +12,7 @@
 
   // Usamos useHead para manejar el título y los metadatos
   useHead({
-    title: `PlayRKE - ${props.title ?? ''}`,
+    title: props.title ? `PlayRKE - ${props.title}` : 'PlayRKE',
     meta: [
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: 'https://www.playrke.com/' },
@@ -20,10 +20,21 @@
       {
         name: 'description',
         content:
-          'Únete ahora. Transforma tu conocimiento, habilidad, tiempo y esfuerzo en dinero mientras juegas online. Gana rápido y retira seguro con PlayRKE.'
+          'Únete ahora. Transforma tu conocimiento, habilidad, tiempo y esfuerzo en dinero mientras juegas online.'
       }
     ],
-    link: [{ rel: 'icon', href: './img/fav.ico', sizes: '192x192' }]
+    link: [
+      {
+        rel: 'icon',
+        type: 'image/x-icon',
+        href: '/img/fav.ico'
+      },
+      {
+        rel: 'shortcut icon',
+        type: 'image/x-icon',
+        href: '/img/fav.ico'
+      }
+    ]
   })
 </script>
 

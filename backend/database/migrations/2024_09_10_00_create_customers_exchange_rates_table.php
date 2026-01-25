@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('customers_exchange_rates', function (Blueprint $table) {
             // PK con Snowflake
-            $table->snowflake('id')->primary();;
+            $table->snowflake('id')->primary()->comment('ID único de la tasa de cambio');
 
             $table->foreignSnowflake('customer_id')
                 ->constrained('customers')
@@ -22,20 +22,17 @@ return new class extends Migration
                 ->default(1)
                 ->comment('Valor de cambio de la moneda');
 
-            $table->foreignSnowflake('user_id')
-                ->nullable()
-                ->constrained('users')
-                ->nullOnDelete()
-                ->comment('Usuario que registró/modificó');
-
             $table->enum('status', ['ACTIVE', 'INACTIVE'])
                 ->default('ACTIVE')
                 ->index()
                 ->comment('Estado del tipo de cambio');
 
-            $table->decimal('percentage', 6, 3)->default(0)->comment('Porcentaje aplicado');
+            $table->decimal('percentage', 8, 3)->default(0)->comment('Porcentaje de subida/bajada');
 
             $table->timestamps();
+
+            // Soft deletes
+            $table->softDeletes();
 
             // Índices compuestos para consultas frecuentes
             $table->index(['customer_id', 'currency_id']);
