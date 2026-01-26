@@ -51,7 +51,7 @@
 <template>
   <div>
     <button v-if="canCreate" @click="$emit('create')" class="btn btn-sm btn-success" type="button">
-      <i class="fas fa-plus-square"></i> Añadir
+      <i class="fas fa-plus-square"></i> Registar
     </button>
 
     <button

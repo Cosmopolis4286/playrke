@@ -22,6 +22,23 @@ use Illuminate\Pagination\LengthAwarePaginator;
 interface BaseRepositoryInterface
 {
     /**
+     * Restablece la instancia del modelo Eloquent asociada al repositorio.
+     *
+     * Este método reinicializa la propiedad interna del modelo para limpiar
+     * cualquier estado previo y preparar una nueva instancia limpia.
+     *
+     * @return void
+     */
+    public function resetModel(): void;
+
+    /**
+     * Obtiene la instancia actual del modelo Eloquent asociado al repositorio.
+     *
+     * @return Model Instancia del modelo Eloquent usada por el repositorio.
+     */
+    public function getModel(): Model;
+
+    /**
      * Obtener todos los registros.
      *
      * @param array<int,string> $columns Columnas a seleccionar

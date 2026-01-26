@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * Implementa las operaciones específicas para el modelo ExchangeRate,
  * incluyendo gestión de valores, conversiones y estadísticas.
  */
-class RoleExchangeRateRepository extends BaseRepository implements RoleExchangeRateRepositoryInterface
+abstract class RoleExchangeRateRepository extends BaseRepository implements RoleExchangeRateRepositoryInterface
 {
     use ResolvesExchangeRateForeignKey;
 

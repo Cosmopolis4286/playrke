@@ -7,18 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 trait ResolvesExchangeRateForeignKey
 {
     /**
-     * Devuelve la foreign key dinámica según el modelo del repositorio.
+     * Devuelve la foreign key dinámica según el modelo recibido.
      *
      * @param int $roleEntityId
+     * @param Model $model Modelo Eloquent para resolver tabla
      * @return array
      *
      * @throws \LogicException
      */
-    public function foreignKeyData(int $roleEntityId): array
+    public function foreignKeyData(int $roleEntityId, Model $model): array
     {
-        /** @var Model $model */
-        $model = $this->model;
-
         return match ($model->getTable()) {
             'commerces_exchange_rates' => [
                 'commerce_id' => $roleEntityId,

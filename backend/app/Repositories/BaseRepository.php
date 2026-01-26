@@ -27,9 +27,34 @@ abstract class BaseRepository implements BaseRepositoryInterface
      */
     protected ?StatusChanger $statusChanger = null;
 
+    /**
+     * Asigna una instancia de StatusChanger al repositorio.
+     *
+     * Permite inyectar la dependencia para gestionar cambios de estado
+     * de los modelos manejados por el repositorio.
+     *
+     * @param StatusChanger $statusChanger Instancia del servicio para cambiar estados.
+     * @return void
+     */
     public function setStatusChanger(StatusChanger $statusChanger): void
     {
         $this->statusChanger = $statusChanger;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function resetModel(): void
+    {
+        $this->model = $this->model->newInstance();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getModel(): Model
+    {
+        return $this->model;
     }
 
     /**
@@ -185,22 +210,6 @@ abstract class BaseRepository implements BaseRepositoryInterface
         }
 
         return $query->first($columns);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function resetModel(): void
-    {
-        $this->model = $this->model->newInstance();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getModel(): Model
-    {
-        return $this->model;
     }
 
     /**

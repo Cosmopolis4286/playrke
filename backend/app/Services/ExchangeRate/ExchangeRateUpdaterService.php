@@ -19,7 +19,8 @@ final class ExchangeRateUpdaterService
     public function __construct(
         protected readonly ExchangeRateRepositoryInterface $repository,
         protected readonly RoleUserService $roleUserService,
-        protected readonly ExchangeRateApiService $api
+        protected readonly ExchangeRateApiService $api,
+        protected readonly ExchangeRateCrudService $crud
     ) {}
 
     /**
@@ -33,6 +34,8 @@ final class ExchangeRateUpdaterService
         $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
         $data = $this->api->fetch();
 
+        dd($data);
+
         if (empty($data)) {
             Log::warning('No se obtuvieron datos para actualizar tasas.');
             return false;
@@ -45,20 +48,6 @@ final class ExchangeRateUpdaterService
             Log::error('Error actualizando tasas: ' . $e->getMessage());
             return false;
         }
-    }
-
-    /**
-     * Actualiza las tasas para todos los registros activos de un tipo (commerce o customer).
-     *
-     * @param string $type Tipo de entidad ('commerce'|'customer')
-     * @param array $data Tasas obtenidas desde la API
-     * @return void
-     */
-    public function updateForAll(string $type, array $data): void
-    {
-        $model = $this->getModelClass($type);
-        $ids = $model::where('status', 1)->pluck('id')->toArray();
-        $this->updateForType($type, $ids, $data);
     }
 
     /**
@@ -115,17 +104,6 @@ final class ExchangeRateUpdaterService
             ->value('updated_at');
 
         return $lastUpdate && Carbon::parse($lastUpdate)->addHours(3)->isFuture();
-    }
-
-    /**
-     * Retorna la clase del modelo según el tipo.
-     *
-     * @param string $type Tipo ('commerce'|'customer')
-     * @return string Nombre completo del modelo
-     */
-    protected function getModelClass(string $type): string
-    {
-        return $type === 'commerce' ? \App\Models\Roles\Commerce::class : \App\Models\Roles\Customer::class;
     }
 
     /**

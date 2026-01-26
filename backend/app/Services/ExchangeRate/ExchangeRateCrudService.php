@@ -2,12 +2,12 @@
 
 namespace App\Services\ExchangeRate;
 
-use App\Contracts\ExchangeRate\RoleExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Services\Roles\RoleUserService;
+use App\Traits\ExchangeRate\ResolvesExchangeRateForeignKey;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -25,17 +25,17 @@ use Illuminate\Support\Facades\Log;
  */
 final class ExchangeRateCrudService
 {
+    use ResolvesExchangeRateForeignKey;
+
     /**
      * Constructor con inyección de dependencias.
      *
-     * @param RoleExchangeRateRepositoryInterface $roleExchangeRate Repositorio roles en general
      * @param CommerceExchangeRateRepositoryInterface $commerce Repositorio para rol commerce
      * @param CustomerExchangeRateRepositoryInterface $customer Repositorio para rol customer
      * @param RoleUserService $roleUserService Servicio para resolución de roles y entidades de usuario
      * @param ExchangeRateDomainService $domain Servicio de lógica de dominio para tasas
      */
     public function __construct(
-        private readonly RoleExchangeRateRepositoryInterface $roleExchangeRate,
         private readonly CommerceExchangeRateRepositoryInterface $commerce,
         private readonly CustomerExchangeRateRepositoryInterface $customer,
         private readonly RoleUserService $roleUserService,
@@ -43,7 +43,7 @@ final class ExchangeRateCrudService
     ) {}
 
     /**
-     * Crea o restaura una tasa de cambio para el rol activo.
+     * Crea una tasa de cambio para el rol activo.
      *
      * @param ExchangeRateDTO $dto DTO con datos de la tasa a crear
      * @param int $userId ID del usuario que realiza la operación
@@ -57,12 +57,22 @@ final class ExchangeRateCrudService
         $role = $this->resolveRole($userId);
         $roleEntityId = $this->resolveRoleEntityId($userId, $role);
 
-        return DB::transaction(function () use ($dto, $role, $roleEntityId, $userId) {
-            // Crea o restaura la tasa según la moneda y entidad
-            $this->repo($role)->createOrRestoreByCurrency($roleEntityId, $dto);
+        // Inyectar el modelo según el rol (esto puede ser dinámico)
+        $model= $this->repo($role)->getModel();
+        $foreignKeyData = $this->foreignKeyData($roleEntityId, $model);
 
-            Log::info('ExchangeRate creado/restaurado', [
-                'user_id'     => $userId,
+        return DB::transaction(function () use ($dto, $role, $foreignKeyData) {
+            // Extraer clave y valor para la columna foránea
+            $foreignKeyColumn = key($foreignKeyData);
+            $foreignKeyValue = current($foreignKeyData);
+
+            // Preparar datos para creación, combinando DTO con la clave foránea
+            $data = $dto->toArray() + [$foreignKeyColumn => $foreignKeyValue];
+
+            // Crear tasa para la moneda y entidad correspondiente
+            $this->repo($role)->create($data);
+
+            Log::info('ExchangeRate creado', [
                 'role'        => $role,
                 'currency_id' => $dto->currencyId,
             ]);
@@ -123,8 +133,6 @@ final class ExchangeRateCrudService
                 ...$dto->toArray(),
                 // Calcula y guarda porcentaje de variación respecto al valor anterior
                 'percentage' => $this->domain->calculatePercentage($oldAmount, $dto->amount),
-                // Restaura si estaba eliminado
-                'deleted_at' => null,
             ]);
 
             Log::info('ExchangeRate actualizado', ['id' => $dto->id, 'new_amount' => $dto->amount]);

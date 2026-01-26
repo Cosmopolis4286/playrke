@@ -120,11 +120,11 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
             if (exchangeRateData.value.id) {
                 // Editar tasa existente
                 const { data } = await backendClient.put(`/exchange-rate/${exchangeRateData.value.id}`, exchangeRateData.value)
-                showToast(data.message, data.success ? 'success' : 'error')
+                showToast(data.message, 'success')
             } else {
                 // Crear nueva tasa
                 const { data } = await backendClient.post('/exchange-rate', exchangeRateData.value)
-                showToast(data.message, data.success ? 'success' : 'error')
+                showToast(data.message, 'success')
             }
 
             loading.value = false
@@ -135,6 +135,8 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
             return true
         } catch (error) {
             console.error('Error en submit:', error)
+            showToast(error.response.data.message, 'error')
+            loading.value = false
             return false
         }
     }
@@ -240,7 +242,6 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         try {
             loading.value = true
             await backendClient.put('/exchange-rate/update-all')
-
             showToast('Tasas de cambio actualizadas con éxito', 'success')
             await fetchExchangeRates()
         } catch (error) {
