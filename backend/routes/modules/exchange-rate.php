@@ -14,6 +14,7 @@ route_group(
         'index'        => ['method' => 'get', 'uri' => '', 'defaults' => ['inertiaOnly' => false]],
         'store'        => ['method' => 'post', 'uri' => ''],
         'updateAll'    => ['method' => 'put', 'uri' => 'update-all'],
+        'getRawRates' => ['method' => 'get', 'uri' => 'raw-rates'],
         'listFiltered' => ['method' => 'get', 'uri' => 'list-filtered'],
         'show'         => ['method' => 'get', 'uri' => '{id}'],
         'update'       => ['method' => 'put', 'uri' => '{id}'],

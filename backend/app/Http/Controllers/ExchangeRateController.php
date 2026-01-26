@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Factories\ExchangeRate\ExchangeRateFactory;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
+use App\Services\ExchangeRate\ExchangeRateApiService;
 use App\Services\ExchangeRate\ExchangeRateService;
 use App\Services\Token\TokenService;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +23,7 @@ class ExchangeRateController extends Controller
     public function __construct(
         private ExchangeRateFactory $factory,
         private ExchangeRateService $service,
+        private ExchangeRateApiService $exchangeRateApiService,
         private TokenService $tokenService
     ) {}
 
@@ -190,6 +192,30 @@ class ExchangeRateController extends Controller
             ),
             'No se pudo cargar el histórico de tasas de cambio.'
         );
+    }
+
+    /**
+     * Retorna las tasas crudas obtenidas de la API externa para mostrar en confirmación.
+     *
+     * @return JsonResponse
+     */
+    public function getRawRates(): JsonResponse
+    {
+        $rates = $this->exchangeRateApiService->fetch();
+
+        if (!$rates) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudieron obtener las tasas de cambio.',
+                'data' => null,
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Tasas obtenidas correctamente.',
+            'data' => $rates,
+        ]);
     }
 
     /**

@@ -146,12 +146,12 @@ final class ExchangeRateCrudService
                 'status' => $dto->status,
             ]);
 
-            // Crear nuevo registro con la nueva tasa
-            $newExchangeRateId = $repo->create($newData);
+            // Crear nuevo registro con la nueva tasa y retorna id
+            $newExchangeRateId = $repo->create($newData)->id;
 
             Log::info('ExchangeRate actualizado', [
                 'old_id' => $dto->id,
-                'old_amount' => $oldExchangeRate['amount'],
+                'old_amount' => floatval($oldExchangeRate['amount']),
                 'new_id' => $newExchangeRateId,
                 'new_amount' => $dto->amount
             ]);

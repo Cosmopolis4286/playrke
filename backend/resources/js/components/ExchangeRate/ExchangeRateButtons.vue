@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, ref } from 'vue'
+  import { computed } from 'vue'
   import type { UsedCurrency } from '@/js/types/exchange-rate'
   import type { Currency } from '@/js/types/currency'
 
@@ -8,20 +8,21 @@
     usedCurrencies?: UsedCurrency[]
     hasPrivilegedRole: boolean
     selectedCurrency: Array<string>
+
+    /**
+     * Indica si la acción "Actualizar tasas" está en progreso
+     * (controlado por el componente padre)
+     */
+    updatingExchangeRates: boolean
   }>()
 
   const emit = defineEmits<{
     (e: 'create'): void
     (e: 'historical'): void
-    (e: 'update'): Promise<void> | void
+    (e: 'updateExchangeRates'): void
   }>()
 
   const currencies = props.currencies ?? []
-
-  /**
-   * Loading exclusivo del botón "Actualizar"
-   */
-  const updating = ref(false)
 
   // Monedas en uso
   const usedCurrencies = computed(() => props.usedCurrencies ?? [])
@@ -36,26 +37,23 @@
   })
 
   /**
-   * Maneja click de actualización con loading local
+   * Maneja el click del botón "Actualizar".
+   * No ejecuta lógica async, solo notifica al padre.
    */
-  async function onUpdate() {
-    updating.value = true
-    try {
-      await emit('update')
-    } finally {
-      updating.value = false
-    }
+  function onUpdateExchangeRates(): void {
+    if (props.updatingExchangeRates) return
+    emit('updateExchangeRates')
   }
 </script>
 
 <template>
   <div>
     <button v-if="canCreate" @click="$emit('create')" class="btn btn-sm btn-success" type="button">
-      <i class="fas fa-plus-square"></i> Registar
+      <i class="fas fa-plus-square"></i> Registrar
     </button>
 
     <button
-      :disabled="!selectedCurrency"
+      :disabled="!selectedCurrency.length"
       @click="$emit('historical')"
       class="btn btn-sm btn-primary ml-2"
       type="button"
@@ -64,13 +62,17 @@
     </button>
 
     <button
-      :disabled="updating"
-      @click="onUpdate"
+      :disabled="props.updatingExchangeRates"
+      @click="onUpdateExchangeRates"
       class="btn btn-sm btn-secondary ml-2"
       type="button"
     >
       <i class="fa-solid fa-rotate"></i> Actualizar
-      <span v-if="updating" class="spinner-border spinner-border-sm ml-1" aria-hidden="true"></span>
+      <span
+        v-if="props.updatingExchangeRates"
+        class="spinner-border spinner-border-sm ml-1"
+        aria-hidden="true"
+      ></span>
     </button>
   </div>
 </template>

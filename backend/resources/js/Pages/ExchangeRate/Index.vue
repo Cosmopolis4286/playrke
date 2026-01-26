@@ -48,6 +48,12 @@
   const usedCurrencies = ref<UsedCurrency[]>([])
 
   /**
+   * Loading exclusivo para la acción "Actualizar tasas"
+   * Vive en el padre porque aquí vive la operación async
+   */
+  const updatingExchangeRates = ref(false)
+
+  /**
    * Genera las monedas usadas en las tasas para presentación
    */
   watch(
@@ -105,6 +111,21 @@
   }
 
   /**
+   * Ejecuta la sincronización masiva de tasas de cambio
+   * y controla el loading del botón "Actualizar".
+   */
+  async function handleUpdateExchangeRates(): Promise<void> {
+    if (updatingExchangeRates.value) return
+
+    updatingExchangeRates.value = true
+    try {
+      await updateExchangeRates()
+    } finally {
+      updatingExchangeRates.value = false
+    }
+  }
+
+  /**
    * Navega a la vista histórica filtrando por las monedas seleccionadas
    */
   function goHistorical(): void {
@@ -114,7 +135,6 @@
       `/exchange-rate/historical/${selectedCurrency.value}` + `?tokenId=${props.tokenId}`
   }
 </script>
-
 <template>
   <div class="card">
     <CardHeader title="Tasas de Cambio" subtitle="Valores en base a Un Dólar (1 USD)" />
@@ -125,9 +145,10 @@
         :usedCurrencies="usedCurrencies"
         :has-privileged-role="hasPrivilegedRole"
         :selected-currency="selectedCurrency"
+        :updating-exchange-rates="updatingExchangeRates"
         @create="handleCreate"
         @historical="goHistorical"
-        @update="updateExchangeRates"
+        @updateExchangeRates="handleUpdateExchangeRates"
       />
 
       <ExchangeRateTable

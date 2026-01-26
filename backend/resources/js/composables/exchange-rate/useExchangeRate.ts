@@ -28,19 +28,19 @@ interface UseExchangeRateReturn {
     create: () => void
 
     /** Abre el modal en modo edición */
-    edit: (id: string | number) => Promise<void>
+    edit: (id: string | number) => Promise<boolean>
 
     /** Cambia el estado de una tasa */
-    changeStatus: (id: string | number) => Promise<void>
+    changeStatus: (id: string | number) => Promise<boolean>
 
     /** Elimina una tasa */
-    remove: (id: string | number) => Promise<void>
+    remove: (id: string | number) => Promise<boolean>
 
     /** Sincroniza tasas desde backend */
-    updateExchangeRates: () => Promise<void>
+    updateExchangeRates: () => Promise<boolean>
 
     /** Obtiene y actualiza la lista filtrada de tasas desde backend */
-    fetchExchangeRates: () => Promise<void>
+    fetchExchangeRates: () => Promise<boolean>
 }
 
 /**
@@ -79,20 +79,28 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
     /**
      * Obtiene y actualiza la lista filtrada de tasas desde backend.
      */
-    async function fetchExchangeRates(): Promise<void> {
-        if (loading.value) return
+    async function fetchExchangeRates(): Promise<boolean> {
+        if (loading.value) return false
 
         try {
             loading.value = true
-            const response = await backendClient.get<{ success: boolean; data: ExchangeRate[] }>('/exchange-rate/list-filtered', {
+
+            const response = await backendClient.get<{
+                success: boolean
+                data: ExchangeRate[]
+            }>('/exchange-rate/list-filtered', {
                 params: { token: tokenId }
             })
-            const data = response.data?.data
-            if (Array.isArray(data)) {
-                exchangeRates.value = data
+
+            if (Array.isArray(response.data?.data)) {
+                exchangeRates.value = response.data.data
             }
+
+            return true
         } catch (error) {
             console.error('Error al obtener las tasas de cambio:', error)
+            showToast('Error al cargar las tasas de cambio', 'error')
+            return false
         } finally {
             loading.value = false
         }
@@ -118,26 +126,27 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
             }
 
             if (exchangeRateData.value.id) {
-                // Editar tasa existente
-                const { data } = await backendClient.put(`/exchange-rate/${exchangeRateData.value.id}`, exchangeRateData.value)
+                const { data } = await backendClient.put(
+                    `/exchange-rate/${exchangeRateData.value.id}`,
+                    exchangeRateData.value
+                )
                 showToast(data.message, 'success')
             } else {
-                // Crear nueva tasa
-                const { data } = await backendClient.post('/exchange-rate', exchangeRateData.value)
+                const { data } = await backendClient.post(
+                    '/exchange-rate',
+                    exchangeRateData.value
+                )
                 showToast(data.message, 'success')
             }
 
-            loading.value = false
-
-            // Actualizar lista tras operación exitosa sin recargar página
             await fetchExchangeRates()
-
             return true
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error en submit:', error)
-            showToast(error.response.data.message, 'error')
-            loading.value = false
+            showToast(error?.response?.data?.message ?? 'Error al guardar la tasa', 'error')
             return false
+        } finally {
+            loading.value = false
         }
     }
 
@@ -160,17 +169,22 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      *
      * @param {string | number} id Identificador de la tasa
      */
-    async function edit(id: string | number): Promise<void> {
-        if (loading.value) return
+    async function edit(id: string | number): Promise<boolean> {
+        if (loading.value) return false
 
         try {
             loading.value = true
-            const response = await backendClient.get<{ success: boolean; data: ExchangeRate }>(`/exchange-rate/${id}`)
-            const data = response.data?.data
 
-            if (!data) {
+            const response = await backendClient.get<{
+                success: boolean
+                data: ExchangeRate
+            }>(`/exchange-rate/${id}`)
+
+            if (!response.data?.data) {
                 throw new Error('No se encontró la tasa de cambio')
             }
+
+            const data = response.data.data
 
             exchangeRateData.value = {
                 id: data.id,
@@ -179,8 +193,12 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
                 status: data.status,
                 token: tokenId || undefined
             }
+
+            return true
         } catch (error) {
             console.error('Error cargando tasa:', error)
+            showToast('Error al cargar la tasa de cambio', 'error')
+            return false
         } finally {
             loading.value = false
         }
@@ -191,21 +209,24 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      *
      * @param id Identificador de la tasa
      */
-    async function changeStatus(id: string | number): Promise<void> {
-        const confirm = await showToastConfirmAction(
-            '¿Quieres cambiar el estado de esta tasa de cambio?',
-            'warning',
-            'Sí, cambiar estado'
-        )
-        if (!confirm) return
+    async function changeStatus(id: string | number): Promise<boolean> {
+        const confirm = await showToastConfirmAction({
+            text: '¿Quieres cambiar el estado de esta tasa de cambio?',
+            icon: 'warning',
+            confirmButtonText: 'Sí, cambiar estado'
+        })
+
+        if (!confirm) return false
 
         try {
             await backendClient.put(`/exchange-rate/${id}/status`)
             showToast('Estado cambiado con éxito', 'success')
             await fetchExchangeRates()
+            return true
         } catch (error) {
             console.error('Error cambiando estado:', error)
             showToast('Error al cambiar el estado', 'error')
+            return false
         }
     }
 
@@ -214,39 +235,72 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      *
      * @param id Identificador de la tasa
      */
-    async function remove(id: string | number): Promise<void> {
-        const confirm = await showToastConfirmAction(
-            '¿Estás seguro que deseas eliminar esta tasa de cambio?',
-            'warning',
-            'Sí, eliminar'
-        )
-        if (!confirm) return
+    async function remove(id: string | number): Promise<boolean> {
+        const confirm = await showToastConfirmAction({
+            text: '¿Estás seguro que deseas eliminar esta tasa de cambio?',
+            icon: 'warning',
+            confirmButtonText: 'Sí, eliminar'
+        })
+
+        if (!confirm) return false
 
         try {
             await backendClient.put(`/exchange-rate/${id}/delete`)
             showToast('Tasa de cambio eliminada con éxito', 'success')
             await fetchExchangeRates()
+            return true
         } catch (error) {
             console.error('Error eliminando tasa:', error)
             showToast('Error al eliminar la tasa', 'error')
+            return false
         }
     }
 
     /**
      * Sincroniza todas las tasas de cambio desde backend.
-     * Usado para actualización masiva.
+     *
+     * Muestra un SweetAlert con las tasas actuales obtenidas,
+     * y solicita confirmación antes de proceder con la actualización masiva.
+     *
+     * @returns {Promise<boolean>}
      */
-    async function updateExchangeRates(): Promise<void> {
-        if (loading.value) return
+    async function updateExchangeRates(): Promise<boolean> {
+        if (loading.value) return false
 
         try {
             loading.value = true
+
+            const response = await backendClient.get<{
+                success: boolean
+                data: Record<string, string>
+            }>('/exchange-rate/raw-rates')
+
+            if (!response.data?.data) {
+                throw new Error('No se recibieron tasas para mostrar')
+            }
+
+            const ratesHtml = Object.entries(response.data.data)
+                .map(([currency, value]) => `<li><strong>${currency}:</strong> ${value}</li>`)
+                .join('')
+
+            const confirmed = await showToastConfirmAction({
+                html: `<ul style="text-align: left;">${ratesHtml}</ul><strong>¿Deseas actualizar con estas tasas?</strong>`,
+                icon: 'info',
+                confirmButtonText: 'Sí, actualizar',
+                title: 'Tasas de cambio obtenidas'
+            })
+
+            if (!confirmed) return false
+
             await backendClient.put('/exchange-rate/update-all')
             showToast('Tasas de cambio actualizadas con éxito', 'success')
             await fetchExchangeRates()
+
+            return true
         } catch (error) {
             console.error('Error actualizando tasas:', error)
             showToast('Error al actualizar las tasas', 'error')
+            return false
         } finally {
             loading.value = false
         }
