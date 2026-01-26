@@ -1,174 +1,146 @@
-<script setup lang="ts" name="AdminCommerceForm">
-  /* =======================
-   * Imports
-   * ======================= */
-  import { ref, watch, computed, toRefs } from 'vue'
+<script setup lang="ts" name="ExchangeRateForm">
+  import { computed } from 'vue'
+  import { useExchangeRateForm } from '@/js/composables/exchange-rate/useExchangeRateForm'
   import type { Currency } from '@/js/types/currency'
-  import type { UsedCurrency } from '@/js/types/exchange-rate'
+  import type { ExchangeRate, UsedCurrency } from '@/js/types/exchange-rate'
 
-  /* =======================
+  /**
    * Props
-   * ======================= */
+   */
   const props = defineProps<{
     usedCurrencies?: UsedCurrency[]
     currencies: Currency[]
     hasPrivilegedRole: boolean
-    modelValue: {
-      currency?: string
-      exchange_rate?: number | null
-    }
+    modelValue: Partial<ExchangeRate>
   }>()
 
-  /* =======================
+  /**
    * Emits
-   * ======================= */
+   */
   const emit = defineEmits<{
     (e: 'submit'): void
-    (
-      e: 'update:modelValue',
-      value: {
-        currency?: string
-        exchange_rate?: number | null
-      }
-    ): void
+    (e: 'update:modelValue', value: any): void
   }>()
 
-  /* =======================
-   * State / Refs
-   * ======================= */
-  const { modelValue } = toRefs(props)
-
-  const errors = ref<{
-    currency?: string
-    exchange_rate?: string
-  }>({})
+  /**
+   * Composable de formulario
+   */
+  const { form, errors, maskOptions, isEditMode, isValid, validate } = useExchangeRateForm(
+    props.modelValue,
+    emit
+  )
 
   /* =======================
    * Computed
    * ======================= */
-  const availableCurrencies = computed<Currency[]>(() => {
-    if (!props.usedCurrencies?.length) {
-      return props.currencies
+
+  /**
+   * Monedas disponibles:
+   * - Solo FIAT
+   * - En create: excluye usadas
+   * - En edit: permite la moneda actual
+   */
+  const availableCurrencies = computed(() => {
+    const fiatCurrencies = props.currencies.filter(c => c.type === 'FIAT')
+
+    if (isEditMode.value || !props.usedCurrencies?.length) {
+      return fiatCurrencies
     }
 
-    const usedIsoCodes = new Set(props.usedCurrencies.map(currency => currency.iso_code))
-
-    return props.currencies.filter(currency => !usedIsoCodes.has(currency.iso_code))
+    const usedIsoCodes = new Set(props.usedCurrencies.map(c => c.iso_code))
+    return fiatCurrencies.filter(c => !usedIsoCodes.has(c.iso_code))
   })
-
-  const isValid = computed(() => {
-    return !errors.value.currency && !errors.value.exchange_rate
-  })
-
-  /* =======================
-   * Constants
-   * ======================= */
-  const maskOptions = {
-    mask: Number,
-    scale: 2,
-    thousandsSeparator: '',
-    padFractionalZeros: false,
-    normalizeZeros: true,
-    radix: '.',
-    mapToRadix: [',']
-  }
 
   /* =======================
    * Methods
    * ======================= */
-  const validate = (): void => {
-    errors.value.currency = ''
-    errors.value.exchange_rate = ''
 
-    if (!modelValue.value.currency?.trim()) {
-      errors.value.currency = 'La divisa es requerida.'
-    }
-
-    if (
-      modelValue.value.exchange_rate === null ||
-      modelValue.value.exchange_rate === undefined ||
-      modelValue.value.exchange_rate <= 0
-    ) {
-      errors.value.exchange_rate = 'El cambio debe ser un número mayor a cero.'
-    }
-  }
-
+  /**
+   * Submit interno del formulario
+   */
   const submit = (): boolean => {
     validate()
-
     if (!isValid.value) return false
 
     emit('submit')
     return true
   }
 
-  /* =======================
-   * Watchers
-   * ======================= */
-  watch(modelValue, newValue => emit('update:modelValue', newValue), { deep: true })
-
-  watch(() => [modelValue.value.currency, modelValue.value.exchange_rate], validate, {
-    immediate: true
-  })
-
-  /* =======================
-   * Expose
-   * ======================= */
+  /**
+   * API pública para el modal
+   */
   defineExpose({
     submit,
-    get isValid() {
-      return isValid.value
-    }
+    isValid
   })
 </script>
-
 <template>
   <form @submit.prevent="submit" novalidate>
-    <div class="form-group">
-      <label>Divisa*</label>
-
-      <input
-        v-if="hasPrivilegedRole"
-        type="text"
-        class="form-control"
-        v-model="modelValue.currency"
-        required
-        @blur="validate"
-      />
-
-      <select v-else class="form-control" v-model="modelValue.currency" required @blur="validate">
-        <option disabled value="">Seleccione una moneda</option>
-        <option
-          v-for="currency in availableCurrencies"
-          :key="currency.id"
-          :value="currency.iso_code"
+    <div class="row">
+      <div class="form-group col-md-6">
+        <label>Divisa*</label>
+        <!-- Input libre solo para roles privilegiados -->
+        <input
+          v-if="hasPrivilegedRole"
+          type="text"
+          class="form-control"
+          v-model="form.currency_id"
+          :disabled="isEditMode"
+          @blur="validate"
+        />
+        <!-- Select normal -->
+        <select
+          v-else
+          class="form-control"
+          v-model="form.currency_id"
+          :disabled="isEditMode"
+          @blur="validate"
         >
-          {{ currency.name }} ({{ currency.symbol }})
-        </option>
-      </select>
+          <option disabled value="">Seleccione una moneda</option>
+          <option
+            v-for="currency in availableCurrencies"
+            :key="currency.id"
+            :value="currency.iso_code"
+          >
+            {{ currency.description }} ({{ currency.symbol }})
+          </option>
+        </select>
 
-      <small v-if="errors.currency" class="text-danger mt-1">{{ errors.currency }}</small>
-    </div>
+        <small v-if="errors.currency_id" class="text-danger">
+          {{ errors.currency_id }}
+        </small>
+      </div>
 
-    <div class="form-group">
-      <label>Cambio*</label>
+      <div class="form-group col-md-6">
+        <label>Valor de Cambio*</label>
+        <input
+          type="text"
+          class="form-control"
+          v-model="form.amount"
+          v-mask="maskOptions"
+          placeholder="0.00"
+          inputmode="decimal"
+          @blur="validate"
+        />
+        <small v-if="errors.amount" class="text-danger">
+          {{ errors.amount }}
+        </small>
+      </div>
 
-      <input
-        type="text"
-        class="form-control"
-        v-model="modelValue.exchange_rate"
-        v-mask="maskOptions"
-        placeholder="0.00"
-        @blur="validate"
-        required
-        inputmode="decimal"
-      />
-
-      <small v-if="errors.exchange_rate" class="text-danger mt-1">
-        {{ errors.exchange_rate }}
-      </small>
-
-      <div class="alert alert-primary mb-n2 mt-2" role="alert">
+      <div class="form-group col-12">
+        <div class="custom-control custom-switch">
+          <input
+            id="exchange-rate-status"
+            type="checkbox"
+            class="custom-control-input"
+            v-model="form.status"
+          />
+          <label class="custom-control-label" for="exchange-rate-status">
+            Activar Tasa de Cambio
+          </label>
+        </div>
+      </div>
+      <div class="alert alert-primary mb-0">
         El tipo de cambio ingresado representa el valor de la moneda seleccionada equivalente a
         <strong>1 USD</strong>.
       </div>

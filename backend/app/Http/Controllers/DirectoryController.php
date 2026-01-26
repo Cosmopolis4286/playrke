@@ -2,118 +2,238 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\BankVenezuela;
-use App\Models\BinanceAccounts;
-use App\Models\Commerce;
-use App\Models\Roles\Commerce\CommerceExchangeRate;
-use App\Models\Country;
-use App\Models\DocumentType;
-use App\Models\Directories\Fiat\Venezuela\PagoMovil;
-use App\Models\Directories\Fiat\Colombia\PaymentAccount;
-use App\Models\Pix;
-use App\Traits\Users\UserTrait;
+use App\Factories\ExchangeRate\ExchangeRateFactory;
+use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
+use App\Services\ExchangeRate\ExchangeRateService;
+use App\Services\Token\TokenService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
+/**
+ * Controlador para la gestión de directorios.
+ *
+ * Recibe las peticiones HTTP y delega en el ExchangeRateService.
+ * Maneja respuestas Inertia y JSON, con manejo centralizado de errores.
+ */
 class DirectoryController extends Controller
 {
-    use UserTrait;
-
-
-    /**
-     * Constructor con inyección de dependencias
-     */
     public function __construct(
-        //protected CommerceRepositoryInterface $commerces,
+        private ExchangeRateFactory $factory,
+        private ExchangeRateService $service,
+        private TokenService $tokenService
     ) {}
 
-    public function index($countryCode)
+    /**
+     * Muestra el listado de tasas de cambio usando Inertia.
+     *
+     * @param Request $request
+     * @return Response
+     */
+    public function index(Request $request): Response
     {
-        $user = $this->user(['id', 'user_type']);
-        $userId = $user->id;
-        $userRole = 22;
+        return $this->handleServiceInertia(
+            function () use ($request) {
+                $token = $request->query('token', null);
 
-        if ($userRole === 'customer') {
-            return redirect()->back();
-        }
+                $this->tokenService->validateToken($token);
 
-        $countryCode = strtolower($countryCode);
-        $validCodes = ['usdt', 'br', 'co', 've'];
+                $response = $this->service->context($token);
 
-        // Redirigir si el código del país no es válido
-        if (!in_array($countryCode, $validCodes)) {
-            return redirect()->back();
-        }
+                $response['title'] = 'Tasas de Cambio';
 
-        if ($countryCode === 'usdt') {
-            $title = "Directorio Binance";
-            $isoCode3 = 'USDT';
-        } else {
-            $country = Country::getCountryByIsoCode($countryCode);
-            if (!$country) return redirect()->back();
+                return Inertia::render('ExchangeRate/Index', $response);
+            },
+            'No se pudo cargar la lista de tasas de cambios.'
+        );
+    }
 
-            $title = "Directorio $country->name";
-            $isoCode3 = $country->iso_code_3;
-        }
+    /**
+     * Endpoint API para obtener tasas filtradas según rol y token.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function listFiltered(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request) {
+                $token = $request->query('token', null);
 
-        $countries = Country::getCountriesById($this->getAvailableCountries($userId));
+                $this->tokenService->validateToken($token);
 
-        $paymentType = null;
-        $moduleId  = null;
-        $additionalData = [];
+                $data = $this->service->getAll($token);
 
-        switch ($isoCode3) {
-            case 'USDT':
-                $paymentType = 'Registro';
-                $moduleId  = 'binance';
-                $additionalData = [
-                    'accounts' => BinanceAccounts::where('user', $userId)->get(),
-                    'accountTypes' => BinanceAccounts::getAccountTypes()
+                return ['data' => $data];
+            },
+            'No se pudo cargar la lista de tasas de cambio.'
+        );
+    }
+
+    /**
+     * Crear una nueva tasa de cambio.
+     *
+     * @param ExchangeRateRequest $request
+     * @return JsonResponse
+     */
+    public function store(ExchangeRateRequest $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request) {
+                $dto = $this->factory->fromRequest($request->validated());
+
+                $response = $this->service->create($dto);
+
+                if ($response === true) {
+                    return ['message' => '✅ Registro exitoso'];
+                }
+
+                // Retorna false para que el helper considere error
+                return false;
+            },
+            'Hubo un error al registrar la tasa de cambio.'
+        );
+    }
+
+    /**
+     * Mostrar detalle de una tasa de cambio por su ID.
+     *
+     * @param string $id Identificador de la tasa de cambio.
+     * @return JsonResponse
+     */
+    public function show(string $id): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => ['data' => $this->service->show($id)],
+            'No se pudo cargar la información de la tasa de cambio.'
+        );
+    }
+
+    /**
+     * Actualizar una tasa de cambio existente.
+     *
+     * @param ExchangeRateRequest $request
+     * @param string $id Identificador de la tasa de cambio.
+     * @return JsonResponse
+     */
+    public function update(ExchangeRateRequest $request, string $id): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request, $id) {
+                $dto = $this->factory->fromRequest($request->validated(), $id);
+
+                $response = $this->service->update($dto);
+
+                if ($response === true) {
+                    return ['message' => '✅ Actualización exitosa'];
+                }
+
+                return false;
+            },
+            'No se pudo actualizar la tasa de cambio.'
+        );
+    }
+
+    /**
+     * Eliminar una tasa de cambio (soft delete).
+     *
+     * @param string $id Identificador de la tasa de cambio.
+     * @return JsonResponse
+     */
+    public function delete(string $id): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($id) {
+                $response = $this->service->delete($id);
+
+                if ($response === true) {
+                    return ['message' => '✅ Tasa de cambio eliminada correctamente'];
+                }
+
+                return false;
+            },
+            'No se pudo eliminar la tasa de cambio.'
+        );
+    }
+
+    /**
+     * Cambiar el estado (activo/inactivo) de una tasa de cambio.
+     *
+     * @param string $id Identificador de la tasa de cambio.
+     * @return JsonResponse
+     */
+    public function changeStatus(string $id): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($id) {
+                $this->service->toggleStatus($id);
+
+                return ['message' => '✅ Estado actualizado correctamente'];
+            },
+            'No se pudo cambiar el estado de la tasa de cambio.'
+        );
+    }
+
+    /**
+     * Mostrar histórico de tasas de cambio con Inertia.
+     *
+     * @param Request $request
+     * @return Response
+     */
+    public function historical(Request $request): Response
+    {
+        return $this->handleServiceInertia(
+            fn() => Inertia::render(
+                'ExchangeRate/Index',
+                $this->service->historicalContext($request->query('token', null))
+            ),
+            'No se pudo cargar el histórico de tasas de cambio.'
+        );
+    }
+
+    /**
+     * Retorna las tasas crudas obtenidas de la API externa para mostrar en confirmación.
+     *
+     * @return JsonResponse
+     */
+    public function getRawRates(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request) {
+                $token = $request->query('token');
+
+                $this->tokenService->validateToken($token);
+
+                $rates = $this->service->getRawRates($token);
+
+                if (!$rates) return false;
+
+                return [
+                    'message' => 'Tasas obtenidas correctamente.',
+                    'data'    => $rates,
                 ];
-                break;
+            },
+            'No se pudieron obtener las tasas de cambio.',
+            500
+        );
+    }
 
-            case 'BRA': // Brasil
-                $paymentType = 'Pix';
-                $moduleId  = 'pix';
-                $additionalData = [
-                    'pixs' => Pix::where('user', $userId)->get(),
-                    'pixKeys' => Pix::getPixKey()
-                ];
-                break;
-
-            case 'COL': // Colombia
-                $paymentType = 'Registro';
-                $moduleId  = 'payment_accounts_co';
-                $additionalData = [
-                    'paymentMethods' => PaymentAccount::where('user', $userId)->get(),
-                    'arrPaymentMethod' => ['B' => 'Bancolombia', 'D' => 'Daviplata', 'N' => 'Nequi']
-                ];
-                break;
-
-            case 'VEN': // Venezuela
-                $paymentType = 'Pago Movil';
-                $moduleId  = 'pagomovil';
-                $additionalData = [
-                    'pagomovils' => PagoMovil::with('Bank')->where('user', $userId)->get(),
-                    'documentType' => DocumentType::getDocumentTypeByCountry($country->id),
-                    'banks' => BankVenezuela::all()
-                ];
-                break;
-        }
-
-        if ($userRole === 'commerce_id') {
-            $commerce = Commerce::getValueByUserId($userId, 'id');
-
-            $commerceCurrencies = CommerceExchangeRate::getCurrenciesByCommerce($commerce);
-
-            $this->checkBankDirectoriesExistence($commerceCurrencies);
-        }
-
-        // Determinar la ruta de la vista
-        $viewPath = "modules.all.directory.$countryCode.index";
-
-        return view($viewPath, array_merge(
-            compact('countries', 'countryCode', 'paymentType', 'moduleId', 'title'),
-            $additionalData
-        ));
+    /**
+     * Actualizar todas las tasas consultando proveedor externo.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function updateAll(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => [
+                'data' => $this->service->updateRates(
+                    $request->query('token')
+                ),
+            ],
+            'No se pudo actualizar los valores de las tasas de cambio.'
+        );
     }
 }

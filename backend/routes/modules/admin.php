@@ -1,11 +1,10 @@
 <?php
 
+use App\Http\Controllers\Roles\AdminCommerceController;
+use App\Http\Controllers\Roles\AdminController;
+use App\Http\Controllers\Roles\CustomerController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Roles\{
-    AdminController,
-    CommerceController,
-    CustomerController
-};
+
 use App\Http\Controllers\Roles\Treasurer\{
     TreasurerController,
     OtherTreasurersController
@@ -122,7 +121,7 @@ Route::middleware('auth')->group(function () {
         ],
     ];
 
-    role_protected_routes(['role:admin'], 'admin/commerce', CommerceController::class, $adminCrudRoutes, 'commerce');
+    role_protected_routes(['role:admin'], 'admin/commerce', AdminCommerceController::class, $adminCrudRoutes, 'commerce');
     role_protected_routes(['role:admin'], 'admin/customer', CustomerController::class, $adminCrudRoutes, 'customer');
     role_protected_routes(['role:admin'], 'admin/treasurer', TreasurerController::class, $adminCrudRoutes, 'treasurer');
     role_protected_routes(['role:admin'], 'admin/other-treasurers', OtherTreasurersController::class, $adminCrudRoutes, 'otherTreasurer');

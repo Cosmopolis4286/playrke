@@ -57,7 +57,7 @@ class AdminController extends Controller
     /**
      * Vista de comercializadoras
      */
-    public function commerces(): View
+    public function commerces1(): View
     {
         $commerces = $this->commerces->getAllWithRelations(
             [
@@ -82,20 +82,19 @@ class AdminController extends Controller
     }
 
     /**
-     * Muestra el listado de comercializadoras utilizando Inertia.
-     *
-     * Este endpoint renderiza una vista Inertia y no devuelve una respuesta JSON.
-     * El manejo de excepciones y redirecciones se realiza mediante `handleService`.
+     * Muestra el listado de tasas de cambio usando Inertia.
      *
      * @return Response
      */
-    public function commerces1(): Response
+    public function commerces(): Response
     {
         return $this->handleServiceInertia(
             function () {
-                $context = $this->service->context('commerces');
+                $response = $this->service->context('commerces');
 
-                return Inertia::render('Roles/Admin/Commerce/Index', $context);
+                $response['title'] = 'Comercializadoras';
+
+                return Inertia::render('Roles/Admin/Commerce/Index', $response);
             },
             'No se pudo cargar la lista de comercializadoras.'
         );

@@ -7,13 +7,30 @@
   import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import AdminCommerceForm from '@/js/Components/Roles/Admin/Commerce/AdminCommerceForm.vue'
+  import { useModalForm } from '@/js/composables/common/useModalForm'
+  import { useExchangeRate } from '@/js/composables/roles/admin/commerce/useAdminCommerce'
 
   /**
    * Props tipadas para Inertia
    */
   const props = defineProps<AdminCommercePageProps>()
 
-     /**
+  /**
+   * Composable de negocio para manejo de tasas
+   */
+  const {
+    exchangeRateData,
+    exchangeRates,
+    setInitialExchangeRates,
+    create,
+    edit,
+    changeStatus,
+    remove,
+    updateExchangeRates,
+    submit
+  } = useExchangeRate(props.tokenId)
+
+  /**
    * Opciones de país normalizadas
    * Se expone como array plano (NO computed en filtros)
    */
@@ -66,6 +83,17 @@
       action: 'resetPassword'
     }
   ]
+
+  /**
+   * Composable para el modal y formulario
+   */
+  const {
+    showModalForm,
+    modalTitle,
+    formMode,
+    formRef: exchangeRateFormRef,
+    handleSubmit
+  } = useModalForm(exchangeRateData, submit)
 </script>
 
 <template>
@@ -82,21 +110,21 @@
     :extra-buttons="extraButtons"
   />
 
-  <!-- <Modal
+  <Modal
     v-model="showModalForm"
     :title="modalTitle"
     static
     show-confirm
-    :loading="loading"
-    :on-submit="submit"
+    :on-submit="handleSubmit"
     :confirm-disabled="!(exchangeRateFormRef?.isValid ?? false)"
   >
-    <AdminCommerceForm
+    <!-- <ExchangeRateForm
       ref="exchangeRateFormRef"
+      v-model="exchangeRateData"
       :currencies="currencies"
       :usedCurrencies="usedCurrencies"
       :has-privileged-role="hasPrivilegedRole"
-      :model-value="exchangeRateData"
-    />
-  </Modal> -->
+      :mode="formMode"
+    /> -->
+  </Modal>
 </template>

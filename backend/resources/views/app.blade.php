@@ -1,4 +1,6 @@
 @php
+    // Titulo
+    $title = $page['props']['title'] ?? '';
     /**
      * Layout Blade por defecto
      */
@@ -10,4 +12,4 @@
 @endphp
 
 {{-- Layout Blade envolviendo Inertia --}}
-<x-dynamic-component :component="$layoutComponent" :inertia="true">@inertia</x-dynamic-component>
+<x-dynamic-component :component="$layoutComponent" :title="$title" :inertia="true">@inertia</x-dynamic-component>
