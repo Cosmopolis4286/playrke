@@ -31,6 +31,10 @@ final class ExchangeRateFactory
             throw new InvalidArgumentException('El campo "amount" es obligatorio.');
         }
 
+        if (empty($data['status'])) {
+            throw new InvalidArgumentException('El campo "status" es obligatorio.');
+        }
+
         $currencyId = $this->currencyRepository->getValueByISOCode($data['currency_id'], 'id');
 
         if ($currencyId === null) {
@@ -41,7 +45,7 @@ final class ExchangeRateFactory
             $data['id'] ?? $exchangeRateId,
             $currencyId,
             (float) $data['amount'],
-            $data['status'] ?? 'ACTIVE',
+            $data['status'],
             $data['tokenId'] ?? null,
         );
     }

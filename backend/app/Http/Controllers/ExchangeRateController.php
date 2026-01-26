@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Factories\ExchangeRate\ExchangeRateFactory;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
 use App\Services\ExchangeRate\ExchangeRateService;
+use App\Services\Token\TokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -12,29 +13,33 @@ use Inertia\Response;
 
 /**
  * Controlador para la gestión de tasas de cambio.
+ *
+ * Recibe las peticiones HTTP y delega en el ExchangeRateService.
+ * Maneja respuestas Inertia y JSON, con manejo centralizado de errores.
  */
 class ExchangeRateController extends Controller
 {
     public function __construct(
-        protected ExchangeRateFactory $factory,
-        protected ExchangeRateService $service
+        private ExchangeRateFactory $factory,
+        private ExchangeRateService $service,
+        private TokenService $tokenService
     ) {}
 
     /**
-     * Muestra el listado de tasas de cambio utilizando Inertia.
-     *
-     * Este endpoint renderiza una vista Inertia y maneja excepciones con
-     * manejo centralizado mediante `handleServiceInertia`.
+     * Muestra el listado de tasas de cambio usando Inertia.
      *
      * @param Request $request
-     *
-     * @return \Inertia\Response
+     * @return Response
      */
     public function index(Request $request): Response
     {
         return $this->handleServiceInertia(
             function () use ($request) {
-                $response = $this->service->context($request->query('token', null));
+                $token = $request->query('token', null);
+
+                $this->tokenService->validateToken($token);
+
+                $response = $this->service->context($token);
 
                 $response['title'] = 'Tasas de Cambio';
 
@@ -45,7 +50,7 @@ class ExchangeRateController extends Controller
     }
 
     /**
-     * Endpoint API para obtener tasas según rol y token (listado filtrado).
+     * Endpoint API para obtener tasas filtradas según rol y token.
      *
      * @param Request $request
      * @return JsonResponse
@@ -56,6 +61,8 @@ class ExchangeRateController extends Controller
             function () use ($request) {
                 $token = $request->query('token', null);
 
+                $this->tokenService->validateToken($token);
+
                 $data = $this->service->getAll($token);
 
                 return ['data' => $data];
@@ -65,12 +72,9 @@ class ExchangeRateController extends Controller
     }
 
     /**
-     * Crear/registrar una tasa de cambio.
-     *
-     * Endpoint JSON para uso vía AJAX / API.
+     * Crear una nueva tasa de cambio.
      *
      * @param ExchangeRateRequest $request
-     *
      * @return JsonResponse
      */
     public function store(ExchangeRateRequest $request): JsonResponse
@@ -85,7 +89,7 @@ class ExchangeRateController extends Controller
                     return ['message' => '✅ Registro exitoso'];
                 }
 
-                // Si es false, no retorna nada para que se considere error
+                // Retorna false para que el helper considere error
                 return false;
             },
             'Hubo un error al registrar la tasa de cambio.'
@@ -96,7 +100,7 @@ class ExchangeRateController extends Controller
      * Mostrar detalle de una tasa de cambio por su ID.
      *
      * @param string $id Identificador de la tasa de cambio.
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function show(string $id): JsonResponse
     {
@@ -110,10 +114,10 @@ class ExchangeRateController extends Controller
      * Actualizar una tasa de cambio existente.
      *
      * @param ExchangeRateRequest $request
-     * @param mixed $id
+     * @param string $id Identificador de la tasa de cambio.
      * @return JsonResponse
      */
-    public function update(ExchangeRateRequest $request, $id): JsonResponse
+    public function update(ExchangeRateRequest $request, string $id): JsonResponse
     {
         return $this->handleServiceJson(
             function () use ($request, $id) {
@@ -125,7 +129,6 @@ class ExchangeRateController extends Controller
                     return ['message' => '✅ Actualización exitosa'];
                 }
 
-                // Si es false, no retorna nada para que se considere error
                 return false;
             },
             'No se pudo actualizar la tasa de cambio.'
@@ -133,9 +136,9 @@ class ExchangeRateController extends Controller
     }
 
     /**
-     * Eliminar tasa de cambio (soft delete)
+     * Eliminar una tasa de cambio (soft delete).
      *
-     * @param string $id
+     * @param string $id Identificador de la tasa de cambio.
      * @return JsonResponse
      */
     public function delete(string $id): JsonResponse
@@ -145,21 +148,19 @@ class ExchangeRateController extends Controller
                 $response = $this->service->delete($id);
 
                 if ($response === true) {
-                    return ['message' => '✅ Tasa de cambio eliminado correctamente'];
+                    return ['message' => '✅ Tasa de cambio eliminada correctamente'];
                 }
 
-                // Si es false, no retorna nada para que se considere error
                 return false;
             },
-            'No se pudo eliminar la ta de cambio.'
+            'No se pudo eliminar la tasa de cambio.'
         );
     }
 
     /**
-     * Cambiar el estado de una tasa de cambio.
+     * Cambiar el estado (activo/inactivo) de una tasa de cambio.
      *
-     * @param string $id
-     *
+     * @param string $id Identificador de la tasa de cambio.
      * @return JsonResponse
      */
     public function changeStatus(string $id): JsonResponse
@@ -167,20 +168,17 @@ class ExchangeRateController extends Controller
         return $this->handleServiceJson(
             function () use ($id) {
                 $this->service->toggleStatus($id);
-                return ['message' => '✅ Estado actualizado correctamente',];
+
+                return ['message' => '✅ Estado actualizado correctamente'];
             },
             'No se pudo cambiar el estado de la tasa de cambio.'
         );
     }
 
     /**
-     * Muestra el historico de tasas de cambio utilizando Inertia.
-     *
-     * Este endpoint renderiza una vista Inertia y no devuelve una respuesta JSON.
-     * El manejo de excepciones y redirecciones se realiza mediante `handleService`.
+     * Mostrar histórico de tasas de cambio con Inertia.
      *
      * @param Request $request
-     *
      * @return Response
      */
     public function historical(Request $request): Response
@@ -190,15 +188,15 @@ class ExchangeRateController extends Controller
                 'ExchangeRate/Index',
                 $this->service->historicalContext($request->query('token', null))
             ),
-            'No se pudo cargar el historico de tasas de cambios.'
+            'No se pudo cargar el histórico de tasas de cambio.'
         );
     }
 
     /**
-     * Actualiza todas las tasas de cambio consultando un proveedor externo.
+     * Actualizar todas las tasas consultando proveedor externo.
      *
-     * El token se recibe como query param (?token=...).
-     * La respuesta se maneja mediante `handleServiceJson`.
+     * @param Request $request
+     * @return JsonResponse
      */
     public function updateAll(Request $request): JsonResponse
     {

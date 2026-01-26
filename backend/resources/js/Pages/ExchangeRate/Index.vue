@@ -56,6 +56,7 @@
       return {
         id: rate.currency_id,
         name: currency?.name ?? 'Desconocido',
+        description: currency?.description ?? 'Desconocido',
         iso_code: currency?.iso_code ?? 'Desconocido',
         type: currency?.type,
         country: currency?.country

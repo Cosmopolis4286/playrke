@@ -19,7 +19,7 @@
     (e: 'delete', id: number | string): void
   }>()
 
-  type CurrencyValueKey = 'name' | 'iso_code' | 'country_iso_code'
+  type CurrencyValueKey = 'name' | 'description' | 'iso_code' | 'country_iso_code'
 
   /**
    * Obtiene un valor de la moneda de forma segura por ID
@@ -38,7 +38,7 @@
     if (!currency) return undefined
 
     const map: Record<CurrencyValueKey, string | undefined> = {
-      name: currency.name,
+      description: currency.description,
       iso_code: currency.iso_code,
       country_iso_code: currency.country?.name
     }
@@ -88,7 +88,7 @@
         <tr v-for="item in exchangeRates" :key="item.id">
           <!-- Moneda -->
           <td>
-            {{ getValueByCurrencyId(item?.currency_id, 'name') }}
+            {{ getValueByCurrencyId(item?.currency_id, 'description') }}
           </td>
 
           <!-- Cambio -->

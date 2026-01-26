@@ -12,9 +12,9 @@ use Illuminate\Database\Eloquent\Collection;
 class ExchangeRateContextService
 {
     public function __construct(
-        protected CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
-        protected CurrencyService $currency,
-        protected RoleUserService $roleUserService
+        private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
+        private CurrencyService $currency,
+        private RoleUserService $roleUserService
     ) {}
 
     /**
@@ -55,7 +55,7 @@ class ExchangeRateContextService
      */
     protected function resolveExchangeRatesByRole(string $role, int $userId): Collection
     {
-        // Definir ID de la entidad de busqueda
+        // Definir ID de la entidad para búsqueda basada en el rol
         $entityId = $this->roleUserService->getUserRoleEntityId($userId, $role);
 
         return match ($role) {
@@ -63,5 +63,19 @@ class ExchangeRateContextService
             'customer', 'admin' => collect(),
             default => collect(),
         };
+    }
+
+    /**
+     * Obtener todas las tasas de cambio filtradas según contexto y rol.
+     *
+     * @param string|null $publicToken Token público opcional
+     * @return array Listado de tasas de cambio
+     */
+    public function getAll(?string $publicToken = null): array
+    {
+        ['id' => $userId, 'authenticated' => $isLogged] = $this->roleUserService->resolveUser($publicToken);
+        $userRolePrefix = $isLogged ? $this->roleUserService->getActiveUserRolePrefix($userId) ?? '' : '';
+
+        return $this->resolveExchangeRatesByRole($userRolePrefix, $userId)->toArray();
     }
 }

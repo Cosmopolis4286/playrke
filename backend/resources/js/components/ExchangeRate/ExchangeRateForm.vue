@@ -102,7 +102,7 @@
             :key="currency.id"
             :value="currency.iso_code"
           >
-            {{ currency.name }} ({{ currency.symbol }})
+            {{ currency.description }} ({{ currency.symbol }})
           </option>
         </select>
 
@@ -112,7 +112,7 @@
       </div>
 
       <div class="form-group col-md-6">
-        <label>Cambio*</label>
+        <label>Valor de Cambio*</label>
         <input
           type="text"
           class="form-control"

@@ -50,7 +50,7 @@ abstract class BaseRepositoryNew implements BaseRepositoryInterface
     public function __construct(StatusChanger $statusChanger)
     {
         $this->statusChanger = $statusChanger;
-        $this->model = $this->resolveModel() ?? Model::class;
+        $this->model = $this->resolveModel();
     }
 
     /**

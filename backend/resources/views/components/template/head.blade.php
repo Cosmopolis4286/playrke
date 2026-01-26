@@ -34,7 +34,7 @@
     {{-- Estilos específicos por vista --}}
     {{ $slot }}
 
-    @if ($inertia && !empty($page))
+    @if ($inertia)
         @vite('resources/js/inertia.ts')
         @inertiaHead()
     @endif

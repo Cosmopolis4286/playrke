@@ -124,6 +124,8 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
                 await backendClient.post('/exchange-rate', exchangeRateData.value)
             }
 
+            loading.value = false
+
             // Actualizar lista tras operación exitosa sin recargar página
             await fetchExchangeRates()
 
@@ -131,8 +133,6 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         } catch (error) {
             console.error('Error en submit:', error)
             return false
-        } finally {
-            loading.value = false
         }
     }
 

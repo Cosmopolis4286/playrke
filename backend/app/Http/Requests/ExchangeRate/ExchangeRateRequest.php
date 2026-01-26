@@ -16,6 +16,7 @@ use Illuminate\Validation\Rule;
  *   "currency_id": "USD",
  *   "amount": 1.25,
  *   "token": "customer"
+ *   "status": "ACTIVE"
  * }
  */
 class ExchangeRateRequest extends BaseRequest
@@ -79,11 +80,12 @@ class ExchangeRateRequest extends BaseRequest
             /**
              * Valor de la tasa de cambio.
              */
-            'amount' => [
-                $isUpdate ? 'sometimes' : 'required',
-                'numeric',
-                'gt:0',
-            ],
+            'amount' => ['required', 'numeric', 'gt:0'],
+
+            /**
+             * Estatus de la tasa de cambio
+             */
+            'status' => ['required', 'string']
         ];
     }
 
@@ -101,9 +103,11 @@ class ExchangeRateRequest extends BaseRequest
             'currency_id.size' => 'La moneda debe tener exactamente 3 caracteres.',
             'currency_id.exists' => 'La moneda seleccionada no es válida.',
 
-            'amount.required' => 'La tasa de cambio es obligatoria.',
-            'amount.numeric' => 'La tasa de cambio debe ser numérica.',
-            'amount.gt' => 'La tasa de cambio debe ser mayor a cero.',
+            'amount.required' => 'El valor de cambio es obligatorio.',
+            'amount.numeric' => 'El valor de cambio debe ser numérico.',
+            'amount.gt' => 'El valor de cambio debe ser mayor a cero.',
+
+            'status.required' => 'El status es obligatorio.',
         ];
     }
 }

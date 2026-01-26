@@ -21,8 +21,9 @@ export interface ExchangeRatePageProps {
 export interface UsedCurrency {
     id: number | string
     name: string
-    iso_code: string,
-    type: string,
+    description: string
+    iso_code: string
+    type: string
     country?: {
         id: number
         name: string

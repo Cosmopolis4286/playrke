@@ -375,9 +375,7 @@ abstract class BaseRepository implements BaseRepositoryInterface
 
     public function toggleStatus(Model $model): bool
     {
-        $newStatus = $this->statusChanger->toggle(
-            (string) $model->status
-        );
+        $newStatus = $this->statusChanger->toggle((string) $model->status);
 
         return $this->changeStatus($model, $newStatus);
     }
