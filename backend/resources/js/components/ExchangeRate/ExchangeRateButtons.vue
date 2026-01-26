@@ -16,13 +16,15 @@
     (e: 'update'): Promise<void> | void
   }>()
 
-  const currencies = props.currencies
-  const usedCurrencies = props.usedCurrencies ?? []
+  const currencies = props.currencies ?? []
 
   /**
    * Loading exclusivo del botón "Actualizar"
    */
   const updating = ref(false)
+
+  // Monedas en uso
+  const usedCurrencies = computed(() => props.usedCurrencies ?? [])
 
   /**
    * Indica si es posible registrar una nueva tasa de cambio
@@ -30,7 +32,7 @@
   const canCreate = computed(() => {
     if (props.hasPrivilegedRole) return true
 
-    return currencies.length > 0 && usedCurrencies.length < currencies.length
+    return currencies.length > 0 && usedCurrencies.value.length < currencies.length
   })
 
   /**

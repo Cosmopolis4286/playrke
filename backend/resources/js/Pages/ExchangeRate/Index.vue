@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
+  import { ref, computed, watch } from 'vue'
 
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
@@ -45,29 +45,34 @@
    */
   const selectedCurrency = ref<string[]>([])
   const currencies = props.currencies
+  const usedCurrencies = ref<UsedCurrency[]>([])
 
   /**
-   * Computed que genera las monedas usadas en las tasas para presentación
+   * Genera las monedas usadas en las tasas para presentación
    */
-  const usedCurrencies = computed<UsedCurrency[]>(() =>
-    exchangeRates.value.map(rate => {
-      const currency = currencies.find(c => c.id === rate.currency_id)
+  watch(
+    exchangeRates,
+    newRates => {
+      usedCurrencies.value = newRates.map(rate => {
+        const currency = currencies.find(c => c.id === rate.currency_id)
 
-      return {
-        id: rate.currency_id,
-        name: currency?.name ?? 'Desconocido',
-        description: currency?.description ?? 'Desconocido',
-        iso_code: currency?.iso_code ?? 'Desconocido',
-        type: currency?.type,
-        country: currency?.country
-          ? {
-              id: currency.country.id,
-              name: currency.country.name,
-              iso_code: currency.country.iso_code_3
-            }
-          : null
-      }
-    })
+        return {
+          id: rate.currency_id,
+          name: currency?.name ?? 'Desconocido',
+          description: currency?.description ?? 'Desconocido',
+          iso_code: currency?.iso_code ?? 'Desconocido',
+          type: currency?.type,
+          country: currency?.country
+            ? {
+                id: currency.country.id,
+                name: currency.country.name,
+                iso_code: currency.country.iso_code_3
+              }
+            : null
+        }
+      })
+    },
+    { immediate: true }
   )
 
   /**

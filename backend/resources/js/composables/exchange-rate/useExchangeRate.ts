@@ -1,6 +1,7 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { ExchangeRate } from '@/js/types/exchange-rate'
+import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 
 /**
  * Contrato público del composable useExchangeRate
@@ -118,10 +119,12 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
             if (exchangeRateData.value.id) {
                 // Editar tasa existente
-                await backendClient.put(`/exchange-rate/${exchangeRateData.value.id}`, exchangeRateData.value)
+                const { data } = await backendClient.put(`/exchange-rate/${exchangeRateData.value.id}`, exchangeRateData.value)
+                showToast(data.message, data.success ? 'success' : 'error')
             } else {
                 // Crear nueva tasa
-                await backendClient.post('/exchange-rate', exchangeRateData.value)
+                const { data } = await backendClient.post('/exchange-rate', exchangeRateData.value)
+                showToast(data.message, data.success ? 'success' : 'error')
             }
 
             loading.value = false
@@ -187,13 +190,20 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      * @param id Identificador de la tasa
      */
     async function changeStatus(id: string | number): Promise<void> {
+        const confirm = await showToastConfirmAction(
+            '¿Quieres cambiar el estado de esta tasa de cambio?',
+            'warning',
+            'Sí, cambiar estado'
+        )
+        if (!confirm) return
+
         try {
             await backendClient.put(`/exchange-rate/${id}/status`)
-
-            // Actualizar lista tras cambio exitoso sin recargar página
+            showToast('Estado cambiado con éxito', 'success')
             await fetchExchangeRates()
         } catch (error) {
             console.error('Error cambiando estado:', error)
+            showToast('Error al cambiar el estado', 'error')
         }
     }
 
@@ -203,13 +213,20 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      * @param id Identificador de la tasa
      */
     async function remove(id: string | number): Promise<void> {
+        const confirm = await showToastConfirmAction(
+            '¿Estás seguro que deseas eliminar esta tasa de cambio?',
+            'warning',
+            'Sí, eliminar'
+        )
+        if (!confirm) return
+
         try {
             await backendClient.put(`/exchange-rate/${id}/delete`)
-
-            // Actualizar lista tras eliminación exitosa sin recargar página
+            showToast('Tasa de cambio eliminada con éxito', 'success')
             await fetchExchangeRates()
         } catch (error) {
             console.error('Error eliminando tasa:', error)
+            showToast('Error al eliminar la tasa', 'error')
         }
     }
 
@@ -224,10 +241,11 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
             loading.value = true
             await backendClient.put('/exchange-rate/update-all')
 
-            // Actualiza la lista tras sincronización sin recargar
+            showToast('Tasas de cambio actualizadas con éxito', 'success')
             await fetchExchangeRates()
         } catch (error) {
             console.error('Error actualizando tasas:', error)
+            showToast('Error al actualizar las tasas', 'error')
         } finally {
             loading.value = false
         }

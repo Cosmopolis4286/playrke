@@ -38,6 +38,7 @@
     if (!currency) return undefined
 
     const map: Record<CurrencyValueKey, string | undefined> = {
+      name: currency.name,
       description: currency.description,
       iso_code: currency.iso_code,
       country_iso_code: currency.country?.name
