@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Factories\ExchangeRate\ExchangeRateFactory;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
-use App\Services\ExchangeRate\ExchangeRateApiService;
 use App\Services\ExchangeRate\ExchangeRateService;
 use App\Services\Token\TokenService;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +22,6 @@ class ExchangeRateController extends Controller
     public function __construct(
         private ExchangeRateFactory $factory,
         private ExchangeRateService $service,
-        private ExchangeRateApiService $exchangeRateApiService,
         private TokenService $tokenService
     ) {}
 
@@ -199,23 +197,26 @@ class ExchangeRateController extends Controller
      *
      * @return JsonResponse
      */
-    public function getRawRates(): JsonResponse
+    public function getRawRates(Request $request): JsonResponse
     {
-        $rates = $this->exchangeRateApiService->fetch();
+        return $this->handleServiceJson(
+            function () use ($request) {
+                $token = $request->query('token');
 
-        if (!$rates) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se pudieron obtener las tasas de cambio.',
-                'data' => null,
-            ], 500);
-        }
+                $this->tokenService->validateToken($token);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Tasas obtenidas correctamente.',
-            'data' => $rates,
-        ]);
+                $rates = $this->service->getRawRates($token);
+
+                if (!$rates) return false;
+
+                return [
+                    'message' => 'Tasas obtenidas correctamente.',
+                    'data'    => $rates,
+                ];
+            },
+            'No se pudieron obtener las tasas de cambio.',
+            500
+        );
     }
 
     /**

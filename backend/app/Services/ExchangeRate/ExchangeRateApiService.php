@@ -23,10 +23,11 @@ final class ExchangeRateApiService implements ExchangeRateProviderInterface
     /**
      * Realiza la consulta a la API externa y devuelve las tasas de cambio.
      *
+     * @param int|null $userId ID del usuario (opcional)
      * @return array|null Retorna un arreglo con las tasas si la llamada fue exitosa,
      *                    o null si ocurrió algún error.
      */
-    public function fetch(): ?array
+    public function fetch(?int $userId = null): ?array
     {
         try {
             // Realiza una petición HTTP GET con un timeout de 5 segundos

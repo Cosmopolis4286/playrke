@@ -25,6 +25,7 @@ final class ExchangeRateService
         private readonly ExchangeRateContextService $context,
         private readonly ExchangeRateCrudService $crud,
         private readonly ExchangeRateUpdaterService $updater,
+        private ExchangeRateApiService $api,
     ) {}
 
     /**
@@ -117,6 +118,19 @@ final class ExchangeRateService
     {
         $userId = $this->resolveUserId();
         return $this->crud->deleteByRole($exchangeRateId, $userId);
+    }
+
+    /**
+     * Retorna las tasas crudas obtenidas de la API externa para mostrar en confirmación.
+     *
+     * @param string|null $publicToken Token público opcional para resolver usuario
+     * @return array|null Retorna un arreglo con las tasas si la llamada fue exitosa,
+     *                    o null si ocurrió algún error.
+     */
+    public function getRawRates(?string $publicToken = null): ?array
+    {
+        $userId = $this->resolveUserId($publicToken);
+        return $this->api->fetch();
     }
 
     /**
