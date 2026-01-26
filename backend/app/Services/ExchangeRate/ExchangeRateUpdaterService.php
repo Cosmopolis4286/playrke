@@ -17,9 +17,9 @@ use Illuminate\Support\Facades\Log;
 final class ExchangeRateUpdaterService
 {
     public function __construct(
-        protected ExchangeRateRepositoryInterface $repository,
-        protected RoleUserService $roleUserService,
-        protected ExchangeRateApiService $api
+        protected readonly ExchangeRateRepositoryInterface $repository,
+        protected readonly RoleUserService $roleUserService,
+        protected readonly ExchangeRateApiService $api
     ) {}
 
     /**

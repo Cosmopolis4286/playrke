@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-use App\Repositories\BaseRepositoryNew;
+use App\Repositories\BaseRepository;
 use App\Contracts\ExchangeRateRepositoryInterface;
 use App\Models\ExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  * Implementa las operaciones específicas para el modelo de tasas de cambio
  * incluyendo gestión de valores, conversiones y estadísticas.
  */
-class ExchangeRateRepository extends BaseRepositoryNew implements ExchangeRateRepositoryInterface
+class ExchangeRateRepository extends BaseRepository implements ExchangeRateRepositoryInterface
 {
     /**
      * {@inheritDoc}

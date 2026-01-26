@@ -23,11 +23,11 @@ abstract class BaseRepository implements BaseRepositoryInterface
     protected Model $model;
 
     /**
-     * Instancia del StatusChanger
+     * Instancia interna de StatusChanger
      */
-    protected StatusChanger $statusChanger;
+    protected ?StatusChanger $statusChanger = null;
 
-    public function __construct(StatusChanger $statusChanger)
+    public function setStatusChanger(StatusChanger $statusChanger): void
     {
         $this->statusChanger = $statusChanger;
     }

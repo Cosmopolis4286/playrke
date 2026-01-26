@@ -13,8 +13,8 @@ class ExchangeRateContextService
 {
     public function __construct(
         private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
-        private CurrencyService $currency,
-        private RoleUserService $roleUserService
+        private readonly CurrencyService $currency,
+        private readonly RoleUserService $roleUserService
     ) {}
 
     /**

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Common\Status\StatusChanger;
+use App\Repositories\BaseRepository;
 use App\Services\Games\Room\RoomTypeService;
 use App\Services\Route\RouteService;
 use Illuminate\Support\ServiceProvider;
@@ -35,6 +37,13 @@ class AppServiceProvider extends ServiceProvider
         // -------------------------------------------
         // Singletons de servicios de la aplicación
         // -------------------------------------------
+
+        // Resolver para inyectar StatusChanger en cualquier BaseRepository
+        $this->app->resolving(BaseRepository::class, function ($repo, $app) {
+            if (method_exists($repo, 'setStatusChanger')) {
+                $repo->setStatusChanger($app->make(StatusChanger::class));
+            }
+        });
 
         // Servicio para la lógica de tipos de salas de juego
         $this->app->singleton(RoomTypeService::class, fn($app) => new RoomTypeService());
@@ -79,7 +88,7 @@ class AppServiceProvider extends ServiceProvider
         // all services are fully booted
         if ($this->app->has('view')) {
             View::composer('*', function ($view): void {
-            $prefix = null;
+                $prefix = null;
                 if (Auth::check()) {
                     $user = Auth::user();
                     $firstRole = $user->roles->first();

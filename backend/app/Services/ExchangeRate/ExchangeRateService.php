@@ -21,10 +21,10 @@ use DomainException;
 final class ExchangeRateService
 {
     public function __construct(
-        private RoleUserService $roleUserService,
-        private ExchangeRateContextService $context,
-        private ExchangeRateCrudService $crud,
-        private ExchangeRateUpdaterService $updater,
+        private readonly RoleUserService $roleUserService,
+        private readonly ExchangeRateContextService $context,
+        private readonly ExchangeRateCrudService $crud,
+        private readonly ExchangeRateUpdaterService $updater,
     ) {}
 
     /**

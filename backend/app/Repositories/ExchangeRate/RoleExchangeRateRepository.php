@@ -4,7 +4,7 @@ namespace App\Repositories\ExchangeRate;
 
 use App\Contracts\ExchangeRate\RoleExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
-use App\Repositories\ExchangeRateRepository;
+use App\Repositories\BaseRepository;
 use App\Traits\ExchangeRate\ResolvesExchangeRateForeignKey;
 use Illuminate\Database\Eloquent\Model;
 
@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Model;
  * Implementa las operaciones específicas para el modelo ExchangeRate,
  * incluyendo gestión de valores, conversiones y estadísticas.
  */
-class RoleExchangeRateRepository extends ExchangeRateRepository implements RoleExchangeRateRepositoryInterface
+class RoleExchangeRateRepository extends BaseRepository implements RoleExchangeRateRepositoryInterface
 {
     use ResolvesExchangeRateForeignKey;
 
