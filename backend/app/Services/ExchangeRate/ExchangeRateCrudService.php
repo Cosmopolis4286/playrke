@@ -58,7 +58,7 @@ final class ExchangeRateCrudService
         $roleEntityId = $this->resolveRoleEntityId($userId, $role);
 
         // Inyectar el modelo según el rol (esto puede ser dinámico)
-        $model= $this->repo($role)->getModel();
+        $model = $this->repo($role)->getModel();
         $foreignKeyData = $this->foreignKeyData($roleEntityId, $model);
 
         return DB::transaction(function () use ($dto, $role, $foreignKeyData) {
@@ -129,13 +129,32 @@ final class ExchangeRateCrudService
 
             throw_if(is_null($oldAmount), DomainException::class, "Tasa con ID {$dto->id} no encontrada");
 
-            $repo->update($dto->id, [
-                ...$dto->toArray(),
-                // Calcula y guarda porcentaje de variación respecto al valor anterior
+            // Actualizar estado de la tasa de cambio antigua a 'OLD'
+            $repo->update($dto->id, ['status' => 'OLD']);
+
+            // Obtener datos actuales del registro para copiar y modificar
+            $oldExchangeRate = $repo->findOrFail($dto->id);
+
+            // Convertir a array y eliminar la clave 'id'
+            $oldData = $oldExchangeRate->toArray();
+            unset($oldData['id']);
+
+            // Preparar datos para la nueva tasa, combinando datos antiguos y nuevos valores
+            $newData = array_merge($oldData, [
                 'percentage' => $this->domain->calculatePercentage($oldAmount, $dto->amount),
+                'amount' => $dto->amount,
+                'status' => $dto->status,
             ]);
 
-            Log::info('ExchangeRate actualizado', ['id' => $dto->id, 'new_amount' => $dto->amount]);
+            // Crear nuevo registro con la nueva tasa
+            $newExchangeRateId = $repo->create($newData);
+
+            Log::info('ExchangeRate actualizado', [
+                'old_id' => $dto->id,
+                'old_amount' => $oldExchangeRate['amount'],
+                'new_id' => $newExchangeRateId,
+                'new_amount' => $dto->amount
+            ]);
 
             return true;
         });

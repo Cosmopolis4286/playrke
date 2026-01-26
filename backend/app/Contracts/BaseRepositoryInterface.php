@@ -135,12 +135,12 @@ interface BaseRepositoryInterface
     public function update(string|int $id, array $data): Model;
 
     /**
-     * Eliminar un registro.
+     * Elimina un registro por su ID y actualiza su estado a "DELETED".
      *
-     * La implementación decide si es soft delete o hard delete.
+     * Primero actualiza el campo `status` a "DELETED" y luego realiza la eliminación física.
      *
-     * @param string|int $id ID del registro
-     * @return bool
+     * @param string|int $id ID del registro a eliminar.
+     * @return bool Indica si la eliminación fue exitosa.
      */
     public function delete(string|int $id): bool;
 

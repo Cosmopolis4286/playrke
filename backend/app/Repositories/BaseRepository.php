@@ -135,11 +135,24 @@ abstract class BaseRepository implements BaseRepositoryInterface
     }
 
     /**
-     * {@inheritDoc}
+     * Elimina un registro por su ID y actualiza su estado a "DELETED".
+     *
+     * Primero actualiza el campo `status` a "DELETED" y luego realiza la eliminación física.
+     *
+     * @param string|int $id ID del registro a eliminar.
+     * @return bool Indica si la eliminación fue exitosa.
      */
     public function delete(string|int $id): bool
     {
-        return (bool) $this->model->destroy($id);
+        $model = $this->find($id);
+
+        if (!$model) {
+            return false;
+        }
+
+        $model->update(['status' => 'DELETED']);
+
+        return (bool) $model->delete();
     }
 
     /**
