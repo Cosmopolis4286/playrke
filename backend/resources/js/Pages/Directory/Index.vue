@@ -146,6 +146,8 @@
 
   const title = ref(`Directorio ${selectedCode.value}`)
 
+  const subtitle = ref('Método: PagoMovil')
+
   function onTabChange(code: string) {
     // Aquí puedes hacer redirección, llamada a API o router.push(...)
     console.log('Tab seleccionado:', code)
@@ -153,11 +155,11 @@
 </script>
 <template>
   <div class="card">
-    <CardHeader :title="title" />
+    <CardHeader :title="title" :subtitle="subtitle" />
 
     <div class="card-body">
       <CountryTabs
-      class="mt-n2"
+        class="mt-n2"
         :items="countries"
         v-model:activeCode="selectedCode"
         @tabSelected="onTabChange"

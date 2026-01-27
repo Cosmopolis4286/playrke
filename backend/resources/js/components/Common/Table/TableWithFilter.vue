@@ -2,6 +2,7 @@
   import { ref, computed } from 'vue'
   import TableFilter from './TableFilter.vue'
   import CardHeader from '../Card/CardHeader.vue'
+  import BaseTable from './BaseTable.vue'
   import type { Column } from '@/js/types/common/table/column'
 
   /** Opciones para filtros */
@@ -22,7 +23,7 @@
     tableId: string
     title: string
     columns: Column[]
-    rows: Array<Record<string, any>>
+    rows: Record<string, any>[]
     filters?: Filter[]
     searchPlaceholder?: string
     debounceDelay?: number
@@ -32,14 +33,7 @@
     showDeleteButton?: boolean
   }>()
 
-  /** Valores por defecto para props opcionales */
-  const searchPlaceholder = props.searchPlaceholder ?? 'Buscar en la tabla...'
-  const debounceDelay = props.debounceDelay ?? 300
-  const emptyMessage = props.emptyMessage ?? 'No se encontraron registros'
-  const showCreateButton = props.showCreateButton ?? true
-  const showEditButton = props.showEditButton ?? true
-  const showDeleteButton = props.showDeleteButton ?? true
-
+  /** Emit events */
   const emit = defineEmits<{
     (e: 'create'): void
     (e: 'edit', id: string): void
@@ -47,57 +41,37 @@
     (e: 'selection-change', ids: string[]): void
   }>()
 
-  /** IDs seleccionados en la tabla */
-  const selectedIds = ref<string[]>([])
+  /** Opciones por defecto para props opcionales */
+  const searchPlaceholder = props.searchPlaceholder ?? 'Buscar en la tabla...'
+  const debounceDelay = props.debounceDelay ?? 300
+  const emptyMessage = props.emptyMessage ?? 'No se encontraron registros'
+  const showCreateButton = props.showCreateButton ?? true
+  const showEditButton = props.showEditButton ?? true
+  const showDeleteButton = props.showDeleteButton ?? true
 
-  /** Estado actual de filtros y búsqueda */
+  /** Estado reactivo para búsqueda y filtros */
   const currentFilters = ref<{ search: string; filters: Record<string, string> }>({
     search: '',
     filters: {}
   })
 
+  /** IDs seleccionados */
+  const selectedIds = ref<string[]>([])
+
   /**
-   * Obtiene valor seguro de propiedad en objeto, evita errores si no existe.
-   * @param obj Objeto de datos
-   * @param key Clave para extraer
-   * @returns Valor o cadena vacía
+   * Obtiene valor seguro en objeto (evita errores si no existe)
+   * @param obj Objeto
+   * @param key Clave a obtener
    */
   function getNestedValue(obj: Record<string, any>, key: string): any {
     return obj?.[key] ?? ''
   }
 
-  /**
-   * Escapa texto para evitar inyección HTML
-   * @param text Texto crudo
-   * @returns Texto seguro para HTML
-   */
-  function escapeHtml(text: string): string {
-    const map: Record<string, string> = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;'
-    }
-    return String(text).replace(/[&<>"']/g, m => map[m])
-  }
-
-  /**
-   * Formatea contenido de celda según configuración HTML
-   * @param row Fila de datos
-   * @param column Columna actual
-   * @returns Contenido seguro o con HTML
-   */
-  function formatCell(row: Record<string, any>, column: Column): string {
-    const value = getNestedValue(row, column.key)
-    return column.html ? value : escapeHtml(value)
-  }
-
-  /** Filtra filas según búsqueda y filtros activos */
+  /** Filtra las filas según búsqueda y filtros activos */
   const filteredRows = computed(() => {
     let rows = props.rows
 
-    // Filtro de búsqueda global (cualquier columna)
+    // Filtro global de búsqueda
     if (currentFilters.value.search) {
       const searchLower = currentFilters.value.search.toLowerCase()
       rows = rows.filter(row =>
@@ -109,26 +83,19 @@
     }
 
     // Filtros por columna
-    Object.entries(currentFilters.value.filters).forEach(([key, val]) => {
+    for (const [key, val] of Object.entries(currentFilters.value.filters)) {
       if (val) {
         rows = rows.filter(row => String(getNestedValue(row, key)) === val)
       }
-    })
+    }
 
     return rows
   })
 
-  /** Indica si todas las filas visibles están seleccionadas */
-  const allSelected = computed(
-    () => filteredRows.value.length > 0 && selectedIds.value.length === filteredRows.value.length
-  )
-
-  /** Indica si hay selección parcial */
-  const someSelected = computed(
-    () => selectedIds.value.length > 0 && selectedIds.value.length < filteredRows.value.length
-  )
-
-  /** Cambia filtro y limpia selección inválida */
+  /**
+   * Actualiza filtros y limpia selección inválida
+   * @param filterData Datos de búsqueda y filtros
+   */
   function handleFilter(filterData: { search: string; filters: Record<string, string> }): void {
     currentFilters.value = filterData
     selectedIds.value = selectedIds.value.filter(id =>
@@ -137,27 +104,15 @@
     emitSelectionChange()
   }
 
-  /** Alterna selección de fila */
-  function toggleRow(id: string): void {
-    const idx = selectedIds.value.indexOf(id)
-    idx >= 0 ? selectedIds.value.splice(idx, 1) : selectedIds.value.push(id)
-    emitSelectionChange()
-  }
-
-  /** Alterna selección total */
-  function toggleAll(): void {
-    selectedIds.value = allSelected.value ? [] : filteredRows.value.map(r => r.id)
-    emitSelectionChange()
-  }
-
-  /** Indica si fila está seleccionada */
-  function isSelected(id: string): boolean {
-    return selectedIds.value.includes(id)
-  }
-
   /** Emite evento con IDs seleccionados */
   function emitSelectionChange(): void {
     emit('selection-change', [...selectedIds.value])
+  }
+
+  /** Maneja evento de cambio de selección desde BaseTable */
+  function handleSelectionChange(ids: string[]): void {
+    selectedIds.value = ids
+    emit('selection-change', ids)
   }
 </script>
 
@@ -192,61 +147,28 @@
           @click="$emit('delete', selectedIds)"
         >
           <i class="fas fa-trash"></i>
-          {{ selectedIds.length > 1 ? ` (${selectedIds.length})` : '' }}
+          <span v-if="selectedIds.length > 1">({{ selectedIds.length }})</span>
         </button>
 
-        <slot name="action-buttons" :selectedIds="selectedIds"></slot>
+        <slot name="action-buttons" :selectedIds="selectedIds" />
       </div>
 
-      <div class="table-responsive mt-2">
-        <table :id="tableId" class="table-striped table-bordered w-100 my-2 table">
-          <thead>
-            <tr>
-              <th class="text-center" style="width: 40px">
-                <input
-                  type="checkbox"
-                  :checked="allSelected"
-                  :indeterminate.prop="someSelected"
-                  @change="toggleAll"
-                />
-              </th>
-              <th v-for="column in columns" :key="column.key">{{ column.label }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="row in filteredRows"
-              :key="row.id"
-              :class="{ 'table-primary': isSelected(row.id) }"
-              @click="toggleRow(row.id)"
-              style="cursor: pointer"
-            >
-              <td class="text-center">
-                <input
-                  type="checkbox"
-                  :checked="isSelected(row.id)"
-                  @click.stop="toggleRow(row.id)"
-                />
-              </td>
-              <td v-for="column in columns" :key="column.key">
-                <slot
-                  :name="`cell-${column.key}`"
-                  :row="row"
-                  :value="getNestedValue(row, column.key)"
-                >
-                  <span v-html="formatCell(row, column)"></span>
-                </slot>
-              </td>
-            </tr>
-            <tr v-if="filteredRows.length === 0">
-              <td :colspan="columns.length + 1" class="text-muted py-4 text-center">
-                <i class="fas fa-inbox fa-2x mb-2"></i>
-                <p class="mb-0">{{ emptyMessage }}</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <BaseTable
+        :table-id="tableId"
+        :columns="columns"
+        :rows="filteredRows"
+        :empty-message="emptyMessage"
+        :selected-ids="selectedIds"
+        @selection-change="handleSelectionChange"
+      >
+        <template
+          v-for="column in columns"
+          :key="column.key"
+          v-slot:[`cell-${column.key}`]="{ row, value }"
+        >
+          <slot :name="`cell-${column.key}`" :row="row" :value="value" />
+        </template>
+      </BaseTable>
 
       <div
         v-if="filteredRows.length"
