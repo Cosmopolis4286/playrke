@@ -1,22 +1,60 @@
 <script setup lang="ts">
+  /**
+   * Página Admin → Comercializadoras
+   *
+   * Responsabilidades:
+   * - Renderizar tabla con filtros y acciones CRUD
+   * - Delegar acciones CRUD a eventos globales (`table:crud`)
+   * - Manejar modal de creación / edición
+   */
+
+  /* ==========================================================================
+   * Imports
+   * ========================================================================== */
+
   import { computed } from 'vue'
 
+  // Componentes
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
-  import type { AdminCommercePageProps } from '@js/types/roles/admin/admin-commerce'
-  import type { ExtraButton } from '@js/types/common/table/extra-buttons'
-  import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import AdminCommerceForm from '@/js/Components/Roles/Admin/Commerce/AdminCommerceForm.vue'
+
+  // Composables
+  import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useExchangeRate } from '@/js/composables/roles/admin/commerce/useAdminCommerce'
 
+  // Types
+  import type { AdminCommercePageProps } from '@js/types/roles/admin/admin-commerce'
+  import type { ExtraButton } from '@js/types/common/table/extra-buttons'
+  import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
+
+  /* ==========================================================================
+   * Props (Inertia)
+   * ========================================================================== */
+
   /**
-   * Props tipadas para Inertia
+   * Props tipadas recibidas desde Inertia
    */
   const props = defineProps<AdminCommercePageProps>()
 
+  /* ==========================================================================
+   * Inicialización CRUD global
+   * ========================================================================== */
+
   /**
-   * Composable de negocio para manejo de tasas
+   * Activa listeners globales:
+   * - Clicks rápidos (confirmaciones)
+   * - Eventos `table:crud`
+   */
+  useCrudEventListener()
+
+  /* ==========================================================================
+   * Composable de negocio
+   * ========================================================================== */
+
+  /**
+   * Lógica de negocio para tasas de cambio / comercializadoras
    */
   const {
     exchangeRateData,
@@ -30,9 +68,13 @@
     submit
   } = useExchangeRate(props.tokenId)
 
+  /* ==========================================================================
+   * Filtros de tabla
+   * ========================================================================== */
+
   /**
-   * Opciones de país normalizadas
-   * Se expone como array plano (NO computed en filtros)
+   * Opciones de países normalizadas
+   * ⚠️ Se expone como array plano (NO ComputedRef en filters.options)
    */
   const countryOptions = computed<TableFilterOption[]>(() =>
     props.countries.map(country => ({
@@ -42,8 +84,7 @@
   )
 
   /**
-   * Filtros de tabla
-   * ⚠️ options debe ser siempre un array, no un ComputedRef
+   * Definición de filtros de la tabla
    */
   const filters = computed<readonly TableFilter[]>(() => [
     {
@@ -64,8 +105,13 @@
     }
   ])
 
+  /* ==========================================================================
+   * Botones extra (acciones globales)
+   * ========================================================================== */
+
   /**
-   * Botones extra de acciones
+   * Botones de acciones adicionales.
+   * Las acciones se delegan vía eventos `table:crud`
    */
   const extraButtons: ExtraButton[] = [
     {
@@ -84,14 +130,18 @@
     }
   ]
 
+  /* ==========================================================================
+   * Modal y formulario
+   * ========================================================================== */
+
   /**
-   * Composable para el modal y formulario
+   * Manejo del modal de creación / edición
    */
   const {
     showModalForm,
     modalTitle,
     formMode,
-    formRef: exchangeRateFormRef,
+    formRef: adminCommerceFormRef,
     handleSubmit
   } = useModalForm(exchangeRateData, submit)
 </script>
@@ -116,15 +166,15 @@
     static
     show-confirm
     :on-submit="handleSubmit"
-    :confirm-disabled="!(exchangeRateFormRef?.isValid ?? false)"
+    :confirm-disabled="!(adminCommerceFormRef?.isValid ?? false)"
   >
-    <!-- <ExchangeRateForm
-      ref="exchangeRateFormRef"
+    <AdminCommerceForm
+      ref="adminCommerceFormRef"
       v-model="exchangeRateData"
       :currencies="currencies"
       :usedCurrencies="usedCurrencies"
       :has-privileged-role="hasPrivilegedRole"
       :mode="formMode"
-    /> -->
+    />
   </Modal>
 </template>

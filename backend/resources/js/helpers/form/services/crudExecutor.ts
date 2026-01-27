@@ -9,21 +9,21 @@ import { prepareCreate, prepareEdit } from '../services/crudFormService'
  * @param encryptIds - IDs cifrados (requerido para edit/delete/etc)
  */
 export async function executeCrud(action: string, encryptIds?: string[]): Promise<void> {
-  switch (action) {
-    case 'create':
-      prepareCreate()
-      break
+    switch (action) {
+        case 'create':
+            prepareCreate()
+            break
 
-    case 'edit':
-      if (!encryptIds[0]) {
-        throw new Error('ID requerido para edición')
-      }
-      await prepareEdit(encryptIds[0])
-      break
+        case 'edit':
+            if (!encryptIds[0]) {
+                throw new Error('ID requerido para edición')
+            }
+            await prepareEdit(encryptIds[0])
+            break
 
-    case 'delete':
-    default:
-      await handleOtherCases(action, encryptIds)
-      break
-  }
+        case 'delete':
+        default:
+            await handleOtherCases(action, encryptIds)
+            break
+    }
 }

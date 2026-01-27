@@ -1,4 +1,4 @@
-// backend/resources/js/composables/useFormCrud.ts
+// backend/resources/js/composables/form/useCrudEventListener.ts
 
 import { onMounted, onBeforeUnmount } from 'vue'
 import { submitForm } from '@/js/helpers/form/services/formSubmitService'
@@ -18,7 +18,7 @@ import { showPasswordModal } from '@/js/helpers/user/password'
  * Uso:
  * Llamar dentro del `setup()` en el componente raíz o donde se necesite capturar eventos globales CRUD.
  */
-export function useFormCrud() {
+export function useCrudEventListener() {
     /**
      * Manejador global de eventos click.
      * Implementa delegación de eventos para capturar acciones CRUD y utilidades.
@@ -78,7 +78,7 @@ export function useFormCrud() {
         window.addEventListener('table:crud', handleCrudCustomEvent)
 
         if (import.meta.env.DEV) {
-            console.info('[useFormCrud] inicializado')
+            console.info('[useCrudEventListener] inicializado')
         }
     })
 
