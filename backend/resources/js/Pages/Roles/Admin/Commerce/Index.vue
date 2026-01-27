@@ -13,17 +13,14 @@
   /* ========================================================================== */
 
   import { computed } from 'vue'
-
   // Componentes
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import AdminCommerceForm from '@/js/Components/Roles/Admin/Commerce/AdminCommerceForm.vue'
-
   // Composables
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useAdminCommerce } from '@/js/composables/roles/admin/commerce/useAdminCommerce'
-
   // Types
   import type { AdminCommercePageProps } from '@js/types/roles/admin/admin-commerce'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
@@ -190,11 +187,11 @@
     :on-submit="handleSubmit"
     :confirm-disabled="!(adminCommerceFormRef?.isValid ?? false)"
   >
-    <!-- <AdminCommerceForm
+    <AdminCommerceForm
       ref="adminCommerceFormRef"
       v-model="commerceData"
       :currencies="currencies"
       :mode="formMode"
-    /> -->
+    />
   </Modal>
 </template>

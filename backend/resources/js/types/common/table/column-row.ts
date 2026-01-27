@@ -11,4 +11,4 @@ export interface Column {
 /**
  * Tipado de una fila
  */
-export type Row = Array<Record<string, any>> | string;
+export type Row = Record<string, any> | string;

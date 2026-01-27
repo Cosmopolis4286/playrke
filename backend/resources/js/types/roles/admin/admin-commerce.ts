@@ -3,7 +3,7 @@ import type { Country } from '../../country'
 import type { Game } from '../../game'
 import type { TimeZone } from '../../time-zone'
 import type { Commerce } from '../commerce/commerce'
-import type { Column } from '../../common/table/column-row'
+import type { Column, Row } from '../../common/table/column-row'
 
 export interface AdminCommercePageProps {
     commerces: Commerce[],
@@ -12,4 +12,5 @@ export interface AdminCommercePageProps {
     games: Game[],
     timeZones: TimeZone[],
     columns: Column[]
+    rows: Row[]
 }
