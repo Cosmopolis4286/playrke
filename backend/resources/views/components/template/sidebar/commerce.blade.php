@@ -1,11 +1,7 @@
-@php
-    $countryCode = strtolower(session('countryCode'));
-@endphp
-
 <x-template.sidebar :userRolePrefix="$userRolePrefix" userRole="Comercializadora">
     {{-- Slot de navegación específica para Comercializadora --}}
     <li class="nav-item has-treeview">
-        <a href="{{ route('directory.index', ['countryCode' => $countryCode]) }}" title="Directorio"
+        <a href="{{ route('directory.index') }}" title="Directorio"
             class="nav-link {{ Route::is('directory.index') ? 'active' : '' }}">
             <i class="nav-icon fas fa-university"></i>
             <p>Directorio</p>

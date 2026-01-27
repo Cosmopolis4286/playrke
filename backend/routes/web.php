@@ -13,7 +13,7 @@
 // ====================================
 require __DIR__ . '/auth.php';                    // Autenticación (Laravel Breeze)
 require __DIR__ . '/modules/public.php';          // Landing, información pública
-require __DIR__ . '/modules/api-public.php';      // APIs públicas
+// require __DIR__ . '/modules/api-public.php';      // APIs públicas
 
 // ====================================
 // RUTAS PROTEGIDAS (requieren login)

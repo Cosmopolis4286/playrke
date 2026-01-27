@@ -4,10 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 
-use App\Http\Requests\Auth\LoginRequest;
-use App\Models\{Country, Currency};
-use App\Repositories\{CountryRepository, CurrencyRepository};
 use App\Contracts\SettingRepositoryInterface;
+use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\{Request, JsonResponse};
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -46,30 +44,13 @@ class AuthenticatedSessionController extends Controller
         // Regenerar la sesión para evitar ataques de fijación de sesión
         $request->session()->regenerate();
 
-        $user = Auth::user();
-
-        // Obtener el país del usuario
-        $countryId = $user->country_id;
+        $user = \App\Models\User::with('roles:id,prefix')->select('id')->find(Auth::id());
 
         // Obtener el rol principal del usuario (primer rol asignado)
-        $firstRole = $user->roles->first();
-
-        $userRole = null;
-        if ($firstRole !== null) {
-            // Obtener el prefijo del rol directamente
-            $userRole = $firstRole->prefix;
-        }
-
-        // Obtener el código ISO del país
-        $countryIsoCode = (new CountryRepository(new Country()))->find($countryId, ['iso_code_2'])?->iso_code_2;
-
-        // Obtener el ID de la moneda asociada al país y encriptarlo
-        $currency = encrypt((new CurrencyRepository(new Currency()))->getValueByCountry($countryId, 'id'));
+        $rolePrefix = $user->roles->first()?->prefix;
 
         // Crear las variables de sesión
-        $request->session()->put('countryCode', $countryIsoCode);
-        $request->session()->put('currency', $currency);
-        $request->session()->put('userRole', $userRole);
+        $request->session()->put('userRole', $rolePrefix);
 
         // Retornar JSON con datos del usuario para Nuxt
         return response()->json([

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Currencies;
+namespace App\Services\Currency;
 
 use App\Contracts\CurrencyRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;

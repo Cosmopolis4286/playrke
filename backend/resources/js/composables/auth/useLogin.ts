@@ -54,7 +54,7 @@ export function useLogin() {
       await getCsrfCookie()
 
       // Enviar credenciales al backend
-      await backendClient.post('/api/auth/login', {
+      await backendClient.post('login', {
         login: form.login,
         password: form.password
       })

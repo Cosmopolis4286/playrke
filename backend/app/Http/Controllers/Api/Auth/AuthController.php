@@ -56,20 +56,20 @@ class AuthController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Autenticación exitosa',
-                'user' => [
-                    'id' => $user->id,
-                    'username' => $user->username,
-                    'email' => $user->email,
-                    // 'first_name' => $user->first_name,
-                    // 'last_name' => $user->last_name,
-                    // 'full_name' => trim($user->first_name . ' ' . $user->last_name),
-                    'avatar' => $user->avatar_url,
-                    'country_code' => $user->country?->iso_code_2,
-                    'role' => $role?->prefix,
-                    'roles' => $user->roles->pluck('prefix'),
-                    'verified' => !is_null($user->email_verified_at),
-                    'created_at' => $user->created_at->toISOString(),
-                ],
+                // 'user' => [
+                //     'id' => $user->id,
+                //     'username' => $user->username,
+                //     'email' => $user->email,
+                //     // 'first_name' => $user->first_name,
+                //     // 'last_name' => $user->last_name,
+                //     // 'full_name' => trim($user->first_name . ' ' . $user->last_name),
+                //     'avatar' => $user->avatar_url,
+                //     'country_code' => $user->country?->iso_code_2,
+                //     'role' => $role?->prefix,
+                //     'roles' => $user->roles->pluck('prefix'),
+                //     'verified' => !is_null($user->email_verified_at),
+                //     'created_at' => $user->created_at->toISOString(),
+                // ],
             ]);
         } catch (ValidationException $e) {
             return response()->json([

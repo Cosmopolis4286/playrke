@@ -4,7 +4,7 @@ namespace App\Services\ExchangeRate;
 
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateContextDTO;
-use App\Services\Currencies\CurrencyService;
+use App\Services\Currency\CurrencyService;
 use App\Services\Roles\RoleUserService;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
@@ -33,9 +33,7 @@ class ExchangeRateContextService
     {
         ['id' => $userId, 'authenticated' => $isLogged] = $this->roleUserService->resolveUser($tokenId);
 
-        $userRolePrefix = $isLogged
-            ? $this->roleUserService->getActiveUserRolePrefix($userId) ?? ''
-            : '';
+        $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
         return new ExchangeRateContextDTO(
             currencies: $isLogged ? $this->currency->getAvailableCurrencies($userId, true, true) : collect(),

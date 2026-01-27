@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Factories\ExchangeRate\ExchangeRateFactory;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
-use App\Services\ExchangeRate\ExchangeRateService;
+use App\Services\Directory\DirectoryService;
 use App\Services\Token\TokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,36 +14,31 @@ use Inertia\Response;
 /**
  * Controlador para la gestión de directorios.
  *
- * Recibe las peticiones HTTP y delega en el ExchangeRateService.
+ * Recibe las peticiones HTTP y delega en el DirectoryService.
  * Maneja respuestas Inertia y JSON, con manejo centralizado de errores.
  */
 class DirectoryController extends Controller
 {
     public function __construct(
         private ExchangeRateFactory $factory,
-        private ExchangeRateService $service,
+        private DirectoryService $service,
         private TokenService $tokenService
     ) {}
 
     /**
-     * Muestra el listado de tasas de cambio usando Inertia.
+     * Muestra el directorio de acuerdo al codigo ISO usando Inertia.
      *
-     * @param Request $request
+     * @param string $countryCode Codigo ISO del país (opcional)
      * @return Response
      */
-    public function index(Request $request): Response
+    public function index(?string $countryCode = null): Response
     {
         return $this->handleServiceInertia(
-            function () use ($request) {
-                $token = $request->query('token', null);
+            function () use ($countryCode) {
 
-                $this->tokenService->validateToken($token);
+                $response = $this->service->context($countryCode);
 
-                $response = $this->service->context($token);
-
-                $response['title'] = 'Tasas de Cambio';
-
-                return Inertia::render('ExchangeRate/Index', $response);
+                return Inertia::render('Directory/Index', $response);
             },
             'No se pudo cargar la lista de tasas de cambios.'
         );

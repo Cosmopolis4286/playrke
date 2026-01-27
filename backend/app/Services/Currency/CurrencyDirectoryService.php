@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Currencies;
+namespace App\Services\Currency;
 
 use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
