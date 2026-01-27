@@ -18,7 +18,7 @@
         </a>
         <div>
           <div class="d-flex">
-            <h5 v-html="title"></h5>
+            <h5 :class="subtitle ? '' : 'mt-2'" v-html="title"></h5>
             <a
               v-if="btnCardHeader?.route && btnCardHeader?.icon"
               :href="btnCardHeader.route"
@@ -27,7 +27,7 @@
               <i :class="btnCardHeader.icon"></i>
             </a>
           </div>
-          <h6 v-if="subtitle" class="mt-n2 mb-n1" style="font-size: 13px;">{{ subtitle }}</h6>
+          <h6 v-if="subtitle" class="mt-n2 mb-n1" style="font-size: 13px">{{ subtitle }}</h6>
         </div>
       </div>
       <div

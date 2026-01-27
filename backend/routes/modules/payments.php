@@ -20,8 +20,7 @@ use Illuminate\Support\Facades\Route;
 // DIRECTORIO BANCARIO POR PAÍSES
 // ====================================
 route_group('directory', 'directory.', ['auth'], DirectoryController::class, [
-    'index' => ['method' => 'get', 'uri' => 'directory'],
-    'country' => ['method' => 'get', 'uri' => '{countryCode}'],
+    'index' => ['method' => 'get', 'uri' => '{countryCode?}'],
 ]);
 
 // ====================================

@@ -28,7 +28,7 @@ class DirectoryController extends Controller
     /**
      * Muestra el directorio de acuerdo al codigo ISO usando Inertia.
      *
-     * @param string $countryCode Codigo ISO del país (opcional)
+     * @param string $countryCode Codigo ISO del país
      * @return Response
      */
     public function index(?string $countryCode = null): Response
