@@ -15,7 +15,7 @@ export interface ModalFormExpose {
 interface UseModalFormReturn {
     showModalForm: Ref<boolean>
     modalTitle: Ref<string>
-    formMode: Ref<'create' | 'edit'>
+    formMode?: Ref<'create' | 'edit'>
     formRef: Ref<ModalFormExpose | null>
     handleSubmit: () => Promise<boolean>
 }
@@ -85,7 +85,6 @@ export function useModalForm(
     return {
         showModalForm,
         modalTitle,
-        formMode,
         formRef,
         handleSubmit
     }

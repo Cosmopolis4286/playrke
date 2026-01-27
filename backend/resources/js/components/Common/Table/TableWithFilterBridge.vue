@@ -1,7 +1,7 @@
 <script setup lang="ts" name="TableWithFilterBridge">
   import { computed, ref } from 'vue'
   import TableWithFilter from './TableWithFilter.vue'
-  import type { Column, Row } from '@/js/types/common/table/column-row'
+  import type { Column } from '@/js/types/common/table/column-row'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import { TableFilter } from '@/js/types/common/table/table-filter'
 
@@ -10,7 +10,7 @@
     tableId: string
     title: string
     columns: Column[]
-    rows: Row[]
+    rows: Array<Record<string, any>> | string
     filters?: readonly TableFilter[]
     searchPlaceholder?: string
     debounceDelay?: number

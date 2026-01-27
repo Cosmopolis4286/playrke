@@ -152,12 +152,17 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
      * y abre el modal con valores por defecto.
      */
     function create(): void {
-        // commerceData.value = {
-        //     currency_id: '',
-        //     amount: 0,
-        //     status: 'INACTIVE',
-        //     token: tokenId || undefined
-        // }
+        commerceData.value = {
+            name: '',
+            username: '',
+            email: '',
+            country_id: null,
+            time_zone_id: null,
+            phone: '',
+            currency_id: null,
+            other_currencies: [],
+            allowed_games: []
+        }
     }
 
     /**

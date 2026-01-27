@@ -2,12 +2,12 @@ import { ref, watch, computed } from 'vue'
 import type { ExchangeRate } from '@/js/types/exchange-rate'
 
 /**
- * Composable para manejar el formulario de Exchange Rate
+ * Composable para manejar el formulario de Comercios
  *
  * @param modelValue Valor inicial del formulario (create / edit)
  * @param emit Emit de Vue para sync con v-model
  */
-export function useExchangeRateForm(
+export function useAdminCommerceForm(
     modelValue: Partial<ExchangeRate>,
     emit: (event: 'update:modelValue', value: ExchangeRate) => void
 ) {

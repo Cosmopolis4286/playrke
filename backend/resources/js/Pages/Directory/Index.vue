@@ -88,7 +88,6 @@
   const {
     showModalForm,
     modalTitle,
-    formMode,
     formRef: directoryFormRef,
     handleSubmit
   } = useModalForm(exchangeRateData, submit)
@@ -201,7 +200,6 @@
       :currencies="currencies"
       :usedCurrencies="usedCurrencies"
       :has-privileged-role="hasPrivilegedRole"
-      :mode="formMode"
     />
   </Modal>
 </template>

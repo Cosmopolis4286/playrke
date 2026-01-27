@@ -4,7 +4,7 @@
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   // Composables
-  import { useExchangeRateForm } from '@/js/composables/exchange-rate/useExchangeRateForm'
+  import { useAdminCommerceForm } from '@/js/composables/roles/admin/commerce/useAdminCommerceForm'
   // Types
   import type { Currency } from '@/js/types/currency'
   import type { ExchangeRate } from '@/js/types/exchange-rate'
@@ -15,7 +15,6 @@
   const props = defineProps<{
     currencies: Currency[]
     modelValue: Partial<ExchangeRate> // Cambia a Partial<Commerce> si aplica
-    usedCurrencies?: any[]
   }>()
 
   /**
@@ -27,9 +26,9 @@
   }>()
 
   // Composable o estado reactivo para formulario
-  // Si usas useExchangeRateForm, úsalo; sino, crea estado local
-  const { form, errors, maskOptions, isEditMode, isValid, validate } = useExchangeRateForm
-    ? useExchangeRateForm(props.modelValue, emit)
+  // Si usas useAdminCommerceForm, úsalo; sino, crea estado local
+  const { form, errors, maskOptions, isEditMode, isValid, validate } = useAdminCommerceForm
+    ? useAdminCommerceForm(props.modelValue, emit)
     : {
         form: reactive({
           name: '',
@@ -48,17 +47,6 @@
         isValid: computed(() => true),
         validate: () => {}
       }
-
-  /**
-   * Computed: monedas disponibles (ejemplo)
-   */
-  const availableCurrencies = computed(() => {
-    const fiatCurrencies = props.currencies.filter(c => c.type === 'FIAT')
-    if (isEditMode.value || !props.usedCurrencies?.length) return fiatCurrencies
-
-    const usedIsoCodes = new Set(props.usedCurrencies.map(c => c.iso_code))
-    return fiatCurrencies.filter(c => !usedIsoCodes.has(c.iso_code))
-  })
 
   // Opciones ejemplo para selects (deberían venir de props o API)
   const countries = reactive([
