@@ -1,17 +1,18 @@
-<script setup lang="ts" name="ExchangeRateForm">
+<script setup lang="ts" name="DirectoryForm">
   import { computed } from 'vue'
-  import { useExchangeRateForm } from '@/js/composables/exchange-rate/useExchangeRateForm'
+  import { useDirectoryForm } from '@/js/composables/directory/useDirectoryForm'
   import type { Currency } from '@/js/types/currency'
-  import type { ExchangeRate, UsedCurrency } from '@/js/types/exchange-rate'
+  import type { Directory } from '@/js/types/directory'
+  import { UsedCurrency } from '@/js/types/exchange-rate'
 
   /**
    * Props
    */
   const props = defineProps<{
     usedCurrencies?: UsedCurrency[]
-    currencies: Currency[]
-    hasPrivilegedRole: boolean
-    modelValue: Partial<ExchangeRate>
+    currencies?: Currency[]
+    hasPrivilegedRole?: boolean
+    modelValue: Partial<Directory>
   }>()
 
   /**
@@ -25,7 +26,7 @@
   /**
    * Composable de formulario
    */
-  const { form, errors, maskOptions, isEditMode, isValid, validate } = useExchangeRateForm(
+  const { form, errors, maskOptions, isEditMode, isValid, validate } = useDirectoryForm(
     props.modelValue,
     emit
   )

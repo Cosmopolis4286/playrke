@@ -1,140 +1,71 @@
 <script setup lang="ts">
-  import { ref, computed, watch } from 'vue'
+  /* ==========================================================================
+   * Imports
+   * ========================================================================== */
 
+  import { ref, watch } from 'vue'
+
+  // UI
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import CountryTabs from '@/js/Components/Directory/CountryTabs.vue'
   import DirectoryButtons from '@js/Components/Directory/DirectoryButtons.vue'
-  import DirectoryTable from '@js/Components/Directory/DirectoryTable.vue'
   import DirectoryForm from '@/js/Components/Directory/DirectoryForm.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
 
+  // Composables
   import { useDirectory } from '@/js/composables/directory/useDirectory'
   import { useModalForm } from '@/js/composables/common/useModalForm'
 
+  // Types
   import type { DirectoryPageProps, UsedCurrency } from '@js/types/directory'
 
+  /* ==========================================================================
+   * Props
+   * ========================================================================== */
+
   /**
-   * Props Inertia
+   * Props provenientes de Inertia
    */
   const props = defineProps<DirectoryPageProps>()
 
-  /**
-   * Determina si el usuario tiene privilegios (company o customer)
-   */
-  const hasPrivilegedRole = computed(() => ['company', 'customer'].includes(props.roleUser))
+  /* ==========================================================================
+   * Lógica de negocio
+   * ========================================================================== */
 
-  /**
-   * Composable de negocio para manejo de tasas
-   */
-  const {
-    exchangeRateData,
-    exchangeRates,
-    setInitialDirectorys,
-    create,
-    edit,
-    changeStatus,
-    remove,
-    updateDirectorys,
-    submit
-  } = useDirectory(props.tokenId)
+  const { directoryData, directories, setInitialDirectories, create, edit, submit } = useDirectory()
 
-  // Inicializar exchangeRates con las props
-  setInitialDirectorys(props.exchangeRates)
+  // setInitialDirectories(props.directories)
 
-  /**
-   * Propiedades y estado local
-   */
-  const selectedCurrency = ref<string[]>([])
-  const currencies = props.currencies
-  const usedCurrencies = ref<UsedCurrency[]>([])
+  /* ==========================================================================
+   * Modal + Form handler
+   * ========================================================================== */
 
-  /**
-   * Loading exclusivo para la acción "Actualizar tasas"
-   * Vive en el padre porque aquí vive la operación async
-   */
-  const updatingDirectorys = ref(false)
-
-  /**
-   * Genera las monedas usadas en las tasas para presentación
-   */
-  watch(
-    exchangeRates,
-    newRates => {
-      usedCurrencies.value = newRates.map(rate => {
-        const currency = currencies.find(c => c.id === rate.currency_id)
-
-        return {
-          id: rate.currency_id,
-          name: currency?.name ?? 'Desconocido',
-          description: currency?.description ?? 'Desconocido',
-          iso_code: currency?.iso_code ?? 'Desconocido',
-          type: currency?.type,
-          country: currency?.country
-            ? {
-                id: currency.country.id,
-                name: currency.country.name,
-                iso_code: currency.country.iso_code_3
-              }
-            : null
-        }
-      })
-    },
-    { immediate: true }
-  )
-
-  /**
-   * Composable para el modal y formulario
-   */
   const {
     showModalForm,
     modalTitle,
     formRef: directoryFormRef,
     handleSubmit
-  } = useModalForm(exchangeRateData, submit)
+  } = useModalForm(directoryData, submit)
 
   /**
-   * Abre el modal en modo creación, inicializando datos
+   * Al cerrar el modal:
+   * - resetea el formulario
+   * - vuelve al modo creación
    */
-  function handleCreate(): void {
-    create()
-    showModalForm.value = true
-  }
-
-  /**
-   * Abre el modal en modo edición cargando datos existentes
-   *
-   * @param id Identificador de la tasa a editar
-   */
-  async function handleEdit(id: string | number): Promise<void> {
-    await edit(id)
-    showModalForm.value = true
-  }
-
-  /**
-   * Ejecuta la sincronización masiva de tasas de cambio
-   * y controla el loading del botón "Actualizar".
-   */
-  async function handleUpdateDirectorys(): Promise<void> {
-    if (updatingDirectorys.value) return
-
-    updatingDirectorys.value = true
-    try {
-      await updateDirectorys()
-    } finally {
-      updatingDirectorys.value = false
+  watch(showModalForm, isOpen => {
+    if (!isOpen) {
+      directoryFormRef.value?.reset?.()
+      create()
     }
-  }
+  })
+
+  /* ==========================================================================
+   * Estado local
+   * ========================================================================== */
 
   /**
-   * Navega a la vista histórica filtrando por las monedas seleccionadas
+   * Tabs por país
    */
-  function goHistorical(): void {
-    if (!selectedCurrency.value.length) return
-
-    window.location.href =
-      `/directory/historical/${selectedCurrency.value}` + `?tokenId=${props.tokenId}`
-  }
-
   const countries = [
     { id: 1, iso_code_2: 'US' },
     { id: 2, iso_code_2: 'BR' },
@@ -142,14 +73,48 @@
   ]
 
   const selectedCode = ref('US')
-
   const title = ref(`Directorio ${selectedCode.value}`)
-
   const subtitle = ref('Método: PagoMovil')
 
-  function onTabChange(code: string) {
-    // Aquí puedes hacer redirección, llamada a API o router.push(...)
-    console.log('Tab seleccionado:', code)
+  /* ==========================================================================
+   * Watchers
+   * ========================================================================== */
+
+  /* ==========================================================================
+   * Handlers
+   * ========================================================================== */
+
+  /**
+   * Abre el modal en modo creación
+   */
+  function handleCreate(): void {
+    create()
+    showModalForm.value = true
+  }
+
+  /**
+   * Abre el modal en modo edición
+   *
+   * @param id Identificador del registro
+   */
+  async function handleEdit(id: string | number): Promise<void> {
+    await edit(id)
+    showModalForm.value = true
+  }
+
+  /**
+   * Maneja el cambio de tab por país
+   *
+   * @param code ISO code del país
+   */
+  function onTabChange(code: string): void {
+    selectedCode.value = code
+    title.value = `Directorio ${code}`
+
+    // Aquí puedes:
+    // - filtrar data
+    // - hacer router.push
+    // - llamar API
   }
 </script>
 <template>
@@ -164,23 +129,15 @@
         @tabSelected="onTabChange"
       />
 
-      <DirectoryButtons
-        :currencies="currencies"
-        :usedCurrencies="usedCurrencies"
-        :has-privileged-role="hasPrivilegedRole"
-        :selected-currency="selectedCurrency"
-        :updating-directorys="updatingDirectorys"
-        @create="handleCreate"
-        @historical="goHistorical"
-        @updateDirectorys="handleUpdateDirectorys"
-      />
+      <DirectoryButtons @create="handleCreate" />
 
+      <!-- Tabla pendiente de integrar -->
+      <!--
       <DirectoryTable
         :columns="columns"
         @edit="handleEdit"
-        @change-status="changeStatus"
-        @delete="remove"
       />
+      -->
     </div>
   </div>
 
@@ -192,12 +149,6 @@
     :on-submit="handleSubmit"
     :confirm-disabled="!(directoryFormRef?.isValid ?? false)"
   >
-    <DirectoryForm
-      ref="directoryFormRef"
-      v-model="exchangeRateData"
-      :currencies="currencies"
-      :usedCurrencies="usedCurrencies"
-      :has-privileged-role="hasPrivilegedRole"
-    />
+    <DirectoryForm ref="directoryFormRef" v-model="directoryData" />
   </Modal>
 </template>

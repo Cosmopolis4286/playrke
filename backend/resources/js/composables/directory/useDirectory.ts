@@ -7,99 +7,102 @@ import type { Directory } from '@/js/types/directory'
  * Contrato público del composable useDirectory
  */
 interface UseDirectoryReturn {
-    /** Datos de la tasa (para crear o editar) */
-    exchangeRateData: Ref<Partial<Directory>>
+    /** Datos del directorio (para crear o editar) */
+    directoryData: Ref<Partial<Directory>>
 
-    /** Lista reactiva de tasas de cambio */
-    exchangeRates: Ref<Directory[]>
+    /** Lista reactiva de directorios */
+    directories: Ref<Directory[]>
 
-    /** Inicializa la lista local de tasas */
-    setInitialDirectorys: (initialRates: Directory[]) => void
+    /** Inicializa la lista local */
+    setInitialDirectories: (initialDirectories: Directory[]) => void
 
-    /**
-     * Envía el formulario de tasa de cambio.
-     * Debe retornar:
-     * - true  → el modal se cierra
-     * - false → el modal permanece abierto
-     */
+    /** Envío del formulario */
     submit: () => Promise<boolean>
 
-    /** Abre el modal en modo creación */
+    /** Modo creación */
     create: () => void
 
-    /** Abre el modal en modo edición */
+    /** Modo edición */
     edit: (id: string | number) => Promise<boolean>
 
-    /** Cambia el estado de una tasa */
+    /** Reset del formulario */
+    reset: () => void
+
+    /** Cambio de estado */
     changeStatus: (id: string | number) => Promise<boolean>
 
-    /** Elimina una tasa */
+    /** Eliminación */
     remove: (id: string | number) => Promise<boolean>
 
-    /** Sincroniza tasas desde backend */
-    updateDirectorys: () => Promise<boolean>
-
-    /** Obtiene y actualiza la lista filtrada de tasas desde backend */
-    fetchDirectorys: () => Promise<boolean>
+    /** Fetch desde backend */
+    fetchDirectories: () => Promise<boolean>
 }
 
 /**
- * Composable para manejar tasas de cambio (Exchange Rates).
+ * Factory para un directorio vacío
+ */
+const emptyDirectory = (): Partial<Directory> =>
+    Object.freeze({
+        name: '',
+        username: '',
+        email: '',
+        country_id: null,
+        time_zone_id: null,
+        phone: '',
+        currency_id: null,
+        other_currencies: [],
+        allowed_games: []
+    })
+
+/**
+ * Composable para manejar directorios
  *
  * Responsabilidades:
- * - Control del modal (crear / editar)
- * - Manejo del estado del formulario
+ * - Control del estado del formulario (create / edit / reset)
  * - Envío de datos (POST / PUT)
- * - Sincronización masiva desde backend
- * - Gestión local de la lista de tasas
+ * - Gestión local de la lista
  *
- * ⚠️ No controla UI directamente (el componente decide cerrar el modal)
- *
- * @param {string} tokenId Token opcional del usuario autenticado
- * @returns {UseDirectoryReturn}
+ * ⚠️ No controla UI directamente
  */
 export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
-    /** Estado de carga global del composable */
+    /** Estado de carga global */
     const loading = ref(false)
 
-    /** Datos reactivos del formulario (crear / editar) */
-    const exchangeRateData = ref<Partial<Directory>>({})
+    /** Estado único del formulario */
+    const directoryData = ref<Partial<Directory>>(emptyDirectory())
 
-    /** Lista reactiva local de tasas de cambio */
-    const exchangeRates = ref<Directory[]>([])
+    /** Lista reactiva local */
+    const directories = ref<Directory[]>([])
 
     /**
-     * Inicializa la lista local de tasas
-     * @param initialRates Lista inicial para sincronizar estado local
+     * Inicializa la lista local
      */
-    function setInitialDirectorys(initialRates: Directory[]) {
-        exchangeRates.value = [...initialRates]
+    function setInitialDirectories(initialDirectories: Directory[]) {
+        directories.value = [...initialDirectories]
     }
 
     /**
-     * Obtiene y actualiza la lista filtrada de tasas desde backend.
+     * Obtiene la lista desde backend
      */
-    async function fetchDirectorys(): Promise<boolean> {
+    async function fetchDirectories(): Promise<boolean> {
         if (loading.value) return false
 
         try {
             loading.value = true
 
-            const response = await backendClient.get<{
-                success: boolean
-                data: Directory[]
-            }>('/exchange-rate/list-filtered', {
-                params: { token: tokenId }
-            })
+            const response = await backendClient.get<{ data: Directory[] }>(
+                '/admin/directory/list-filtered',
+                { params: { token: tokenId } }
+            )
 
             if (Array.isArray(response.data?.data)) {
-                exchangeRates.value = response.data.data
+                directories.value = response.data.data
             }
 
             return true
         } catch (error) {
-            console.error('Error al obtener las tasas de cambio:', error)
-            showToast('Error al cargar las tasas de cambio', 'error')
+            console.error(error)
+            showToast('Error al cargar los directorios', 'error')
             return false
         } finally {
             loading.value = false
@@ -107,13 +110,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
     }
 
     /**
-     * Envía el formulario de tasa de cambio.
-     * - POST si no existe id
-     * - PUT si existe id
-     *
-     * @returns {Promise<boolean>}
-     * - true  → operación exitosa (cerrar modal)
-     * - false → error (mantener modal abierto)
+     * Envío del formulario (create / update)
      */
     async function submit(): Promise<boolean> {
         if (loading.value) return false
@@ -121,29 +118,29 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         try {
             loading.value = true
 
-            if (!exchangeRateData.value) {
-                throw new Error('No hay datos para enviar')
-            }
-
-            if (exchangeRateData.value.id) {
+            if (directoryData.value.id) {
                 const { data } = await backendClient.put(
-                    `/exchange-rate/${exchangeRateData.value.id}`,
-                    exchangeRateData.value
+                    `/admin/directory/${directoryData.value.id}`,
+                    directoryData.value
                 )
                 showToast(data.message, 'success')
             } else {
                 const { data } = await backendClient.post(
-                    '/exchange-rate',
-                    exchangeRateData.value
+                    '/admin/directory',
+                    directoryData.value
                 )
                 showToast(data.message, 'success')
             }
 
-            await fetchDirectorys()
+            await fetchDirectories()
+            reset()
             return true
         } catch (error: any) {
-            console.error('Error en submit:', error)
-            showToast(error?.response?.data?.message ?? 'Error al guardar la tasa', 'error')
+            console.error(error)
+            showToast(
+                error?.response?.data?.message ?? 'Error al guardar el directorio',
+                'error'
+            )
             return false
         } finally {
             loading.value = false
@@ -151,23 +148,14 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
     }
 
     /**
-     * Inicializa el formulario en modo creación
-     * y abre el modal con valores por defecto.
+     * Modo creación
      */
     function create(): void {
-        exchangeRateData.value = {
-            currency_id: '',
-            amount: 0,
-            status: 'INACTIVE',
-            token: tokenId || undefined
-        }
+        directoryData.value = { ...emptyDirectory() }
     }
 
     /**
-     * Carga una tasa existente desde backend
-     * e inicializa el formulario en modo edición.
-     *
-     * @param {string | number} id Identificador de la tasa
+     * Modo edición
      */
     async function edit(id: string | number): Promise<boolean> {
         if (loading.value) return false
@@ -175,29 +163,27 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         try {
             loading.value = true
 
-            const response = await backendClient.get<{
-                success: boolean
-                data: Directory
-            }>(`/exchange-rate/${id}`)
+            const { data } = await backendClient.get<{ data: Directory }>(
+                `/admin/directory/${id}`
+            )
 
-            if (!response.data?.data) {
-                throw new Error('No se encontró la tasa de cambio')
-            }
-
-            const data = response.data.data
-
-            exchangeRateData.value = {
-                id: data.id,
-                currency_id: data.currency_id,
-                amount: Number(data.amount),
-                status: data.status,
-                token: tokenId || undefined
+            directoryData.value = {
+                // id: data.data.id,
+                // name: data.data.name,
+                // username: data.data.username,
+                // email: data.data.email,
+                // country_id: data.data.country_id,
+                // time_zone_id: data.data.time_zone_id,
+                // phone: data.data.phone,
+                // currency_id: data.data.currency_id,
+                // other_currencies: data.data.other_currencies ?? [],
+                // allowed_games: data.data.allowed_games ?? []
             }
 
             return true
         } catch (error) {
-            console.error('Error cargando tasa:', error)
-            showToast('Error al cargar la tasa de cambio', 'error')
+            console.error(error)
+            showToast('Error al cargar el directorio', 'error')
             return false
         } finally {
             loading.value = false
@@ -205,13 +191,18 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
     }
 
     /**
-     * Cambia el estado (activo/inactivo) de una tasa
-     *
-     * @param id Identificador de la tasa
+     * Reset del formulario
+     */
+    function reset(): void {
+        directoryData.value = { ...emptyDirectory() }
+    }
+
+    /**
+     * Cambio de estado
      */
     async function changeStatus(id: string | number): Promise<boolean> {
         const confirm = await showToastConfirmAction({
-            text: '¿Quieres cambiar el estado de esta tasa de cambio?',
+            text: '¿Quieres cambiar el estado de este directorio?',
             icon: 'warning',
             confirmButtonText: 'Sí, cambiar estado'
         })
@@ -219,25 +210,22 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/exchange-rate/${id}/status`)
+            await backendClient.put(`/admin/directory/${id}/status`)
             showToast('Estado cambiado con éxito', 'success')
-            await fetchDirectorys()
+            await fetchDirectories()
             return true
-        } catch (error) {
-            console.error('Error cambiando estado:', error)
+        } catch {
             showToast('Error al cambiar el estado', 'error')
             return false
         }
     }
 
     /**
-     * Elimina una tasa de cambio (soft delete)
-     *
-     * @param id Identificador de la tasa
+     * Eliminación (soft delete)
      */
     async function remove(id: string | number): Promise<boolean> {
         const confirm = await showToastConfirmAction({
-            text: '¿Estás seguro que deseas eliminar esta tasa de cambio?',
+            text: '¿Estás seguro que deseas eliminar este directorio?',
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar'
         })
@@ -245,77 +233,26 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/exchange-rate/${id}/delete`)
-            showToast('Tasa de cambio eliminada con éxito', 'success')
-            await fetchDirectorys()
+            await backendClient.put(`/admin/directory/${id}/delete`)
+            showToast('Directorio eliminado con éxito', 'success')
+            await fetchDirectories()
             return true
-        } catch (error) {
-            console.error('Error eliminando tasa:', error)
-            showToast('Error al eliminar la tasa', 'error')
+        } catch {
+            showToast('Error al eliminar el directorio', 'error')
             return false
-        }
-    }
-
-    /**
-     * Sincroniza todas las tasas de cambio desde backend.
-     *
-     * Muestra un SweetAlert con las tasas actuales obtenidas,
-     * y solicita confirmación antes de proceder con la actualización masiva.
-     *
-     * @returns {Promise<boolean>}
-     */
-    async function updateDirectorys(): Promise<boolean> {
-        if (loading.value) return false
-
-        try {
-            loading.value = true
-
-            const response = await backendClient.get<{
-                success: boolean
-                data: Record<string, string>
-            }>('/exchange-rate/raw-rates')
-
-            if (!response.data?.data) {
-                throw new Error('No se recibieron tasas para mostrar')
-            }
-
-            const ratesHtml = Object.entries(response.data.data)
-                .map(([currency, value]) => `<li><strong>${currency}:</strong> ${value}</li>`)
-                .join('')
-
-            const confirmed = await showToastConfirmAction({
-                html: `<ul style="text-align: left;">${ratesHtml}</ul><strong>¿Deseas actualizar con estas tasas?</strong>`,
-                icon: 'info',
-                confirmButtonText: 'Sí, actualizar',
-                title: 'Tasas de cambio obtenidas'
-            })
-
-            if (!confirmed) return false
-
-            await backendClient.put('/exchange-rate/update-all')
-            showToast('Tasas de cambio actualizadas con éxito', 'success')
-            await fetchDirectorys()
-
-            return true
-        } catch (error) {
-            console.error('Error actualizando tasas:', error)
-            showToast('Error al actualizar las tasas', 'error')
-            return false
-        } finally {
-            loading.value = false
         }
     }
 
     return {
-        exchangeRateData,
-        exchangeRates,
-        setInitialDirectorys,
+        directoryData,
+        directories,
+        setInitialDirectories,
         submit,
         create,
         edit,
+        reset,
         changeStatus,
         remove,
-        updateDirectorys,
-        fetchDirectorys
+        fetchDirectories
     }
 }
