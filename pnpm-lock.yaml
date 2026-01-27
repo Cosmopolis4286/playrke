@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@vueform/multiselect':
+        specifier: ^2.6.11
+        version: 2.6.11
       '@vuelidate/core':
         specifier: ^2.0.3
         version: 2.0.3(vue@3.5.27(typescript@5.9.3))
@@ -945,6 +948,9 @@ packages:
 
   '@vue/shared@3.5.27':
     resolution: {integrity: sha512-dXr/3CgqXsJkZ0n9F3I4elY8wM9jMJpP3pvRG52r6m0tu/MsAFIe6JpXVGeNMd/D9F4hQynWT8Rfuj0bdm9kFQ==}
+
+  '@vueform/multiselect@2.6.11':
+    resolution: {integrity: sha512-iG4TGfqE3baftbSGF0PhoS+xZOCnV0ChkDo9rwhJ/Qi2YlCdb6tyQCjvyug3jnzncga8+d85kx0WvG7rDYFqiA==}
 
   '@vuelidate/core@2.0.3':
     resolution: {integrity: sha512-AN6l7KF7+mEfyWG0doT96z+47ljwPpZfi9/JrNMkOGLFv27XVZvKzRLXlmDPQjPl/wOB1GNnHuc54jlCLRNqGA==}
@@ -3263,6 +3269,8 @@ snapshots:
   '@vue/shared@3.1.5': {}
 
   '@vue/shared@3.5.27': {}
+
+  '@vueform/multiselect@2.6.11': {}
 
   '@vuelidate/core@2.0.3(vue@3.5.27(typescript@5.9.3))':
     dependencies:

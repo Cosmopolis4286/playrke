@@ -5,6 +5,7 @@ import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import { Inertia } from '@inertiajs/inertia'
 import VueImaskPlugin from './plugins/vue-imask-plugin'
+import "@vueform/multiselect/themes/default.css";
 
 /**
  * Importa de forma dinámica todos los componentes Vue en /resources/js/Pages.

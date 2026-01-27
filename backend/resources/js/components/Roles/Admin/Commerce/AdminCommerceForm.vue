@@ -104,6 +104,7 @@
         required
         placeholder="Seleccionar país"
         :options="countries"
+
         optionValue="id"
         optionLabel="name"
         col="col-sm-6"

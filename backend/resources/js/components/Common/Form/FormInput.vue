@@ -1,9 +1,6 @@
 <script setup lang="ts">
   import { computed, useSlots } from 'vue'
 
-  /**
-   * Props del componente FormInput
-   */
   const props = defineProps({
     container: { type: Boolean, default: false },
     id: { type: String, default: null },
@@ -21,35 +18,23 @@
     inputGroup: { type: Boolean, default: false }
   })
 
-  /**
-   * Emite el evento update:modelValue para el v-model
-   */
   const emit = defineEmits(['update:modelValue'])
-
-  /**
-   * Obtener slots (para el input group append)
-   */
   const slots = useSlots()
 
-  /**
-   * ID calculado: si no se pasa, usa el name
-   */
   const inputId = computed(() => props.id ?? props.name)
+  const containerId = computed(() => (props.container ? `container-${inputId.value}` : undefined))
 
-  /**
-   * Función para emitir el cambio del input
-   * @param {Event} event
-   */
   function onInput(event: Event) {
-    const target = event.target as HTMLInputElement
-    emit('update:modelValue', target.value)
+    emit('update:modelValue', (event.target as HTMLInputElement).value)
   }
 </script>
 
 <template>
-  <div v-if="container" :id="`container-${inputId}`" :class="['form-group', col, className]">
+  <div :id="containerId" :class="['form-group', col, className]">
+    <!-- LABEL (igual que Blade) -->
     <label v-if="label" :for="inputId"> {{ label }}<span v-if="required">*</span> </label>
 
+    <!-- INPUT GROUP -->
     <div v-if="inputGroup" class="input-group">
       <input
         :type="type"
@@ -64,32 +49,15 @@
         :maxlength="maxlength"
         @input="onInput"
       />
+
       <div class="input-group-append" v-if="slots.default">
         <slot />
       </div>
     </div>
 
+    <!-- INPUT SIMPLE -->
     <input
       v-else
-      :type="type"
-      :id="inputId"
-      :name="name"
-      :value="modelValue"
-      class="form-control"
-      :readonly="readonly"
-      :required="required"
-      :placeholder="placeholder"
-      :minlength="minlength"
-      :maxlength="maxlength"
-      @input="onInput"
-    />
-
-    <!-- Aquí puedes agregar manejo de errores si usas validación externa -->
-  </div>
-
-  <!-- Si container es falso, solo renderiza input simple -->
-  <div v-else :class="className">
-    <input
       :type="type"
       :id="inputId"
       :name="name"
