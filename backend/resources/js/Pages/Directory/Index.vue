@@ -2,21 +2,21 @@
   import { ref, computed, watch } from 'vue'
 
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
+  import CountryTabs from '@/js/Components/Directory/CountryTabs.vue'
   import DirectoryButtons from '@js/Components/Directory/DirectoryButtons.vue'
   import DirectoryTable from '@js/Components/Directory/DirectoryTable.vue'
   import DirectoryForm from '@/js/Components/Directory/DirectoryForm.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
 
-  import { useExchangeRate } from '@/js/composables/exchange-rate/useExchangeRate'
+  import { useDirectory } from '@/js/composables/directory/useDirectory'
   import { useModalForm } from '@/js/composables/common/useModalForm'
 
-  import type { ExchangeRatePageProps, UsedCurrency } from '@js/types/exchange-rate'
-  import CountryTabs from '@/js/Components/Directory/CountryTabs.vue'
+  import type { DirectoryPageProps, UsedCurrency } from '@js/types/directory'
 
   /**
    * Props Inertia
    */
-  const props = defineProps<ExchangeRatePageProps>()
+  const props = defineProps<DirectoryPageProps>()
 
   /**
    * Determina si el usuario tiene privilegios (company o customer)
@@ -29,17 +29,17 @@
   const {
     exchangeRateData,
     exchangeRates,
-    setInitialExchangeRates,
+    setInitialDirectorys,
     create,
     edit,
     changeStatus,
     remove,
-    updateExchangeRates,
+    updateDirectorys,
     submit
-  } = useExchangeRate(props.tokenId)
+  } = useDirectory(props.tokenId)
 
   // Inicializar exchangeRates con las props
-  setInitialExchangeRates(props.exchangeRates)
+  setInitialDirectorys(props.exchangeRates)
 
   /**
    * Propiedades y estado local
@@ -52,7 +52,7 @@
    * Loading exclusivo para la acción "Actualizar tasas"
    * Vive en el padre porque aquí vive la operación async
    */
-  const updatingExchangeRates = ref(false)
+  const updatingDirectorys = ref(false)
 
   /**
    * Genera las monedas usadas en las tasas para presentación
@@ -114,14 +114,14 @@
    * Ejecuta la sincronización masiva de tasas de cambio
    * y controla el loading del botón "Actualizar".
    */
-  async function handleUpdateExchangeRates(): Promise<void> {
-    if (updatingExchangeRates.value) return
+  async function handleUpdateDirectorys(): Promise<void> {
+    if (updatingDirectorys.value) return
 
-    updatingExchangeRates.value = true
+    updatingDirectorys.value = true
     try {
-      await updateExchangeRates()
+      await updateDirectorys()
     } finally {
-      updatingExchangeRates.value = false
+      updatingDirectorys.value = false
     }
   }
 
@@ -132,7 +132,7 @@
     if (!selectedCurrency.value.length) return
 
     window.location.href =
-      `/exchange-rate/historical/${selectedCurrency.value}` + `?tokenId=${props.tokenId}`
+      `/directory/historical/${selectedCurrency.value}` + `?tokenId=${props.tokenId}`
   }
 
   const countries = [
@@ -169,16 +169,14 @@
         :usedCurrencies="usedCurrencies"
         :has-privileged-role="hasPrivilegedRole"
         :selected-currency="selectedCurrency"
-        :updating-exchange-rates="updatingExchangeRates"
+        :updating-directorys="updatingDirectorys"
         @create="handleCreate"
         @historical="goHistorical"
-        @updateExchangeRates="handleUpdateExchangeRates"
+        @updateDirectorys="handleUpdateDirectorys"
       />
 
       <DirectoryTable
-        :usedCurrencies="usedCurrencies"
-        :exchange-rates="exchangeRates"
-        :has-privileged-role="hasPrivilegedRole"
+        :columns="columns"
         @edit="handleEdit"
         @change-status="changeStatus"
         @delete="remove"

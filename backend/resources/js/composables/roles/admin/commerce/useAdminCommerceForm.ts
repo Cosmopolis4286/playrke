@@ -1,140 +1,77 @@
-import { ref, watch, computed } from 'vue'
-import type { ExchangeRate } from '@/js/types/exchange-rate'
+import { computed } from 'vue'
+import type { Commerce } from '@/js/types/roles/commerce/commerce'
 
 /**
- * Composable para manejar el formulario de Comercios
+ * Composable para formulario de Comercializadoras
  *
- * @param modelValue Valor inicial del formulario (create / edit)
- * @param emit Emit de Vue para sync con v-model
+ * Responsabilidades:
+ * - Adaptar modelValue al formulario
+ * - Validación reactiva
+ * - Exponer estado de edición
+ *
+ * ❌ Sin watchers
+ * ✅ v-model computado
  */
 export function useAdminCommerceForm(
-    modelValue: Partial<ExchangeRate>,
-    emit: (event: 'update:modelValue', value: ExchangeRate) => void
+    modelValue: Partial<Commerce>,
+    emit: (event: 'update:modelValue', value: Partial<Commerce>) => void
 ) {
     /* =======================
-     * State
+     * v-model computado
      * ======================= */
-    const form = ref({
-        currency_id: '',
-        amount: null as number | null,
-        status: false
+
+    const form = computed<Partial<Commerce>>({
+        get: () => modelValue,
+        set: value => emit('update:modelValue', value)
     })
-
-    const exchangeRateId = ref(modelValue.id)
-
-    const errors = ref<{ currency_id?: string; amount?: string }>({})
-
-    /* =======================
-     * Mask
-     * ======================= */
-    const maskOptions = {
-        mask: Number,
-        scale: 2,
-        thousandsSeparator: '',
-        padFractionalZeros: false,
-        normalizeZeros: true,
-        radix: '.',
-        mapToRadix: [',']
-    }
 
     /* =======================
      * Computed
      * ======================= */
 
     /**
-     * Indica si el formulario está en modo edición
+     * Modo edición
      */
-    const isEditMode = computed(() => !!modelValue?.currency_id)
+    const isEditMode = computed(() => !!form.value.id)
 
     /**
-     * Estado de validez del formulario
+     * Validaciones reactivas
      */
-    const isValid = computed(
-        () => !errors.value.currency_id && !errors.value.amount
-    )
+    const errors = computed<Record<string, string>>(() => {
+        const e: Record<string, string> = {}
 
-    /* =======================
-     * Methods
-     * ======================= */
-
-    /**
-     * Resetea el formulario
-     */
-    const reset = () => {
-        form.value = {
-            currency_id: '',
-            amount: null,
-            status: false
+        if (!form.value.name) {
+            e.name = 'El nombre es requerido.'
         }
-        errors.value = {}
-    }
 
-    /**
-     * Valida los campos del formulario
-     */
-    const validate = () => {
-        errors.value = {}
+        if (!form.value.username || form.value.username.length < 5) {
+            e.username = 'El username debe tener al menos 5 caracteres.'
+        }
+
+        if (!form.value.email) {
+            e.email = 'El email es requerido.'
+        }
+
+        if (!form.value.country_id) {
+            e.country_id = 'El país es requerido.'
+        }
 
         if (!form.value.currency_id) {
-            errors.value.currency_id = 'La divisa es requerida.'
+            e.currency_id = 'La moneda principal es requerida.'
         }
 
-        if (!form.value.amount || form.value.amount <= 0) {
-            errors.value.amount = 'El cambio debe ser mayor a cero.'
-        }
-    }
-
-    /* =======================
-     * Watchers
-     * ======================= */
+        return e
+    })
 
     /**
-     * Sync modelValue → form (edit / create)
+     * Estado de validez
      */
-    watch(
-        () => modelValue,
-        value => {
-            form.value = {
-                currency_id: value.currency_id.toString() ?? '',
-                amount: value.amount ?? null,
-                status: value.status === 'ACTIVE'
-            }
-        },
-        { immediate: true, deep: true }
-    )
-
-    /**
-     * Sync form → modelValue
-     */
-    watch(
-        form,
-        value => {
-            emit('update:modelValue', {
-                id: exchangeRateId.value,
-                currency_id: value.currency_id,
-                amount: value.amount ?? undefined,
-                status: value.status ? 'ACTIVE' : 'INACTIVE'
-            })
-        },
-        { deep: true }
-    )
-
-    /**
-     * Validación reactiva
-     */
-    watch(
-        () => [form.value.currency_id, form.value.amount],
-        validate,
-        { immediate: true }
-    )
+    const isValid = computed(() => Object.keys(errors.value).length === 0)
 
     return {
         form,
         errors,
-        maskOptions,
         isEditMode,
-        isValid,
-        validate,
-        reset
+        isValid
     }
 }

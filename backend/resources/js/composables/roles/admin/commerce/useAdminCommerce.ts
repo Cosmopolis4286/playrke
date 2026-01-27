@@ -13,68 +13,79 @@ interface UseAdminCommerceReturn {
     /** Lista reactiva de comercializadoras */
     commerces: Ref<Commerce[]>
 
-    /** Inicializa la lista local de comercializadoras */
-    setInitialCommerces: (initialRates: Commerce[]) => void
+    /** Inicializa la lista local */
+    setInitialCommerces: (initialCommerces: Commerce[]) => void
 
-    /**
-     * Envía el formulario de comercio.
-     * Debe retornar:
-     * - true  → el modal se cierra
-     * - false → el modal permanece abierto
-     */
+    /** Envío del formulario */
     submit: () => Promise<boolean>
 
-    /** Abre el modal en modo creación */
+    /** Modo creación */
     create: () => void
 
-    /** Abre el modal en modo edición */
+    /** Modo edición */
     edit: (id: string | number) => Promise<boolean>
 
-    /** Cambia el estado de una tasa */
+    /** Reset del formulario */
+    reset: () => void
+
+    /** Cambio de estado */
     changeStatus: (id: string | number) => Promise<boolean>
 
-    /** Elimina una tasa */
+    /** Reset de contraseña */
+    resetPassword: (id: string | number) => Promise<boolean>
+
+    /** Eliminación */
     remove: (id: string | number) => Promise<boolean>
 
-    /** Obtiene y actualiza la lista filtrada de comercializadoras desde backend */
+    /** Fetch desde backend */
     fetchCommerces: () => Promise<boolean>
 }
 
 /**
- * Composable para manejar comercializadoras (Exchange Rates).
+ * Factory para un comercio vacío
+ */
+const emptyCommerce = (): Partial<Commerce> =>
+    Object.freeze({
+        name: '',
+        username: '',
+        email: '',
+        country_id: null,
+        time_zone_id: null,
+        phone: '',
+        currency_id: null,
+        other_currencies: [],
+        allowed_games: []
+    })
+
+/**
+ * Composable para manejar comercializadoras
  *
  * Responsabilidades:
- * - Control del modal (crear / editar)
- * - Manejo del estado del formulario
+ * - Control del estado del formulario (create / edit / reset)
  * - Envío de datos (POST / PUT)
- * - Sincronización masiva desde backend
- * - Gestión local de la lista de comercializadoras
+ * - Gestión local de la lista
  *
- * ⚠️ No controla UI directamente (el componente decide cerrar el modal)
- *
- * @param {string} tokenId Token opcional del usuario autenticado
- * @returns {UseAdminCommerceReturn}
+ * ⚠️ No controla UI directamente
  */
 export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
-    /** Estado de carga global del composable */
+    /** Estado de carga global */
     const loading = ref(false)
 
-    /** Datos reactivos del formulario (crear / editar) */
-    const commerceData = ref<Partial<Commerce>>({})
+    /** Estado único del formulario */
+    const commerceData = ref<Partial<Commerce>>(emptyCommerce())
 
-    /** Lista reactiva local de comercializadoras */
+    /** Lista reactiva local */
     const commerces = ref<Commerce[]>([])
 
     /**
-     * Inicializa la lista local de comercializadoras
-     * @param initialRates Lista inicial para sincronizar estado local
+     * Inicializa la lista local
      */
-    function setInitialCommerces(initialRates: Commerce[]) {
-        commerces.value = [...initialRates]
+    function setInitialCommerces(initialCommerces: Commerce[]) {
+        commerces.value = [...initialCommerces]
     }
 
     /**
-     * Obtiene y actualiza la lista filtrada de comercializadoras desde backend.
+     * Obtiene la lista desde backend
      */
     async function fetchCommerces(): Promise<boolean> {
         if (loading.value) return false
@@ -82,12 +93,10 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         try {
             loading.value = true
 
-            const response = await backendClient.get<{
-                success: boolean
-                data: Commerce[]
-            }>('/admin/commerce/list-filtered', {
-                params: { token: tokenId }
-            })
+            const response = await backendClient.get<{ data: Commerce[] }>(
+                '/admin/commerce/list-filtered',
+                { params: { token: tokenId } }
+            )
 
             if (Array.isArray(response.data?.data)) {
                 commerces.value = response.data.data
@@ -95,7 +104,7 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
 
             return true
         } catch (error) {
-            console.error('Error al obtener las comercializadoras:', error)
+            console.error(error)
             showToast('Error al cargar las comercializadoras', 'error')
             return false
         } finally {
@@ -104,23 +113,13 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
     }
 
     /**
-     * Envía el formulario de comercio.
-     * - POST si no existe id
-     * - PUT si existe id
-     *
-     * @returns {Promise<boolean>}
-     * - true  → operación exitosa (cerrar modal)
-     * - false → error (mantener modal abierto)
+     * Envío del formulario (create / update)
      */
     async function submit(): Promise<boolean> {
         if (loading.value) return false
 
         try {
             loading.value = true
-
-            if (!commerceData.value) {
-                throw new Error('No hay datos para enviar')
-            }
 
             if (commerceData.value.id) {
                 const { data } = await backendClient.put(
@@ -130,17 +129,21 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
                 showToast(data.message, 'success')
             } else {
                 const { data } = await backendClient.post(
-                    '/exchange-rate',
+                    '/admin/commerce',
                     commerceData.value
                 )
                 showToast(data.message, 'success')
             }
 
             await fetchCommerces()
+            reset()
             return true
         } catch (error: any) {
-            console.error('Error en submit:', error)
-            showToast(error?.response?.data?.message ?? 'Error al guardar la tasa', 'error')
+            console.error(error)
+            showToast(
+                error?.response?.data?.message ?? 'Error al guardar la comercializadora',
+                'error'
+            )
             return false
         } finally {
             loading.value = false
@@ -148,28 +151,14 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
     }
 
     /**
-     * Inicializa el formulario en modo creación
-     * y abre el modal con valores por defecto.
+     * Modo creación
      */
     function create(): void {
-        commerceData.value = {
-            name: '',
-            username: '',
-            email: '',
-            country_id: null,
-            time_zone_id: null,
-            phone: '',
-            currency_id: null,
-            other_currencies: [],
-            allowed_games: []
-        }
+        commerceData.value = { ...emptyCommerce() }
     }
 
     /**
-     * Carga una tasa existente desde backend
-     * e inicializa el formulario en modo edición.
-     *
-     * @param {string | number} id Identificador de la tasa
+     * Modo edición
      */
     async function edit(id: string | number): Promise<boolean> {
         if (loading.value) return false
@@ -177,29 +166,27 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         try {
             loading.value = true
 
-            const response = await backendClient.get<{
-                success: boolean
-                data: Commerce
-            }>(`/admin/commerce/${id}`)
+            const { data } = await backendClient.get<{ data: Commerce }>(
+                `/admin/commerce/${id}`
+            )
 
-            if (!response.data?.data) {
-                throw new Error('No se encontró la comercio')
+            commerceData.value = {
+                id: data.data.id,
+                name: data.data.name,
+                username: data.data.username,
+                email: data.data.email,
+                country_id: data.data.country_id,
+                time_zone_id: data.data.time_zone_id,
+                phone: data.data.phone,
+                currency_id: data.data.currency_id,
+                other_currencies: data.data.other_currencies ?? [],
+                allowed_games: data.data.allowed_games ?? []
             }
-
-            const data = response.data.data
-
-            // commerceData.value = {
-            //     id: data.id,
-            //     currency_id: data.currency_id,
-            //     amount: Number(data.amount),
-            //     status: data.status,
-            //     token: tokenId || undefined
-            // }
 
             return true
         } catch (error) {
-            console.error('Error cargando tasa:', error)
-            showToast('Error al cargar la comercio', 'error')
+            console.error(error)
+            showToast('Error al cargar la comercializadora', 'error')
             return false
         } finally {
             loading.value = false
@@ -207,13 +194,18 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
     }
 
     /**
-     * Cambia el estado (activo/inactivo) de una tasa
-     *
-     * @param id Identificador de la tasa
+     * Reset del formulario
+     */
+    function reset(): void {
+        commerceData.value = { ...emptyCommerce() }
+    }
+
+    /**
+     * Cambio de estado
      */
     async function changeStatus(id: string | number): Promise<boolean> {
         const confirm = await showToastConfirmAction({
-            text: '¿Quieres cambiar el estado de esta comercio?',
+            text: '¿Quieres cambiar el estado de esta comercializadora?',
             icon: 'warning',
             confirmButtonText: 'Sí, cambiar estado'
         })
@@ -225,21 +217,44 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
             showToast('Estado cambiado con éxito', 'success')
             await fetchCommerces()
             return true
-        } catch (error) {
-            console.error('Error cambiando estado:', error)
+        } catch {
             showToast('Error al cambiar el estado', 'error')
             return false
         }
     }
 
     /**
-     * Elimina una comercio (soft delete)
-     *
-     * @param id Identificador de la tasa
+     * Resetea la contraseña de una comercializadora
+     */
+    async function resetPassword(id: string | number): Promise<boolean> {
+        const confirm = await showToastConfirmAction({
+            text: '¿Deseas resetear la contraseña de esta comercializadora?',
+            icon: 'warning',
+            confirmButtonText: 'Sí, resetear'
+        })
+
+        if (!confirm) return false
+
+        try {
+            const { data } = await backendClient.post(
+                `/admin/commerce/${id}/reset-password`
+            )
+
+            showToast(data.message ?? 'Contraseña reseteada', 'success')
+            return true
+        } catch (error) {
+            console.error(error)
+            showToast('Error al resetear la contraseña', 'error')
+            return false
+        }
+    }
+
+    /**
+     * Eliminación (soft delete)
      */
     async function remove(id: string | number): Promise<boolean> {
         const confirm = await showToastConfirmAction({
-            text: '¿Estás seguro que deseas eliminar esta comercio?',
+            text: '¿Estás seguro que deseas eliminar esta comercializadora?',
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar'
         })
@@ -248,12 +263,11 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
 
         try {
             await backendClient.put(`/admin/commerce/${id}/delete`)
-            showToast('Tasa de cambio eliminada con éxito', 'success')
+            showToast('Comercializadora eliminada con éxito', 'success')
             await fetchCommerces()
             return true
-        } catch (error) {
-            console.error('Error eliminando tasa:', error)
-            showToast('Error al eliminar la tasa', 'error')
+        } catch {
+            showToast('Error al eliminar la comercializadora', 'error')
             return false
         }
     }
@@ -265,7 +279,9 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         submit,
         create,
         edit,
+        reset,
         changeStatus,
+        resetPassword,
         remove,
         fetchCommerces
     }

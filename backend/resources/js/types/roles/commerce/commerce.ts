@@ -9,6 +9,6 @@ export interface Commerce {
     readonly phone: string,
     readonly username: string,
     readonly email: string
-    readonly other_currencies?: [],
-    readonly allowed_games?: []
+    readonly other_currencies?: number[],
+    readonly allowed_games?: number[]
 }
