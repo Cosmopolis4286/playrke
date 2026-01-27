@@ -3,7 +3,7 @@
   import TableFilter from './TableFilter.vue'
   import CardHeader from '../Card/CardHeader.vue'
   import BaseTable from './BaseTable.vue'
-  import type { Column } from '@/js/types/common/table/column'
+  import type { Column } from '@/js/types/common/table/column-row'
 
   /** Opciones para filtros */
   interface FilterOption {

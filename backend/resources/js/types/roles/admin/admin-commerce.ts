@@ -1,9 +1,9 @@
 import type { Currency } from '../../currency'
 import type { Country } from '../../country'
-import { Game } from '../../game'
-import { TimeZone } from '../../time-zone'
-import { Commerce } from '../commerce/commerce'
-import { Column } from '../../common/table/column'
+import type { Game } from '../../game'
+import type { TimeZone } from '../../time-zone'
+import type { Commerce } from '../commerce/commerce'
+import type { Column } from '../../common/table/column-row'
 
 export interface AdminCommercePageProps {
     commerces: Commerce[],

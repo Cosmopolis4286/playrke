@@ -1,6 +1,6 @@
 <script setup lang="ts" name="BaseTable">
   import { computed } from 'vue'
-  import type { Column } from '@/js/types/common/table/column'
+  import type { Column } from '@/js/types/common/table/column-row'
 
   /** Props recibidas */
   const props = defineProps<{

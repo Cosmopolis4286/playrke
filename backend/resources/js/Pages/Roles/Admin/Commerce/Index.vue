@@ -8,9 +8,9 @@
    * - Manejar modal de creación / edición
    */
 
-  /* ==========================================================================
-   * Imports
-   * ========================================================================== */
+  /* ========================================================================== */
+  /* Imports                                                                    */
+  /* ========================================================================== */
 
   import { computed } from 'vue'
 
@@ -22,55 +22,77 @@
   // Composables
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
-  import { useExchangeRate } from '@/js/composables/roles/admin/commerce/useAdminCommerce'
+  import { useAdminCommerce } from '@/js/composables/roles/admin/commerce/useAdminCommerce'
 
   // Types
   import type { AdminCommercePageProps } from '@js/types/roles/admin/admin-commerce'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
 
-  /* ==========================================================================
-   * Props (Inertia)
-   * ========================================================================== */
+  /* ========================================================================== */
+  /* Props (Inertia)                                                            */
+  /* ========================================================================== */
 
   /**
    * Props tipadas recibidas desde Inertia
    */
   const props = defineProps<AdminCommercePageProps>()
 
-  /* ==========================================================================
-   * Inicialización CRUD global
-   * ========================================================================== */
-
-  /**
-   * Activa listeners globales:
-   * - Clicks rápidos (confirmaciones)
-   * - Eventos `table:crud`
-   */
-  useCrudEventListener()
-
-  /* ==========================================================================
-   * Composable de negocio
-   * ========================================================================== */
+  /* ========================================================================== */
+  /* Composable de negocio                                                      */
+  /* ========================================================================== */
 
   /**
    * Lógica de negocio para tasas de cambio / comercializadoras
    */
   const {
-    exchangeRateData,
-    exchangeRates,
-    setInitialExchangeRates,
+    commerceData,
+    commerces,
+    setInitialCommerces,
     create,
     edit,
     changeStatus,
     remove,
-    updateExchangeRates,
     submit
-  } = useExchangeRate(props.tokenId)
+  } = useAdminCommerce()
 
-  /* ==========================================================================
-   * Filtros de tabla
-   * ========================================================================== */
+  // Inicializar commerces con las props
+  setInitialCommerces(props.commerces)
+
+  /* ========================================================================== */
+  /* Inicialización CRUD global                                                 */
+  /* ========================================================================== */
+
+  /**
+   * Mapea acciones `table:crud` a funciones del composable useAdminCommerce
+   */
+  useCrudEventListener({
+    create: () => {
+      create()
+      showModalForm.value = true
+    },
+    edit: async ids => {
+      if (!ids || ids.length !== 1) return
+      await edit(ids[0])
+      showModalForm.value = true
+    },
+    delete: async ids => {
+      if (!ids) return
+      for (const id of ids) {
+        await remove(id)
+      }
+    },
+    changeStatus: async ids => {
+      if (!ids) return
+      for (const id of ids) {
+        await changeStatus(id)
+      }
+    }
+  })
+
+  /* ========================================================================== */
+  /* Filtros de tabla                                                           */
+  /* ========================================================================== */
 
   /**
    * Opciones de países normalizadas
@@ -105,9 +127,9 @@
     }
   ])
 
-  /* ==========================================================================
-   * Botones extra (acciones globales)
-   * ========================================================================== */
+  /* ========================================================================== */
+  /* Botones extra (acciones globales)                                         */
+  /* ========================================================================== */
 
   /**
    * Botones de acciones adicionales.
@@ -130,9 +152,9 @@
     }
   ]
 
-  /* ==========================================================================
-   * Modal y formulario
-   * ========================================================================== */
+  /* ========================================================================== */
+  /* Modal y formulario                                                        */
+  /* ========================================================================== */
 
   /**
    * Manejo del modal de creación / edición
@@ -143,7 +165,7 @@
     formMode,
     formRef: adminCommerceFormRef,
     handleSubmit
-  } = useModalForm(exchangeRateData, submit)
+  } = useModalForm(commerceData, submit)
 </script>
 
 <template>
@@ -168,13 +190,11 @@
     :on-submit="handleSubmit"
     :confirm-disabled="!(adminCommerceFormRef?.isValid ?? false)"
   >
-    <AdminCommerceForm
+    <!-- <AdminCommerceForm
       ref="adminCommerceFormRef"
-      v-model="exchangeRateData"
+      v-model="commerceData"
       :currencies="currencies"
-      :usedCurrencies="usedCurrencies"
-      :has-privileged-role="hasPrivilegedRole"
       :mode="formMode"
-    />
+    /> -->
   </Modal>
 </template>

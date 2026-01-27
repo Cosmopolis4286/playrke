@@ -1,14 +1,13 @@
 <script setup lang="ts">
-  import type { ExchangeRate, UsedCurrency } from '@js/types/exchange-rate'
-import BaseTable from '../Common/Table/BaseTable.vue';
+  import BaseTable from '../Common/Table/BaseTable.vue'
+  import type { Column, Row } from '@/js/types/common/table/column-row'
 
   /**
    * Props del componente ExchangeRateTable
    */
   const props = defineProps<{
-    usedCurrencies?: UsedCurrency[]
-    exchangeRates: ExchangeRate[]
-    hasPrivilegedRole: boolean
+    columns: Column[]
+    rows: Row[]
   }>()
 
   /**
@@ -71,11 +70,14 @@ import BaseTable from '../Common/Table/BaseTable.vue';
       title: 'Registrar Datos Bancarios'
     }
   }
+  const parsedRows = computed(() =>
+    typeof props.rows === 'string' ? JSON.parse(props.rows) : props.rows
+  )
 </script>
 
 <template>
   <BaseTable
-    :table-id="tableId"
+    table-id="directory-table"
     :columns="columns"
     :rows="filteredRows"
     :empty-message="emptyMessage"

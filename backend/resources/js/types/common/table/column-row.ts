@@ -7,3 +7,8 @@ export interface Column {
     readonly sortable?: boolean
     readonly html?: boolean
 }
+
+/**
+ * Tipado de una fila
+ */
+export type Row = Array<Record<string, any>> | string;

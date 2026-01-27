@@ -6,11 +6,14 @@ use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateContextDTO;
 use App\Services\Currency\CurrencyService;
 use App\Services\Roles\RoleUserService;
+use App\Traits\HashedTableDataTrait;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 
 class ExchangeRateContextService
 {
+    use HashedTableDataTrait;
+
     public function __construct(
         private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
         private readonly CurrencyService $currency,
@@ -56,11 +59,20 @@ class ExchangeRateContextService
         // Definir ID de la entidad para búsqueda basada en el rol
         $entityId = $this->roleUserService->getUserRoleEntityId($userId, $role);
 
-        return match ($role) {
+        $context = match ($role) {
             'commerce' => $this->commerceExchangeRate->getAvailableExchangeRates($entityId),
             'customer', 'admin' => collect(),
             default => collect(),
         };
+
+        return $context;
+
+        // Define columnas visibles y keys fuente para la tabla
+        $columns = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
+        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_label'];
+
+        // Aplica transformación de contexto para tablas Inertia
+        $context = $this->processContextTableData($context->toArray(), 'exchangeRates', $columns, $rowKeys);
     }
 
     /**

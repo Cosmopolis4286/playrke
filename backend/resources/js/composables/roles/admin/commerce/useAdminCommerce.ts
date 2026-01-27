@@ -1,23 +1,23 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
-import { ExchangeRate } from '@/js/types/exchange-rate'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
+import type { Commerce } from '@/js/types/roles/commerce/commerce'
 
 /**
- * Contrato público del composable useExchangeRate
+ * Contrato público del composable useAdminCommerce
  */
-interface UseExchangeRateReturn {
-    /** Datos de la tasa (para crear o editar) */
-    exchangeRateData: Ref<Partial<ExchangeRate>>
+interface UseAdminCommerceReturn {
+    /** Datos del comercio (para crear o editar) */
+    commerceData: Ref<Partial<Commerce>>
 
-    /** Lista reactiva de tasas de cambio */
-    exchangeRates: Ref<ExchangeRate[]>
+    /** Lista reactiva de comercializadoras */
+    commerces: Ref<Commerce[]>
 
-    /** Inicializa la lista local de tasas */
-    setInitialExchangeRates: (initialRates: ExchangeRate[]) => void
+    /** Inicializa la lista local de comercializadoras */
+    setInitialCommerces: (initialRates: Commerce[]) => void
 
     /**
-     * Envía el formulario de tasa de cambio.
+     * Envía el formulario de comercio.
      * Debe retornar:
      * - true  → el modal se cierra
      * - false → el modal permanece abierto
@@ -36,50 +36,47 @@ interface UseExchangeRateReturn {
     /** Elimina una tasa */
     remove: (id: string | number) => Promise<boolean>
 
-    /** Sincroniza tasas desde backend */
-    updateExchangeRates: () => Promise<boolean>
-
-    /** Obtiene y actualiza la lista filtrada de tasas desde backend */
-    fetchExchangeRates: () => Promise<boolean>
+    /** Obtiene y actualiza la lista filtrada de comercializadoras desde backend */
+    fetchCommerces: () => Promise<boolean>
 }
 
 /**
- * Composable para manejar tasas de cambio (Exchange Rates).
+ * Composable para manejar comercializadoras (Exchange Rates).
  *
  * Responsabilidades:
  * - Control del modal (crear / editar)
  * - Manejo del estado del formulario
  * - Envío de datos (POST / PUT)
  * - Sincronización masiva desde backend
- * - Gestión local de la lista de tasas
+ * - Gestión local de la lista de comercializadoras
  *
  * ⚠️ No controla UI directamente (el componente decide cerrar el modal)
  *
  * @param {string} tokenId Token opcional del usuario autenticado
- * @returns {UseExchangeRateReturn}
+ * @returns {UseAdminCommerceReturn}
  */
-export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
+export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
     /** Estado de carga global del composable */
     const loading = ref(false)
 
     /** Datos reactivos del formulario (crear / editar) */
-    const exchangeRateData = ref<Partial<ExchangeRate>>({})
+    const commerceData = ref<Partial<Commerce>>({})
 
-    /** Lista reactiva local de tasas de cambio */
-    const exchangeRates = ref<ExchangeRate[]>([])
+    /** Lista reactiva local de comercializadoras */
+    const commerces = ref<Commerce[]>([])
 
     /**
-     * Inicializa la lista local de tasas
+     * Inicializa la lista local de comercializadoras
      * @param initialRates Lista inicial para sincronizar estado local
      */
-    function setInitialExchangeRates(initialRates: ExchangeRate[]) {
-        exchangeRates.value = [...initialRates]
+    function setInitialCommerces(initialRates: Commerce[]) {
+        commerces.value = [...initialRates]
     }
 
     /**
-     * Obtiene y actualiza la lista filtrada de tasas desde backend.
+     * Obtiene y actualiza la lista filtrada de comercializadoras desde backend.
      */
-    async function fetchExchangeRates(): Promise<boolean> {
+    async function fetchCommerces(): Promise<boolean> {
         if (loading.value) return false
 
         try {
@@ -87,19 +84,19 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
             const response = await backendClient.get<{
                 success: boolean
-                data: ExchangeRate[]
-            }>('/exchange-rate/list-filtered', {
+                data: Commerce[]
+            }>('/admin/commerce/list-filtered', {
                 params: { token: tokenId }
             })
 
             if (Array.isArray(response.data?.data)) {
-                exchangeRates.value = response.data.data
+                commerces.value = response.data.data
             }
 
             return true
         } catch (error) {
-            console.error('Error al obtener las tasas de cambio:', error)
-            showToast('Error al cargar las tasas de cambio', 'error')
+            console.error('Error al obtener las comercializadoras:', error)
+            showToast('Error al cargar las comercializadoras', 'error')
             return false
         } finally {
             loading.value = false
@@ -107,7 +104,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
     }
 
     /**
-     * Envía el formulario de tasa de cambio.
+     * Envía el formulario de comercio.
      * - POST si no existe id
      * - PUT si existe id
      *
@@ -121,25 +118,25 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         try {
             loading.value = true
 
-            if (!exchangeRateData.value) {
+            if (!commerceData.value) {
                 throw new Error('No hay datos para enviar')
             }
 
-            if (exchangeRateData.value.id) {
+            if (commerceData.value.id) {
                 const { data } = await backendClient.put(
-                    `/exchange-rate/${exchangeRateData.value.id}`,
-                    exchangeRateData.value
+                    `/admin/commerce/${commerceData.value.id}`,
+                    commerceData.value
                 )
                 showToast(data.message, 'success')
             } else {
                 const { data } = await backendClient.post(
                     '/exchange-rate',
-                    exchangeRateData.value
+                    commerceData.value
                 )
                 showToast(data.message, 'success')
             }
 
-            await fetchExchangeRates()
+            await fetchCommerces()
             return true
         } catch (error: any) {
             console.error('Error en submit:', error)
@@ -155,12 +152,12 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      * y abre el modal con valores por defecto.
      */
     function create(): void {
-        exchangeRateData.value = {
-            currency_id: '',
-            amount: 0,
-            status: 'INACTIVE',
-            token: tokenId || undefined
-        }
+        // commerceData.value = {
+        //     currency_id: '',
+        //     amount: 0,
+        //     status: 'INACTIVE',
+        //     token: tokenId || undefined
+        // }
     }
 
     /**
@@ -177,27 +174,27 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
             const response = await backendClient.get<{
                 success: boolean
-                data: ExchangeRate
-            }>(`/exchange-rate/${id}`)
+                data: Commerce
+            }>(`/admin/commerce/${id}`)
 
             if (!response.data?.data) {
-                throw new Error('No se encontró la tasa de cambio')
+                throw new Error('No se encontró la comercio')
             }
 
             const data = response.data.data
 
-            exchangeRateData.value = {
-                id: data.id,
-                currency_id: data.currency_id,
-                amount: Number(data.amount),
-                status: data.status,
-                token: tokenId || undefined
-            }
+            // commerceData.value = {
+            //     id: data.id,
+            //     currency_id: data.currency_id,
+            //     amount: Number(data.amount),
+            //     status: data.status,
+            //     token: tokenId || undefined
+            // }
 
             return true
         } catch (error) {
             console.error('Error cargando tasa:', error)
-            showToast('Error al cargar la tasa de cambio', 'error')
+            showToast('Error al cargar la comercio', 'error')
             return false
         } finally {
             loading.value = false
@@ -211,7 +208,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      */
     async function changeStatus(id: string | number): Promise<boolean> {
         const confirm = await showToastConfirmAction({
-            text: '¿Quieres cambiar el estado de esta tasa de cambio?',
+            text: '¿Quieres cambiar el estado de esta comercio?',
             icon: 'warning',
             confirmButtonText: 'Sí, cambiar estado'
         })
@@ -219,9 +216,9 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/exchange-rate/${id}/status`)
+            await backendClient.put(`/admin/commerce/${id}/status`)
             showToast('Estado cambiado con éxito', 'success')
-            await fetchExchangeRates()
+            await fetchCommerces()
             return true
         } catch (error) {
             console.error('Error cambiando estado:', error)
@@ -231,13 +228,13 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
     }
 
     /**
-     * Elimina una tasa de cambio (soft delete)
+     * Elimina una comercio (soft delete)
      *
      * @param id Identificador de la tasa
      */
     async function remove(id: string | number): Promise<boolean> {
         const confirm = await showToastConfirmAction({
-            text: '¿Estás seguro que deseas eliminar esta tasa de cambio?',
+            text: '¿Estás seguro que deseas eliminar esta comercio?',
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar'
         })
@@ -245,9 +242,9 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/exchange-rate/${id}/delete`)
+            await backendClient.put(`/admin/commerce/${id}/delete`)
             showToast('Tasa de cambio eliminada con éxito', 'success')
-            await fetchExchangeRates()
+            await fetchCommerces()
             return true
         } catch (error) {
             console.error('Error eliminando tasa:', error)
@@ -256,66 +253,15 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         }
     }
 
-    /**
-     * Sincroniza todas las tasas de cambio desde backend.
-     *
-     * Muestra un SweetAlert con las tasas actuales obtenidas,
-     * y solicita confirmación antes de proceder con la actualización masiva.
-     *
-     * @returns {Promise<boolean>}
-     */
-    async function updateExchangeRates(): Promise<boolean> {
-        if (loading.value) return false
-
-        try {
-            loading.value = true
-
-            const response = await backendClient.get<{
-                success: boolean
-                data: Record<string, string>
-            }>('/exchange-rate/raw-rates')
-
-            if (!response.data?.data) {
-                throw new Error('No se recibieron tasas para mostrar')
-            }
-
-            const ratesHtml = Object.entries(response.data.data)
-                .map(([currency, value]) => `<li><strong>${currency}:</strong> ${value}</li>`)
-                .join('')
-
-            const confirmed = await showToastConfirmAction({
-                html: `<ul style="text-align: left;">${ratesHtml}</ul><strong>¿Deseas actualizar con estas tasas?</strong>`,
-                icon: 'info',
-                confirmButtonText: 'Sí, actualizar',
-                title: 'Tasas de cambio obtenidas'
-            })
-
-            if (!confirmed) return false
-
-            await backendClient.put('/exchange-rate/update-all')
-            showToast('Tasas de cambio actualizadas con éxito', 'success')
-            await fetchExchangeRates()
-
-            return true
-        } catch (error) {
-            console.error('Error actualizando tasas:', error)
-            showToast('Error al actualizar las tasas', 'error')
-            return false
-        } finally {
-            loading.value = false
-        }
-    }
-
     return {
-        exchangeRateData,
-        exchangeRates,
-        setInitialExchangeRates,
+        commerceData,
+        commerces,
+        setInitialCommerces,
         submit,
         create,
         edit,
         changeStatus,
         remove,
-        updateExchangeRates,
-        fetchExchangeRates
+        fetchCommerces
     }
 }

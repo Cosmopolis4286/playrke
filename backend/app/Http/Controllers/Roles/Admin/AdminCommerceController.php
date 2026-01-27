@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Roles;
+namespace App\Http\Controllers\Roles\Admin;
 
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Http\Controllers\Controller;
