@@ -13,7 +13,7 @@ import type { Commerce } from '@/js/types/roles/commerce/commerce'
  * ✅ v-model computado
  */
 export function useAdminCommerceForm(
-    modelValue: Partial<Commerce>,
+    modelValueGetter: () => Partial<Commerce>,
     emit: (event: 'update:modelValue', value: Partial<Commerce>) => void
 ) {
     /* =======================
@@ -21,7 +21,7 @@ export function useAdminCommerceForm(
      * ======================= */
 
     const form = computed<Partial<Commerce>>({
-        get: () => modelValue,
+        get: () => modelValueGetter(),
         set: value => emit('update:modelValue', value)
     })
 

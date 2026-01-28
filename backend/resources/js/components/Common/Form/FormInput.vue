@@ -32,7 +32,10 @@
 <template>
   <div :id="containerId" :class="['form-group', col, className]">
     <!-- LABEL (igual que Blade) -->
-    <label v-if="label" :for="inputId"> {{ label }}<span v-if="required">*</span> </label>
+    <label v-if="label" :for="inputId">
+      {{ label }}
+      <span v-if="required" class="text-danger">*</span>
+    </label>
 
     <!-- INPUT GROUP -->
     <div v-if="inputGroup" class="input-group">

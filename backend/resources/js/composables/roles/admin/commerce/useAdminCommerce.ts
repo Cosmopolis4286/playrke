@@ -113,6 +113,19 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
     }
 
     /**
+     * Transforma el payload del frontend al formato esperado por el backend
+     */
+    function buildPayload(): Record<string, unknown> {
+        const { country_id, currency_id, time_zone_id, ...rest } = commerceData.value
+        return {
+            ...rest,
+            country: country_id,
+            currency: currency_id,
+            time_zone: time_zone_id
+        }
+    }
+
+    /**
      * Envío del formulario (create / update)
      */
     async function submit(): Promise<boolean> {
@@ -121,16 +134,18 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         try {
             loading.value = true
 
+            const payload = buildPayload()
+
             if (commerceData.value.id) {
                 const { data } = await backendClient.put(
                     `/admin/commerce/${commerceData.value.id}`,
-                    commerceData.value
+                    payload
                 )
                 showToast(data.message, 'success')
             } else {
                 const { data } = await backendClient.post(
                     '/admin/commerce',
-                    commerceData.value
+                    payload
                 )
                 showToast(data.message, 'success')
             }
@@ -166,21 +181,26 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         try {
             loading.value = true
 
-            const { data } = await backendClient.get<{ data: Commerce }>(
+            const { data } = await backendClient.get<{ data: Record<string, any> }>(
                 `/admin/commerce/${id}`
             )
 
+            const commerce = data.data
+
             commerceData.value = {
-                id: data.data.id,
-                name: data.data.name,
-                username: data.data.username,
-                email: data.data.email,
-                country_id: data.data.country_id,
-                time_zone_id: data.data.time_zone_id,
-                phone: data.data.phone,
-                currency_id: data.data.currency_id,
-                other_currencies: data.data.other_currencies ?? [],
-                allowed_games: data.data.allowed_games ?? []
+                id: commerce.id,
+                name: commerce.name,
+                phone: commerce.phone,
+                // Datos del usuario anidado
+                username: commerce.user?.username,
+                email: commerce.user?.email,
+                time_zone_id: commerce.user?.time_zone_id,
+                // Country viene como objeto {id, name}
+                country_id: commerce.country?.id,
+                // Currency viene como string (id)
+                currency_id: commerce.currency,
+                other_currencies: commerce.other_currencies ?? [],
+                allowed_games: commerce.allowed_games ?? []
             }
 
             return true

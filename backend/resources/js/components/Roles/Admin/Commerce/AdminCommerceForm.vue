@@ -40,7 +40,7 @@
    * Form logic (PRO: computed v-model)
    * ========================================================================== */
 
-  const { form, errors, isEditMode, isValid } = useAdminCommerceForm(props.modelValue, emit)
+  const { form, errors, isEditMode, isValid } = useAdminCommerceForm(() => props.modelValue, emit)
 
   /* ==========================================================================
    * Filtered currencies by country
@@ -58,27 +58,54 @@
     return props.timeZones.filter(tz => tz.country_id == form.value.country_id)
   })
 
-  // Auto-select or reset currency and timezone when country changes
+  // Computed para saber si hay una sola opción (no mostrar placeholder)
+  const hasSingleCurrency = computed(() => filteredCurrencies.value.length === 1)
+  const hasSingleTimeZone = computed(() => filteredTimeZones.value.length === 1)
+
+  // Otras monedas: todas las monedas excepto la principal seleccionada
+  const otherCurrenciesOptions = computed(() => {
+    if (!form.value.currency_id) return props.currencies
+    // eslint-disable-next-line eqeqeq
+    return props.currencies.filter(c => c.id != form.value.currency_id)
+  })
+
+  // Auto-select currency and timezone when country changes
   watch(
     () => form.value.country_id,
-    (newCountryId) => {
-      if (!newCountryId) {
-        form.value = { ...form.value, currency_id: null, time_zone_id: null }
-        return
+    async (newCountryId, oldCountryId) => {
+      // Solo resetear si cambió el país (no en la carga inicial con valor)
+      if (oldCountryId !== undefined) {
+        form.value = { ...form.value, currency_id: null, time_zone_id: null, other_currencies: [] }
       }
+
+      if (!newCountryId) return
+
+      // Wait for DOM to update (v-if to show selects)
+      await nextTick()
 
       // eslint-disable-next-line eqeqeq
       const currencies = props.currencies.filter(c => c.country_id == newCountryId)
       // eslint-disable-next-line eqeqeq
       const timeZones = props.timeZones.filter(tz => tz.country_id == newCountryId)
 
+      // Auto-select si hay una sola opción
       form.value = {
         ...form.value,
-        currency_id: currencies.length === 1 ? currencies[0].id : null,
-        time_zone_id: timeZones.length === 1 ? timeZones[0].id : null
+        currency_id: currencies.length === 1 ? currencies[0].id : form.value.currency_id,
+        time_zone_id: timeZones.length === 1 ? timeZones[0].id : form.value.time_zone_id
       }
     },
-    { flush: 'post' }
+    { immediate: true }
+  )
+
+  // Limpiar otras monedas cuando cambia la moneda principal
+  watch(
+    () => form.value.currency_id,
+    (newCurrencyId, oldCurrencyId) => {
+      if (oldCurrencyId !== undefined && newCurrencyId !== oldCurrencyId) {
+        form.value = { ...form.value, other_currencies: [] }
+      }
+    }
   )
 
   /* ==========================================================================
@@ -140,7 +167,8 @@
         v-if="form.country_id"
         label="Zona Horaria"
         name="time_zone_id"
-        placeholder="Seleccionar zona horaria"
+        required
+        :placeholder="hasSingleTimeZone ? undefined : 'Seleccionar zona horaria'"
         :options="filteredTimeZones"
         optionValue="id"
         optionLabel="name"
@@ -151,6 +179,7 @@
       <FormInput
         label="Teléfono"
         name="phone"
+        required
         placeholder="Ingresa el número"
         maxlength="20"
         col="col-sm-6"
@@ -162,7 +191,7 @@
         label="Moneda Principal"
         name="currency_id"
         required
-        placeholder="Seleccionar moneda principal"
+        :placeholder="hasSingleCurrency ? undefined : 'Seleccionar moneda principal'"
         :options="filteredCurrencies"
         optionValue="id"
         optionLabel="name"
@@ -171,13 +200,13 @@
       />
 
       <FormSelect
-        v-if="form.country_id"
+        v-if="form.currency_id"
         label="Otras Monedas"
         name="other_currencies"
         multiple
         select2
         placeholder="Seleccionar otras monedas"
-        :options="filteredCurrencies"
+        :options="otherCurrenciesOptions"
         optionValue="id"
         optionLabel="name"
         col="col-sm-6"
