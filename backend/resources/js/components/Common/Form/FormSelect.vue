@@ -99,7 +99,7 @@
       v-model="value"
       :id="inputId"
       :options="options"
-      :mode="multiple ? 'multiple' : 'single'"
+      :mode="multiple ? 'tags' : 'single'"
       :value-prop="optionValue"
       :label="optionLabel"
       :placeholder="placeholder"
@@ -127,6 +127,10 @@
     --ms-font-size: 0.875rem;
     --ms-line-height: 1.5;
 
+    /* Altura consistente con .form-control */
+    --ms-py: 0.375rem;
+    --ms-px: 0.75rem;
+
     /* Focus */
     --ms-ring-width: 0.2rem;
     --ms-ring-color: rgba(0, 123, 255, 0.25);
@@ -144,16 +148,25 @@
     --ms-tag-bg: #007bff;
     --ms-tag-color: #fff;
     --ms-tag-radius: 0.2rem;
+    --ms-tag-font-size: 0.75rem;
+    --ms-tag-py: 0.125rem;
+    --ms-tag-px: 0.5rem;
+    --ms-tag-my: 0.125rem;
+    --ms-tag-mx: 0.125rem;
   }
 
-  /* Altura y padding como .form-control */
-  .multiselect-bootstrap .multiselect {
+  /* Altura mínima igual a form-control (38px aprox) */
+  .multiselect-bootstrap :deep(.multiselect-wrapper) {
     min-height: calc(1.5em + 0.75rem + 2px);
   }
 
-  .multiselect-bootstrap .multiselect-input,
-  .multiselect-bootstrap .multiselect-single-label {
-    padding: 0.375rem 0.75rem;
+  /* Placeholder con texto largo */
+  .multiselect-bootstrap :deep(.multiselect-placeholder) {
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 1.5rem;
   }
 
   /* Disabled */

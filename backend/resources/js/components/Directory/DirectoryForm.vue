@@ -42,6 +42,10 @@
    * - En edit: permite la moneda actual
    */
   const availableCurrencies = computed(() => {
+    if (!props.currencies?.length) {
+      return []
+    }
+
     const fiatCurrencies = props.currencies.filter(c => c.type === 'FIAT')
 
     if (isEditMode.value || !props.usedCurrencies?.length) {

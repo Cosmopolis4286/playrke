@@ -95,7 +95,7 @@ export function useDirectoryForm(
         () => modelValue,
         value => {
             form.value = {
-                currency_id: value.currency_id.toString() ?? '',
+                currency_id: value.currency_id?.toString() ?? '',
                 amount: value.amount ?? null,
                 status: value.status === 'ACTIVE'
             }

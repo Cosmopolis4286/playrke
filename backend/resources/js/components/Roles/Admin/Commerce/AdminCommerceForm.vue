@@ -1,5 +1,5 @@
 <script setup lang="ts" name="AdminCommerceForm">
-  import { computed } from 'vue'
+  import { computed, watch, nextTick } from 'vue'
 
   // Components
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
@@ -10,6 +10,9 @@
 
   // Types
   import type { Currency } from '@/js/types/currency'
+  import type { Country } from '@/js/types/country'
+  import type { TimeZone } from '@/js/types/time-zone'
+  import type { Game } from '@/js/types/game'
   import type { Commerce } from '@/js/types/roles/commerce/commerce'
 
   /* ==========================================================================
@@ -17,7 +20,10 @@
    * ========================================================================== */
 
   const props = defineProps<{
+    countries: Country[]
     currencies: Currency[]
+    timeZones: TimeZone[]
+    games: Game[]
     modelValue: Partial<Commerce>
   }>()
 
@@ -37,23 +43,43 @@
   const { form, errors, isEditMode, isValid } = useAdminCommerceForm(props.modelValue, emit)
 
   /* ==========================================================================
-   * Mock options (luego vienen por props o API)
+   * Filtered currencies by country
    * ========================================================================== */
 
-  const countries = [
-    { id: 1, name: 'Argentina' },
-    { id: 2, name: 'Brasil' }
-  ]
+  const filteredCurrencies = computed(() => {
+    if (!form.value.country_id) return []
+    // eslint-disable-next-line eqeqeq
+    return props.currencies.filter(c => c.country_id == form.value.country_id)
+  })
 
-  const timeZones = [
-    { id: 1, label: 'UTC -3' },
-    { id: 2, label: 'UTC -4' }
-  ]
+  const filteredTimeZones = computed(() => {
+    if (!form.value.country_id) return []
+    // eslint-disable-next-line eqeqeq
+    return props.timeZones.filter(tz => tz.country_id == form.value.country_id)
+  })
 
-  const games = [
-    { id: 1, name: 'Poker' },
-    { id: 2, name: 'Blackjack' }
-  ]
+  // Auto-select or reset currency and timezone when country changes
+  watch(
+    () => form.value.country_id,
+    (newCountryId) => {
+      if (!newCountryId) {
+        form.value = { ...form.value, currency_id: null, time_zone_id: null }
+        return
+      }
+
+      // eslint-disable-next-line eqeqeq
+      const currencies = props.currencies.filter(c => c.country_id == newCountryId)
+      // eslint-disable-next-line eqeqeq
+      const timeZones = props.timeZones.filter(tz => tz.country_id == newCountryId)
+
+      form.value = {
+        ...form.value,
+        currency_id: currencies.length === 1 ? currencies[0].id : null,
+        time_zone_id: timeZones.length === 1 ? timeZones[0].id : null
+      }
+    },
+    { flush: 'post' }
+  )
 
   /* ==========================================================================
    * Submit
@@ -77,7 +103,7 @@
 <template>
   <form id="commerce-form" novalidate @submit.prevent="submit">
     <div class="row">
-      <FormInput label="Nombre Comercio" name="name" required col="col-sm-6" v-model="form.name" />
+      <FormInput label="Razon Social" name="name" required col="col-sm-6" v-model="form.name" />
 
       <FormInput
         label="Username"
@@ -103,8 +129,7 @@
         name="country_id"
         required
         placeholder="Seleccionar país"
-        :options="countries"
-
+        :options="props.countries"
         optionValue="id"
         optionLabel="name"
         col="col-sm-6"
@@ -112,12 +137,13 @@
       />
 
       <FormSelect
+        v-if="form.country_id"
         label="Zona Horaria"
         name="time_zone_id"
         placeholder="Seleccionar zona horaria"
-        :options="timeZones"
+        :options="filteredTimeZones"
         optionValue="id"
-        optionLabel="label"
+        optionLabel="name"
         col="col-sm-6"
         v-model="form.time_zone_id"
       />
@@ -132,11 +158,12 @@
       />
 
       <FormSelect
+        v-if="form.country_id"
         label="Moneda Principal"
         name="currency_id"
         required
         placeholder="Seleccionar moneda principal"
-        :options="currencies"
+        :options="filteredCurrencies"
         optionValue="id"
         optionLabel="name"
         col="col-sm-6"
@@ -144,12 +171,13 @@
       />
 
       <FormSelect
+        v-if="form.country_id"
         label="Otras Monedas"
         name="other_currencies"
         multiple
         select2
         placeholder="Seleccionar otras monedas"
-        :options="currencies"
+        :options="filteredCurrencies"
         optionValue="id"
         optionLabel="name"
         col="col-sm-6"
@@ -162,7 +190,7 @@
         multiple
         select2
         placeholder="Seleccionar juegos"
-        :options="games"
+        :options="props.games"
         optionValue="id"
         optionLabel="name"
         col="col-sm-6"

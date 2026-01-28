@@ -183,6 +183,13 @@
     :on-submit="handleSubmit"
     :confirm-disabled="!(adminCommerceFormRef?.isValid ?? false)"
   >
-    <AdminCommerceForm ref="adminCommerceFormRef" v-model="commerceData" :currencies="currencies" />
+    <AdminCommerceForm
+      ref="adminCommerceFormRef"
+      v-model="commerceData"
+      :countries="props.countries"
+      :currencies="props.currencies"
+      :time-zones="props.timeZones"
+      :games="props.games"
+    />
   </Modal>
 </template>
