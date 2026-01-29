@@ -7,7 +7,8 @@ use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
 use App\Models\Roles\Commerce;
 use App\Services\User\UserPasswordService;
 use App\Services\Roles\Admin\Commerce\AdminCommerceCrudService;
-use App\Exceptions\Domain\DomainException;
+use App\Exceptions\Domain\Roles\Admin\Commerce\AdminCommerceException;
+use App\Services\Roles\Admin\AdminService;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -24,6 +25,7 @@ use Illuminate\Database\Eloquent\Collection;
 final class AdminCommerceService
 {
     public function __construct(
+        private readonly AdminService $adminService,
         private readonly AdminCommerceCrudService $crud,
         private readonly UserPasswordService $userPasswordService
     ) {}
@@ -39,12 +41,22 @@ final class AdminCommerceService
     }
 
     /**
+     * Listado de comercios
+     *
+     * @return array Listado para pasar a la vista Inertia.
+     */
+    public function listFiltered(): array
+    {
+        return $this->adminService->context('commerces')['commerces'];
+    }
+
+    /**
      * Crear un comercio.
      *
      * @param AdminCommerceDTO $dto DTO con los datos del comercio
      * @return string Contraseña generada para el comercio
      *
-     * @throws DomainException Si falla la creación
+     * @throws AdminCommerceException Si falla la creación
      */
     public function create(AdminCommerceDTO $dto): string
     {
@@ -57,7 +69,7 @@ final class AdminCommerceService
      * @param Commerce $commerce Model
      * @return AdminCommerceResource Recurso para visualización
      *
-     * @throws DomainException Si el comercio no es válido o no existe
+     * @throws AdminCommerceException Si el comercio no es válido o no existe
      */
     public function show(Commerce $commerce): AdminCommerceResource
     {
@@ -70,7 +82,7 @@ final class AdminCommerceService
      * @param Commerce $commerce Model
      * @param AdminCommerceDTO $dto DTO con datos actualizados
      *
-     * @throws DomainException Si falla la actualización
+     * @throws AdminCommerceException Si falla la actualización
      */
     public function update(Commerce $commerce, AdminCommerceDTO $dto): void
     {
@@ -82,7 +94,7 @@ final class AdminCommerceService
      *
      * @param Commerce $commerce Model
      *
-     * @throws DomainException Si falla la eliminación
+     * @throws AdminCommerceException Si falla la eliminación
      */
     public function delete(Commerce $commerce): void
     {
@@ -94,7 +106,7 @@ final class AdminCommerceService
      *
      * @param Commerce $commerce Model
      *
-     * @throws DomainException Si falla el cambio de estado
+     * @throws AdminCommerceException Si falla el cambio de estado
      */
     public function toggleStatus(Commerce $commerce): void
     {
@@ -107,10 +119,14 @@ final class AdminCommerceService
      * @param Commerce $commerce Model
      * @return string Nueva contraseña generada
      *
-     * @throws DomainException Si falla el reseteo
+     * @throws AdminCommerceException Si el comercio no está activo o falla el reseteo
      */
     public function resetPassword(Commerce $commerce): string
     {
+        if ($commerce->status !== 'ACTIVE') {
+            throw AdminCommerceException::passwordResetRequiresActiveStatus();
+        }
+
         return $this->userPasswordService->resetPassword($commerce);
     }
 
@@ -119,7 +135,7 @@ final class AdminCommerceService
      *
      * @param Commerce $commerce Model
      *
-     * @throws DomainException Si falla la eliminación definitiva
+     * @throws AdminCommerceException Si falla la eliminación definitiva
      */
     public function destroy(Commerce $commerce): void
     {

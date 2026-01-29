@@ -123,11 +123,9 @@
         }
       },
       disabled: (selectedIds: string[]) =>
-        btn.action === 'resetPassword'
-          ? selectedIds.length !== 1
-          : btn.disabled
-            ? btn.disabled(selectedIds)
-            : false
+        btn.disabled
+          ? btn.disabled(selectedIds)
+          : false
     }))
   )
 

@@ -48,6 +48,18 @@ final class AdminCommerceController extends Controller
     }
 
     /**
+     * Listado de comercios
+     *
+     * @return JsonResponse
+     */
+    public function listFiltered(): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => ['data' => $this->service->listFiltered()]
+        );
+    }
+
+    /**
      * Mostrar detalle de un comercio.
      *
      * @param Commerce $commerce
@@ -69,10 +81,8 @@ final class AdminCommerceController extends Controller
      * @param Commerce $commerce
      * @return JsonResponse
      */
-    public function update(
-        AdminCommerceRequest $request,
-        Commerce $commerce
-    ): JsonResponse {
+    public function update(AdminCommerceRequest $request, Commerce $commerce): JsonResponse
+    {
         return $this->handleServiceJson(
             fn() => $this->service->update(
                 $commerce,

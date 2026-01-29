@@ -49,6 +49,14 @@ final class AdminCommerceException extends DomainException
     }
 
     /**
+     * Solo se puede resetear la contraseña de comercios activos.
+     */
+    public static function passwordResetRequiresActiveStatus(): self
+    {
+        return new self('ADMIN_COMMERCE_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS');
+    }
+
+    /**
      * El comercio ya se encuentra eliminado.
      */
     public static function alreadyDeleted(): self

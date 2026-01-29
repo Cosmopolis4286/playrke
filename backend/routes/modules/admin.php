@@ -89,6 +89,11 @@ Route::middleware('auth')->group(function () {
             'uri'    => '',
             'action' => 'store',
         ],
+        'listFiltered' => [
+            'method' => 'get',
+            'uri'    => 'list-filtered',
+            'action' => 'listFiltered',
+        ],
         'show' => [
             'method' => 'get',
             'uri'    => '{id}',
@@ -109,16 +114,16 @@ Route::middleware('auth')->group(function () {
             'uri'    => '{id}',
             'action' => 'destroy',
         ],
-        'resetPassword' => [
-            'method' => 'put',
-            'uri'    => '{id}/password',
-            'action' => 'resetPassword',
-        ],
-        'changeStatus' => [
+        'toggleStatus' => [
             'method' => 'put',
             'uri'    => '{id}/status',
-            'action' => 'changeStatus',
+            'action' => 'toggleStatus',
         ],
+        'resetPassword' => [
+            'method' => 'put',
+            'uri'    => '{id}/reset-password',
+            'action' => 'resetPassword',
+        ]
     ];
 
     role_protected_routes(['role:admin'], 'admin/commerce', AdminCommerceController::class, $adminCrudRoutes, 'commerce');

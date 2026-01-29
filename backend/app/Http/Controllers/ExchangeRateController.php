@@ -49,7 +49,7 @@ class ExchangeRateController extends Controller
     }
 
     /**
-     * API: listado filtrado por rol/token.
+     * Listado filtrado por rol/token.
      */
     public function listFiltered(Request $request): JsonResponse
     {
@@ -127,9 +127,9 @@ class ExchangeRateController extends Controller
     }
 
     /**
-     * Cambiar estado (activo/inactivo).
+     * Alternar estado (ACTIVE / INACTIVE).
      */
-    public function changeStatus(string $id): JsonResponse
+    public function toggleStatus(string $id): JsonResponse
     {
         return $this->handleServiceJson(
             fn () => [

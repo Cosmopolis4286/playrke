@@ -1,4 +1,4 @@
-import { readonly } from "vue"
+export type CommerceStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | 'DELETED'
 
 export interface Commerce {
     readonly id?: number | string,
@@ -7,8 +7,9 @@ export interface Commerce {
     readonly time_zone_id: number,
     readonly currency_id: number,
     readonly phone: string,
+    readonly status: CommerceStatus,
     readonly username: string,
-    readonly email: string
+    readonly email: string,
     readonly other_currencies?: number[],
     readonly allowed_games?: number[]
 }

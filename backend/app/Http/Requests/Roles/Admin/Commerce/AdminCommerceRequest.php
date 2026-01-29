@@ -33,6 +33,7 @@ class AdminCommerceRequest extends BaseRequest
     {
         $commerceId = $this->getId(['commerce', 'id']);
         $isUpdate   = $this->isUpdate(['commerce', 'id']);
+        $userId     = $this->route('commerce')?->user_id;
 
         $rules = [
             'country'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
@@ -46,13 +47,18 @@ class AdminCommerceRequest extends BaseRequest
             'allowed_games.*'    => ['string', 'exists:games,id'],
         ];
 
-        // Regla unique para phone
+        // Regla unique para phone (excluye el comercio actual en update)
         $rules['phone'][] = $commerceId
             ? 'unique:commerces,phone,' . $commerceId
             : 'unique:commerces,phone';
 
-        // Solo creación
-        if (!$isUpdate) {
+        // Reglas para username y email
+        if ($isUpdate) {
+            // En update: validar solo si se envían, excluyendo el usuario actual
+            $rules['username'] = ['sometimes', 'string', 'max:20', 'unique:users,username,' . $userId];
+            $rules['email']    = ['sometimes', 'email', 'max:40', 'unique:users,email,' . $userId];
+        } else {
+            // En creación: obligatorios y únicos
             $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username'];
             $rules['email']    = ['required', 'email', 'max:40', 'unique:users,email'];
         }

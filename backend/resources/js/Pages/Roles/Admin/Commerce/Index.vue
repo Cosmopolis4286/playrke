@@ -143,6 +143,23 @@
   // Botones extra
   // ==========================================================================
 
+  /**
+   * Verifica si el botón resetPassword debe mostrarse.
+   * Solo visible cuando hay exactamente 1 elemento seleccionado.
+   */
+  function isResetPasswordVisible(selectedIds: string[]): boolean {
+    return selectedIds.length === 1
+  }
+
+  /**
+   * Verifica si el botón resetPassword debe estar deshabilitado.
+   * Deshabilitado cuando el elemento seleccionado no está en status ACTIVE.
+   */
+  function isResetPasswordDisabled(selectedIds: string[]): boolean {
+    const commerce = commerces.value.find(c => c.id === selectedIds[0])
+    return commerce?.status !== 'ACTIVE'
+  }
+
   const extraButtons: ExtraButton[] = [
     {
       label: '',
@@ -155,8 +172,9 @@
       label: '',
       icon: 'fas fa-key',
       class: 'btn-dark',
-      show: false,
-      action: 'resetPassword'
+      show: isResetPasswordVisible,
+      action: 'resetPassword',
+      disabled: isResetPasswordDisabled
     }
   ]
 </script>

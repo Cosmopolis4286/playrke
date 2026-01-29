@@ -2,6 +2,7 @@ import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 import type { Commerce } from '@/js/types/roles/commerce/commerce'
+import { showPasswordModal } from '@/js/helpers/user/password'
 
 /**
  * Contrato público del composable useAdminCommerce
@@ -116,12 +117,16 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
      * Transforma el payload del frontend al formato esperado por el backend
      */
     function buildPayload(): Record<string, unknown> {
-        const { country_id, currency_id, time_zone_id, ...rest } = commerceData.value
+        const { country_id, currency_id, time_zone_id, username, email, ...rest } = commerceData.value
+        const isUpdate = !!commerceData.value.id
+
         return {
             ...rest,
             country: country_id,
             currency: currency_id,
-            time_zone: time_zone_id
+            time_zone: time_zone_id,
+            // username y email solo se envían en creación
+            ...(!isUpdate && { username, email })
         }
     }
 
@@ -247,6 +252,13 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
      * Resetea la contraseña de una comercializadora
      */
     async function resetPassword(id: string | number): Promise<boolean> {
+        const commerce = commerces.value.find(c => c.id === id)
+
+        if (commerce?.status !== 'ACTIVE') {
+            showToast('Solo se puede resetear la contraseña de comercializadoras activas', 'warning')
+            return false
+        }
+
         const confirm = await showToastConfirmAction({
             text: '¿Deseas resetear la contraseña de esta comercializadora?',
             icon: 'warning',
@@ -256,11 +268,13 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         if (!confirm) return false
 
         try {
-            const { data } = await backendClient.post(
+            const { data } = await backendClient.put(
                 `/admin/commerce/${id}/reset-password`
             )
 
             showToast(data.message ?? 'Contraseña reseteada', 'success')
+            await showPasswordModal(data.password)
+
             return true
         } catch (error) {
             console.error(error)
