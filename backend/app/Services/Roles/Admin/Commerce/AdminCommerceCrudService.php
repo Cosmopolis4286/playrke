@@ -5,7 +5,7 @@ namespace App\Services\Admin\Commerce;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
-use App\Http\Resources\Roles\CommerceResource;
+use App\Http\Resources\Roles\AdminCommerceResource;
 use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\Roles\Commerce;
@@ -85,9 +85,9 @@ final class AdminCommerceCrudService
     /**
      * Obtener un comercio con sus relaciones para visualización.
      * @param Commerce $commerce
-     * @return CommerceResource
+     * @return AdminCommerceResource
      */
-    public function getByCommerce(Commerce $commerce): CommerceResource
+    public function getByCommerce(Commerce $commerce): AdminCommerceResource
     {
         $commerce->load([
             'country:id,name',
@@ -100,7 +100,7 @@ final class AdminCommerceCrudService
             'gamesActive:id,name',
         ]);
 
-        return new CommerceResource($commerce);
+        return new AdminCommerceResource($commerce);
     }
 
     /**
@@ -319,7 +319,7 @@ final class AdminCommerceCrudService
      * @param Commerce $commerce
      * @return void
      */
-    public function hardDelete(Commerce $commerce): void
+    public function destroy(Commerce $commerce): void
     {
         DB::transaction(function () use ($commerce) {
 

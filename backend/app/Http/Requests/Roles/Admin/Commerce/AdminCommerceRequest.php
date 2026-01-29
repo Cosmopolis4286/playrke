@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Roles;
+namespace App\Http\Requests\Roles\Admin\Commerce;
 
 use App\Http\Requests\BaseRequest;
 use App\Services\Auth\PermissionService;
@@ -11,7 +11,7 @@ use App\Services\Auth\PermissionService;
  * - Se usa tanto para creación como actualización.
  * - Aplica reglas dinámicas según el contexto.
  */
-class CommerceRequest extends BaseRequest
+class AdminCommerceRequest extends BaseRequest
 {
     /**
      * Determina si el usuario está autorizado a realizar esta acción.

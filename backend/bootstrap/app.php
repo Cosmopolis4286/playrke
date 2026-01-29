@@ -23,6 +23,7 @@ return Application::configure(
             'multiRole' => App\Http\Middleware\MultiRoleMiddleware::class,
             'role' => App\Http\Middleware\RoleMiddleware::class,
             'publicToken' => App\Http\Middleware\PublicTokenMiddleware::class,
+            'validate.token' => \App\Http\Middleware\ValidateToken::class,
         ]);
 
         /**

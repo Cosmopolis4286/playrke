@@ -4,43 +4,68 @@ namespace App\Services\Token;
 
 use InvalidArgumentException;
 
+/**
+ * Servicio responsable de la generación y validación de tokens.
+ *
+ * Encapsula la lógica de formato, obligatoriedad y futuras
+ * validaciones (persistencia, expiración, scopes, etc.).
+ */
 class TokenService
 {
     /**
-     * Genera un token aleatorio seguro.
+     * Longitud esperada del token en caracteres hexadecimales.
+     */
+    private const TOKEN_LENGTH = 64;
+
+    /**
+     * Genera un token criptográficamente seguro.
      *
-     * @param int $length Longitud del token generado (por defecto 32).
+     * @param int $bytes Número de bytes aleatorios (32 bytes = 64 chars hex).
      * @return string Token generado en formato hexadecimal.
+     *
+     * @throws \Exception Si random_bytes falla.
      */
-    public function generateToken(int $length = 32): string
+    public function generateToken(int $bytes = 32): string
     {
-        return bin2hex(random_bytes($length));
+        return bin2hex(random_bytes($bytes));
     }
 
     /**
-     * Valida un token según la lógica definida.
+     * Valida un token.
      *
-     * @param string|null $token Token a validar.
-     * @return void
+     * El token:
+     * - Debe existir
+     * - Debe cumplir con el formato esperado
      *
-     * @throws InvalidArgumentException Si el token es inválido o está vacío.
+     * @param string|null $token
+     * @return string Token validado.
+     *
+     * @throws InvalidArgumentException Si el token es inválido.
      */
-    public function validateToken(?string $token): void
+    public function validateToken(?string $token): string
     {
-        if ($token && !$this->isValidFormat($token)) {
-            throw new InvalidArgumentException('Token inválido o no proporcionado.');
+        if (empty($token)) {
+            throw new InvalidArgumentException('Token no proporcionado.');
         }
+
+        if (!$this->isValidFormat($token)) {
+            throw new InvalidArgumentException('Formato de token inválido.');
+        }
+
+        return $token;
     }
 
     /**
-     * Verifica el formato básico del token.
+     * Verifica si el token cumple el formato esperado.
      *
      * @param string $token
      * @return bool
      */
     protected function isValidFormat(string $token): bool
     {
-        // Por ejemplo, solo tokens hexadecimales con longitud 64 (32 bytes * 2).
-        return preg_match('/^[a-f0-9]{64}$/', $token) === 1;
+        return preg_match(
+            sprintf('/^[a-f0-9]{%d}$/', self::TOKEN_LENGTH),
+            $token
+        ) === 1;
     }
 }

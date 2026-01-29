@@ -4,6 +4,9 @@ namespace App\Services\Roles\Admin\Commerce;
 
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
+use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
+use App\Http\Services\User\UserPasswordService;
+use App\Models\Roles\Commerce;
 use App\Services\Admin\Commerce\AdminCommerceCrudService;
 
 /**
@@ -22,6 +25,7 @@ final class AdminCommerceService
     public function __construct(
         private readonly AdminCommerceCrudService $crud,
         private readonly CommerceRepositoryInterface $commerceRepository,
+        private readonly UserPasswordService $userPasswordService
     ) {}
 
     /**
@@ -40,11 +44,10 @@ final class AdminCommerceService
      * @param AdminCommerceDTO $dto DTO con los datos de la tasa de cambio
      * @return bool True si la creación fue exitosa
      *
-     * @throws DomainException Si no se puede resolver el usuario o falla la creación
+     * @throws DomainException Si falla la creación
      */
     public function create(AdminCommerceDTO $dto): bool
     {
-        $userId = $this->resolveUserId($dto->tokenId);
         return $this->crud->create($dto, $userId);
     }
 
@@ -54,12 +57,11 @@ final class AdminCommerceService
      * @param string $exchangeRateId ID de la tasa de cambio
      * @return AdminCommerceResource Recurso para visualización
      *
-     * @throws DomainException Si no se puede resolver el usuario o no existe la tasa
+     * @throws DomainException Si no existe la tasa
      */
     public function show(string $exchangeRateId): AdminCommerceResource
     {
-        $userId = $this->resolveUserId();
-        return $this->crud->show($exchangeRateId, $userId);
+        return $this->crud->show($exchangeRateId);
     }
 
     /**
@@ -68,26 +70,11 @@ final class AdminCommerceService
      * @param AdminCommerceDTO $dto DTO con datos actualizados
      * @return bool True si la actualización fue exitosa
      *
-     * @throws DomainException Si no se puede resolver el usuario o falla la actualización
+     * @throws DomainException Si falla la actualización
      */
     public function update(AdminCommerceDTO $dto): bool
     {
-        $userId = $this->resolveUserId($dto->tokenId);
-        return $this->crud->update($dto, $userId);
-    }
-
-    /**
-     * Alternar estado (ACTIVE / INACTIVE) de una tasa de cambio.
-     *
-     * @param string $exchangeRateId ID de la tasa de cambio
-     * @return bool True si el cambio fue exitoso
-     *
-     * @throws DomainException Si no se puede resolver el usuario o falla el cambio
-     */
-    public function toggleStatus(string $exchangeRateId): bool
-    {
-        $userId = $this->resolveUserId();
-        return $this->crud->changeStatusByRole($exchangeRateId, $userId);
+        return $this->crud->update($dto);
     }
 
     /**
@@ -96,24 +83,33 @@ final class AdminCommerceService
      * @param string $exchangeRateId ID de la tasa de cambio
      * @return bool True si la eliminación fue exitosa
      *
-     * @throws DomainException Si no se puede resolver el usuario o falla la eliminación
+     * @throws DomainException Si falla la eliminación
      */
     public function delete(string $exchangeRateId): bool
     {
-        $userId = $this->resolveUserId();
-        return $this->crud->deleteByRole($exchangeRateId, $userId);
+        return $this->crud->delete($exchangeRateId);
     }
 
     /**
-     * Retorna las tasas crudas obtenidas de la API externa para mostrar en confirmación.
+     * Alternar estado (ACTIVE / INACTIVE) de una tasa de cambio.
      *
-     * @param string|null $publicToken Token público opcional para resolver usuario
-     * @return array|null Retorna un arreglo con las tasas si la llamada fue exitosa,
-     *                    o null si ocurrió algún error.
+     * @param string $exchangeRateId ID de la tasa de cambio
+     * @return bool True si el cambio fue exitoso
+     *
+     * @throws DomainException Si falla el cambio
      */
-    public function getRawRates(?string $publicToken = null): ?array
+    public function toggleStatus(string $exchangeRateId): bool
     {
-        $userId = $this->resolveUserId($publicToken);
-        return $this->api->fetch();
+        return $this->crud->changeStatusByRole($exchangeRateId);
+    }
+
+    public function resetPassword(Commerce $commerce)
+    {
+        return $this->userPasswordService->resetPassword($commerce);
+    }
+
+    public function destroy(Commerce $commerce)
+    {
+        return $this->crud->destroy($commerce);
     }
 }

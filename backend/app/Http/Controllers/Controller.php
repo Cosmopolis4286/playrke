@@ -14,23 +14,29 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Controlador base que proporciona métodos auxiliares para manejo centralizado
- * de excepciones, logging y respuestas comunes (web, JSON y Inertia).
+ * Controlador base con manejo centralizado de:
+ * - Excepciones
+ * - Logging
+ * - Respuestas Web, JSON e Inertia
  */
 abstract class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
 
+    /* ====================================================================== */
+    /* Core executor                                                          */
+    /* ====================================================================== */
+
     /**
-     * Ejecuta una acción con manejo centralizado de excepciones y logging.
+     * Ejecuta una acción con manejo centralizado de excepciones.
      *
-     * @template TReturn
+     * @template T
      *
-     * @param callable(): TReturn $callback Acción principal a ejecutar.
-     * @param string $errorMessage Mensaje para registrar en logs y mostrar en respuesta.
-     * @param callable(Throwable): mixed $onError Callback para manejar el error capturado.
+     * @param callable(): T $callback
+     * @param string $errorMessage
+     * @param callable(Throwable): mixed $onError
      *
-     * @return TReturn|mixed Resultado del callback o resultado del manejador de errores.
+     * @return T|mixed
      */
     protected function executeSafely(
         callable $callback,
@@ -41,66 +47,57 @@ abstract class Controller extends BaseController
             return $callback();
         } catch (Throwable $e) {
             Log::error($errorMessage, [
-                'exception_message' => $e->getMessage(),
-                'exception_trace' => $e->getTraceAsString(),
+                'exception' => $e,
             ]);
 
             try {
                 return $onError($e);
             } catch (Throwable $inner) {
-                Log::critical('Error en el handler de error: ' . $inner->getMessage(), [
-                    'exception_trace' => $inner->getTraceAsString(),
+                Log::critical('Error en el handler de error', [
+                    'exception' => $inner,
                 ]);
+
                 abort(500, 'Error interno del servidor.');
             }
         }
     }
 
+    /* ====================================================================== */
+    /* Web                                                                     */
+    /* ====================================================================== */
+
     /**
-     * Maneja un servicio web tradicional con redirección y manejo de errores.
+     * Maneja servicios web tradicionales (redirect + flash errors).
      *
-     * En caso de error realiza redirect back con mensaje de error en sesión.
-     * Si el callback retorna false, se considera como error y se redirige con mensaje.
+     * @param callable $callback
+     * @param string $errorMessage
      *
-     * @param callable $callback Acción a ejecutar que retorna la respuesta válida o bool.
-     * @param string $errorMessage Mensaje a mostrar en caso de error.
-     *
-     * @return mixed|RedirectResponse Resultado del callback o redirección con error.
+     * @return mixed|RedirectResponse
      */
     protected function handleService(callable $callback, string $errorMessage)
     {
         return $this->executeSafely(
-            function () use ($callback, $errorMessage) {
-                $result = $callback();
-
-                if ($result === false) {
-                    throw new \RuntimeException($errorMessage);
-                }
-
-                return $result;
-            },
+            fn () => $this->ensureSuccess($callback(), $errorMessage),
             $errorMessage,
-            fn(Throwable $e) => redirect()
+            fn () => redirect()
                 ->back()
                 ->withErrors(['error' => $errorMessage])
                 ->with('error', $errorMessage)
         );
     }
 
+    /* ====================================================================== */
+    /* JSON / AJAX                                                            */
+    /* ====================================================================== */
+
     /**
-     * Maneja un servicio JSON/AJAX con respuesta estructurada y manejo de errores.
+     * Maneja servicios JSON con estructura estándar.
      *
-     * En caso de éxito responde con:
-     * - { success: true } si retorna true,
-     * - { success: true, ...datos } si retorna array,
-     * En error responde con { success: false, message: errorMessage } y código HTTP definido.
-     * Si el callback retorna false se considera error.
+     * @param callable $callback
+     * @param string $errorMessage
+     * @param int $statusCode
      *
-     * @param callable $callback Acción a ejecutar que retorna bool|array|null.
-     * @param string $errorMessage Mensaje para respuesta en caso de error.
-     * @param int $statusCode Código HTTP para respuesta de error.
-     *
-     * @return JsonResponse Respuesta JSON con resultado o mensaje de error.
+     * @return JsonResponse
      */
     protected function handleServiceJson(
         callable $callback,
@@ -108,39 +105,26 @@ abstract class Controller extends BaseController
         int $statusCode = 500
     ): JsonResponse {
         return $this->executeSafely(
-            function () use ($callback) {
-                $result = $callback();
-
-                if ($result === false) {
-                    throw new \RuntimeException('Operación fallida');
-                }
-
-                if ($result === true) {
-                    return response()->json(['success' => true]);
-                }
-
-                return response()->json(['success' => true, ...($result ?? [])]);
-            },
+            fn () => $this->jsonSuccess(
+                $this->ensureSuccess($callback(), $errorMessage)
+            ),
             $errorMessage,
-            fn() => response()->json([
-                'success' => false,
-                'message' => $errorMessage,
-            ], $statusCode)
+            fn () => $this->jsonFail($errorMessage, $statusCode)
         );
     }
 
+    /* ====================================================================== */
+    /* Inertia                                                                */
+    /* ====================================================================== */
+
     /**
-     * Maneja un servicio Inertia con renderizado y manejo centralizado de errores.
+     * Maneja servicios Inertia con fallback de error.
      *
-     * En caso de éxito retorna la vista Inertia.
-     * En error renderiza el componente Inertia definido mostrando el mensaje de error.
-     * Si el callback retorna false se considera error.
+     * @param callable(): InertiaResponse|bool $callback
+     * @param string $errorMessage
+     * @param string $errorComponent
      *
-     * @param callable(): InertiaResponse|bool $callback Acción que retorna la vista Inertia o bool.
-     * @param string $errorMessage Mensaje para mostrar en caso de error.
-     * @param string $errorComponent Nombre del componente Inertia para mostrar en errores (por defecto 'ErrorPage').
-     *
-     * @return InertiaResponse Respuesta Inertia válida.
+     * @return InertiaResponse
      */
     protected function handleServiceInertia(
         callable $callback,
@@ -148,19 +132,64 @@ abstract class Controller extends BaseController
         string $errorComponent = 'ErrorPage'
     ): InertiaResponse {
         return $this->executeSafely(
-            function () use ($callback, $errorMessage, $errorComponent) {
-                $result = $callback();
-
-                if ($result === false) {
-                    throw new \RuntimeException($errorMessage);
-                }
-
-                return $result;
-            },
+            fn () => $this->ensureSuccess($callback(), $errorMessage),
             $errorMessage,
-            fn() => Inertia::render($errorComponent, [
+            fn () => Inertia::render($errorComponent, [
                 'message' => $errorMessage,
             ])->status(500)
         );
+    }
+
+    /* ====================================================================== */
+    /* Helpers                                                                */
+    /* ====================================================================== */
+
+    /**
+     * Valida que el resultado sea exitoso.
+     *
+     * @param mixed $result
+     * @param string $errorMessage
+     * @return mixed
+     */
+    protected function ensureSuccess(mixed $result, string $errorMessage): mixed
+    {
+        if ($result === false) {
+            throw new \RuntimeException($errorMessage);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Respuesta JSON de éxito.
+     *
+     * @param bool|array|null $data
+     * @return JsonResponse
+     */
+    protected function jsonSuccess(bool|array|null $data = true): JsonResponse
+    {
+        if ($data === true || $data === null) {
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json([
+            'success' => true,
+            ...$data,
+        ]);
+    }
+
+    /**
+     * Respuesta JSON de error.
+     *
+     * @param string $message
+     * @param int $statusCode
+     * @return JsonResponse
+     */
+    protected function jsonFail(string $message, int $statusCode = 500): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+        ], $statusCode);
     }
 }

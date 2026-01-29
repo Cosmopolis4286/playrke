@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Roles;
 
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Roles\CommerceRequest;
+use App\Http\Requests\Roles\AdminCommerceRequest;
 use App\Models\Roles\Commerce;
 use App\Services\Roles\Commerce\CommerceService;
 use Illuminate\Http\JsonResponse;
@@ -33,7 +33,7 @@ class CommerceController extends Controller
     /**
      * Crear un comercio
      */
-    public function store(CommerceRequest $request): JsonResponse
+    public function store(AdminCommerceRequest $request): JsonResponse
     {
         return $this->handleServiceJson(function () use ($request) {
 
@@ -59,11 +59,11 @@ class CommerceController extends Controller
 
     /**
      * Actualizar un comercio
-     * @param CommerceRequest $request
+     * @param AdminCommerceRequest $request
      * @param Commerce $commerce
      * @return JsonResponse
      */
-    public function update(CommerceRequest $request, Commerce $commerce): JsonResponse
+    public function update(AdminCommerceRequest $request, Commerce $commerce): JsonResponse
     {
         return $this->handleServiceJson(
             function () use ($request, $commerce) {

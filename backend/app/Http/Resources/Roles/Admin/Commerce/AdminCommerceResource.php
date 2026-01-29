@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Resources\Roles;
+namespace App\Http\Resources\Roles\Admin\Commerce;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class CommerceResource extends JsonResource
+class AdminCommerceResource extends JsonResource
 {
     public function toArray($request): array
     {
