@@ -41,10 +41,11 @@ class AdminCommerceRequest extends BaseRequest
         $userId     = $commerce?->user_id;
 
         $rules = [
+            'commission'     => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
             'country'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
             'currency'       => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
             'time_zone'      => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
-            'phone'          => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20'],
+            'phone'          => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:12'],
             'name'           => [$isUpdate ? 'sometimes' : 'required', 'string'],
             'other_currencies'   => ['sometimes', 'array'],
             'other_currencies.*' => ['string', 'exists:currencies,id'],
@@ -90,6 +91,11 @@ class AdminCommerceRequest extends BaseRequest
             'country.required'  => 'El país es obligatorio.',
             'currency.required' => 'La moneda principal es obligatoria.',
             'time_zone.required' => 'La zona horaria es obligatoria.',
+            'commission.required' => 'La comisión es obligatoria.',
+            'commission.numeric' => 'La comisión debe ser un número.',
+            'commission.min' => 'La comisión no puede ser menor a 0.',
+            'commission.max' => 'La comisión no puede ser mayor a 100.',
+            'commission.regex' => 'La comisión debe tener máximo 2 decimales.',
             'other_currencies.*.exists' => 'Una o más monedas adicionales no son válidas.',
             'allowed_games.*.exists' => 'Uno o más juegos permitidos no son válidos.',
         ];

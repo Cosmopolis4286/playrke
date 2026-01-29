@@ -1,5 +1,9 @@
 <script setup lang="ts">
   import { computed, useSlots } from 'vue'
+  import { IMaskDirective } from 'vue-imask'
+  import type { FactoryArg } from 'imask'
+
+  const vImask = IMaskDirective
 
   const props = defineProps({
     container: { type: Boolean, default: false },
@@ -15,7 +19,8 @@
     placeholder: { type: String, default: null },
     col: { type: String, default: 'col-sm-6' },
     className: { type: String, default: '' },
-    inputGroup: { type: Boolean, default: false }
+    inputGroup: { type: Boolean, default: false },
+    mask: { type: Object as () => FactoryArg, default: null }
   })
 
   const emit = defineEmits(['update:modelValue'])
@@ -26,6 +31,10 @@
 
   function onInput(event: Event) {
     emit('update:modelValue', (event.target as HTMLInputElement).value)
+  }
+
+  function onAccept(event: CustomEvent) {
+    emit('update:modelValue', event.detail.value)
   }
 </script>
 
@@ -40,6 +49,22 @@
     <!-- INPUT GROUP -->
     <div v-if="inputGroup" class="input-group">
       <input
+        v-if="mask"
+        v-imask="mask"
+        :type="type"
+        :id="inputId"
+        :name="name"
+        :value="modelValue"
+        class="form-control"
+        :readonly="readonly"
+        :required="required"
+        :placeholder="placeholder"
+        :minlength="minlength"
+        :maxlength="maxlength"
+        @accept="onAccept"
+      />
+      <input
+        v-else
         :type="type"
         :id="inputId"
         :name="name"
@@ -57,6 +82,23 @@
         <slot />
       </div>
     </div>
+
+    <!-- INPUT CON MÁSCARA -->
+    <input
+      v-else-if="mask"
+      v-imask="mask"
+      :type="type"
+      :id="inputId"
+      :name="name"
+      :value="modelValue"
+      class="form-control"
+      :readonly="readonly"
+      :required="required"
+      :placeholder="placeholder"
+      :minlength="minlength"
+      :maxlength="maxlength"
+      @accept="onAccept"
+    />
 
     <!-- INPUT SIMPLE -->
     <input

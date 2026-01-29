@@ -247,6 +247,7 @@ final class AdminCommerceCrudService
 
     /**
      * Alternar estado del comercio (ACTIVE / INACTIVE).
+     * También sincroniza el estado del usuario asociado.
      *
      * @param Commerce $commerce
      * @return bool True si el cambio fue exitoso
@@ -259,13 +260,15 @@ final class AdminCommerceCrudService
             throw AdminCommerceException::invalidStatusChange();
         }
 
-        $this->commerceRepository->toggleStatus($commerce);
+        // Usa changeStatus con userRelation para sincronizar Commerce y User
+        $newStatus = $commerce->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
-        return true;
+        return $this->commerceRepository->changeStatus($commerce, $newStatus, 'user');
     }
 
     /**
      * Eliminación lógica (soft delete) del comercio.
+     * También marca el usuario asociado como DELETED.
      *
      * @param Commerce $commerce
      * @return bool True si la eliminación fue exitosa
@@ -278,13 +281,17 @@ final class AdminCommerceCrudService
             throw AdminCommerceException::alreadyDeleted();
         }
 
-        $this->commerceRepository->delete($commerce->id);
-
-        return true;
+        // Usa softDelete con userRelation para sincronizar Commerce y User
+        return $this->commerceRepository->softDelete(
+            model: $commerce,
+            status: 'DELETED',
+            relationsToDetach: [],
+            userRelation: 'user'
+        );
     }
 
     /**
-     * Eliminación definitiva del comercio.
+     * Eliminación definitiva del comercio y su usuario asociado.
      *
      * @param Commerce $commerce
      *
@@ -294,25 +301,30 @@ final class AdminCommerceCrudService
     {
         DB::transaction(function () use ($commerce) {
 
-            if ($commerce->status === 'DELETED') {
-                throw AdminCommerceException::alreadyDeleted();
-            }
-
             $commerce->loadMissing(['currencies', 'games', 'user']);
 
+            // Desvincula relaciones
             $commerce->currencies()->detach();
             $commerce->games()->detach();
 
+            // Elimina wallets del usuario
             $this->walletRepository->deleteByUserId($commerce->user_id);
 
+            // Guarda referencia al usuario antes de eliminar el comercio
+            $user = $commerce->user;
+            $userId = $commerce->user_id;
+
+            // Elimina definitivamente el comercio
             $commerce->forceDelete();
 
-            $hasOtherCommerces = Commerce::where('user_id', $commerce->user_id)
-                ->where('status', '!=', 'DELETED')
+            // Verifica si el usuario tiene otros comercios activos
+            $hasOtherCommerces = Commerce::where('user_id', $userId)
+                ->where('id', '!=', $commerce->id)
                 ->exists();
 
-            if (! $hasOtherCommerces && $commerce->user) {
-                $commerce->user->forceDelete();
+            // Si no tiene otros comercios, elimina el usuario
+            if (! $hasOtherCommerces && $user) {
+                $user->forceDelete();
             }
         });
     }

@@ -52,6 +52,15 @@ export function useAdminCommerceForm(
             e.email = 'El email es requerido.'
         }
 
+        if (!form.value.commission) {
+            e.commission = 'La comisión es requerida.'
+        } else {
+            const commissionValue = parseFloat(form.value.commission)
+            if (isNaN(commissionValue) || commissionValue < 0 || commissionValue > 100) {
+                e.commission = 'La comisión debe estar entre 0 y 100.'
+            }
+        }
+
         if (!form.value.country_id) {
             e.country_id = 'El país es requerido.'
         }
@@ -71,7 +80,6 @@ export function useAdminCommerceForm(
     return {
         form,
         errors,
-        isEditMode,
         isValid
     }
 }

@@ -53,28 +53,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->put('userRole', $rolePrefix);
 
         // Retornar JSON con datos del usuario para Nuxt
-        return response()->json([
-            'success' => true,
-            // 'user' => [
-            //     'id' => (string)$user->id,
-            //     'username' => $user->username,
-            //     'first_name' => $user->first_name,
-            //     'last_name' => $user->last_name,
-            //     'email' => $user->email,
-            //     'avatar' => $user->avatar ?? null,
-            //     'roles' => [$userRole], // Roles como array de strings
-            //     'permissions' => [], // TODO: obtener permisos reales
-            //     'status' => $user->status ?? 'active',
-            //     'email_verified_at' => $user->email_verified_at?->toISOString(),
-            //     'created_at' => $user->created_at?->toISOString(),
-            //     'updated_at' => $user->updated_at?->toISOString(),
-            // ],
-            // 'session' => [
-            //     'countryCode' => $countryIsoCode,
-            //     'currency' => $currency,
-            //     'userRole' => $userRole,
-            // ]
-        ]);
+        return response()->json(['success' => true]);
     }
 
     /**

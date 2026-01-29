@@ -56,6 +56,7 @@ const emptyCommerce = (): Partial<Commerce> =>
         name: '',
         username: '',
         email: '',
+        commission: '',
         country_id: null,
         time_zone_id: null,
         phone: '',
@@ -199,6 +200,7 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
                 id: commerce.id,
                 name: commerce.name,
                 phone: commerce.phone,
+                commission: commerce.commission ?? '',
                 // Datos del usuario anidado
                 username: commerce.user?.username,
                 email: commerce.user?.email,

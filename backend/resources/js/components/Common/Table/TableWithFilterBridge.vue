@@ -188,27 +188,22 @@
 
     <!-- Botones extra a la derecha -->
     <template #action-buttons="{ selectedIds }">
-      <VTooltip
+      <button
         v-for="(btn, i) in visibleExtraButtons"
         :key="i"
-        :disabled="!btn.disabled?.(selectedIds) || !getDisabledReason(btn, selectedIds)"
-        placement="top"
+        v-tooltip="{
+          content: getDisabledReason(btn, selectedIds),
+          disabled: !btn.disabled?.(selectedIds) || !getDisabledReason(btn, selectedIds)
+        }"
+        :class="['btn', 'btn-sm', btn.class || 'btn-secondary', 'ml-2']"
+        :disabled="btn.disabled ? btn.disabled(selectedIds) : false"
+        @click="() => btn.onClick()"
+        type="button"
       >
-        <button
-          :class="['btn', 'btn-sm', btn.class || 'btn-secondary', 'ml-2']"
-          :disabled="btn.disabled ? btn.disabled(selectedIds) : false"
-          @click="() => btn.onClick()"
-          type="button"
-        >
-          <i v-if="btn.icon" :class="btn.icon"></i>
-          {{ btn.label }}
-          <span v-if="shouldShowCount(btn, selectedIds)"> ({{ selectedIds.length }}) </span>
-        </button>
-
-        <template #popper>
-          {{ getDisabledReason(btn, selectedIds) }}
-        </template>
-      </VTooltip>
+        <i v-if="btn.icon" :class="btn.icon"></i>
+        {{ btn.label }}
+        <span v-if="shouldShowCount(btn, selectedIds)"> ({{ selectedIds.length }}) </span>
+      </button>
     </template>
   </TableWithFilter>
 </template>

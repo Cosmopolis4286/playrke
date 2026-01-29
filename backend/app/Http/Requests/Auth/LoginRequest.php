@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -43,6 +44,24 @@ class LoginRequest extends FormRequest
 
         $login = $this->input('login');
         $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        // Verificar si el usuario existe y está activo antes de intentar autenticar
+        $user = User::where($field, $login)->first();
+
+        if ($user && !$user->isActive()) {
+            RateLimiter::hit($this->throttleKey());
+
+            $message = match ($user->status) {
+                'INACTIVE' => trans('auth.inactive'),
+                'SUSPENDED' => trans('auth.suspended'),
+                'PENDING_VERIFICATION' => trans('auth.pending_verification'),
+                default => trans('auth.account_disabled'),
+            };
+
+            throw ValidationException::withMessages([
+                'login' => $message,
+            ]);
+        }
 
         if (!Auth::attempt([$field => $login, 'password' => $this->input('password')], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());

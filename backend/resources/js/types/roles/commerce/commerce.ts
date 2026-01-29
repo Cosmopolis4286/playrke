@@ -7,6 +7,7 @@ export interface Commerce {
     readonly time_zone_id: number,
     readonly currency_id: number,
     readonly phone: string,
+    readonly commission: string,
     readonly status: CommerceStatus,
     readonly username: string,
     readonly email: string,

@@ -40,7 +40,23 @@
    * Form logic (PRO: computed v-model)
    * ========================================================================== */
 
-  const { form, errors, isEditMode, isValid } = useAdminCommerceForm(() => props.modelValue, emit)
+  const { form, errors, isValid } = useAdminCommerceForm(() => props.modelValue, emit)
+
+  /* ==========================================================================
+   * Máscaras
+   * ========================================================================== */
+
+  const commissionMask = {
+    mask: Number,
+    scale: 2,
+    min: 0,
+    max: 100,
+    radix: '.',
+    mapToRadix: [','],
+    padFractionalZeros: true,
+    normalizeZeros: true,
+    thousandsSeparator: ''
+  }
 
   /* ==========================================================================
    * Filtered currencies by country
@@ -147,8 +163,19 @@
         name="email"
         type="email"
         required
-        col="col-sm-12"
+        col="col-md-8"
         v-model="form.email"
+      />
+
+      <FormInput
+        label="Comisión %"
+        name="commission"
+        type="text"
+        required
+        col="col-md-4"
+        placeholder="0.00"
+        :mask="commissionMask"
+        v-model="form.commission"
       />
 
       <FormSelect
