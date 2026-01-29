@@ -182,11 +182,13 @@ function role_protected_routes(
 
     $paramUri = '{' . $param . '}';
 
-    // Reemplazo automático de {id}
-    foreach ($routes as &$route) {
+    // Reemplazo automático de {id} por {param}
+    $processedRoutes = [];
+    foreach ($routes as $name => $route) {
         if (isset($route['uri'])) {
             $route['uri'] = str_replace('{id}', $paramUri, $route['uri']);
         }
+        $processedRoutes[$name] = $route;
     }
 
     route_group(
@@ -194,7 +196,7 @@ function role_protected_routes(
         $namePrefix,
         $middleware,
         $controller,
-        $routes
+        $processedRoutes
     );
 }
 

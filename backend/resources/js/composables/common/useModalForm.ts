@@ -10,6 +10,16 @@ export interface ModalFormExpose {
 }
 
 /**
+ * Opciones de configuración para el modal
+ */
+export interface ModalFormOptions {
+    /** Título para modo creación (default: 'Registrar') */
+    createTitle?: string
+    /** Título para modo edición (default: 'Editar') */
+    editTitle?: string
+}
+
+/**
  * Contrato del composable useModalForm
  */
 interface UseModalFormReturn {
@@ -32,13 +42,17 @@ interface UseModalFormReturn {
  *
  * ⚠️ No conoce backend ni datos del formulario
  *
- * @param exchangeRateData Ref reactivo del formulario
+ * @param formData Ref reactivo del formulario
  * @param submitFn Función submit del composable de negocio
+ * @param options Opciones de configuración (títulos personalizados)
  */
 export function useModalForm(
-    exchangeRateData: Ref<Record<string, any>>,
-    submitFn: () => Promise<boolean>
+    formData: Ref<Record<string, any>>,
+    submitFn: () => Promise<boolean>,
+    options: ModalFormOptions = {}
 ): UseModalFormReturn {
+    const { createTitle = 'Registrar', editTitle = 'Editar' } = options
+
     /** Controla la visibilidad del modal */
     const showModalForm = ref(false)
 
@@ -50,7 +64,7 @@ export function useModalForm(
      * Se deriva del estado del modelo (create / edit)
      */
     const formMode = computed<'create' | 'edit'>(() =>
-        exchangeRateData.value?.id ? 'edit' : 'create'
+        formData.value?.id ? 'edit' : 'create'
     )
 
     /**
@@ -58,9 +72,7 @@ export function useModalForm(
      * Responsabilidad de UI, derivado del modo actual
      */
     const modalTitle = computed(() =>
-        formMode.value === 'create'
-            ? 'Registrar Tasa de Cambio'
-            : 'Editar Tasa de Cambio'
+        formMode.value === 'create' ? createTitle : editTitle
     )
 
     /**

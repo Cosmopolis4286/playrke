@@ -1,5 +1,6 @@
 <script setup lang="ts" name="TableWithFilterBridge">
   import { computed, ref } from 'vue'
+  import { vTooltip } from 'floating-vue'
   import TableWithFilter from './TableWithFilter.vue'
   import type { Column } from '@/js/types/common/table/column-row'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
@@ -39,7 +40,17 @@
    * Verifica si debe mostrar el contador para ciertos botones
    */
   const shouldShowCount = (btn: ExtraButton, selected: string[]) =>
-    btn.action === 'changeStatus' && selected.length > 1
+    btn.action === 'toggleStatus' && selected.length > 1
+
+  /**
+   * Obtiene la razón por la cual el botón está deshabilitado
+   */
+  function getDisabledReason(btn: ExtraButton, ids: string[]): string {
+    if (!btn.disabledReason) return ''
+    return typeof btn.disabledReason === 'function'
+      ? btn.disabledReason(ids)
+      : btn.disabledReason
+  }
 
   /** Requisitos para cantidad mínima de selección */
   type SelectionRequirement = 'any' | 'single' | 'multiple'
@@ -99,8 +110,8 @@
   const handleCreate = () => emitTableCrudEvent('create')
   const handleEdit = () => handleCrudAction({ action: 'edit', selectionRequirement: 'single' })
   const handleDelete = () => handleCrudAction({ action: 'delete', selectionRequirement: 'any' })
-  const handleChangeStatus = () =>
-    handleCrudAction({ action: 'changeStatus', logMessage: 'Cambio de estado para IDs:' })
+  const handleToggleStatus = () =>
+    handleCrudAction({ action: 'toggleStatus', logMessage: 'Cambio de estado para IDs:' })
   const handleResetPassword = () =>
     handleCrudAction({ action: 'resetPassword', logMessage: 'Reset contraseña para IDs:' })
 
@@ -112,8 +123,8 @@
       ...btn,
       onClick: () => {
         switch (btn.action) {
-          case 'changeStatus':
-            handleChangeStatus()
+          case 'toggleStatus':
+            handleToggleStatus()
             break
           case 'resetPassword':
             handleResetPassword()
@@ -177,18 +188,27 @@
 
     <!-- Botones extra a la derecha -->
     <template #action-buttons="{ selectedIds }">
-      <button
+      <VTooltip
         v-for="(btn, i) in visibleExtraButtons"
         :key="i"
-        :class="['btn', 'btn-sm', btn.class || 'btn-secondary', 'ml-2']"
-        :disabled="btn.disabled ? btn.disabled(selectedIds) : false"
-        @click="() => btn.onClick()"
-        type="button"
+        :disabled="!btn.disabled?.(selectedIds) || !getDisabledReason(btn, selectedIds)"
+        placement="top"
       >
-        <i v-if="btn.icon" :class="btn.icon"></i>
-        {{ btn.label }}
-        <span v-if="shouldShowCount(btn, selectedIds)"> ({{ selectedIds.length }}) </span>
-      </button>
+        <button
+          :class="['btn', 'btn-sm', btn.class || 'btn-secondary', 'ml-2']"
+          :disabled="btn.disabled ? btn.disabled(selectedIds) : false"
+          @click="() => btn.onClick()"
+          type="button"
+        >
+          <i v-if="btn.icon" :class="btn.icon"></i>
+          {{ btn.label }}
+          <span v-if="shouldShowCount(btn, selectedIds)"> ({{ selectedIds.length }}) </span>
+        </button>
+
+        <template #popper>
+          {{ getDisabledReason(btn, selectedIds) }}
+        </template>
+      </VTooltip>
     </template>
   </TableWithFilter>
 </template>

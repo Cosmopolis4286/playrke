@@ -29,14 +29,20 @@ interface UseAdminCommerceReturn {
     /** Reset del formulario */
     reset: () => void
 
-    /** Cambio de estado */
-    changeStatus: (id: string | number) => Promise<boolean>
+    /** Cambio de estado (individual) */
+    toggleStatus: (id: string | number) => Promise<boolean>
+
+    /** Cambio de estado masivo */
+    toggleStatusBulk: (ids: (string | number)[]) => Promise<boolean>
 
     /** Reset de contraseña */
     resetPassword: (id: string | number) => Promise<boolean>
 
-    /** Eliminación */
+    /** Eliminación (individual) */
     remove: (id: string | number) => Promise<boolean>
+
+    /** Eliminación masiva */
+    removeBulk: (ids: (string | number)[]) => Promise<boolean>
 
     /** Fetch desde backend */
     fetchCommerces: () => Promise<boolean>
@@ -117,16 +123,13 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
      * Transforma el payload del frontend al formato esperado por el backend
      */
     function buildPayload(): Record<string, unknown> {
-        const { country_id, currency_id, time_zone_id, username, email, ...rest } = commerceData.value
-        const isUpdate = !!commerceData.value.id
+        const { country_id, currency_id, time_zone_id, ...rest } = commerceData.value
 
         return {
             ...rest,
             country: country_id,
             currency: currency_id,
-            time_zone: time_zone_id,
-            // username y email solo se envían en creación
-            ...(!isUpdate && { username, email })
+            time_zone: time_zone_id
         }
     }
 
@@ -226,11 +229,14 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
     }
 
     /**
-     * Cambio de estado
+     * Alternar estado (ACTIVE / INACTIVE) del comercio.
      */
-    async function changeStatus(id: string | number): Promise<boolean> {
+    async function toggleStatus(id: string | number): Promise<boolean> {
+        const commerce = commerces.value.find(c => c.id === id)
+        const name = commerce?.name ?? 'esta comercializadora'
+
         const confirm = await showToastConfirmAction({
-            text: '¿Quieres cambiar el estado de esta comercializadora?',
+            html: `¿Quieres cambiar el estado de <b>${name}</b>?`,
             icon: 'warning',
             confirmButtonText: 'Sí, cambiar estado'
         })
@@ -253,6 +259,7 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
      */
     async function resetPassword(id: string | number): Promise<boolean> {
         const commerce = commerces.value.find(c => c.id === id)
+        const name = commerce?.name ?? 'esta comercializadora'
 
         if (commerce?.status !== 'ACTIVE') {
             showToast('Solo se puede resetear la contraseña de comercializadoras activas', 'warning')
@@ -260,7 +267,7 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         }
 
         const confirm = await showToastConfirmAction({
-            text: '¿Deseas resetear la contraseña de esta comercializadora?',
+            html: `¿Deseas resetear la contraseña de <b>${name}</b>?`,
             icon: 'warning',
             confirmButtonText: 'Sí, resetear'
         })
@@ -287,8 +294,11 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
      * Eliminación (soft delete)
      */
     async function remove(id: string | number): Promise<boolean> {
+        const commerce = commerces.value.find(c => c.id === id)
+        const name = commerce?.name ?? 'esta comercializadora'
+
         const confirm = await showToastConfirmAction({
-            text: '¿Estás seguro que deseas eliminar esta comercializadora?',
+            html: `¿Estás seguro que deseas eliminar <b>${name}</b>?`,
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar'
         })
@@ -306,6 +316,92 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         }
     }
 
+    /**
+     * Genera HTML con lista de nombres para mostrar en el modal de confirmación
+     */
+    function buildItemListHtml(ids: (string | number)[]): string {
+        const items = ids
+            .map(id => commerces.value.find(c => c.id === id))
+            .filter(Boolean)
+            .map(c => c!.name)
+
+        return `
+            <div style="max-height: 150px; overflow-y: auto; text-align: left; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
+                <ul style="margin: 0; padding-left: 20px;">
+                    ${items.map(name => `<li style="padding: 4px 0;">${name}</li>`).join('')}
+                </ul>
+            </div>
+        `
+    }
+
+    /**
+     * Alternar estado (masivo)
+     */
+    async function toggleStatusBulk(ids: (string | number)[]): Promise<boolean> {
+        if (ids.length === 0) return false
+
+        // Si es solo uno, usar el flujo individual
+        if (ids.length === 1) {
+            return toggleStatus(ids[0])
+        }
+
+        const itemListHtml = buildItemListHtml(ids)
+
+        const confirm = await showToastConfirmAction({
+            html: `¿Quieres cambiar el estado de estas ${ids.length} comercializadoras?${itemListHtml}`,
+            icon: 'warning',
+            confirmButtonText: 'Sí, cambiar estado'
+        })
+
+        if (!confirm) return false
+
+        try {
+            for (const id of ids) {
+                await backendClient.put(`/admin/commerce/${id}/status`)
+            }
+            showToast(`Estado cambiado con éxito para ${ids.length} comercializadoras`, 'success')
+            await fetchCommerces()
+            return true
+        } catch {
+            showToast('Error al cambiar el estado', 'error')
+            return false
+        }
+    }
+
+    /**
+     * Eliminación masiva (soft delete)
+     */
+    async function removeBulk(ids: (string | number)[]): Promise<boolean> {
+        if (ids.length === 0) return false
+
+        // Si es solo uno, usar el flujo individual
+        if (ids.length === 1) {
+            return remove(ids[0])
+        }
+
+        const itemListHtml = buildItemListHtml(ids)
+
+        const confirm = await showToastConfirmAction({
+            html: `¿Estás seguro que deseas eliminar estas ${ids.length} comercializadoras?${itemListHtml}`,
+            icon: 'warning',
+            confirmButtonText: 'Sí, eliminar'
+        })
+
+        if (!confirm) return false
+
+        try {
+            for (const id of ids) {
+                await backendClient.put(`/admin/commerce/${id}/delete`)
+            }
+            showToast(`${ids.length} comercializadoras eliminadas con éxito`, 'success')
+            await fetchCommerces()
+            return true
+        } catch {
+            showToast('Error al eliminar las comercializadoras', 'error')
+            return false
+        }
+    }
+
     return {
         commerceData,
         commerces,
@@ -314,9 +410,11 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         create,
         edit,
         reset,
-        changeStatus,
+        toggleStatus,
+        toggleStatusBulk,
         resetPassword,
         remove,
+        removeBulk,
         fetchCommerces
     }
 }

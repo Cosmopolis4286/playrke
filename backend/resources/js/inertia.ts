@@ -6,6 +6,8 @@ import 'nprogress/nprogress.css'
 import { Inertia } from '@inertiajs/inertia'
 import VueImaskPlugin from './plugins/vue-imask-plugin'
 import "@vueform/multiselect/themes/default.css";
+import FloatingVue from 'floating-vue'
+import 'floating-vue/dist/style.css'
 
 /**
  * Importa de forma dinámica todos los componentes Vue en /resources/js/Pages.
@@ -36,6 +38,7 @@ createInertiaApp({
         const app = createApp({ render: () => h(App, props) })
 
         app.use(VueImaskPlugin) // Registro de la directiva v-mask
+        app.use(FloatingVue) // Registro de tooltips y popovers
 
         app.use(plugin)
         app.use(head)

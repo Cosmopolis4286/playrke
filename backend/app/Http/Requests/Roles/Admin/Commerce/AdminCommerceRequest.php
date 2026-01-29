@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Roles\Admin\Commerce;
 
 use App\Http\Requests\BaseRequest;
+use App\Models\Roles\Commerce;
 use App\Services\Auth\PermissionService;
+use Illuminate\Validation\Rule;
 
 /**
  * Request para validar datos de una Comercializadora (Commerce).
@@ -31,9 +33,12 @@ class AdminCommerceRequest extends BaseRequest
      */
     public function rules(): array
     {
-        $commerceId = $this->getId(['commerce', 'id']);
-        $isUpdate   = $this->isUpdate(['commerce', 'id']);
-        $userId     = $this->route('commerce')?->user_id;
+        // Resuelve el modelo Commerce manualmente desde el route parameter
+        $commerce = $this->resolveCommerce();
+
+        $commerceId = $commerce?->id;
+        $isUpdate   = $commerce !== null;
+        $userId     = $commerce?->user_id;
 
         $rules = [
             'country'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
@@ -49,18 +54,18 @@ class AdminCommerceRequest extends BaseRequest
 
         // Regla unique para phone (excluye el comercio actual en update)
         $rules['phone'][] = $commerceId
-            ? 'unique:commerces,phone,' . $commerceId
-            : 'unique:commerces,phone';
+            ? Rule::unique('commerces', 'phone')->ignore($commerceId)
+            : Rule::unique('commerces', 'phone');
 
         // Reglas para username y email
         if ($isUpdate) {
             // En update: validar solo si se envían, excluyendo el usuario actual
-            $rules['username'] = ['sometimes', 'string', 'max:20', 'unique:users,username,' . $userId];
-            $rules['email']    = ['sometimes', 'email', 'max:40', 'unique:users,email,' . $userId];
+            $rules['username'] = ['sometimes', 'string', 'max:20', Rule::unique('users', 'username')->ignore($userId)];
+            $rules['email']    = ['sometimes', 'email', 'max:40', Rule::unique('users', 'email')->ignore($userId)];
         } else {
             // En creación: obligatorios y únicos
-            $rules['username'] = ['required', 'string', 'max:20', 'unique:users,username'];
-            $rules['email']    = ['required', 'email', 'max:40', 'unique:users,email'];
+            $rules['username'] = ['required', 'string', 'max:20', Rule::unique('users', 'username')];
+            $rules['email']    = ['required', 'email', 'max:40', Rule::unique('users', 'email')];
         }
 
         return $rules;
@@ -88,5 +93,30 @@ class AdminCommerceRequest extends BaseRequest
             'other_currencies.*.exists' => 'Una o más monedas adicionales no son válidas.',
             'allowed_games.*.exists' => 'Uno o más juegos permitidos no son válidos.',
         ];
+    }
+
+    /**
+     * Resuelve el modelo Commerce desde el parámetro de ruta.
+     *
+     * El route model binding no está disponible durante la validación,
+     * por lo que debemos resolver el modelo manualmente usando el
+     * método resolveRouteBinding del modelo.
+     */
+    protected function resolveCommerce(): ?Commerce
+    {
+        // Intentar obtener el parámetro por varios nombres posibles
+        $routeParam = $this->route('commerce') ?? $this->route('id');
+
+        if ($routeParam === null) {
+            return null;
+        }
+
+        // Si ya es una instancia de Commerce (binding ya resuelto)
+        if ($routeParam instanceof Commerce) {
+            return $routeParam;
+        }
+
+        // Resolver manualmente usando el método del modelo (soporta Hashids)
+        return (new Commerce())->resolveRouteBinding($routeParam);
     }
 }

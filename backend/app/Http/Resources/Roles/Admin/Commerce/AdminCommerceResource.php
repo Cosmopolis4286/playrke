@@ -9,6 +9,7 @@ class AdminCommerceResource extends JsonResource
     public function toArray($request): array
     {
         return [
+            'id' => $this->hashed_id,
             'name' => $this->name,
             'phone' => $this->phone,
 

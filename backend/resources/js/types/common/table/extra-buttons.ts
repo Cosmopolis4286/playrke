@@ -18,6 +18,12 @@ export interface ExtraButton {
      * Recibe IDs seleccionados y retorna booleano.
      */
     disabled?: (selectedIds: string[]) => boolean
+    /**
+     * Razón por la cual el botón está deshabilitado.
+     * Se muestra en un tooltip cuando el botón está deshabilitado.
+     * Puede ser un string o una función que recibe IDs seleccionados.
+     */
+    disabledReason?: string | ((selectedIds: string[]) => string)
     /** Nombre de la acción que realizará el botón */
     action?: string
     /**

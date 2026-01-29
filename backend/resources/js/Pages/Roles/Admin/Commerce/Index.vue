@@ -45,9 +45,9 @@
     setInitialCommerces,
     create,
     edit,
-    changeStatus,
+    toggleStatusBulk,
     resetPassword,
-    remove,
+    removeBulk,
     submit
   } = useAdminCommerce()
 
@@ -62,7 +62,10 @@
     modalTitle,
     formRef: adminCommerceFormRef,
     handleSubmit
-  } = useModalForm(commerceData, submit)
+  } = useModalForm(commerceData, submit, {
+    createTitle: 'Registrar Comercializadora',
+    editTitle: 'Editar Comercializadora'
+  })
 
   watch(showModalForm, isOpen => {
     if (!isOpen) {
@@ -92,16 +95,12 @@
 
     delete: async ids => {
       if (!ids) return
-      for (const id of ids) {
-        await remove(id)
-      }
+      await removeBulk(ids)
     },
 
-    changeStatus: async ids => {
+    toggleStatus: async ids => {
       if (!ids) return
-      for (const id of ids) {
-        await changeStatus(id)
-      }
+      await toggleStatusBulk(ids)
     },
     resetPassword: async ids => {
       if (!ids || ids.length !== 1) return
@@ -160,13 +159,24 @@
     return commerce?.status !== 'ACTIVE'
   }
 
+  /**
+   * Retorna la razón por la cual resetPassword está deshabilitado.
+   */
+  function getResetPasswordDisabledReason(selectedIds: string[]): string {
+    const commerce = commerces.value.find(c => c.id === selectedIds[0])
+    if (commerce?.status !== 'ACTIVE') {
+      return 'Solo se puede resetear la contraseña de comercializadoras activas'
+    }
+    return ''
+  }
+
   const extraButtons: ExtraButton[] = [
     {
       label: '',
       icon: 'fas fa-exchange-alt',
       class: 'btn-secondary',
       show: false,
-      action: 'changeStatus'
+      action: 'toggleStatus'
     },
     {
       label: '',
@@ -174,7 +184,8 @@
       class: 'btn-dark',
       show: isResetPasswordVisible,
       action: 'resetPassword',
-      disabled: isResetPasswordDisabled
+      disabled: isResetPasswordDisabled,
+      disabledReason: getResetPasswordDisabledReason
     }
   ]
 </script>
