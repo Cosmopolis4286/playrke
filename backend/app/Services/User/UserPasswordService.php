@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Services\User;
+namespace App\Services\User;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;

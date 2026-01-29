@@ -9,13 +9,23 @@ use App\Models\Roles\Commerce;
 use App\Services\Roles\Admin\Commerce\AdminCommerceService;
 use Illuminate\Http\JsonResponse;
 
-class AdminCommerceController extends Controller
+/**
+ * Controlador de administración de Comercios.
+ *
+ * Responsabilidades:
+ * - Orquestar requests HTTP
+ * - Delegar lógica de negocio al servicio
+ * - Unificar respuestas JSON
+ *
+ * NO contiene lógica de dominio ni mensajes de error.
+ */
+final class AdminCommerceController extends Controller
 {
     /**
      * @param AdminCommerceService $service
      */
     public function __construct(
-        protected AdminCommerceService $service
+        protected readonly AdminCommerceService $service
     ) {
         $this->authorizeResource(Commerce::class, 'commerce');
     }
@@ -30,11 +40,10 @@ class AdminCommerceController extends Controller
     {
         return $this->handleServiceJson(
             fn() => [
-                'message'  => 'Registro exitoso',
-                'password' => $this->service
-                    ->create($request->toDTO(AdminCommerceDTO::class))['password'],
-            ],
-            'Hubo un error al crear el comercio.'
+                'password' => $this->service->create(
+                    $request->toDTO(AdminCommerceDTO::class)
+                ),
+            ]
         );
     }
 
@@ -49,8 +58,7 @@ class AdminCommerceController extends Controller
         return $this->handleServiceJson(
             fn() => [
                 'data' => $this->service->show($commerce),
-            ],
-            'No se pudo cargar la información del comercio.'
+            ]
         );
     }
 
@@ -61,17 +69,15 @@ class AdminCommerceController extends Controller
      * @param Commerce $commerce
      * @return JsonResponse
      */
-    public function update(AdminCommerceRequest $request, Commerce $commerce): JsonResponse
-    {
+    public function update(
+        AdminCommerceRequest $request,
+        Commerce $commerce
+    ): JsonResponse {
         return $this->handleServiceJson(
-            fn() => tap(
-                $this->service->update(
-                    $commerce,
-                    $request->toDTO(AdminCommerceDTO::class)
-                ),
-                fn() => ['message' => 'Actualización exitosa']
-            ) ?: false,
-            'Hubo un error al editar el comercio.'
+            fn() => $this->service->update(
+                $commerce,
+                $request->toDTO(AdminCommerceDTO::class)
+            )
         );
     }
 
@@ -84,16 +90,7 @@ class AdminCommerceController extends Controller
     public function delete(Commerce $commerce): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => tap(
-                $this->service->delete(
-                    $commerce,
-                    'DELETED',
-                    ['currencies', 'games'],
-                    'user'
-                ),
-                fn() => ['message' => 'Comercio eliminado correctamente']
-            ) ?: false,
-            'No se pudo eliminar el comercio.'
+            fn() => $this->service->delete($commerce)
         );
     }
 
@@ -106,28 +103,20 @@ class AdminCommerceController extends Controller
     public function destroy(Commerce $commerce): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => tap(
-                $this->service->destroy($commerce),
-                fn() => ['message' => 'Comercio eliminado correctamente']
-            ) ?: false,
-            'No se pudo eliminar el comercio.'
+            fn() => $this->service->destroy($commerce)
         );
     }
 
     /**
-     * Cambiar el estado de un comercio.
+     * Alternar estado (ACTIVE / INACTIVE) del comercio.
      *
      * @param Commerce $commerce
      * @return JsonResponse
      */
-    public function changeStatus(Commerce $commerce): JsonResponse
+    public function toggleStatus(Commerce $commerce): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => tap(
-                $this->service->toggleStatus($commerce),
-                fn() => ['message' => 'Estado actualizado correctamente']
-            ) ?: false,
-            'No se pudo cambiar el estado del comercio.'
+            fn() => $this->service->toggleStatus($commerce)
         );
     }
 
@@ -141,10 +130,8 @@ class AdminCommerceController extends Controller
     {
         return $this->handleServiceJson(
             fn() => [
-                'message'  => 'Contraseña generada exitosamente',
                 'password' => $this->service->resetPassword($commerce),
-            ],
-            'No se pudo cambiar la contraseña del comercio.'
+            ]
         );
     }
 }

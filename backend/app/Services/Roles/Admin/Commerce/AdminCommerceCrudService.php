@@ -1,33 +1,34 @@
 <?php
 
-namespace App\Services\Admin\Commerce;
+namespace App\Services\Roles\Admin\Commerce;
 
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
-use App\Http\Resources\Roles\AdminCommerceResource;
+use App\Exceptions\Domain\Roles\Admin\Commerce\AdminCommerceException;
+use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
 use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\Roles\Commerce;
 use App\Services\UserService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
 
 /**
- * Servicio de aplicación responsable de operaciones CRUD
- * sobre los comercios (commerces) acciones admin.
+ * Servicio de dominio responsable de operaciones CRUD
+ * sobre comercios en contexto Admin.
  *
- * Orquesta la lógica para:
- * - Resolución de rol activo y entidad asociada
- * - Ejecución de operaciones CRUD delegadas a repositorios
- * - Aplicación de reglas de dominio específicas
+ * Responsabilidades:
+ * - Orquestar creación y mantenimiento del agregado Commerce
+ * - Coordinar persistencia de entidades relacionadas
+ * - Aplicar reglas de dominio del comercio
  *
+ * NO retorna booleanos.
+ * NO maneja HTTP.
+ * FALLA lanzando excepciones de dominio.
  */
 final class AdminCommerceCrudService
 {
-    /**
-     * Constructor con inyección de dependencias.
-     */
     public function __construct(
         private readonly UserService $userService,
         private readonly WalletRepositoryInterface $walletRepository,
@@ -35,25 +36,37 @@ final class AdminCommerceCrudService
     ) {}
 
     /**
-     * Crear un comercio completo (User + Commerce + Wallet + Codes).
+     * Obtener todos los comercios.
+     *
+     * @return Collection<int, Commerce>
+     */
+    public function getAll(): Collection
+    {
+        return $this->commerceRepository->all();
+    }
+
+    /**
+     * Crear un comercio completo (User + Commerce + Wallet).
      *
      * @param AdminCommerceDTO $dto
-     * @return array{commerce:\App\Models\Roles,password:string}
+     * @return string Contraseña generada para el comercio
+     *
+     * @throws AdminCommerceException
      */
-    public function create(AdminCommerceDTO $dto): array
+    public function create(AdminCommerceDTO $dto): string
     {
         return DB::transaction(function () use ($dto) {
 
             $plainPassword = bin2hex(random_bytes(4));
 
-            // 1. Crear usuario
+            // 1. Usuario
             $user = $this->userService->createUserFromDTO($dto, $plainPassword);
             $user->assignRole('commerce');
 
-            // 2. Crear código único
+            // 2. Código único
             $uniqueCode = $this->userService->createUniqueCode($user->id);
 
-            // 3. Crear comercio
+            // 3. Comercio
             $commerce = $this->commerceRepository->create([
                 'name'           => $dto->name,
                 'phone'          => $dto->phone,
@@ -63,40 +76,37 @@ final class AdminCommerceCrudService
                 'unique_code_id' => $uniqueCode->id,
             ]);
 
-            // 4. Registrar moneda pricipal y secundarias
-            $this->updateCurrencies($commerce, $dto->currency, $dto->otherCurrencies);
+            if (! $commerce) {
+                throw AdminCommerceException::creationFailed();
+            }
 
-            // 5. Registrar juegos permitidos
-            $this->updateAllowedGames($commerce, $dto->allowedGames);
+            // 4. Relaciones
+            $this->syncCurrencies($commerce, $dto->currency, $dto->otherCurrencies);
+            $this->syncGames($commerce, $dto->allowedGames);
 
-            // 6. Crear wallet principal
+            // 5. Wallet principal
             $this->walletRepository->create([
                 'user_id'     => $user->id,
                 'currency_id' => $dto->currency,
             ]);
 
-            return [
-                'commerce' => $commerce,
-                'password' => $plainPassword,
-            ];
+            return $plainPassword;
         });
     }
 
     /**
-     * Obtener un comercio con sus relaciones para visualización.
+     * Obtener comercio para visualización.
+     *
      * @param Commerce $commerce
      * @return AdminCommerceResource
      */
-    public function getByCommerce(Commerce $commerce): AdminCommerceResource
+    public function show(Commerce $commerce): AdminCommerceResource
     {
         $commerce->load([
             'country:id,name',
             'user:id,username,email,time_zone_id',
             'user.timeZone:id,name',
-            'currenciesActive' => function ($query) {
-                $query->select('currencies.id', 'symbol', 'description')
-                    ->withPivot(['level', 'status']); // aseguramos traer datos del pivote
-            },
+            'currenciesActive:id,symbol,description',
             'gamesActive:id,name',
         ]);
 
@@ -104,41 +114,29 @@ final class AdminCommerceCrudService
     }
 
     /**
-     * Actualizar comercio y sus relaciones.
+     * Actualizar comercio y relaciones.
      *
      * @param Commerce $commerce
      * @param AdminCommerceDTO $dto
-     * @return void
+     *
+     * @throws AdminCommerceException
      */
     public function update(Commerce $commerce, AdminCommerceDTO $dto): void
     {
         DB::transaction(function () use ($commerce, $dto) {
 
-            // -----------------------------
-            // Actualizar datos del comercio
-            // -----------------------------
             $this->commerceRepository->update(
                 $commerce->id,
                 array_filter([
-                    'name'        => $dto->name,
-                    'phone'       => $dto->phone,
-                    'country_id'  => $dto->country,
+                    'name'       => $dto->name,
+                    'phone'      => $dto->phone,
+                    'country_id' => $dto->country,
                 ])
             );
 
-            // -----------------------------
-            // Sincronizar monedas secundarias con manejo de estado
-            // -----------------------------
-            $this->updateCurrencies($commerce, $dto->currency, $dto->otherCurrencies);
+            $this->syncCurrencies($commerce, $dto->currency, $dto->otherCurrencies);
+            $this->syncGames($commerce, $dto->allowedGames);
 
-            // -----------------------------
-            // Sincronizar juegos permitidos
-            // -----------------------------
-            $this->updateAllowedGames($commerce, $dto->allowedGames);
-
-            // -----------------------------
-            // Actualizar usuario asociado
-            // -----------------------------
             if ($dto->email !== null || $dto->username !== null) {
                 $commerce->user()->update(array_filter([
                     'email'    => $dto->email,
@@ -148,209 +146,173 @@ final class AdminCommerceCrudService
         });
     }
 
-    protected function updateCurrencies(
+    /**
+     * Sincroniza monedas del comercio.
+     */
+    protected function syncCurrencies(
         Commerce $commerce,
-        $currencyId,
-        ?array $activeCurrencyIds
+        ?int $principalCurrencyId,
+        ?array $secondaryCurrencyIds
     ): void {
-        DB::transaction(function () use ($commerce, $currencyId, $activeCurrencyIds) {
+        $secondaryCurrencyIds = collect($secondaryCurrencyIds ?? [])
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
 
-            // Normalizar input
-            $activeCurrencyIds = array_values(array_unique(
-                array_map('strval', $activeCurrencyIds ?? [])
-            ));
+        // Principal
+        if ($principalCurrencyId) {
+            CommerceCurrency::updateOrCreate(
+                ['commerce_id' => $commerce->id, 'level' => 1],
+                [
+                    'currency_id' => $principalCurrencyId,
+                    'status'      => 'ACTIVE',
+                ]
+            );
+        }
 
-            // ======== Actualizar o crear moneda principal (level = 1) ========
-            if ($currencyId) {
-                $now = now();
+        // Secundarias → inactivar las que sobran
+        CommerceCurrency::where('commerce_id', $commerce->id)
+            ->where('level', 2)
+            ->whereNotIn('currency_id', $secondaryCurrencyIds)
+            ->update(['status' => 'INACTIVE']);
 
-                $principal = CommerceCurrency::where('commerce_id', $commerce->id)
-                    ->where('level', 1)
-                    ->first();
+        // Activar existentes
+        CommerceCurrency::where('commerce_id', $commerce->id)
+            ->where('level', 2)
+            ->whereIn('currency_id', $secondaryCurrencyIds)
+            ->update(['status' => 'ACTIVE']);
 
-                if ($principal) {
-                    // Actualizar si es diferente
-                    if ($principal->currency_id != $currencyId || $principal->status !== 'ACTIVE') {
-                        $principal->currency_id = $currencyId;
-                        $principal->status = 'ACTIVE';
-                        $principal->updated_at = $now;
-                        $principal->save();
-                    }
-                } else {
-                    // Insertar nuevo registro principal
-                    CommerceCurrency::insert([
-                        'commerce_id' => $commerce->id,
-                        'currency_id' => $currencyId,
-                        'status' => 'ACTIVE',
-                        'level' => 1, // Principal
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ]);
-                }
-            }
+        // Insertar faltantes
+        $existing = CommerceCurrency::where('commerce_id', $commerce->id)
+            ->where('level', 2)
+            ->pluck('currency_id')
+            ->all();
 
-            // ======== 1. Inactivar monedas ACTIVAS secundarias que no deben estar activas ========
-            CommerceCurrency::where('commerce_id', $commerce->id)
-                ->where('status', 'ACTIVE')
-                ->where('level', 2)
-                ->when(
-                    !empty($activeCurrencyIds),
-                    fn($q) => $q->whereNotIn('currency_id', $activeCurrencyIds)
-                )
-                ->update([
-                    'status' => 'INACTIVE',
-                    'updated_at' => now(),
-                ]);
+        $missing = array_diff($secondaryCurrencyIds, $existing);
 
-            // ======== 2. Activar monedas secundarias existentes ========
-            if (!empty($activeCurrencyIds)) {
-                CommerceCurrency::where('commerce_id', $commerce->id)
-                    ->where('level', 2)
-                    ->whereIn('currency_id', $activeCurrencyIds)
-                    ->update([
-                        'status' => 'ACTIVE',
-                        'updated_at' => now(),
-                    ]);
-            }
-
-            // ======== 3. Insertar monedas secundarias que no existen ========
-            if (!empty($activeCurrencyIds)) {
-
-                $existingIds = CommerceCurrency::where('commerce_id', $commerce->id)
-                    ->where('level', 2)
-                    ->whereIn('currency_id', $activeCurrencyIds)
-                    ->pluck('currency_id')
-                    ->all();
-
-                $missingIds = array_diff($activeCurrencyIds, $existingIds);
-
-                if (!empty($missingIds)) {
-                    $now = now();
-
-                    CommerceCurrency::insert(
-                        array_map(fn($currencyId) => [
-                            'commerce_id' => $commerce->id,
-                            'currency_id' => $currencyId,
-                            'status' => 'ACTIVE',
-                            'level' => 2,
-                            'created_at' => $now,
-                            'updated_at' => $now,
-                        ], $missingIds)
-                    );
-                }
-            }
-        });
+        if ($missing) {
+            CommerceCurrency::insert(
+                array_map(fn($id) => [
+                    'commerce_id' => $commerce->id,
+                    'currency_id' => $id,
+                    'level'       => 2,
+                    'status'      => 'ACTIVE',
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ], $missing)
+            );
+        }
     }
 
     /**
-     * Actualiza el estado 'status' de juegos asociados a un comercio.
-     *
-     * @param Commerce $commerce
-     * @param array|null $activeGameIds IDs de juegos que deben quedar activos
+     * Sincroniza juegos permitidos.
      */
-    protected function updateAllowedGames(
+    protected function syncGames(
         Commerce $commerce,
         ?array $activeGameIds
     ): void {
-        DB::transaction(function () use ($commerce, $activeGameIds) {
+        $activeGameIds = collect($activeGameIds ?? [])
+            ->map(fn($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
 
-            // Normalizar input
-            $activeGameIds = array_values(array_unique(
-                array_map('strval', $activeGameIds ?? [])
-            ));
+        CommerceGame::where('commerce_id', $commerce->id)
+            ->whereNotIn('game_id', $activeGameIds)
+            ->update(['status' => 'INACTIVE']);
 
-            /**
-             * 1. Inactivar juegos ACTIVOS que no deben estar activos
-             */
-            CommerceGame::where('commerce_id', $commerce->id)
-                ->where('status', 'ACTIVE')
-                ->when(
-                    !empty($activeGameIds),
-                    fn($q) => $q->whereNotIn('game_id', $activeGameIds)
-                )
-                ->update([
-                    'status' => 'INACTIVE',
-                    'updated_at' => now(),
-                ]);
+        CommerceGame::where('commerce_id', $commerce->id)
+            ->whereIn('game_id', $activeGameIds)
+            ->update(['status' => 'ACTIVE']);
 
-            /**
-             * 2. Activar juegos EXISTENTES
-             */
-            if (!empty($activeGameIds)) {
-                CommerceGame::where('commerce_id', $commerce->id)
-                    ->whereIn('game_id', $activeGameIds)
-                    ->update([
-                        'status' => 'ACTIVE',
-                        'updated_at' => now(),
-                    ]);
-            }
+        $existing = CommerceGame::where('commerce_id', $commerce->id)
+            ->pluck('game_id')
+            ->all();
 
-            /**
-             * 3. Insertar juegos que NO existen
-             */
-            if (!empty($activeGameIds)) {
+        $missing = array_diff($activeGameIds, $existing);
 
-                $existingIds = CommerceGame::where('commerce_id', $commerce->id)
-                    ->whereIn('game_id', $activeGameIds)
-                    ->pluck('game_id')
-                    ->all();
-
-                $missingIds = array_diff($activeGameIds, $existingIds);
-
-                if (!empty($missingIds)) {
-                    $now = now();
-
-                    CommerceGame::insert(
-                        array_map(fn($gameId) => [
-                            'commerce_id' => $commerce->id,
-                            'game_id' => $gameId,
-                            'status' => 'ACTIVE',
-                            'created_at' => $now,
-                            'updated_at' => $now,
-                        ], $missingIds)
-                    );
-                }
-            }
-        });
+        if ($missing) {
+            CommerceGame::insert(
+                array_map(fn($id) => [
+                    'commerce_id' => $commerce->id,
+                    'game_id'     => $id,
+                    'status'      => 'ACTIVE',
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ], $missing)
+            );
+        }
     }
 
     /**
-     * Eliminación física del comercio (hard delete).
+     * Alternar estado del comercio (ACTIVE / INACTIVE).
+     *
      * @param Commerce $commerce
-     * @return void
+     * @return bool True si el cambio fue exitoso
+     *
+     * @throws RuntimeException Si el comercio está eliminado
+     */
+    public function toggleStatus(Commerce $commerce): bool
+    {
+        if ($commerce->status === 'DELETED') {
+            throw AdminCommerceException::invalidStatusChange();
+        }
+
+        $this->commerceRepository->toggleStatus($commerce);
+
+        return true;
+    }
+
+    /**
+     * Eliminación lógica (soft delete) del comercio.
+     *
+     * @param Commerce $commerce
+     * @return bool True si la eliminación fue exitosa
+     *
+     * @throws RuntimeException Si el comercio ya está eliminado
+     */
+    public function delete(Commerce $commerce): bool
+    {
+        if ($commerce->status === 'DELETED') {
+            throw AdminCommerceException::alreadyDeleted();
+        }
+
+        $this->commerceRepository->delete($commerce->id);
+
+        return true;
+    }
+
+    /**
+     * Eliminación definitiva del comercio.
+     *
+     * @param Commerce $commerce
+     *
+     * @throws AdminCommerceException
      */
     public function destroy(Commerce $commerce): void
     {
         DB::transaction(function () use ($commerce) {
 
-            $commerce->loadMissing(['currencies', 'games', 'user']);
-
             if ($commerce->status === 'DELETED') {
-                throw new RuntimeException('El comercio ya está eliminado');
+                throw AdminCommerceException::alreadyDeleted();
             }
 
-            // Detach relaciones many-to-many
+            $commerce->loadMissing(['currencies', 'games', 'user']);
+
             $commerce->currencies()->detach();
             $commerce->games()->detach();
 
-            // Eliminar wallets del usuario
             $this->walletRepository->deleteByUserId($commerce->user_id);
 
-            // Hard delete del comercio (eliminación física)
             $commerce->forceDelete();
 
-            // Verificar que el usuario no tenga otros comercios activos (sin contar los eliminados físicamente)
-            $activeCommercesCount = Commerce::where('user_id', $commerce->user_id)
-                ->where('id', '<>', $commerce->id)
+            $hasOtherCommerces = Commerce::where('user_id', $commerce->user_id)
                 ->where('status', '!=', 'DELETED')
-                ->count();
+                ->exists();
 
-            if ($activeCommercesCount === 0) {
-                // Hard delete forzado del usuario
-                $user = $commerce->user;
-                if ($user) {
-                    $user->forceDelete();
-                }
+            if (! $hasOtherCommerces && $commerce->user) {
+                $commerce->user->forceDelete();
             }
         });
     }

@@ -2,20 +2,21 @@
 
 namespace App\Services\Roles\Admin\Commerce;
 
-use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
-use App\Http\Services\User\UserPasswordService;
 use App\Models\Roles\Commerce;
-use App\Services\Admin\Commerce\AdminCommerceCrudService;
+use App\Services\User\UserPasswordService;
+use App\Services\Roles\Admin\Commerce\AdminCommerceCrudService;
+use App\Exceptions\Domain\DomainException;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Servicio de aplicación para exponer
  * los casos de uso del dominio AdminCommerce.
  *
  * Responsabilidades:
- * - Resolver contexto de usuario
- * - Delegar operaciones a servicios especializados
+ * - Orquestar casos de uso
+ * - Delegar operaciones a servicios de dominio
  * - Mantener controllers desacoplados
  *
  * NO contiene lógica de dominio ni infraestructura.
@@ -24,92 +25,104 @@ final class AdminCommerceService
 {
     public function __construct(
         private readonly AdminCommerceCrudService $crud,
-        private readonly CommerceRepositoryInterface $commerceRepository,
         private readonly UserPasswordService $userPasswordService
     ) {}
 
     /**
-     * Obtener todas los comercios.
+     * Obtener todos los comercios.
      *
-     * @return object Listado de comercios
+     * @return Collection<int, Commerce>
      */
-    public function getAll(): object
+    public function getAll(): Collection
     {
-        return $this->commerceRepository->all();
+        return $this->crud->getAll();
     }
 
     /**
-     * Crear una tasa de cambio.
+     * Crear un comercio.
      *
-     * @param AdminCommerceDTO $dto DTO con los datos de la tasa de cambio
-     * @return bool True si la creación fue exitosa
+     * @param AdminCommerceDTO $dto DTO con los datos del comercio
+     * @return string Contraseña generada para el comercio
      *
      * @throws DomainException Si falla la creación
      */
-    public function create(AdminCommerceDTO $dto): bool
+    public function create(AdminCommerceDTO $dto): string
     {
-        return $this->crud->create($dto, $userId);
+        return $this->crud->create($dto);
     }
 
     /**
-     * Obtener una tasa de cambio para visualización.
+     * Obtener un comercio para visualización.
      *
-     * @param string $exchangeRateId ID de la tasa de cambio
+     * @param Commerce $commerce Model
      * @return AdminCommerceResource Recurso para visualización
      *
-     * @throws DomainException Si no existe la tasa
+     * @throws DomainException Si el comercio no es válido o no existe
      */
-    public function show(string $exchangeRateId): AdminCommerceResource
+    public function show(Commerce $commerce): AdminCommerceResource
     {
-        return $this->crud->show($exchangeRateId);
+        return $this->crud->show($commerce);
     }
 
     /**
-     * Actualizar una tasa de cambio.
+     * Actualizar un comercio.
      *
+     * @param Commerce $commerce Model
      * @param AdminCommerceDTO $dto DTO con datos actualizados
-     * @return bool True si la actualización fue exitosa
      *
      * @throws DomainException Si falla la actualización
      */
-    public function update(AdminCommerceDTO $dto): bool
+    public function update(Commerce $commerce, AdminCommerceDTO $dto): void
     {
-        return $this->crud->update($dto);
+        $this->crud->update($commerce, $dto);
     }
 
     /**
-     * Eliminar una tasa de cambio (soft delete).
+     * Eliminar un comercio (soft delete).
      *
-     * @param string $exchangeRateId ID de la tasa de cambio
-     * @return bool True si la eliminación fue exitosa
+     * @param Commerce $commerce Model
      *
      * @throws DomainException Si falla la eliminación
      */
-    public function delete(string $exchangeRateId): bool
+    public function delete(Commerce $commerce): void
     {
-        return $this->crud->delete($exchangeRateId);
+        $this->crud->delete($commerce);
     }
 
     /**
-     * Alternar estado (ACTIVE / INACTIVE) de una tasa de cambio.
+     * Alternar estado (ACTIVE / INACTIVE) del comercio.
      *
-     * @param string $exchangeRateId ID de la tasa de cambio
-     * @return bool True si el cambio fue exitoso
+     * @param Commerce $commerce Model
      *
-     * @throws DomainException Si falla el cambio
+     * @throws DomainException Si falla el cambio de estado
      */
-    public function toggleStatus(string $exchangeRateId): bool
+    public function toggleStatus(Commerce $commerce): void
     {
-        return $this->crud->changeStatusByRole($exchangeRateId);
+        $this->crud->toggleStatus($commerce);
     }
 
-    public function resetPassword(Commerce $commerce)
+    /**
+     * Resetear la contraseña del comercio.
+     *
+     * @param Commerce $commerce Model
+     * @return string Nueva contraseña generada
+     *
+     * @throws DomainException Si falla el reseteo
+     */
+    public function resetPassword(Commerce $commerce): string
     {
         return $this->userPasswordService->resetPassword($commerce);
     }
 
-    public function destroy(Commerce $commerce)
+    /**
+     * Eliminar un comercio permanentemente (hard delete).
+     *
+     * @param Commerce $commerce Model
+     *
+     * @throws DomainException Si falla la eliminación definitiva
+     */
+    public function destroy(Commerce $commerce): void
     {
-        return $this->crud->destroy($commerce);
+        $this->crud->destroy($commerce);
     }
 }
