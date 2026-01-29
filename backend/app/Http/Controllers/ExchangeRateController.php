@@ -167,9 +167,13 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($id) {
-                $this->service->toggleStatus($id);
+                $response = $this->service->toggleStatus($id);
 
-                return ['message' => '✅ Estado actualizado correctamente'];
+                if ($response === true) {
+                    return ['message' => '✅ Estado actualizado correctamente'];
+                }
+
+                return false;
             },
             'No se pudo cambiar el estado de la tasa de cambio.'
         );

@@ -6,16 +6,15 @@ use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Roles\CommerceRequest;
 use App\Models\Roles\Commerce;
-use App\Services\Roles\Commerce\CommerceService;
+use App\Services\Roles\Admin\Commerce\AdminCommerceService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class AdminCommerceController extends Controller
 {
     public function __construct(
-        protected CommerceService $service
+        protected AdminCommerceService $service
     ) {
         $this->authorizeResource(Commerce::class, 'commerce');
     }
@@ -75,13 +74,18 @@ class AdminCommerceController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($commerce) {
-                $this->service->softDelete(
+                $response = $this->service->delete(
                     $commerce,
                     'DELETED',
                     ['currencies', 'games'],
                     'user'
                 );
-                return ['message' => '✅ Comercio eliminado correctamente'];
+
+                if ($response === true) {
+                    return ['message' => '✅ Comercio eliminado correctamente'];
+                }
+
+                return false;
             },
             'No se pudo eliminar el comercio.'
         );
@@ -96,8 +100,13 @@ class AdminCommerceController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($commerce) {
-                $this->service->hardDelete($commerce);
-                return ['message' => '✅ Comercio eliminado correctamente'];
+                $response = $this->service->destroy($commerce);
+
+                if ($response === true) {
+                    return ['message' => '✅ Comercio eliminado correctamente'];
+                }
+
+                return false;
             },
             'No se pudo eliminar el comercio.'
         );
@@ -135,26 +144,16 @@ class AdminCommerceController extends Controller
             function () use ($commerce) {
                 $password = $this->service->resetPassword($commerce);
 
-                return [
-                    'message'  => '✅ Contraseña generada exitosamente',
-                    'password' => $password,
-                ];
+                if ($password) {
+                    return [
+                        'message'  => '✅ Contraseña generada exitosamente',
+                        'password' => $password,
+                    ];
+                }
+
+                return false;
             },
             'No se pudo cambiar la contraseña del comercio.'
         );
-    }
-
-    /**
-     * Vista de vendedores
-     */
-    public function sellers(): View
-    {
-        return view('modules.users.roles.seller.form.index', [
-            'title' => 'Vendedores',
-            'pageData' => [
-                'enableFormCrud' => true,
-                'moduleFile' => 'modules/users/roles/admin/commerce/form/commerceForm.ts',
-            ],
-        ]);
     }
 }

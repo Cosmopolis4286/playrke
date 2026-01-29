@@ -1,14 +1,11 @@
 <?php
 
-namespace App\Services\Roles\Commerce;
+namespace App\Services\Admin\Commerce;
 
-use App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface;
-use App\Contracts\UserRepositoryInterface;
+use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Http\Resources\Roles\CommerceResource;
-use App\Contracts\Roles\Commerce\CommerceGameRepositoryInterface;
-use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\Roles\Commerce;
@@ -16,24 +13,26 @@ use App\Services\UserService;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
-final class CommerceService
+/**
+ * Servicio de aplicación responsable de operaciones CRUD
+ * sobre los comercios (commerces) acciones admin.
+ *
+ * Orquesta la lógica para:
+ * - Resolución de rol activo y entidad asociada
+ * - Ejecución de operaciones CRUD delegadas a repositorios
+ * - Aplicación de reglas de dominio específicas
+ *
+ */
+final class AdminCommerceCrudService
 {
-    public function __construct(
-        protected UserRepositoryInterface $userRepository,
-        protected CommerceRepositoryInterface $commerceRepository,
-        protected CommerceCurrencyRepositoryInterface $currencyRepository,
-        protected CommerceGameRepositoryInterface $gameRepository,
-        protected WalletRepositoryInterface $walletRepository,
-        protected UserService $userService,
-    ) {}
-
     /**
-     * Obtener todos los comercios.
+     * Constructor con inyección de dependencias.
      */
-    public function getAll()
-    {
-        return $this->commerceRepository->all();
-    }
+    public function __construct(
+        private readonly UserService $userService,
+        private readonly WalletRepositoryInterface $walletRepository,
+        private readonly CommerceRepositoryInterface $commerceRepository,
+    ) {}
 
     /**
      * Crear un comercio completo (User + Commerce + Wallet + Codes).

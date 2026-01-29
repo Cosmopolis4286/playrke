@@ -13,7 +13,6 @@ use App\Contracts\TimeZoneRepositoryInterface;
 use App\Http\Controllers\Controller;
 use App\Services\Roles\Admin\AdminService;
 use App\Traits\HashedTableDataTrait;
-use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -51,33 +50,6 @@ class AdminController extends Controller
     {
         return Inertia::render('modules/users/roles/admin/Dashboard', [
             'title' => 'Dashboard Admin',
-        ]);
-    }
-
-    /**
-     * Vista de comercializadoras
-     */
-    public function commerces1(): View
-    {
-        $commerces = $this->commerces->getAllWithRelations(
-            [
-                'country:id,name',
-                'user:id,email',
-            ],
-            ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
-        );
-
-        return view('modules.users.roles.admin.commerce.index', [
-            'title' => 'Comercializadoras',
-            'pageData' => [
-                'currencies' => $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
-                'commerces'  => $commerces,
-                'countries' => $this->countries->getActive(['id', 'name']),
-                'games'     => $this->games->getActive(['id', 'name']),
-                'timeZones' => $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
-                'enableFormCrud' => true,
-                'moduleFile' => 'modules/roles/admin/commerce/form/commerceForm.ts',
-            ]
         ]);
     }
 
@@ -163,121 +135,5 @@ class AdminController extends Controller
             'currencies'      => $this->currencies->getActive(),
             'games'           => $this->games->getActive(),
         ]);
-    }
-
-    /**
-     * Vista de subsidiarias
-     */
-    public function subsidiaries(): View
-    {
-        return view('modules.admin.subsidiary.index', [
-            'title' => 'Subsidiarias',
-        ]);
-    }
-
-    /**
-     * Vista de usuarios
-     */
-    public function users(): View
-    {
-        return view('modules.admin.users.index', [
-            'title' => 'Usuarios',
-        ]);
-    }
-
-    /**
-     * Vista de vendedores
-     */
-    public function sellers(): View
-    {
-        return view('modules.admin.seller.index', [
-            'title' => 'Vendedores',
-        ]);
-    }
-
-    /**
-     * Obtiene información de usuarios según rol
-     *
-     * @param string $userRole Rol del usuario
-     * @param string $exclude Modelo a excluir (opcional)
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function getUserInfo(string $userRole, string $exclude = '')
-    {
-        if ($userRole === 'admin') {
-            return response()->json([]);
-        }
-
-        $excludedUsers = $this->resolveExcludedCreators($exclude);
-
-        try {
-            $users = match ($userRole) {
-                'commerce' => $this->getFilteredUsers($this->commerces->getByStatus('ACTIVE', ['name', 'user_id']), $excludedUsers),
-                'customer' => $this->getFilteredUsers($this->customers->getByStatus('ACTIVE', ['name', 'user_id']), $excludedUsers),
-                'treasurer' => $this->getFilteredUsers($this->treasurers->getByStatus('ACTIVE', ['name', 'user_id']), $excludedUsers),
-                default => []
-            };
-
-            return response()->json($users);
-        } catch (\Throwable $e) {
-            Log::error('Error obteniendo información de usuarios', [
-                'user_role' => $userRole,
-                'exclude' => $exclude,
-                'exception' => $e->getMessage()
-            ]);
-
-            return response()->json([], 500);
-        }
-    }
-
-    /**
-     * Filtra usuarios excluyendo los IDs especificados
-     *
-     * @param \Illuminate\Database\Eloquent\Collection $users
-     * @param array $excludedUserIds
-     * @return \Illuminate\Database\Eloquent\Collection
-     */
-    protected function getFilteredUsers($users, array $excludedUserIds)
-    {
-        if (empty($excludedUserIds)) {
-            return $users;
-        }
-
-        return $users->filter(function ($user) use ($excludedUserIds) {
-            return !in_array($user->user_id ?? null, $excludedUserIds);
-        })->values();
-    }
-
-    /**
-     * Obtiene usuarios creadores a excluir dinámicamente
-     *
-     * @param string $model Nombre del modelo
-     * @return array IDs de usuarios a excluir
-     */
-    protected function resolveExcludedCreators(string $model): array
-    {
-        if (!$model) {
-            return [];
-        }
-
-        $modelClass = "App\\Models\\{$model}";
-
-        if (!class_exists($modelClass)) {
-            Log::warning("Modelo no existe para exclusión: {$modelClass}");
-            return [];
-        }
-
-        if (!method_exists($modelClass, 'getAllCreatorUser')) {
-            return [];
-        }
-
-        try {
-            return $modelClass::getAllCreatorUser();
-        } catch (\Throwable $e) {
-            Log::error("Error obteniendo creadores del modelo {$modelClass}", [
-                'exception' => $e->getMessage()
-            ]);
-            return [];
-        }
     }
 }

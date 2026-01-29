@@ -1,12 +1,11 @@
 <?php
 
-namespace App\Services\Roles\Commerce;
+namespace App\Services\Roles\Admin\Commerce;
 
 use App\Repositories\Roles\Commerce\CommerceCurrencyRepository;
-use Illuminate\Database\Eloquent\Collection;
 use DomainException;
 
-class CommerceCurrencyService
+class AdminCommerceCurrencyService
 {
     public function __construct(
         protected CommerceCurrencyRepository $repository
@@ -25,39 +24,6 @@ class CommerceCurrencyService
         }
 
         return $this->repository->getAvailableCurrenciesIds($commerceId);
-    }
-
-    /**
-     * Obtiene todos los registros activos de países y monedas para un comercio.
-     *
-     * @param mixed $commerceId ID del comercio.
-     * @param array $fields Campos a seleccionar.
-     * @return Collection
-     */
-    public function getAllAvailableCountriesCurrencies($commerceId, array $fields = ['*']): Collection
-    {
-        if (!$commerceId) {
-            throw new DomainException('El ID del comercio es requerido.');
-        }
-
-        return $this->repository->getAllAvailableCountriesCurrencies($commerceId, $fields);
-    }
-
-    /**
-     * Verifica si existe la combinación comercio-país-moneda.
-     *
-     * @param mixed $commerceId
-     * @param mixed $countryId
-     * @param mixed $currencyId
-     * @return bool
-     */
-    public function existsCombination($commerceId, $countryId, $currencyId): bool
-    {
-        if (!$commerceId || !$countryId || !$currencyId) {
-            return false;
-        }
-
-        return $this->repository->existsCombination($commerceId, $countryId, $currencyId);
     }
 
     /**
