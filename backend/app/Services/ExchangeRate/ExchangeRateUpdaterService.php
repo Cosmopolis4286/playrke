@@ -2,12 +2,10 @@
 
 namespace App\Services\ExchangeRate;
 
-use App\Contracts\ExchangeRateRepositoryInterface;
-use App\Models\Currency;
-use App\Models\Roles\Commerce\CommerceExchangeRate;
-use App\Models\Roles\Customer\CustomerExchangeRate;
+use App\Contracts\CurrencyRepositoryInterface;
+use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
+use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\Services\Roles\RoleUserService;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -17,30 +15,31 @@ use Illuminate\Support\Facades\Log;
 final class ExchangeRateUpdaterService
 {
     public function __construct(
-        protected readonly ExchangeRateRepositoryInterface $repository,
         protected readonly RoleUserService $roleUserService,
-        protected readonly ExchangeRateApiService $api,
-        protected readonly ExchangeRateCrudService $crud
+        protected readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRateRepository,
+        protected readonly CustomerExchangeRateRepositoryInterface $customerExchangeRateRepository,
+        protected readonly CurrencyRepositoryInterface $currencyRepository,
     ) {}
 
     /**
      * Actualiza las tasas de cambio para el rol activo de un usuario dado.
      *
      * @param int $userId ID del usuario activo
+     * @param array $rates Tasas confirmadas por el usuario (iso_code => value)
      * @return bool True si la actualización fue exitosa, false en caso contrario
      */
-    public function updateRates(int $userId): bool
+    public function updateRates(int $userId, array $rates): bool
     {
         $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
-        $data = $this->api->fetch();
+        $entityId = $this->roleUserService->getUserRoleEntityId($userId, $rolePrefix);
 
-        if (empty($data)) {
-            Log::warning('No se obtuvieron datos para actualizar tasas.');
+        if (empty($rates)) {
+            Log::warning('No se proporcionaron tasas para actualizar.');
             return false;
         }
 
         try {
-            $this->updateForType($rolePrefix, [$userId], $data, true);
+            $this->updateForRole($rolePrefix, $entityId, $rates);
             return true;
         } catch (\Throwable $e) {
             Log::error('Error actualizando tasas: ' . $e->getMessage());
@@ -49,71 +48,69 @@ final class ExchangeRateUpdaterService
     }
 
     /**
-     * Actualiza las tasas para un conjunto específico de IDs de un tipo.
+     * Actualiza las tasas para una entidad específica según su rol.
      *
-     * @param string $type Tipo de entidad ('commerce'|'customer')
-     * @param array $ids IDs a actualizar
-     * @param array $data Tasas obtenidas desde la API
-     * @param bool $skipIfRecentlyUpdated Indica si se debe omitir actualización si fue reciente
+     * @param string $role Rol de usuario ('commerce'|'customer')
+     * @param int|string $entityId ID de la entidad (commerce_id o customer_id)
+     * @param array $data Tasas a actualizar (iso_code => value)
      * @return void
      */
-    public function updateForType(string $type, array $ids, array $data, bool $skipIfRecentlyUpdated = false): void
+    public function updateForRole(string $role, int|string $entityId, array $data): void
     {
-        $exchangeModel = $this->getExchangeModelClass($type);
+        $repository = $this->getRepository($role);
 
-        foreach ($ids as $id) {
-            if ($skipIfRecentlyUpdated && $this->shouldSkipUpdate($exchangeModel, $type, $id)) {
+        foreach ($data as $currencyIso => $newRate) {
+            if ($currencyIso === 'Promedio' || $newRate == 0) {
                 continue;
             }
 
-            foreach ($data as $currencyIso => $newRate) {
-                if ($currencyIso === 'Promedio' || $newRate == 0) {
-                    continue;
-                }
+            $currencyId = $this->currencyRepository->getValueByISOCode($currencyIso, 'id');
 
-                $currencyId = Currency::getValueByISOCode($currencyIso, 'id');
-                if (!$currencyId) {
-                    continue;
-                }
-
-                $currentRate = $exchangeModel::getValue($id, $currencyId);
-                $percentageChange = $currentRate != 0
-                    ? round((($newRate * 100) / $currentRate) - 100, 2)
-                    : 0;
-
-                $exchangeModel::updateOrCreateExchangeRate($id, $currencyId, $newRate, $percentageChange);
+            if (!$currencyId) {
+                continue;
             }
+
+            $currentRate = $this->getCurrentRate($repository, $role, $entityId, $currencyId);
+            $percentageChange = $currentRate != 0
+                ? round((($newRate * 100) / $currentRate) - 100, 2)
+                : 0;
+
+            $repository->updateOrCreateExchangeRate($entityId, $currencyId, $newRate, $percentageChange);
         }
     }
 
     /**
-     * Determina si se debe omitir la actualización basado en la última actualización.
+     * Obtiene la tasa actual de una moneda para una entidad.
      *
-     * @param string $exchangeModel Modelo de tasas
-     * @param string $type Tipo de entidad
-     * @param int|string $id ID a verificar
-     * @return bool True si la actualización fue hace menos de 3 horas
+     * @param CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface $repository
+     * @param string $role Rol de usuario
+     * @param int|string $entityId ID de la entidad
+     * @param string $currencyId ID de la moneda
+     * @return float Tasa actual o 0 si no existe
      */
-    protected function shouldSkipUpdate(string $exchangeModel, string $type, int|string $id): bool
-    {
-        $lastUpdate = $exchangeModel::where('status', 'ACTIVE')
-            ->where($type, $id)
-            ->orderByDesc('id')
-            ->value('updated_at');
+    protected function getCurrentRate(
+        CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface $repository,
+        string $role,
+        int|string $entityId,
+        string $currencyId
+    ): float {
+        if ($role === 'commerce') {
+            return (float) ($repository->getCommerceCurrencyValue($entityId, $currencyId, 'amount') ?? 0);
+        }
 
-        return $lastUpdate && Carbon::parse($lastUpdate)->addHours(3)->isFuture();
+        return (float) ($repository->getCustomerCurrencyValue($entityId, $currencyId, 'amount') ?? 0);
     }
 
     /**
-     * Retorna la clase del modelo de tasas según el tipo.
+     * Obtiene el repositorio correspondiente según el rol.
      *
-     * @param string $type Tipo ('commerce'|'customer')
-     * @return string Nombre completo del modelo de tasas
+     * @param string $role Rol ('commerce'|'customer')
+     * @return CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface
      */
-    protected function getExchangeModelClass(string $type): string
+    protected function getRepository(string $role): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface
     {
-        return $type === 'commerce'
-            ? CommerceExchangeRate::class
-            : CustomerExchangeRate::class;
+        return $role === 'commerce'
+            ? $this->commerceExchangeRateRepository
+            : $this->customerExchangeRateRepository;
     }
 }

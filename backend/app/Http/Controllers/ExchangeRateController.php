@@ -159,13 +159,16 @@ class ExchangeRateController extends Controller
     }
 
     /**
-     * Actualizar todas las tasas consultando proveedor externo.
+     * Actualizar todas las tasas con los valores confirmados por el usuario.
      */
     public function updateAll(Request $request): JsonResponse
     {
+        $rates = $request->input('rates', []);
+
         return $this->handleServiceJson(
             fn () => [
-                'data' => $this->service->updateRates($this->getPublicToken($request)),
+                'message' => 'Tasas de cambio actualizadas correctamente.',
+                'data' => $this->service->updateRates($rates, $this->getPublicToken($request)),
             ],
             'No se pudo actualizar los valores de las tasas de cambio.'
         );

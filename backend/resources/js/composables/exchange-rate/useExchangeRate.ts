@@ -272,14 +272,16 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
             const response = await backendClient.get<{
                 success: boolean
-                data: Record<string, string>
+                data: Record<string, number>
             }>('/exchange-rate/raw-rates')
 
             if (!response.data?.data) {
                 throw new Error('No se recibieron tasas para mostrar')
             }
 
-            const ratesHtml = Object.entries(response.data.data)
+            const rates = response.data.data
+
+            const ratesHtml = Object.entries(rates)
                 .map(([currency, value]) => `<li><strong>${currency}:</strong> ${value}</li>`)
                 .join('')
 
@@ -292,8 +294,9 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
             if (!confirmed) return false
 
-            await backendClient.put('/exchange-rate/update-all')
+            await backendClient.put('/exchange-rate/update-all', { rates })
             showToast('Tasas de cambio actualizadas con éxito', 'success')
+            loading.value = false
             await fetchExchangeRates()
 
             return true

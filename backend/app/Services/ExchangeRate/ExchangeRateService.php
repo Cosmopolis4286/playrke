@@ -147,22 +147,32 @@ final class ExchangeRateService
             ->getAvailableCurrenciesIsoCodes($commerceId);
 
         return collect($rates)
-            ->filter(fn($value, $key) => $key !== 'Promedio' && in_array($key, $availableIsoCodes, true))
+            ->filter(fn($value, $key) => $key !== 'Promedio' && $value != 0 && in_array($key, $availableIsoCodes, true))
             ->toArray();
     }
 
     /**
-     * Actualizar tasas desde proveedor externo.
+     * Actualizar tasas con los valores confirmados por el usuario.
      *
+     * @param array $rates Tasas confirmadas por el usuario (iso_code => value)
      * @param string|null $publicToken Token público opcional para resolver usuario
      * @return bool True si la actualización fue exitosa
      *
      * @throws DomainException Si no se puede resolver el usuario o falla la actualización
      */
-    public function updateRates(?string $publicToken = null): bool
+    public function updateRates(array $rates, ?string $publicToken = null): bool
     {
         $userId = $this->resolveUserId($publicToken);
-        return $this->updater->updateRates($userId);
+        $commerceId = $this->roleUserService->getUserRoleEntityId($userId, 'commerce');
+
+        $availableIsoCodes = $this->commerceCurrencyRepository
+            ->getAvailableCurrenciesIsoCodes($commerceId);
+
+        $filteredRates = collect($rates)
+            ->filter(fn($value, $key) => $key !== 'Promedio' && $value != 0 && in_array($key, $availableIsoCodes, true))
+            ->toArray();
+
+        return $this->updater->updateRates($userId, $filteredRates);
     }
 
     /**
