@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Factories\ExchangeRate\ExchangeRateFactory;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
 use App\Services\ExchangeRate\ExchangeRateService;
-use App\Services\Token\TokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,13 +15,15 @@ use Inertia\Response;
  *
  * Orquesta peticiones HTTP y delega la lógica al dominio,
  * utilizando manejo centralizado de errores.
+ *
+ * - Rutas auth: no requieren token (usuario autenticado)
+ * - Rutas public: el token es validado por PublicTokenMiddleware
  */
 class ExchangeRateController extends Controller
 {
     public function __construct(
         private ExchangeRateFactory $factory,
-        private ExchangeRateService $service,
-        private TokenService $tokenService
+        private ExchangeRateService $service
     ) {}
 
     /**
@@ -31,19 +32,13 @@ class ExchangeRateController extends Controller
     public function index(Request $request): Response
     {
         return $this->handleServiceInertia(
-            function () use ($request) {
-                $token = $request->query('token');
-
-                $this->tokenService->validateToken($token);
-
-                return Inertia::render(
-                    'ExchangeRate/Index',
-                    [
-                        ...$this->service->context($token),
-                        'title' => 'Tasas de Cambio',
-                    ]
-                );
-            },
+            fn () => Inertia::render(
+                'ExchangeRate/Index',
+                [
+                    ...$this->service->context($this->getPublicToken($request)),
+                    'title' => 'Tasas de Cambio',
+                ]
+            ),
             'No se pudo cargar la lista de tasas de cambios.'
         );
     }
@@ -55,12 +50,7 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceJson(
             fn () => [
-                'data' => $this->service->getAll(
-                    tap(
-                        $request->query('token'),
-                        fn ($token) => $this->tokenService->validateToken($token)
-                    )
-                ),
+                'data' => $this->service->getAll($this->getPublicToken($request)),
             ],
             'No se pudo cargar la lista de tasas de cambio.'
         );
@@ -148,9 +138,7 @@ class ExchangeRateController extends Controller
         return $this->handleServiceInertia(
             fn () => Inertia::render(
                 'ExchangeRate/Index',
-                $this->service->historicalContext(
-                    $request->query('token')
-                )
+                $this->service->historicalContext($this->getPublicToken($request))
             ),
             'No se pudo cargar el histórico de tasas de cambio.'
         );
@@ -164,12 +152,7 @@ class ExchangeRateController extends Controller
         return $this->handleServiceJson(
             fn () => [
                 'message' => 'Tasas obtenidas correctamente.',
-                'data'    => $this->service->getRawRates(
-                    tap(
-                        $request->query('token'),
-                        fn ($token) => $this->tokenService->validateToken($token)
-                    )
-                ),
+                'data'    => $this->service->getRawRates($this->getPublicToken($request)),
             ],
             'No se pudieron obtener las tasas de cambio.'
         );
@@ -182,14 +165,26 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceJson(
             fn () => [
-                'data' => $this->service->updateRates(
-                    tap(
-                        $request->query('token'),
-                        fn ($token) => $this->tokenService->validateToken($token)
-                    )
-                ),
+                'data' => $this->service->updateRates($this->getPublicToken($request)),
             ],
             'No se pudo actualizar los valores de las tasas de cambio.'
         );
+    }
+
+    /**
+     * Obtiene el token público desde el request (si existe).
+     *
+     * En rutas públicas el middleware valida el token y lo guarda en attributes.
+     * Si hay public_token significa que el token fue validado correctamente.
+     */
+    private function getPublicToken(Request $request): ?string
+    {
+        // Si existe public_token, el middleware ya validó el token
+        // Retornamos el token raw del query para el service
+        if ($request->attributes->has('public_token')) {
+            return $request->query('token');
+        }
+
+        return null;
     }
 }

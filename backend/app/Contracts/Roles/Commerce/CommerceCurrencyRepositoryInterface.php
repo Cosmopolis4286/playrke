@@ -19,6 +19,14 @@ interface CommerceCurrencyRepositoryInterface extends BaseRepositoryInterface
     public function getAvailableCurrenciesIds($commerceId): array;
 
     /**
+     * Obtiene los códigos ISO de las monedas disponibles para un comercio
+     *
+     * @param mixed $commerceId ID del comercio
+     * @return array Lista de códigos ISO
+     */
+    public function getAvailableCurrenciesIsoCodes($commerceId): array;
+
+    /**
      * Obtiene registros por comercio
      *
      * @param mixed $commerceId ID del comercio

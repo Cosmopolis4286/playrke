@@ -31,7 +31,7 @@ class TokenService
     }
 
     /**
-     * Valida un token.
+     * Valida un token (obligatorio).
      *
      * El token:
      * - Debe existir
@@ -46,6 +46,30 @@ class TokenService
     {
         if (empty($token)) {
             throw new InvalidArgumentException('Token no proporcionado.');
+        }
+
+        if (!$this->isValidFormat($token)) {
+            throw new InvalidArgumentException('Formato de token inválido.');
+        }
+
+        return $token;
+    }
+
+    /**
+     * Valida un token opcional.
+     *
+     * Si el token es proporcionado, valida su formato.
+     * Si no se proporciona, retorna null sin lanzar excepción.
+     *
+     * @param string|null $token
+     * @return string|null Token validado o null si no se proporcionó.
+     *
+     * @throws InvalidArgumentException Si el token tiene formato inválido.
+     */
+    public function validateTokenOptional(?string $token): ?string
+    {
+        if (empty($token)) {
+            return null;
         }
 
         if (!$this->isValidFormat($token)) {

@@ -2,6 +2,7 @@
 
 namespace App\Services\ExchangeRate;
 
+use App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Services\Roles\RoleUserService;
@@ -25,7 +26,8 @@ final class ExchangeRateService
         private readonly ExchangeRateContextService $context,
         private readonly ExchangeRateCrudService $crud,
         private readonly ExchangeRateUpdaterService $updater,
-        private ExchangeRateApiService $api,
+        private readonly ExchangeRateApiService $api,
+        private readonly CommerceCurrencyRepositoryInterface $commerceCurrencyRepository,
     ) {}
 
     /**
@@ -123,6 +125,9 @@ final class ExchangeRateService
     /**
      * Retorna las tasas crudas obtenidas de la API externa para mostrar en confirmación.
      *
+     * Solo retorna tasas de monedas que el comercio tiene activas en commercecurrencies.
+     * Excluye el campo "Promedio" de la respuesta.
+     *
      * @param string|null $publicToken Token público opcional para resolver usuario
      * @return array|null Retorna un arreglo con las tasas si la llamada fue exitosa,
      *                    o null si ocurrió algún error.
@@ -130,7 +135,20 @@ final class ExchangeRateService
     public function getRawRates(?string $publicToken = null): ?array
     {
         $userId = $this->resolveUserId($publicToken);
-        return $this->api->fetch();
+        $commerceId = $this->roleUserService->getUserRoleEntityId($userId, 'commerce');
+
+        $rates = $this->api->fetch();
+
+        if (empty($rates)) {
+            return null;
+        }
+
+        $availableIsoCodes = $this->commerceCurrencyRepository
+            ->getAvailableCurrenciesIsoCodes($commerceId);
+
+        return collect($rates)
+            ->filter(fn($value, $key) => $key !== 'Promedio' && in_array($key, $availableIsoCodes, true))
+            ->toArray();
     }
 
     /**

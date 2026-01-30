@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services\Roles\Admin\Commerce;
+namespace App\Services\Roles\Commerce;
 
 use App\Repositories\Roles\Commerce\CommerceCurrencyRepository;
 use DomainException;
 
-class AdminCommerceCurrencyService
+class CommerceCurrencyService
 {
     public function __construct(
         protected CommerceCurrencyRepository $repository

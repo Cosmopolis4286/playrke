@@ -150,13 +150,13 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
                     `/admin/commerce/${commerceData.value.id}`,
                     payload
                 )
-                showToast(data.message, 'success')
+                showToast('Actualización exitosa', 'success')
             } else {
                 const { data } = await backendClient.post(
                     '/admin/commerce',
                     payload
                 )
-                showToast(data.message, 'success')
+                showToast('Registro exitoso', 'success')
             }
 
             await fetchCommerces()

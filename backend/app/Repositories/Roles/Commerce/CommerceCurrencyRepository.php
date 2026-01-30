@@ -37,6 +37,23 @@ class CommerceCurrencyRepository extends BaseRepository implements CommerceCurre
     }
 
     /**
+     * Obtiene los códigos ISO de las monedas disponibles para un comercio
+     *
+     * @param mixed $commerceId ID del comercio
+     * @return array Lista de códigos ISO
+     */
+    public function getAvailableCurrenciesIsoCodes($commerceId): array
+    {
+        return $this->model
+            ->join('currencies', 'currencies.id', '=', 'commerces_currencies.currency_id')
+            ->where('commerces_currencies.commerce_id', $commerceId)
+            ->where('commerces_currencies.status', 'ACTIVE')
+            ->distinct()
+            ->pluck('currencies.iso_code')
+            ->toArray();
+    }
+
+    /**
      * Obtiene registros por comercio
      *
      * @param mixed $commerceId ID del comercio

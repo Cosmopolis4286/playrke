@@ -34,8 +34,6 @@ final class ExchangeRateUpdaterService
         $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
         $data = $this->api->fetch();
 
-        dd($data);
-
         if (empty($data)) {
             Log::warning('No se obtuvieron datos para actualizar tasas.');
             return false;

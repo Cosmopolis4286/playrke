@@ -16,15 +16,22 @@ class ValidateToken
     /**
      * Maneja la validación del token.
      *
+     * Soporta dos modos:
+     * - 'required': El token es obligatorio (por defecto)
+     * - 'optional': El token es opcional, si se proporciona se valida
+     *
      * @param Request $request
      * @param Closure $next
+     * @param string $mode 'required' o 'optional'
      * @return Response
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string $mode = 'required'): Response
     {
-        $token = $this->tokenService->validateToken(
-            $request->query('token')
-        );
+        $rawToken = $request->query('token');
+
+        $token = $mode === 'optional'
+            ? $this->tokenService->validateTokenOptional($rawToken)
+            : $this->tokenService->validateToken($rawToken);
 
         // Guardamos el token validado para uso posterior
         $request->attributes->set('token', $token);
