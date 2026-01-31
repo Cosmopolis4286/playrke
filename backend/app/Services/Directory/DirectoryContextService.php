@@ -51,7 +51,8 @@ class DirectoryContextService
 
         // Cargar tipos de documento
         $documentTypes = $this->documentType
-            ->select('id', 'abbreviation', 'name')
+            ->select('id', 'code', 'description')
+            ->where('status', true)
             ->get();
 
         return new DirectoryContextDTO(

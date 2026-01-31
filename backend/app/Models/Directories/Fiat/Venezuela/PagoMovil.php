@@ -138,7 +138,7 @@ class PagoMovil extends Model
     {
         return sprintf(
             '%s: %s - %s - Tel: %s',
-            $this->documentType->abbreviation ?? 'DOC',
+            $this->documentType->code ?? 'DOC',
             $this->document,
             $this->bank->name ?? 'Banco',
             $this->phone

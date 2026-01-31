@@ -43,7 +43,7 @@ const columns = [
 const rows = computed(() => {
   return props.directories.map(directory => ({
     id: directory.id,
-    document_info: `${directory.document_type?.abbreviation || ''}-${directory.document}`,
+    document_info: `${directory.document_type?.code || ''}-${directory.document}`,
     phone: directory.phone,
     bank: directory.bank?.name || 'N/A',
     _raw: directory
@@ -70,6 +70,7 @@ function handleDelete(id: number | string) {
     table-id="directory-table"
     :columns="columns"
     :rows="rows"
+    :selected-ids="[]"
     empty-message="No hay directorios registrados"
   >
     <template #cell-actions="{ row }">

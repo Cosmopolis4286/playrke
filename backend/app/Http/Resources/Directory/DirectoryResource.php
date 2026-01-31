@@ -36,8 +36,8 @@ class DirectoryResource extends JsonResource
              */
             'document_type' => [
                 'id' => $this->documentType->id ?? null,
-                'abbreviation' => $this->documentType->abbreviation ?? null,
-                'name' => $this->documentType->name ?? null,
+                'code' => $this->documentType->code ?? null,
+                'description' => $this->documentType->description ?? null,
             ],
 
             /**

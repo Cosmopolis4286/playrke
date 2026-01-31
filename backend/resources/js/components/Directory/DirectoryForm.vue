@@ -9,6 +9,8 @@
    */
   const props = defineProps<{
     modelValue: Partial<Directory>
+    banks?: BanksVEN[]
+    documentTypes?: Array<{ id: string | number; code: string; description: string }>
   }>()
 
   /**
@@ -27,24 +29,16 @@
     emit
   )
 
-  /**
-   * Props adicionales para opciones
-   */
-  const additionalProps = defineProps<{
-    banks?: BanksVEN[]
-    documentTypes?: Array<{ id: string | number; abbreviation: string }>
-  }>()
-
   /* =======================
    * Computed
    * ======================= */
 
   const banksOptions = computed<BanksVEN[]>(() => {
-    return additionalProps.banks ?? []
+    return props.banks ?? []
   })
 
   const documentTypesOptions = computed(() => {
-    return additionalProps.documentTypes ?? []
+    return props.documentTypes ?? []
   })
 
   /* =======================
@@ -81,7 +75,7 @@
         v-model="form.document_type_id"
         :options="documentTypesOptions"
         optionValue="id"
-        optionLabel="abbreviation"
+        optionLabel="code"
         required
         :error="errors.document_type_id"
         col="col-12 col-md-6"

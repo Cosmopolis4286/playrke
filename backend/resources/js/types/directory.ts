@@ -5,8 +5,8 @@ import type { BanksVEN } from './bank/banks-ven'
  */
 export interface DocumentType {
     readonly id: number | string
-    readonly abbreviation: string
-    readonly name: string
+    readonly code: string
+    readonly description: string
 }
 
 /**
