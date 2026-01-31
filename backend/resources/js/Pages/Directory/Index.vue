@@ -17,7 +17,7 @@
   import { useModalForm } from '@/js/composables/common/useModalForm'
 
   // Types
-  import type { DirectoryPageProps, UsedCurrency } from '@js/types/directory'
+  import type { DirectoryPageProps, UsedCurrency } from '@/js/types/directory'
 
   /* ==========================================================================
    * Props
@@ -39,13 +39,15 @@
   /* ==========================================================================
    * Modal + Form handler
    * ========================================================================== */
-
   const {
     showModalForm,
     modalTitle,
     formRef: directoryFormRef,
     handleSubmit
-  } = useModalForm(directoryData, submit)
+  } = useModalForm(directoryData, submit, {
+    createTitle: 'Registrar Directorio',
+    editTitle: 'Editar Directorio'
+  })
 
   /**
    * Al cerrar el modal:

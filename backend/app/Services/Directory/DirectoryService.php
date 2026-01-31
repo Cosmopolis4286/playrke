@@ -2,7 +2,7 @@
 
 namespace App\Services\Directory;
 
-use App\DTOs\ExchangeRate\ExchangeRateDTO;
+use App\DTOs\Directory\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Services\Roles\RoleUserService;
 use DomainException;
@@ -24,8 +24,6 @@ final class DirectoryService
         private readonly RoleUserService $roleUserService,
         private readonly DirectoryContextService $context,
         // private readonly ExchangeRateCrudService $crud,
-        // private readonly ExchangeRateUpdaterService $updater,
-        // private ExchangeRateApiService $api,
     ) {}
 
     /**
@@ -34,7 +32,7 @@ final class DirectoryService
      * @param string|null $countryCode Codigo ISO del país (opcional)
      * @return array Contexto listo para la vista
      */
-    public function context(?string $countryCode = null): array
+    public function context(): array
     {
         return $this->context->resolve($countryCode)->toView();
     }
@@ -118,65 +116,5 @@ final class DirectoryService
     // {
     //     $userId = $this->resolveUserId();
     //     return $this->crud->deleteByRole($exchangeRateId, $userId);
-    // }
-
-    // /**
-    //  * Retorna las tasas crudas obtenidas de la API externa para mostrar en confirmación.
-    //  *
-    //  * @param string|null $publicToken Token público opcional para resolver usuario
-    //  * @return array|null Retorna un arreglo con las tasas si la llamada fue exitosa,
-    //  *                    o null si ocurrió algún error.
-    //  */
-    // public function getRawRates(?string $publicToken = null): ?array
-    // {
-    //     $userId = $this->resolveUserId($publicToken);
-    //     return $this->api->fetch();
-    // }
-
-    // /**
-    //  * Actualizar tasas desde proveedor externo.
-    //  *
-    //  * @param string|null $publicToken Token público opcional para resolver usuario
-    //  * @return bool True si la actualización fue exitosa
-    //  *
-    //  * @throws DomainException Si no se puede resolver el usuario o falla la actualización
-    //  */
-    // public function updateRates(?string $publicToken = null): bool
-    // {
-    //     $userId = $this->resolveUserId($publicToken);
-    //     return $this->updater->updateRates($userId);
-    // }
-
-    // /**
-    //  * Obtener contexto histórico de tasas.
-    //  *
-    //  * @return array Contexto histórico (vacío actualmente)
-    //  */
-    // public function historicalContext(): array
-    // {
-    //     return [];
-    // }
-
-    // /* =====================================================
-    //  | Helpers internos
-    //  |=====================================================*/
-
-    // /**
-    //  * Resuelve el ID del usuario autenticado o desde un token público.
-    //  *
-    //  * @param string|null $publicToken Token público opcional
-    //  * @return int ID del usuario
-    //  *
-    //  * @throws DomainException Si no se pudo resolver el usuario
-    //  */
-    // private function resolveUserId(?string $publicToken = null): int
-    // {
-    //     $user = $this->roleUserService->resolveUser($publicToken);
-
-    //     if (empty($user['id'])) {
-    //         throw new DomainException('No se pudo resolver el usuario');
-    //     }
-
-    //     return (int) $user['id'];
     // }
 }

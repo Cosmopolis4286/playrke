@@ -1,17 +1,13 @@
 <script setup lang="ts" name="DirectoryForm">
   import { computed } from 'vue'
   import { useDirectoryForm } from '@/js/composables/directory/useDirectoryForm'
-  import type { Currency } from '@/js/types/currency'
   import type { Directory } from '@/js/types/directory'
-  import { UsedCurrency } from '@/js/types/exchange-rate'
+  import type { BanksVEN } from '@/js/types/bank/banks-ven'
 
   /**
    * Props
    */
   const props = defineProps<{
-    usedCurrencies?: UsedCurrency[]
-    currencies?: Currency[]
-    hasPrivilegedRole?: boolean
     modelValue: Partial<Directory>
   }>()
 
@@ -31,29 +27,18 @@
     emit
   )
 
+  const documentTypes = [
+    { value: 'V', label: 'V' },
+    { value: 'E', label: 'E' },
+    { value: 'J', label: 'J' }
+  ]
+
   /* =======================
    * Computed
    * ======================= */
 
-  /**
-   * Monedas disponibles:
-   * - Solo FIAT
-   * - En create: excluye usadas
-   * - En edit: permite la moneda actual
-   */
-  const availableCurrencies = computed(() => {
-    if (!props.currencies?.length) {
-      return []
-    }
-
-    const fiatCurrencies = props.currencies.filter(c => c.type === 'FIAT')
-
-    if (isEditMode.value || !props.usedCurrencies?.length) {
-      return fiatCurrencies
-    }
-
-    const usedIsoCodes = new Set(props.usedCurrencies.map(c => c.iso_code))
-    return fiatCurrencies.filter(c => !usedIsoCodes.has(c.iso_code))
+  const banks = computed<BanksVEN[]>(() => {
+    return props.modelValue?.banks ?? []
   })
 
   /* =======================
@@ -82,73 +67,41 @@
 <template>
   <form @submit.prevent="submit" novalidate>
     <div class="row">
-      <div class="form-group col-md-6">
-        <label>Divisa*</label>
-        <!-- Input libre solo para roles privilegiados -->
-        <input
-          v-if="hasPrivilegedRole"
-          type="text"
-          class="form-control"
-          v-model="form.currency_id"
-          :disabled="isEditMode"
-          @blur="validate"
+      <!-- CI / RIF -->
+      <FormInput
+        container
+        label="CI / RIF"
+        name="document"
+        required
+        input-group
+        col="col-12 col-md-6"
+      >
+        <!-- Tipo documento -->
+        <FormSelect
+          name="document_type"
+          :options="documentTypes"
+          optionValue="value"
+          optionLabel="label"
+          required
+          className="me-1"
+          col="col-auto"
         />
-        <!-- Select normal -->
-        <select
-          v-else
-          class="form-control"
-          v-model="form.currency_id"
-          :disabled="isEditMode"
-          @blur="validate"
-        >
-          <option disabled value="">Seleccione una moneda</option>
-          <option
-            v-for="currency in availableCurrencies"
-            :key="currency.id"
-            :value="currency.iso_code"
-          >
-            {{ currency.description }} ({{ currency.symbol }})
-          </option>
-        </select>
 
-        <small v-if="errors.currency_id" class="text-danger">
-          {{ errors.currency_id }}
-        </small>
-      </div>
+        <!-- Número documento -->
+        <FormInput name="document_val" type="text" maxlength="8" required />
+      </FormInput>
 
-      <div class="form-group col-md-6">
-        <label>Valor de Cambio*</label>
-        <input
-          type="text"
-          class="form-control"
-          v-model="form.amount"
-          v-mask="maskOptions"
-          placeholder="0.00"
-          inputmode="decimal"
-          @blur="validate"
-        />
-        <small v-if="errors.amount" class="text-danger">
-          {{ errors.amount }}
-        </small>
-      </div>
-
-      <div class="form-group col-12">
-        <div class="custom-control custom-switch">
-          <input
-            id="exchange-rate-status"
-            type="checkbox"
-            class="custom-control-input"
-            v-model="form.status"
-          />
-          <label class="custom-control-label" for="exchange-rate-status">
-            Activar Tasa de Cambio
-          </label>
-        </div>
-      </div>
-      <div class="alert alert-primary mb-0">
-        El tipo de cambio ingresado representa el valor de la moneda seleccionada equivalente a
-        <strong>1 USD</strong>.
-      </div>
+      <!-- Banco -->
+      <FormSelect
+        container
+        label="Banco"
+        name="bank"
+        :options="banks"
+        optionValue="id"
+        optionLabel="name"
+        required
+        col="col-12 col-md-6"
+      />
     </div>
   </form>
 </template>

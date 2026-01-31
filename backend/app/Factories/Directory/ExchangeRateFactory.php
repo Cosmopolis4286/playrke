@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Factories\Directory;
+
+use App\Contracts\CurrencyRepositoryInterface;
+use App\DTOs\Directory\DirectoryDTO;
+use InvalidArgumentException;
+
+final class DirectoryFactory
+{
+    public function __construct(
+        private CurrencyRepositoryInterface $currencyRepository
+    ) {}
+
+    /**
+     * Crea un DirectoryDTO a partir de un arreglo de datos (request).
+     *
+     * @param array<string, mixed> $data Datos de entrada, típicamente request validated.
+     * @param string $exchangeRateId
+     * @return DirectoryDTO
+     *
+     * @throws InvalidArgumentException Si falta moneda o amount (valor de la tasa de cambio).
+     */
+    public function fromRequest(array $data, ?string $exchangeRateId = null): DirectoryDTO
+    {
+        if (empty($data['currency_id'])) {
+            throw new InvalidArgumentException('El campo "currency_id" es obligatorio.');
+        }
+
+        if (!isset($data['amount'])) {
+            throw new InvalidArgumentException('El campo "amount" es obligatorio.');
+        }
+
+        if (empty($data['status'])) {
+            throw new InvalidArgumentException('El campo "status" es obligatorio.');
+        }
+
+        $currencyId = $this->currencyRepository->getValueByISOCode($data['currency_id'], 'id');
+
+        if ($currencyId === null) {
+            throw new InvalidArgumentException('Moneda no encontrada para el código ISO proporcionado.');
+        }
+
+        return new DirectoryDTO(
+            $data['id'] ?? $exchangeRateId,
+            $currencyId,
+            (float) $data['amount'],
+            $data['status'],
+            $data['tokenId'] ?? null,
+        );
+    }
+}
