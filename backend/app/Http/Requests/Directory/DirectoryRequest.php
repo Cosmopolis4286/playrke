@@ -7,16 +7,17 @@ use App\Services\Auth\PermissionService;
 use Illuminate\Validation\Rule;
 
 /**
- * Request para validar datos de una Tasa de Cambio (ExchangeRate).
+ * Request para validar datos de un Directorio de Pago Móvil (Venezuela).
  *
  * Se utiliza tanto para creación como actualización.
  *
  * Payload esperado:
  * {
- *   "currency_id": "USD",
- *   "amount": 1.25,
- *   "token": "customer"
- *   "status": "ACTIVE"
+ *   "document_type_id": "1234567890",
+ *   "document": "12345678",
+ *   "phone": "04241234567",
+ *   "bank_id": "1234567890",
+ *   "country_code": "VE"
  * }
  */
 class DirectoryRequest extends BaseRequest
@@ -28,64 +29,74 @@ class DirectoryRequest extends BaseRequest
      */
     public function authorize(): bool
     {
-        return PermissionService::checkPrefix(['admin', 'commerce']);
+        return PermissionService::checkPrefix(['admin', 'commerce', 'customer']);
     }
 
     /**
-     * Reglas de validación dinámicas según:
-     * - create / update
-     * - valor del campo "token"
+     * Reglas de validación para el directorio de Pago Móvil.
+     *
+     * Valida:
+     * - Tipo de documento (V, E, J)
+     * - Número de documento/cédula
+     * - Teléfono en formato venezolano
+     * - Banco venezolano válido
      *
      * @return array<string, mixed>
      */
     public function rules(): array
     {
         $isUpdate = $this->isUpdate();
-        $token = $this->input('token');
-
-        /**
-         * Reglas base para la moneda.
-         */
-        $currencyRules = [
-            $isUpdate ? 'sometimes' : 'required',
-            'string',
-            'size:3',
-        ];
-
-        /**
-         * Si el token es distinto de admin,
-         * la moneda debe existir en la tabla currencies.
-         */
-        if ($token !== 'admin') {
-            $currencyRules[] = 'exists:currencies,iso_code';
-        }
 
         return [
             /**
-             * Rol de usuario al que aplica la tasa de cambio.
+             * ID del tipo de documento (V, E, J).
+             * Debe existir en la tabla document_types.
              */
-            'token' => [
-                'sometimes',
+            'document_type_id' => [
+                $isUpdate ? 'sometimes' : 'required',
                 'string',
-                Rule::exists('public_tokens', 'token_hash')->where(function ($query) {
-                    $query->where('status', 'ACTIVE');
-                }),
+                'exists:document_types,id',
             ],
 
             /**
-             * Código de moneda ISO 4217 (ej: USD, EUR).
+             * Número de documento/cédula (sin letras).
+             * Formato: 7-8 dígitos numéricos.
              */
-            'currency_id' => $currencyRules,
+            'document' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'string',
+                'regex:/^\d{7,8}$/',
+            ],
 
             /**
-             * Valor de la tasa de cambio.
+             * Teléfono venezolano.
+             * Formato permitido: 04XX1234567 o 04XX-1234567
              */
-            'amount' => ['required', 'numeric', 'gt:0'],
+            'phone' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'string',
+                'regex:/^(04|02)\d{2}-?\d{7}$/',
+            ],
 
             /**
-             * Estatus de la tasa de cambio
+             * ID del banco venezolano.
+             * Debe existir en la tabla banks_venezuela.
              */
-            'status' => ['required', 'string']
+            'bank_id' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'string',
+                'exists:banks_venezuela,id',
+            ],
+
+            /**
+             * Código ISO del país (opcional, por defecto VE).
+             */
+            'country_code' => [
+                'sometimes',
+                'string',
+                'size:2',
+                'in:VE',
+            ],
         ];
     }
 
@@ -97,17 +108,19 @@ class DirectoryRequest extends BaseRequest
     public function messages(): array
     {
         return [
-            'token.exists' => 'El token no es válido o está inactivo.',
+            'document_type_id.required' => 'El tipo de documento es obligatorio.',
+            'document_type_id.exists' => 'El tipo de documento seleccionado no es válido.',
 
-            'currency_id.required' => 'La moneda es obligatoria.',
-            'currency_id.size' => 'La moneda debe tener exactamente 3 caracteres.',
-            'currency_id.exists' => 'La moneda seleccionada no es válida.',
+            'document.required' => 'El número de documento/cédula es obligatorio.',
+            'document.regex' => 'El documento debe tener entre 7 y 8 dígitos numéricos.',
 
-            'amount.required' => 'El valor de cambio es obligatorio.',
-            'amount.numeric' => 'El valor de cambio debe ser numérico.',
-            'amount.gt' => 'El valor de cambio debe ser mayor a cero.',
+            'phone.required' => 'El teléfono es obligatorio.',
+            'phone.regex' => 'El teléfono debe tener formato venezolano (04XX1234567).',
 
-            'status.required' => 'El status es obligatorio.',
+            'bank_id.required' => 'El banco es obligatorio.',
+            'bank_id.exists' => 'El banco seleccionado no es válido.',
+
+            'country_code.in' => 'Solo se admite el país Venezuela (VE).',
         ];
     }
 }

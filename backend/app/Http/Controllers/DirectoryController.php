@@ -32,7 +32,7 @@ class DirectoryController extends Controller
     {
         return $this->handleServiceInertia(
             function () {
-                $response = $this->service->context(?$countryCode);
+                $response = $this->service->context();
 
                 return Inertia::render('Directory/Index', $response);
             },
