@@ -22,23 +22,29 @@
   /**
    * Composable de formulario
    */
-  const { form, errors, maskOptions, isEditMode, isValid, validate } = useDirectoryForm(
+  const { form, errors, isEditMode, isValid, validate } = useDirectoryForm(
     props.modelValue,
     emit
   )
 
-  const documentTypes = [
-    { value: 'V', label: 'V' },
-    { value: 'E', label: 'E' },
-    { value: 'J', label: 'J' }
-  ]
+  /**
+   * Props adicionales para opciones
+   */
+  const additionalProps = defineProps<{
+    banks?: BanksVEN[]
+    documentTypes?: Array<{ id: string | number; abbreviation: string }>
+  }>()
 
   /* =======================
    * Computed
    * ======================= */
 
-  const banks = computed<BanksVEN[]>(() => {
-    return props.modelValue?.banks ?? []
+  const banksOptions = computed<BanksVEN[]>(() => {
+    return additionalProps.banks ?? []
+  })
+
+  const documentTypesOptions = computed(() => {
+    return additionalProps.documentTypes ?? []
   })
 
   /* =======================
@@ -67,39 +73,59 @@
 <template>
   <form @submit.prevent="submit" novalidate>
     <div class="row">
-      <!-- CI / RIF -->
+      <!-- Tipo de Documento -->
+      <FormSelect
+        container
+        label="Tipo de Documento"
+        name="document_type_id"
+        v-model="form.document_type_id"
+        :options="documentTypesOptions"
+        optionValue="id"
+        optionLabel="abbreviation"
+        required
+        :error="errors.document_type_id"
+        col="col-12 col-md-6"
+      />
+
+      <!-- Número de Documento/Cédula -->
       <FormInput
         container
-        label="CI / RIF"
+        label="Número de Documento"
         name="document"
+        v-model="form.document"
+        type="text"
+        maxlength="8"
+        placeholder="12345678"
         required
-        input-group
+        :error="errors.document"
         col="col-12 col-md-6"
-      >
-        <!-- Tipo documento -->
-        <FormSelect
-          name="document_type"
-          :options="documentTypes"
-          optionValue="value"
-          optionLabel="label"
-          required
-          className="me-1"
-          col="col-auto"
-        />
+      />
 
-        <!-- Número documento -->
-        <FormInput name="document_val" type="text" maxlength="8" required />
-      </FormInput>
+      <!-- Teléfono -->
+      <FormInput
+        container
+        label="Teléfono"
+        name="phone"
+        v-model="form.phone"
+        type="text"
+        maxlength="11"
+        placeholder="04241234567"
+        required
+        :error="errors.phone"
+        col="col-12 col-md-6"
+      />
 
       <!-- Banco -->
       <FormSelect
         container
         label="Banco"
-        name="bank"
-        :options="banks"
+        name="bank_id"
+        v-model="form.bank_id"
+        :options="banksOptions"
         optionValue="id"
         optionLabel="name"
         required
+        :error="errors.bank_id"
         col="col-12 col-md-6"
       />
     </div>

@@ -12,16 +12,20 @@ use App\DTOs\ContextDTO;
 final class DirectoryContextDTO implements ContextDTO
 {
     /**
-     * @param array|object $currencies    Lista u objeto con monedas disponibles.
-     * @param mixed        $exchangeRates Datos de las tasas de cambio.
-     * @param string       $roleUser      Rol del usuario (ej. 'commerce', 'customer').
-     * @param string|null  $tokenId       Token de usuario conectado por API (opcional).
+     * @param array|object $currencies     Lista u objeto con monedas disponibles.
+     * @param mixed        $exchangeRates  Datos de las tasas de cambio.
+     * @param string       $roleUser       Rol del usuario (ej. 'commerce', 'customer').
+     * @param string|null  $tokenId        Token de usuario conectado por API (opcional).
+     * @param mixed        $banks          Lista de bancos venezolanos.
+     * @param mixed        $documentTypes  Lista de tipos de documento.
      */
     public function __construct(
         public readonly array|object $currencies,
         public readonly mixed $exchangeRates,
         public readonly string $roleUser,
         public readonly ?string $tokenId = null,
+        public readonly mixed $banks = [],
+        public readonly mixed $documentTypes = [],
     ) {}
 
     /**
@@ -36,6 +40,8 @@ final class DirectoryContextDTO implements ContextDTO
             'exchangeRates' => $this->exchangeRates,
             'roleUser'      => $this->roleUser,
             'tokenId'       => $this->tokenId,
+            'banks'         => $this->banks,
+            'documentTypes' => $this->documentTypes,
         ];
     }
 }

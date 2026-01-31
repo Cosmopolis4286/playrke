@@ -1,32 +1,46 @@
-import type { Currency } from './currency'
+import type { BanksVEN } from './bank/banks-ven'
 
-export type DirectoryStatus = 'ACTIVE' | 'INACTIVE' | 'DIRECTORY'
+/**
+ * Tipo de documento venezolano
+ */
+export interface DocumentType {
+    readonly id: number | string
+    readonly abbreviation: string
+    readonly name: string
+}
 
+/**
+ * Banco venezolano
+ */
+export interface BankVenezuela {
+    readonly id: number | string
+    readonly name: string
+    readonly code?: string
+}
+
+/**
+ * Directorio de Pago Móvil (Venezuela)
+ */
 export interface Directory {
     readonly id?: number | string
-    readonly currency_id?: number | string
-    readonly amount: number
-    readonly percentage?: number
-    readonly status: DirectoryStatus
-    readonly token?: string
+    readonly document_type?: DocumentType
+    readonly document_type_id?: number | string
+    readonly document: string
+    readonly phone: string
+    readonly bank?: BankVenezuela
+    readonly bank_id?: number | string
+    readonly formatted_info?: string
+    readonly created_at?: string
+    readonly updated_at?: string
 }
 
+/**
+ * Props de la página de directorio
+ */
 export interface DirectoryPageProps {
-    currencies: Currency[]
-    exchangeRates: Directory[]
+    banks: BanksVEN[]
+    documentTypes: DocumentType[]
+    directories?: Directory[]
     roleUser: string
     tokenId?: string
-}
-
-export interface UsedCurrency {
-    id: number | string
-    name: string
-    description: string
-    iso_code: string
-    type: string
-    country?: {
-        id: number
-        name: string
-        iso_code: string
-    } | null
 }

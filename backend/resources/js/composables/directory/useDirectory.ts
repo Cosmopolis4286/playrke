@@ -39,19 +39,14 @@ interface UseDirectoryReturn {
 }
 
 /**
- * Factory para un directorio vacío
+ * Factory para un directorio vacío (Pago Móvil)
  */
 const emptyDirectory = (): Partial<Directory> =>
     Object.freeze({
-        name: '',
-        username: '',
-        email: '',
-        country_id: null,
-        time_zone_id: null,
+        document_type_id: '',
+        document: '',
         phone: '',
-        currency_id: null,
-        other_currencies: [],
-        allowed_games: []
+        bank_id: ''
     })
 
 /**
@@ -168,16 +163,11 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
             )
 
             directoryData.value = {
-                // id: data.data.id,
-                // name: data.data.name,
-                // username: data.data.username,
-                // email: data.data.email,
-                // country_id: data.data.country_id,
-                // time_zone_id: data.data.time_zone_id,
-                // phone: data.data.phone,
-                // currency_id: data.data.currency_id,
-                // other_currencies: data.data.other_currencies ?? [],
-                // allowed_games: data.data.allowed_games ?? []
+                id: data.data.id,
+                document_type_id: data.data.document_type?.id ?? data.data.document_type_id,
+                document: data.data.document,
+                phone: data.data.phone,
+                bank_id: data.data.bank?.id ?? data.data.bank_id
             }
 
             return true

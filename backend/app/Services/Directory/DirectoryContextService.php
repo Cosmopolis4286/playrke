@@ -4,38 +4,63 @@ namespace App\Services\Directory;
 
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\DTOs\Directory\DirectoryContextDTO;
+use App\Models\Banks\BankVenezuela;
+use App\Models\Shared\DocumentType;
 use App\Services\Currency\CurrencyService;
 use App\Services\Roles\RoleUserService;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * Servicio de contexto para el directorio.
+ *
+ * Responsabilidades:
+ * - Resolver contexto de usuario
+ * - Cargar datos necesarios para la vista (bancos, tipos de documento)
+ * - Preparar DTO para la vista
+ */
 class DirectoryContextService
 {
     public function __construct(
         private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
         private readonly CurrencyService $currency,
-        private readonly RoleUserService $roleUserService
+        private readonly RoleUserService $roleUserService,
+        private readonly BankVenezuela $bankVenezuela,
+        private readonly DocumentType $documentType
     ) {}
 
     /**
      * Resuelve el contexto del directorio de acuerdo al codigo ISO.
      *
-     * @param string|null $countryCode Codigo ISO del país (opcional).
+     * @param string|null $countryCode Codigo ISO del país (opcional, por defecto VE).
      * @return DirectoryContextDTO Contexto listo para la vista.
      *
      * @throws DomainException Si no se puede resolver el rol activo.
      */
-    public function resolve(?string $countryCode = null): DirectoryContextDTO
+    public function resolve(?string $countryCode = 'VE'): DirectoryContextDTO
     {
         ['id' => $userId, 'authenticated' => $isLogged] = $this->roleUserService->resolveUser();
 
         $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
+        // Cargar bancos venezolanos ordenados alfabéticamente
+        $banks = $this->bankVenezuela
+            ->select('id', 'name', 'code')
+            ->orderBy('name')
+            ->get();
+
+        // Cargar tipos de documento
+        $documentTypes = $this->documentType
+            ->select('id', 'abbreviation', 'name')
+            ->get();
+
         return new DirectoryContextDTO(
             currencies: $isLogged ? $this->currency->getAvailableCurrencies($userId, true, true) : collect(),
             exchangeRates: $this->resolveExchangeRatesByRole($userRolePrefix, $userId),
             roleUser: $userRolePrefix,
-            tokenId: $isLogged ? '' : $userId
+            tokenId: $isLogged ? '' : $userId,
+            banks: $banks,
+            documentTypes: $documentTypes
         );
     }
 

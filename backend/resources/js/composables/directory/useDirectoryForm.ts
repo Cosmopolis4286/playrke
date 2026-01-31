@@ -2,55 +2,56 @@ import { ref, watch, computed } from 'vue'
 import type { Directory } from '@/js/types/directory'
 
 /**
- * Composable para manejar el formulario de directorio
+ * Composable para manejar el formulario de directorio de Pago Móvil.
+ *
+ * Responsabilidades:
+ * - Gestión del estado del formulario
+ * - Validaciones en tiempo real
+ * - Sincronización bidireccional con v-model
  *
  * @param modelValue Valor inicial del formulario (create / edit)
  * @param emit Emit de Vue para sync con v-model
  */
 export function useDirectoryForm(
     modelValue: Partial<Directory>,
-    emit: (event: 'update:modelValue', value: Directory) => void
+    emit: (event: 'update:modelValue', value: Partial<Directory>) => void
 ) {
     /* =======================
      * State
      * ======================= */
     const form = ref({
-        currency_id: '',
-        amount: null as number | null,
-        status: false
+        document_type_id: '',
+        document: '',
+        phone: '',
+        bank_id: ''
     })
 
     const directoryId = ref(modelValue.id)
 
-    const errors = ref<{ currency_id?: string; amount?: string }>({})
-
-    /* =======================
-     * Mask
-     * ======================= */
-    const maskOptions = {
-        mask: Number,
-        scale: 2,
-        thousandsSeparator: '',
-        padFractionalZeros: false,
-        normalizeZeros: true,
-        radix: '.',
-        mapToRadix: [',']
-    }
+    const errors = ref<{
+        document_type_id?: string
+        document?: string
+        phone?: string
+        bank_id?: string
+    }>({})
 
     /* =======================
      * Computed
      * ======================= */
 
     /**
-     * Indica si el formulario está en modo edición
+     * Indica si el formulario está en modo edición.
      */
-    const isEditMode = computed(() => !!modelValue?.currency_id)
+    const isEditMode = computed(() => !!modelValue?.id)
 
     /**
-     * Estado de validez del formulario
+     * Estado de validez del formulario.
      */
-    const isValid = computed(
-        () => !errors.value.currency_id && !errors.value.amount
+    const isValid = computed(() =>
+        !errors.value.document_type_id &&
+        !errors.value.document &&
+        !errors.value.phone &&
+        !errors.value.bank_id
     )
 
     /* =======================
@@ -58,29 +59,46 @@ export function useDirectoryForm(
      * ======================= */
 
     /**
-     * Resetea el formulario
+     * Resetea el formulario a su estado inicial.
      */
     const reset = () => {
         form.value = {
-            currency_id: '',
-            amount: null,
-            status: false
+            document_type_id: '',
+            document: '',
+            phone: '',
+            bank_id: ''
         }
         errors.value = {}
     }
 
     /**
-     * Valida los campos del formulario
+     * Valida los campos del formulario.
      */
     const validate = () => {
         errors.value = {}
 
-        if (!form.value.currency_id) {
-            errors.value.currency_id = 'La divisa es requerida.'
+        // Validar tipo de documento
+        if (!form.value.document_type_id) {
+            errors.value.document_type_id = 'El tipo de documento es requerido.'
         }
 
-        if (!form.value.amount || form.value.amount <= 0) {
-            errors.value.amount = 'El cambio debe ser mayor a cero.'
+        // Validar número de documento
+        if (!form.value.document) {
+            errors.value.document = 'El número de documento es requerido.'
+        } else if (!/^\d{7,8}$/.test(form.value.document)) {
+            errors.value.document = 'Debe tener 7-8 dígitos numéricos.'
+        }
+
+        // Validar teléfono
+        if (!form.value.phone) {
+            errors.value.phone = 'El teléfono es requerido.'
+        } else if (!/^(04|02)\d{2}-?\d{7}$/.test(form.value.phone)) {
+            errors.value.phone = 'Formato inválido (ej: 04241234567).'
+        }
+
+        // Validar banco
+        if (!form.value.bank_id) {
+            errors.value.bank_id = 'El banco es requerido.'
         }
     }
 
@@ -89,41 +107,48 @@ export function useDirectoryForm(
      * ======================= */
 
     /**
-     * Sync modelValue → form (edit / create)
+     * Sync modelValue → form (edit / create).
      */
     watch(
         () => modelValue,
         value => {
             form.value = {
-                currency_id: value.currency_id?.toString() ?? '',
-                amount: value.amount ?? null,
-                status: value.status === 'ACTIVE'
+                document_type_id: value.document_type_id?.toString() ?? '',
+                document: value.document ?? '',
+                phone: value.phone ?? '',
+                bank_id: value.bank_id?.toString() ?? ''
             }
         },
         { immediate: true, deep: true }
     )
 
     /**
-     * Sync form → modelValue
+     * Sync form → modelValue.
      */
     watch(
         form,
         value => {
             emit('update:modelValue', {
                 id: directoryId.value,
-                currency_id: value.currency_id,
-                amount: value.amount ?? undefined,
-                status: value.status ? 'ACTIVE' : 'INACTIVE'
+                document_type_id: value.document_type_id,
+                document: value.document,
+                phone: value.phone,
+                bank_id: value.bank_id
             })
         },
         { deep: true }
     )
 
     /**
-     * Validación reactiva
+     * Validación reactiva.
      */
     watch(
-        () => [form.value.currency_id, form.value.amount],
+        () => [
+            form.value.document_type_id,
+            form.value.document,
+            form.value.phone,
+            form.value.bank_id
+        ],
         validate,
         { immediate: true }
     )
@@ -131,7 +156,6 @@ export function useDirectoryForm(
     return {
         form,
         errors,
-        maskOptions,
         isEditMode,
         isValid,
         validate,

@@ -144,21 +144,4 @@ class DirectoryController extends Controller
         );
     }
 
-    /**
-     * Alternar el estado (activo/inactivo) de un directorio.
-     *
-     * @param string $id Identificador del directorio.
-     * @return JsonResponse
-     */
-    public function toggleStatus(string $id): JsonResponse
-    {
-        return $this->handleServiceJson(
-            function () use ($id) {
-                $this->service->toggleStatus($id);
-
-                return ['message' => '✅ Estado actualizado correctamente'];
-            },
-            'No se pudo cambiar el estado del directorio.'
-        );
-    }
 }

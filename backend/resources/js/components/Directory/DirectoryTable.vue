@@ -1,95 +1,96 @@
 <script setup lang="ts">
-  import BaseTable from '../Common/Table/BaseTable.vue'
-  import type { Column, Row } from '@/js/types/common/table/column-row'
+/**
+ * Componente de tabla para mostrar directorios de Pago Móvil (Venezuela).
+ *
+ * Responsabilidades:
+ * - Renderizar lista de directorios
+ * - Emitir eventos de edición y eliminación
+ * - Formatear datos para visualización
+ */
+import { computed } from 'vue'
+import BaseTable from '../Common/Table/BaseTable.vue'
+import type { Directory } from '@/js/types/directory'
 
-  /**
-   * Props del componente ExchangeRateTable
-   */
-  const props = defineProps<{
-    columns: Column[]
-    rows: Row[]
-  }>()
+/**
+ * Props del componente DirectoryTable
+ */
+const props = defineProps<{
+  /** Lista de directorios a mostrar */
+  directories: Directory[]
+}>()
 
-  /**
-   * Eventos emitidos por el componente
-   */
-  defineEmits<{
-    (e: 'edit', id: number | string): void
-    (e: 'change-status', id: number | string): void
-    (e: 'delete', id: number | string): void
-  }>()
+/**
+ * Eventos emitidos por el componente
+ */
+const emit = defineEmits<{
+  (e: 'edit', id: number | string): void
+  (e: 'delete', id: number | string): void
+}>()
 
-  type CurrencyValueKey = 'name' | 'description' | 'iso_code' | 'country_iso_code'
+/**
+ * Columnas de la tabla
+ */
+const columns = [
+  { key: 'document_info', label: 'Documento', sortable: true },
+  { key: 'phone', label: 'Teléfono', sortable: true },
+  { key: 'bank', label: 'Banco', sortable: true },
+  { key: 'actions', label: 'Acciones', sortable: false }
+]
 
-  /**
-   * Obtiene un valor de la moneda de forma segura por ID
-   * @param currencyId ID de la moneda
-   * @param key Valor a obtener
-   * @returns Valor correspondiente o undefined
-   */
-  function getValueByCurrencyId(
-    currencyId?: number | string,
-    key: CurrencyValueKey = 'name'
-  ): string | undefined {
-    if (currencyId == null) return undefined
+/**
+ * Filas transformadas para la tabla
+ */
+const rows = computed(() => {
+  return props.directories.map(directory => ({
+    id: directory.id,
+    document_info: `${directory.document_type?.abbreviation || ''}-${directory.document}`,
+    phone: directory.phone,
+    bank: directory.bank?.name || 'N/A',
+    _raw: directory
+  }))
+})
 
-    const currency = props.usedCurrencies?.find(c => c.id == currencyId)
+/**
+ * Maneja la edición de un directorio
+ */
+function handleEdit(id: number | string) {
+  emit('edit', id)
+}
 
-    if (!currency) return undefined
-
-    const map: Record<CurrencyValueKey, string | undefined> = {
-      name: currency.name,
-      description: currency.description,
-      iso_code: currency.iso_code,
-      country_iso_code: currency.country?.name
-    }
-
-    return map[key]
-  }
-
-  // Mapeo para status: texto, clase, y si es link, url y title
-  type StatusInfo =
-    | { text: string; class: string; isLink: false }
-    | {
-        text: string
-        class: string
-        isLink: true
-        getUrl: (item: ExchangeRate) => string
-        title: string
-      }
-
-  const statusMap: Record<string, StatusInfo> = {
-    INACTIVE: { text: 'Inactiva', class: 'badge-secondary', isLink: false },
-    ACTIVE: { text: 'Disponible', class: 'badge-success', isLink: false },
-    DIRECTORY: {
-      text: 'Falta Directorio',
-      class: 'badge-danger',
-      isLink: true,
-      getUrl: (item: ExchangeRate) =>
-        `/directory/${getValueByCurrencyId(item.currency_id, 'country_iso_code')}`,
-      title: 'Registrar Datos Bancarios'
-    }
-  }
-  const parsedRows = computed(() =>
-    typeof props.rows === 'string' ? JSON.parse(props.rows) : props.rows
-  )
+/**
+ * Maneja la eliminación de un directorio
+ */
+function handleDelete(id: number | string) {
+  emit('delete', id)
+}
 </script>
 
 <template>
   <BaseTable
     table-id="directory-table"
     :columns="columns"
-    :rows="filteredRows"
-    :empty-message="emptyMessage"
-    :selected-ids="selectedIds"
-    @selection-change="handleSelectionChange"
+    :rows="rows"
+    empty-message="No hay directorios registrados"
   >
-    <template
-      v-for="column in columns"
-      :key="column.key"
-      v-slot:[`cell-${column.key}`]="{ row, value }"
-    >
-      <slot :name="`cell-${column.key}`" :row="row" :value="value" />
+    <template #cell-actions="{ row }">
+      <div class="btn-group btn-group-sm">
+        <button
+          type="button"
+          class="btn btn-primary"
+          @click="handleEdit(row.id)"
+          title="Editar"
+        >
+          <i class="fas fa-edit"></i>
+        </button>
+        <button
+          type="button"
+          class="btn btn-danger"
+          @click="handleDelete(row.id)"
+          title="Eliminar"
+        >
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
     </template>
   </BaseTable>
 </template>

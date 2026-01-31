@@ -3,13 +3,14 @@
    * Imports
    * ========================================================================== */
 
-  import { ref, watch } from 'vue'
+  import { ref, watch, onMounted } from 'vue'
 
   // UI
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import CountryTabs from '@/js/Components/Directory/CountryTabs.vue'
   import DirectoryButtons from '@js/Components/Directory/DirectoryButtons.vue'
   import DirectoryForm from '@/js/Components/Directory/DirectoryForm.vue'
+  import DirectoryTable from '@/js/Components/Directory/DirectoryTable.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
 
   // Composables
@@ -17,7 +18,7 @@
   import { useModalForm } from '@/js/composables/common/useModalForm'
 
   // Types
-  import type { DirectoryPageProps, UsedCurrency } from '@/js/types/directory'
+  import type { DirectoryPageProps } from '@/js/types/directory'
 
   /* ==========================================================================
    * Props
@@ -32,9 +33,14 @@
    * Lógica de negocio
    * ========================================================================== */
 
-  const { directoryData, directories, setInitialDirectories, create, edit, submit } = useDirectory()
+  const { directoryData, directories, create, edit, submit, remove, fetchDirectories } = useDirectory()
 
-  // setInitialDirectories(props.directories)
+  /**
+   * Cargar directorios al montar el componente
+   */
+  onMounted(() => {
+    fetchDirectories()
+  })
 
   /* ==========================================================================
    * Modal + Form handler
@@ -105,6 +111,15 @@
   }
 
   /**
+   * Maneja la eliminación de un directorio
+   *
+   * @param id Identificador del registro
+   */
+  async function handleRemove(id: string | number): Promise<void> {
+    await remove(id)
+  }
+
+  /**
    * Maneja el cambio de tab por país
    *
    * @param code ISO code del país
@@ -133,13 +148,12 @@
 
       <DirectoryButtons @create="handleCreate" />
 
-      <!-- Tabla pendiente de integrar -->
-      <!--
+      <!-- Tabla de directorios -->
       <DirectoryTable
-        :columns="columns"
+        :directories="directories"
         @edit="handleEdit"
+        @delete="handleRemove"
       />
-      -->
     </div>
   </div>
 
@@ -151,6 +165,11 @@
     :on-submit="handleSubmit"
     :confirm-disabled="!(directoryFormRef?.isValid ?? false)"
   >
-    <DirectoryForm ref="directoryFormRef" v-model="directoryData" />
+    <DirectoryForm
+      ref="directoryFormRef"
+      v-model="directoryData"
+      :banks="banks"
+      :documentTypes="documentTypes"
+    />
   </Modal>
 </template>
