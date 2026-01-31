@@ -3,7 +3,7 @@
    * Imports
    * ========================================================================== */
 
-  import { ref, watch, onMounted } from 'vue'
+  import { ref, watch, onMounted, computed } from 'vue'
 
   // UI
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
@@ -72,17 +72,75 @@
    * ========================================================================== */
 
   /**
-   * Tabs por país
+   * Obtener países únicos de las monedas disponibles
    */
-  const countries = [
-    { id: 1, iso_code_2: 'US' },
-    { id: 2, iso_code_2: 'BR' },
-    { id: 3, iso_code_2: 'FR' }
-  ]
+  const countries = computed(() => {
+    const uniqueCountries = new Map()
 
-  const selectedCode = ref('US')
-  const title = ref(`Directorio ${selectedCode.value}`)
-  const subtitle = ref('Método: PagoMovil')
+    props.currencies?.forEach((currency: any) => {
+      if (currency.country) {
+        uniqueCountries.set(currency.country.iso_code, {
+          id: currency.country.id,
+          iso_code_2: currency.country.iso_code,
+          name: currency.country.name
+        })
+      }
+    })
+
+    return Array.from(uniqueCountries.values())
+  })
+
+  /**
+   * País seleccionado - inicializado con el primer país disponible
+   * Se actualiza reactivamente cuando cambian las monedas
+   */
+  const selectedCode = ref<string>('')
+
+  /**
+   * Watcher para inicializar selectedCode cuando countries cambie
+   */
+  watch(countries, (newCountries) => {
+    if (newCountries.length > 0 && !selectedCode.value) {
+      // Intentar obtener VE primero
+      const veCountry = newCountries.find((c: any) => c.iso_code_2 === 'VE')
+      if (veCountry) {
+        selectedCode.value = veCountry.iso_code_2
+      } else {
+        // Si no existe VE, usar el primer país
+        selectedCode.value = newCountries[0]?.iso_code_2 || ''
+      }
+    }
+  }, { immediate: true })
+
+  /**
+   * País seleccionado completo
+   */
+  const selectedCountry = computed(() => {
+    return countries.value.find((c: any) => c.iso_code_2 === selectedCode.value)
+  })
+
+  /**
+   * Título dinámico basado en el país seleccionado
+   */
+  const title = computed(() => {
+    return `Directorio ${selectedCountry.value?.name || selectedCode.value}`
+  })
+
+  /**
+   * Subtítulo dinámico basado en el método de pago específico del país
+   */
+  const subtitle = computed(() => {
+    // Mapeo de países a sus métodos de pago específicos
+    const paymentMethods: Record<string, string> = {
+      'VE': 'Pago Móvil',
+      'BR': 'PIX',
+      'CO': 'Nequi / Daviplata',
+      'US': 'Zelle'
+    }
+
+    const method = paymentMethods[selectedCode.value]
+    return method ? `Método: ${method}` : ''
+  })
 
   /* ==========================================================================
    * Watchers
@@ -126,12 +184,11 @@
    */
   function onTabChange(code: string): void {
     selectedCode.value = code
-    title.value = `Directorio ${code}`
 
     // Aquí puedes:
-    // - filtrar data
+    // - filtrar data por país
     // - hacer router.push
-    // - llamar API
+    // - llamar API para cargar directorios específicos del país
   }
 </script>
 <template>
@@ -168,8 +225,8 @@
     <DirectoryForm
       ref="directoryFormRef"
       v-model="directoryData"
-      :banks="banks"
-      :documentTypes="documentTypes"
+      :banks="props.banks"
+      :documentTypes="props.documentTypes"
     />
   </Modal>
 </template>

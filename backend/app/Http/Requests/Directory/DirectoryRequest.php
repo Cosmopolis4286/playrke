@@ -33,6 +33,30 @@ class DirectoryRequest extends BaseRequest
     }
 
     /**
+     * Prepara los datos antes de la validación.
+     * Convierte IDs numéricos a strings para compatibilidad con Snowflake.
+     *
+     * @return void
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'document_type_id' => $this->input('document_type_id')
+                ? (string) $this->input('document_type_id')
+                : null,
+            'bank_id' => $this->input('bank_id')
+                ? (string) $this->input('bank_id')
+                : null,
+            'document' => $this->input('document')
+                ? (string) $this->input('document')
+                : null,
+            'phone' => $this->input('phone')
+                ? (string) $this->input('phone')
+                : null,
+        ]);
+    }
+
+    /**
      * Reglas de validación para el directorio de Pago Móvil.
      *
      * Valida:

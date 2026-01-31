@@ -26,13 +26,14 @@ class DirectoryController extends Controller
     /**
      * Muestra los directorios usando Inertia.
      *
+     * @param string|null $countryCode Código ISO del país (opcional, por defecto VE)
      * @return Response
      */
-    public function index(): Response
+    public function index(?string $countryCode = 'VE'): Response
     {
         return $this->handleServiceInertia(
-            function () {
-                $response = $this->service->context();
+            function () use ($countryCode) {
+                $response = $this->service->context($countryCode);
 
                 return Inertia::render('Directory/Index', $response);
             },

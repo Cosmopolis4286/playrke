@@ -35,12 +35,27 @@ export interface Directory {
 }
 
 /**
+ * Interfaz para monedas con país
+ */
+export interface Currency {
+    readonly id: number | string
+    readonly name: string
+    readonly iso_code: string
+    readonly country?: {
+        readonly id: number
+        readonly name: string
+        readonly iso_code: string
+    }
+}
+
+/**
  * Props de la página de directorio
  */
 export interface DirectoryPageProps {
     banks: BanksVEN[]
     documentTypes: DocumentType[]
     directories?: Directory[]
+    currencies?: Currency[]
     roleUser: string
     tokenId?: string
 }

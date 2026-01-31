@@ -18,6 +18,7 @@ final class DirectoryContextDTO implements ContextDTO
      * @param string|null  $tokenId        Token de usuario conectado por API (opcional).
      * @param mixed        $banks          Lista de bancos venezolanos.
      * @param mixed        $documentTypes  Lista de tipos de documento.
+     * @param mixed        $directories    Lista de directorios del usuario.
      */
     public function __construct(
         public readonly array|object $currencies,
@@ -26,6 +27,7 @@ final class DirectoryContextDTO implements ContextDTO
         public readonly ?string $tokenId = null,
         public readonly mixed $banks = [],
         public readonly mixed $documentTypes = [],
+        public readonly mixed $directories = [],
     ) {}
 
     /**
@@ -42,6 +44,7 @@ final class DirectoryContextDTO implements ContextDTO
             'tokenId'       => $this->tokenId,
             'banks'         => $this->banks,
             'documentTypes' => $this->documentTypes,
+            'directories'   => $this->directories,
         ];
     }
 }

@@ -19,9 +19,17 @@ use Illuminate\Support\Facades\Route;
 // ====================================
 // DIRECTORIO BANCARIO POR PAÍSES
 // ====================================
-route_group('directory', 'directory.', ['auth'], DirectoryController::class, [
-    'index' => ['method' => 'get', 'uri' => '{countryCode?}'],
-]);
+Route::middleware('auth')->group(function () {
+    // Vista principal (Inertia)
+    Route::get('directory/{countryCode?}', [DirectoryController::class, 'index'])->name('directory.index');
+
+    // API CRUD
+    Route::get('admin/directory/list-filtered', [DirectoryController::class, 'listFiltered'])->name('directory.list-filtered');
+    Route::get('admin/directory/{id}', [DirectoryController::class, 'show'])->name('directory.show');
+    Route::post('admin/directory', [DirectoryController::class, 'store'])->name('directory.store');
+    Route::put('admin/directory/{id}', [DirectoryController::class, 'update'])->name('directory.update');
+    Route::put('admin/directory/{id}/delete', [DirectoryController::class, 'delete'])->name('directory.delete');
+});
 
 // ====================================
 // COMPROBANTES DE PAGO

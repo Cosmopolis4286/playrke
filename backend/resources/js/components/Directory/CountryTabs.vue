@@ -1,25 +1,43 @@
 <script setup lang="ts">
-  import { defineProps, defineEmits } from 'vue'
+  import { defineEmits, withDefaults } from 'vue'
 
   interface Item {
     id: number | string
     iso_code_2: string
   }
 
-  const props = defineProps<{
-    items: Item[]
-    activeCode: string
-  }>()
+  /**
+   * Props del componente
+   */
+  const props = withDefaults(
+    defineProps<{
+      items: Item[]
+      activeCode?: string
+    }>(),
+    {
+      activeCode: ''
+    }
+  )
 
   const emit = defineEmits<{
     (e: 'update:activeCode', code: string): void
     (e: 'tabSelected', code: string): void
   }>()
 
+  /**
+   * Verifica si el tab está activo
+   * @param item - Item del tab
+   * @returns true si el tab está activo
+   */
   const isActive = (item: Item) => {
+    if (!props.activeCode || !item.iso_code_2) return false
     return props.activeCode.toLowerCase() === item.iso_code_2.toLowerCase()
   }
 
+  /**
+   * Selecciona un tab y emite los eventos correspondientes
+   * @param item - Item del tab seleccionado
+   */
   const selectTab = (item: Item) => {
     emit('update:activeCode', item.iso_code_2)
     emit('tabSelected', item.iso_code_2)

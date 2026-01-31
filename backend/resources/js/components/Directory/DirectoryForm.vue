@@ -4,6 +4,10 @@
   import type { Directory } from '@/js/types/directory'
   import type { BanksVEN } from '@/js/types/bank/banks-ven'
 
+  // Componentes de formulario
+  import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
+
   /**
    * Props
    */

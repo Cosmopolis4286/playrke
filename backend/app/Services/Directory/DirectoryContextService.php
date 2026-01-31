@@ -2,10 +2,12 @@
 
 namespace App\Services\Directory;
 
+use App\Contracts\CountryRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
+use App\Contracts\Shared\DocumentTypeRepositoryInterface;
 use App\DTOs\Directory\DirectoryContextDTO;
 use App\Models\Banks\BankVenezuela;
-use App\Models\Shared\DocumentType;
+use App\Repositories\Directory\DirectoryRepository;
 use App\Services\Currency\CurrencyService;
 use App\Services\Roles\RoleUserService;
 use DomainException;
@@ -26,7 +28,9 @@ class DirectoryContextService
         private readonly CurrencyService $currency,
         private readonly RoleUserService $roleUserService,
         private readonly BankVenezuela $bankVenezuela,
-        private readonly DocumentType $documentType
+        private readonly DocumentTypeRepositoryInterface $documentTypeRepository,
+        private readonly DirectoryRepository $directoryRepository,
+        private readonly CountryRepositoryInterface $countryRepository
     ) {}
 
     /**
@@ -43,17 +47,24 @@ class DirectoryContextService
 
         $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
+        // Obtener el país según el código ISO (por defecto VE)
+        $country = $this->countryRepository->findByIsoCode2($countryCode, ['id', 'name', 'iso_code_2']);
+
         // Cargar bancos venezolanos ordenados alfabéticamente
         $banks = $this->bankVenezuela
             ->select('id', 'name', 'code')
             ->orderBy('name')
             ->get();
 
-        // Cargar tipos de documento
-        $documentTypes = $this->documentType
-            ->select('id', 'code', 'description')
-            ->where('status', true)
-            ->get();
+        // Cargar tipos de documento filtrados por país
+        $documentTypes = $country
+            ? $this->documentTypeRepository->getActiveByCountry((int) $country->id)
+            : collect();
+
+        // Cargar directorios del usuario autenticado
+        $directories = $isLogged
+            ? $this->directoryRepository->getAllByUser((string) $userId)
+            : collect();
 
         return new DirectoryContextDTO(
             currencies: $isLogged ? $this->currency->getAvailableCurrencies($userId, true, true) : collect(),
@@ -61,7 +72,8 @@ class DirectoryContextService
             roleUser: $userRolePrefix,
             tokenId: $isLogged ? '' : $userId,
             banks: $banks,
-            documentTypes: $documentTypes
+            documentTypes: $documentTypes,
+            directories: $directories
         );
     }
 
