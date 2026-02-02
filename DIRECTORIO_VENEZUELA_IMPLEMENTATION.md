@@ -240,7 +240,7 @@ npm run build
 ### **document_types**
 ```sql
 - id (snowflake)
-- abbreviation (string) // V, E, J
+- code (string) // V, E, J
 - name (string)
 - created_at
 - updated_at

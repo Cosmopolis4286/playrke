@@ -11,6 +11,11 @@ class DocumentType extends Model
 {
     use SnowflakeId;
 
+    protected $table = 'document_types';
+    protected $primaryKey = 'id';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'code',
         'description',
@@ -19,6 +24,7 @@ class DocumentType extends Model
     ];
 
     protected $casts = [
+        'id' => 'string',
         'status' => 'boolean'
     ];
 

@@ -36,7 +36,7 @@ final class DirectoryRepository
     public function getAllByUser(string $userId): Collection
     {
         return $this->model
-            ->with(['documentType:id,abbreviation,name', 'bank:id,name,code'])
+            ->with(['documentType:id,code,description', 'bank:id,name,code'])
             ->byUser($userId)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -52,7 +52,7 @@ final class DirectoryRepository
     public function findById(string $id, ?string $userId = null): ?PagoMovil
     {
         $query = $this->model
-            ->with(['documentType:id,abbreviation,name', 'bank:id,name,code', 'user:id,name,email'])
+            ->with(['documentType:id,code,description', 'bank:id,name,code', 'user:id,name,email'])
             ->where('id', $id);
 
         if ($userId !== null) {
@@ -144,7 +144,7 @@ final class DirectoryRepository
     public function findByPhone(string $phone): Collection
     {
         return $this->model
-            ->with(['documentType:id,abbreviation,name', 'bank:id,name,code'])
+            ->with(['documentType:id,code,description', 'bank:id,name,code'])
             ->byPhone($phone)
             ->get();
     }

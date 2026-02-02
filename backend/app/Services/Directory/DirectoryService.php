@@ -4,7 +4,6 @@ namespace App\Services\Directory;
 
 use App\DTOs\Directory\DirectoryDTO;
 use App\Http\Resources\Directory\DirectoryResource;
-use App\Services\Roles\RoleUserService;
 use DomainException;
 
 /**
@@ -21,7 +20,6 @@ use DomainException;
 final class DirectoryService
 {
     public function __construct(
-        private readonly RoleUserService $roleUserService,
         private readonly DirectoryContextService $context,
         private readonly DirectoryCrudService $crud,
     ) {}
@@ -38,13 +36,12 @@ final class DirectoryService
     }
 
     /**
-     * Obtiene todos los registros de directorio del usuario autenticado.
+     * Obtiene todos los registros de directorio del usuario.
      *
      * @return array Lista de registros
      */
     public function getAll(): array
     {
-        $userId = $this->resolveUserId();
         return $this->crud->getAll($userId);
     }
 
@@ -54,12 +51,11 @@ final class DirectoryService
      * @param DirectoryDTO $dto DTO con los datos del registro
      * @return bool True si se creó correctamente
      *
-     * @throws DomainException Si no se puede resolver el usuario o falla la creación
+     * @throws DomainException Si falla la creación
      */
     public function create(DirectoryDTO $dto): bool
     {
-        $userId = $this->resolveUserId();
-        return $this->crud->create($dto, $userId);
+        return $this->crud->create($dto);
     }
 
     /**
@@ -68,12 +64,11 @@ final class DirectoryService
      * @param string $id ID del registro
      * @return DirectoryResource Registro transformado
      *
-     * @throws DomainException Si no se puede resolver el usuario o no existe el registro
+     * @throws DomainException Si no existe el registro
      */
     public function show(string $id): DirectoryResource
     {
-        $userId = $this->resolveUserId();
-        return $this->crud->show($id, $userId);
+        return $this->crud->show($id);
     }
 
     /**
@@ -82,7 +77,7 @@ final class DirectoryService
      * @param DirectoryDTO $dto DTO con datos actualizados
      * @return bool True si se actualizó correctamente
      *
-     * @throws DomainException Si no se puede resolver el usuario o falla la actualización
+     * @throws DomainException Si falla la actualización
      */
     public function update(DirectoryDTO $dto): bool
     {
@@ -95,29 +90,10 @@ final class DirectoryService
      * @param string $id ID del registro
      * @return bool True si se eliminó correctamente
      *
-     * @throws DomainException Si no se puede resolver el usuario o falla la eliminación
+     * @throws DomainException Si falla la eliminación
      */
     public function delete(string $id): bool
     {
-        $userId = $this->resolveUserId();
-        return $this->crud->delete($id, $userId);
-    }
-
-    /**
-     * Resuelve el ID del usuario autenticado.
-     *
-     * @return string ID del usuario
-     *
-     * @throws DomainException Si no hay usuario autenticado
-     */
-    private function resolveUserId(): string
-    {
-        $user = $this->roleUserService->resolveUser();
-
-        if (!$user['authenticated']) {
-            throw new DomainException('Usuario no autenticado.');
-        }
-
-        return (string) $user['id'];
+        return $this->crud->delete($id);
     }
 }

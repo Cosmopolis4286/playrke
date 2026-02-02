@@ -5,87 +5,108 @@ namespace App\Services\ExchangeRate;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateContextDTO;
 use App\Services\Currency\CurrencyService;
+use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
+use App\Services\Security\UserContextService;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 
-class ExchangeRateContextService
+/**
+ * Servicio responsable de construir el contexto
+ * necesario para la visualización de tasas de cambio.
+ *
+ * Diferencia entre usuarios autenticados y públicos,
+ * resolviendo monedas, tasas y rol activo.
+ *
+ * NO contiene lógica de autenticación ni acceso HTTP.
+ */
+final class ExchangeRateContextService
 {
     use HashedTableDataTrait;
 
     public function __construct(
         private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
         private readonly CurrencyService $currency,
-        private readonly RoleUserService $roleUserService
+        private readonly UserContextService $userContext,
+        private readonly RoleUserService $roleUserService,
+        private readonly RoleEntityResolver $roleEntityResolver,
     ) {}
 
     /**
      * Resuelve el contexto para la visualización de tasas de cambio.
      *
-     * Diferencia entre usuario autenticado y público.
-     * Usuarios autenticados reciben monedas y tasas según su rol.
-     * Usuarios públicos obtienen tokenId para acceso limitado.
+     * - Usuarios autenticados reciben monedas y tasas según su rol.
+     * - Usuarios públicos obtienen acceso limitado mediante token.
      *
-     * @param string|null $tokenId Token público opcional para identificar usuario.
+     * @param string|null $publicToken Token público opcional.
      * @return ExchangeRateContextDTO Contexto listo para la vista.
      *
-     * @throws DomainException Si no se puede resolver el rol activo.
+     * @throws DomainException Si no se puede resolver el usuario o rol activo.
      */
-    public function resolve(?string $tokenId = null): ExchangeRateContextDTO
+    public function resolve(?string $publicToken = null): ExchangeRateContextDTO
     {
-        ['id' => $userId, 'authenticated' => $isLogged] = $this->roleUserService->resolveUser($tokenId);
+        $userId = $this->userContext->resolveUserId($publicToken);
+        $isLogged = $this->userContext->isAuthenticated();
 
         $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
         return new ExchangeRateContextDTO(
-            currencies: $isLogged ? $this->currency->getAvailableCurrencies($userId, true, true) : collect(),
-            exchangeRates: $this->resolveExchangeRatesByRole($userRolePrefix, $userId),
+            currencies: $isLogged
+                ? $this->currency->getAvailableCurrencies($userId, true, true)
+                : collect(),
+
+            exchangeRates: $this->resolveExchangeRatesByRole(
+                $userRolePrefix,
+                $userId
+            ),
+
             roleUser: $userRolePrefix,
-            tokenId: $isLogged ? '' : $userId
+
+            // En acceso público exponemos el userId resuelto como tokenId
+            tokenId: $isLogged ? '' : (string) $userId
         );
     }
 
     /**
      * Resuelve las tasas de cambio según el prefijo de rol activo.
      *
-     * @param string $role Prefijo de rol activo (ej. 'commerce', 'player').
-     * @param int $userId ID del usuario o entidad relacionada.
+     * @param string $role Prefijo de rol activo (ej. 'commerce', 'customer').
+     * @param int $userId ID del usuario autenticado o resuelto por token.
      *
      * @return Collection Lista de tasas de cambio disponibles.
      */
     protected function resolveExchangeRatesByRole(string $role, int $userId): Collection
     {
-        // Definir ID de la entidad para búsqueda basada en el rol
-        $entityId = $this->roleUserService->getUserRoleEntityId($userId, $role);
+        // Resolver la entidad asociada al rol (commerce, customer, etc.)
+        $entityId = $this->roleEntityResolver
+            ->resolveEntityId($userId, $role);
 
-        $context = match ($role) {
-            'commerce' => $this->commerceExchangeRate->getAvailableExchangeRates($entityId),
+        return match ($role) {
+            'commerce' => $this->commerceExchangeRate
+                ->getAvailableExchangeRates($entityId),
+
             'customer', 'admin' => collect(),
+
             default => collect(),
         };
-
-        return $context;
-
-        // Define columnas visibles y keys fuente para la tabla
-        $columns = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_label'];
-
-        // Aplica transformación de contexto para tablas Inertia
-        $context = $this->processContextTableData($context->toArray(), 'exchangeRates', $columns, $rowKeys);
     }
 
     /**
      * Obtener todas las tasas de cambio filtradas según contexto y rol.
      *
-     * @param string|null $publicToken Token público opcional
-     * @return array Listado de tasas de cambio
+     * @param string|null $publicToken Token público opcional.
+     * @return array Listado de tasas de cambio.
+     *
+     * @throws DomainException Si no se puede resolver el usuario.
      */
     public function getAll(?string $publicToken = null): array
     {
-        ['id' => $userId, 'authenticated' => $isLogged] = $this->roleUserService->resolveUser($publicToken);
-        $userRolePrefix = $isLogged ? $this->roleUserService->getActiveUserRolePrefix($userId) ?? '' : '';
+        $userId = $this->userContext->resolveUserId($publicToken);
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        return $this->resolveExchangeRatesByRole($userRolePrefix, $userId)->toArray();
+        return $this
+            ->resolveExchangeRatesByRole($role, $userId)
+            ->toArray();
     }
 }

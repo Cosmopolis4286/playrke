@@ -23,7 +23,7 @@ export interface UserProfile {
     id: string;
     name: string;
     offset: string;
-    abbreviation: string;
+    code: string;
   };
   referralCode: string;
   roles: string[];

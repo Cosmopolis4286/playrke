@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Factories\ExchangeRate\ExchangeRateFactory;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
+use App\Http\Support\PublicTokenResolver;
 use App\Services\ExchangeRate\ExchangeRateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,8 @@ class ExchangeRateController extends Controller
 {
     public function __construct(
         private ExchangeRateFactory $factory,
-        private ExchangeRateService $service
+        private ExchangeRateService $service,
+        private PublicTokenResolver $tokenResolver
     ) {}
 
     /**
@@ -32,10 +34,10 @@ class ExchangeRateController extends Controller
     public function index(Request $request): Response
     {
         return $this->handleServiceInertia(
-            fn () => Inertia::render(
+            fn() => Inertia::render(
                 'ExchangeRate/Index',
                 [
-                    ...$this->service->context($this->getPublicToken($request)),
+                    ...$this->service->context($this->tokenResolver->resolve($request)),
                     'title' => 'Tasas de Cambio',
                 ]
             ),
@@ -49,8 +51,8 @@ class ExchangeRateController extends Controller
     public function listFiltered(Request $request): JsonResponse
     {
         return $this->handleServiceJson(
-            fn () => [
-                'data' => $this->service->getAll($this->getPublicToken($request)),
+            fn() => [
+                'data' => $this->service->getAll($this->tokenResolver->resolve($request)),
             ],
             'No se pudo cargar la lista de tasas de cambio.'
         );
@@ -62,7 +64,7 @@ class ExchangeRateController extends Controller
     public function store(ExchangeRateRequest $request): JsonResponse
     {
         return $this->handleServiceJson(
-            fn () => [
+            fn() => [
                 'message' => 'Registro exitoso',
                 'data'    => $this->service->create(
                     $this->factory->fromRequest($request->validated())
@@ -78,7 +80,7 @@ class ExchangeRateController extends Controller
     public function show(string $id): JsonResponse
     {
         return $this->handleServiceJson(
-            fn () => ['data' => $this->service->show($id)],
+            fn() => ['data' => $this->service->show($id)],
             'No se pudo cargar la información de la tasa de cambio.'
         );
     }
@@ -89,7 +91,7 @@ class ExchangeRateController extends Controller
     public function update(ExchangeRateRequest $request, string $id): JsonResponse
     {
         return $this->handleServiceJson(
-            fn () => [
+            fn() => [
                 'message' => 'Actualización exitosa',
                 'data'    => $this->service->update(
                     $this->factory->fromRequest(
@@ -108,7 +110,7 @@ class ExchangeRateController extends Controller
     public function delete(string $id): JsonResponse
     {
         return $this->handleServiceJson(
-            fn () => [
+            fn() => [
                 'message' => 'Tasa de cambio eliminada correctamente',
                 'data'    => $this->service->delete($id),
             ],
@@ -122,7 +124,7 @@ class ExchangeRateController extends Controller
     public function toggleStatus(string $id): JsonResponse
     {
         return $this->handleServiceJson(
-            fn () => [
+            fn() => [
                 'message' => 'Estado actualizado correctamente',
                 'data'    => $this->service->toggleStatus($id),
             ],
@@ -136,9 +138,9 @@ class ExchangeRateController extends Controller
     public function historical(Request $request): Response
     {
         return $this->handleServiceInertia(
-            fn () => Inertia::render(
+            fn() => Inertia::render(
                 'ExchangeRate/Index',
-                $this->service->historicalContext($this->getPublicToken($request))
+                $this->service->historicalContext($this->tokenResolver->resolve($request))
             ),
             'No se pudo cargar el histórico de tasas de cambio.'
         );
@@ -150,9 +152,9 @@ class ExchangeRateController extends Controller
     public function getRawRates(Request $request): JsonResponse
     {
         return $this->handleServiceJson(
-            fn () => [
+            fn() => [
                 'message' => 'Tasas obtenidas correctamente.',
-                'data'    => $this->service->getRawRates($this->getPublicToken($request)),
+                'data'    => $this->service->getRawRates($this->tokenResolver->resolve($request)),
             ],
             'No se pudieron obtener las tasas de cambio.'
         );
@@ -166,28 +168,11 @@ class ExchangeRateController extends Controller
         $rates = $request->input('rates', []);
 
         return $this->handleServiceJson(
-            fn () => [
+            fn() => [
                 'message' => 'Tasas de cambio actualizadas correctamente.',
-                'data' => $this->service->updateRates($rates, $this->getPublicToken($request)),
+                'data' => $this->service->updateRates($rates, $this->tokenResolver->resolve($request)),
             ],
             'No se pudo actualizar los valores de las tasas de cambio.'
         );
-    }
-
-    /**
-     * Obtiene el token público desde el request (si existe).
-     *
-     * En rutas públicas el middleware valida el token y lo guarda en attributes.
-     * Si hay public_token significa que el token fue validado correctamente.
-     */
-    private function getPublicToken(Request $request): ?string
-    {
-        // Si existe public_token, el middleware ya validó el token
-        // Retornamos el token raw del query para el service
-        if ($request->attributes->has('public_token')) {
-            return $request->query('token');
-        }
-
-        return null;
     }
 }

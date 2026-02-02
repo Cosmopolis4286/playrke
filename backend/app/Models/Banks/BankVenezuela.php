@@ -38,6 +38,7 @@ class BankVenezuela extends Model
     // Casting
     // ========================
     protected $casts = [
+        'id' => 'string',
         'code' => 'string',
     ];
 

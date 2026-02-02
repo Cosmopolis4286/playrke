@@ -4,7 +4,7 @@ import type { BanksVEN } from './bank/banks-ven'
  * Tipo de documento venezolano
  */
 export interface DocumentType {
-    readonly id: number | string
+    readonly id: string
     readonly code: string
     readonly description: string
 }
@@ -13,7 +13,7 @@ export interface DocumentType {
  * Banco venezolano
  */
 export interface BankVenezuela {
-    readonly id: number | string
+    readonly id: string
     readonly name: string
     readonly code?: string
 }
@@ -22,9 +22,9 @@ export interface BankVenezuela {
  * Directorio de Pago Móvil (Venezuela)
  */
 export interface Directory {
-    readonly id?: number | string
+    readonly id: string
     readonly document_type?: DocumentType
-    readonly document_type_id?: number | string
+    readonly document_type_id: string
     readonly document: string
     readonly phone: string
     readonly bank?: BankVenezuela

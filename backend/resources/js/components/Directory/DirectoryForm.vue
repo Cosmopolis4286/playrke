@@ -14,7 +14,7 @@
   const props = defineProps<{
     modelValue: Partial<Directory>
     banks?: BanksVEN[]
-    documentTypes?: Array<{ id: string | number; code: string; description: string }>
+    documentTypes?: Array<{ id: string; code: string; description: string }>
   }>()
 
   /**

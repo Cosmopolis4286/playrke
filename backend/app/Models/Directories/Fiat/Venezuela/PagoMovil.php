@@ -3,8 +3,8 @@
 namespace App\Models\Directories\Fiat\Venezuela;
 
 use App\Models\User;
-use App\Models\DocumentType;
 use App\Models\Banks\BankVenezuela;
+use App\Models\Shared\DocumentType;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,6 +37,14 @@ class PagoMovil extends Model
         'phone',           // Número de teléfono
         'bank_id',         // ID del banco venezolano
         'user_id',         // ID del usuario propietario
+    ];
+
+    // ========================
+    // Casting
+    // ========================
+    protected $casts = [
+        'id' => 'string',
+        'document_type_id' => 'string',
     ];
 
     /**

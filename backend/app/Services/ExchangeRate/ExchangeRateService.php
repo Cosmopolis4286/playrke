@@ -5,7 +5,9 @@ namespace App\Services\ExchangeRate;
 use App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
+use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
+use App\Services\Security\UserContextService;
 use DomainException;
 
 /**
@@ -13,16 +15,19 @@ use DomainException;
  * los casos de uso del dominio ExchangeRate.
  *
  * Responsabilidades:
- * - Resolver contexto de usuario
+ * - Resolver contexto de usuario (auth / token)
+ * - Resolver rol y entidad asociada
  * - Delegar operaciones a servicios especializados
  * - Mantener controllers desacoplados
  *
- * NO contiene lógica de dominio ni infraestructura.
+ * NO contiene lógica de dominio ni infraestructura HTTP.
  */
 final class ExchangeRateService
 {
     public function __construct(
+        private readonly UserContextService $userContext,
         private readonly RoleUserService $roleUserService,
+        private readonly RoleEntityResolver $roleEntityResolver,
         private readonly ExchangeRateContextService $context,
         private readonly ExchangeRateCrudService $crud,
         private readonly ExchangeRateUpdaterService $updater,
@@ -38,7 +43,9 @@ final class ExchangeRateService
      */
     public function context(?string $publicToken = null): array
     {
-        return $this->context->resolve($publicToken)->toView();
+        return $this->context
+            ->resolve($publicToken)
+            ->toView();
     }
 
     /**
@@ -62,7 +69,8 @@ final class ExchangeRateService
      */
     public function create(ExchangeRateDTO $dto): bool
     {
-        $userId = $this->resolveUserId($dto->tokenId);
+        $userId = $this->userContext->resolveUserId($dto->tokenId);
+
         return $this->crud->create($dto, $userId);
     }
 
@@ -76,7 +84,8 @@ final class ExchangeRateService
      */
     public function show(string $exchangeRateId): ExchangeRateResource
     {
-        $userId = $this->resolveUserId();
+        $userId = $this->userContext->resolveUserId();
+
         return $this->crud->show($exchangeRateId, $userId);
     }
 
@@ -90,7 +99,8 @@ final class ExchangeRateService
      */
     public function update(ExchangeRateDTO $dto): bool
     {
-        $userId = $this->resolveUserId($dto->tokenId);
+        $userId = $this->userContext->resolveUserId($dto->tokenId);
+
         return $this->crud->update($dto, $userId);
     }
 
@@ -104,7 +114,8 @@ final class ExchangeRateService
      */
     public function toggleStatus(string $exchangeRateId): bool
     {
-        $userId = $this->resolveUserId();
+        $userId = $this->userContext->resolveUserId();
+
         return $this->crud->changeStatusByRole($exchangeRateId, $userId);
     }
 
@@ -118,7 +129,8 @@ final class ExchangeRateService
      */
     public function delete(string $exchangeRateId): bool
     {
-        $userId = $this->resolveUserId();
+        $userId = $this->userContext->resolveUserId();
+
         return $this->crud->deleteByRole($exchangeRateId, $userId);
     }
 
@@ -134,8 +146,12 @@ final class ExchangeRateService
      */
     public function getRawRates(?string $publicToken = null): ?array
     {
-        $userId = $this->resolveUserId($publicToken);
-        $commerceId = $this->roleUserService->getUserRoleEntityId($userId, 'commerce');
+        $userId = $this->userContext->resolveUserId($publicToken);
+
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        $commerceId = $this->roleEntityResolver
+            ->resolveEntityId($userId, $role);
 
         $rates = $this->api->fetch();
 
@@ -147,7 +163,12 @@ final class ExchangeRateService
             ->getAvailableCurrenciesIsoCodes($commerceId);
 
         return collect($rates)
-            ->filter(fn($value, $key) => $key !== 'Promedio' && $value != 0 && in_array($key, $availableIsoCodes, true))
+            ->filter(
+                fn($value, $key) =>
+                $key !== 'Promedio'
+                    && $value != 0
+                    && in_array($key, $availableIsoCodes, true)
+            )
             ->toArray();
     }
 
@@ -162,14 +183,23 @@ final class ExchangeRateService
      */
     public function updateRates(array $rates, ?string $publicToken = null): bool
     {
-        $userId = $this->resolveUserId($publicToken);
-        $commerceId = $this->roleUserService->getUserRoleEntityId($userId, 'commerce');
+        $userId = $this->userContext->resolveUserId($publicToken);
+
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        $commerceId = $this->roleEntityResolver
+            ->resolveEntityId($userId, $role);
 
         $availableIsoCodes = $this->commerceCurrencyRepository
             ->getAvailableCurrenciesIsoCodes($commerceId);
 
         $filteredRates = collect($rates)
-            ->filter(fn($value, $key) => $key !== 'Promedio' && $value != 0 && in_array($key, $availableIsoCodes, true))
+            ->filter(
+                fn($value, $key) =>
+                $key !== 'Promedio'
+                    && $value != 0
+                    && in_array($key, $availableIsoCodes, true)
+            )
             ->toArray();
 
         return $this->updater->updateRates($userId, $filteredRates);
@@ -183,28 +213,5 @@ final class ExchangeRateService
     public function historicalContext(): array
     {
         return [];
-    }
-
-    /* =====================================================
-     | Helpers internos
-     |=====================================================*/
-
-    /**
-     * Resuelve el ID del usuario autenticado o desde un token público.
-     *
-     * @param string|null $publicToken Token público opcional
-     * @return int ID del usuario
-     *
-     * @throws DomainException Si no se pudo resolver el usuario
-     */
-    private function resolveUserId(?string $publicToken = null): int
-    {
-        $user = $this->roleUserService->resolveUser($publicToken);
-
-        if (empty($user['id'])) {
-            throw new DomainException('No se pudo resolver el usuario');
-        }
-
-        return (int) $user['id'];
     }
 }
