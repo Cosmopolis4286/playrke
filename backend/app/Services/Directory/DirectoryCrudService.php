@@ -47,7 +47,7 @@ final class DirectoryCrudService
     /**
      * Obtiene un registro específico de pago móvil.
      *
-     * @param string $id     ID del registro
+     * @param string $id ID del registro
      * @param string $userId ID del usuario (para validación de propiedad)
      * @return DirectoryResource Registro transformado
      *
@@ -78,7 +78,7 @@ final class DirectoryCrudService
         // Validación de duplicados
         if ($this->repository->existsDuplicate(
             $dto->documentTypeId,
-            $dto->document,
+            $dto->documentNumber,
             $dto->bankId
         )) {
             throw new DomainException(
@@ -136,7 +136,7 @@ final class DirectoryCrudService
         // Validación de duplicados (excluyendo el registro actual)
         if ($this->repository->existsDuplicate(
             $dto->documentTypeId,
-            $dto->document,
+            $dto->documentNumber,
             $dto->bankId,
             $dto->id
         )) {
@@ -172,13 +172,13 @@ final class DirectoryCrudService
     /**
      * Elimina un registro de pago móvil (soft delete).
      *
-     * @param string $id     ID del registro
-     * @param string $userId ID del usuario (para validación de propiedad)
+     * @param string $id ID del registro
+     * @param int $userId ID del usuario (para validación de propiedad)
      * @return bool True si se eliminó correctamente
      *
      * @throws DomainException Si el registro no existe o no pertenece al usuario
      */
-    public function delete(string $id, string $userId): bool
+    public function delete(string $id, int $userId): bool
     {
         $existing = $this->repository->findById($id, $userId);
 

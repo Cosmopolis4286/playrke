@@ -33,14 +33,11 @@
    * Lógica de negocio
    * ========================================================================== */
 
-  const { directoryData, directories, create, edit, submit, remove, fetchDirectories } = useDirectory()
+  const { directoryData, directories, setInitialDirectories, create, edit, submit, remove } =
+    useDirectory(props.tokenId)
 
-  /**
-   * Cargar directorios al montar el componente
-   */
-  onMounted(() => {
-    fetchDirectories()
-  })
+  // Inicializar directories con las props
+  setInitialDirectories(props.directories)
 
   /* ==========================================================================
    * Modal + Form handler
@@ -99,18 +96,22 @@
   /**
    * Watcher para inicializar selectedCode cuando countries cambie
    */
-  watch(countries, (newCountries) => {
-    if (newCountries.length > 0 && !selectedCode.value) {
-      // Intentar obtener VE primero
-      const veCountry = newCountries.find((c: any) => c.iso_code_2 === 'VE')
-      if (veCountry) {
-        selectedCode.value = veCountry.iso_code_2
-      } else {
-        // Si no existe VE, usar el primer país
-        selectedCode.value = newCountries[0]?.iso_code_2 || ''
+  watch(
+    countries,
+    newCountries => {
+      if (newCountries.length > 0 && !selectedCode.value) {
+        // Intentar obtener VE primero
+        const veCountry = newCountries.find((c: any) => c.iso_code_2 === 'VE')
+        if (veCountry) {
+          selectedCode.value = veCountry.iso_code_2
+        } else {
+          // Si no existe VE, usar el primer país
+          selectedCode.value = newCountries[0]?.iso_code_2 || ''
+        }
       }
-    }
-  }, { immediate: true })
+    },
+    { immediate: true }
+  )
 
   /**
    * País seleccionado completo
@@ -132,10 +133,10 @@
   const subtitle = computed(() => {
     // Mapeo de países a sus métodos de pago específicos
     const paymentMethods: Record<string, string> = {
-      'VE': 'Pago Móvil',
-      'BR': 'PIX',
-      'CO': 'Nequi / Daviplata',
-      'US': 'Zelle'
+      VE: 'Pago Móvil',
+      BR: 'PIX',
+      CO: 'Nequi / Daviplata',
+      US: 'Zelle'
     }
 
     const method = paymentMethods[selectedCode.value]
@@ -203,14 +204,27 @@
         @tabSelected="onTabChange"
       />
 
+      <BaseTable
+        :table-id="tableId"
+        :columns="columns"
+        :rows="filteredRows"
+        :empty-message="emptyMessage"
+        :selected-ids="selectedIds"
+        @selection-change="handleSelectionChange"
+      >
+        <template
+          v-for="column in columns"
+          :key="column.key"
+          v-slot:[`cell-${column.key}`]="{ row, value }"
+        >
+          <slot :name="`cell-${column.key}`" :row="row" :value="value" />
+        </template>
+      </BaseTable>
+
       <DirectoryButtons @create="handleCreate" />
 
       <!-- Tabla de directorios -->
-      <DirectoryTable
-        :directories="directories"
-        @edit="handleEdit"
-        @delete="handleRemove"
-      />
+      <DirectoryTable :directories="directories" @edit="handleEdit" @delete="handleRemove" />
     </div>
   </div>
 

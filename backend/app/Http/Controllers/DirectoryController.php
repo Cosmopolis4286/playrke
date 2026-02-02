@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Factories\Directory\DirectoryFactory;
 use App\Http\Requests\Directory\DirectoryRequest;
+use App\Http\Support\PublicTokenResolver;
 use App\Services\Directory\DirectoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,18 +22,31 @@ class DirectoryController extends Controller
     public function __construct(
         private DirectoryFactory $factory,
         private DirectoryService $service,
+        private PublicTokenResolver $tokenResolver
     ) {}
+
+    /**
+     * Obtiene el token público desde el request (si existe).
+     *
+     * @param Request $request
+     * @return string|null
+     */
+    private function resolveToken(Request $request): ?string
+    {
+        return $this->tokenResolver->resolve($request);
+    }
 
     /**
      * Muestra los directorios usando Inertia.
      *
+     * @param Request $request
      * @return Response
      */
     public function index(Request $request): Response
     {
         return $this->handleServiceInertia(
-            function () {
-                $response = $this->service->context($this->tokenResolver->resolve($request));
+            function () use ($request) {
+                $response = $this->service->context($this->resolveToken($request));
 
                 return Inertia::render('Directory/Index', $response);
             },
@@ -43,6 +57,7 @@ class DirectoryController extends Controller
     /**
      * Endpoint para obtener los directorios según el pais.
      *
+     * @param Request $request
      * @return JsonResponse
      */
     public function listFiltered(Request $request): JsonResponse
@@ -50,7 +65,7 @@ class DirectoryController extends Controller
         return $this->handleServiceJson(
             function () use ($request) {
 
-                $data = $this->service->getAll();
+                $data = $this->service->getAll($this->resolveToken($request));
 
                 return ['data' => $data];
             },
@@ -143,5 +158,4 @@ class DirectoryController extends Controller
             'No se pudo eliminar el directorio.'
         );
     }
-
 }

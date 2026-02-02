@@ -127,6 +127,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
                 showToast(data.message, 'success')
             }
 
+            loading.value = false
             await fetchDirectories()
             reset()
             return true

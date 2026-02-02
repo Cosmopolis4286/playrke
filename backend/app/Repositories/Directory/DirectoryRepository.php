@@ -31,15 +31,17 @@ final class DirectoryRepository
      * Obtiene todos los registros de pago móvil de un usuario.
      *
      * @param string $userId ID del usuario
+     * @param array $fields Campos a seleccionar SELECT
+     *
      * @return Collection Colección de registros PagoMovil
      */
-    public function getAllByUser(string $userId): Collection
+    public function getAllByUser(string $userId, $fields = ['*']): Collection
     {
         return $this->model
             ->with(['documentType:id,code,description', 'bank:id,name,code'])
             ->byUser($userId)
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get($fields);
     }
 
     /**
@@ -52,7 +54,7 @@ final class DirectoryRepository
     public function findById(string $id, ?string $userId = null): ?PagoMovil
     {
         $query = $this->model
-            ->with(['documentType:id,code,description', 'bank:id,name,code', 'user:id,name,email'])
+            ->with(['documentType:id,code,description', 'bank:id,name,code'])
             ->where('id', $id);
 
         if ($userId !== null) {

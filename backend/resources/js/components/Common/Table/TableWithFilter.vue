@@ -1,8 +1,12 @@
 <script setup lang="ts" name="TableWithFilter">
   import { ref, computed } from 'vue'
-  import TableFilter from './TableFilter.vue'
+
   import CardHeader from '../Card/CardHeader.vue'
+  import TableFilter from './TableFilter.vue'
+  import TableActionButtons from './TableActionButtons.vue'
   import BaseTable from './BaseTable.vue'
+  import TableFooterInfo from './TableFooterInfo.vue'
+
   import type { Column } from '@/js/types/common/table/column-row'
 
   /** Opciones para filtros */
@@ -119,7 +123,6 @@
 <template>
   <div class="card">
     <CardHeader :title="title" />
-
     <div class="card-body">
       <TableFilter
         :search-placeholder="searchPlaceholder"
@@ -128,30 +131,19 @@
         @filter="handleFilter"
       />
 
-      <div class="mt-3" v-if="selectedIds.length || showCreateButton">
-        <button v-if="showCreateButton" class="btn btn-sm btn-success" @click="$emit('create')">
-          <i class="fas fa-plus"></i> Crear
-        </button>
-
-        <button
-          v-if="selectedIds.length === 1 && showEditButton"
-          class="btn btn-sm btn-primary ml-2"
-          @click="$emit('edit', selectedIds[0])"
-        >
-          <i class="fas fa-edit"></i>
-        </button>
-
-        <button
-          v-if="selectedIds.length > 0 && showDeleteButton"
-          class="btn btn-sm btn-danger ml-2"
-          @click="$emit('delete', selectedIds)"
-        >
-          <i class="fas fa-trash"></i>
-          <span v-if="selectedIds.length > 1">({{ selectedIds.length }})</span>
-        </button>
-
-        <slot name="action-buttons" :selectedIds="selectedIds" />
-      </div>
+      <TableActionButtons
+        :selected-ids="selectedIds"
+        :show-create-button="showCreateButton"
+        :show-edit-button="showEditButton"
+        :show-delete-button="showDeleteButton"
+        @create="$emit('create')"
+        @edit="$emit('edit', $event)"
+        @delete="$emit('delete', $event)"
+      >
+        <template #action-buttons="{ selectedIds }">
+          <slot name="action-buttons" :selectedIds="selectedIds" />
+        </template>
+      </TableActionButtons>
 
       <BaseTable
         :table-id="tableId"
@@ -170,15 +162,11 @@
         </template>
       </BaseTable>
 
-      <div
-        v-if="filteredRows.length"
-        class="d-flex justify-content-between align-items-center mt-2"
-      >
-        <small class="text-muted">
-          Mostrando {{ filteredRows.length }} de {{ rows.length }} registros
-          <span v-if="selectedIds.length"> ({{ selectedIds.length }} seleccionados)</span>
-        </small>
-      </div>
+      <TableFooterInfo
+        :filtered-count="filteredRows.length"
+        :total-count="rows.length"
+        :selected-count="selectedIds.length"
+      />
     </div>
   </div>
 </template>

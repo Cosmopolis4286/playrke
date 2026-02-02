@@ -3,15 +3,11 @@
 namespace App\Services\Directory;
 
 use App\Contracts\CountryRepositoryInterface;
-use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Contracts\Shared\DocumentTypeRepositoryInterface;
 use App\DTOs\Directory\DirectoryContextDTO;
 use App\Models\Banks\BankVenezuela;
 use App\Repositories\Directory\DirectoryRepository;
-use App\Services\Currency\CurrencyService;
-use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
-use App\Services\Security\UserContextService;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -28,10 +24,7 @@ use Illuminate\Database\Eloquent\Collection;
 final class DirectoryContextService
 {
     public function __construct(
-        private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
-        private readonly CurrencyService $currency,
         private readonly RoleUserService $roleUserService,
-        private readonly RoleEntityResolver $roleEntityResolver,
         private readonly BankVenezuela $bankVenezuela,
         private readonly DocumentTypeRepositoryInterface $documentTypeRepository,
         private readonly DirectoryRepository $directoryRepository,
@@ -51,59 +44,31 @@ final class DirectoryContextService
     {
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        dd($countryCode);
-
         $country = $this->countryRepository
-        ->findByIsoCode2($countryCode, ['id', 'name', 'iso_code_2']);
+            ->findByIsoCode2($countryCode, ['id', 'name', 'iso_code_2']);
 
         return new DirectoryContextDTO(
-            currencies: $this->currency->getAvailableCurrencies($userId, true, true),
-
-            exchangeRates: $this->resolveExchangeRates($userId, $role),
-
-            roleUser: $role,
-
             banks: $this->getBanks(),
+
+            directories: $this->directoryRepository->getAllByUser((string) $userId),
 
             documentTypes: $country
                 ? $this->documentTypeRepository->getActiveByCountry((int) $country->id)
                 : collect(),
 
-            directories: $this->directoryRepository->getAllByUser((string) $userId)
+            roleUser: $role,
         );
     }
 
     /**
      * Obtiene todas las tasas de cambio según contexto del usuario.
      *
-     * @param int $userId ID del usuario
+     * @param string $userId ID del usuario
      * @return array
      */
-    public function getAll(int $userId): array
+    public function getAll(string $userId): array
     {
-        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
-
-        return $this->resolveExchangeRates($userId, $role)->toArray();
-    }
-
-    /**
-     * Resuelve las tasas de cambio según el rol activo.
-     *
-     * @param int $userId ID del usuario
-     * @param string $role Prefijo del rol
-     *
-     * @return Collection
-     */
-    private function resolveExchangeRates(int $userId, string $role): Collection
-    {
-        $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
-
-        return match ($role) {
-            'commerce' => $this->commerceExchangeRate
-                ->getAvailableExchangeRates($entityId),
-
-            default => collect(),
-        };
+        return $this->directoryRepository->getAllByUser($userId)->toArray();
     }
 
     /**

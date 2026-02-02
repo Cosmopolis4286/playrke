@@ -7,19 +7,18 @@
     const loaderId = 'app-loader';
     const wrapperId = 'app-wrapper';
 
-    let vueMounted = false;
     let domLoaded = false;
 
     /**
      * Muestra el contenido principal y elimina el loader si ambas condiciones se cumplen.
      */
     const tryShowApp = (): void => {
-        if (!domLoaded) return
-        const loader = document.getElementById(loaderId);
-        const wrapper = document.getElementById(wrapperId);
+        // if (!domLoaded) return
+        // const loader = document.getElementById(loaderId);
+        // const wrapper = document.getElementById(wrapperId);
 
-        if (loader) loader.remove();
-        if (wrapper) wrapper.classList.remove('d-none');
+        // if (loader) loader.remove();
+        // if (wrapper) wrapper.classList.remove('d-none');
     };
 
     /**

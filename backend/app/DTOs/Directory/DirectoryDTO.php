@@ -17,7 +17,7 @@ final class DirectoryDTO
      *
      * @param string|null $id                ID del registro (null para creación)
      * @param string      $documentTypeId    ID del tipo de documento (V, E, J)
-     * @param string      $document          Número de documento/cédula
+     * @param string      $documentNumber       Número de documento/cédula
      * @param string      $phone             Teléfono del pago móvil
      * @param string      $bankId            ID del banco venezolano
      * @param string|null $userId            ID del usuario propietario
@@ -27,7 +27,7 @@ final class DirectoryDTO
     public function __construct(
         public readonly ?string $id,
         public readonly string $documentTypeId,
-        public readonly string $document,
+        public readonly string $documentNumber,
         public readonly string $phone,
         public readonly string $bankId,
         public readonly ?string $userId = null,
@@ -44,10 +44,10 @@ final class DirectoryDTO
     {
         return [
             'document_type_id' => $this->documentTypeId,
-            'document'         => $this->document,
-            'phone'           => $this->phone,
-            'bank_id'         => $this->bankId,
-            'user_id'         => $this->userId,
+            'document_number'  => $this->documentNumber,
+            'phone'            => $this->phone,
+            'bank_id'          => $this->bankId,
+            'user_id'          => $this->userId,
         ];
     }
 

@@ -77,11 +77,13 @@ final class DirectoryService
      * @param string $id ID del registro
      * @return DirectoryResource Registro transformado
      *
-     * @throws DomainException Si no existe el registro
+     * @throws DomainException Si no se puede resolver el usuario o no existe el registro
      */
     public function show(string $id): DirectoryResource
     {
-        return $this->crud->show($id);
+        $userId = $this->userContext->resolveUserId();
+
+        return $this->crud->show($id, $userId);
     }
 
     /**
@@ -90,12 +92,10 @@ final class DirectoryService
      * @param DirectoryDTO $dto DTO con datos actualizados
      * @return bool True si se actualizó correctamente
      *
-     * @throws DomainException Si no se puede resolver el usuario o falla la actualización
+     * @throws DomainException Si falla la actualización
      */
     public function update(DirectoryDTO $dto): bool
     {
-        $userId = $this->userContext->resolveUserId($dto->tokenId);
-
         return $this->crud->update($dto);
     }
 
@@ -109,7 +109,7 @@ final class DirectoryService
      */
     public function delete(string $id): bool
     {
-        $userId = $this->userContext->resolveUserId($dto->tokenId);
-        return $this->crud->delete($id);
+        $userId = $this->userContext->resolveUserId();
+        return $this->crud->delete($id, $userId);
     }
 }

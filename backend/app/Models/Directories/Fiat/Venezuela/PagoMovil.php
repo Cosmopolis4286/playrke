@@ -33,10 +33,10 @@ class PagoMovil extends Model
      */
     protected $fillable = [
         'document_type_id', // ID del tipo de documento
-        'document',         // Número de documento
-        'phone',           // Número de teléfono
-        'bank_id',         // ID del banco venezolano
-        'user_id',         // ID del usuario propietario
+        'document_number',  // Número de documento
+        'phone',            // Número de teléfono
+        'bank_id',          // ID del banco venezolano
+        'user_id',          // ID del usuario propietario
     ];
 
     // ========================
@@ -105,12 +105,12 @@ class PagoMovil extends Model
      * Scope para filtrar por número de documento.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $document
+     * @param string $documentNumber
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeByDocument($query, string $document)
+    public function scopeByDocument($query, string $documentNumber)
     {
-        return $query->where('document', $document);
+        return $query->where('document_number', $documentNumber);
     }
 
     /**
@@ -147,7 +147,7 @@ class PagoMovil extends Model
         return sprintf(
             '%s: %s - %s - Tel: %s',
             $this->documentType->code ?? 'DOC',
-            $this->document,
+            $this->document_number,
             $this->bank->name ?? 'Banco',
             $this->phone
         );

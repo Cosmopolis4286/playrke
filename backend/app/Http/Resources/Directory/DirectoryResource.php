@@ -34,16 +34,12 @@ class DirectoryResource extends JsonResource
             /**
              * Información del tipo de documento.
              */
-            'document_type' => [
-                'id' => $this->documentType->id ?? null,
-                'code' => $this->documentType->code ?? null,
-                'description' => $this->documentType->description ?? null,
-            ],
+            'document_type_id' => $this->documentType->id ?? null,
 
             /**
              * Número de documento/cédula.
              */
-            'document' => $this->document,
+            'document_number' => $this->document_number,
 
             /**
              * Número de teléfono del pago móvil.
@@ -53,31 +49,12 @@ class DirectoryResource extends JsonResource
             /**
              * Información del banco venezolano.
              */
-            'bank' => [
-                'id' => $this->bank->id ?? null,
-                'name' => $this->bank->name ?? null,
-                'code' => $this->bank->code ?? null,
-            ],
-
-            /**
-             * Información del usuario propietario (opcional).
-             */
-            'user' => $this->when($this->user, [
-                'id' => $this->user->id ?? null,
-                'name' => $this->user->name ?? null,
-                'email' => $this->user->email ?? null,
-            ]),
+            'bank_id' => $this->bank->id ?? null,
 
             /**
              * Información formateada completa.
              */
-            'formatted_info' => $this->getFormattedInfo(),
-
-            /**
-             * Timestamps.
-             */
-            'created_at' => $this->created_at?->toIso8601String(),
-            'updated_at' => $this->updated_at?->toIso8601String(),
+            'formatted_info' => $this->getFormattedInfo()
         ];
     }
 }

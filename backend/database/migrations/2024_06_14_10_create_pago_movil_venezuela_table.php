@@ -22,7 +22,7 @@ return new class extends Migration
                 ->comment('Tipo de documento del titular');
 
             // Número de documento
-            $table->string('document', 15)
+            $table->string('document_number', 15)
                 ->index('idx_document')
                 ->comment('Número de documento del titular');
 
