@@ -29,7 +29,21 @@ class ExchangeRateController extends Controller
     ) {}
 
     /**
+     * Obtiene el token público desde el request (si existe).
+     *
+     * @param Request $request
+     * @return string|null
+     */
+    private function resolveToken(Request $request): ?string
+    {
+        return $this->tokenResolver->resolve($request);
+    }
+
+    /**
      * Listado principal (Inertia).
+     *
+     * @param Request $request
+     * @return Response
      */
     public function index(Request $request): Response
     {
@@ -37,7 +51,7 @@ class ExchangeRateController extends Controller
             fn() => Inertia::render(
                 'ExchangeRate/Index',
                 [
-                    ...$this->service->context($this->tokenResolver->resolve($request)),
+                    ...$this->service->context($this->resolveToken($request)),
                     'title' => 'Tasas de Cambio',
                 ]
             ),
@@ -47,12 +61,15 @@ class ExchangeRateController extends Controller
 
     /**
      * Listado filtrado por rol/token.
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
     public function listFiltered(Request $request): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => [
-                'data' => $this->service->getAll($this->tokenResolver->resolve($request)),
+                'data' => $this->service->getAll($this->resolveToken($request)),
             ],
             'No se pudo cargar la lista de tasas de cambio.'
         );
@@ -60,6 +77,9 @@ class ExchangeRateController extends Controller
 
     /**
      * Crear una nueva tasa de cambio.
+     *
+     * @param ExchangeRateRequest $request
+     * @return JsonResponse
      */
     public function store(ExchangeRateRequest $request): JsonResponse
     {
@@ -76,6 +96,9 @@ class ExchangeRateController extends Controller
 
     /**
      * Mostrar detalle de una tasa de cambio.
+     *
+     * @param string $id
+     * @return JsonResponse
      */
     public function show(string $id): JsonResponse
     {
@@ -87,6 +110,9 @@ class ExchangeRateController extends Controller
 
     /**
      * Actualizar una tasa de cambio.
+     *
+     * @param ExchangeRateRequest $request
+     * @return JsonResponse
      */
     public function update(ExchangeRateRequest $request, string $id): JsonResponse
     {
@@ -106,6 +132,9 @@ class ExchangeRateController extends Controller
 
     /**
      * Eliminar una tasa de cambio (soft delete).
+     *
+     * @param string $id
+     * @return JsonResponse
      */
     public function delete(string $id): JsonResponse
     {
@@ -120,6 +149,9 @@ class ExchangeRateController extends Controller
 
     /**
      * Alternar estado (ACTIVE / INACTIVE).
+     *
+     * @param string $id
+     * @return JsonResponse
      */
     public function toggleStatus(string $id): JsonResponse
     {
@@ -134,13 +166,16 @@ class ExchangeRateController extends Controller
 
     /**
      * Histórico de tasas (Inertia).
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
     public function historical(Request $request): Response
     {
         return $this->handleServiceInertia(
             fn() => Inertia::render(
                 'ExchangeRate/Index',
-                $this->service->historicalContext($this->tokenResolver->resolve($request))
+                $this->service->historicalContext($this->resolveToken($request))
             ),
             'No se pudo cargar el histórico de tasas de cambio.'
         );
@@ -148,13 +183,16 @@ class ExchangeRateController extends Controller
 
     /**
      * Obtener tasas crudas desde proveedor externo.
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
     public function getRawRates(Request $request): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => [
                 'message' => 'Tasas obtenidas correctamente.',
-                'data'    => $this->service->getRawRates($this->tokenResolver->resolve($request)),
+                'data'    => $this->service->getRawRates($this->resolveToken($request)),
             ],
             'No se pudieron obtener las tasas de cambio.'
         );
@@ -162,6 +200,9 @@ class ExchangeRateController extends Controller
 
     /**
      * Actualizar todas las tasas con los valores confirmados por el usuario.
+     *
+     * @param Request $request
+     * @return JsonResponse
      */
     public function updateAll(Request $request): JsonResponse
     {
@@ -170,7 +211,7 @@ class ExchangeRateController extends Controller
         return $this->handleServiceJson(
             fn() => [
                 'message' => 'Tasas de cambio actualizadas correctamente.',
-                'data' => $this->service->updateRates($rates, $this->tokenResolver->resolve($request)),
+                'data' => $this->service->updateRates($rates, $this->resolveToken($request)),
             ],
             'No se pudo actualizar los valores de las tasas de cambio.'
         );

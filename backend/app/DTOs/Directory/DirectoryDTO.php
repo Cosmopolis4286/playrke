@@ -22,6 +22,7 @@ final class DirectoryDTO
      * @param string      $bankId            ID del banco venezolano
      * @param string|null $userId            ID del usuario propietario
      * @param string|null $countryCode       Código ISO del país (ej: VE)
+     * @param string|null $tokenId    Token de usuario conectado por API (opcional).
      */
     public function __construct(
         public readonly ?string $id,
@@ -31,6 +32,7 @@ final class DirectoryDTO
         public readonly string $bankId,
         public readonly ?string $userId = null,
         public readonly ?string $countryCode = 'VE',
+        public readonly ?string $tokenId = null
     ) {}
 
     /**

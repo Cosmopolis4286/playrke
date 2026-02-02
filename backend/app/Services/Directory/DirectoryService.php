@@ -4,6 +4,7 @@ namespace App\Services\Directory;
 
 use App\DTOs\Directory\DirectoryDTO;
 use App\Http\Resources\Directory\DirectoryResource;
+use App\Services\Security\UserContextService;
 use DomainException;
 
 /**
@@ -20,6 +21,7 @@ use DomainException;
 final class DirectoryService
 {
     public function __construct(
+        private readonly UserContextService $userContext,
         private readonly DirectoryContextService $context,
         private readonly DirectoryCrudService $crud,
     ) {}
@@ -27,35 +29,46 @@ final class DirectoryService
     /**
      * Obtener contexto para el directorio de acuerdo al codigo ISO.
      *
-     * @param string|null $countryCode Codigo ISO del país (opcional)
+     * @param string|null $publicToken Token público opcional
      * @return array Contexto listo para la vista
+     *
+     * @throws DomainException Si no se puede resolver el usuario o falla la obtención del contexto
      */
-    public function context(?string $countryCode = null): array
+    public function context(?string $publicToken = null): array
     {
-        return $this->context->resolve($countryCode)->toView();
+        $userId = $this->userContext->resolveUserId($publicToken);
+
+        return $this->context->resolve($userId)->toView();
     }
 
     /**
      * Obtiene todos los registros de directorio del usuario.
      *
-     * @return array Lista de registros
+     * @param string|null $publicToken Token público opcional
+     * @return array Listado de directorios
+     *
+     * @throws DomainException Si no se puede resolver el usuario o falla la obtención de los regitros.
      */
-    public function getAll(): array
+    public function getAll(?string $publicToken = null): array
     {
-        return $this->crud->getAll($userId);
+        $userId = $this->userContext->resolveUserId($publicToken);
+
+        return $this->context->getAll($userId);
     }
 
     /**
      * Crea un nuevo registro de directorio.
      *
      * @param DirectoryDTO $dto DTO con los datos del registro
-     * @return bool True si se creó correctamente
+     * @return bool True si la creación fue exitosa
      *
-     * @throws DomainException Si falla la creación
+     * @throws DomainException Si no se puede resolver el usuario o falla la creación
      */
     public function create(DirectoryDTO $dto): bool
     {
-        return $this->crud->create($dto);
+        $userId = $this->userContext->resolveUserId($dto->tokenId);
+
+        return $this->crud->create($dto, $userId);
     }
 
     /**
@@ -77,10 +90,12 @@ final class DirectoryService
      * @param DirectoryDTO $dto DTO con datos actualizados
      * @return bool True si se actualizó correctamente
      *
-     * @throws DomainException Si falla la actualización
+     * @throws DomainException Si no se puede resolver el usuario o falla la actualización
      */
     public function update(DirectoryDTO $dto): bool
     {
+        $userId = $this->userContext->resolveUserId($dto->tokenId);
+
         return $this->crud->update($dto);
     }
 
@@ -90,10 +105,11 @@ final class DirectoryService
      * @param string $id ID del registro
      * @return bool True si se eliminó correctamente
      *
-     * @throws DomainException Si falla la eliminación
+     * @throws DomainException Si no se puede resolver el usuario o falla la eliminación
      */
     public function delete(string $id): bool
     {
+        $userId = $this->userContext->resolveUserId($dto->tokenId);
         return $this->crud->delete($id);
     }
 }

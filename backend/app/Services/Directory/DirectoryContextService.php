@@ -9,24 +9,29 @@ use App\DTOs\Directory\DirectoryContextDTO;
 use App\Models\Banks\BankVenezuela;
 use App\Repositories\Directory\DirectoryRepository;
 use App\Services\Currency\CurrencyService;
+use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
+use App\Services\Security\UserContextService;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Servicio de contexto para el directorio.
+ * Servicio de aplicación para construir el contexto del Directorio.
  *
  * Responsabilidades:
- * - Resolver contexto de usuario
- * - Cargar datos necesarios para la vista (bancos, tipos de documento)
- * - Preparar DTO para la vista
+ * - Resolver usuario y rol activo
+ * - Cargar datos necesarios para la vista
+ * - Delegar resolución de entidades según rol
+ *
+ * No contiene lógica de dominio.
  */
-class DirectoryContextService
+final class DirectoryContextService
 {
     public function __construct(
         private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
         private readonly CurrencyService $currency,
         private readonly RoleUserService $roleUserService,
+        private readonly RoleEntityResolver $roleEntityResolver,
         private readonly BankVenezuela $bankVenezuela,
         private readonly DocumentTypeRepositoryInterface $documentTypeRepository,
         private readonly DirectoryRepository $directoryRepository,
@@ -34,80 +39,83 @@ class DirectoryContextService
     ) {}
 
     /**
-     * Resuelve el contexto del directorio de acuerdo al codigo ISO.
+     * Resuelve el contexto del directorio según país.
      *
-     * @param string|null $countryCode Codigo ISO del país (opcional, por defecto VE).
-     * @return DirectoryContextDTO Contexto listo para la vista.
+     * @param int $userId ID del usuario
+     * @param string $countryCode Código ISO2 del país (por defecto VE)
+     * @return DirectoryContextDTO Contexto listo para la vista
      *
-     * @throws DomainException Si no se puede resolver el rol activo.
+     * @throws DomainException
      */
-    public function resolve(?string $countryCode = 'VE'): DirectoryContextDTO
+    public function resolve(int $userId, string $countryCode = 'VE'): DirectoryContextDTO
     {
-        ['id' => $userId, 'authenticated' => $isLogged] = $this->roleUserService->resolveUser();
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
+        dd($countryCode);
 
-        // Obtener el país según el código ISO (por defecto VE)
-        $country = $this->countryRepository->findByIsoCode2($countryCode, ['id', 'name', 'iso_code_2']);
-
-        // Cargar bancos venezolanos ordenados alfabéticamente
-        $banks = $this->bankVenezuela
-            ->select('id', 'name', 'code')
-            ->orderBy('name')
-            ->get();
-
-        // Cargar tipos de documento filtrados por país
-        $documentTypes = $country
-            ? $this->documentTypeRepository->getActiveByCountry((int) $country->id)
-            : collect();
-
-        // Cargar directorios del usuario autenticado
-        $directories = $isLogged
-            ? $this->directoryRepository->getAllByUser((string) $userId)
-            : collect();
+        $country = $this->countryRepository
+        ->findByIsoCode2($countryCode, ['id', 'name', 'iso_code_2']);
 
         return new DirectoryContextDTO(
-            currencies: $isLogged ? $this->currency->getAvailableCurrencies($userId, true, true) : collect(),
-            exchangeRates: $this->resolveExchangeRatesByRole($userRolePrefix, $userId),
-            roleUser: $userRolePrefix,
-            tokenId: $isLogged ? '' : $userId,
-            banks: $banks,
-            documentTypes: $documentTypes,
-            directories: $directories
+            currencies: $this->currency->getAvailableCurrencies($userId, true, true),
+
+            exchangeRates: $this->resolveExchangeRates($userId, $role),
+
+            roleUser: $role,
+
+            banks: $this->getBanks(),
+
+            documentTypes: $country
+                ? $this->documentTypeRepository->getActiveByCountry((int) $country->id)
+                : collect(),
+
+            directories: $this->directoryRepository->getAllByUser((string) $userId)
         );
     }
 
     /**
-     * Resuelve las tasas de cambio según el prefijo de rol activo.
+     * Obtiene todas las tasas de cambio según contexto del usuario.
      *
-     * @param string $role Prefijo de rol activo (ej. 'commerce', 'player').
-     * @param int $userId ID del usuario o entidad relacionada.
-     *
-     * @return Collection Lista de tasas de cambio disponibles.
+     * @param int $userId ID del usuario
+     * @return array
      */
-    protected function resolveExchangeRatesByRole(string $role, int $userId): Collection
+    public function getAll(int $userId): array
     {
-        // Definir ID de la entidad para búsqueda basada en el rol
-        $entityId = $this->roleUserService->getUserRoleEntityId($userId, $role);
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        return $this->resolveExchangeRates($userId, $role)->toArray();
+    }
+
+    /**
+     * Resuelve las tasas de cambio según el rol activo.
+     *
+     * @param int $userId ID del usuario
+     * @param string $role Prefijo del rol
+     *
+     * @return Collection
+     */
+    private function resolveExchangeRates(int $userId, string $role): Collection
+    {
+        $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
 
         return match ($role) {
-            'commerce' => $this->commerceExchangeRate->getAvailableExchangeRates($entityId),
-            'customer', 'admin' => collect(),
+            'commerce' => $this->commerceExchangeRate
+                ->getAvailableExchangeRates($entityId),
+
             default => collect(),
         };
     }
 
     /**
-     * Obtener todas las tasas de cambio filtradas según contexto y rol.
+     * Obtiene bancos venezolanos ordenados.
      *
-     * @param string|null $publicToken Token público opcional
-     * @return array Listado de tasas de cambio
+     * @return Collection
      */
-    public function getAll(?string $publicToken = null): array
+    private function getBanks(): Collection
     {
-        ['id' => $userId, 'authenticated' => $isLogged] = $this->roleUserService->resolveUser($publicToken);
-        $userRolePrefix = $isLogged ? $this->roleUserService->getActiveUserRolePrefix($userId) ?? '' : '';
-
-        return $this->resolveExchangeRatesByRole($userRolePrefix, $userId)->toArray();
+        return $this->bankVenezuela
+            ->select('id', 'name', 'code')
+            ->orderBy('name')
+            ->get();
     }
 }

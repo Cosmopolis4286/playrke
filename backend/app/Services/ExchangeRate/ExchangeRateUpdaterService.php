@@ -5,6 +5,7 @@ namespace App\Services\ExchangeRate;
 use App\Contracts\CurrencyRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
+use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
 use Illuminate\Support\Facades\Log;
 
@@ -16,6 +17,7 @@ final class ExchangeRateUpdaterService
 {
     public function __construct(
         protected readonly RoleUserService $roleUserService,
+        private readonly RoleEntityResolver $roleEntityResolver,
         protected readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRateRepository,
         protected readonly CustomerExchangeRateRepositoryInterface $customerExchangeRateRepository,
         protected readonly CurrencyRepositoryInterface $currencyRepository,
@@ -31,7 +33,7 @@ final class ExchangeRateUpdaterService
     public function updateRates(int $userId, array $rates): bool
     {
         $rolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
-        $entityId = $this->roleUserService->getUserRoleEntityId($userId, $rolePrefix);
+        $entityId = $this->roleEntityResolver->resolveEntityId($userId, $rolePrefix);
 
         if (empty($rates)) {
             Log::warning('No se proporcionaron tasas para actualizar.');
