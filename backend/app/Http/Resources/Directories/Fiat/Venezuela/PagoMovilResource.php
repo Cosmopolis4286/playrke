@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources\Directory;
+namespace App\Http\Resources\Directories\Fiat\Venezuela;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -15,7 +15,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  *
  * @property \App\Models\Directories\Fiat\Venezuela\PagoMovil $resource
  */
-class DirectoryResource extends JsonResource
+final class PagoMovilResource extends JsonResource
 {
     /**
      * Transforma el modelo en un array para la respuesta HTTP.

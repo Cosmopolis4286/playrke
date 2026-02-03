@@ -2,8 +2,8 @@
 
 namespace App\Services\Directory;
 
-use App\DTOs\Directory\DirectoryDTO;
-use App\Http\Resources\Directory\DirectoryResource;
+use App\DTOs\Directories\Fiat\Venezuela\PagoMovilDTO;
+use App\Http\Resources\Directories\Fiat\Venezuela\PagoMovilResource;
 use App\Repositories\Directory\DirectoryRepository;
 use DomainException;
 use Illuminate\Support\Facades\DB;
@@ -41,7 +41,7 @@ final class DirectoryCrudService
     {
         $pagoMoviles = $this->repository->getAllByUser($userId);
 
-        return DirectoryResource::collection($pagoMoviles)->resolve();
+        return PagoMovilResource::collection($pagoMoviles)->resolve();
     }
 
     /**
@@ -49,11 +49,11 @@ final class DirectoryCrudService
      *
      * @param string $id ID del registro
      * @param string $userId ID del usuario (para validación de propiedad)
-     * @return DirectoryResource Registro transformado
+     * @return PagoMovilResource Registro transformado
      *
      * @throws DomainException Si no se encuentra el registro o no pertenece al usuario
      */
-    public function show(string $id, string $userId): DirectoryResource
+    public function show(string $id, string $userId): PagoMovilResource
     {
         $pagoMovil = $this->repository->findById($id, $userId);
 
@@ -61,19 +61,19 @@ final class DirectoryCrudService
             throw new DomainException('Registro de pago móvil no encontrado.');
         }
 
-        return new DirectoryResource($pagoMovil);
+        return new PagoMovilResource($pagoMovil);
     }
 
     /**
      * Crea un nuevo registro de pago móvil.
      *
-     * @param DirectoryDTO $dto    DTO con los datos del registro
+     * @param PagoMovilDTO $dto    DTO con los datos del registro
      * @param string       $userId ID del usuario propietario
      * @return bool True si se creó correctamente
      *
      * @throws DomainException Si ya existe un registro duplicado
      */
-    public function create(DirectoryDTO $dto, string $userId): bool
+    public function create(PagoMovilDTO $dto, string $userId): bool
     {
         // Validación de duplicados
         if ($this->repository->existsDuplicate(
@@ -116,12 +116,12 @@ final class DirectoryCrudService
     /**
      * Actualiza un registro de pago móvil existente.
      *
-     * @param DirectoryDTO $dto DTO con los datos actualizados
+     * @param PagoMovilDTO $dto DTO con los datos actualizados
      * @return bool True si se actualizó correctamente
      *
      * @throws DomainException Si el registro no existe o hay duplicados
      */
-    public function update(DirectoryDTO $dto): bool
+    public function update(PagoMovilDTO $dto): bool
     {
         if (!$dto->id) {
             throw new DomainException('ID del registro es requerido para actualizar.');

@@ -1,18 +1,19 @@
 <script setup lang="ts" name="DirectoryForm">
   import { computed } from 'vue'
-  import { useDirectoryForm } from '@/js/composables/directory/useDirectoryForm'
-  import type { Directory } from '@/js/types/directory'
-  import type { BanksVEN } from '@/js/types/bank/banks-ven'
 
-  // Componentes de formulario
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
+
+  import { useDirectoryForm } from '@/js/composables/directory/useDirectoryForm'
+
+  import type { DirectoryVEN } from '@/js/types/directory/directory-ven'
+  import type { BanksVEN } from '@/js/types/bank/banks-ven'
 
   /**
    * Props
    */
   const props = defineProps<{
-    modelValue: Partial<Directory>
+    modelValue: Partial<DirectoryVEN>
     banks?: BanksVEN[]
     documentTypes?: Array<{ id: string; code: string; description: string }>
   }>()
@@ -28,10 +29,7 @@
   /**
    * Composable de formulario
    */
-  const { form, errors, isEditMode, isValid, validate } = useDirectoryForm(
-    props.modelValue,
-    emit
-  )
+  const { form, errors, isEditMode, isValid, validate } = useDirectoryForm(props.modelValue, emit)
 
   /* =======================
    * Computed
@@ -89,13 +87,13 @@
       <FormInput
         container
         label="Número de Documento"
-        name="document"
-        v-model="form.document"
+        name="document_number"
+        v-model="form.document_number"
         type="text"
         maxlength="8"
         placeholder="12345678"
         required
-        :error="errors.document"
+        :error="errors.document_number"
         col="col-12 col-md-6"
       />
 

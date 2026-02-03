@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Factories\Directory\DirectoryFactory;
-use App\Http\Requests\Directory\DirectoryRequest;
+use App\Factories\Directories\Fiat\Venezuela\PagoMovilFactory;
+use App\Http\Requests\Directories\Fiat\Venezuela\PagoMovilRequest;
 use App\Http\Support\PublicTokenResolver;
 use App\Services\Directory\DirectoryService;
 use Illuminate\Http\JsonResponse;
@@ -20,7 +20,7 @@ use Inertia\Response;
 class DirectoryController extends Controller
 {
     public function __construct(
-        private DirectoryFactory $factory,
+        private PagoMovilFactory $factory,
         private DirectoryService $service,
         private PublicTokenResolver $tokenResolver
     ) {}
@@ -76,10 +76,10 @@ class DirectoryController extends Controller
     /**
      * Crear/registrar un directorio.
      *
-     * @param DirectoryRequest $request
+     * @param PagoMovilRequest $request
      * @return JsonResponse
      */
-    public function store(DirectoryRequest $request): JsonResponse
+    public function store(PagoMovilRequest $request): JsonResponse
     {
         return $this->handleServiceJson(
             function () use ($request) {
@@ -115,11 +115,11 @@ class DirectoryController extends Controller
     /**
      * Actualizar un directorio existente.
      *
-     * @param DirectoryRequest $request
+     * @param PagoMovilRequest $request
      * @param string $id Identificador del directorio.
      * @return JsonResponse
      */
-    public function update(DirectoryRequest $request, string $id): JsonResponse
+    public function update(PagoMovilRequest $request, string $id): JsonResponse
     {
         return $this->handleServiceJson(
             function () use ($request, $id) {

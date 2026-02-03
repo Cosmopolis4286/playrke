@@ -9,6 +9,7 @@
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import CountryTabs from '@/js/Components/Directory/CountryTabs.vue'
   import TableActionButtons from '@/js/Components/Common/Table/TableActionButtons.vue'
+  import TableFilter from '@/js/Components/Common/Table/TableFilter.vue'
   import BaseTable from '@/js/Components/Common/Table/BaseTable.vue'
   import TableFooterInfo from '@/js/Components/Common/Table/TableFooterInfo.vue'
   import DirectoryForm from '@/js/Components/Directory/DirectoryForm.vue'
@@ -20,7 +21,8 @@
   import { useModalForm } from '@/js/composables/common/useModalForm'
 
   // Types
-  import type { DirectoryPageProps } from '@/js/types/directory'
+  import type { DirectoryVEN, DirectoryVENPageProps } from '@/js/types/directory/directory-ven'
+  import type { Column } from '@/js/types/common/table/column-row'
 
   /* ==========================================================================
    * Props
@@ -29,10 +31,10 @@
   /**
    * Props provenientes de Inertia
    */
-  const props = defineProps<DirectoryPageProps>()
+  const props = defineProps<DirectoryVENPageProps>()
 
   /* ==========================================================================
-   * Lógica de negocio
+   * Lógica de negocio – Directorio
    * ========================================================================== */
 
   const { directoryData, directories, setInitialDirectories, create, edit, submit, remove } =
@@ -42,8 +44,52 @@
   setInitialDirectories(props.directories)
 
   /* ==========================================================================
+   * Configuración de tabla (UI)
+   * ========================================================================== */
+
+  /**
+   * Columnas de la tabla de directorio VE
+   */
+  const columns = ref<Column[]>([
+    { key: 'document', label: 'Documento' },
+    { key: 'phone', label: 'Teléfono' },
+    { key: 'bank.name', label: 'Banco' },
+    { key: 'formatted_info', label: 'Información' }
+  ])
+
+  /**
+   * Filtros disponibles para la tabla
+   */
+  const filters = [
+    {
+      key: 'bank_id',
+      label: 'Banco',
+      options: props.banks.map(bank => ({
+        label: bank.name,
+        value: String(bank.id)
+      }))
+    }
+  ]
+
+  /* ==========================================================================
+   * Table Controller
+   * ========================================================================== */
+
+  /**
+   * Controller que maneja:
+   * - filtros
+   * - selección
+   * - filas filtradas
+   */
+  const { handleFilter, selectedIds, filteredRows } = useTableController<DirectoryVEN>({
+    rows: directories,
+    columns
+  })
+
+  /* ==========================================================================
    * Modal + Form handler
    * ========================================================================== */
+
   const {
     showModalForm,
     modalTitle,
@@ -66,7 +112,7 @@
   })
 
   /* ==========================================================================
-   * Estado local
+   * Estado local – Países
    * ========================================================================== */
 
   /**
@@ -89,29 +135,19 @@
   })
 
   /**
-   * País seleccionado - inicializado con el primer país disponible
-   * Se actualiza reactivamente cuando cambian las monedas
+   * País seleccionado (ISO code)
    */
   const selectedCode = ref<string>('')
 
-  /** IDs seleccionados */
-  const selectedIds = ref<string[]>([])
-
   /**
-   * Watcher para inicializar selectedCode cuando countries cambie
+   * Inicializar país seleccionado
    */
   watch(
     countries,
     newCountries => {
       if (newCountries.length > 0 && !selectedCode.value) {
-        // Intentar obtener VE primero
-        const veCountry = newCountries.find((c: any) => c.iso_code_2 === 'VE')
-        if (veCountry) {
-          selectedCode.value = veCountry.iso_code_2
-        } else {
-          // Si no existe VE, usar el primer país
-          selectedCode.value = newCountries[0]?.iso_code_2 || ''
-        }
+        const ve = newCountries.find((c: any) => c.iso_code_2 === 'VE')
+        selectedCode.value = ve?.iso_code_2 ?? newCountries[0].iso_code_2
       }
     },
     { immediate: true }
@@ -120,22 +156,19 @@
   /**
    * País seleccionado completo
    */
-  const selectedCountry = computed(() => {
-    return countries.value.find((c: any) => c.iso_code_2 === selectedCode.value)
-  })
+  const selectedCountry = computed(() =>
+    countries.value.find((c: any) => c.iso_code_2 === selectedCode.value)
+  )
 
   /**
-   * Título dinámico basado en el país seleccionado
+   * Título dinámico
    */
-  const title = computed(() => {
-    return `Directorio ${selectedCountry.value?.name || selectedCode.value}`
-  })
+  const title = computed(() => `Directorio ${selectedCountry.value?.name || selectedCode.value}`)
 
   /**
-   * Subtítulo dinámico basado en el método de pago específico del país
+   * Subtítulo dinámico por método de pago
    */
   const subtitle = computed(() => {
-    // Mapeo de países a sus métodos de pago específicos
     const paymentMethods: Record<string, string> = {
       VE: 'Pago Móvil',
       BR: 'PIX',
@@ -143,20 +176,15 @@
       US: 'Zelle'
     }
 
-    const method = paymentMethods[selectedCode.value]
-    return method ? `Método: ${method}` : ''
+    return paymentMethods[selectedCode.value] ? `Método: ${paymentMethods[selectedCode.value]}` : ''
   })
-
-  /* ==========================================================================
-   * Watchers
-   * ========================================================================== */
 
   /* ==========================================================================
    * Handlers
    * ========================================================================== */
 
   /**
-   * Abre el modal en modo creación
+   * Abrir modal en modo creación
    */
   function handleCreate(): void {
     create()
@@ -164,9 +192,7 @@
   }
 
   /**
-   * Abre el modal en modo edición
-   *
-   * @param id Identificador del registro
+   * Abrir modal en modo edición
    */
   async function handleEdit(id: string | number): Promise<void> {
     await edit(id)
@@ -174,28 +200,23 @@
   }
 
   /**
-   * Maneja la eliminación de un directorio
-   *
-   * @param id Identificador del registro
+   * Eliminar directorio
    */
-  async function handleRemove(id: string | number): Promise<void> {
-    await remove(id)
+  async function handleDelete(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      await remove(id)
+    }
   }
 
   /**
-   * Maneja el cambio de tab por país
-   *
-   * @param code ISO code del país
+   * Cambio de país
    */
   function onTabChange(code: string): void {
     selectedCode.value = code
-
-    // Aquí puedes:
-    // - filtrar data por país
-    // - hacer router.push
-    // - llamar API para cargar directorios específicos del país
+    // Aquí puedes filtrar por país o recargar desde API
   }
 </script>
+
 <template>
   <div class="card">
     <CardHeader :title="title" :subtitle="subtitle" />
@@ -217,25 +238,21 @@
 
       <TableActionButtons
         :selected-ids="selectedIds"
-        :show-create-button="true"
-        :show-edit-button="true"
-        :show-delete-button="true"
-        @create="$emit('create')"
-        @edit="$emit('edit', $event)"
-        @delete="$emit('delete', $event)"
-      >
-        <template #action-buttons="{ selectedIds }">
-          <slot name="action-buttons" :selectedIds="selectedIds" />
-        </template>
-      </TableActionButtons>
+        show-create-button
+        show-edit-button
+        show-delete-button
+        @create="handleCreate"
+        @edit="handleEdit"
+        @delete="handleDelete"
+      />
 
       <BaseTable
         table-id="directory-table"
         :columns="columns"
         :rows="filteredRows"
-        :empty-message="emptyMessage"
+        empty-message="No se encontraron registros"
         :selected-ids="selectedIds"
-        @selection-change="handleSelectionChange"
+        @selection-change="ids => (selectedIds = ids)"
       >
         <template
           v-for="column in columns"
@@ -248,7 +265,7 @@
 
       <TableFooterInfo
         :filtered-count="filteredRows.length"
-        :total-count="rows.length"
+        :total-count="directories.length"
         :selected-count="selectedIds.length"
       />
     </div>

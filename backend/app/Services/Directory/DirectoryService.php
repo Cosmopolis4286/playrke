@@ -2,8 +2,8 @@
 
 namespace App\Services\Directory;
 
-use App\DTOs\Directory\DirectoryDTO;
-use App\Http\Resources\Directory\DirectoryResource;
+use App\DTOs\Directories\Fiat\Venezuela\PagoMovilDTO;
+use App\Http\Resources\Directories\Fiat\Venezuela\PagoMovilResource;
 use App\Services\Security\UserContextService;
 use DomainException;
 
@@ -59,12 +59,12 @@ final class DirectoryService
     /**
      * Crea un nuevo registro de directorio.
      *
-     * @param DirectoryDTO $dto DTO con los datos del registro
+     * @param PagoMovilDTO $dto DTO con los datos del registro
      * @return bool True si la creación fue exitosa
      *
      * @throws DomainException Si no se puede resolver el usuario o falla la creación
      */
-    public function create(DirectoryDTO $dto): bool
+    public function create(PagoMovilDTO $dto): bool
     {
         $userId = $this->userContext->resolveUserId($dto->tokenId);
 
@@ -75,11 +75,11 @@ final class DirectoryService
      * Obtiene un registro específico de directorio.
      *
      * @param string $id ID del registro
-     * @return DirectoryResource Registro transformado
+     * @return PagoMovilResource Registro transformado
      *
      * @throws DomainException Si no se puede resolver el usuario o no existe el registro
      */
-    public function show(string $id): DirectoryResource
+    public function show(string $id): PagoMovilResource
     {
         $userId = $this->userContext->resolveUserId();
 
@@ -89,12 +89,12 @@ final class DirectoryService
     /**
      * Actualiza un registro de directorio existente.
      *
-     * @param DirectoryDTO $dto DTO con datos actualizados
+     * @param PagoMovilDTO $dto DTO con datos actualizados
      * @return bool True si se actualizó correctamente
      *
      * @throws DomainException Si falla la actualización
      */
-    public function update(DirectoryDTO $dto): bool
+    public function update(PagoMovilDTO $dto): bool
     {
         return $this->crud->update($dto);
     }

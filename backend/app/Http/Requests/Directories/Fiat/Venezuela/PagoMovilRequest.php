@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Http\Requests\Directory;
+namespace App\Http\Requests\Directories\Fiat\Venezuela;
 
 use App\Http\Requests\BaseRequest;
 use App\Services\Auth\PermissionService;
-use Illuminate\Validation\Rule;
 
 /**
  * Request para validar datos de un Directorio de Pago Móvil (Venezuela).
@@ -14,13 +13,13 @@ use Illuminate\Validation\Rule;
  * Payload esperado:
  * {
  *   "document_type_id": "1234567890",
- *   "document": "12345678",
+ *   "document_number": "12345678",
  *   "phone": "04241234567",
  *   "bank_id": "1234567890",
  *   "country_code": "VE"
  * }
  */
-class DirectoryRequest extends BaseRequest
+final class PagoMovilRequest extends BaseRequest
 {
     /**
      * Determina si el usuario está autorizado a realizar esta acción.
@@ -47,8 +46,8 @@ class DirectoryRequest extends BaseRequest
             'bank_id' => $this->input('bank_id')
                 ? (string) $this->input('bank_id')
                 : null,
-            'document' => $this->input('document')
-                ? (string) $this->input('document')
+            'document_number' => $this->input('document_number')
+                ? (string) $this->input('document_number')
                 : null,
             'phone' => $this->input('phone')
                 ? (string) $this->input('phone')
@@ -86,7 +85,7 @@ class DirectoryRequest extends BaseRequest
              * Número de documento/cédula (sin letras).
              * Formato: 7-8 dígitos numéricos.
              */
-            'document' => [
+            'document_number' => [
                 $isUpdate ? 'sometimes' : 'required',
                 'string',
                 'regex:/^\d{7,8}$/',
@@ -135,8 +134,8 @@ class DirectoryRequest extends BaseRequest
             'document_type_id.required' => 'El tipo de documento es obligatorio.',
             'document_type_id.exists' => 'El tipo de documento seleccionado no es válido.',
 
-            'document.required' => 'El número de documento/cédula es obligatorio.',
-            'document.regex' => 'El documento debe tener entre 7 y 8 dígitos numéricos.',
+            'document_number.required' => 'El número de documento/cédula es obligatorio.',
+            'document_number.regex' => 'El documento debe tener entre 7 y 8 dígitos numéricos.',
 
             'phone.required' => 'El teléfono es obligatorio.',
             'phone.regex' => 'El teléfono debe tener formato venezolano (04XX1234567).',

@@ -1,32 +1,32 @@
 <?php
 
-namespace App\Factories\Directory;
+namespace App\Factories\Directories\Fiat\Venezuela;
 
-use App\DTOs\Directory\DirectoryDTO;
+use App\DTOs\Directories\Fiat\Venezuela\PagoMovilDTO;
 use InvalidArgumentException;
 
 /**
- * Factory para crear DTOs de Directory desde datos de request.
+ * Factory para crear DTOs de un Directorio de Pago Móvil (Venezuela) de request.
  *
  * Responsabilidades:
  * - Transformar datos de request a DTO
  * - Validar integridad de datos
  * - Aplicar defaults
  *
- * @package App\Factories\Directory
+ * @package App\Factories\Directories\Fiat\Venezuela
  */
-final class DirectoryFactory
+final class PagoMovilFactory
 {
     /**
-     * Crea un DirectoryDTO a partir de un arreglo de datos (request).
+     * Crea un PagoMovilDTO a partir de un arreglo de datos (request).
      *
      * @param array<string, mixed> $data         Datos de entrada, típicamente request validated
      * @param string|null          $directoryId  ID del directorio (para updates)
-     * @return DirectoryDTO DTO listo para ser procesado
+     * @return PagoMovilDTO DTO listo para ser procesado
      *
      * @throws InvalidArgumentException Si faltan campos obligatorios
      */
-    public function fromRequest(array $data, ?string $directoryId = null): DirectoryDTO
+    public function fromRequest(array $data, ?string $directoryId = null): PagoMovilDTO
     {
         // Validaciones de campos obligatorios (solo para creación)
         if ($directoryId === null) {
@@ -47,10 +47,10 @@ final class DirectoryFactory
             }
         }
 
-        return new DirectoryDTO(
+        return new PagoMovilDTO(
             id: $data['id'] ?? $directoryId,
             documentTypeId: $data['document_type_id'],
-            document: $data['document'],
+            documentNumber: $data['document_number'],
             phone: $data['phone'],
             bankId: $data['bank_id'],
             userId: $data['user_id'] ?? null,

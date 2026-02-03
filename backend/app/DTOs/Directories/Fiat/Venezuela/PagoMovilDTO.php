@@ -1,16 +1,16 @@
 <?php
 
-namespace App\DTOs\Directory;
+namespace App\DTOs\Directories\Fiat\Venezuela;
 
 /**
- * Data Transfer Object para directorios de pago.
+ * Data Transfer Object para directorios de Pago Móvil (Venezuela).
  *
  * Transporta los datos necesarios para crear o actualizar
  * registros de directorios de pago móvil (Venezuela).
  *
- * @package App\DTOs\Directory
+ * @package App\DTOs\Directories\Fiat\Venezuela
  */
-final class DirectoryDTO
+final class PagoMovilDTO
 {
     /**
      * Constructor del DTO de Directorio.

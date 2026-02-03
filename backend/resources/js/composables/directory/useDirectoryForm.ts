@@ -1,5 +1,5 @@
 import { ref, watch, computed } from 'vue'
-import type { Directory } from '@/js/types/directory'
+import type { DirectoryVEN } from '@/js/types/directory/directory-ven'
 
 /**
  * Composable para manejar el formulario de directorio de Pago Móvil.
@@ -13,15 +13,15 @@ import type { Directory } from '@/js/types/directory'
  * @param emit Emit de Vue para sync con v-model
  */
 export function useDirectoryForm(
-    modelValue: Partial<Directory>,
-    emit: (event: 'update:modelValue', value: Partial<Directory>) => void
+    modelValue: Partial<DirectoryVEN>,
+    emit: (event: 'update:modelValue', value: Partial<DirectoryVEN>) => void
 ) {
     /* =======================
      * State
      * ======================= */
     const form = ref({
         document_type_id: '',
-        document: '',
+        document_number: '',
         phone: '',
         bank_id: ''
     })
@@ -30,7 +30,7 @@ export function useDirectoryForm(
 
     const errors = ref<{
         document_type_id?: string
-        document?: string
+        document_number?: string
         phone?: string
         bank_id?: string
     }>({})
@@ -49,7 +49,7 @@ export function useDirectoryForm(
      */
     const isValid = computed(() =>
         !errors.value.document_type_id &&
-        !errors.value.document &&
+        !errors.value.document_number &&
         !errors.value.phone &&
         !errors.value.bank_id
     )
@@ -64,7 +64,7 @@ export function useDirectoryForm(
     const reset = () => {
         form.value = {
             document_type_id: '',
-            document: '',
+            document_number: '',
             phone: '',
             bank_id: ''
         }
@@ -83,10 +83,10 @@ export function useDirectoryForm(
         }
 
         // Validar número de documento
-        if (!form.value.document) {
-            errors.value.document = 'El número de documento es requerido.'
-        } else if (!/^\d{7,8}$/.test(form.value.document)) {
-            errors.value.document = 'Debe tener 7-8 dígitos numéricos.'
+        if (!form.value.document_number) {
+            errors.value.document_number = 'El número de documento es requerido.'
+        } else if (!/^\d{7,8}$/.test(form.value.document_number)) {
+            errors.value.document_number = 'Debe tener 7-8 dígitos numéricos.'
         }
 
         // Validar teléfono
@@ -114,7 +114,7 @@ export function useDirectoryForm(
         value => {
             form.value = {
                 document_type_id: value.document_type_id?.toString() ?? '',
-                document: value.document ?? '',
+                document_number: value.document_number ?? '',
                 phone: value.phone ?? '',
                 bank_id: value.bank_id?.toString() ?? ''
             }
@@ -131,7 +131,7 @@ export function useDirectoryForm(
             emit('update:modelValue', {
                 id: directoryId.value,
                 document_type_id: value.document_type_id,
-                document: value.document,
+                document_number: value.document_number,
                 phone: value.phone,
                 bank_id: value.bank_id
             })
@@ -145,7 +145,7 @@ export function useDirectoryForm(
     watch(
         () => [
             form.value.document_type_id,
-            form.value.document,
+            form.value.document_number,
             form.value.phone,
             form.value.bank_id
         ],
