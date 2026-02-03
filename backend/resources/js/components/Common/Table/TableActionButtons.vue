@@ -66,7 +66,7 @@
   <div class="mt-3" v-if="selectedIds.length || showCreateButton">
     <!-- Crear -->
     <button v-if="showCreateButton" class="btn btn-sm btn-success" @click="emit('create')">
-      <i class="fas fa-plus"></i> Crear
+      <i class="fas fa-plus"></i> Registar
     </button>
 
     <!-- Editar (solo si hay un registro seleccionado) -->

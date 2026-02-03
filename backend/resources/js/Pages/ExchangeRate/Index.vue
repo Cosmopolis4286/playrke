@@ -5,6 +5,7 @@
   import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
   import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
   import ExchangeRateForm from '@/js/Components/ExchangeRate/ExchangeRateForm.vue'
+  import TableFooterInfo from '@/js/Components/Common/Table/TableFooterInfo.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
 
   import { useExchangeRate } from '@/js/composables/exchange-rate/useExchangeRate'
@@ -160,6 +161,8 @@
         @change-status="changeStatus"
         @delete="remove"
       />
+
+      <TableFooterInfo :filtered-count="exchangeRates.length" :total-count="exchangeRates.length" />
     </div>
   </div>
 

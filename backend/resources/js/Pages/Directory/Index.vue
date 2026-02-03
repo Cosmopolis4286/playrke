@@ -3,17 +3,20 @@
    * Imports
    * ========================================================================== */
 
-  import { ref, watch, onMounted, computed } from 'vue'
+  import { ref, watch, computed } from 'vue'
 
   // UI
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import CountryTabs from '@/js/Components/Directory/CountryTabs.vue'
+  import TableActionButtons from '@/js/Components/Common/Table/TableActionButtons.vue'
+  import BaseTable from '@/js/Components/Common/Table/BaseTable.vue'
+  import TableFooterInfo from '@/js/Components/Common/Table/TableFooterInfo.vue'
   import DirectoryForm from '@/js/Components/Directory/DirectoryForm.vue'
-  import DirectoryTable from '@/js/Components/Directory/DirectoryTable.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
 
   // Composables
   import { useDirectory } from '@/js/composables/directory/useDirectory'
+  import { useTableController } from '@/js/composables/common/table/useTableController'
   import { useModalForm } from '@/js/composables/common/useModalForm'
 
   // Types
@@ -90,6 +93,9 @@
    * Se actualiza reactivamente cuando cambian las monedas
    */
   const selectedCode = ref<string>('')
+
+  /** IDs seleccionados */
+  const selectedIds = ref<string[]>([])
 
   /**
    * Watcher para inicializar selectedCode cuando countries cambie
@@ -202,8 +208,29 @@
         @tabSelected="onTabChange"
       />
 
+      <TableFilter
+        search-placeholder="Buscar en la tabla..."
+        :filters="filters"
+        :debounce-delay="300"
+        @filter="handleFilter"
+      />
+
+      <TableActionButtons
+        :selected-ids="selectedIds"
+        :show-create-button="true"
+        :show-edit-button="true"
+        :show-delete-button="true"
+        @create="$emit('create')"
+        @edit="$emit('edit', $event)"
+        @delete="$emit('delete', $event)"
+      >
+        <template #action-buttons="{ selectedIds }">
+          <slot name="action-buttons" :selectedIds="selectedIds" />
+        </template>
+      </TableActionButtons>
+
       <BaseTable
-        :table-id="tableId"
+        table-id="directory-table"
         :columns="columns"
         :rows="filteredRows"
         :empty-message="emptyMessage"
@@ -219,8 +246,11 @@
         </template>
       </BaseTable>
 
-      <!-- Tabla de directorios -->
-      <DirectoryTable :directories="directories" @edit="handleEdit" @delete="handleRemove" />
+      <TableFooterInfo
+        :filtered-count="filteredRows.length"
+        :total-count="rows.length"
+        :selected-count="selectedIds.length"
+      />
     </div>
   </div>
 
