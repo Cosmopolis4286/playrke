@@ -80,8 +80,6 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      * Obtiene y actualiza la lista filtrada de tasas desde backend.
      */
     async function fetchExchangeRates(): Promise<boolean> {
-        if (loading.value) return false
-
         try {
             loading.value = true
 
@@ -296,7 +294,6 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
             await backendClient.put('/exchange-rate/update-all', { rates })
             showToast('Tasas de cambio actualizadas con éxito', 'success')
-            loading.value = false
             await fetchExchangeRates()
 
             return true

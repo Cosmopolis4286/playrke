@@ -1,13 +1,27 @@
 .app-loader {
     position: fixed;
     inset: 0;
-    background-color: #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     z-index: 9999;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-direction: column;
+
+    background-color: #fff;
     text-align: center;
+
+    /* UX */
+    opacity: 1;
+    visibility: visible;
+    transition: opacity .25s ease, visibility .25s ease;
+}
+
+/* Estado oculto (usado por JS) */
+.app-loader.is-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .loader-content {
@@ -15,41 +29,47 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: .75rem;
 }
 
 .loader-spinner {
-    width: 70px;
-    height: 70px;
+    width: 72px;
+    height: 72px;
     position: relative;
-    margin-bottom: 1rem;
 }
 
 .loader-spin {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    max-height: 36px;
-    transform-origin: center;
+    inset: 50%;
+    max-height: 38px;
+
     transform: translate(-50%, -50%) rotate(0deg);
-    animation: spin 2s linear infinite;
+    transform-origin: center;
+    animation: spin 1.2s linear infinite;
 }
 
+/* Texto */
 .loader-text {
-    font-size: 1rem;
-    color: #333;
+    font-size: .95rem;
+    color: #555;
+    letter-spacing: .3px;
 }
 
+/* Animación */
 @keyframes spin {
-    from {
-        transform: translate(-50%, -50%) rotate(0deg);
-    }
-
     to {
         transform: translate(-50%, -50%) rotate(360deg);
     }
 }
 
-/* Ocultar el SVG del spinner de Bootstrap */
+/* Ocultar SVG interno de Bootstrap */
 .spinner-border>svg {
     display: none;
+}
+
+/* Respeta usuarios con reduce motion */
+@media (prefers-reduced-motion: reduce) {
+    .loader-spin {
+        animation: none;
+    }
 }

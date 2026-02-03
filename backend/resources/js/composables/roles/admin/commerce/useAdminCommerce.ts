@@ -96,8 +96,6 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
      * Obtiene la lista desde backend
      */
     async function fetchCommerces(): Promise<boolean> {
-        if (loading.value) return false
-
         try {
             loading.value = true
 
@@ -158,6 +156,7 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
                 )
                 showToast('Registro exitoso', 'success')
             }
+
 
             await fetchCommerces()
             reset()

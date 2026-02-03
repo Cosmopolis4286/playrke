@@ -1,39 +1,28 @@
 /**
- * Controla la visibilidad del contenido principal y el loader.
- * - Solo se quita el loader cuando el DOM y recursos cargaron.
+ * Controla la visibilidad del loader global.
+ * - El loader se muestra por defecto
+ * - Se oculta cuando todos los recursos terminaron de cargar
  */
 
 (() => {
     const loaderId = 'app-loader';
-    const wrapperId = 'app-wrapper';
 
-    let domLoaded = false;
+    const hideLoader = (): void => {
+        const loader = document.getElementById(loaderId);
+        if (!loader) return;
 
-    /**
-     * Muestra el contenido principal y elimina el loader si ambas condiciones se cumplen.
-     */
-    const tryShowApp = (): void => {
-        // if (!domLoaded) return
-        // const loader = document.getElementById(loaderId);
-        // const wrapper = document.getElementById(wrapperId);
+        loader.classList.add('is-hidden');
+        loader.setAttribute('aria-busy', 'false');
 
-        // if (loader) loader.remove();
-        // if (wrapper) wrapper.classList.remove('d-none');
-    };
-
-    /**
-     * Detectar cuando el DOM y recursos terminaron de cargar.
-     */
-    const onDomReady = () => {
-        domLoaded = true;
-        tryShowApp();
+        // Eliminar del DOM luego de la transición
+        setTimeout(() => {
+            loader.remove();
+        }, 300);
     };
 
     if (document.readyState === 'complete') {
-        // Ya terminó de cargar todo
-        onDomReady();
+        hideLoader();
     } else {
-        // Esperar a que termine de cargar todos los recursos
-        window.addEventListener('load', onDomReady, { once: true });
+        window.addEventListener('load', hideLoader, { once: true });
     }
 })();

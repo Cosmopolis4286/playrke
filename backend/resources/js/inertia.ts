@@ -1,21 +1,27 @@
-import { createApp, h, type DefineComponent, Directive } from 'vue'
+import { createApp, h, type DefineComponent } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
 import { createHead } from '@vueuse/head'
-import NProgress from 'nprogress'
-import 'nprogress/nprogress.css'
-import { Inertia } from '@inertiajs/inertia'
+import { InertiaProgress } from '@inertiajs/progress'
 import VueImaskPlugin from './plugins/vue-imask-plugin'
-import "@vueform/multiselect/themes/default.css";
 import FloatingVue from 'floating-vue'
+
+import '@vueform/multiselect/themes/default.css'
 import 'floating-vue/dist/style.css'
 
 /**
- * Importa de forma dinámica todos los componentes Vue en /resources/js/Pages.
+ * Inertia Progress (navegación interna)
  */
+InertiaProgress.init({
+    delay: 150,
+    color: '#0d6efd',
+    includeCSS: true,
+    showSpinner: false,
+})
+
 const pages = import.meta.glob<{ default: DefineComponent }>('/resources/js/Pages/**/*.vue')
 
 createInertiaApp({
-    resolve: async (name): Promise<DefineComponent> => {
+    resolve: async (name) => {
         const path = `/resources/js/Pages/${name}.vue`
         const pageImport = pages[path]
 
@@ -26,32 +32,23 @@ createInertiaApp({
         }
 
         const module = await pageImport()
-        if (!module?.default) throw new Error(`[Inertia] ${name} no exporta un componente por defecto`)
+        if (!module?.default) {
+            throw new Error(`[Inertia] ${name} no exporta un componente por defecto`)
+        }
+
         return module.default
     },
 
-    /**
-     * Setup principal donde se crea la app Vue y se registra la directiva y plugins.
-     */
     setup({ el, App, props, plugin }) {
-        const head = createHead()
         const app = createApp({ render: () => h(App, props) })
 
-        app.use(VueImaskPlugin) // Registro de la directiva v-mask
-        app.use(FloatingVue) // Registro de tooltips y popovers
-
         app.use(plugin)
-        app.use(head)
-        app.mount(el)
+        app.use(createHead())
+        app.use(VueImaskPlugin)
+        app.use(FloatingVue)
 
-        // Configuración de NProgress para indicar carga en navegación Inertia
-        Inertia.on('start', () => NProgress.start())
-        Inertia.on('finish', () => NProgress.done())
-        Inertia.on('error', () => NProgress.done())
+        app.mount(el)
     },
 
-    /**
-     * Formato del título dinámico de la página.
-     */
     title: (title) => (title ? `PlayRKE - ${title}` : 'PlayRKE'),
 })

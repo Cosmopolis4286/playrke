@@ -12,6 +12,7 @@ class AdminCommerceResource extends JsonResource
             'id' => $this->hashed_id,
             'name' => $this->name,
             'phone' => $this->phone,
+            'commission' => $this->commission,
 
             'country' => [
                 'id' => $this->country->id,

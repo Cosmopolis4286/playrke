@@ -80,8 +80,6 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
      * Obtiene la lista desde backend
      */
     async function fetchDirectories(): Promise<boolean> {
-        if (loading.value) return false
-
         try {
             loading.value = true
 
@@ -127,7 +125,6 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
                 showToast(data.message, 'success')
             }
 
-            loading.value = false
             await fetchDirectories()
             reset()
             return true

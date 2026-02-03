@@ -12,13 +12,10 @@ namespace App\DTOs\Roles\Admin\Commerce;
  */
 final class AdminCommerceDTO
 {
-    /**
-     * @param array<int,string>|null $otherCurrencies
-     * @param array<int,string>|null $allowedGames
-     */
     public function __construct(
         public readonly ?string $username,
         public readonly ?string $email,
+        public readonly ?string $commission,
         public readonly ?string $country,
         public readonly ?string $timeZone,
         public readonly ?string $currency,
@@ -33,6 +30,7 @@ final class AdminCommerceDTO
         return new self(
             $data['username'] ?? null,
             $data['email'] ?? null,
+            $data['commission'] ?? null,
             $data['country'] ?? null,
             $data['time_zone'] ?? null,
             $data['currency'] ?? null,
@@ -52,6 +50,7 @@ final class AdminCommerceDTO
         return array_filter([
             'username'         => $this->username,
             'email'            => $this->email,
+            'commission'       => $this->commission,
             'country'          => $this->country,
             'time_zone'        => $this->timeZone,
             'currency'         => $this->currency,
