@@ -63,8 +63,7 @@
     formRef: adminCommerceFormRef,
     handleSubmit
   } = useModalForm(commerceData, submit, {
-    createTitle: 'Registrar Comercializadora',
-    editTitle: 'Editar Comercializadora'
+    defaultTitle: 'Comercializadora'
   })
 
   watch(showModalForm, isOpen => {

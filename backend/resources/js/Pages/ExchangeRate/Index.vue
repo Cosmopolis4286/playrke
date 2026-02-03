@@ -89,7 +89,9 @@
     modalTitle,
     formRef: exchangeRateFormRef,
     handleSubmit
-  } = useModalForm(exchangeRateData, submit)
+  } = useModalForm(exchangeRateData, submit, {
+    defaultTitle: 'Tasa de Cambio'
+  })
 
   /**
    * Abre el modal en modo creación, inicializando datos

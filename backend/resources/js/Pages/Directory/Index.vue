@@ -8,7 +8,6 @@
   // UI
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import CountryTabs from '@/js/Components/Directory/CountryTabs.vue'
-  import DirectoryButtons from '@js/Components/Directory/DirectoryButtons.vue'
   import DirectoryForm from '@/js/Components/Directory/DirectoryForm.vue'
   import DirectoryTable from '@/js/Components/Directory/DirectoryTable.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
@@ -48,8 +47,7 @@
     formRef: directoryFormRef,
     handleSubmit
   } = useModalForm(directoryData, submit, {
-    createTitle: 'Registrar Directorio',
-    editTitle: 'Editar Directorio'
+    defaultTitle: 'Directorio'
   })
 
   /**
@@ -220,8 +218,6 @@
           <slot :name="`cell-${column.key}`" :row="row" :value="value" />
         </template>
       </BaseTable>
-
-      <DirectoryButtons @create="handleCreate" />
 
       <!-- Tabla de directorios -->
       <DirectoryTable :directories="directories" @edit="handleEdit" @delete="handleRemove" />

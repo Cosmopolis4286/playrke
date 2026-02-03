@@ -1,4 +1,4 @@
-import { ref, computed, watch, Ref } from 'vue'
+import { ref, computed, watch, Ref, ComputedRef } from 'vue'
 
 /**
  * API mínima que el formulario debe exponer
@@ -13,9 +13,11 @@ export interface ModalFormExpose {
  * Opciones de configuración para el modal
  */
 export interface ModalFormOptions {
-    /** Título para modo creación (default: 'Registrar') */
+    /** Título base por defecto */
+    defaultTitle: string
+    /** Título para modo creación */
     createTitle?: string
-    /** Título para modo edición (default: 'Editar') */
+    /** Título para modo edición */
     editTitle?: string
 }
 
@@ -24,34 +26,26 @@ export interface ModalFormOptions {
  */
 interface UseModalFormReturn {
     showModalForm: Ref<boolean>
-    modalTitle: Ref<string>
-    formMode?: Ref<'create' | 'edit'>
+    modalTitle: ComputedRef<string>
+    formMode: ComputedRef<'create' | 'edit'>
     formRef: Ref<ModalFormExpose | null>
     handleSubmit: () => Promise<boolean>
 }
 
 /**
  * Maneja el ciclo de vida del modal con formulario
- *
- * Responsabilidades:
- * - Submit orquestado (form → backend)
- * - Validación previa
- * - Reset automático al cerrar
- * - Determinar modo create / edit
- * - Resolver título del modal (UI)
- *
- * ⚠️ No conoce backend ni datos del formulario
- *
- * @param formData Ref reactivo del formulario
- * @param submitFn Función submit del composable de negocio
- * @param options Opciones de configuración (títulos personalizados)
  */
-export function useModalForm(
-    formData: Ref<Record<string, any>>,
+export function useModalForm<T extends { id?: number | string }>(
+    formData: Ref<T>,
     submitFn: () => Promise<boolean>,
-    options: ModalFormOptions = {}
+    options: ModalFormOptions
 ): UseModalFormReturn {
-    const { createTitle = 'Registrar', editTitle = 'Editar' } = options
+
+    const {
+        defaultTitle,
+        createTitle = `Registrar ${defaultTitle}`,
+        editTitle = `Editar ${defaultTitle}`,
+    } = options
 
     /** Controla la visibilidad del modal */
     const showModalForm = ref(false)
@@ -61,7 +55,6 @@ export function useModalForm(
 
     /**
      * Modo actual del formulario
-     * Se deriva del estado del modelo (create / edit)
      */
     const formMode = computed<'create' | 'edit'>(() =>
         formData.value?.id ? 'edit' : 'create'
@@ -69,7 +62,6 @@ export function useModalForm(
 
     /**
      * Título del modal
-     * Responsabilidad de UI, derivado del modo actual
      */
     const modalTitle = computed(() =>
         formMode.value === 'create' ? createTitle : editTitle
@@ -77,8 +69,6 @@ export function useModalForm(
 
     /**
      * Submit del modal
-     * 1. Valida formulario
-     * 2. Ejecuta submit del backend
      */
     async function handleSubmit(): Promise<boolean> {
         if (!formRef.value?.submit()) return false
@@ -97,7 +87,8 @@ export function useModalForm(
     return {
         showModalForm,
         modalTitle,
+        formMode,
         formRef,
-        handleSubmit
+        handleSubmit,
     }
 }
