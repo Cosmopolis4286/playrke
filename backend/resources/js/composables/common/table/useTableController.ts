@@ -4,8 +4,8 @@ import { useTableFiltering, TableFilterState } from './useTableFiltering'
 import { useFilterableSelection } from './useFilterableSelection'
 
 export function useTableController<T extends { id: string | number }>(options: {
-    rows: Ref<T[]>
     columns: Ref<Column[]>
+    rows: Ref<T[]>
     pageSize?: number
     onSelectionChange?: (ids: Array<T['id']>) => void
 }) {

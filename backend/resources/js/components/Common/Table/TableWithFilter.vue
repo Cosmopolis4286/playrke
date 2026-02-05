@@ -61,8 +61,8 @@
 
   /** 👉 Controller */
   const { handleFilter, selectedIds, filteredRows } = useTableController({
-    rows: toRef(props, 'rows'),
     columns: toRef(props, 'columns'),
+    rows: toRef(props, 'rows'),
     onSelectionChange: ids => emit('selection-change', ids.map(String))
   })
 

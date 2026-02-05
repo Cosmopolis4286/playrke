@@ -48,7 +48,7 @@
                                     @click.stop="toggle('{{ $hashId }}')">
                             </td>
                             @foreach ($rowKeys as $key)
-                                <td>{!! $key === 'status_label' ? data_get($item, $key) : e(data_get($item, $key)) !!}</td>
+                                <td>{!! $key === 'status_badge' ? data_get($item, $key) : e(data_get($item, $key)) !!}</td>
                             @endforeach
                         </tr>
                     @endforeach

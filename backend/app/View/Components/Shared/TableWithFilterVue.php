@@ -227,7 +227,7 @@ class TableWithFilterVue extends Component
             fn(string $label, int $index) => [
                 'key'   => str_replace('.', '_', $rowKeys[$index]),
                 'label' => $label,
-                'html'  => $rowKeys[$index] === 'status_label',
+                'html'  => $rowKeys[$index] === 'status_badge',
             ]
         )->toArray();
     }

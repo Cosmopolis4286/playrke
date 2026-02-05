@@ -27,7 +27,7 @@ Componente Blade que envuelve el sistema Vue para fácil uso.
     :title="'Comercializadores'"
     :rows="$pageData['commerces']"
     :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']"
-    :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_label']"
+    :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_badge']"
     :filters="[
         [
             'key' => 'country_name',
@@ -225,7 +225,7 @@ window.addEventListener('table:selection-change', (e) => {
         :title="$title"
         :rows="$users"
         :columns="['Nombre', 'Email', 'Rol', 'Estado']"
-        :row-keys="['name', 'email', 'Role.name', 'status_label']"
+        :row-keys="['name', 'email', 'Role.name', 'status_badge']"
         :filters="[
             [
                 'key' => 'Role_name',

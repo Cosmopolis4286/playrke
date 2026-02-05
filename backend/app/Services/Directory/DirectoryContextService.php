@@ -18,13 +18,33 @@ use Illuminate\Database\Eloquent\Collection;
  * Responsabilidades:
  * - Resolver usuario y rol activo
  * - Cargar datos necesarios para la vista
- * - Delegar resolución de entidades según rol
+ * - Construir data normalizada para tablas Inertia
  *
  * No contiene lógica de dominio.
  */
 final class DirectoryContextService
 {
     use HashedTableDataTrait;
+
+    /**
+     * Labels visibles de columnas para tabla.
+     */
+    private const DIRECTORY_COLUMNS = [
+        'Documento',
+        'Teléfono',
+        'Banco',
+        'Status',
+    ];
+
+    /**
+     * Keys fuente para mapear valores desde el modelo.
+     */
+    private const DIRECTORY_ROW_KEYS = [
+        'document',
+        'phone',
+        'Bank.name',
+        'status_badge',
+    ];
 
     public function __construct(
         private readonly RoleUserService $roleUserService,
@@ -39,6 +59,7 @@ final class DirectoryContextService
      *
      * @param int $userId ID del usuario
      * @param string $countryCode Código ISO2 del país (por defecto VE)
+     *
      * @return DirectoryContextDTO Contexto listo para la vista
      *
      * @throws DomainException
@@ -52,47 +73,45 @@ final class DirectoryContextService
 
         return new DirectoryContextDTO(
             banks: $this->getBanks(),
-
-            directories: $this->processDirectories($userId),
-
+            directories: $this->getDirectoriesTableData($userId),
             documentTypes: $country
                 ? $this->documentTypeRepository->getActiveByCountry((int) $country->id)
                 : collect(),
-
             roleUser: $role,
         );
     }
 
     /**
-     * Obtiene todas las tasas de cambio según contexto del usuario.
+     * Obtiene directorios del usuario listos para tabla Inertia.
      *
-     * @param string $userId ID del usuario
+     * @param int $userId ID del usuario
+     *
      * @return array
      */
-    public function getAll(string $userId): array
+    public function getAll(int $userId): array
     {
-        return $this->processDirectories($userId);
+        return $this->getDirectoriesTableData($userId);
     }
 
     /**
-     * Aplica transformación de tablas con
-     * IDs hasheados, columnas y keys normalizadas para frontend.
+     * Construye el contexto de tabla para directorios:
+     * - IDs hasheados
+     * - Keys normalizadas
+     * - Columnas para frontend
      *
-     * @param string $userId ID del usuario
+     * @param int $userId ID del usuario
+     *
      * @return array
      */
-    private function processDirectories(string $userId): array
+    private function getDirectoriesTableData(int $userId): array
     {
-        $directories =  $this->directoryRepository->getAllByUser($userId);
+        $directories = $this->directoryRepository->getAllByUser($userId);
 
-        // Define columnas visibles y keys fuente para la tabla
-        $columns = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_label'];
-
-        // Aplica transformación de contexto para tablas Inertia
-        $context = $this->processContextTableData($context, $rolePrefix, $columns, $rowKeys);
-
-        return $context;
+        return $this->processCollectionTableData(
+            $directories,
+            self::DIRECTORY_COLUMNS,
+            self::DIRECTORY_ROW_KEYS
+        );
     }
 
     /**

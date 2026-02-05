@@ -48,6 +48,28 @@ class PagoMovil extends Model
     ];
 
     /**
+     * Accessor para el label de status con badge HTML
+     */
+    public function getDocumentAttribute(): string
+    {
+        return sprintf('%s-%s', $this->documentType->code ?? 'DOC', $this->document_number);
+    }
+
+    /**
+     * Accessor para el badge de status con badge HTML
+     */
+    public function getStatusBadgeAttribute(): string
+    {
+        return match ($this->status) {
+            'ACTIVE' => '<span class="badge badge-success">Activo</span>',
+            'INACTIVE' => '<span class="badge badge-secondary">Inactivo</span>',
+            'BLOCKED' => '<span class="badge badge-danger">Bloqueado</span>',
+            'DELETED' => '<span class="badge badge-dark">Eliminado</span>',
+            default => '<span class="badge badge-warning">Desconocido</span>'
+        };
+    }
+
+    /**
      * Relación con el usuario propietario.
      *
      * @return BelongsTo

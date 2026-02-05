@@ -11,10 +11,13 @@ use App\Contracts\TimeZoneRepositoryInterface;
 use App\DTOs\ContextDTO;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceContextDTO;
 use App\DTOs\Roles\Admin\Customer\AdminCustomerContextDTO;
+use App\Traits\HashedTableDataTrait;
 use DomainException;
 
 class AdminContextService
 {
+    use HashedTableDataTrait;
+
     public function __construct(
         protected CountryRepositoryInterface $countries,
         protected CurrencyRepositoryInterface $currencies,
@@ -24,27 +27,34 @@ class AdminContextService
         protected TimeZoneRepositoryInterface $timeZones
     ) {}
 
-    /**
-     * Obtiene el contexto necesario para la visualización de tasas de cambio.
-     *
-     * Este método resuelve la información según el usuario que realiza la petición,
-     * diferenciando entre usuario autenticado y usuario público.
-     *
-     * Para usuarios autenticados, incluye layout específico, monedas disponibles
-     * para el comercio asociado y listado de tasas de cambio.
-     * Para usuarios públicos, muestra un layout de invitado y oculta las monedas.
-     *
-     * @return \App\DTOs\ContextDTO Contexto listo para la vista.
-     *
-     * @throws \DomainException Si no se encuentra el comercio asociado al usuario.
-     */
-    public function resolve(string $context): ContextDTo
+    public function resolve(string $context): ContextDTO
     {
         return match ($context) {
             'commerces' => $this->commerceContext(),
             'customers' => $this->customerContetx(),
             default => throw new DomainException('Tipo Rol inválido, no existe el contexto'),
         };
+    }
+
+    /**
+     * Construye el contexto de tabla para el tipo de rol/usuario
+     * - IDs hasheados
+     * - Keys normalizadas
+     * - Columnas para frontend
+     * 
+     * @param object $collection Colección de Eloquent
+     * @param array $columns Columnas visibles en la tabla
+     * @param array $rowKeys Keys fuente para mapear valores desde el modelo
+     *
+     * @return array
+     */
+    private function getTableData(object $collection, array $columns, array $rowKeys): array
+    {
+        return $this->processCollectionTableData(
+            $collection,
+            $columns,
+            $rowKeys
+        );
     }
 
     private function commerceContext(): AdminCommerceContextDTO
@@ -58,7 +68,7 @@ class AdminContextService
         );
 
         return new AdminCommerceContextDTO(
-            commerces: $commerces,
+            commerces: $this->getTableData($commerces, $columns, $rowKeys),
             countries: $this->countries->getActive(['id', 'name']),
             currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
             games: $this->games->getActive(['id', 'name']),
@@ -74,7 +84,7 @@ class AdminContextService
         ]);
 
         return new AdminCustomerContextDTO(
-            commerces: $customers,
+            customers: $this->getTableData($customers),
             countries: $this->countries->getActive(),
             currencies: $this->currencies->getActive(),
             games: $this->games->getActive(),

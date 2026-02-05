@@ -43,20 +43,9 @@
   // Inicializar directories con las props
   setInitialDirectories(props.directories)
 
-  console.log('props.directories', props.directories)
-
   /* ==========================================================================
    * Configuración de tabla (UI)
    * ========================================================================== */
-
-  /**
-   * Columnas de la tabla de directorio VE
-   */
-  const columns = ref<Column[]>([
-    { key: 'document', label: 'Documento' },
-    { key: 'phone', label: 'Teléfono' },
-    { key: 'bank.name', label: 'Banco' },
-  ])
 
   /**
    * Filtros disponibles para la tabla
@@ -83,8 +72,8 @@
    * - filas filtradas
    */
   const { handleFilter, selectedIds, filteredRows } = useTableController<DirectoryVEN>({
-    rows: directories,
-    columns
+    columns: directories['columns'],
+    rows: directories['rows']
   })
 
   /* ==========================================================================
@@ -266,7 +255,7 @@
 
       <TableFooterInfo
         :filtered-count="filteredRows.length"
-        :total-count="directories.length"
+        :total-count="directories.rows.length"
         :selected-count="selectedIds.length"
       />
     </div>

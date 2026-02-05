@@ -66,6 +66,35 @@ trait HashedTableDataTrait
     }
 
     /**
+     * Procesa una colección directamente para tablas Inertia:
+     * - Hashea IDs
+     * - Normaliza keys
+     * - Construye columnas y filas
+     *
+     * @param Collection $collection Colección de modelos
+     * @param array $labels Labels visibles de columnas
+     * @param array $rowKeys Keys fuente (ej: Country.name)
+     *
+     * @return array ['columns' => [], 'rows' => []]
+     *
+     * @throws LogicException Si labels y rowKeys no coinciden en cantidad
+     */
+    protected function processCollectionTableData(
+        Collection $collection,
+        array $labels,
+        array $rowKeys
+    ): array {
+        if (count($labels) !== count($rowKeys)) {
+            throw new LogicException('Labels y rowKeys deben tener la misma cantidad de elementos.');
+        }
+
+        return [
+            'columns' => $this->buildColumns($labels, $rowKeys),
+            'rows'    => $this->buildRows($collection, $rowKeys),
+        ];
+    }
+
+    /**
      * Construye las filas de la tabla con:
      * - ID hasheado
      * - Keys normalizadas
@@ -127,7 +156,7 @@ trait HashedTableDataTrait
             fn(string $label, int $index) => [
                 'key'   => $this->normalizeKey($rowKeys[$index]),
                 'label' => $label,
-                'html'  => $rowKeys[$index] === 'status_label',
+                'html'  => $rowKeys[$index] === 'status_badge',
             ]
         )->all();
     }

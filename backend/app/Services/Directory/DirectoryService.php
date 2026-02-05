@@ -37,7 +37,7 @@ final class DirectoryService
     public function context(?string $publicToken = null): array
     {
         $userId = $this->userContext->resolveUserId($publicToken);
-
+        
         return $this->context->resolve($userId)->toView();
     }
 

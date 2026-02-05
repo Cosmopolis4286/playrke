@@ -44,7 +44,7 @@ class AdminService
         if ($rolePrefix === 'commerces') {
             // Define columnas visibles y keys fuente para la tabla
             $columns = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-            $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_label'];
+            $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
 
             // Aplica transformación de contexto para tablas Inertia
             $context = $this->processContextTableData($context, $rolePrefix, $columns, $rowKeys);
