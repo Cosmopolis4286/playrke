@@ -12,7 +12,6 @@ use App\Contracts\Roles\Treasurer\OtherTreasurersRepositoryInterface;
 use App\Contracts\TimeZoneRepositoryInterface;
 use App\Http\Controllers\Controller;
 use App\Services\Roles\Admin\AdminService;
-use App\Traits\HashedTableDataTrait;
 use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -26,7 +25,6 @@ use Inertia\Response;
  */
 class AdminController extends Controller
 {
-    use HashedTableDataTrait;
 
     /**
      * Constructor con inyección de dependencias

@@ -6,7 +6,7 @@ use App\DTOs\Directories\Fiat\Venezuela\PagoMovilDTO;
 use InvalidArgumentException;
 
 /**
- * Factory para crear DTOs de un Directorio de Pago Móvil (Venezuela) de request.
+ * Factory para crear DTOs de un Directorio de Pago Móvil (Venezuela).
  *
  * Responsabilidades:
  * - Transformar datos de request a DTO
@@ -34,8 +34,8 @@ final class PagoMovilFactory
                 throw new InvalidArgumentException('El campo "document_type_id" es obligatorio.');
             }
 
-            if (empty($data['document'])) {
-                throw new InvalidArgumentException('El campo "document" es obligatorio.');
+            if (empty($data['document_number'])) {
+                throw new InvalidArgumentException('El campo "document_number" es obligatorio.');
             }
 
             if (empty($data['phone'])) {
@@ -52,9 +52,7 @@ final class PagoMovilFactory
             documentTypeId: $data['document_type_id'],
             documentNumber: $data['document_number'],
             phone: $data['phone'],
-            bankId: $data['bank_id'],
-            userId: $data['user_id'] ?? null,
-            countryCode: $data['country_code'] ?? 'VE',
+            bankId: $data['bank_id']
         );
     }
 }

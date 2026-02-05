@@ -43,6 +43,8 @@
   // Inicializar directories con las props
   setInitialDirectories(props.directories)
 
+  console.log('props.directories', props.directories)
+
   /* ==========================================================================
    * Configuración de tabla (UI)
    * ========================================================================== */
@@ -54,7 +56,6 @@
     { key: 'document', label: 'Documento' },
     { key: 'phone', label: 'Teléfono' },
     { key: 'bank.name', label: 'Banco' },
-    { key: 'formatted_info', label: 'Información' }
   ])
 
   /**

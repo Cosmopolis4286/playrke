@@ -8,6 +8,7 @@ use App\DTOs\Directory\DirectoryContextDTO;
 use App\Models\Banks\BankVenezuela;
 use App\Repositories\Directory\DirectoryRepository;
 use App\Services\Roles\RoleUserService;
+use App\Traits\HashedTableDataTrait;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -23,6 +24,8 @@ use Illuminate\Database\Eloquent\Collection;
  */
 final class DirectoryContextService
 {
+    use HashedTableDataTrait;
+
     public function __construct(
         private readonly RoleUserService $roleUserService,
         private readonly BankVenezuela $bankVenezuela,
@@ -50,7 +53,7 @@ final class DirectoryContextService
         return new DirectoryContextDTO(
             banks: $this->getBanks(),
 
-            directories: $this->directoryRepository->getAllByUser((string) $userId),
+            directories: $this->processDirectories($userId),
 
             documentTypes: $country
                 ? $this->documentTypeRepository->getActiveByCountry((int) $country->id)
@@ -68,7 +71,28 @@ final class DirectoryContextService
      */
     public function getAll(string $userId): array
     {
-        return $this->directoryRepository->getAllByUser($userId)->toArray();
+        return $this->processDirectories($userId);
+    }
+
+    /**
+     * Aplica transformación de tablas con
+     * IDs hasheados, columnas y keys normalizadas para frontend.
+     *
+     * @param string $userId ID del usuario
+     * @return array
+     */
+    private function processDirectories(string $userId): array
+    {
+        $directories =  $this->directoryRepository->getAllByUser($userId);
+
+        // Define columnas visibles y keys fuente para la tabla
+        $columns = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
+        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_label'];
+
+        // Aplica transformación de contexto para tablas Inertia
+        $context = $this->processContextTableData($context, $rolePrefix, $columns, $rowKeys);
+
+        return $context;
     }
 
     /**

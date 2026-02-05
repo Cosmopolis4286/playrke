@@ -20,8 +20,6 @@ final class PagoMovilDTO
      * @param string      $documentNumber       Número de documento/cédula
      * @param string      $phone             Teléfono del pago móvil
      * @param string      $bankId            ID del banco venezolano
-     * @param string|null $userId            ID del usuario propietario
-     * @param string|null $countryCode       Código ISO del país (ej: VE)
      * @param string|null $tokenId    Token de usuario conectado por API (opcional).
      */
     public function __construct(
@@ -30,8 +28,6 @@ final class PagoMovilDTO
         public readonly string $documentNumber,
         public readonly string $phone,
         public readonly string $bankId,
-        public readonly ?string $userId = null,
-        public readonly ?string $countryCode = 'VE',
         public readonly ?string $tokenId = null
     ) {}
 
@@ -46,8 +42,7 @@ final class PagoMovilDTO
             'document_type_id' => $this->documentTypeId,
             'document_number'  => $this->documentNumber,
             'phone'            => $this->phone,
-            'bank_id'          => $this->bankId,
-            'user_id'          => $this->userId,
+            'bank_id'          => $this->bankId
         ];
     }
 

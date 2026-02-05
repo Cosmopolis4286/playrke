@@ -16,7 +16,6 @@ use App\Services\Auth\PermissionService;
  *   "document_number": "12345678",
  *   "phone": "04241234567",
  *   "bank_id": "1234567890",
- *   "country_code": "VE"
  * }
  */
 final class PagoMovilRequest extends BaseRequest

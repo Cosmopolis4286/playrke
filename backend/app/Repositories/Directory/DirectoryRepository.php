@@ -113,21 +113,21 @@ final class DirectoryRepository
     /**
      * Verifica si existe un pago móvil con el mismo documento y banco.
      *
-     * @param string      $documentTypeId ID del tipo de documento
-     * @param string      $document       Número de documento
-     * @param string      $bankId         ID del banco
-     * @param string|null $excludeId      ID a excluir (para updates)
+     * @param string      $documentTypeId  ID del tipo de documento
+     * @param string      $documentNumber  Número de documento
+     * @param string      $bankId          ID del banco
+     * @param string|null $excludeId       ID a excluir (para updates)
      * @return bool True si existe un duplicado
      */
     public function existsDuplicate(
         string $documentTypeId,
-        string $document,
+        string $documentNumber,
         string $bankId,
         ?string $excludeId = null
     ): bool {
         $query = $this->model
             ->where('document_type_id', $documentTypeId)
-            ->where('document', $document)
+            ->where('document_number', $documentNumber)
             ->where('bank_id', $bankId);
 
         if ($excludeId !== null) {
