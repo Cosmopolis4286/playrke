@@ -4,24 +4,28 @@ namespace App\DTOs\Roles\Admin\Customer;
 
 use App\DTOs\ContextDTO;
 
+use Illuminate\Support\Collection;
+
 final class AdminCustomerContextDTO implements ContextDTO
 {
     public function __construct(
-        public readonly object $commerces,
-        public readonly object $countries,
-        public readonly object $currencies,
-        public readonly object $games,
-        public readonly object $timeZones
+        public readonly array $customers,
+        public readonly ?array $pagination,
+        public readonly Collection $countries,
+        public readonly Collection $currencies,
+        public readonly Collection $games,
+        public readonly Collection $timeZones,
     ) {}
 
     public function toView(): array
     {
         return [
-            'commerces' => $this->commerces,
-            'countries' => $this->countries,
-            'currencies' => $this->currencies,
-            'games' => $this->games,
-            'timeZones' => $this->timeZones
+            'customers'             => $this->customers,
+            'customers_pagination'  => $this->pagination,
+            'countries'             => $this->countries,
+            'currencies'            => $this->currencies,
+            'games'                 => $this->games,
+            'timeZones'             => $this->timeZones,
         ];
     }
 }

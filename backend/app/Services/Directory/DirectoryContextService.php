@@ -6,7 +6,7 @@ use App\Contracts\CountryRepositoryInterface;
 use App\Contracts\Shared\DocumentTypeRepositoryInterface;
 use App\DTOs\Directory\DirectoryContextDTO;
 use App\Models\Banks\BankVenezuela;
-use App\Repositories\Directory\DirectoryRepository;
+use App\Repositories\Directories\Fiat\Venezuela\PagoMovilRepository;
 use App\Services\Roles\RoleUserService;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
@@ -52,7 +52,7 @@ final class DirectoryContextService
         private readonly RoleUserService $roleUserService,
         private readonly BankVenezuela $bankVenezuela,
         private readonly DocumentTypeRepositoryInterface $documentTypeRepository,
-        private readonly DirectoryRepository $directoryRepository,
+        private readonly PagoMovilRepository $directoryRepository,
         private readonly CountryRepositoryInterface $countryRepository
     ) {}
 
@@ -107,7 +107,7 @@ final class DirectoryContextService
      */
     private function getDirectoriesTableData(int $userId): array
     {
-        $directories = $this->directoryRepository->getAllByUser($userId);
+        $directories = $this->directoryRepository->getByUser($userId);
 
         return $this->processCollectionTableData(
             $directories,

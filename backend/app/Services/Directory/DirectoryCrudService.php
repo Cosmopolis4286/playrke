@@ -4,7 +4,7 @@ namespace App\Services\Directory;
 
 use App\DTOs\Directories\Fiat\Venezuela\PagoMovilDTO;
 use App\Http\Resources\Directories\Fiat\Venezuela\PagoMovilResource;
-use App\Repositories\Directory\DirectoryRepository;
+use App\Repositories\Directories\Fiat\Venezuela\PagoMovilRepository;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -25,10 +25,10 @@ final class DirectoryCrudService
     /**
      * Constructor del servicio CRUD.
      *
-     * @param DirectoryRepository $repository Repositorio de datos
+     * @param PagoMovilRepository $repository Repositorio de datos
      */
     public function __construct(
-        private readonly DirectoryRepository $repository
+        private readonly PagoMovilRepository $repository
     ) {}
 
     /**
@@ -39,7 +39,7 @@ final class DirectoryCrudService
      */
     public function getAll(string $userId): array
     {
-        $pagoMoviles = $this->repository->getAllByUser($userId);
+        $pagoMoviles = $this->repository->getByUser($userId);
 
         return PagoMovilResource::collection($pagoMoviles)->resolve();
     }
@@ -55,9 +55,9 @@ final class DirectoryCrudService
      */
     public function show(string $id, string $userId): PagoMovilResource
     {
-        $pagoMovil = $this->repository->findById($id, $userId);
+        $pagoMovil = $this->repository->find($id);
 
-        if (!$pagoMovil) {
+        if (!$pagoMovil || $pagoMovil->user_id != $userId) {
             throw new DomainException('Registro de pago móvil no encontrado.');
         }
 
@@ -76,10 +76,11 @@ final class DirectoryCrudService
     public function create(PagoMovilDTO $dto, string $userId): bool
     {
         // Validación de duplicados
-        if ($this->repository->existsDuplicate(
+        if ($this->repository->existsPagoMovil(
             $dto->documentTypeId,
             $dto->documentNumber,
-            $dto->bankId
+            $dto->bankId,
+            $dto->phone
         )) {
             throw new DomainException(
                 'Ya existe un registro con este documento y banco.'
@@ -127,18 +128,19 @@ final class DirectoryCrudService
             throw new DomainException('ID del registro es requerido para actualizar.');
         }
 
-        $existing = $this->repository->findById($dto->id);
+        $existing = $this->repository->find($dto->id);
 
         if (!$existing) {
             throw new DomainException('Registro de pago móvil no encontrado.');
         }
 
-        // Validación de duplicados (excluyendo el registro actual)
-        if ($this->repository->existsDuplicate(
+        // Validación de duplicados (excluyendo el usuario actual)
+        if ($this->repository->existsPagoMovil(
             $dto->documentTypeId,
             $dto->documentNumber,
             $dto->bankId,
-            $dto->id
+            $dto->phone,
+            $existing->user_id
         )) {
             throw new DomainException(
                 'Ya existe otro registro con este documento y banco.'
@@ -148,7 +150,7 @@ final class DirectoryCrudService
         try {
             DB::beginTransaction();
 
-            $updated = $this->repository->update($dto->id, $dto->toArray());
+            $this->repository->update($dto->id, $dto->toArray());
 
             DB::commit();
 
@@ -156,7 +158,7 @@ final class DirectoryCrudService
                 'id' => $dto->id,
             ]);
 
-            return $updated;
+            return true;
         } catch (\Throwable $e) {
             DB::rollBack();
 
@@ -180,9 +182,9 @@ final class DirectoryCrudService
      */
     public function delete(string $id, int $userId): bool
     {
-        $existing = $this->repository->findById($id, $userId);
+        $existing = $this->repository->find($id);
 
-        if (!$existing) {
+        if (!$existing || $existing->user_id != $userId) {
             throw new DomainException('Registro de pago móvil no encontrado.');
         }
 
@@ -209,5 +211,24 @@ final class DirectoryCrudService
 
             throw new DomainException('Error al eliminar el registro de pago móvil.');
         }
+    }
+
+    /**
+     * Alternar estado del directorio (ACTIVE / INACTIVE).
+     * También sincroniza el estado del usuario asociado.
+     *
+     * @param PagoMovil $pagoMovil Registro de directorio a actualizar
+     * @return bool True si el cambio fue exitoso
+     *
+     * @throws RuntimeException Si el directorio está eliminado
+     */
+    public function toggleStatus(PagoMovil $pagoMovil): bool
+    {
+        if ($pagoMovil->status === 'DELETED') {
+            throw new DomainException('No se puede cambiar el estado de un registro eliminado.');
+        }
+
+
+        return $this->repository->toggleStatus($pagoMovil);
     }
 }

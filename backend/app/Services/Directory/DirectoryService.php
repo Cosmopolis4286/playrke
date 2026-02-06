@@ -4,6 +4,7 @@ namespace App\Services\Directory;
 
 use App\DTOs\Directories\Fiat\Venezuela\PagoMovilDTO;
 use App\Http\Resources\Directories\Fiat\Venezuela\PagoMovilResource;
+use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Services\Security\UserContextService;
 use DomainException;
 
@@ -37,7 +38,7 @@ final class DirectoryService
     public function context(?string $publicToken = null): array
     {
         $userId = $this->userContext->resolveUserId($publicToken);
-        
+
         return $this->context->resolve($userId)->toView();
     }
 
@@ -111,5 +112,17 @@ final class DirectoryService
     {
         $userId = $this->userContext->resolveUserId();
         return $this->crud->delete($id, $userId);
+    }
+
+    /**
+     * Alternar estado (ACTIVE / INACTIVE) del directorio.
+     *
+     * @param PagoMovil $id ID del registro de directorio
+     *
+     * @throws DomainException Si no se puede resolver el usuario o falla el cambio de estado
+     */
+    public function toggleStatus(PagoMovil $id): void
+    {
+        $this->crud->toggleStatus($id);
     }
 }

@@ -21,7 +21,7 @@ Se ha implementado exitosamente el sistema completo de directorio de Pago Móvil
 - ✅ `app/Http/Resources/Directory/DirectoryResource.php` - Transformación de datos con relaciones
 
 #### 4. **Repositories**
-- ✅ `app/Repositories/Directory/DirectoryRepository.php` - Capa de acceso a datos
+- ✅ `app/Repositories/Directory/PagoMovilRepository.php` - Capa de acceso a datos
 
 #### 5. **Services**
 - ✅ `app/Services/Directory/DirectoryCrudService.php` - Lógica de negocio CRUD
@@ -35,7 +35,7 @@ Se ha implementado exitosamente el sistema completo de directorio de Pago Móvil
 - ✅ `app/Http/Controllers/DirectoryController.php` - Endpoints REST completos
 
 #### 8. **Providers**
-- ✅ `app/Providers/AppServiceProvider.php` - Registro de DirectoryRepository
+- ✅ `app/Providers/AppServiceProvider.php` - Registro de PagoMovilRepository
 
 ---
 
@@ -173,7 +173,7 @@ npm run build
                 │
 ┌───────────────▼─────────────────────┐
 │       Repository Layer              │
-│   (DirectoryRepository.php)         │
+│   (PagoMovilRepository.php)         │
 └───────────────┬─────────────────────┘
                 │
 ┌───────────────▼─────────────────────┐

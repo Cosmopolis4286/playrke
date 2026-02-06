@@ -82,8 +82,14 @@ class AdminContextService
             'user:id,email',
         ]);
 
+        $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
+        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
+
+        $collection = collect($customers);
+
         return new AdminCustomerContextDTO(
-            customers: $customers,
+            customers: $this->processCollectionTableData($collection, $labels, $rowKeys),
+            pagination: null,
             countries: $this->countries->getActive(),
             currencies: $this->currencies->getActive(),
             games: $this->games->getActive(),

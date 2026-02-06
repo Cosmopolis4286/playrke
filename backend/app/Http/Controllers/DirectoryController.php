@@ -158,4 +158,21 @@ class DirectoryController extends Controller
             'No se pudo eliminar el directorio.'
         );
     }
+
+    /**
+     * Alternar estado (ACTIVE / INACTIVE).
+     *
+     * @param string $id
+     * @return JsonResponse
+     */
+    public function toggleStatus(string $id): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => [
+                'message' => 'Estado actualizado correctamente',
+                'data'    => $this->service->toggleStatus($id),
+            ],
+            'No se pudo cambiar el estado del directorio.'
+        );
+    }
 }

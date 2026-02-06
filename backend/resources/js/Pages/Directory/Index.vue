@@ -250,7 +250,7 @@
             v-if="ids.length > 0"
             class="btn btn-sm btn-secondary ml-2"
             @click="handleToggleStatus(ids)"
-            title="Cambiar estado"
+            title="Alternar estado"
           >
             <i class="fas fa-exchange-alt"></i>
           </button>
