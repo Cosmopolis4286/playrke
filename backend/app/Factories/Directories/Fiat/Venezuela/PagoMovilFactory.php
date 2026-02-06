@@ -30,6 +30,10 @@ final class PagoMovilFactory
     {
         // Validaciones de campos obligatorios (solo para creación)
         if ($directoryId === null) {
+            if (empty($data['holder_name'])) {
+                throw new InvalidArgumentException('El campo "holder_name" es obligatorio.');
+            }
+
             if (empty($data['document_type_id'])) {
                 throw new InvalidArgumentException('El campo "document_type_id" es obligatorio.');
             }
@@ -49,6 +53,7 @@ final class PagoMovilFactory
 
         return new PagoMovilDTO(
             id: $data['id'] ?? $directoryId,
+            holderName: $data['holder_name'],
             documentTypeId: $data['document_type_id'],
             documentNumber: $data['document_number'],
             phone: $data['phone'],

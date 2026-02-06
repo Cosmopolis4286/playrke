@@ -20,6 +20,7 @@ export function useDirectoryForm(
      * State
      * ======================= */
     const form = ref({
+        holder_name: '',
         document_type_id: '',
         document_number: '',
         phone: '',
@@ -29,6 +30,7 @@ export function useDirectoryForm(
     const directoryId = ref(modelValue.id)
 
     const errors = ref<{
+        holder_name?: string
         document_type_id?: string
         document_number?: string
         phone?: string
@@ -48,6 +50,7 @@ export function useDirectoryForm(
      * Estado de validez del formulario.
      */
     const isValid = computed(() =>
+        !errors.value.holder_name &&
         !errors.value.document_type_id &&
         !errors.value.document_number &&
         !errors.value.phone &&
@@ -63,6 +66,7 @@ export function useDirectoryForm(
      */
     const reset = () => {
         form.value = {
+            holder_name: '',
             document_type_id: '',
             document_number: '',
             phone: '',
@@ -76,6 +80,13 @@ export function useDirectoryForm(
      */
     const validate = () => {
         errors.value = {}
+
+        // Validar nombre del titular
+        if (!form.value.holder_name?.trim()) {
+            errors.value.holder_name = 'El nombre del titular es requerido.'
+        } else if (form.value.holder_name.length > 100) {
+            errors.value.holder_name = 'Máximo 100 caracteres.'
+        }
 
         // Validar tipo de documento
         if (!form.value.document_type_id) {
@@ -113,6 +124,7 @@ export function useDirectoryForm(
         () => modelValue,
         value => {
             form.value = {
+                holder_name: value.holder_name ?? '',
                 document_type_id: value.document_type_id?.toString() ?? '',
                 document_number: value.document_number ?? '',
                 phone: value.phone ?? '',
@@ -130,6 +142,7 @@ export function useDirectoryForm(
         value => {
             emit('update:modelValue', {
                 id: directoryId.value,
+                holder_name: value.holder_name,
                 document_type_id: value.document_type_id,
                 document_number: value.document_number,
                 phone: value.phone,
@@ -144,6 +157,7 @@ export function useDirectoryForm(
      */
     watch(
         () => [
+            form.value.holder_name,
             form.value.document_type_id,
             form.value.document_number,
             form.value.phone,

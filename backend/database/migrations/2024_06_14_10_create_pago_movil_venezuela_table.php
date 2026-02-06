@@ -15,6 +15,11 @@ return new class extends Migration
             // ID seguro tipo Snowflake para consistencia con el resto de tablas
             $table->snowflake('id')->primary()->comment('ID único del registro de pago móvil');
 
+            $table->string('holder_name', 100)
+                ->nullable()
+                ->after('id')
+                ->comment('Nombre del titular de la cuenta');
+
             // Tipo de documento
             $table->foreignSnowflake('document_type_id')
                 ->constrained('document_types')

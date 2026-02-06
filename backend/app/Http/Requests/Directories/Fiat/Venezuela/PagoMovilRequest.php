@@ -12,6 +12,7 @@ use App\Services\Auth\PermissionService;
  *
  * Payload esperado:
  * {
+ *   "holder_name": "Juan Pérez",
  *   "document_type_id": "1234567890",
  *   "document_number": "12345678",
  *   "phone": "04241234567",
@@ -39,6 +40,9 @@ final class PagoMovilRequest extends BaseRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
+            'holder_name' => $this->input('holder_name')
+                ? trim((string) $this->input('holder_name'))
+                : null,
             'document_type_id' => $this->input('document_type_id')
                 ? (string) $this->input('document_type_id')
                 : null,
@@ -70,6 +74,15 @@ final class PagoMovilRequest extends BaseRequest
         $isUpdate = $this->isUpdate();
 
         return [
+            /**
+             * Nombre del titular de la cuenta.
+             */
+            'holder_name' => [
+                $isUpdate ? 'sometimes' : 'required',
+                'string',
+                'max:100',
+            ],
+
             /**
              * ID del tipo de documento (V, E, J).
              * Debe existir en la tabla document_types.
@@ -130,6 +143,9 @@ final class PagoMovilRequest extends BaseRequest
     public function messages(): array
     {
         return [
+            'holder_name.required' => 'El nombre del titular es obligatorio.',
+            'holder_name.max' => 'El nombre del titular no puede exceder 100 caracteres.',
+
             'document_type_id.required' => 'El tipo de documento es obligatorio.',
             'document_type_id.exists' => 'El tipo de documento seleccionado no es válido.',
 

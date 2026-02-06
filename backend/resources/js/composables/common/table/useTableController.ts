@@ -3,11 +3,11 @@ import type { Column } from '@/js/types/common/table/column-row'
 import { useTableFiltering, TableFilterState } from './useTableFiltering'
 import { useFilterableSelection } from './useFilterableSelection'
 
-export function useTableController<T extends { id: string | number }>(options: {
+export function useTableController<T extends { id: string }>(options: {
     columns: Ref<Column[]>
     rows: Ref<T[]>
     pageSize?: number
-    onSelectionChange?: (ids: Array<T['id']>) => void
+    onSelectionChange?: (ids: string[]) => void
 }) {
     const { rows, columns, pageSize = 10, onSelectionChange } = options
 
@@ -24,7 +24,7 @@ export function useTableController<T extends { id: string | number }>(options: {
     })
 
     /* ---------------- selección ---------------- */
-    const selectedIds = ref<Array<T['id']>>([])
+    const selectedIds = ref<string[]>([])
 
     const { handleFilter } = useFilterableSelection({
         currentFilters,

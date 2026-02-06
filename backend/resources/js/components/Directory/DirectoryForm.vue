@@ -69,33 +69,50 @@
 <template>
   <form @submit.prevent="submit" novalidate>
     <div class="row">
-      <!-- Tipo de Documento -->
-      <FormSelect
-        container
-        label="Tipo de Documento"
-        name="document_type_id"
-        v-model="form.document_type_id"
-        :options="documentTypesOptions"
-        optionValue="id"
-        optionLabel="code"
-        required
-        :error="errors.document_type_id"
-        col="col-12 col-md-6"
-      />
-
-      <!-- Número de Documento/Cédula -->
+      <!-- Nombre del Titular -->
       <FormInput
         container
-        label="Número de Documento"
+        label="Titular"
+        name="holder_name"
+        v-model="form.holder_name"
+        type="text"
+        maxlength="100"
+        placeholder="Nombre del titular"
+        required
+        :error="errors.holder_name"
+        col="col-12"
+      />
+
+      <!-- Tipo + Número de Documento (input-group) -->
+      <FormInput
+        container
+        label="Documento"
         name="document_number"
         v-model="form.document_number"
         type="text"
         maxlength="8"
         placeholder="12345678"
         required
-        :error="errors.document_number"
+        input-group
         col="col-12 col-md-6"
-      />
+      >
+        <template #prepend>
+          <select
+            class="custom-select"
+            v-model="form.document_type_id"
+            required
+          >
+            <option value="" disabled>Tipo</option>
+            <option
+              v-for="dt in documentTypesOptions"
+              :key="dt.id"
+              :value="dt.id"
+            >
+              {{ dt.code }}
+            </option>
+          </select>
+        </template>
+      </FormInput>
 
       <!-- Teléfono -->
       <FormInput

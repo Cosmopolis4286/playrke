@@ -1,20 +1,20 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
-import type { Directory } from '@/js/types/directory'
+import type { DirectoryVEN, DirectoryTableData } from '@/js/types/directory/directory-ven'
 
 /**
  * Contrato público del composable useDirectory
  */
 interface UseDirectoryReturn {
     /** Datos del directorio (para crear o editar) */
-    directoryData: Ref<Partial<Directory>>
+    directoryData: Ref<Partial<DirectoryVEN>>
 
-    /** Lista reactiva de directorios */
-    directories: Ref<Directory[]>
+    /** Datos de tabla (columns + rows) */
+    directories: Ref<DirectoryTableData>
 
     /** Inicializa la lista local */
-    setInitialDirectories: (initialDirectories: Directory[]) => void
+    setInitialDirectories: (initialData: DirectoryTableData) => void
 
     /** Envío del formulario */
     submit: () => Promise<boolean>
@@ -23,16 +23,16 @@ interface UseDirectoryReturn {
     create: () => void
 
     /** Modo edición */
-    edit: (id: string | number) => Promise<boolean>
+    edit: (id: string) => Promise<boolean>
 
     /** Reset del formulario */
     reset: () => void
 
     /** Cambio de estado */
-    changeStatus: (id: string | number) => Promise<boolean>
+    changeStatus: (id: string) => Promise<boolean>
 
     /** Eliminación */
-    remove: (id: string | number) => Promise<boolean>
+    remove: (id: string) => Promise<boolean>
 
     /** Fetch desde backend */
     fetchDirectories: () => Promise<boolean>
@@ -41,13 +41,22 @@ interface UseDirectoryReturn {
 /**
  * Factory para un directorio vacío (Pago Móvil)
  */
-const emptyDirectory = (): Partial<Directory> =>
+const emptyDirectory = (): Partial<DirectoryVEN> =>
     Object.freeze({
+        holder_name: '',
         document_type_id: '',
-        document: '',
+        document_number: '',
         phone: '',
         bank_id: ''
     })
+
+/**
+ * Factory para datos de tabla vacíos
+ */
+const emptyTableData = (): DirectoryTableData => ({
+    columns: [],
+    rows: []
+})
 
 /**
  * Composable para manejar directorios
@@ -64,16 +73,24 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
     const loading = ref(false)
 
     /** Estado único del formulario */
-    const directoryData = ref<Partial<Directory>>(emptyDirectory())
+    const directoryData = ref<Partial<DirectoryVEN>>(emptyDirectory())
 
-    /** Lista reactiva local */
-    const directories = ref<Directory[]>([])
+    /** Datos de tabla (columns + rows) */
+    const directories = ref<DirectoryTableData>(emptyTableData())
 
     /**
-     * Inicializa la lista local
+     * Inicializa los datos de tabla desde props
      */
-    function setInitialDirectories(initialDirectories: Directory[]) {
-        directories.value = [...initialDirectories]
+    function setInitialDirectories(initialData: DirectoryTableData): void {
+        if (!initialData || typeof initialData !== 'object') {
+            directories.value = emptyTableData()
+            return
+        }
+
+        directories.value = {
+            columns: Array.isArray(initialData.columns) ? [...initialData.columns] : [],
+            rows: Array.isArray(initialData.rows) ? [...initialData.rows] : []
+        }
     }
 
     /**
@@ -83,13 +100,17 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         try {
             loading.value = true
 
-            const response = await backendClient.get<{ data: Directory[] }>(
+            const response = await backendClient.get<{ data: DirectoryTableData }>(
                 '/admin/directory/list-filtered',
                 { params: { token: tokenId } }
             )
 
-            if (Array.isArray(response.data?.data)) {
-                directories.value = response.data.data
+            const data = response.data?.data
+            if (data && typeof data === 'object') {
+                directories.value = {
+                    columns: Array.isArray(data.columns) ? data.columns : directories.value.columns,
+                    rows: Array.isArray(data.rows) ? data.rows : []
+                }
             }
 
             return true
@@ -150,20 +171,21 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
     /**
      * Modo edición
      */
-    async function edit(id: string | number): Promise<boolean> {
+    async function edit(id: string): Promise<boolean> {
         if (loading.value) return false
 
         try {
             loading.value = true
 
-            const { data } = await backendClient.get<{ data: Directory }>(
+            const { data } = await backendClient.get<{ data: DirectoryVEN }>(
                 `/admin/directory/${id}`
             )
 
             directoryData.value = {
                 id: data.data.id,
+                holder_name: data.data.holder_name,
                 document_type_id: data.data.document_type?.id ?? data.data.document_type_id,
-                document: data.data.document,
+                document_number: data.data.document_number,
                 phone: data.data.phone,
                 bank_id: data.data.bank?.id ?? data.data.bank_id
             }
@@ -188,7 +210,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
     /**
      * Cambio de estado
      */
-    async function changeStatus(id: string | number): Promise<boolean> {
+    async function changeStatus(id: string): Promise<boolean> {
         const confirm = await showToastConfirmAction({
             text: '¿Quieres cambiar el estado de este directorio?',
             icon: 'warning',
@@ -211,7 +233,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
     /**
      * Eliminación (soft delete)
      */
-    async function remove(id: string | number): Promise<boolean> {
+    async function remove(id: string): Promise<boolean> {
         const confirm = await showToastConfirmAction({
             text: '¿Estás seguro que deseas eliminar este directorio?',
             icon: 'warning',

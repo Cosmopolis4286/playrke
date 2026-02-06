@@ -32,6 +32,11 @@ final class PagoMovilResource extends JsonResource
             'id' => $this->id,
 
             /**
+             * Nombre del titular de la cuenta.
+             */
+            'holder_name' => $this->holder_name,
+
+            /**
              * Información del tipo de documento.
              */
             'document_type_id' => $this->documentType->id ?? null,

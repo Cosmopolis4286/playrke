@@ -30,6 +30,7 @@ final class DirectoryContextService
      * Labels visibles de columnas para tabla.
      */
     private const DIRECTORY_COLUMNS = [
+        'Titular',
         'Documento',
         'Teléfono',
         'Banco',
@@ -40,6 +41,7 @@ final class DirectoryContextService
      * Keys fuente para mapear valores desde el modelo.
      */
     private const DIRECTORY_ROW_KEYS = [
+        'holder_name',
         'document',
         'phone',
         'Bank.name',

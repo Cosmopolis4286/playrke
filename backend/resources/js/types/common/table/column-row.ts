@@ -9,6 +9,9 @@ export interface Column {
 }
 
 /**
- * Tipado de una fila
+ * Tipado de una fila con id requerido
  */
-export type Row = Record<string, any> | string;
+export interface Row {
+    readonly id: string
+    [key: string]: any
+}

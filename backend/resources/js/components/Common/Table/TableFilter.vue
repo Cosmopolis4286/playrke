@@ -124,6 +124,15 @@
   function getFilterLabel(key: string): string {
     return filters.value.find(f => f.key === key)?.label ?? key
   }
+
+  /**
+   * Obtiene el label del option seleccionado para un filtro
+   */
+  function getFilterValueLabel(key: string, value: string): string {
+    const filter = filters.value.find(f => f.key === key)
+    const option = filter?.options?.find(opt => opt.value === value)
+    return option?.label ?? value
+  }
 </script>
 
 <template>
@@ -187,7 +196,7 @@
           </span>
           <!-- Filtro-Selects -->
           <span v-for="[key, value] in activeFilterEntries" :key="key" class="badge badge-info">
-            {{ getFilterLabel(key) }}: {{ value }}
+            {{ getFilterLabel(key) }}: {{ getFilterValueLabel(key, value) }}
             <i class="fas fa-times ml-1" style="cursor: pointer" @click="clearFilter(key)" />
           </span>
         </div>

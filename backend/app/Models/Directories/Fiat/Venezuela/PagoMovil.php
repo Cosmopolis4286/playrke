@@ -32,6 +32,7 @@ class PagoMovil extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'holder_name',      // Nombre del titular
         'document_type_id', // ID del tipo de documento
         'document_number',  // Número de documento
         'phone',            // Número de teléfono

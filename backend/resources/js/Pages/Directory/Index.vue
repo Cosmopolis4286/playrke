@@ -21,8 +21,8 @@
   import { useModalForm } from '@/js/composables/common/useModalForm'
 
   // Types
-  import type { DirectoryVEN, DirectoryVENPageProps } from '@/js/types/directory/directory-ven'
-  import type { Column } from '@/js/types/common/table/column-row'
+  import type { DirectoryVENPageProps } from '@/js/types/directory/directory-ven'
+  import type { Row } from '@/js/types/common/table/column-row'
 
   /* ==========================================================================
    * Props
@@ -37,7 +37,7 @@
    * Lógica de negocio – Directorio
    * ========================================================================== */
 
-  const { directoryData, directories, setInitialDirectories, create, edit, submit, remove } =
+  const { directoryData, directories, setInitialDirectories, create, edit, submit, remove, changeStatus } =
     useDirectory(props.tokenId)
 
   // Inicializar directories con las props
@@ -49,17 +49,25 @@
 
   /**
    * Filtros disponibles para la tabla
+   * Nota: key debe coincidir con la columna en las rows (bank_name viene de Bank.name)
    */
   const filters = [
     {
-      key: 'bank_id',
+      key: 'bank_name',
       label: 'Banco',
       options: props.banks.map(bank => ({
         label: bank.name,
-        value: String(bank.id)
+        value: bank.name
       }))
     }
   ]
+
+  /* ==========================================================================
+   * Computed refs para tabla (requeridos por useTableController)
+   * ========================================================================== */
+
+  const columns = computed(() => directories.value.columns)
+  const rows = computed(() => directories.value.rows)
 
   /* ==========================================================================
    * Table Controller
@@ -71,9 +79,9 @@
    * - selección
    * - filas filtradas
    */
-  const { handleFilter, selectedIds, filteredRows } = useTableController<DirectoryVEN>({
-    columns: directories['columns'],
-    rows: directories['rows']
+  const { handleFilter, selectedIds, filteredRows } = useTableController<Row>({
+    columns,
+    rows
   })
 
   /* ==========================================================================
@@ -106,42 +114,35 @@
    * ========================================================================== */
 
   /**
-   * Obtener países únicos de las monedas disponibles
+   * Obtener países únicos de las monedas disponibles.
+   * Si no se proveen currencies (backend no las envía actualmente),
+   * se usa Venezuela como país por defecto.
    */
   const countries = computed(() => {
-    const uniqueCountries = new Map()
+    if (props.currencies?.length) {
+      const uniqueCountries = new Map()
 
-    props.currencies?.forEach((currency: any) => {
-      if (currency.country) {
-        uniqueCountries.set(currency.country.iso_code, {
-          id: currency.country.id,
-          iso_code_2: currency.country.iso_code,
-          name: currency.country.name
-        })
-      }
-    })
+      props.currencies.forEach((currency: any) => {
+        if (currency.country) {
+          uniqueCountries.set(currency.country.iso_code, {
+            id: currency.country.id,
+            iso_code_2: currency.country.iso_code,
+            name: currency.country.name
+          })
+        }
+      })
 
-    return Array.from(uniqueCountries.values())
+      return Array.from(uniqueCountries.values())
+    }
+
+    // Default: Venezuela (esta página es para Pago Móvil)
+    return [{ id: 1, iso_code_2: 'VE', name: 'Venezuela' }]
   })
 
   /**
-   * País seleccionado (ISO code)
+   * País seleccionado (ISO code) — por defecto VE
    */
-  const selectedCode = ref<string>('')
-
-  /**
-   * Inicializar país seleccionado
-   */
-  watch(
-    countries,
-    newCountries => {
-      if (newCountries.length > 0 && !selectedCode.value) {
-        const ve = newCountries.find((c: any) => c.iso_code_2 === 'VE')
-        selectedCode.value = ve?.iso_code_2 ?? newCountries[0].iso_code_2
-      }
-    },
-    { immediate: true }
-  )
+  const selectedCode = ref<string>('VE')
 
   /**
    * País seleccionado completo
@@ -184,9 +185,18 @@
   /**
    * Abrir modal en modo edición
    */
-  async function handleEdit(id: string | number): Promise<void> {
+  async function handleEdit(id: string): Promise<void> {
     await edit(id)
     showModalForm.value = true
+  }
+
+  /**
+   * Cambiar estado del directorio
+   */
+  async function handleToggleStatus(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      await changeStatus(id)
+    }
   }
 
   /**
@@ -234,7 +244,18 @@
         @create="handleCreate"
         @edit="handleEdit"
         @delete="handleDelete"
-      />
+      >
+        <template #action-buttons="{ selectedIds: ids }">
+          <button
+            v-if="ids.length > 0"
+            class="btn btn-sm btn-secondary ml-2"
+            @click="handleToggleStatus(ids)"
+            title="Cambiar estado"
+          >
+            <i class="fas fa-exchange-alt"></i>
+          </button>
+        </template>
+      </TableActionButtons>
 
       <BaseTable
         table-id="directory-table"
@@ -255,7 +276,7 @@
 
       <TableFooterInfo
         :filtered-count="filteredRows.length"
-        :total-count="directories.rows.length"
+        :total-count="rows.length"
         :selected-count="selectedIds.length"
       />
     </div>

@@ -48,6 +48,10 @@
 
     <!-- INPUT GROUP -->
     <div v-if="inputGroup" class="input-group">
+      <div v-if="slots.prepend" class="input-group-prepend">
+        <slot name="prepend" />
+      </div>
+
       <input
         v-if="mask"
         v-imask="mask"
@@ -78,8 +82,8 @@
         @input="onInput"
       />
 
-      <div class="input-group-append" v-if="slots.default">
-        <slot />
+      <div v-if="slots.append" class="input-group-append">
+        <slot name="append" />
       </div>
     </div>
 
