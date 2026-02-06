@@ -42,9 +42,9 @@ class Commerce extends BaseModel
     ];
 
     /**
-     * Accessor para el label de status con badge HTML
+     * Accessor para el status con badge HTML
      */
-    public function getStatusLabelAttribute(): string
+    public function getStatusBadgeAttribute(): string
     {
         return match ($this->status) {
             'ACTIVE' => '<span class="badge badge-success">Activo</span>',

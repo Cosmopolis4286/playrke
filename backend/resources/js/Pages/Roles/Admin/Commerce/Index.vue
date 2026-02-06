@@ -51,7 +51,7 @@
     submit
   } = useAdminCommerce()
 
-  setInitialCommerces(props.commerces)
+  setInitialCommerces(props.commerces.rows)
 
   // ==========================================================================
   // Modal + Form handler
@@ -193,7 +193,7 @@
   <TableWithFilterBridge
     tableId="commerce-table"
     title="Comercializadoras"
-    :columns="columns"
+    :columns="props.commerces.columns"
     :rows="commerces"
     :filters="filters"
     search-placeholder="Buscar por nombre, email, teléfono..."

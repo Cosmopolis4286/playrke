@@ -17,7 +17,6 @@ return new class extends Migration
 
             $table->string('holder_name', 100)
                 ->nullable()
-                ->after('id')
                 ->comment('Nombre del titular de la cuenta');
 
             // Tipo de documento
