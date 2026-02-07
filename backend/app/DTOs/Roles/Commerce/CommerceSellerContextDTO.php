@@ -1,12 +1,12 @@
 <?php
 
-namespace App\DTOs\Roles\Admin\Commerce;
+namespace App\DTOs\Roles\Commerce;
 
 use App\DTOs\ContextDTO;
 
 use Illuminate\Support\Collection;
 
-final class AdminCommerceContextDTO implements ContextDTO
+final class CommerceSellerContextDTO implements ContextDTO
 {
     public function __construct(
         public readonly array $commerces,

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Roles;
+namespace App\Http\Controllers\Roles\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Users\Roles\CustomerRequest;
@@ -27,7 +27,7 @@ use Illuminate\Support\Str;
  *
  * @package App\Http\Controllers\Roles
  */
-class CustomerController extends Controller
+class AdminCustomerController extends Controller
 {
     /**
      * Crear un nuevo Cliente.
