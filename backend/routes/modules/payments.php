@@ -29,6 +29,7 @@ Route::middleware('auth')->group(function () {
     Route::post('admin/directory', [DirectoryController::class, 'store'])->name('directory.store');
     Route::put('admin/directory/{id}', [DirectoryController::class, 'update'])->name('directory.update');
     Route::put('admin/directory/{id}/delete', [DirectoryController::class, 'delete'])->name('directory.delete');
+    Route::put('admin/directory/{id}/status', [DirectoryController::class, 'toggleStatus'])->name('directory.toggle-status');
 });
 
 // ====================================

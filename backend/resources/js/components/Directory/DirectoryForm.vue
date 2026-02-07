@@ -1,8 +1,10 @@
-<script setup lang="ts" name="DirectoryForm">
+<script setup lang="ts">
   import { computed } from 'vue'
 
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
+
+  defineOptions({ name: 'DirectoryForm' })
 
   import { useDirectoryForm } from '@/js/composables/directory/useDirectoryForm'
 
@@ -29,7 +31,7 @@
   /**
    * Composable de formulario
    */
-  const { form, errors, isEditMode, isValid, validate } = useDirectoryForm(props.modelValue, emit)
+  const { form, errors, isEditMode, isValid, validate, reset } = useDirectoryForm(props.modelValue, emit)
 
   /* =======================
    * Computed
@@ -63,7 +65,8 @@
    */
   defineExpose({
     submit,
-    isValid
+    isValid,
+    reset
   })
 </script>
 <template>

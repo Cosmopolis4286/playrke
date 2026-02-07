@@ -117,12 +117,14 @@ final class DirectoryService
     /**
      * Alternar estado (ACTIVE / INACTIVE) del directorio.
      *
-     * @param PagoMovil $id ID del registro de directorio
+     * @param string $id ID del registro de directorio
      *
      * @throws DomainException Si no se puede resolver el usuario o falla el cambio de estado
      */
-    public function toggleStatus(PagoMovil $id): void
+    public function toggleStatus(string $id): bool
     {
-        $this->crud->toggleStatus($id);
+        $pagoMovil = PagoMovil::findOrFail($id);
+
+        return $this->crud->toggleStatus($pagoMovil);
     }
 }

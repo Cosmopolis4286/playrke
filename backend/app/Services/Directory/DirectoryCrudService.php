@@ -4,6 +4,7 @@ namespace App\Services\Directory;
 
 use App\DTOs\Directories\Fiat\Venezuela\PagoMovilDTO;
 use App\Http\Resources\Directories\Fiat\Venezuela\PagoMovilResource;
+use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Repositories\Directories\Fiat\Venezuela\PagoMovilRepository;
 use DomainException;
 use Illuminate\Support\Facades\DB;

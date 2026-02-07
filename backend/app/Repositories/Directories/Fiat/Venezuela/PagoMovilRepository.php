@@ -76,7 +76,7 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
     ): ?PagoMovil {
         return $this->model->where([
             'document_type_id' => $documentTypeId,
-            'document' => $document,
+            'document_number' => $document,
             'bank_id' => $bankId,
             'phone' => $phone,
         ])->first();
@@ -93,7 +93,7 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
     ): ?string {
         return $this->model->where([
             'document_type_id' => $documentTypeId,
-            'document' => $document,
+            'document_number' => $document,
             'bank_id' => $bankId,
             'phone' => $phone,
         ])->value('user_id');
@@ -111,7 +111,7 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
     ): bool {
         $query = $this->model->where([
             'document_type_id' => $documentTypeId,
-            'document' => $document,
+            'document_number' => $document,
             'bank_id' => $bankId,
             'phone' => $phone,
         ]);
@@ -135,7 +135,7 @@ class PagoMovilRepository extends BaseRepository implements PagoMovilRepositoryI
     ): PagoMovil {
         return $this->model->create([
             'document_type_id' => $documentTypeId,
-            'document' => $document,
+            'document_number' => $document,
             'phone' => $phone,
             'bank_id' => $bankId,
             'user_id' => $userId

@@ -47,6 +47,10 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Usuario propietario del registro');
 
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'])
+                ->default('ACTIVE')
+                ->comment('Estados del registro');
+
             $table->timestamps();
 
             // Índices compuestos opcionales si se consultan frecuentemente por usuario + banco

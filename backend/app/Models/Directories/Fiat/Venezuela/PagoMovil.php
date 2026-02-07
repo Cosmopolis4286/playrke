@@ -38,6 +38,7 @@ class PagoMovil extends Model
         'phone',            // Número de teléfono
         'bank_id',          // ID del banco venezolano
         'user_id',          // ID del usuario propietario
+        'status',           // Estado del registro
     ];
 
     // ========================
