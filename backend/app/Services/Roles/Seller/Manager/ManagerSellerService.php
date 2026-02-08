@@ -1,18 +1,19 @@
 <?php
 
-namespace App\Services\Roles\Commerce\Seller;
+namespace App\Services\Roles\Seller\Manager;
 
-use App\DTOs\Roles\Commerce\CommerceSellerDTO;
-use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
+use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
+use App\Http\Resources\Roles\Seller\Manager\ManagerSellerResource;
 use App\Models\Roles\Commerce;
 use App\Services\User\UserPasswordService;
-use App\Services\Roles\Commerce\Seller\CommerceSellerCrudService;
-use App\Exceptions\Domain\Roles\Admin\Commerce\AdminCommerceException;
+use App\Services\Roles\Seller\Manager\ManagerSellerCrudService;
+use App\Exceptions\Domain\Roles\Seller\Manager\ManagerSellerException;
+use App\Services\Security\UserContextService;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Servicio de aplicación para exponer
- * los casos de uso del dominio CommerceSeller.
+ * los casos de uso del dominio ManagerSeller.
  *
  * Responsabilidades:
  * - Orquestar casos de uso
@@ -21,12 +22,27 @@ use Illuminate\Database\Eloquent\Collection;
  *
  * NO contiene lógica de dominio ni infraestructura.
  */
-final class CommerceSellerService
+final class ManagerSellerService
 {
     public function __construct(
-        private readonly CommerceSellerCrudService $crud,
-        private readonly UserPasswordService $userPasswordService
+        private readonly ManagerSellerCrudService $crud,
+        private readonly UserContextService $userContext,
+        private readonly UserPasswordService $userPasswordService,
+
     ) {}
+
+    /**
+     * Obtener contexto de vendedores del usuario manager.
+     *
+     * @param string|null $publicToken Token público de API
+     * @return array Contexto de vendedores para la vista Inertia
+     */
+    public function context(?string $publicToken = null): array
+    {
+        // Resolver ID del usuario
+        $userId = $this->userContext->resolveUserId($publicToken);
+        return $this->crud->context($userId);
+    }
 
     /**
      * Obtener todos los comercios.
@@ -51,12 +67,12 @@ final class CommerceSellerService
     /**
      * Crear un comercio.
      *
-     * @param CommerceSellerDTO $dto DTO con los datos del comercio
+     * @param ManagerSellerDTO $dto DTO con los datos del comercio
      * @return string Contraseña generada para el comercio
      *
-     * @throws AdminCommerceException Si falla la creación
+     * @throws ManagerSellerException Si falla la creación
      */
-    public function create(CommerceSellerDTO $dto): string
+    public function create(ManagerSellerDTO $dto): string
     {
         return $this->crud->create($dto);
     }
@@ -65,11 +81,11 @@ final class CommerceSellerService
      * Obtener un comercio para visualización.
      *
      * @param Commerce $commerce Model
-     * @return AdminCommerceResource Recurso para visualización
+     * @return ManagerSellerResource Recurso para visualización
      *
-     * @throws AdminCommerceException Si el comercio no es válido o no existe
+     * @throws ManagerSellerException Si el comercio no es válido o no existe
      */
-    public function show(Commerce $commerce): AdminCommerceResource
+    public function show(Commerce $commerce): ManagerSellerResource
     {
         return $this->crud->show($commerce);
     }
@@ -78,11 +94,11 @@ final class CommerceSellerService
      * Actualizar un comercio.
      *
      * @param Commerce $commerce Model
-     * @param CommerceSellerDTO $dto DTO con datos actualizados
+     * @param ManagerSellerDTO $dto DTO con datos actualizados
      *
-     * @throws AdminCommerceException Si falla la actualización
+     * @throws ManagerSellerException Si falla la actualización
      */
-    public function update(Commerce $commerce, CommerceSellerDTO $dto): void
+    public function update(Commerce $commerce, ManagerSellerDTO $dto): void
     {
         $this->crud->update($commerce, $dto);
     }
@@ -92,7 +108,7 @@ final class CommerceSellerService
      *
      * @param Commerce $commerce Model
      *
-     * @throws AdminCommerceException Si falla la eliminación
+     * @throws ManagerSellerException Si falla la eliminación
      */
     public function delete(Commerce $commerce): void
     {
@@ -104,7 +120,7 @@ final class CommerceSellerService
      *
      * @param Commerce $commerce Model
      *
-     * @throws AdminCommerceException Si falla el cambio de estado
+     * @throws ManagerSellerException Si falla el cambio de estado
      */
     public function toggleStatus(Commerce $commerce): void
     {
@@ -117,12 +133,12 @@ final class CommerceSellerService
      * @param Commerce $commerce Model
      * @return string Nueva contraseña generada
      *
-     * @throws AdminCommerceException Si el comercio no está activo o falla el reseteo
+     * @throws ManagerSellerException Si el comercio no está activo o falla el reseteo
      */
     public function resetPassword(Commerce $commerce): string
     {
         if ($commerce->status !== 'ACTIVE') {
-            throw AdminCommerceException::passwordResetRequiresActiveStatus();
+            throw ManagerSellerException::passwordResetRequiresActiveStatus();
         }
 
         return $this->userPasswordService->resetPassword($commerce);
@@ -133,7 +149,7 @@ final class CommerceSellerService
      *
      * @param Commerce $commerce Model
      *
-     * @throws AdminCommerceException Si falla la eliminación definitiva
+     * @throws ManagerSellerException Si falla la eliminación definitiva
      */
     public function destroy(Commerce $commerce): void
     {

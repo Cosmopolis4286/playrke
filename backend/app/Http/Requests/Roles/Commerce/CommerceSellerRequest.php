@@ -13,7 +13,7 @@ use Illuminate\Validation\Rule;
  * - Se usa tanto para creación como actualización.
  * - Aplica reglas dinámicas según el contexto.
  */
-class CommerceSellerRequest extends BaseRequest
+class ManagerSellerRequest extends BaseRequest
 {
     /**
      * Determina si el usuario está autorizado a realizar esta acción.

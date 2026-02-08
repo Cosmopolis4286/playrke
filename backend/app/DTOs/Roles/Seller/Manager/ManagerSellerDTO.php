@@ -1,16 +1,16 @@
 <?php
 
-namespace App\DTOs\Roles\Commerce;
+namespace App\DTOs\Roles\Seller\Manager;
 
 /**
- * Data Transfer Object para Vendedor.
+ * Data Transfer Object para Manager de Vendedor.
  *
  * - Inmutable
  * - Tipado
  * - Compatible con create y update
  * - Sin lógica de negocio
  */
-final class CommerceSellerDTO
+final class ManagerSellerDTO
 {
     public function __construct(
         public readonly ?string $username,

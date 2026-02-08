@@ -3,7 +3,7 @@
 namespace App\DTOs\Roles\Admin\Commerce;
 
 /**
- * Data Transfer Object para Commerce.
+ * Data Transfer Object para Vendedor.
  *
  * - Inmutable
  * - Tipado

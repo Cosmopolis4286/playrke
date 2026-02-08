@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Games\Bingo\BingoController;
+use App\Http\Controllers\Roles\Seller\ManagerSellerController;
 use App\Http\Controllers\Roles\SellerController;
 
 /*
@@ -10,16 +11,22 @@ use App\Http\Controllers\Roles\SellerController;
 | Gestión de vendedores y sus operaciones de venta de cartones.
 */
 
+// GESTIÓN DE VENDEDORES (MANAGER SELLER ROLE)
 // ====================================
-// GESTIÓN DE VENDEDORES (COMMERCE)
-// ====================================
-role_protected_routes(['commerce_id'], 'seller', SellerController::class, [
-    'create' => ['method' => 'post', 'uri' => ''],
-    'show' => ['method' => 'get', 'uri' => '{id}'],
-    'update' => ['method' => 'put', 'uri' => '{id}'],
-    'destroy' => ['method' => 'delete', 'uri' => '{id}'],
-    'resetPassword' => ['method' => 'put', 'uri' => '{id}/password'],
-    'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
+multi_middleware_routes('commerce', 'commerce.', [
+    [
+        'middleware' => ['auth', 'role:commerce'],
+        'controller' => ManagerSellerController::class,
+        'routes' => [
+            'sellers' => ['method' => 'get', 'uri' => 'sellers'],
+            'create' => ['method' => 'post', 'uri' => ''],
+            'show' => ['method' => 'get', 'uri' => '{id}'],
+            'update' => ['method' => 'put', 'uri' => '{id}'],
+            'destroy' => ['method' => 'delete', 'uri' => '{id}'],
+            'resetPassword' => ['method' => 'put', 'uri' => '{id}/password'],
+            'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
+        ]
+    ]
 ]);
 
 // ====================================

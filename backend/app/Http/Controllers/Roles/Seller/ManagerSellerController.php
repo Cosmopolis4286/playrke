@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Roles\Commerce;
+namespace App\Http\Controllers\Roles\Seller;
 
 use App\Http\Controllers\Controller;
 
 use App\Models\Roles\Seller;
-use App\DTOs\Roles\Commerce\CommerceSellerDTO;
-use App\Http\Requests\Roles\Commerce\CommerceSellerRequest;
-use App\Services\Roles\Commerce\Seller\CommerceSellerService;
+use App\DTOs\Roles\Commerce\ManagerSellerDTO;
+use App\Http\Requests\Roles\Commerce\ManagerSellerRequest;
+use App\Services\Roles\Seller\Manager\ManagerSellerService;
 
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
@@ -23,13 +23,13 @@ use Inertia\Response;
  *
  * NO contiene lógica de dominio ni mensajes de error.
  */
-final class CommerceSellerController extends Controller
+final class ManagerSellerController extends Controller
 {
     /**
-     * @param CommerceSellerService $service
+     * @param ManagerSellerService $service
      */
     public function __construct(
-        protected readonly CommerceSellerService $service
+        protected readonly ManagerSellerService $service
     ) {
         $this->authorizeResource(Seller::class, 'seller');
     }
@@ -56,15 +56,15 @@ final class CommerceSellerController extends Controller
     /**
      * Crear un vendedor.
      *
-     * @param CommerceSellerRequest $request
+     * @param ManagerSellerRequest $request
      * @return JsonResponse
      */
-    public function store(CommerceSellerRequest $request): JsonResponse
+    public function store(ManagerSellerRequest $request): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => [
                 'password' => $this->service->create(
-                    $request->toDTO(CommerceSellerDTO::class)
+                    $request->toDTO(ManagerSellerDTO::class)
                 ),
             ]
         );
@@ -100,16 +100,16 @@ final class CommerceSellerController extends Controller
     /**
      * Actualizar un vendedor.
      *
-     * @param CommerceSellerRequest $request
+     * @param ManagerSellerRequest $request
      * @param Seller $seller
      * @return JsonResponse
      */
-    public function update(CommerceSellerRequest $request, Seller $seller): JsonResponse
+    public function update(ManagerSellerRequest $request, Seller $seller): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => $this->service->update(
                 $seller,
-                $request->toDTO(CommerceSellerDTO::class)
+                $request->toDTO(ManagerSellerDTO::class)
             )
         );
     }

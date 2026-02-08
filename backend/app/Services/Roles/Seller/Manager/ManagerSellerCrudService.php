@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Services\Roles\Commerce\Seller;
+namespace App\Services\Roles\Seller\Manager;
 
-use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
+use App\Contracts\Roles\Seller\SellerRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
-use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
-use App\Exceptions\Domain\Roles\Admin\Commerce\AdminCommerceException;
-use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
+use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
+use App\Exceptions\Domain\Roles\Seller\Manager\ManagerSellerException;
+use App\Http\Resources\Roles\Seller\Manager\AdminCommerceResource;
 use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\Roles\Commerce;
@@ -27,13 +27,28 @@ use Illuminate\Support\Facades\DB;
  * NO maneja HTTP.
  * FALLA lanzando excepciones de dominio.
  */
-final class CommerceSellerCrudService
+final class ManagerSellerCrudService
 {
     public function __construct(
         private readonly UserService $userService,
         private readonly WalletRepositoryInterface $walletRepository,
-        private readonly CommerceRepositoryInterface $commerceRepository,
+        private readonly SellerRepositoryInterface $sellerRepository,
     ) {}
+
+    /**
+     * Obtener contexto de vendedores del usuario manager.
+     *
+     * @param string|null $publicToken Token público de API
+     * @return array Contexto de vendedores para la vista Inertia
+     */
+    public function context(int $userId): array
+    {
+        $sellers = $this->sellerRepository->getByCommerce($userId);
+
+        return [
+            'sellers' => $sellers,
+        ];
+    }
 
     /**
      * Obtener todos los comercios.
@@ -42,18 +57,18 @@ final class CommerceSellerCrudService
      */
     public function getAll(): Collection
     {
-        return $this->commerceRepository->all();
+        return $this->sellerRepository->all();
     }
 
     /**
      * Crear un comercio completo (User + Commerce + Wallet).
      *
-     * @param AdminCommerceDTO $dto
+     * @param ManagerSellerDTO $dto
      * @return string Contraseña generada para el comercio
      *
-     * @throws AdminCommerceException
+     * @throws ManagerSellerException
      */
-    public function create(AdminCommerceDTO $dto): string
+    public function create(ManagerSellerDTO $dto): string
     {
         return DB::transaction(function () use ($dto) {
 
@@ -67,7 +82,7 @@ final class CommerceSellerCrudService
             $uniqueCode = $this->userService->createUniqueCode($user->id);
 
             // 3. Comercio
-            $commerce = $this->commerceRepository->create([
+            $commerce = $this->sellerRepository->create([
                 'name'           => $dto->name,
                 'phone'          => $dto->phone,
                 'country_id'     => $dto->country,
@@ -77,7 +92,7 @@ final class CommerceSellerCrudService
             ]);
 
             if (! $commerce) {
-                throw AdminCommerceException::creationFailed();
+                throw ManagerSellerException::creationFailed();
             }
 
             // 4. Relaciones
@@ -117,15 +132,15 @@ final class CommerceSellerCrudService
      * Actualizar comercio y relaciones.
      *
      * @param Commerce $commerce
-     * @param AdminCommerceDTO $dto
+     * @param ManagerSellerDTO $dto
      *
-     * @throws AdminCommerceException
+     * @throws ManagerSellerException
      */
-    public function update(Commerce $commerce, AdminCommerceDTO $dto): void
+    public function update(Commerce $commerce, ManagerSellerDTO $dto): void
     {
         DB::transaction(function () use ($commerce, $dto) {
 
-            $this->commerceRepository->update(
+            $this->sellerRepository->update(
                 $commerce->id,
                 array_filter([
                     'name'       => $dto->name,
@@ -257,13 +272,13 @@ final class CommerceSellerCrudService
     public function toggleStatus(Commerce $commerce): bool
     {
         if ($commerce->status === 'DELETED') {
-            throw AdminCommerceException::invalidStatusChange();
+            throw ManagerSellerException::invalidStatusChange();
         }
 
         // Usa changeStatus con userRelation para sincronizar Commerce y User
         $newStatus = $commerce->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
-        return $this->commerceRepository->changeStatus($commerce, $newStatus, 'user');
+        return $this->sellerRepository->changeStatus($commerce, $newStatus, 'user');
     }
 
     /**
@@ -278,11 +293,11 @@ final class CommerceSellerCrudService
     public function delete(Commerce $commerce): bool
     {
         if ($commerce->status === 'DELETED') {
-            throw AdminCommerceException::alreadyDeleted();
+            throw ManagerSellerException::alreadyDeleted();
         }
 
         // Usa softDelete con userRelation para sincronizar Commerce y User
-        return $this->commerceRepository->softDelete(
+        return $this->sellerRepository->softDelete(
             model: $commerce,
             status: 'DELETED',
             relationsToDetach: [],
@@ -295,7 +310,7 @@ final class CommerceSellerCrudService
      *
      * @param Commerce $commerce
      *
-     * @throws AdminCommerceException
+     * @throws ManagerSellerException
      */
     public function destroy(Commerce $commerce): void
     {
