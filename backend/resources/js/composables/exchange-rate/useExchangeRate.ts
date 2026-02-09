@@ -1,7 +1,8 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
-import { ExchangeRate } from '@/js/types/exchange-rate'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
+
+import type { ExchangeRate } from '@/js/types/exchange-rate'
 
 /**
  * Contrato público del composable useExchangeRate
@@ -31,7 +32,7 @@ interface UseExchangeRateReturn {
     edit: (id: string | number) => Promise<boolean>
 
     /** Cambia el estado de una tasa */
-    changeStatus: (id: string | number) => Promise<boolean>
+    toggleStatus: (id: string | number) => Promise<boolean>
 
     /** Elimina una tasa */
     remove: (id: string | number) => Promise<boolean>
@@ -203,13 +204,16 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
     }
 
     /**
-     * Cambia el estado (activo/inactivo) de una tasa
+     * Altenar el estado (activo/inactivo) de una tasa
      *
      * @param id Identificador de la tasa
      */
-    async function changeStatus(id: string | number): Promise<boolean> {
+    async function toggleStatus(id: string | number): Promise<boolean> {
+        const exchangeRate = exchangeRates.value.find(c => c.id === id)
+        const name = exchangeRate?.currency_name ?? ''
+
         const confirm = await showToastConfirmAction({
-            text: '¿Quieres cambiar el estado de esta tasa de cambio?',
+            html: `¿Quieres cambiar el estado de esta tasa de cambio: <b>${name}</b>?`,
             icon: 'warning',
             confirmButtonText: 'Sí, cambiar estado'
         })
@@ -234,8 +238,11 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
      * @param id Identificador de la tasa
      */
     async function remove(id: string | number): Promise<boolean> {
+        const exchangeRate = exchangeRates.value.find(c => c.id === id)
+        const name = exchangeRate?.currency_name ?? ''
+
         const confirm = await showToastConfirmAction({
-            text: '¿Estás seguro que deseas eliminar esta tasa de cambio?',
+            html: `¿Estás seguro que deseas eliminar esta tasa de cambio: <b>${name}</b>?`,
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar'
         })
@@ -313,7 +320,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         submit,
         create,
         edit,
-        changeStatus,
+        toggleStatus,
         remove,
         updateExchangeRates,
         fetchExchangeRates

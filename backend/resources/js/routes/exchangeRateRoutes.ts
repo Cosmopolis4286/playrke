@@ -11,6 +11,6 @@ export const exchangeRateRoutes = {
   show: "/exchange-rate/{id}",
   update: "/exchange-rate/{id}",
   destroy: "/exchange-rate/{id}",
-  changeStatus: "/exchange-rate/{id}/status",
+  toggleStatus: "/exchange-rate/{id}/status",
   publicIndex: "/exchange-rate/public",
 } as const;

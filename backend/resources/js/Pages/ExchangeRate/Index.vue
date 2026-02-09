@@ -32,7 +32,7 @@
     setInitialExchangeRates,
     create,
     edit,
-    changeStatus,
+    toggleStatus,
     remove,
     updateExchangeRates,
     submit
@@ -158,7 +158,7 @@
         :exchange-rates="exchangeRates"
         :has-privileged-role="hasPrivilegedRole"
         @edit="handleEdit"
-        @change-status="changeStatus"
+        @change-status="toggleStatus"
         @delete="remove"
       />
 

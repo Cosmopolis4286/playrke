@@ -20,7 +20,7 @@ route_group(
         'update'       => ['method' => 'put', 'uri' => '{id}'],
         'delete'       => ['method' => 'put', 'uri' => '{id}/delete'],
         'destroy'      => ['method' => 'delete', 'uri' => '{id}'],
-        'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
+        'toggleStatus' => ['method' => 'put', 'uri' => '{id}/status'],
     ]
 );
 

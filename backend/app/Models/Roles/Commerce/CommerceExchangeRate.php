@@ -26,19 +26,28 @@ class CommerceExchangeRate extends BaseModel
 
     /**
      * Tipo de la clave primaria.
+     *
+     * Aunque el id sea bigint en base de datos, se maneja como string
+     * para evitar problemas de precisión (JS/JSON/PHP).
      */
-    protected $keyType = 'bigint';
+    protected $keyType = 'string';
 
     /**
      * Atributos asignables masivos.
      */
     protected $fillable = [
-        'id',
         'commerce_id',
         'currency_id',
         'amount',
         'percentage',
         'status',
+    ];
+
+    /**
+     * Atributos calculados que deben incluirse en la serialización.
+     */
+    protected $appends = [
+        'currency_name',
     ];
 
     /**
@@ -49,7 +58,7 @@ class CommerceExchangeRate extends BaseModel
         'commerce_id' => 'string',
         'currency_id' => 'string',
         'amount' => 'decimal:4',
-        'percentage' => 'float',
+        'percentage' => 'decimal:2',
         'status' => 'string',
     ];
 
@@ -57,6 +66,14 @@ class CommerceExchangeRate extends BaseModel
      * Indica que el modelo usa timestamps.
      */
     public $timestamps = true;
+
+    /**
+     * Accessor para el nombre de la moneda.
+     */
+    public function getCurrencyNameAttribute(): string
+    {
+        return $this->currency?->name ?? 'Moneda no disponible';
+    }
 
     /**
      * Relación con el comercio.
