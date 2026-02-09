@@ -7,11 +7,11 @@ import type { Column } from '@/js/types/common/table/column-row'
 import type { Pagination } from '@/js/types/common/table/pagination'
 
 export interface ManagerSellerPageProps {
-    commerces: {
+    sellers: {
         columns: Column[],
         rows: Seller[]
     },
-    commerces_pagination: Pagination | null,
+    sellers_pagination: Pagination | null,
     countries: Country[],
     currencies: Currency[],
     games: Game[],

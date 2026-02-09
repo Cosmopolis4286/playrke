@@ -1,8 +1,8 @@
 import { computed } from 'vue'
-import type { Commerce } from '@/js/types/roles/commerce/commerce'
+import type { Seller } from '@/js/types/roles/seller/seller'
 
 /**
- * Composable para formulario de Comercializadoras
+ * Composable para formulario de vendedores
  *
  * Responsabilidades:
  * - Adaptar modelValue al formulario
@@ -13,14 +13,14 @@ import type { Commerce } from '@/js/types/roles/commerce/commerce'
  * ✅ v-model computado
  */
 export function useManagerSellerForm(
-    modelValueGetter: () => Partial<Commerce>,
-    emit: (event: 'update:modelValue', value: Partial<Commerce>) => void
+    modelValueGetter: () => Partial<Seller>,
+    emit: (event: 'update:modelValue', value: Partial<Seller>) => void
 ) {
     /* =======================
      * v-model computado
      * ======================= */
 
-    const form = computed<Partial<Commerce>>({
+    const form = computed<Partial<Seller>>({
         get: () => modelValueGetter(),
         set: value => emit('update:modelValue', value)
     })

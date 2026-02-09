@@ -1,6 +1,6 @@
 <script setup lang="ts">
   /**
-   * Página Admin → Comercializadoras
+   * Página Manager → Vendedores
    */
 
   import { computed, watch } from 'vue'
@@ -40,9 +40,9 @@
   // ==========================================================================
 
   const {
-    commerceData,
-    commerces,
-    setInitialCommerces,
+    sellerData,
+    sellers,
+    setInitialSellers,
     create,
     edit,
     toggleStatusBulk,
@@ -51,7 +51,7 @@
     submit
   } = useManagerSeller()
 
-  setInitialCommerces(props.commerces.rows)
+  setInitialSellers(props.sellers.rows)
 
   // ==========================================================================
   // Modal + Form handler
@@ -62,7 +62,7 @@
     modalTitle,
     formRef: managerSellerFormRef,
     handleSubmit
-  } = useModalForm(commerceData, submit, {
+  } = useModalForm(sellerData, submit, {
     defaultTitle: 'Comercializadora'
   })
 
@@ -154,7 +154,7 @@
    * Deshabilitado cuando el elemento seleccionado no está en status ACTIVE.
    */
   function isResetPasswordDisabled(selectedIds: string[]): boolean {
-    const commerce = commerces.value.find(c => c.id === selectedIds[0])
+    const commerce = sellers.value.find(c => c.id === selectedIds[0])
     return commerce?.status !== 'ACTIVE'
   }
 
@@ -162,7 +162,7 @@
    * Retorna la razón por la cual resetPassword está deshabilitado.
    */
   function getResetPasswordDisabledReason(selectedIds: string[]): string {
-    const commerce = commerces.value.find(c => c.id === selectedIds[0])
+    const commerce = sellers.value.find(c => c.id === selectedIds[0])
     if (commerce?.status !== 'ACTIVE') {
       return 'Solo se puede resetear la contraseña de comercializadoras activas'
     }
@@ -191,10 +191,10 @@
 
 <template>
   <TableWithFilterBridge
-    tableId="commerce-table"
-    title="Comercializadoras"
-    :columns="props.commerces.columns"
-    :rows="commerces"
+    tableId="seller-table"
+    title="Vendedores"
+    :columns="props.sellers.columns"
+    :rows="sellers"
     :filters="filters"
     search-placeholder="Buscar por nombre, email, teléfono..."
     showCreateButton
@@ -213,7 +213,7 @@
   >
     <ManagerSellerForm
       ref="managerSellerFormRef"
-      v-model="commerceData"
+      v-model="sellerData"
       :countries="props.countries"
       :currencies="props.currencies"
       :time-zones="props.timeZones"

@@ -1,21 +1,22 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
-import type { Commerce } from '@/js/types/roles/commerce/commerce'
 import { showPasswordModal } from '@/js/helpers/user/password'
+
+import type { Seller } from '@/js/types/roles/seller/seller'
 
 /**
  * Contrato público del composable useManagerSeller
  */
 interface UseManagerSellerReturn {
-    /** Datos del comercio (para crear o editar) */
-    commerceData: Ref<Partial<Commerce>>
+    /** Datos del vendedor (para crear o editar) */
+    sellerData: Ref<Partial<Seller>>
 
-    /** Lista reactiva de comercializadoras */
-    commerces: Ref<Commerce[]>
+    /** Lista reactiva de vendedores */
+    sellers: Ref<Seller[]>
 
     /** Inicializa la lista local */
-    setInitialCommerces: (initialCommerces: Commerce[]) => void
+    setInitialSellers: (initialSellers: Seller[]) => void
 
     /** Envío del formulario */
     submit: () => Promise<boolean>
@@ -45,13 +46,13 @@ interface UseManagerSellerReturn {
     removeBulk: (ids: (string | number)[]) => Promise<boolean>
 
     /** Fetch desde backend */
-    fetchCommerces: () => Promise<boolean>
+    fetchSellers: () => Promise<boolean>
 }
 
 /**
- * Factory para un comercio vacío
+ * Factory para un vendedor vacío
  */
-const emptyCommerce = (): Partial<Commerce> =>
+const emptySeller = (): Partial<Seller> =>
     Object.freeze({
         name: '',
         username: '',
@@ -66,7 +67,7 @@ const emptyCommerce = (): Partial<Commerce> =>
     })
 
 /**
- * Composable para manejar comercializadoras
+ * Composable para manejar vendedores
  *
  * Responsabilidades:
  * - Control del estado del formulario (create / edit / reset)
@@ -80,38 +81,38 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
     const loading = ref(false)
 
     /** Estado único del formulario */
-    const commerceData = ref<Partial<Commerce>>(emptyCommerce())
+    const sellerData = ref<Partial<Seller>>(emptySeller())
 
     /** Lista reactiva local */
-    const commerces = ref<Commerce[]>([])
+    const sellers = ref<Seller[]>([])
 
     /**
      * Inicializa la lista local
      */
-    function setInitialCommerces(initialCommerces: Commerce[]) {
-        commerces.value = [...initialCommerces]
+    function setInitialSellers(initialSellers: Seller[]) {
+        sellers.value = [...initialSellers]
     }
 
     /**
      * Obtiene la lista desde backend
      */
-    async function fetchCommerces(): Promise<boolean> {
+    async function fetchSellers(): Promise<boolean> {
         try {
             loading.value = true
 
-            const response = await backendClient.get<{ data: Commerce[] }>(
+            const response = await backendClient.get<{ data: Seller[] }>(
                 '/admin/commerce/list-filtered',
                 { params: { token: tokenId } }
             )
 
             if (Array.isArray(response.data?.data)) {
-                commerces.value = response.data.data
+                sellers.value = response.data.data
             }
 
             return true
         } catch (error) {
             console.error(error)
-            showToast('Error al cargar las comercializadoras', 'error')
+            showToast('Error al cargar las vendedores', 'error')
             return false
         } finally {
             loading.value = false
@@ -122,7 +123,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
      * Transforma el payload del frontend al formato esperado por el backend
      */
     function buildPayload(): Record<string, unknown> {
-        const { country_id, currency_id, time_zone_id, ...rest } = commerceData.value
+        const { country_id, currency_id, time_zone_id, ...rest } = sellerData.value
 
         return {
             ...rest,
@@ -143,9 +144,9 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
 
             const payload = buildPayload()
 
-            if (commerceData.value.id) {
+            if (sellerData.value.id) {
                 const { data } = await backendClient.put(
-                    `/admin/commerce/${commerceData.value.id}`,
+                    `/admin/commerce/${sellerData.value.id}`,
                     payload
                 )
                 showToast('Actualización exitosa', 'success')
@@ -158,7 +159,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
             }
 
 
-            await fetchCommerces()
+            await fetchSellers()
             reset()
             return true
         } catch (error: any) {
@@ -177,7 +178,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
      * Modo creación
      */
     function create(): void {
-        commerceData.value = { ...emptyCommerce() }
+        sellerData.value = { ...emptySeller() }
     }
 
     /**
@@ -195,7 +196,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
 
             const commerce = data.data
 
-            commerceData.value = {
+            sellerData.value = {
                 id: commerce.id,
                 name: commerce.name,
                 phone: commerce.phone,
@@ -226,14 +227,14 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
      * Reset del formulario
      */
     function reset(): void {
-        commerceData.value = { ...emptyCommerce() }
+        sellerData.value = { ...emptySeller() }
     }
 
     /**
-     * Alternar estado (ACTIVE / INACTIVE) del comercio.
+     * Alternar estado (ACTIVE / INACTIVE) del vendedor.
      */
     async function toggleStatus(id: string | number): Promise<boolean> {
-        const commerce = commerces.value.find(c => c.id === id)
+        const commerce = sellers.value.find(c => c.id === id)
         const name = commerce?.name ?? 'esta comercializadora'
 
         const confirm = await showToastConfirmAction({
@@ -247,7 +248,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
         try {
             await backendClient.put(`/admin/commerce/${id}/status`)
             showToast('Estado cambiado con éxito', 'success')
-            await fetchCommerces()
+            await fetchSellers()
             return true
         } catch {
             showToast('Error al cambiar el estado', 'error')
@@ -259,11 +260,11 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
      * Resetea la contraseña de una comercializadora
      */
     async function resetPassword(id: string | number): Promise<boolean> {
-        const commerce = commerces.value.find(c => c.id === id)
+        const commerce = sellers.value.find(c => c.id === id)
         const name = commerce?.name ?? 'esta comercializadora'
 
         if (commerce?.status !== 'ACTIVE') {
-            showToast('Solo se puede resetear la contraseña de comercializadoras activas', 'warning')
+            showToast('Solo se puede resetear la contraseña de vendedores activas', 'warning')
             return false
         }
 
@@ -295,7 +296,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
      * Eliminación (soft delete)
      */
     async function remove(id: string | number): Promise<boolean> {
-        const commerce = commerces.value.find(c => c.id === id)
+        const commerce = sellers.value.find(c => c.id === id)
         const name = commerce?.name ?? 'esta comercializadora'
 
         const confirm = await showToastConfirmAction({
@@ -309,7 +310,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
         try {
             await backendClient.put(`/admin/commerce/${id}/delete`)
             showToast('Comercializadora eliminada con éxito', 'success')
-            await fetchCommerces()
+            await fetchSellers()
             return true
         } catch {
             showToast('Error al eliminar la comercializadora', 'error')
@@ -322,7 +323,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
      */
     function buildItemListHtml(ids: (string | number)[]): string {
         const items = ids
-            .map(id => commerces.value.find(c => c.id === id))
+            .map(id => sellers.value.find(c => c.id === id))
             .filter(Boolean)
             .map(c => c!.name)
 
@@ -349,7 +350,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
         const itemListHtml = buildItemListHtml(ids)
 
         const confirm = await showToastConfirmAction({
-            html: `¿Quieres cambiar el estado de estas ${ids.length} comercializadoras?${itemListHtml}`,
+            html: `¿Quieres cambiar el estado de estas ${ids.length} vendedores?${itemListHtml}`,
             icon: 'warning',
             confirmButtonText: 'Sí, cambiar estado'
         })
@@ -360,8 +361,8 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
             for (const id of ids) {
                 await backendClient.put(`/admin/commerce/${id}/status`)
             }
-            showToast(`Estado cambiado con éxito para ${ids.length} comercializadoras`, 'success')
-            await fetchCommerces()
+            showToast(`Estado cambiado con éxito para ${ids.length} vendedores`, 'success')
+            await fetchSellers()
             return true
         } catch {
             showToast('Error al cambiar el estado', 'error')
@@ -383,7 +384,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
         const itemListHtml = buildItemListHtml(ids)
 
         const confirm = await showToastConfirmAction({
-            html: `¿Estás seguro que deseas eliminar estas ${ids.length} comercializadoras?${itemListHtml}`,
+            html: `¿Estás seguro que deseas eliminar estas ${ids.length} vendedores?${itemListHtml}`,
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar'
         })
@@ -394,19 +395,19 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
             for (const id of ids) {
                 await backendClient.put(`/admin/commerce/${id}/delete`)
             }
-            showToast(`${ids.length} comercializadoras eliminadas con éxito`, 'success')
-            await fetchCommerces()
+            showToast(`${ids.length} vendedores eliminadas con éxito`, 'success')
+            await fetchSellers()
             return true
         } catch {
-            showToast('Error al eliminar las comercializadoras', 'error')
+            showToast('Error al eliminar las vendedores', 'error')
             return false
         }
     }
 
     return {
-        commerceData,
-        commerces,
-        setInitialCommerces,
+        sellerData,
+        sellers,
+        setInitialSellers,
         submit,
         create,
         edit,
@@ -416,6 +417,6 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
         resetPassword,
         remove,
         removeBulk,
-        fetchCommerces
+        fetchSellers
     }
 }
