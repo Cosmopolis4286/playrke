@@ -156,8 +156,8 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
                     payload
                 )
                 showToast('Registro exitoso', 'success')
+                await showPasswordModal(data.password)
             }
-
 
             await fetchSellers()
             reset()

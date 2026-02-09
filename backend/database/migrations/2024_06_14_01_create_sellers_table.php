@@ -49,7 +49,7 @@ return new class extends Migration
             // Índices compuestos para consultas frecuentes
             $table->index(['status', 'manager_user_id']);
             $table->index('manager_user_id');
-            $table->index(['country_id', 'currency_id']);
+            $table->index(['country_id']);
         });
     }
 

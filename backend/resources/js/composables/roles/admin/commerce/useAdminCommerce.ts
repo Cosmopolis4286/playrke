@@ -155,8 +155,8 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
                     payload
                 )
                 showToast('Registro exitoso', 'success')
+                await showPasswordModal(data.password)
             }
-
 
             await fetchCommerces()
             reset()

@@ -47,7 +47,7 @@ final class AdminCommerceService
      */
     public function listFiltered(): array
     {
-        return $this->adminService->context('commerces')['commerces'];
+        return $this->adminService->context('commerces')['commerces']['rows'];
     }
 
     /**
