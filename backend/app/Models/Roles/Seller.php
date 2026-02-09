@@ -2,13 +2,12 @@
 
 namespace App\Models\Roles;
 
+use App\Models\BaseModel;
 use App\Models\Currency;
 use App\Models\Country;
 use App\Models\Pivots\Roles\Seller\SellerCurrency;
 use App\Models\Roles\Commerce;
 use App\Models\User;
-use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -18,10 +17,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Representa los vendedores del sistema con información de país, moneda,
  * comisiones, comercio asociado y relaciones con usuarios.
  */
-class Seller extends Model
+class Seller extends BaseModel
 {
-    use SnowflakeId;
-
     /**
      * Nombre de la tabla asociada al modelo.
      *
@@ -35,14 +32,14 @@ class Seller extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'id',           // ID del vendedor (generado con Snowflake)
         'name',         // Nombre del vendedor
-        'country',      // ID del país
-        'currency',     // ID de la moneda
         'phone',        // Teléfono del vendedor
         'commission',   // Comisión del vendedor
-        'commerce_id',  // ID del comercio asociado
+        'user_id',         // ID del usuario asociado
+        'country_id',      // ID del país
+        'manager_user_id', // ID del usuario manager al que representa
         'status',       // Estado del vendedor (activo/inactivo)
-        'user',         // ID del usuario asociado
     ];
 
     /**
@@ -51,8 +48,11 @@ class Seller extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'id' => 'string',
         'commission' => 'decimal:2',
-        'status' => 'boolean',
+        'user_id' => 'string',
+        'country_id' => 'string',
+        'manager_user_id' => 'string',
     ];
 
     /**
@@ -62,7 +62,7 @@ class Seller extends Model
      */
     public function country(): BelongsTo
     {
-        return $this->belongsTo(Country::class, 'country');
+        return $this->belongsTo(Country::class, 'country_id');
     }
 
     /**
@@ -72,7 +72,7 @@ class Seller extends Model
      */
     public function currency(): BelongsTo
     {
-        return $this->belongsTo(Currency::class, 'currency');
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 
     /**
@@ -82,7 +82,7 @@ class Seller extends Model
      */
     public function commerce(): BelongsTo
     {
-        return $this->belongsTo(Commerce::class, 'commerce_id');
+        return $this->belongsTo(Commerce::class, 'manager_user_id');
     }
 
     /**
@@ -92,7 +92,7 @@ class Seller extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
@@ -148,7 +148,7 @@ class Seller extends Model
      */
     public function scopeByCountry($query, string $countryId)
     {
-        return $query->where('country', $countryId);
+        return $query->where('country_id', $countryId);
     }
 
     /**
@@ -160,7 +160,7 @@ class Seller extends Model
      */
     public function scopeByCurrency($query, string $currencyId)
     {
-        return $query->where('currency', $currencyId);
+        return $query->where('currency_id', $currencyId);
     }
 
     /**
@@ -172,7 +172,7 @@ class Seller extends Model
      */
     public function scopeByCommerce($query, string $commerceId)
     {
-        return $query->where('commerce_id', $commerceId);
+        return $query->where('manager_user_id', $commerceId);
     }
 
     /**
@@ -219,7 +219,7 @@ class Seller extends Model
      */
     public function isActive(): bool
     {
-        return $this->status === true;
+        return $this->status === 'ACTIVE';
     }
 
     /**
@@ -229,7 +229,7 @@ class Seller extends Model
      */
     public function isInactive(): bool
     {
-        return $this->status === false;
+        return $this->status === 'INACTIVE';
     }
 
     /**
@@ -249,7 +249,7 @@ class Seller extends Model
      */
     public function deactivate(): bool
     {
-        return $this->update(['status' => false]);
+        return $this->update(['status' => 'INACTIVE']);
     }
 
     /**
@@ -279,7 +279,7 @@ class Seller extends Model
      */
     public function hasCommerce(): bool
     {
-        return !empty($this->commerce_id);
+        return !empty($this->manager_user_id);
     }
 
     /**
@@ -418,7 +418,7 @@ class Seller extends Model
      */
     public static function getByUserId(string $userId, array $fields = ['*']): ?Seller
     {
-        return self::select($fields)->where('user', $userId)->first();
+        return self::select($fields)->where('user_id', $userId)->first();
     }
 
     /**
@@ -469,7 +469,7 @@ class Seller extends Model
             '%s [%s - %s]',
             $this->name,
             $this->getFormattedCommission(),
-            $this->isActive() ? 'ACTIVO' : 'INACTIVO'
+            $this->isActive() ? 'ACTIVE' : 'INACTIVE'
         );
     }
 

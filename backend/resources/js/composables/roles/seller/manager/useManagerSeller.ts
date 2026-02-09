@@ -101,7 +101,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
             loading.value = true
 
             const response = await backendClient.get<{ data: Seller[] }>(
-                '/admin/commerce/list-filtered',
+                '/sellers/list-filtered',
                 { params: { token: tokenId } }
             )
 
@@ -146,13 +146,13 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
 
             if (sellerData.value.id) {
                 const { data } = await backendClient.put(
-                    `/admin/commerce/${sellerData.value.id}`,
+                    `/sellers/${sellerData.value.id}`,
                     payload
                 )
                 showToast('Actualización exitosa', 'success')
             } else {
                 const { data } = await backendClient.post(
-                    '/admin/commerce',
+                    '/sellers',
                     payload
                 )
                 showToast('Registro exitoso', 'success')
@@ -165,7 +165,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
         } catch (error: any) {
             console.error(error)
             showToast(
-                error?.response?.data?.message ?? 'Error al guardar la comercializadora',
+                error?.response?.data?.message ?? 'Error al guardar el vendedor',
                 'error'
             )
             return false
@@ -191,32 +191,32 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
             loading.value = true
 
             const { data } = await backendClient.get<{ data: Record<string, any> }>(
-                `/admin/commerce/${id}`
+                `/sellers/${id}`
             )
 
-            const commerce = data.data
+            const seller = data.data
 
             sellerData.value = {
-                id: commerce.id,
-                name: commerce.name,
-                phone: commerce.phone,
-                commission: commerce.commission ?? '',
+                id: seller.id,
+                name: seller.name,
+                phone: seller.phone,
+                commission: seller.commission ?? '',
                 // Datos del usuario anidado
-                username: commerce.user?.username,
-                email: commerce.user?.email,
-                time_zone_id: commerce.user?.time_zone_id,
+                username: seller.user?.username,
+                email: seller.user?.email,
+                time_zone_id: seller.user?.time_zone_id,
                 // Country viene como objeto {id, name}
-                country_id: commerce.country?.id,
+                country_id: seller.country?.id,
                 // Currency viene como string (id)
-                currency_id: commerce.currency,
-                other_currencies: commerce.other_currencies ?? [],
-                allowed_games: commerce.allowed_games ?? []
+                currency_id: seller.currency,
+                other_currencies: seller.other_currencies ?? [],
+                allowed_games: seller.allowed_games ?? []
             }
 
             return true
         } catch (error) {
             console.error(error)
-            showToast('Error al cargar la comercializadora', 'error')
+            showToast('Error al cargar el vendedor', 'error')
             return false
         } finally {
             loading.value = false
@@ -234,8 +234,8 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
      * Alternar estado (ACTIVE / INACTIVE) del vendedor.
      */
     async function toggleStatus(id: string | number): Promise<boolean> {
-        const commerce = sellers.value.find(c => c.id === id)
-        const name = commerce?.name ?? 'esta comercializadora'
+        const seller = sellers.value.find(c => c.id === id)
+        const name = seller?.name ?? 'este vendedor'
 
         const confirm = await showToastConfirmAction({
             html: `¿Quieres cambiar el estado de <b>${name}</b>?`,
@@ -246,7 +246,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/admin/commerce/${id}/status`)
+            await backendClient.put(`/sellers/${id}/status`)
             showToast('Estado cambiado con éxito', 'success')
             await fetchSellers()
             return true
@@ -257,14 +257,14 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
     }
 
     /**
-     * Resetea la contraseña de una comercializadora
+     * Resetea la contraseña de un vendedor y muestra la nueva contraseña en un modal (solo para vendedores activos)
      */
     async function resetPassword(id: string | number): Promise<boolean> {
-        const commerce = sellers.value.find(c => c.id === id)
-        const name = commerce?.name ?? 'esta comercializadora'
+        const seller = sellers.value.find(c => c.id === id)
+        const name = seller?.name ?? 'este vendedor'
 
-        if (commerce?.status !== 'ACTIVE') {
-            showToast('Solo se puede resetear la contraseña de vendedores activas', 'warning')
+        if (seller?.status !== 'ACTIVE') {
+            showToast('Solo se puede resetear la contraseña de vendedores activos', 'warning')
             return false
         }
 
@@ -278,7 +278,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
 
         try {
             const { data } = await backendClient.put(
-                `/admin/commerce/${id}/reset-password`
+                `/sellers/${id}/reset-password`
             )
 
             showToast(data.message ?? 'Contraseña reseteada', 'success')
@@ -293,11 +293,11 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
     }
 
     /**
-     * Eliminación (soft delete)
+     * Eliminación (soft delete) de un vendedor
      */
     async function remove(id: string | number): Promise<boolean> {
-        const commerce = sellers.value.find(c => c.id === id)
-        const name = commerce?.name ?? 'esta comercializadora'
+        const seller = sellers.value.find(c => c.id === id)
+        const name = seller?.name ?? 'este vendedor'
 
         const confirm = await showToastConfirmAction({
             html: `¿Estás seguro que deseas eliminar <b>${name}</b>?`,
@@ -308,12 +308,12 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/admin/commerce/${id}/delete`)
+            await backendClient.put(`/sellers/${id}/delete`)
             showToast('Comercializadora eliminada con éxito', 'success')
             await fetchSellers()
             return true
         } catch {
-            showToast('Error al eliminar la comercializadora', 'error')
+            showToast('Error al eliminar el vendedor', 'error')
             return false
         }
     }
@@ -359,7 +359,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
 
         try {
             for (const id of ids) {
-                await backendClient.put(`/admin/commerce/${id}/status`)
+                await backendClient.put(`/sellers/${id}/status`)
             }
             showToast(`Estado cambiado con éxito para ${ids.length} vendedores`, 'success')
             await fetchSellers()
@@ -393,7 +393,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
 
         try {
             for (const id of ids) {
-                await backendClient.put(`/admin/commerce/${id}/delete`)
+                await backendClient.put(`/sellers/${id}/delete`)
             }
             showToast(`${ids.length} vendedores eliminadas con éxito`, 'success')
             await fetchSellers()

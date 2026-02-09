@@ -19,12 +19,13 @@ multi_middleware_routes('sellers', 'manager-seller.', [
         'controller' => ManagerSellerController::class,
         'routes' => [
             'index' => ['method' => 'get', 'uri' => ''],
-            'create' => ['method' => 'post', 'uri' => ''],
+            'store' => ['method' => 'post', 'uri' => ''],
             'show' => ['method' => 'get', 'uri' => '{id}'],
             'update' => ['method' => 'put', 'uri' => '{id}'],
+            'delete' => ['method' => 'put', 'uri' => '{id}/delete'],
             'destroy' => ['method' => 'delete', 'uri' => '{id}'],
+            'toggleStatus' => ['method' => 'put', 'uri' => '{id}/status'],
             'resetPassword' => ['method' => 'put', 'uri' => '{id}/password'],
-            'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
         ]
     ]
 ]);

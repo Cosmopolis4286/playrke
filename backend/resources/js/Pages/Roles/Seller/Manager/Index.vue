@@ -65,7 +65,7 @@
     formRef: managerSellerFormRef,
     handleSubmit
   } = useModalForm(sellerData, submit, {
-    defaultTitle: 'Comercializadora'
+    defaultTitle: 'Vendedor',
   })
 
   watch(showModalForm, isOpen => {

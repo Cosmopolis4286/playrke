@@ -6,14 +6,14 @@
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
 
   // Composables
-  import { useAdminCommerceForm } from '@/js/composables/roles/admin/commerce/useAdminCommerceForm'
+  import { useManagerSellerForm } from '@/js/composables/roles/seller/manager/useManagerSellerForm'
 
   // Types
   import type { Currency } from '@/js/types/currency'
   import type { Country } from '@/js/types/country'
   import type { TimeZone } from '@/js/types/time-zone'
   import type { Game } from '@/js/types/game'
-  import type { Commerce } from '@/js/types/roles/commerce/commerce'
+  import type { Seller } from '@/js/types/roles/seller/seller'
 
   /* ==========================================================================
    * Props
@@ -24,7 +24,7 @@
     currencies: Currency[]
     timeZones: TimeZone[]
     games: Game[]
-    modelValue: Partial<Commerce>
+    modelValue: Partial<Seller>
   }>()
 
   /* ==========================================================================
@@ -33,14 +33,14 @@
 
   const emit = defineEmits<{
     (e: 'submit'): void
-    (e: 'update:modelValue', value: Partial<Commerce>): void
+    (e: 'update:modelValue', value: Partial<Seller>): void
   }>()
 
   /* ==========================================================================
    * Form logic (PRO: computed v-model)
    * ========================================================================== */
 
-  const { form, errors, isValid } = useAdminCommerceForm(() => props.modelValue, emit)
+  const { form, errors, isValid } = useManagerSellerForm(() => props.modelValue, emit)
 
   /* ==========================================================================
    * Máscaras
@@ -144,7 +144,7 @@
   })
 </script>
 <template>
-  <form id="commerce-form" novalidate @submit.prevent="submit">
+  <form id="seller-form" novalidate @submit.prevent="submit">
     <div class="row">
       <FormInput label="Razon Social" name="name" required col="col-sm-6" v-model="form.name" />
 

@@ -20,16 +20,22 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->cascadeOnUpdate();
 
+            // Nivel de asignación
             $table->tinyInteger('level')
-                ->comment('1 = básico, 2 = medio, 3 = avanzado');
+                ->default(1)
+                ->comment('Nivel asignado: 1 = básico, 2 = intermedio, 3 = avanzado');
 
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
                 ->default('ACTIVE');
 
             $table->timestamps();
 
-            // Evitar duplicados por combinación
-            $table->unique(['seller_id', 'currency_id'], 'unique_seller_currency');
+            // Soft deletes
+            $table->softDeletes();
+
+            // Índices para optimizar búsquedas frecuentes
+            $table->primary(['seller_id', 'currency_id']);
+            $table->index(['seller_id', 'currency_id'], 'idx_seller_currency');
         });
     }
 

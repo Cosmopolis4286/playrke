@@ -5,11 +5,11 @@ namespace App\Exceptions\Domain\Roles\Seller\Manager;
 use App\Exceptions\Domain\DomainException;
 
 /**
- * Excepciones de dominio relacionadas al agregado Commerce
+ * Excepciones de dominio relacionadas al agregado Seller Manager
  * en el contexto Admin.
  *
  * Estas excepciones representan reglas de negocio violadas
- * o estados inválidos del comercio.
+ * o estados inválidos del vendedor.
  *
  * IMPORTANTE:
  * - El dominio expone ERROR CODES, no mensajes humanos
@@ -17,67 +17,67 @@ use App\Exceptions\Domain\DomainException;
 final class ManagerSellerException extends DomainException
 {
     /**
-     * Fallo genérico en la creación del comercio.
+     * Fallo genérico en la creación del vendedor.
      */
     public static function creationFailed(): self
     {
-        return new self('ADMIN_COMMERCE_CREATION_FAILED');
+        return new self('MANAG_SELLER_CREATION_FAILED');
     }
 
     /**
-     * Fallo genérico en la actualización del comercio.
+     * Fallo genérico en la actualización del vendedor.
      */
     public static function updateFailed(): self
     {
-        return new self('ADMIN_COMMERCE_UPDATE_FAILED');
+        return new self('MANAG_SELLER_UPDATE_FAILED');
     }
 
     /**
-     * Fallo genérico en la eliminación lógica del comercio.
+     * Fallo genérico en la eliminación lógica del vendedor.
      */
     public static function deleteFailed(): self
     {
-        return new self('ADMIN_COMMERCE_DELETE_FAILED');
+        return new self('MANAG_SELLER_DELETE_FAILED');
     }
 
     /**
-     * Fallo al resetear la contraseña del comercio.
+     * Fallo al resetear la contraseña del vendedor.
      */
     public static function passwordResetFailed(): self
     {
-        return new self('ADMIN_COMMERCE_PASSWORD_RESET_FAILED');
+        return new self('MANAG_SELLER_PASSWORD_RESET_FAILED');
     }
 
     /**
-     * Solo se puede resetear la contraseña de comercios activos.
+     * Solo se puede resetear la contraseña de vendedores activos.
      */
     public static function passwordResetRequiresActiveStatus(): self
     {
-        return new self('ADMIN_COMMERCE_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS');
+        return new self('MANAG_SELLER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS');
     }
 
     /**
-     * El comercio ya se encuentra eliminado.
+     * El vendedor ya se encuentra eliminado.
      */
     public static function alreadyDeleted(): self
     {
-        return new self('ADMIN_COMMERCE_ALREADY_DELETED');
+        return new self('MANAG_SELLER_ALREADY_DELETED');
     }
 
     /**
-     * Intento de cambiar el estado de un comercio eliminado.
+     * Intento de cambiar el estado de un vendedor eliminado.
      */
     public static function invalidStatusChange(): self
     {
-        return new self('ADMIN_COMMERCE_INVALID_STATUS_CHANGE');
+        return new self('MANAG_SELLER_INVALID_STATUS_CHANGE');
     }
 
     /**
-     * El comercio no existe o no pertenece al contexto actual.
+     * El vendedor no existe o no pertenece al contexto actual.
      */
     public static function notFound(): self
     {
-        return new self('ADMIN_COMMERCE_NOT_FOUND');
+        return new self('MANAG_SELLER_NOT_FOUND');
     }
 
     /**
@@ -85,6 +85,6 @@ final class ManagerSellerException extends DomainException
      */
     public static function destroyNotAllowed(): self
     {
-        return new self('ADMIN_COMMERCE_DESTROY_NOT_ALLOWED');
+        return new self('MANAG_SELLER_DESTROY_NOT_ALLOWED');
     }
 }

@@ -103,10 +103,10 @@ final class ManagerSellerCrudService
     }
 
     /**
-     * Crear un comercio completo (User + Commerce + Wallet).
+     * Crear un vendedor completo (User + Seller + Wallet).
      *
      * @param ManagerSellerDTO $dto
-     * @return string Contraseña generada para el comercio
+     * @return string Contraseña generada para el vendedor
      *
      * @throws ManagerSellerException
      */
@@ -118,13 +118,13 @@ final class ManagerSellerCrudService
 
             // 1. Usuario
             $user = $this->userService->createUserFromDTO($dto, $plainPassword);
-            $user->assignRole('commerce');
+            $user->assignRole('seller');
 
             // 2. Código único
             $uniqueCode = $this->userService->createUniqueCode($user->id);
 
-            // 3. Comercio
-            $commerce = $this->sellerRepository->create([
+            // 3. Vendedor
+            $seller = $this->sellerRepository->create([
                 'name'           => $dto->name,
                 'phone'          => $dto->phone,
                 'country_id'     => $dto->country,
@@ -133,13 +133,13 @@ final class ManagerSellerCrudService
                 'unique_code_id' => $uniqueCode->id,
             ]);
 
-            if (! $commerce) {
+            if (!$seller) {
                 throw ManagerSellerException::creationFailed();
             }
 
             // 4. Relaciones
-            $this->syncCurrencies($commerce, $dto->currency, $dto->otherCurrencies);
-            $this->syncGames($commerce, $dto->allowedGames);
+            $this->syncCurrencies($seller, $dto->currency, $dto->otherCurrencies);
+            $this->syncGames($seller, $dto->allowedGames);
 
             // 5. Wallet principal
             $this->walletRepository->create([

@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Roles\Seller;
 use App\Http\Controllers\Controller;
 
 use App\Models\Roles\Seller;
-use App\DTOs\Roles\Commerce\ManagerSellerDTO;
-use App\Http\Requests\Roles\Commerce\ManagerSellerRequest;
+use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
+use App\Http\Requests\Roles\Seller\Manager\ManagerSellerRequest;
 use App\Services\Roles\Seller\Manager\ManagerSellerService;
 
 use Illuminate\Http\JsonResponse;
@@ -31,7 +31,7 @@ final class ManagerSellerController extends Controller
     public function __construct(
         protected readonly ManagerSellerService $service
     ) {
-        $this->authorizeResource(Seller::class, 'seller');
+        //$this->authorizeResource(Seller::class, 'seller');
     }
 
     /**

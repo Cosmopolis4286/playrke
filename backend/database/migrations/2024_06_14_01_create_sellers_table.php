@@ -20,21 +20,16 @@ return new class extends Migration
             $table->string('phone', 14)->nullable()->comment('Teléfono de contacto');
             $table->decimal('commission', 5, 2)->default(0.00)->comment('Comisión (%)');
 
+            $table->foreignSnowflake('user_id')
+                ->constrained('users')
+                ->cascadeOnDelete()
+                ->comment('ID de usuario del vendedor');
+
             // Relaciones Snowflake
             $table->foreignSnowflake('country_id')
                 ->constrained('countries')
                 ->cascadeOnUpdate()
                 ->comment('País del vendedor');
-
-            $table->foreignSnowflake('currency_id')
-                ->constrained('currencies')
-                ->cascadeOnUpdate()
-                ->comment('Moneda utilizada por el vendedor');
-
-            $table->foreignSnowflake('user_id')
-                ->constrained('users')
-                ->cascadeOnDelete()
-                ->comment('ID de usuario del vendedor');
 
             $table->foreignSnowflake('manager_user_id')
                 ->constrained('users')->cascadeOnDelete()
