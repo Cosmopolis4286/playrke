@@ -41,7 +41,7 @@ final class ManagerSellerService
     {
         // Resolver ID del usuario
         $userId = $this->userContext->resolveUserId($publicToken);
-        return $this->crud->context($userId);
+        return $this->crud->context($userId)->toView();
     }
 
     /**

@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 final class ManagerSellerContextDTO implements ContextDTO
 {
     public function __construct(
-        public readonly array $commerces,
+        public readonly array $sellers,
         public readonly ?array $pagination,
         public readonly Collection $countries,
         public readonly Collection $currencies,
@@ -20,8 +20,8 @@ final class ManagerSellerContextDTO implements ContextDTO
     public function toView(): array
     {
         return [
-            'commerces'             => $this->commerces,
-            'commerces_pagination'  => $this->pagination,
+            'sellers'             => $this->sellers,
+            'sellers_pagination'  => $this->pagination,
             'countries'             => $this->countries,
             'currencies'            => $this->currencies,
             'games'                 => $this->games,

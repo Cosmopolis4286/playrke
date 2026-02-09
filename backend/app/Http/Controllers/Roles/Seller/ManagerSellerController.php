@@ -35,11 +35,11 @@ final class ManagerSellerController extends Controller
     }
 
     /**
-     * Vista de vendedores
+     * Vista de vendedores del usuario manager.
      *
      * @return Response
      */
-    public function sellers(): Response
+    public function index(): Response
     {
         return $this->handleServiceInertia(
             function () {

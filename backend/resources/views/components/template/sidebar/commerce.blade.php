@@ -17,8 +17,8 @@
     </li>
 
     <li class="nav-item has-treeview">
-        <a href="{{ route('commerce.sellers') }}" title="Mis Vendedores"
-            class="nav-link {{ Route::is('commerce.sellers') ? 'active' : '' }}">
+        <a href="{{ route('manager-seller.index') }}" title="Mis Vendedores"
+            class="nav-link {{ Route::is('manager-seller.index') ? 'active' : '' }}">
             <i class="nav-icon fa-solid fa-comments-dollar"></i>
             <p>Vendedores</p>
         </a>

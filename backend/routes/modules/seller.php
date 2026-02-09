@@ -13,12 +13,12 @@ use App\Http\Controllers\Roles\SellerController;
 
 // GESTIÓN DE VENDEDORES (MANAGER SELLER ROLE)
 // ====================================
-multi_middleware_routes('commerce', 'commerce.', [
+multi_middleware_routes('sellers', 'manager-seller.', [
     [
         'middleware' => ['auth', 'role:commerce'],
         'controller' => ManagerSellerController::class,
         'routes' => [
-            'sellers' => ['method' => 'get', 'uri' => 'sellers'],
+            'index' => ['method' => 'get', 'uri' => ''],
             'create' => ['method' => 'post', 'uri' => ''],
             'show' => ['method' => 'get', 'uri' => '{id}'],
             'update' => ['method' => 'put', 'uri' => '{id}'],

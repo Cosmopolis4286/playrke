@@ -35,6 +35,8 @@
 
   const props = defineProps<ManagerSellerPageProps>()
 
+  console.log('ManagerSellerPageProps', props)
+
   // ==========================================================================
   // Lógica de negocio
   // ==========================================================================
