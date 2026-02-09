@@ -11,7 +11,7 @@
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import AdminCommerceForm from '@/js/Components/Roles/Admin/Commerce/AdminCommerceForm.vue'
+  import ManagerSellerForm from '@/js/Components/Roles/Seller/Manager/ManagerSellerForm.vue'
 
   // ==========================================================================
   // Composables
@@ -19,13 +19,13 @@
 
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
-  import { useAdminCommerce } from '@/js/composables/roles/admin/commerce/useAdminCommerce'
+  import { useManagerSeller } from '@/js/composables/roles/seller/manager/useManagerSeller'
 
   // ==========================================================================
   // Types
   // ==========================================================================
 
-  import type { AdminCommercePageProps } from '@js/types/roles/admin/admin-commerce'
+  import type { ManagerSellerPageProps } from '@/js/types/roles/seller/manager/manager-seller'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
 
@@ -33,7 +33,7 @@
   // Props (Inertia)
   // ==========================================================================
 
-  const props = defineProps<AdminCommercePageProps>()
+  const props = defineProps<ManagerSellerPageProps>()
 
   // ==========================================================================
   // Lógica de negocio
@@ -49,7 +49,7 @@
     resetPassword,
     removeBulk,
     submit
-  } = useAdminCommerce()
+  } = useManagerSeller()
 
   setInitialCommerces(props.commerces.rows)
 
@@ -60,7 +60,7 @@
   const {
     showModalForm,
     modalTitle,
-    formRef: adminCommerceFormRef,
+    formRef: managerSellerFormRef,
     handleSubmit
   } = useModalForm(commerceData, submit, {
     defaultTitle: 'Comercializadora'
@@ -68,7 +68,7 @@
 
   watch(showModalForm, isOpen => {
     if (!isOpen) {
-      adminCommerceFormRef.value?.reset?.()
+      managerSellerFormRef.value?.reset?.()
       create()
     }
   })
@@ -209,10 +209,10 @@
     static
     show-confirm
     :on-submit="handleSubmit"
-    :confirm-disabled="!(adminCommerceFormRef?.isValid ?? false)"
+    :confirm-disabled="!(managerSellerFormRef?.isValid ?? false)"
   >
-    <AdminCommerceForm
-      ref="adminCommerceFormRef"
+    <ManagerSellerForm
+      ref="managerSellerFormRef"
       v-model="commerceData"
       :countries="props.countries"
       :currencies="props.currencies"

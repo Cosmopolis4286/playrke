@@ -47,7 +47,7 @@ final class ManagerSellerController extends Controller
 
                 $response['title'] = 'Vendedores';
 
-                return Inertia::render('Roles/Commerce/Seller/Index', $response);
+                return Inertia::render('Roles/Seller/Manager/Index', $response);
             },
             'No se pudo cargar la lista de vendedores.'
         );

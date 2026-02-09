@@ -43,7 +43,7 @@ final class ManagerSellerCrudService
      */
     public function context(int $userId): array
     {
-        $sellers = $this->sellerRepository->getByCommerce($userId);
+        $sellers = $this->sellerRepository->getByManager($userId);
 
         return [
             'sellers' => $sellers,

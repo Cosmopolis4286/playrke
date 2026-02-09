@@ -69,9 +69,9 @@ class SellerRepository extends BaseRepository implements SellerRepositoryInterfa
     /**
      * {@inheritDoc}
      */
-    public function getByCommerce(string $commerceId): Collection
+    public function getByManager(string $managerUserId): Collection
     {
-        return $this->model->where('commerce_id', $commerceId)->get();
+        return $this->model->where('manager_user_id', $managerUserId)->get();
     }
 
     /**

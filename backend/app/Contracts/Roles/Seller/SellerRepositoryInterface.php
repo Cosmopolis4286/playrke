@@ -53,12 +53,12 @@ interface SellerRepositoryInterface extends BaseRepositoryInterface
     public function getByCurrency(string $currencyId): Collection;
 
     /**
-     * Buscar vendedores por comercio.
+     * Buscar vendedores por manager.
      *
-     * @param string $commerceId ID del comercio
-     * @return Collection Vendedores del comercio especificado
+     * @param string $managerUserId ID de usuario del manager
+     * @return Collection Vendedores del manager especificado
      */
-    public function getByCommerce(string $commerceId): Collection;
+    public function getByManager(string $managerUserId): Collection;
 
     /**
      * Buscar vendedores por nombre.
