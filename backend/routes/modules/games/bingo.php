@@ -34,7 +34,7 @@ multi_middleware_routes('bingo', 'bingo.', [
         ]
     ],
     [
-        'middleware' => ['auth', 'commerce_id'],
+        'middleware' => ['auth', 'commerce'],
         'controller' => BingoController::class,
         'routes' => [
             'game-rooms-commerce'          => ['method' => 'get', 'uri' => '{roomType}/game-rooms/{currency?}'],
@@ -49,21 +49,13 @@ multi_middleware_routes('bingo', 'bingo.', [
 
 /**
  * ====================================
- * RUTAS PÚBLICAS / SIN MIDDLEWARE
- * ====================================
- */
-Route::get('commerce/getPaymentCommerceDetails/{commerce}/{currency}', [BingoController::class, 'getPaymentCommerceDetails'])
-    ->withoutMiddleware(['auth', 'commerce_id'])
-    ->name('commerce.getPaymentCommerceDetails');
-
-/**
- * ====================================
  * INFORMACIÓN Y CONFIGURACIÓN
  * ====================================
  */
 route_group('bingo', 'bingo.', [], BingoController::class, [
-    'form'               => ['method' => 'get', 'uri' => 'form/{roomId?}'],
-    'game-info'          => ['method' => 'get', 'uri' => 'show-game-info'],
+    'game-rooms-summary' => ['method' => 'get', 'uri' => 'game-rooms-summary', 'action' => 'gameRoomsSummary'],
+    'form'               => ['method' => 'get', 'uri' => 'form/{roomId?}', 'action' => 'formData'],
+    'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
     'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],
     'patterns'           => ['method' => 'get', 'uri' => 'configuration/patterns/{userToken?}'],
     'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
@@ -137,10 +129,10 @@ route_group('bingocash', 'bingocash.', [], BingoController::class, [
  * RUTAS ESPECIALES
  * ====================================
  */
-Route::get('bingo/view-ctn/{ctnId}', [BingoController::class, 'viewCtn'])->name('bingo.view-carton');
-Route::get('bingo/{roomType}/{creatorType}/{creatorId?}/{currency?}', [BingoController::class, 'handleGameRoomSummary'])->name('bingo.room-summary');
-Route::get('{customer}/{userToken}/room/{room}', [BingoController::class, 'inGameCustomer'])->name('bingo.in-game-customer');
-Route::get('game/{customer}/room/{room}/{currency}', [BingoController::class, 'outGameCustomer'])->name('bingo.out-game-customer');
+// Route::get('bingo/view-ctn/{ctnId}', [BingoController::class, 'viewCtn'])->name('bingo.view-carton');
+// Route::get('bingo/{roomType}/{creatorType}/{creatorId?}/{currency?}', [BingoController::class, 'handleGameRoomSummary'])->name('bingo.game-rooms-summary');
+// Route::get('{customer}/{userToken}/room/{room}', [BingoController::class, 'inGameCustomer'])->name('bingo.in-game-customer');
+// Route::get('game/{customer}/room/{room}/{currency}', [BingoController::class, 'outGameCustomer'])->name('bingo.out-game-customer');
 
 // Ruta especial de sesión
 Route::get('bingo/k3yg4m3/play-rke', function () {

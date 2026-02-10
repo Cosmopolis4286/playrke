@@ -53,10 +53,9 @@ final class AdminContextService
     /**
      * Resolver listado de comercios.
      *
-     * @param int|null $userId ID del usuario manager
      * @return array [commerces, pagination]
      */
-    public function resolveCommerces(?int $userId = null): array
+    public function resolveCommerces(): array
     {
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
         $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
@@ -111,7 +110,6 @@ final class AdminContextService
     /**
      * Resolver listado de clientes.
      *
-     * @param int|null $userId ID del usuario manager
      * @return array [customers, pagination]
      */
     public function resolveCustomers(): array

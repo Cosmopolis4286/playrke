@@ -32,12 +32,11 @@ final class AdminCommerceService
     /**
      * Obtener todos los comercios.
      *
-     * @param int|null $managerUserId ID del usuario manager
      * @return array
      */
-    public function listFiltered(int $managerUserId): array
+    public function listFiltered(): array
     {
-        return $this->contex->resolveCommerces($managerUserId)['commerces']['rows'] ?? [];
+        return $this->contex->resolveCommerces()['commerces']['rows'] ?? [];
     }
 
     /**

@@ -208,12 +208,12 @@ class BingoController extends Controller
             ->get();
 
         // Redirigir si no hay salas disponibles
-        if (!count($rooms) && $creator['type'] === 'commerce_id') {
+        if (!count($rooms) && $creator['type'] === 'commerce') {
             return ['redirect' => route(
-                'bingo.room-summary',
+                'bingo.game-rooms-summary',
                 [
                     'roomType' => $roomType == 1 ? 'public-rooms' : 'private-rooms',
-                    'creatorType' => 'commerce_id',
+                    'creatorType' => 'commerce',
                     'creatorId' => encrypt($creatorId),
                     'currency' => encrypt($currency)
                 ]
@@ -255,10 +255,10 @@ class BingoController extends Controller
 
         if (!$currency) {
             return redirect()->route(
-                'bingo.room-summary',
+                'bingo.game-rooms-summary',
                 [
                     'roomType' => $roomType === 'private' ? 'private-rooms' : 'public-rooms',
-                    'creatorType' => 'commerce_id',
+                    'creatorType' => 'commerce',
                     'creatorId' => encrypt($commerce),
                     'currency' => encrypt(1)
                 ]
@@ -266,7 +266,7 @@ class BingoController extends Controller
         }
 
         $creator = [
-            'type' => 'commerce_id',
+            'type' => 'commerce',
             'id' => $commerce,
             'userId' => Auth::id()
         ];
@@ -332,7 +332,7 @@ class BingoController extends Controller
 
         $player = $request->player ?? null ? decrypt($request->player) : null;
 
-        if ($creatorType === 'commerce_id') {
+        if ($creatorType === 'commerce') {
             $currency = decrypt($request->currency);
         } else if ($creatorType === 'customer') {
             $user = CustomerUser::getById($player, ['token', 'currency']);
@@ -365,7 +365,7 @@ class BingoController extends Controller
             ];
         } else {
             $data['currency'] = $currency;
-            $data['commerce_id'] = $creator['id'];
+            $data['commerce'] = $creator['id'];
 
             if ($data['isLogged']) {
                 $data['playerUser'] = $player;
@@ -399,18 +399,18 @@ class BingoController extends Controller
 
     private function handleCartonBySeller($data, $request)
     {
-        $seller = Seller::getByUserId(Auth::id(), ['id', 'commerce_id']);
+        $seller = Seller::getByUserId(Auth::id(), ['id', 'commerce']);
         $commerce = $seller->commerce;
 
         $creator = [
-            'type' => 'commerce_id',
+            'type' => 'commerce',
             'id' => $commerce,
             'userId' => Commerce::getValueById($commerce, 'user')
         ];
 
         $data['creator'] = $creator;
 
-        $data['commerce_id'] = $commerce;
+        $data['commerce'] = $commerce;
         $data['seller'] = $seller->id;
         $data['country'] = $request->country;
         $data['currency'] = Currency::getValueByCountry($request->country, 'id');
@@ -461,7 +461,7 @@ class BingoController extends Controller
                 case 'admin':
                     # code...
                     break;
-                case 'commerce_id':
+                case 'commerce':
                     $creatorUser = Commerce::getValueById($creatorId, 'user');
                     break;
                 case 'customer':
@@ -528,7 +528,7 @@ class BingoController extends Controller
                 return $response;
             }
 
-            if (isset($data['commerce_id']) || isset($data['seller'])) {
+            if (isset($data['commerce']) || isset($data['seller'])) {
                 // Usuario Fuera de Sesion
                 if (!isset($data['isLogged'])) {
                     if (!isset($data['roomUser'])) $data['roomUser'] = $cartonStore;
@@ -647,7 +647,7 @@ class BingoController extends Controller
                 );
                 break;
             case 'RKE';
-            case 'commerce_id':
+            case 'commerce':
 
                 $creatorId = $creator['id'];
 
@@ -904,7 +904,7 @@ class BingoController extends Controller
         if (!$commerce) return redirect()->back();
 
         $creator = [
-            'type' => 'commerce_id',
+            'type' => 'commerce',
             'id' => $commerce,
             'userId' => Commerce::getValueById($commerce, 'user')
         ];
@@ -1050,7 +1050,7 @@ class BingoController extends Controller
         switch ($creator['type']) {
             case 'admin': // Admin
                 break;
-            case 'commerce_id': // Comercio
+            case 'commerce': // Comercio
                 $creatorId = decrypt($creator['id']);
 
                 $isLogged = true;
@@ -1063,10 +1063,10 @@ class BingoController extends Controller
                 );
 
                 $routeWithCurrency = [
-                    'route' => 'bingo.room-summary',
+                    'route' => 'bingo.game-rooms-summary',
                     'parameters' => [
                         'roomType' => $roomType,
-                        'creatorType' => 'commerce_id',
+                        'creatorType' => 'commerce',
                         'creatorId' => encrypt($creator['id'])
                     ]
                 ];
@@ -1092,7 +1092,7 @@ class BingoController extends Controller
                 $customer = Customer::getById($creatorId, ['customer_id', 'token']);
 
                 $routeWithCurrency = [
-                    'route' => 'bingo.room-summary',
+                    'route' => 'bingo.game-rooms-summary',
                     'parameters' => [
                         'roomType' => $roomType,
                         'creatorType' => 'customer',
@@ -1175,7 +1175,7 @@ class BingoController extends Controller
      * Maneja la lógica para mostrar el resumen (listado) de salas de juego según tipo de sala y creador.
      *
      * @param string $roomType    Tipo de sala: 'automatic-rooms', 'private-rooms', 'public-rooms', 'other-public-rooms'.
-     * @param string $creatorType Tipo de creador: 'admin', 'commerce_id', 'customer'.
+     * @param string $creatorType Tipo de creador: 'admin', 'commerce', 'customer'.
      * @param mixed  $creatorId   ID del creador (puede estar vacío si se determina automáticamente).
      * @param mixed  $currency        Moneda seleccionada (opcional, por defecto 1).
      *
@@ -1202,7 +1202,7 @@ class BingoController extends Controller
         // Determinar ID del creador según tipo
         $creatorId = match ($creatorType) {
             'admin' => $creatorId,
-            'commerce_id' => Commerce::getValueByUserId(Auth::id(), 'id'),
+            'commerce' => Commerce::getValueByUserId(Auth::id(), 'id'),
             default => null
         };
 
@@ -1213,7 +1213,7 @@ class BingoController extends Controller
 
         // Si falta la moneda, redirigir con moneda por defecto
         if (!$currency) {
-            return redirect()->route('bingo.room-summary', [
+            return redirect()->route('bingo.game-rooms-summary', [
                 'roomType' => $roomType,
                 'creatorType' => $creatorType,
                 'creatorId' => encrypt($creatorId),
@@ -1281,7 +1281,7 @@ class BingoController extends Controller
                 return response()->json(['message' => 'No se encontraron monedas registradas'], 404);
             }
 
-            return redirect()->route('bingo.room-summary', [
+            return redirect()->route('bingo.game-rooms-summary', [
                 'roomType' => $roomType,
                 'creatorType' => 'customer',
                 'creatorId' => $isLogged ? encrypt($customerId) : $customerId,
@@ -1302,7 +1302,7 @@ class BingoController extends Controller
             $currency = CustomerExchangeRate::getCustomerCurrencyValue($customerId, $currency, 'id');
 
             // Redirigir con la moneda correctamente formateada
-            return redirect()->route('bingo.room-summary', [
+            return redirect()->route('bingo.game-rooms-summary', [
                 'roomType' => $roomType,
                 'creatorType' => 'customer',
                 'creatorId' => $isLogged ? encrypt($customerId) : $customerId,
@@ -1343,7 +1343,7 @@ class BingoController extends Controller
         $creatorType = $creator->type ?? null;
         $creatorId = isset($creator->id) ? decrypt($creator->id) : null;
 
-        $allowedPrefixes = ['admin', 'commerce_id', 'customer'];
+        $allowedPrefixes = ['admin', 'commerce', 'customer'];
         if (!in_array($creatorType, $allowedPrefixes)) {
             return redirect()->back()->with('msg-error', 'No tienes permiso para crear una sala');
         }
@@ -1714,7 +1714,7 @@ class BingoController extends Controller
 
         $currencies = match ($creatorType) {
             'admin' => Currency::where('id', '!=', 1)->distinct()->pluck('currency'),
-            'commerce_id' => CommerceCurrency::getAvailableCurrencies($creatorId, 1),
+            'commerce' => CommerceCurrency::getAvailableCurrencies($creatorId, 1),
             default => CustomerExchangeRate::getCurrenciesByCustomer($creatorId),
         };
 
@@ -1794,7 +1794,7 @@ class BingoController extends Controller
             $userRole = RoleRepository::getValueById($userRoleID, 'prefix');
         }
 
-        if (!in_array($userRole, ['admin', 'commerce_id', 'customer'])) {
+        if (!in_array($userRole, ['admin', 'commerce', 'customer'])) {
             return redirect()->back();
         }
 
@@ -2053,7 +2053,7 @@ class BingoController extends Controller
 
         $creatorType = RoleRepository::getValueById($userRole, 'prefix');
 
-        if ($creatorType === 'commerce_id') {
+        if ($creatorType === 'commerce') {
             $bingoCreator = BingoCreator::existsByRoomCreatorUser($roomId, $creatorUserID);
 
             if ($room->room_type === 'PB') {
@@ -2075,7 +2075,7 @@ class BingoController extends Controller
     {
         $userData = $this->getUserData();
 
-        $allowedPrefixes = ['admin', 'commerce_id', 'customer'];
+        $allowedPrefixes = ['admin', 'commerce', 'customer'];
 
         if (!in_array($userData['type'], $allowedPrefixes)) {
             return false;
@@ -2096,7 +2096,7 @@ class BingoController extends Controller
     {
         $userData = $this->getUserData();
 
-        $allowedPrefixes = ['admin', 'commerce_id', 'customer'];
+        $allowedPrefixes = ['admin', 'commerce', 'customer'];
 
         if (!in_array($userData['type'], $allowedPrefixes)) {
             return false;
@@ -2150,7 +2150,7 @@ class BingoController extends Controller
         $userData = $this->getUserData();
 
         // Validar el tipo de usuario autorizado
-        if (!in_array($userData['type'], ['admin', 'commerce_id', 'customer'])) {
+        if (!in_array($userData['type'], ['admin', 'commerce', 'customer'])) {
             return false;
         }
 
@@ -2197,7 +2197,7 @@ class BingoController extends Controller
             $userRole = RoleRepository::getValueById($userRoleID, 'prefix');
         }
 
-        if (!in_array($userRole, ['admin', 'commerce_id', 'customer'])) {
+        if (!in_array($userRole, ['admin', 'commerce', 'customer'])) {
             return redirect()->back();
         }
 
@@ -2252,7 +2252,7 @@ class BingoController extends Controller
             $isLogged = ($currency == 1) ? $this->wallet()->usdt : $this->wallet()->balance;
 
             if ($currency != 1) {
-                $commerce = Commerce::getValueByUserId($creatorUser, 'commerce_id');
+                $commerce = Commerce::getValueByUserId($creatorUser, 'commerce');
                 $exchangeRate = CommerceExchangeRate::getCommerceCurrencyValue($commerce, $currency);
             }
 
@@ -2538,7 +2538,7 @@ class BingoController extends Controller
         switch ($creatorType) {
             case 'admin': // Admin
                 break;
-            case 'commerce_id': // Comercio
+            case 'commerce': // Comercio
                 $isLogged = true;
 
                 $commerce = Commerce::getById($creatorId, ['user', 'currency', 'uuid_code']);
@@ -2621,7 +2621,7 @@ class BingoController extends Controller
         $creatorId = decrypt($creatorId);
 
         switch ($creatorType) {
-            case 'commerce_id':
+            case 'commerce':
                 $creator = Commerce::getById($creatorId, ['id', 'user']);
                 // Verificar si el comercio existe
                 if (!$creator) {
@@ -2667,7 +2667,7 @@ class BingoController extends Controller
         switch ($userData['type']) {
             case 'admin': // Admin
                 break;
-            case 'commerce_id': // Comercio
+            case 'commerce': // Comercio
                 $isLogged = true;
 
                 $exchangeRate = CommerceExchangeRate::getCommerceCurrencyValue($userData['id'], $currency);
@@ -2694,7 +2694,7 @@ class BingoController extends Controller
         $creator = ['type' => $userData['type'], 'id' => encrypt($userData['id'])];
 
         $routeWithCurrency = [
-            'route' => 'bingo.room-summary',
+            'route' => 'bingo.game-rooms-summary',
             'parameters' => [
                 'roomType' => 'other-public-rooms',
                 'creatorType' => $userData['type'],
@@ -2727,7 +2727,7 @@ class BingoController extends Controller
     private function allOtherPublicRooms($creatorType, $creatorId, $currency = '')
     {
         if (!$currency) {
-            return redirect()->route('bingo.room-summary', [
+            return redirect()->route('bingo.game-rooms-summary', [
                 'roomType' => 'other-public-rooms',
                 'creatorType' => $creatorType,
                 'creatorId' => $creatorId,
@@ -2738,7 +2738,7 @@ class BingoController extends Controller
         $creatorId = decrypt($creatorId);
 
         switch ($creatorType) {
-            case 'commerce_id':
+            case 'commerce':
                 $creator = Commerce::getById($creatorId, ['id', 'user']);
                 // Verificar si el comercio existe
                 if (!$creator) {
@@ -2948,7 +2948,7 @@ class BingoController extends Controller
             case 'admin':
                 //$existsCreator = Admin::existsValue('id', $creatorId);
                 break;
-            case 'commerce_id':
+            case 'commerce':
                 $existsCreator = Commerce::existsValue('id', $creatorId);
                 break;
             case 'customer':
@@ -3057,7 +3057,7 @@ class BingoController extends Controller
     {
         switch ($user['type']) {
 
-            case 'commerce_id':
+            case 'commerce':
 
                 $creatorUser = $user['userId'];
 
@@ -3156,7 +3156,7 @@ class BingoController extends Controller
             $totals['sales'] += $allSale;
             $totals['sellerCommn'] += $sellerCommn;
 
-            if ($userRole === 'commerce_id') {
+            if ($userRole === 'commerce') {
                 $roomCommn = $allSale * ($room->Config->room_commn / 100);
                 $rkeCommn = $allSale * ($room->Config->rke_commn / 100);
                 $prizePool = $allSale - $roomCommn - $sellerCommn - $rkeCommn;
@@ -3180,7 +3180,7 @@ class BingoController extends Controller
             'sellerCommn' => number_format($totals['sellerCommn'], 2, '.', ','),
         ];
 
-        if ($userRole === 'commerce_id') {
+        if ($userRole === 'commerce') {
             $totalsFormatted['roomCommn'] = number_format($totals['roomCommn'], 2, '.', ',');
             $totalsFormatted['sellerCommn'] = number_format($totals['sellerCommn'], 2, '.', ',');
             $totalsFormatted['prizePool'] = number_format($totals['prizePool'], 2, '.', ',');
@@ -3240,7 +3240,7 @@ class BingoController extends Controller
                 'constraints' => function ($query) use ($roomId, $userData) {
                     $query->where('room', $roomId);
 
-                    if ($userData['type'] !== 'commerce_id') {
+                    if ($userData['type'] !== 'commerce') {
                         $query->where('seller', $userData['id']);
                     }
                 }
@@ -3259,7 +3259,7 @@ class BingoController extends Controller
 
         switch ($userData['type']) {
 
-            case 'commerce_id':
+            case 'commerce':
 
                 $ctnsLotFilter = fn($query) => $query->where('room', $roomId)->where('currency', $currency);
 
@@ -3268,7 +3268,7 @@ class BingoController extends Controller
                         'Country:id,name',
                         'CtnsLot' => $ctnsLotFilter,
                     ])
-                    ->where('commerce_id', $userData['id'])
+                    ->where('commerce', $userData['id'])
                     ->whereHas('CtnsLot', $ctnsLotFilter)
                     ->get();
 
@@ -3359,7 +3359,7 @@ class BingoController extends Controller
 
         switch ($userData['type']) {
 
-            case 'commerce_id':
+            case 'commerce':
 
                 $ctnsSoldQuery = BingoCtnsLot::with([
                     'Room:id,encrypted,room_type,status',
@@ -3382,7 +3382,7 @@ class BingoController extends Controller
             case 'seller':
 
                 $sellerId = $userData['id'];
-                $commerce = Seller::getValueById($sellerId, 'commerce_id');
+                $commerce = Seller::getValueById($sellerId, 'commerce');
 
                 $ctnsSoldQuery = BingoCtnsLot::with([
                     'Room:id,encrypted,room_type,status',
@@ -3480,7 +3480,7 @@ class BingoController extends Controller
 
         switch ($userData['type']) {
 
-            case 'commerce_id':
+            case 'commerce':
 
                 $creatorUser = $userData['userId'];
 
@@ -3503,7 +3503,7 @@ class BingoController extends Controller
                     'ExternalPlayers.Country:id,name',
                     'Seller.Commerce:id,name',
                     'Seller' => function ($query) {
-                        $query->select('id', 'name', 'commerce_id');
+                        $query->select('id', 'name', 'commerce');
                     }
                 ])->whereHas('Room', function ($query) {
                     $query->where('status', '<', 5)->with('CtnsLot');
@@ -3623,7 +3623,7 @@ class BingoController extends Controller
 
         switch ($userData['type']) {
 
-            case 'commerce_id':
+            case 'commerce':
 
                 $creatorUser = $userData['userId'];
 
@@ -3646,7 +3646,7 @@ class BingoController extends Controller
                     'Payments',
                     'Seller.Commerce:id,name',
                     'Seller' => function ($query) {
-                        $query->select('id', 'name', 'commerce_id');
+                        $query->select('id', 'name', 'commerce');
                     }
                 ])->whereHas('Room', function ($query) {
                     $query->where('status', 4);
