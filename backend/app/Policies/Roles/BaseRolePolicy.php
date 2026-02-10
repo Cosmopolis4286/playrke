@@ -131,6 +131,17 @@ abstract class BaseRolePolicy
     }
 
     /**
+     * Autoriza la visualización de una lista filtrada de recursos.
+     *
+     * @param User $user
+     * @return bool
+     */
+    public function listFiltered(User $user): bool
+    {
+        return $this->hasAccess($user);
+    }
+
+    /**
      * Autoriza la creación de un nuevo recurso.
      *
      * @param User $user

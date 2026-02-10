@@ -15,17 +15,18 @@ use App\Http\Controllers\Roles\SellerController;
 // ====================================
 multi_middleware_routes('sellers', 'manager-seller.', [
     [
-        'middleware' => ['auth', 'role:commerce'],
+        'middleware' => ['auth', 'role:commerce,customer'],
         'controller' => ManagerSellerController::class,
         'routes' => [
             'index' => ['method' => 'get', 'uri' => ''],
             'store' => ['method' => 'post', 'uri' => ''],
-            'show' => ['method' => 'get', 'uri' => '{id}'],
-            'update' => ['method' => 'put', 'uri' => '{id}'],
-            'delete' => ['method' => 'put', 'uri' => '{id}/delete'],
-            'destroy' => ['method' => 'delete', 'uri' => '{id}'],
-            'toggleStatus' => ['method' => 'put', 'uri' => '{id}/status'],
-            'resetPassword' => ['method' => 'put', 'uri' => '{id}/password'],
+            'listFiltered' => ['method' => 'get', 'uri' => 'list-filtered'],
+            'show' => ['method' => 'get', 'uri' => '{seller}'],
+            'update' => ['method' => 'put', 'uri' => '{seller}'],
+            'delete' => ['method' => 'put', 'uri' => '{seller}/delete'],
+            'destroy' => ['method' => 'delete', 'uri' => '{seller}'],
+            'toggleStatus' => ['method' => 'put', 'uri' => '{seller}/status'],
+            'resetPassword' => ['method' => 'put', 'uri' => '{seller}/reset-password'],
         ]
     ]
 ]);

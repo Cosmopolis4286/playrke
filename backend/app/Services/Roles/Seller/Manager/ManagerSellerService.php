@@ -47,9 +47,9 @@ final class ManagerSellerService
      * Obtener todos los vendedores.
      *
      * @param string|null $publicToken Token público de API
-     * @return Collection<int, Seller>
+     * @return array Listado de vendedores para la vista Inertia
      */
-    public function listFiltered(?string $publicToken = null): Collection
+    public function listFiltered(?string $publicToken = null): array
     {
         // Resolver ID del usuario
         $userId = $this->userContext->resolveUserId($publicToken);

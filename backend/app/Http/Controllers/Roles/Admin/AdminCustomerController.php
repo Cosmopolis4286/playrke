@@ -2,304 +2,146 @@
 
 namespace App\Http\Controllers\Roles\Admin;
 
+use App\DTOs\Roles\Admin\Customer\AdminCustomerDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Users\Roles\CustomerRequest;
-use App\Services\Users\Roles\Customer\CustomerService;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Str;
+use App\Http\Requests\Roles\Admin\Customer\AdminCustomerRequest;
+use App\Models\Roles\Customer;
+use App\Services\Roles\Admin\Customer\AdminCustomerService;
+use Illuminate\Http\JsonResponse;
 
 /**
- * Controlador HTTP para la gestión de Clientes (Customer).
- *
- * - Maneja Requests y Responses HTTP.
- * - Toda la lógica de negocio se delega a los Services.
- * - Sigue el patrón de arquitectura establecido en el proyecto.
+ * Controlador de administración de Comercios.
  *
  * Responsabilidades:
- * - Validar entrada mediante CustomerRequest
- * - Delegar operaciones a CustomerService
- * - Retornar respuestas HTTP apropiadas
- * - Manejar errores y logging
+ * - Orquestar requests HTTP
+ * - Delegar lógica de negocio al servicio
+ * - Unificar respuestas JSON
  *
- * @package App\Http\Controllers\Roles
+ * NO contiene lógica de dominio ni mensajes de error.
  */
-class AdminCustomerController extends Controller
+final class AdminCustomerController extends Controller
 {
     /**
-     * Crear un nuevo Cliente.
-     *
-     * Proceso:
-     * 1. Valida los datos mediante CustomerRequest
-     * 2. Delega la creación al CustomerService
-     * 3. Retorna respuesta JSON con la contraseña generada
-     *
-     * @param CustomerRequest $request Request validado con los datos del cliente
-     * @param CustomerService $service Servicio de lógica de negocio
-     * @return \Illuminate\Http\JsonResponse Respuesta JSON con el resultado
+     * @param AdminCustomerService $service
      */
-    public function store(CustomerRequest $request, CustomerService $service)
-    {
-        try {
-            $result = $service->create($request->toDTO()->toArray());
-
-            return response()->json([
-                'success' => true,
-                'message' => '✅ Registro exitoso',
-                'password' => $result['password']
-            ]);
-        } catch (\Throwable $e) {
-            Log::error("❌ Hubo un error al crear el Cliente: " . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Hubo un error al crear el Cliente.'
-            ], 500);
-        }
+    public function __construct(
+        protected readonly AdminCustomerService $service
+    ) {
+        $this->authorizeResource(Customer::class, 'commerce');
     }
 
     /**
-     * Actualizar un Cliente existente.
+     * Crear un comercio.
      *
-     * Proceso:
-     * 1. Valida los datos mediante CustomerRequest
-     * 2. Decodifica el ID hasheado
-     * 3. Delega la actualización al CustomerService
-     * 4. Retorna redirect con mensaje flash
-     *
-     * @param CustomerRequest $request Request validado con los datos
-     * @param int $id ID hasheado del cliente con Hashids
-     * @param CustomerService $service Servicio de lógica de negocio
-     * @return RedirectResponse Redirect con mensaje flash
+     * @param AdminCustomerRequest $request
+     * @return JsonResponse
      */
-    public function update(CustomerRequest $request, int $id, CustomerService $service): RedirectResponse
+    public function store(AdminCustomerRequest $request): JsonResponse
     {
-        return $this->handleService(function () use ($request, $service, $id) {
-            $service->update($request->toDTO()->toArray(), $id);
-
-            Session::flash('message', '✅ La información fue actualizada correctamente');
-
-            return redirect()->back();
-        }, "Hubo un error al actualizar el Cliente [ID: $id].");
+        return $this->handleServiceJson(
+            fn() => [
+                'password' => $this->service->create(
+                    $request->toDTO(AdminCustomerDTO::class)
+                ),
+            ]
+        );
     }
 
     /**
-     * Eliminar físicamente un Cliente.
+     * Listado de comercios
      *
-     * Elimina el cliente, su usuario asociado, wallets y relaciones many-to-many.
-     *
-     * @param string $id ID hasheado con Hashids
-     * @return RedirectResponse Redirect con mensaje flash
+     * @return JsonResponse
      */
-    public function destroy(string $id): RedirectResponse
+    public function listFiltered(): JsonResponse
     {
-        return $this->handleService(function () use ($id) {
-            // Decodificar el ID usando Hashids
-            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
-
-            if (empty($decodedIds)) {
-                throw new \Exception('ID inválido');
-            }
-
-            $realId = (string) $decodedIds[0];
-
-            // Buscar el customer con su usuario
-            $customer = \App\Models\Roles\Customer::with('user')->findOrFail($realId);
-
-            // Usar transacción para eliminar todo
-            DB::transaction(function () use ($customer) {
-                $user = $customer->user;
-
-                // 1. Eliminar relaciones many-to-many del customer
-                $customer->otherCurrencies()->detach();
-                $customer->allowedGames()->detach();
-
-                // 2. Eliminar el customer
-                $customer->delete();
-
-                // 3. Eliminar wallets del usuario
-                $user->wallets()->delete();
-
-                // 4. Eliminar el usuario
-                $user->delete();
-            });
-
-            Session::flash('message', '✅ Cliente eliminado correctamente');
-
-            return redirect()->back();
-        }, "No se pudo eliminar el Cliente.");
+        return $this->handleServiceJson(
+            fn() => ['data' => $this->service->listFiltered()]
+        );
     }
 
     /**
-     * Cambiar estado de un Cliente.
+     * Mostrar detalle de un comercio.
      *
-     * Cambia el estado tanto del customer como del usuario asociado.
-     * Estados permitidos: ACTIVE, INACTIVE, BLOCKED, DELETED
-     *
-     * @param string $id ID hasheado con Hashids
-     * @return RedirectResponse Redirect con mensaje flash
+     * @param Customer $commerce
+     * @return JsonResponse
      */
-    public function changeStatus(string $id): RedirectResponse
+    public function show(Customer $commerce): JsonResponse
     {
-        return $this->handleService(function () use ($id) {
-            // Decodificar el ID usando Hashids
-            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
-
-            if (empty($decodedIds)) {
-                throw new \Exception('ID inválido');
-            }
-
-            $realId = (string) $decodedIds[0];
-
-            // Buscar el customer con su usuario
-            $customer = \App\Models\Roles\Customer::with('user')->findOrFail($realId);
-
-            // Obtener el nuevo estado desde la request o usar DELETED por defecto
-            $newStatus = request('status', 'DELETED');
-
-            // Validar que el status sea válido
-            $validStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'];
-            if (!in_array($newStatus, $validStatuses)) {
-                throw new \Exception('Estado inválido');
-            }
-
-            // Usar transacción para asegurar consistencia
-            DB::transaction(function () use ($customer, $newStatus) {
-                // Cambiar estado del usuario asociado
-                $customer->user->update(['status' => $newStatus]);
-
-                // Cambiar estado del customer
-                $customer->update(['status' => $newStatus]);
-            });
-
-            $message = match ($newStatus) {
-                'DELETED' => "✅ Cliente eliminado correctamente",
-                'ACTIVE' => "✅ Cliente activado correctamente",
-                'INACTIVE' => "✅ Cliente desactivado correctamente",
-                'BLOCKED' => "✅ Cliente bloqueado correctamente",
-                default => "✅ Estado cambiado correctamente"
-            };
-
-            Session::flash('message', $message);
-
-            return redirect()->back();
-        }, "Hubo un error al cambiar el estado del Cliente [ID: $id].");
+        return $this->handleServiceJson(
+            fn() => [
+                'data' => $this->service->show($commerce),
+            ]
+        );
     }
 
     /**
-     * Cambiar contraseña de un Cliente.
+     * Actualizar un comercio.
      *
-     * Genera una nueva contraseña aleatoria de 8 caracteres hexadecimales
-     * y la actualiza en el usuario asociado al cliente.
-     *
-     * @param string $id ID hasheado con Hashids
-     * @return \Illuminate\Http\JsonResponse Respuesta JSON con la nueva contraseña
+     * @param AdminCustomerRequest $request
+     * @param Customer $commerce
+     * @return JsonResponse
      */
-    public function resetPassword(string $id): \Illuminate\Http\JsonResponse
+    public function update(AdminCustomerRequest $request, Customer $commerce): JsonResponse
     {
-        try {
-            // Decodificar el ID usando Hashids
-            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
-
-            if (empty($decodedIds)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'ID inválido'
-                ], 400);
-            }
-
-            $realId = (string) $decodedIds[0];
-
-            // Buscar el customer con su usuario
-            $customer = \App\Models\Roles\Customer::with('user')->findOrFail($realId);
-
-            // Generar una nueva contraseña aleatoria
-            $newPassword = Str::random(12);
-
-            // Actualizar la contraseña del usuario
-            $customer->user->update([
-                'password' => Hash::make($newPassword)
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => '✅ Contraseña generada exitosamente',
-                'password' => $newPassword
-            ]);
-        } catch (\Throwable $e) {
-            Log::error("❌ Error al cambiar la contraseña del Cliente [ID: $id]: " . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => "Hubo un error al cambiar la contraseña del Cliente"
-            ], 500);
-        }
+        return $this->handleServiceJson(
+            fn() => $this->service->update(
+                $commerce,
+                $request->toDTO(AdminCustomerDTO::class)
+            )
+        );
     }
 
     /**
-     * Mostrar detalle de un Cliente.
+     * Eliminar un comercio (soft delete).
      *
-     * Retorna toda la información del cliente con sus relaciones:
-     * - País
-     * - Usuario (con zona horaria)
-     * - Moneda principal
-     * - Otras monedas
-     * - Juegos permitidos
-     *
-     * @param string $id ID hasheado con Hashids
-     * @param CustomerService $service Servicio de lógica de negocio
-     * @return \Illuminate\Http\JsonResponse Respuesta JSON con los datos del cliente
+     * @param Customer $commerce
+     * @return JsonResponse
      */
-    public function show(string $id, CustomerService $service)
+    public function delete(Customer $commerce): JsonResponse
     {
-        try {
-            // Decodificar el ID usando Hashids
-            $decodedIds = \Vinkla\Hashids\Facades\Hashids::connection('main')->decode($id);
-
-            if (empty($decodedIds)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'ID inválido'
-                ], 400);
-            }
-
-            $realId = (string) $decodedIds[0];
-
-            $customer = $service->getById($realId);
-
-            return response()->json([
-                'success' => true,
-                'data' => $customer
-            ]);
-        } catch (\Exception $e) {
-            Log::error('CustomerController::show - Error:', [
-                'hashed_id' => $id,
-                'message' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => "No se pudo cargar la información del Cliente: {$e->getMessage()}"
-            ], 500);
-        }
+        return $this->handleServiceJson(
+            fn() => $this->service->delete($commerce)
+        );
     }
 
     /**
-     * Listar todos los Clientes.
+     * Eliminar un comercio permanentemente (hard delete).
      *
-     * Retorna la vista con todos los clientes y sus relaciones básicas.
-     *
-     * @param CustomerService $service Servicio de lógica de negocio
-     * @return \Illuminate\View\View|RedirectResponse Vista con los clientes
+     * @param Customer $commerce
+     * @return JsonResponse
      */
-    public function index(CustomerService $service)
+    public function destroy(Customer $commerce): JsonResponse
     {
-        return $this->handleService(function () use ($service) {
-            $customers = $service->getAll();
-            return view('customer.index', compact('customers'));
-        }, "No se pudo cargar la lista de Clientes.");
+        return $this->handleServiceJson(
+            fn() => $this->service->destroy($commerce)
+        );
+    }
+
+    /**
+     * Alternar estado (ACTIVE / INACTIVE) del comercio.
+     *
+     * @param Customer $commerce
+     * @return JsonResponse
+     */
+    public function toggleStatus(Customer $commerce): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->toggleStatus($commerce)
+        );
+    }
+
+    /**
+     * Generar una nueva contraseña para un comercio.
+     *
+     * @param Customer $commerce
+     * @return JsonResponse
+     */
+    public function resetPassword(Customer $commerce): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => [
+                'password' => $this->service->resetPassword($commerce),
+            ]
+        );
     }
 }

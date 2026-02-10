@@ -31,13 +31,19 @@ class AdminContextService
     public function resolve(string $context): ContextDTO
     {
         return match ($context) {
-            'commerces' => $this->commerceContext(),
-            'customers' => $this->customerContetx(),
+            'commerces' => $this->resolveCommerces(),
+            'customers' => $this->resolveCustomers(),
             default => throw new DomainException('Tipo Rol inválido, no existe el contexto'),
         };
     }
 
-    private function commerceContext(): AdminCommerceContextDTO
+    /**
+     * Resolver listado de comercios.
+     *
+     * @param int|null $userId ID del usuario manager
+     * @return array [commerces, pagination]
+     */
+    public function resolveCommerces(?int $userId = null): array
     {
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
         $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
@@ -65,17 +71,18 @@ class AdminContextService
             ]
             : null;
 
-        return new AdminCommerceContextDTO(
-            commerces: $this->processCollectionTableData($collection, $labels, $rowKeys),
-            pagination: $pagination,
-            countries: $this->countries->getActive(['id', 'name']),
-            currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
-            games: $this->games->getActive(['id', 'name']),
-            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id'])
-        );
+        $commerces = $this->processCollectionTableData($collection, $labels, $rowKeys);
+
+        return ['commerces' => $commerces, 'pagination' => $pagination];
     }
 
-    private function customerContetx(): AdminCustomerContextDTO
+    /**
+     * Resolver listado de clientes.
+     *
+     * @param int|null $userId ID del usuario manager
+     * @return array [customers, pagination]
+     */
+    public function resolveCustomers(): AdminCustomerContextDTO
     {
         $customers = $this->customers->getAllWithRelations([
             'country:id,name',

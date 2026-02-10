@@ -11,7 +11,6 @@ use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
 use App\Models\Pivots\Roles\Commerce\CommerceGame;
 use App\Models\Roles\Commerce;
 use App\Services\UserService;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -34,16 +33,6 @@ final class AdminCommerceCrudService
         private readonly WalletRepositoryInterface $walletRepository,
         private readonly CommerceRepositoryInterface $commerceRepository,
     ) {}
-
-    /**
-     * Obtener todos los comercios.
-     *
-     * @return Collection<int, Commerce>
-     */
-    public function getAll(): Collection
-    {
-        return $this->commerceRepository->all();
-    }
 
     /**
      * Crear un comercio completo (User + Commerce + Wallet).

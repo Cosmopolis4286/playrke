@@ -8,8 +8,7 @@ use App\Models\Roles\Commerce;
 use App\Services\User\UserPasswordService;
 use App\Services\Roles\Admin\Commerce\AdminCommerceCrudService;
 use App\Exceptions\Domain\Roles\Admin\Commerce\AdminCommerceException;
-use App\Services\Roles\Admin\AdminService;
-use Illuminate\Database\Eloquent\Collection;
+use App\Services\Roles\Admin\AdminContextService;
 
 /**
  * Servicio de aplicación para exponer
@@ -25,7 +24,7 @@ use Illuminate\Database\Eloquent\Collection;
 final class AdminCommerceService
 {
     public function __construct(
-        private readonly AdminService $adminService,
+        private readonly AdminContextService $contex,
         private readonly AdminCommerceCrudService $crud,
         private readonly UserPasswordService $userPasswordService
     ) {}
@@ -33,21 +32,12 @@ final class AdminCommerceService
     /**
      * Obtener todos los comercios.
      *
-     * @return Collection<int, Commerce>
+     * @param int|null $managerUserId ID del usuario manager
+     * @return array
      */
-    public function getAll(): Collection
+    public function listFiltered(int $managerUserId): array
     {
-        return $this->crud->getAll();
-    }
-
-    /**
-     * Listado de comercios
-     *
-     * @return array Listado para pasar a la vista Inertia.
-     */
-    public function listFiltered(): array
-    {
-        return $this->adminService->context('commerces')['commerces']['rows'];
+        return $this->contex->resolveCommerces($managerUserId)['commerces']['rows'] ?? [];
     }
 
     /**

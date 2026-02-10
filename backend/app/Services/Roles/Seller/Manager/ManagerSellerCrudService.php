@@ -84,7 +84,7 @@ final class ManagerSellerCrudService
 
         $sellers = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
-        return [$sellers, $pagination];
+        return ['sellers' => $sellers, 'pagination' => $pagination];
     }
 
     /**
@@ -95,11 +95,11 @@ final class ManagerSellerCrudService
      */
     public function context(int $userId): ManagerSellerContextDTO
     {
-        [$sellers, $pagination] = $this->resolveSellers($userId);
+        $result = $this->resolveSellers($userId);
 
         return new ManagerSellerContextDTO(
-            sellers: $sellers,
-            pagination: $pagination,
+            sellers: $result['sellers'],
+            pagination: $result['pagination'],
             countries: $this->countries->getActive(['id', 'name']),
             currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
             games: $this->games->getActive(['id', 'name']),
@@ -108,13 +108,14 @@ final class ManagerSellerCrudService
     }
 
     /**
-     * Obtener todos los comercios.
+     * Obtener todos los vendedores.
      *
-     * @return Collection<int, Seller>
+     * @param int|null $managerUserId ID del usuario manager
+     * @return array
      */
-    public function getAll(int $managerUserId): Collection
+    public function getAll(int $managerUserId): array
     {
-        return $this->resolveSellers($managerUserId)[0];
+        return $this->resolveSellers($managerUserId)['sellers']['rows'] ?? [];
     }
 
     /**
