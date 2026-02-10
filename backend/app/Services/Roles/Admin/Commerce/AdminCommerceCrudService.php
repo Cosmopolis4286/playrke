@@ -59,6 +59,7 @@ final class AdminCommerceCrudService
             $commerce = $this->commerceRepository->create([
                 'name'           => $dto->name,
                 'phone'          => $dto->phone,
+                'commission'     => $dto->commission,
                 'country_id'     => $dto->country,
                 'status'         => 'ACTIVE',
                 'user_id'        => $user->id,
@@ -119,6 +120,7 @@ final class AdminCommerceCrudService
                 array_filter([
                     'name'       => $dto->name,
                     'phone'      => $dto->phone,
+                    'commission' => $dto->commission,
                     'country_id' => $dto->country,
                 ])
             );

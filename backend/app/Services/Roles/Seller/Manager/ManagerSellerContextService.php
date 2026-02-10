@@ -5,14 +5,10 @@ namespace App\Services\Roles\Seller\Manager;
 use App\Contracts\CountryRepositoryInterface;
 use App\Contracts\CurrencyRepositoryInterface;
 use App\Contracts\GameRepositoryInterface;
-use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
-use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
+use App\Contracts\Roles\Seller\SellerRepositoryInterface;
 use App\Contracts\TimeZoneRepositoryInterface;
-use App\DTOs\ContextDTO;
-use App\DTOs\Roles\Admin\Commerce\AdminCommerceContextDTO;
-use App\DTOs\Roles\Admin\Customer\AdminCustomerContextDTO;
+use App\DTOs\Roles\Seller\Manager\ManagerSellerContextDTO;
 use App\Traits\HashedTableDataTrait;
-use DomainException;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class ManagerSellerContextService
@@ -20,33 +16,29 @@ class ManagerSellerContextService
     use HashedTableDataTrait;
 
     public function __construct(
-        protected CountryRepositoryInterface $countries,
-        protected CurrencyRepositoryInterface $currencies,
-        protected CommerceRepositoryInterface $commerces,
-        protected CustomerRepositoryInterface $customers,
-        protected GameRepositoryInterface $games,
-        protected TimeZoneRepositoryInterface $timeZones
+        private readonly CountryRepositoryInterface $countries,
+        private readonly CurrencyRepositoryInterface $currencies,
+        private readonly GameRepositoryInterface $games,
+        private readonly SellerRepositoryInterface $sellerRepository,
+        private readonly TimeZoneRepositoryInterface $timeZones
     ) {}
 
-    public function resolve(string $context): ContextDTO
-    {
-        return match ($context) {
-            'commerces' => $this->commerceContext(),
-            'customers' => $this->customerContetx(),
-            default => throw new DomainException('Tipo Rol inválido, no existe el contexto'),
-        };
-    }
-
-    private function commerceContext(): AdminCommerceContextDTO
+    /**
+     * Resolver listado de vendedores del manager.
+     *
+     * @param int $userId ID del usuario manager
+     * @return array [sellers, pagination]
+     */
+    private function resolveSellers(int $userId): array
     {
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
         $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
 
-        $source = $this->commerces->paginateWithRelations(
+        $source = $this->sellerRepository->paginateWithRelations(
             perPage: 15,
             page: 1,
             relations: ['country:id,name', 'user:id,email'],
-            conditions: [],
+            conditions: ['manager_user_id' => $userId],
             fields: ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
         );
 
@@ -65,9 +57,24 @@ class ManagerSellerContextService
             ]
             : null;
 
-        return new AdminCommerceContextDTO(
-            commerces: $this->processCollectionTableData($collection, $labels, $rowKeys),
-            pagination: $pagination,
+        $sellers = $this->processCollectionTableData($collection, $labels, $rowKeys);
+
+        return ['sellers' => $sellers, 'pagination' => $pagination];
+    }
+
+    /**
+     * Obtener contexto de vendedores del usuario manager.
+     *
+     * @param int|null $userId ID del usuario manager
+     * @return ManagerSellerContextDTO Contexto de vendedores para la vista Inertia
+     */
+    public function resolve(int $userId): ManagerSellerContextDTO
+    {
+        $result = $this->resolveSellers($userId);
+
+        return new ManagerSellerContextDTO(
+            sellers: $result['sellers'],
+            pagination: $result['pagination'],
             countries: $this->countries->getActive(['id', 'name']),
             currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
             games: $this->games->getActive(['id', 'name']),
@@ -75,25 +82,14 @@ class ManagerSellerContextService
         );
     }
 
-    private function customerContetx(): AdminCustomerContextDTO
+    /**
+     * Obtener todos los vendedores.
+     *
+     * @param int|null $managerUserId ID del usuario manager
+     * @return array
+     */
+    public function getAll(int $managerUserId): array
     {
-        $customers = $this->customers->getAllWithRelations([
-            'country:id,name',
-            'user:id,email',
-        ]);
-
-        $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
-
-        $collection = collect($customers);
-
-        return new AdminCustomerContextDTO(
-            customers: $this->processCollectionTableData($collection, $labels, $rowKeys),
-            pagination: null,
-            countries: $this->countries->getActive(),
-            currencies: $this->currencies->getActive(),
-            games: $this->games->getActive(),
-            timeZones: $this->timeZones->getActive()
-        );
+        return $this->resolveSellers($managerUserId)['sellers']['rows'] ?? [];
     }
 }

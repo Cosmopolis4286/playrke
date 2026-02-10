@@ -14,7 +14,7 @@
 
     <li class="nav-item has-treeview">
         <a href="#"
-            class="nav-link {{ !Route::is('seller.cartonGenerate', 'bingo.cartons-sold', 'bingo.winners', 'bingo.sales-report', 'bingo.reportSalesByRoom') ?: 'active' }} ">
+            class="nav-link {{ !Route::is('seller.carton-generate', 'bingo.cartons-sold', 'bingo.winners', 'bingo.sales-report', 'bingo.reportSalesByRoom') ?: 'active' }} ">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
                 <i class="right fas fa-angle-left"></i>
@@ -22,8 +22,8 @@
         </a>
         <ul class="nav nav-treeview">
             <li class="nav-item">
-                <a href="{{ route('seller.cartonGenerate') }}"
-                    class="nav-link {{ !Route::is('seller.cartonGenerate') ?: 'active' }}">
+                <a href="{{ route('seller.carton-generate') }}"
+                    class="nav-link {{ !Route::is('seller.carton-generate') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Generar Cartón</p>
                 </a>

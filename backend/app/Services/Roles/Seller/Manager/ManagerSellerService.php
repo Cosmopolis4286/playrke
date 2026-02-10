@@ -9,7 +9,6 @@ use App\Services\User\UserPasswordService;
 use App\Services\Roles\Seller\Manager\ManagerSellerCrudService;
 use App\Exceptions\Domain\Roles\Seller\Manager\ManagerSellerException;
 use App\Services\Security\UserContextService;
-use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Servicio de aplicación para exponer
@@ -25,6 +24,7 @@ use Illuminate\Database\Eloquent\Collection;
 final class ManagerSellerService
 {
     public function __construct(
+        private readonly ManagerSellerContextService $contex,
         private readonly ManagerSellerCrudService $crud,
         private readonly UserContextService $userContext,
         private readonly UserPasswordService $userPasswordService,
@@ -40,7 +40,7 @@ final class ManagerSellerService
     {
         // Resolver ID del usuario
         $userId = $this->userContext->resolveUserId($publicToken);
-        return $this->crud->context($userId)->toView();
+        return $this->contex->resolve($userId)->toView();
     }
 
     /**
@@ -53,7 +53,7 @@ final class ManagerSellerService
     {
         // Resolver ID del usuario
         $userId = $this->userContext->resolveUserId($publicToken);
-        return $this->crud->getAll($userId);
+        return $this->contex->getAll($userId);
     }
 
     /**
