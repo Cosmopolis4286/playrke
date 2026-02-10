@@ -33,11 +33,11 @@ final class GameBingoController extends Controller
      *
      * @return Response
      */
-    public function gameRoomsSummary(): Response
+    public function gameRooms(): Response
     {
         return $this->handleServiceInertia(
             function () {
-                $response = $this->service->gameRoomsSummary();
+                $response = $this->service->gameRooms('summary');
 
                 $response['title'] = 'Salas de Bingo';
 

@@ -53,7 +53,7 @@ multi_middleware_routes('bingo', 'bingo.', [
  * ====================================
  */
 route_group('bingo', 'bingo.', [], GameBingoController::class, [
-    'game-rooms-summary' => ['method' => 'get', 'uri' => 'game-rooms-summary', 'action' => 'gameRoomsSummary'],
+    'game-rooms'         => ['method' => 'get', 'uri' => 'game-rooms', 'action' => 'gameRooms'],
     'form'               => ['method' => 'get', 'uri' => 'form/{roomId?}', 'action' => 'formData'],
     'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
     'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],
@@ -130,7 +130,7 @@ route_group('bingocash', 'bingocash.', [], GameBingoController::class, [
  * ====================================
  */
 // Route::get('bingo/view-ctn/{ctnId}', [GameBingoController::class, 'viewCtn'])->name('bingo.view-carton');
-// Route::get('bingo/{roomType}/{creatorType}/{creatorId?}/{currency?}', [GameBingoController::class, 'handleGameRoomSummary'])->name('bingo.game-rooms-summary');
+// Route::get('bingo/{roomType}/{creatorType}/{creatorId?}/{currency?}', [GameBingoController::class, 'handleGameRoomSummary'])->name('bingo.game-rooms');
 // Route::get('{customer}/{userToken}/room/{room}', [GameBingoController::class, 'inGameCustomer'])->name('bingo.in-game-customer');
 // Route::get('game/{customer}/room/{room}/{currency}', [GameBingoController::class, 'outGameCustomer'])->name('bingo.out-game-customer');
 
