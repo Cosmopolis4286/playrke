@@ -41,7 +41,7 @@ final class GameBingoController extends Controller
 
                 $response['title'] = 'Salas de Bingo';
 
-                return Inertia::render('Games/Bingo/GameRoom/Summary', $response);
+                return Inertia::render('Games/Bingo/Room/Summary', $response);
             },
             'No se pudo cargar la lista de salas de bingo.'
         );

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Games\Bingo\GameBingoController;
+use App\Http\Controllers\Games\Bingo\Room\BingoRoomsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -52,18 +53,18 @@ multi_middleware_routes('bingo', 'bingo.', [
  * INFORMACIÓN Y CONFIGURACIÓN
  * ====================================
  */
-route_group('bingo', 'bingo.', [], GameBingoController::class, [
-    'game-rooms'         => ['method' => 'get', 'uri' => 'game-rooms', 'action' => 'gameRooms'],
-    'form'               => ['method' => 'get', 'uri' => 'form/{roomId?}', 'action' => 'formData'],
-    'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
-    'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],
-    'patterns'           => ['method' => 'get', 'uri' => 'configuration/patterns/{userToken?}'],
-    'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
-    'public-room-info'   => ['method' => 'get', 'uri' => 'public-room-info'],
-    'pending-payments'   => ['method' => 'get', 'uri' => 'public-room-pending-payments'],
-    'rounds-config'      => ['method' => 'get', 'uri' => 'rounds-config/{room}/{type}'],
-    'datetime-rooms'     => ['method' => 'get', 'uri' => 'datetime-rooms/{creatorUser}/{player}'],
-    'price-currency'     => ['method' => 'get', 'uri' => 'price-currency/{creation}/{creatorType}/{creatorId}/{room?}'],
+route_group('bingo', 'bingo.', [], BingoRoomsController::class, [
+    'game-rooms'         => ['method' => 'get', 'uri' => 'game-rooms', 'action' => 'index'],
+    // 'form'               => ['method' => 'get', 'uri' => 'form/{roomId?}', 'action' => 'formData'],
+    // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
+    // 'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],
+    // 'patterns'           => ['method' => 'get', 'uri' => 'configuration/patterns/{userToken?}'],
+    // 'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
+    // 'public-room-info'   => ['method' => 'get', 'uri' => 'public-room-info'],
+    // 'pending-payments'   => ['method' => 'get', 'uri' => 'public-room-pending-payments'],
+    // 'rounds-config'      => ['method' => 'get', 'uri' => 'rounds-config/{room}/{type}'],
+    // 'datetime-rooms'     => ['method' => 'get', 'uri' => 'datetime-rooms/{creatorUser}/{player}'],
+    // 'price-currency'     => ['method' => 'get', 'uri' => 'price-currency/{creation}/{creatorType}/{creatorId}/{room?}'],
 ]);
 
 /**

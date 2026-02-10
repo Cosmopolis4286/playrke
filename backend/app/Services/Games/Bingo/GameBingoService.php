@@ -2,8 +2,6 @@
 
 namespace App\Services\Games\Bingo;
 
-use App\Models\Roles\Commerce;
-
 /**
  * Servicio de aplicación para exponer
  * los casos de uso del dominio GameBingo.
@@ -18,13 +16,13 @@ use App\Models\Roles\Commerce;
 final class GameBingoService
 {
     public function __construct(
-        private readonly \App\Services\Games\Bingo\GameRooms\BingoGameRoomsService $gameRoom,
+        private readonly \App\Services\Games\Bingo\Room\BingoRoomService $gameRoom,
     ) {}
 
     /**
-     * Obtener todos las salas.
+     * Obtener contexto las salas de juego BINGO.
      *
-     * @param string $contex
+     * @param string $context
      */
     public function gameRooms(string $context)
     {

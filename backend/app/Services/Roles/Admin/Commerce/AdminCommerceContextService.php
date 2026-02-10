@@ -11,7 +11,7 @@ final class AdminCommerceContextService
     use HashedTableDataTrait;
 
     public function __construct(
-        protected readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerces,
+        private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerces,
         private readonly \App\Contracts\CountryRepositoryInterface $countries,
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
         private readonly \App\Contracts\GameRepositoryInterface $games,
