@@ -2,18 +2,15 @@
 
 namespace App\Services\Roles\Admin;
 
-use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
-use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
-use App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface;
 use Illuminate\Support\Facades\Log;
 
-class AdminService
+final class AdminService
 {
     public function __construct(
-        protected AdminContextService $context,
-        protected CommerceRepositoryInterface $commerces,
-        protected CustomerRepositoryInterface $customers,
-        protected TreasurerRepositoryInterface $treasurers,
+        private readonly AdminContextService $context,
+        private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerces,
+        private readonly \App\Contracts\Roles\Customer\CustomerRepositoryInterface $customers,
+        private readonly \App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface $treasurers,
     ) {}
 
     /**

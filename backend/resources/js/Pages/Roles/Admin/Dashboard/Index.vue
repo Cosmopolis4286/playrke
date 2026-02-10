@@ -17,18 +17,19 @@
   // Types
   // ==========================================================================
 
-  import type { DashboardSellerPageProps } from '@/js/types/roles/seller/dashboard/dashboard-seller'
+  import type { DashboardAdminPageProps } from '@/js/types/roles/admin/dashboard/dashboard-admin'
 
   // ==========================================================================
   // Props (Inertia)
   // ==========================================================================
 
-  const props = defineProps<DashboardSellerPageProps>()
+  const props = defineProps<DashboardAdminPageProps>()
 </script>
 
 <template>
-  <h1 class="mb-4 text-2xl font-bold">Dashboard Vendedor</h1>
+  <h1 class="mb-4 text-2xl font-bold">Dashboard Admin</h1>
   <p>
-    Bienvenido al dashboard de vendedor. Aquí podrás ver tus estadísticas y gestionar tus ventas.
+    Bienvenido al dashboard de administrador. Aquí podrás ver tus estadísticas y gestionar tus
+    ventas.
   </p>
 </template>
