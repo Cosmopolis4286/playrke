@@ -353,11 +353,30 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Verifica si el usuario tiene un rol específico (por nombre o prefijo).
      *
-     * @param string $role Rol o prefijo a buscar.
+     * Soporta:
+     * - string: 'admin'
+     * - string con coma: 'admin,commerce'
+     * - array: ['admin', 'commerce']
+     *
+     * @param string|array $role Rol o roles a buscar.
      * @return bool
      */
-    public function hasRole(string $role): bool
+    public function hasRole(string|array $role): bool
     {
+        // Si viene como "admin,commerce"
+        if (is_string($role) && str_contains($role, ',')) {
+            $role = array_map('trim', explode(',', $role));
+        }
+
+        // Si es array, verificar si tiene alguno
+        if (is_array($role)) {
+            return $this->roles->contains(function ($r) use ($role) {
+                return in_array($r->name, $role, true)
+                    || in_array($r->prefix, $role, true);
+            });
+        }
+
+        // Caso string normal
         return $this->roles->contains(function ($r) use ($role) {
             return $r->name === $role || $r->prefix === $role;
         });

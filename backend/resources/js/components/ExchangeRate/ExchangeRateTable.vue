@@ -102,7 +102,7 @@
 
           <!-- Porcentaje -->
           <td>
-            {{ item.percentage !== 0 ? `${item.percentage}%` : '-' }}
+            {{ item.percentage != 0 ? `${item.percentage}%` : '-' }}
           </td>
 
           <!-- Status -->

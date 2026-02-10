@@ -12,9 +12,9 @@ use App\DTOs\Roles\Seller\Manager\ManagerSellerContextDTO;
 use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
 use App\Exceptions\Domain\Roles\Seller\Manager\ManagerSellerException;
 use App\Http\Resources\Roles\Seller\Manager\ManagerSellerResource;
-use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
-use App\Models\Pivots\Roles\Commerce\CommerceGame;
-use App\Models\Roles\Commerce;
+use App\Models\Pivots\Roles\Seller\SellerCurrency;
+use App\Models\Pivots\Roles\Seller\SellerGame;
+use App\Models\Roles\Seller;
 use App\Services\UserService;
 use App\Traits\HashedTableDataTrait;
 use Illuminate\Database\Eloquent\Collection;
@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\DB;
  * sobre comercios en contexto Admin.
  *
  * Responsabilidades:
- * - Orquestar creación y mantenimiento del agregado Commerce
+ * - Orquestar creación y mantenimiento del agregado Seller
  * - Coordinar persistencia de entidades relacionadas
  * - Aplicar reglas de dominio del comercio
  *
@@ -49,12 +49,12 @@ final class ManagerSellerCrudService
     ) {}
 
     /**
-     * Obtener contexto de vendedores del usuario manager.
+     * Resolver listado de vendedores del manager.
      *
-     * @param int|null $userId ID del usuario manager
-     * @return ManagerSellerContextDTO Contexto de vendedores para la vista Inertia
+     * @param int $userId ID del usuario manager
+     * @return array [sellers, pagination]
      */
-    public function context(int $userId): ManagerSellerContextDTO
+    private function resolveSellers(int $userId): array
     {
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
         $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
@@ -82,8 +82,23 @@ final class ManagerSellerCrudService
             ]
             : null;
 
+        $sellers = $this->processCollectionTableData($collection, $labels, $rowKeys);
+
+        return [$sellers, $pagination];
+    }
+
+    /**
+     * Obtener contexto de vendedores del usuario manager.
+     *
+     * @param int|null $userId ID del usuario manager
+     * @return ManagerSellerContextDTO Contexto de vendedores para la vista Inertia
+     */
+    public function context(int $userId): ManagerSellerContextDTO
+    {
+        [$sellers, $pagination] = $this->resolveSellers($userId);
+
         return new ManagerSellerContextDTO(
-            sellers: $this->processCollectionTableData($collection, $labels, $rowKeys),
+            sellers: $sellers,
             pagination: $pagination,
             countries: $this->countries->getActive(['id', 'name']),
             currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
@@ -95,42 +110,40 @@ final class ManagerSellerCrudService
     /**
      * Obtener todos los comercios.
      *
-     * @return Collection<int, Commerce>
+     * @return Collection<int, Seller>
      */
-    public function getAll(): Collection
+    public function getAll(int $managerUserId): Collection
     {
-        return $this->sellerRepository->all();
+        return $this->resolveSellers($managerUserId)[0];
     }
 
     /**
      * Crear un vendedor completo (User + Seller + Wallet).
      *
      * @param ManagerSellerDTO $dto
+     * @param int $managerUserId ID del usuario manager al que representa el vendedor
      * @return string Contraseña generada para el vendedor
      *
      * @throws ManagerSellerException
      */
-    public function create(ManagerSellerDTO $dto): string
+    public function create(ManagerSellerDTO $dto, int $managerUserId): string
     {
-        return DB::transaction(function () use ($dto) {
+        return DB::transaction(function () use ($dto, $managerUserId) {
 
             $plainPassword = bin2hex(random_bytes(4));
 
-            // 1. Usuario
+            // 1. Crear usuario
             $user = $this->userService->createUserFromDTO($dto, $plainPassword);
             $user->assignRole('seller');
 
-            // 2. Código único
-            $uniqueCode = $this->userService->createUniqueCode($user->id);
-
-            // 3. Vendedor
+            // 2. Registar vendedor
             $seller = $this->sellerRepository->create([
-                'name'           => $dto->name,
-                'phone'          => $dto->phone,
-                'country_id'     => $dto->country,
-                'status'         => 'ACTIVE',
-                'user_id'        => $user->id,
-                'unique_code_id' => $uniqueCode->id,
+                'name' => $dto->name,
+                'phone' => $dto->phone,
+                'user_id' => $user->id,
+                'country_id' => $dto->country,
+                'manager_user_id' => $managerUserId,
+                'status' => 'ACTIVE',
             ]);
 
             if (!$seller) {
@@ -154,12 +167,12 @@ final class ManagerSellerCrudService
     /**
      * Obtener comercio para visualización.
      *
-     * @param Commerce $commerce
+     * @param Seller $seller
      * @return ManagerSellerResource
      */
-    public function show(Commerce $commerce): ManagerSellerResource
+    public function show(Seller $seller): ManagerSellerResource
     {
-        $commerce->load([
+        $seller->load([
             'country:id,name',
             'user:id,username,email,time_zone_id',
             'user.timeZone:id,name',
@@ -167,23 +180,23 @@ final class ManagerSellerCrudService
             'gamesActive:id,name',
         ]);
 
-        return new ManagerSellerResource($commerce);
+        return new ManagerSellerResource($seller);
     }
 
     /**
      * Actualizar comercio y relaciones.
      *
-     * @param Commerce $commerce
+     * @param Seller $seller
      * @param ManagerSellerDTO $dto
      *
      * @throws ManagerSellerException
      */
-    public function update(Commerce $commerce, ManagerSellerDTO $dto): void
+    public function update(Seller $seller, ManagerSellerDTO $dto): void
     {
-        DB::transaction(function () use ($commerce, $dto) {
+        DB::transaction(function () use ($seller, $dto) {
 
             $this->sellerRepository->update(
-                $commerce->id,
+                $seller->id,
                 array_filter([
                     'name'       => $dto->name,
                     'phone'      => $dto->phone,
@@ -191,11 +204,11 @@ final class ManagerSellerCrudService
                 ])
             );
 
-            $this->syncCurrencies($commerce, $dto->currency, $dto->otherCurrencies);
-            $this->syncGames($commerce, $dto->allowedGames);
+            $this->syncCurrencies($seller, $dto->currency, $dto->otherCurrencies);
+            $this->syncGames($seller, $dto->allowedGames);
 
             if ($dto->email !== null || $dto->username !== null) {
-                $commerce->user()->update(array_filter([
+                $seller->user()->update(array_filter([
                     'email'    => $dto->email,
                     'username' => $dto->username,
                 ]));
@@ -207,7 +220,7 @@ final class ManagerSellerCrudService
      * Sincroniza monedas del comercio.
      */
     protected function syncCurrencies(
-        Commerce $commerce,
+        Seller $seller,
         ?int $principalCurrencyId,
         ?array $secondaryCurrencyIds
     ): void {
@@ -219,8 +232,8 @@ final class ManagerSellerCrudService
 
         // Principal
         if ($principalCurrencyId) {
-            CommerceCurrency::updateOrCreate(
-                ['commerce_id' => $commerce->id, 'level' => 1],
+            SellerCurrency::updateOrCreate(
+                ['seller_id' => $seller->id, 'level' => 1],
                 [
                     'currency_id' => $principalCurrencyId,
                     'status'      => 'ACTIVE',
@@ -229,19 +242,19 @@ final class ManagerSellerCrudService
         }
 
         // Secundarias → inactivar las que sobran
-        CommerceCurrency::where('commerce_id', $commerce->id)
+        SellerCurrency::where('seller_id', $seller->id)
             ->where('level', 2)
             ->whereNotIn('currency_id', $secondaryCurrencyIds)
             ->update(['status' => 'INACTIVE']);
 
         // Activar existentes
-        CommerceCurrency::where('commerce_id', $commerce->id)
+        SellerCurrency::where('seller_id', $seller->id)
             ->where('level', 2)
             ->whereIn('currency_id', $secondaryCurrencyIds)
             ->update(['status' => 'ACTIVE']);
 
         // Insertar faltantes
-        $existing = CommerceCurrency::where('commerce_id', $commerce->id)
+        $existing = SellerCurrency::where('seller_id', $seller->id)
             ->where('level', 2)
             ->pluck('currency_id')
             ->all();
@@ -249,9 +262,9 @@ final class ManagerSellerCrudService
         $missing = array_diff($secondaryCurrencyIds, $existing);
 
         if ($missing) {
-            CommerceCurrency::insert(
+            SellerCurrency::insert(
                 array_map(fn($id) => [
-                    'commerce_id' => $commerce->id,
+                    'seller_id' => $seller->id,
                     'currency_id' => $id,
                     'level'       => 2,
                     'status'      => 'ACTIVE',
@@ -266,7 +279,7 @@ final class ManagerSellerCrudService
      * Sincroniza juegos permitidos.
      */
     protected function syncGames(
-        Commerce $commerce,
+        Seller $seller,
         ?array $activeGameIds
     ): void {
         $activeGameIds = collect($activeGameIds ?? [])
@@ -275,24 +288,24 @@ final class ManagerSellerCrudService
             ->values()
             ->all();
 
-        CommerceGame::where('commerce_id', $commerce->id)
+        SellerGame::where('seller_id', $seller->id)
             ->whereNotIn('game_id', $activeGameIds)
             ->update(['status' => 'INACTIVE']);
 
-        CommerceGame::where('commerce_id', $commerce->id)
+        SellerGame::where('seller_id', $seller->id)
             ->whereIn('game_id', $activeGameIds)
             ->update(['status' => 'ACTIVE']);
 
-        $existing = CommerceGame::where('commerce_id', $commerce->id)
+        $existing = SellerGame::where('seller_id', $seller->id)
             ->pluck('game_id')
             ->all();
 
         $missing = array_diff($activeGameIds, $existing);
 
         if ($missing) {
-            CommerceGame::insert(
+            SellerGame::insert(
                 array_map(fn($id) => [
-                    'commerce_id' => $commerce->id,
+                    'seller_id' => $seller->id,
                     'game_id'     => $id,
                     'status'      => 'ACTIVE',
                     'created_at'  => now(),
@@ -306,41 +319,41 @@ final class ManagerSellerCrudService
      * Alternar estado del comercio (ACTIVE / INACTIVE).
      * También sincroniza el estado del usuario asociado.
      *
-     * @param Commerce $commerce
+     * @param Seller $seller
      * @return bool True si el cambio fue exitoso
      *
      * @throws RuntimeException Si el comercio está eliminado
      */
-    public function toggleStatus(Commerce $commerce): bool
+    public function toggleStatus(Seller $seller): bool
     {
-        if ($commerce->status === 'DELETED') {
+        if ($seller->status === 'DELETED') {
             throw ManagerSellerException::invalidStatusChange();
         }
 
-        // Usa changeStatus con userRelation para sincronizar Commerce y User
-        $newStatus = $commerce->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        // Usa changeStatus con userRelation para sincronizar Seller y User
+        $newStatus = $seller->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
-        return $this->sellerRepository->changeStatus($commerce, $newStatus, 'user');
+        return $this->sellerRepository->changeStatus($seller, $newStatus, 'user');
     }
 
     /**
      * Eliminación lógica (soft delete) del comercio.
      * También marca el usuario asociado como DELETED.
      *
-     * @param Commerce $commerce
+     * @param Seller $seller
      * @return bool True si la eliminación fue exitosa
      *
      * @throws RuntimeException Si el comercio ya está eliminado
      */
-    public function delete(Commerce $commerce): bool
+    public function delete(Seller $seller): bool
     {
-        if ($commerce->status === 'DELETED') {
+        if ($seller->status === 'DELETED') {
             throw ManagerSellerException::alreadyDeleted();
         }
 
-        // Usa softDelete con userRelation para sincronizar Commerce y User
+        // Usa softDelete con userRelation para sincronizar Seller y User
         return $this->sellerRepository->softDelete(
-            model: $commerce,
+            model: $seller,
             status: 'DELETED',
             relationsToDetach: [],
             userRelation: 'user'
@@ -350,37 +363,37 @@ final class ManagerSellerCrudService
     /**
      * Eliminación definitiva del comercio y su usuario asociado.
      *
-     * @param Commerce $commerce
+     * @param Seller $seller
      *
      * @throws ManagerSellerException
      */
-    public function destroy(Commerce $commerce): void
+    public function destroy(Seller $seller): void
     {
-        DB::transaction(function () use ($commerce) {
+        DB::transaction(function () use ($seller) {
 
-            $commerce->loadMissing(['currencies', 'games', 'user']);
+            $seller->loadMissing(['currencies', 'games', 'user']);
 
             // Desvincula relaciones
-            $commerce->currencies()->detach();
-            $commerce->games()->detach();
+            $seller->currencies()->detach();
+            $seller->games()->detach();
 
             // Elimina wallets del usuario
-            $this->walletRepository->deleteByUserId($commerce->user_id);
+            $this->walletRepository->deleteByUserId($seller->user_id);
 
             // Guarda referencia al usuario antes de eliminar el comercio
-            $user = $commerce->user;
-            $userId = $commerce->user_id;
+            $user = $seller->user;
+            $userId = $seller->user_id;
 
             // Elimina definitivamente el comercio
-            $commerce->forceDelete();
+            $seller->forceDelete();
 
             // Verifica si el usuario tiene otros comercios activos
-            $hasOtherCommerces = Commerce::where('user_id', $userId)
-                ->where('id', '!=', $commerce->id)
+            $hasOtherSellers = Seller::where('user_id', $userId)
+                ->where('id', '!=', $seller->id)
                 ->exists();
 
             // Si no tiene otros comercios, elimina el usuario
-            if (! $hasOtherCommerces && $user) {
+            if (! $hasOtherSellers && $user) {
                 $user->forceDelete();
             }
         });

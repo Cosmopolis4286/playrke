@@ -31,7 +31,7 @@ final class ManagerSellerController extends Controller
     public function __construct(
         protected readonly ManagerSellerService $service
     ) {
-        //$this->authorizeResource(Seller::class, 'seller');
+        $this->authorizeResource(Seller::class, 'seller');
     }
 
     /**

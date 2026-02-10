@@ -3,10 +3,9 @@
 namespace App\Models\Pivots\Roles\Seller;
 
 use App\Models\Currency;
+use App\Models\Pivots\BasePivot;
 use App\Models\Roles\Seller;
-use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * Modelo para la gestión de relaciones vendedor-país-moneda.
@@ -14,10 +13,8 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
  * Representa las asociaciones entre vendedores, países y monedas,
  * incluyendo niveles de operación y estados de las relaciones.
  */
-class SellerCurrency extends Pivot
+class SellerCurrency extends BasePivot
 {
-    use SnowflakeId;
-
     /**
      * Nombre de la tabla asociada al modelo.
      *
@@ -31,7 +28,7 @@ class SellerCurrency extends Pivot
      * @var array<int, string>
      */
     protected $fillable = [
-        'seller',           // ID del vendedor
+        'seller_id',           // ID del vendedor
         'currency_id',      // ID de la moneda
         'level',            // Nivel de operación
         'status',           // Estado de la relación (activa/inactiva)
@@ -43,6 +40,8 @@ class SellerCurrency extends Pivot
      * @var array<string, string>
      */
     protected $casts = [
+        'seller_id' => 'string',
+        'currency_id' => 'string',
         'level' => 'integer',
         'status' => 'boolean',
     ];
@@ -200,16 +199,6 @@ class SellerCurrency extends Pivot
     }
 
     /**
-     * Obtener el nombre del país asociado.
-     *
-     * @return string
-     */
-    public function getCountryName(): string
-    {
-        return $this->country->name ?? 'Sin país';
-    }
-
-    /**
      * Obtener el código de la moneda asociada.
      *
      * @return string
@@ -263,7 +252,7 @@ class SellerCurrency extends Pivot
     public function getFullInfo(): string
     {
         $seller = $this->getSellerName();
-        $country = $this->getCountryName();
+
         $currency = $this->getCurrencyCode();
         $level = $this->getLevelDescription();
         $status = $this->getStatusLabel();
@@ -271,7 +260,6 @@ class SellerCurrency extends Pivot
         return sprintf(
             '%s - %s/%s (Nivel: %s) [%s]',
             $seller,
-            $country,
             $currency,
             $level,
             $status
@@ -349,17 +337,6 @@ class SellerCurrency extends Pivot
             ->distinct()
             ->pluck('currency_id')
             ->toArray();
-    }
-
-    /**
-     * Obtener conteo total de relaciones por vendedor (método heredado).
-     *
-     * @param string $sellerId ID del vendedor
-     * @return int
-     */
-    public static function getCountCountryCurrency(string $sellerId): int
-    {
-        return self::where('seller', $sellerId)->count();
     }
 
     /**
