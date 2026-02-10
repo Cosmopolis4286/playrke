@@ -6,9 +6,7 @@ use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
 use App\Models\Roles\Commerce;
 use App\Services\User\UserPasswordService;
-use App\Services\Roles\Admin\Commerce\AdminCommerceCrudService;
 use App\Exceptions\Domain\Roles\Admin\Commerce\AdminCommerceException;
-use App\Services\Roles\Admin\AdminContextService;
 
 /**
  * Servicio de aplicación para exponer
@@ -24,8 +22,8 @@ use App\Services\Roles\Admin\AdminContextService;
 final class AdminCommerceService
 {
     public function __construct(
-        private readonly AdminContextService $contex,
-        private readonly AdminCommerceCrudService $crud,
+        private readonly \App\Services\Roles\Admin\Commerce\AdminCommerceContextService $contex,
+        private readonly \App\Services\Roles\Admin\Commerce\AdminCommerceCrudService $crud,
         private readonly UserPasswordService $userPasswordService
     ) {}
 
