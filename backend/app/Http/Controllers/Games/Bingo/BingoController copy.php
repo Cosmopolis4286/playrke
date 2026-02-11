@@ -210,7 +210,7 @@ class BingoController extends Controller
         // Redirigir si no hay salas disponibles
         if (!count($rooms) && $creator['type'] === 'commerce') {
             return ['redirect' => route(
-                'bingo.game-rooms',
+                'bingo-rooms.index',
                 [
                     'roomType' => $roomType == 1 ? 'public-rooms' : 'private-rooms',
                     'creatorType' => 'commerce',
@@ -243,7 +243,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
         // Retorna ruta y datos
-        return ['route' => 'modules.game.bingo.game-rooms', 'data' => $viewData];
+        return ['route' => 'modules.game.bingo-rooms.index', 'data' => $viewData];
     }
 
     public function gamesRoomsCommerce($roomType = 'private', $currency = '')
@@ -255,7 +255,7 @@ class BingoController extends Controller
 
         if (!$currency) {
             return redirect()->route(
-                'bingo.game-rooms',
+                'bingo-rooms.index',
                 [
                     'roomType' => $roomType === 'private' ? 'private-rooms' : 'public-rooms',
                     'creatorType' => 'commerce',
@@ -642,7 +642,7 @@ class BingoController extends Controller
                 }
 
                 $closingRoute = route(
-                    'bingo.game-rooms-customer',
+                    'bingo-rooms.index-customer',
                     ['customer' => $customerId, 'user' => $userToken]
                 );
                 break;
@@ -1063,7 +1063,7 @@ class BingoController extends Controller
                 );
 
                 $routeWithCurrency = [
-                    'route' => 'bingo.game-rooms',
+                    'route' => 'bingo-rooms.index',
                     'parameters' => [
                         'roomType' => $roomType,
                         'creatorType' => 'commerce',
@@ -1092,7 +1092,7 @@ class BingoController extends Controller
                 $customer = Customer::getById($creatorId, ['customer_id', 'token']);
 
                 $routeWithCurrency = [
-                    'route' => 'bingo.game-rooms',
+                    'route' => 'bingo-rooms.index',
                     'parameters' => [
                         'roomType' => $roomType,
                         'creatorType' => 'customer',
@@ -1101,7 +1101,7 @@ class BingoController extends Controller
                 ];
 
                 $gameRoomRoute =  route(
-                    'bingo.game-rooms-customer',
+                    'bingo-rooms.index-customer',
                     [
                         'customer' => $customer->customer_id,
                         'user' => 'available-rooms',
@@ -1213,7 +1213,7 @@ class BingoController extends Controller
 
         // Si falta la moneda, redirigir con moneda por defecto
         if (!$currency) {
-            return redirect()->route('bingo.game-rooms', [
+            return redirect()->route('bingo-rooms.index', [
                 'roomType' => $roomType,
                 'creatorType' => $creatorType,
                 'creatorId' => encrypt($creatorId),
@@ -1281,7 +1281,7 @@ class BingoController extends Controller
                 return response()->json(['message' => 'No se encontraron monedas registradas'], 404);
             }
 
-            return redirect()->route('bingo.game-rooms', [
+            return redirect()->route('bingo-rooms.index', [
                 'roomType' => $roomType,
                 'creatorType' => 'customer',
                 'creatorId' => $isLogged ? encrypt($customerId) : $customerId,
@@ -1302,7 +1302,7 @@ class BingoController extends Controller
             $currency = CustomerExchangeRate::getCustomerCurrencyValue($customerId, $currency, 'id');
 
             // Redirigir con la moneda correctamente formateada
-            return redirect()->route('bingo.game-rooms', [
+            return redirect()->route('bingo-rooms.index', [
                 'roomType' => $roomType,
                 'creatorType' => 'customer',
                 'creatorId' => $isLogged ? encrypt($customerId) : $customerId,
@@ -2556,7 +2556,7 @@ class BingoController extends Controller
                 $token = $customer->token;
 
                 $gameRoomRoute =  route(
-                    'bingo.game-rooms-customer',
+                    'bingo-rooms.index-customer',
                     ['customer' => $customer->customer_id, 'user' => 'available-rooms']
                 );
 
@@ -2694,7 +2694,7 @@ class BingoController extends Controller
         $creator = ['type' => $userData['type'], 'id' => encrypt($userData['id'])];
 
         $routeWithCurrency = [
-            'route' => 'bingo.game-rooms',
+            'route' => 'bingo-rooms.index',
             'parameters' => [
                 'roomType' => 'other-public-rooms',
                 'creatorType' => $userData['type'],
@@ -2727,7 +2727,7 @@ class BingoController extends Controller
     private function allOtherPublicRooms($creatorType, $creatorId, $currency = '')
     {
         if (!$currency) {
-            return redirect()->route('bingo.game-rooms', [
+            return redirect()->route('bingo-rooms.index', [
                 'roomType' => 'other-public-rooms',
                 'creatorType' => $creatorType,
                 'creatorId' => $creatorId,

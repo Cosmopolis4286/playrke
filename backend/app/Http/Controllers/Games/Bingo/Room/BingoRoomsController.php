@@ -24,12 +24,12 @@ use Inertia\Response;
 final class BingoRoomsController extends Controller
 {
     /**
-     * @param GameBingoService $service
+     * @param BingoRoomService $service
      */
     public function __construct(
         private readonly \App\Services\Games\Bingo\Room\BingoRoomService $service
     ) {
-        // $this->authorizeResource(BingoRoom::class, 'id');
+        $this->authorizeResource(BingoRoom::class, 'id');
     }
 
     /**

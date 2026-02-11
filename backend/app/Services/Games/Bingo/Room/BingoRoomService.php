@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Room;
 
-use App\DTOs\Games\Bingo\Room\BingoGameRoomSummaryDTO;
+use App\DTOs\Games\Bingo\Room\BingoRoomSummaryDTO;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -81,13 +81,13 @@ final class BingoRoomService
     /**
      * Resolver contexto para el listado de salas de bingo.
      *
-     * @return BingoGameRoomSummaryDTO
+     * @return BingoRoomSummaryDTO
      */
-    private function summaryGameRooms(): BingoGameRoomSummaryDTO
+    private function summaryGameRooms(): BingoRoomSummaryDTO
     {
         $commerceData = $this->resolveGameRooms();
 
-        return new BingoGameRoomSummaryDTO(
+        return new BingoRoomSummaryDTO(
             commerces: $commerceData['commerces'],
             pagination: $commerceData['pagination'],
             countries: $this->countries->getActive(['id', 'name']),

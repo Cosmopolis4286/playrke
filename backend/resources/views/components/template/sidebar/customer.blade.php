@@ -27,8 +27,8 @@
         </a>
         <ul class="nav nav-treeview">
             <li class="nav-item">
-                <a href="{{ route('bingo.game-rooms') }}" title="Salas Bingo"
-                    class="nav-link {{ !Route::is('bingo.game-rooms') ?: 'active' }}">
+                <a href="{{ route('bingo-rooms.index') }}" title="Salas Bingo"
+                    class="nav-link {{ !Route::is('bingo-rooms.index') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Salas</p>
                 </a>

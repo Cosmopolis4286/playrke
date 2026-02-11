@@ -28,7 +28,7 @@ class IframeController extends Controller
             [
                 'title' => 'Salas de Juego CRUD',
                 'route' => route(
-                    'bingo.game-rooms',
+                    'bingo-rooms.index',
                     [
                         'roomType' => 'private-rooms',
                         'creatorType' => 'customer',
@@ -39,7 +39,7 @@ class IframeController extends Controller
             [
                 'title' => 'Salas de Juego Vista',
                 'route' => route(
-                    'bingo.game-rooms-customer',
+                    'bingo-rooms.index-customer',
                     ['customer' => $customer->customer_id, 'user' => 'available-rooms']
                 ),
             ],
@@ -61,6 +61,6 @@ class IframeController extends Controller
 
         $customerId = Customer::getValueByUserId($user->id, 'customer_id');
 
-        return ['route' => route('bingo.game-rooms-customer', ['customer' => $customerId, 'user' => $userToken])];
+        return ['route' => route('bingo-rooms.index-customer', ['customer' => $customerId, 'user' => $userToken])];
     }
 }

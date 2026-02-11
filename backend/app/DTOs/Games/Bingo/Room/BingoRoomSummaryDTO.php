@@ -6,7 +6,7 @@ use App\DTOs\ContextDTO;
 
 use Illuminate\Support\Collection;
 
-final class BingoGameRoomSummaryDTO implements ContextDTO
+final class BingoRoomSummaryDTO implements ContextDTO
 {
     public function __construct(
         public readonly ?string $subtitle = '',
