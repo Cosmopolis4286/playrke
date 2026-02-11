@@ -12,7 +12,12 @@ final class BingoRoomService
     use HashedTableDataTrait;
 
     public function __construct(
-        private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerces,
+        private readonly \App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface $bingoRooms,
+        private readonly \App\Contracts\CountryRepositoryInterface $countries,
+        private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
+        private readonly \App\Contracts\GameRepositoryInterface $games,
+        private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
+        private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones
     ) {}
 
     /**
@@ -40,7 +45,7 @@ final class BingoRoomService
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
         $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
 
-        $source = $this->commerces->paginateWithRelations(
+        $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
             relations: ['country:id,name', 'user:id,email'],
@@ -63,9 +68,9 @@ final class BingoRoomService
             ]
             : null;
 
-        $commerces = $this->processCollectionTableData($collection, $labels, $rowKeys);
+        $rooms = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
-        return ['commerces' => $commerces, 'pagination' => $pagination];
+        return ['rooms' => $rooms, 'pagination' => $pagination];
     }
 
     /**
@@ -88,7 +93,7 @@ final class BingoRoomService
         $commerceData = $this->resolveGameRooms();
 
         return new BingoRoomSummaryDTO(
-            commerces: $commerceData['commerces'],
+            rooms: $commerceData['rooms'],
             pagination: $commerceData['pagination'],
             countries: $this->countries->getActive(['id', 'name']),
             currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),

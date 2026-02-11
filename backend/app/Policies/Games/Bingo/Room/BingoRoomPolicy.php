@@ -2,7 +2,7 @@
 
 namespace App\Policies\Games\Bingo\Room;
 
-use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\User;
 use App\Policies\Roles\BaseRolePolicy;
 

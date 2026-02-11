@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Bingo\Rooms;
+namespace App\Models\Games\Bingo\Room;
 
 use App\Models\Games\Shared\GameMode\GameModes;
 use App\Models\Games\Shared\PrizePool\PrizePoolType;

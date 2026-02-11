@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Models\Bingo\Creators;
+namespace App\Models\Games\Bingo\Creators;
 
 use App\Models\Currency;
-use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

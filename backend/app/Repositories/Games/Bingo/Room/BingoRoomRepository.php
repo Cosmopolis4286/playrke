@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Bingo\Rooms;
+namespace App\Repositories\Games\Bingo\Rooms;
 
-use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Repositories\BaseRepository;
-use App\Repositories\Bingo\Contracts\BingoRoomRepositoryContract;
+use App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
@@ -13,7 +13,7 @@ use Carbon\Carbon;
  * Repositorio para operaciones con salas de Bingo
  * Maneja todas las consultas complejas relacionadas con BingoRoom
  */
-class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryContract
+class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryInterface
 {
     public function __construct(BingoRoom $model)
     {

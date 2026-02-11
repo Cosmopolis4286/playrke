@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Games\Bingo\Room;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Roles\Admin\Commerce\AdminCommerceRequest;
-use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Roles\Commerce;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;

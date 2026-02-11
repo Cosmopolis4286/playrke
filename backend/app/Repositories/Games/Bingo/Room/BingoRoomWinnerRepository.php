@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Bingo\Rooms;
+namespace App\Repositories\Games\Bingo\Room;
 
-use App\Models\Bingo\Rooms\User\BingoRoomWinner;
+use App\Models\Games\Bingo\Room\User\BingoRoomWinner;
 use App\Repositories\BaseRepository;
-use App\Repositories\Bingo\Rooms\Contracts\BingoRoomWinnerRepositoryContract;
+use App\Repositories\Games\Bingo\Room\Contracts\BingoRoomWinnerRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Models\Bingo\Cards\CardPrize;
+namespace App\Models\Games\Bingo\Cards\CardPrize;
 
 use App\Models\Currency;
-use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Users\Player\External\ExternalPlayers;
 use App\Models\Roles\Seller;
 use App\Models\User;

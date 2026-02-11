@@ -2,9 +2,9 @@
 
 namespace App\Models\Bingo\Rounds;
 
-use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Cards\Patterns\BingoPattern;
-use App\Models\Bingo\Rooms\User\BingoRoomWinner;
+use App\Models\Games\Bingo\Room\User\BingoRoomWinner;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

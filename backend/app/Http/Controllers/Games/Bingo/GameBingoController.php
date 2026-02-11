@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Games\Bingo;
 
 use App\Http\Controllers\Controller;
-use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoom;
 use Inertia\Inertia;
 use Inertia\Response;
 

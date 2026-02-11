@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
 use App\Policies\Games\Bingo\Room\BingoRoomPolicy;

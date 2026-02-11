@@ -2,8 +2,8 @@
 
 namespace App\Models\Bingo\Rounds;
 
-use App\Models\Bingo\Rooms\BingoRoom;
-use App\Models\Bingo\Rooms\BingoRoomAutomatic;
+use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;

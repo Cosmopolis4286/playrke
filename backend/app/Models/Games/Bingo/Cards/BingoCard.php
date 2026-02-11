@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Models\Bingo\Cards;
+namespace App\Models\Games\Bingo\Cards;
 
 use App\Models\Currency;
-use App\Models\Bingo\Rooms\BingoRoom;
-use App\Models\Bingo\Rooms\User\BingoRoomUser;
+use App\Models\Games\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Rooms\User\BingoRoomUser;
 use App\Models\Roles\Seller;
 use App\Models\User;
 use App\Traits\SnowflakeId;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\Bingo\Cards\CardPrize\BingoCardPrize;
+use App\Models\Games\Bingo\Cards\CardPrize\BingoCardPrize;
 
 /**
  * Modelo para los cartones de bingo

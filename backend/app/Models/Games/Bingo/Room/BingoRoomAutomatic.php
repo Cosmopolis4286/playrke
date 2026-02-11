@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Bingo\Rooms;
+namespace App\Models\Games\Bingo\Room;
 
 use App\Models\Games\Shared\GameMode\GameModes;
 use App\Models\Games\Shared\PrizePool\PrizePoolType;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa las salas de bingo programadas automáticamente.
  * Incluye configuración de horarios, precios, comisiones y patrones de juego.
  *
- * @package App\Models\Bingo\Rooms
+ * @package App\Models\Games\Bingo\Room
  * @author Sistema PlayRKE
  * @version 1.0
  *

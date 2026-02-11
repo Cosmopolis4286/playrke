@@ -27,7 +27,7 @@ use App\Models\GamePrizes;
 use App\Models\GameRoomJackpot;
 use App\Models;
 use App\Models\ExternalPlayers;
-use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Seller;
 use App\Models\Users;
 use App\Models\Role;

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Examples;
 
 use App\Http\Controllers\Controller;
-use App\Repositories\Contracts\Games\Bingo\BingoRoomRepositoryContract;
+use App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -25,7 +25,7 @@ class BingoRoomControllerExample extends Controller
      * Constructor con inyección de dependencias
      */
     public function __construct(
-        private readonly BingoRoomRepositoryContract $bingoRoomRepository
+        private readonly BingoRoomRepositoryInterface $bingoRoomRepository
     ) {}
 
     /**

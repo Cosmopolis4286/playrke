@@ -1,16 +1,18 @@
 <?php
 
-namespace App\Repositories\Bingo\Contracts;
+namespace App\Contracts\Games\Bingo\Room;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoom;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Contrato específico para el repositorio de salas de Bingo
- * Define métodos específicos para operaciones con BingoRoom
+ * Contrato para el repositorio de salas de Bingo.
+ *
+ * Define métodos específicos de dominio para operaciones con BingoRoom
+ * más allá del CRUD base proporcionado por BaseRepositoryInterface.
  */
-interface BingoRoomRepositoryContract extends BaseRepositoryInterface
+interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Buscar sala por código encriptado

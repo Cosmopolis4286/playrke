@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 
 use App\Models\Bingo\Cards\BingoCard;
 use App\Models\Bingo\Draws\BingoDraw;
-use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Shared\Historical\PlayHistory;
 
 use Illuminate\Http\JsonResponse;

@@ -2,7 +2,7 @@
 
 namespace App\Models\Roles;
 
-use App\Models\Bingo\Rooms\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Game;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

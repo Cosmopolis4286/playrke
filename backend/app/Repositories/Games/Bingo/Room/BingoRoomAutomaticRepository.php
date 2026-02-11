@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Bingo\Rooms;
+namespace App\Repositories\Games\Bingo\Room;
 
-use App\Models\Bingo\Rooms\BingoRoomAutomatic;
+use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
 use App\Repositories\BaseRepository;
-use App\Repositories\Bingo\Rooms\Contracts\BingoRoomAutomaticRepositoryContract;
+use App\Repositories\Games\Bingo\Room\Contracts\BingoRoomAutomaticRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 
@@ -14,7 +14,7 @@ use Illuminate\Support\Carbon;
  * Implementa todas las operaciones de consulta y manipulación de datos
  * para las salas de bingo automáticas con configuración programada.
  *
- * @package App\Repositories\Bingo\Rooms
+ * @package App\Repositories\Games\Bingo\Room
  * @author Sistema PlayRKE
  * @version 1.0
  */

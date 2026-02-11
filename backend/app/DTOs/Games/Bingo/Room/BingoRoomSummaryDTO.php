@@ -10,7 +10,7 @@ final class BingoRoomSummaryDTO implements ContextDTO
 {
     public function __construct(
         public readonly ?string $subtitle = '',
-        public readonly array $commerces,
+        public readonly array $rooms,
         public readonly ?array $pagination,
         public readonly Collection $countries,
         public readonly Collection $currencies,
@@ -23,8 +23,8 @@ final class BingoRoomSummaryDTO implements ContextDTO
         return [
             'title'                 => 'Salas de Juego',
             'subtitle'              => $this->subtitle,
-            'commerces'             => $this->commerces,
-            'commerces_pagination'  => $this->pagination,
+            'rooms'             => $this->rooms,
+            'rooms_pagination'  => $this->pagination,
             'countries'             => $this->countries,
             'currencies'            => $this->currencies,
             'games'                 => $this->games,

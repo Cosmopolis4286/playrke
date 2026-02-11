@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Bingo\Images;
+namespace App\Models\Games\Bingo\Images;
 
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
