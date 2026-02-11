@@ -3,20 +3,20 @@ import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 import { showPasswordModal } from '@/js/helpers/user/password'
 
-import type { Commerce } from '@/js/types/roles/commerce/commerce'
+import type { BingoRoom } from '@/js/types/games/bingo/bingo-room'
 
 /**
- * Contrato público del composable useBingoGameRoom
+ * Contrato público del composable useBingoRoom
  */
-interface UseBingoGameRoomReturn {
+interface UseBingoRoomReturn {
     /** Datos de la sala (para crear o editar) */
-    roomData: Ref<Partial<Commerce>>
+    roomData: Ref<Partial<BingoRoom>>
 
     /** Lista reactiva de salas */
-    rooms: Ref<Commerce[]>
+    rooms: Ref<BingoRoom[]>
 
     /** Inicializa la lista local */
-    setInitialRooms: (initialCommerces: Commerce[]) => void
+    setInitialRooms: (initialBingoRooms: BingoRoom[]) => void
 
     /** Envío del formulario */
     submit: () => Promise<boolean>
@@ -52,7 +52,7 @@ interface UseBingoGameRoomReturn {
 /**
  * Factory para una sala vacía
  */
-const emptyCommerce = (): Partial<Commerce> =>
+const emptyBingoRoom = (): Partial<BingoRoom> =>
     Object.freeze({
         name: '',
         username: '',
@@ -76,21 +76,21 @@ const emptyCommerce = (): Partial<Commerce> =>
  *
  * ⚠️ No controla UI directamente
  */
-export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
+export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
     /** Estado de carga global */
     const loading = ref(false)
 
     /** Estado único del formulario */
-    const roomData = ref<Partial<Commerce>>(emptyCommerce())
+    const roomData = ref<Partial<BingoRoom>>(emptyBingoRoom())
 
     /** Lista reactiva local */
-    const rooms = ref<Commerce[]>([])
+    const rooms = ref<BingoRoom[]>([])
 
     /**
      * Inicializa la lista local
      */
-    function setInitialRooms(initialCommerces: Commerce[]) {
-        rooms.value = [...initialCommerces]
+    function setInitialRooms(initialBingoRooms: BingoRoom[]) {
+        rooms.value = [...initialBingoRooms]
     }
 
     /**
@@ -100,7 +100,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
         try {
             loading.value = true
 
-            const response = await backendClient.get<{ data: Commerce[] }>(
+            const response = await backendClient.get<{ data: BingoRoom[] }>(
                 '/admin/commerce/list-filtered',
                 { params: { token: tokenId } }
             )
@@ -178,7 +178,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
      * Modo creación
      */
     function create(): void {
-        roomData.value = { ...emptyCommerce() }
+        roomData.value = { ...emptyBingoRoom() }
     }
 
     /**
@@ -227,7 +227,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
      * Reset del formulario
      */
     function reset(): void {
-        roomData.value = { ...emptyCommerce() }
+        roomData.value = { ...emptyBingoRoom() }
     }
 
     /**

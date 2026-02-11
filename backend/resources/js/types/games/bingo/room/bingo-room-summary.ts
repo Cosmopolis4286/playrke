@@ -17,5 +17,9 @@ export interface BingoRoomSummaryPageProps {
     countries: Country[],
     currencies: Currency[],
     games: Game[],
-    timeZones: TimeZone[]
+    timeZones: TimeZone[],
+    creator?: { type: string; id: string | number },
+    timeZone?: TimeZone,
+    gameModes?: { value: string | number; label: string }[],
+    prizePoolTypes?: { value: string | number; label: string }[]
 }

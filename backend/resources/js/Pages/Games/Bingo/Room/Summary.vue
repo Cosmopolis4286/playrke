@@ -3,7 +3,7 @@
    * Página Juego BINGO → GameRoom/Summary
    */
 
-  import { computed, watch } from 'vue'
+  import { computed, ref, watch } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -26,6 +26,7 @@
   // ==========================================================================
 
   import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/bingo-room-summary'
+  import type { BingoRoomFormData } from '@/js/types/games/bingo/bingo-room'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
 
@@ -54,6 +55,33 @@
   setInitialRooms(props.rooms.rows)
 
   // ==========================================================================
+  // Form data para creación de sala
+  // ==========================================================================
+
+  const emptyFormData = (): BingoRoomFormData => ({
+    date: null,
+    time: null,
+    roomType: 'PV',
+    gameMode: null,
+    prizePoolType: null,
+    allowedCurrencies: [],
+    amountAddedPrizePool: null,
+    roomCommn: null,
+    jackpotPct: null,
+    timeChip: null,
+    rounds: 1,
+    roundsConfigActive: false,
+    loadingRoundsConfig: false
+  })
+
+  const roomFormData = ref<BingoRoomFormData>(emptyFormData())
+
+  const roomTypeOptions = [
+    { value: 'PV', label: 'Público' },
+    { value: 'PB', label: 'Privado' }
+  ]
+
+  // ==========================================================================
   // Modal + Form handler
   // ==========================================================================
 
@@ -69,6 +97,7 @@
   watch(showModalForm, isOpen => {
     if (!isOpen) {
       bingoGameRoomFormRef.value?.reset?.()
+      roomFormData.value = emptyFormData()
       create()
     }
   })
@@ -213,11 +242,13 @@
   >
     <BingoRoomForm
       ref="bingoGameRoomFormRef"
-      v-model="roomData"
-      :countries="props.countries"
-      :currencies="props.currencies"
-      :time-zones="props.timeZones"
-      :games="props.games"
+      v-model="roomFormData"
+      :time-zone="props.timeZone ?? props.timeZones[0]"
+      :creator="props.creator ?? { type: 'admin', id: '' }"
+      :room-type-options="roomTypeOptions"
+      :game-mode-options="props.gameModes ?? []"
+      :prize-pool-type-options="props.prizePoolTypes ?? []"
+      :allowed-currencies-options="props.currencies.map(c => ({ value: c.id, label: c.name }))"
     />
   </Modal>
 </template>

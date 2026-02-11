@@ -1,5 +1,5 @@
 <script setup lang="ts" name="BingoGameRoomForm">
-  import { computed, watch, nextTick } from 'vue'
+  import { computed } from 'vue'
 
   // Components
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
@@ -9,22 +9,31 @@
   import { useBingoRoomForm } from '@/js/composables/games/bingo/room/useBingoRoomForm'
 
   // Types
-  import type { Currency } from '@/js/types/currency'
-  import type { Country } from '@/js/types/country'
   import type { TimeZone } from '@/js/types/time-zone'
-  import type { Game } from '@/js/types/game'
-  import type { Commerce } from '@/js/types/roles/commerce/commerce'
+  import type { BingoRoomFormData } from '@/js/types/games/bingo/bingo-room'
+
+  /* ==========================================================================
+   * Opción genérica para selects
+   * ========================================================================== */
+
+  interface SelectOption {
+    value: string | number
+    label: string
+  }
 
   /* ==========================================================================
    * Props
    * ========================================================================== */
 
   const props = defineProps<{
-    countries: Country[]
-    currencies: Currency[]
-    timeZones: TimeZone[]
-    games: Game[]
-    modelValue: Partial<Commerce>
+    timeZone: TimeZone
+    automaticRoom?: boolean
+    creator: { type: string; id: string | number }
+    roomTypeOptions: SelectOption[]
+    gameModeOptions: SelectOption[]
+    prizePoolTypeOptions: SelectOption[]
+    allowedCurrenciesOptions: SelectOption[]
+    modelValue: BingoRoomFormData
   }>()
 
   /* ==========================================================================
@@ -33,96 +42,43 @@
 
   const emit = defineEmits<{
     (e: 'submit'): void
-    (e: 'update:modelValue', value: Partial<Commerce>): void
+    (e: 'update:modelValue', value: BingoRoomFormData): void
+    (e: 'createRoom'): void
   }>()
 
   /* ==========================================================================
-   * Form logic (PRO: computed v-model)
+   * Form logic (computed v-model)
    * ========================================================================== */
 
   const { form, errors, isValid } = useBingoRoomForm(() => props.modelValue, emit)
 
   /* ==========================================================================
-   * Máscaras
+   * Computed
    * ========================================================================== */
 
-  const commissionMask = {
-    mask: Number,
-    scale: 2,
-    min: 0,
-    max: 100,
-    radix: '.',
-    mapToRadix: [','],
-    padFractionalZeros: true,
-    normalizeZeros: true,
-    thousandsSeparator: ''
-  }
+  /**
+   * Fecha mínima: hoy (formato YYYY-MM-DD)
+   */
+  const minDate = computed(() => {
+    const today = new Date()
+    return today.toISOString().split('T')[0]
+  })
 
   /* ==========================================================================
-   * Filtered currencies by country
+   * Métodos
    * ========================================================================== */
 
-  const filteredCurrencies = computed(() => {
-    if (!form.value.country_id) return []
-    // eslint-disable-next-line eqeqeq
-    return props.currencies.filter(c => c.country_id == form.value.country_id)
-  })
-
-  const filteredTimeZones = computed(() => {
-    if (!form.value.country_id) return []
-    // eslint-disable-next-line eqeqeq
-    return props.timeZones.filter(tz => tz.country_id == form.value.country_id)
-  })
-
-  // Computed para saber si hay una sola opción (no mostrar placeholder)
-  const hasSingleCurrency = computed(() => filteredCurrencies.value.length === 1)
-  const hasSingleTimeZone = computed(() => filteredTimeZones.value.length === 1)
-
-  // Otras monedas: todas las monedas excepto la principal seleccionada
-  const otherCurrenciesOptions = computed(() => {
-    if (!form.value.currency_id) return props.currencies
-    // eslint-disable-next-line eqeqeq
-    return props.currencies.filter(c => c.id != form.value.currency_id)
-  })
-
-  // Auto-select currency and timezone when country changes
-  watch(
-    () => form.value.country_id,
-    async (newCountryId, oldCountryId) => {
-      // Solo resetear si cambió el país (no en la carga inicial con valor)
-      if (oldCountryId !== undefined) {
-        form.value = { ...form.value, currency_id: null, time_zone_id: null, other_currencies: [] }
-      }
-
-      if (!newCountryId) return
-
-      // Wait for DOM to update (v-if to show selects)
-      await nextTick()
-
-      // eslint-disable-next-line eqeqeq
-      const currencies = props.currencies.filter(c => c.country_id == newCountryId)
-      // eslint-disable-next-line eqeqeq
-      const timeZones = props.timeZones.filter(tz => tz.country_id == newCountryId)
-
-      // Auto-select si hay una sola opción
-      form.value = {
-        ...form.value,
-        currency_id: currencies.length === 1 ? currencies[0].id : form.value.currency_id,
-        time_zone_id: timeZones.length === 1 ? timeZones[0].id : form.value.time_zone_id
-      }
-    },
-    { immediate: true }
-  )
-
-  // Limpiar otras monedas cuando cambia la moneda principal
-  watch(
-    () => form.value.currency_id,
-    (newCurrencyId, oldCurrencyId) => {
-      if (oldCurrencyId !== undefined && newCurrencyId !== oldCurrencyId) {
-        form.value = { ...form.value, other_currencies: [] }
-      }
+  function toggleRoundsConfig() {
+    form.value = {
+      ...form.value,
+      roundsConfigActive: !form.value.roundsConfigActive
     }
-  )
+  }
+
+  function createRoom() {
+    if (!isValid.value) return
+    emit('createRoom')
+  }
 
   /* ==========================================================================
    * Submit
@@ -144,7 +100,7 @@
   })
 </script>
 <template>
-  <form id="commerce-form" novalidate @submit.prevent="submit">
+  <form id="bingo-room-form" novalidate @submit.prevent="submit">
     <div class="row">
       <!-- Zona horaria (solo lectura) -->
       <FormInput

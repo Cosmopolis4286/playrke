@@ -9,6 +9,37 @@ export type BingoRoomType = 'PV' | 'PB'
 export type BingoPrizesPaid = 'Y' | 'N'
 
 /**
+ * Estado de la sala
+ */
+export type BingoRoomStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED'
+
+/**
+ * Relación: estado de la sala
+ */
+export interface BingoRoomGameStatus {
+    readonly id: number | string
+    readonly name: string
+}
+
+/**
+ * Relación: país
+ */
+export interface BingoRoomCountry {
+    readonly id: number | string
+    readonly name: string
+}
+
+/**
+ * Relación: usuario
+ */
+export interface BingoRoomUser {
+    readonly id: number | string
+    readonly email: string
+    readonly username?: string
+    readonly time_zone_id?: number | string | null
+}
+
+/**
  * Modelo BingoRoom
  * Basado en: 2024_06_14_04_create_bingo_rooms_table
  */
@@ -38,4 +69,43 @@ export interface BingoRoom {
     readonly room_type_description: string
     readonly is_closed: boolean
     readonly total_commissions: number
+
+    // Campos del servicio (summary / listado)
+    readonly name?: string
+    readonly phone?: string
+    readonly status?: BingoRoomStatus
+    readonly country_id?: number | string | null
+    readonly user_id?: number | string | null
+    readonly currency_id?: number | string | null
+    readonly time_zone_id?: number | string | null
+    readonly username?: string
+    readonly email?: string
+    readonly commission?: string | number
+    readonly other_currencies?: (number | string)[]
+    readonly allowed_games?: (number | string)[]
+
+    // Relaciones opcionales
+    readonly country?: BingoRoomCountry | null
+    readonly user?: BingoRoomUser | null
+    readonly status_relation?: BingoRoomGameStatus | null
+}
+
+/**
+ * Campos del formulario de creación/edición de sala
+ * Basado en: bingo_rooms_config + bingo_rooms_automatic
+ */
+export interface BingoRoomFormData {
+    date?: string | null
+    time?: string | null
+    roomType?: BingoRoomType | null
+    gameMode?: number | string | null
+    prizePoolType?: number | string | null
+    allowedCurrencies?: (number | string)[]
+    amountAddedPrizePool?: number | null
+    roomCommn?: number | null
+    jackpotPct?: number | null
+    timeChip?: number | null
+    rounds?: number | null
+    roundsConfigActive?: boolean
+    loadingRoundsConfig?: boolean
 }

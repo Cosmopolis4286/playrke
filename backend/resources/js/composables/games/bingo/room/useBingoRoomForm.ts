@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import type { Commerce } from '@/js/types/roles/commerce/commerce'
+import type { BingoRoomFormData } from '@/js/types/games/bingo/bingo-room'
 
 /**
  * Composable para formulario de sala de bingo
@@ -13,14 +13,14 @@ import type { Commerce } from '@/js/types/roles/commerce/commerce'
  * ✅ v-model computado
  */
 export function useBingoRoomForm(
-    modelValueGetter: () => Partial<Commerce>,
-    emit: (event: 'update:modelValue', value: Partial<Commerce>) => void
+    modelValueGetter: () => BingoRoomFormData,
+    emit: (event: 'update:modelValue', value: BingoRoomFormData) => void
 ) {
     /* =======================
      * v-model computado
      * ======================= */
 
-    const form = computed<Partial<Commerce>>({
+    const form = computed<BingoRoomFormData>({
         get: () => modelValueGetter(),
         set: value => emit('update:modelValue', value)
     })
@@ -30,43 +30,37 @@ export function useBingoRoomForm(
      * ======================= */
 
     /**
-     * Modo edición
-     */
-    const isEditMode = computed(() => !!form.value.id)
-
-    /**
      * Validaciones reactivas
      */
     const errors = computed<Record<string, string>>(() => {
         const e: Record<string, string> = {}
 
-        if (!form.value.name) {
-            e.name = 'El nombre es requerido.'
+        if (!form.value.time) {
+            e.time = 'La hora es requerida.'
         }
 
-        if (!form.value.username || form.value.username.length < 5) {
-            e.username = 'El username debe tener al menos 5 caracteres.'
+        if (!form.value.gameMode) {
+            e.gameMode = 'El modo de juego es requerido.'
         }
 
-        if (!form.value.email) {
-            e.email = 'El email es requerido.'
+        if (!form.value.prizePoolType) {
+            e.prizePoolType = 'El tipo de bote es requerido.'
         }
 
-        if (!form.value.commission) {
-            e.commission = 'La comisión es requerida.'
-        } else {
-            const commissionValue = parseFloat(form.value.commission)
-            if (isNaN(commissionValue) || commissionValue < 0 || commissionValue > 100) {
-                e.commission = 'La comisión debe estar entre 0 y 100.'
-            }
+        if (!form.value.allowedCurrencies || form.value.allowedCurrencies.length === 0) {
+            e.allowedCurrencies = 'Debe seleccionar al menos una moneda.'
         }
 
-        if (!form.value.country_id) {
-            e.country_id = 'El país es requerido.'
+        if (!form.value.roomCommn) {
+            e.roomCommn = 'El % de sala es requerido.'
         }
 
-        if (!form.value.currency_id) {
-            e.currency_id = 'La moneda principal es requerida.'
+        if (!form.value.timeChip) {
+            e.timeChip = 'El tiempo de ficha es requerido.'
+        }
+
+        if (!form.value.rounds) {
+            e.rounds = 'El número de rondas es requerido.'
         }
 
         return e
