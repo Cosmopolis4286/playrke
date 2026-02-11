@@ -14,8 +14,12 @@
     modelValue: { type: [String, Number], default: '' },
     required: { type: Boolean, default: false },
     readonly: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false },
     minlength: { type: [String, Number], default: null },
     maxlength: { type: [String, Number], default: null },
+    min: { type: [String, Number], default: null },
+    max: { type: [String, Number], default: null },
+    step: { type: [String, Number], default: null },
     placeholder: { type: String, default: null },
     col: { type: String, default: 'col-sm-6' },
     className: { type: String, default: '' },
@@ -61,10 +65,14 @@
         :value="modelValue"
         class="form-control"
         :readonly="readonly"
+        :disabled="disabled"
         :required="required"
         :placeholder="placeholder"
         :minlength="minlength"
         :maxlength="maxlength"
+        :min="min"
+        :max="max"
+        :step="step"
         @accept="onAccept"
       />
       <input
@@ -75,10 +83,14 @@
         :value="modelValue"
         class="form-control"
         :readonly="readonly"
+        :disabled="disabled"
         :required="required"
         :placeholder="placeholder"
         :minlength="minlength"
         :maxlength="maxlength"
+        :min="min"
+        :max="max"
+        :step="step"
         @input="onInput"
       />
 
@@ -97,10 +109,14 @@
       :value="modelValue"
       class="form-control"
       :readonly="readonly"
+      :disabled="disabled"
       :required="required"
       :placeholder="placeholder"
       :minlength="minlength"
       :maxlength="maxlength"
+      :min="min"
+      :max="max"
+      :step="step"
       @accept="onAccept"
     />
 
@@ -113,10 +129,14 @@
       :value="modelValue"
       class="form-control"
       :readonly="readonly"
+      :disabled="disabled"
       :required="required"
       :placeholder="placeholder"
       :minlength="minlength"
       :maxlength="maxlength"
+      :min="min"
+      :max="max"
+      :step="step"
       @input="onInput"
     />
   </div>

@@ -12,7 +12,7 @@ import type { Commerce } from '@/js/types/roles/commerce/commerce'
  * ❌ Sin watchers
  * ✅ v-model computado
  */
-export function useBingoGameRoomForm(
+export function useBingoRoomForm(
     modelValueGetter: () => Partial<Commerce>,
     emit: (event: 'update:modelValue', value: Partial<Commerce>) => void
 ) {

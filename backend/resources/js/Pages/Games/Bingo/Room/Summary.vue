@@ -11,7 +11,7 @@
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import BingoGameRoomForm from '@/js/Components/Games/Bingo/GameRoom/BingoGameRoomForm.vue'
+  import BingoRoomForm from '@/js/Components/Games/Bingo/Room/BingoRoomForm.vue'
 
   // ==========================================================================
   // Composables
@@ -19,13 +19,13 @@
 
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
-  import { useBingoGameRoom } from '@/js/composables/games/bingo/game-room/useBingoGameRoom'
+  import { useBingoRoom } from '@/js/composables/games/bingo/room/useBingoRoom'
 
   // ==========================================================================
   // Types
   // ==========================================================================
 
-  import type { BingoGameRoomsSummaryPageProps } from '@/js/types/games/bingo/bingo-game-rooms-summary'
+  import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/bingo-room-summary'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
 
@@ -33,7 +33,7 @@
   // Props (Inertia)
   // ==========================================================================
 
-  const props = defineProps<BingoGameRoomsSummaryPageProps>()
+  const props = defineProps<BingoRoomSummaryPageProps>()
 
   // ==========================================================================
   // Lógica de negocio
@@ -49,7 +49,7 @@
     resetPassword,
     removeBulk,
     submit
-  } = useBingoGameRoom()
+  } = useBingoRoom()
 
   setInitialRooms(props.rooms.rows)
 
@@ -211,7 +211,7 @@
     :on-submit="handleSubmit"
     :confirm-disabled="!(bingoGameRoomFormRef?.isValid ?? false)"
   >
-    <BingoGameRoomForm
+    <BingoRoomForm
       ref="bingoGameRoomFormRef"
       v-model="roomData"
       :countries="props.countries"
