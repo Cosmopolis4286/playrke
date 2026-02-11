@@ -43,7 +43,7 @@ final class BingoRoomsController extends Controller
             function () {
                 $response = $this->service->context('summary');
 
-                return Inertia::render('Games/Bingo/Room/Summary', $response);
+                return Inertia::render('Games/Bingo/Room/Summary', $response->toView());
             },
             'No se pudo cargar la lista de salas de bingo.'
         );

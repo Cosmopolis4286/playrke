@@ -1,21 +1,22 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
-import type { Commerce } from '@/js/types/roles/commerce/commerce'
 import { showPasswordModal } from '@/js/helpers/user/password'
+
+import type { Commerce } from '@/js/types/roles/commerce/commerce'
 
 /**
  * Contrato público del composable useBingoGameRoom
  */
 interface UseBingoGameRoomReturn {
-    /** Datos del comercio (para crear o editar) */
-    commerceData: Ref<Partial<Commerce>>
+    /** Datos de la sala (para crear o editar) */
+    roomData: Ref<Partial<Commerce>>
 
-    /** Lista reactiva de comercializadoras */
-    commerces: Ref<Commerce[]>
+    /** Lista reactiva de salas */
+    rooms: Ref<Commerce[]>
 
     /** Inicializa la lista local */
-    setInitialCommerces: (initialCommerces: Commerce[]) => void
+    setInitialRooms: (initialCommerces: Commerce[]) => void
 
     /** Envío del formulario */
     submit: () => Promise<boolean>
@@ -45,11 +46,11 @@ interface UseBingoGameRoomReturn {
     removeBulk: (ids: (string | number)[]) => Promise<boolean>
 
     /** Fetch desde backend */
-    fetchCommerces: () => Promise<boolean>
+    fetchRooms: () => Promise<boolean>
 }
 
 /**
- * Factory para un comercio vacío
+ * Factory para una sala vacía
  */
 const emptyCommerce = (): Partial<Commerce> =>
     Object.freeze({
@@ -80,22 +81,22 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
     const loading = ref(false)
 
     /** Estado único del formulario */
-    const commerceData = ref<Partial<Commerce>>(emptyCommerce())
+    const roomData = ref<Partial<Commerce>>(emptyCommerce())
 
     /** Lista reactiva local */
-    const commerces = ref<Commerce[]>([])
+    const rooms = ref<Commerce[]>([])
 
     /**
      * Inicializa la lista local
      */
-    function setInitialCommerces(initialCommerces: Commerce[]) {
-        commerces.value = [...initialCommerces]
+    function setInitialRooms(initialCommerces: Commerce[]) {
+        rooms.value = [...initialCommerces]
     }
 
     /**
      * Obtiene la lista desde backend
      */
-    async function fetchCommerces(): Promise<boolean> {
+    async function fetchRooms(): Promise<boolean> {
         try {
             loading.value = true
 
@@ -105,7 +106,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
             )
 
             if (Array.isArray(response.data?.data)) {
-                commerces.value = response.data.data
+                rooms.value = response.data.data
             }
 
             return true
@@ -122,7 +123,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
      * Transforma el payload del frontend al formato esperado por el backend
      */
     function buildPayload(): Record<string, unknown> {
-        const { country_id, currency_id, time_zone_id, ...rest } = commerceData.value
+        const { country_id, currency_id, time_zone_id, ...rest } = roomData.value
 
         return {
             ...rest,
@@ -143,9 +144,9 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
 
             const payload = buildPayload()
 
-            if (commerceData.value.id) {
+            if (roomData.value.id) {
                 const { data } = await backendClient.put(
-                    `/admin/commerce/${commerceData.value.id}`,
+                    `/admin/commerce/${roomData.value.id}`,
                     payload
                 )
                 showToast('Actualización exitosa', 'success')
@@ -158,7 +159,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
                 await showPasswordModal(data.password)
             }
 
-            await fetchCommerces()
+            await fetchRooms()
             reset()
             return true
         } catch (error: any) {
@@ -177,7 +178,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
      * Modo creación
      */
     function create(): void {
-        commerceData.value = { ...emptyCommerce() }
+        roomData.value = { ...emptyCommerce() }
     }
 
     /**
@@ -195,7 +196,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
 
             const commerce = data.data
 
-            commerceData.value = {
+            roomData.value = {
                 id: commerce.id,
                 name: commerce.name,
                 phone: commerce.phone,
@@ -226,14 +227,14 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
      * Reset del formulario
      */
     function reset(): void {
-        commerceData.value = { ...emptyCommerce() }
+        roomData.value = { ...emptyCommerce() }
     }
 
     /**
      * Alternar estado (ACTIVE / INACTIVE) del comercio.
      */
     async function toggleStatus(id: string | number): Promise<boolean> {
-        const commerce = commerces.value.find(c => c.id === id)
+        const commerce = rooms.value.find(c => c.id === id)
         const name = commerce?.name ?? 'esta comercializadora'
 
         const confirm = await showToastConfirmAction({
@@ -247,7 +248,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
         try {
             await backendClient.put(`/admin/commerce/${id}/status`)
             showToast('Estado cambiado con éxito', 'success')
-            await fetchCommerces()
+            await fetchRooms()
             return true
         } catch {
             showToast('Error al cambiar el estado', 'error')
@@ -259,7 +260,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
      * Resetea la contraseña de una comercializadora
      */
     async function resetPassword(id: string | number): Promise<boolean> {
-        const commerce = commerces.value.find(c => c.id === id)
+        const commerce = rooms.value.find(c => c.id === id)
         const name = commerce?.name ?? 'esta comercializadora'
 
         if (commerce?.status !== 'ACTIVE') {
@@ -295,7 +296,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
      * Eliminación (soft delete)
      */
     async function remove(id: string | number): Promise<boolean> {
-        const commerce = commerces.value.find(c => c.id === id)
+        const commerce = rooms.value.find(c => c.id === id)
         const name = commerce?.name ?? 'esta comercializadora'
 
         const confirm = await showToastConfirmAction({
@@ -309,7 +310,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
         try {
             await backendClient.put(`/admin/commerce/${id}/delete`)
             showToast('Comercializadora eliminada con éxito', 'success')
-            await fetchCommerces()
+            await fetchRooms()
             return true
         } catch {
             showToast('Error al eliminar la comercializadora', 'error')
@@ -322,7 +323,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
      */
     function buildItemListHtml(ids: (string | number)[]): string {
         const items = ids
-            .map(id => commerces.value.find(c => c.id === id))
+            .map(id => rooms.value.find(c => c.id === id))
             .filter(Boolean)
             .map(c => c!.name)
 
@@ -361,7 +362,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
                 await backendClient.put(`/admin/commerce/${id}/status`)
             }
             showToast(`Estado cambiado con éxito para ${ids.length} comercializadoras`, 'success')
-            await fetchCommerces()
+            await fetchRooms()
             return true
         } catch {
             showToast('Error al cambiar el estado', 'error')
@@ -395,7 +396,7 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
                 await backendClient.put(`/admin/commerce/${id}/delete`)
             }
             showToast(`${ids.length} comercializadoras eliminadas con éxito`, 'success')
-            await fetchCommerces()
+            await fetchRooms()
             return true
         } catch {
             showToast('Error al eliminar las comercializadoras', 'error')
@@ -404,9 +405,9 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
     }
 
     return {
-        commerceData,
-        commerces,
-        setInitialCommerces,
+        roomData,
+        rooms,
+        setInitialRooms,
         submit,
         create,
         edit,
@@ -416,6 +417,6 @@ export function useBingoGameRoom(tokenId: string = ''): UseBingoGameRoomReturn {
         resetPassword,
         remove,
         removeBulk,
-        fetchCommerces
+        fetchRooms
     }
 }

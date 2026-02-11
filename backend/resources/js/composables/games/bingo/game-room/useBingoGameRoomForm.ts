@@ -2,7 +2,7 @@ import { computed } from 'vue'
 import type { Commerce } from '@/js/types/roles/commerce/commerce'
 
 /**
- * Composable para formulario de Comercializadoras
+ * Composable para formulario de sala de bingo
  *
  * Responsabilidades:
  * - Adaptar modelValue al formulario

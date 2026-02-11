@@ -9,13 +9,13 @@ use Illuminate\Support\Collection;
 final class BingoRoomSummaryDTO implements ContextDTO
 {
     public function __construct(
-        public readonly ?string $subtitle = '',
         public readonly array $rooms,
         public readonly ?array $pagination,
         public readonly Collection $countries,
         public readonly Collection $currencies,
         public readonly Collection $games,
         public readonly Collection $timeZones,
+        public readonly ?string $subtitle = '',
     ) {}
 
     public function toView(): array

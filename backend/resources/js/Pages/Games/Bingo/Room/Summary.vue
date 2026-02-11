@@ -40,9 +40,9 @@
   // ==========================================================================
 
   const {
-    commerceData,
-    commerces,
-    setInitialCommerces,
+    roomData,
+    rooms,
+    setInitialRooms,
     create,
     edit,
     toggleStatusBulk,
@@ -51,7 +51,7 @@
     submit
   } = useBingoGameRoom()
 
-  setInitialCommerces(props.commerces.rows)
+  setInitialRooms(props.rooms.rows)
 
   // ==========================================================================
   // Modal + Form handler
@@ -62,8 +62,8 @@
     modalTitle,
     formRef: bingoGameRoomFormRef,
     handleSubmit
-  } = useModalForm(commerceData, submit, {
-    defaultTitle: 'Comercializadora'
+  } = useModalForm(roomData, submit, {
+    defaultTitle: 'Sala de Bingo',
   })
 
   watch(showModalForm, isOpen => {
@@ -154,7 +154,7 @@
    * Deshabilitado cuando el elemento seleccionado no está en status ACTIVE.
    */
   function isResetPasswordDisabled(selectedIds: string[]): boolean {
-    const commerce = commerces.value.find(c => c.id === selectedIds[0])
+    const commerce = rooms.value.find(c => c.id === selectedIds[0])
     return commerce?.status !== 'ACTIVE'
   }
 
@@ -162,7 +162,7 @@
    * Retorna la razón por la cual resetPassword está deshabilitado.
    */
   function getResetPasswordDisabledReason(selectedIds: string[]): string {
-    const commerce = commerces.value.find(c => c.id === selectedIds[0])
+    const commerce = rooms.value.find(c => c.id === selectedIds[0])
     if (commerce?.status !== 'ACTIVE') {
       return 'Solo se puede resetear la contraseña de comercializadoras activas'
     }
@@ -191,10 +191,10 @@
 
 <template>
   <TableWithFilterBridge
-    tableId="commerce-table"
+    tableId="game-room-table"
     :title="props.title"
-    :columns="props.commerces.columns"
-    :rows="commerces"
+    :columns="props.rooms.columns"
+    :rows="rooms"
     :filters="filters"
     search-placeholder="Buscar por nombre, email, teléfono..."
     showCreateButton
@@ -213,7 +213,7 @@
   >
     <BingoGameRoomForm
       ref="bingoGameRoomFormRef"
-      v-model="commerceData"
+      v-model="roomData"
       :countries="props.countries"
       :currencies="props.currencies"
       :time-zones="props.timeZones"

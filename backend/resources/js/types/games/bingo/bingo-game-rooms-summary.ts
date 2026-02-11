@@ -8,11 +8,12 @@ import type { Pagination } from '../../common/table/pagination'
 
 export interface BingoGameRoomsSummaryPageProps {
     title?: string,
-    commerces: {
+    subtitle?: string,
+    rooms: {
         columns: Column[],
         rows: Commerce[]
     },
-    commerces_pagination: Pagination | null,
+    rooms_pagination: Pagination | null,
     countries: Country[],
     currencies: Currency[],
     games: Game[],
