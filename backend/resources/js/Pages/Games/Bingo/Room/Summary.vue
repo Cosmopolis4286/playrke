@@ -220,7 +220,7 @@
 
 <template>
   <TableWithFilterBridge
-    tableId="game-room-table"
+    tableId="bingo-room-table"
     :title="props.title"
     :columns="props.rooms.columns"
     :rows="rooms"
@@ -235,6 +235,7 @@
   <Modal
     v-model="showModalForm"
     :title="modalTitle"
+    size="lg"
     static
     show-confirm
     :on-submit="handleSubmit"

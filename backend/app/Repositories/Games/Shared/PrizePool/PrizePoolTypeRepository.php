@@ -4,7 +4,7 @@ namespace App\Repositories\Shared\PrizePool;
 
 use App\Models\Games\Shared\PrizePool\PrizePoolType;
 use App\Repositories\BaseRepository;
-use App\Repositories\Shared\PrizePool\Contracts\PrizePoolTypeRepositoryContract;
+use App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 
@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
  * Implementa las operaciones específicas para el modelo PrizePoolType,
  * incluyendo gestión de estados, búsquedas y estadísticas de uso.
  */
-class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRepositoryContract
+class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRepositoryInterface
 {
     /**
      * Constructor del repositorio.

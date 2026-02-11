@@ -4,7 +4,7 @@ namespace App\Repositories\Shared\GameMode;
 
 use App\Models\Games\Shared\GameMode\GameModeAssignment;
 use App\Repositories\BaseRepository;
-use App\Repositories\Shared\GameMode\Contracts\GameModeAssignmentRepositoryContract;
+use App\Contracts\Games\Common\GameMode\GameModeAssignmentRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 class GameModeAssignmentRepository extends BaseRepository implements GameModeAssignmentRepositoryContract

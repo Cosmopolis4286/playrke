@@ -17,7 +17,10 @@ final class BingoRoomService
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
         private readonly \App\Contracts\GameRepositoryInterface $games,
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
-        private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones
+        private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones,
+        private readonly \App\Contracts\Games\Bingo\Pattern\BingoPatternRepositoryInterface $bingoPatterns,
+        private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
+        private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
     ) {}
 
     /**
@@ -98,7 +101,10 @@ final class BingoRoomService
             countries: $this->countries->getActive(['id', 'name']),
             currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
             games: $this->games->getActive(['id', 'name']),
-            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id'])
+            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
+            bingoPatterns: $this->bingoPatterns->getAllByUser($creatorUser, ['id', 'name'], 'ACTIVE'),
+            typesPrizePool: $this->prizePoolTypes->getActive(['id', 'name']),
+            gameModes: $this->gameModes->getActive(['id', 'name'])
         );
     }
 }

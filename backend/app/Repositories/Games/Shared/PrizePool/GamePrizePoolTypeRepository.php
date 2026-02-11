@@ -4,7 +4,7 @@ namespace App\Repositories\Shared\PrizePool;
 
 use App\Models\Games\Shared\PrizePool\GamePrizePoolType;
 use App\Repositories\BaseRepository;
-use App\Repositories\Shared\PrizePool\Contracts\GamePrizePoolTypeRepositoryContract;
+use App\Contracts\Games\Common\PrizePool\GamePrizePoolTypeRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 class GamePrizePoolTypeRepository extends BaseRepository implements GamePrizePoolTypeRepositoryContract

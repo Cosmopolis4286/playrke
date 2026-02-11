@@ -21,7 +21,7 @@ use Inertia\Response;
  *
  * NO contiene lógica de dominio ni mensajes de error.
  */
-final class BingoRoomsController extends Controller
+final class BingoRoomController extends Controller
 {
     /**
      * @param BingoRoomService $service

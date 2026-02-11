@@ -315,14 +315,6 @@
           <!-- Contenido dinámico de configuración de rondas -->
         </div>
       </div>
-
-      <!-- Botón para crear la sala -->
-      <div class="form-group col-12 text-center">
-        <button type="button" @click="createRoom" class="btn btn-primary btn-lg">
-          <i class="fa-solid fa-plus mr-2"></i>
-          Crear Sala de Bingo
-        </button>
-      </div>
     </div>
   </form>
 </template>

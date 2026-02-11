@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Repositories\Shared\GameMode\Contracts;
+namespace App\Contracts\Games\Common\GameMode;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Games\Shared\GameMode\GameMode;
 use Illuminate\Database\Eloquent\Collection;
 
-interface GameModeRepositoryContract extends BaseRepositoryInterface
+interface GameModeRepositoryInterface extends BaseRepositoryInterface
 {
     public function getActiveGameModes(): Collection;
 

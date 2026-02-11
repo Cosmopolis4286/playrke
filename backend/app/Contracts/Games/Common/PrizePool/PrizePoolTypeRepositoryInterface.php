@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Shared\PrizePool\Contracts;
+namespace App\Contracts\Games\Common\PrizePool;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Games\Shared\PrizePool\PrizePoolType;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos específicos para gestionar los tipos de pool de premios,
  * incluyendo operaciones de consulta, creación, actualización y activación.
  */
-interface PrizePoolTypeRepositoryContract extends BaseRepositoryInterface
+interface PrizePoolTypeRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtener todos los tipos activos.

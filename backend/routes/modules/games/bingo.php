@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Games\Bingo\GameBingoController;
-use App\Http\Controllers\Games\Bingo\Room\BingoRoomsController;
+use App\Http\Controllers\Games\Bingo\Room\BingoRoomController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -53,7 +53,7 @@ multi_middleware_routes('bingo', 'bingo.', [
  * INFORMACIÓN Y CONFIGURACIÓN
  * ====================================
  */
-route_group('bingo-rooms', 'bingo-rooms.', [], BingoRoomsController::class, [
+route_group('bingo-rooms', 'bingo-rooms.', [], BingoRoomController::class, [
     'index'         => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     // 'form'               => ['method' => 'get', 'uri' => 'form/{roomId?}', 'action' => 'formData'],
     // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],

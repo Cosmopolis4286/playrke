@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Shared\PrizePool\Contracts;
+namespace App\Contracts\Games\Common\PrizePool;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Games\Shared\PrizePool\GamePrizePoolType;

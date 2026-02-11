@@ -4,7 +4,7 @@ namespace App\Repositories\Bingo\Cards\Patterns;
 
 use App\Models\Games\Bingo\Cards\Patterns\BingoPattern;
 use App\Repositories\BaseRepository;
-use App\Repositories\Bingo\Cards\Patterns\Contracts\BingoPatternRepositoryContract;
+use App\Contracts\Games\Bingo\Pattern\BingoPatternRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Collection;
  * @author Sistema PlayRKE
  * @version 1.0
  */
-class BingoPatternRepository extends BaseRepository implements BingoPatternRepositoryContract
+class BingoPatternRepository extends BaseRepository implements BingoPatternRepositoryInterface
 {
     /**
      * Estados de patrones

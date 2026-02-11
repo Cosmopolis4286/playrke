@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Bingo\Cards\Patterns\Contracts;
+namespace App\Contracts\Games\Bingo\Pattern;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Games\Bingo\Cards\Patterns\BingoPattern;
@@ -12,11 +12,11 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos que debe implementar el repositorio para gestionar
  * los patrones de cartones de bingo utilizados en el juego.
  *
- * @package App\Repositories\Bingo\Cards\Patterns\Contracts
+ * @package App\Contracts\Games\Bingo\Pattern
  * @author Sistema PlayRKE
  * @version 1.0
  */
-interface BingoPatternRepositoryContract extends BaseRepositoryInterface
+interface BingoPatternRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtener patrones por usuario

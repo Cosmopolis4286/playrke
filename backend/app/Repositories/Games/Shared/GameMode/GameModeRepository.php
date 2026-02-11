@@ -4,11 +4,11 @@ namespace App\Repositories\Shared\GameMode;
 
 use App\Models\Games\Shared\GameMode\GameMode;
 use App\Repositories\BaseRepository;
-use App\Repositories\Shared\GameMode\Contracts\GameModeRepositoryContract;
+use App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
 
-class GameModeRepository extends BaseRepository implements GameModeRepositoryContract
+class GameModeRepository extends BaseRepository implements GameModeRepositoryInterface
 {
     public function __construct(GameMode $model)
     {
