@@ -50,19 +50,19 @@ final class BingoRoomService
      */
     private function resolveGameRooms(?int $userId): array
     {
-        $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
+        $labels  = ['Código', 'Tipo', 'Jugadores', 'Premio', 'Publicación', 'Estado'];
+        $rowKeys = ['encrypted_code', 'room_type', 'total_players', 'prize_pool', 'publication_date', 'Status.name'];
 
         $conditions = $userId
-            ? ['user_id' => $userId]
+            ? ['creator_user_id' => $userId]
             : [];
 
         $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
-            relations: ['country:id,name', 'user:id,email'],
+            relations: ['status:id,name', 'creator:id,email'],
             conditions: $conditions,
-            fields: ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
+            fields: ['id', 'encrypted_code', 'status_id', 'room_type', 'creator_user_id', 'publication_date', 'total_players', 'prize_pool']
         );
 
         $collection = $source instanceof LengthAwarePaginator

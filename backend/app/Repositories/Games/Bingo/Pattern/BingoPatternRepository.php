@@ -51,7 +51,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
      */
     public function getByUser(string $userId, array $fields = ['*'], ?string $status = null): Collection
     {
-        $query = $this->model->where('user', $userId);
+        $query = $this->model->where('user_id', $userId);
 
         if ($fields) {
             $query->select($fields);
@@ -116,7 +116,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
     public function existsByNameAndUser(string $name, string $userId): bool
     {
         return $this->model->where('name', $name)
-            ->where('user', $userId)
+            ->where('user_id', $userId)
             ->exists();
     }
 
@@ -176,7 +176,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
      */
     public function countByUser(string $userId): int
     {
-        return $this->model->where('user', $userId)->count();
+        return $this->model->where('user_id', $userId)->count();
     }
 
     /**
@@ -219,7 +219,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
         $activePatterns = $this->countByStatus(self::STATUS_ACTIVE);
         $inactivePatterns = $this->countByStatus(self::STATUS_INACTIVE);
         $uniqueTypes = $this->getUniqueTypePatterns()->count();
-        $uniqueUsers = $this->model->distinct('user')->count();
+        $uniqueUsers = $this->model->distinct('user_id')->count();
         $patternsPerUser = $uniqueUsers > 0 ? $totalPatterns / $uniqueUsers : 0;
 
         $byType = $this->model->selectRaw('type_pattern, COUNT(*) as count')
@@ -248,7 +248,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
         return $this->model->where(function ($query) use ($searchTerm) {
             $query->where('name', 'like', "%{$searchTerm}%")
                 ->orWhere('type_pattern', 'like', "%{$searchTerm}%")
-                ->orWhere('user', 'like', "%{$searchTerm}%")
+                ->orWhere('user_id', 'like', "%{$searchTerm}%")
                 ->orWhere('boxes', 'like', "%{$searchTerm}%");
         })->get();
     }
@@ -274,7 +274,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
     public function getGroupedByUser(): Collection
     {
         return $this->model->selectRaw('user, COUNT(*) as count')
-            ->groupBy('user')
+            ->groupBy('user_id')
             ->orderByDesc('count')
             ->get();
     }
@@ -356,7 +356,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
         $duplicateData = [
             'type_pattern' => $originalPattern->type_pattern,
             'name' => $newName ?: $originalPattern->name . '_copy',
-            'user' => $newUserId,
+            'user_id' => $newUserId,
             'boxes' => $originalPattern->boxes,
             'status' => self::STATUS_ACTIVE
         ];
@@ -427,7 +427,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
      */
     public function getByUserAndType(string $userId, string $typePattern): Collection
     {
-        return $this->model->where('user', $userId)
+        return $this->model->where('user_id', $userId)
             ->where('type_pattern', $typePattern)
             ->get();
     }
@@ -462,8 +462,8 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
      */
     public function cleanOrphanedPatterns(): int
     {
-        return $this->model->whereNull('user')
-            ->orWhere('user', '')
+        return $this->model->whereNull('user_id')
+            ->orWhere('user_id', '')
             ->delete();
     }
 
@@ -498,7 +498,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
      */
     public function getUserPatternHistory(string $userId, int $limit = 20): Collection
     {
-        return $this->model->where('user', $userId)
+        return $this->model->where('user_id', $userId)
             ->orderByDesc('created_at')
             ->limit($limit)
             ->get();
