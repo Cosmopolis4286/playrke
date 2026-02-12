@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use BradieTilley\Snowflake\Snowflake;
 
 /**
  * Modelo Game refactorizado
@@ -18,6 +17,8 @@ use BradieTilley\Snowflake\Snowflake;
  */
 class Game extends Model
 {
+    use \App\Traits\SnowflakeId;
+
     // ========================
     // Configuración de la tabla
     // ========================
@@ -42,20 +43,6 @@ class Game extends Model
         'name' => 'string',
         'status' => 'string',
     ];
-
-    // ========================
-    // Boot method para Snowflake
-    // ========================
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (Game $game) {
-            if (!$game->id) {
-                $game->id = (new Snowflake())->id();
-            }
-        });
-    }
 
     // ========================
     // Accessors

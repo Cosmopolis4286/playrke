@@ -308,19 +308,4 @@ class PrizePoolType extends Model
     {
         return !$this->isInUse();
     }
-
-    /**
-     * Boot del modelo para eventos.
-     */
-    protected static function boot()
-    {
-        parent::boot();
-
-        // Antes de eliminar, verificar que no esté en uso
-        static::deleting(function ($prizePoolType) {
-            if ($prizePoolType->isInUse()) {
-                throw new \Exception('No se puede eliminar un tipo de pool de premios que está en uso.');
-            }
-        });
-    }
 }

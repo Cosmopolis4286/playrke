@@ -3,9 +3,9 @@
 namespace App\Models\Common\Utils;
 
 use App\Models\Game;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use BradieTilley\Snowflake\Snowflake;
 
 /**
  * Modelo GameConfig refactorizado
@@ -21,6 +21,8 @@ use BradieTilley\Snowflake\Snowflake;
  */
 class GameConfig extends Model
 {
+    use SnowflakeId;
+
     // ========================
     // Configuración de la tabla
     // ========================
@@ -49,20 +51,6 @@ class GameConfig extends Model
         'description' => 'string',
         'status' => 'boolean',
     ];
-
-    // ========================
-    // Boot method para Snowflake
-    // ========================
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (GameConfig $config) {
-            if (!$config->id) {
-                $config->id = (new Snowflake())->id();
-            }
-        });
-    }
 
     // ========================
     // Relaciones

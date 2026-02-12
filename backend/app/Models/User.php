@@ -10,11 +10,11 @@ use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
 use App\Models\Wallet;
 use App\Traits\Auditable;
+use App\Traits\SnowflakeId;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
-use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -30,6 +30,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class User extends Authenticatable implements MustVerifyEmail
 {
     use Notifiable, HasRoles;
+    use SnowflakeId;
     use SoftDeletes;
     use Auditable;
     use HasHashedRouteKey;
@@ -120,21 +121,6 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $appends = [
         'full_name',
     ];
-
-    /**
-     * Sobrescribe el boot del modelo para asignar Snowflake ID
-     */
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        // Generar ID con Snowflake antes de crear el registro
-        static::creating(function (User $user) {
-            if (!$user->id) {
-                $user->id = (new Snowflake())->id();
-            }
-        });
-    }
 
     /**
      * Roles del usuario

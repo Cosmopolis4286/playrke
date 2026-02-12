@@ -3,7 +3,6 @@
 namespace App\Models\Commands;
 
 use Illuminate\Database\Eloquent\Model;
-use BradieTilley\Snowflake\Snowflake;
 
 /**
  * Modelo CommandLog refactorizado
@@ -18,6 +17,8 @@ use BradieTilley\Snowflake\Snowflake;
  */
 class CommandLog extends Model
 {
+    use \App\Traits\SnowflakeId;
+
     // ========================
     // Configuración de la tabla
     // ========================
@@ -43,20 +44,6 @@ class CommandLog extends Model
         'executed_at' => 'datetime',
         'status' => 'string',
     ];
-
-    // ========================
-    // Boot method para Snowflake
-    // ========================
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (CommandLog $log) {
-            if (!$log->id) {
-                $log->id = (new Snowflake())->id();
-            }
-        });
-    }
 
     // ========================
     // Accessors

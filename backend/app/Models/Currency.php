@@ -6,11 +6,11 @@ use App\Models\Country;
 use App\Models\ExchangeRate;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Roles\Seller;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use BradieTilley\Snowflake\Snowflake;
 
 /**
  * Modelo Currency refactorizado
@@ -26,6 +26,8 @@ use BradieTilley\Snowflake\Snowflake;
  */
 class Currency extends Model
 {
+    use SnowflakeId;
+
     // ========================
     // Configuración de la tabla
     // ========================
@@ -60,20 +62,6 @@ class Currency extends Model
         'decimal_places' => 'integer',
         'status' => 'boolean',
     ];
-
-    // ========================
-    // Boot method para Snowflake
-    // ========================
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (Currency $currency) {
-            if (!$currency->id) {
-                $currency->id = (new Snowflake())->id();
-            }
-        });
-    }
 
     // ========================
     // Relaciones

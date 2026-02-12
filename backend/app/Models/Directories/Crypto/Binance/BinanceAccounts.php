@@ -5,7 +5,6 @@ namespace App\Models\Directories\Crypto\Binance;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use BradieTilley\Snowflake\Snowflake;
 
 /**
  * Modelo BinanceAccounts refactorizado
@@ -22,6 +21,8 @@ use BradieTilley\Snowflake\Snowflake;
  */
 class BinanceAccounts extends Model
 {
+    use \App\Traits\SnowflakeId;
+
     // ========================
     // Constantes
     // ========================
@@ -64,20 +65,6 @@ class BinanceAccounts extends Model
     protected $appends = [
         'account_type_description',
     ];
-
-    // ========================
-    // Boot method para Snowflake
-    // ========================
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (BinanceAccounts $account) {
-            if (!$account->id) {
-                $account->id = (new Snowflake())->id();
-            }
-        });
-    }
 
     // ========================
     // Relaciones

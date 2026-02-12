@@ -2,8 +2,8 @@
 
 namespace App\Models\Banks;
 
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
-use BradieTilley\Snowflake\Snowflake;
 
 /**
  * Modelo BankBrazil refactorizado
@@ -17,6 +17,8 @@ use BradieTilley\Snowflake\Snowflake;
  */
 class BankBrazil extends Model
 {
+    use SnowflakeId;
+
     // ========================
     // Configuración de la tabla
     // ========================
@@ -40,20 +42,6 @@ class BankBrazil extends Model
     protected $casts = [
         'ispb' => 'string',
     ];
-
-    // ========================
-    // Boot method para Snowflake
-    // ========================
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (BankBrazil $bank) {
-            if (!$bank->id) {
-                $bank->id = (new Snowflake())->id();
-            }
-        });
-    }
 
     // ========================
     // Accessors

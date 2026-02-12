@@ -283,26 +283,4 @@ class ExchangeRate extends Model
             $this->getFormattedValue()
         );
     }
-
-    /**
-     * Boot del modelo para eventos.
-     */
-    protected static function boot()
-    {
-        parent::boot();
-
-        // Validar valor antes de crear
-        static::creating(function ($exchangeRate) {
-            if (!self::isValidValue($exchangeRate->value)) {
-                throw new \InvalidArgumentException('Valor de tipo de cambio inválido al crear.');
-            }
-        });
-
-        // Validar valor antes de actualizar
-        static::updating(function ($exchangeRate) {
-            if ($exchangeRate->isDirty('value') && !self::isValidValue($exchangeRate->value)) {
-                throw new \InvalidArgumentException('Valor de tipo de cambio inválido al actualizar.');
-            }
-        });
-    }
 }

@@ -349,26 +349,4 @@ class Room extends Model
             $this->isActive() ? 'ACTIVA' : 'INACTIVA'
         );
     }
-
-    /**
-     * Boot del modelo para eventos.
-     */
-    protected static function boot()
-    {
-        parent::boot();
-
-        // Validar tipo antes de crear
-        static::creating(function ($room) {
-            if (!self::isValidType($room->type)) {
-                throw new \InvalidArgumentException('Tipo de sala inválido al crear la sala.');
-            }
-        });
-
-        // Validar tipo antes de actualizar
-        static::updating(function ($room) {
-            if ($room->isDirty('type') && !self::isValidType($room->type)) {
-                throw new \InvalidArgumentException('Tipo de sala inválido al actualizar la sala.');
-            }
-        });
-    }
 }

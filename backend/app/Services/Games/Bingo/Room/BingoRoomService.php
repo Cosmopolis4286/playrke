@@ -18,21 +18,21 @@ final class BingoRoomService
      *
      * @param string $context
      * @param int|null $userId
-     * @return mixed
-     * @throws \DomainException Si el contexto no es válido
+     * @return array
+     * @throws \BingoRoomException Si el contexto no es válido
      */
-    public function context(string $context, ?int $userId): mixed
+    public function context(string $context, ?int $userId): array
     {
-        return $this->contextService->context($context, $userId);
+        return $this->contextService->context($context, $userId)->toView();
     }
 
     /**
      * Crear una nueva sala de bingo con su configuración y creador.
      *
      * @param BingoRoomCreateDTO $dto
-     * @return array
+     * @return bool
      */
-    public function create(BingoRoomCreateDTO $dto): array
+    public function create(BingoRoomCreateDTO $dto): bool
     {
         return $this->crudService->create($dto);
     }
@@ -42,9 +42,9 @@ final class BingoRoomService
      *
      * @param BingoRoom $room Model
      * @param BingoRoomUpdateDTO $dto
-     * @return array
+     * @return bool
      */
-    public function update(BingoRoom $room, BingoRoomUpdateDTO $dto): array
+    public function update(BingoRoom $room, BingoRoomUpdateDTO $dto): bool
     {
         return $this->crudService->update($room, $dto);
     }
@@ -53,23 +53,25 @@ final class BingoRoomService
      * Eliminar una sala de bingo (soft delete).
      *
      * @param BingoRoom $room Model
+     * @return bool
      *
      * @throws BingoRoomException Si falla la eliminación
      */
-    public function delete(BingoRoom $room): void
+    public function delete(BingoRoom $room): bool
     {
-        $this->crudService->delete($room);
+        return $this->crudService->delete($room);
     }
 
     /**
      * Alternar estado (ACTIVE / INACTIVE) de una sala de bingo.
      *
      * @param BingoRoom $room Model
+     * @return bool
      *
      * @throws BingoRoomException Si falla el cambio de estado
      */
-    public function toggleStatus(BingoRoom $room): void
+    public function toggleStatus(BingoRoom $room): bool
     {
-        $this->crudService->toggleStatus($room);
+        return $this->crudService->toggleStatus($room);
     }
 }

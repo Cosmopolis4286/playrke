@@ -29,7 +29,9 @@ use Illuminate\Support\Str;
  */
 final class BingoRoomCrudService
 {
-    public function __construct() {}
+    public function __construct(
+        private readonly \App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface $bingoRooms,
+    ) {}
 
     /**
      * Crear una nueva sala de bingo con su configuración y creador.
@@ -134,7 +136,7 @@ final class BingoRoomCrudService
     {
         DB::transaction(function () use ($room, $dto) {
 
-            $this->bingoRoomRepository->update(
+            $this->bingoRooms->update(
                 $room->id,
                 array_filter([
                     'name'       => $dto->name,
@@ -164,7 +166,7 @@ final class BingoRoomCrudService
         // Usa changeStatus con userRelation para sincronizar BingoRoom y User
         $newStatus = $room->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
-        return $this->bingoRoomRepository->changeStatus($room, $newStatus, 'user');
+        return $this->bingoRooms->changeStatus($room, $newStatus, 'user');
     }
 
     /**
@@ -183,7 +185,7 @@ final class BingoRoomCrudService
         }
 
         // Usa softDelete con userRelation para sincronizar BingoRoom
-        return $this->bingoRoomRepository->softDelete(
+        return $this->bingoRooms->softDelete(
             model: $room,
             status: 'DELETED',
             relationsToDetach: [],

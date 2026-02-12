@@ -4,9 +4,9 @@ namespace App\Models;
 
 use App\Models\Roles\Seller;
 use App\Models\Users\Player\External\ExternalPlayer;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use BradieTilley\Snowflake\Snowflake;
 
 /**
  * Modelo Country refactorizado
@@ -22,6 +22,8 @@ use BradieTilley\Snowflake\Snowflake;
  */
 class Country extends Model
 {
+    use SnowflakeId;
+
     // ========================
     // Configuración de la tabla
     // ========================
@@ -49,20 +51,6 @@ class Country extends Model
         'iso_code_3' => 'string',
         'status' => 'string',
     ];
-
-    // ========================
-    // Boot method para Snowflake
-    // ========================
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (Country $country) {
-            if (!$country->id) {
-                $country->id = (new Snowflake())->id();
-            }
-        });
-    }
 
     // ========================
     // Relaciones

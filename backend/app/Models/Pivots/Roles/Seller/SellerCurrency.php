@@ -5,6 +5,7 @@ namespace App\Models\Pivots\Roles\Seller;
 use App\Models\Currency;
 use App\Models\Pivots\BasePivot;
 use App\Models\Roles\Seller;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class SellerCurrency extends BasePivot
 {
+    use SnowflakeId;
+
     /**
      * Nombre de la tabla asociada al modelo.
      *
@@ -368,27 +371,5 @@ class SellerCurrency extends BasePivot
             $this->level,
             $this->isActive() ? 'ACTIVA' : 'INACTIVA'
         );
-    }
-
-    /**
-     * Boot del modelo para eventos.
-     */
-    protected static function boot()
-    {
-        parent::boot();
-
-        // Validar nivel antes de crear
-        static::creating(function ($relation) {
-            if (!self::isValidLevel($relation->level)) {
-                throw new \InvalidArgumentException('El nivel debe estar entre 1 y 10');
-            }
-        });
-
-        // Validar nivel antes de actualizar
-        static::updating(function ($relation) {
-            if ($relation->isDirty('level') && !self::isValidLevel($relation->level)) {
-                throw new \InvalidArgumentException('El nivel debe estar entre 1 y 10');
-            }
-        });
     }
 }

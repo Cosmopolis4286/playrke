@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Models\Currency;
 use App\Models\User;
-use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -32,6 +31,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Wallet extends Model
 {
+    use \App\Traits\SnowflakeId;
+
     /**
      * Nombre de la tabla en la base de datos
      */
@@ -79,21 +80,6 @@ class Wallet extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
-
-    /**
-     * Sobrescribe el boot del modelo para asignar Snowflake ID
-     */
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        // Generar ID con Snowflake antes de crear el registro
-        static::creating(function (Wallet $wallet) {
-            if (!$wallet->id) {
-                $wallet->id = (new Snowflake())->id();
-            }
-        });
-    }
 
     /**
      * Relación con el usuario propietario

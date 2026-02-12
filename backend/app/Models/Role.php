@@ -367,19 +367,4 @@ class Role extends Model
     {
         return !$this->isInUse();
     }
-
-    /**
-     * Boot del modelo para eventos.
-     */
-    protected static function boot()
-    {
-        parent::boot();
-
-        // Antes de eliminar, verificar que no esté en uso
-        static::deleting(function ($role) {
-            if ($role->isInUse()) {
-                throw new \Exception('No se puede eliminar un rol que está siendo utilizado por usuarios.');
-            }
-        });
-    }
 }
