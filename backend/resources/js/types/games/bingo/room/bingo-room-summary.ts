@@ -17,7 +17,7 @@ export interface BingoRoomSummaryPageProps {
     currencies: Currency[],
     games: Game[],
     creator?: { type: string; id: string | number },
-    gameModes?: { value: string | number; label: string }[],
-    prizePoolTypes?: { value: string | number; label: string }[],
+    gameModes?: { id: string | number; description: string }[],
+    prizePoolTypes?: { id: string | number; description: string }[],
     bingoPatterns?: { id: string | number; name: string }[]
 }

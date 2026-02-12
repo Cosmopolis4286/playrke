@@ -66,12 +66,17 @@
     prizePoolType: null,
     allowedCurrencies: [],
     amountAddedPrizePool: null,
-    roomCommn: null,
+    roomCommn: 20,
     jackpotPct: null,
-    timeChip: null,
+    timeChip: 5,
     rounds: 1,
     roundsConfigActive: false,
-    loadingRoundsConfig: false
+    loadingRoundsConfig: false,
+    roundsPct: null,
+    serialsPct: 5,
+    numSerials: 5,
+    ctnPrice: 1,
+    roundsConfig: []
   })
 
   const roomFormData = ref<BingoRoomFormData>(emptyFormData())
@@ -246,9 +251,10 @@
       v-model="roomFormData"
       :creator="props.creator ?? { type: 'admin', id: '' }"
       :room-type-options="roomTypeOptions"
-      :game-mode-options="props.gameModes ?? []"
-      :prize-pool-type-options="props.prizePoolTypes ?? []"
+      :game-mode-options="(props.gameModes ?? []).map(g => ({ value: g.id, label: g.description }))"
+      :prize-pool-type-options="(props.prizePoolTypes ?? []).map(p => ({ value: p.id, label: p.description }))"
       :allowed-currencies-options="props.currencies.map(c => ({ value: c.id, label: c.name }))"
+      :bingo-pattern-options="(props.bingoPatterns ?? []).map(p => ({ value: p.id, label: p.name }))"
     />
   </Modal>
 </template>

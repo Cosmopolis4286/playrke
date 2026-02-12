@@ -116,8 +116,8 @@ final class BingoRoomService
             games: $this->games->getActive(['id', 'name']),
             timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
             bingoPatterns: $this->bingoPatterns->getByUser($userId, ['id', 'name'], 'ACTIVE'),
-            typesPrizePool: $this->prizePoolTypes->getActiveTypes(['id', 'name']),
-            gameModes: $this->gameModes->getActiveGameModes(['id', 'name'])
+            prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
+            gameModes: $this->gameModes->getActiveGameModes()
         );
     }
 }

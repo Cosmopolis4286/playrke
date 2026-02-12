@@ -63,6 +63,18 @@ export function useBingoRoomForm(
             e.rounds = 'El número de rondas es requerido.'
         }
 
+        if (!form.value.serialsPct) {
+            e.serialsPct = 'El % de seriales es requerido.'
+        }
+
+        if (!form.value.numSerials) {
+            e.numSerials = 'El número de seriales es requerido.'
+        }
+
+        if (!form.value.ctnPrice) {
+            e.ctnPrice = 'El precio del cartón es requerido.'
+        }
+
         return e
     })
 
