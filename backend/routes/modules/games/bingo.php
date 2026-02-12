@@ -60,6 +60,7 @@ route_group('bingo-rooms', 'bingo-rooms.', [], BingoRoomController::class, [
     'show' => ['method' => 'get', 'uri' => '{id}/show', 'action' => 'show'],
     'update' => ['method' => 'put',  'uri' => '{id}/update', 'action' => 'update'],
     'delete' => ['method' => 'delete', 'uri' => '{id}/delete', 'action' => 'delete'],
+    'toggle-status' => ['method' => 'put', 'uri' => '{id}/status', 'action' => 'toggleStatus'],
     // 'form'               => ['method' => 'get', 'uri' => 'form/{roomId?}', 'action' => 'formData'],
     // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
     // 'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],

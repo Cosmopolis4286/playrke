@@ -4,6 +4,7 @@ namespace App\Services\Games\Bingo\Room;
 
 use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
 use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
+use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Models\Games\Bingo\Room\BingoRoom;
 
 final class BingoRoomService
@@ -11,6 +12,7 @@ final class BingoRoomService
     public function __construct(
         private readonly BingoRoomContextService $contextService,
         private readonly BingoRoomCrudService $crudService,
+        private readonly \App\Services\Security\UserContextService $userContext,
     ) {}
 
     /**
@@ -24,6 +26,23 @@ final class BingoRoomService
     public function context(string $context, ?int $userId): array
     {
         return $this->contextService->context($context, $userId)->toView();
+    }
+
+    /**
+     * Obtener listado de salas filtrado por contexto del usuario.
+     */
+    public function fetchList(): array
+    {
+        $userId = $this->userContext->resolveUserId();
+        return $this->contextService->context('fetch', $userId);
+    }
+
+    /**
+     * Mostrar detalle de una sala de bingo.
+     */
+    public function show(BingoRoom $room): BingoRoomResource
+    {
+        return $this->crudService->show($room);
     }
 
     /**
@@ -73,5 +92,13 @@ final class BingoRoomService
     public function toggleStatus(BingoRoom $room): bool
     {
         return $this->crudService->toggleStatus($room);
+    }
+
+    /**
+     * Eliminar una sala de bingo permanentemente (hard delete).
+     */
+    public function destroy(BingoRoom $room): bool
+    {
+        return $room->forceDelete();
     }
 }

@@ -38,6 +38,14 @@ class BingoRoom extends BaseModel
     public $incrementing = false;
     protected $keyType = 'string';
 
+    /**
+     * Columna usada para Route Model Binding.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'encrypted_code';
+    }
+
     // ========================
     // Campos asignables
     // ========================
@@ -76,7 +84,7 @@ class BingoRoom extends BaseModel
         'serial_prize' => 'decimal:2',
         'total_players' => 'integer',
         'total_cards' => 'integer',
-        'prizes_paid' => 'boolean',
+        'prizes_paid' => 'string',
     ];
 
     // ========================
@@ -242,7 +250,7 @@ class BingoRoom extends BaseModel
      */
     public function scopeWithPendingPrizes($query)
     {
-        return $query->where('prizes_paid', false)
+        return $query->where('prizes_paid', 'N')
             ->where('prize_pool', '>', 0);
     }
 }

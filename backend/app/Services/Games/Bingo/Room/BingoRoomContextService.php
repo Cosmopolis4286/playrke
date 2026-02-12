@@ -60,7 +60,7 @@ final class BingoRoomContextService
         $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
-            relations: ['status:id,name'],
+            relations: ['status:id,value,description'],
             conditions: $conditions,
             fields: ['id', 'encrypted_code', 'status_id', 'room_type', 'creator_user_id', 'publication_date', 'total_players', 'prize_pool']
         );

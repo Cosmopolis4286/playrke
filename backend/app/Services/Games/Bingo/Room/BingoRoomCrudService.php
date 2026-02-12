@@ -10,6 +10,7 @@ use App\Models\Games\Bingo\Creator\BingoCreator;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Models\Games\Common\Utils\GameConfig;
+use App\Models\Games\Common\Utils\GameStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -57,12 +58,14 @@ final class BingoRoomCrudService
 
             $uuidCode = strtoupper(Str::uuid()->toString());
 
+            $statusId = GameStatus::byValue('AVAILABLE')->value('id');
+
             $room = BingoRoom::create([
                 'encrypted_code'  => $encryptedCode,
-                'status_id'       => 2,
+                'status_id'       => $statusId,
                 'room_type'       => $dto->roomType,
                 'creator_user_id' => $userId,
-                'prizes_paid'     => false,
+                'prizes_paid'     => 'N',
                 'prize_pool'      => $prizePool,
                 'uuid_code'       => $uuidCode,
             ]);
@@ -75,7 +78,7 @@ final class BingoRoomCrudService
                 'creation'                => 'M',
                 'creator_user_id'         => $userId,
                 'game_mode_id'            => $dto->gameMode,
-                'in_live'                 => false,
+                'in_live'                 => 'N',
                 'date'                    => $roomDate,
                 'time'                    => $dto->time,
                 'unix_date'               => $unixDate,

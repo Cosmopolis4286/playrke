@@ -38,7 +38,7 @@ class BingoCreator extends Model
     /**
      * Nombre de la tabla en la base de datos
      */
-    protected $table = 'bingo_creator';
+    protected $table = 'bingo_creators';
 
     /**
      * Estados disponibles para el creador

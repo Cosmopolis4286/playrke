@@ -168,7 +168,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      */
     public function getLiveRooms(): Collection
     {
-        return $this->model->where('in_live', true)->get();
+        return $this->model->where('in_live', 'Y')->get();
     }
 
     /**
@@ -291,7 +291,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
         $totalRooms = $this->model->count();
         $activeRooms = $this->countByStatus(self::STATUS_ACTIVE);
         $inactiveRooms = $this->countByStatus(self::STATUS_INACTIVE);
-        $liveRooms = $this->model->where('in_live', true)->count();
+        $liveRooms = $this->model->where('in_live', 'Y')->count();
         $scheduledToday = $this->getTodayScheduledRooms()->count();
 
         $byGameMode = $this->model->selectRaw('game_mode, COUNT(*) as count')

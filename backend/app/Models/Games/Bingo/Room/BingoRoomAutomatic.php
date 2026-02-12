@@ -134,7 +134,7 @@ class BingoRoomAutomatic extends Model
         'allowed_currencies' => 'array',
         'bingo_patterns' => 'array',
         'days' => 'array',
-        'in_live' => 'boolean',
+        'in_live' => 'string',
         'date' => 'date',
         'time' => 'datetime:H:i:s',
         'card_price' => 'decimal:8',
@@ -245,7 +245,7 @@ class BingoRoomAutomatic extends Model
      */
     public function scopeLive($query)
     {
-        return $query->where('in_live', true);
+        return $query->where('in_live', 'Y');
     }
 
     /**
