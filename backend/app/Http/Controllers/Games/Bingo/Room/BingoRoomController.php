@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Games\Bingo\Room;
 
-use App\DTOs\Games\Bingo\Room\BingoRoomSummaryDTO;
+use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Room\BingoRoomRequest;
 use App\Models\Games\Bingo\Room\BingoRoom;
@@ -59,11 +59,9 @@ final class BingoRoomController extends Controller
     public function store(BingoRoomRequest $request): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => [
-                'password' => $this->service->create(
-                    $request->toDTO(BingoRoomSummaryDTO::class)
-                ),
-            ]
+            fn() => $this->service->create(
+                $request->toDTO(BingoRoomCreateDTO::class)
+            )
         );
     }
 

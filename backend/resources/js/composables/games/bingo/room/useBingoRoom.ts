@@ -1,9 +1,8 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
-import { showPasswordModal } from '@/js/helpers/user/password'
 
-import type { BingoRoom } from '@/js/types/games/bingo/bingo-room'
+import type { BingoRoom, BingoRoomFormData } from '@/js/types/games/bingo/bingo-room'
 
 /**
  * Contrato público del composable useBingoRoom
@@ -11,6 +10,9 @@ import type { BingoRoom } from '@/js/types/games/bingo/bingo-room'
 interface UseBingoRoomReturn {
     /** Datos de la sala (para crear o editar) */
     roomData: Ref<Partial<BingoRoom>>
+
+    /** Datos del formulario de creación */
+    roomFormData: Ref<BingoRoomFormData>
 
     /** Lista reactiva de salas */
     rooms: Ref<BingoRoom[]>
@@ -36,9 +38,6 @@ interface UseBingoRoomReturn {
     /** Cambio de estado masivo */
     toggleStatusBulk: (ids: (string | number)[]) => Promise<boolean>
 
-    /** Reset de contraseña */
-    resetPassword: (id: string | number) => Promise<boolean>
-
     /** Eliminación (individual) */
     remove: (id: string | number) => Promise<boolean>
 
@@ -53,35 +52,49 @@ interface UseBingoRoomReturn {
  * Factory para una sala vacía
  */
 const emptyBingoRoom = (): Partial<BingoRoom> =>
-    Object.freeze({
-        name: '',
-        username: '',
-        email: '',
-        commission: '',
-        country_id: null,
-        time_zone_id: null,
-        phone: '',
-        currency_id: null,
-        other_currencies: [],
-        allowed_games: []
-    })
+    Object.freeze({})
 
 /**
- * Composable para manejar comercializadoras
+ * Factory para formulario vacío
+ */
+const emptyFormData = (): BingoRoomFormData => ({
+    date: null,
+    time: null,
+    roomType: 'PV',
+    gameMode: null,
+    prizePoolType: null,
+    allowedCurrencies: [],
+    amountAddedPrizePool: null,
+    roomCommn: 20,
+    jackpotPct: null,
+    timeChip: 5,
+    rounds: 1,
+    roundsConfigActive: false,
+    loadingRoundsConfig: false,
+    roundsPct: null,
+    serialsPct: 5,
+    numSerials: 5,
+    ctnPrice: 1,
+    roundsConfig: []
+})
+
+/**
+ * Composable para manejar salas de bingo
  *
  * Responsabilidades:
  * - Control del estado del formulario (create / edit / reset)
  * - Envío de datos (POST / PUT)
  * - Gestión local de la lista
- *
- * ⚠️ No controla UI directamente
  */
 export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
     /** Estado de carga global */
     const loading = ref(false)
 
-    /** Estado único del formulario */
+    /** Estado único del formulario (para tabla CRUD) */
     const roomData = ref<Partial<BingoRoom>>(emptyBingoRoom())
+
+    /** Datos del formulario de creación/edición */
+    const roomFormData = ref<BingoRoomFormData>(emptyFormData())
 
     /** Lista reactiva local */
     const rooms = ref<BingoRoom[]>([])
@@ -112,24 +125,10 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             return true
         } catch (error) {
             console.error(error)
-            showToast('Error al cargar las comercializadoras', 'error')
+            showToast('Error al cargar las salas de bingo', 'error')
             return false
         } finally {
             loading.value = false
-        }
-    }
-
-    /**
-     * Transforma el payload del frontend al formato esperado por el backend
-     */
-    function buildPayload(): Record<string, unknown> {
-        const { country_id, currency_id, time_zone_id, ...rest } = roomData.value
-
-        return {
-            ...rest,
-            country: country_id,
-            currency: currency_id,
-            time_zone: time_zone_id
         }
     }
 
@@ -142,21 +141,17 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         try {
             loading.value = true
 
-            const payload = buildPayload()
+            const payload = { ...roomFormData.value }
 
             if (roomData.value.id) {
                 await backendClient.put(
                     `/bingo-rooms/${roomData.value.id}/update`,
                     payload
                 )
-                showToast('Actualización exitosa', 'success')
+                showToast('Sala actualizada exitosamente', 'success')
             } else {
-                const { data } = await backendClient.post(
-                    '/bingo-rooms',
-                    payload
-                )
-                showToast('Registro exitoso', 'success')
-                await showPasswordModal(data.password)
+                await backendClient.post('/bingo-rooms', payload)
+                showToast('Sala creada exitosamente', 'success')
             }
 
             await fetchRooms()
@@ -165,7 +160,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         } catch (error: any) {
             console.error(error)
             showToast(
-                error?.response?.data?.message ?? 'Error al guardar la comercializadora',
+                error?.response?.data?.message ?? 'Error al guardar la sala de bingo',
                 'error'
             )
             return false
@@ -179,6 +174,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
      */
     function create(): void {
         roomData.value = { ...emptyBingoRoom() }
+        roomFormData.value = emptyFormData()
     }
 
     /**
@@ -194,29 +190,13 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 `/bingo-rooms/${id}/show`
             )
 
-            const commerce = data.data
-
-            roomData.value = {
-                id: commerce.id,
-                name: commerce.name,
-                phone: commerce.phone,
-                commission: commerce.commission ?? '',
-                // Datos del usuario anidado
-                username: commerce.user?.username,
-                email: commerce.user?.email,
-                time_zone_id: commerce.user?.time_zone_id,
-                // Country viene como objeto {id, name}
-                country_id: commerce.country?.id,
-                // Currency viene como string (id)
-                currency_id: commerce.currency,
-                other_currencies: commerce.other_currencies ?? [],
-                allowed_games: commerce.allowed_games ?? []
-            }
+            const room = data.data
+            roomData.value = { id: room.id }
 
             return true
         } catch (error) {
             console.error(error)
-            showToast('Error al cargar la comercializadora', 'error')
+            showToast('Error al cargar la sala de bingo', 'error')
             return false
         } finally {
             loading.value = false
@@ -228,14 +208,15 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
      */
     function reset(): void {
         roomData.value = { ...emptyBingoRoom() }
+        roomFormData.value = emptyFormData()
     }
 
     /**
-     * Alternar estado (ACTIVE / INACTIVE) del comercio.
+     * Alternar estado (ACTIVE / INACTIVE) de la sala.
      */
     async function toggleStatus(id: string | number): Promise<boolean> {
-        const commerce = rooms.value.find(c => c.id === id)
-        const name = commerce?.name ?? 'esta comercializadora'
+        const room = rooms.value.find(c => c.id === id)
+        const name = room?.encrypted_code ?? 'esta sala'
 
         const confirm = await showToastConfirmAction({
             html: `¿Quieres cambiar el estado de <b>${name}</b>?`,
@@ -257,47 +238,11 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
     }
 
     /**
-     * Resetea la contraseña de una comercializadora
-     */
-    async function resetPassword(id: string | number): Promise<boolean> {
-        const commerce = rooms.value.find(c => c.id === id)
-        const name = commerce?.name ?? 'esta comercializadora'
-
-        if (commerce?.status !== 'ACTIVE') {
-            showToast('Solo se puede resetear la contraseña de comercializadoras activas', 'warning')
-            return false
-        }
-
-        const confirm = await showToastConfirmAction({
-            html: `¿Deseas resetear la contraseña de <b>${name}</b>?`,
-            icon: 'warning',
-            confirmButtonText: 'Sí, resetear'
-        })
-
-        if (!confirm) return false
-
-        try {
-            const { data } = await backendClient.put(
-                `/bingo-rooms/${id}/reset-password`
-            )
-
-            showToast(data.message ?? 'Contraseña reseteada', 'success')
-            await showPasswordModal(data.password)
-
-            return true
-        } catch (error) {
-            console.error(error)
-            showToast('Error al resetear la contraseña', 'error')
-            return false
-        }
-    }
-
-    /**
      * Eliminación (soft delete)
      */
     async function remove(id: string | number): Promise<boolean> {
-        const commerce = rooms.value.find(c => c.id === id)
-        const name = commerce?.name ?? 'esta comercializadora'
+        const room = rooms.value.find(c => c.id === id)
+        const name = room?.encrypted_code ?? 'esta sala'
 
         const confirm = await showToastConfirmAction({
             html: `¿Estás seguro que deseas eliminar <b>${name}</b>?`,
@@ -309,28 +254,28 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
 
         try {
             await backendClient.put(`/bingo-rooms/${id}/delete`)
-            showToast('Comercializadora eliminada con éxito', 'success')
+            showToast('Sala eliminada con éxito', 'success')
             await fetchRooms()
             return true
         } catch {
-            showToast('Error al eliminar la comercializadora', 'error')
+            showToast('Error al eliminar la sala', 'error')
             return false
         }
     }
 
     /**
-     * Genera HTML con lista de nombres para mostrar en el modal de confirmación
+     * Genera HTML con lista de códigos para mostrar en el modal de confirmación
      */
     function buildItemListHtml(ids: (string | number)[]): string {
         const items = ids
             .map(id => rooms.value.find(c => c.id === id))
             .filter(Boolean)
-            .map(c => c!.name)
+            .map(c => c!.encrypted_code)
 
         return `
             <div style="max-height: 150px; overflow-y: auto; text-align: left; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
                 <ul style="margin: 0; padding-left: 20px;">
-                    ${items.map(name => `<li style="padding: 4px 0;">${name}</li>`).join('')}
+                    ${items.map(code => `<li style="padding: 4px 0;">${code}</li>`).join('')}
                 </ul>
             </div>
         `
@@ -342,7 +287,6 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
     async function toggleStatusBulk(ids: (string | number)[]): Promise<boolean> {
         if (ids.length === 0) return false
 
-        // Si es solo uno, usar el flujo individual
         if (ids.length === 1) {
             return toggleStatus(ids[0])
         }
@@ -350,7 +294,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         const itemListHtml = buildItemListHtml(ids)
 
         const confirm = await showToastConfirmAction({
-            html: `¿Quieres cambiar el estado de estas ${ids.length} comercializadoras?${itemListHtml}`,
+            html: `¿Quieres cambiar el estado de estas ${ids.length} salas?${itemListHtml}`,
             icon: 'warning',
             confirmButtonText: 'Sí, cambiar estado'
         })
@@ -361,7 +305,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             for (const id of ids) {
                 await backendClient.put(`/bingo-rooms/${id}/status`)
             }
-            showToast(`Estado cambiado con éxito para ${ids.length} comercializadoras`, 'success')
+            showToast(`Estado cambiado con éxito para ${ids.length} salas`, 'success')
             await fetchRooms()
             return true
         } catch {
@@ -376,7 +320,6 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
     async function removeBulk(ids: (string | number)[]): Promise<boolean> {
         if (ids.length === 0) return false
 
-        // Si es solo uno, usar el flujo individual
         if (ids.length === 1) {
             return remove(ids[0])
         }
@@ -384,7 +327,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         const itemListHtml = buildItemListHtml(ids)
 
         const confirm = await showToastConfirmAction({
-            html: `¿Estás seguro que deseas eliminar estas ${ids.length} comercializadoras?${itemListHtml}`,
+            html: `¿Estás seguro que deseas eliminar estas ${ids.length} salas?${itemListHtml}`,
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar'
         })
@@ -395,17 +338,18 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             for (const id of ids) {
                 await backendClient.put(`/bingo-rooms/${id}/delete`)
             }
-            showToast(`${ids.length} comercializadoras eliminadas con éxito`, 'success')
+            showToast(`${ids.length} salas eliminadas con éxito`, 'success')
             await fetchRooms()
             return true
         } catch {
-            showToast('Error al eliminar las comercializadoras', 'error')
+            showToast('Error al eliminar las salas', 'error')
             return false
         }
     }
 
     return {
         roomData,
+        roomFormData,
         rooms,
         setInitialRooms,
         submit,
@@ -414,7 +358,6 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         reset,
         toggleStatus,
         toggleStatusBulk,
-        resetPassword,
         remove,
         removeBulk,
         fetchRooms

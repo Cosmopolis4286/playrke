@@ -3,7 +3,7 @@
    * Página Juego BINGO → GameRoom/Summary
    */
 
-  import { computed, ref, watch } from 'vue'
+  import { computed, watch } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -26,7 +26,6 @@
   // ==========================================================================
 
   import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/bingo-room-summary'
-  import type { BingoRoomFormData } from '@/js/types/games/bingo/bingo-room'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
 
@@ -42,12 +41,12 @@
 
   const {
     roomData,
+    roomFormData,
     rooms,
     setInitialRooms,
     create,
     edit,
     toggleStatusBulk,
-    resetPassword,
     removeBulk,
     submit
   } = useBingoRoom()
@@ -55,31 +54,8 @@
   setInitialRooms(props.rooms.rows)
 
   // ==========================================================================
-  // Form data para creación de sala
+  // Opciones de formulario
   // ==========================================================================
-
-  const emptyFormData = (): BingoRoomFormData => ({
-    date: null,
-    time: null,
-    roomType: 'PV',
-    gameMode: null,
-    prizePoolType: null,
-    allowedCurrencies: [],
-    amountAddedPrizePool: null,
-    roomCommn: 20,
-    jackpotPct: null,
-    timeChip: 5,
-    rounds: 1,
-    roundsConfigActive: false,
-    loadingRoundsConfig: false,
-    roundsPct: null,
-    serialsPct: 5,
-    numSerials: 5,
-    ctnPrice: 1,
-    roundsConfig: []
-  })
-
-  const roomFormData = ref<BingoRoomFormData>(emptyFormData())
 
   const roomTypeOptions = [
     { value: 'PV', label: 'Público' },
@@ -102,7 +78,6 @@
   watch(showModalForm, isOpen => {
     if (!isOpen) {
       bingoGameRoomFormRef.value?.reset?.()
-      roomFormData.value = emptyFormData()
       create()
     }
   })
@@ -134,10 +109,6 @@
     toggleStatus: async ids => {
       if (!ids) return
       await toggleStatusBulk(ids)
-    },
-    resetPassword: async ids => {
-      if (!ids || ids.length !== 1) return
-      await resetPassword(ids[0])
     }
   })
 
@@ -173,7 +144,6 @@
 
   /**
    * Opciones para modos de juego.
-   * Convierte gameModes en formato { value, label } para selects.
    */
   const gameModeOptions = computed(() => {
     return (props.gameModes ?? []).map(g => ({
@@ -184,7 +154,6 @@
 
   /**
    * Opciones para tipos de prize pool.
-   * Convierte prizePoolTypes en formato { value, label }.
    */
   const prizePoolTypeOptions = computed(() => {
     return (props.prizePoolTypes ?? []).map(p => ({
@@ -195,7 +164,6 @@
 
   /**
    * Opciones de monedas permitidas.
-   * Convierte currencies en formato { value, label }.
    */
   const allowedCurrenciesOptions = computed(() => {
     return (props.currencies ?? []).map(c => ({
@@ -206,7 +174,6 @@
 
   /**
    * Opciones de patrones de bingo.
-   * Convierte bingoPatterns en formato { value, label }.
    */
   const bingoPatternOptions = computed(() => {
     return (props.bingoPatterns ?? []).map(p => ({
@@ -217,7 +184,6 @@
 
   /**
    * Creator por defecto.
-   * Si no viene definido en props.creator, se asigna un admin vacío.
    */
   const creatorData = computed(() => {
     return props.creator ?? { type: 'admin', id: '' }
@@ -227,34 +193,6 @@
   // Botones extra
   // ==========================================================================
 
-  /**
-   * Verifica si el botón resetPassword debe mostrarse.
-   * Solo visible cuando hay exactamente 1 elemento seleccionado.
-   */
-  function isResetPasswordVisible(selectedIds: string[]): boolean {
-    return selectedIds.length === 1
-  }
-
-  /**
-   * Verifica si el botón resetPassword debe estar deshabilitado.
-   * Deshabilitado cuando el elemento seleccionado no está en status ACTIVE.
-   */
-  function isResetPasswordDisabled(selectedIds: string[]): boolean {
-    const commerce = rooms.value.find(c => c.id === selectedIds[0])
-    return commerce?.status !== 'ACTIVE'
-  }
-
-  /**
-   * Retorna la razón por la cual resetPassword está deshabilitado.
-   */
-  function getResetPasswordDisabledReason(selectedIds: string[]): string {
-    const commerce = rooms.value.find(c => c.id === selectedIds[0])
-    if (commerce?.status !== 'ACTIVE') {
-      return 'Solo se puede resetear la contraseña de comercializadoras activas'
-    }
-    return ''
-  }
-
   const extraButtons: ExtraButton[] = [
     {
       label: '',
@@ -262,15 +200,6 @@
       class: 'btn-secondary',
       show: false,
       action: 'toggleStatus'
-    },
-    {
-      label: '',
-      icon: 'fas fa-key',
-      class: 'btn-dark',
-      show: isResetPasswordVisible,
-      action: 'resetPassword',
-      disabled: isResetPasswordDisabled,
-      disabledReason: getResetPasswordDisabledReason
     }
   ]
 </script>
@@ -282,7 +211,7 @@
     :columns="props.rooms.columns"
     :rows="rooms"
     :filters="filters"
-    search-placeholder="Buscar por nombre, email, teléfono..."
+    search-placeholder="Buscar por código, tipo..."
     showCreateButton
     showEditButton
     showDeleteButton
