@@ -9,7 +9,7 @@ use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Models\Games\Bingo\Creator\BingoCreator;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
-use App\Models\Common\Utils\GameConfig;
+use App\Models\Games\Common\Utils\GameConfig;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

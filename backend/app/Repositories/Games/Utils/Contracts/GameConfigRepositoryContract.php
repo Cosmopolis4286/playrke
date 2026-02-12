@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Utils\Contracts;
 
-use App\Models\Common\Utils\GameConfig;
+use App\Models\Games\Common\Utils\GameConfig;
 use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 

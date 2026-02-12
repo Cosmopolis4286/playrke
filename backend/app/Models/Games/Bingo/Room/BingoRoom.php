@@ -12,7 +12,7 @@ use App\Models\Games\Bingo\Room\User\BingoRoomUser;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\Roles\SellerRoomLimits;
 use App\Models\User;
-use App\Models\Common\Utils\GameExchangeRate;
+use App\Models\Games\Common\Utils\GameExchangeRate;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
