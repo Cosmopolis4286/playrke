@@ -91,6 +91,20 @@ export interface BingoRoom {
 }
 
 /**
+ * Tipo de premio por ronda
+ */
+export type RoundPrizeType = 'percentage' | 'fixed'
+
+/**
+ * Configuración individual de cada ronda
+ */
+export interface RoundConfig {
+    prizeType: RoundPrizeType
+    bingoPattern: number | string | null
+    prizeValue: number | string | null
+}
+
+/**
  * Campos del formulario de creación/edición de sala
  * Basado en: bingo_rooms_config + bingo_rooms_automatic
  */
@@ -108,4 +122,9 @@ export interface BingoRoomFormData {
     rounds?: number | null
     roundsConfigActive?: boolean
     loadingRoundsConfig?: boolean
+    roundsPct?: number | null
+    serialsPct?: number | null
+    numSerials?: number | null
+    ctnPrice?: number | null
+    roundsConfig?: RoundConfig[]
 }

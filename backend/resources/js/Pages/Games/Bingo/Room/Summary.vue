@@ -244,7 +244,6 @@
     <BingoRoomForm
       ref="bingoGameRoomFormRef"
       v-model="roomFormData"
-      :time-zone="props.timeZone ?? props.timeZones[0]"
       :creator="props.creator ?? { type: 'admin', id: '' }"
       :room-type-options="roomTypeOptions"
       :game-mode-options="props.gameModes ?? []"
