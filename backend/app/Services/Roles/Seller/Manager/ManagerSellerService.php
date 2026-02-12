@@ -49,7 +49,7 @@ final class ManagerSellerService
      * @param string|null $publicToken Token público de API
      * @return array Listado de vendedores para la vista Inertia
      */
-    public function listFiltered(?string $publicToken = null): array
+    public function fetchList(?string $publicToken = null): array
     {
         // Resolver ID del usuario
         $userId = $this->userContext->resolveUserId($publicToken);

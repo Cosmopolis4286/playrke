@@ -101,7 +101,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
             loading.value = true
 
             const response = await backendClient.get<{ data: Seller[] }>(
-                '/sellers/list-filtered',
+                '/sellers/fetch-list',
                 { params: { token: tokenId } }
             )
 
@@ -145,8 +145,8 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
             const payload = buildPayload()
 
             if (sellerData.value.id) {
-                const { data } = await backendClient.put(
-                    `/sellers/${sellerData.value.id}`,
+                await backendClient.put(
+                    `/sellers/${sellerData.value.id}/update`,
                     payload
                 )
                 showToast('Actualización exitosa', 'success')
@@ -191,7 +191,7 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
             loading.value = true
 
             const { data } = await backendClient.get<{ data: Record<string, any> }>(
-                `/sellers/${id}`
+                `/sellers/${id}/show`
             )
 
             const seller = data.data

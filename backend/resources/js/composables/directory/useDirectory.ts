@@ -101,7 +101,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
             loading.value = true
 
             const response = await backendClient.get<{ data: DirectoryTableData }>(
-                '/admin/directory/list-filtered',
+                '/admin/directory/fetch-list',
                 { params: { token: tokenId } }
             )
 

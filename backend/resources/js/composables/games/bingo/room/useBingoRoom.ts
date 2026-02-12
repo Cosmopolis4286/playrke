@@ -101,7 +101,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             loading.value = true
 
             const response = await backendClient.get<{ data: BingoRoom[] }>(
-                '/admin/commerce/list-filtered',
+                '/bingo-rooms/fetch-list',
                 { params: { token: tokenId } }
             )
 
@@ -145,14 +145,14 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             const payload = buildPayload()
 
             if (roomData.value.id) {
-                const { data } = await backendClient.put(
-                    `/admin/commerce/${roomData.value.id}`,
+                await backendClient.put(
+                    `/bingo-rooms/${roomData.value.id}/update`,
                     payload
                 )
                 showToast('Actualización exitosa', 'success')
             } else {
                 const { data } = await backendClient.post(
-                    '/admin/commerce',
+                    '/bingo-rooms',
                     payload
                 )
                 showToast('Registro exitoso', 'success')
@@ -191,7 +191,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             loading.value = true
 
             const { data } = await backendClient.get<{ data: Record<string, any> }>(
-                `/admin/commerce/${id}`
+                `/bingo-rooms/${id}/show`
             )
 
             const commerce = data.data
@@ -246,7 +246,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/admin/commerce/${id}/status`)
+            await backendClient.put(`/bingo-rooms/${id}/status`)
             showToast('Estado cambiado con éxito', 'success')
             await fetchRooms()
             return true
@@ -278,7 +278,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
 
         try {
             const { data } = await backendClient.put(
-                `/admin/commerce/${id}/reset-password`
+                `/bingo-rooms/${id}/reset-password`
             )
 
             showToast(data.message ?? 'Contraseña reseteada', 'success')
@@ -308,7 +308,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/admin/commerce/${id}/delete`)
+            await backendClient.put(`/bingo-rooms/${id}/delete`)
             showToast('Comercializadora eliminada con éxito', 'success')
             await fetchRooms()
             return true
@@ -359,7 +359,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
 
         try {
             for (const id of ids) {
-                await backendClient.put(`/admin/commerce/${id}/status`)
+                await backendClient.put(`/bingo-rooms/${id}/status`)
             }
             showToast(`Estado cambiado con éxito para ${ids.length} comercializadoras`, 'success')
             await fetchRooms()
@@ -393,7 +393,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
 
         try {
             for (const id of ids) {
-                await backendClient.put(`/admin/commerce/${id}/delete`)
+                await backendClient.put(`/bingo-rooms/${id}/delete`)
             }
             showToast(`${ids.length} comercializadoras eliminadas con éxito`, 'success')
             await fetchRooms()

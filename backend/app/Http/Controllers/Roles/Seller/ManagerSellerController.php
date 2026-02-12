@@ -75,10 +75,10 @@ final class ManagerSellerController extends Controller
      *
      * @return JsonResponse
      */
-    public function listFiltered(): JsonResponse
+    public function fetchList(): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => ['data' => $this->service->listFiltered()]
+            fn() => ['data' => $this->service->fetchList()]
         );
     }
 

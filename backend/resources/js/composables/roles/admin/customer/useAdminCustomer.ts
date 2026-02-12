@@ -1,7 +1,7 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
-import type { Commerce } from '@/js/types/roles/commerce/commerce'
+import type { Customer } from '@/js/types/roles/customer/customer'
 import { showPasswordModal } from '@/js/helpers/user/password'
 
 /**
@@ -9,13 +9,13 @@ import { showPasswordModal } from '@/js/helpers/user/password'
  */
 interface UseAdminCustomerReturn {
     /** Datos del comercio (para crear o editar) */
-    commerceData: Ref<Partial<Commerce>>
+    customerData: Ref<Partial<Customer>>
 
     /** Lista reactiva de comercializadoras */
-    commerces: Ref<Commerce[]>
+    customers: Ref<Customer[]>
 
     /** Inicializa la lista local */
-    setInitialCommerces: (initialCommerces: Commerce[]) => void
+    setInitialCustomers: (initialCustomers: Customer[]) => void
 
     /** Envío del formulario */
     submit: () => Promise<boolean>
@@ -45,13 +45,13 @@ interface UseAdminCustomerReturn {
     removeBulk: (ids: (string | number)[]) => Promise<boolean>
 
     /** Fetch desde backend */
-    fetchCommerces: () => Promise<boolean>
+    fetchCustomers: () => Promise<boolean>
 }
 
 /**
  * Factory para un comercio vacío
  */
-const emptyCommerce = (): Partial<Commerce> =>
+const emptyCustomer = (): Partial<Customer> =>
     Object.freeze({
         name: '',
         username: '',
@@ -80,32 +80,32 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
     const loading = ref(false)
 
     /** Estado único del formulario */
-    const commerceData = ref<Partial<Commerce>>(emptyCommerce())
+    const customerData = ref<Partial<Customer>>(emptyCustomer())
 
     /** Lista reactiva local */
-    const commerces = ref<Commerce[]>([])
+    const customers = ref<Customer[]>([])
 
     /**
      * Inicializa la lista local
      */
-    function setInitialCommerces(initialCommerces: Commerce[]) {
-        commerces.value = [...initialCommerces]
+    function setInitialCustomers(initialCustomers: Customer[]) {
+        customers.value = [...initialCustomers]
     }
 
     /**
      * Obtiene la lista desde backend
      */
-    async function fetchCommerces(): Promise<boolean> {
+    async function fetchCustomers(): Promise<boolean> {
         try {
             loading.value = true
 
-            const response = await backendClient.get<{ data: Commerce[] }>(
-                '/admin/commerce/list-filtered',
+            const response = await backendClient.get<{ data: Customer[] }>(
+                '/admin/customer/fetch-list',
                 { params: { token: tokenId } }
             )
 
             if (Array.isArray(response.data?.data)) {
-                commerces.value = response.data.data
+                customers.value = response.data.data
             }
 
             return true
@@ -122,7 +122,7 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
      * Transforma el payload del frontend al formato esperado por el backend
      */
     function buildPayload(): Record<string, unknown> {
-        const { country_id, currency_id, time_zone_id, ...rest } = commerceData.value
+        const { country_id, currency_id, time_zone_id, ...rest } = customerData.value
 
         return {
             ...rest,
@@ -143,22 +143,22 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
 
             const payload = buildPayload()
 
-            if (commerceData.value.id) {
-                const { data } = await backendClient.put(
-                    `/admin/commerce/${commerceData.value.id}`,
+            if (customerData.value.id) {
+                await backendClient.put(
+                    `/admin/customer/${customerData.value.id}/update`,
                     payload
                 )
                 showToast('Actualización exitosa', 'success')
             } else {
                 const { data } = await backendClient.post(
-                    '/admin/commerce',
+                    '/admin/customer',
                     payload
                 )
                 showToast('Registro exitoso', 'success')
                 await showPasswordModal(data.password)
             }
 
-            await fetchCommerces()
+            await fetchCustomers()
             reset()
             return true
         } catch (error: any) {
@@ -177,7 +177,7 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
      * Modo creación
      */
     function create(): void {
-        commerceData.value = { ...emptyCommerce() }
+        customerData.value = { ...emptyCustomer() }
     }
 
     /**
@@ -190,26 +190,26 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
             loading.value = true
 
             const { data } = await backendClient.get<{ data: Record<string, any> }>(
-                `/admin/commerce/${id}`
+                `/admin/customer/${id}/show`
             )
 
-            const commerce = data.data
+            const customer = data.data
 
-            commerceData.value = {
-                id: commerce.id,
-                name: commerce.name,
-                phone: commerce.phone,
-                commission: commerce.commission ?? '',
+            customerData.value = {
+                id: customer.id,
+                name: customer.name,
+                phone: customer.phone,
+                commission: customer.commission ?? '',
                 // Datos del usuario anidado
-                username: commerce.user?.username,
-                email: commerce.user?.email,
-                time_zone_id: commerce.user?.time_zone_id,
+                username: customer.user?.username,
+                email: customer.user?.email,
+                time_zone_id: customer.user?.time_zone_id,
                 // Country viene como objeto {id, name}
-                country_id: commerce.country?.id,
+                country_id: customer.country?.id,
                 // Currency viene como string (id)
-                currency_id: commerce.currency,
-                other_currencies: commerce.other_currencies ?? [],
-                allowed_games: commerce.allowed_games ?? []
+                currency_id: customer.currency,
+                other_currencies: customer.other_currencies ?? [],
+                allowed_games: customer.allowed_games ?? []
             }
 
             return true
@@ -226,15 +226,15 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
      * Reset del formulario
      */
     function reset(): void {
-        commerceData.value = { ...emptyCommerce() }
+        customerData.value = { ...emptyCustomer() }
     }
 
     /**
      * Alternar estado (ACTIVE / INACTIVE) del comercio.
      */
     async function toggleStatus(id: string | number): Promise<boolean> {
-        const commerce = commerces.value.find(c => c.id === id)
-        const name = commerce?.name ?? 'esta comercializadora'
+        const customer = customers.value.find(c => c.id === id)
+        const name = customer?.name ?? 'esta comercializadora'
 
         const confirm = await showToastConfirmAction({
             html: `¿Quieres cambiar el estado de <b>${name}</b>?`,
@@ -245,9 +245,9 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/admin/commerce/${id}/status`)
+            await backendClient.put(`/admin/customer/${id}/status`)
             showToast('Estado cambiado con éxito', 'success')
-            await fetchCommerces()
+            await fetchCustomers()
             return true
         } catch {
             showToast('Error al cambiar el estado', 'error')
@@ -259,10 +259,10 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
      * Resetea la contraseña de una comercializadora
      */
     async function resetPassword(id: string | number): Promise<boolean> {
-        const commerce = commerces.value.find(c => c.id === id)
-        const name = commerce?.name ?? 'esta comercializadora'
+        const customer = customers.value.find(c => c.id === id)
+        const name = customer?.name ?? 'esta comercializadora'
 
-        if (commerce?.status !== 'ACTIVE') {
+        if (customer?.status !== 'ACTIVE') {
             showToast('Solo se puede resetear la contraseña de comercializadoras activas', 'warning')
             return false
         }
@@ -277,7 +277,7 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
 
         try {
             const { data } = await backendClient.put(
-                `/admin/commerce/${id}/reset-password`
+                `/admin/customer/${id}/reset-password`
             )
 
             showToast(data.message ?? 'Contraseña reseteada', 'success')
@@ -295,8 +295,8 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
      * Eliminación (soft delete)
      */
     async function remove(id: string | number): Promise<boolean> {
-        const commerce = commerces.value.find(c => c.id === id)
-        const name = commerce?.name ?? 'esta comercializadora'
+        const customer = customers.value.find(c => c.id === id)
+        const name = customer?.name ?? 'esta comercializadora'
 
         const confirm = await showToastConfirmAction({
             html: `¿Estás seguro que deseas eliminar <b>${name}</b>?`,
@@ -307,9 +307,9 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/admin/commerce/${id}/delete`)
+            await backendClient.put(`/admin/customer/${id}/delete`)
             showToast('Comercializadora eliminada con éxito', 'success')
-            await fetchCommerces()
+            await fetchCustomers()
             return true
         } catch {
             showToast('Error al eliminar la comercializadora', 'error')
@@ -322,7 +322,7 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
      */
     function buildItemListHtml(ids: (string | number)[]): string {
         const items = ids
-            .map(id => commerces.value.find(c => c.id === id))
+            .map(id => customers.value.find(c => c.id === id))
             .filter(Boolean)
             .map(c => c!.name)
 
@@ -358,10 +358,10 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
 
         try {
             for (const id of ids) {
-                await backendClient.put(`/admin/commerce/${id}/status`)
+                await backendClient.put(`/admin/customer/${id}/status`)
             }
             showToast(`Estado cambiado con éxito para ${ids.length} comercializadoras`, 'success')
-            await fetchCommerces()
+            await fetchCustomers()
             return true
         } catch {
             showToast('Error al cambiar el estado', 'error')
@@ -392,10 +392,10 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
 
         try {
             for (const id of ids) {
-                await backendClient.put(`/admin/commerce/${id}/delete`)
+                await backendClient.put(`/admin/customer/${id}/delete`)
             }
             showToast(`${ids.length} comercializadoras eliminadas con éxito`, 'success')
-            await fetchCommerces()
+            await fetchCustomers()
             return true
         } catch {
             showToast('Error al eliminar las comercializadoras', 'error')
@@ -404,9 +404,9 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
     }
 
     return {
-        commerceData,
-        commerces,
-        setInitialCommerces,
+        customerData,
+        customers,
+        setInitialCustomers,
         submit,
         create,
         edit,
@@ -416,6 +416,6 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
         resetPassword,
         remove,
         removeBulk,
-        fetchCommerces
+        fetchCustomers
     }
 }

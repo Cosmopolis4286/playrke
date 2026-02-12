@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Games\Bingo\Room;
 
+use App\DTOs\Games\Bingo\Room\BingoRoomSummaryDTO;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Games\Bingo\Room\BingoRoomRequest;
 use App\Models\Games\Bingo\Room\BingoRoom;
+use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -47,58 +50,58 @@ final class BingoRoomController extends Controller
         );
     }
 
-    // /**
-    //  * Crear un comercio.
-    //  *
-    //  * @param AdminCommerceRequest $request
-    //  * @return JsonResponse
-    //  */
-    // public function store(AdminCommerceRequest $request): JsonResponse
-    // {
-    //     return $this->handleServiceJson(
-    //         fn() => [
-    //             'password' => $this->service->create(
-    //                 $request->toDTO(AdminCommerceDTO::class)
-    //             ),
-    //         ]
-    //     );
-    // }
+    /**
+     * Crear una sala de bingo.
+     *
+     * @param BingoRoomRequest $request
+     * @return JsonResponse
+     */
+    public function store(BingoRoomRequest $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => [
+                'password' => $this->service->create(
+                    $request->toDTO(BingoRoomSummaryDTO::class)
+                ),
+            ]
+        );
+    }
 
-    // /**
-    //  * Listado de comercios
-    //  *
-    //  * @return JsonResponse
-    //  */
-    // public function listFiltered(): JsonResponse
-    // {
-    //     return $this->handleServiceJson(
-    //         fn() => ['data' => $this->service->listFiltered()]
-    //     );
-    // }
+    /**
+     * Obtener lista de salas de bingo filtradas por el contexto del usuario (admin o commerce).
+     *
+     * @return JsonResponse
+     */
+    public function fetchList(): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => ['data' => $this->service->fetchList()]
+        );
+    }
 
-    // /**
-    //  * Mostrar detalle de un comercio.
-    //  *
-    //  * @param Commerce $commerce
-    //  * @return JsonResponse
-    //  */
-    // public function show(Commerce $commerce): JsonResponse
-    // {
-    //     return $this->handleServiceJson(
-    //         fn() => [
-    //             'data' => $this->service->show($commerce),
-    //         ]
-    //     );
-    // }
+    /**
+     * Mostrar detalle de una sala de bingo.
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function show(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => [
+                'data' => $this->service->show($room),
+            ]
+        );
+    }
 
     // /**
     //  * Actualizar un comercio.
     //  *
-    //  * @param AdminCommerceRequest $request
+    //  * @param BingoRoomRequest $request
     //  * @param Commerce $commerce
     //  * @return JsonResponse
     //  */
-    // public function update(AdminCommerceRequest $request, Commerce $commerce): JsonResponse
+    // public function update(BingoRoomRequest $request, Commerce $commerce): JsonResponse
     // {
     //     return $this->handleServiceJson(
     //         fn() => $this->service->update(

@@ -147,7 +147,7 @@ npm run build
 | Método | Ruta | Descripción |
 |--------|------|-------------|
 | GET | `/directory/{countryCode?}` | Vista principal (Inertia) |
-| GET | `/admin/directory/list-filtered` | Listar directorios del usuario |
+| GET | `/admin/directory/fetch-list` | Listar directorios del usuario |
 | GET | `/admin/directory/{id}` | Obtener un directorio |
 | POST | `/admin/directory` | Crear directorio |
 | PUT | `/admin/directory/{id}` | Actualizar directorio |

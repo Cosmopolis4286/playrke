@@ -65,7 +65,7 @@ class ExchangeRateController extends Controller
      * @param Request $request
      * @return JsonResponse
      */
-    public function listFiltered(Request $request): JsonResponse
+    public function fetchList(Request $request): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => [

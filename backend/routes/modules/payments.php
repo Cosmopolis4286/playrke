@@ -24,7 +24,7 @@ Route::middleware('auth')->group(function () {
     Route::get('directory/{countryCode?}', [DirectoryController::class, 'index'])->name('directory.index');
 
     // API CRUD
-    Route::get('admin/directory/list-filtered', [DirectoryController::class, 'listFiltered'])->name('directory.list-filtered');
+    Route::get('admin/directory/fetch-list', [DirectoryController::class, 'fetchList'])->name('directory.fetch-list');
     Route::get('admin/directory/{id}', [DirectoryController::class, 'show'])->name('directory.show');
     Route::post('admin/directory', [DirectoryController::class, 'store'])->name('directory.store');
     Route::put('admin/directory/{id}', [DirectoryController::class, 'update'])->name('directory.update');

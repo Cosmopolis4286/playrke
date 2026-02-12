@@ -32,7 +32,7 @@ final class AdminCommerceService
      *
      * @return array
      */
-    public function listFiltered(): array
+    public function fetchList(): array
     {
         return $this->contex->resolveCommerces()['commerces']['rows'] ?? [];
     }

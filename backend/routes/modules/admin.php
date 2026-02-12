@@ -85,19 +85,19 @@ Route::middleware('auth')->group(function () {
             'uri'    => '',
             'action' => 'store',
         ],
-        'listFiltered' => [
+        'fetchList' => [
             'method' => 'get',
-            'uri'    => 'list-filtered',
-            'action' => 'listFiltered',
+            'uri'    => 'fetch-list',
+            'action' => 'fetchList',
         ],
         'show' => [
             'method' => 'get',
-            'uri'    => '{id}',
+            'uri'    => '{id}/show',
             'action' => 'show',
         ],
         'update' => [
             'method' => 'put',
-            'uri'    => '{id}',
+            'uri'    => '{id}/update',
             'action' => 'update',
         ],
         'delete' => [

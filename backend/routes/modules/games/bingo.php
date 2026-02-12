@@ -54,7 +54,12 @@ multi_middleware_routes('bingo', 'bingo.', [
  * ====================================
  */
 route_group('bingo-rooms', 'bingo-rooms.', [], BingoRoomController::class, [
-    'index'         => ['method' => 'get', 'uri' => '', 'action' => 'index'],
+    'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
+    'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
+    'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
+    'show' => ['method' => 'get', 'uri' => '{id}/show', 'action' => 'show'],
+    'update' => ['method' => 'put',  'uri' => '{id}/update', 'action' => 'update'],
+    'delete' => ['method' => 'delete', 'uri' => '{id}/delete', 'action' => 'delete'],
     // 'form'               => ['method' => 'get', 'uri' => 'form/{roomId?}', 'action' => 'formData'],
     // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
     // 'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],

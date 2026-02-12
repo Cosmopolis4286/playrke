@@ -136,7 +136,7 @@ abstract class BaseRolePolicy
      * @param User $user
      * @return bool
      */
-    public function listFiltered(User $user): bool
+    public function fetchList(User $user): bool
     {
         return $this->hasAccess($user);
     }

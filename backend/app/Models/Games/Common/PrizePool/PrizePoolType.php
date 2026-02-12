@@ -35,7 +35,7 @@ class PrizePoolType extends Model
      */
     protected $casts = [
         'id' => 'string',  // Casteo del ID a string para manejar Snowflake
-        'status' => 'enum:ACTIVE,INACTIVE',  // Casteo del estado a enum
+        'status' => 'string',  // Casteo del estado a string
     ];
 
     /**

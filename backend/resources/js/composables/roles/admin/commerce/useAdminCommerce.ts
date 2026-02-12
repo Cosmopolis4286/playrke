@@ -100,7 +100,7 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
             loading.value = true
 
             const response = await backendClient.get<{ data: Commerce[] }>(
-                '/admin/commerce/list-filtered',
+                '/admin/commerce/fetch-list',
                 { params: { token: tokenId } }
             )
 
@@ -144,8 +144,8 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
             const payload = buildPayload()
 
             if (commerceData.value.id) {
-                const { data } = await backendClient.put(
-                    `/admin/commerce/${commerceData.value.id}`,
+                await backendClient.put(
+                    `/admin/commerce/${commerceData.value.id}/update`,
                     payload
                 )
                 showToast('Actualización exitosa', 'success')
@@ -190,7 +190,7 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
             loading.value = true
 
             const { data } = await backendClient.get<{ data: Record<string, any> }>(
-                `/admin/commerce/${id}`
+                `/admin/commerce/${id}/show`
             )
 
             const commerce = data.data

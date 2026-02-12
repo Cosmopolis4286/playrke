@@ -96,7 +96,7 @@
     formRef: bingoGameRoomFormRef,
     handleSubmit
   } = useModalForm(roomData, submit, {
-    defaultTitle: 'Sala de Bingo',
+    defaultTitle: 'Sala de Bingo'
   })
 
   watch(showModalForm, isOpen => {
@@ -171,6 +171,58 @@
     }
   ])
 
+  /**
+   * Opciones para modos de juego.
+   * Convierte gameModes en formato { value, label } para selects.
+   */
+  const gameModeOptions = computed(() => {
+    return (props.gameModes ?? []).map(g => ({
+      value: g.id,
+      label: g.description
+    }))
+  })
+
+  /**
+   * Opciones para tipos de prize pool.
+   * Convierte prizePoolTypes en formato { value, label }.
+   */
+  const prizePoolTypeOptions = computed(() => {
+    return (props.prizePoolTypes ?? []).map(p => ({
+      value: p.id,
+      label: p.description
+    }))
+  })
+
+  /**
+   * Opciones de monedas permitidas.
+   * Convierte currencies en formato { value, label }.
+   */
+  const allowedCurrenciesOptions = computed(() => {
+    return (props.currencies ?? []).map(c => ({
+      value: c.id,
+      label: c.name
+    }))
+  })
+
+  /**
+   * Opciones de patrones de bingo.
+   * Convierte bingoPatterns en formato { value, label }.
+   */
+  const bingoPatternOptions = computed(() => {
+    return (props.bingoPatterns ?? []).map(p => ({
+      value: p.id,
+      label: p.name
+    }))
+  })
+
+  /**
+   * Creator por defecto.
+   * Si no viene definido en props.creator, se asigna un admin vacío.
+   */
+  const creatorData = computed(() => {
+    return props.creator ?? { type: 'admin', id: '' }
+  })
+
   // ==========================================================================
   // Botones extra
   // ==========================================================================
@@ -221,7 +273,6 @@
       disabledReason: getResetPasswordDisabledReason
     }
   ]
-  console.log('props.prizePoolTypes', props.prizePoolTypes)
 </script>
 
 <template>
@@ -250,12 +301,12 @@
     <BingoRoomForm
       ref="bingoGameRoomFormRef"
       v-model="roomFormData"
-      :creator="props.creator ?? { type: 'admin', id: '' }"
+      :creator="creatorData"
       :room-type-options="roomTypeOptions"
-      :game-mode-options="(props.gameModes ?? []).map(g => ({ value: g.id, label: g.description }))"
-      :prize-pool-type-options="(props.prizePoolTypes ?? []).map(p => ({ value: p.id, label: p.description }))"
-      :allowed-currencies-options="props.currencies.map(c => ({ value: c.id, label: c.name }))"
-      :bingo-pattern-options="(props.bingoPatterns ?? []).map(p => ({ value: p.id, label: p.name }))"
+      :game-mode-options="gameModeOptions"
+      :prize-pool-type-options="prizePoolTypeOptions"
+      :allowed-currencies-options="allowedCurrenciesOptions"
+      :bingo-pattern-options="bingoPatternOptions"
     />
   </Modal>
 </template>

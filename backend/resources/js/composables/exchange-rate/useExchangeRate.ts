@@ -87,7 +87,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
             const response = await backendClient.get<{
                 success: boolean
                 data: ExchangeRate[]
-            }>('/exchange-rate/list-filtered', {
+            }>('/exchange-rate/fetch-list', {
                 params: { token: tokenId }
             })
 

@@ -1,161 +1,163 @@
 <script setup lang="ts" name="BingoGameRoomForm">
-  import { computed, watch } from 'vue'
+import { computed, watch } from "vue";
 
-  // Components
-  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
-  import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+// Components
+import FormInput from "@/js/Components/Common/Form/FormInput.vue";
+import FormSelect from "@/js/Components/Common/Form/FormSelect.vue";
 
-  // Composables
-  import { useBingoRoomForm } from '@/js/composables/games/bingo/room/useBingoRoomForm'
+// Composables
+import { useBingoRoomForm } from "@/js/composables/games/bingo/room/useBingoRoomForm";
 
-  // Types
-  import type { BingoRoomFormData, RoundConfig } from '@/js/types/games/bingo/bingo-room'
+// Types
+import type { BingoRoomFormData, RoundConfig } from "@/js/types/games/bingo/bingo-room";
 
-  /* ==========================================================================
-   * Opción genérica para selects
-   * ========================================================================== */
+/* ==========================================================================
+ * Opción genérica para selects
+ * ========================================================================== */
 
-  interface SelectOption {
-    value: string | number
-    label: string
-  }
+interface SelectOption {
+  value: string | number;
+  label: string;
+}
 
-  /* ==========================================================================
-   * Opciones de tipo de premio por ronda
-   * ========================================================================== */
+/* ==========================================================================
+ * Opciones de tipo de premio por ronda
+ * ========================================================================== */
 
-  const roundPrizeTypeOptions: SelectOption[] = [
-    { value: 'percentage', label: 'Porcentaje' },
-    { value: 'fixed', label: 'Fijo' }
-  ]
+const roundPrizeTypeOptions: SelectOption[] = [
+  { value: "percentage", label: "Porcentaje" },
+  { value: "fixed", label: "Fijo" },
+];
 
-  /* ==========================================================================
-   * Props
-   * ========================================================================== */
+/* ==========================================================================
+ * Props
+ * ========================================================================== */
 
-  const props = defineProps<{
-    automaticRoom?: boolean
-    creator: { type: string; id: string | number }
-    roomTypeOptions: SelectOption[]
-    gameModeOptions: SelectOption[]
-    prizePoolTypeOptions: SelectOption[]
-    allowedCurrenciesOptions: SelectOption[]
-    bingoPatternOptions: SelectOption[]
-    modelValue: BingoRoomFormData
-  }>()
+const props = defineProps<{
+  automaticRoom?: boolean;
+  creator: { type: string; id: string | number };
+  roomTypeOptions: SelectOption[];
+  gameModeOptions: SelectOption[];
+  prizePoolTypeOptions: SelectOption[];
+  allowedCurrenciesOptions: SelectOption[];
+  bingoPatternOptions: SelectOption[];
+  modelValue: BingoRoomFormData;
+}>();
 
-  console.log('prizePoolTypeOptions', props.prizePoolTypeOptions, 'gameModeOptions', props.gameModeOptions)
+/* ==========================================================================
+ * Emits
+ * ========================================================================== */
 
-  /* ==========================================================================
-   * Emits
-   * ========================================================================== */
+const emit = defineEmits<{
+  (e: "submit"): void;
+  (e: "update:modelValue", value: BingoRoomFormData): void;
+  (e: "createRoom"): void;
+}>();
 
-  const emit = defineEmits<{
-    (e: 'submit'): void
-    (e: 'update:modelValue', value: BingoRoomFormData): void
-    (e: 'createRoom'): void
-  }>()
+/* ==========================================================================
+ * Form logic (computed v-model)
+ * ========================================================================== */
 
-  /* ==========================================================================
-   * Form logic (computed v-model)
-   * ========================================================================== */
+const { form, errors, isValid } = useBingoRoomForm(() => props.modelValue, emit);
 
-  const { form, errors, isValid } = useBingoRoomForm(() => props.modelValue, emit)
+/* ==========================================================================
+ * Computed
+ * ========================================================================== */
 
-  /* ==========================================================================
-   * Computed
-   * ========================================================================== */
+/**
+ * Fecha mínima: hoy (formato YYYY-MM-DD)
+ */
+const minDate = computed(() => {
+  const today = new Date();
+  return today.toISOString().split("T")[0];
+});
 
-  /**
-   * Fecha mínima: hoy (formato YYYY-MM-DD)
-   */
-  const minDate = computed(() => {
-    const today = new Date()
-    return today.toISOString().split('T')[0]
-  })
+/**
+ * Mostrar %Rondas y config (más de 1 ronda)
+ */
+const showRoundsPct = computed(() => (form.value.rounds ?? 1) > 1);
 
-  /**
-   * Mostrar %Rondas y config (más de 1 ronda)
-   */
-  const showRoundsPct = computed(() => (form.value.rounds ?? 1) > 1)
+/**
+ * Mostrar container de valor fijo/extra (prizePoolType > 1)
+ */
+const showAmountAddedPrizePool = computed(() => {
+  const val = Number(form.value.prizePoolType);
+  return val > 1;
+});
 
-  /**
-   * Mostrar container de valor fijo/extra (prizePoolType > 1)
-   */
-  const showAmountAddedPrizePool = computed(() => {
-    const val = Number(form.value.prizePoolType)
-    return val > 1
-  })
+/* ==========================================================================
+ * Watchers
+ * ========================================================================== */
 
-  /* ==========================================================================
-   * Watchers
-   * ========================================================================== */
-
-  /**
-   * Cuando cambia el número de rondas, sincronizar el array roundsConfig
-   */
-  watch(
-    () => form.value.rounds,
-    (newRounds) => {
-      const count = Number(newRounds) || 1
-      if (count <= 1) {
-        form.value = { ...form.value, roundsConfig: [], roundsConfigActive: false }
-        return
-      }
-
-      const current = form.value.roundsConfig ?? []
-      const updated: RoundConfig[] = []
-
-      for (let i = 0; i < count; i++) {
-        updated.push(
-          current[i] ?? { prizeType: 'percentage', bingoPattern: null, prizeValue: null }
-        )
-      }
-
-      form.value = { ...form.value, roundsConfig: updated }
+/**
+ * Cuando cambia el número de rondas, sincronizar el array roundsConfig
+ */
+watch(
+  () => form.value.rounds,
+  (newRounds) => {
+    const count = Number(newRounds) || 1;
+    if (count <= 1) {
+      form.value = { ...form.value, roundsConfig: [], roundsConfigActive: false };
+      return;
     }
-  )
 
-  /* ==========================================================================
-   * Métodos
-   * ========================================================================== */
+    const current = form.value.roundsConfig ?? [];
+    const updated: RoundConfig[] = [];
 
-  function toggleRoundsConfig() {
-    form.value = {
-      ...form.value,
-      roundsConfigActive: !form.value.roundsConfigActive
+    for (let i = 0; i < count; i++) {
+      updated.push(
+        current[i] ?? { prizeType: "percentage", bingoPattern: null, prizeValue: null }
+      );
     }
+
+    form.value = { ...form.value, roundsConfig: updated };
   }
+);
 
-  function updateRoundConfig(index: number, field: keyof RoundConfig, value: RoundConfig[keyof RoundConfig]) {
-    const configs = [...(form.value.roundsConfig ?? [])]
-    configs[index] = { ...configs[index], [field]: value }
-    form.value = { ...form.value, roundsConfig: configs }
-  }
+/* ==========================================================================
+ * Métodos
+ * ========================================================================== */
 
-  function createRoom() {
-    if (!isValid.value) return
-    emit('createRoom')
-  }
+function toggleRoundsConfig() {
+  form.value = {
+    ...form.value,
+    roundsConfigActive: !form.value.roundsConfigActive,
+  };
+}
 
-  /* ==========================================================================
-   * Submit
-   * ========================================================================== */
+function updateRoundConfig(
+  index: number,
+  field: keyof RoundConfig,
+  value: RoundConfig[keyof RoundConfig]
+) {
+  const configs = [...(form.value.roundsConfig ?? [])];
+  configs[index] = { ...configs[index], [field]: value };
+  form.value = { ...form.value, roundsConfig: configs };
+}
 
-  const submit = (): boolean => {
-    if (!isValid.value) return false
-    emit('submit')
-    return true
-  }
+function createRoom() {
+  if (!isValid.value) return;
+  emit("createRoom");
+}
 
-  /* ==========================================================================
-   * Expose
-   * ========================================================================== */
+/* ==========================================================================
+ * Submit
+ * ========================================================================== */
 
-  defineExpose({
-    submit,
-    isValid
-  })
+const submit = (): boolean => {
+  if (!isValid.value) return false;
+  emit("submit");
+  return true;
+};
+
+/* ==========================================================================
+ * Expose
+ * ========================================================================== */
+
+defineExpose({
+  submit,
+  isValid,
+});
 </script>
 <template>
   <form id="bingo-room-form" novalidate @submit.prevent="submit">
@@ -337,10 +339,23 @@
         </template>
       </FormInput>
 
+      <!-- %Rondas (solo si rounds > 1) -->
+      <FormInput
+        v-show="showRoundsPct"
+        label="%Rondas"
+        name="rounds_pct"
+        id="rounds-pct"
+        type="number"
+        :step="1"
+        :min="3"
+        :max="30"
+        col="col-sm-6 col-md-4 col-lg-3"
+        v-model="form.roundsPct"
+      />
+
       <!-- Configuración avanzada de rondas -->
       <div
-        id="container-rounds-config"
-        class="form-group col-12"
+        class="col-12"
         v-show="form.roundsConfigActive && showRoundsPct"
         style="
           max-height: 155px;
@@ -362,7 +377,7 @@
         </div>
         <div id="content-rounds-config" class="row">
           <template v-for="(round, index) in form.roundsConfig" :key="index">
-            <div class="col-12 mb-2">
+            <div class="col-12 col-lg-6 my-1">
               <div class="d-flex align-items-center gap-2">
                 <span class="badge badge-secondary mr-2">R{{ index + 1 }}</span>
 
@@ -371,8 +386,14 @@
                   :name="`rounds_prize_type[${index}]`"
                   class="form-control form-control-sm mr-2"
                   :value="round.prizeType"
-                  @change="updateRoundConfig(index, 'prizeType', ($event.target as HTMLSelectElement).value as any)"
-                  style="max-width: 130px;"
+                  @change="
+                    updateRoundConfig(
+                      index,
+                      'prizeType',
+                      ($event.target as HTMLSelectElement).value as any
+                    )
+                  "
+                  style="max-width: 130px"
                 >
                   <option
                     v-for="opt in roundPrizeTypeOptions"
@@ -388,8 +409,14 @@
                   :name="`rounds_bingo_patterns[${index}]`"
                   class="form-control form-control-sm mr-2"
                   :value="round.bingoPattern"
-                  @change="updateRoundConfig(index, 'bingoPattern', ($event.target as HTMLSelectElement).value)"
-                  style="max-width: 150px;"
+                  @change="
+                    updateRoundConfig(
+                      index,
+                      'bingoPattern',
+                      ($event.target as HTMLSelectElement).value
+                    )
+                  "
+                  style="max-width: 150px"
                 >
                   <option value="" disabled>Patrón</option>
                   <option
@@ -408,31 +435,23 @@
                   class="form-control form-control-sm"
                   placeholder="Valor"
                   :value="round.prizeValue"
-                  @input="updateRoundConfig(index, 'prizeValue', ($event.target as HTMLInputElement).value)"
+                  @input="
+                    updateRoundConfig(
+                      index,
+                      'prizeValue',
+                      ($event.target as HTMLInputElement).value
+                    )
+                  "
                   step="0.5"
                   min="0"
                   max="100"
-                  style="max-width: 100px;"
+                  style="max-width: 100px"
                 />
               </div>
             </div>
           </template>
         </div>
       </div>
-
-      <!-- %Rondas (solo si rounds > 1) -->
-      <FormInput
-        v-show="showRoundsPct"
-        label="%Rondas"
-        name="rounds_pct"
-        id="rounds-pct"
-        type="number"
-        :step="1"
-        :min="3"
-        :max="30"
-        col="col-sm-6 col-md-4 col-lg-3"
-        v-model="form.roundsPct"
-      />
 
       <!-- %Bote Seriales -->
       <FormInput

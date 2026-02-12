@@ -33,7 +33,7 @@ final class AdminCustomerService
      * @param int|null $managerUserId ID del usuario manager
      * @return array
      */
-    public function listFiltered(int $managerUserId): array
+    public function fetchList(int $managerUserId): array
     {
         return $this->contex->resolveCustomers($managerUserId)['customers']['rows'] ?? [];
     }
