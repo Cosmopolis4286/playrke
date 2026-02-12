@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Games\Shared\PrizePool;
+namespace App\Models\Games\Common\PrizePool;
 
-use App\Models\Games\Shared\PrizePool\GamePrizePoolType;
+use App\Models\Games\Common\PrizePool\GamePrizePoolType;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,7 +25,7 @@ class PrizePoolType extends Model
      */
     protected $fillable = [
         'description',  // Descripción del tipo de pool de premios
-        'status',    // Estado del tipo (activo/inactivo)
+        'status',    // Estado del tipo enum (ACTIVE/INACTIVE)
     ];
 
     /**
@@ -34,7 +34,8 @@ class PrizePoolType extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'status' => 'boolean',
+        'id' => 'string',  // Casteo del ID a string para manejar Snowflake
+        'status' => 'enum:ACTIVE,INACTIVE',  // Casteo del estado a enum
     ];
 
     /**
@@ -55,7 +56,7 @@ class PrizePoolType extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('status', true);
+        return $query->where('status', 'ACTIVE');
     }
 
     /**
@@ -66,19 +67,19 @@ class PrizePoolType extends Model
      */
     public function scopeInactive($query)
     {
-        return $query->where('status', false);
+        return $query->where('status', 'INACTIVE');
     }
 
     /**
      * Scope para filtrar por estado.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param bool $isActive
+     * @param string $status Estado a filtrar (ACTIVE/INACTIVE)
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeByStatus($query, bool $isActive)
+    public function scopeByStatus($query, string $status)
     {
-        return $query->where('status', $isActive);
+        return $query->where('status', $status);
     }
 
     /**
@@ -122,7 +123,7 @@ class PrizePoolType extends Model
      */
     public function isInactive(): bool
     {
-        return $this->status === false;
+        return $this->status === 'INACTIVE';
     }
 
     /**
@@ -132,7 +133,7 @@ class PrizePoolType extends Model
      */
     public function activate(): bool
     {
-        return $this->update(['status' => true]);
+        return $this->update(['status' => 'ACTIVE']);
     }
 
     /**
@@ -142,7 +143,7 @@ class PrizePoolType extends Model
      */
     public function deactivate(): bool
     {
-        return $this->update(['status' => false]);
+        return $this->update(['status' => 'INACTIVE']);
     }
 
     /**

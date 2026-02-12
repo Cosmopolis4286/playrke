@@ -3,7 +3,7 @@
 namespace App\Contracts\Games\Common\GameMode;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Games\Shared\GameMode\GameModeAssignment;
+use App\Models\Games\Common\GameMode\GameModeAssignment;
 use Illuminate\Database\Eloquent\Collection;
 
 interface GameModeAssignmentRepositoryContract extends BaseRepositoryInterface

@@ -3,7 +3,7 @@
 namespace App\Contracts\Games\Common\PrizePool;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Games\Shared\PrizePool\PrizePoolType;
+use App\Models\Games\Common\PrizePool\PrizePoolType;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -57,10 +57,10 @@ interface PrizePoolTypeRepositoryInterface extends BaseRepositoryInterface
      * Crear un nuevo tipo de pool de premios.
      *
      * @param string $description Descripción del tipo
-     * @param bool $isActive Estado inicial (por defecto true)
+     * @param string $status Estado inicial (por defecto 'ACTIVE')
      * @return PrizePoolType El tipo creado
      */
-    public function createType(string $description, bool $isActive = true): PrizePoolType;
+    public function createType(string $description, string $status = 'ACTIVE'): PrizePoolType;
 
     /**
      * Actualizar la descripción de un tipo.
@@ -75,10 +75,10 @@ interface PrizePoolTypeRepositoryInterface extends BaseRepositoryInterface
      * Actualizar el estado de un tipo.
      *
      * @param string $typeId ID del tipo
-     * @param bool $isActive Nuevo estado
+     * @param string $status Nuevo estado ('ACTIVE' o 'INACTIVE')
      * @return bool True si se actualizó correctamente
      */
-    public function updateStatus(string $typeId, bool $isActive): bool;
+    public function updateStatus(string $typeId, string $status): bool;
 
     /**
      * Activar un tipo de pool de premios.
@@ -108,10 +108,10 @@ interface PrizePoolTypeRepositoryInterface extends BaseRepositoryInterface
      * Actualización masiva de estado para múltiples tipos.
      *
      * @param array $typeIds IDs de los tipos
-     * @param bool $isActive Nuevo estado
+     * @param string $status Nuevo estado ('ACTIVE' o 'INACTIVE')
      * @return int Número de registros actualizados
      */
-    public function bulkUpdateStatus(array $typeIds, bool $isActive): int;
+    public function bulkUpdateStatus(array $typeIds, string $status): int;
 
     /**
      * Obtener estadísticas de tipos de pool de premios.
@@ -179,10 +179,10 @@ interface PrizePoolTypeRepositoryInterface extends BaseRepositoryInterface
      * Crear tipos por lotes.
      *
      * @param array $descriptions Array de descripciones
-     * @param bool $isActive Estado inicial para todos (por defecto true)
+     * @param string $status Estado inicial para todos (por defecto 'ACTIVE')
      * @return Collection Tipos creados
      */
-    public function createBulkTypes(array $descriptions, bool $isActive = true): Collection;
+    public function createBulkTypes(array $descriptions, string $status = 'ACTIVE'): Collection;
 
     /**
      * Obtener tipos para uso en selects/formularios.

@@ -8,6 +8,7 @@ import type { Pagination } from '../../../common/table/pagination'
 export interface BingoRoomSummaryPageProps {
     title?: string,
     subtitle?: string,
+    creator?: { type: string; id: string | number },
     rooms: {
         columns: Column[],
         rows: BingoRoom[]
@@ -16,7 +17,6 @@ export interface BingoRoomSummaryPageProps {
     countries: Country[],
     currencies: Currency[],
     games: Game[],
-    creator?: { type: string; id: string | number },
     gameModes?: { id: string | number; description: string }[],
     prizePoolTypes?: { id: string | number; description: string }[],
     bingoPatterns?: { id: string | number; name: string }[]

@@ -2,8 +2,8 @@
 
 namespace App\Models\Games\Bingo\Room;
 
-use App\Models\Games\Shared\GameMode\GameModes;
-use App\Models\Games\Shared\PrizePool\PrizePoolType;
+use App\Models\Games\Common\GameMode\GameModes;
+use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Games\Bingo\Room;
 
 use App\Http\Controllers\Controller;
 use App\Models\Games\Bingo\Room\BingoRoom;
-use App\Services\Security\UserContextService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,7 +24,7 @@ final class BingoRoomController extends Controller
      */
     public function __construct(
         private readonly \App\Services\Games\Bingo\Room\BingoRoomService $service,
-        private readonly UserContextService $userContext
+        private readonly \App\Services\Security\UserContextService $userContext
     ) {
         $this->authorizeResource(BingoRoom::class, 'id');
     }

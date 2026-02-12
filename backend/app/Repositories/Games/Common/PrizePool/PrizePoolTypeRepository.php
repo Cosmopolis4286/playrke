@@ -2,10 +2,11 @@
 
 namespace App\Repositories\Games\Common\PrizePool;
 
-use App\Models\Games\Shared\PrizePool\PrizePoolType;
+use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Repositories\BaseRepository;
 use App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -31,7 +32,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
      */
     public function getActiveTypes(): Collection
     {
-        return $this->getByStatus(true);
+        return $this->getByStatus('ACTIVE');
     }
 
     /**
@@ -39,7 +40,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
      */
     public function getInactiveTypes(): Collection
     {
-        return $this->getByStatus(false);
+        return $this->getByStatus('INACTIVE');
     }
 
     /**
@@ -75,11 +76,11 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     /**
      * {@inheritDoc}
      */
-    public function createType(string $description, bool $isActive = true): PrizePoolType
+    public function createType(string $description, string $status = 'ACTIVE'): PrizePoolType
     {
         return $this->model->create([
             'description' => $this->normalizeDescription($description),
-            'status' => $isActive
+            'status' => $status
         ]);
     }
 
@@ -95,10 +96,10 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     /**
      * {@inheritDoc}
      */
-    public function updateStatus(string $typeId, bool $isActive): bool
+    public function updateStatus(string $typeId, string $status): bool
     {
         return $this->model->where('id', $typeId)
-            ->update(['status' => $isActive]) > 0;
+            ->update(['status' => $status]) > 0;
     }
 
     /**
@@ -106,7 +107,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
      */
     public function activateType(string $typeId): bool
     {
-        return $this->updateStatus($typeId, true);
+        return $this->updateStatus($typeId, 'ACTIVE');
     }
 
     /**
@@ -114,7 +115,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
      */
     public function deactivateType(string $typeId): bool
     {
-        return $this->updateStatus($typeId, false);
+        return $this->updateStatus($typeId, 'INACTIVE');
     }
 
     /**
@@ -128,10 +129,10 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     /**
      * {@inheritDoc}
      */
-    public function bulkUpdateStatus(array $typeIds, bool $isActive): int
+    public function bulkUpdateStatus(array $typeIds, string $status): int
     {
         return $this->model->whereIn('id', $typeIds)
-            ->update(['status' => $isActive]);
+            ->update(['status' => $status]);
     }
 
     /**
@@ -140,8 +141,8 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     public function getTypeStatistics(): array
     {
         $total = $this->model->count();
-        $active = $this->model->where('status', true)->count();
-        $inactive = $this->model->where('status', false)->count();
+        $active = $this->model->where('status', 'ACTIVE')->count();
+        $inactive = $this->model->where('status', 'INACTIVE')->count();
         $averageDescriptionLength = $this->model->avg(DB::raw('LENGTH(description)'));
         $longestDescription = $this->model->orderByRaw('LENGTH(description) DESC')->first();
         $shortestDescription = $this->model->orderByRaw('LENGTH(description) ASC')->first();
@@ -177,7 +178,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
         $query = $this->model->orderBy('description');
 
         if ($activeOnly) {
-            $query->where('status', true);
+            $query->where('status', 'ACTIVE');
         }
 
         return $query->get();
@@ -250,7 +251,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     /**
      * {@inheritDoc}
      */
-    public function createBulkTypes(array $descriptions, bool $isActive = true): Collection
+    public function createBulkTypes(array $descriptions, string $status = 'ACTIVE'): Collection
     {
         $types = collect();
 
@@ -259,7 +260,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
 
             // Verificar si ya existe antes de crear
             if (!$this->existsByDescription($normalizedDescription)) {
-                $type = $this->createType($normalizedDescription, $isActive);
+                $type = $this->createType($normalizedDescription, $status);
                 $types->push($type);
             }
         }
@@ -275,7 +276,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
         $query = $this->model->orderBy('description');
 
         if ($activeOnly) {
-            $query->where('status', true);
+            $query->where('status', 'ACTIVE');
         }
 
         return $query->pluck('description', 'id')->toArray();
@@ -324,7 +325,7 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     public function getDescriptionSuggestions(string $partialText, int $limit = 5): Collection
     {
         return $this->model->where('description', 'LIKE', "%{$partialText}%")
-            ->where('status', true)
+            ->where('status', 'ACTIVE')
             ->orderBy('description')
             ->limit($limit)
             ->get();
@@ -356,6 +357,6 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
      */
     public function restoreArchivedTypes(array $typeIds): int
     {
-        return $this->bulkUpdateStatus($typeIds, true);
+        return $this->bulkUpdateStatus($typeIds, 'ACTIVE');
     }
 }

@@ -221,6 +221,7 @@
       disabledReason: getResetPasswordDisabledReason
     }
   ]
+  console.log('props.prizePoolTypes', props.prizePoolTypes)
 </script>
 
 <template>

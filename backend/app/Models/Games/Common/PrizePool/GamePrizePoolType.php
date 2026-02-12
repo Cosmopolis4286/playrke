@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Games\Shared\PrizePool;
+namespace App\Models\Games\Common\PrizePool;
 
-use App\Models\Games\Shared\GameMode\GameMode;
+use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Game;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

@@ -44,6 +44,8 @@
     modelValue: BingoRoomFormData
   }>()
 
+  console.log('prizePoolTypeOptions', props.prizePoolTypeOptions, 'gameModeOptions', props.gameModeOptions)
+
   /* ==========================================================================
    * Emits
    * ========================================================================== */
