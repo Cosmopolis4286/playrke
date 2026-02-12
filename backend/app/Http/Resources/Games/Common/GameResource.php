@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources\Games;
+namespace App\Http\Resources\Games\Common;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 

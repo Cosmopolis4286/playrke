@@ -4,6 +4,7 @@ namespace App\Services\Games\Bingo\Room;
 
 use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
 use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
+use App\Models\Games\Bingo\Room\BingoRoom;
 
 final class BingoRoomService
 {
@@ -39,11 +40,36 @@ final class BingoRoomService
     /**
      * Actualizar una sala de bingo existente.
      *
+     * @param BingoRoom $room Model
      * @param BingoRoomUpdateDTO $dto
      * @return array
      */
-    public function update(BingoRoomUpdateDTO $dto): array
+    public function update(BingoRoom $room, BingoRoomUpdateDTO $dto): array
     {
-        return $this->crudService->update($dto);
+        return $this->crudService->update($room, $dto);
+    }
+
+    /**
+     * Eliminar una sala de bingo (soft delete).
+     *
+     * @param BingoRoom $room Model
+     *
+     * @throws BingoRoomException Si falla la eliminación
+     */
+    public function delete(BingoRoom $room): void
+    {
+        $this->crudService->delete($room);
+    }
+
+    /**
+     * Alternar estado (ACTIVE / INACTIVE) de una sala de bingo.
+     *
+     * @param BingoRoom $room Model
+     *
+     * @throws BingoRoomException Si falla el cambio de estado
+     */
+    public function toggleStatus(BingoRoom $room): void
+    {
+        $this->crudService->toggleStatus($room);
     }
 }

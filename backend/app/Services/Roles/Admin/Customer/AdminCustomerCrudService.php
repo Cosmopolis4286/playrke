@@ -31,7 +31,7 @@ final class AdminCustomerCrudService
     public function __construct(
         private readonly UserService $userService,
         private readonly WalletRepositoryInterface $walletRepository,
-        private readonly CustomerRepositoryInterface $commerceRepository,
+        private readonly CustomerRepositoryInterface $customerRepository,
     ) {}
 
     /**
@@ -50,13 +50,13 @@ final class AdminCustomerCrudService
 
             // 1. Usuario
             $user = $this->userService->createUserFromDTO($dto, $plainPassword);
-            $user->assignRole('commerce');
+            $user->assignRole('customer');
 
             // 2. Código único
             $uniqueCode = $this->userService->createUniqueCode($user->id);
 
             // 3. Comercio
-            $commerce = $this->commerceRepository->create([
+            $customer = $this->customerRepository->create([
                 'name'           => $dto->name,
                 'phone'          => $dto->phone,
                 'commission'     => $dto->commission,
@@ -66,13 +66,13 @@ final class AdminCustomerCrudService
                 'unique_code_id' => $uniqueCode->id,
             ]);
 
-            if (! $commerce) {
+            if (! $customer) {
                 throw AdminCustomerException::creationFailed();
             }
 
             // 4. Relaciones
-            $this->syncCurrencies($commerce, $dto->currency, $dto->otherCurrencies);
-            $this->syncGames($commerce, $dto->allowedGames);
+            $this->syncCurrencies($customer, $dto->currency, $dto->otherCurrencies);
+            $this->syncGames($customer, $dto->allowedGames);
 
             // 5. Wallet principal
             $this->walletRepository->create([
@@ -87,12 +87,12 @@ final class AdminCustomerCrudService
     /**
      * Obtener comercio para visualización.
      *
-     * @param Customer $commerce
+     * @param Customer $customer
      * @return AdminCustomerResource
      */
-    public function show(Customer $commerce): AdminCustomerResource
+    public function show(Customer $customer): AdminCustomerResource
     {
-        $commerce->load([
+        $customer->load([
             'country:id,name',
             'user:id,username,email,time_zone_id',
             'user.timeZone:id,name',
@@ -100,23 +100,23 @@ final class AdminCustomerCrudService
             'gamesActive:id,name',
         ]);
 
-        return new AdminCustomerResource($commerce);
+        return new AdminCustomerResource($customer);
     }
 
     /**
      * Actualizar comercio y relaciones.
      *
-     * @param Customer $commerce
+     * @param Customer $customer
      * @param AdminCustomerDTO $dto
      *
      * @throws AdminCustomerException
      */
-    public function update(Customer $commerce, AdminCustomerDTO $dto): void
+    public function update(Customer $customer, AdminCustomerDTO $dto): void
     {
-        DB::transaction(function () use ($commerce, $dto) {
+        DB::transaction(function () use ($customer, $dto) {
 
-            $this->commerceRepository->update(
-                $commerce->id,
+            $this->customerRepository->update(
+                $customer->id,
                 array_filter([
                     'name'       => $dto->name,
                     'phone'      => $dto->phone,
@@ -125,11 +125,11 @@ final class AdminCustomerCrudService
                 ])
             );
 
-            $this->syncCurrencies($commerce, $dto->currency, $dto->otherCurrencies);
-            $this->syncGames($commerce, $dto->allowedGames);
+            $this->syncCurrencies($customer, $dto->currency, $dto->otherCurrencies);
+            $this->syncGames($customer, $dto->allowedGames);
 
             if ($dto->email !== null || $dto->username !== null) {
-                $commerce->user()->update(array_filter([
+                $customer->user()->update(array_filter([
                     'email'    => $dto->email,
                     'username' => $dto->username,
                 ]));
@@ -141,7 +141,7 @@ final class AdminCustomerCrudService
      * Sincroniza monedas del comercio.
      */
     protected function syncCurrencies(
-        Customer $commerce,
+        Customer $customer,
         ?int $principalCurrencyId,
         ?array $secondaryCurrencyIds
     ): void {
@@ -154,7 +154,7 @@ final class AdminCustomerCrudService
         // Principal
         if ($principalCurrencyId) {
             CustomerCurrency::updateOrCreate(
-                ['commerce_id' => $commerce->id, 'level' => 1],
+                ['customer_id' => $customer->id, 'level' => 1],
                 [
                     'currency_id' => $principalCurrencyId,
                     'status'      => 'ACTIVE',
@@ -163,19 +163,19 @@ final class AdminCustomerCrudService
         }
 
         // Secundarias → inactivar las que sobran
-        CustomerCurrency::where('commerce_id', $commerce->id)
+        CustomerCurrency::where('customer_id', $customer->id)
             ->where('level', 2)
             ->whereNotIn('currency_id', $secondaryCurrencyIds)
             ->update(['status' => 'INACTIVE']);
 
         // Activar existentes
-        CustomerCurrency::where('commerce_id', $commerce->id)
+        CustomerCurrency::where('customer_id', $customer->id)
             ->where('level', 2)
             ->whereIn('currency_id', $secondaryCurrencyIds)
             ->update(['status' => 'ACTIVE']);
 
         // Insertar faltantes
-        $existing = CustomerCurrency::where('commerce_id', $commerce->id)
+        $existing = CustomerCurrency::where('customer_id', $customer->id)
             ->where('level', 2)
             ->pluck('currency_id')
             ->all();
@@ -185,7 +185,7 @@ final class AdminCustomerCrudService
         if ($missing) {
             CustomerCurrency::insert(
                 array_map(fn($id) => [
-                    'commerce_id' => $commerce->id,
+                    'customer_id' => $customer->id,
                     'currency_id' => $id,
                     'level'       => 2,
                     'status'      => 'ACTIVE',
@@ -200,7 +200,7 @@ final class AdminCustomerCrudService
      * Sincroniza juegos permitidos.
      */
     protected function syncGames(
-        Customer $commerce,
+        Customer $customer,
         ?array $activeGameIds
     ): void {
         $activeGameIds = collect($activeGameIds ?? [])
@@ -209,15 +209,15 @@ final class AdminCustomerCrudService
             ->values()
             ->all();
 
-        CustomerGame::where('commerce_id', $commerce->id)
+        CustomerGame::where('customer_id', $customer->id)
             ->whereNotIn('game_id', $activeGameIds)
             ->update(['status' => 'INACTIVE']);
 
-        CustomerGame::where('commerce_id', $commerce->id)
+        CustomerGame::where('customer_id', $customer->id)
             ->whereIn('game_id', $activeGameIds)
             ->update(['status' => 'ACTIVE']);
 
-        $existing = CustomerGame::where('commerce_id', $commerce->id)
+        $existing = CustomerGame::where('customer_id', $customer->id)
             ->pluck('game_id')
             ->all();
 
@@ -226,7 +226,7 @@ final class AdminCustomerCrudService
         if ($missing) {
             CustomerGame::insert(
                 array_map(fn($id) => [
-                    'commerce_id' => $commerce->id,
+                    'customer_id' => $customer->id,
                     'game_id'     => $id,
                     'status'      => 'ACTIVE',
                     'created_at'  => now(),
@@ -240,41 +240,41 @@ final class AdminCustomerCrudService
      * Alternar estado del comercio (ACTIVE / INACTIVE).
      * También sincroniza el estado del usuario asociado.
      *
-     * @param Customer $commerce
+     * @param Customer $customer
      * @return bool True si el cambio fue exitoso
      *
      * @throws RuntimeException Si el comercio está eliminado
      */
-    public function toggleStatus(Customer $commerce): bool
+    public function toggleStatus(Customer $customer): bool
     {
-        if ($commerce->status === 'DELETED') {
+        if ($customer->status === 'DELETED') {
             throw AdminCustomerException::invalidStatusChange();
         }
 
         // Usa changeStatus con userRelation para sincronizar Customer y User
-        $newStatus = $commerce->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        $newStatus = $customer->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
 
-        return $this->commerceRepository->changeStatus($commerce, $newStatus, 'user');
+        return $this->customerRepository->changeStatus($customer, $newStatus, 'user');
     }
 
     /**
      * Eliminación lógica (soft delete) del comercio.
      * También marca el usuario asociado como DELETED.
      *
-     * @param Customer $commerce
+     * @param Customer $customer
      * @return bool True si la eliminación fue exitosa
      *
      * @throws RuntimeException Si el comercio ya está eliminado
      */
-    public function delete(Customer $commerce): bool
+    public function delete(Customer $customer): bool
     {
-        if ($commerce->status === 'DELETED') {
+        if ($customer->status === 'DELETED') {
             throw AdminCustomerException::alreadyDeleted();
         }
 
         // Usa softDelete con userRelation para sincronizar Customer y User
-        return $this->commerceRepository->softDelete(
-            model: $commerce,
+        return $this->customerRepository->softDelete(
+            model: $customer,
             status: 'DELETED',
             relationsToDetach: [],
             userRelation: 'user'
@@ -284,33 +284,33 @@ final class AdminCustomerCrudService
     /**
      * Eliminación definitiva del comercio y su usuario asociado.
      *
-     * @param Customer $commerce
+     * @param Customer $customer
      *
      * @throws AdminCustomerException
      */
-    public function destroy(Customer $commerce): void
+    public function destroy(Customer $customer): void
     {
-        DB::transaction(function () use ($commerce) {
+        DB::transaction(function () use ($customer) {
 
-            $commerce->loadMissing(['currencies', 'games', 'user']);
+            $customer->loadMissing(['currencies', 'games', 'user']);
 
             // Desvincula relaciones
-            $commerce->currencies()->detach();
-            $commerce->games()->detach();
+            $customer->currencies()->detach();
+            $customer->games()->detach();
 
             // Elimina wallets del usuario
-            $this->walletRepository->deleteByUserId($commerce->user_id);
+            $this->walletRepository->deleteByUserId($customer->user_id);
 
             // Guarda referencia al usuario antes de eliminar el comercio
-            $user = $commerce->user;
-            $userId = $commerce->user_id;
+            $user = $customer->user;
+            $userId = $customer->user_id;
 
             // Elimina definitivamente el comercio
-            $commerce->forceDelete();
+            $customer->forceDelete();
 
             // Verifica si el usuario tiene otros comercios activos
             $hasOtherCustomers = Customer::where('user_id', $userId)
-                ->where('id', '!=', $commerce->id)
+                ->where('id', '!=', $customer->id)
                 ->exists();
 
             // Si no tiene otros comercios, elimina el usuario

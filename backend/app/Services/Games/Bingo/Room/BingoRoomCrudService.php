@@ -3,6 +3,8 @@
 namespace App\Services\Games\Bingo\Room;
 
 use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
+use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
+use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Models\Games\Bingo\Creator\BingoCreator;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
@@ -33,6 +35,8 @@ final class BingoRoomCrudService
      *
      * @param BingoRoomCreateDTO $dto
      * @return array
+     *
+     * @throws BingoRoomException Si ocurre un error durante la creación
      */
     public function create(BingoRoomCreateDTO $dto): array
     {
@@ -85,17 +89,12 @@ final class BingoRoomCrudService
                 'jackpot_pct'             => $dto->jackpotPct ?? 0,
             ]);
 
-            $creatorType = $dto->creator['type'] ?? 'admin';
-            $creatorId   = $dto->creator['id'] ?? $userId;
-
             BingoCreator::create([
                 'room_id'            => $room->id,
-                'creator_user_id'    => $userId,
-                'creator_type'       => $creatorType,
-                'creator_id'         => $creatorId,
+                'user_id'            => $userId,
                 'creator_commn'      => $dto->roomCommn,
                 'card_price'         => $dto->ctnPrice,
-                'allowed_currencies' => $dto->allowedCurrencies,
+                //'allowed_currencies' => $dto->allowedCurrencies,
                 'status'             => 'ACTIVE',
             ]);
 
@@ -103,6 +102,49 @@ final class BingoRoomCrudService
                 'message' => 'Sala creada exitosamente.',
                 'room_id' => $room->id,
             ];
+        });
+    }
+
+    /**
+     * Obtener sala de bingo para visualización.
+     *
+     * @param BingoRoom $room
+     * @return BingoRoomResource
+     *
+     * @throws BingoRoomException
+     */
+    public function show(BingoRoom $room): BingoRoomResource
+    {
+        $room->load([
+            'config',
+            'creator.user.timeZone',
+            'creator.allowedCurrencies',
+        ]);
+
+        return new BingoRoomResource($room);
+    }
+
+    /**
+     * Actualizar sala de bingo y relaciones.
+     *
+     * @param BingoRoom $room
+     * @param BingoRoomUpdateDTO $dto
+     *
+     * @throws BingoRoomException
+     */
+    public function update(BingoRoom $room, BingoRoomUpdateDTO $dto): void
+    {
+        DB::transaction(function () use ($room, $dto) {
+
+            $this->bingoRoomRepository->update(
+                $room->id,
+                array_filter([
+                    'name'       => $dto->name,
+                    'phone'      => $dto->phone,
+                    'commission' => $dto->commission,
+                    'country_id' => $dto->country,
+                ])
+            );
         });
     }
 }
