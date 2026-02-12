@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Bingo\Cards\Patterns;
+namespace App\Repositories\Games\Bingo\Pattern;
 
 use App\Models\Games\Bingo\Cards\Patterns\BingoPattern;
 use App\Repositories\BaseRepository;
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Implementa todas las operaciones de consulta y manipulación de datos
  * para los patrones de cartones de bingo utilizados en el juego.
  *
- * @package App\Repositories\Bingo\Cards\Patterns
+ * @package App\Repositories\Games\Bingo\Pattern
  * @author Sistema PlayRKE
  * @version 1.0
  */
@@ -45,12 +45,17 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
      * Obtener patrones por usuario
      *
      * @param string $userId
+     * @param array $fields
      * @param string|null $status
      * @return Collection<int, BingoPattern>
      */
-    public function getByUser(string $userId, ?string $status = null): Collection
+    public function getByUser(string $userId, array $fields = ['*'], ?string $status = null): Collection
     {
         $query = $this->model->where('user', $userId);
+
+        if ($fields) {
+            $query->select($fields);
+        }
 
         if ($status) {
             $query->where('status', $status);
@@ -470,7 +475,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
      */
     public function exportPatterns(string $format = 'array')
     {
-        $patterns = $this->getAll();
+        $patterns = $this->all();
 
         switch ($format) {
             case 'json':

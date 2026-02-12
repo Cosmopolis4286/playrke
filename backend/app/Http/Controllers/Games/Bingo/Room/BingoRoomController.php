@@ -2,12 +2,9 @@
 
 namespace App\Http\Controllers\Games\Bingo\Room;
 
-use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Roles\Admin\Commerce\AdminCommerceRequest;
 use App\Models\Games\Bingo\Room\BingoRoom;
-use App\Models\Roles\Commerce;
-use Illuminate\Http\JsonResponse;
+use App\Services\Security\UserContextService;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,7 +24,8 @@ final class BingoRoomController extends Controller
      * @param BingoRoomService $service
      */
     public function __construct(
-        private readonly \App\Services\Games\Bingo\Room\BingoRoomService $service
+        private readonly \App\Services\Games\Bingo\Room\BingoRoomService $service,
+        private readonly UserContextService $userContext
     ) {
         $this->authorizeResource(BingoRoom::class, 'id');
     }
@@ -41,7 +39,8 @@ final class BingoRoomController extends Controller
     {
         return $this->handleServiceInertia(
             function () {
-                $response = $this->service->context('summary');
+                $userId = $this->userContext->resolveUserId();
+                $response = $this->service->context('summary', $userId);
 
                 return Inertia::render('Games/Bingo/Room/Summary', $response->toView());
             },

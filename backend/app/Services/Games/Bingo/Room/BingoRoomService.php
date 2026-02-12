@@ -12,6 +12,7 @@ final class BingoRoomService
     use HashedTableDataTrait;
 
     public function __construct(
+        private readonly \App\Services\Security\UserContextService $userContext,
         private readonly \App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface $bingoRooms,
         private readonly \App\Contracts\CountryRepositoryInterface $countries,
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
@@ -27,13 +28,15 @@ final class BingoRoomService
      * Resolver contexto para BingoRoom.
      *
      * @param string $context
+     * @param int|null $userId
      * @return mixed
+     * @throws DomainException Si el contexto no es válido
      */
-    public function context(string $context)
+    public function context(string $context, ?int $userId): mixed
     {
         return match ($context) {
-            'fetch' => $this->fetchGameRooms(),
-            'summary' => $this->summaryGameRooms(),
+            'fetch' => $this->fetchGameRooms($userId),
+            'summary' => $this->summaryGameRooms($userId),
             default => throw new DomainException('No existe el contexto: ' . $context),
         };
     }
@@ -41,18 +44,24 @@ final class BingoRoomService
     /**
      * Resolver listado de salas de bingo.
      *
-     * @return array [gameRooms, pagination]
+     * @param int|null $userId ID del usuario para filtrar patrones de bingo
+     * @return array Listado de salas con paginación
+     * @throws DomainException Si no se pueden resolver las salas de bingo
      */
-    private function resolveGameRooms(): array
+    private function resolveGameRooms(?int $userId): array
     {
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
         $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
+
+        $conditions = $userId
+            ? ['user_id' => $userId]
+            : [];
 
         $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
             relations: ['country:id,name', 'user:id,email'],
-            conditions: [],
+            conditions: $conditions,
             fields: ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
         );
 
@@ -79,21 +88,25 @@ final class BingoRoomService
     /**
      * Obtener las salas de bingo.
      *
+     * @param int $userId ID del usuario para filtrar patrones de bingo
      * @return array
      */
-    private function fetchGameRooms(): array
+    private function fetchGameRooms(int $userId): array
     {
-        return $this->resolveGameRooms();
+        return $this->resolveGameRooms($userId);
     }
 
     /**
      * Resolver contexto para el listado de salas de bingo.
      *
+     * @param int $userId ID del usuario para filtrar patrones de bingo
      * @return BingoRoomSummaryDTO
+     *
+     * @throws DomainException Si no se puede resolver el contexto
      */
-    private function summaryGameRooms(): BingoRoomSummaryDTO
+    private function summaryGameRooms(int $userId): BingoRoomSummaryDTO
     {
-        $commerceData = $this->resolveGameRooms();
+        $commerceData = $this->resolveGameRooms($userId);
 
         return new BingoRoomSummaryDTO(
             rooms: $commerceData['rooms'],
@@ -102,9 +115,9 @@ final class BingoRoomService
             currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
             games: $this->games->getActive(['id', 'name']),
             timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
-            bingoPatterns: $this->bingoPatterns->getAllByUser($creatorUser, ['id', 'name'], 'ACTIVE'),
-            typesPrizePool: $this->prizePoolTypes->getActive(['id', 'name']),
-            gameModes: $this->gameModes->getActive(['id', 'name'])
+            bingoPatterns: $this->bingoPatterns->getByUser($userId, ['id', 'name'], 'ACTIVE'),
+            typesPrizePool: $this->prizePoolTypes->getActiveTypes(['id', 'name']),
+            gameModes: $this->gameModes->getActiveGameModes(['id', 'name'])
         );
     }
 }

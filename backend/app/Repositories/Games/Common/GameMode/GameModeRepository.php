@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Shared\GameMode;
+namespace App\Repositories\Games\Common\GameMode;
 
 use App\Models\Games\Shared\GameMode\GameMode;
 use App\Repositories\BaseRepository;

@@ -23,9 +23,10 @@ interface BingoPatternRepositoryInterface extends BaseRepositoryInterface
      *
      * @param string $userId
      * @param string|null $status
+     * @param array $fields
      * @return Collection<int, BingoPattern>
      */
-    public function getByUser(string $userId, ?string $status = null): Collection;
+    public function getByUser(string $userId, array $fields = ['*'], ?string $status = null): Collection;
 
     /**
      * Obtener patrón por tipo de patrón
