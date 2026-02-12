@@ -35,6 +35,8 @@
 
   const props = defineProps<BingoRoomSummaryPageProps>()
 
+    console.log('BingoRoomSummaryPageProps', props)
+
   // ==========================================================================
   // Lógica de negocio
   // ==========================================================================

@@ -2,14 +2,12 @@
 
 namespace App\Models\Games\Common\GameMode;
 
+use App\Models\BaseModel;
 use App\Models\Games\Common\PrizePool\GamePrizePoolType;
-use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class GameMode extends Model
+class GameMode extends BaseModel
 {
-    use SnowflakeId;
 
     protected $fillable = [
         'description',
@@ -17,7 +15,8 @@ class GameMode extends Model
     ];
 
     protected $casts = [
-        'status' => 'boolean',
+        'id' => 'string',
+        'status' => 'string',
     ];
 
     public function prizePoolTypes(): HasMany

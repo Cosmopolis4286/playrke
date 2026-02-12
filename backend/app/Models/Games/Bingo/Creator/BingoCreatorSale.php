@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Creators;
+namespace App\Models\Games\Bingo\Creator;
 
 use App\Models\Currency;
 use App\Models\Games\Bingo\Rooms\BingoRoom;

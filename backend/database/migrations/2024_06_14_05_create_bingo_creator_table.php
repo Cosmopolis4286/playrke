@@ -22,14 +22,14 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Sala asociada');
 
-            $table->foreignSnowflake('creator_user_id')
+            $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
-                ->comment('Usuario creador');
+                ->comment('ID del usuario creador de la sala');
 
             // Datos financieros
-            $table->decimal('creator_commission', 10, 2)
+            $table->decimal('creator_commn', 10, 2)
                 ->default(0)
                 ->comment('Comisión del creador en la sala');
 
@@ -45,7 +45,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Evitar duplicados: un creador por sala
-            $table->unique(['room_id', 'creator_user_id'], 'unique_creator_per_room');
+            $table->unique(['room_id', 'user_id'], 'unique_creator_per_room');
 
             // Índices compuestos opcionales para consultas rápidas
             $table->index(['room_id', 'status'], 'idx_room_status');

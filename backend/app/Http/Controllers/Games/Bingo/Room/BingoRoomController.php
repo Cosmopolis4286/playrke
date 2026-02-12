@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Games\Bingo\Room;
 
 use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
+use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Room\BingoRoomRequest;
 use App\Models\Games\Bingo\Room\BingoRoom;
@@ -92,74 +93,59 @@ final class BingoRoomController extends Controller
         );
     }
 
-    // /**
-    //  * Actualizar un comercio.
-    //  *
-    //  * @param BingoRoomRequest $request
-    //  * @param Commerce $commerce
-    //  * @return JsonResponse
-    //  */
-    // public function update(BingoRoomRequest $request, Commerce $commerce): JsonResponse
-    // {
-    //     return $this->handleServiceJson(
-    //         fn() => $this->service->update(
-    //             $commerce,
-    //             $request->toDTO(AdminCommerceDTO::class)
-    //         )
-    //     );
-    // }
+    /**
+     * Actualizar una sala de bingo.
+     *
+     * @param BingoRoomRequest $request
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function update(BingoRoomRequest $request, BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->update(
+                $room,
+                $request->toDTO(BingoRoomUpdateDTO::class)
+            )
+        );
+    }
 
-    // /**
-    //  * Eliminar un comercio (soft delete).
-    //  *
-    //  * @param Commerce $commerce
-    //  * @return JsonResponse
-    //  */
-    // public function delete(Commerce $commerce): JsonResponse
-    // {
-    //     return $this->handleServiceJson(
-    //         fn() => $this->service->delete($commerce)
-    //     );
-    // }
+    /**
+     * Eliminar una sala de bingo (soft delete).
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function delete(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->delete($room)
+        );
+    }
 
-    // /**
-    //  * Eliminar un comercio permanentemente (hard delete).
-    //  *
-    //  * @param Commerce $commerce
-    //  * @return JsonResponse
-    //  */
-    // public function destroy(Commerce $commerce): JsonResponse
-    // {
-    //     return $this->handleServiceJson(
-    //         fn() => $this->service->destroy($commerce)
-    //     );
-    // }
+    /**
+     * Eliminar una sala de bingo permanentemente (hard delete).
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function destroy(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->destroy($room)
+        );
+    }
 
-    // /**
-    //  * Alternar estado (ACTIVE / INACTIVE) del comercio.
-    //  *
-    //  * @param Commerce $commerce
-    //  * @return JsonResponse
-    //  */
-    // public function toggleStatus(Commerce $commerce): JsonResponse
-    // {
-    //     return $this->handleServiceJson(
-    //         fn() => $this->service->toggleStatus($commerce)
-    //     );
-    // }
-
-    // /**
-    //  * Generar una nueva contraseña para un comercio.
-    //  *
-    //  * @param Commerce $commerce
-    //  * @return JsonResponse
-    //  */
-    // public function resetPassword(Commerce $commerce): JsonResponse
-    // {
-    //     return $this->handleServiceJson(
-    //         fn() => [
-    //             'password' => $this->service->resetPassword($commerce),
-    //         ]
-    //     );
-    // }
+    /**
+     * Alternar estado (ACTIVE / INACTIVE) de una sala de bingo.
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function toggleStatus(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->toggleStatus($room)
+        );
+    }
 }

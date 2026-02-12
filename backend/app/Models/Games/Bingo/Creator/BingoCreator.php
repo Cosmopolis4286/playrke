@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Creators;
+namespace App\Models\Games\Bingo\Creator;
 
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Role;
@@ -20,9 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property string $id ID único del creador de sala
  * @property string $room ID de la sala de bingo
- * @property string $creator_user_id ID del usuario creador
- * @property string $creator_type Tipo de creador
- * @property string $creator_id ID del creador específico
+ * @property string $user_id ID del usuario creador
  * @property float $creator_commn Comisión del creador
  * @property float $card_price Precio de las cartas
  * @property array $allowed_currencies Monedas permitidas
@@ -54,10 +52,8 @@ class BingoCreator extends Model
      * Campos que pueden ser asignados masivamente
      */
     protected $fillable = [
-        'room',
-        'creator_user_id',
-        'creator_type',
-        'creator_id',
+        'room_id',
+        'user_id',
         'creator_commn',
         'card_price',
         'allowed_currencies',
@@ -68,6 +64,8 @@ class BingoCreator extends Model
      * Campos que deben ser convertidos a tipos específicos
      */
     protected $casts = [
+        'room_id' => 'string',
+        'user_id' => 'string',
         'allowed_currencies' => 'array',
         'creator_commn' => 'decimal:8',
         'card_price' => 'decimal:8',
@@ -82,17 +80,7 @@ class BingoCreator extends Model
      */
     public function room(): BelongsTo
     {
-        return $this->belongsTo(BingoRoom::class, 'room');
-    }
-
-    /**
-     * Relación con el tipo de creador
-     *
-     * @return BelongsTo<Role, BingoCreator>
-     */
-    public function creatorType(): BelongsTo
-    {
-        return $this->belongsTo(Role::class, 'creator_type');
+        return $this->belongsTo(BingoRoom::class, 'room_id');
     }
 
     /**
@@ -118,18 +106,6 @@ class BingoCreator extends Model
     }
 
     /**
-     * Scope para obtener creadores por tipo
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $type
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeByType($query, string $type)
-    {
-        return $query->where('creator_type', $type);
-    }
-
-    /**
      * Scope para obtener creadores por sala
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
@@ -138,7 +114,7 @@ class BingoCreator extends Model
      */
     public function scopeByRoom($query, string $roomId)
     {
-        return $query->where('room', $roomId);
+        return $query->where('room_id', $roomId);
     }
 
     /**
@@ -150,7 +126,7 @@ class BingoCreator extends Model
      */
     public function scopeByUser($query, string $userId)
     {
-        return $query->where('creator_user_id', $userId);
+        return $query->where('user_id', $userId);
     }
 
     /**
