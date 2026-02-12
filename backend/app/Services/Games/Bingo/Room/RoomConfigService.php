@@ -2,7 +2,10 @@
 
 namespace App\Services\Games\Bingo\Rooms;
 
-use App\Models\{BingoRoom, BingoRoomConfig, BingoCreator, GameConfig};
+use App\Models\Games\Bingo\Creators\BingoCreator;
+use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoomConfig;
+use App\Models\Shared\Utils\GameConfig;
 use App\Traits\Helpers\EncryptTrait;
 use Carbon\Carbon;
 
