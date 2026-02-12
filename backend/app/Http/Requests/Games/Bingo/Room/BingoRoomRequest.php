@@ -51,7 +51,6 @@ class BingoRoomRequest extends BaseRequest
             'roundsConfig.*.prizeType'    => ['required_with:roundsConfig', 'in:percentage,fixed'],
             'roundsConfig.*.bingoPattern' => ['nullable', 'exists:bingo_patterns,id'],
             'roundsConfig.*.prizeValue'   => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'creator'                 => ['nullable'],
         ];
     }
 

@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import type { BingoRoomFormData } from '@/js/types/games/bingo/bingo-room'
+import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
 
 /**
  * Composable para formulario de sala de bingo

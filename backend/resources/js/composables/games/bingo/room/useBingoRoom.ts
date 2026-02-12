@@ -2,7 +2,7 @@ import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 
-import type { BingoRoom, BingoRoomFormData } from '@/js/types/games/bingo/bingo-room'
+import type { BingoRoom, BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
 
 /**
  * Contrato público del composable useBingoRoom

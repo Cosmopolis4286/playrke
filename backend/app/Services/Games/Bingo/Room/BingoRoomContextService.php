@@ -60,7 +60,7 @@ final class BingoRoomContextService
         $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
-            relations: ['status:id,name', 'creator:id,email'],
+            relations: ['status:id,name'],
             conditions: $conditions,
             fields: ['id', 'encrypted_code', 'status_id', 'room_type', 'creator_user_id', 'publication_date', 'total_players', 'prize_pool']
         );
@@ -111,10 +111,7 @@ final class BingoRoomContextService
         return new BingoRoomSummaryDTO(
             rooms: $commerceData['rooms'],
             pagination: $commerceData['pagination'],
-            countries: $this->countries->getActive(['id', 'name']),
             currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
-            games: $this->games->getActive(['id', 'name']),
-            timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id']),
             bingoPatterns: $this->bingoPatterns->getByUser($userId, ['id', 'name'], 'ACTIVE'),
             prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
             gameModes: $this->gameModes->getActiveGameModes()

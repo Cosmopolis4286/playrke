@@ -2,12 +2,14 @@
 
 namespace App\Models\Games\Common\GameMode;
 
-use App\Models\BaseModel;
 use App\Models\Games\Common\PrizePool\GamePrizePoolType;
+use App\Traits\SnowflakeId;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class GameMode extends BaseModel
+class GameMode extends Model
 {
+    use SnowflakeId;
 
     protected $fillable = [
         'description',

@@ -25,7 +25,7 @@
   // Types
   // ==========================================================================
 
-  import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/bingo-room-summary'
+  import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/summary/bingo-room-summary'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
 
@@ -184,13 +184,6 @@
     }))
   })
 
-  /**
-   * Creator por defecto.
-   */
-  const creatorData = computed(() => {
-    return props.creator ?? { type: 'admin', id: '' }
-  })
-
   // ==========================================================================
   // Botones extra
   // ==========================================================================
@@ -232,7 +225,6 @@
     <BingoRoomForm
       ref="bingoGameRoomFormRef"
       v-model="roomFormData"
-      :creator="creatorData"
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
