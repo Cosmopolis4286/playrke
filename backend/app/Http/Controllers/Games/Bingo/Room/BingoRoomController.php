@@ -30,7 +30,7 @@ final class BingoRoomController extends Controller
         private readonly \App\Services\Games\Bingo\Room\BingoRoomService $service,
         private readonly \App\Services\Security\UserContextService $userContext
     ) {
-        $this->authorizeResource(BingoRoom::class, 'id');
+        $this->authorizeResource(BingoRoom::class, 'room');
     }
 
     /**

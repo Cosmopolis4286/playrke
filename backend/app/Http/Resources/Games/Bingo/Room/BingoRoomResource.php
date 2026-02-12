@@ -8,42 +8,45 @@ class BingoRoomResource extends JsonResource
 {
     public function toArray($request): array
     {
+        $config = $this->config->first();
+
         return [
-            'id' => $this->hashed_id,
-            'name' => $this->name,
-            'phone' => $this->phone,
-            'commission' => $this->commission,
+            'id'                 => $this->encrypted_code,
+            'encrypted_code'     => $this->encrypted_code,
+            'room_type'          => $this->room_type,
+            'status_id'          => $this->status_id,
+            'prizes_paid'        => $this->prizes_paid,
+            'prize_pool'         => $this->prize_pool,
+            'total_players'      => $this->total_players,
+            'total_cards'        => $this->total_cards,
+            'total_sales'        => $this->total_sales,
+            'room_type_description' => $this->room_type_description,
+            'is_closed'          => $this->is_closed,
+            'total_commissions'  => $this->total_commissions,
 
-            'country' => [
-                'id' => $this->country->id,
-                'name' => $this->country->name,
-            ],
+            'status' => $this->whenLoaded('status', fn () => [
+                'id'          => $this->status->id,
+                'value'       => $this->status->value,
+                'description' => $this->status->description,
+            ]),
 
-            'user' => [
-                'username' => $this->user->username,
-                'email' => $this->user->email,
-                'time_zone_id' => $this->user->timeZone->id ?? null,
-            ],
-
-            // Moneda principal (nivel 1) - debe devolver ID único, no colección
-            'currency' => $this->currenciesActive
-                ->where('pivot.level', 1)
-                ->pluck('id')
-                ->first(), // solo la principal
-
-            // Otras monedas (nivel 2) - array plano de IDs
-            'other_currencies' => $this->currenciesActive
-                ->where('pivot.level', 2)
-                ->pluck('id')
-                ->values()
-                ->all(),
-
-            'allowed_games' => $this->whenLoaded('gamesActive', function () {
-                return $this->gamesActive
-                    ->pluck('id')
-                    ->values()
-                    ->all();
-            }),
+            'config' => $config ? [
+                'date'                    => $config->date?->format('Y-m-d'),
+                'time'                    => $config->time,
+                'game_mode_id'            => $config->game_mode_id,
+                'prize_pool_type_id'      => $config->prize_pool_type_id,
+                'amount_added_prize_pool' => $config->amount_added_prize_pool,
+                'card_price'              => $config->card_price,
+                'room_commn'              => $config->room_commn,
+                'rke_commn'               => $config->rke_commn,
+                'jackpot_pct'             => $config->jackpot_pct,
+                'time_chip'               => $config->time_chip,
+                'rounds'                  => $config->rounds,
+                'rounds_pct'              => $config->rounds_pct,
+                'serials_pct'             => $config->serials_pct,
+                'num_serials'             => $config->num_serials,
+                'in_live'                 => $config->in_live,
+            ] : null,
         ];
     }
 }

@@ -191,7 +191,30 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             )
 
             const room = data.data
+            const config = room.config ?? {}
+
             roomData.value = { id: room.id }
+
+            roomFormData.value = {
+                date: config.date ?? null,
+                time: config.time ?? null,
+                roomType: room.room_type ?? 'PV',
+                gameMode: config.game_mode_id ?? null,
+                prizePoolType: config.prize_pool_type_id ?? null,
+                allowedCurrencies: [],
+                amountAddedPrizePool: config.amount_added_prize_pool ?? null,
+                roomCommn: config.room_commn ?? 20,
+                jackpotPct: config.jackpot_pct ?? null,
+                timeChip: config.time_chip ?? 5,
+                rounds: config.rounds ?? 1,
+                roundsConfigActive: false,
+                loadingRoundsConfig: false,
+                roundsPct: config.rounds_pct ?? null,
+                serialsPct: config.serials_pct ?? 5,
+                numSerials: config.num_serials ?? 5,
+                ctnPrice: config.card_price ?? 1,
+                roundsConfig: []
+            }
 
             return true
         } catch (error) {

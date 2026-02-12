@@ -118,11 +118,11 @@ final class BingoRoomCrudService
      */
     public function show(BingoRoom $room): BingoRoomResource
     {
-        $room->load([
-            'config',
-            'creator.user.timeZone',
-            'creator.allowedCurrencies',
-        ]);
+        if (!$room->exists) {
+            throw BingoRoomException::notFound();
+        }
+
+        $room->load(['config', 'status']);
 
         return new BingoRoomResource($room);
     }
