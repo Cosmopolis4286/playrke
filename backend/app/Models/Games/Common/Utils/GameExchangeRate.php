@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Shared\Utils;
+namespace App\Models\Common\Utils;
 
 use App\Models\Game;
 use App\Models\Currency;

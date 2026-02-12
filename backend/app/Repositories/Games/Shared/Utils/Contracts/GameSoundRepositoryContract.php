@@ -3,7 +3,7 @@
 namespace App\Repositories\Shared\Utils\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Shared\Utils\GameSound;
+use App\Models\Common\Utils\GameSound;
 use Illuminate\Database\Eloquent\Collection;
 
 interface GameSoundRepositoryContract extends BaseRepositoryInterface

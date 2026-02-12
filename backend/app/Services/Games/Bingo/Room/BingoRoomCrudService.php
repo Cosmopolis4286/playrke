@@ -4,11 +4,12 @@ namespace App\Services\Games\Bingo\Room;
 
 use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
 use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
+use App\Exceptions\Domain\Games\Bingo\Room\BingoRoomException;
 use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Models\Games\Bingo\Creator\BingoCreator;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
-use App\Models\Shared\Utils\GameConfig;
+use App\Models\Common\Utils\GameConfig;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -34,11 +35,11 @@ final class BingoRoomCrudService
      * Crear una nueva sala de bingo con su configuración y creador.
      *
      * @param BingoRoomCreateDTO $dto
-     * @return array
+     * @return bool
      *
      * @throws BingoRoomException Si ocurre un error durante la creación
      */
-    public function create(BingoRoomCreateDTO $dto): array
+    public function create(BingoRoomCreateDTO $dto): bool
     {
         return DB::transaction(function () use ($dto) {
             $userId = Auth::id();
@@ -98,10 +99,7 @@ final class BingoRoomCrudService
                 'status'             => 'ACTIVE',
             ]);
 
-            return [
-                'message' => 'Sala creada exitosamente.',
-                'room_id' => $room->id,
-            ];
+            return true;
         });
     }
 
@@ -146,5 +144,49 @@ final class BingoRoomCrudService
                 ])
             );
         });
+    }
+
+    /**
+     * Alternar estado de una sala de bingo (ACTIVE / INACTIVE).
+     * También sincroniza el estado del usuario asociado.
+     *
+     * @param BingoRoom $room
+     * @return bool True si el cambio fue exitoso
+     *
+     * @throws BingoRoomException Si la sala de bingo está eliminada
+     */
+    public function toggleStatus(BingoRoom $room): bool
+    {
+        if ($room->status === 'DELETED') {
+            throw BingoRoomException::invalidStatusChange();
+        }
+
+        // Usa changeStatus con userRelation para sincronizar BingoRoom y User
+        $newStatus = $room->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+
+        return $this->bingoRoomRepository->changeStatus($room, $newStatus, 'user');
+    }
+
+    /**
+     * Eliminación lógica (soft delete) de una sala de bingo.
+     * También marca el usuario asociado como DELETED.
+     *
+     * @param BingoRoom $room
+     * @return bool True si la eliminación fue exitosa
+     *
+     * @throws BingoRoomException Si la sala de bingo ya está eliminada
+     */
+    public function delete(BingoRoom $room): bool
+    {
+        if ($room->status === 'DELETED') {
+            throw BingoRoomException::alreadyDeleted();
+        }
+
+        // Usa softDelete con userRelation para sincronizar BingoRoom
+        return $this->bingoRoomRepository->softDelete(
+            model: $room,
+            status: 'DELETED',
+            relationsToDetach: [],
+        );
     }
 }

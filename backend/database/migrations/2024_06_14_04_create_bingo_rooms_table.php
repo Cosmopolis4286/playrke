@@ -67,6 +67,9 @@ return new class extends Migration
             // Timestamps automáticos
             $table->timestamps();
 
+            // Soft deletes
+            $table->softDeletes();
+
             // Índices compuestos útiles
             $table->index(['status_id', 'room_type'], 'idx_status_roomtype');
         });

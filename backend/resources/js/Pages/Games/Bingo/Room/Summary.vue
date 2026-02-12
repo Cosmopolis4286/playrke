@@ -27,7 +27,7 @@
 
   import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/summary/bingo-room-summary'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
-  import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
+  import type { TableFilter } from '@js/types/common/table/table-filter'
 
   // ==========================================================================
   // Props (Inertia)
@@ -35,7 +35,7 @@
 
   const props = defineProps<BingoRoomSummaryPageProps>()
 
-    console.log('BingoRoomSummaryPageProps', props)
+  console.log('BingoRoomSummaryPageProps', props)
 
   // ==========================================================================
   // Lógica de negocio
@@ -118,19 +118,12 @@
   // Filtros
   // ==========================================================================
 
-  const countryOptions = computed<TableFilterOption[]>(() =>
-    props.countries.map(country => ({
-      value: country.name,
-      label: country.name
-    }))
-  )
-
   const filters = computed<readonly TableFilter[]>(() => [
     {
-      key: 'country_name',
-      label: 'País',
-      placeholder: 'Filtrar por país',
-      options: countryOptions.value
+      key: 'room_type',
+      label: 'tipo',
+      placeholder: 'Filtrar por tipo',
+      options: roomTypeOptions
     },
     {
       key: 'status',

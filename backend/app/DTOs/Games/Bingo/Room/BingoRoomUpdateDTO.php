@@ -28,18 +28,10 @@ final class BingoRoomUpdateDTO
         public readonly int $numSerials,
         public readonly float $ctnPrice,
         public readonly ?array $roundsConfig,
-        public readonly ?array $creator,
     ) {}
 
     public static function fromArray(array $data): self
     {
-        $creator = null;
-        if (isset($data['creator'])) {
-            $creator = is_string($data['creator'])
-                ? json_decode($data['creator'], true)
-                : $data['creator'];
-        }
-
         return new self(
             date: $data['date'],
             time: $data['time'],
@@ -57,7 +49,6 @@ final class BingoRoomUpdateDTO
             numSerials: (int) ($data['numSerials'] ?? 5),
             ctnPrice: (float) ($data['ctnPrice'] ?? 1),
             roundsConfig: $data['roundsConfig'] ?? null,
-            creator: $creator,
         );
     }
 }

@@ -3,7 +3,7 @@
 namespace App\Repositories\Shared\Utils\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Shared\Utils\GameExchangeRate;
+use App\Models\Common\Utils\GameExchangeRate;
 use Illuminate\Database\Eloquent\Collection;
 
 interface GameExchangeRateRepositoryInterface extends BaseRepositoryInterface

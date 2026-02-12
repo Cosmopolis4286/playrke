@@ -2,6 +2,7 @@
 
 namespace App\Models\Games\Bingo\Room;
 
+use App\Models\BaseModel;
 use App\Models\Games\Bingo\Cards\BingoCard;
 use App\Models\Games\Bingo\Cards\BingoCardLot;
 use App\Models\Games\Bingo\Cards\CardPrice\BingoCardPrice;
@@ -11,11 +12,9 @@ use App\Models\Games\Bingo\Room\User\BingoRoomUser;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\Roles\SellerRoomLimits;
 use App\Models\User;
-use App\Models\Shared\Utils\GameExchangeRate;
-use Illuminate\Database\Eloquent\Model;
+use App\Models\Common\Utils\GameExchangeRate;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use BradieTilley\Snowflake\Snowflake;
 
 /**
  * Modelo BingoRoom refactorizado
@@ -28,7 +27,7 @@ use BradieTilley\Snowflake\Snowflake;
  *
  * NOTA: Las consultas complejas se han movido a BingoRoomRepository
  */
-class BingoRoom extends Model
+class BingoRoom extends BaseModel
 {
 
     // ========================
@@ -91,20 +90,6 @@ class BingoRoom extends Model
     // Accessors computados
     // ========================
     protected $appends = ['room_type_description', 'is_closed', 'total_commissions'];
-
-    // ========================
-    // Boot method para Snowflake
-    // ========================
-    protected static function boot(): void
-    {
-        parent::boot();
-
-        static::creating(function (BingoRoom $room) {
-            if (!$room->id) {
-                $room->id = (new Snowflake())->id();
-            }
-        });
-    }
 
     // ========================
     // Relaciones
@@ -207,7 +192,7 @@ class BingoRoom extends Model
      */
     public function getRoomTypeDescriptionAttribute(): string
     {
-        return match($this->room_type) {
+        return match ($this->room_type) {
             'PV' => 'Público',
             'PB' => 'Privado',
             default => 'Desconocido',
@@ -239,7 +224,7 @@ class BingoRoom extends Model
      */
     public function scopeActive($query)
     {
-        return $query->whereHas('status', function($q) {
+        return $query->whereHas('status', function ($q) {
             $q->where('name', 'ACTIVE');
         });
     }
@@ -258,6 +243,6 @@ class BingoRoom extends Model
     public function scopeWithPendingPrizes($query)
     {
         return $query->where('prizes_paid', false)
-                    ->where('prize_pool', '>', 0);
+            ->where('prize_pool', '>', 0);
     }
 }
