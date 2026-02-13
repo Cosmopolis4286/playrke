@@ -8,7 +8,8 @@ class BingoRoomResource extends JsonResource
 {
     public function toArray($request): array
     {
-        $config = $this->config->first();
+        $config  = $this->config->first();
+        $creator = $this->whenLoaded('bingoCreators', fn () => $this->bingoCreators->first());
 
         return [
             'id'                 => $this->encrypted_code,
@@ -29,6 +30,8 @@ class BingoRoomResource extends JsonResource
                 'value'       => $this->status->value,
                 'description' => $this->status->description,
             ]),
+
+            'allowed_currencies' => $creator?->allowed_currencies ?? [],
 
             'config' => $config ? [
                 'date'                    => $config->date?->format('Y-m-d'),

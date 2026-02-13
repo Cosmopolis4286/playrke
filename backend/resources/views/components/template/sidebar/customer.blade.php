@@ -19,7 +19,7 @@
         </a>
     </li>
     <li class="nav-item has-treeview">
-        <a href="#" class="nav-link {{ Route::is('bingo.*') ? 'active' : '' }}">
+        <a href="#" class="nav-link {{ Route::is('bingo-rooms.*') ? 'active' : '' }}">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo
                 <i class="right fas fa-angle-left"></i>

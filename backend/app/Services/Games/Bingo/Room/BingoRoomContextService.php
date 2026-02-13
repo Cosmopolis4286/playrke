@@ -50,8 +50,8 @@ final class BingoRoomContextService
      */
     private function resolveGameRooms(?int $userId): array
     {
-        $labels  = ['Código', 'Tipo', 'Jugadores', 'Premio', 'Publicación', 'Estado'];
-        $rowKeys = ['encrypted_code', 'room_type', 'total_players', 'prize_pool', 'publication_date', 'Status.name'];
+        $labels  = ['Código', 'Tipo', 'Jugadores', 'Premio', 'Creación', 'Estado'];
+        $rowKeys = ['encrypted_code', 'room_type_description', 'total_players', 'prize_pool', 'created_at', 'status_badge'];
 
         $conditions = $userId
             ? ['creator_user_id' => $userId]
@@ -62,12 +62,29 @@ final class BingoRoomContextService
             page: 1,
             relations: ['status:id,value,description'],
             conditions: $conditions,
-            fields: ['id', 'encrypted_code', 'status_id', 'room_type', 'creator_user_id', 'publication_date', 'total_players', 'prize_pool']
+            fields: ['id', 'encrypted_code', 'status_id', 'room_type', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
         );
 
-        $collection = $source instanceof LengthAwarePaginator
+        $raw = $source instanceof LengthAwarePaginator
             ? $source->getCollection()
             : collect($source);
+
+        // Calcular status_badge y aplanar status a string desde la relación
+        // ANTES de sobreescribir el atributo (evita conflicto relación vs string)
+        $collection = $raw->each(function ($room) {
+            $statusValue = $room->getRelation('status')?->value;
+
+            $room->setAttribute('status_badge', match ($statusValue) {
+                'AVAILABLE'   => '<span class="badge badge-success">Disponible</span>',
+                'IN_PROGRESS' => '<span class="badge badge-primary">En Juego</span>',
+                'FINISHED'    => '<span class="badge badge-info">Finalizada</span>',
+                'REFUND'      => '<span class="badge badge-warning">Reembolso</span>',
+                'OFFLINE'     => '<span class="badge badge-secondary">Fuera de Línea</span>',
+                default       => '<span class="badge badge-dark">N/D</span>',
+            });
+
+            $room->setAttribute('status', $statusValue);
+        });
 
         $pagination = $source instanceof LengthAwarePaginator
             ? [

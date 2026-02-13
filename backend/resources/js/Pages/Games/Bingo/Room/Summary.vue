@@ -120,19 +120,24 @@
 
   const filters = computed<readonly TableFilter[]>(() => [
     {
-      key: 'room_type',
+      key: 'room_type_description',
       label: 'tipo',
       placeholder: 'Filtrar por tipo',
-      options: roomTypeOptions
+      options: [
+        { value: 'Público', label: 'Público' },
+        { value: 'Privado', label: 'Privado' }
+      ]
     },
     {
       key: 'status',
       label: 'Estado',
       placeholder: 'Filtrar por estado',
       options: [
-        { value: 'ACTIVE', label: 'Activo' },
-        { value: 'INACTIVE', label: 'Inactivo' },
-        { value: 'DELETED', label: 'Eliminado' }
+        { value: 'AVAILABLE', label: 'Disponible' },
+        { value: 'IN_PROGRESS', label: 'En Juego' },
+        { value: 'FINISHED', label: 'Finalizada' },
+        { value: 'REFUND', label: 'Reembolso' },
+        { value: 'OFFLINE', label: 'Fuera de Línea' }
       ]
     }
   ])

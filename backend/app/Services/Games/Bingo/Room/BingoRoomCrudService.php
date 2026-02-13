@@ -100,7 +100,7 @@ final class BingoRoomCrudService
                 'user_id'            => $userId,
                 'creator_commn'      => $dto->roomCommn,
                 'card_price'         => $dto->ctnPrice,
-                //'allowed_currencies' => $dto->allowedCurrencies,
+                'allowed_currencies' => $dto->allowedCurrencies,
                 'status'             => 'ACTIVE',
             ]);
 
@@ -122,7 +122,7 @@ final class BingoRoomCrudService
             throw BingoRoomException::notFound();
         }
 
-        $room->load(['config', 'status']);
+        $room->load(['config', 'status', 'bingoCreators']);
 
         return new BingoRoomResource($room);
     }

@@ -223,6 +223,31 @@ class BingoRoom extends BaseModel
         return $this->rke_commission + $this->room_commission + $this->seller_commission;
     }
 
+    /**
+     * Valor string del estado (desde la relación game_status)
+     */
+    public function getStatusValueAttribute(): ?string
+    {
+        return $this->status?->value;
+    }
+
+    /**
+     * Badge HTML del estado
+     */
+    public function getStatusBadgeAttribute(): string
+    {
+        $value = $this->status_value;
+
+        return match ($value) {
+            'AVAILABLE'   => '<span class="badge badge-success">Disponible</span>',
+            'IN_PROGRESS' => '<span class="badge badge-primary">En Juego</span>',
+            'FINISHED'    => '<span class="badge badge-info">Finalizada</span>',
+            'REFUND'      => '<span class="badge badge-warning">Reembolso</span>',
+            'OFFLINE'     => '<span class="badge badge-secondary">Fuera de Línea</span>',
+            default       => '<span class="badge badge-dark">N/D</span>',
+        };
+    }
+
     // ========================
     // Scopes útiles
     // ========================

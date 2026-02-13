@@ -201,7 +201,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 roomType: room.room_type ?? 'PV',
                 gameMode: config.game_mode_id ?? null,
                 prizePoolType: config.prize_pool_type_id ?? null,
-                allowedCurrencies: [],
+                allowedCurrencies: room.allowed_currencies ?? [],
                 amountAddedPrizePool: config.amount_added_prize_pool ?? null,
                 roomCommn: config.room_commn ?? 20,
                 jackpotPct: config.jackpot_pct ?? null,

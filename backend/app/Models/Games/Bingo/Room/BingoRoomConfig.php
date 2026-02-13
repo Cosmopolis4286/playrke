@@ -42,6 +42,10 @@ class BingoRoomConfig extends Model
     ];
 
     protected $casts = [
+        'room_id' => 'string',
+        'creator_user_id' => 'string',
+        'game_mode_id' => 'string',
+        'prize_pool_type_id' => 'string',
         'date' => 'date',
         'card_price' => 'decimal:2',
         'rke_commn' => 'decimal:2',
