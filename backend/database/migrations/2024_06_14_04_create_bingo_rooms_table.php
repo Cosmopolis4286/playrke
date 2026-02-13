@@ -63,7 +63,6 @@ return new class extends Migration
             $table->softDeletes();
 
             // Índices compuestos útiles
-            $table->index(['status_id', 'room_type'], 'idx_status_roomtype');
             $table->index(['creator_user_id', 'created_at'], 'idx_creator_createdat');
             $table->index(['finished_at'], 'idx_finished_at');
             $table->index('uuid_code', 'idx_uuid_code');

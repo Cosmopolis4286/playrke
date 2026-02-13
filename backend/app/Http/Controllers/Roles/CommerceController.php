@@ -14,7 +14,7 @@ use App\Traits\Games\Bingo\BingoTrait;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\BingoCreator;
-use App\Models\Bingo\Cards\CardPrice\BingoCardPrice;
+use App\Models\Games\Bingo\Card\CardPrice\BingoCardPrice;
 use App\Models\BingoCtnsPayment;
 use App\Models\BingoPrizeCtns;
 use App\Models\Currency;

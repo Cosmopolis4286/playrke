@@ -80,6 +80,13 @@ return new class extends Migration
             $table->decimal('plays_pct', 5, 2)->nullable()->comment('Porcentaje destinado a las jugadas');
 
             $table->timestamps(); // created_at y updated_at
+
+            // indices
+            $table->index('room_id', 'idx_room_id');
+            $table->index('room_type', 'idx_room_type');
+            $table->index('creator_user_id', 'idx_creator_user_id');
+            $table->index('game_mode_id', 'idx_game_mode_id');
+            $table->index('prize_pool_type_id', 'idx_prize_pool_type_id');
         });
     }
 

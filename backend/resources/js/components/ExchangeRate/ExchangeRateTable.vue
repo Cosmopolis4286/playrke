@@ -1,32 +1,33 @@
 <script setup lang="ts">
+  import { ref } from 'vue'
+  import BaseTable from '@js/Components/Common/Table/BaseTable.vue'
+  import type { Column } from '@/js/types/common/table/column-row'
   import type { ExchangeRate, UsedCurrency } from '@js/types/exchange-rate'
 
-  /**
-   * Props del componente ExchangeRateTable
-   */
   const props = defineProps<{
     usedCurrencies?: UsedCurrency[]
     exchangeRates: ExchangeRate[]
     hasPrivilegedRole: boolean
   }>()
 
-  /**
-   * Eventos emitidos por el componente
-   */
   defineEmits<{
     (e: 'edit', id: number | string): void
     (e: 'change-status', id: number | string): void
     (e: 'delete', id: number | string): void
   }>()
 
+  const selectedIds = ref<string[]>([])
+
+  const columns: Column[] = [
+    { key: 'currency', label: 'Moneda' },
+    { key: 'amount', label: 'Cambio' },
+    { key: 'percentage', label: '%' },
+    { key: 'status', label: 'Status' },
+    { key: 'actions', label: 'Acción' }
+  ]
+
   type CurrencyValueKey = 'name' | 'description' | 'iso_code' | 'country_iso_code'
 
-  /**
-   * Obtiene un valor de la moneda de forma segura por ID
-   * @param currencyId ID de la moneda
-   * @param key Valor a obtener
-   * @returns Valor correspondiente o undefined
-   */
   function getValueByCurrencyId(
     currencyId?: number | string,
     key: CurrencyValueKey = 'name'
@@ -34,7 +35,6 @@
     if (currencyId == null) return undefined
 
     const currency = props.usedCurrencies?.find(c => c.id == currencyId)
-
     if (!currency) return undefined
 
     const map: Record<CurrencyValueKey, string | undefined> = {
@@ -47,7 +47,6 @@
     return map[key]
   }
 
-  // Mapeo para status: texto, clase, y si es link, url y title
   type StatusInfo =
     | { text: string; class: string; isLink: false }
     | {
@@ -73,91 +72,82 @@
 </script>
 
 <template>
-  <div class="table-responsive mt-3">
-    <table class="table-striped table-bordered w-100 table">
-      <thead>
-        <tr>
-          <th>Moneda</th>
-          <th>Cambio</th>
-          <th>%</th>
-          <th>Status</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
+  <BaseTable
+    table-id="exchange-rate-table"
+    :columns="columns"
+    :rows="(exchangeRates as Record<string, any>[])"
+    :selected-ids="selectedIds"
+    empty-message="No hay tasas de cambio registradas"
+    @selection-change="selectedIds = $event"
+  >
+    <!-- Moneda -->
+    <template #cell-currency="{ row }">
+      {{ getValueByCurrencyId(row.currency_id, 'description') }}
+    </template>
 
-      <tbody>
-        <tr v-for="item in exchangeRates" :key="item.id">
-          <!-- Moneda -->
-          <td>
-            {{ getValueByCurrencyId(item?.currency_id, 'description') }}
-          </td>
+    <!-- Cambio -->
+    <template #cell-amount="{ row }">
+      <template v-if="!hasPrivilegedRole">
+        {{ getValueByCurrencyId(row.currency_id, 'iso_code') }}
+      </template>
+      {{ Number(row.amount).toFixed(2) }}
+    </template>
 
-          <!-- Cambio -->
-          <td>
-            <template v-if="!hasPrivilegedRole">
-              {{ getValueByCurrencyId(item?.currency_id, 'iso_code') }}
-            </template>
-            {{ Number(item.amount).toFixed(2) }}
-          </td>
+    <!-- Porcentaje -->
+    <template #cell-percentage="{ row }">
+      {{ row.percentage != 0 ? `${row.percentage}%` : '-' }}
+    </template>
 
-          <!-- Porcentaje -->
-          <td>
-            {{ item.percentage != 0 ? `${item.percentage}%` : '-' }}
-          </td>
+    <!-- Status -->
+    <template #cell-status="{ row }">
+      <template v-if="statusMap[row.status]">
+        <a
+          v-if="statusMap[row.status].isLink"
+          :href="(statusMap[row.status] as { getUrl: Function }).getUrl(row)"
+          :class="['badge', statusMap[row.status].class]"
+          :title="(statusMap[row.status] as { title: string }).title"
+        >
+          {{ statusMap[row.status].text }}
+        </a>
+        <span v-else :class="['badge', statusMap[row.status].class]">
+          {{ statusMap[row.status].text }}
+        </span>
+      </template>
+      <span v-else class="badge badge-light">Desconocido</span>
+    </template>
 
-          <!-- Status -->
-          <td>
-            <template v-if="statusMap[item.status]">
-              <a
-                v-if="statusMap[item.status].isLink"
-                :href="(statusMap[item.status] as { getUrl: Function }).getUrl(item)"
-                :class="['badge', statusMap[item.status].class]"
-                :title="(statusMap[item.status] as { title: string }).title"
-              >
-                {{ statusMap[item.status].text }}
-              </a>
-              <span v-else :class="['badge', statusMap[item.status].class]">
-                {{ statusMap[item.status].text }}
-              </span>
-            </template>
-            <span v-else class="badge badge-light">Desconocido</span>
-          </td>
+    <!-- Acciones -->
+    <template #cell-actions="{ row }">
+      <div class="btn-group btn-group-toggle" @click.stop>
+        <button
+          v-if="row.status === 'ACTIVE'"
+          class="btn btn-sm btn-primary"
+          type="button"
+          title="Editar Tasa de Cambio"
+          @click="$emit('edit', row.id)"
+        >
+          <i class="fas fa-edit"></i>
+        </button>
 
-          <!-- Acciones -->
-          <td>
-            <div class="btn-group btn-group-toggle">
-              <button
-                v-if="item.status === 'ACTIVE'"
-                class="btn btn-sm btn-primary"
-                type="button"
-                title="Editar Tasa de Cambio"
-                @click="$emit('edit', item.id)"
-              >
-                <i class="fas fa-edit"></i>
-              </button>
+        <button
+          v-if="row.amount > 0"
+          class="btn btn-sm btn-secondary"
+          type="button"
+          title="Cambiar Status"
+          @click="$emit('change-status', row.id)"
+        >
+          <i class="fa-solid fa-repeat"></i>
+        </button>
 
-              <button
-                v-if="item.amount > 0"
-                class="btn btn-sm btn-secondary"
-                type="button"
-                title="Cambiar Status"
-                @click="$emit('change-status', item.id)"
-              >
-                <i class="fa-solid fa-repeat"></i>
-              </button>
-
-              <button
-                class="btn btn-sm btn-danger"
-                type="button"
-                title="Eliminar"
-                @click="$emit('delete', item.id)"
-              >
-                <i class="fa-solid fa-trash-can"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+        <button
+          class="btn btn-sm btn-danger"
+          type="button"
+          title="Eliminar"
+          @click="$emit('delete', row.id)"
+        >
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
+    </template>
+  </BaseTable>
 </template>

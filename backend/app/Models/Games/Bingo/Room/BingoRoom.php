@@ -5,7 +5,7 @@ namespace App\Models\Games\Bingo\Room;
 use App\Models\BaseModel;
 use App\Models\Games\Bingo\Cards\BingoCard;
 use App\Models\Games\Bingo\Cards\BingoCardLot;
-use App\Models\Games\Bingo\Cards\CardPrice\BingoCardPrice;
+use App\Models\Games\Bingo\Card\CardPrice\BingoCardPrice;
 use App\Models\Games\Bingo\Creator\BingoCreator;
 use App\Models\Games\Bingo\Creator\BingoCreatorSale;
 use App\Models\Games\Bingo\Room\User\BingoRoomUser;

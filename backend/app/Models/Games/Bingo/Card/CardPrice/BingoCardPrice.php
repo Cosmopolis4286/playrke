@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cards\CardPrice;
+namespace App\Models\Games\Bingo\Card\CardPrice;
 
 use App\Models\Currency;
 use App\Models\Games\Bingo\Rooms\BingoRoom;
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa el precio de un cartón de bingo en una sala y moneda específica.
  * Cada precio está asociado a una sala, una moneda y tiene un usuario creador.
  *
- * @package App\Models\Bingo\Cards\CardPrice
+ * @package App\Models\Games\Bingo\Card\CardPrice
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  *

@@ -53,6 +53,14 @@ return new class extends Migration
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
 
             $table->timestamps();
+
+            // Soft deletes para permitir recuperación de salas eliminadas
+            $table->softDeletes();
+
+            // Índices compuestos útiles
+            $table->index(['status', 'room_type'], 'idx_status_roomtype_automatic');
+            $table->index(['creator_user_id', 'created_at'], 'idx_creator_createdat_automatic');
+            $table->index(['date'], 'idx_date_automatic');
         });
     }
 

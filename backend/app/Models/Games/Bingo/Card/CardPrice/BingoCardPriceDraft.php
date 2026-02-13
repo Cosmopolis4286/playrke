@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cards\CardPrice;
+namespace App\Models\Games\Bingo\Card\CardPrice;
 
 use App\Models\Games\Bingo\Rooms\BingoRoom;
 use App\Models\Games\Bingo\Rooms\BingoRoomAutomatic;
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * precios para una sala de bingo o sala autom\u00e1tica. Los borradores pueden estar
  * activos o ejecutados.
  *
- * @package App\Models\Bingo\Cards\CardPrice
+ * @package App\Models\Games\Bingo\Card\CardPrice
  * @author Sistema de Gesti\u00f3n de Bingo
  * @version 1.0
  *
