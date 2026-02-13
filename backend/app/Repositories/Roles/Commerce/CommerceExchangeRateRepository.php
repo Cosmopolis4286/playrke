@@ -242,4 +242,21 @@ class CommerceExchangeRateRepository extends RoleExchangeRateRepository implemen
             ->orderByDesc('id')
             ->first();
     }
+
+    /**
+     * Obtiene el historial completo de tasas por comercio y moneda.
+     *
+     * @param mixed $commerceId ID del comercio
+     * @param mixed $currencyId ID de la moneda
+     * @return Collection
+     */
+    public function getHistoryByCurrency($commerceId, $currencyId): Collection
+    {
+        return $this->model
+            ->with('currency')
+            ->where('commerce_id', $commerceId)
+            ->where('currency_id', $currencyId)
+            ->orderByDesc('created_at')
+            ->get();
+    }
 }

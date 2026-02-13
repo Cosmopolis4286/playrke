@@ -1,6 +1,6 @@
 import type { Currency } from './currency'
 
-export type ExchangeRateStatus = 'ACTIVE' | 'INACTIVE' | 'DIRECTORY'
+export type ExchangeRateStatus = 'ACTIVE' | 'INACTIVE' | 'DIRECTORY' | 'OLD' | 'DELETED'
 
 export interface ExchangeRate {
     readonly id?: number | string
@@ -10,6 +10,8 @@ export interface ExchangeRate {
     readonly percentage?: number
     readonly status: ExchangeRateStatus
     readonly token?: string
+    readonly created_at?: string
+    readonly updated_at?: string
 }
 
 export interface ExchangeRatePageProps {
@@ -17,6 +19,13 @@ export interface ExchangeRatePageProps {
     exchangeRates: ExchangeRate[]
     roleUser: string
     tokenId?: string
+}
+
+export interface ExchangeRateHistoricalPageProps {
+    exchangeRates: ExchangeRate[]
+    currencyId: string
+    roleUser: string
+    title: string
 }
 
 export interface UsedCurrency {

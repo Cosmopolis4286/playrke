@@ -109,4 +109,32 @@ final class ExchangeRateContextService
             ->resolveExchangeRatesByRole($role, $userId)
             ->toArray();
     }
+
+    /**
+     * Resuelve el contexto histórico de tasas de cambio para una moneda.
+     *
+     * @param string $currencyId ID de la moneda a consultar.
+     * @param string|null $publicToken Token público opcional.
+     * @return array Datos para la vista histórica.
+     *
+     * @throws DomainException Si no se puede resolver el usuario o rol activo.
+     */
+    public function resolveHistorical(string $currencyId, ?string $publicToken = null): array
+    {
+        $userId = $this->userContext->resolveUserId($publicToken);
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
+        $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
+
+        $history = match ($role) {
+            'commerce' => $this->commerceExchangeRate
+                ->getHistoryByCurrency($entityId, $currencyId),
+            default => collect(),
+        };
+
+        return [
+            'exchangeRates' => $history,
+            'currencyId'    => $currencyId,
+            'roleUser'      => $role,
+        ];
+    }
 }

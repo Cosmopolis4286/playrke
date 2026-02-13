@@ -165,17 +165,21 @@ class ExchangeRateController extends Controller
     }
 
     /**
-     * Histórico de tasas (Inertia).
+     * Histórico de tasas de cambio por moneda (Inertia).
      *
      * @param Request $request
-     * @return JsonResponse
+     * @param string $id ID de la moneda (currency_id)
+     * @return Response
      */
-    public function historical(Request $request): Response
+    public function historical(Request $request, string $id): Response
     {
         return $this->handleServiceInertia(
             fn() => Inertia::render(
-                'ExchangeRate/Index',
-                $this->service->historicalContext($this->resolveToken($request))
+                'ExchangeRate/Historical',
+                [
+                    ...$this->service->historicalContext($id, $this->resolveToken($request)),
+                    'title' => 'Histórico de Tasas de Cambio',
+                ]
             ),
             'No se pudo cargar el histórico de tasas de cambio.'
         );

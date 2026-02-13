@@ -129,4 +129,14 @@ interface CommerceExchangeRateRepositoryInterface extends RoleExchangeRateReposi
      * @return CommerceExchangeRate|null
      */
     public function getLatestRate($commerceId, $currencyId): ?CommerceExchangeRate;
+
+    /**
+     * Obtiene el historial completo de tasas por comercio y moneda.
+     * Incluye todos los estados (ACTIVE, INACTIVE, OLD, etc.).
+     *
+     * @param mixed $commerceId ID del comercio
+     * @param mixed $currencyId ID de la moneda
+     * @return Collection
+     */
+    public function getHistoryByCurrency($commerceId, $currencyId): Collection;
 }

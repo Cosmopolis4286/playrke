@@ -206,12 +206,14 @@ final class ExchangeRateService
     }
 
     /**
-     * Obtener contexto histórico de tasas.
+     * Obtener contexto histórico de tasas de cambio por moneda.
      *
-     * @return array Contexto histórico (vacío actualmente)
+     * @param string $currencyId ID de la moneda
+     * @param string|null $publicToken Token público opcional
+     * @return array Contexto histórico para la vista
      */
-    public function historicalContext(): array
+    public function historicalContext(string $currencyId, ?string $publicToken = null): array
     {
-        return [];
+        return $this->context->resolveHistorical($currencyId, $publicToken);
     }
 }
