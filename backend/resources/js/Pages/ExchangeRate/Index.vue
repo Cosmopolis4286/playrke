@@ -2,9 +2,9 @@
   import { ref, computed, watch } from 'vue'
 
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
-  import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
   import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
   import ExchangeRateForm from '@/js/Components/ExchangeRate/ExchangeRateForm.vue'
+  import TableActionButtons from '@/js/Components/Common/Table/TableActionButtons.vue'
   import TableFooterInfo from '@/js/Components/Common/Table/TableFooterInfo.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
 
@@ -24,6 +24,14 @@
   const hasPrivilegedRole = computed(() => ['company', 'customer'].includes(props.roleUser))
 
   /**
+   * Indica si es posible registrar una nueva tasa de cambio
+   */
+  const canCreate = computed(() => {
+    if (hasPrivilegedRole.value) return true
+    return currencies.length > 0 && usedCurrencies.value.length < currencies.length
+  })
+
+  /**
    * Composable de negocio para manejo de tasas
    */
   const {
@@ -40,6 +48,11 @@
 
   // Inicializar exchangeRates con las props
   setInitialExchangeRates(props.exchangeRates)
+
+  /**
+   * IDs seleccionados en la tabla
+   */
+  const selectedIds = ref<string[]>([])
 
   /**
    * Propiedades y estado local
@@ -107,9 +120,29 @@
    *
    * @param id Identificador de la tasa a editar
    */
-  async function handleEdit(id: string | number): Promise<void> {
+  async function handleEdit(id: string): Promise<void> {
     await edit(id)
     showModalForm.value = true
+  }
+
+  /**
+   * Alterna el status de las tasas seleccionadas
+   */
+  async function handleChangeStatus(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      await toggleStatus(id)
+    }
+    selectedIds.value = []
+  }
+
+  /**
+   * Elimina las tasas seleccionadas
+   */
+  async function handleDelete(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      await remove(id)
+    }
+    selectedIds.value = []
   }
 
   /**
@@ -142,27 +175,68 @@
     <CardHeader title="Tasas de Cambio" subtitle="Valores en base a Un Dólar (1 USD)" />
 
     <div class="card-body">
-      <ExchangeRateButtons
-        :currencies="currencies"
-        :usedCurrencies="usedCurrencies"
-        :has-privileged-role="hasPrivilegedRole"
-        :selected-currency="selectedCurrency"
-        :updating-exchange-rates="updatingExchangeRates"
+      <TableActionButtons
+        :selected-ids="selectedIds"
+        :show-create-button="canCreate"
+        show-edit-button
+        show-delete-button
         @create="handleCreate"
-        @historical="goHistorical"
-        @updateExchangeRates="handleUpdateExchangeRates"
-      />
+        @edit="handleEdit"
+        @delete="handleDelete"
+      >
+        <template #action-buttons="{ selectedIds: ids }">
+          <!-- Cambiar Status (solo con selección) -->
+          <button
+            v-if="ids.length > 0"
+            class="btn btn-sm btn-secondary"
+            title="Cambiar Status"
+            @click="handleChangeStatus(ids)"
+          >
+            <i class="fa-solid fa-repeat"></i>
+          </button>
+
+          <!-- Histórico -->
+          <button
+            class="btn btn-sm btn-primary"
+            type="button"
+            :disabled="!selectedCurrency.length"
+            title="Ver Histórico"
+            @click="goHistorical"
+          >
+            <i class="fa-solid fa-money-bill-trend-up"></i> Histórico
+          </button>
+
+          <!-- Actualizar tasas -->
+          <button
+            class="btn btn-sm btn-secondary"
+            type="button"
+            :disabled="updatingExchangeRates"
+            title="Actualizar Tasas"
+            @click="handleUpdateExchangeRates"
+          >
+            <i class="fa-solid fa-rotate"></i> Actualizar
+            <span
+              v-if="updatingExchangeRates"
+              class="spinner-border spinner-border-sm ml-1"
+              aria-hidden="true"
+            ></span>
+          </button>
+        </template>
+      </TableActionButtons>
 
       <ExchangeRateTable
         :usedCurrencies="usedCurrencies"
         :exchange-rates="exchangeRates"
         :has-privileged-role="hasPrivilegedRole"
-        @edit="handleEdit"
-        @change-status="toggleStatus"
-        @delete="remove"
+        :selected-ids="selectedIds"
+        @selection-change="ids => (selectedIds = ids)"
       />
 
-      <TableFooterInfo :filtered-count="exchangeRates.length" :total-count="exchangeRates.length" />
+      <TableFooterInfo
+        :filtered-count="exchangeRates.length"
+        :total-count="exchangeRates.length"
+        :selected-count="selectedIds.length"
+      />
     </div>
   </div>
 

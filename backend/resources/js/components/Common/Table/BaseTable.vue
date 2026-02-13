@@ -3,13 +3,20 @@
   import type { Column } from '@/js/types/common/table/column-row'
 
   /** Props recibidas */
-  const props = defineProps<{
-    tableId: string
-    columns: Column[]
-    rows: Array<Record<string, any>>
-    emptyMessage?: string
-    selectedIds: string[]
-  }>()
+  const props = withDefaults(
+    defineProps<{
+      tableId: string
+      columns: Column[]
+      rows: Array<Record<string, any>>
+      emptyMessage?: string
+      selectable?: boolean
+      selectedIds?: string[]
+    }>(),
+    {
+      selectable: false,
+      selectedIds: () => []
+    }
+  )
 
   /** Emit eventos */
   const emit = defineEmits<{
@@ -88,7 +95,7 @@
     <table :id="tableId" class="table-striped table-bordered w-100 my-2 table">
       <thead>
         <tr>
-          <th class="text-center" style="width: 40px">
+          <th v-if="selectable" class="text-center" style="width: 40px">
             <input
               type="checkbox"
               :checked="allSelected"
@@ -103,11 +110,10 @@
         <tr
           v-for="row in rows"
           :key="row.id"
-          :class="{ 'table-primary': isSelected(row.id) }"
-          @click="toggleRow(row.id)"
-          style="cursor: pointer"
+          :class="{ 'table-primary': selectable && isSelected(row.id) }"
+          v-bind="selectable ? { onClick: () => toggleRow(row.id), style: 'cursor: pointer' } : {}"
         >
-          <td class="text-center">
+          <td v-if="selectable" class="text-center">
             <input type="checkbox" :checked="isSelected(row.id)" @click.stop="toggleRow(row.id)" />
           </td>
           <td v-for="column in columns" :key="column.key">
@@ -117,7 +123,7 @@
           </td>
         </tr>
         <tr v-if="rows.length === 0">
-          <td :colspan="columns.length + 1" class="text-muted py-4 text-center">
+          <td :colspan="columns.length + (selectable ? 1 : 0)" class="text-muted py-4 text-center">
             <i class="fas fa-inbox fa-2x mb-2"></i>
             <p class="mb-0">{{ emptyMessage ?? 'No hay datos para mostrar' }}</p>
           </td>

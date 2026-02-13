@@ -62,8 +62,10 @@
 </script>
 
 <template>
-  <!-- Se muestra si hay selección o si el botón Crear está habilitado -->
-  <div class="mt-3" v-if="selectedIds.length || showCreateButton">
+  <div
+    v-if="selectedIds.length || showCreateButton"
+    class="table-action-buttons"
+  >
     <!-- Crear -->
     <button v-if="showCreateButton" class="btn btn-sm btn-success" @click="emit('create')">
       <i class="fas fa-plus"></i> Registar
@@ -72,7 +74,7 @@
     <!-- Editar (solo si hay un registro seleccionado) -->
     <button
       v-if="selectedIds.length === 1 && showEditButton"
-      class="btn btn-sm btn-primary ml-2"
+      class="btn btn-sm btn-primary"
       @click="emit('edit', selectedIds[0])"
     >
       <i class="fas fa-edit"></i>
@@ -81,7 +83,7 @@
     <!-- Eliminar (uno o varios) -->
     <button
       v-if="selectedIds.length > 0 && showDeleteButton"
-      class="btn btn-sm btn-danger ml-2"
+      class="btn btn-sm btn-danger"
       @click="emit('delete', selectedIds)"
     >
       <i class="fas fa-trash"></i>
@@ -92,3 +94,12 @@
     <slot name="action-buttons" :selectedIds="selectedIds" />
   </div>
 </template>
+
+<style scoped>
+  .table-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+  }
+</style>

@@ -195,7 +195,7 @@
           content: getDisabledReason(btn, selectedIds),
           disabled: !btn.disabled?.(selectedIds) || !getDisabledReason(btn, selectedIds)
         }"
-        :class="['btn', 'btn-sm', btn.class || 'btn-secondary', 'ml-2']"
+        :class="['btn', 'btn-sm', btn.class || 'btn-secondary']"
         :disabled="btn.disabled ? btn.disabled(selectedIds) : false"
         @click="() => btn.onClick()"
         type="button"

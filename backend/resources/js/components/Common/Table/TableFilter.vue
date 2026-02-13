@@ -208,7 +208,7 @@
 <style scoped>
   .table-filter-container {
     background-color: #f8f9fa;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     border-radius: 0.25rem;
     border: 1px solid #dee2e6;
   }

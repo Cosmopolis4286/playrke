@@ -237,6 +237,7 @@
       />
 
       <TableActionButtons
+        class="mt-3"
         :selected-ids="selectedIds"
         show-create-button
         show-edit-button
@@ -248,7 +249,7 @@
         <template #action-buttons="{ selectedIds: ids }">
           <button
             v-if="ids.length > 0"
-            class="btn btn-sm btn-secondary ml-2"
+            class="btn btn-sm btn-secondary"
             @click="handleToggleStatus(ids)"
             title="Alternar estado"
           >
@@ -262,6 +263,7 @@
         :columns="columns"
         :rows="filteredRows"
         empty-message="No se encontraron registros"
+        selectable
         :selected-ids="selectedIds"
         @selection-change="ids => (selectedIds = ids)"
       >

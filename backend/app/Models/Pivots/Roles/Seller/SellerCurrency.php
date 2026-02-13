@@ -5,7 +5,6 @@ namespace App\Models\Pivots\Roles\Seller;
 use App\Models\Currency;
 use App\Models\Pivots\BasePivot;
 use App\Models\Roles\Seller;
-use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -16,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class SellerCurrency extends BasePivot
 {
-    use SnowflakeId;
+    public $incrementing = false;
 
     /**
      * Nombre de la tabla asociada al modelo.
@@ -46,7 +45,6 @@ class SellerCurrency extends BasePivot
         'seller_id' => 'string',
         'currency_id' => 'string',
         'level' => 'integer',
-        'status' => 'boolean',
     ];
 
     /**

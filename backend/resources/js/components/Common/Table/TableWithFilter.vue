@@ -87,6 +87,7 @@
       />
 
       <TableActionButtons
+        class="mt-3"
         :selected-ids="stringSelectedIds"
         :show-create-button="showCreateButton"
         :show-edit-button="showEditButton"
@@ -105,6 +106,7 @@
         :columns="columns"
         :rows="filteredRows"
         :empty-message="emptyMessage"
+        selectable
         :selected-ids="stringSelectedIds"
         @selection-change="handleSelectionChange"
       >

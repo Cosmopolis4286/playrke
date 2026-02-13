@@ -1,5 +1,4 @@
 <script setup lang="ts">
-  import { ref } from 'vue'
   import BaseTable from '@js/Components/Common/Table/BaseTable.vue'
   import type { Column } from '@/js/types/common/table/column-row'
   import type { ExchangeRate, UsedCurrency } from '@js/types/exchange-rate'
@@ -8,22 +7,18 @@
     usedCurrencies?: UsedCurrency[]
     exchangeRates: ExchangeRate[]
     hasPrivilegedRole: boolean
+    selectedIds: string[]
   }>()
 
   defineEmits<{
-    (e: 'edit', id: number | string): void
-    (e: 'change-status', id: number | string): void
-    (e: 'delete', id: number | string): void
+    (e: 'selection-change', ids: string[]): void
   }>()
-
-  const selectedIds = ref<string[]>([])
 
   const columns: Column[] = [
     { key: 'currency', label: 'Moneda' },
     { key: 'amount', label: 'Cambio' },
     { key: 'percentage', label: '%' },
-    { key: 'status', label: 'Status' },
-    { key: 'actions', label: 'Acción' }
+    { key: 'status', label: 'Status' }
   ]
 
   type CurrencyValueKey = 'name' | 'description' | 'iso_code' | 'country_iso_code'
@@ -77,8 +72,9 @@
     :columns="columns"
     :rows="(exchangeRates as Record<string, any>[])"
     :selected-ids="selectedIds"
+    selectable
     empty-message="No hay tasas de cambio registradas"
-    @selection-change="selectedIds = $event"
+    @selection-change="$emit('selection-change', $event)"
   >
     <!-- Moneda -->
     <template #cell-currency="{ row }">
@@ -114,40 +110,6 @@
         </span>
       </template>
       <span v-else class="badge badge-light">Desconocido</span>
-    </template>
-
-    <!-- Acciones -->
-    <template #cell-actions="{ row }">
-      <div class="btn-group btn-group-toggle" @click.stop>
-        <button
-          v-if="row.status === 'ACTIVE'"
-          class="btn btn-sm btn-primary"
-          type="button"
-          title="Editar Tasa de Cambio"
-          @click="$emit('edit', row.id)"
-        >
-          <i class="fas fa-edit"></i>
-        </button>
-
-        <button
-          v-if="row.amount > 0"
-          class="btn btn-sm btn-secondary"
-          type="button"
-          title="Cambiar Status"
-          @click="$emit('change-status', row.id)"
-        >
-          <i class="fa-solid fa-repeat"></i>
-        </button>
-
-        <button
-          class="btn btn-sm btn-danger"
-          type="button"
-          title="Eliminar"
-          @click="$emit('delete', row.id)"
-        >
-          <i class="fa-solid fa-trash-can"></i>
-        </button>
-      </div>
     </template>
   </BaseTable>
 </template>
