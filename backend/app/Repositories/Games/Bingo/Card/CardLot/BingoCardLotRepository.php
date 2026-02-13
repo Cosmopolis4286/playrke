@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Bingo\Cards;
+namespace App\Repositories\Games\Bingo\Card\CardLot;
 
 use App\Models\Bingo\Cards\BingoCardLot;
-use App\Repositories\Bingo\Card\Contracts\BingoCardLotRepositoryContract;
+use App\Contracts\Games\Bingo\Card\CardLot\BingoCardLotRepositoryInterface;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -15,11 +15,11 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de base de datos relacionadas con
  * los lotes de cartones de bingo, incluyendo consultas complejas y estadísticas.
  *
- * @package App\Repositories\Bingo\Cards
+ * @package App\Repositories\Games\Bingo\Card\CardLot
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  */
-class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepositoryContract
+class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepositoryInterface
 {
     public function __construct(BingoCardLot $model)
     {
@@ -53,8 +53,8 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
         }
 
         return $query->with(['roomUser.user', 'seller', 'currency', 'room'])
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -69,8 +69,8 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
         }
 
         return $query->with(['room', 'seller', 'currency'])
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -98,8 +98,8 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
         }
 
         return $query->with(['room', 'roomUser.user', 'currency'])
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -119,8 +119,8 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
         }
 
         return $query->with(['room', 'roomUser.user', 'seller'])
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -144,8 +144,8 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
         }
 
         return $query->with(['room', 'roomUser.user', 'seller', 'currency'])
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -154,15 +154,15 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function getLotStatsByRoom(string $roomId): array
     {
         $stats = $this->model->where('room_id', $roomId)
-                            ->where('status', true)
-                            ->selectRaw('
+            ->where('status', true)
+            ->selectRaw('
                                 COUNT(*) as total_lots,
                                 SUM(card_count) as total_cards,
                                 SUM(sale_amount) as total_amount,
                                 AVG(sale_amount) as avg_amount,
                                 SUM(commission_amount) as total_commission
                             ')
-                            ->first();
+            ->first();
 
         return [
             'total_lots' => $stats->total_lots ?? 0,
@@ -179,14 +179,14 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function getLotStatsByUser(string $roomUserId): array
     {
         $stats = $this->model->where('room_user_id', $roomUserId)
-                            ->where('status', true)
-                            ->selectRaw('
+            ->where('status', true)
+            ->selectRaw('
                                 COUNT(*) as total_lots,
                                 SUM(card_count) as total_cards,
                                 SUM(sale_amount) as total_spent,
                                 AVG(sale_amount) as avg_spent
                             ')
-                            ->first();
+            ->first();
 
         return [
             'total_lots' => $stats->total_lots ?? 0,
@@ -202,7 +202,7 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function changeLotsStatus(array $lotIds, bool $isActive): int
     {
         return $this->model->whereIn('id', $lotIds)
-                          ->update(['status' => $isActive]);
+            ->update(['status' => $isActive]);
     }
 
     /**
@@ -211,11 +211,11 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function getActiveLotsInRoom(string $roomId, array $columns = ['*']): Collection
     {
         return $this->model->where('room_id', $roomId)
-                          ->where('status', true)
-                          ->select($columns)
-                          ->with(['roomUser.user', 'seller', 'currency'])
-                          ->orderBy('created_at', 'desc')
-                          ->get();
+            ->where('status', true)
+            ->select($columns)
+            ->with(['roomUser.user', 'seller', 'currency'])
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -224,11 +224,11 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function getInactiveLotsInRoom(string $roomId, array $columns = ['*']): Collection
     {
         return $this->model->where('room_id', $roomId)
-                          ->where('status', false)
-                          ->select($columns)
-                          ->with(['roomUser.user', 'seller', 'currency'])
-                          ->orderBy('created_at', 'desc')
-                          ->get();
+            ->where('status', false)
+            ->select($columns)
+            ->with(['roomUser.user', 'seller', 'currency'])
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
@@ -237,9 +237,9 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function calculateSellerCommissions(string $sellerId, string $dateFrom, string $dateTo): float
     {
         $result = $this->model->where('seller_id', $sellerId)
-                             ->whereBetween('created_at', [$dateFrom, $dateTo])
-                             ->where('status', true)
-                             ->sum('commission_amount');
+            ->whereBetween('created_at', [$dateFrom, $dateTo])
+            ->where('status', true)
+            ->sum('commission_amount');
 
         return floatval($result ?? 0);
     }
@@ -256,8 +256,8 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
         }
 
         return $query->with(['room', 'seller', 'currency'])
-                    ->orderBy('created_at', 'desc')
-                    ->first();
+            ->orderBy('created_at', 'desc')
+            ->first();
     }
 
     /**
@@ -277,8 +277,8 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
         }
 
         return $query->with(['room', 'roomUser.user', 'seller', 'currency'])
-                    ->orderBy('sale_amount', 'desc')
-                    ->get();
+            ->orderBy('sale_amount', 'desc')
+            ->get();
     }
 
     /**
@@ -287,10 +287,10 @@ class BingoCardLotRepository extends BaseRepository implements BingoCardLotRepos
     public function countLotsByStatus(string $roomId): array
     {
         $counts = $this->model->where('room_id', $roomId)
-                             ->select('status', DB::raw('count(*) as total'))
-                             ->groupBy('status')
-                             ->pluck('total', 'status')
-                             ->toArray();
+            ->select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
 
         return [
             'active' => $counts[1] ?? 0,

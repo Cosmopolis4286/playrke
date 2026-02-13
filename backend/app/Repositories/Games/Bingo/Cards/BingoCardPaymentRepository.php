@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Bingo\Cards;
+namespace App\Repositories\Games\Bingo\Card\CardLot;
 
 use App\Models\Bingo\Cards\BingoCardPayment;
-use App\Repositories\Bingo\Card\Contracts\BingoCardPaymentRepositoryContract;
+use App\Repositories\Games\Bingo\Card\CardLot\Contracts\BingoCardPaymentRepositoryContract;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de base de datos relacionadas con
  * los pagos de cartones de bingo, incluyendo consultas complejas y estadísticas.
  *
- * @package App\Repositories\Bingo\Cards
+ * @package App\Repositories\Games\Bingo\Card\CardLot
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  */

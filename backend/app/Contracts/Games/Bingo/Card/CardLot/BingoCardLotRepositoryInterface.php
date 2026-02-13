@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Bingo\Card\Contracts;
+namespace App\Contracts\Games\Bingo\Card\CardLot;
 
 use App\Models\Bingo\Cards\BingoCardLot;
 use App\Contracts\BaseRepositoryInterface;
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  */
-interface BingoCardLotRepositoryContract extends BaseRepositoryInterface
+interface BingoCardLotRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene todos los lotes de una sala específica

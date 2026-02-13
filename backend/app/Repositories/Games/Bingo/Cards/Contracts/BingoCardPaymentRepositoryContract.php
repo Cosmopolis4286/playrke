@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Bingo\Card\Contracts;
+namespace App\Contracts\Games\Bingo\Card;
 
 use App\Models\Bingo\Cards\BingoCardPayment;
 use App\Contracts\BaseRepositoryInterface;

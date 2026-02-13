@@ -6,6 +6,7 @@ use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
 use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
 use App\Exceptions\Domain\Games\Bingo\Room\BingoRoomException;
 use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
+use App\Models\Game;
 use App\Models\Games\Bingo\Creator\BingoCreator;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
@@ -48,7 +49,9 @@ final class BingoRoomCrudService
         return DB::transaction(function () use ($dto) {
             $userId = Auth::id();
 
-            $rkeCommission = GameConfig::where('game_id', 'BINGO')
+            $gameId = Game::where('name', 'BINGO')->value('id');
+
+            $rkeCommission = GameConfig::where('game_id', $gameId)
                 ->where('param', 'COMMISSION')
                 ->value('value') ?? 5;
 
