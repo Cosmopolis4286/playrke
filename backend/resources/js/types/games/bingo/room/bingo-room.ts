@@ -45,7 +45,6 @@ export interface BingoRoomUser {
  */
 export interface BingoRoom {
     readonly id: number | string
-    readonly encrypted_code: string
     readonly status_id: number | string
     readonly room_type: BingoRoomType
     readonly creator_user_id: number | string
@@ -60,7 +59,7 @@ export interface BingoRoom {
     readonly prize_pool: number
     readonly full_house_prize: number
     readonly serial_prize: number
-    readonly closed_at: string | null
+    readonly finished_at: string | null
     readonly uuid_code: string | null
     readonly created_at: string
     readonly updated_at: string

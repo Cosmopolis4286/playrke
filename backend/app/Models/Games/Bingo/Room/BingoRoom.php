@@ -38,19 +38,10 @@ class BingoRoom extends BaseModel
     public $incrementing = false;
     protected $keyType = 'string';
 
-    /**
-     * Columna usada para Route Model Binding.
-     */
-    public function getRouteKeyName(): string
-    {
-        return 'encrypted_code';
-    }
-
     // ========================
     // Campos asignables
     // ========================
     protected $fillable = [
-        'encrypted_code',
         'status_id',
         'room_type',
         'creator_user_id',
@@ -65,7 +56,7 @@ class BingoRoom extends BaseModel
         'prize_pool',
         'full_house_prize',
         'serial_prize',
-        'closed_at',
+        'finished_at',
         'uuid_code',
     ];
 
@@ -73,8 +64,12 @@ class BingoRoom extends BaseModel
     // Casting de tipos
     // ========================
     protected $casts = [
+        'id' => 'string',
+        'uuid_code' => 'string',
+        'status_id' => 'string',
+        'creator_user_id' => 'string',
         'publication_date' => 'datetime',
-        'closed_at' => 'datetime',
+        'finished_at' => 'datetime',
         'total_sales' => 'decimal:2',
         'rke_commission' => 'decimal:2',
         'room_commission' => 'decimal:2',
@@ -212,7 +207,7 @@ class BingoRoom extends BaseModel
      */
     public function getIsClosedAttribute(): bool
     {
-        return !is_null($this->closed_at);
+        return !is_null($this->finished_at);
     }
 
     /**

@@ -6,7 +6,6 @@ use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Repositories\BaseRepository;
 use App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 
 /**
@@ -21,15 +20,15 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
     }
 
     /**
-     * Buscar sala por código encriptado
+     * Buscar sala por código UUID
      *
-     * @param string $encryptedCode Código encriptado de la sala
+     * @param string $uuidCode Código UUID de la sala
      * @param array $columns Columnas a seleccionar
      * @return BingoRoom|null
      */
-    public function findByEncryptedCode(string $encryptedCode, array $columns = ['*']): ?BingoRoom
+    public function findByUUIDCode(string $uuidCode, array $columns = ['*']): ?BingoRoom
     {
-        return $this->model->where('encrypted_code', $encryptedCode)->first($columns);
+        return $this->model->where('uuid_code', $uuidCode)->first($columns);
     }
 
     /**
@@ -78,7 +77,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
      */
     public function getActiveRooms(array $columns = ['*']): Collection
     {
-        return $this->model->whereHas('status', function($query) {
+        return $this->model->whereHas('status', function ($query) {
             $query->where('name', 'ACTIVE');
         })->get($columns);
     }
@@ -178,15 +177,16 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         ];
     }
 
+
     /**
-     * Verificar si una sala existe por código encriptado
+     * Verificar si una sala existe por código UUID
      *
-     * @param string $encryptedCode Código encriptado
+     * @param string $uuidCode Código UUID de la sala
      * @return bool
      */
-    public function existsByEncryptedCode(string $encryptedCode): bool
+    public function existsByUUIDCode(string $uuidCode): bool
     {
-        return $this->model->where('encrypted_code', $encryptedCode)->exists();
+        return $this->model->where('uuid_code', $uuidCode)->exists();
     }
 
     /**
@@ -202,15 +202,15 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
     }
 
     /**
-     * Obtener valor específico de una sala por código encriptado
+     * Obtener valor específico de una sala por código UUID
      *
-     * @param string $encryptedCode Código encriptado
+     * @param string $uuidCode Código UUID de la sala
      * @param string $column Columna a obtener
      * @return mixed
      */
-    public function getRoomValueByEncrypted(string $encryptedCode, string $column): mixed
+    public function getRoomValueByUUID(string $uuidCode, string $column): mixed
     {
-        return $this->model->where('encrypted_code', $encryptedCode)->value($column);
+        return $this->model->where('uuid_code', $uuidCode)->value($column);
     }
 
     /**
@@ -222,7 +222,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
     public function closeRoom(string $roomId): bool
     {
         return $this->model->where('id', $roomId)->update([
-            'closed_at' => Carbon::now(),
+            'finished_at' => Carbon::now(),
         ]) > 0;
     }
 

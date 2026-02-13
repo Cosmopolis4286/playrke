@@ -53,15 +53,13 @@ final class BingoRoomCrudService
             $prizePool = $dto->prizePoolType > 1 ? ($dto->amountAddedPrizePool ?? 0) : 0;
 
             do {
-                $encryptedCode = Str::random(14);
-            } while (BingoRoom::where('encrypted_code', $encryptedCode)->exists());
+                  $uuidCode = strtoupper(Str::uuid()->toString());
+            } while (BingoRoom::where('uuid_code', $uuidCode)->exists());
 
-            $uuidCode = strtoupper(Str::uuid()->toString());
 
             $statusId = GameStatus::byValue('AVAILABLE')->value('id');
 
             $room = BingoRoom::create([
-                'encrypted_code'  => $encryptedCode,
                 'status_id'       => $statusId,
                 'room_type'       => $dto->roomType,
                 'creator_user_id' => $userId,

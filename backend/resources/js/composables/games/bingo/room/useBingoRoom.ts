@@ -239,7 +239,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
      */
     async function toggleStatus(id: string | number): Promise<boolean> {
         const room = rooms.value.find(c => c.id === id)
-        const name = room?.encrypted_code ?? 'esta sala'
+        const name = room?.id ?? 'esta sala'
 
         const confirm = await showToastConfirmAction({
             html: `¿Quieres cambiar el estado de <b>${name}</b>?`,
@@ -265,7 +265,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
      */
     async function remove(id: string | number): Promise<boolean> {
         const room = rooms.value.find(c => c.id === id)
-        const name = room?.encrypted_code ?? 'esta sala'
+        const name = room?.id ?? 'esta sala'
 
         const confirm = await showToastConfirmAction({
             html: `¿Estás seguro que deseas eliminar <b>${name}</b>?`,
@@ -293,7 +293,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         const items = ids
             .map(id => rooms.value.find(c => c.id === id))
             .filter(Boolean)
-            .map(c => c!.encrypted_code)
+            .map(c => c!.id)
 
         return `
             <div style="max-height: 150px; overflow-y: auto; text-align: left; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">

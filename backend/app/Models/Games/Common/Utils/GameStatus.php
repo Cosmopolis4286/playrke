@@ -32,6 +32,11 @@ class GameStatus extends Model
         'description', // Etiqueta legible (ej. 'Borrador', 'Activa')
     ];
 
+    protected $casts = [
+        'value' => 'string',
+        'description' => 'string',
+    ];
+
     /**
      * Accessor para obtener el valor en mayúsculas.
      *

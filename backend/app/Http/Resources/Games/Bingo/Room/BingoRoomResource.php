@@ -12,8 +12,7 @@ class BingoRoomResource extends JsonResource
         $creator = $this->whenLoaded('bingoCreators', fn () => $this->bingoCreators->first());
 
         return [
-            'id'                 => $this->encrypted_code,
-            'encrypted_code'     => $this->encrypted_code,
+            'id'                 => $this->hashed_id,
             'room_type'          => $this->room_type,
             'status_id'          => $this->status_id,
             'prizes_paid'        => $this->prizes_paid,

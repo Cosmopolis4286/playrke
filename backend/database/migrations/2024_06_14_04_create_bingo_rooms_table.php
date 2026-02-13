@@ -15,9 +15,8 @@ return new class extends Migration
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la sala');
 
-            // Identificador encriptado
-            $table->string('encrypted_code', 18)->unique()
-                ->comment('Código encriptado único de la sala');
+            // Código único adicional
+            $table->string('uuid_code', 36)->unique()->comment('UUID único de la sala');
 
             // Estado de la sala (FK)
             $table->foreignSnowflake('status_id')
@@ -44,8 +43,7 @@ return new class extends Migration
                 ->default('N')
                 ->comment('Indica si los premios fueron pagados');
 
-            // Fechas y contadores
-            $table->timestamp('publication_date')->nullable()->comment('Fecha de publicación de la sala');
+            // Contadores
             $table->integer('total_players')->default(0)->comment('Número de jugadores en la sala');
             $table->integer('total_cards')->default(0)->comment('Número total de cartones vendidos');
 
@@ -58,11 +56,10 @@ return new class extends Migration
             $table->decimal('full_house_prize', 15, 2)->default(0)->comment('Premio por cartón lleno');
             $table->decimal('serial_prize', 15, 2)->default(0)->comment('Premio por serie completa');
 
-            // Cierre de sala
-            $table->timestamp('closed_at')->nullable()->comment('Fecha y hora de cierre de la sala');
-
-            // Código único adicional
-            $table->string('uuid_code', 36)->nullable()->unique()->comment('UUID adicional de la sala');
+            // Fecha de publicación
+            $table->timestamp('publication_date')->nullable()->comment('Fecha de publicación de la sala');
+            // Fecha de finalización
+            $table->timestamp('finished_at')->nullable()->comment('Fecha de finalización de la sala');
 
             // Timestamps automáticos
             $table->timestamps();
@@ -72,6 +69,8 @@ return new class extends Migration
 
             // Índices compuestos útiles
             $table->index(['status_id', 'room_type'], 'idx_status_roomtype');
+            $table->index(['creator_user_id', 'created_at'], 'idx_creator_createdat');
+            $table->index(['finished_at'], 'idx_finished_at');
         });
     }
 

@@ -17,11 +17,11 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
     /**
      * Buscar sala por código encriptado
      *
-     * @param string $encryptedCode Código encriptado de la sala
+     * @param string $uuidCode Código UUID de la sala
      * @param array $columns Columnas a seleccionar
      * @return BingoRoom|null
      */
-    public function findByEncryptedCode(string $encryptedCode, array $columns = ['*']): ?BingoRoom;
+    public function findByUUIDCode(string $uuidCode, array $columns = ['*']): ?BingoRoom;
 
     /**
      * Buscar salas por creador
@@ -93,12 +93,12 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
     public function getRoomCommissions(string $roomId): array;
 
     /**
-     * Verificar si una sala existe por código encriptado
+     * Verificar si una sala existe por código UUID
      *
-     * @param string $encryptedCode Código encriptado
+     * @param string $uuidCode Código UUID de la sala
      * @return bool
      */
-    public function existsByEncryptedCode(string $encryptedCode): bool;
+    public function existsByUUIDCode(string $uuidCode): bool;
 
     /**
      * Obtener valor específico de una sala por ID
@@ -110,13 +110,13 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
     public function getRoomValue(string $roomId, string $column): mixed;
 
     /**
-     * Obtener valor específico de una sala por código encriptado
+     * Obtener valor específico de una sala por código UUID
      *
-     * @param string $encryptedCode Código encriptado
+     * @param string $uuidCode Código UUID de la sala
      * @param string $column Columna a obtener
      * @return mixed
      */
-    public function getRoomValueByEncrypted(string $encryptedCode, string $column): mixed;
+    public function getRoomValueByUUID(string $uuidCode, string $column): mixed;
 
     /**
      * Cerrar una sala

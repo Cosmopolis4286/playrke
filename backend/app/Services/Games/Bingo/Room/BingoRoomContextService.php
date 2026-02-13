@@ -51,7 +51,7 @@ final class BingoRoomContextService
     private function resolveGameRooms(?int $userId): array
     {
         $labels  = ['Código', 'Tipo', 'Jugadores', 'Premio', 'Creación', 'Estado'];
-        $rowKeys = ['encrypted_code', 'room_type_description', 'total_players', 'prize_pool', 'created_at', 'status_badge'];
+        $rowKeys = ['id', 'room_type_description', 'total_players', 'prize_pool', 'created_at', 'status_badge'];
 
         $conditions = $userId
             ? ['creator_user_id' => $userId]
@@ -62,7 +62,7 @@ final class BingoRoomContextService
             page: 1,
             relations: ['status:id,value,description'],
             conditions: $conditions,
-            fields: ['id', 'encrypted_code', 'status_id', 'room_type', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
+            fields: ['id', 'uuid_code', 'status_id', 'room_type', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
         );
 
         $raw = $source instanceof LengthAwarePaginator
