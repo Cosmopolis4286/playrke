@@ -23,7 +23,7 @@ return new class extends Migration
             $table->foreignSnowflake('game_mode_id')->constrained('game_modes')->onDelete('cascade');
 
             $table->enum('in_live', ['Y', 'N'])->default('N');
-            $table->enum('room_type', ['PV', 'PB'])->default('PV');
+            $table->enum('room_type', ['PRIVATE', 'PUBLIC'])->default('PRIVATE');
 
             $table->foreignSnowflake('prize_pool_type_id')
                 ->constrained('prize_pool_types')

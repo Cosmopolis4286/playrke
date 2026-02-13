@@ -30,7 +30,7 @@
                                             @php
                                                 $allSale = $allSalePreJackpot = 0;
                                                 $currencySym = $seller->CtnsLot[0]->Currency->symbol;
-                                                $allCtnsSeller = $seller->CtnsLot->sum('ctns');
+                                                $allCtnsSeller = $seller->CtnsLot->sum('cards_purchased');
                                                 $totalCtnsBuy += $allCtnsSeller;
 
                                                 $comSellerRm = $seller->ComSellerRoom->com;

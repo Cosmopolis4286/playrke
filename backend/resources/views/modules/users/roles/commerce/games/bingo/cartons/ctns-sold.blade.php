@@ -74,7 +74,7 @@
                                     <tfoot>
                                         <tr>
                                             <td colspan="4" class="text-right"><b>Total:</b></td>
-                                            <td>{{ $ctnsSold->sum('ctns') }}</td>
+                                            <td>{{ $ctnsSold->sum('cards_purchased') }}</td>
                                             <td>
                                                 {{ $currencyData->iso_code }}
                                                 {{ number_format($ctnsSold->sum('sale_amount'), 2, '.') }}

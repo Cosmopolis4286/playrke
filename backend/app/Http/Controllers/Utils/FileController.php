@@ -67,7 +67,7 @@ class FileController extends Controller
         }
     }
 
-    public static function saveImage(UploadedFile $image, string $directory, string $type = 'PB'): ?string
+    public static function saveImage(UploadedFile $image, string $directory, string $type = 'PUBLIC'): ?string
     {
         try {
             if (!$image->isValid()) {
@@ -75,7 +75,7 @@ class FileController extends Controller
                 return null;
             }
 
-            $type = $type === 'PV' ? 'private' : 'public';
+            $type = $type === 'PRIVATE' ? 'private' : 'public';
             $extension = $image->getClientOriginalExtension();
             $fileName = time() . bin2hex(random_bytes(4)) . '.' . $extension;
             $directory = "$type/$directory";

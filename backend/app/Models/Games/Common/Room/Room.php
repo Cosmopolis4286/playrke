@@ -21,8 +21,8 @@ class Room extends Model
      * @var array<string, string>
      */
     public const TYPES = [
-        'PV' => 'Privada',
-        'PB' => 'Pública'
+        'PRIVATE' => 'Privada',
+        'PUBLIC' => 'Pública'
     ];
 
     /**
@@ -38,7 +38,7 @@ class Room extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'type',         // Tipo de sala (PV|PB)
+        'type',         // Tipo de sala (PRIVATE|PUBLIC)
         'name',         // Nombre de la sala
         'description',  // Descripción de la sala
         'capacity',     // Capacidad máxima
@@ -75,7 +75,7 @@ class Room extends Model
      */
     public function scopePrivate($query)
     {
-        return $query->where('type', 'PV');
+        return $query->where('type', 'PRIVATE');
     }
 
     /**
@@ -86,7 +86,7 @@ class Room extends Model
      */
     public function scopePublic($query)
     {
-        return $query->where('type', 'PB');
+        return $query->where('type', 'PUBLIC');
     }
 
     /**
@@ -131,7 +131,7 @@ class Room extends Model
      */
     public function isPrivate(): bool
     {
-        return $this->type === 'PV';
+        return $this->type === 'PRIVATE';
     }
 
     /**
@@ -141,7 +141,7 @@ class Room extends Model
      */
     public function isPublic(): bool
     {
-        return $this->type === 'PB';
+        return $this->type === 'PUBLIC';
     }
 
     /**

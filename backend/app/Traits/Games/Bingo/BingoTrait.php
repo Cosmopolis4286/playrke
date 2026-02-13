@@ -558,7 +558,7 @@ trait BingoTrait
         return BingoRoom::with('Config:room,game_mode')->select(
             'id',
             'players',
-            'ctns',
+            'cards_purchased',
             'all_sale',
             'rke_commn',
             'room_commn',
@@ -606,7 +606,7 @@ trait BingoTrait
                 'player_user' => $arrCtn['playerUser'] ?? null,
                 'room_user' => $arrCtn['roomUser'],
                 'room' => $roomId,
-                'ctns' => $arrCtn['numOfCtns'],
+                'cards_purchased' => $arrCtn['numOfCtns'],
                 'currency' => $currency,
                 'card_price' => $arrCtn['ctnPrice'],
                 'exchange_rate' => $arrCtn['exchangeRate'],
@@ -745,7 +745,7 @@ trait BingoTrait
                 'room' => $arrCtn['room'],
                 'creator_user_id' => $arrCtn['creator']['userId'],
                 'player_user' => $arrCtn['playerUser'] ?? null,
-                'ctns' => $arrCtn['numOfCtns'],
+                'cards_purchased' => $arrCtn['numOfCtns'],
                 'automarker' => 1,
             ];
 
@@ -756,7 +756,7 @@ trait BingoTrait
                 $roomUser = BingoRoomUser::create($defaults);
                 $room->increment('players');
             } else {
-                $roomUser->increment('ctns', $arrCtn['numOfCtns']);
+                $roomUser->increment('cards_purchased', $arrCtn['numOfCtns']);
             }
 
             return $roomUser->id;
@@ -793,7 +793,7 @@ trait BingoTrait
             // Preparar los datos para actualizar la sala
             $updateData = [
                 'all_sale' => $room->all_sale + $saleAmount,
-                'ctns' => $room->ctns + $arrCtn['numOfCtns'],
+                'cards_purchased' => $room->ctns + $arrCtn['numOfCtns'],
                 'rke_commn' => $room->rke_commn + $rkeCommn,
                 'room_commn' => $room->room_commn + $creatorCommn
             ];
@@ -1019,7 +1019,7 @@ trait BingoTrait
 
                 $roomType = BingoRoom::getValueById($roomId, 'room_type');
 
-                if ($roomType === 'PB') {
+                if ($roomType === 'PUBLIC') {
                     // Manejar los pagos pendientes de los BingoRoomCreators
                     $this->handlePublicRoomPendingPayments($roomId);
                 }

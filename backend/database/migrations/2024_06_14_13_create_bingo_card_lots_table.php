@@ -22,11 +22,7 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Sala asociada');
 
-            $table->foreignSnowflake('creator_user_id')
-                ->constrained('users')
-                ->cascadeOnUpdate()
-                ->cascadeOnDelete()
-                ->comment('Usuario creador del lote');
+            $table->string('user_id')->comment('Usuario creador del lote');
 
             $table->foreignSnowflake('seller_id')
                 ->nullable()

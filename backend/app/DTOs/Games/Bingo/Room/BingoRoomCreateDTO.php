@@ -35,7 +35,7 @@ final class BingoRoomCreateDTO
         return new self(
             date: $data['date'],
             time: $data['time'],
-            roomType: $data['roomType'] ?? 'PV',
+            roomType: $data['roomType'] ?? 'PRIVATE',
             gameMode: $data['gameMode'],
             prizePoolType: $data['prizePoolType'],
             allowedCurrencies: array_values((array) ($data['allowedCurrencies'] ?? [])),

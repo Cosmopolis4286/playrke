@@ -60,8 +60,8 @@
   // ==========================================================================
 
   const roomTypeOptions = [
-    { value: 'PV', label: 'Público' },
-    { value: 'PB', label: 'Privado' }
+    { value: 'PRIVATE', label: 'Público' },
+    { value: 'PUBLIC', label: 'Privado' }
   ]
 
   // ==========================================================================

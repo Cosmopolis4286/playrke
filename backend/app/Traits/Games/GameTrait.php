@@ -110,7 +110,7 @@ trait GameTrait
         if (in_array($creatorType, ['RKE', 'commerce_id'])) {
             $creatorExchangeRate = CommerceExchangeRate::getCommerceCurrencyValue($creatorId, $currency);
 
-            if ($room->room_type === 'PB') { // Sala pública
+            if ($room->room_type === 'PUBLIC') { // Sala pública
                 $creatorExchangeRate = CommerceExchangeRate::whereIn('commerce_id', function ($query) use ($roomId) {
                     $query->select('creator_id')->from('bingo_creator')
                         ->where('creator_type', 3)->where('room', $roomId);

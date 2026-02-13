@@ -201,7 +201,7 @@
                 const option = `<option value="${item.encrypted}">${formattedDate}</option>`;
 
                 // Anexar al grupo correspondiente y marcar que el grupo tiene al menos una sala
-                if (item.room_type === 'PV') {
+                if (item.room_type === 'PRIVATE') {
                     privateGroup.append(option);
                     hasPrivateRooms = true;
                 } else {

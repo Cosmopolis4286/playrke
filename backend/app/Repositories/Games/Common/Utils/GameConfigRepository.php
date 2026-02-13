@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Repositories\Utils;
+namespace App\Repositories\Games\Common\Utils;
 
 use App\Models\Games\Common\Utils\GameConfig;
 use App\Repositories\BaseRepository;
-use App\Repositories\Utils\Contracts\GameConfigRepositoryContract;
+use App\Contracts\Games\Common\Utils\GameConfigRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repositorio para operaciones con configuraciones de juego
  * Maneja todas las consultas complejas relacionadas con GameConfig
  */
-class GameConfigRepository extends BaseRepository implements GameConfigRepositoryContract
+class GameConfigRepository extends BaseRepository implements GameConfigRepositoryInterface
 {
     public function __construct(GameConfig $model)
     {

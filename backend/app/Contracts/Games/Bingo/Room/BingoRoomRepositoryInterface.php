@@ -44,7 +44,7 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
     /**
      * Buscar salas por tipo
      *
-     * @param string $roomType Tipo de sala (PV, PB)
+     * @param string $roomType Tipo de sala (PRIVATE, PUBLIC)
      * @param array $columns Columnas a seleccionar
      * @return Collection<BingoRoom>
      */

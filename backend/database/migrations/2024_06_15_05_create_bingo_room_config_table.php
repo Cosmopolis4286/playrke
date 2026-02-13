@@ -25,6 +25,11 @@ return new class extends Migration
             $table->enum('creation', ['M', 'A'])->default('M')
                 ->comment('Modo de creación: M = manual, A = automático');
 
+            // Tipo de sala
+            $table->enum('room_type', ['PRIVATE', 'PUBLIC'])
+                ->default('PRIVATE')
+                ->comment('Tipo de sala: PRIVATE = privada, PUBLIC = publica');
+
             // Creador
             $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
@@ -46,10 +51,13 @@ return new class extends Migration
             $table->string('time', 10)->comment('Hora del juego');
             $table->integer('unix_date')->comment('Fecha en formato timestamp UNIX');
 
-            // Comisiones y precios
-            $table->decimal('card_price', 12, 2)->comment('Precio del cartón');
+            // Comisiones
             $table->decimal('rke_commn', 8, 2)->nullable()->comment('Comisión del RKE');
             $table->decimal('room_commn', 8, 2)->nullable()->comment('Comisión de la sala');
+
+            // Monedas permitidas para el precio del cartón
+            $table->json('allowed_currencies')->nullable()
+                ->comment('Monedas permitidas para el precio del cartón');
 
             // Tipo de premio
             $table->foreignSnowflake('prize_pool_type_id')

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Utils\Contracts;
+namespace App\Contracts\Games\Common\Utils;
 
 use App\Models\Games\Common\Utils\GameConfig;
 use App\Contracts\BaseRepositoryInterface;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Contrato para el repositorio de configuraciones de juego
  * Define métodos específicos para operaciones con GameConfig
  */
-interface GameConfigRepositoryContract extends BaseRepositoryInterface
+interface GameConfigRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtener configuración por juego y parámetro

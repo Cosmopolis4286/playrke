@@ -1,7 +1,7 @@
 /**
  * Tipos de sala de bingo
  */
-export type BingoRoomType = 'PV' | 'PB'
+export type BingoRoomType = 'PRIVATE' | 'PUBLIC'
 
 /**
  * Indica si los premios fueron pagados
@@ -48,7 +48,7 @@ export interface BingoRoom {
     readonly status_id: number | string
     readonly room_type: BingoRoomType
     readonly creator_user_id: number | string
-    readonly prizes_paid: BingoPrizesPaid
+    readonly paid_prizes: BingoPrizesPaid
     readonly publication_date: string | null
     readonly total_players: number
     readonly total_cards: number

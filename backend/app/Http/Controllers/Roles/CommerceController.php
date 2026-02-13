@@ -383,7 +383,7 @@ class CommerceController extends Controller
         ])->select('id', 'encrypted', 'room_type', 'prize_pool')->where('status', 2)
             ->where(function ($query) use ($creatorUser) {
                 $query->where('creator_user_id', $creatorUser)
-                    ->orWhere('room_type', 'PB');
+                    ->orWhere('room_type', 'PUBLIC');
             })
             ->whereHas('Creator', function ($query) use ($creatorUser) {
                 $query->where('creator_user_id', $creatorUser);
@@ -589,7 +589,7 @@ class CommerceController extends Controller
             }
 
             $filePayment = $request->file('payment_proof');
-            $newFileName = FileController::saveImage($filePayment, 'game/bingo/payments/all-ctns', 'PV');
+            $newFileName = FileController::saveImage($filePayment, 'game/bingo/payments/all-ctns', 'PRIVATE');
 
             if (!$newFileName) {
                 DB::rollBack();

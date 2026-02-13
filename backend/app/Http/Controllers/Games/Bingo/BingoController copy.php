@@ -174,7 +174,7 @@ class BingoController extends Controller
         }
 
         // Definir roomType
-        $roomType = $data['roomType'] === 'private' ? 'PV' : 'PB';
+        $roomType = $data['roomType'] === 'private' ? 'PRIVATE' : 'PUBLIC';
 
         $rooms = BingoRoom::with([
             'Config' => function ($query) {
@@ -185,7 +185,7 @@ class BingoController extends Controller
                     ->where('currency', $currency);
             },
             'PlayersRoom' => function ($query) use ($playerUser) {
-                $query->select('id', 'room', 'ctns')
+                $query->select('id', 'room', 'cards_purchased')
                     ->where('player_user', $playerUser);
             }
         ])
@@ -194,7 +194,7 @@ class BingoController extends Controller
                 'status',
                 'players',
                 'prize_pool',
-                'ctns',
+                'cards_purchased',
                 'encrypted'
             )
             ->where('creator_user_id', $creatorUser)
@@ -544,13 +544,13 @@ class BingoController extends Controller
                 }
 
                 $prizePool = $this->convertPrizeValue($data['room'], $data['currency'], $room->prize_pool);
-                $ctns = BingoRoomUser::getValue($cartonStore, 'ctns');
+                $ctns = BingoRoomUser::getValue($cartonStore, 'cards_purchased');
 
                 DB::commit(); // Confirmar transacción
 
                 return response()->json([
                     'prizePool' => $prizePool,
-                    'ctns' => $ctns,
+                    'cards_purchased' => $ctns,
                     'type' => 'success',
                     'message' => 'Proceso efectuado con éxito'
                 ]);
@@ -1001,7 +1001,7 @@ class BingoController extends Controller
     private function getInfoRooms($creatorUser, $roomType, $currency, $otherCommerce = false)
     {
         $gameId = Game::getValueByName('BINGO');
-        $roomType = $roomType === 'private-rooms' ? 'PV' : 'PB';
+        $roomType = $roomType === 'private-rooms' ? 'PRIVATE' : 'PUBLIC';
         $operator = $otherCommerce ? '<>' : '=';
 
         $relations = [
@@ -1154,7 +1154,7 @@ class BingoController extends Controller
             'currency' => $currency,
             'currencySymbol' => $currencySym,
             'exchangeRate' => $exchangeRate ?? 1,
-            'roomType' => $view === 'private' ? 'PV' : 'PB',
+            'roomType' => $view === 'private' ? 'PRIVATE' : 'PUBLIC',
             'bingoPatterns' => $bingoPatterns,
             'timeZone' => $timeZone,
             'rooms' => $rooms,
@@ -2056,7 +2056,7 @@ class BingoController extends Controller
         if ($creatorType === 'commerce') {
             $bingoCreator = BingoCreator::existsByRoomCreatorUser($roomId, $creatorUserID);
 
-            if ($room->room_type === 'PB') {
+            if ($room->room_type === 'PUBLIC') {
                 $userData = $this->getUserData()['userId'];
                 if ($creatorUserID != $userData) {
                     $bingoCreator = BingoCreator::getByRoomCreatorUser($roomId, $userData, ['creator_commn', 'card_price']);
@@ -2089,7 +2089,7 @@ class BingoController extends Controller
             'Config:room,date,time,card_price'
         ])->select('id', 'encrypted', 'room_commn', 'prize_pool')
             ->where('creator_user_id', '<>', $userData['userId'])
-            ->where('room_type', 'PB')->where('status', 2)->get();
+            ->where('room_type', 'PUBLIC')->where('status', 2)->get();
     }
 
     public function participateInPublicRoom($roomId = '', $getOut = false)
@@ -2156,10 +2156,10 @@ class BingoController extends Controller
 
         $creatorUser = $userData['userId'];
 
-        // Obtener IDs de salas públicas (PB) con estado 4
+        // Obtener IDs de salas públicas (PUBLIC) con estado 4
         $roomIds = BingoPrizeCtns::where('creator_user_id', $creatorUser)
             ->whereHas('Room', function ($query) {
-                $query->where('room_type', 'PB')
+                $query->where('room_type', 'PUBLIC')
                     ->where('status', 4);
             })
             ->where('status', 'WT')->distinct()->pluck('room');
@@ -3019,7 +3019,7 @@ class BingoController extends Controller
 
         try {
             // Guardar Imagen de comprobante de pago
-            $filePayment = FileController::saveImage($request->file('payment_proof'), 'game/bingo/payments/prize-ctns', 'PV');
+            $filePayment = FileController::saveImage($request->file('payment_proof'), 'game/bingo/payments/prize-ctns', 'PRIVATE');
 
             // Registar informacion sobre pago de carton premiado
             $prizeCartonPayment = $this->registerPrizeCartonPayment($prizeCtn, $paymentType, Auth::id(), $filePayment);
@@ -3065,7 +3065,7 @@ class BingoController extends Controller
                     'Config:room,date,time,card_price,rke_commn,room_commn',
                     'Status',
                     'CtnsLot' => function ($subquery) use ($creatorUser, $currency) {
-                        $subquery->select('room', 'currency', 'ctns', 'sale_amount', 'seller_commn')
+                        $subquery->select('room', 'currency', 'cards_purchased', 'sale_amount', 'seller_commn')
                             ->where('creator_user_id', $creatorUser)
                             ->where('currency', $currency)->with('Currency');
                     }
@@ -3082,7 +3082,7 @@ class BingoController extends Controller
                 $query = BingoRoom::with([
                     'Config:room,time,date,card_price',
                     'CtnsLot' => function ($query) use ($sellerId, $currency) {
-                        $query->select('room', 'currency', 'ctns', 'sale_amount', 'seller_commn')
+                        $query->select('room', 'currency', 'cards_purchased', 'sale_amount', 'seller_commn')
                             ->where('seller', $sellerId)->where('currency', $currency)->with('Currency');
                     }
                 ])->whereHas('CtnsLot', function ($query) use ($sellerId, $currency) {
@@ -3128,7 +3128,7 @@ class BingoController extends Controller
         $currencyData = Currency::getById($currency, ['symbol', 'name', 'iso_code']);
 
         $totals = collect([
-            'ctns' => 0,
+            'cards_purchased' => 0,
             'sales' => 0,
             'roomCommn' => 0,
             'sellerCommn' => 0,
@@ -3138,7 +3138,7 @@ class BingoController extends Controller
         $roomsData = [];
 
         foreach ($rooms as $room) {
-            $ctns = $room->CtnsLot->sum('ctns');
+            $ctns = $room->CtnsLot->sum('cards_purchased');
             $allSale = $room->CtnsLot->sum('sale_amount');
             $sellerCommn = $room->CtnsLot->sum('seller_commn');
 
@@ -3147,12 +3147,12 @@ class BingoController extends Controller
                 'roomType' => $room->room_type_description,
                 'date' => Carbon::parse($room->Config->date)->format('d/m/y'),
                 'time' => $room->Config->time,
-                'ctns' => $ctns,
+                'cards_purchased' => $ctns,
                 'sales' => number_format($allSale, 2, '.', ','),
                 'sellerCommn' => number_format($sellerCommn, 2, '.', ','),
             ];
 
-            $totals['ctns'] += $ctns;
+            $totals['cards_purchased'] += $ctns;
             $totals['sales'] += $allSale;
             $totals['sellerCommn'] += $sellerCommn;
 
@@ -3175,7 +3175,7 @@ class BingoController extends Controller
 
         // Formatear totales
         $totalsFormatted = [
-            'ctns' => $totals['ctns'],
+            'cards_purchased' => $totals['cards_purchased'],
             'sales' => number_format($totals['sales'], 2, '.', ','),
             'sellerCommn' => number_format($totals['sellerCommn'], 2, '.', ','),
         ];
@@ -3250,7 +3250,7 @@ class BingoController extends Controller
         $currencies = $this->getUserCurrencies($userData, ['CtnsLot'], 'all', $where);
 
         $totals = collect([
-            'ctns' => 0,
+            'cards_purchased' => 0,
             'sales' => 0,
             'roomCommn' => 0,
             'sellerCommn' => 0,
@@ -3286,7 +3286,7 @@ class BingoController extends Controller
 
                 $playersRoom = ExternalPlayers::with([
                     'CtnsLot' => function ($query) use ($sellerId, $currency) {
-                        $query->select('room', 'room_user', 'currency', 'ctns', 'sale_amount', 'seller_commn')
+                        $query->select('room', 'room_user', 'currency', 'cards_purchased', 'sale_amount', 'seller_commn')
                             ->where('seller', $sellerId)->where('currency', $currency);
                     }
                 ])->where('seller', $sellerId)->where('room', $roomId)->where('currency', $currency)
@@ -3296,7 +3296,7 @@ class BingoController extends Controller
 
                 $ctnsLots = $playersRoom->flatMap->CtnsLot;
 
-                $totals['ctns'] = $ctnsLots->sum('ctns');
+                $totals['cards_purchased'] = $ctnsLots->sum('cards_purchased');
                 $totals['sales'] = $ctnsLots->sum('sale_amount');
 
                 $otherParams = ['playersRoom' => $playersRoom];
@@ -3311,7 +3311,7 @@ class BingoController extends Controller
 
         // Formatear totales
         $totalsFormatted = [
-            'ctns' => $totals['ctns'],
+            'cards_purchased' => $totals['cards_purchased'],
             'sales' => number_format($totals['sales'], 2, '.', ',')
         ];
 

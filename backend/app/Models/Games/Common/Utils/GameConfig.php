@@ -46,6 +46,8 @@ class GameConfig extends Model
     // Casting de tipos
     // ========================
     protected $casts = [
+        'id' => 'string',
+        'game_id' => 'string',
         'param' => 'string',
         'value' => 'string',
         'description' => 'string',

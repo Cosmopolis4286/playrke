@@ -26,11 +26,6 @@ return new class extends Migration
                 ->default(1)
                 ->comment('Estado de la sala (activo, finalizado, etc.)');
 
-            // Tipo de sala
-            $table->enum('room_type', ['PV', 'PB'])
-                ->default('PV')
-                ->comment('Tipo de sala: PV = público, PB = privado');
-
             // Usuario creador
             $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
@@ -39,7 +34,7 @@ return new class extends Migration
                 ->comment('Usuario que creó la sala');
 
             // Premios
-            $table->enum('prizes_paid', ['Y', 'N'])
+            $table->enum('paid_prizes', ['Y', 'N'])
                 ->default('N')
                 ->comment('Indica si los premios fueron pagados');
 
@@ -71,6 +66,7 @@ return new class extends Migration
             $table->index(['status_id', 'room_type'], 'idx_status_roomtype');
             $table->index(['creator_user_id', 'created_at'], 'idx_creator_createdat');
             $table->index(['finished_at'], 'idx_finished_at');
+            $table->index('uuid_code', 'idx_uuid_code');
         });
     }
 

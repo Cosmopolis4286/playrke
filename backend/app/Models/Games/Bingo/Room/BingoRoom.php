@@ -45,7 +45,7 @@ class BingoRoom extends BaseModel
         'status_id',
         'room_type',
         'creator_user_id',
-        'prizes_paid',
+        'paid_prizes',
         'publication_date',
         'total_players',
         'total_cards',
@@ -79,7 +79,7 @@ class BingoRoom extends BaseModel
         'serial_prize' => 'decimal:2',
         'total_players' => 'integer',
         'total_cards' => 'integer',
-        'prizes_paid' => 'string',
+        'paid_prizes' => 'string',
     ];
 
     // ========================
@@ -196,8 +196,8 @@ class BingoRoom extends BaseModel
     public function getRoomTypeDescriptionAttribute(): string
     {
         return match ($this->room_type) {
-            'PV' => 'Público',
-            'PB' => 'Privado',
+            'PRIVATE' => 'Público',
+            'PUBLIC' => 'Privado',
             default => 'Desconocido',
         };
     }
@@ -270,7 +270,7 @@ class BingoRoom extends BaseModel
      */
     public function scopeWithPendingPrizes($query)
     {
-        return $query->where('prizes_paid', 'N')
+        return $query->where('paid_prizes', 'N')
             ->where('prize_pool', '>', 0);
     }
 }

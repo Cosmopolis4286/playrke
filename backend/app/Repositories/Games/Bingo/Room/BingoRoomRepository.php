@@ -60,7 +60,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
     /**
      * Buscar salas por tipo
      *
-     * @param string $roomType Tipo de sala (PV, PB)
+     * @param string $roomType Tipo de sala (PRIVATE, PUBLIC)
      * @param array $columns Columnas a seleccionar
      * @return Collection<BingoRoom>
      */
@@ -90,7 +90,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
      */
     public function getRoomsWithPendingPrizes(array $columns = ['*']): Collection
     {
-        return $this->model->where('prizes_paid', 'N')
+        return $this->model->where('paid_prizes', 'N')
             ->where('prize_pool', '>', 0)
             ->get($columns);
     }

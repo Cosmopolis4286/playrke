@@ -33,9 +33,6 @@ return new class extends Migration
                 ->default(0)
                 ->comment('Comisión del creador en la sala');
 
-            $table->decimal('card_price', 15, 2)
-                ->comment('Precio de cada cartón para esta sala');
-
             // Estado
             $table->enum('status', ['ACTIVE', 'INACTIVE'])
                 ->default('ACTIVE')

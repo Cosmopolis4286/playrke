@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
                 ->cascadeOnDelete()
-                ->comment('Usuario que estableció el precio');
+                ->comment('Usuario creador que estableció el precio');
 
             $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')

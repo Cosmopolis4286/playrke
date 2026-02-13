@@ -40,7 +40,7 @@
                                             </td>
                                             <td>{{ $room['time'] }}h</td>
                                             <td>{{ $currencyData->name }} ({{ $currencyData->iso_code }})</td>
-                                            <td>{{ $room['ctns'] }}</td>
+                                            <td>{{ $room['cards_purchased'] }}</td>
                                             <td>{{ $currencyData->iso_code }} {{ $room['sales'] }}</td>
                                             <td>{{ $currencyData->iso_code }} {{ $room['sellerCommn'] }}</td>
                                         </tr>
@@ -50,7 +50,7 @@
                                     <tfoot>
                                         <tr>
                                             <td colspan="5" class="text-right"><b>Total:</b></td>
-                                            <td>{{ $totalsFormatted['ctns'] }}</td>
+                                            <td>{{ $totalsFormatted['cards_purchased'] }}</td>
                                             <td>{{ $currencyData->iso_code }} {{ $totalsFormatted['sales'] }}</td>
                                             <td>{{ $currencyData->iso_code }} {{ $totalsFormatted['sellerCommn'] }}</td>
                                         </tr>

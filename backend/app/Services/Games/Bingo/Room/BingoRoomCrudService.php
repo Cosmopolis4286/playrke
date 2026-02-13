@@ -46,6 +46,7 @@ final class BingoRoomCrudService
     {
         return DB::transaction(function () use ($dto) {
             $userId = Auth::id();
+
             $rkeCommission = GameConfig::where('game_id', 'BINGO')
                 ->where('param', 'COMMISSION')
                 ->value('value') ?? 5;
@@ -53,7 +54,7 @@ final class BingoRoomCrudService
             $prizePool = $dto->prizePoolType > 1 ? ($dto->amountAddedPrizePool ?? 0) : 0;
 
             do {
-                  $uuidCode = strtoupper(Str::uuid()->toString());
+                $uuidCode = strtoupper(Str::uuid()->toString());
             } while (BingoRoom::where('uuid_code', $uuidCode)->exists());
 
 
@@ -61,9 +62,8 @@ final class BingoRoomCrudService
 
             $room = BingoRoom::create([
                 'status_id'       => $statusId,
-                'room_type'       => $dto->roomType,
                 'creator_user_id' => $userId,
-                'prizes_paid'     => 'N',
+                'paid_prizes'     => 'N',
                 'prize_pool'      => $prizePool,
                 'uuid_code'       => $uuidCode,
             ]);
@@ -74,13 +74,14 @@ final class BingoRoomCrudService
             BingoRoomConfig::create([
                 'room_id'                 => $room->id,
                 'creation'                => 'M',
+                'room_type'               => $dto->roomType,
                 'creator_user_id'         => $userId,
                 'game_mode_id'            => $dto->gameMode,
                 'in_live'                 => 'N',
                 'date'                    => $roomDate,
                 'time'                    => $dto->time,
                 'unix_date'               => $unixDate,
-                'card_price'              => $dto->ctnPrice,
+                'allowed_currencies'    => $dto->allowedCurrencies ? json_encode($dto->allowedCurrencies) : null,
                 'rke_commn'               => $rkeCommission,
                 'room_commn'              => $dto->roomCommn,
                 'prize_pool_type_id'      => $dto->prizePoolType,
@@ -98,7 +99,6 @@ final class BingoRoomCrudService
                 'user_id'            => $userId,
                 'creator_commn'      => $dto->roomCommn,
                 'card_price'         => $dto->ctnPrice,
-                'allowed_currencies' => $dto->allowedCurrencies,
                 'status'             => 'ACTIVE',
             ]);
 

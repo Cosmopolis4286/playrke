@@ -22,21 +22,17 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Sala asociada');
 
-            $table->foreignSnowflake('creator_user_id')
-                ->constrained('users')
-                ->cascadeOnUpdate()
-                ->cascadeOnDelete()
-                ->comment('Usuario que participa en la sala');
+            $table->string('user_id')->comment('Usuario que participa en la sala');
 
             // Datos del jugador
-            $table->tinyInteger('ctns')->comment('Cantidad de cartones adquiridos');
+            $table->unsignedSmallInteger('cards_purchased')->comment('Cantidad de cartones adquiridos');
             $table->decimal('automarker', 8, 2)->nullable()->comment('Valor del automarcador si aplica');
             $table->enum('winner', ['Y', 'N'])->default('N')->comment('Indicador de ganador: Y = ganador, N = no ganador');
 
             $table->timestamps();
 
             // Índices para optimizar consultas frecuentes
-            $table->index(['room_id', 'creator_user_id'], 'idx_room_user');
+            $table->index(['room_id', 'user_id'], 'idx_room_user');
         });
     }
 

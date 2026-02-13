@@ -36,7 +36,7 @@
                                             <td>{{ $player->name }}</td>
                                             <td>{{ $player->lastname }}</td>
                                             <td>{{ $player->phone }}</td>
-                                            <td>{{ $player->CtnsLot->sum('ctns') }}</td>
+                                            <td>{{ $player->CtnsLot->sum('cards_purchased') }}</td>
                                             <td>{{ $currencyData->iso_code }} {{ number_format($saleAmount, 2, '.', ',') }}</td>
                                             <td>{{ $currencyData->iso_code }} {{ number_format($commn, 2, '.', ',') }}</td>
                                             <td>
@@ -51,7 +51,7 @@
                                 <tfoot>
                                     <tr>
                                         <td colspan="3" class="text-right"><b>Total:</b></td>
-                                        <td>{{ $totalsFormatted['ctns'] }}</td>
+                                        <td>{{ $totalsFormatted['cards_purchased'] }}</td>
                                         <td>{{ $currencyData->iso_code }} {{ $totalsFormatted['sales'] }}</td>
                                         <td colspan="2">
                                             {{ $currencyData->iso_code }} {{ number_format($totalCommn, 2, '.', ',') }}

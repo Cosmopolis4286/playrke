@@ -33,7 +33,7 @@ class BingoRoomRequest extends BaseRequest
         return [
             'date'                    => ['required', 'date', 'after_or_equal:today'],
             'time'                    => ['required', 'date_format:H:i'],
-            'roomType'                => ['required', 'string', 'in:PV,PB'],
+            'roomType'                => ['required', 'string', 'in:PRIVATE,PUBLIC'],
             'gameMode'                => ['required', 'exists:game_modes,id'],
             'prizePoolType'           => ['required', 'exists:prize_pool_types,id'],
             'allowedCurrencies'       => ['required', 'array', 'min:1'],
@@ -67,7 +67,7 @@ class BingoRoomRequest extends BaseRequest
             'time.required'               => 'La hora es obligatoria.',
             'time.date_format'            => 'La hora debe tener formato HH:mm.',
             'roomType.required'           => 'El tipo de sala es obligatorio.',
-            'roomType.in'                 => 'El tipo de sala debe ser PV o PB.',
+            'roomType.in'                 => 'El tipo de sala debe ser PRIVATE o PUBLIC.',
             'gameMode.required'           => 'El modo de juego es obligatorio.',
             'gameMode.exists'             => 'El modo de juego seleccionado no es válido.',
             'prizePoolType.required'      => 'El tipo de bote es obligatorio.',

@@ -15,7 +15,7 @@ class BingoRoomResource extends JsonResource
             'id'                 => $this->hashed_id,
             'room_type'          => $this->room_type,
             'status_id'          => $this->status_id,
-            'prizes_paid'        => $this->prizes_paid,
+            'paid_prizes'        => $this->paid_prizes,
             'prize_pool'         => $this->prize_pool,
             'total_players'      => $this->total_players,
             'total_cards'        => $this->total_cards,

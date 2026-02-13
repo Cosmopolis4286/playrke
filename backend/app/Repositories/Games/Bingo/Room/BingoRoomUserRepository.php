@@ -190,7 +190,7 @@ class BingoRoomUserRepository extends BaseRepository implements BingoRoomUserRep
     public function updateCartonCount($id, int $ctns): bool
     {
         return $this->model->where('id', $id)
-            ->update(['ctns' => $ctns]) > 0;
+            ->update(['cards_purchased' => $ctns]) > 0;
     }
 
     /**

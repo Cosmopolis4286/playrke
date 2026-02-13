@@ -17,7 +17,7 @@ interface RoomRepositoryContract extends BaseRepositoryInterface
     /**
      * Obtener todas las salas por tipo.
      *
-     * @param string $type Tipo de sala (PV|PB)
+     * @param string $type Tipo de sala (PRIVATE|PUBLIC)
      * @return Collection Colección de salas del tipo especificado
      */
     public function getByType(string $type): Collection;
@@ -63,7 +63,7 @@ interface RoomRepositoryContract extends BaseRepositoryInterface
     /**
      * Crear una nueva sala.
      *
-     * @param string $type Tipo de sala (PV|PB)
+     * @param string $type Tipo de sala (PRIVATE|PUBLIC)
      * @param array $additionalData Datos adicionales de la sala
      * @return Room La sala creada
      */

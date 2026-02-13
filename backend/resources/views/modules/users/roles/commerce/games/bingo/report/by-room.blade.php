@@ -29,7 +29,7 @@
                                     @foreach ($sellers as $seller)
                                         @php
                                             // Cálculos de totales por vendedor
-                                            $allCtnsSeller = $seller->CtnsLot->sum('ctns');
+                                            $allCtnsSeller = $seller->CtnsLot->sum('cards_purchased');
                                             $saleAmountSeller = $seller->CtnsLot->sum('sale_amount');
                                             $comSaleSeller = $seller->CtnsLot->sum('seller_commn');
 

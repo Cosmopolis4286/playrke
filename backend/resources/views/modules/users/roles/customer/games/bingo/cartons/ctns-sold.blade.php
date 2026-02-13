@@ -26,7 +26,7 @@
                                     @php $totalNotPaid = 0; @endphp
                                     @foreach ($ctnsSold as $ctn)
                                         @php
-                                            $totalCtns = $ctn->sum('ctns');
+                                            $totalCtns = $ctn->sum('cards_purchased');
                                             if ($ctn->status != 2) {
                                                 $totalNotPaid += $ctn->ctns * $ctn->sale_amount;
                                             }
@@ -76,7 +76,7 @@
                                 <tfoot>
                                     <tr>
                                         <td colspan="3" class="text-right"><b>Total:</b></td>
-                                        <td>{{ $ctnsSold->sum('ctns') }}</td>
+                                        <td>{{ $ctnsSold->sum('cards_purchased') }}</td>
                                         <td>{{ $currencySym }} {{ $ctnsSold->sum('sale_amount') }}</td>
                                         <td colspan="2"></td>
                                     </tr>

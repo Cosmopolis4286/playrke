@@ -21,13 +21,13 @@ class BingoRoomUser extends Model
     protected $fillable = [
         'room_id',
         'creator_user_id',
-        'ctns',
+        'cards_purchased',
         'automarker',
         'winner'
     ];
 
     protected $casts = [
-        'ctns' => 'integer',
+        'cards_purchased' => 'integer',
         'automarker' => 'decimal:2'
     ];
 

@@ -38,7 +38,7 @@ class RoomRepository extends BaseRepository implements RoomRepositoryContract
      */
     public function getPrivateRooms(): Collection
     {
-        return $this->getByType('PV');
+        return $this->getByType('PRIVATE');
     }
 
     /**
@@ -46,7 +46,7 @@ class RoomRepository extends BaseRepository implements RoomRepositoryContract
      */
     public function getPublicRooms(): Collection
     {
-        return $this->getByType('PB');
+        return $this->getByType('PUBLIC');
     }
 
     /**
