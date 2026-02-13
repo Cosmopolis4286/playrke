@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Bingo\Cards\CardPrice\Contracts;
+namespace App\Contracts\Games\Bingo\Card\CardPrice;
 
 use App\Models\Bingo\Cards\CardPrice\BingoCardPriceDraft;
 use App\Contracts\BaseRepositoryInterface;
@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  */
-interface BingoCardPriceDraftRepositoryContract extends BaseRepositoryInterface
+interface BingoCardPriceDraftRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene todos los borradores de una sala de bingo específica

@@ -32,6 +32,7 @@ final class BingoRoomCrudService
 {
     public function __construct(
         private readonly \App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface $bingoRooms,
+        private readonly \App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface $bingoCardPrices,
     ) {}
 
     /**
@@ -60,6 +61,7 @@ final class BingoRoomCrudService
 
             $statusId = GameStatus::byValue('AVAILABLE')->value('id');
 
+            // Crear sala de bingo
             $room = BingoRoom::create([
                 'status_id'       => $statusId,
                 'creator_user_id' => $userId,
@@ -68,9 +70,19 @@ final class BingoRoomCrudService
                 'uuid_code'       => $uuidCode,
             ]);
 
+            // Crear registro en BingoCreator para asociar el creador con la sala
+            BingoCreator::create([
+                'room_id'            => $room->id,
+                'user_id'            => $userId,
+                'creator_commn'      => $dto->roomCommn,
+                'card_price'         => $dto->ctnPrice,
+                'status'             => 'ACTIVE',
+            ]);
+
             $roomDate = $dto->date;
             $unixDate = Carbon::createFromFormat('Y-m-d H:i', "{$roomDate} {$dto->time}")->timestamp;
 
+            // Crear configuración de la sala de bingo
             BingoRoomConfig::create([
                 'room_id'                 => $room->id,
                 'creation'                => 'M',
@@ -81,7 +93,7 @@ final class BingoRoomCrudService
                 'date'                    => $roomDate,
                 'time'                    => $dto->time,
                 'unix_date'               => $unixDate,
-                'allowed_currencies'    => $dto->allowedCurrencies ? json_encode($dto->allowedCurrencies) : null,
+                'allowed_currencies'      => $dto->allowedCurrencies ? json_encode($dto->allowedCurrencies) : null,
                 'rke_commn'               => $rkeCommission,
                 'room_commn'              => $dto->roomCommn,
                 'prize_pool_type_id'      => $dto->prizePoolType,
@@ -94,13 +106,14 @@ final class BingoRoomCrudService
                 'jackpot_pct'             => $dto->jackpotPct ?? 0,
             ]);
 
-            BingoCreator::create([
-                'room_id'            => $room->id,
-                'user_id'            => $userId,
-                'creator_commn'      => $dto->roomCommn,
-                'card_price'         => $dto->ctnPrice,
-                'status'             => 'ACTIVE',
-            ]);
+            // Crear precios de cartones para la sala
+            foreach ($dto->cardPrices as $cardPrice) {
+                $this->bingoCardPrices->create([
+                    'room_id'    => $room->id,
+                    'price'      => $cardPrice->price,
+                    'currency_id'   => $cardPrice->currency,
+                ]);
+            }
 
             return true;
         });

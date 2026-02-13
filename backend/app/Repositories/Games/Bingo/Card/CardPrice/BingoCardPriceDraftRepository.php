@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Bingo\Cards\CardPrice;
+namespace App\Repositories\Bingo\Card\CardPrice;
 
 use App\Models\Bingo\Cards\CardPrice\BingoCardPriceDraft;
-use App\Repositories\Bingo\Cards\CardPrice\Contracts\BingoCardPriceDraftRepositoryContract;
+use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceDraftRepositoryInterface;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -15,11 +15,11 @@ use Carbon\Carbon;
  * Implementa todas las operaciones de base de datos relacionadas con
  * los borradores de precios, incluyendo manejo de JSON y consultas complejas.
  *
- * @package App\Repositories\Bingo\Cards\CardPrice
+ * @package App\Repositories\Bingo\Card\CardPrice
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  */
-class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardPriceDraftRepositoryContract
+class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardPriceDraftRepositoryInterface
 {
     public function __construct(BingoCardPriceDraft $model)
     {

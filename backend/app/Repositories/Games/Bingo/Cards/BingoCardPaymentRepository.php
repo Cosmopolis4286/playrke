@@ -3,7 +3,7 @@
 namespace App\Repositories\Bingo\Cards;
 
 use App\Models\Bingo\Cards\BingoCardPayment;
-use App\Repositories\Bingo\Cards\Contracts\BingoCardPaymentRepositoryContract;
+use App\Repositories\Bingo\Card\Contracts\BingoCardPaymentRepositoryContract;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;

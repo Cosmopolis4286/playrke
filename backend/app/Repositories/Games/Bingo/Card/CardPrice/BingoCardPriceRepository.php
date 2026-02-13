@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Bingo\Cards\CardPrice;
+namespace App\Repositories\Bingo\Card\CardPrice;
 
 use App\Models\Bingo\Cards\CardPrice\BingoCardPrice;
-use App\Repositories\Bingo\Cards\CardPrice\Contracts\BingoCardPriceRepositoryContract;
+use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -14,11 +14,11 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de base de datos relacionadas con
  * los precios de cartones de bingo, incluyendo consultas complejas y estadísticas.
  *
- * @package App\Repositories\Bingo\Cards\CardPrice
+ * @package App\Repositories\Bingo\Card\CardPrice
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  */
-class BingoCardPriceRepository extends BaseRepository implements BingoCardPriceRepositoryContract
+class BingoCardPriceRepository extends BaseRepository implements BingoCardPriceRepositoryInterface
 {
     public function __construct(BingoCardPrice $model)
     {
