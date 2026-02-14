@@ -1,65 +1,83 @@
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
+  import BaseTable from '@js/Components/Common/Table/BaseTable.vue'
+  import TableFooterInfo from '@/js/Components/Common/Table/TableFooterInfo.vue'
 
-  import CardHeader from '@js/Components/Common/CardHeader.vue'
-  import ExchangeRateButtons from '@js/Components/ExchangeRate/ExchangeRateButtons.vue'
-  import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
-  import { useExchangeRate } from '@/js/composables/exchange-rate/useExchangeRate'
-  import type { ExchangeRatePageProps } from '@js/types/exchange-rate'
+  import type { Column } from '@/js/types/common/table/column-row'
+  import type { ExchangeRateHistoricalPageProps } from '@js/types/exchange-rate'
 
-  const title = 'Tasas de Cambio'
-  const subtitle = ''
-  const btnCardHeader = []
-  /**
-   * Props tipadas correctamente para Inertia
-   */
-  const props = defineProps<ExchangeRatePageProps>()
+  const props = defineProps<ExchangeRateHistoricalPageProps>()
 
-  /**
-   * Composable
-   */
-  const { loading, create, edit, changeStatus, remove, updateExchangeRates } = useExchangeRate(
-    props.tokenId
-  )
+  const columns: Column[] = [
+    { key: 'currency_name', label: 'Moneda' },
+    { key: 'amount', label: 'Cambio' },
+    { key: 'percentage', label: '%' },
+    { key: 'status', label: 'Status' },
+    { key: 'created_at', label: 'Fecha' }
+  ]
 
-  /**
-   * Estado local
-   */
-  const selectedCurrency = ref<Array<string>>([''])
+  const statusMap: Record<string, { text: string; class: string }> = {
+    ACTIVE: { text: 'Activa', class: 'badge-success' },
+    INACTIVE: { text: 'Inactiva', class: 'badge-secondary' },
+    OLD: { text: 'Obsoleta', class: 'badge-warning' },
+    DELETED: { text: 'Eliminada', class: 'badge-danger' },
+    DIRECTORY: { text: 'Directorio', class: 'badge-info' }
+  }
 
-  /**
-   * Navega al histórico
-   */
-  function goHistorical(): void {
-    if (!selectedCurrency.value) return
-
-    const url = `/exchange-rate/historical/${selectedCurrency.value}?tokenId=${props.tokenId}`
-    window.location.href = url
+  function formatDate(dateStr?: string): string {
+    if (!dateStr) return '-'
+    return new Date(dateStr).toLocaleDateString('es-VE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 </script>
 
 <template>
-  <div class="col-12">
-    <div class="card">
-      <CardHeader :title="title" :subtitle="subtitle" :btnCardHeader="btnCardHeader" />
+  <div class="card">
+    <CardHeader :title="title" subtitle="Registro histórico de variaciones" />
 
-      <div class="card-body">
-        <ExchangeRateButtons
-          :currencies="currencies"
-          :selectedCurrency="selectedCurrency"
-          @create="create"
-          @historical="goHistorical"
-          @update="updateExchangeRates"
-        />
+    <div class="card-body">
+      <BaseTable
+        table-id="exchange-rate-historical-table"
+        :columns="columns"
+        :rows="(exchangeRates as Record<string, any>[])"
+        empty-message="No hay registros históricos para esta moneda"
+      >
+        <template #cell-currency_name="{ value }">
+          {{ value }}
+        </template>
 
-        <ExchangeRateTable
-          :exchangeRates="exchangeRates"
-          :tokenId="tokenId"
-          @edit="edit"
-          @change-status="changeStatus"
-          @delete="remove"
-        />
-      </div>
+        <template #cell-amount="{ row }">
+          {{ Number(row.amount).toFixed(4) }}
+        </template>
+
+        <template #cell-percentage="{ row }">
+          {{ row.percentage != 0 ? `${row.percentage}%` : '-' }}
+        </template>
+
+        <template #cell-status="{ row }">
+          <span
+            v-if="statusMap[row.status]"
+            :class="['badge', statusMap[row.status].class]"
+          >
+            {{ statusMap[row.status].text }}
+          </span>
+          <span v-else class="badge badge-light">{{ row.status }}</span>
+        </template>
+
+        <template #cell-created_at="{ row }">
+          {{ formatDate(row.created_at) }}
+        </template>
+      </BaseTable>
+
+      <TableFooterInfo
+        :filtered-count="exchangeRates.length"
+        :total-count="exchangeRates.length"
+      />
     </div>
   </div>
 </template>

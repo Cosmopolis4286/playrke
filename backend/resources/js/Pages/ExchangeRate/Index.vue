@@ -57,7 +57,6 @@
   /**
    * Propiedades y estado local
    */
-  const selectedCurrency = ref<string[]>([])
   const currencies = props.currencies
   const usedCurrencies = ref<UsedCurrency[]>([])
 
@@ -161,13 +160,16 @@
   }
 
   /**
-   * Navega a la vista histórica filtrando por las monedas seleccionadas
+   * Navega a la vista histórica de la tasa seleccionada
    */
   function goHistorical(): void {
-    if (!selectedCurrency.value.length) return
+    if (!selectedIds.value.length) return
 
-    window.location.href =
-      `/exchange-rate/historical/${selectedCurrency.value}` + `?tokenId=${props.tokenId}`
+    const selected = exchangeRates.value.find(er => String(er.id) === selectedIds.value[0])
+    if (!selected?.currency_id) return
+
+    const params = props.tokenId ? `?tokenId=${props.tokenId}` : ''
+    window.location.href = `/exchange-rate/historical/${selected.currency_id}${params}`
   }
 </script>
 <template>
@@ -195,11 +197,11 @@
             <i class="fa-solid fa-repeat"></i>
           </button>
 
-          <!-- Histórico -->
+          <!-- Histórico (requiere exactamente 1 seleccionado) -->
           <button
+            v-if="ids.length === 1"
             class="btn btn-sm btn-primary"
             type="button"
-            :disabled="!selectedCurrency.length"
             title="Ver Histórico"
             @click="goHistorical"
           >

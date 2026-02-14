@@ -77,11 +77,13 @@
   const showRoundsPct = computed(() => (form.value.rounds ?? 1) > 1)
 
   /**
-   * Mostrar container de valor fijo/extra (prizePoolType > 1)
+   * Mostrar container de valor fijo/extra (cuando NO es Acumulativo)
    */
   const showAmountAddedPrizePool = computed(() => {
-    const val = Number(form.value.prizePoolType)
-    return val > 1
+    const selected = props.prizePoolTypeOptions.find(
+      opt => String(opt.value) === String(form.value.prizePoolType)
+    )
+    return selected ? selected.label !== 'Acumulativo' : false
   })
 
   /* ==========================================================================

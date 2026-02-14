@@ -10,6 +10,7 @@ use App\Models\Game;
 use App\Models\Games\Bingo\Creator\BingoCreator;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
+use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Utils\GameConfig;
 use App\Models\Games\Common\Utils\GameStatus;
 use Carbon\Carbon;
@@ -55,7 +56,9 @@ final class BingoRoomCrudService
                 ->where('param', 'COMMISSION')
                 ->value('value') ?? 5;
 
-            $prizePool = $dto->prizePoolType > 1 ? ($dto->amountAddedPrizePool ?? 0) : 0;
+            $prizePoolDescription = PrizePoolType::where('id', $dto->prizePoolType)->value('description');
+            $isAccumulative = $prizePoolDescription === 'Acumulativo';
+            $prizePool = !$isAccumulative ? ($dto->amountAddedPrizePool ?? 0) : 0;
 
             do {
                 $uuidCode = strtoupper(Str::uuid()->toString());
@@ -78,7 +81,6 @@ final class BingoRoomCrudService
                 'room_id'            => $room->id,
                 'user_id'            => $userId,
                 'creator_commn'      => $dto->roomCommn,
-                'card_price'         => $dto->ctnPrice,
                 'status'             => 'ACTIVE',
             ]);
 
@@ -109,12 +111,13 @@ final class BingoRoomCrudService
                 'jackpot_pct'             => $dto->jackpotPct ?? 0,
             ]);
 
-            // Crear precios de cartones para la sala
-            foreach ($dto->cardPrices as $cardPrice) {
+            // Crear precios de cartones para la sala (un registro por moneda permitida)
+            foreach ($dto->allowedCurrencies as $currencyId) {
                 $this->bingoCardPrices->create([
-                    'room_id'    => $room->id,
-                    'price'      => $cardPrice->price,
-                    'currency_id'   => $cardPrice->currency,
+                    'room_id'         => $room->id,
+                    'creator_user_id' => $userId,
+                    'currency_id'     => $currencyId,
+                    'card_price'      => $dto->ctnPrice,
                 ]);
             }
 

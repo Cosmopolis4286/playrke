@@ -22,8 +22,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $room ID de la sala de bingo
  * @property string $user_id ID del usuario creador
  * @property float $creator_commn Comisión del creador
- * @property float $card_price Precio de las cartas
- * @property array $allowed_currencies Monedas permitidas
  * @property string $status Estado del creador (active, inactive)
  * @property \Carbon\Carbon $created_at Fecha de creación
  * @property \Carbon\Carbon $updated_at Fecha de actualización
@@ -55,8 +53,6 @@ class BingoCreator extends Model
         'room_id',
         'user_id',
         'creator_commn',
-        'card_price',
-        'allowed_currencies',
         'status',
     ];
 
@@ -66,9 +62,7 @@ class BingoCreator extends Model
     protected $casts = [
         'room_id' => 'string',
         'user_id' => 'string',
-        'allowed_currencies' => 'array',
         'creator_commn' => 'decimal:8',
-        'card_price' => 'decimal:8',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -127,31 +121,6 @@ class BingoCreator extends Model
     public function scopeByUser($query, string $userId)
     {
         return $query->where('user_id', $userId);
-    }
-
-    /**
-     * Scope para obtener creadores por rango de precios
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param float $minPrice
-     * @param float $maxPrice
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeByPriceRange($query, float $minPrice, float $maxPrice)
-    {
-        return $query->whereBetween('card_price', [$minPrice, $maxPrice]);
-    }
-
-    /**
-     * Scope para obtener creadores que soportan una moneda específica
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $currency
-     * @return \Illuminate\Database\Eloquent\Builder
-     */
-    public function scopeByCurrency($query, string $currency)
-    {
-        return $query->whereJsonContains('allowed_currencies', $currency);
     }
 
     /**
