@@ -227,7 +227,7 @@ class BingoRoom extends BaseModel
             'FINISHED'    => '<span class="badge badge-info">Finalizada</span>',
             'REFUND'      => '<span class="badge badge-warning">Reembolso</span>',
             'OFFLINE'     => '<span class="badge badge-secondary">Fuera de Línea</span>',
-            default       => '<span class="badge badge-dark">N/D</span>',
+            default       => '<span class="badge badge-dark">No Disponible</span>',
         };
     }
 

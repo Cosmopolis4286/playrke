@@ -144,7 +144,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             const payload = { ...roomFormData.value }
 
             if (roomData.value.id) {
-                await backendClient.put(
+                await backendClient.patch(
                     `/bingo-rooms/${roomData.value.id}/update`,
                     payload
                 )
@@ -250,11 +250,11 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/bingo-rooms/${id}/status`)
+            await backendClient.patch(`/bingo-rooms/${id}/status`)
             showToast('Estado cambiado con éxito', 'success')
             await fetchRooms()
             return true
-        } catch {
+        } catch (error) {
             showToast('Error al cambiar el estado', 'error')
             return false
         }
@@ -276,11 +276,11 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/bingo-rooms/${id}/delete`)
+            await backendClient.delete(`/bingo-rooms/${id}/delete`)
             showToast('Sala eliminada con éxito', 'success')
             await fetchRooms()
             return true
-        } catch {
+        } catch (error) {
             showToast('Error al eliminar la sala', 'error')
             return false
         }
@@ -326,12 +326,13 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
 
         try {
             for (const id of ids) {
-                await backendClient.put(`/bingo-rooms/${id}/status`)
+                await backendClient.patch(`/bingo-rooms/${id}/status`)
             }
             showToast(`Estado cambiado con éxito para ${ids.length} salas`, 'success')
             await fetchRooms()
             return true
-        } catch {
+        } catch (error) {
+            console.error('Error al cambiar el estado de las salas:', error)
             showToast('Error al cambiar el estado', 'error')
             return false
         }
@@ -359,12 +360,14 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
 
         try {
             for (const id of ids) {
-                await backendClient.put(`/bingo-rooms/${id}/delete`)
+                await backendClient.delete(`/bingo-rooms/${id}/delete`)
             }
             showToast(`${ids.length} salas eliminadas con éxito`, 'success')
             await fetchRooms()
             return true
-        } catch {
+        } catch (error) {
+            console.error('Error al eliminar las salas:', error)
+
             showToast('Error al eliminar las salas', 'error')
             return false
         }

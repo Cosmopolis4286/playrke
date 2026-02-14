@@ -50,11 +50,4 @@ multi_middleware_routes('seller', 'seller.', [
             'sales-report-player' => ['method' => 'get', 'uri' => 'bingo/sales-report/{room}/player/{playerLink}'],
         ]
     ],
-    [
-        'middleware' => ['auth', 'seller'],
-        'controller' => BingoController::class,
-        'routes' => [
-            'generate-card' => ['method' => 'post', 'uri' => 'bingo/generate-card'],
-        ]
-    ]
 ]);

@@ -19,22 +19,6 @@ use Illuminate\Support\Facades\Route;
  */
 multi_middleware_routes('bingo', 'bingo.', [
     [
-        'middleware' => ['auth', 'admin'],
-        'controller' => GameBingoController::class,
-        'routes' => [
-            'game-rooms-admin' => ['method' => 'get', 'uri' => 'game-rooms/admin/{user}/{currency?}'],
-            'activate-winner'  => ['method' => 'post', 'uri' => 'activate-winner'],
-            'create'           => ['method' => 'post', 'uri' => 'create'],
-            'update'           => ['method' => 'put',  'uri' => 'update/{id}'],
-            'delete'           => ['method' => 'delete', 'uri' => 'delete/{id}'],
-            'changeStatus'    => ['method' => 'put',  'uri' => 'status/{id}'],
-            'replay'           => ['method' => 'put',  'uri' => 'replay/{id}'],
-            'publish'          => ['method' => 'put',  'uri' => 'publish/{id}'],
-            'refund'           => ['method' => 'put',  'uri' => 'refund/{id}'],
-            'copy'             => ['method' => 'put',  'uri' => 'copy/{id}'],
-        ]
-    ],
-    [
         'middleware' => ['auth', 'commerce'],
         'controller' => GameBingoController::class,
         'routes' => [
@@ -53,14 +37,19 @@ multi_middleware_routes('bingo', 'bingo.', [
  * INFORMACIÓN Y CONFIGURACIÓN
  * ====================================
  */
-route_group('bingo-rooms', 'bingo-rooms.', [], BingoRoomController::class, [
+route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'role:admin,commerce'], BingoRoomController::class, [
     'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
     'show' => ['method' => 'get', 'uri' => '{room}/show', 'action' => 'show'],
-    'update' => ['method' => 'put',  'uri' => '{room}/update', 'action' => 'update'],
-    'delete' => ['method' => 'put', 'uri' => '{room}/delete', 'action' => 'delete'],
-    'toggle-status' => ['method' => 'put', 'uri' => '{room}/status', 'action' => 'toggleStatus'],
+    'update' => ['method' => 'patch',  'uri' => '{room}/update', 'action' => 'update'],
+    'delete' => ['method' => 'delete', 'uri' => '{room}/delete', 'action' => 'delete'],
+    'destroy' => ['method' => 'delete', 'uri' => '{room}/force-delete', 'action' => 'destroy'],
+    'toggle-status' => ['method' => 'patch', 'uri' => '{room}/status', 'action' => 'toggleStatus'],
+    'replay' => ['method' => 'get',  'uri' => '{room}/replay', 'action' => 'replay'],
+    'publish' => ['method' => 'patch',  'uri' => '{room}/publish', 'action' => 'publish'],
+    'refund' => ['method' => 'patch',  'uri' => '{room}/refund', 'action' => 'refund'],
+    'copy' => ['method' => 'post',  'uri' => '{room}/copy', 'action' => 'copy'],
     // 'form'               => ['method' => 'get', 'uri' => 'form/{roomId?}', 'action' => 'formData'],
     // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
     // 'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],
@@ -71,19 +60,6 @@ route_group('bingo-rooms', 'bingo-rooms.', [], BingoRoomController::class, [
     // 'rounds-config'      => ['method' => 'get', 'uri' => 'rounds-config/{room}/{type}'],
     // 'datetime-rooms'     => ['method' => 'get', 'uri' => 'datetime-rooms/{creatorUser}/{player}'],
     // 'price-currency'     => ['method' => 'get', 'uri' => 'price-currency/{creation}/{creatorType}/{creatorId}/{room?}'],
-]);
-
-/**
- * ====================================
- * OPERACIONES DE JUEGO
- * ====================================
- */
-route_group('bingo', 'bingo.', [], GameBingoController::class, [
-    'generate-card'    => ['method' => 'get', 'uri' => 'generate-card', 'action' => 'generateBingoCard'],
-    'call-number'      => ['method' => 'post', 'uri' => 'room/{roomId}/call-number'],
-    'participate'      => ['method' => 'put',  'uri' => 'participate/public-room/{id?}/{getOut?}'],
-    'notify-payment'   => ['method' => 'post', 'uri' => 'carton/notify/payment/win-ctn'],
-    'handle-rules'     => ['method' => 'put',  'uri' => 'handle-rules/{id?}'],
 ]);
 
 /**
@@ -118,6 +94,20 @@ route_group('bingo-automatic-room', 'bingo.automatic.', ['auth'], GameBingoContr
     'copy'          => ['method' => 'put', 'uri' => '{id}/copy'],
     'execute-job'   => ['method' => 'get', 'uri' => 'execute-job/{creatorType}/{creatorId}'],
 ]);
+
+/**
+ * ====================================
+ * OPERACIONES DE JUEGO
+ * ====================================
+ */
+route_group('bingo', 'bingo.', [], GameBingoController::class, [
+    'generate-card'    => ['method' => 'get', 'uri' => 'generate-card', 'action' => 'generateBingoCard'],
+    'call-number'      => ['method' => 'post', 'uri' => 'room/{roomId}/call-number'],
+    'participate'      => ['method' => 'put',  'uri' => 'participate/public-room/{id?}/{getOut?}'],
+    'notify-payment'   => ['method' => 'post', 'uri' => 'carton/notify/payment/win-ctn'],
+    'handle-rules'     => ['method' => 'put',  'uri' => 'handle-rules/{id?}'],
+]);
+
 
 /**
  * ====================================
