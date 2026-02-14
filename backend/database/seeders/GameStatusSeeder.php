@@ -14,7 +14,7 @@ class GameStatusSeeder extends Seeder
         $timestamp = now();
 
         $statuses = [
-            ['value' => 'NONE',        'description' => 'N/D'],
+            ['value' => 'UNAVAILABLE', 'description' => 'No Disponible'],
             ['value' => 'AVAILABLE',   'description' => 'Disponible'],
             ['value' => 'IN_PROGRESS', 'description' => 'En Juego'],
             ['value' => 'FINISHED',    'description' => 'Finalizada'],

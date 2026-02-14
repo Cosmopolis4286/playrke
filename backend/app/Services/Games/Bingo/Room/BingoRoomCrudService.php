@@ -152,19 +152,125 @@ final class BingoRoomCrudService
      *
      * @throws BingoRoomException
      */
+    /**
+     * Actualizar sala de bingo y relaciones.
+     *
+     * @param BingoRoom $room
+     * @param BingoRoomUpdateDTO $dto
+     *
+     * @throws BingoRoomException
+     */
     public function update(BingoRoom $room, BingoRoomUpdateDTO $dto): void
     {
         DB::transaction(function () use ($room, $dto) {
 
+            if (!$room->exists) {
+                throw BingoRoomException::notFound();
+            }
+
+            $userId = Auth::id();
+
+            $gameId = Game::where('name', 'BINGO')->value('id');
+
+            $rkeCommission = GameConfig::where('game_id', $gameId)
+                ->where('param', 'COMMISSION')
+                ->value('value') ?? 5;
+
+            // Validar prize pool type
+            $prizePoolDescription = PrizePoolType::where('id', $dto->prizePoolType)->value('description');
+            $isAccumulative = $prizePoolDescription === 'Acumulativo';
+
+            $prizePool = !$isAccumulative ? ($dto->amountAddedPrizePool ?? 0) : 0;
+
+            // Calcular unix_date
+            $roomDate = $dto->date;
+            $unixDate = Carbon::createFromFormat('Y-m-d H:i', "{$roomDate} {$dto->time}")->timestamp;
+
+            // =============================
+            // Actualizar BingoRoom
+            // =============================
             $this->bingoRooms->update(
                 $room->id,
                 array_filter([
-                    'name'       => $dto->name,
-                    'phone'      => $dto->phone,
-                    'commission' => $dto->commission,
-                    'country_id' => $dto->country,
-                ])
+                    'prize_pool' => $prizePool,
+                ], fn($value) => !is_null($value))
             );
+
+            // =============================
+            // Actualizar Config
+            // =============================
+            BingoRoomConfig::where('room_id', $room->id)->update([
+                'room_type'               => $dto->roomType,
+                'game_mode_id'            => $dto->gameMode,
+                'date'                    => $roomDate,
+                'time'                    => $dto->time,
+                'unix_date'               => $unixDate,
+                'allowed_currencies'      => $dto->allowedCurrencies ? json_encode($dto->allowedCurrencies) : null,
+                'rke_commn'               => $rkeCommission,
+                'room_commn'              => $dto->roomCommn,
+                'prize_pool_type_id'      => $dto->prizePoolType,
+                'amount_added_prize_pool' => $dto->amountAddedPrizePool ?? 0,
+                'time_chip'               => $dto->timeChip,
+                'rounds'                  => $dto->rounds,
+                'rounds_pct'              => $dto->roundsPct ?? 0,
+                'serials_pct'             => $dto->serialsPct,
+                'num_serials'             => $dto->numSerials,
+                'jackpot_pct'             => $dto->jackpotPct ?? 0,
+            ]);
+
+            // =============================
+            // Actualizar Creator (comisión)
+            // =============================
+            BingoCreator::where('room_id', $room->id)
+                ->where('user_id', $room->creator_user_id)
+                ->update([
+                    'creator_commn' => $dto->roomCommn,
+                ]);
+
+            // =============================
+            // Sincronizar Card Prices
+            // =============================
+            $allowedCurrencies = $dto->allowedCurrencies ?? [];
+
+            $existingCurrencyIds = $this->bingoCardPrices
+                ->query()
+                ->where('room_id', $room->id)
+                ->pluck('currency_id')
+                ->toArray();
+
+            // Monedas a eliminar
+            $currenciesToDelete = array_diff($existingCurrencyIds, $allowedCurrencies);
+
+            if (!empty($currenciesToDelete)) {
+                $this->bingoCardPrices
+                    ->query()
+                    ->where('room_id', $room->id)
+                    ->whereIn('currency_id', $currenciesToDelete)
+                    ->delete();
+            }
+
+            // Crear o actualizar monedas permitidas
+            foreach ($allowedCurrencies as $currencyId) {
+
+                $existing = $this->bingoCardPrices
+                    ->query()
+                    ->where('room_id', $room->id)
+                    ->where('currency_id', $currencyId)
+                    ->first();
+
+                if ($existing) {
+                    $this->bingoCardPrices->update($existing->id, [
+                        'card_price' => $dto->ctnPrice,
+                    ]);
+                } else {
+                    $this->bingoCardPrices->create([
+                        'room_id'         => $room->id,
+                        'creator_user_id' => $userId,
+                        'currency_id'     => $currencyId,
+                        'card_price'      => $dto->ctnPrice,
+                    ]);
+                }
+            }
         });
     }
 
@@ -179,14 +285,16 @@ final class BingoRoomCrudService
      */
     public function toggleStatus(BingoRoom $room): bool
     {
-        if ($room->status === 'DELETED') {
+        if ($room->status?->value === 'DELETED') {
             throw BingoRoomException::invalidStatusChange();
         }
 
-        // Usa changeStatus con userRelation para sincronizar BingoRoom y User
-        $newStatus = $room->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+        // Definir nuevo estado alternando entre AVAILABLE y UNAVAILABLE
+        $newStatus = $room->status?->value === 'AVAILABLE'
+            ? 'UNAVAILABLE'
+            : 'AVAILABLE';
 
-        return $this->bingoRooms->changeStatus($room, $newStatus, 'user');
+        return $this->bingoRooms->changeGameStatus($room->id, $newStatus);
     }
 
     /**

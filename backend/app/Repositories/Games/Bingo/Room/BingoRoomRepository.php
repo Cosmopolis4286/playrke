@@ -5,6 +5,7 @@ namespace App\Repositories\Games\Bingo\Room;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Repositories\BaseRepository;
 use App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface;
+use App\Models\Games\Common\Utils\GameStatus;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
 
@@ -226,6 +227,21 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         return $this->model->where('id', $roomId)->update([
             'prize_pool' => $amount,
         ]) > 0;
+    }
+
+    public function changeGameStatus(string $roomId, string $newStatusValue): bool
+    {
+        $statusId = GameStatus::query()
+            ->where('value', $newStatusValue)
+            ->value('id');
+
+        if (!$statusId) {
+            return false;
+        }
+
+        return $this->model->where('id', $roomId)->update([
+            'status_id' => $statusId,
+        ]);
     }
 
     /**

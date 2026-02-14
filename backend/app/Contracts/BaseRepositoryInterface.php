@@ -2,6 +2,7 @@
 
 namespace App\Contracts;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -37,6 +38,13 @@ interface BaseRepositoryInterface
      * @return Model Instancia del modelo Eloquent usada por el repositorio.
      */
     public function getModel(): Model;
+
+    /**
+     * Retorna el query builder del modelo asociado.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function query(): Builder;
 
     /**
      * Obtener todos los registros.

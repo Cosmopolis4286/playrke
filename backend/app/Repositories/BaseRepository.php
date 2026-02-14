@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Domain\Common\Status\StatusChanger;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -55,6 +56,14 @@ abstract class BaseRepository implements BaseRepositoryInterface
     public function getModel(): Model
     {
         return $this->model;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function query(): Builder
+    {
+        return $this->getModel()->newQuery();
     }
 
     /**
