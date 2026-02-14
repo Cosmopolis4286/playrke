@@ -3,7 +3,7 @@
 // use App\Http\Controllers\CookieController;
 
 use App\Http\Controllers\Games\GameController;
-use App\Http\Controllers\RewardsController;
+use App\Http\Controllers\PrizesController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -29,7 +29,7 @@ Route::put('games/handle-customer/{id?}', [GameController::class, 'handleCustome
 // ====================================
 // SISTEMA DE RECOMPENSAS
 // ====================================
-route_group('rewards', 'rewards.', ['auth'], RewardsController::class, [
+route_group('prizes', 'prizes.', ['auth'], PrizesController::class, [
     'index' => ['method' => 'get', 'uri' => ''],
     'country' => ['method' => 'get', 'uri' => '{countryCode}'],
 ]);

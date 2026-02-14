@@ -30,7 +30,7 @@ export const commerceRoutes = {
   destroy: '/admin/commerce/{id}',
   resetPassword: '/admin/commerce/{id}/password',
   changeStatus: '/admin/commerce/{id}/status',
-  rewards: '/commerce/rewards',
+  prizes: '/commerce/prizes',
   sellers: '/commerce/sellers',
   currencyByCountry: '/commerce/seller/currency/{country}/{seller}',
   sellerInfoByCarton: '/commerce/seller/info/{ctnId}',
@@ -49,7 +49,7 @@ export const commerceAdminRoutes = {
 } satisfies Pick<CommerceRoutes, CommerceAdminRouteName>
 
 export const commercePublicRoutes = {
-  rewards: commerceRoutes.rewards,
+  prizes: commerceRoutes.prizes,
   sellers: commerceRoutes.sellers,
   currencyByCountry: commerceRoutes.currencyByCountry,
   sellerInfoByCarton: commerceRoutes.sellerInfoByCarton,

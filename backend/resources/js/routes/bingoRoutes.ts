@@ -17,7 +17,7 @@ export const bingoRoutes = {
   refund: "/bingo/refund/{id}",
   copy: "/bingo/copy/{id}",
   gameRoomsCommerce: "/bingo/{roomType}/game-rooms/{currency?}",
-  rewards: "/bingo/rewards",
+  prizes: "/bingo/prizes",
   sellers: "/bingo/sellers",
   getCurrencyByCountry: "/bingo/seller/getCurrencyByCountry/{country}/{seller}",
   getSellerInfoByCtn: "/bingo/seller/getSellerInfoByCtn/{ctnId}",

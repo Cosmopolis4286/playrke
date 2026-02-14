@@ -6,7 +6,7 @@
 // ======================================================
 
 export const commerceRoutes = {
-  rewards: "/commerce/rewards",
+  prizes: "/commerce/prizes",
   sellers: "/commerce/sellers",
   currencyByCountry: "/commerce/seller/currency/{country}/{seller}",
   sellerInfoByCarton: "/commerce/seller/info/{ctnId}",

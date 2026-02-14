@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('rewards', function (Blueprint $table) {
+        Schema::create('prizes', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();;
 
@@ -20,7 +20,10 @@ return new class extends Migration
             $table->decimal('price', 12, 2);
             $table->string('description', 255)->nullable();
 
-            $table->foreignSnowflake('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignSnowflake('user_id')
+                ->constrained('users')
+                ->cascadeOnDelete()
+                ->comment('ID del usuario que creó el premio');
 
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
             $table->timestamps();
@@ -32,6 +35,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('rewards');
+        Schema::dropIfExists('prizes');
     }
 };

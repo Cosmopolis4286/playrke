@@ -21,7 +21,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($rewards as $item)
+                            @foreach ($prizes as $item)
                                 <tr>
                                     <td>{{ $item->code }}</td>
                                     <td>{{ $item->reward_type_description }}</td>
@@ -61,7 +61,7 @@
     @include('includes.modal-form', [
         'moduleId' => $moduleId,
         'size' => 'md',
-        'dataForm' => view('modules.all.rewards.form', ['creator' => $creator])->render(),
+        'dataForm' => view('modules.all.prizes.form', ['creator' => $creator])->render(),
     ])
 @endsection
 @section('scripts')
@@ -89,7 +89,7 @@
 
             Object.entries(rewardTypes).forEach(([value, text]) => {
                 const isSelected = (type == 2 && value === data.product_service) ? 'selected' : '';
-                $('#reward-type').append(`<option value="${value}" ${isSelected}>${text}</option>`);
+                $('#prize-type').append(`<option value="${value}" ${isSelected}>${text}</option>`);
             });
 
             // Mostrar modal
@@ -105,7 +105,7 @@
         });
 
         $(document).on("click", "#btn-confirm", function() {
-            submitForm(name, ['reward-type', 'moduleId', 'num-items', 'price', 'description']);
+            submitForm(name, ['prize-type', 'moduleId', 'num-items', 'price', 'description']);
         });
 
         const otherCasesMap = {

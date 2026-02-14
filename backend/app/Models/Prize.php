@@ -32,14 +32,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property-read User $user Usuario creador de la recompensa
  */
-class Reward extends Model
+class Prize extends Model
 {
     use SnowflakeId;
 
     /**
      * Nombre de la tabla en la base de datos
      */
-    protected $table = 'rewards';
+    protected $table = 'prizes';
 
     /**
      * Tipos de recompensas disponibles
@@ -102,7 +102,7 @@ class Reward extends Model
     /**
      * Relación con el usuario creador de la recompensa
      *
-     * @return BelongsTo<User, Reward>
+     * @return BelongsTo<User, Prize>
      */
     public function user(): BelongsTo
     {
@@ -114,7 +114,7 @@ class Reward extends Model
      *
      * @return string
      */
-    public function getRewardTypeDescriptionAttribute(): string
+    public function getPrizeTypeDescriptionAttribute(): string
     {
         return self::REWARD_TYPES[$this->reward_type] ?? $this->reward_type;
     }

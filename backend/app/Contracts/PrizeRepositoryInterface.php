@@ -2,7 +2,7 @@
 
 namespace App\Contracts;
 
-use App\Models\Reward;
+use App\Models\Prize;
 use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -12,93 +12,93 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos disponibles para gestionar recompensas del sistema,
  * incluyendo operaciones CRUD y consultas específicas del dominio.
  *
- * @package App\Contracts\Rewards
+ * @package App\Contracts\Prizes
  * @author Sistema de Gestión de Recompensas
  * @version 1.0
  */
-interface RewardRepositoryInterface extends BaseRepositoryInterface
+interface PrizeRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene todas las recompensas de un usuario creador
      *
      * @param string $userId ID del usuario creador
      * @param array $filters Filtros adicionales ['status' => 'ACTIVE']
-     * @return Collection<Reward> Recompensas del usuario
+     * @return Collection<Prize> Recompensas del usuario
      *
      * @example
-     * $rewards = $repository->getRewardsByCreator('123', ['status' => 'ACTIVE']);
+     * $prizes = $repository->getPrizesByCreator('123', ['status' => 'ACTIVE']);
      */
-    public function getRewardsByCreator(string $userId, array $filters = []): Collection;
+    public function getPrizesByCreator(string $userId, array $filters = []): Collection;
 
     /**
      * Obtiene recompensas por tipo
      *
      * @param string $rewardType Tipo de recompensa ('PRODUCT', 'SERVICE')
      * @param array $filters Filtros adicionales
-     * @return Collection<Reward> Recompensas del tipo especificado
+     * @return Collection<Prize> Recompensas del tipo especificado
      *
      * @example
-     * $products = $repository->getRewardsByType('PRODUCT');
+     * $products = $repository->getPrizesByType('PRODUCT');
      */
-    public function getRewardsByType(string $rewardType, array $filters = []): Collection;
+    public function getPrizesByType(string $rewardType, array $filters = []): Collection;
 
     /**
      * Obtiene recompensas por estado
      *
      * @param string $status Estado de la recompensa ('ACTIVE', 'INACTIVE')
      * @param array $filters Filtros adicionales
-     * @return Collection<Reward> Recompensas con el estado especificado
+     * @return Collection<Prize> Recompensas con el estado especificado
      *
      * @example
-     * $activeRewards = $repository->getRewardsByStatus('ACTIVE');
+     * $activePrizes = $repository->getPrizesByStatus('ACTIVE');
      */
-    public function getRewardsByStatus(string $status, array $filters = []): Collection;
+    public function getPrizesByStatus(string $status, array $filters = []): Collection;
 
     /**
      * Busca una recompensa por código único
      *
      * @param string $code Código de la recompensa
      * @param string|null $userId ID del usuario (opcional para búsqueda específica)
-     * @return Reward|null Recompensa encontrada o null
+     * @return Prize|null Recompensa encontrada o null
      *
      * @example
-     * $reward = $repository->findByCode('REW001', '123');
+     * $prize = $repository->findByCode('REW001', '123');
      */
-    public function findByCode(string $code, ?string $userId = null): ?Reward;
+    public function findByCode(string $code, ?string $userId = null): ?Prize;
 
     /**
      * Obtiene recompensas que son kits
      *
      * @param array $filters Filtros adicionales
-     * @return Collection<Reward> Recompensas que son kits
+     * @return Collection<Prize> Recompensas que son kits
      *
      * @example
-     * $kits = $repository->getRewardsKits(['status' => 'ACTIVE']);
+     * $kits = $repository->getPrizesKits(['status' => 'ACTIVE']);
      */
-    public function getRewardsKits(array $filters = []): Collection;
+    public function getPrizesKits(array $filters = []): Collection;
 
     /**
      * Obtiene recompensas que no son kits
      *
      * @param array $filters Filtros adicionales
-     * @return Collection<Reward> Recompensas individuales
+     * @return Collection<Prize> Recompensas individuales
      *
      * @example
-     * $individualRewards = $repository->getIndividualRewards(['status' => 'ACTIVE']);
+     * $individualPrizes = $repository->getIndividualPrizes(['status' => 'ACTIVE']);
      */
-    public function getIndividualRewards(array $filters = []): Collection;
+    public function getIndividualPrizes(array $filters = []): Collection;
 
     /**
      * Busca recompensas por nombre
      *
      * @param string $searchTerm Término de búsqueda
      * @param array $filters Filtros adicionales
-     * @return Collection<Reward> Recompensas que coinciden
+     * @return Collection<Prize> Recompensas que coinciden
      *
      * @example
-     * $rewards = $repository->searchRewardsByName('premium', ['status' => 'ACTIVE']);
+     * $prizes = $repository->searchPrizesByName('premium', ['status' => 'ACTIVE']);
      */
-    public function searchRewardsByName(string $searchTerm, array $filters = []): Collection;
+    public function searchPrizesByName(string $searchTerm, array $filters = []): Collection;
 
     /**
      * Obtiene recompensas en un rango de precios
@@ -106,12 +106,12 @@ interface RewardRepositoryInterface extends BaseRepositoryInterface
      * @param float $minPrice Precio mínimo
      * @param float $maxPrice Precio máximo
      * @param array $filters Filtros adicionales
-     * @return Collection<Reward> Recompensas en el rango de precio
+     * @return Collection<Prize> Recompensas en el rango de precio
      *
      * @example
-     * $rewards = $repository->getRewardsByPriceRange(10.00, 100.00, ['status' => 'ACTIVE']);
+     * $prizes = $repository->getPrizesByPriceRange(10.00, 100.00, ['status' => 'ACTIVE']);
      */
-    public function getRewardsByPriceRange(float $minPrice, float $maxPrice, array $filters = []): Collection;
+    public function getPrizesByPriceRange(float $minPrice, float $maxPrice, array $filters = []): Collection;
 
     /**
      * Actualiza el estado de una recompensa
@@ -121,9 +121,9 @@ interface RewardRepositoryInterface extends BaseRepositoryInterface
      * @return bool True si se actualizó correctamente
      *
      * @example
-     * $updated = $repository->updateRewardStatus('123', 'INACTIVE');
+     * $updated = $repository->updatePrizeStatus('123', 'INACTIVE');
      */
-    public function updateRewardStatus(string $rewardId, string $newStatus): bool;
+    public function updatePrizeStatus(string $rewardId, string $newStatus): bool;
 
     /**
      * Verifica si un código existe para un usuario
@@ -145,10 +145,10 @@ interface RewardRepositoryInterface extends BaseRepositoryInterface
      * @return array Estadísticas del usuario
      *
      * @example
-     * $stats = $repository->getRewardStatsByUser('123');
-     * // ['total_rewards' => 15, 'active_rewards' => 12, 'inactive_rewards' => 3]
+     * $stats = $repository->getPrizeStatsByUser('123');
+     * // ['total_prizes' => 15, 'active_prizes' => 12, 'inactive_prizes' => 3]
      */
-    public function getRewardStatsByUser(string $userId): array;
+    public function getPrizeStatsByUser(string $userId): array;
 
     /**
      * Obtiene estadísticas generales de recompensas
@@ -156,9 +156,9 @@ interface RewardRepositoryInterface extends BaseRepositoryInterface
      * @return array Estadísticas generales
      *
      * @example
-     * $generalStats = $repository->getGeneralRewardStats();
+     * $generalStats = $repository->getGeneralPrizeStats();
      */
-    public function getGeneralRewardStats(): array;
+    public function getGeneralPrizeStats(): array;
 
     /**
      * Cuenta recompensas por tipo
@@ -167,10 +167,10 @@ interface RewardRepositoryInterface extends BaseRepositoryInterface
      * @return array Conteo por tipo
      *
      * @example
-     * $counts = $repository->countRewardsByType();
+     * $counts = $repository->countPrizesByType();
      * // ['PRODUCT' => 25, 'SERVICE' => 15]
      */
-    public function countRewardsByType(array $filters = []): array;
+    public function countPrizesByType(array $filters = []): array;
 
     /**
      * Cuenta recompensas por estado
@@ -179,34 +179,34 @@ interface RewardRepositoryInterface extends BaseRepositoryInterface
      * @return array Conteo por estado
      *
      * @example
-     * $counts = $repository->countRewardsByStatus();
+     * $counts = $repository->countPrizesByStatus();
      * // ['ACTIVE' => 35, 'INACTIVE' => 5]
      */
-    public function countRewardsByStatus(array $filters = []): array;
+    public function countPrizesByStatus(array $filters = []): array;
 
     /**
      * Obtiene recompensas más caras
      *
      * @param int $limit Límite de resultados
      * @param array $filters Filtros adicionales
-     * @return Collection<Reward> Recompensas más caras
+     * @return Collection<Prize> Recompensas más caras
      *
      * @example
-     * $expensiveRewards = $repository->getMostExpensiveRewards(10);
+     * $expensivePrizes = $repository->getMostExpensivePrizes(10);
      */
-    public function getMostExpensiveRewards(int $limit = 10, array $filters = []): Collection;
+    public function getMostExpensivePrizes(int $limit = 10, array $filters = []): Collection;
 
     /**
      * Obtiene recompensas más baratas
      *
      * @param int $limit Límite de resultados
      * @param array $filters Filtros adicionales
-     * @return Collection<Reward> Recompensas más baratas
+     * @return Collection<Prize> Recompensas más baratas
      *
      * @example
-     * $cheapRewards = $repository->getCheapestRewards(10);
+     * $cheapPrizes = $repository->getCheapestPrizes(10);
      */
-    public function getCheapestRewards(int $limit = 10, array $filters = []): Collection;
+    public function getCheapestPrizes(int $limit = 10, array $filters = []): Collection;
 
     /**
      * Obtiene recompensas creadas en un rango de fechas
@@ -214,12 +214,12 @@ interface RewardRepositoryInterface extends BaseRepositoryInterface
      * @param string $startDate Fecha de inicio
      * @param string $endDate Fecha de fin
      * @param array $filters Filtros adicionales
-     * @return Collection<Reward> Recompensas en el rango
+     * @return Collection<Prize> Recompensas en el rango
      *
      * @example
-     * $rewards = $repository->getRewardsByDateRange('2024-01-01', '2024-01-31');
+     * $prizes = $repository->getPrizesByDateRange('2024-01-01', '2024-01-31');
      */
-    public function getRewardsByDateRange(string $startDate, string $endDate, array $filters = []): Collection;
+    public function getPrizesByDateRange(string $startDate, string $endDate, array $filters = []): Collection;
 
     /**
      * Obtiene todas las recompensas con paginación
@@ -229,9 +229,9 @@ interface RewardRepositoryInterface extends BaseRepositoryInterface
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator Recompensas paginadas
      *
      * @example
-     * $paginatedRewards = $repository->getPaginatedRewards(20, ['status' => 'ACTIVE']);
+     * $paginatedPrizes = $repository->getPaginatedPrizes(20, ['status' => 'ACTIVE']);
      */
-    public function getPaginatedRewards(int $perPage = 15, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator;
+    public function getPaginatedPrizes(int $perPage = 15, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
     /**
      * Actualiza múltiples recompensas en lote
@@ -241,9 +241,9 @@ interface RewardRepositoryInterface extends BaseRepositoryInterface
      * @return int Número de recompensas actualizadas
      *
      * @example
-     * $updated = $repository->bulkUpdateRewards(['1', '2'], ['status' => 'INACTIVE']);
+     * $updated = $repository->bulkUpdatePrizes(['1', '2'], ['status' => 'INACTIVE']);
      */
-    public function bulkUpdateRewards(array $rewardIds, array $updateData): int;
+    public function bulkUpdatePrizes(array $rewardIds, array $updateData): int;
 
     /**
      * Elimina recompensas antiguas inactivas
@@ -252,9 +252,9 @@ interface RewardRepositoryInterface extends BaseRepositoryInterface
      * @return int Número de recompensas eliminadas
      *
      * @example
-     * $deleted = $repository->deleteOldInactiveRewards(90);
+     * $deleted = $repository->deleteOldInactivePrizes(90);
      */
-    public function deleteOldInactiveRewards(int $daysOld = 90): int;
+    public function deleteOldInactivePrizes(int $daysOld = 90): int;
 
     /**
      * Obtiene el valor total de recompensas de un usuario

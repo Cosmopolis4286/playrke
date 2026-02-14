@@ -25,8 +25,8 @@
     </li>
 
     <li class="nav-item has-treeview">
-        <a href="{{ route('rewards.index') }}" title="Premios"
-            class="nav-link {{ Route::is('rewards.index') ? 'active' : '' }}">
+        <a href="{{ route('prizes.index') }}" title="Premios"
+            class="nav-link {{ Route::is('prizes.index') ? 'active' : '' }}">
             <i class="nav-icon fa-solid fa-award"></i>
             <p>Premios</p>
         </a>

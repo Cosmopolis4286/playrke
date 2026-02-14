@@ -2,9 +2,9 @@
 
 namespace App\Repositories;
 
-use App\Models\Reward;
+use App\Models\Prize;
 use App\Repositories\BaseRepository;
-use App\Contracts\RewardRepositoryInterface;
+use App\Contracts\PrizeRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -19,9 +19,9 @@ use Carbon\Carbon;
  * @author Sistema de Gestión de Recompensas
  * @version 1.0
  */
-class RewardRepository extends BaseRepository implements RewardRepositoryInterface
+class PrizeRepository extends BaseRepository implements PrizeRepositoryInterface
 {
-    public function __construct(Reward $model)
+    public function __construct(Prize $model)
     {
         $this->model = $model;
     }
@@ -29,7 +29,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene todas las recompensas de un usuario creador
      */
-    public function getRewardsByCreator(string $userId, array $filters = []): Collection
+    public function getPrizesByCreator(string $userId, array $filters = []): Collection
     {
         $query = $this->model->where('user_id', $userId);
 
@@ -54,7 +54,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene recompensas por tipo
      */
-    public function getRewardsByType(string $rewardType, array $filters = []): Collection
+    public function getPrizesByType(string $rewardType, array $filters = []): Collection
     {
         $query = $this->model->where('reward_type', $rewardType);
 
@@ -75,7 +75,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene recompensas por estado
      */
-    public function getRewardsByStatus(string $status, array $filters = []): Collection
+    public function getPrizesByStatus(string $status, array $filters = []): Collection
     {
         $query = $this->model->where('status', $status);
 
@@ -96,7 +96,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Busca una recompensa por código único
      */
-    public function findByCode(string $code, ?string $userId = null): ?Reward
+    public function findByCode(string $code, ?string $userId = null): ?Prize
     {
         $query = $this->model->where('code', $code);
 
@@ -110,7 +110,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene recompensas que son kits
      */
-    public function getRewardsKits(array $filters = []): Collection
+    public function getPrizesKits(array $filters = []): Collection
     {
         $query = $this->model->where('kit', 'Y');
 
@@ -131,7 +131,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene recompensas que no son kits
      */
-    public function getIndividualRewards(array $filters = []): Collection
+    public function getIndividualPrizes(array $filters = []): Collection
     {
         $query = $this->model->where('kit', 'N');
 
@@ -152,7 +152,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Busca recompensas por nombre
      */
-    public function searchRewardsByName(string $searchTerm, array $filters = []): Collection
+    public function searchPrizesByName(string $searchTerm, array $filters = []): Collection
     {
         $query = $this->model->where('name', 'LIKE', "%{$searchTerm}%");
 
@@ -173,7 +173,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene recompensas en un rango de precios
      */
-    public function getRewardsByPriceRange(float $minPrice, float $maxPrice, array $filters = []): Collection
+    public function getPrizesByPriceRange(float $minPrice, float $maxPrice, array $filters = []): Collection
     {
         $query = $this->model->whereBetween('price', [$minPrice, $maxPrice]);
 
@@ -194,7 +194,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Actualiza el estado de una recompensa
      */
-    public function updateRewardStatus(string $rewardId, string $newStatus): bool
+    public function updatePrizeStatus(string $rewardId, string $newStatus): bool
     {
         return $this->model->where('id', $rewardId)
                           ->update(['status' => $newStatus]) > 0;
@@ -218,13 +218,13 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene estadísticas de recompensas por usuario
      */
-    public function getRewardStatsByUser(string $userId): array
+    public function getPrizeStatsByUser(string $userId): array
     {
         $stats = $this->model->where('user_id', $userId)
                             ->selectRaw('
-                                COUNT(*) as total_rewards,
-                                SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active_rewards,
-                                SUM(CASE WHEN status = "INACTIVE" THEN 1 ELSE 0 END) as inactive_rewards,
+                                COUNT(*) as total_prizes,
+                                SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active_prizes,
+                                SUM(CASE WHEN status = "INACTIVE" THEN 1 ELSE 0 END) as inactive_prizes,
                                 SUM(CASE WHEN reward_type = "PRODUCT" THEN 1 ELSE 0 END) as products,
                                 SUM(CASE WHEN reward_type = "SERVICE" THEN 1 ELSE 0 END) as services,
                                 SUM(CASE WHEN kit = "Y" THEN 1 ELSE 0 END) as kits,
@@ -233,9 +233,9 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
                             ->first();
 
         return [
-            'total_rewards' => $stats->total_rewards ?? 0,
-            'active_rewards' => $stats->active_rewards ?? 0,
-            'inactive_rewards' => $stats->inactive_rewards ?? 0,
+            'total_prizes' => $stats->total_prizes ?? 0,
+            'active_prizes' => $stats->active_prizes ?? 0,
+            'inactive_prizes' => $stats->inactive_prizes ?? 0,
             'products' => $stats->products ?? 0,
             'services' => $stats->services ?? 0,
             'kits' => $stats->kits ?? 0,
@@ -246,12 +246,12 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene estadísticas generales de recompensas
      */
-    public function getGeneralRewardStats(): array
+    public function getGeneralPrizeStats(): array
     {
         $stats = $this->model->selectRaw('
-                                COUNT(*) as total_rewards,
-                                SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active_rewards,
-                                SUM(CASE WHEN status = "INACTIVE" THEN 1 ELSE 0 END) as inactive_rewards,
+                                COUNT(*) as total_prizes,
+                                SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active_prizes,
+                                SUM(CASE WHEN status = "INACTIVE" THEN 1 ELSE 0 END) as inactive_prizes,
                                 SUM(CASE WHEN reward_type = "PRODUCT" THEN 1 ELSE 0 END) as products,
                                 SUM(CASE WHEN reward_type = "SERVICE" THEN 1 ELSE 0 END) as services,
                                 SUM(CASE WHEN kit = "Y" THEN 1 ELSE 0 END) as kits,
@@ -262,9 +262,9 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
                             ->first();
 
         return [
-            'total_rewards' => $stats->total_rewards ?? 0,
-            'active_rewards' => $stats->active_rewards ?? 0,
-            'inactive_rewards' => $stats->inactive_rewards ?? 0,
+            'total_prizes' => $stats->total_prizes ?? 0,
+            'active_prizes' => $stats->active_prizes ?? 0,
+            'inactive_prizes' => $stats->inactive_prizes ?? 0,
             'products' => $stats->products ?? 0,
             'services' => $stats->services ?? 0,
             'kits' => $stats->kits ?? 0,
@@ -277,7 +277,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Cuenta recompensas por tipo
      */
-    public function countRewardsByType(array $filters = []): array
+    public function countPrizesByType(array $filters = []): array
     {
         $query = $this->model->newQuery();
 
@@ -309,7 +309,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Cuenta recompensas por estado
      */
-    public function countRewardsByStatus(array $filters = []): array
+    public function countPrizesByStatus(array $filters = []): array
     {
         $query = $this->model->newQuery();
 
@@ -341,7 +341,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene recompensas más caras
      */
-    public function getMostExpensiveRewards(int $limit = 10, array $filters = []): Collection
+    public function getMostExpensivePrizes(int $limit = 10, array $filters = []): Collection
     {
         $query = $this->model->newQuery();
 
@@ -363,7 +363,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene recompensas más baratas
      */
-    public function getCheapestRewards(int $limit = 10, array $filters = []): Collection
+    public function getCheapestPrizes(int $limit = 10, array $filters = []): Collection
     {
         $query = $this->model->newQuery();
 
@@ -386,7 +386,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene recompensas creadas en un rango de fechas
      */
-    public function getRewardsByDateRange(string $startDate, string $endDate, array $filters = []): Collection
+    public function getPrizesByDateRange(string $startDate, string $endDate, array $filters = []): Collection
     {
         $query = $this->model->whereBetween('created_at', [$startDate, $endDate]);
 
@@ -407,7 +407,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene todas las recompensas con paginación
      */
-    public function getPaginatedRewards(int $perPage = 15, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function getPaginatedPrizes(int $perPage = 15, array $filters = []): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = $this->model->newQuery();
 
@@ -436,7 +436,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Actualiza múltiples recompensas en lote
      */
-    public function bulkUpdateRewards(array $rewardIds, array $updateData): int
+    public function bulkUpdatePrizes(array $rewardIds, array $updateData): int
     {
         return $this->model->whereIn('id', $rewardIds)
                           ->update($updateData);
@@ -445,7 +445,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Elimina recompensas antiguas inactivas
      */
-    public function deleteOldInactiveRewards(int $daysOld = 90): int
+    public function deleteOldInactivePrizes(int $daysOld = 90): int
     {
         $cutoffDate = Carbon::now()->subDays($daysOld);
 
@@ -476,7 +476,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Obtiene recompensas recientes
      */
-    public function getRecentRewards(int $limit = 10, array $filters = []): Collection
+    public function getRecentPrizes(int $limit = 10, array $filters = []): Collection
     {
         $query = $this->model->newQuery();
 
@@ -498,7 +498,7 @@ class RewardRepository extends BaseRepository implements RewardRepositoryInterfa
     /**
      * Busca recompensas por descripción
      */
-    public function searchRewardsByDescription(string $searchTerm, array $filters = []): Collection
+    public function searchPrizesByDescription(string $searchTerm, array $filters = []): Collection
     {
         $query = $this->model->where('description', 'LIKE', "%{$searchTerm}%");
 

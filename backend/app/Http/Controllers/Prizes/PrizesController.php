@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class RewardsController extends Controller
+class PrizesController extends Controller
 {
     use UserTrait;
 
@@ -28,24 +28,24 @@ class RewardsController extends Controller
         }
 
         $title = 'Premios';
-        $name = 'rewards';
+        $name = 'prizes';
 
         $creator = ['type' => $creatorType, 'id' => encrypt($creatorId)];
 
-        $rewards = Reward::getAllRewardsByCreator($creatorUser);
+        $prizes = Prize::getAllPrizesByCreator($creatorUser);
 
-        $rewardTypes = Reward::REWARD_TYPE;
+        $rewardTypes = Prize::REWARD_TYPE;
         $optionsKit = ['N' => 'NO', 'Y' => 'SI'];
 
         $additionalData = [];
 
-        return view('modules.all.rewards.index', array_merge(
-            compact('title', 'name', 'creator', 'rewards', 'rewardTypes'),
+        return view('modules.all.prizes.index', array_merge(
+            compact('title', 'name', 'creator', 'prizes', 'rewardTypes'),
             $additionalData
         ));
     }
 
-    private function generateRewardCode()
+    private function generatePrizeCode()
     {
         return '1';
     }
@@ -56,9 +56,9 @@ class RewardsController extends Controller
 
         try {
 
-            $rewardCode = $this->generateRewardCode();
+            $rewardCode = $this->generatePrizeCode();
 
-            Reward::create([
+            Prize::create([
                 'code' => $rewardCode,
                 'reward_type' => $request->reward_type,
                 'name' => $request->name,
@@ -77,7 +77,7 @@ class RewardsController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al registrar premio (Rewards): ' . $e->getMessage());
+            Log::error('Error al registrar premio (Prizes): ' . $e->getMessage());
             return redirect()->back()->with([
                 'message' => 'Ocurrió un error',
                 'type' => 'warning',
@@ -91,9 +91,9 @@ class RewardsController extends Controller
 
         try {
 
-            $reward = Reward::findOrFail(decrypt($id));
+            $prize = Prize::findOrFail(decrypt($id));
 
-            $reward->update([
+            $prize->update([
                 'reward_type' => $request->reward_type,
                 'name' => $request->name,
                 'num_items' => $request->num_items,
@@ -126,11 +126,11 @@ class RewardsController extends Controller
 
             $id = decrypt($id);
 
-            $reward = Reward::findOrFail($id);
+            $prize = Prize::findOrFail($id);
 
-            $status = $reward->status == 3 ? 1 : (int)!$reward->status;
+            $status = $prize->status == 3 ? 1 : (int)!$prize->status;
 
-            $reward->update(['status' => $status]);
+            $prize->update(['status' => $status]);
 
             DB::commit();
 
@@ -153,17 +153,17 @@ class RewardsController extends Controller
         DB::beginTransaction();
 
         try {
-            Reward::destroy(decrypt($request->id));
+            Prize::destroy(decrypt($request->id));
             DB::commit();
             return redirect()->back()->with('message', 'El registro ha sido eliminado')->with('type', 'success');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al eliminar registro de Rewards: ' . $e->getMessage());
+            Log::error('Error al eliminar registro de Prizes: ' . $e->getMessage());
         }
     }
 
     public function getInfo($id)
     {
-        return Reward::getById(decrypt($id), ['code', 'reward_type', 'name', 'num_items', 'price', 'description']);
+        return Prize::getById(decrypt($id), ['code', 'reward_type', 'name', 'num_items', 'price', 'description']);
     }
 }

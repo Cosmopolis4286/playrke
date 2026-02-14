@@ -33,7 +33,7 @@ class GenerateTsRoutesByModule extends Command
         'image',
         'info',
         'report',
-        'rewards',
+        'prizes',
         'other-treasurers',
         'pagomovil',
         'payment',

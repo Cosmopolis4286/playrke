@@ -2,7 +2,7 @@ import type { CommerceRoutes, CommerceAdminRouteName } from './commerceRoutesTyp
 import { commerceRoutes } from '../../commerceRoutes';
 
 export const commercePublicRoutes: Pick<CommerceRoutes, CommerceAdminRouteName> = {
-  rewards: commerceRoutes.rewards,
+  prizes: commerceRoutes.prizes,
   sellers: commerceRoutes.sellers,
   currencyByCountry: commerceRoutes.currencyByCountry,
   sellerInfoByCarton: commerceRoutes.sellerInfoByCarton,

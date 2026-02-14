@@ -39,7 +39,7 @@ multi_middleware_routes('bingo', 'bingo.', [
         'controller' => GameBingoController::class,
         'routes' => [
             'game-rooms-commerce'          => ['method' => 'get', 'uri' => '{roomType}/game-rooms/{currency?}'],
-            'rewards'                      => ['method' => 'get', 'uri' => 'rewards'],
+            'prizes'                      => ['method' => 'get', 'uri' => 'prizes'],
             'sellers'                      => ['method' => 'get', 'uri' => 'sellers'],
             'getCurrencyByCountry'         => ['method' => 'get', 'uri' => 'seller/getCurrencyByCountry/{country}/{seller}'],
             'getSellerInfoByCtn'           => ['method' => 'get', 'uri' => 'seller/getSellerInfoByCtn/{ctnId}'],

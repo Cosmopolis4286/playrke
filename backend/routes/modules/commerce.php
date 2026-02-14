@@ -18,7 +18,7 @@ multi_middleware_routes('commerce', 'commerce.', [
         'middleware' => ['auth', 'role:commerce'],
         'controller' => CommerceController::class,
         'routes' => [
-            'rewards' => ['method' => 'get', 'uri' => 'rewards'],
+            'prizes' => ['method' => 'get', 'uri' => 'prizes'],
             'currency-by-country' => ['method' => 'get', 'uri' => 'seller/currency/{country}/{seller}'],
             'seller-info-by-carton' => ['method' => 'get', 'uri' => 'seller/info/{ctnId}'],
             'carton-lot-payment' => ['method' => 'put', 'uri' => 'bingo/carton-lot/payment'],

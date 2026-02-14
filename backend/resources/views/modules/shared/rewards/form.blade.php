@@ -4,8 +4,8 @@
         <input id="code" class="form-control" name="code" readonly>
     </div>
     <div class="form-group col-sm-6 col-md-4">
-        <label for="reward-type">Tipo*</label>
-        <select id="reward-type" class="form-control" name="reward_type" required></select>
+        <label for="prize-type">Tipo*</label>
+        <select id="prize-type" class="form-control" name="reward_type" required></select>
     </div>
     <div class="form-group col-sm-6 col-md-8">
         <label for="name">Nombre*</label>
