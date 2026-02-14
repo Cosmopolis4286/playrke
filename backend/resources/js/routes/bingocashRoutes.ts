@@ -7,7 +7,7 @@
 
 export const bingocashRoutes = {
   outGame: "/bingocash/game-room/{uuidCode}/{room?}/{currency?}",
-  generateCarton: "/bingocash/carton/generate/store",
+  generateCarton: "/bingocash/generate-card/store",
   getDraw: "/bingocash/get-draw/{room}",
   getChips: "/bingocash/get/chips/{room}",
   getResult: "/bingocash/get/result/{room}/{value}/{column?}",

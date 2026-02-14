@@ -79,6 +79,7 @@ route_group('bingo-rooms', 'bingo-rooms.', [], BingoRoomController::class, [
  * ====================================
  */
 route_group('bingo', 'bingo.', [], GameBingoController::class, [
+    'generate-card'    => ['method' => 'get', 'uri' => 'generate-card', 'action' => 'generateBingoCard'],
     'call-number'      => ['method' => 'post', 'uri' => 'room/{roomId}/call-number'],
     'participate'      => ['method' => 'put',  'uri' => 'participate/public-room/{id?}/{getOut?}'],
     'notify-payment'   => ['method' => 'post', 'uri' => 'carton/notify/payment/win-ctn'],
@@ -125,7 +126,7 @@ route_group('bingo-automatic-room', 'bingo.automatic.', ['auth'], GameBingoContr
  */
 route_group('bingocash', 'bingocash.', [], GameBingoController::class, [
     'out-game'        => ['method' => 'get',  'uri' => 'game-room/{uuidCode}/{room?}/{currency?}'],
-    'generate-carton' => ['method' => 'post', 'uri' => 'carton/generate/store'],
+    'generate-card' => ['method' => 'post', 'uri' => 'generate-card/store'],
     'get-draw'        => ['method' => 'get',  'uri' => 'get-draw/{room}'],
     'get-chips'       => ['method' => 'get',  'uri' => 'get/chips/{room}'],
     'get-result'      => ['method' => 'get',  'uri' => 'get/result/{room}/{value}/{column?}'],

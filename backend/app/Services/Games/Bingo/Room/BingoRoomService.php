@@ -23,7 +23,7 @@ final class BingoRoomService
      * @return array
      * @throws \BingoRoomException Si el contexto no es válido
      */
-    public function context(string $context, ?int $userId): array
+    public function context(string $context, ?int $userId = null): array
     {
         return $this->contextService->context($context, $userId)->toView();
     }

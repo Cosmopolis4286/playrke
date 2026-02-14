@@ -39,7 +39,6 @@ multi_middleware_routes('seller', 'seller.', [
         'middleware' => ['auth', 'seller'],
         'controller' => SellerController::class,
         'routes' => [
-            'carton-generate' => ['method' => 'get', 'uri' => 'bingo/carton/generate'],
             'payment-status' => ['method' => 'post', 'uri' => 'bingo/carton/payment/status'],
             'price-currency' => ['method' => 'get', 'uri' => 'bingo/price-currency/{room}/{country}'],
             'winner-info' => ['method' => 'get', 'uri' => 'bingo/winner-info/{ctnId}'],
@@ -55,7 +54,7 @@ multi_middleware_routes('seller', 'seller.', [
         'middleware' => ['auth', 'seller'],
         'controller' => BingoController::class,
         'routes' => [
-            'generate-carton' => ['method' => 'post', 'uri' => 'bingo/carton/generate'],
+            'generate-card' => ['method' => 'post', 'uri' => 'bingo/generate-card'],
         ]
     ]
 ]);

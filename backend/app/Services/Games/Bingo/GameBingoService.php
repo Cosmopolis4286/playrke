@@ -17,15 +17,29 @@ final class GameBingoService
 {
     public function __construct(
         private readonly \App\Services\Games\Bingo\Room\BingoRoomService $gameRoom,
+        private readonly \App\Services\Games\Bingo\Card\BingoCardService $bingoCard,
     ) {}
 
     /**
      * Obtener contexto las salas de juego BINGO.
      *
      * @param string $context
+     * @param int|null $userId
+     *
+     * @return array
+     * @throws \BingoRoomException Si el contexto no es válido
      */
-    public function gameRooms(string $context)
+    public function gameRooms(string $context, ?int $userId = null): array
     {
-        $this->gameRoom->context($context);
+        return $this->gameRoom->context($context, $userId);
+    }
+
+    /**
+     * Generar cartón de bingo.
+     * @return array
+     */
+    public function generateBingoCard(): array
+    {
+        return $this->bingoCard->generate();
     }
 }

@@ -46,4 +46,23 @@ final class GameBingoController extends Controller
             'No se pudo cargar la lista de salas de bingo.'
         );
     }
+
+    /**
+     * Generar cartón de bingo.
+     *
+     * @return Response
+     */
+    public function generateBingoCard(): Response
+    {
+        return $this->handleServiceInertia(
+            function () {
+                $response = $this->service->generateBingoCard();
+
+                $response['title'] = 'Generar Cartón';
+
+                return Inertia::render('Games/Bingo/Card/Generate', $response);
+            },
+            'No se pudo cargar la información para generar el cartón de bingo.'
+        );
+    }
 }

@@ -12,7 +12,7 @@ export const sellerRoutes = {
   destroy: "/seller/{id}",
   resetPassword: "/seller/{id}/password",
   changeStatus: "/seller/{id}/status",
-  cartonGenerate: "/seller/bingo/carton/generate",
+  generateBingoCard: "/seller/bingo/generate-card",
   paymentStatus: "/seller/bingo/carton/payment/status",
   priceCurrency: "/seller/bingo/price-currency/{room}/{country}",
   winnerInfo: "/seller/bingo/winner-info/{ctnId}",
@@ -22,5 +22,5 @@ export const sellerRoutes = {
   cartonPrice: "/seller/bingo/carton/price/{roomId}",
   paymentDetails: "/seller/payment-details/{currency}",
   salesReportPlayer: "/seller/bingo/sales-report/{room}/player/{playerLink}",
-  generateCarton: "/seller/bingo/carton/generate",
+  generateCarton: "/seller/bingo/generate-card",
 } as const;

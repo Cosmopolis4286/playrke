@@ -359,7 +359,7 @@ class CommerceController extends Controller
         return redirect()->back();
     }
 
-    public function cartonGenerate()
+    public function generateBingoCard()
     {
         $documentType = DocumentType::where('country', 234)->get();
 

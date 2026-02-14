@@ -36,7 +36,7 @@ class SellerController extends Controller
 {
     use EncryptTrait, BingoTrait,  UserTrait, FiltersTrait;
 
-    public function cartonGenerate()
+    public function generateBingoCard()
     {
         $documentType = DocumentType::where('country', 234)->get();
 
