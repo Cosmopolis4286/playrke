@@ -1,5 +1,5 @@
 <script setup lang="ts" name="BaseTable">
-  import { computed } from 'vue'
+  import { computed, watch } from 'vue'
   import type { Column } from '@/js/types/common/table/column-row'
 
   /** Props recibidas */
@@ -88,6 +88,22 @@
     const value = getNestedValue(row, column.key)
     return column.html ? value : escapeHtml(value)
   }
+
+  /**
+   * Si se elimina una fila, limpiar selectedIds automáticamente
+   */
+  watch(
+    () => props.rows,
+    newRows => {
+      const validIds = newRows.map(r => r.id)
+      const filteredSelection = props.selectedIds.filter(id => validIds.includes(id))
+
+      if (filteredSelection.length !== props.selectedIds.length) {
+        emit('selection-change', filteredSelection)
+      }
+    },
+    { deep: true }
+  )
 </script>
 
 <template>

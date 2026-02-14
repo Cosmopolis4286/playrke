@@ -20,6 +20,7 @@ class GameStatusSeeder extends Seeder
             ['value' => 'FINISHED',    'description' => 'Finalizada'],
             ['value' => 'REFUND',      'description' => 'Reembolso'],
             ['value' => 'OFFLINE',     'description' => 'Fuera de Línea'],
+            ['value' => 'DELETED',     'description' => 'Eliminada']
         ];
 
         // Agregar ID Snowflake y timestamps

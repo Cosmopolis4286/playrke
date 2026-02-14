@@ -93,7 +93,7 @@ final class BingoRoomContextService
      */
     private function fetchGameRooms(int $userId): array
     {
-        return $this->resolveGameRooms($userId);
+        return $this->resolveGameRooms($userId)['rooms']['rows'] ?? [];
     }
 
     /**

@@ -68,6 +68,8 @@
 
   const stringSelectedIds = computed(() => selectedIds.value.map(String))
 
+
+
   /** Cambio de selección desde BaseTable */
   function handleSelectionChange(ids: string[]): void {
     selectedIds.value = ids

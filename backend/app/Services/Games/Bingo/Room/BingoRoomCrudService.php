@@ -308,7 +308,7 @@ final class BingoRoomCrudService
      */
     public function delete(BingoRoom $room): bool
     {
-        if ($room->status === 'DELETED') {
+        if ($room->status?->value === 'DELETED') {
             throw BingoRoomException::alreadyDeleted();
         }
 
