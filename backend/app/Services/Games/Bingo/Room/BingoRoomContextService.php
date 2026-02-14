@@ -60,9 +60,9 @@ final class BingoRoomContextService
         $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
-            relations: ['status:id,value,description'],
+            relations: ['status:id,value,description', 'config:room_type'],
             conditions: $conditions,
-            fields: ['id', 'uuid_code', 'status_id', 'room_type', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
+            fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
         );
 
         $raw = $source instanceof LengthAwarePaginator

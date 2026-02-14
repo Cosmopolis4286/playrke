@@ -60,6 +60,18 @@ class BingoRoomConfig extends Model
     ];
 
     /**
+     * Descripción del tipo de sala
+     */
+    public function getRoomTypeDescriptionAttribute(): string
+    {
+        return match ($this->room_type) {
+            'PRIVATE' => 'Público',
+            'PUBLIC' => 'Privado',
+            default => 'Desconocido',
+        };
+    }
+
+    /**
      * Relación con la sala de bingo
      */
     public function room(): BelongsTo
@@ -89,5 +101,13 @@ class BingoRoomConfig extends Model
     public function prizePoolType(): BelongsTo
     {
         return $this->belongsTo(PrizePoolType::class, 'prize_pool_type_id');
+    }
+
+    /**
+     * Scope para salas por tipo
+     */
+    public function scopeOfType($query, string $type)
+    {
+        return $query->where('room_type', $type);
     }
 }

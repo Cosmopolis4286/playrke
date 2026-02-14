@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Room\Contracts;
+namespace App\Contracts\Games\Bingo\Room\Config;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * Contrato para el repository de configuraciones de salas de bingo
  */
-interface BingoRoomConfigRepositoryContract extends BaseRepositoryInterface
+interface BingoRoomConfigRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene la configuración por ID de sala
@@ -28,6 +28,15 @@ interface BingoRoomConfigRepositoryContract extends BaseRepositoryInterface
      * @return mixed
      */
     public function getValueByRoomId($roomId, string $field);
+
+    /**
+     * Buscar salas por tipo
+     *
+     * @param string $roomType Tipo de sala (PRIVATE, PUBLIC)
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<BingoRoom>
+     */
+    public function findByType(string $roomType, array $columns = ['*']): Collection;
 
     /**
      * Obtiene configuraciones por modo de creación

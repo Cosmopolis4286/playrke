@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Room;
+namespace App\Repositories\Games\Bingo\Room\Config;
 
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Bingo\Room\Contracts\BingoRoomConfigRepositoryContract;
+use App\Contracts\Games\Bingo\Room\Config\BingoRoomConfigRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repository para manejar operaciones de configuraciones de salas de bingo
  */
-class BingoRoomConfigRepository extends BaseRepository implements BingoRoomConfigRepositoryContract
+class BingoRoomConfigRepository extends BaseRepository implements BingoRoomConfigRepositoryInterface
 {
     /**
      * Constructor del repository
@@ -46,6 +46,18 @@ class BingoRoomConfigRepository extends BaseRepository implements BingoRoomConfi
     public function getValueByRoomId($roomId, string $field)
     {
         return $this->model->where('room_id', $roomId)->value($field);
+    }
+
+    /**
+     * Buscar salas por tipo
+     *
+     * @param string $roomType Tipo de sala (PRIVATE, PUBLIC)
+     * @param array $columns Columnas a seleccionar
+     * @return Collection<BingoRoom>
+     */
+    public function findByType(string $roomType, array $columns = ['*']): Collection
+    {
+        return $this->model->where('room_type', $roomType)->get($columns);
     }
 
     /**

@@ -13,7 +13,6 @@ class BingoRoomResource extends JsonResource
 
         return [
             'id'                 => $this->hashed_id,
-            'room_type'          => $this->room_type,
             'status_id'          => $this->status_id,
             'paid_prizes'        => $this->paid_prizes,
             'prize_pool'         => $this->prize_pool,
@@ -33,6 +32,7 @@ class BingoRoomResource extends JsonResource
             'allowed_currencies' => $creator?->allowed_currencies ?? [],
 
             'config' => $config ? [
+                'room_type'               => $config->room_type,
                 'date'                    => $config->date?->format('Y-m-d'),
                 'time'                    => $config->time,
                 'game_mode_id'            => $config->game_mode_id,

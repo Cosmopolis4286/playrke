@@ -58,18 +58,6 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
     }
 
     /**
-     * Buscar salas por tipo
-     *
-     * @param string $roomType Tipo de sala (PRIVATE, PUBLIC)
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BingoRoom>
-     */
-    public function findByType(string $roomType, array $columns = ['*']): Collection
-    {
-        return $this->model->where('room_type', $roomType)->get($columns);
-    }
-
-    /**
      * Obtener salas activas
      *
      * @param array $columns Columnas a seleccionar
@@ -271,10 +259,6 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
 
         if (isset($criteria['status_id'])) {
             $query->where('status_id', $criteria['status_id']);
-        }
-
-        if (isset($criteria['room_type'])) {
-            $query->where('room_type', $criteria['room_type']);
         }
 
         if (isset($criteria['date_from'])) {

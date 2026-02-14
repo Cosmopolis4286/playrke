@@ -43,7 +43,6 @@ class BingoRoom extends BaseModel
     // ========================
     protected $fillable = [
         'status_id',
-        'room_type',
         'creator_user_id',
         'paid_prizes',
         'publication_date',
@@ -191,18 +190,6 @@ class BingoRoom extends BaseModel
     // ========================
 
     /**
-     * Descripción del tipo de sala
-     */
-    public function getRoomTypeDescriptionAttribute(): string
-    {
-        return match ($this->room_type) {
-            'PRIVATE' => 'Público',
-            'PUBLIC' => 'Privado',
-            default => 'Desconocido',
-        };
-    }
-
-    /**
      * Verificar si la sala está cerrada
      */
     public function getIsClosedAttribute(): bool
@@ -255,14 +242,6 @@ class BingoRoom extends BaseModel
         return $query->whereHas('status', function ($q) {
             $q->where('name', 'ACTIVE');
         });
-    }
-
-    /**
-     * Scope para salas por tipo
-     */
-    public function scopeOfType($query, string $type)
-    {
-        return $query->where('room_type', $type);
     }
 
     /**

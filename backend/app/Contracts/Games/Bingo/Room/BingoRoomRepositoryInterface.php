@@ -42,15 +42,6 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
     public function findByStatus(string $statusId, array $columns = ['*']): Collection;
 
     /**
-     * Buscar salas por tipo
-     *
-     * @param string $roomType Tipo de sala (PRIVATE, PUBLIC)
-     * @param array $columns Columnas a seleccionar
-     * @return Collection<BingoRoom>
-     */
-    public function findByType(string $roomType, array $columns = ['*']): Collection;
-
-    /**
      * Obtener salas activas
      *
      * @param array $columns Columnas a seleccionar
