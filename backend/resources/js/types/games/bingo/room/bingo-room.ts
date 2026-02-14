@@ -49,7 +49,7 @@ export interface BingoRoom {
     readonly room_type: BingoRoomType
     readonly creator_user_id: number | string
     readonly paid_prizes: BingoPrizesPaid
-    readonly publication_date: string | null
+    readonly published_at: string | null
     readonly total_players: number
     readonly total_cards: number
     readonly total_sales: number

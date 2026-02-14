@@ -65,26 +65,9 @@ final class BingoRoomContextService
             fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
         );
 
-        $raw = $source instanceof LengthAwarePaginator
+        $collection = $source instanceof LengthAwarePaginator
             ? $source->getCollection()
             : collect($source);
-
-        // Calcular status_badge y aplanar status a string desde la relación
-        // ANTES de sobreescribir el atributo (evita conflicto relación vs string)
-        $collection = $raw->each(function ($room) {
-            $statusValue = $room->getRelation('status')?->value;
-
-            $room->setAttribute('status_badge', match ($statusValue) {
-                'AVAILABLE'   => '<span class="badge badge-success">Disponible</span>',
-                'IN_PROGRESS' => '<span class="badge badge-primary">En Juego</span>',
-                'FINISHED'    => '<span class="badge badge-info">Finalizada</span>',
-                'REFUND'      => '<span class="badge badge-warning">Reembolso</span>',
-                'OFFLINE'     => '<span class="badge badge-secondary">Fuera de Línea</span>',
-                default       => '<span class="badge badge-dark">N/D</span>',
-            });
-
-            $room->setAttribute('status', $statusValue);
-        });
 
         $pagination = $source instanceof LengthAwarePaginator
             ? [

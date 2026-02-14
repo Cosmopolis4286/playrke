@@ -29,7 +29,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class BingoRoom extends BaseModel
 {
-
     // ========================
     // Configuración de la tabla
     // ========================
@@ -45,7 +44,7 @@ class BingoRoom extends BaseModel
         'status_id',
         'creator_user_id',
         'paid_prizes',
-        'publication_date',
+        'published_at',
         'total_players',
         'total_cards',
         'total_sales',
@@ -67,7 +66,7 @@ class BingoRoom extends BaseModel
         'uuid_code' => 'string',
         'status_id' => 'string',
         'creator_user_id' => 'string',
-        'publication_date' => 'datetime',
+        'published_at' => 'datetime',
         'finished_at' => 'datetime',
         'total_sales' => 'decimal:2',
         'rke_commission' => 'decimal:2',
@@ -210,7 +209,8 @@ class BingoRoom extends BaseModel
      */
     public function getStatusValueAttribute(): ?string
     {
-        return $this->status?->value;
+        return $this->getRelationValue('status')?->value
+            ?? $this->attributes['status'] ?? null;
     }
 
     /**
@@ -218,7 +218,8 @@ class BingoRoom extends BaseModel
      */
     public function getStatusBadgeAttribute(): string
     {
-        $value = $this->status_value;
+        $value = $this->getRelationValue('status')?->value
+            ?? $this->attributes['status'] ?? null;
 
         return match ($value) {
             'AVAILABLE'   => '<span class="badge badge-success">Disponible</span>',
@@ -240,7 +241,7 @@ class BingoRoom extends BaseModel
     public function scopeActive($query)
     {
         return $query->whereHas('status', function ($q) {
-            $q->where('name', 'ACTIVE');
+            $q->where('value', 'ACTIVE');
         });
     }
 

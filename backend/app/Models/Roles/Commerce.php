@@ -23,7 +23,6 @@ class Commerce extends BaseModel
     protected $table = 'commerces';
 
     protected $fillable = [
-        'id',
         'name',
         'country_id',
         'phone',
@@ -38,7 +37,8 @@ class Commerce extends BaseModel
         'country_id' => 'string',
         'user_id' => 'string',
         'unique_code_id' => 'string',
-        'commission' => 'decimal:2'
+        'commission' => 'decimal:2',
+        'status' => 'string',
     ];
 
     /**

@@ -114,7 +114,7 @@ class BingoController extends Controller
         $room = null;
 
         foreach ($dateFilters as $filter) {
-            $room = $this->applyDateFilter($filter, $query, 'publication_date')->first();
+            $room = $this->applyDateFilter($filter, $query, 'published_at')->first();
             if ($room) break;
         }
 
@@ -2398,7 +2398,7 @@ class BingoController extends Controller
 
         try {
             // Actualiza el estado y la fecha de publicación.
-            $bingoRoom->update(['status' => 2, 'publication_date' => Carbon::now()]);
+            $bingoRoom->update(['status' => 2, 'published_at' => Carbon::now()]);
 
             DB::commit();
 
@@ -3095,7 +3095,7 @@ class BingoController extends Controller
                 break;
         }
 
-        $query = $this->applyDateFilter($dateFilter, $query, 'publication_date');
+        $query = $this->applyDateFilter($dateFilter, $query, 'published_at');
 
         $rooms = $query->get(['id', 'encrypted', 'room_type', 'status', 'prize_pool']);
 

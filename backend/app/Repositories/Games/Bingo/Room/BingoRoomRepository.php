@@ -66,7 +66,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
     public function getActiveRooms(array $columns = ['*']): Collection
     {
         return $this->model->whereHas('status', function ($query) {
-            $query->where('name', 'ACTIVE');
+            $query->where('value', 'ACTIVE');
         })->get($columns);
     }
 
@@ -126,7 +126,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
      */
     public function findByDateRange(string $startDate, string $endDate, array $columns = ['*']): Collection
     {
-        return $this->model->whereBetween('publication_date', [
+        return $this->model->whereBetween('published_at', [
             Carbon::parse($startDate)->startOfDay(),
             Carbon::parse($endDate)->endOfDay()
         ])->get($columns);
@@ -262,11 +262,11 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         }
 
         if (isset($criteria['date_from'])) {
-            $query->where('publication_date', '>=', $criteria['date_from']);
+            $query->where('published_at', '>=', $criteria['date_from']);
         }
 
         if (isset($criteria['date_to'])) {
-            $query->where('publication_date', '<=', $criteria['date_to']);
+            $query->where('published_at', '<=', $criteria['date_to']);
         }
 
         if (isset($criteria['min_prize_pool'])) {

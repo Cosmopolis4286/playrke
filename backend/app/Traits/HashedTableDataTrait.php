@@ -132,11 +132,17 @@ trait HashedTableDataTrait
     {
         $data = [
             'id'     => $hashedId,
-            'status' => $row->status ?? null,
+            'status' => $this->resolveRowStatus($row),
         ];
 
         foreach ($rowKeys as $key) {
-            $data[$this->normalizeKey($key)] = data_get($row, $key);
+            $normalizedKey = $this->normalizeKey($key);
+
+            if (in_array($normalizedKey, ['id', 'status'], true)) {
+                continue;
+            }
+
+            $data[$normalizedKey] = data_get($row, $key);
         }
 
         return $data;
@@ -172,5 +178,49 @@ trait HashedTableDataTrait
     protected function normalizeKey(string $key): string
     {
         return strtolower(str_replace('.', '_', $key));
+    }
+
+    /** Resuelve el valor de status para una fila, soportando distintos formatos:
+     * - status directo (string)
+     * - status.value (relación)
+     * - status_id (fallback)
+     *
+     * @param mixed $row Fila de datos (modelo o array)
+     * @return string|null Valor del status o null si no se encuentra
+     */
+    protected function resolveRowStatus(mixed $row): mixed
+    {
+        // Si es array
+        if (is_array($row)) {
+            return $row['status']
+                ?? $row['status_value']
+                ?? $row['status_id']
+                ?? null;
+        }
+
+        // Si tiene accessor status_value (como BingoRoom)
+        if (isset($row->status_value)) {
+            return $row->status_value;
+        }
+
+        // Si existe el atributo status (como Commerce)
+        if (isset($row->status) && is_string($row->status)) {
+            return $row->status;
+        }
+
+        // Si status es relación (objeto)
+        if (isset($row->status) && is_object($row->status)) {
+            return $row->status->value
+                ?? $row->status->name
+                ?? $row->status->description
+                ?? null;
+        }
+
+        // Fallback: status_id
+        if (isset($row->status_id)) {
+            return $row->status_id;
+        }
+
+        return null;
     }
 }

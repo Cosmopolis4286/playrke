@@ -33,6 +33,7 @@ class GameStatus extends Model
     ];
 
     protected $casts = [
+        'id' => 'string',
         'value' => 'string',
         'description' => 'string',
     ];

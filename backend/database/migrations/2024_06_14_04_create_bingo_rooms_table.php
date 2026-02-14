@@ -23,7 +23,6 @@ return new class extends Migration
                 ->constrained('game_status')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
-                ->default(1)
                 ->comment('Estado de la sala (activo, finalizado, etc.)');
 
             // Usuario creador
@@ -52,7 +51,7 @@ return new class extends Migration
             $table->decimal('serial_prize', 15, 2)->default(0)->comment('Premio por serie completa');
 
             // Fecha de publicación
-            $table->timestamp('publication_date')->nullable()->comment('Fecha de publicación de la sala');
+            $table->timestamp('published_at')->nullable()->comment('Fecha de publicación de la sala');
             // Fecha de finalización
             $table->timestamp('finished_at')->nullable()->comment('Fecha de finalización de la sala');
 
