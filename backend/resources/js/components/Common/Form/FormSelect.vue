@@ -22,6 +22,9 @@ const props = defineProps({
   /** ID explícito del input */
   id: { type: String, default: null },
 
+  /** Mensaje de error */
+  error: { type: String, default: null },
+
   /** Label del campo (obligatorio) */
   label: { type: String, required: true },
 
@@ -111,6 +114,10 @@ const value = computed({
       :can-clear="!required"
       class="multiselect-bootstrap"
     />
+
+    <small v-if="error" class="text-danger d-block mt-1">
+      {{ error }}
+    </small>
   </div>
 </template>
 <style scoped>

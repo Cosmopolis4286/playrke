@@ -5,10 +5,10 @@ import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
  * Límites de porcentajes (expuestos para usar en atributos min/max del FormInput)
  */
 const PERCENTAGE_LIMITS = {
-  roomCommn: { min: 10, max: 50 },
-  jackpotPct: { min: 1, max: 15 },
-  roundsPct: { min: 3, max: 30 },
-  serialsPct: { min: 2, max: 35 },
+    roomCommn: { min: 10, max: 50 },
+    jackpotPct: { min: 1, max: 15 },
+    roundsPct: { min: 3, max: 30 },
+    serialsPct: { min: 2, max: 35 },
 } as const
 
 /**
@@ -25,7 +25,8 @@ const PERCENTAGE_LIMITS = {
  */
 export function useBingoRoomForm(
     modelValueGetter: () => BingoRoomFormData,
-    emit: (event: 'update:modelValue', value: BingoRoomFormData) => void
+    emit: (event: 'update:modelValue', value: BingoRoomFormData) => void,
+    automaticRoom: () => boolean
 ) {
     /* =======================
      * v-model computado
@@ -46,12 +47,16 @@ export function useBingoRoomForm(
     const errors = computed<Record<string, string>>(() => {
         const e: Record<string, string> = {}
 
-        if (!form.value.date) {
-            e.date = 'La fecha es requerida.'
+        if (!automaticRoom() && !form.value.date) {
+            e.date = "La fecha es requerida.";
         }
 
         if (!form.value.time) {
             e.time = 'La hora es requerida.'
+        }
+
+        if (!form.value.roomType) {
+            e.roomType = 'El tipo de sala es requerido.'
         }
 
         if (!form.value.gameMode) {
@@ -89,14 +94,20 @@ export function useBingoRoomForm(
         if (!form.value.ctnPrice) {
             // Si hay más de una moneda permitida, aceptamos precios por moneda
             const allowed = form.value.allowedCurrencies
+
             if (Array.isArray(allowed) && allowed.length > 1) {
                 const byCurrency = form.value.ctnPriceByCurrency ?? {}
+
                 const missing = allowed.some(a => {
                     const key = String(a)
-                    return byCurrency[key] === undefined || byCurrency[key] === null || byCurrency[key] === ''
+                    const value = Number(byCurrency[key])
+
+                    return isNaN(value) || value <= 0
                 })
+
                 if (missing) {
-                    e.ctnPrice = 'Debe ingresar el precio del cartón para todas las monedas seleccionadas.'
+                    e.ctnPrice =
+                        'Debe ingresar el precio del cartón para todas las monedas seleccionadas.'
                 }
             } else {
                 e.ctnPrice = 'El precio del cartón es requerido.'

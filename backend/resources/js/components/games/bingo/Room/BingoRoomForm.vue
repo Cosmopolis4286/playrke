@@ -1,225 +1,212 @@
 <script setup lang="ts" name="BingoGameRoomForm">
-import { computed, watch, ref } from "vue";
+  import { computed, watch, ref } from 'vue'
 
-// Components
-import FormInput from "@/js/Components/Common/Form/FormInput.vue";
-import FormSelect from "@/js/Components/Common/Form/FormSelect.vue";
+  // Components
+  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
+  import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
 
-// Composables
-import { useBingoRoomForm } from "@/js/composables/games/bingo/room/useBingoRoomForm";
+  // Composables
+  import { useBingoRoomForm } from '@/js/composables/games/bingo/room/useBingoRoomForm'
 
-// Types
-import type {
-  BingoRoomFormData,
-  RoundConfig,
-} from "@/js/types/games/bingo/room/bingo-room";
+  // Types
+  import type { BingoRoomFormData, RoundConfig } from '@/js/types/games/bingo/room/bingo-room'
 
-/* ==========================================================================
- * Opción genérica para selects
- * ========================================================================== */
+  /* ==========================================================================
+   * Opción genérica para selects
+   * ========================================================================== */
 
-interface SelectOption {
-  value: string | number;
-  label: string;
-}
-
-/* ==========================================================================
- * Opciones de tipo de premio por ronda
- * ========================================================================== */
-
-const roundPrizeTypeOptions: SelectOption[] = [
-  { value: "percentage", label: "Porcentaje" },
-  { value: "fixed", label: "Fijo" },
-  { value: "prize", label: "Premio" },
-];
-
-/* ==========================================================================
- * Props
- * ========================================================================== */
-
-const props = defineProps<{
-  automaticRoom?: boolean;
-  roomTypeOptions: SelectOption[];
-  gameModeOptions: SelectOption[];
-  prizePoolTypeOptions: SelectOption[];
-  allowedCurrenciesOptions: SelectOption[];
-  bingoPatternOptions: SelectOption[];
-  modelValue: BingoRoomFormData;
-}>();
-
-/* ==========================================================================
- * Emits
- * ========================================================================== */
-
-const emit = defineEmits<{
-  (e: "submit"): void;
-  (e: "update:modelValue", value: BingoRoomFormData): void;
-  (e: "createRoom"): void;
-}>();
-
-/* ==========================================================================
- * Form logic (computed v-model)
- * ========================================================================== */
-
-const {
-  form,
-  errors,
-  isValid,
-  roomCommn,
-  jackpotPct,
-  roundsPct,
-  serialsPct,
-  percentageLimits,
-} = useBingoRoomForm(() => props.modelValue, emit);
-
-/* ==========================================================================
- * Computed
- * ========================================================================== */
-
-/**
- * Fecha mínima: hoy (formato YYYY-MM-DD)
- */
-const minDate = computed(() => {
-  const today = new Date();
-  return today.toISOString().split("T")[0];
-});
-
-/**
- * Mostrar %Rondas y config (más de 1 ronda)
- */
-const showRoundsPct = computed(() => (form.value.rounds ?? 1) > 1);
-
-/**
- * Suma total de los valores de los premios de las rondas
- */
-const totalRoundValues = computed(() => {
-  return (form.value.roundsConfig ?? []).reduce((sum, round) => {
-    const value = Number(round.prizeValue) || 0;
-    return sum + value;
-  }, 0);
-});
-
-/**
- * Valida que la suma de valores de rondas sea igual a %Rondas
- */
-const isRoundValuesValid = computed(() => {
-  const roundsPct = Number(form.value.roundsPct) || 0;
-  if (roundsPct === 0) return true; // No validar si no hay valor
-  const total = totalRoundValues.value;
-  return Math.abs(total - roundsPct) < 0.01; // Permitir pequeñas diferencias por redondeo
-});
-
-/**
- * Mostrar container de valor fijo/extra (cuando NO es Acumulativo)
- */
-const showAmountAddedPrizePool = computed(() => {
-  const selected = props.prizePoolTypeOptions.find(
-    (opt) => String(opt.value) === String(form.value.prizePoolType)
-  );
-  return selected ? selected.label !== "Acumulativo" : false;
-});
-
-/**
- * Permite ajustar precio por moneda solo si hay más de una moneda seleccionada
- */
-const canAdjustCtnPriceByCurrency = computed(() => {
-  const allowed = form.value.allowedCurrencies;
-  return Array.isArray(allowed) && allowed.length > 1;
-});
-
-const ctnPriceByCurrencyActive = ref(false);
-
-function toggleCtnPriceByCurrency() {
-  if (!canAdjustCtnPriceByCurrency.value) return;
-  ctnPriceByCurrencyActive.value = !ctnPriceByCurrencyActive.value;
-  if (!form.value.ctnPriceByCurrency) {
-    form.value = { ...form.value, ctnPriceByCurrency: {} };
+  interface SelectOption {
+    value: string | number
+    label: string
   }
-}
 
-function updateCtnPriceForCurrency(
-  currency: string | number,
-  value: string | number | null
-) {
-  const key = String(currency);
-  const current = { ...(form.value.ctnPriceByCurrency ?? {}) };
-  const parsed = value === null || value === "" ? null : Number(value);
-  current[key] = isNaN(Number(parsed)) ? null : (parsed as number);
-  form.value = { ...form.value, ctnPriceByCurrency: current };
-}
+  /* ==========================================================================
+   * Opciones de tipo de premio por ronda
+   * ========================================================================== */
 
-function getCurrencyLabel(value: string | number) {
-  const found = props.allowedCurrenciesOptions.find(
-    (opt) => String(opt.value) === String(value)
-  );
-  return found ? String(found.value) : String(value);
-}
+  const roundPrizeTypeOptions: SelectOption[] = [
+    { value: 'percentage', label: 'Porcentaje' },
+    { value: 'fixed', label: 'Fijo' },
+    { value: 'prize', label: 'Premio' }
+  ]
 
-/* ==========================================================================
- * Watchers
- * ========================================================================== */
+  /* ==========================================================================
+   * Props
+   * ========================================================================== */
 
-/**
- * Cuando cambia el número de rondas, sincronizar el array roundsConfig
- */
-watch(
-  () => form.value.rounds,
-  (newRounds) => {
-    const count = Math.max(1, Number(newRounds) || 1);
+  const props = defineProps<{
+    automaticRoom?: boolean
+    roomTypeOptions: SelectOption[]
+    gameModeOptions: SelectOption[]
+    prizePoolTypeOptions: SelectOption[]
+    allowedCurrenciesOptions: SelectOption[]
+    bingoPatternOptions: SelectOption[]
+    modelValue: BingoRoomFormData
+  }>()
 
-    const current = form.value.roundsConfig ?? [];
-    const updated: RoundConfig[] = [];
+  /* ==========================================================================
+   * Emits
+   * ========================================================================== */
 
-    for (let i = 0; i < count; i++) {
-      updated.push(
-        current[i] ?? { prizeType: "percentage", bingoPattern: null, prizeValue: null }
-      );
+  const emit = defineEmits<{
+    (e: 'submit'): void
+    (e: 'update:modelValue', value: BingoRoomFormData): void
+  }>()
+
+  /* ==========================================================================
+   * Form logic (computed v-model)
+   * ========================================================================== */
+
+  const { form, errors, isValid, roomCommn, jackpotPct, roundsPct, serialsPct, percentageLimits } =
+    useBingoRoomForm(
+      () => props.modelValue,
+      emit,
+      () => props.automaticRoom ?? false
+    )
+
+  /* ==========================================================================
+   * Computed
+   * ========================================================================== */
+
+  /**
+   * Fecha mínima: hoy (formato YYYY-MM-DD)
+   */
+  const minDate = computed(() => {
+    const today = new Date()
+    return today.toISOString().split('T')[0]
+  })
+
+  /**
+   * Mostrar %Rondas y config (más de 1 ronda)
+   */
+  const showRoundsPct = computed(() => (form.value.rounds ?? 1) > 1)
+
+  /**
+   * Suma total de los valores de los premios de las rondas
+   */
+  const totalRoundValues = computed(() => {
+    return (form.value.roundsConfig ?? []).reduce((sum, round) => {
+      const value = Number(round.prizeValue) || 0
+      return sum + value
+    }, 0)
+  })
+
+  /**
+   * Valida que la suma de valores de rondas sea igual a %Rondas
+   */
+  const isRoundValuesValid = computed(() => {
+    const roundsPct = Number(form.value.roundsPct) || 0
+    if (roundsPct === 0) return true // No validar si no hay valor
+    const total = totalRoundValues.value
+    return Math.abs(total - roundsPct) < 0.01 // Permitir pequeñas diferencias por redondeo
+  })
+
+  /**
+   * Mostrar container de valor fijo/extra (cuando NO es Acumulativo)
+   */
+  const showAmountAddedPrizePool = computed(() => {
+    const selected = props.prizePoolTypeOptions.find(
+      opt => String(opt.value) === String(form.value.prizePoolType)
+    )
+    return selected ? selected.label !== 'Acumulativo' : false
+  })
+
+  /**
+   * Permite ajustar precio por moneda solo si hay más de una moneda seleccionada
+   */
+  const canAdjustCtnPriceByCurrency = computed(() => {
+    const allowed = form.value.allowedCurrencies
+    return Array.isArray(allowed) && allowed.length > 1
+  })
+
+  const ctnPriceByCurrencyActive = ref(false)
+
+  function toggleCtnPriceByCurrency() {
+    if (!canAdjustCtnPriceByCurrency.value) return
+    ctnPriceByCurrencyActive.value = !ctnPriceByCurrencyActive.value
+    if (!form.value.ctnPriceByCurrency) {
+      form.value = { ...form.value, ctnPriceByCurrency: {} }
     }
+  }
 
-    form.value = { ...form.value, roundsConfig: updated };
-  },
-  { immediate: true }
-);
+  function updateCtnPriceForCurrency(currency: string | number, value: string | number | null) {
+    const key = String(currency)
+    const current = { ...(form.value.ctnPriceByCurrency ?? {}) }
+    const parsed = value === null || value === '' ? null : Number(value)
+    current[key] = isNaN(Number(parsed)) ? null : (parsed as number)
+    form.value = { ...form.value, ctnPriceByCurrency: current }
+  }
 
-/* ==========================================================================
- * Métodos
- * ========================================================================== */
+  function getCurrencyLabel(id: string | number) {
+    const found = props.allowedCurrenciesOptions.find(opt => String(opt.value) === String(id))
+    return found ? String(found.label) : String(id)
+  }
 
-function toggleRoundsConfig() {
-  form.value = {
-    ...form.value,
-    roundsConfigActive: !form.value.roundsConfigActive,
-  };
-}
+  /* ==========================================================================
+   * Watchers
+   * ========================================================================== */
 
-function updateRoundConfig(
-  index: number,
-  field: keyof RoundConfig,
-  value: RoundConfig[keyof RoundConfig]
-) {
-  const configs = [...(form.value.roundsConfig ?? [])];
-  configs[index] = { ...configs[index], [field]: value };
-  form.value = { ...form.value, roundsConfig: configs };
-}
+  /**
+   * Cuando cambia el número de rondas, sincronizar el array roundsConfig
+   */
+  watch(
+    () => form.value.rounds,
+    newRounds => {
+      const count = Math.max(1, Number(newRounds) || 1)
 
-/* ==========================================================================
- * Submit
- * ========================================================================== */
+      const current = form.value.roundsConfig ?? []
+      const updated: RoundConfig[] = []
 
-const submit = (): boolean => {
-  if (!isValid.value) return false;
-  emit("submit");
-  return true;
-};
+      for (let i = 0; i < count; i++) {
+        updated.push(
+          current[i] ?? { prizeType: 'percentage', bingoPattern: null, prizeValue: null }
+        )
+      }
 
-/* ==========================================================================
- * Expose
- * ========================================================================== */
+      form.value = { ...form.value, roundsConfig: updated }
+    },
+    { immediate: true }
+  )
 
-defineExpose({
-  submit,
-  isValid,
-});
+  /* ==========================================================================
+   * Métodos
+   * ========================================================================== */
+
+  function toggleRoundsConfig() {
+    form.value = {
+      ...form.value,
+      roundsConfigActive: !form.value.roundsConfigActive
+    }
+  }
+
+  function updateRoundConfig(
+    index: number,
+    field: keyof RoundConfig,
+    value: RoundConfig[keyof RoundConfig]
+  ) {
+    const configs = [...(form.value.roundsConfig ?? [])]
+    configs[index] = { ...configs[index], [field]: value }
+    form.value = { ...form.value, roundsConfig: configs }
+  }
+
+  /* ==========================================================================
+   * Submit
+   * ========================================================================== */
+
+  const submit = (): boolean => {
+    if (!isValid.value) return false
+    emit('submit')
+    return true
+  }
+
+  /* ==========================================================================
+   * Expose
+   * ========================================================================== */
+
+  defineExpose({
+    submit,
+    isValid
+  })
 </script>
 <template>
   <form id="bingo-room-form" novalidate @submit.prevent="submit">
@@ -229,6 +216,7 @@ defineExpose({
         v-if="!automaticRoom"
         label="Fecha"
         name="date"
+        :error="errors.date"
         type="date"
         required
         :min="minDate"
@@ -240,6 +228,7 @@ defineExpose({
       <FormInput
         label="Hora"
         name="time"
+        :error="errors.time"
         type="time"
         required
         col="col-sm-6 col-md-4 col-lg-3"
@@ -250,7 +239,7 @@ defineExpose({
       <FormSelect
         label="Tipo de Sala"
         name="room_type"
-        id="room-type"
+        :error="errors.roomType"
         required
         placeholder="Selecciona tipo"
         :options="roomTypeOptions"
@@ -264,6 +253,7 @@ defineExpose({
       <FormSelect
         label="Modo de Juego"
         name="game_mode"
+        :error="errors.gameMode"
         id="game-mode"
         required
         placeholder="Selecciona modo"
@@ -278,7 +268,7 @@ defineExpose({
       <FormSelect
         label="Tipo Bote"
         name="prize_pool_type"
-        id="prize-pool-type"
+        :error="errors.prizePoolType"
         required
         placeholder="Selecciona tipo bote"
         :options="prizePoolTypeOptions"
@@ -292,7 +282,7 @@ defineExpose({
       <FormSelect
         label="Monedas Permitidas"
         name="allowed_currencies"
-        id="allowed-currencies"
+        :error="errors.allowedCurrencies"
         container
         required
         multiple
@@ -304,12 +294,12 @@ defineExpose({
         v-model="form.allowedCurrencies"
       />
 
-      <!-- Precio Carton Base (solo si hay al menos una moneda seleccionada) -->
+      <!-- Precio Carton (solo si hay al menos una moneda seleccionada) -->
       <FormInput
         v-show="(form.allowedCurrencies ?? []).length > 0"
-        label="Precio Carton Base"
+        label="Precio Carton"
         name="card_price"
-        id="ctn-price"
+        :error="errors.cardPrice"
         type="number"
         required
         :step="0.05"
@@ -321,7 +311,7 @@ defineExpose({
         v-model="form.ctnPrice"
       >
         <template #prepend>
-          <span class="input-group-text input-group-text-sm">$</span>
+          <span class="input-group-text">$</span>
         </template>
 
         <template #append>
@@ -364,9 +354,12 @@ defineExpose({
 
           <div class="row">
             <template v-for="cur in form.allowedCurrencies ?? []" :key="String(cur)">
+              {{}}
               <FormInput
                 :name="`ctn_price_${String(cur)}`"
-                :id="`ctn-price-${String(cur)}`"
+                :error="
+                  errors.ctnPriceByCurrency ? errors.ctnPriceByCurrency[String(cur)] : undefined
+                "
                 type="number"
                 :step="0.05"
                 :min="0"
@@ -379,7 +372,7 @@ defineExpose({
                 @update:modelValue="updateCtnPriceForCurrency(cur, $event)"
               >
                 <template #prepend>
-                  <span class="input-group-text input-group-text-sm">{{
+                  <span class="input-group-text">{{
                     getCurrencyLabel(cur)
                   }}</span>
                 </template>
@@ -394,7 +387,7 @@ defineExpose({
         v-show="showAmountAddedPrizePool"
         label="Valor Fijo/Extra"
         name="amount_added_prize_pool"
-        id="amount-added-prize-pool"
+        :error="errors.amountAddedPrizePool"
         type="number"
         required
         :step="0.05"
@@ -405,7 +398,7 @@ defineExpose({
         v-model="form.amountAddedPrizePool"
       >
         <template #prepend>
-          <span class="input-group-text input-group-text-sm">$</span>
+          <span class="input-group-text">$</span>
         </template>
       </FormInput>
 
@@ -467,7 +460,7 @@ defineExpose({
         v-show="showRoundsPct"
         label="%Rondas"
         name="rounds_pct"
-        id="rounds-pct"
+        :error="errors.roundsPct"
         type="number"
         :required="showRoundsPct"
         :step="1"
@@ -491,11 +484,8 @@ defineExpose({
             padding: 1rem;
           "
         >
-          <div class="d-flex mb-3 align-items-center">
-            <h6
-              class="mb-0"
-              style="font-size: 0.9rem; font-weight: 600; margin-right: 0.5rem"
-            >
+          <div class="d-flex align-items-center mb-3">
+            <h6 class="mb-0" style="font-size: 0.9rem; font-weight: 600; margin-right: 0.5rem">
               Ajustar valores de las rondas
             </h6>
             <div
@@ -510,17 +500,14 @@ defineExpose({
             <!-- Validación de suma (solo si hay más de una ronda) -->
             <div class="col-12 mb-2" v-if="totalRoundValues > 0 && showRoundsPct">
               <small :class="isRoundValuesValid ? 'text-success' : 'text-danger'">
-                {{ isRoundValuesValid ? "✓" : "✗" }} Suma: {{ totalRoundValues }} /
+                {{ isRoundValuesValid ? '✓' : '✗' }} Suma: {{ totalRoundValues }} /
                 {{ roundsPct }}
               </small>
             </div>
             <template v-for="(round, index) in form.roundsConfig" :key="`round_${index}`">
               <div class="col-lg-6 col-12 mb-2">
                 <div class="d-flex align-items-center" style="gap: 0.5rem">
-                  <span
-                    class="badge badge-secondary"
-                    style="white-space: nowrap; flex-shrink: 0"
-                  >
+                  <span class="badge badge-secondary" style="white-space: nowrap; flex-shrink: 0">
                     R{{ index + 1 }}
                   </span>
 
@@ -562,11 +549,7 @@ defineExpose({
                     style="flex: 1 1 auto; min-width: 130px"
                   >
                     <option value="" disabled>Patrón</option>
-                    <option
-                      v-for="opt in bingoPatternOptions"
-                      :key="opt.value"
-                      :value="opt.value"
-                    >
+                    <option v-for="opt in bingoPatternOptions" :key="opt.value" :value="opt.value">
                       {{ opt.label }}
                     </option>
                   </select>
@@ -602,7 +585,7 @@ defineExpose({
       <FormInput
         label="%Bote Seriales"
         name="serials_pct"
-        id="serials-pct"
+        :error="errors.serialsPct"
         type="number"
         required
         :step="0.25"
@@ -617,11 +600,11 @@ defineExpose({
       <FormInput
         label="#Max. Seriales"
         name="num_serials"
-        id="num-serials"
+        :error="errors.numSerials"
         type="number"
         required
         :step="1"
-        :min="3"
+        :min="0"
         :max="30"
         placeholder="Ingrese la cantidad"
         col="col-sm-6 col-md-4 col-lg-3"
@@ -631,7 +614,7 @@ defineExpose({
       <FormInput
         label="Tiempo Ficha"
         name="time_chip"
-        id="time-chip"
+        :error="errors.timeChip"
         type="number"
         required
         :step="1"
@@ -642,7 +625,7 @@ defineExpose({
         v-model="form.timeChip"
       >
         <template #append>
-          <span class="input-group-text input-group-text-sm">SEG</span>
+          <span class="input-group-text">SEG</span>
         </template>
       </FormInput>
     </div>

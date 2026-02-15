@@ -165,7 +165,7 @@ const prizePoolTypeOptions = computed(() => {
  */
 const allowedCurrenciesOptions = computed(() => {
   return (props.currencies ?? []).map((c) => ({
-    value: c.iso_code,
+    value: c.id,
     label: c.iso_code,
   }));
 });

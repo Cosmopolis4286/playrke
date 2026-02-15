@@ -1,118 +1,123 @@
 <script setup lang="ts">
-import { computed, useSlots, ref, watch, nextTick } from "vue";
-import { IMaskDirective } from "vue-imask";
-import type { FactoryArg } from "imask";
+  import { computed, useSlots, ref, watch, nextTick } from 'vue'
+  import { IMaskDirective } from 'vue-imask'
+  import type { FactoryArg } from 'imask'
 
-const vImask = IMaskDirective;
+  const vImask = IMaskDirective
 
-const props = defineProps({
-  container: { type: Boolean, default: false },
-  id: { type: String, default: null },
-  label: { type: String, default: null },
-  name: { type: String, required: true },
-  type: { type: String, default: "text" },
-  modelValue: { type: [String, Number], default: "" },
-  required: { type: Boolean, default: false },
-  readonly: { type: Boolean, default: false },
-  disabled: { type: Boolean, default: false },
-  minlength: { type: [String, Number], default: null },
-  maxlength: { type: [String, Number], default: null },
-  min: { type: [String, Number], default: null },
-  max: { type: [String, Number], default: null },
-  step: { type: [String, Number], default: null },
-  placeholder: { type: String, default: null },
-  col: { type: String, default: "col-sm-6" },
-  className: { type: String, default: "" },
-  inputClass: { type: String, default: "" },
-  inputGroup: { type: Boolean, default: false },
-  inputGroupClass: { type: String, default: "" },
-  mask: { type: Object as () => FactoryArg, default: null },
-});
+  const props = defineProps({
+    container: { type: Boolean, default: false },
+    id: { type: String, default: null },
+    error: { type: String, default: null },
+    label: { type: String, default: null },
+    name: { type: String, required: true },
+    type: { type: String, default: 'text' },
+    modelValue: { type: [String, Number], default: '' },
+    required: { type: Boolean, default: false },
+    readonly: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false },
+    minlength: { type: [String, Number], default: null },
+    maxlength: { type: [String, Number], default: null },
+    min: { type: [String, Number], default: null },
+    max: { type: [String, Number], default: null },
+    step: { type: [String, Number], default: null },
+    placeholder: { type: String, default: null },
+    col: { type: String, default: 'col-sm-6' },
+    className: { type: String, default: '' },
+    inputClass: { type: String, default: '' },
+    inputGroup: { type: Boolean, default: false },
+    inputGroupClass: { type: String, default: '' },
+    mask: { type: Object as () => FactoryArg, default: null }
+  })
 
-const emit = defineEmits(["update:modelValue"]);
-const slots = useSlots();
+  const emit = defineEmits(['update:modelValue'])
+  const slots = useSlots()
 
-const inputId = computed(() => props.id ?? props.name);
-const containerId = computed(() =>
-  props.container ? `container-${inputId.value}` : undefined
-);
+  const inputId = computed(() => props.id ?? props.name)
+  const containerId = computed(() => (props.container ? `container-${inputId.value}` : undefined))
 
-/**
- * Valida y corrige valores numéricos dentro de los límites min/max
- */
-function clampNumericValue(value: string | number): number {
-  if (props.type !== "number") {
-    return Number(value) || 0;
+  /**
+   * Valida y corrige valores numéricos dentro de los límites min/max
+   */
+  function clampNumericValue(value: string | number): number {
+    if (props.type !== 'number') {
+      return Number(value) || 0
+    }
+
+    const num = Number(value) || 0
+    const min = props.min !== null ? Number(props.min) : null
+    const max = props.max !== null ? Number(props.max) : null
+
+    console.log(`[clampNumericValue] ${props.name}: num=${num}, min=${min}, max=${max}`)
+
+    if (min !== null && num < min) {
+      console.log(`[clampNumericValue] ${props.name}: Menor que min, devolviendo ${min}`)
+      return min
+    }
+    if (max !== null && num > max) {
+      console.log(`[clampNumericValue] ${props.name}: Mayor que max, devolviendo ${max}`)
+      return max
+    }
+
+    console.log(`[clampNumericValue] ${props.name}: Dentro de rango, devolviendo ${num}`)
+    return num
   }
 
-  const num = Number(value) || 0;
-  const min = props.min !== null ? Number(props.min) : null;
-  const max = props.max !== null ? Number(props.max) : null;
+  /**
+   * Maneja el evento @input
+   */
+  function onInput(event: Event) {
+    const target = event.target as HTMLInputElement
+    const value = target.value
 
-  console.log(`[clampNumericValue] ${props.name}: num=${num}, min=${min}, max=${max}`);
+    if (props.type === 'number') {
+      if (value === '') {
+        emit('update:modelValue', '')
+        return
+      }
 
-  if (min !== null && num < min) {
-    console.log(`[clampNumericValue] ${props.name}: Menor que min, devolviendo ${min}`);
-    return min;
+      const adjusted = clampNumericValue(value)
+      target.value = String(adjusted)
+      emit('update:modelValue', adjusted)
+      return
+    }
+
+    // ✅ Para date, time, text, etc
+    emit('update:modelValue', value)
   }
-  if (max !== null && num > max) {
-    console.log(`[clampNumericValue] ${props.name}: Mayor que max, devolviendo ${max}`);
-    return max;
+
+  /**
+   * Maneja el @blur
+   */
+  function onBlur(event: FocusEvent) {
+    const target = event.target as HTMLInputElement
+    const value = target.value
+
+    if (props.type === 'number') {
+      if (value === '') {
+        emit('update:modelValue', '')
+        return
+      }
+
+      const adjusted = clampNumericValue(value)
+      target.value = String(adjusted)
+      emit('update:modelValue', adjusted)
+      return
+    }
+
+    emit('update:modelValue', value)
   }
 
-  console.log(`[clampNumericValue] ${props.name}: Dentro de rango, devolviendo ${num}`);
-  return num;
-}
-
-/**
- * Maneja el evento @input
- */
-function onInput(event: Event) {
-  const target = event.target as HTMLInputElement;
-  const value = target.value;
-
-  if (props.type === "number" && value) {
-    const adjusted = clampNumericValue(value);
-    console.log(
-      `[FormInput onInput] ${props.name}: value="${value}" -> adjusted="${adjusted}"`
-    );
-
-    // Actualizar el input directamente en el DOM
-    target.value = String(adjusted);
-
-    // Emitir el valor ajustado
-    emit("update:modelValue", adjusted);
+  /**
+   * Valida el valor cuando aceptan la máscara
+   */
+  function onAccept(event: CustomEvent) {
+    const value = event.detail.value
+    console.log(`[FormInput onAccept] ${props.name}: value="${value}"`)
+    const adjusted = clampNumericValue(value)
+    console.log(`[FormInput onAccept] ${props.name}: adjusted="${adjusted}"`)
+    emit('update:modelValue', adjusted)
   }
-}
-
-/**
- * Maneja el @blur
- */
-function onBlur(event: FocusEvent) {
-  const target = event.target as HTMLInputElement;
-  const value = target.value;
-
-  if (props.type === "number" && value) {
-    const adjusted = clampNumericValue(value);
-    console.log(
-      `[FormInput onBlur] ${props.name}: value="${value}" -> adjusted="${adjusted}"`
-    );
-
-    target.value = String(adjusted);
-    emit("update:modelValue", adjusted);
-  }
-}
-
-/**
- * Valida el valor cuando aceptan la máscara
- */
-function onAccept(event: CustomEvent) {
-  const value = event.detail.value;
-  console.log(`[FormInput onAccept] ${props.name}: value="${value}"`);
-  const adjusted = clampNumericValue(value);
-  console.log(`[FormInput onAccept] ${props.name}: adjusted="${adjusted}"`);
-  emit("update:modelValue", adjusted);
-}
 </script>
 
 <template>
@@ -136,7 +141,7 @@ function onAccept(event: CustomEvent) {
         :id="inputId"
         :name="name"
         :value="modelValue"
-        class="form-control"
+        :class="['form-control', { 'is-invalid': !!error }]"
         :readonly="readonly"
         :disabled="disabled"
         :required="required"
@@ -148,13 +153,14 @@ function onAccept(event: CustomEvent) {
         :step="step"
         @accept="onAccept"
       />
+
       <input
         v-else
         :type="type"
         :id="inputId"
         :name="name"
         :value="modelValue"
-        class="form-control"
+        :class="['form-control', { 'is-invalid': !!error }]"
         :readonly="readonly"
         :disabled="disabled"
         :required="required"
@@ -181,7 +187,7 @@ function onAccept(event: CustomEvent) {
       :id="inputId"
       :name="name"
       :value="modelValue"
-      :class="['form-control', inputClass]"
+      :class="['form-control', inputClass, { 'is-invalid': !!error }]"
       :readonly="readonly"
       :disabled="disabled"
       :required="required"
@@ -201,7 +207,7 @@ function onAccept(event: CustomEvent) {
       :id="inputId"
       :name="name"
       :value="modelValue"
-      :class="['form-control', inputClass]"
+      :class="['form-control', inputClass, { 'is-invalid': !!error }]"
       :readonly="readonly"
       :disabled="disabled"
       :required="required"
@@ -214,5 +220,10 @@ function onAccept(event: CustomEvent) {
       @input="onInput"
       @blur="onBlur"
     />
+
+    <!-- ERROR MESSAGE -->
+    <small v-if="error" class="text-danger d-block mt-1">
+      {{ error }}
+    </small>
   </div>
 </template>

@@ -155,7 +155,6 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             }
 
             await fetchRooms()
-            reset()
             return true
         } catch (error: any) {
             console.error(error)
