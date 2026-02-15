@@ -1,5 +1,5 @@
 <script setup lang="ts" name="BingoGameRoomForm">
-  import { computed, watch } from 'vue'
+  import { computed, watch, ref } from 'vue'
 
   // Components
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
@@ -85,6 +85,37 @@
     )
     return selected ? selected.label !== 'Acumulativo' : false
   })
+
+  /**
+   * Permite ajustar precio por moneda solo si hay más de una moneda seleccionada
+   */
+  const canAdjustCtnPriceByCurrency = computed(() => {
+    const allowed = form.value.allowedCurrencies
+    return Array.isArray(allowed) && allowed.length > 1
+  })
+
+  const ctnPriceByCurrencyActive = ref(false)
+
+  function toggleCtnPriceByCurrency() {
+    if (!canAdjustCtnPriceByCurrency.value) return
+    ctnPriceByCurrencyActive.value = !ctnPriceByCurrencyActive.value
+    if (!form.value.ctnPriceByCurrency) {
+      form.value = { ...form.value, ctnPriceByCurrency: {} }
+    }
+  }
+
+  function updateCtnPriceForCurrency(currency: string | number, value: string | number | null) {
+    const key = String(currency)
+    const current = { ...(form.value.ctnPriceByCurrency ?? {}) }
+    const parsed = value === null || value === '' ? null : Number(value)
+    current[key] = isNaN(Number(parsed)) ? null : parsed as number
+    form.value = { ...form.value, ctnPriceByCurrency: current }
+  }
+
+  function getCurrencyLabel(value: string | number) {
+    const found = props.allowedCurrenciesOptions.find(opt => String(opt.value) === String(value))
+    return found ? found.label : String(value)
+  }
 
   /* ==========================================================================
    * Watchers
@@ -227,6 +258,55 @@
         v-model="form.prizePoolType"
       />
 
+      <!-- Precio CTN -->
+      <FormInput
+        label="Precio CTN"
+        name="card_price"
+        id="ctn-price"
+        type="number"
+        required
+        :step="0.05"
+        :min="0.35"
+        :max="50"
+        placeholder="Precio Cartón"
+        col="col-sm-6 col-md-4 col-lg-3"
+        inputGroup
+        v-model="form.ctnPrice"
+      >
+        <template #append>
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            :data-active="ctnPriceByCurrencyActive ? 1 : 0"
+            @click="toggleCtnPriceByCurrency"
+            :disabled="!canAdjustCtnPriceByCurrency"
+            :title="canAdjustCtnPriceByCurrency ? 'Ajustar precio de los cartones por moneda' : 'Selecciona más de una moneda para ajustar precios por moneda'"
+          >
+            <i class="fa-solid fa-sliders"></i>
+          </button>
+        </template>
+      </FormInput>
+
+      <!-- Inputs por moneda (cuando activo) -->
+      <div class="col-12 mb-2" v-if="ctnPriceByCurrencyActive">
+        <div class="row">
+          <template v-for="(cur, idx) in form.allowedCurrencies ?? []" :key="String(cur)">
+            <div class="col-6 col-md-3 mb-2">
+              <label class="form-label">Precio - {{ getCurrencyLabel(cur) }}</label>
+              <input
+                type="number"
+                class="form-control form-control-sm"
+                :step="0.05"
+                :min="0"
+                :max="1000"
+                :value="(form.ctnPriceByCurrency && form.ctnPriceByCurrency[String(cur)]) ?? ''"
+                @input="(e) => updateCtnPriceForCurrency(cur, (e.target as HTMLInputElement).value)"
+              />
+            </div>
+          </template>
+        </div>
+      </div>
+
       <!-- Monedas permitidas -->
       <FormSelect
         label="Monedas Permitidas"
@@ -321,18 +401,15 @@
         v-model="form.rounds"
       >
         <template #append>
-          <div class="content-rounds-pct">
-            <button
-              id="btn-rounds-config"
-              class="btn btn-outline-secondary"
-              type="button"
-              :data-active="form.roundsConfigActive ? 1 : 0"
-              @click="toggleRoundsConfig"
-              title="Ajustar valores de las rondas"
-            >
-              <i class="fa-solid fa-sliders"></i>
-            </button>
-          </div>
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            :data-active="form.roundsConfigActive ? 1 : 0"
+            @click="toggleRoundsConfig"
+            title="Ajustar valores de las rondas"
+          >
+            <i class="fa-solid fa-sliders"></i>
+          </button>
         </template>
       </FormInput>
 

@@ -72,7 +72,20 @@ export function useBingoRoomForm(
         }
 
         if (!form.value.ctnPrice) {
-            e.ctnPrice = 'El precio del cartón es requerido.'
+            // Si hay más de una moneda permitida, aceptamos precios por moneda
+            const allowed = form.value.allowedCurrencies
+            if (Array.isArray(allowed) && allowed.length > 1) {
+                const byCurrency = form.value.ctnPriceByCurrency ?? {}
+                const missing = allowed.some(a => {
+                    const key = String(a)
+                    return byCurrency[key] === undefined || byCurrency[key] === null || byCurrency[key] === ''
+                })
+                if (missing) {
+                    e.ctnPrice = 'Debe ingresar el precio del cartón para todas las monedas seleccionadas.'
+                }
+            } else {
+                e.ctnPrice = 'El precio del cartón es requerido.'
+            }
         }
 
         return e

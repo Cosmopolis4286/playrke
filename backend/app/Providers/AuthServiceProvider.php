@@ -2,12 +2,6 @@
 
 namespace App\Providers;
 
-use App\Models\Games\Bingo\Room\BingoRoom;
-use App\Models\Roles\Commerce;
-use App\Models\Roles\Seller;
-use App\Policies\Games\Bingo\Room\BingoRoomPolicy;
-use App\Policies\Roles\Admin\AdminCommercePolicy;
-use App\Policies\Roles\Seller\Manager\ManagerSellerPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -24,9 +18,10 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        Commerce::class => AdminCommercePolicy::class,
-        Seller::class => ManagerSellerPolicy::class,
-        BingoRoom::class => BingoRoomPolicy::class,
+        \App\Models\Roles\Commerce::class => \App\Policies\Roles\Admin\AdminCommercePolicy::class,
+        \App\Models\Roles\Seller::class => \App\Policies\Roles\Seller\Manager\ManagerSellerPolicy::class,
+        \App\Models\Games\Bingo\Room\BingoRoom::class => \App\Policies\Games\Bingo\Room\BingoRoomPolicy::class,
+        \App\Models\Prize::class => \App\Policies\Prizes\PrizePolicy::class,
     ];
 
     /**

@@ -17,6 +17,7 @@ final class BingoRoomCreateDTO
         public readonly string $roomType,
         public readonly string|int $gameMode,
         public readonly string|int $prizePoolType,
+        public readonly float $ctnPrice,
         public readonly array $allowedCurrencies,
         public readonly ?float $amountAddedPrizePool,
         public readonly float $roomCommn,
@@ -26,7 +27,6 @@ final class BingoRoomCreateDTO
         public readonly ?float $roundsPct,
         public readonly float $serialsPct,
         public readonly int $numSerials,
-        public readonly float $ctnPrice,
         public readonly ?array $roundsConfig,
     ) {}
 
@@ -38,6 +38,7 @@ final class BingoRoomCreateDTO
             roomType: $data['roomType'] ?? 'PRIVATE',
             gameMode: $data['gameMode'],
             prizePoolType: $data['prizePoolType'],
+            ctnPrice: (float) ($data['ctnPrice'] ?? 1),
             allowedCurrencies: array_values((array) ($data['allowedCurrencies'] ?? [])),
             amountAddedPrizePool: isset($data['amountAddedPrizePool']) ? (float) $data['amountAddedPrizePool'] : null,
             roomCommn: (float) ($data['roomCommn'] ?? 20),
@@ -47,7 +48,6 @@ final class BingoRoomCreateDTO
             roundsPct: isset($data['roundsPct']) ? (float) $data['roundsPct'] : null,
             serialsPct: (float) ($data['serialsPct'] ?? 5),
             numSerials: (int) ($data['numSerials'] ?? 5),
-            ctnPrice: (float) ($data['ctnPrice'] ?? 1),
             roundsConfig: $data['roundsConfig'] ?? null,
         );
     }

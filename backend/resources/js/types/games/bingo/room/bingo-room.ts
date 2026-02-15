@@ -125,5 +125,6 @@ export interface BingoRoomFormData {
     serialsPct?: number | null
     numSerials?: number | null
     ctnPrice?: number | null
+    ctnPriceByCurrency?: Record<string, number | null>
     roundsConfig?: RoundConfig[]
 }
