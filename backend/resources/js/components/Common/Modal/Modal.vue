@@ -258,6 +258,13 @@
   /* Fondo */
   .modal {
     background: rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+  }
+
+  /* Permite scroll automático en el eje Y solo del contenido del modal */
+  .modal-body {
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
   }
 
   /* Animación bounce estilo Bootstrap 4 para modal estático */
