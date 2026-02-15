@@ -30,6 +30,7 @@ interface SelectOption {
 const roundPrizeTypeOptions: SelectOption[] = [
   { value: "percentage", label: "Porcentaje" },
   { value: "fixed", label: "Fijo" },
+  { value: "prize", label: "Premio" },
 ];
 
 /* ==========================================================================
@@ -60,7 +61,16 @@ const emit = defineEmits<{
  * Form logic (computed v-model)
  * ========================================================================== */
 
-const { form, errors, isValid } = useBingoRoomForm(() => props.modelValue, emit);
+const {
+  form,
+  errors,
+  isValid,
+  roomCommn,
+  jackpotPct,
+  roundsPct,
+  serialsPct,
+  percentageLimits,
+} = useBingoRoomForm(() => props.modelValue, emit);
 
 /* ==========================================================================
  * Computed
@@ -78,6 +88,26 @@ const minDate = computed(() => {
  * Mostrar %Rondas y config (más de 1 ronda)
  */
 const showRoundsPct = computed(() => (form.value.rounds ?? 1) > 1);
+
+/**
+ * Suma total de los valores de los premios de las rondas
+ */
+const totalRoundValues = computed(() => {
+  return (form.value.roundsConfig ?? []).reduce((sum, round) => {
+    const value = Number(round.prizeValue) || 0;
+    return sum + value;
+  }, 0);
+});
+
+/**
+ * Valida que la suma de valores de rondas sea igual a %Rondas
+ */
+const isRoundValuesValid = computed(() => {
+  const roundsPct = Number(form.value.roundsPct) || 0;
+  if (roundsPct === 0) return true; // No validar si no hay valor
+  const total = totalRoundValues.value;
+  return Math.abs(total - roundsPct) < 0.01; // Permitir pequeñas diferencias por redondeo
+});
 
 /**
  * Mostrar container de valor fijo/extra (cuando NO es Acumulativo)
@@ -122,7 +152,7 @@ function getCurrencyLabel(value: string | number) {
   const found = props.allowedCurrenciesOptions.find(
     (opt) => String(opt.value) === String(value)
   );
-  return found ? found.label : String(value);
+  return found ? String(found.value) : String(value);
 }
 
 /* ==========================================================================
@@ -147,7 +177,8 @@ watch(
     }
 
     form.value = { ...form.value, roundsConfig: updated };
-  }
+  },
+  { immediate: true }
 );
 
 /* ==========================================================================
@@ -169,11 +200,6 @@ function updateRoundConfig(
   const configs = [...(form.value.roundsConfig ?? [])];
   configs[index] = { ...configs[index], [field]: value };
   form.value = { ...form.value, roundsConfig: configs };
-}
-
-function createRoom() {
-  if (!isValid.value) return;
-  emit("createRoom");
 }
 
 /* ==========================================================================
@@ -278,10 +304,10 @@ defineExpose({
         v-model="form.allowedCurrencies"
       />
 
-      <!-- Precio CTN (solo si hay al menos una moneda seleccionada) -->
+      <!-- Precio Carton Base (solo si hay al menos una moneda seleccionada) -->
       <FormInput
         v-show="(form.allowedCurrencies ?? []).length > 0"
-        label="Precio CTN"
+        label="Precio Carton Base"
         name="card_price"
         id="ctn-price"
         type="number"
@@ -295,7 +321,7 @@ defineExpose({
         v-model="form.ctnPrice"
       >
         <template #prepend>
-          <span class="input-group-text">$</span>
+          <span class="input-group-text input-group-text-sm">$</span>
         </template>
 
         <template #append>
@@ -316,45 +342,50 @@ defineExpose({
         </template>
       </FormInput>
 
-      <!-- Inputs por moneda (cuando activo) - contenedor estilo Rondas -->
+      <!-- Inputs por moneda (cuando activo) -->
       <div
-        class="col-12 mb-2"
+        class="col-12"
         v-show="ctnPriceByCurrencyActive && canAdjustCtnPriceByCurrency"
-        style="
-          max-height: 140px;
-          overflow-y: auto;
-          border: 1px solid #ddd;
-          padding: 1rem;
-          border-radius: 0.25rem;
-        "
+        style="margin-top: 0.5rem; margin-bottom: 1rem"
       >
-        <div class="d-flex mb-2">
-          <h6 class="mb-0 mr-2">Ajustar precio de los cartones por moneda</h6>
-        </div>
+        <div
+          style="
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 1rem;
+          "
+        >
+          <div class="d-flex mb-3">
+            <h6 class="mb-0" style="font-size: 0.9rem; font-weight: 600">
+              Ajustar precio de los cartones por moneda
+            </h6>
+          </div>
 
-        <div class="row">
-          <template v-for="cur in form.allowedCurrencies ?? []" :key="String(cur)">
-            <FormInput
-              :label="`Precio ${getCurrencyLabel(cur)}`"
-              :name="`ctn_price_${String(cur)}`"
-              :id="`ctn-price-${String(cur)}`"
-              type="number"
-              :step="0.05"
-              :min="0"
-              :max="1000"
-              :placeholder="`Precio Cartón ${getCurrencyLabel(cur)}`"
-              col="col-6 col-md-3 mb-2"
-              inputGroup
-              :modelValue="
-                (form.ctnPriceByCurrency && form.ctnPriceByCurrency[String(cur)]) ?? null
-              "
-              @update:modelValue="(val) => updateCtnPriceForCurrency(cur, val)"
-            >
-              <template #append>
-                <span class="input-group-text">{{ getCurrencyLabel(cur) }}</span>
-              </template>
-            </FormInput>
-          </template>
+          <div class="row">
+            <template v-for="cur in form.allowedCurrencies ?? []" :key="String(cur)">
+              <FormInput
+                :name="`ctn_price_${String(cur)}`"
+                :id="`ctn-price-${String(cur)}`"
+                type="number"
+                :step="0.05"
+                :min="0"
+                :max="1000"
+                :placeholder="`Precio Cartón ${getCurrencyLabel(cur)}`"
+                col="col-6 col-md-3 mb-2"
+                inputGroup
+                inputGroupClass="input-group-sm"
+                :modelValue="form.ctnPriceByCurrency?.[String(cur)] ?? ''"
+                @update:modelValue="updateCtnPriceForCurrency(cur, $event)"
+              >
+                <template #prepend>
+                  <span class="input-group-text input-group-text-sm">{{
+                    getCurrencyLabel(cur)
+                  }}</span>
+                </template>
+              </FormInput>
+            </template>
+          </div>
         </div>
       </div>
 
@@ -374,7 +405,7 @@ defineExpose({
         v-model="form.amountAddedPrizePool"
       >
         <template #prepend>
-          <span class="input-group-text">$</span>
+          <span class="input-group-text input-group-text-sm">$</span>
         </template>
       </FormInput>
 
@@ -386,10 +417,10 @@ defineExpose({
         type="number"
         required
         :step="0.05"
-        :min="10"
-        :max="50"
+        :min="percentageLimits.roomCommn.min"
+        :max="percentageLimits.roomCommn.max"
         col="col-sm-6 col-md-4 col-lg-3"
-        v-model="form.roomCommn"
+        v-model="roomCommn"
       />
 
       <FormInput
@@ -398,10 +429,10 @@ defineExpose({
         id="jackpot-pct"
         type="number"
         :step="0.5"
-        :min="1"
-        :max="15"
+        :min="percentageLimits.jackpotPct.min"
+        :max="percentageLimits.jackpotPct.max"
         col="col-sm-6 col-md-4 col-lg-3"
-        v-model="form.jackpotPct"
+        v-model="jackpotPct"
       />
 
       <!-- Rondas -->
@@ -423,6 +454,7 @@ defineExpose({
             type="button"
             :data-active="form.roundsConfigActive ? 1 : 0"
             @click="toggleRoundsConfig"
+            :disabled="(form.rounds ?? 1) <= 1"
             title="Ajustar valores de las rondas"
           >
             <i class="fa-solid fa-sliders"></i>
@@ -437,110 +469,132 @@ defineExpose({
         name="rounds_pct"
         id="rounds-pct"
         type="number"
+        :required="showRoundsPct"
         :step="1"
-        :min="3"
-        :max="30"
+        :min="percentageLimits.roundsPct.min"
+        :max="percentageLimits.roundsPct.max"
         col="col-sm-6 col-md-4 col-lg-3"
-        v-model="form.roundsPct"
+        v-model="roundsPct"
       />
 
       <!-- Configuración avanzada de rondas -->
       <div
         class="col-12"
-        v-show="form.roundsConfigActive"
-        style="
-          max-height: 155px;
-          overflow-y: auto;
-          border: 1px solid #ddd;
-          padding: 1rem;
-          border-radius: 0.25rem;
-        "
+        v-show="form.roundsConfigActive && (form.rounds ?? 1) > 1"
+        style="margin-top: 0.5rem; margin-bottom: 1rem"
       >
-        <div class="d-flex">
-          <h6 class="mb-3 mr-1">Ajustar valores de las rondas</h6>
-          <div
-            v-if="form.loadingRoundsConfig"
-            class="spinner-border spinner-border-sm text-primary"
-            role="status"
-          >
-            <span class="sr-only">Cargando...</span>
-          </div>
-        </div>
-        <div id="content-rounds-config" class="row">
-          <template v-for="(round, index) in form.roundsConfig" :key="index">
-            <div class="col-12 col-lg-6 my-1">
-              <div class="d-flex align-items-center gap-2">
-                <span class="badge badge-secondary mr-2">R{{ index + 1 }}</span>
-
-                <!-- Tipo de premio -->
-                <select
-                  :name="`rounds_prize_type[${index}]`"
-                  class="form-control form-control-sm mr-2"
-                  :value="round.prizeType"
-                  @change="
-                    updateRoundConfig(
-                      index,
-                      'prizeType',
-                      ($event.target as HTMLSelectElement).value as any
-                    )
-                  "
-                  style="max-width: 130px"
-                >
-                  <option
-                    v-for="opt in roundPrizeTypeOptions"
-                    :key="opt.value"
-                    :value="opt.value"
-                  >
-                    {{ opt.label }}
-                  </option>
-                </select>
-
-                <!-- Patrón de bingo -->
-                <select
-                  :name="`rounds_bingo_patterns[${index}]`"
-                  class="form-control form-control-sm mr-2"
-                  :value="round.bingoPattern"
-                  @change="
-                    updateRoundConfig(
-                      index,
-                      'bingoPattern',
-                      ($event.target as HTMLSelectElement).value
-                    )
-                  "
-                  style="max-width: 150px"
-                >
-                  <option value="" disabled>Patrón</option>
-                  <option
-                    v-for="opt in bingoPatternOptions"
-                    :key="opt.value"
-                    :value="opt.value"
-                  >
-                    {{ opt.label }}
-                  </option>
-                </select>
-
-                <!-- Valor del premio -->
-                <input
-                  :name="`rounds_prize_value[${index}]`"
-                  type="number"
-                  class="form-control form-control-sm"
-                  placeholder="Valor"
-                  :value="round.prizeValue"
-                  @input="
-                    updateRoundConfig(
-                      index,
-                      'prizeValue',
-                      ($event.target as HTMLInputElement).value
-                    )
-                  "
-                  step="0.5"
-                  min="0"
-                  max="100"
-                  style="max-width: 100px"
-                />
-              </div>
+        <div
+          style="
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 1rem;
+          "
+        >
+          <div class="d-flex mb-3 align-items-center">
+            <h6
+              class="mb-0"
+              style="font-size: 0.9rem; font-weight: 600; margin-right: 0.5rem"
+            >
+              Ajustar valores de las rondas
+            </h6>
+            <div
+              v-if="form.loadingRoundsConfig"
+              class="spinner-border spinner-border-sm text-primary"
+              role="status"
+            >
+              <span class="sr-only">Cargando...</span>
             </div>
-          </template>
+          </div>
+          <div class="row">
+            <!-- Validación de suma (solo si hay más de una ronda) -->
+            <div class="col-12 mb-2" v-if="totalRoundValues > 0 && showRoundsPct">
+              <small :class="isRoundValuesValid ? 'text-success' : 'text-danger'">
+                {{ isRoundValuesValid ? "✓" : "✗" }} Suma: {{ totalRoundValues }} /
+                {{ roundsPct }}
+              </small>
+            </div>
+            <template v-for="(round, index) in form.roundsConfig" :key="`round_${index}`">
+              <div class="col-lg-6 col-12 mb-2">
+                <div class="d-flex align-items-center" style="gap: 0.5rem">
+                  <span
+                    class="badge badge-secondary"
+                    style="white-space: nowrap; flex-shrink: 0"
+                  >
+                    R{{ index + 1 }}
+                  </span>
+
+                  <!-- Tipo de premio -->
+                  <select
+                    :name="`rounds_prize_type[${index}]`"
+                    class="form-control form-control-sm"
+                    :value="round.prizeType"
+                    @change="
+                      updateRoundConfig(
+                        index,
+                        'prizeType',
+                        ($event.target as HTMLSelectElement).value as any
+                      )
+                    "
+                    style="flex: 0 1 300px"
+                  >
+                    <option
+                      v-for="opt in roundPrizeTypeOptions"
+                      :key="opt.value"
+                      :value="opt.value"
+                    >
+                      {{ opt.label }}
+                    </option>
+                  </select>
+
+                  <!-- Patrón de bingo -->
+                  <select
+                    :name="`rounds_bingo_patterns[${index}]`"
+                    class="form-control form-control-sm"
+                    :value="round.bingoPattern"
+                    @change="
+                      updateRoundConfig(
+                        index,
+                        'bingoPattern',
+                        ($event.target as HTMLSelectElement).value
+                      )
+                    "
+                    style="flex: 1 1 auto; min-width: 130px"
+                  >
+                    <option value="" disabled>Patrón</option>
+                    <option
+                      v-for="opt in bingoPatternOptions"
+                      :key="opt.value"
+                      :value="opt.value"
+                    >
+                      {{ opt.label }}
+                    </option>
+                  </select>
+
+                  <!-- Valor del premio -->
+                  <input
+                    :name="`rounds_prize_value[${index}]`"
+                    type="number"
+                    class="form-control form-control-sm"
+                    :class="{ 'is-invalid': !isRoundValuesValid && totalRoundValues > 0 }"
+                    placeholder="Valor"
+                    :value="round.prizeValue"
+                    @input="
+                      updateRoundConfig(
+                        index,
+                        'prizeValue',
+                        ($event.target as HTMLInputElement).value
+                      )
+                    "
+                    step="0.5"
+                    min="0"
+                    :max="Number(roundsPct) || percentageLimits.roundsPct.max"
+                    style="flex: 0 1 100px"
+                  />
+                </div>
+              </div>
+            </template>
+          </div>
         </div>
       </div>
 
@@ -552,11 +606,11 @@ defineExpose({
         type="number"
         required
         :step="0.25"
-        :min="2"
-        :max="35"
+        :min="percentageLimits.serialsPct.min"
+        :max="percentageLimits.serialsPct.max"
         placeholder="Ingrese valor"
         col="col-sm-6 col-md-4 col-lg-3"
-        v-model="form.serialsPct"
+        v-model="serialsPct"
       />
 
       <!-- #Max. Seriales -->
@@ -588,7 +642,7 @@ defineExpose({
         v-model="form.timeChip"
       >
         <template #append>
-          <span class="input-group-text">SEG</span>
+          <span class="input-group-text input-group-text-sm">SEG</span>
         </template>
       </FormInput>
     </div>

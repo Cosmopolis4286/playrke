@@ -2,14 +2,25 @@ import { computed } from 'vue'
 import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
 
 /**
+ * Límites de porcentajes (expuestos para usar en atributos min/max del FormInput)
+ */
+const PERCENTAGE_LIMITS = {
+  roomCommn: { min: 10, max: 50 },
+  jackpotPct: { min: 1, max: 15 },
+  roundsPct: { min: 3, max: 30 },
+  serialsPct: { min: 2, max: 35 },
+} as const
+
+/**
  * Composable para formulario de sala de bingo
  *
  * Responsabilidades:
  * - Adaptar modelValue al formulario
- * - Validación reactiva
- * - Exponer estado de edición
+ * - Validación reactiva de campos requeridos
+ * - Validación de suma de porcentajes
+ * - Exponer límites de porcentajes
  *
- * ❌ Sin watchers
+ * ✅ Sin lógica de clamping (delegado al FormInput)
  * ✅ v-model computado
  */
 export function useBingoRoomForm(
@@ -26,7 +37,7 @@ export function useBingoRoomForm(
     })
 
     /* =======================
-     * Computed
+     * Computed validaciones
      * ======================= */
 
     /**
@@ -34,6 +45,10 @@ export function useBingoRoomForm(
      */
     const errors = computed<Record<string, string>>(() => {
         const e: Record<string, string> = {}
+
+        if (!form.value.date) {
+            e.date = 'La fecha es requerida.'
+        }
 
         if (!form.value.time) {
             e.time = 'La hora es requerida.'
@@ -88,6 +103,22 @@ export function useBingoRoomForm(
             }
         }
 
+        // Validar que la suma de porcentajes no exceda 100%
+        const roomCommn = Number(form.value.roomCommn) || 0
+        const jackpotPct = Number(form.value.jackpotPct) || 0
+        const serialsPct = Number(form.value.serialsPct) || 0
+        const roundsPct = Number(form.value.roundsPct) || 0
+        const rounds = Number(form.value.rounds) || 1
+
+        // Si hay más de 1 ronda, incluir roundsPct en la suma
+        const totalPct = roundsPct > 0 && rounds > 1
+            ? roomCommn + jackpotPct + serialsPct + roundsPct
+            : roomCommn + jackpotPct + serialsPct
+
+        if (totalPct > 100) {
+            e.percentageSum = `La suma de porcentajes (${totalPct.toFixed(2)}%) no puede exceder el 100%.`
+        }
+
         return e
     })
 
@@ -96,9 +127,46 @@ export function useBingoRoomForm(
      */
     const isValid = computed(() => Object.keys(errors.value).length === 0)
 
+    /* =======================
+     * Computeds para porcentajes
+     * ======================= */
+
+    const roomCommn = computed<string | number>({
+        get: () => form.value.roomCommn ?? '',
+        set: value => {
+            form.value = { ...form.value, roomCommn: value as number }
+        }
+    })
+
+    const jackpotPct = computed<string | number>({
+        get: () => form.value.jackpotPct ?? '',
+        set: value => {
+            form.value = { ...form.value, jackpotPct: value as number }
+        }
+    })
+
+    const roundsPct = computed<string | number>({
+        get: () => form.value.roundsPct ?? '',
+        set: value => {
+            form.value = { ...form.value, roundsPct: value as number }
+        }
+    })
+
+    const serialsPct = computed<string | number>({
+        get: () => form.value.serialsPct ?? '',
+        set: value => {
+            form.value = { ...form.value, serialsPct: value as number }
+        }
+    })
+
     return {
         form,
         errors,
-        isValid
+        isValid,
+        roomCommn,
+        jackpotPct,
+        roundsPct,
+        serialsPct,
+        percentageLimits: PERCENTAGE_LIMITS,
     }
 }
