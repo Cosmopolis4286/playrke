@@ -142,7 +142,7 @@ final class BingoRoomCrudService
         BingoCreator::create([
             'room_id'       => $room->id,
             'user_id'       => $userId,
-            'creator_commn' => $dto->roomCommn,
+            'creator_commn' => $dto->roomCommission,
             'status'        => 'ACTIVE',
         ]);
 
@@ -192,8 +192,8 @@ final class BingoRoomCrudService
             'time'                    => $dto->time,
             'unix_date'               => $unixDate,
             'allowed_currencies'      => $dto->allowedCurrencies,
-            'rke_commn'               => $rkeCommission,
-            'room_commn'              => $dto->roomCommn,
+            'rke_commission'          => $rkeCommission,
+            'room_commission'         => $dto->roomCommission,
             'prize_pool_type_id'      => $dto->prizePoolType,
             'amount_added_prize_pool' => $dto->amountAddedPrizePool ?? null,
             'time_chip'               => $dto->timeChip,

@@ -108,7 +108,8 @@
     const selected = props.prizePoolTypeOptions.find(
       opt => String(opt.value) === String(form.value.prizePoolType)
     )
-    return selected ? selected.label !== 'Acumulativo' : false
+    console.log('selected prizePoolType:', selected)
+    return selected ? selected.value !== 'ACCUMULATIVE' : false
   })
 
   /**
@@ -372,9 +373,7 @@
                 @update:modelValue="updateCtnPriceForCurrency(cur, $event)"
               >
                 <template #prepend>
-                  <span class="input-group-text">{{
-                    getCurrencyLabel(cur)
-                  }}</span>
+                  <span class="input-group-text">{{ getCurrencyLabel(cur) }}</span>
                 </template>
               </FormInput>
             </template>
@@ -405,7 +404,7 @@
       <!-- Comisiones, jackpot y tiempo ficha -->
       <FormInput
         label="%Sala"
-        name="room_commn"
+        name="room_commission"
         id="room-commn"
         type="number"
         required

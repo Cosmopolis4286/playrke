@@ -203,7 +203,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 prizePoolType: config.prize_pool_type_id ?? null,
                 allowedCurrencies: room.allowed_currencies ?? [],
                 amountAddedPrizePool: config.amount_added_prize_pool ?? null,
-                roomCommn: config.room_commn ?? 20,
+                roomCommn: config.room_commission ?? 20,
                 jackpotPct: config.jackpot_pct ?? null,
                 timeChip: config.time_chip ?? 5,
                 rounds: config.rounds ?? 1,

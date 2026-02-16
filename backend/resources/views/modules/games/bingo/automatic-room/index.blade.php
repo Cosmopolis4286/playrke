@@ -167,7 +167,7 @@
                 const room = data.room;
 
                 $('#time').val(room.time);
-                $('#room-commn').val(room.room_commn);
+                $('#room-commn').val(room.room_commission);
                 $('#ctn-price').val(room.card_price);
                 $('#time-chip').val(room.time_chip);
                 $('#rounds').val(room.rounds);

@@ -2,7 +2,7 @@
 
 namespace App\Enums\ExchangeRate;
 
-enum ExchangeRateStatus: string
+enum ExchangeRateStatusEnum: string
 {
     case ACTIVE = 'ACTIVE';
     case INACTIVE = 'INACTIVE';

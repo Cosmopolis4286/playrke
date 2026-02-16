@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Enums\Games;
+namespace App\Enums\Games\Common\Utils;
 
-use App\Models\GameStatus as GameStatusModel;
+use App\Models\Games\Common\Utils\GameStatus;
 use Illuminate\Support\Collection;
 
 /**
  * Enum para los estados de juego, con soporte de carga dinámica desde la DB.
  */
-enum GameStatus: string
+enum GameStatusEnum: string
 {
     // Valores genéricos temporales (para autocompletado)
     case NONE    = 'NONE';
@@ -25,7 +25,7 @@ enum GameStatus: string
      */
     public function label(): string
     {
-        $status = GameStatusModel::where('value', $this->value)->first();
+        $status = GameStatus::where('value', $this->value)->first();
         return $status->description ?? match ($this) {
             self::NONE => 'N/D',
             self::DRAFT => 'Borrador',
@@ -41,7 +41,7 @@ enum GameStatus: string
      */
     public static function allFromDb(): Collection
     {
-        return GameStatusModel::all()
+        return GameStatus::all()
             ->map(fn($row) => self::tryFrom($row->value))
             ->filter(fn($enum) => $enum !== null);
     }

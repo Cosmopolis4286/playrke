@@ -166,12 +166,12 @@ class BingoRoomConfigRepository extends BaseRepository implements BingoRoomConfi
      * Actualiza comisiones de una configuración
      *
      * @param mixed $id ID de la configuración
-     * @param array $commissions Array con 'rke_commn' y/o 'room_commn'
+     * @param array $commissions Array con 'rke_commission' y/o 'room_commission'
      * @return bool
      */
     public function updateCommissions($id, array $commissions): bool
     {
-        $allowedFields = ['rke_commn', 'room_commn'];
+        $allowedFields = ['rke_commission', 'room_commission'];
         $updateData = array_intersect_key($commissions, array_flip($allowedFields));
 
         if (empty($updateData)) {

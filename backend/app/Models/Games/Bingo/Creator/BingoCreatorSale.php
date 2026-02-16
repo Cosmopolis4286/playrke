@@ -24,8 +24,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $creator_user_id ID del usuario creador
  * @property string $currency ID de la moneda
  * @property float $sale_amount Monto total de ventas
- * @property float $rke_commn Comisión de RKE
- * @property float $room_commn Comisión de la sala
+ * @property float $rke_commission Comisión de RKE
+ * @property float $room_commission Comisión de la sala
  * @property float $seller_commn Comisión del vendedor
  * @property float $prize_pool_amount Monto del premio acumulado
  * @property \Carbon\Carbon $created_at Fecha de creación
@@ -52,8 +52,8 @@ class BingoCreatorSale extends Model
         'creator_user_id',
         'currency',
         'sale_amount',
-        'rke_commn',
-        'room_commn',
+        'rke_commission',
+        'room_commission',
         'seller_commn',
         'prize_pool_amount',
     ];
@@ -63,8 +63,8 @@ class BingoCreatorSale extends Model
      */
     protected $casts = [
         'sale_amount' => 'decimal:8',
-        'rke_commn' => 'decimal:8',
-        'room_commn' => 'decimal:8',
+        'rke_commission' => 'decimal:8',
+        'room_commission' => 'decimal:8',
         'seller_commn' => 'decimal:8',
         'prize_pool_amount' => 'decimal:8',
         'created_at' => 'datetime',
@@ -187,7 +187,7 @@ class BingoCreatorSale extends Model
      */
     public function getTotalCommissionAttribute(): float
     {
-        return $this->rke_commn + $this->room_commn + $this->seller_commn;
+        return $this->rke_commission + $this->room_commission + $this->seller_commn;
     }
 
     /**
@@ -211,7 +211,7 @@ class BingoCreatorSale extends Model
      */
     public function getIsValidAttribute(): bool
     {
-        $calculatedTotal = $this->rke_commn + $this->room_commn + $this->seller_commn + $this->prize_pool_amount;
+        $calculatedTotal = $this->rke_commission + $this->room_commission + $this->seller_commn + $this->prize_pool_amount;
         $tolerance = 0.01; // Tolerancia para errores de redondeo
 
         return abs($this->sale_amount - $calculatedTotal) <= $tolerance;

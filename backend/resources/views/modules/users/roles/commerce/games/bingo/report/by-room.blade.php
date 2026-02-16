@@ -33,8 +33,8 @@
                                             $saleAmountSeller = $seller->CtnsLot->sum('sale_amount');
                                             $comSaleSeller = $seller->CtnsLot->sum('seller_commn');
 
-                                            $roomCommn = round(($saleAmountSeller * $bingoConfig->room_commn) / 100, 2);
-                                            $rkeCommn = round(($saleAmountSeller * $bingoConfig->rke_commn) / 100, 2);
+                                            $roomCommn = round(($saleAmountSeller * $bingoConfig->room_commission) / 100, 2);
+                                            $rkeCommn = round(($saleAmountSeller * $bingoConfig->rke_commission) / 100, 2);
                                             $prizePool = $saleAmountSeller - $rkeCommn - $roomCommn - $comSaleSeller;
 
                                             // Acumular totales

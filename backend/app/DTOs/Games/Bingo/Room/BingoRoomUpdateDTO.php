@@ -19,7 +19,7 @@ final class BingoRoomUpdateDTO
         public readonly string|int|null $prizePoolType,
         public readonly ?array $allowedCurrencies,
         public readonly ?float $amountAddedPrizePool,
-        public readonly ?float $roomCommn,
+        public readonly ?float $roomCommission,
         public readonly ?float $jackpotPct,
         public readonly ?int $timeChip,
         public readonly ?int $rounds,
@@ -51,7 +51,7 @@ final class BingoRoomUpdateDTO
             amountAddedPrizePool: isset($data['amountAddedPrizePool'])
                 ? (float) $data['amountAddedPrizePool']
                 : null,
-            roomCommn: isset($data['roomCommn']) ? (float) $data['roomCommn'] : null,
+            roomCommission: isset($data['roomCommn']) ? (float) $data['roomCommn'] : null,
             jackpotPct: isset($data['jackpotPct']) ? (float) $data['jackpotPct'] : null,
             timeChip: isset($data['timeChip']) ? (int) $data['timeChip'] : null,
             rounds: isset($data['rounds']) ? (int) $data['rounds'] : null,

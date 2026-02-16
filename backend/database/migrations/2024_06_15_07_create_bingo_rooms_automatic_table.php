@@ -33,8 +33,8 @@ return new class extends Migration
             $table->decimal('amount_added_prize_pool', 12, 2)->nullable()
                 ->comment('Monto agregado al pool de premios');
 
-            $table->decimal('rke_commn', 8, 2)->default(0)->comment('Comisión RKE');
-            $table->decimal('room_commn', 8, 2)->default(0)->comment('Comisión de la sala');
+            $table->decimal('rke_commission', 8, 2)->default(0)->comment('Comisión RKE');
+            $table->decimal('room_commission', 8, 2)->default(0)->comment('Comisión de la sala');
 
             $table->decimal('card_price', 12, 2)->comment('Precio del cartón');
 

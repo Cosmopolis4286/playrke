@@ -52,8 +52,8 @@ return new class extends Migration
             $table->integer('unix_date')->comment('Fecha en formato timestamp UNIX');
 
             // Comisiones
-            $table->decimal('rke_commn', 8, 2)->nullable()->comment('Comisión del RKE');
-            $table->decimal('room_commn', 8, 2)->nullable()->comment('Comisión de la sala');
+            $table->decimal('rke_commission', 8, 2)->nullable()->comment('Comisión del RKE');
+            $table->decimal('room_commission', 8, 2)->nullable()->comment('Comisión de la sala');
 
             // Monedas permitidas para el precio del cartón
             $table->json('allowed_currencies')->nullable()

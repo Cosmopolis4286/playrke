@@ -29,8 +29,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $prize_pool_type Tipo de premio
  * @property float $amount_added_prize_pool Monto agregado al premio
  * @property string $room_type Tipo de sala
- * @property float $rke_commn Comisión RKE
- * @property float $room_commn Comisión de sala
+ * @property float $rke_commission Comisión RKE
+ * @property float $room_commission Comisión de sala
  * @property float $card_price Precio de carta
  * @property array $allowed_currencies Monedas permitidas
  * @property int $time_chip Tiempo por chip
@@ -109,8 +109,8 @@ class BingoRoomAutomatic extends Model
         'prize_pool_type',
         'amount_added_prize_pool',
         'room_type',
-        'rke_commn',
-        'room_commn',
+        'rke_commission',
+        'room_commission',
         'card_price',
         'allowed_currencies',
         'time_chip',
@@ -138,8 +138,8 @@ class BingoRoomAutomatic extends Model
         'date' => 'date',
         'time' => 'datetime:H:i:s',
         'card_price' => 'decimal:8',
-        'rke_commn' => 'decimal:8',
-        'room_commn' => 'decimal:8',
+        'rke_commission' => 'decimal:8',
+        'room_commission' => 'decimal:8',
         'amount_added_prize_pool' => 'decimal:8',
         'rounds_pct' => 'decimal:8',
         'serials_pct' => 'decimal:8',
@@ -325,7 +325,7 @@ class BingoRoomAutomatic extends Model
      */
     public function getTotalCommissionAttribute(): float
     {
-        return $this->rke_commn + $this->room_commn;
+        return $this->rke_commission + $this->room_commission;
     }
 
     /**

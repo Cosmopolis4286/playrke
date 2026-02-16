@@ -583,8 +583,8 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
                 AVG(card_price) as avg_card_price,
                 AVG(rounds) as avg_rounds,
                 AVG(time_chip) as avg_time_chip,
-                AVG(rke_commn) as avg_rke_commn,
-                AVG(room_commn) as avg_room_commn
+                AVG(rke_commission) as avg_rke_commission,
+                AVG(room_commission) as avg_room_commission
             ')
             ->first();
 
@@ -592,8 +592,8 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
             'recommended_card_price' => round($averages->avg_card_price ?? 1.0, 2),
             'recommended_rounds' => round($averages->avg_rounds ?? 10),
             'recommended_time_chip' => round($averages->avg_time_chip ?? 30),
-            'recommended_rke_commn' => round($averages->avg_rke_commn ?? 5.0, 2),
-            'recommended_room_commn' => round($averages->avg_room_commn ?? 10.0, 2)
+            'recommended_rke_commission' => round($averages->avg_rke_commission ?? 5.0, 2),
+            'recommended_room_commission' => round($averages->avg_room_commission ?? 10.0, 2)
         ];
     }
 }

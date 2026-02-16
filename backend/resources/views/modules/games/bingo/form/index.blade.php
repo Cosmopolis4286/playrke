@@ -199,7 +199,7 @@
 
                 $('#date').val(config.date);
                 $('#time').val(config.time);
-                $('#room-commn').val(config.room_commn);
+                $('#room-commn').val(config.room_commission);
                 $('#jackpot-pct').val(config.jackpot_pct);
                 $('#ctn-price').val(config.ctn_price);
                 $('#time-chip').val(config.time_chip);

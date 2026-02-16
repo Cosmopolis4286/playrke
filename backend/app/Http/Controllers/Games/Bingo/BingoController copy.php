@@ -1385,8 +1385,8 @@ class BingoController extends Controller
                 'unix_date' => strtotime("{$request->date} {$request->time}"),
                 'card_price' => $request->card_price,
                 'allowed_currencies' => $request->allowed_currencies,
-                'rke_commn' => $bingoRKECommission,
-                'room_commn' => $request->room_commn,
+                'rke_commission' => $bingoRKECommission,
+                'room_commission' => $request->room_commission,
                 'prize_pool_type' => $request->prize_pool_type,
                 'amount_added_prize_pool' => $amountAddedPrizePool,
                 'time_chip' => $request->time_chip,
@@ -1407,7 +1407,7 @@ class BingoController extends Controller
                 'creator_user_id' => $userId,
                 'creator_type' => $creatorTypeID,
                 'creator_id' => $creatorId,
-                'creator_commn' => $request->room_commn,
+                'creator_commn' => $request->room_commission,
                 'card_price' => $request->card_price,
                 'allowed_currencies' => $request->allowed_currencies
             ]);
@@ -1579,8 +1579,8 @@ class BingoController extends Controller
                 if ($bingoCreator) {
                     $updates = [];
 
-                    if ($bingoCreator->creator_commn != $request->room_commn) {
-                        $updates['creator_commn'] = $request->room_commn;
+                    if ($bingoCreator->creator_commn != $request->room_commission) {
+                        $updates['creator_commn'] = $request->room_commission;
                     }
 
                     if ($bingoCreator->card_price != $request->card_price) {
@@ -1632,7 +1632,7 @@ class BingoController extends Controller
             'unix_date' => $unixDate,
             'card_price' => $request->card_price,
             'allowed_currencies' => $request->allowed_currencies,
-            'room_commn' => $request->room_commn,
+            'room_commission' => $request->room_commission,
             'prize_pool_type' => $request->prize_pool_type,
             'amount_added_prize_pool' => $amountAddedPrizePool,
             'time_chip' => $request->time_chip,
@@ -1661,7 +1661,7 @@ class BingoController extends Controller
             $bingoCreator = BingoCreator::where('room', $roomId)->firstOrFail();
 
             $bingoCreator->update([
-                'creator_commn' => $request->room_commn,
+                'creator_commn' => $request->room_commission,
                 'card_price' => $request->card_price,
                 'allowed_currencies' => $request->allowed_currencies
             ]);
@@ -2033,7 +2033,7 @@ class BingoController extends Controller
             'time',
             'card_price',
             'allowed_currencies',
-            'room_commn',
+            'room_commission',
             'prize_pool_type',
             'amount_added_prize_pool',
             'time_chip',
@@ -2087,7 +2087,7 @@ class BingoController extends Controller
                     ->where('creator_user_id', $userData['userId']);
             },
             'Config:room,date,time,card_price'
-        ])->select('id', 'encrypted', 'room_commn', 'prize_pool')
+        ])->select('id', 'encrypted', 'room_commission', 'prize_pool')
             ->where('creator_user_id', '<>', $userData['userId'])
             ->where('room_type', 'PUBLIC')->where('status', 2)->get();
     }
@@ -2115,7 +2115,7 @@ class BingoController extends Controller
                     ->where('creator_user_id', $creatorUser)
                     ->update(['status' => 0]);
             } else {
-                $bingo = BingoRoom::with('Config:id,room,card_price,room_commn')
+                $bingo = BingoRoom::with('Config:id,room,card_price,room_commission')
                     ->where('encrypted', $roomId)->first();
 
                 $bingoCreator = BingoCreator::select('id', 'status')
@@ -2130,7 +2130,7 @@ class BingoController extends Controller
                         'creator_user_id' => $creatorUser,
                         'creator_type' => Role::getValueByPrefix($userData['type']),
                         'creator_id' => $userData['id'],
-                        'creator_commn' => $bingo->Config->room_commn,
+                        'creator_commn' => $bingo->Config->room_commission,
                         'card_price' => $bingo->Config->card_price,
                     ]);
                 }
@@ -2226,7 +2226,7 @@ class BingoController extends Controller
             'game_mode',
             'unix_date',
             'card_price',
-            'room_commn',
+            'room_commission',
             'prize_pool_type',
             'amount_added_prize_pool',
             'time_chip',
@@ -2323,8 +2323,8 @@ class BingoController extends Controller
                 'unix_date' => strtotime("{$existingRoomConfig->date} {$existingRoomConfig->time}"),
                 'card_price' => $existingRoomConfig->card_price,
                 'allowed_currencies' => $existingRoomConfig->allowed_currencies,
-                'rke_commn' => $bingoRKECommission,
-                'room_commn' => $existingRoomConfig->room_commn,
+                'rke_commission' => $bingoRKECommission,
+                'room_commission' => $existingRoomConfig->room_commission,
                 'prize_pool_type' => $existingRoomConfig->prize_pool_type,
                 'amount_added_prize_pool' => $existingRoomConfig->amount_added_prize_pool,
                 'time_chip' => $existingRoomConfig->time_chip,
@@ -2343,7 +2343,7 @@ class BingoController extends Controller
                 'creator_user_id' => $userId,
                 'creator_type' => $existingRoomCreator->creator_type,
                 'creator_id' => $existingRoomCreator->creator_id,
-                'creator_commn' => $existingRoomConfig->room_commn,
+                'creator_commn' => $existingRoomConfig->room_commission,
                 'card_price' => $existingRoomConfig->card_price,
                 'allowed_currencies' => $existingRoomConfig->allowed_currencies,
             ]);
@@ -2582,7 +2582,7 @@ class BingoController extends Controller
                 'time_chip',
                 'rounds',
                 'rounds_pct',
-                'room_commn',
+                'room_commission',
                 'jackpot_pct',
                 'serials_pct',
                 'num_serials',
@@ -2794,8 +2794,8 @@ class BingoController extends Controller
                 'rounds_pct' => $roundsPct,
                 'card_price' => $data->card_price,
                 'allowed_currencies' => $data->allowed_currencies,
-                'rke_commn' => $bingoRKECommission,
-                'room_commn' => $data->room_commn,
+                'rke_commission' => $bingoRKECommission,
+                'room_commission' => $data->room_commission,
                 'jackpot_pct' => $data->serials_commission,
                 'plays_pct' => null,
                 'bingo_patterns' => null,
@@ -2854,8 +2854,8 @@ class BingoController extends Controller
                 'rounds_pct' => $request->rounds_pct,
                 'card_price' => $request->card_price,
                 'allowed_currencies' => $request->allowed_currencies,
-                'rke_commn' => $bingoRKECommission,
-                'room_commn' => $request->room_commn,
+                'rke_commission' => $bingoRKECommission,
+                'room_commission' => $request->room_commission,
                 'serials_pct' => $request->serials_pct,
                 'num_serials' => $request->num_serials
             ]);
@@ -2890,7 +2890,7 @@ class BingoController extends Controller
             'room_type',
             'prize_pool_type',
             'amount_added_prize_pool',
-            'room_commn',
+            'room_commission',
             'card_price',
             'time_chip',
             'rounds',
@@ -3062,7 +3062,7 @@ class BingoController extends Controller
                 $creatorUser = $user['userId'];
 
                 $query = BingoRoom::with([
-                    'Config:room,date,time,card_price,rke_commn,room_commn',
+                    'Config:room,date,time,card_price,rke_commission,room_commission',
                     'Status',
                     'CtnsLot' => function ($subquery) use ($creatorUser, $currency) {
                         $subquery->select('room', 'currency', 'cards_purchased', 'sale_amount', 'seller_commn')
@@ -3157,8 +3157,8 @@ class BingoController extends Controller
             $totals['sellerCommn'] += $sellerCommn;
 
             if ($userRole === 'commerce') {
-                $roomCommn = $allSale * ($room->Config->room_commn / 100);
-                $rkeCommn = $allSale * ($room->Config->rke_commn / 100);
+                $roomCommn = $allSale * ($room->Config->room_commission / 100);
+                $rkeCommn = $allSale * ($room->Config->rke_commission / 100);
                 $prizePool = $allSale - $roomCommn - $sellerCommn - $rkeCommn;
 
                 $row['roomCommn'] = number_format($roomCommn, 2, '.', ',');
@@ -3272,7 +3272,7 @@ class BingoController extends Controller
                     ->whereHas('CtnsLot', $ctnsLotFilter)
                     ->get();
 
-                $bingoConfig = BingoRoomConfig::getByRoom($roomId, ['rke_commn', 'room_commn']);
+                $bingoConfig = BingoRoomConfig::getByRoom($roomId, ['rke_commission', 'room_commission']);
 
                 $view = 'modules/commerce/games/bingo/report/by-room';
 

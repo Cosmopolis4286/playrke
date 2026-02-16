@@ -133,7 +133,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function getTotalRkeCommissionByRoom(string $roomId): float
     {
-        return (float) $this->model->where('room', $roomId)->sum('rke_commn');
+        return (float) $this->model->where('room', $roomId)->sum('rke_commission');
     }
 
     /**
@@ -144,7 +144,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function getTotalRoomCommissionByRoom(string $roomId): float
     {
-        return (float) $this->model->where('room', $roomId)->sum('room_commn');
+        return (float) $this->model->where('room', $roomId)->sum('room_commission');
     }
 
     /**
@@ -177,7 +177,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function getTotalRkeCommissionByCreator(string $creatorUserId): float
     {
-        return (float) $this->model->where('creator_user_id', $creatorUserId)->sum('rke_commn');
+        return (float) $this->model->where('creator_user_id', $creatorUserId)->sum('rke_commission');
     }
 
     /**
@@ -188,7 +188,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function getTotalRoomCommissionByCreator(string $creatorUserId): float
     {
-        return (float) $this->model->where('creator_user_id', $creatorUserId)->sum('room_commn');
+        return (float) $this->model->where('creator_user_id', $creatorUserId)->sum('room_commission');
     }
 
     /**
@@ -335,10 +335,10 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
     public function updateOrCreateSale(string $roomId, string $creatorUserId, string $currency, float $amount, ?float $sellerCommission = null): BingoCreatorSale
     {
         // Obtener configuración de la sala
-        $roomConfig = BingoRoomConfig::where('room', $roomId)->first(['rke_commn', 'room_commn']);
+        $roomConfig = BingoRoomConfig::where('room', $roomId)->first(['rke_commission', 'room_commission']);
 
-        $rkeCommission = round($amount * (($roomConfig->rke_commn ?? 0) / 100), 3);
-        $roomCommission = round($amount * (($roomConfig->room_commn ?? 0) / 100), 3);
+        $rkeCommission = round($amount * (($roomConfig->rke_commission ?? 0) / 100), 3);
+        $roomCommission = round($amount * (($roomConfig->room_commission ?? 0) / 100), 3);
         $sellerCommission = round($sellerCommission ?? 0, 3);
         $prizePool = round($amount - $rkeCommission - $roomCommission - $sellerCommission, 3);
 
@@ -350,8 +350,8 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
             ],
             [
                 'sale_amount' => $amount,
-                'rke_commn' => $rkeCommission,
-                'room_commn' => $roomCommission,
+                'rke_commission' => $rkeCommission,
+                'room_commission' => $roomCommission,
                 'seller_commn' => $sellerCommission,
                 'prize_pool_amount' => $prizePool
             ]
@@ -359,8 +359,8 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
 
         if (!$sale->wasRecentlyCreated && $amount > 0) {
             $sale->increment('sale_amount', $amount);
-            $sale->increment('rke_commn', $rkeCommission);
-            $sale->increment('room_commn', $roomCommission);
+            $sale->increment('rke_commission', $rkeCommission);
+            $sale->increment('room_commission', $roomCommission);
             $sale->increment('seller_commn', $sellerCommission);
             $sale->increment('prize_pool_amount', $prizePool);
         }
@@ -383,8 +383,8 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
     {
         return $this->model->where('id', $saleId)->update([
             'sale_amount' => DB::raw("sale_amount + {$amount}"),
-            'rke_commn' => DB::raw("rke_commn + {$rkeCommission}"),
-            'room_commn' => DB::raw("room_commn + {$roomCommission}"),
+            'rke_commission' => DB::raw("rke_commission + {$rkeCommission}"),
+            'room_commission' => DB::raw("room_commission + {$roomCommission}"),
             'seller_commn' => DB::raw("seller_commn + {$sellerCommission}"),
             'prize_pool_amount' => DB::raw("prize_pool_amount + {$prizePoolAmount}")
         ]) > 0;
@@ -431,7 +431,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
             ->selectRaw('
                 SUM(sale_amount) as total_sales,
                 COUNT(*) as total_transactions,
-                SUM(rke_commn + room_commn + seller_commn) as total_commission,
+                SUM(rke_commission + room_commission + seller_commn) as total_commission,
                 SUM(prize_pool_amount) as total_prize_pool
             ')
             ->first();
@@ -464,7 +464,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
             ->selectRaw('
                 SUM(sale_amount) as total_sales,
                 COUNT(*) as total_transactions,
-                SUM(rke_commn + room_commn + seller_commn) as total_commission,
+                SUM(rke_commission + room_commission + seller_commn) as total_commission,
                 SUM(prize_pool_amount) as total_prize_pool
             ')
             ->first();
@@ -535,8 +535,8 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
     public function getAverageCommissions(): array
     {
         $averages = $this->model->selectRaw('
-                AVG(rke_commn) as avg_rke_commission,
-                AVG(room_commn) as avg_room_commission,
+                AVG(rke_commission) as avg_rke_commission,
+                AVG(room_commission) as avg_room_commission,
                 AVG(seller_commn) as avg_seller_commission
             ')
             ->first();
@@ -562,7 +562,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
             return false;
         }
 
-        $calculatedTotal = $sale->rke_commn + $sale->room_commn + $sale->seller_commn + $sale->prize_pool_amount;
+        $calculatedTotal = $sale->rke_commission + $sale->room_commission + $sale->seller_commn + $sale->prize_pool_amount;
         $tolerance = 0.01; // Tolerancia para errores de redondeo
 
         return abs($sale->sale_amount - $calculatedTotal) <= $tolerance;

@@ -20,8 +20,8 @@ return new class extends Migration
                 ->cascadeOnUpdate()->cascadeOnDelete()
                 ->comment('ID moneda asociada');
             $table->decimal('sale_amount', 12, 2);
-            $table->decimal('rke_commn', 6, 2);
-            $table->decimal('room_commn', 6, 2);
+            $table->decimal('rke_commission', 6, 2);
+            $table->decimal('room_commission', 6, 2);
             $table->decimal('seller_commn', 8, 2)->nullable();
             $table->decimal('prize_pool_amount', 13, 2);
             $table->timestamps();

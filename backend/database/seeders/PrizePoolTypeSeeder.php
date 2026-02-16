@@ -10,15 +10,15 @@ class PrizePoolTypeSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            ['code' => 'ACCUMULATIVE', 'description' => 'Bote Acumulativo'],
-            ['code' => 'FIXED',        'description' => 'Bote Fijo'],
-            ['code' => 'MIXED',        'description' => 'Bote Mixto'],
-            ['code' => 'PRIZE',        'description' => 'Premio o Servicio'],
+            ['id' => 'ACCUMULATIVE', 'description' => 'Bote Acumulativo'],
+            ['id' => 'FIXED',        'description' => 'Bote Fijo'],
+            ['id' => 'MIXED',        'description' => 'Bote Mixto'],
+            ['id' => 'PRIZE',        'description' => 'Premio o Servicio'],
         ];
 
         foreach ($types as $type) {
             PrizePoolType::updateOrCreate(
-                ['code' => $type['code']],
+                ['id' => $type['id']],
                 [
                     'description' => $type['description'],
                     'status'      => 'ACTIVE',

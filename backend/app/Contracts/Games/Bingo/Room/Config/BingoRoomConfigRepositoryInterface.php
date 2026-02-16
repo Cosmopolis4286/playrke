@@ -116,7 +116,7 @@ interface BingoRoomConfigRepositoryInterface extends BaseRepositoryInterface
      * Actualiza comisiones de una configuración
      *
      * @param mixed $id ID de la configuración
-     * @param array $commissions Array con 'rke_commn' y/o 'room_commn'
+     * @param array $commissions Array con 'rke_commission' y/o 'room_commission'
      * @return bool
      */
     public function updateCommissions($id, array $commissions): bool;

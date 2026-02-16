@@ -560,8 +560,8 @@ trait BingoTrait
             'players',
             'cards_purchased',
             'all_sale',
-            'rke_commn',
-            'room_commn',
+            'rke_commission',
+            'room_commission',
             'seller_commn',
             'prize_pool',
             'full_house_prize',
@@ -776,16 +776,16 @@ trait BingoTrait
             $saleAmount = round($saleAmount / $exchangeRate, 3);
             $sellerSaleCommn = round($sellerSaleCommn / $exchangeRate, 3);
 
-            $bingoConfig = BingoRoomConfig::getByRoom($room->id, ['rke_commn', 'room_commn', 'prize_pool_type']);
+            $bingoConfig = BingoRoomConfig::getByRoom($room->id, ['rke_commission', 'room_commission', 'prize_pool_type']);
 
             $prizePoolType = $bingoConfig->prize_pool_type;
 
             // Si el bote acumulado no es tipo "Premio"
             if ($prizePoolType != 2) {
                 // Obtener comision del creador/casa (comision por sala)\
-                $creatorCommn = round(($saleAmount * $bingoConfig->room_commn) / 100, 3);
+                $creatorCommn = round(($saleAmount * $bingoConfig->room_commission) / 100, 3);
                 // Comision de PlayRKE
-                $rkeCommn = round(($saleAmount * $bingoConfig->rke_commn) / 100, 3);
+                $rkeCommn = round(($saleAmount * $bingoConfig->rke_commission) / 100, 3);
                 // Restar al bote las comisiones
                 $prizePool = $saleAmount - $rkeCommn - $creatorCommn - $sellerSaleCommn;
             }
@@ -794,8 +794,8 @@ trait BingoTrait
             $updateData = [
                 'all_sale' => $room->all_sale + $saleAmount,
                 'cards_purchased' => $room->ctns + $arrCtn['numOfCtns'],
-                'rke_commn' => $room->rke_commn + $rkeCommn,
-                'room_commn' => $room->room_commn + $creatorCommn
+                'rke_commission' => $room->rke_commission + $rkeCommn,
+                'room_commission' => $room->room_commission + $creatorCommn
             ];
 
             if ($prizePoolType != 2) {

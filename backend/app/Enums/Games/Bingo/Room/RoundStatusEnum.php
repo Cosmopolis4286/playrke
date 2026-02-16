@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Enums\Games\Bingo;
+namespace App\Enums\Games\Bingo\Room;
 
 /**
  * Enum que representa los estados posibles de una ronda de bingo.
  *
- * @package App\Enums\Games\Bingo
+ * @package App\Enums\Games\Bingo\Room
  */
 enum RoundStatus: string
 {

@@ -3,7 +3,6 @@
 namespace App\Models\Games\Common\PrizePool;
 
 use App\Models\Games\Common\PrizePool\GamePrizePoolType;
-use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
@@ -16,8 +15,6 @@ use Illuminate\Support\Str;
  */
 class PrizePoolType extends Model
 {
-    use SnowflakeId;
-
     /**
      * Los campos que se pueden asignar masivamente.
      *

@@ -24,7 +24,7 @@
     </div>
     <div class="form-group col-sm-6 col-md-4 col-lg-3">
         <label for="room-commn">%Sala*</label>
-        <input type="number" id="room-commn" name="room_commn" class="form-control prize-pool-pct" value="20"
+        <input type="number" id="room-commn" name="room_commission" class="form-control prize-pool-pct" value="20"
             step="0.05" min="10" max="50" required>
     </div>
     <div id="container-ctn-price-config" class="form-group col-12">
