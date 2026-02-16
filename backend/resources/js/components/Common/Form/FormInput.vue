@@ -8,7 +8,10 @@
   const props = defineProps({
     container: { type: Boolean, default: false },
     id: { type: String, default: null },
-    error: { type: String, default: null },
+    error: {
+      type: Object as () => string | Record<string, string> | null,
+      default: null
+    },
     label: { type: String, default: null },
     name: { type: String, required: true },
     type: { type: String, default: 'text' },

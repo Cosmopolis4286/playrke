@@ -44,8 +44,8 @@ export function useBingoRoomForm(
     /**
      * Validaciones reactivas
      */
-    const errors = computed<Record<string, string>>(() => {
-        const e: Record<string, string> = {}
+    const errors = computed<Record<string, string | Record<string, string>>>(() => {
+        const e: Record<string, string | Record<string, string>> = {}
 
         if (!automaticRoom() && !form.value.date) {
             e.date = "La fecha es requerida.";
@@ -91,37 +91,37 @@ export function useBingoRoomForm(
             e.numSerials = 'El número de seriales es requerido.'
         }
 
-        if (!form.value.cardPrice) {
-            // Si hay más de una moneda permitida, aceptamos precios por moneda
-            const allowed = form.value.allowedCurrencies
+        // Validaciones simples
+        if (!form.value.cardPrice && (form.value.allowedCurrencies?.length ?? 0) === 1) {
+            e.cardPrice = 'El precio del cartón es requerido.'
+        }
 
-            if (Array.isArray(allowed) && allowed.length > 1) {
-                const byCurrency = form.value.cardPriceByCurrency ?? {}
+        // Validaciones por moneda
+        const allowedCurrencies = form.value.allowedCurrencies ?? []
+        if (allowedCurrencies.length > 1) {
+            const byCurrency = form.value.cardPriceByCurrency ?? {}
+            const currencyErrors: Record<string, string> = {}
 
-                const missing = allowed.some(a => {
-                    const key = String(a)
-                    const value = Number(byCurrency[key])
-
-                    return isNaN(value) || value <= 0
-                })
-
-                if (missing) {
-                    e.cardPrice =
-                        'Debe ingresar el precio del cartón para todas las monedas seleccionadas.'
+            allowedCurrencies.forEach(cur => {
+                const key = String(cur)
+                const value = Number(byCurrency[key])
+                if (isNaN(value) || value <= 0) {
+                    currencyErrors[key] = 'Ingrese un precio válido.'
                 }
-            } else {
-                e.cardPrice = 'El precio del cartón es requerido.'
+            })
+
+            if (Object.keys(currencyErrors).length) {
+                e.cardPriceByCurrency = currencyErrors
             }
         }
 
-        // Validar que la suma de porcentajes no exceda 100%
+        // Validar suma de porcentajes
         const roomCommn = Number(form.value.roomCommn) || 0
         const jackpotPct = Number(form.value.jackpotPct) || 0
         const serialsPct = Number(form.value.serialsPct) || 0
         const roundsPct = Number(form.value.roundsPct) || 0
         const rounds = Number(form.value.rounds) || 1
 
-        // Si hay más de 1 ronda, incluir roundsPct en la suma
         const totalPct = roundsPct > 0 && rounds > 1
             ? roomCommn + jackpotPct + serialsPct + roundsPct
             : roomCommn + jackpotPct + serialsPct
