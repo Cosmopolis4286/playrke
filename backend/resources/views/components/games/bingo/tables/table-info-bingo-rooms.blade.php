@@ -41,7 +41,7 @@
                             ]);
 
                     $rate = $room->GameExchangeRate[0]->exchange_rate ?? $exchangeRate;
-                    $ctnPrice = truncate(($room->Config->card_price ?? 0) * $rate);
+                    $cardPrice = truncate(($room->Config->card_price ?? 0) * $rate);
                     $allSale = truncate(($room->all_sale ?? 0) * $rate);
                     $prizePool = truncate(($room->prize_pool ?? 0) * $rate);
 
@@ -80,7 +80,7 @@
                         {{ Carbon::parse($room->Config->date)->format('d/m/y') }}
                     </td>
                     <td class="align-middle">{{ $room->Config->time }} H</td>
-                    <td class="align-middle">{{ $currencySym }} {{ $ctnPrice }}</td>
+                    <td class="align-middle">{{ $currencySym }} {{ $cardPrice }}</td>
 
                     <td class="align-middle">
                         <i class="fa-solid fa-users mr-1" title="Jugadores"></i>

@@ -156,7 +156,7 @@
         let roomCtnPrice = false;
         let allowsUSDT = false;
         let currencySymbol = '';
-        let ctnPrice = 1;
+        let cardPrice = 1;
         let prizePool;
         let playerInfo = '';
         let playerInGame = false;
@@ -235,7 +235,7 @@
 
         function calculateSale() {
             const ctns = numCtns.val();
-            const total = formatNumber(ctnPrice * ctns);
+            const total = formatNumber(cardPrice * ctns);
             const totalsellerCommn = formatNumber(total * (sellerCommn / 100));
             const prizePool = formatNumber((total - totalsellerCommn));
 
@@ -250,10 +250,10 @@
         function convertCurrency(data) {
             const exchangeRate = data.exchangeRate;
             currencySymbol = data.sym;
-            ctnPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
+            cardPrice = formatNumber(data.setPrice ? data.value : exchangeRate * roomCtnPrice);
 
             $("#ctn-price-symbol").text(currencySymbol);
-            $("#ctn-price-amount").text(ctnPrice);
+            $("#ctn-price-amount").text(cardPrice);
             $("#tx-prize-pool-room").text(formatNumber((prizePool * exchangeRate), 2));
 
             calculateSale();
@@ -321,14 +321,14 @@
 
                         prizePool = formatNumber(prizePoolAmount, 2);
                         roomCtnPrice = formatNumber(price);
-                        ctnPrice = roomCtnPrice;
+                        cardPrice = roomCtnPrice;
                         currencySymbol = currency;
 
                         handleAllowsUSDT(USDT);
                         insertCountries(countries)
 
                         $("#ctn-price-symbol").text(currencySymbol);
-                        $("#ctn-price-amount").text(ctnPrice);
+                        $("#ctn-price-amount").text(cardPrice);
                         $("#num-ctns").prop('disabled', false).val(1);
                         $(".prize-pool-type").text(prizePoolType == 1 ? 'Bote' : 'Premio');
                         $("#tx-prize-pool-room").text(prizePool);

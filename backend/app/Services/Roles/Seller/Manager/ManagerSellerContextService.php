@@ -32,7 +32,7 @@ class ManagerSellerContextService
     private function resolveSellers(int $userId): array
     {
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
+        $rowKeys = ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
 
         $source = $this->sellerRepository->paginateWithRelations(
             perPage: 15,

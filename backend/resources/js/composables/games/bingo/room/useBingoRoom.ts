@@ -74,7 +74,7 @@ const emptyFormData = (): BingoRoomFormData => ({
     roundsPct: null,
     serialsPct: 5,
     numSerials: 5,
-    ctnPrice: 1,
+    cardPrice: 1,
     roundsConfig: []
 })
 
@@ -211,7 +211,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 roundsPct: config.rounds_pct ?? null,
                 serialsPct: config.serials_pct ?? 5,
                 numSerials: config.num_serials ?? 5,
-                ctnPrice: config.card_price ?? 1,
+                cardPrice: config.card_price ?? 1,
                 roundsConfig: []
             }
 

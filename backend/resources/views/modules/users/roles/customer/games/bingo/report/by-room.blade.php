@@ -36,7 +36,7 @@
                                                 $comSellerRm = $seller->ComSellerRoom->com;
 
                                                 foreach ($seller->CtnsLot as $ctns) {
-                                                    $allSale += $ctns->ctns * $ctnPrice * $ctns->exchange_rate;
+                                                    $allSale += $ctns->ctns * $cardPrice * $ctns->exchange_rate;
                                                 }
                                                 $finalSale = $seller->CtnsLot->sum('sale_amount');
                                                 $comSaleSeller = $allSale - $finalSale;

@@ -45,7 +45,7 @@ class DashboardSellerContextService
     public function resolveCommerces(?int $userId = null): array
     {
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
+        $rowKeys = ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
 
         $source = $this->commerces->paginateWithRelations(
             perPage: 15,
@@ -89,7 +89,7 @@ class DashboardSellerContextService
         ]);
 
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
+        $rowKeys = ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
 
         $collection = collect($customers);
 

@@ -21,6 +21,7 @@ class BingoRoomConfig extends Model
     protected $fillable = [
         'room_id',
         'creation',
+        'room_type',
         'creator_user_id',
         'game_mode_id',
         'in_live',
@@ -43,6 +44,8 @@ class BingoRoomConfig extends Model
 
     protected $casts = [
         'room_id' => 'string',
+        'creation' => 'string',
+        'room_type' => 'string',
         'creator_user_id' => 'string',
         'game_mode_id' => 'string',
         'prize_pool_type_id' => 'string',
@@ -59,14 +62,16 @@ class BingoRoomConfig extends Model
         'num_serials' => 'integer'
     ];
 
+    protected $appends = ['room_type_description'];
+
     /**
      * Descripción del tipo de sala
      */
     public function getRoomTypeDescriptionAttribute(): string
     {
         return match ($this->room_type) {
-            'PRIVATE' => 'Público',
-            'PUBLIC' => 'Privado',
+            'PRIVATE' => 'Privada',
+            'PUBLIC' => 'Pública',
             default => 'Desconocido',
         };
     }

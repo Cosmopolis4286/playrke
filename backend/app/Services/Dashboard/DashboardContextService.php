@@ -45,7 +45,7 @@ class DashboardContextService
     public function resolveCommerces(?int $userId = null): array
     {
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
+        $rowKeys = ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
 
         $source = $this->commerces->paginateWithRelations(
             perPage: 15,
@@ -89,12 +89,11 @@ class DashboardContextService
         ]);
 
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
+        $rowKeys = ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
 
-        $collection = collect($customers);
 
         return new AdminCustomerContextDTO(
-            customers: $this->processCollectionTableData($collection, $labels, $rowKeys),
+            customers: $this->processCollectionTableData($customers, $labels, $rowKeys),
             pagination: null,
             countries: $this->countries->getActive(),
             currencies: $this->currencies->getActive(),

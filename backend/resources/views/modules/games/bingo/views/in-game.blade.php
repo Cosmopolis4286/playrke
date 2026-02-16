@@ -64,9 +64,9 @@
             const creatorType = '{{ $creatorType }}';
             const creatorId = @json($creatorId);
             const currencyId = @json($currencyId);
-            const ctnPrice = @json($ctnPrice);
+            const cardPrice = @json($cardPrice);
             let gameStartTime = @json($startTime);
-            let amount = ctnPrice;
+            let amount = cardPrice;
         </script>
         @vite(['resources/js/helpers/switch-payment-method.js', 'resources/js/games/bingo/includes/bingo-out-buy-ctns.js'])
     @endif

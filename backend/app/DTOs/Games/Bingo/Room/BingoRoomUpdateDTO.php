@@ -26,7 +26,7 @@ final class BingoRoomUpdateDTO
         public readonly ?float $roundsPct,
         public readonly float $serialsPct,
         public readonly int $numSerials,
-        public readonly float $ctnPrice,
+        public readonly float $cardPrice,
         public readonly ?array $roundsConfig,
     ) {}
 
@@ -47,7 +47,7 @@ final class BingoRoomUpdateDTO
             roundsPct: isset($data['roundsPct']) ? (float) $data['roundsPct'] : null,
             serialsPct: (float) ($data['serialsPct'] ?? 5),
             numSerials: (int) ($data['numSerials'] ?? 5),
-            ctnPrice: (float) ($data['ctnPrice'] ?? 1),
+            cardPrice: (float) ($data['cardPrice'] ?? 1),
             roundsConfig: $data['roundsConfig'] ?? null,
         );
     }

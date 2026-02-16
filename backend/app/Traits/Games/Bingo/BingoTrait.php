@@ -608,7 +608,7 @@ trait BingoTrait
                 'room' => $roomId,
                 'cards_purchased' => $arrCtn['numOfCtns'],
                 'currency' => $currency,
-                'card_price' => $arrCtn['ctnPrice'],
+                'card_price' => $arrCtn['cardPrice'],
                 'exchange_rate' => $arrCtn['exchangeRate'],
                 'sale_amount' => $saleAmount,
                 'seller_commn' => $sellerCommn ?? null,
@@ -851,7 +851,7 @@ trait BingoTrait
             $numOfCtns = $arrCtn['numOfCtns'];
 
             // Formatear Monto de Venta
-            $saleAmount = round($numOfCtns * $arrCtn['ctnPrice'], 2);
+            $saleAmount = round($numOfCtns * $arrCtn['cardPrice'], 2);
 
             // Registrar o actualizar el usuario en la sala
             $roomUser = $this->registerOrUpdateRoomUser($room, $arrCtn);

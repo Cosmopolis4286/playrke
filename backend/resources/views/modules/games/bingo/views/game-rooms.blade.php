@@ -97,7 +97,7 @@
         let arrRooms = [];
         let isLogged = false;
         let roomId = false;
-        let ctnPrice = 1;
+        let cardPrice = 1;
         let numCtns = 1;
         let total = 0;
         let inView = true;
@@ -187,7 +187,7 @@
                 success: function(res) {
                     const room = res.room;
                     isLogged = Number(res.isLogged);
-                    ctnPrice = room.ctnPrice;
+                    cardPrice = room.cardPrice;
                     numCtns = 1;
 
                     generateModalPurchase(roomId);
@@ -200,8 +200,8 @@
 
                     $(`#prize_pool-room_${roomId}`).text(room.prizePool);
 
-                    if ($(`#ctn-price_${roomId}`).text() != ctnPrice) {
-                        $(`#ctn-price_${roomId}`).text(ctnPrice);
+                    if ($(`#ctn-price_${roomId}`).text() != cardPrice) {
+                        $(`#ctn-price_${roomId}`).text(cardPrice);
                     }
 
                     $('#container-spinner').hide();
@@ -262,7 +262,7 @@
         });
 
         function handleTotalAmount() {
-            total = (numCtns * ctnPrice).toFixed(2);
+            total = (numCtns * cardPrice).toFixed(2);
             $('#total-amount').text(total);
         }
 

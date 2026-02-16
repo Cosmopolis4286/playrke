@@ -27,7 +27,7 @@ Componente Blade que envuelve el sistema Vue para fácil uso.
     :title="'Comercializadores'"
     :rows="$pageData['commerces']"
     :columns="['Nombre', 'País', 'Teléfono', 'Email', 'Status']"
-    :row-keys="['name', 'Country.name', 'phone', 'User.email', 'status_badge']"
+    :row-keys="['name', 'country.name', 'phone', 'User.email', 'status_badge']"
     :filters="[
         [
             'key' => 'country_name',
@@ -276,7 +276,7 @@ window.addEventListener('table:selection-change', (e) => {
     :title="$title"
     :rows="$commerces"
     :columns="['Nombre', 'País']"
-    :row-keys="['name', 'Country.name']"
+    :row-keys="['name', 'country.name']"
     module-id="commerce-form"
     context="commerce"
     table-id="commerce-table"
@@ -289,7 +289,7 @@ window.addEventListener('table:selection-change', (e) => {
     :title="$title"
     :rows="$commerces"
     :columns="['Nombre', 'País']"
-    :row-keys="['name', 'Country.name']"
+    :row-keys="['name', 'country.name']"
     :filters="[...]"  <!-- ✨ Nueva característica -->
     module-id="commerce-form"
     context="commerce"

@@ -119,22 +119,22 @@
     return Array.isArray(allowed) && allowed.length > 1
   })
 
-  const ctnPriceByCurrencyActive = ref(false)
+  const cardPriceByCurrencyActive = ref(false)
 
   function toggleCtnPriceByCurrency() {
     if (!canAdjustCtnPriceByCurrency.value) return
-    ctnPriceByCurrencyActive.value = !ctnPriceByCurrencyActive.value
-    if (!form.value.ctnPriceByCurrency) {
-      form.value = { ...form.value, ctnPriceByCurrency: {} }
+    cardPriceByCurrencyActive.value = !cardPriceByCurrencyActive.value
+    if (!form.value.cardPriceByCurrency) {
+      form.value = { ...form.value, cardPriceByCurrency: {} }
     }
   }
 
   function updateCtnPriceForCurrency(currency: string | number, value: string | number | null) {
     const key = String(currency)
-    const current = { ...(form.value.ctnPriceByCurrency ?? {}) }
+    const current = { ...(form.value.cardPriceByCurrency ?? {}) }
     const parsed = value === null || value === '' ? null : Number(value)
     current[key] = isNaN(Number(parsed)) ? null : (parsed as number)
-    form.value = { ...form.value, ctnPriceByCurrency: current }
+    form.value = { ...form.value, cardPriceByCurrency: current }
   }
 
   function getCurrencyLabel(id: string | number) {
@@ -308,7 +308,7 @@
         placeholder="Precio Cartón"
         col="col-sm-6 col-md-4 col-lg-3"
         inputGroup
-        v-model="form.ctnPrice"
+        v-model="form.cardPrice"
       >
         <template #prepend>
           <span class="input-group-text">$</span>
@@ -318,7 +318,7 @@
           <button
             class="btn btn-outline-secondary"
             type="button"
-            :data-active="ctnPriceByCurrencyActive ? 1 : 0"
+            :data-active="cardPriceByCurrencyActive ? 1 : 0"
             @click="toggleCtnPriceByCurrency"
             :disabled="!canAdjustCtnPriceByCurrency"
             :title="
@@ -335,7 +335,7 @@
       <!-- Inputs por moneda (cuando activo) -->
       <div
         class="col-12"
-        v-show="ctnPriceByCurrencyActive && canAdjustCtnPriceByCurrency"
+        v-show="cardPriceByCurrencyActive && canAdjustCtnPriceByCurrency"
         style="margin-top: 0.5rem; margin-bottom: 1rem"
       >
         <div
@@ -358,7 +358,7 @@
               <FormInput
                 :name="`ctn_price_${String(cur)}`"
                 :error="
-                  errors.ctnPriceByCurrency ? errors.ctnPriceByCurrency[String(cur)] : undefined
+                  errors.cardPriceByCurrency ? errors.cardPriceByCurrency[String(cur)] : undefined
                 "
                 type="number"
                 :step="0.05"
@@ -368,7 +368,7 @@
                 col="col-6 col-md-3 mb-2"
                 inputGroup
                 inputGroupClass="input-group-sm"
-                :modelValue="form.ctnPriceByCurrency?.[String(cur)] ?? ''"
+                :modelValue="form.cardPriceByCurrency?.[String(cur)] ?? ''"
                 @update:modelValue="updateCtnPriceForCurrency(cur, $event)"
               >
                 <template #prepend>

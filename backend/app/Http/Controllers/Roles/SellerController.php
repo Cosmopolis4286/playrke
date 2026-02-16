@@ -166,11 +166,11 @@ class SellerController extends Controller
         $bingoCreatorID = BingoCreator::getValueByCreatorRoom($creator, $roomId, 'id');
 
         // Intentar obtener el precio configurado
-        $ctnPrice = BingoCardPrice::getValueCtnPrice($roomId, $currency->id, $bingoCreatorID);
+        $cardPrice = BingoCardPrice::getValueCtnPrice($roomId, $currency->id, $bingoCreatorID);
 
-        if ($ctnPrice) {
+        if ($cardPrice) {
             $setPrice = true;
-            $value = $ctnPrice;
+            $value = $cardPrice;
         }
 
         // Construir y devolver la respuesta
@@ -311,7 +311,7 @@ class SellerController extends Controller
 
             foreach ($allPendingCtns as $ctn) {
 
-                $ctnPrice = $ctn->Lot->sale_amount / $ctn->Lot->ctns;
+                $cardPrice = $ctn->Lot->sale_amount / $ctn->Lot->ctns;
                 $playerLink = ExternalPlayers::getValueByRoomUser('BINGO', $ctn->room_user, 'id');
 
                 $paymentToInsert[] = [
@@ -322,7 +322,7 @@ class SellerController extends Controller
                     'external_player_id' => $playerLink,
                     'lot' => $ctn->lot,
                     'currency' => $ctn->currency,
-                    'amount' => $ctnPrice,
+                    'amount' => $cardPrice,
                     'payment_proof' => $paymentProof,
                     'created_at' => $timestamp,
                     'updated_at' => $timestamp

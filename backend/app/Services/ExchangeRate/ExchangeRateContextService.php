@@ -79,18 +79,15 @@ final class ExchangeRateContextService
     protected function resolveExchangeRatesByRole(string $role, int $userId): Collection
     {
         // Resolver la entidad asociada al rol (commerce, customer, etc.)
-        $entityId = $this->roleEntityResolver
-            ->resolveEntityId($userId, $role);
+        $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
 
         return match ($role) {
-            'commerce' => $this->commerceExchangeRate
-                ->getAvailableExchangeRates($entityId),
-
+            'commerce' => $this->commerceExchangeRate->getAvailableExchangeRates($entityId),
             'customer', 'admin' => collect(),
-
             default => collect(),
         };
     }
+
 
     /**
      * Obtener todas las tasas de cambio filtradas según contexto y rol.
@@ -105,9 +102,7 @@ final class ExchangeRateContextService
         $userId = $this->userContext->resolveUserId($publicToken);
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        return $this
-            ->resolveExchangeRatesByRole($role, $userId)
-            ->toArray();
+        return $this->resolveExchangeRatesByRole($role, $userId)->toArray();
     }
 
     /**
@@ -126,8 +121,7 @@ final class ExchangeRateContextService
         $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
 
         $history = match ($role) {
-            'commerce' => $this->commerceExchangeRate
-                ->getHistoryByCurrency($entityId, $currencyId),
+            'commerce' => $this->commerceExchangeRate->getHistoryByCurrency($entityId, $currencyId),
             default => collect(),
         };
 

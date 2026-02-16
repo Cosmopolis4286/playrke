@@ -46,7 +46,7 @@ final class AdminCustomerContextService
     public function resolveCustomers(): array
     {
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
+        $rowKeys = ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
 
         $source = $this->customers->paginateWithRelations(
             perPage: 15,

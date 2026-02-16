@@ -46,7 +46,7 @@ final class AdminCommerceContextService
     public function resolveCommerces(): array
     {
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'Country.name', 'phone', 'User.email', 'status_badge'];
+        $rowKeys = ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
 
         $source = $this->commerces->paginateWithRelations(
             perPage: 15,

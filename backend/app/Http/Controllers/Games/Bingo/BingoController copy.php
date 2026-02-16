@@ -496,11 +496,11 @@ class BingoController extends Controller
         }
 
         // Definir precio del carton
-        $ctnPrice = $creatorCtnPrice
+        $cardPrice = $creatorCtnPrice
             ? $this->calculateCtnPrice($creatorCtnPrice, true)
             : $this->calculateCtnPrice($roomCtnPrice, false, $data['exchangeRate']);
 
-        $data['ctnPrice'] = $ctnPrice;
+        $data['cardPrice'] = $cardPrice;
 
         // Iniciar Transaccion
         DB::beginTransaction();
@@ -711,7 +711,7 @@ class BingoController extends Controller
                 $bingoCtnPrice = BingoCardPrice::getValueCtnPrice($roomId, $currencyId, $bingoCreatorUser)
                     ?? CommerceExchangeRate::getCommerceCurrencyValue($creatorId, $currencyId);
 
-                $moreViewData['ctnPrice'] = $this->formatAmount($bingoCtnPrice, 'float');
+                $moreViewData['cardPrice'] = $this->formatAmount($bingoCtnPrice, 'float');
 
                 $closingRoute = false;
                 break;
@@ -1490,7 +1490,7 @@ class BingoController extends Controller
         }
     }
 
-    private function handleCtnPriceCurrencies(string $type, $action, $ctnPriceCurrencies, $roomId, $creatorUser = '')
+    private function handleCtnPriceCurrencies(string $type, $action, $cardPriceCurrencies, $roomId, $creatorUser = '')
     {
         $column = $type === 'M' ? 'bingo_room_id' : 'automatic_bingo_room_id';
         $timestamp = now();
@@ -1499,10 +1499,10 @@ class BingoController extends Controller
         $arrCurrencies = [];
         $arrCtnPrices = [];
 
-        foreach ($ctnPriceCurrencies as $currency => $ctnPrice) {
-            if ($ctnPrice) {
+        foreach ($cardPriceCurrencies as $currency => $cardPrice) {
+            if ($cardPrice) {
                 $arrCurrencies[] = $currency;
-                $arrCtnPrices[] = $ctnPrice;
+                $arrCtnPrices[] = $cardPrice;
             }
         }
 
@@ -1547,7 +1547,7 @@ class BingoController extends Controller
                 'action' => $action,
                 'roomId' => $roomId,
                 'creatorUser' => $creatorUser,
-                'ctnPriceCurrencies' => $ctnPriceCurrencies,
+                'cardPriceCurrencies' => $cardPriceCurrencies,
                 'trace' => $e->getTraceAsString(),
             ]);
             throw $e;
@@ -1561,7 +1561,7 @@ class BingoController extends Controller
 
         $creatorUser = $this->getUserData()['userId'];
 
-        $ctnPriceCurrencies = $request->card_price_currencies;
+        $cardPriceCurrencies = $request->card_price_currencies;
 
         if ($room->creator_user <> $creatorUser) {
 
@@ -1569,8 +1569,8 @@ class BingoController extends Controller
 
             try {
 
-                if ($ctnPriceCurrencies) {
-                    $this->handleCtnPriceCurrencies('M', 'UPDATE', $ctnPriceCurrencies, $roomId, $creatorUser);
+                if ($cardPriceCurrencies) {
+                    $this->handleCtnPriceCurrencies('M', 'UPDATE', $cardPriceCurrencies, $roomId, $creatorUser);
                 }
 
                 $bingoCreator = BingoCreator::select('id', 'creator_commn', 'card_price', 'allowed_currencies')
@@ -1672,8 +1672,8 @@ class BingoController extends Controller
 
             $this->handleRoundsDrafts('M', 'UPDATE', $roundsPrizeType, $roundsPlayType, $roundsPrizeValue, $roomId);
 
-            if ($ctnPriceCurrencies) {
-                $this->handleCtnPriceCurrencies('M', 'UPDATE', $ctnPriceCurrencies, $roomId);
+            if ($cardPriceCurrencies) {
+                $this->handleCtnPriceCurrencies('M', 'UPDATE', $cardPriceCurrencies, $roomId);
             }
 
             DB::commit();
@@ -1725,17 +1725,17 @@ class BingoController extends Controller
                 ? BingoCardPriceDraft::getByRoom(BingoRoom::getValueByEncrypted($room, 'id'), ['bingo_room_id', 'currencies', 'card_prices'])
                 : BingoCardPriceDraft::getByAutomaticRoom($room, ['automatic_bingo_room_id', 'currencies', 'card_prices']);
 
-            $ctnPriceCurrencies = $bingoCtnPrice->currencies ?? [];
-            $ctnPriceValues = $bingoCtnPrice->card_prices ?? [];
+            $cardPriceCurrencies = $bingoCtnPrice->currencies ?? [];
+            $cardPriceValues = $bingoCtnPrice->card_prices ?? [];
 
 
-            if (is_array($ctnPriceCurrencies) && is_array($ctnPriceValues) && count($ctnPriceCurrencies) === count($ctnPriceValues)) {
-                foreach ($ctnPriceCurrencies as $i => $currency) {
+            if (is_array($cardPriceCurrencies) && is_array($cardPriceValues) && count($cardPriceCurrencies) === count($cardPriceValues)) {
+                foreach ($cardPriceCurrencies as $i => $currency) {
                     $valMax = CommerceExchangeRate::getCommerceCurrencyValue($creatorId, $currency) ?? 1;
 
                     $currenciesCtnPrice->push([
                         'currency' => $currency,
-                        'ctnPrice' => $ctnPriceValues[$i],
+                        'cardPrice' => $cardPriceValues[$i],
                         'valMax' => round($valMax * 50, 2),
                     ]);
                 }
@@ -1750,7 +1750,7 @@ class BingoController extends Controller
                 $currency => [
                     'currency' => $currency,
                     'isoCode' => $creatorType === 'customer' ? $currency : Currency::getValue($currency, 'iso_code'),
-                    'ctnPrice' => $item['ctnPrice'],
+                    'cardPrice' => $item['cardPrice'],
                     'valMax' => $item['valMax'],
                 ],
             ];
@@ -1768,7 +1768,7 @@ class BingoController extends Controller
                 $currency => [
                     'currency' => $currency,
                     'isoCode' => $creatorType === 'customer' ? $currency : Currency::getValue($currency, 'iso_code'),
-                    'ctnPrice' => '',
+                    'cardPrice' => '',
                     'valMax' => round($valMax * 50, 2),
                 ],
             ];
@@ -1778,7 +1778,7 @@ class BingoController extends Controller
 
         return response()->json([
             'hasPrice' => $presentCurrenciesData->isNotEmpty(),
-            'ctnPrice' => $arrCurrenciesCtnPrice,
+            'cardPrice' => $arrCurrenciesCtnPrice,
         ]);
     }
 
@@ -2259,12 +2259,12 @@ class BingoController extends Controller
             $currency = Currency::getValue($currency, 'symbol');
         }
 
-        $ctnPrice = $roomConfig->card_price * $exchangeRate;
+        $cardPrice = $roomConfig->card_price * $exchangeRate;
 
         $bingoCtnPrice = BingoCardPrice::getValueCtnPrice($room->id, $currency, $creatorUser);
 
         if ($bingoCtnPrice) {
-            $ctnPrice = $bingoCtnPrice;
+            $cardPrice = $bingoCtnPrice;
         }
 
         $room = [
@@ -2272,7 +2272,7 @@ class BingoController extends Controller
             'currency' => $currency,
             'prizePool' => number_format(($room->prize_pool * $exchangeRate), 2, '.'),
             'prizePoolType' => $roomConfig->prize_pool_type == 1 ? 'Bote' : 'Premio',
-            'ctnPrice' => number_format(($ctnPrice), 2, '.')
+            'cardPrice' => number_format(($cardPrice), 2, '.')
         ];
 
         return response()->json(['room' => $room, 'isLogged' => $isLogged]);
@@ -2781,7 +2781,7 @@ class BingoController extends Controller
             $creatorUser = Auth::id();
 
             $roundsPct = $data->rounds_pct ?? null;
-            $ctnPriceCurrencies = $data->card_price_currencies;
+            $cardPriceCurrencies = $data->card_price_currencies;
 
             $automaticBingoId = BingoRoomAutomatic::create([
                 'time' => $data->time,
@@ -2812,8 +2812,8 @@ class BingoController extends Controller
 
             $this->handleRoundsDrafts('A', 'CREATE', $roundsPrizeType, $roundsPlayType, $roundsPrizeValue, $automaticBingoId);
 
-            if ($ctnPriceCurrencies) {
-                $this->handleCtnPriceCurrencies('A', 'CREATE', $ctnPriceCurrencies, $automaticBingoId, $creatorUser);
+            if ($cardPriceCurrencies) {
+                $this->handleCtnPriceCurrencies('A', 'CREATE', $cardPriceCurrencies, $automaticBingoId, $creatorUser);
             }
 
             DB::commit();
@@ -2841,7 +2841,7 @@ class BingoController extends Controller
 
             $bingoRKECommission = GameConfig::getGameParamValue('BINGO', 'COMMISSION') ?? 5;
 
-            $ctnPriceCurrencies = $request->card_price_currencies;
+            $cardPriceCurrencies = $request->card_price_currencies;
 
             BingoRoomAutomatic::where('id', $id)->update([
                 'time' => $request->time,
@@ -2866,8 +2866,8 @@ class BingoController extends Controller
 
             $this->handleRoundsDrafts('A', 'UPDATE', $roundsPrizeType, $roundsPlayType, $roundsPrizeValue, $automaticBingoId);
 
-            if ($ctnPriceCurrencies) {
-                $this->handleCtnPriceCurrencies('A', 'UPDATE', $ctnPriceCurrencies, $automaticBingoId);
+            if ($cardPriceCurrencies) {
+                $this->handleCtnPriceCurrencies('A', 'UPDATE', $cardPriceCurrencies, $automaticBingoId);
             }
 
             DB::commit();

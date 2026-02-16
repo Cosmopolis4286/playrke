@@ -13,6 +13,7 @@ use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Utils\GameConfig;
 use App\Models\Games\Common\Utils\GameStatus;
+use App\Services\ExchangeRate\ExchangeRateDomainService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,7 @@ final class BingoRoomCrudService
     public function __construct(
         private readonly \App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface $bingoRooms,
         private readonly \App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface $bingoCardPrices,
+        private readonly ExchangeRateDomainService $exchangeRateService,
     ) {}
 
     /**
@@ -113,11 +115,18 @@ final class BingoRoomCrudService
 
             // Crear precios de cartones para la sala (un registro por moneda permitida)
             foreach ($dto->allowedCurrencies as $currencyId) {
+
+                $cardPrice = $dto->cardPriceByCurrency[$currencyId] ?? 0;
+
+                if ($cardPrice <= 0) {
+                    $cardPrice = $this->exchangeRateService->getExchangeRateByCurrency($currencyId, $userId);
+                }
+
                 $this->bingoCardPrices->create([
                     'room_id'         => $room->id,
                     'creator_user_id' => $userId,
                     'currency_id'     => $currencyId,
-                    'card_price'      => $dto->ctnPrice,
+                    'card_price'      => $cardPrice,
                 ]);
             }
 
@@ -260,14 +269,14 @@ final class BingoRoomCrudService
 
                 if ($existing) {
                     $this->bingoCardPrices->update($existing->id, [
-                        'card_price' => $dto->ctnPrice,
+                        'card_price' => $dto->cardPrice,
                     ]);
                 } else {
                     $this->bingoCardPrices->create([
                         'room_id'         => $room->id,
                         'creator_user_id' => $userId,
                         'currency_id'     => $currencyId,
-                        'card_price'      => $dto->ctnPrice,
+                        'card_price'      => $dto->cardPrice,
                     ]);
                 }
             }

@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\Games\Common\Utils\GameExchangeRate;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Modelo BingoRoom refactorizado
@@ -90,7 +91,7 @@ class BingoRoom extends BaseModel
     // ========================
     // Accessors computados
     // ========================
-    protected $appends = ['room_type_description', 'is_closed', 'total_commissions'];
+    protected $appends = ['is_closed', 'total_commissions'];
 
     // ========================
     // Relaciones
@@ -113,11 +114,11 @@ class BingoRoom extends BaseModel
     }
 
     /**
-     * Configuración de la sala
+     * Configuración de la sala (1:1)
      */
-    public function config(): HasMany
+    public function config(): HasOne
     {
-        return $this->hasMany(BingoRoomConfig::class, 'room_id', 'id');
+        return $this->hasOne(BingoRoomConfig::class, 'room_id', 'id');
     }
 
     /**

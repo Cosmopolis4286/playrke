@@ -105,7 +105,7 @@ class RoomConfigService
     /**
      * Retorna sala existente si ya fue creada.
      */
-    protected function existingRoom($creatorUser, string $date, string $time, $ctnPrice)
+    protected function existingRoom($creatorUser, string $date, string $time, $cardPrice)
     {
         $startDate = Carbon::parse($date)->subDay()->format('Y-m-d');
 
@@ -114,7 +114,7 @@ class RoomConfigService
             ->where('creator_user_id', $creatorUser)
             ->whereBetween('date', [$startDate, $date])
             ->where('time', $time)
-            ->where('card_price', $ctnPrice)
+            ->where('card_price', $cardPrice)
             ->first();
     }
 }
