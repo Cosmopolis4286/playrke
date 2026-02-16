@@ -25,8 +25,8 @@ enum GameStatusEnum: string
      */
     public function label(): string
     {
-        $status = GameStatus::where('value', $this->value)->first();
-        return $status->description ?? match ($this) {
+        $status = GameStatus::where('id', $this->id)->first();
+        return $status->label ?? match ($this) {
             self::NONE => 'N/D',
             self::DRAFT => 'Borrador',
             self::ACTIVE => 'Activa',
@@ -42,7 +42,7 @@ enum GameStatusEnum: string
     public static function allFromDb(): Collection
     {
         return GameStatus::all()
-            ->map(fn($row) => self::tryFrom($row->value))
+            ->map(fn($row) => self::tryFrom($row->id))
             ->filter(fn($enum) => $enum !== null);
     }
 
@@ -57,8 +57,8 @@ enum GameStatusEnum: string
     /**
      * Retorna el enum a partir del valor de la DB o null si no existe.
      */
-    public static function fromValue(string $value): ?self
+    public static function fromValue(string $id): ?self
     {
-        return self::tryFrom($value);
+        return self::tryFrom($id);
     }
 }

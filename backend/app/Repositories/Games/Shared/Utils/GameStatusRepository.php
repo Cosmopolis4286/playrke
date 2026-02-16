@@ -6,12 +6,13 @@ use App\Models\Games\Common\Utils\GameStatus;
 use App\Repositories\BaseRepository;
 use App\Repositories\Shared\Utils\Contracts\GameStatusRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Repositorio para la gestión de estados de juegos.
  *
  * Implementa las operaciones específicas para el modelo GameStatus,
- * incluyendo consultas por valor, descripción y operaciones CRUD completas.
+ * incluyendo consultas por valor, etiqueta y operaciones CRUD completas.
  */
 class GameStatusRepository extends BaseRepository implements GameStatusRepositoryContract
 {
@@ -28,33 +29,17 @@ class GameStatusRepository extends BaseRepository implements GameStatusRepositor
     /**
      * {@inheritDoc}
      */
-    public function getByValue(string $value): ?GameStatus
+    public function getByLabel(string $label): Collection
     {
-        return $this->model->where('value', $value)->first();
+        return $this->model->where('label', $label)->get();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function existsByValue(string $value): bool
+    public function searchByLabel(string $searchTerm): Collection
     {
-        return $this->model->where('value', $value)->exists();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getByDescription(string $description): Collection
-    {
-        return $this->model->where('description', $description)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function searchByDescription(string $searchTerm): Collection
-    {
-        return $this->model->where('description', 'LIKE', "%{$searchTerm}%")->get();
+        return $this->model->where('label', 'LIKE', "%{$searchTerm}%")->get();
     }
 
     /**
@@ -62,36 +47,36 @@ class GameStatusRepository extends BaseRepository implements GameStatusRepositor
      */
     public function getForSelect(): array
     {
-        return $this->model->orderBy('description')->pluck('description', 'value')->toArray();
+        return $this->model->orderBy('label')->pluck('label', 'id')->toArray();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function createStatus(string $value, string $description): GameStatus
+    public function createStatus(string $id, string $label): GameStatus
     {
         return $this->model->create([
-            'value' => $value,
-            'description' => $description
+            'id' => $id,
+            'label' => $label
         ]);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function updateDescription(string $statusId, string $description): bool
+    public function updateLabel(string $statusId, string $label): bool
     {
         return $this->model->where('id', $statusId)
-            ->update(['description' => $description]) > 0;
+            ->update(['label' => $label]) > 0;
     }
 
     /**
      * {@inheritDoc}
      */
-    public function updateValue(string $statusId, string $value): bool
+    public function updateId(string $statusId, string $id): bool
     {
         return $this->model->where('id', $statusId)
-            ->update(['value' => $value]) > 0;
+            ->update(['id' => $id]) > 0;
     }
 
     /**
@@ -108,19 +93,19 @@ class GameStatusRepository extends BaseRepository implements GameStatusRepositor
     public function getStatusStatistics(): array
     {
         $total = $this->model->count();
-        $averageDescriptionLength = $this->model->avg(DB::raw('LENGTH(description)'));
-        $averageValueLength = $this->model->avg(DB::raw('LENGTH(value)'));
-        $longestDescription = $this->model->orderByRaw('LENGTH(description) DESC')->first();
-        $shortestDescription = $this->model->orderByRaw('LENGTH(description) ASC')->first();
+        $averageLabelLength = $this->model->avg(DB::raw('LENGTH(label)'));
+        $averageidLength = $this->model->avg(DB::raw('LENGTH(id)'));
+        $longestLabel = $this->model->orderByRaw('LENGTH(label) DESC')->first();
+        $shortestLabel = $this->model->orderByRaw('LENGTH(label) ASC')->first();
 
         return [
             'total_statuses' => $total,
-            'average_description_length' => round($averageDescriptionLength ?? 0, 2),
-            'average_value_length' => round($averageValueLength ?? 0, 2),
-            'longest_description' => $longestDescription?->description ?? '',
-            'shortest_description' => $shortestDescription?->description ?? '',
-            'longest_description_length' => $longestDescription ? strlen($longestDescription->description) : 0,
-            'shortest_description_length' => $shortestDescription ? strlen($shortestDescription->description) : 0
+            'average_label_length' => round($averageLabelLength ?? 0, 2),
+            'average_id_length' => round($averageIdLength ?? 0, 2),
+            'longest_label' => $longestLabel?->label ?? '',
+            'shortest_label' => $shortestLabel?->label ?? '',
+            'longest_label_length' => $longestLabel ? strlen($longestLabel->label) : 0,
+            'shortest_label_length' => $shortestLabel ? strlen($shortestLabel->label) : 0
         ];
     }
 
@@ -137,9 +122,9 @@ class GameStatusRepository extends BaseRepository implements GameStatusRepositor
     /**
      * {@inheritDoc}
      */
-    public function isValidUniqueValue(string $value, ?string $excludeId = null): bool
+    public function isValidUniqueId(string $id, ?string $excludeId = null): bool
     {
-        $query = $this->model->where('value', $value);
+        $query = $this->model->where('id', $id);
 
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
@@ -151,16 +136,16 @@ class GameStatusRepository extends BaseRepository implements GameStatusRepositor
     /**
      * {@inheritDoc}
      */
-    public function getOrderedByDescription(): Collection
+    public function getOrderedByLabel(): Collection
     {
-        return $this->model->orderBy('description')->get();
+        return $this->model->orderBy('label')->get();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function getOrderedByValue(): Collection
+    public function getOrderedById(): Collection
     {
-        return $this->model->orderBy('value')->get();
+        return $this->model->orderBy('id')->get();
     }
 }

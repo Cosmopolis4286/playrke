@@ -231,16 +231,14 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
 
     public function changeGameStatus(string $roomId, string $newStatusValue): bool
     {
-        $statusId = GameStatus::query()
-            ->where('value', $newStatusValue)
-            ->value('id');
+        $statusId = GameStatus::where('id', $newStatusValue)->exists();
 
         if (!$statusId) {
             return false;
         }
 
         return $this->model->where('id', $roomId)->update([
-            'status_id' => $statusId,
+            'status_id' => $newStatusValue,
         ]);
     }
 

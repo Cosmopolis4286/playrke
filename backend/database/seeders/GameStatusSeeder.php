@@ -3,38 +3,32 @@
 namespace Database\Seeders;
 
 use App\Models\Games\Common\Utils\GameStatus;
-use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
 
 class GameStatusSeeder extends Seeder
 {
     public function run(): void
     {
-        $snowflake = new Snowflake();
-        $timestamp = now();
-
         $statuses = [
-            ['value' => 'UNAVAILABLE', 'description' => 'No Disponible'],
-            ['value' => 'AVAILABLE',   'description' => 'Disponible'],
-            ['value' => 'IN_PROGRESS', 'description' => 'En Juego'],
-            ['value' => 'FINISHED',    'description' => 'Finalizada'],
-            ['value' => 'REFUND',      'description' => 'Reembolso'],
-            ['value' => 'OFFLINE',     'description' => 'Fuera de Línea'],
-            ['value' => 'DELETED',     'description' => 'Eliminada']
+            ['id' => 'NONE',        'label' => 'N/D'],
+            ['id' => 'DRAFT',       'label' => 'Borrador'],
+            ['id' => 'ACTIVE',      'label' => 'Activa'],
+            ['id' => 'INACTIVE',    'label' => 'Inactiva'],
+            ['id' => 'DELETED',     'label' => 'Eliminada'],
+            ['id' => 'UNAVAILABLE', 'label' => 'No Disponible'],
+            ['id' => 'AVAILABLE',   'label' => 'Disponible'],
+            ['id' => 'CLOSED',      'label' => 'Cerrada'],
+            ['id' => 'IN_PROGRESS', 'label' => 'En Juego'],
+            ['id' => 'FINISHED',    'label' => 'Finalizada'],
+            ['id' => 'REFUND',      'label' => 'Reembolso'],
+            ['id' => 'OFFLINE',     'label' => 'Fuera de Línea'],
         ];
-
-        // Agregar ID Snowflake y timestamps
-        foreach ($statuses as &$status) {
-            $status['id'] = $snowflake->id();
-            $status['created_at'] = $timestamp;
-            $status['updated_at'] = $timestamp;
-        }
 
         // Inserción masiva usando upsert para evitar duplicados
         GameStatus::upsert(
             $statuses,
-            ['value'],              // columna única
-            ['description', 'id', 'created_at', 'updated_at'] // campos a actualizar si ya existe
+            ['id'],              // columna única
+            ['label', 'created_at', 'updated_at'] // campos a actualizar si ya existe
         );
     }
 }

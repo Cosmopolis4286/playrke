@@ -2,7 +2,6 @@
 
 namespace App\Models\Games\Common\Utils;
 
-use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -13,8 +12,6 @@ use Illuminate\Database\Eloquent\Model;
  */
 class GameStatus extends Model
 {
-    use SnowflakeId;
-
     /**
      * Nombre de la tabla en la base de datos.
      *
@@ -28,51 +25,36 @@ class GameStatus extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'value',       // Valor interno del estado (ej. 'DRAFT', 'ACTIVE')
-        'description', // Etiqueta legible (ej. 'Borrador', 'Activa')
+        'id',       // Valor interno del estado (ej. 'DRAFT', 'ACTIVE')
+        'label', // Etiqueta legible (ej. 'Borrador', 'Activa')
     ];
 
     protected $casts = [
         'id' => 'string',
-        'value' => 'string',
-        'description' => 'string',
+        'label' => 'string',
     ];
 
     /**
-     * Accessor para obtener el valor en mayúsculas.
-     *
-     * Garantiza que el valor siempre se almacene en mayúsculas
-     * para mantener consistencia en la base de datos.
-     *
-     * @param string $value
-     * @return string
-     */
-    public function setValueAttribute(string $value): void
-    {
-        $this->attributes['value'] = strtoupper($value);
-    }
-
-    /**
-     * Scope para buscar por valor de estado.
+     * Scope para buscar por ID del estado de juego.
      *
      * @param \Illuminate\Database\Eloquent\Builder<static> $query
-     * @param string $value
+     * @param string $id
      * @return \Illuminate\Database\Eloquent\Builder<static>
      */
-    public function scopeByValue(\Illuminate\Database\Eloquent\Builder $query, string $value): \Illuminate\Database\Eloquent\Builder
+    public function scopeById(\Illuminate\Database\Eloquent\Builder $query, string $id): \Illuminate\Database\Eloquent\Builder
     {
-        return $query->where('value', strtoupper($value));
+        return $query->where('id', strtoupper($id));
     }
 
     /**
      * Scope para buscar por descripción parcial.
      *
      * @param \Illuminate\Database\Eloquent\Builder<static> $query
-     * @param string $description
+     * @param string $label
      * @return \Illuminate\Database\Eloquent\Builder<static>
      */
-    public function scopeByDescription(\Illuminate\Database\Eloquent\Builder $query, string $description): \Illuminate\Database\Eloquent\Builder
+    public function scopeByLabel(\Illuminate\Database\Eloquent\Builder $query, string $label): \Illuminate\Database\Eloquent\Builder
     {
-        return $query->where('description', 'LIKE', "%{$description}%");
+        return $query->where('label', 'LIKE', "%{$label}%");
     }
 }

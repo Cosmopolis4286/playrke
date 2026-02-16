@@ -18,7 +18,6 @@ export type BingoRoomStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED'
  */
 export interface BingoRoomGameStatus {
     readonly id: number | string
-    readonly name: string
 }
 
 /**

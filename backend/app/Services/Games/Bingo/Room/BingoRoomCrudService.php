@@ -126,13 +126,12 @@ final class BingoRoomCrudService
      */
     private function createBaseRoom(int $userId, BingoRoomCreateDTO $dto): BingoRoom
     {
-        $statusId = GameStatus::byValue('AVAILABLE')->value('id');
         do {
             $uuidCode = strtoupper(Str::uuid()->toString());
         } while (BingoRoom::where('uuid_code', $uuidCode)->exists());
 
         $room = BingoRoom::create([
-            'status_id'       => $statusId,
+            'status_id'       => 'AVAILABLE',
             'creator_user_id' => $userId,
             'paid_prizes'     => 'N',
             'prize_pool'      => 0,
