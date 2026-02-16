@@ -2,8 +2,8 @@
 
 namespace App\Models\Games\Bingo\Card\CardPrice;
 
-use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Games\Bingo\Rooms\BingoRoomAutomatic;
+use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

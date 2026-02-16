@@ -33,6 +33,14 @@ final class BingoRoomCreateDTO
 
     public static function fromArray(array $data): self
     {
+        // Normalizar allowedCurrencies: array de strings
+        $allowedCurrencies = array_map('strval', array_values((array) ($data['allowedCurrencies'] ?? [])));
+
+        // Normalizar cardPriceByCurrency: array de monedas a precios
+        $cardPriceByCurrency = is_array($data['cardPriceByCurrency'] ?? null)
+            ? array_map(fn($v) => (float)$v, $data['cardPriceByCurrency'])
+            : [];
+
         return new self(
             date: $data['date'],
             time: $data['time'],
@@ -40,7 +48,7 @@ final class BingoRoomCreateDTO
             gameMode: $data['gameMode'],
             prizePoolType: $data['prizePoolType'],
             cardPrice: (float) ($data['cardPrice'] ?? 1),
-            allowedCurrencies: array_values((array) ($data['allowedCurrencies'] ?? [])),
+            allowedCurrencies: $allowedCurrencies,
             amountAddedPrizePool: isset($data['amountAddedPrizePool']) ? (float) $data['amountAddedPrizePool'] : null,
             roomCommn: (float) ($data['roomCommn'] ?? 20),
             jackpotPct: isset($data['jackpotPct']) ? (float) $data['jackpotPct'] : null,
@@ -50,7 +58,7 @@ final class BingoRoomCreateDTO
             serialsPct: (float) ($data['serialsPct'] ?? 5),
             numSerials: (int) ($data['numSerials'] ?? 5),
             roundsConfig: $data['roundsConfig'] ?? null,
-            cardPriceByCurrency: $data['cardPriceByCurrency'] ?? null,
+            cardPriceByCurrency: $cardPriceByCurrency,
         );
     }
 }

@@ -3,8 +3,8 @@
 namespace App\Models\Games\Bingo\Cards;
 
 use App\Models\Currency;
-use App\Models\Games\Bingo\Rooms\BingoRoom;
-use App\Models\Games\Bingo\Rooms\User\BingoRoomUser;
+use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Models\Games\Bingo\Room\User\BingoRoomUser;
 use App\Models\Roles\Seller;
 use App\Models\User;
 use App\Traits\SnowflakeId;

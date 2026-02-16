@@ -49,7 +49,7 @@ class BingoRoomRequest extends BaseRequest
             // Precios por moneda (cuando hay más de una moneda permitida)
             // NOTA: la validación fuerte se hace en withValidator()
             'cardPriceByCurrency'          => ['nullable', 'array'],
-            'cardPriceByCurrency.*'        => ['nullable', 'numeric', 'min:0.35', 'max:50'],
+            'cardPriceByCurrency.*'        => ['nullable', 'numeric', 'min:1', 'max:5000'],
 
             // Pool de premios
             'amountAddedPrizePool'        => ['nullable', 'numeric', 'min:20', 'max:10000'],
@@ -167,8 +167,8 @@ class BingoRoomRequest extends BaseRequest
 
             'cardPriceByCurrency.array'        => 'Los precios por moneda deben venir en formato válido.',
             'cardPriceByCurrency.*.numeric'    => 'El precio del cartón por moneda debe ser numérico.',
-            'cardPriceByCurrency.*.min'        => 'El precio del cartón por moneda no puede ser menor a 0.35.',
-            'cardPriceByCurrency.*.max'        => 'El precio del cartón por moneda no puede ser mayor a 50.',
+            'cardPriceByCurrency.*.min'        => 'El precio del cartón por moneda no puede ser menor a 1.',
+            'cardPriceByCurrency.*.max'        => 'El precio del cartón por moneda no puede ser mayor a 5000.',
 
             'roomCommn.required'              => 'La comisión de sala es obligatoria.',
             'roomCommn.min'                   => 'La comisión de sala no puede ser menor a 10.',
