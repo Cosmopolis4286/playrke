@@ -9,7 +9,10 @@ class BingoRoomResource extends JsonResource
     public function toArray($request): array
     {
         $config  = $this->config->first();
-        $creator = $this->whenLoaded('bingoCreators', fn () => $this->bingoCreators->first());
+
+        $allowedCurrencies = $config?->allowed_currencies
+            ? json_decode($config->allowed_currencies, true)
+            : [];
 
         return [
             'id'                 => $this->hashed_id,
@@ -23,13 +26,13 @@ class BingoRoomResource extends JsonResource
             'is_closed'          => $this->is_closed,
             'total_commissions'  => $this->total_commissions,
 
-            'status' => $this->whenLoaded('status', fn () => [
-                'id'          => $this->status->id,
-                'value'       => $this->status->value,
-                'description' => $this->status->description,
-            ]),
+            'allowed_currencies' => $allowedCurrencies,
 
-            'allowed_currencies' => $creator?->allowed_currencies ?? [],
+            'card_price_by_currency' => $this->whenLoaded('cardPrices', function () {
+                return $this->cardPrices->mapWithKeys(fn($p) => [
+                    $p->currency_id => $p->card_price
+                ]);
+            }),
 
             'config' => $config ? [
                 'room_type'               => $config->room_type,

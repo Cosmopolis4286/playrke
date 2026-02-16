@@ -78,19 +78,36 @@ class BingoRoomRequest extends BaseRequest
      *
      * - Si hay más de una moneda permitida, debe venir cardPriceByCurrency
      * - cardPriceByCurrency debe contener un precio para cada moneda seleccionada
+     * - Si no se envían allowedCurrencies, se asume que no cambiaron y se valida contra las monedas actuales de la sala (en caso de update)
      */
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $allowedCurrencies = $this->input('allowedCurrencies', []);
-            $cardPriceByCurrency = $this->input('cardPriceByCurrency', []);
 
-            if (!is_array($allowedCurrencies)) {
+            $allowedCurrencies = $this->input('allowedCurrencies');
+            $cardPriceByCurrency = $this->input('cardPriceByCurrency');
+
+            // Si no mandaron ninguno, no validamos nada
+            if ($allowedCurrencies === null && $cardPriceByCurrency === null) {
                 return;
             }
 
-            // Si hay más de una moneda permitida, el precio debe ser por moneda
+            // Si no mandaron allowedCurrencies, lo sacamos del room actual
+            if ($allowedCurrencies === null) {
+                $room = $this->route('room'); // depende del nombre en tu ruta
+
+                $config = $room?->config?->first();
+
+                $allowedCurrencies = $config?->allowed_currencies ?? [];
+            }
+
+            if (!is_array($allowedCurrencies)) {
+                $allowedCurrencies = [];
+            }
+
+            // Si hay más de una moneda, cardPriceByCurrency es obligatorio
             if (count($allowedCurrencies) > 1) {
+
                 if (!is_array($cardPriceByCurrency) || empty($cardPriceByCurrency)) {
                     $validator->errors()->add(
                         'cardPriceByCurrency',
@@ -99,18 +116,17 @@ class BingoRoomRequest extends BaseRequest
                     return;
                 }
 
-                // Validar que exista un precio para cada moneda seleccionada
                 foreach ($allowedCurrencies as $currencyId) {
-                    $currencyKey = (string) $currencyId;
+                    $key = (string) $currencyId;
 
                     if (
-                        !array_key_exists($currencyKey, $cardPriceByCurrency)
-                        || $cardPriceByCurrency[$currencyKey] === null
-                        || $cardPriceByCurrency[$currencyKey] === ''
+                        !array_key_exists($key, $cardPriceByCurrency)
+                        || $cardPriceByCurrency[$key] === null
+                        || $cardPriceByCurrency[$key] === ''
                     ) {
                         $validator->errors()->add(
-                            "cardPriceByCurrency.$currencyKey",
-                            "Falta el precio del cartón para la moneda $currencyKey."
+                            "cardPriceByCurrency.$key",
+                            "Falta el precio del cartón para la moneda $key."
                         );
                     }
                 }

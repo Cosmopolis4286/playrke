@@ -11,7 +11,7 @@ final class BingoRoomSummaryDTO implements ContextDTO
     public function __construct(
         public readonly array $rooms,
         public readonly ?array $pagination,
-        public readonly Collection $currencies,
+        public readonly Collection|array $currencies,
         public readonly Collection $bingoPatterns,
         public readonly Collection $prizePoolTypes,
         public readonly Collection $gameModes,

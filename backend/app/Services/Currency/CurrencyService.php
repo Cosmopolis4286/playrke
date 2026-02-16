@@ -8,6 +8,7 @@ use App\Contracts\Roles\Seller\SellerRepositoryInterface;
 use App\Contracts\UserRepositoryInterface;
 use App\Services\Roles\Commerce\CommerceCurrencyService;
 use App\Services\Roles\RoleUserService;
+use Illuminate\Database\Eloquent\Collection;
 
 class CurrencyService
 {
@@ -26,9 +27,9 @@ class CurrencyService
      * @param int $userId ID del usuario.
      * @param bool $withCurrency Obtener informacion de las monedas.
      * @param bool $withCountry Obtener informacion del pais de las monedas.
-     * @return array Listado de IDs o códigos de moneda disponibles.
+     * @return array|Collection Listado de IDs o códigos de moneda disponibles.
      */
-    public function getAvailableCurrencies(int $userId, ?bool $withCurrency,  ?bool $withCountry): array|object
+    public function getAvailableCurrencies(int $userId, bool $withCurrency = false,  bool $withCountry = false): array|Collection
     {
         $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 

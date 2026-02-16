@@ -71,4 +71,19 @@ final class BingoRoomException extends DomainException
     {
         return new self('BINGO_ROOM_DESTROY_NOT_ALLOWED');
     }
+
+    public static function invalidRoomType(): self
+    {
+        return new self('BINGO_ROOM_INVALID_ROOM_TYPE');
+    }
+
+    public static function invalidGameMode(): self
+    {
+        return new self('BINGO_ROOM_INVALID_GAME_MODE');
+    }
+
+    public static function invalidPrizePoolType(): self
+    {
+        return new self('BINGO_ROOM_INVALID_PRIZE_POOL_TYPE');
+    }
 }

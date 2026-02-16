@@ -28,6 +28,7 @@ final class BingoRoomCreateDTO
         public readonly float $serialsPct,
         public readonly int $numSerials,
         public readonly ?array $roundsConfig,
+        public readonly ?array $cardPriceByCurrency,
     ) {}
 
     public static function fromArray(array $data): self
@@ -49,6 +50,7 @@ final class BingoRoomCreateDTO
             serialsPct: (float) ($data['serialsPct'] ?? 5),
             numSerials: (int) ($data['numSerials'] ?? 5),
             roundsConfig: $data['roundsConfig'] ?? null,
+            cardPriceByCurrency: $data['cardPriceByCurrency'] ?? null,
         );
     }
 }

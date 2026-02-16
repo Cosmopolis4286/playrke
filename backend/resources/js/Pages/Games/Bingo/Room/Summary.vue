@@ -122,8 +122,8 @@ const filters = computed<readonly TableFilter[]>(() => [
     label: "tipo",
     placeholder: "Filtrar por tipo",
     options: [
-      { value: "Público", label: "Público" },
-      { value: "Privado", label: "Privado" },
+      { value: "PUBLIC", label: "Pública" },
+      { value: "PRIVATE", label: "Privada" },
     ],
   },
   {

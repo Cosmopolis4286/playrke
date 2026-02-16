@@ -60,7 +60,7 @@ const emptyBingoRoom = (): Partial<BingoRoom> =>
 const emptyFormData = (): BingoRoomFormData => ({
     date: null,
     time: null,
-    roomType: 'PRIVATE',
+    roomType: null,
     gameMode: null,
     prizePoolType: null,
     allowedCurrencies: [],
@@ -75,6 +75,7 @@ const emptyFormData = (): BingoRoomFormData => ({
     serialsPct: 5,
     numSerials: 5,
     cardPrice: 1,
+    cardPriceByCurrency: {},
     roundsConfig: []
 })
 
@@ -212,6 +213,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 serialsPct: config.serials_pct ?? 5,
                 numSerials: config.num_serials ?? 5,
                 cardPrice: config.card_price ?? 1,
+                cardPriceByCurrency: room.card_price_by_currency ?? {},
                 roundsConfig: []
             }
 

@@ -14,8 +14,7 @@ final class BingoRoomContextService
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly \App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface $bingoRooms,
-        private readonly \App\Contracts\CountryRepositoryInterface $countries,
-        private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
+        private readonly \App\Services\Currency\CurrencyService $currencyService,
         private readonly \App\Contracts\GameRepositoryInterface $games,
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
         private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones,
@@ -108,10 +107,12 @@ final class BingoRoomContextService
     {
         $commerceData = $this->resolveGameRooms($userId);
 
+        $currencies = $this->currencyService->getAvailableCurrencies($userId, true);
+
         return new BingoRoomSummaryDTO(
             rooms: $commerceData['rooms'],
             pagination: $commerceData['pagination'],
-            currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
+            currencies: $currencies,
             bingoPatterns: $this->bingoPatterns->getByUser($userId, ['id', 'name'], 'ACTIVE'),
             prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
             gameModes: $this->gameModes->getActiveGameModes()

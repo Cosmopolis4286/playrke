@@ -53,7 +53,7 @@ final class BingoRoomService
      */
     public function create(BingoRoomCreateDTO $dto): bool
     {
-        return $this->crudService->create($dto);
+        return $this->crudService->saveRoom($dto);
     }
 
     /**
@@ -65,7 +65,7 @@ final class BingoRoomService
      */
     public function update(BingoRoom $room, BingoRoomUpdateDTO $dto): bool
     {
-        return $this->crudService->update($room, $dto);
+        return $this->crudService->saveRoom($room, $dto);
     }
 
     /**
