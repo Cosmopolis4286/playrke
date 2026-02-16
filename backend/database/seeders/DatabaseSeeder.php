@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             CurrencySeeder::class,
             BankVenezuelaSeeder::class,
             DocumentTypeSeeder::class,
+            RoomTypeSeeder::class,
             GameSeeder::class,
             GameModeSeeder::class,
             GameStatusSeeder::class,
