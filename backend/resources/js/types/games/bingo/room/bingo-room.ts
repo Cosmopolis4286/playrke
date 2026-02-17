@@ -64,7 +64,6 @@ export interface BingoRoom {
     readonly updated_at: string
 
     // Appended accessors
-    readonly room_type_description: string
     readonly is_closed: boolean
     readonly total_commissions: number
 

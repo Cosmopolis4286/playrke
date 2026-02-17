@@ -54,6 +54,11 @@ class Seller extends BaseModel
         'manager_user_id' => 'string',
     ];
 
+    // ========================
+    // Accessors computados
+    // ========================
+    protected $appends = ['status_badge'];
+
     /**
      * Accessor para el status con badge HTML
      */

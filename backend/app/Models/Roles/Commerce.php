@@ -41,6 +41,11 @@ class Commerce extends BaseModel
         'status' => 'string',
     ];
 
+    // ========================
+    // Accessors computados
+    // ========================
+    protected $appends = ['status_badge'];
+
     /**
      * Accessor para el status con badge HTML
      */

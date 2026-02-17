@@ -60,7 +60,7 @@ final class BingoCardService
         $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
-            relations: ['status:id,value,description', 'config:room_type'],
+            relations: ['config:room_type'],
             conditions: $conditions,
             fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
         );
@@ -108,13 +108,13 @@ final class BingoCardService
     {
         $commerceData = $this->resolveGameRooms($userId);
 
-        return new BingoRoomSummaryDTO(
-            rooms: $commerceData['rooms'],
-            pagination: $commerceData['pagination'],
-            currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
-            bingoPatterns: $this->bingoPatterns->getByUser($userId, ['id', 'name'], 'ACTIVE'),
-            prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
-            gameModes: $this->gameModes->getActiveGameModes()
-        );
+        // return new BingoRoomSummaryDTO(
+        //     rooms: $commerceData['rooms'],
+        //     pagination: $commerceData['pagination'],
+        //     currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
+        //     bingoPatterns: $this->bingoPatterns->getByUser($userId, ['id', 'name'], 'ACTIVE'),
+        //     prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
+        //     gameModes: $this->gameModes->getActiveGameModes()
+        // );
     }
 }

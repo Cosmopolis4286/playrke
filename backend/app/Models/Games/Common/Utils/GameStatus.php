@@ -28,11 +28,13 @@ class GameStatus extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'code',
         'label', // Etiqueta legible (ej. 'Borrador', 'Activa')
     ];
 
     protected $casts = [
         'id' => 'string',
+        'code' => 'string',
         'label' => 'string'
     ];
 

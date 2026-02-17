@@ -78,6 +78,19 @@
     return String(text).replace(/[&<>"']/g, m => map[m])
   }
 
+  function formatDate(value: string): string {
+    const d = new Date(value)
+    if (isNaN(d.getTime())) return value
+
+    return d.toLocaleString('es-ES', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
   /**
    * Formatea contenido de celda según configuración HTML
    * @param row Fila de datos
@@ -85,8 +98,14 @@
    * @returns Contenido seguro o con HTML
    */
   function formatCell(row: Record<string, any>, column: Column): string {
-    const value = getNestedValue(row, column.key)
-    return column.html ? value : escapeHtml(value)
+    let value = getNestedValue(row, column.key)
+
+    // Formatear created_at automáticamente
+    if (column.key === 'created_at' && typeof value === 'string') {
+      value = formatDate(value)
+    }
+
+    return column.html ? value : escapeHtml(String(value))
   }
 
   /**

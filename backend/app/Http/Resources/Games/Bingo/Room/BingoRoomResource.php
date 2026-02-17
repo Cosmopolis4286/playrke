@@ -10,10 +10,6 @@ class BingoRoomResource extends JsonResource
     {
         $config  = $this->config->first();
 
-        $allowedCurrencies = $config?->allowed_currencies
-            ? json_decode($config->allowed_currencies, true)
-            : [];
-
         return [
             'id'                 => $this->hashed_id,
             'status_id'          => $this->status_id,
@@ -22,11 +18,10 @@ class BingoRoomResource extends JsonResource
             'total_players'      => $this->total_players,
             'total_cards'        => $this->total_cards,
             'total_sales'        => $this->total_sales,
-            'room_type_description' => $this->room_type_description,
             'is_closed'          => $this->is_closed,
             'total_commissions'  => $this->total_commissions,
 
-            'allowed_currencies' => $allowedCurrencies,
+            'allowed_currencies' => $config?->allowed_currencies ?? [],
 
             'card_price_by_currency' => $this->whenLoaded('cardPrices', function () {
                 return $this->cardPrices->mapWithKeys(fn($p) => [

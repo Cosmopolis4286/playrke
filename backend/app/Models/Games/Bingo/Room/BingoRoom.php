@@ -91,7 +91,7 @@ class BingoRoom extends BaseModel
     // ========================
     // Accessors computados
     // ========================
-    protected $appends = ['is_closed', 'total_commissions'];
+    protected $appends = ['status_badge', 'is_closed', 'total_commissions'];
 
     // ========================
     // Relaciones
@@ -208,9 +208,9 @@ class BingoRoom extends BaseModel
     /**
      * Valor string del estado (desde la relación game_status)
      */
-    public function getStatusValueAttribute(): ?string
+    public function getStatusCodeAttribute(): ?string
     {
-        return $this->getRelationValue('status')?->value
+        return $this->getRelationValue('status')?->code
             ?? $this->attributes['status'] ?? null;
     }
 
@@ -219,10 +219,9 @@ class BingoRoom extends BaseModel
      */
     public function getStatusBadgeAttribute(): string
     {
-        $value = $this->getRelationValue('status')?->value
-            ?? $this->attributes['status'] ?? null;
+        $code = $this->getStatusCodeAttribute();
 
-        return match ($value) {
+        return match ($code) {
             'AVAILABLE'   => '<span class="badge badge-success">Disponible</span>',
             'IN_PROGRESS' => '<span class="badge badge-primary">En Juego</span>',
             'FINISHED'    => '<span class="badge badge-info">Finalizada</span>',
@@ -242,7 +241,7 @@ class BingoRoom extends BaseModel
     public function scopeActive($query)
     {
         return $query->whereHas('status', function ($q) {
-            $q->where('value', 'ACTIVE');
+            $q->where('code', 'ACTIVE');
         });
     }
 

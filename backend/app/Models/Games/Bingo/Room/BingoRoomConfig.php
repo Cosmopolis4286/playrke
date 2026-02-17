@@ -4,6 +4,7 @@ namespace App\Models\Games\Bingo\Room;
 
 use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
+use App\Models\Games\Common\Room\RoomType;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -64,26 +65,20 @@ class BingoRoomConfig extends Model
         'num_serials' => 'integer'
     ];
 
-    protected $appends = ['room_type_description'];
-
-    /**
-     * Descripción del tipo de sala
-     */
-    public function getRoomTypeDescriptionAttribute(): string
-    {
-        return match ($this->room_type) {
-            'PRIVATE' => 'Privada',
-            'PUBLIC' => 'Pública',
-            default => 'Desconocido',
-        };
-    }
-
     /**
      * Relación con la sala de bingo
      */
     public function room(): BelongsTo
     {
         return $this->belongsTo(BingoRoom::class, 'room_id');
+    }
+
+    /**
+     * Relación con el tipo de sala.
+     */
+    public function roomType(): BelongsTo
+    {
+        return $this->belongsTo(RoomType::class, 'room_type_id');
     }
 
     /**

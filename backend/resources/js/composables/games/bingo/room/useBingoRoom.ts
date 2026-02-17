@@ -198,7 +198,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             roomFormData.value = {
                 date: config.date ?? null,
                 time: config.time ?? null,
-                roomType: config.room_type ?? 'PRIVATE',
+                roomType: config.room_type_id ?? null,
                 gameMode: config.game_mode_id ?? null,
                 prizePoolType: config.prize_pool_type_id ?? null,
                 allowedCurrencies: room.allowed_currencies ?? [],

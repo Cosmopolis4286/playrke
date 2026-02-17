@@ -126,5 +126,5 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
      */
     public function updatePrizePool(string $roomId, float $amount): bool;
 
-    public function changeGameStatus(string $roomId,string $newStatusValue): bool;
+    public function changeGameStatus(string $roomId,string $newStatusCode): bool;
 }

@@ -49,6 +49,11 @@ class PagoMovil extends Model
         'document_type_id' => 'string',
     ];
 
+    // ========================
+    // Accessors computados
+    // ========================
+    protected $appends = ['status_badge'];
+
     /**
      * Accessor para el label de status con badge HTML
      */
