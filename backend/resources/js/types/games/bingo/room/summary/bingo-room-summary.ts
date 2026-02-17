@@ -13,7 +13,7 @@ export interface BingoRoomSummaryPageProps {
     rooms_pagination: Pagination | null,
     currencies: Currency[],
     roomTypes: { id: string | number; label: string }[],
-    gameModes: { id: string | number; description: string }[],
-    prizePoolTypes: { id: string | number; description: string }[],
+    gameModes: { id: string | number; label: string }[],
+    prizePoolTypes: { id: string | number; code: string; label: string }[],
     bingoPatterns?: { id: string | number; name: string }[]
 }

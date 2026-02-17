@@ -130,8 +130,10 @@ final class BingoRoomCrudService
             $uuidCode = strtoupper(Str::uuid()->toString());
         } while (BingoRoom::where('uuid_code', $uuidCode)->exists());
 
+        $statusId = GameStatus::where('code', 'AVAILABLE')->value('id');
+
         $room = BingoRoom::create([
-            'status_id'       => 'AVAILABLE',
+            'status_id'       => $statusId,
             'creator_user_id' => $userId,
             'paid_prizes'     => 'N',
             'prize_pool'      => 0,
@@ -185,7 +187,7 @@ final class BingoRoomCrudService
     private function buildConfigData($dto, int $userId, float $rkeCommission, int $unixDate, int $roomId, bool $isCreate): array
     {
         $base = [
-            'room_type'               => $dto->roomType,
+            'room_type_id'            => $dto->roomType,
             'game_mode_id'            => $dto->gameMode,
             'date'                    => $dto->date,
             'time'                    => $dto->time,
@@ -287,12 +289,12 @@ final class BingoRoomCrudService
      */
     public function toggleStatus(BingoRoom $room): bool
     {
-        if ($room->status?->value === 'DELETED') {
+        if ($room->status?->code === 'DELETED') {
             throw BingoRoomException::invalidStatusChange();
         }
 
         // Definir nuevo estado alternando entre AVAILABLE y UNAVAILABLE
-        $newStatus = $room->status?->value === 'AVAILABLE'
+        $newStatus = $room->status?->code === 'AVAILABLE'
             ? 'UNAVAILABLE'
             : 'AVAILABLE';
 
@@ -310,7 +312,7 @@ final class BingoRoomCrudService
      */
     public function delete(BingoRoom $room): bool
     {
-        if ($room->status?->value === 'DELETED') {
+        if ($room->status?->code === 'DELETED') {
             throw BingoRoomException::alreadyDeleted();
         }
 

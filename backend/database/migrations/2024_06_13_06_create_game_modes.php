@@ -20,7 +20,7 @@ return new class extends Migration
                 ->comment('Código único del modo de juego.');
 
             // Descripción legible y única
-            $table->string('description', 50)
+            $table->string('label', 50)
                 ->unique()
                 ->comment('Descripción del modo de juego');
 
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Índice por estado para consultas rápidas
-            $table->index(['status', 'description']);
+            $table->index(['status', 'label']);
         });
     }
 

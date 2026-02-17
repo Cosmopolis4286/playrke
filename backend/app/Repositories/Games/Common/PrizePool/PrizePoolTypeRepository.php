@@ -46,25 +46,25 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     /**
      * {@inheritDoc}
      */
-    public function getByDescription(string $description): ?PrizePoolType
+    public function getByLabel(string $label): ?PrizePoolType
     {
-        return $this->model->where('description', $description)->first();
+        return $this->model->where('label', $label)->first();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function searchByDescription(string $searchTerm): Collection
+    public function searchByLabel(string $searchTerm): Collection
     {
-        return $this->model->where('description', 'LIKE', "%{$searchTerm}%")->get();
+        return $this->model->where('label', 'LIKE', "%{$searchTerm}%")->get();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function existsByDescription(string $description, ?string $excludeId = null): bool
+    public function existsByLabel(string $label, ?string $excludeId = null): bool
     {
-        $query = $this->model->where('description', $description);
+        $query = $this->model->where('label', $label);
 
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
@@ -76,10 +76,10 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     /**
      * {@inheritDoc}
      */
-    public function createType(string $description, string $status = 'ACTIVE'): PrizePoolType
+    public function createType(string $label, string $status = 'ACTIVE'): PrizePoolType
     {
         return $this->model->create([
-            'description' => $this->normalizeDescription($description),
+            'label' => $this->normalizeLabel($label),
             'status' => $status
         ]);
     }
@@ -87,10 +87,10 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     /**
      * {@inheritDoc}
      */
-    public function updateDescription(string $typeId, string $description): bool
+    public function updateLabel(string $typeId, string $label): bool
     {
         return $this->model->where('id', $typeId)
-            ->update(['description' => $this->normalizeDescription($description)]) > 0;
+            ->update(['label' => $this->normalizeLabel($label)]) > 0;
     }
 
     /**
@@ -143,20 +143,20 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
         $total = $this->model->count();
         $active = $this->model->where('status', 'ACTIVE')->count();
         $inactive = $this->model->where('status', 'INACTIVE')->count();
-        $averageDescriptionLength = $this->model->avg(DB::raw('LENGTH(description)'));
-        $longestDescription = $this->model->orderByRaw('LENGTH(description) DESC')->first();
-        $shortestDescription = $this->model->orderByRaw('LENGTH(description) ASC')->first();
+        $averageLabelLength = $this->model->avg(DB::raw('LENGTH(label)'));
+        $longestLabel = $this->model->orderByRaw('LENGTH(label) DESC')->first();
+        $shortestLabel = $this->model->orderByRaw('LENGTH(label) ASC')->first();
 
         return [
             'total_types' => $total,
             'active_types' => $active,
             'inactive_types' => $inactive,
             'active_percentage' => $total > 0 ? round(($active / $total) * 100, 2) : 0,
-            'average_description_length' => round($averageDescriptionLength ?? 0, 2),
-            'longest_description' => $longestDescription?->description ?? '',
-            'shortest_description' => $shortestDescription?->description ?? '',
-            'longest_description_length' => $longestDescription ? strlen($longestDescription->description) : 0,
-            'shortest_description_length' => $shortestDescription ? strlen($shortestDescription->description) : 0
+            'average_label_length' => round($averageLabelLength ?? 0, 2),
+            'longest_label' => $longestLabel?->label ?? '',
+            'shortest_label' => $shortestLabel?->label ?? '',
+            'longest_label_length' => $longestLabel ? strlen($longestLabel->label) : 0,
+            'shortest_label_length' => $shortestLabel ? strlen($shortestLabel->label) : 0
         ];
     }
 
@@ -173,9 +173,9 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     /**
      * {@inheritDoc}
      */
-    public function getOrderedByDescription(bool $activeOnly = false): Collection
+    public function getOrderedByLabel(bool $activeOnly = false): Collection
     {
-        $query = $this->model->orderBy('description');
+        $query = $this->model->orderBy('label');
 
         if ($activeOnly) {
             $query->where('status', 'ACTIVE');
@@ -251,16 +251,16 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     /**
      * {@inheritDoc}
      */
-    public function createBulkTypes(array $descriptions, string $status = 'ACTIVE'): Collection
+    public function createBulkTypes(array $labels, string $status = 'ACTIVE'): Collection
     {
         $types = collect();
 
-        foreach ($descriptions as $description) {
-            $normalizedDescription = $this->normalizeDescription($description);
+        foreach ($labels as $label) {
+            $normalizedLabel = $this->normalizeLabel($label);
 
             // Verificar si ya existe antes de crear
-            if (!$this->existsByDescription($normalizedDescription)) {
-                $type = $this->createType($normalizedDescription, $status);
+            if (!$this->existsByLabel($normalizedLabel)) {
+                $type = $this->createType($normalizedLabel, $status);
                 $types->push($type);
             }
         }
@@ -273,21 +273,21 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
      */
     public function getForSelect(bool $activeOnly = true): array
     {
-        $query = $this->model->orderBy('description');
+        $query = $this->model->orderBy('label');
 
         if ($activeOnly) {
             $query->where('status', 'ACTIVE');
         }
 
-        return $query->pluck('description', 'id')->toArray();
+        return $query->pluck('label', 'id')->toArray();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function isValidDescription(string $description): bool
+    public function isValidLabel(string $label): bool
     {
-        $normalized = $this->normalizeDescription($description);
+        $normalized = $this->normalizeLabel($label);
 
         // Verificar longitud
         if (strlen($normalized) < 2 || strlen($normalized) > 50) {
@@ -305,10 +305,10 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     /**
      * {@inheritDoc}
      */
-    public function normalizeDescription(string $description): string
+    public function normalizeLabel(string $label): string
     {
         // Limpiar espacios extra
-        $normalized = trim($description);
+        $normalized = trim($label);
 
         // Convertir a título (primera letra de cada palabra en mayúscula)
         $normalized = Str::title($normalized);
@@ -322,11 +322,11 @@ class PrizePoolTypeRepository extends BaseRepository implements PrizePoolTypeRep
     /**
      * {@inheritDoc}
      */
-    public function getDescriptionSuggestions(string $partialText, int $limit = 5): Collection
+    public function getLabelSuggestions(string $partialText, int $limit = 5): Collection
     {
-        return $this->model->where('description', 'LIKE', "%{$partialText}%")
+        return $this->model->where('label', 'LIKE', "%{$partialText}%")
             ->where('status', 'ACTIVE')
-            ->orderBy('description')
+            ->orderBy('label')
             ->limit($limit)
             ->get();
     }

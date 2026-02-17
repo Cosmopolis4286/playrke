@@ -10,17 +10,20 @@ class GameModeSeeder extends Seeder
     public function run(): void
     {
         $gameModes = [
-            ['description' => 'Online',  'status' => true],
-            ['description' => 'Offline', 'status' => true],
-            ['description' => 'Mixto',   'status' => true],
-            ['description' => 'Demo',    'status' => true],
+            ['code' => 'ONLINE', 'label' => 'Online'],
+            ['code' => 'OFFLINE', 'label' => 'Offline'],
+            ['code' => 'MIXED', 'label' => 'Mixto'],
+            ['code' => 'DEMO', 'label' => 'Demo'],
         ];
 
         // Insertar o actualizar cada modo de forma idempotente
         foreach ($gameModes as $mode) {
             GameMode::updateOrCreate(
-                ['description' => $mode['description']],
-                ['status' => $mode['status']]
+                ['code' => $mode['code']],
+                [
+                    'label' => $mode['label'],
+                    'status'      => 'ACTIVE',
+                ]
             );
         }
     }

@@ -26,9 +26,10 @@ return new class extends Migration
                 ->comment('Modo de creación: M = manual, A = automático');
 
             // Tipo de sala
-            $table->enum('room_type', ['PRIVATE', 'PUBLIC'])
-                ->default('PRIVATE')
-                ->comment('Tipo de sala: PRIVATE = privada, PUBLIC = publica');
+            $table->foreignSnowflake('room_type_id')
+                ->constrained('room_types')
+                ->cascadeOnDelete()
+                ->comment('Tipo de sala');
 
             // Creador
             $table->foreignSnowflake('creator_user_id')
@@ -83,7 +84,7 @@ return new class extends Migration
 
             // indices
             $table->index('room_id', 'idx_room_id');
-            $table->index('room_type', 'idx_room_type');
+            $table->index('room_type_id', 'idx_room_type_id');
             $table->index('creator_user_id', 'idx_creator_user_id');
             $table->index('game_mode_id', 'idx_game_mode_id');
             $table->index('prize_pool_type_id', 'idx_prize_pool_type_id');

@@ -17,6 +17,7 @@
 
   interface SelectOption {
     value: string | number
+    code?: string
     label: string
   }
 
@@ -108,8 +109,7 @@
     const selected = props.prizePoolTypeOptions.find(
       opt => String(opt.value) === String(form.value.prizePoolType)
     )
-    console.log('selected prizePoolType:', selected)
-    return selected ? selected.value !== 'ACCUMULATIVE' : false
+    return selected ? selected.code !== 'ACCUMULATIVE' : false
   })
 
   /**

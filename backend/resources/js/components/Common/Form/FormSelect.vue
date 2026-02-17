@@ -1,6 +1,7 @@
 <script setup lang="ts" name="FormSelect">
   import { computed } from 'vue'
   import Multiselect from '@vueform/multiselect'
+  import type { PropType } from 'vue'
 
   /**
    * Opción genérica para selects
@@ -24,7 +25,7 @@
 
     /** Mensaje de error */
     error: {
-      type: Object as () => string | Record<string, string> | null,
+      type: [String, Object] as PropType<string | Record<string, string> | null>,
       default: null
     },
 

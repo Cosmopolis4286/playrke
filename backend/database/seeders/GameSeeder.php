@@ -10,15 +10,15 @@ class GameSeeder extends Seeder
     public function run(): void
     {
         $games = [
-            ['name' => 'BINGO',  'status' => 'ACTIVE'],
-            ['name' => 'POLLA',  'status' => 'ACTIVE'],
-            ['name' => 'TRIVIA', 'status' => 'ACTIVE'],
+            ['name' => 'BINGO'],
+            ['name' => 'POLLA'],
+            ['name' => 'TRIVIA'],
         ];
 
         foreach ($games as $game) {
             Game::updateOrCreate(
                 ['name' => $game['name']],
-                ['status' => $game['status']]
+                ['status' => 'ACTIVE']
             );
         }
     }

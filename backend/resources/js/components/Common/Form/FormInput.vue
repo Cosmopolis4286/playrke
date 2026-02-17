@@ -1,6 +1,7 @@
 <script setup lang="ts">
-  import { computed, useSlots, ref, watch, nextTick } from 'vue'
+  import { computed, useSlots } from 'vue'
   import { IMaskDirective } from 'vue-imask'
+  import type { PropType } from 'vue'
   import type { FactoryArg } from 'imask'
 
   const vImask = IMaskDirective
@@ -9,7 +10,7 @@
     container: { type: Boolean, default: false },
     id: { type: String, default: null },
     error: {
-      type: Object as () => string | Record<string, string> | null,
+      type: [String, Object] as PropType<string | Record<string, string> | null>,
       default: null
     },
     label: { type: String, default: null },
@@ -51,18 +52,13 @@
     const min = props.min !== null ? Number(props.min) : null
     const max = props.max !== null ? Number(props.max) : null
 
-    console.log(`[clampNumericValue] ${props.name}: num=${num}, min=${min}, max=${max}`)
-
     if (min !== null && num < min) {
-      console.log(`[clampNumericValue] ${props.name}: Menor que min, devolviendo ${min}`)
       return min
     }
     if (max !== null && num > max) {
-      console.log(`[clampNumericValue] ${props.name}: Mayor que max, devolviendo ${max}`)
       return max
     }
 
-    console.log(`[clampNumericValue] ${props.name}: Dentro de rango, devolviendo ${num}`)
     return num
   }
 
@@ -116,9 +112,7 @@
    */
   function onAccept(event: CustomEvent) {
     const value = event.detail.value
-    console.log(`[FormInput onAccept] ${props.name}: value="${value}"`)
     const adjusted = clampNumericValue(value)
-    console.log(`[FormInput onAccept] ${props.name}: adjusted="${adjusted}"`)
     emit('update:modelValue', adjusted)
   }
 </script>

@@ -32,17 +32,22 @@ class RoomType extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'id',       // Código del tipo (PRIVATE|PUBLIC|VIP|MIXED)
+        'code',     // Código del tipo (PRIVATE|PUBLIC|VIP|MIXED)
         'label',    // Etiqueta visible
         'status',   // Estado (ACTIVE|INACTIVE)
     ];
 
-    /**
-     * Casts.
+     /**
+     * Los atributos que deben ser casteados a tipos nativos.
      *
      * @var array<string, string>
      */
-    protected $casts = [];
+    protected $casts = [
+        'id' => 'string',  // Casteo del ID a string para manejar Snowflake
+        'code' => 'string',  // Casteo del código a string
+        'label' => 'string',  // Casteo de la etiqueta a string
+        'status' => 'string',  // Casteo del estado a string
+    ];
 
     /**
      * Scope para filtrar tipos activos.

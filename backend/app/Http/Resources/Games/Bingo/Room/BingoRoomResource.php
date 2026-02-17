@@ -35,7 +35,7 @@ class BingoRoomResource extends JsonResource
             }),
 
             'config' => $config ? [
-                'room_type'               => $config->room_type,
+                'room_type_id'            => $config->room_type_id,
                 'date'                    => $config->date?->format('Y-m-d'),
                 'time'                    => $config->time,
                 'game_mode_id'            => $config->game_mode_id,

@@ -31,10 +31,10 @@ interface PrizePoolTypeRepositoryInterface extends BaseRepositoryInterface
     /**
      * Buscar tipos por descripción exacta.
      *
-     * @param string $description Descripción exacta
+     * @param string $label Descripción exacta
      * @return PrizePoolType|null El tipo encontrado o null
      */
-    public function getByDescription(string $description): ?PrizePoolType;
+    public function getByLabel(string $label): ?PrizePoolType;
 
     /**
      * Buscar tipos por descripción parcial.
@@ -42,34 +42,34 @@ interface PrizePoolTypeRepositoryInterface extends BaseRepositoryInterface
      * @param string $searchTerm Término de búsqueda parcial
      * @return Collection Tipos que contienen el término en la descripción
      */
-    public function searchByDescription(string $searchTerm): Collection;
+    public function searchByLabel(string $searchTerm): Collection;
 
     /**
      * Verificar si existe un tipo con la descripción dada.
      *
-     * @param string $description Descripción a verificar
+     * @param string $label Descripción a verificar
      * @param string|null $excludeId ID a excluir de la verificación (para updates)
      * @return bool True si existe, false en caso contrario
      */
-    public function existsByDescription(string $description, ?string $excludeId = null): bool;
+    public function existsByLabel(string $label, ?string $excludeId = null): bool;
 
     /**
      * Crear un nuevo tipo de pool de premios.
      *
-     * @param string $description Descripción del tipo
+     * @param string $label Descripción del tipo
      * @param string $status Estado inicial (por defecto 'ACTIVE')
      * @return PrizePoolType El tipo creado
      */
-    public function createType(string $description, string $status = 'ACTIVE'): PrizePoolType;
+    public function createType(string $label, string $status = 'ACTIVE'): PrizePoolType;
 
     /**
      * Actualizar la descripción de un tipo.
      *
      * @param string $typeId ID del tipo
-     * @param string $description Nueva descripción
+     * @param string $label Nueva descripción
      * @return bool True si se actualizó correctamente
      */
-    public function updateDescription(string $typeId, string $description): bool;
+    public function updateLabel(string $typeId, string $label): bool;
 
     /**
      * Actualizar el estado de un tipo.
@@ -134,7 +134,7 @@ interface PrizePoolTypeRepositoryInterface extends BaseRepositoryInterface
      * @param bool $activeOnly Solo tipos activos (por defecto false)
      * @return Collection Tipos ordenados por descripción
      */
-    public function getOrderedByDescription(bool $activeOnly = false): Collection;
+    public function getOrderedByLabel(bool $activeOnly = false): Collection;
 
     /**
      * Obtener tipos más utilizados en juegos.
@@ -178,35 +178,35 @@ interface PrizePoolTypeRepositoryInterface extends BaseRepositoryInterface
     /**
      * Crear tipos por lotes.
      *
-     * @param array $descriptions Array de descripciones
+     * @param array $labels Array de descripciones
      * @param string $status Estado inicial para todos (por defecto 'ACTIVE')
      * @return Collection Tipos creados
      */
-    public function createBulkTypes(array $descriptions, string $status = 'ACTIVE'): Collection;
+    public function createBulkTypes(array $labels, string $status = 'ACTIVE'): Collection;
 
     /**
      * Obtener tipos para uso en selects/formularios.
      *
      * @param bool $activeOnly Solo tipos activos (por defecto true)
-     * @return array<string, string> Array asociativo [id => description]
+     * @return array<string, string> Array asociativo [id => label]
      */
     public function getForSelect(bool $activeOnly = true): array;
 
     /**
      * Validar descripción de tipo.
      *
-     * @param string $description Descripción a validar
+     * @param string $label Descripción a validar
      * @return bool True si es válida
      */
-    public function isValidDescription(string $description): bool;
+    public function isValidLabel(string $label): bool;
 
     /**
      * Normalizar descripción de tipo.
      *
-     * @param string $description Descripción a normalizar
+     * @param string $label Descripción a normalizar
      * @return string Descripción normalizada
      */
-    public function normalizeDescription(string $description): string;
+    public function normalizeLabel(string $label): string;
 
     /**
      * Obtener sugerencias de descripción basadas en texto parcial.
@@ -215,7 +215,7 @@ interface PrizePoolTypeRepositoryInterface extends BaseRepositoryInterface
      * @param int $limit Límite de sugerencias (por defecto 5)
      * @return Collection Sugerencias de tipos existentes
      */
-    public function getDescriptionSuggestions(string $partialText, int $limit = 5): Collection;
+    public function getLabelSuggestions(string $partialText, int $limit = 5): Collection;
 
     /**
      * Archivar tipos antiguos (marcar como inactivos).

@@ -34,6 +34,7 @@ class GameStatusRepository extends BaseRepository implements GameStatusRepositor
         return $this->model->where('label', $label)->get();
     }
 
+
     /**
      * {@inheritDoc}
      */

@@ -19,9 +19,9 @@ class GamePrizeSeeder extends Seeder
         }
 
         $prizes = [
-            ['description' => 'Cartón Lleno', 'code' => 'FLHE', 'game_id' => $gameId, 'status' => true],
-            ['description' => 'Serial',      'code' => 'SRL',  'game_id' => $gameId, 'status' => true],
-            ['description' => 'Canto',       'code' => 'SONG', 'game_id' => $gameId, 'status' => true],
+            ['code' => 'FLHE', 'description' => 'Cartón Lleno', 'game_id' => $gameId, 'status' => true],
+            ['code' => 'SRL', 'description' => 'Serial', 'game_id' => $gameId, 'status' => true],
+            ['code' => 'SONG', 'description' => 'Canto', 'game_id' => $gameId, 'status' => true],
         ];
 
         // Insertar o actualizar cada premio de forma idempotente

@@ -3,6 +3,7 @@
 namespace App\Models\Games\Common\PrizePool;
 
 use App\Models\Games\Common\PrizePool\GamePrizePoolType;
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
@@ -15,13 +16,15 @@ use Illuminate\Support\Str;
  */
 class PrizePoolType extends Model
 {
+    use SnowflakeId;
     /**
      * Los campos que se pueden asignar masivamente.
      *
      * @var array<int, string>
      */
     protected $fillable = [
-        'description',  // Descripción del tipo de pool de premios
+        'code',      // Código único del tipo de pool de premios
+        'label',  // Etiqueta del tipo de pool de premios
         'status',    // Estado del tipo enum (ACTIVE/INACTIVE)
     ];
 
@@ -83,12 +86,12 @@ class PrizePoolType extends Model
      * Scope para buscar por descripción.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param string $description
+     * @param string $label
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeByDescription($query, string $description)
+    public function scopeByLabel($query, string $label)
     {
-        return $query->where('description', 'LIKE', "%{$description}%");
+        return $query->where('label', 'LIKE', "%{$label}%");
     }
 
     /**
@@ -98,9 +101,9 @@ class PrizePoolType extends Model
      * @param string $direction Dirección del ordenamiento (asc|desc)
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeOrderByDescription($query, string $direction = 'asc')
+    public function scopeOrderByLabel($query, string $direction = 'asc')
     {
-        return $query->orderBy('description', $direction);
+        return $query->orderBy('label', $direction);
     }
 
     /**
@@ -148,9 +151,9 @@ class PrizePoolType extends Model
      *
      * @return string
      */
-    public function getNormalizedDescription(): string
+    public function getNormalizedLabel(): string
     {
-        return Str::title(trim($this->description));
+        return Str::title(trim($this->label));
     }
 
     /**
@@ -196,12 +199,12 @@ class PrizePoolType extends Model
     /**
      * Verificar si la descripción es válida.
      *
-     * @param string $description Descripción a validar
+     * @param string $label Descripción a validar
      * @return bool
      */
-    public static function isValidDescription(string $description): bool
+    public static function isValidLabel(string $label): bool
     {
-        $trimmed = trim($description);
+        $trimmed = trim($label);
 
         // Verificar longitud
         if (strlen($trimmed) < 2 || strlen($trimmed) > 50) {
@@ -219,13 +222,13 @@ class PrizePoolType extends Model
     /**
      * Normalizar una descripción.
      *
-     * @param string $description Descripción a normalizar
+     * @param string $label Descripción a normalizar
      * @return string Descripción normalizada
      */
-    public static function normalizeDescription(string $description): string
+    public static function normalizeLabel(string $label): string
     {
         // Limpiar espacios extra
-        $normalized = trim($description);
+        $normalized = trim($label);
 
         // Convertir a título
         $normalized = Str::title($normalized);
@@ -242,9 +245,9 @@ class PrizePoolType extends Model
      * @param string $value
      * @return void
      */
-    public function setDescriptionAttribute(string $value): void
+    public function setLabelAttribute(string $value): void
     {
-        $this->attributes['description'] = self::normalizeDescription($value);
+        $this->attributes['label'] = self::normalizeLabel($value);
     }
 
     /**
@@ -259,7 +262,7 @@ class PrizePoolType extends Model
 
         return sprintf(
             '%s (%s) - Usado en %d asignación(es)',
-            $this->description,
+            $this->label,
             $status,
             $usage
         );
@@ -274,7 +277,7 @@ class PrizePoolType extends Model
     {
         return sprintf(
             '%s [%s]',
-            $this->description,
+            $this->label,
             $this->isActive() ? 'ACTIVO' : 'INACTIVO'
         );
     }
@@ -287,11 +290,11 @@ class PrizePoolType extends Model
      */
     public function getSimilarTypes(int $limit = 5): \Illuminate\Database\Eloquent\Collection
     {
-        $words = explode(' ', $this->description);
+        $words = explode(' ', $this->label);
         $searchTerm = implode('|', $words);
 
         return static::where('id', '!=', $this->id)
-            ->where('description', 'REGEXP', $searchTerm)
+            ->where('label', 'REGEXP', $searchTerm)
             ->limit($limit)
             ->get();
     }

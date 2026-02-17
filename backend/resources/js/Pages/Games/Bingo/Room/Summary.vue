@@ -1,199 +1,197 @@
 <script setup lang="ts">
-/**
- * Página Juego BINGO → GameRoom/Summary
- */
+  /**
+   * Página Juego BINGO → GameRoom/Summary
+   */
 
-import { computed, watch } from "vue";
+  import { computed, watch } from 'vue'
 
-// ==========================================================================
-// Componentes
-// ==========================================================================
+  // ==========================================================================
+  // Componentes
+  // ==========================================================================
 
-import TableWithFilterBridge from "@js/Components/Common/Table/TableWithFilterBridge.vue";
-import Modal from "@/js/Components/Common/Modal/Modal.vue";
-import BingoRoomForm from "@/js/Components/Games/Bingo/Room/BingoRoomForm.vue";
+  import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import Modal from '@/js/Components/Common/Modal/Modal.vue'
+  import BingoRoomForm from '@/js/Components/Games/Bingo/Room/BingoRoomForm.vue'
 
-// ==========================================================================
-// Composables
-// ==========================================================================
+  // ==========================================================================
+  // Composables
+  // ==========================================================================
 
-import { useCrudEventListener } from "@/js/composables/form/useCrudEventListener";
-import { useModalForm } from "@/js/composables/common/useModalForm";
-import { useBingoRoom } from "@/js/composables/games/bingo/room/useBingoRoom";
+  import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
+  import { useModalForm } from '@/js/composables/common/useModalForm'
+  import { useBingoRoom } from '@/js/composables/games/bingo/room/useBingoRoom'
 
-// ==========================================================================
-// Types
-// ==========================================================================
+  // ==========================================================================
+  // Types
+  // ==========================================================================
 
-import type { BingoRoomSummaryPageProps } from "@/js/types/games/bingo/room/summary/bingo-room-summary";
-import type { ExtraButton } from "@js/types/common/table/extra-buttons";
-import type { TableFilter } from "@js/types/common/table/table-filter";
+  import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/summary/bingo-room-summary'
+  import type { ExtraButton } from '@js/types/common/table/extra-buttons'
+  import type { TableFilter } from '@js/types/common/table/table-filter'
 
-// ==========================================================================
-// Props (Inertia)
-// ==========================================================================
+  // ==========================================================================
+  // Props (Inertia)
+  // ==========================================================================
 
-const props = defineProps<BingoRoomSummaryPageProps>();
+  const props = defineProps<BingoRoomSummaryPageProps>()
 
-// ==========================================================================
-// Lógica de negocio
-// ==========================================================================
+  // ==========================================================================
+  // Lógica de negocio
+  // ==========================================================================
 
-const {
-  roomData,
-  roomFormData,
-  rooms,
-  setInitialRooms,
-  create,
-  edit,
-  toggleStatusBulk,
-  removeBulk,
-  submit,
-} = useBingoRoom();
+  const {
+    roomData,
+    roomFormData,
+    rooms,
+    setInitialRooms,
+    create,
+    edit,
+    toggleStatusBulk,
+    removeBulk,
+    submit
+  } = useBingoRoom()
 
-setInitialRooms(props.rooms.rows);
+  setInitialRooms(props.rooms.rows)
 
-// ==========================================================================
-// Modal + Form handler
-// ==========================================================================
+  // ==========================================================================
+  // Modal + Form handler
+  // ==========================================================================
 
-const {
-  showModalForm,
-  modalTitle,
-  formRef: bingoGameRoomFormRef,
-  handleSubmit,
-} = useModalForm(roomData, submit, {
-  defaultTitle: "Sala de Bingo",
-});
+  const {
+    showModalForm,
+    modalTitle,
+    formRef: bingoGameRoomFormRef,
+    handleSubmit
+  } = useModalForm(roomData, submit, {
+    defaultTitle: 'Sala de Bingo'
+  })
 
-watch(showModalForm, (isOpen) => {
-  if (!isOpen) {
-    bingoGameRoomFormRef.value?.reset?.();
-    create();
-  }
-});
-
-// ==========================================================================
-// CRUD global (eventos tabla)
-// ==========================================================================
-
-useCrudEventListener({
-  create: () => {
-    create();
-    showModalForm.value = true;
-  },
-
-  edit: async (ids) => {
-    if (!ids || ids.length !== 1) return;
-
-    const ok = await edit(ids[0]);
-    if (ok) {
-      showModalForm.value = true;
+  watch(showModalForm, isOpen => {
+    if (!isOpen) {
+      bingoGameRoomFormRef.value?.reset?.()
+      create()
     }
-  },
+  })
 
-  delete: async (ids) => {
-    if (!ids) return;
-    await removeBulk(ids);
-  },
+  // ==========================================================================
+  // CRUD global (eventos tabla)
+  // ==========================================================================
 
-  toggleStatus: async (ids) => {
-    if (!ids) return;
-    await toggleStatusBulk(ids);
-  },
-});
+  useCrudEventListener({
+    create: () => {
+      create()
+      showModalForm.value = true
+    },
 
-// ==========================================================================
-// Filtros
-// ==========================================================================
+    edit: async ids => {
+      if (!ids || ids.length !== 1) return
 
-const filters = computed<readonly TableFilter[]>(() => [
-  {
-    key: "room_type_description",
-    label: "tipo",
-    placeholder: "Filtrar por tipo",
-    options: [
-      { value: "PUBLIC", label: "Pública" },
-      { value: "PRIVATE", label: "Privada" },
-    ],
-  },
-  {
-    key: "status",
-    label: "Estado",
-    placeholder: "Filtrar por estado",
-    options: [
-      { value: "AVAILABLE", label: "Disponible" },
-      { value: "IN_PROGRESS", label: "En Juego" },
-      { value: "FINISHED", label: "Finalizada" },
-      { value: "REFUND", label: "Reembolso" },
-      { value: "OFFLINE", label: "Fuera de Línea" },
-    ],
-  },
-]);
+      const ok = await edit(ids[0])
+      if (ok) {
+        showModalForm.value = true
+      }
+    },
 
-/**
- * Opciones para tipos de sala.
- */
-const roomTypeOptions = computed(() => {
-  return (props.roomTypes ?? []).map((r) => ({
-    value: r.id,
-    label: r.label,
-  }));
-});
+    delete: async ids => {
+      if (!ids) return
+      await removeBulk(ids)
+    },
 
-/**
- * Opciones para modos de juego.
- */
-const gameModeOptions = computed(() => {
-  return (props.gameModes ?? []).map((g) => ({
-    value: g.id,
-    label: g.description,
-  }));
-});
+    toggleStatus: async ids => {
+      if (!ids) return
+      await toggleStatusBulk(ids)
+    }
+  })
 
-/**
- * Opciones para tipos de prize pool.
- */
-const prizePoolTypeOptions = computed(() => {
-  return (props.prizePoolTypes ?? []).map((p) => ({
-    value: p.id,
-    label: p.description,
-  }));
-});
+  /**
+   * Opciones para tipos de sala.
+   */
+  const roomTypeOptions = computed(() => {
+    return (props.roomTypes ?? []).map(r => ({
+      value: String(r.id),
+      label: r.label
+    }))
+  })
 
-/**
- * Opciones de monedas permitidas.
- */
-const allowedCurrenciesOptions = computed(() => {
-  return (props.currencies ?? []).map((c) => ({
-    value: c.id,
-    label: c.iso_code,
-  }));
-});
+  /**
+   * Opciones para modos de juego.
+   */
+  const gameModeOptions = computed(() => {
+    return (props.gameModes ?? []).map(g => ({
+      value: String(g.id),
+      label: g.label
+    }))
+  })
 
-/**
- * Opciones de patrones de bingo.
- */
-const bingoPatternOptions = computed(() => {
-  return (props.bingoPatterns ?? []).map((p) => ({
-    value: p.id,
-    label: p.name,
-  }));
-});
+  /**
+   * Opciones para tipos de prize pool.
+   */
+  const prizePoolTypeOptions = computed(() => {
+    return (props.prizePoolTypes ?? []).map(p => ({
+      value: String(p.id),
+      code: p.code,
+      label: p.label
+    }))
+  })
 
-// ==========================================================================
-// Botones extra
-// ==========================================================================
+  /**
+   * Opciones de monedas permitidas.
+   */
+  const allowedCurrenciesOptions = computed(() => {
+    return (props.currencies ?? []).map(c => ({
+      value: String(c.id),
+      label: c.iso_code
+    }))
+  })
 
-const extraButtons: ExtraButton[] = [
-  {
-    label: "",
-    icon: "fas fa-exchange-alt",
-    class: "btn-secondary",
-    show: false,
-    action: "toggleStatus",
-  },
-];
+  /**
+   * Opciones de patrones de bingo.
+   */
+  const bingoPatternOptions = computed(() => {
+    return (props.bingoPatterns ?? []).map(p => ({
+      value: String(p.id),
+      label: p.name
+    }))
+  })
+
+  // ==========================================================================
+  // Filtros
+  // ==========================================================================
+
+  const filters = computed<readonly TableFilter[]>(() => [
+    {
+      key: 'room_type_description',
+      label: 'tipo',
+      placeholder: 'Filtrar por tipo',
+      options: roomTypeOptions.value
+    },
+    {
+      key: 'status',
+      label: 'Estado',
+      placeholder: 'Filtrar por estado',
+      options: [
+        { value: 'AVAILABLE', label: 'Disponible' },
+        { value: 'IN_PROGRESS', label: 'En Juego' },
+        { value: 'FINISHED', label: 'Finalizada' },
+        { value: 'REFUND', label: 'Reembolso' },
+        { value: 'OFFLINE', label: 'Fuera de Línea' }
+      ]
+    }
+  ])
+
+  // ==========================================================================
+  // Botones extra
+  // ==========================================================================
+
+  const extraButtons: ExtraButton[] = [
+    {
+      label: '',
+      icon: 'fas fa-exchange-alt',
+      class: 'btn-secondary',
+      show: false,
+      action: 'toggleStatus'
+    }
+  ]
 </script>
 
 <template>

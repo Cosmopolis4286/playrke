@@ -29,6 +29,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index('status', 'idx_room_types_status');
+            $table->index('label', 'idx_room_types_label');
         });
     }
 

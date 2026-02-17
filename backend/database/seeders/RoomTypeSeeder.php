@@ -10,15 +10,15 @@ class RoomTypeSeeder extends Seeder
     public function run(): void
     {
         $types = [
-            ['id' => 'PRIVATE', 'label' => 'Privada'],
-            ['id' => 'PUBLIC', 'label' => 'Pública'],
-            ['id' => 'VIP', 'label' => 'VIP'],
-            ['id' => 'MIXED', 'label' => 'Mixta'],
+            ['code' => 'PRIVATE', 'label' => 'Privada'],
+            ['code' => 'PUBLIC', 'label' => 'Pública'],
+            ['code' => 'VIP', 'label' => 'VIP'],
+            ['code' => 'MIXED', 'label' => 'Mixta'],
         ];
 
         foreach ($types as $type) {
             RoomType::updateOrCreate(
-                ['id' => $type['id']],
+                ['code' => $type['code']],
                 [
                     'label' => $type['label'],
                     'status' => 'ACTIVE',

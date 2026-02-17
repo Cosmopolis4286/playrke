@@ -2,6 +2,7 @@
 
 namespace App\Models\Games\Common\Utils;
 
+use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class GameStatus extends Model
 {
+    use SnowflakeId;
+
     /**
      * Nombre de la tabla en la base de datos.
      *
@@ -25,13 +28,12 @@ class GameStatus extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'id',       // Valor interno del estado (ej. 'DRAFT', 'ACTIVE')
         'label', // Etiqueta legible (ej. 'Borrador', 'Activa')
     ];
 
     protected $casts = [
         'id' => 'string',
-        'label' => 'string',
+        'label' => 'string'
     ];
 
     /**

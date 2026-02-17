@@ -23,7 +23,11 @@ return new class extends Migration
             $table->foreignSnowflake('game_mode_id')->constrained('game_modes')->onDelete('cascade');
 
             $table->enum('in_live', ['Y', 'N'])->default('N');
-            $table->enum('room_type', ['PRIVATE', 'PUBLIC'])->default('PRIVATE');
+
+            $table->foreignSnowflake('room_type_id')
+                ->constrained('room_types')
+                ->cascadeOnDelete()
+                ->comment('Tipo de sala');
 
             $table->foreignSnowflake('prize_pool_type_id')
                 ->constrained('prize_pool_types')
@@ -58,7 +62,7 @@ return new class extends Migration
             $table->softDeletes();
 
             // Índices compuestos útiles
-            $table->index(['status', 'room_type'], 'idx_status_roomtype_automatic');
+            $table->index(['status', 'room_type_id'], 'idx_status_roomtype_automatic');
             $table->index(['creator_user_id', 'created_at'], 'idx_creator_createdat_automatic');
             $table->index(['date'], 'idx_date_automatic');
         });

@@ -51,13 +51,13 @@ class BingoRoomConfigRepository extends BaseRepository implements BingoRoomConfi
     /**
      * Buscar salas por tipo
      *
-     * @param string $roomType Tipo de sala (PRIVATE, PUBLIC)
+     * @param string $roomTypeId Tipo de sala (PRIVATE, PUBLIC)
      * @param array $columns Columnas a seleccionar
      * @return Collection<BingoRoom>
      */
-    public function findByType(string $roomType, array $columns = ['*']): Collection
+    public function findByType(string $roomTypeId, array $columns = ['*']): Collection
     {
-        return $this->model->where('room_type', $roomType)->get($columns);
+        return $this->model->where('room_type_id', $roomTypeId)->get($columns);
     }
 
     /**

@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('prize_pool_types', function (Blueprint $table) {
-            $table->string('id', 50)->primary()->comment('ID del tipo de premio');
+            $table->snowflake('id')->primary()->comment('ID del tipo de premio');
 
             $table->string('code', 30)
                 ->unique()
                 ->comment('Código único del tipo de Pool');
 
-            $table->string('description', 50)->comment('Descripción legible del tipo de premio');
+            $table->string('label', 50)->comment('Etiqueta legible del tipo de premio');
 
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
 

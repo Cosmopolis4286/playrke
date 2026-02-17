@@ -51,7 +51,7 @@ class RoomConfigService
         return [
             'encrypted' => $this->generateUniqueCode($model),
             'status' => 2,
-            'room_type' => $room->room_type,
+            'room_type_id' => $room->room_type_id,
             'creator_user_id' => $room->creator_user,
             'prizePool' => $prizePool,
             'uuid_code' => $this->getCodeUUID($model)

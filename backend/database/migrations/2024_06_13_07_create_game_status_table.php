@@ -20,7 +20,7 @@ return new class extends Migration
                 ->comment('Código único del estado del juego.');
 
             // Campo legible para mostrar en interfaces, con un límite de 100 caracteres
-            $table->string('description', 50)
+            $table->string('label', 50)
                 ->comment('Descripción legible del estado');
 
             // Timestamps automáticos
@@ -28,7 +28,7 @@ return new class extends Migration
 
             $table->softDeletes();
 
-            // Índice por código y descripción para consultas rápidas
+            // Índice por código y label para consultas rápidas
             $table->index(['id', 'label']);
         });
     }
