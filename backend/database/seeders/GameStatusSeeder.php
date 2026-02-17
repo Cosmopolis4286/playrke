@@ -15,8 +15,6 @@ class GameStatusSeeder extends Seeder
             ['code' => 'ACTIVE',      'label' => 'Activa'],
             ['code' => 'INACTIVE',    'label' => 'Inactiva'],
             ['code' => 'DELETED',     'label' => 'Eliminada'],
-            ['code' => 'UNAVAILABLE', 'label' => 'No Disponible'],
-            ['code' => 'AVAILABLE',   'label' => 'Disponible'],
             ['code' => 'CLOSED',      'label' => 'Cerrada'],
             ['code' => 'IN_PROGRESS', 'label' => 'En Juego'],
             ['code' => 'FINISHED',    'label' => 'Finalizada'],

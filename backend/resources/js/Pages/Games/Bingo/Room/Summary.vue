@@ -170,7 +170,7 @@
       label: 'Estado',
       placeholder: 'Filtrar por estado',
       options: [
-        { value: 'AVAILABLE', label: 'Disponible' },
+        { value: 'ACTIVE', label: 'Disponible' },
         { value: 'IN_PROGRESS', label: 'En Juego' },
         { value: 'FINISHED', label: 'Finalizada' },
         { value: 'REFUND', label: 'Reembolso' },

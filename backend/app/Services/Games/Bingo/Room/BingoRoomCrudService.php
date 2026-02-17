@@ -113,7 +113,7 @@ final class BingoRoomCrudService
 
     /**
      * Crear sala base para create
-     * - Crea registro en BingoRoom con estado AVAILABLE y prize_pool 0
+     * - Crea registro en BingoRoom con estado ACTIVE y prize_pool 0
      * - Crea registro en BingoCreator para asociar creador con sala
      * - Genera uuid_code único para la sala
      * - NO crea configuración ni precios de cartones, eso se maneja en saveRoom después de crear la sala base
@@ -130,7 +130,7 @@ final class BingoRoomCrudService
             $uuidCode = strtoupper(Str::uuid()->toString());
         } while (BingoRoom::where('uuid_code', $uuidCode)->exists());
 
-        $statusId = GameStatus::where('code', 'AVAILABLE')->value('id');
+        $statusId = GameStatus::where('code', 'ACTIVE')->value('id');
 
         $room = BingoRoom::create([
             'status_id'       => $statusId,
@@ -293,10 +293,10 @@ final class BingoRoomCrudService
             throw BingoRoomException::invalidStatusChange();
         }
 
-        // Definir nuevo estado alternando entre AVAILABLE y UNAVAILABLE
-        $newStatus = $room->status?->code === 'AVAILABLE'
-            ? 'UNAVAILABLE'
-            : 'AVAILABLE';
+        // Definir nuevo estado alternando entre ACTIVE y INACTIVE
+        $newStatus = $room->status?->code === 'ACTIVE'
+            ? 'INACTIVE'
+            : 'ACTIVE';
 
         return $this->bingoRooms->changeGameStatus($room->id, $newStatus);
     }
@@ -316,11 +316,9 @@ final class BingoRoomCrudService
             throw BingoRoomException::alreadyDeleted();
         }
 
+        $statusId = GameStatus::where('code', 'DELETED')->value('id');
+
         // Usa softDelete con userRelation para sincronizar BingoRoom
-        return $this->bingoRooms->softDelete(
-            model: $room,
-            status: 'DELETED',
-            relationsToDetach: ['cardPrices'],
-        );
+        return $this->bingoRooms->softDelete($room, status: $statusId);
     }
 }

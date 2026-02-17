@@ -21,7 +21,7 @@ class GameRoomJackpotRepository extends BaseRepository implements GameRoomJackpo
 
     public function getAvailableJackpots(): Collection
     {
-        return $this->model->where('status', 'AVAILABLE')->get();
+        return $this->model->where('status', 'ACTIVE')->get();
     }
 
     public function getUsedJackpots(): Collection
@@ -42,14 +42,14 @@ class GameRoomJackpotRepository extends BaseRepository implements GameRoomJackpo
     public function getAvailableJackpotsByCurrency($currencyId): Collection
     {
         return $this->model->where('currency_id', $currencyId)
-            ->where('status', 'AVAILABLE')
+            ->where('status', 'ACTIVE')
             ->get();
     }
 
     public function getMaxJackpotByCurrency($currencyId): ?GameRoomJackpot
     {
         return $this->model->where('currency_id', $currencyId)
-            ->where('status', 'AVAILABLE')
+            ->where('status', 'ACTIVE')
             ->orderBy('amount', 'desc')
             ->first();
     }
@@ -57,7 +57,7 @@ class GameRoomJackpotRepository extends BaseRepository implements GameRoomJackpo
     public function getMinJackpotByCurrency($currencyId): ?GameRoomJackpot
     {
         return $this->model->where('currency_id', $currencyId)
-            ->where('status', 'AVAILABLE')
+            ->where('status', 'ACTIVE')
             ->orderBy('amount', 'asc')
             ->first();
     }
@@ -65,16 +65,16 @@ class GameRoomJackpotRepository extends BaseRepository implements GameRoomJackpo
     public function getTotalJackpotAmountByCurrency($currencyId): float
     {
         return $this->model->where('currency_id', $currencyId)
-            ->where('status', 'AVAILABLE')
+            ->where('status', 'ACTIVE')
             ->sum('amount');
     }
 
     public function getTotalAvailableJackpotAmount(): float
     {
-        return $this->model->where('status', 'AVAILABLE')->sum('amount');
+        return $this->model->where('status', 'ACTIVE')->sum('amount');
     }
 
-    public function createJackpot($currencyId, float $amount, string $status = 'AVAILABLE'): GameRoomJackpot
+    public function createJackpot($currencyId, float $amount, string $status = 'ACTIVE'): GameRoomJackpot
     {
         return $this->model->create([
             'currency_id' => $currencyId,
@@ -92,7 +92,7 @@ class GameRoomJackpotRepository extends BaseRepository implements GameRoomJackpo
     public function markAsAvailable($jackpotId): bool
     {
         return $this->model->where('id', $jackpotId)
-            ->update(['status' => 'AVAILABLE']) > 0;
+            ->update(['status' => 'ACTIVE']) > 0;
     }
 
     public function updateAmount($jackpotId, float $amount): bool
@@ -104,10 +104,10 @@ class GameRoomJackpotRepository extends BaseRepository implements GameRoomJackpo
     public function getJackpotStatistics(): array
     {
         $total = $this->model->count();
-        $available = $this->model->where('status', 'AVAILABLE')->count();
+        $available = $this->model->where('status', 'ACTIVE')->count();
         $used = $this->model->where('status', 'USED')->count();
         $totalAmount = $this->model->sum('amount');
-        $availableAmount = $this->model->where('status', 'AVAILABLE')->sum('amount');
+        $availableAmount = $this->model->where('status', 'ACTIVE')->sum('amount');
 
         return [
             'total_jackpots' => $total,
@@ -124,14 +124,14 @@ class GameRoomJackpotRepository extends BaseRepository implements GameRoomJackpo
     {
         $total = $this->model->where('currency_id', $currencyId)->count();
         $available = $this->model->where('currency_id', $currencyId)
-            ->where('status', 'AVAILABLE')->count();
+            ->where('status', 'ACTIVE')->count();
         $totalAmount = $this->model->where('currency_id', $currencyId)->sum('amount');
         $availableAmount = $this->model->where('currency_id', $currencyId)
-            ->where('status', 'AVAILABLE')->sum('amount');
+            ->where('status', 'ACTIVE')->sum('amount');
         $maxAmount = $this->model->where('currency_id', $currencyId)
-            ->where('status', 'AVAILABLE')->max('amount');
+            ->where('status', 'ACTIVE')->max('amount');
         $minAmount = $this->model->where('currency_id', $currencyId)
-            ->where('status', 'AVAILABLE')->min('amount');
+            ->where('status', 'ACTIVE')->min('amount');
 
         return [
             'total_jackpots' => $total,
@@ -158,7 +158,7 @@ class GameRoomJackpotRepository extends BaseRepository implements GameRoomJackpo
     public function getJackpotsAboveAmount(float $amount): Collection
     {
         return $this->model->where('amount', '>', $amount)
-            ->where('status', 'AVAILABLE')
+            ->where('status', 'ACTIVE')
             ->orderBy('amount', 'desc')
             ->get();
     }
@@ -166,7 +166,7 @@ class GameRoomJackpotRepository extends BaseRepository implements GameRoomJackpo
     public function getJackpotsBelowAmount(float $amount): Collection
     {
         return $this->model->where('amount', '<', $amount)
-            ->where('status', 'AVAILABLE')
+            ->where('status', 'ACTIVE')
             ->orderBy('amount', 'asc')
             ->get();
     }
@@ -181,7 +181,7 @@ class GameRoomJackpotRepository extends BaseRepository implements GameRoomJackpo
     public function getTopJackpotsByCurrency($currencyId, int $limit = 10): Collection
     {
         return $this->model->where('currency_id', $currencyId)
-            ->where('status', 'AVAILABLE')
+            ->where('status', 'ACTIVE')
             ->orderBy('amount', 'desc')
             ->limit($limit)
             ->get();

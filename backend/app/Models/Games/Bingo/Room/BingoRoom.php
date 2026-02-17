@@ -222,7 +222,7 @@ class BingoRoom extends BaseModel
         $code = $this->getStatusCodeAttribute();
 
         return match ($code) {
-            'AVAILABLE'   => '<span class="badge badge-success">Disponible</span>',
+            'ACTIVE'   => '<span class="badge badge-success">Disponible</span>',
             'IN_PROGRESS' => '<span class="badge badge-primary">En Juego</span>',
             'FINISHED'    => '<span class="badge badge-info">Finalizada</span>',
             'REFUND'      => '<span class="badge badge-warning">Reembolso</span>',

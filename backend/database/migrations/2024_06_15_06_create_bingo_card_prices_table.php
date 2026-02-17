@@ -38,6 +38,8 @@ return new class extends Migration
 
             $table->timestamps();
 
+            $table->softDeletes();
+
             // Evita duplicados: mismo room y misma moneda no deben repetirse
             $table->unique(['room_id', 'currency_id'], 'uniq_room_currency_price');
         });

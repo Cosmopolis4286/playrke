@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 /**
@@ -316,6 +317,52 @@ abstract class BaseRepository implements BaseRepositoryInterface
         return $this->model->where('status', $status)->get($fields);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public function softDeleteRelatedUser(Model $model, ?string $status, ?string $userRelation = 'user'): void
+    {
+        // Si no se definió relación o no existe el método, no hacemos nada.
+        if (!$userRelation || !method_exists($model, $userRelation)) {
+            return;
+        }
+
+        // Cargar relación solo si no está cargada (optimización).
+        $model->loadMissing($userRelation);
+
+        $user = $model->$userRelation;
+
+        // Si la relación no devolvió un Model válido, no hacemos nada.
+        if (!$user instanceof Model) {
+            return;
+        }
+
+        // Validar que el usuario soporte SoftDeletes.
+        if (!in_array(SoftDeletes::class, class_uses_recursive($user), true)) {
+            throw new RuntimeException('El usuario no soporta SoftDeletes');
+        }
+
+        // Si ya está eliminado, no hacemos nada.
+        if ($user->trashed()) {
+            return;
+        }
+
+        // Si se indicó status, actualizarlo antes del delete.
+        if ($status !== null) {
+            if (Schema::hasColumn($user->getTable(), 'status')) {
+                $user->update(['status' => $status]);
+            } elseif (Schema::hasColumn($user->getTable(), 'status_id')) {
+                $user->update(['status_id' => $status]);
+            }
+        }
+
+        // Finalmente eliminamos el usuario (SoftDelete).
+        $user->delete();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function softDelete(
         int|string|Model $model,
         ?string $status = 'DELETED',
@@ -337,8 +384,12 @@ abstract class BaseRepository implements BaseRepositoryInterface
                     return;
                 }
 
-                if ($status !== null && isset($model->status)) {
-                    $model->update(['status' => $status]);
+                if ($status !== null) {
+                    if (Schema::hasColumn($model->getTable(), 'status')) {
+                        $model->update(['status' => $status]);
+                    } elseif (Schema::hasColumn($model->getTable(), 'status_id')) {
+                        $model->update(['status_id' => $status]);
+                    }
                 }
 
                 foreach ($relationsToDetach as $relation) {
@@ -347,25 +398,7 @@ abstract class BaseRepository implements BaseRepositoryInterface
                     }
                 }
 
-                if ($userRelation && method_exists($model, $userRelation)) {
-                    $model->loadMissing($userRelation);
-
-                    $user = $model->$userRelation;
-
-                    if ($user instanceof Model) {
-                        if (!in_array(SoftDeletes::class, class_uses_recursive($user), true)) {
-                            throw new RuntimeException('El usuario no soporta SoftDeletes');
-                        }
-
-                        if (!$user->trashed()) {
-                            if ($status !== null && isset($user->status)) {
-                                $user->update(['status' => $status]);
-                            }
-
-                            $user->delete();
-                        }
-                    }
-                }
+                if (!$userRelation) $this->softDeleteRelatedUser($model, $status);
 
                 $model->delete();
             });

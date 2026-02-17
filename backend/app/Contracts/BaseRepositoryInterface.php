@@ -268,6 +268,25 @@ interface BaseRepositoryInterface
     public function getByStatus(string $status, array $fields = ['*']): Collection;
 
     /**
+     * Realiza un soft delete del usuario relacionado a un modelo (si aplica).
+     *
+     * - Verifica que la relación exista en el modelo.
+     * - Carga la relación si no está cargada.
+     * - Valida que el usuario sea un Model.
+     * - Valida que el usuario soporte SoftDeletes.
+     * - Si no está eliminado, actualiza su status (si corresponde) y luego lo elimina.
+     *
+     * @param Model $model Modelo principal desde donde se obtiene la relación.
+     * @param string|null $status Estado a aplicar antes del delete (ej: DELETED).
+     * @param string|null $userRelation Nombre del método relación (ej: "user").
+     *
+     * @return void
+     *
+     * @throws RuntimeException Si el usuario relacionado no soporta SoftDeletes.
+     */
+    public function softDeleteRelatedUser(Model $model, ?string $status, ?string $userRelation = 'user'): void;
+
+    /**
      * Soft delete genérico con soporte de relaciones.
      *
      * @param int|string|Model $model

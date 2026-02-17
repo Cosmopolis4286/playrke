@@ -28,7 +28,7 @@ interface GameRoomJackpotRepositoryContract extends BaseRepositoryInterface
 
     public function getTotalAvailableJackpotAmount(): float;
 
-    public function createJackpot($currencyId, float $amount, string $status = 'AVAILABLE'): GameRoomJackpot;
+    public function createJackpot($currencyId, float $amount, string $status = 'ACTIVE'): GameRoomJackpot;
 
     public function markAsUsed($jackpotId): bool;
 

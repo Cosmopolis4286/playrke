@@ -2,11 +2,10 @@
 
 namespace App\Models\Games\Bingo\Card\CardPrice;
 
+use App\Models\BaseModel;
 use App\Models\Currency;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\User;
-use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -31,10 +30,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read User $creatorUser Usuario creador del precio
  * @property-read Currency $currency Moneda del precio
  */
-class BingoCardPrice extends Model
+class BingoCardPrice extends BaseModel
 {
-    use SnowflakeId;
-
     /**
      * Nombre de la tabla en la base de datos
      */

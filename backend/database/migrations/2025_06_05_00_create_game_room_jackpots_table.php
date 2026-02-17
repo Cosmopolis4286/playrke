@@ -18,7 +18,7 @@ return new class extends Migration
                 ->cascadeOnUpdate()->cascadeOnDelete()
                 ->comment('ID moneda asociada');
             $table->decimal('amount', 12, 4);
-            $table->enum('status', ['AVAILABLE', 'USED'])->default('AVAILABLE');
+            $table->enum('status', ['ACTIVE', 'USED'])->default('ACTIVE');
             $table->timestamps();
         });
     }
