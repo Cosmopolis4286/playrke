@@ -15,6 +15,7 @@ final class BingoRoomSummaryDTO implements ContextDTO
         public readonly Collection $bingoPatterns,
         public readonly Collection $prizePoolTypes,
         public readonly Collection $gameModes,
+        public readonly Collection $roomTypes,
     ) {}
 
     public function toView(): array
@@ -27,6 +28,7 @@ final class BingoRoomSummaryDTO implements ContextDTO
             'bingoPatterns' => $this->bingoPatterns,
             'prizePoolTypes' => $this->prizePoolTypes,
             'gameModes' => $this->gameModes,
+            'roomTypes' => $this->roomTypes,
         ];
     }
 }

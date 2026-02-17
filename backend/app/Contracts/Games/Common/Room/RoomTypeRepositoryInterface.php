@@ -1,0 +1,235 @@
+<?php
+
+namespace App\Contracts\Games\Common\Room;
+
+use App\Contracts\BaseRepositoryInterface;
+use App\Models\Games\Common\Room\RoomType;
+use Illuminate\Database\Eloquent\Collection;
+
+/**
+ * Contrato para el repositorio de tipos de pool de premios.
+ *
+ * Define los métodos específicos para gestionar los tipos de pool de premios,
+ * incluyendo operaciones de consulta, creación, actualización y activación.
+ */
+interface RoomTypeRepositoryInterface extends BaseRepositoryInterface
+{
+    /**
+     * Obtener todos los tipos activos.
+     *
+     * @return Collection Colección de tipos activos
+     */
+    public function getActiveTypes(): Collection;
+
+    /**
+     * Obtener todos los tipos inactivos.
+     *
+     * @return Collection Colección de tipos inactivos
+     */
+    public function getInactiveTypes(): Collection;
+
+    /**
+     * Buscar tipos por descripción exacta.
+     *
+     * @param string $description Descripción exacta
+     * @return RoomType|null El tipo encontrado o null
+     */
+    public function getByDescription(string $description): ?RoomType;
+
+    /**
+     * Buscar tipos por descripción parcial.
+     *
+     * @param string $searchTerm Término de búsqueda parcial
+     * @return Collection Tipos que contienen el término en la descripción
+     */
+    public function searchByDescription(string $searchTerm): Collection;
+
+    /**
+     * Verificar si existe un tipo con la descripción dada.
+     *
+     * @param string $description Descripción a verificar
+     * @param string|null $excludeId ID a excluir de la verificación (para updates)
+     * @return bool True si existe, false en caso contrario
+     */
+    public function existsByDescription(string $description, ?string $excludeId = null): bool;
+
+    /**
+     * Crear un nuevo tipo de pool de premios.
+     *
+     * @param string $description Descripción del tipo
+     * @param string $status Estado inicial (por defecto 'ACTIVE')
+     * @return RoomType El tipo creado
+     */
+    public function createType(string $description, string $status = 'ACTIVE'): RoomType;
+
+    /**
+     * Actualizar la descripción de un tipo.
+     *
+     * @param string $typeId ID del tipo
+     * @param string $description Nueva descripción
+     * @return bool True si se actualizó correctamente
+     */
+    public function updateDescription(string $typeId, string $description): bool;
+
+    /**
+     * Actualizar el estado de un tipo.
+     *
+     * @param string $typeId ID del tipo
+     * @param string $status Nuevo estado ('ACTIVE' o 'INACTIVE')
+     * @return bool True si se actualizó correctamente
+     */
+    public function updateStatus(string $typeId, string $status): bool;
+
+    /**
+     * Activar un tipo de pool de premios.
+     *
+     * @param string $typeId ID del tipo
+     * @return bool True si se activó correctamente
+     */
+    public function activateType(string $typeId): bool;
+
+    /**
+     * Desactivar un tipo de pool de premios.
+     *
+     * @param string $typeId ID del tipo
+     * @return bool True si se desactivó correctamente
+     */
+    public function deactivateType(string $typeId): bool;
+
+    /**
+     * Eliminar un tipo de pool de premios.
+     *
+     * @param string $typeId ID del tipo
+     * @return bool True si se eliminó correctamente
+     */
+    public function deleteType(string $typeId): bool;
+
+    /**
+     * Actualización masiva de estado para múltiples tipos.
+     *
+     * @param array $typeIds IDs de los tipos
+     * @param string $status Nuevo estado ('ACTIVE' o 'INACTIVE')
+     * @return int Número de registros actualizados
+     */
+    public function bulkUpdateStatus(array $typeIds, string $status): int;
+
+    /**
+     * Obtener estadísticas de tipos de pool de premios.
+     *
+     * @return array<string, mixed> Array con estadísticas
+     */
+    public function getTypeStatistics(): array;
+
+    /**
+     * Obtener tipos creados recientemente.
+     *
+     * @param int $days Número de días hacia atrás (por defecto 30)
+     * @return Collection Tipos creados en el período especificado
+     */
+    public function getRecentTypes(int $days = 30): Collection;
+
+    /**
+     * Obtener tipos ordenados alfabéticamente por descripción.
+     *
+     * @param bool $activeOnly Solo tipos activos (por defecto false)
+     * @return Collection Tipos ordenados por descripción
+     */
+    public function getOrderedByDescription(bool $activeOnly = false): Collection;
+
+    /**
+     * Obtener tipos más utilizados en juegos.
+     *
+     * @param int $limit Límite de resultados (por defecto 10)
+     * @return Collection Tipos más populares
+     */
+    public function getMostUsedTypes(int $limit = 10): Collection;
+
+    /**
+     * Obtener tipos sin uso en juegos.
+     *
+     * @return Collection Tipos que no están siendo utilizados
+     */
+    public function getUnusedTypes(): Collection;
+
+    /**
+     * Verificar si un tipo está siendo utilizado en algún juego.
+     *
+     * @param string $typeId ID del tipo
+     * @return bool True si está en uso, false en caso contrario
+     */
+    public function isTypeInUse(string $typeId): bool;
+
+    /**
+     * Obtener conteo de juegos por tipo.
+     *
+     * @param string $typeId ID del tipo
+     * @return int Número de juegos que usan este tipo
+     */
+    public function getGameCountByType(string $typeId): int;
+
+    /**
+     * Obtener tipos con sus estadísticas de uso.
+     *
+     * @param bool $activeOnly Solo tipos activos (por defecto true)
+     * @return Collection Tipos con estadísticas de uso
+     */
+    public function getTypesWithUsageStats(bool $activeOnly = true): Collection;
+
+    /**
+     * Crear tipos por lotes.
+     *
+     * @param array $descriptions Array de descripciones
+     * @param string $status Estado inicial para todos (por defecto 'ACTIVE')
+     * @return Collection Tipos creados
+     */
+    public function createBulkTypes(array $descriptions, string $status = 'ACTIVE'): Collection;
+
+    /**
+     * Obtener tipos para uso en selects/formularios.
+     *
+     * @param bool $activeOnly Solo tipos activos (por defecto true)
+     * @return array<string, string> Array asociativo [id => description]
+     */
+    public function getForSelect(bool $activeOnly = true): array;
+
+    /**
+     * Validar descripción de tipo.
+     *
+     * @param string $description Descripción a validar
+     * @return bool True si es válida
+     */
+    public function isValidDescription(string $description): bool;
+
+    /**
+     * Normalizar descripción de tipo.
+     *
+     * @param string $description Descripción a normalizar
+     * @return string Descripción normalizada
+     */
+    public function normalizeDescription(string $description): string;
+
+    /**
+     * Obtener sugerencias de descripción basadas en texto parcial.
+     *
+     * @param string $partialText Texto parcial
+     * @param int $limit Límite de sugerencias (por defecto 5)
+     * @return Collection Sugerencias de tipos existentes
+     */
+    public function getDescriptionSuggestions(string $partialText, int $limit = 5): Collection;
+
+    /**
+     * Archivar tipos antiguos (marcar como inactivos).
+     *
+     * @param int $daysOld Días de antigüedad sin uso
+     * @return int Número de tipos archivados
+     */
+    public function archiveOldUnusedTypes(int $daysOld): int;
+
+    /**
+     * Restaurar tipos archivados (marcar como activos).
+     *
+     * @param array $typeIds IDs de los tipos a restaurar
+     * @return int Número de tipos restaurados
+     */
+    public function restoreArchivedTypes(array $typeIds): int;
+}

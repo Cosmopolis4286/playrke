@@ -21,6 +21,7 @@ final class BingoRoomContextService
         private readonly \App\Contracts\Games\Bingo\Pattern\BingoPatternRepositoryInterface $bingoPatterns,
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
         private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
+        private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
     ) {}
 
     /**
@@ -115,7 +116,8 @@ final class BingoRoomContextService
             currencies: $currencies,
             bingoPatterns: $this->bingoPatterns->getByUser($userId, ['id', 'name'], 'ACTIVE'),
             prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
-            gameModes: $this->gameModes->getActiveGameModes()
+            gameModes: $this->gameModes->getActiveGameModes(),
+            roomTypes: $this->roomTypes->getActiveTypes()
         );
     }
 }

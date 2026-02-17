@@ -54,15 +54,6 @@ const {
 setInitialRooms(props.rooms.rows);
 
 // ==========================================================================
-// Opciones de formulario
-// ==========================================================================
-
-const roomTypeOptions = [
-  { value: "PRIVATE", label: "Público" },
-  { value: "PUBLIC", label: "Privado" },
-];
-
-// ==========================================================================
 // Modal + Form handler
 // ==========================================================================
 
@@ -139,6 +130,16 @@ const filters = computed<readonly TableFilter[]>(() => [
     ],
   },
 ]);
+
+/**
+ * Opciones para tipos de sala.
+ */
+const roomTypeOptions = computed(() => {
+  return (props.roomTypes ?? []).map((r) => ({
+    value: r.id,
+    label: r.label,
+  }));
+});
 
 /**
  * Opciones para modos de juego.

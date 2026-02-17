@@ -15,6 +15,10 @@ return new class extends Migration
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del modo de juego');
 
+            $table->string('code', 30)
+                ->unique()
+                ->comment('Código único del modo de juego.');
+
             // Descripción legible y única
             $table->string('description', 50)
                 ->unique()

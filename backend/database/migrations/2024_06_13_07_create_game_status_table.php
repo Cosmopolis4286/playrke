@@ -12,12 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('game_status', function (Blueprint $table) {
-            $table->string('id', 50)
-                ->primary()
-                ->comment('Código único del estado del juego (ej. UNAVAILABLE, AVAILABLE, IN_PROGRESS, etc.)');
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único del modo de juego');
+
+            $table->string('code', 30)
+                ->unique()
+                ->comment('Código único del estado del juego.');
 
             // Campo legible para mostrar en interfaces, con un límite de 100 caracteres
-            $table->string('label', 100)
+            $table->string('description', 50)
                 ->comment('Descripción legible del estado');
 
             // Timestamps automáticos

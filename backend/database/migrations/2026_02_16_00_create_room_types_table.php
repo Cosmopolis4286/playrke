@@ -12,11 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('room_types', function (Blueprint $table) {
-            $table->string('id', 50)
-                ->primary()
+            // ID Snowflake
+            $table->snowflake('id')->primary()->comment('ID único del modo de juego');
+
+            $table->string('code', 30)
+                ->unique()
                 ->comment('Código único del tipo de sala (PRIVATE, PUBLIC, VIP, MIXED)');
 
-            $table->string('label', 100)
+            $table->string('label', 50)
                 ->comment('Nombre visible del tipo de sala');
 
             $table->string('status', 20)
