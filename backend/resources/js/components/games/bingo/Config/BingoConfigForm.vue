@@ -57,73 +57,36 @@
 <template>
   <form @submit.prevent="submit" novalidate>
     <div class="row">
-      <div class="form-group col-md-6">
-        <label>Divisa*</label>
-        <!-- Input libre solo para roles privilegiados -->
-        <input
-          v-if="hasPrivilegedRole"
-          type="text"
-          class="form-control"
-          v-model="form.currency_id"
-          :disabled="isEditMode"
-          @blur="validate"
-        />
-        <!-- Select normal -->
-        <select
-          v-else
-          class="form-control"
-          v-model="form.currency_id"
-          :disabled="isEditMode"
-          @blur="validate"
-        >
-          <option disabled value="">Seleccione una moneda</option>
-          <option
-            v-for="currency in availableCurrencies"
-            :key="currency.id"
-            :value="currency.iso_code"
-          >
-            {{ currency.description }} ({{ currency.symbol }})
-          </option>
-        </select>
-
-        <small v-if="errors.currency_id" class="text-danger">
-          {{ errors.currency_id }}
-        </small>
-      </div>
-
-      <div class="form-group col-md-6">
-        <label>Valor de Cambio*</label>
-        <input
-          type="text"
-          class="form-control"
-          v-model="form.amount"
-          v-mask="maskOptions"
-          placeholder="0.00"
-          inputmode="decimal"
-          @blur="validate"
-        />
-        <small v-if="errors.amount" class="text-danger">
-          {{ errors.amount }}
-        </small>
-      </div>
-
-      <div class="form-group col-12">
-        <div class="custom-control custom-switch">
-          <input
-            id="exchange-rate-status"
-            type="checkbox"
-            class="custom-control-input"
-            v-model="form.status"
-          />
-          <label class="custom-control-label" for="exchange-rate-status">
-            Activar Tasa de Cambio
-          </label>
-        </div>
-      </div>
-      <div class="alert alert-primary mb-0">
-        El tipo de cambio ingresado representa el valor de la moneda seleccionada equivalente a
-        <strong>1 USD</strong>.
-      </div>
+       <div class="form-group">
+                            <label for="image">Imagen</label>
+                            <input type="file" id="image" class="form-control-file" name="image"
+                                accept="image/png, image/jpeg">
+                        </div>
+                        <div class="mr-2">
+                            @if ($imageBingoRules)
+                                <img style="max-height: 68px" src="{{ asset("storage/game/bingo/$imageBingoRules") }}"
+                                    alt="Game Image">
+                            @else
+                                <div class="alert alert-primary p-3">
+                                    <h6 class="alert-heading m-0"><strong>¡Atención, no hay una imagen cargada!</strong>
+                                    </h6>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="bingo-rules">Reglamento:</label>
+                        <textarea class="form-control" id="bingo-rules" name="rules" rows="10">
+                            {{ $gameRules ?? view('includes.info.game.bingo')->render() }}
+                        </textarea>
+                    </div>
+                    <div class="d-flex justify-content-center">
+                        <button type="button" id="btn-form-bingo-rules" class="btn btn-primary">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar
+                            <span id="loader-btn-ctn" class="spinner-border spinner-border-sm" role="status"
+                                aria-hidden="true" style="display: none"></span>
+                        </button>
+                    </div>
     </div>
   </form>
 </template>

@@ -123,3 +123,8 @@ export interface BingoConfigFormData {
     cardPrice?: number | null
     cardPriceByCurrency?: Record<string, number | null>
 }
+
+export interface BingoConfigPageProps {
+    image?: string | null
+    rules?: string | null
+}
