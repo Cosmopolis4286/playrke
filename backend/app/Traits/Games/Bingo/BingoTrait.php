@@ -279,7 +279,7 @@ trait BingoTrait
         $chipIndex = [];
 
         try {
-            if ($bingoPattern['type'] === 'GROUP') {
+            if ($bingoPattern['type'] === 'MULTIPLE') {
                 $groupedColumns = $bingoPattern['columns'];
                 $columnsToSelect = array_unique(array_merge(['id'], ...array_values($groupedColumns)));
 
@@ -323,7 +323,7 @@ trait BingoTrait
 
     /**
      * Obtiene la última ficha que causó al menos una coincidencia ganadora en un cartón.
-     * La función detecta si los datos están organizados por grupos (GROUP) o son únicos (UNIQUE)
+     * La función detecta si los datos están organizados por grupos (MULTIPLE) o son únicos (UNIQUE)
      * y llama a `getLastMatchingChip` con el formato adecuado.
      *
      * @param int $roomId   ID de la sala de juego.
@@ -344,7 +344,7 @@ trait BingoTrait
 
         $indexedData = $chipIndex[$playType];
 
-        // Detecta si se trata de un formato GROUP (grupoId => columnas => chips)
+        // Detecta si se trata de un formato MULTIPLE (grupoId => columnas => chips)
         $firstSub = reset($indexedData);
         $isGroup = is_array($firstSub) && is_array(reset($firstSub));
 
@@ -360,8 +360,8 @@ trait BingoTrait
      * @param int $round       Ronda actual.
      * @param array $chipIndex Índice de fichas. Puede ser:
      *                          - [chip => [cartonIds]] para tipo UNIQUE
-     *                          - [groupId => [col => [chip => [cartonIds]]]] para tipo GROUP
-     * @param bool $isGroup    Indica si se trata de un índice agrupado (GROUP).
+     *                          - [groupId => [col => [chip => [cartonIds]]]] para tipo MULTIPLE
+     * @param bool $isGroup    Indica si se trata de un índice agrupado (MULTIPLE).
      * @return string|null     Última ficha que generó coincidencia, o null si ninguna lo hizo.
      */
     private function getLastMatchingChip(int $roomId, int $round, array $chipIndex, bool $isGroup = false): ?string
@@ -373,7 +373,7 @@ trait BingoTrait
             ->pluck('chip')
             ->toArray();
 
-        // Modo GROUP: recorrer cada grupo y calcular la última ficha válida de cada uno
+        // Modo MULTIPLE: recorrer cada grupo y calcular la última ficha válida de cada uno
         if ($isGroup) {
             $lastChipsOfEachGroup = [];
 
