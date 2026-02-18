@@ -40,7 +40,7 @@ class BingoRoomRequest extends BaseRequest
             // Precio base del cartón:
             // - Si solo hay 1 moneda, este es el precio real
             // - Si hay varias monedas, puede ser usado como fallback
-            'cardPrice'                    => ['required', 'numeric', 'min:0.35', 'max:50'],
+            'cardPrice'                    => ['required', 'numeric', 'min:0.5', 'max:500'],
 
             // Monedas permitidas
             'allowedCurrencies'           => ['required', 'array', 'min:1'],

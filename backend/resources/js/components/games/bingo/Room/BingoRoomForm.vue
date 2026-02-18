@@ -83,7 +83,7 @@
   /**
    * Mostrar %Rondas y config (más de 1 ronda)
    */
-  const showRoundsPct = computed(() => (form.value.rounds ?? 1) > 1)
+  const showRoundsPct = computed(() => (form.value.rounds ?? 1) >= 1)
 
   /**
    * Suma total de los valores de los premios de las rondas
@@ -94,6 +94,18 @@
       return sum + value
     }, 0)
   })
+
+  /**
+   * Max disponible para una ronda = %Rondas - suma de las demás rondas
+   */
+  function getRoundMaxValue(index: number): number {
+    const limit = Number(form.value.roundsPct) || percentageLimits.roundsPct.max
+    const othersSum = (form.value.roundsConfig ?? []).reduce((sum, round, i) => {
+      if (i === index) return sum
+      return sum + (Number(round.prizeValue) || 0)
+    }, 0)
+    return Math.max(0, limit - othersSum)
+  }
 
   /**
    * Valida que la suma de valores de rondas sea igual a %Rondas
@@ -169,7 +181,7 @@
   const roundsConfigPopoverText = computed(() => {
     const err = errors.value.roundsConfig as Record<string, string> | undefined
     if (!err) return ''
-    return 'Ajustar valores de las rondas'
+    return 'Ajustar valores'
   })
 
   /**
@@ -209,6 +221,21 @@
     { immediate: true }
   )
 
+  /**
+   * Cuando cambia roundsPct, actualizar prizeValue de rondas con tipo 'percentage'
+   */
+  watch(
+    () => form.value.roundsPct,
+    newPct => {
+      const val = Number(newPct) || null
+      const configs = form.value.roundsConfig ?? []
+      const updated = configs.map(r =>
+        r.prizeType === 'percentage' ? { ...r, prizeValue: val } : r
+      )
+      form.value = { ...form.value, roundsConfig: updated }
+    }
+  )
+
   /* ==========================================================================
    * Métodos
    * ========================================================================== */
@@ -224,7 +251,11 @@
     value: RoundConfig[keyof RoundConfig]
   ) {
     const configs = [...(form.value.roundsConfig ?? [])]
-    configs[index] = { ...configs[index], [field]: value }
+    const updated = { ...configs[index], [field]: value }
+    if (field === 'prizeType' && value === 'percentage') {
+      updated.prizeValue = Number(form.value.roundsPct) || null
+    }
+    configs[index] = updated
     form.value = { ...form.value, roundsConfig: configs }
   }
 
@@ -378,8 +409,8 @@
         type="number"
         required
         :step="0.05"
-        :min="0.35"
-        :max="50"
+        :min="0.5"
+        :max="500"
         placeholder="Precio Cartón"
         col="col-sm-6 col-md-4 col-lg-3"
         inputGroup
@@ -492,6 +523,24 @@
         v-model="jackpotPct"
       />
 
+       <FormInput
+        label="Tiempo Ficha"
+        name="time_chip"
+        :error="errors.timeChip"
+        type="number"
+        required
+        :step="1"
+        :min="3"
+        :max="10"
+        col="col-sm-6 col-md-4 col-lg-3"
+        inputGroup
+        v-model="form.timeChip"
+      >
+        <template #append>
+          <span class="input-group-text">SEG</span>
+        </template>
+      </FormInput>
+
       <!-- Rondas -->
       <FormInput
         label="Rondas"
@@ -529,7 +578,7 @@
                 style="
                   padding: 4px 6.5px;
                   max-width: 245px;
-                  font-size: 0.79rem;
+                  font-size: 0.77rem;
                   white-space: pre-line;
                 "
               >
@@ -647,7 +696,7 @@
                     </option>
                   </select>
 
-                  <!-- Valor del premio -->
+                  <!-- Valor del premio ronda -->
                   <input
                     :name="`rounds_prize_value[${index}]`"
                     type="number"
@@ -661,16 +710,18 @@
                     ]"
                     placeholder="Valor"
                     :value="round.prizeValue"
+                    :readonly="round.prizeType === 'percentage'"
                     @input="
-                      updateRoundConfig(
-                        index,
-                        'prizeValue',
-                        ($event.target as HTMLInputElement).value
-                      )
+                      round.prizeType !== 'percentage' &&
+                        updateRoundConfig(
+                          index,
+                          'prizeValue',
+                          ($event.target as HTMLInputElement).value
+                        )
                     "
                     step="0.5"
                     min="0"
-                    :max="Number(roundsPct) || percentageLimits.roundsPct.max"
+                    :max="getRoundMaxValue(index)"
                     style="flex: 0 0 100px"
                   />
                 </div>
@@ -709,24 +760,6 @@
         col="col-sm-6 col-md-4 col-lg-3"
         v-model="form.numSerials"
       />
-
-      <FormInput
-        label="Tiempo Ficha"
-        name="time_chip"
-        :error="errors.timeChip"
-        type="number"
-        required
-        :step="1"
-        :min="3"
-        :max="10"
-        col="col-sm-6 col-md-4 col-lg-3"
-        inputGroup
-        v-model="form.timeChip"
-      >
-        <template #append>
-          <span class="input-group-text">SEG</span>
-        </template>
-      </FormInput>
     </div>
   </form>
 </template>

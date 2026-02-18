@@ -117,22 +117,27 @@ export function useBingoRoomForm(
 
         // Validaciones por ronda (solo si hay más de 1 ronda)
         const rounds = Number(form.value.rounds) || 1
-        if (rounds > 1) {
-            const configs = form.value.roundsConfig ?? []
-            const roundErrors: Record<string, string> = {}
 
-            configs.forEach((round, i) => {
-                if (!round.bingoPattern) {
-                    roundErrors[`${i}_bingoPattern`] = `Ronda ${i + 1}: el patrón es requerido.`
-                }
-                if (round.prizeValue === null || round.prizeValue === '' || Number(round.prizeValue) <= 0) {
-                    roundErrors[`${i}_prizeValue`] = `Ronda ${i + 1}: el valor del premio es requerido.`
-                }
-            })
+        const rPct = Number(form.value.roundsPct) || 0
+        if (!form.value.roundsPct || rPct === 0) {
+            e.roundsPct = 'El % de rondas es requerido.'
+        } else if (rPct < PERCENTAGE_LIMITS.roundsPct.min || rPct > PERCENTAGE_LIMITS.roundsPct.max) {
+            e.roundsPct = `El % de rondas debe estar entre ${PERCENTAGE_LIMITS.roundsPct.min} y ${PERCENTAGE_LIMITS.roundsPct.max}.`
+        }
+        const configs = form.value.roundsConfig ?? []
+        const roundErrors: Record<string, string> = {}
 
-            if (Object.keys(roundErrors).length) {
-                e.roundsConfig = roundErrors
+        configs.forEach((round, i) => {
+            if (!round.bingoPattern) {
+                roundErrors[`${i}_bingoPattern`] = `Ronda ${i + 1}: el patrón es requerido.`
             }
+            if (round.prizeValue === null || round.prizeValue === '' || Number(round.prizeValue) <= 0) {
+                roundErrors[`${i}_prizeValue`] = `Ronda ${i + 1}: el valor del premio es requerido.`
+            }
+        })
+
+        if (Object.keys(roundErrors).length) {
+            e.roundsConfig = roundErrors
         }
 
         // Validar suma de porcentajes
