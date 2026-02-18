@@ -512,18 +512,6 @@
       </FormInput>
 
       <FormInput
-        label="%Jackpot"
-        name="jackpot_pct"
-        id="jackpot-pct"
-        type="number"
-        :step="0.5"
-        :min="percentageLimits.jackpotPct.min"
-        :max="percentageLimits.jackpotPct.max"
-        col="col-sm-6 col-md-4 col-lg-3"
-        v-model="jackpotPct"
-      />
-
-       <FormInput
         label="Tiempo Ficha"
         name="time_chip"
         :error="errors.timeChip"
@@ -674,27 +662,23 @@
                   </select>
 
                   <!-- Patrón de bingo -->
-                  <select
+                  <FormSelect
                     :name="`rounds_bingo_patterns[${index}]`"
-                    :class="[
-                      'form-control form-control-sm',
-                      { 'is-invalid': !!getRoundFieldError(index, 'bingoPattern') }
-                    ]"
-                    :value="round.bingoPattern"
-                    @change="
-                      updateRoundConfig(
-                        index,
-                        'bingoPattern',
-                        ($event.target as HTMLSelectElement).value
-                      )
-                    "
-                    style="flex: 1 1 auto; min-width: 130px"
-                  >
-                    <option value="" disabled>Patrón</option>
-                    <option v-for="opt in bingoPatternOptions" :key="opt.value" :value="opt.value">
-                      {{ opt.label }}
-                    </option>
-                  </select>
+                    label="Patrón"
+                    hide-label
+                    inline-error
+                    col=""
+                    :error="getRoundFieldError(index, 'bingoPattern')"
+                    :options="bingoPatternOptions"
+                    optionValue="value"
+                    optionLabel="label"
+                    placeholder="Patrón"
+                    inputGroup
+                    inputGroupClass="input-group-sm"
+                    :modelValue="round.bingoPattern"
+                    @update:modelValue="updateRoundConfig(index, 'bingoPattern', $event)"
+                    style="flex: 1 1 auto; min-width: 130px; margin-bottom: 0"
+                  />
 
                   <!-- Valor del premio ronda -->
                   <input
@@ -713,11 +697,11 @@
                     :readonly="round.prizeType === 'percentage'"
                     @input="
                       round.prizeType !== 'percentage' &&
-                        updateRoundConfig(
-                          index,
-                          'prizeValue',
-                          ($event.target as HTMLInputElement).value
-                        )
+                      updateRoundConfig(
+                        index,
+                        'prizeValue',
+                        ($event.target as HTMLInputElement).value
+                      )
                     "
                     step="0.5"
                     min="0"
@@ -759,6 +743,18 @@
         placeholder="Ingrese la cantidad"
         col="col-sm-6 col-md-4 col-lg-3"
         v-model="form.numSerials"
+      />
+
+      <FormInput
+        label="%Jackpot"
+        name="jackpot_pct"
+        id="jackpot-pct"
+        type="number"
+        :step="0.5"
+        :min="percentageLimits.jackpotPct.min"
+        :max="percentageLimits.jackpotPct.max"
+        col="col-sm-6 col-md-4 col-lg-3"
+        v-model="jackpotPct"
       />
     </div>
   </form>

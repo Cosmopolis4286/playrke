@@ -114,7 +114,7 @@ final class BingoRoomContextService
             rooms: $commerceData['rooms'],
             pagination: $commerceData['pagination'],
             currencies: $currencies,
-            bingoPatterns: $this->bingoPatterns->getByUser($userId, ['id', 'name'], 'ACTIVE'),
+            bingoPatterns: $this->bingoPatterns->getByUserAndDefault($userId, ['id', 'name'], 'ACTIVE'),
             prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
             gameModes: $this->gameModes->getActiveGameModes(),
             roomTypes: $this->roomTypes->getActiveTypes()

@@ -65,7 +65,13 @@
 
     inputGroup: { type: Boolean, default: false },
 
-    inputGroupClass: { type: String, default: '' }
+    inputGroupClass: { type: String, default: '' },
+
+    /** Ocultar label (para uso inline) */
+    hideLabel: { type: Boolean, default: false },
+
+    /** Solo borde rojo + icono, sin mensaje de error debajo */
+    inlineError: { type: Boolean, default: false }
   })
 
   /**
@@ -95,7 +101,7 @@
 <template>
   <div :class="['form-group', col, className]">
     <!-- Label SIEMPRE visible (como Blade) -->
-    <label :for="inputId" class="form-label fw-semibold">
+    <label v-if="!hideLabel" :for="inputId" class="form-label fw-semibold">
       {{ label }}
       <span v-if="required" class="text-danger">*</span>
     </label>
@@ -106,22 +112,25 @@
         <slot name="prepend" />
       </div>
 
-      <Multiselect
-        v-model="value"
-        :id="inputId"
-        :options="options"
-        :mode="multiple ? 'tags' : 'single'"
-        :value-prop="optionValue"
-        :label="optionLabel"
-        :placeholder="placeholder"
-        :close-on-select="!multiple"
-        :searchable="true"
-        :clearable="!required"
-        :can-clear="!required"
-        class="multiselect-bootstrap"
-        :class="{ 'is-invalid': !!error }"
-        style="flex: 1; min-width: 0"
-      />
+      <div style="flex: 1; min-width: 0; position: relative">
+        <Multiselect
+          v-model="value"
+          :id="inputId"
+          :options="options"
+          :mode="multiple ? 'tags' : 'single'"
+          :value-prop="optionValue"
+          :label="optionLabel"
+          :placeholder="placeholder"
+          :close-on-select="!multiple"
+          :searchable="true"
+          :clearable="!required"
+          :can-clear="!required"
+          class="multiselect-bootstrap"
+          :class="{ 'ms-invalid': !!error }"
+          style="width: 100%"
+        />
+        <span v-if="!!error && inlineError" class="ms-invalid-icon" aria-hidden="true" />
+      </div>
 
       <div v-if="slots.append" class="input-group-append">
         <slot name="append" />
@@ -143,10 +152,10 @@
       :clearable="!required"
       :can-clear="!required"
       class="multiselect-bootstrap"
-      :class="{ 'is-invalid': !!error }"
+      :class="{ 'ms-invalid': !!error }"
     />
 
-    <small v-if="error" class="text-danger d-block mt-1">
+    <small v-if="error && !inlineError" class="text-danger d-block mt-1">
       {{ error }}
     </small>
   </div>
@@ -184,6 +193,9 @@
     --ms-option-bg-pointed: #f8f9fa;
     --ms-option-color-pointed: #16181b;
 
+    /* Dropdown */
+    --ms-max-height: 200px;
+
     /* Tags (multiple) */
     --ms-tag-bg: #007bff;
     --ms-tag-color: #fff;
@@ -198,6 +210,44 @@
   /* Altura mínima igual a form-control (38px aprox) */
   .multiselect-bootstrap :deep(.multiselect-wrapper) {
     min-height: calc(1.5em + 0.75rem + 2px);
+  }
+
+  /* Estado inválido: borde rojo en todo el control */
+  .multiselect-bootstrap.ms-invalid {
+    --ms-border-color: #dc3545;
+    --ms-border-color-active: #dc3545;
+    --ms-ring-color: rgba(220, 53, 69, 0.25);
+  }
+
+  .multiselect-bootstrap.ms-invalid :deep(.multiselect-wrapper) {
+    border-color: #dc3545;
+  }
+
+  /* Icono de error idéntico al is-invalid de Bootstrap */
+  .ms-invalid-icon {
+    position: absolute;
+    top: 50%;
+    right: 0.5rem;
+    transform: translateY(-50%);
+    width: 1rem;
+    height: 1rem;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23dc3545' viewBox='0 0 12 12'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-size: contain;
+    pointer-events: none;
+  }
+
+  /* Altura igual a form-control-sm dentro de input-group-sm */
+  .input-group-sm .multiselect-bootstrap {
+    --ms-py: 0.125rem;
+    --ms-px: 0.5rem;
+    --ms-font-size: 0.875rem;
+    --ms-line-height: 1.5;
+  }
+
+  .input-group-sm .multiselect-bootstrap :deep(.multiselect-wrapper) {
+    min-height: calc(1.5em + 0.3rem + 2px);
+    max-height: calc(1.5em + 0.3rem + 2px);
   }
 
   /* Placeholder con texto largo */

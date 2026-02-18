@@ -22,8 +22,8 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
     /**
      * Estados de patrones
      */
-    public const STATUS_ACTIVE = 'active';
-    public const STATUS_INACTIVE = 'inactive';
+    public const STATUS_ACTIVE = 'ACTIVE';
+    public const STATUS_INACTIVE = 'INACTIVE';
 
     /**
      * Tipos de patrones
@@ -58,6 +58,28 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
         }
 
         if ($status) {
+            $query->where('status', $status);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getByUserAndDefault(string $userId, array $fields = ['*'], ?string $status = null): Collection
+    {
+        $query = $this->model
+            ->where(function ($q) use ($userId) {
+                $q->where('user_id', $userId)
+                    ->orWhereNull('user_id');
+            });
+
+        if (!empty($fields)) {
+            $query->select($fields);
+        }
+
+        if (!empty($status)) {
             $query->where('status', $status);
         }
 
@@ -273,7 +295,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
      */
     public function getGroupedByUser(): Collection
     {
-        return $this->model->selectRaw('user, COUNT(*) as count')
+        return $this->model->selectRaw('user_id, COUNT(*) as count')
             ->groupBy('user_id')
             ->orderByDesc('count')
             ->get();

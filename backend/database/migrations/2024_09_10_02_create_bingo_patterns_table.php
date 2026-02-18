@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('bingo_patterns', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();;
-            $table->enum('type_pattern', ['UNIQUE', 'GROUP'])->default('UNIQUE');
+            $table->enum('type_pattern', ['UNIQUE', 'MULTIPLE']);
             $table->string('name', 15);
             $table->foreignSnowflake('user_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->string('boxes', 150);

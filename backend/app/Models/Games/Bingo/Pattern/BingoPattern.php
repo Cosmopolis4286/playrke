@@ -20,9 +20,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $id ID único del patrón
  * @property string $type_pattern Tipo de patrón (UNIQUE, MULTIPLE)
  * @property string $name Nombre del patrón
- * @property string $user ID del usuario creador
+ * @property string $user_id ID del usuario creador
  * @property string $boxes Cajas del patrón separadas por ';'
- * @property string $status Estado del patrón (active, inactive)
+ * @property string $status Estado del patrón (ACTIVE, INACTIVE)
  * @property \Carbon\Carbon $created_at Fecha de creación
  * @property \Carbon\Carbon $updated_at Fecha de actualización
  *
@@ -49,8 +49,8 @@ class BingoPattern extends Model
      * Estados disponibles para los patrones
      */
     public const STATUSES = [
-        'active' => 'Activo',
-        'inactive' => 'Inactivo',
+        'ACTIVE' => 'Activo',
+        'INACTIVE' => 'Inactivo',
     ];
 
     /**
@@ -62,8 +62,8 @@ class BingoPattern extends Model
     /**
      * Estados como constantes
      */
-    public const STATUS_ACTIVE = 'active';
-    public const STATUS_INACTIVE = 'inactive';
+    public const STATUS_ACTIVE = 'ACTIVE';
+    public const STATUS_INACTIVE = 'INACTIVE';
 
     /**
      * Campos que pueden ser asignados masivamente
@@ -71,7 +71,7 @@ class BingoPattern extends Model
     protected $fillable = [
         'type_pattern',
         'name',
-        'user',
+        'user_id',
         'boxes',
         'status',
     ];
@@ -101,7 +101,7 @@ class BingoPattern extends Model
      */
     public function userOwner(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
@@ -113,7 +113,7 @@ class BingoPattern extends Model
      */
     public function scopeByUser($query, string $userId)
     {
-        return $query->where('user', $userId);
+        return $query->where('user_id', $userId);
     }
 
     /**
@@ -203,7 +203,7 @@ class BingoPattern extends Model
      */
     public function getTypeDescriptionAttribute(): string
     {
-        return self::TYPES[$this->type_pattern] ?? $this->type_pattern;
+        return self::TYPES[$this->type_pattern] ?? $this->type_pattern ?? '';
     }
 
     /**
@@ -213,7 +213,7 @@ class BingoPattern extends Model
      */
     public function getStatusDescriptionAttribute(): string
     {
-        return self::STATUSES[$this->status] ?? $this->status;
+        return self::STATUSES[$this->status] ?? $this->status ?? '';
     }
 
     /**

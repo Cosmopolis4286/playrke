@@ -29,6 +29,16 @@ interface BingoPatternRepositoryInterface extends BaseRepositoryInterface
     public function getByUser(string $userId, array $fields = ['*'], ?string $status = null): Collection;
 
     /**
+     * Obtener patrones por usuario y los patrones por defecto
+     *
+     * @param string $userId
+     * @param string|null $status
+     * @param array $fields
+     * @return Collection<int, BingoPattern>
+     */
+    public function getByUserAndDefault(string $userId, array $fields = ['*'], ?string $status = null): Collection;
+
+    /**
      * Obtener patrón por tipo de patrón
      *
      * @param string $typePattern

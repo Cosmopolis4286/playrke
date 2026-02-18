@@ -129,10 +129,10 @@ export function useBingoRoomForm(
 
         configs.forEach((round, i) => {
             if (!round.bingoPattern) {
-                roundErrors[`${i}_bingoPattern`] = `Ronda ${i + 1}: el patrón es requerido.`
+                roundErrors[`${i}_bingoPattern`] = `El patrón es requerido.`
             }
             if (round.prizeValue === null || round.prizeValue === '' || Number(round.prizeValue) <= 0) {
-                roundErrors[`${i}_prizeValue`] = `Ronda ${i + 1}: el valor del premio es requerido.`
+                roundErrors[`${i}_prizeValue`] = `El valor es requerido.`
             }
         })
 
