@@ -60,7 +60,7 @@ export function useBingoRoomForm(
         }
 
         if (!form.value.gameMode) {
-            e.gameMode = 'El modo de juego es requerido.'
+            e.gameMode = 'Modo de juego requerido.'
         }
 
         if (!form.value.prizePoolType) {
