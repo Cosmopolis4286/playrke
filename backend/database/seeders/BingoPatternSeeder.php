@@ -37,6 +37,7 @@ class BingoPatternSeeder extends Seeder
             BingoPattern::updateOrCreate(
                 ['name' => $pattern['name']],
                 [
+                    'default_pattern' => 'Y',
                     'type_pattern' => $pattern['type_pattern'],
                     'boxes' => $pattern['boxes'],
                     'status' => $pattern['status']

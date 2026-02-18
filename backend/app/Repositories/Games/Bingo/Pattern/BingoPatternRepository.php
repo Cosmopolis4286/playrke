@@ -72,7 +72,7 @@ class BingoPatternRepository extends BaseRepository implements BingoPatternRepos
         $query = $this->model
             ->where(function ($q) use ($userId) {
                 $q->where('user_id', $userId)
-                    ->orWhereNull('user_id');
+                    ->orWhere('default_pattern', 'Y');
             });
 
         if (!empty($fields)) {

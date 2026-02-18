@@ -69,8 +69,9 @@ class BingoPattern extends Model
      * Campos que pueden ser asignados masivamente
      */
     protected $fillable = [
-        'type_pattern',
         'name',
+        'default_pattern',
+        'type_pattern',
         'user_id',
         'boxes',
         'status',
@@ -80,6 +81,7 @@ class BingoPattern extends Model
      * Campos que deben ser convertidos a tipos específicos
      */
     protected $casts = [
+        'default_pattern' => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -334,9 +336,9 @@ class BingoPattern extends Model
     public function isValid(): bool
     {
         return !empty($this->name) &&
-               !empty($this->type_pattern) &&
-               !empty($this->boxes) &&
-               $this->isValidBoxesFormat();
+            !empty($this->type_pattern) &&
+            !empty($this->boxes) &&
+            $this->isValidBoxesFormat();
     }
 
     /**
