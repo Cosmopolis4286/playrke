@@ -143,6 +143,18 @@
     return found ? String(found.label) : String(id)
   }
 
+  const hasCardPriceByCurrencyErrors = computed(() => {
+    const err = errors.value.cardPriceByCurrency
+    return err && Object.keys(err).length > 0
+  })
+
+  const cardPriceByCurrencyPopoverText = computed(() => {
+    const err = errors.value.cardPriceByCurrency
+    if (!err) return ''
+
+    return 'Ajusta los precios de los cartones'
+  })
+
   /* ==========================================================================
    * Watchers
    * ========================================================================== */
@@ -295,7 +307,7 @@
         v-model="form.allowedCurrencies"
       />
 
-      <!-- Precio Carton (solo si hay al menos una moneda seleccionada) -->
+      <!-- Precio Carton (solo si hay  una moneda seleccionada) -->
       <FormInput
         v-show="(form.allowedCurrencies ?? []).length > 0"
         label="Precio Carton"
@@ -316,20 +328,37 @@
         </template>
 
         <template #append>
-          <button
-            class="btn btn-outline-secondary"
-            type="button"
-            :data-active="cardPriceByCurrencyActive ? 1 : 0"
-            @click="toggleCtnPriceByCurrency"
-            :disabled="!canAdjustCtnPriceByCurrency"
-            :title="
-              canAdjustCtnPriceByCurrency
-                ? 'Ajustar precio de los cartones por moneda'
-                : 'Selecciona más de una moneda para ajustar precios por moneda'
-            "
+          <VDropdown
+            :shown="hasCardPriceByCurrencyErrors"
+            :triggers="[]"
+            placement="top"
+            :autoHide="false"
+            container="body"
+            popperClass="popover-error"
           >
-            <i class="fa-solid fa-sliders"></i>
-          </button>
+            <button
+              class="btn btn-outline-secondary"
+              type="button"
+              :data-active="cardPriceByCurrencyActive ? 1 : 0"
+              @click="toggleCtnPriceByCurrency"
+              :disabled="!canAdjustCtnPriceByCurrency"
+            >
+              <i class="fa-solid fa-sliders"></i>
+            </button>
+
+            <template #popper>
+              <div
+                style="
+                  padding: 4px 7px;
+                  max-width: 260px;
+                  font-size: 0.82rem;
+                  white-space: pre-line;
+                "
+              >
+                {{ cardPriceByCurrencyPopoverText }}
+              </div>
+            </template>
+          </VDropdown>
         </template>
       </FormInput>
 
@@ -347,15 +376,23 @@
             padding: 1rem;
           "
         >
-          <div class="d-flex mb-3">
+          <div class="d-flex align-items-center justify-content-between mb-3">
             <h6 class="mb-0" style="font-size: 0.9rem; font-weight: 600">
               Ajustar precio de los cartones por moneda
             </h6>
+
+            <button
+              type="button"
+              class="close"
+              @click="cardPriceByCurrencyActive = false"
+              aria-label="Cerrar"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
           </div>
 
           <div class="row">
             <template v-for="cur in form.allowedCurrencies ?? []" :key="String(cur)">
-              {{}}
               <FormInput
                 :name="`ctn_price_${String(cur)}`"
                 :error="

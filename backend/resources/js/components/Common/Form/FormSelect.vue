@@ -185,4 +185,15 @@
     background-color: #e9ecef;
     opacity: 1;
   }
+
+  .multiselect-bootstrap :deep(.multiselect-option) {
+    min-height: 32px; /* altura */
+    padding: 6px 12px; /* espacio interno */
+    display: flex;
+    align-items: center; /* centra vertical */
+  }
+
+  .multiselect-bootstrap :deep(.multiselect-option) {
+    font-size: 0.9rem;
+  }
 </style>

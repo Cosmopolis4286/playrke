@@ -20,6 +20,9 @@ importers:
       '@vuelidate/validators':
         specifier: ^2.0.4
         version: 2.0.4(vue@3.5.27(typescript@5.9.3))
+      floating-vue:
+        specifier: ^5.2.2
+        version: 5.2.2(vue@3.5.27(typescript@5.9.3))
       yup:
         specifier: ^1.7.1
         version: 1.7.1
