@@ -1,66 +1,130 @@
-@extends($layout)
-@section('title', $title)
-@section('content')
-    <div class="col-12 @if (isset($userToken)) p-2 @endif">
-        <div class="card">
-            @include('includes.card-header')
-            <div class="card-body">
-                <button type="button" class="btn btn-sm btn-success mr-2" data-toggle="modal" data-target="#modal-bingo-rules">
-                    <i class="fas fa-eye"></i> Ver Reglamento
-                </button>
-                <a href="{{ route('bingo.bingoPatterns', $userToken) }}" class="btn btn-sm btn-primary">
-                    <i class="fa-solid fa-gamepad"></i> Ver Jugadas
-                </a>
-                <hr class="mt-2">
-                <form id="form-bingo-rules" action="{{ route('bingo.handleBingoRules', $rulesID) }}" method="POST"
-                    enctype="multipart/form-data">
-                    @csrf @method('PUT')
-                    <div class="d-flex justify-content-between">
-                        <div class="form-group">
-                            <label for="image">Imagen</label>
-                            <input type="file" id="image" class="form-control-file" name="image"
-                                accept="image/png, image/jpeg">
-                        </div>
-                        <div class="mr-2">
-                            @if ($imageBingoRules)
-                                <img style="max-height: 68px" src="{{ asset("storage/game/bingo/$imageBingoRules") }}"
-                                    alt="Game Image">
-                            @else
-                                <div class="alert alert-primary p-3">
-                                    <h6 class="alert-heading m-0"><strong>¡Atención, no hay una imagen cargada!</strong>
-                                    </h6>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="bingo-rules">Reglamento:</label>
-                        <textarea class="form-control" id="bingo-rules" name="rules" rows="10">
-                            {{ $gameRules ?? view('includes.info.game.bingo')->render() }}
-                        </textarea>
-                    </div>
-                    <div class="d-flex justify-content-center">
-                        <button type="button" id="btn-form-bingo-rules" class="btn btn-primary">
-                            <i class="fa-solid fa-floppy-disk"></i> Guardar
-                            <span id="loader-btn-ctn" class="spinner-border spinner-border-sm" role="status"
-                                aria-hidden="true" style="display: none"></span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        @include('includes.games.bingo.layout.modal-bingo-rules')
+<script setup lang="ts">
+  import { ref, computed, watch } from 'vue'
+
+  import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
+  import BingoConfigForm from '@/js/Components/Games/Bingo/Config/BingoConfigForm.vue'
+
+  import { useBingoConfig } from '@/js/composables/games/bingo/config/useBingoConfig'
+
+  import type { ExchangeRatePageProps } from '@js/types/exchange-rate'
+
+  /**
+   * Props Inertia
+   */
+  const props = defineProps<ExchangeRatePageProps>()
+
+  /**
+   * Composable de negocio para manejo de la configuracion
+   */
+  const { } = useBingoConfig(props.tokenId)
+
+  /**
+   * IDs seleccionados en la tabla
+   */
+  const selectedIds = ref<string[]>([])
+
+  /**
+   * Propiedades y estado local
+   */
+  const currencies = props.currencies
+  const usedCurrencies = ref<UsedCurrency[]>([])
+
+  /**
+   * Loading exclusivo para la acción "Actualizar la configuracion"
+   * Vive en el padre porque aquí vive la operación async
+   */
+  const updatingExchangeRates = ref(false)
+
+  /**
+   * Genera las monedas usadas en las la configuracion para presentación
+   */
+  watch(
+    exchangeRates,
+    newRates => {
+      usedCurrencies.value = newRates.map(rate => {
+        const currency = currencies.find(c => c.id === rate.currency_id)
+
+        return {
+          id: rate.currency_id,
+          name: currency?.name ?? 'Desconocido',
+          description: currency?.description ?? 'Desconocido',
+          iso_code: currency?.iso_code ?? 'Desconocido',
+          type: currency?.type,
+          country: currency?.country
+            ? {
+                id: currency.country.id,
+                name: currency.country.name,
+                iso_code: currency.country.iso_code_3
+              }
+            : null
+        }
+      })
+    },
+    { immediate: true }
+  )
+
+  /**
+   * Abre el modal en modo creación, inicializando datos
+   */
+  function handleCreate(): void {
+    create()
+    showModalForm.value = true
+  }
+
+  /**
+   * Abre el modal en modo edición cargando datos existentes
+   *
+   * @param id Identificador de la tasa a editar
+   */
+  async function handleEdit(id: string): Promise<void> {
+    await edit(id)
+    showModalForm.value = true
+  }
+
+  /**
+   * Alterna el status de las la configuracion seleccionadas
+   */
+  async function handleChangeStatus(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      await toggleStatus(id)
+    }
+    selectedIds.value = []
+  }
+
+  /**
+   * Elimina las la configuracion seleccionadas
+   */
+  async function handleDelete(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      await remove(id)
+    }
+    selectedIds.value = []
+  }
+
+  /**
+   * Navega a la vista histórica de la tasa seleccionada
+   */
+  function goHistorical(): void {
+    if (!selectedIds.value.length) return
+
+    const selected = exchangeRates.value.find(er => String(er.id) === selectedIds.value[0])
+    if (!selected?.currency_id) return
+
+    const params = props.tokenId ? `?tokenId=${props.tokenId}` : ''
+    window.location.href = `/exchange-rate/historical/${selected.currency_id}${params}`
+  }
+</script>
+<template>
+  <div class="card">
+    <CardHeader title="Tasas de Cambio" subtitle="Valores en base a Un Dólar (1 USD)" />
+    <div class="card-body">
+      <BingoConfigForm
+        ref="exchangeRateFormRef"
+        v-model="exchangeRateData"
+        :currencies="currencies"
+        :usedCurrencies="usedCurrencies"
+        :has-privileged-role="hasPrivilegedRole"
+      />
     </div>
-@endsection
-@section('scripts')
-    <script>
-        $(document).on("click", "#btn-form-bingo-rules", function() {
-            if ($('#bingo-rules').val()) {
-                $('#loader-btn-ctn').show();
-                $('#form-bingo-rules').submit();
-            } else {
-                showToast('La información es obligatoria', 'info');
-            }
-        });
-    </script>
-@endsection
+  </div>
+</template>

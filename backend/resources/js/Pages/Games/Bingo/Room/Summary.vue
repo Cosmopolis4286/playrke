@@ -192,13 +192,15 @@
       action: 'toggleStatus'
     }
   ]
+
+  const subtitle = `<a title="Ir a configuración del Bingo" href="/bingo/config" class="text-primary font-weight-bold">Ir a configuración</a>`
 </script>
 
 <template>
   <TableWithFilterBridge
     tableId="bingo-room-table"
     :title="props.title"
-    subtitle="Ir a configuracion"
+    :subtitle="subtitle"
     :columns="props.rooms.columns"
     :rows="rooms"
     :filters="filters"

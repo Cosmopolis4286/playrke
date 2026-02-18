@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Games\Bingo\Config\BingoConfigController;
 use App\Http\Controllers\Games\Bingo\GameBingoController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomController;
 use Illuminate\Support\Facades\Route;
@@ -11,6 +12,44 @@ use Illuminate\Support\Facades\Route;
 | Todas las funcionalidades relacionadas con el juego de bingo:
 | salas, cartones, sorteos, premios, patrones, etc.
 */
+
+/**
+ * ====================================
+ * INFORMACIÓN DE SALAS DE JUEGO Y CONFIGURACIÓN
+ * ====================================
+ */
+route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'role:admin,commerce'], BingoRoomController::class, [
+    'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
+    'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
+    'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
+    'show' => ['method' => 'get', 'uri' => '{room}/show', 'action' => 'show'],
+    'update' => ['method' => 'patch',  'uri' => '{room}/update', 'action' => 'update'],
+    'delete' => ['method' => 'delete', 'uri' => '{room}/delete', 'action' => 'delete'],
+    'destroy' => ['method' => 'delete', 'uri' => '{room}/force-delete', 'action' => 'destroy'],
+    'toggle-status' => ['method' => 'patch', 'uri' => '{room}/status', 'action' => 'toggleStatus'],
+    'replay' => ['method' => 'get',  'uri' => '{room}/replay', 'action' => 'replay'],
+    'publish' => ['method' => 'patch',  'uri' => '{room}/publish', 'action' => 'publish'],
+    'refund' => ['method' => 'patch',  'uri' => '{room}/refund', 'action' => 'refund'],
+    'copy' => ['method' => 'post',  'uri' => '{room}/copy', 'action' => 'copy']
+]);
+
+/**
+ * ====================================
+ * CONFIGURACIÓN
+ * ====================================
+ */
+route_group('bingo/config', 'bingo.config.', ['auth', 'role:admin,commerce'], BingoConfigController::class, [
+    'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
+    // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
+    // 'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],
+    // 'patterns'           => ['method' => 'get', 'uri' => 'configuration/patterns/{userToken?}'],
+    // 'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
+    // 'public-room-info'   => ['method' => 'get', 'uri' => 'public-room-info'],
+    // 'pending-payments'   => ['method' => 'get', 'uri' => 'public-room-pending-payments'],
+    // 'rounds-config'      => ['method' => 'get', 'uri' => 'rounds-config/{room}/{type}'],
+    // 'datetime-rooms'     => ['method' => 'get', 'uri' => 'datetime-rooms/{creatorUser}/{player}'],
+    // 'price-currency'     => ['method' => 'get', 'uri' => 'price-currency/{creation}/{creatorType}/{creatorId}/{room?}'],
+]);
 
 /**
  * ====================================
@@ -32,35 +71,6 @@ multi_middleware_routes('bingo', 'bingo.', [
     ]
 ]);
 
-/**
- * ====================================
- * INFORMACIÓN Y CONFIGURACIÓN
- * ====================================
- */
-route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'role:admin,commerce'], BingoRoomController::class, [
-    'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
-    'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
-    'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
-    'show' => ['method' => 'get', 'uri' => '{room}/show', 'action' => 'show'],
-    'update' => ['method' => 'patch',  'uri' => '{room}/update', 'action' => 'update'],
-    'delete' => ['method' => 'delete', 'uri' => '{room}/delete', 'action' => 'delete'],
-    'destroy' => ['method' => 'delete', 'uri' => '{room}/force-delete', 'action' => 'destroy'],
-    'toggle-status' => ['method' => 'patch', 'uri' => '{room}/status', 'action' => 'toggleStatus'],
-    'replay' => ['method' => 'get',  'uri' => '{room}/replay', 'action' => 'replay'],
-    'publish' => ['method' => 'patch',  'uri' => '{room}/publish', 'action' => 'publish'],
-    'refund' => ['method' => 'patch',  'uri' => '{room}/refund', 'action' => 'refund'],
-    'copy' => ['method' => 'post',  'uri' => '{room}/copy', 'action' => 'copy'],
-    // 'form'               => ['method' => 'get', 'uri' => 'form/{roomId?}', 'action' => 'formData'],
-    // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
-    // 'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],
-    // 'patterns'           => ['method' => 'get', 'uri' => 'configuration/patterns/{userToken?}'],
-    // 'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
-    // 'public-room-info'   => ['method' => 'get', 'uri' => 'public-room-info'],
-    // 'pending-payments'   => ['method' => 'get', 'uri' => 'public-room-pending-payments'],
-    // 'rounds-config'      => ['method' => 'get', 'uri' => 'rounds-config/{room}/{type}'],
-    // 'datetime-rooms'     => ['method' => 'get', 'uri' => 'datetime-rooms/{creatorUser}/{player}'],
-    // 'price-currency'     => ['method' => 'get', 'uri' => 'price-currency/{creation}/{creatorType}/{creatorId}/{room?}'],
-]);
 
 /**
  * ====================================
