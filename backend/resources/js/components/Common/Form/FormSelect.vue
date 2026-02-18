@@ -1,5 +1,5 @@
 <script setup lang="ts" name="FormSelect">
-  import { computed } from 'vue'
+  import { computed, useSlots } from 'vue'
   import Multiselect from '@vueform/multiselect'
   import type { PropType } from 'vue'
 
@@ -17,9 +17,6 @@
    * Props del componente
    */
   const props = defineProps({
-    /** Mostrar id en el contenedor (container-{id|name}) */
-    container: { type: Boolean, default: false },
-
     /** ID explícito del input */
     id: { type: String, default: null },
 
@@ -64,7 +61,11 @@
 
     /** Layout */
     col: { type: String, default: 'col-sm-6' },
-    className: { type: String, default: '' }
+    className: { type: String, default: '' },
+
+    inputGroup: { type: Boolean, default: false },
+
+    inputGroupClass: { type: String, default: '' }
   })
 
   /**
@@ -74,15 +75,12 @@
     (e: 'update:modelValue', value: any): void
   }>()
 
+  const slots = useSlots()
+
   /**
    * ID efectivo
    */
   const inputId = computed(() => props.id ?? props.name)
-
-  /**
-   * ID del contenedor
-   */
-  const containerId = computed(() => (props.container ? `container-${inputId.value}` : undefined))
 
   /**
    * v-model proxy
@@ -95,14 +93,44 @@
 </script>
 
 <template>
-  <div :id="containerId" :class="['form-group', col, className]">
+  <div :class="['form-group', col, className]">
     <!-- Label SIEMPRE visible (como Blade) -->
     <label :for="inputId" class="form-label fw-semibold">
       {{ label }}
       <span v-if="required" class="text-danger">*</span>
     </label>
 
+    <!-- INPUT GROUP -->
+    <div v-if="inputGroup" :class="['input-group', inputGroupClass]">
+      <div v-if="slots.prepend" class="input-group-prepend">
+        <slot name="prepend" />
+      </div>
+
+      <Multiselect
+        v-model="value"
+        :id="inputId"
+        :options="options"
+        :mode="multiple ? 'tags' : 'single'"
+        :value-prop="optionValue"
+        :label="optionLabel"
+        :placeholder="placeholder"
+        :close-on-select="!multiple"
+        :searchable="true"
+        :clearable="!required"
+        :can-clear="!required"
+        class="multiselect-bootstrap"
+        :class="{ 'is-invalid': !!error }"
+        style="flex: 1; min-width: 0"
+      />
+
+      <div v-if="slots.append" class="input-group-append">
+        <slot name="append" />
+      </div>
+    </div>
+
+    <!-- MULTISELECT SIMPLE -->
     <Multiselect
+      v-else
       v-model="value"
       :id="inputId"
       :options="options"
@@ -115,6 +143,7 @@
       :clearable="!required"
       :can-clear="!required"
       class="multiselect-bootstrap"
+      :class="{ 'is-invalid': !!error }"
     />
 
     <small v-if="error" class="text-danger d-block mt-1">

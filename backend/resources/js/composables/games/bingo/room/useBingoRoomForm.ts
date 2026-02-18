@@ -115,12 +115,31 @@ export function useBingoRoomForm(
             }
         }
 
+        // Validaciones por ronda (solo si hay más de 1 ronda)
+        const rounds = Number(form.value.rounds) || 1
+        if (rounds > 1) {
+            const configs = form.value.roundsConfig ?? []
+            const roundErrors: Record<string, string> = {}
+
+            configs.forEach((round, i) => {
+                if (!round.bingoPattern) {
+                    roundErrors[`${i}_bingoPattern`] = `Ronda ${i + 1}: el patrón es requerido.`
+                }
+                if (round.prizeValue === null || round.prizeValue === '' || Number(round.prizeValue) <= 0) {
+                    roundErrors[`${i}_prizeValue`] = `Ronda ${i + 1}: el valor del premio es requerido.`
+                }
+            })
+
+            if (Object.keys(roundErrors).length) {
+                e.roundsConfig = roundErrors
+            }
+        }
+
         // Validar suma de porcentajes
         const roomCommn = Number(form.value.roomCommn) || 0
         const jackpotPct = Number(form.value.jackpotPct) || 0
         const serialsPct = Number(form.value.serialsPct) || 0
         const roundsPct = Number(form.value.roundsPct) || 0
-        const rounds = Number(form.value.rounds) || 1
 
         const totalPct = roundsPct > 0 && rounds > 1
             ? roomCommn + jackpotPct + serialsPct + roundsPct

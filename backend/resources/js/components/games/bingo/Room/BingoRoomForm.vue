@@ -26,9 +26,9 @@
    * ========================================================================== */
 
   const roundPrizeTypeOptions: SelectOption[] = [
-    { value: 'percentage', label: 'Porcentaje' },
+    { value: 'percentage', label: '%' },
     { value: 'fixed', label: 'Fijo' },
-    { value: 'prize', label: 'Premio' }
+    { value: 'prize', label: 'P/S' }
   ]
 
   /* ==========================================================================
@@ -64,6 +64,9 @@
       emit,
       () => props.automaticRoom ?? false
     )
+
+  const cardPriceByCurrencyActive = ref(false)
+  const roundsConfigActive = ref(false)
 
   /* ==========================================================================
    * Computed
@@ -120,8 +123,6 @@
     return Array.isArray(allowed) && allowed.length > 1
   })
 
-  const cardPriceByCurrencyActive = ref(false)
-
   function toggleCtnPriceByCurrency() {
     if (!canAdjustCtnPriceByCurrency.value) return
     cardPriceByCurrencyActive.value = !cardPriceByCurrencyActive.value
@@ -143,17 +144,44 @@
     return found ? String(found.label) : String(id)
   }
 
+  const singleCurrencyLabel = computed(() => {
+    const currencies = form.value.allowedCurrencies ?? []
+    if (currencies.length !== 1) return ''
+    return getCurrencyLabel(currencies[0])
+  })
+
   const hasCardPriceByCurrencyErrors = computed(() => {
     const err = errors.value.cardPriceByCurrency
-    return err && Object.keys(err).length > 0
+    return err && Object.keys(err).length > 0 && !cardPriceByCurrencyActive.value
   })
 
   const cardPriceByCurrencyPopoverText = computed(() => {
     const err = errors.value.cardPriceByCurrency
     if (!err) return ''
-
-    return 'Ajusta los precios de los cartones'
+    return 'Ajustar precio de los cartones'
   })
+
+  const hasRoundsConfigErrors = computed(() => {
+    const err = errors.value.roundsConfig
+    return err && Object.keys(err).length > 0 && !roundsConfigActive.value
+  })
+
+  const roundsConfigPopoverText = computed(() => {
+    const err = errors.value.roundsConfig as Record<string, string> | undefined
+    if (!err) return ''
+    return 'Ajustar valores de las rondas'
+  })
+
+  /**
+   * Error por campo individual de ronda
+   */
+  function getRoundFieldError(
+    index: number,
+    field: 'bingoPattern' | 'prizeValue'
+  ): string | undefined {
+    const err = errors.value.roundsConfig as Record<string, string> | undefined
+    return err?.[`${index}_${field}`]
+  }
 
   /* ==========================================================================
    * Watchers
@@ -186,10 +214,8 @@
    * ========================================================================== */
 
   function toggleRoundsConfig() {
-    form.value = {
-      ...form.value,
-      roundsConfigActive: !form.value.roundsConfigActive
-    }
+    if ((form.value.rounds ?? 1) < 1) return
+    roundsConfigActive.value = !roundsConfigActive.value
   }
 
   function updateRoundConfig(
@@ -304,34 +330,15 @@
         optionValue="value"
         optionLabel="label"
         col="col-sm-6"
-        v-model="form.allowedCurrencies"
-      />
-
-      <!-- Precio Carton (solo si hay  una moneda seleccionada) -->
-      <FormInput
-        v-show="(form.allowedCurrencies ?? []).length > 0"
-        label="Precio Carton"
-        name="card_price"
-        :error="errors.cardPrice"
-        type="number"
-        required
-        :step="0.05"
-        :min="0.35"
-        :max="50"
-        placeholder="Precio Cartón"
-        col="col-sm-6 col-md-4 col-lg-3"
         inputGroup
-        v-model="form.cardPrice"
+        v-model="form.allowedCurrencies"
       >
-        <template #prepend>
-          <span class="input-group-text">$</span>
-        </template>
-
         <template #append>
           <VDropdown
+            v-show="(form.allowedCurrencies ?? []).length > 1"
             :shown="hasCardPriceByCurrencyErrors"
             :triggers="[]"
-            placement="top"
+            placement="top-end"
             :autoHide="false"
             container="body"
             popperClass="popover-error"
@@ -349,9 +356,9 @@
             <template #popper>
               <div
                 style="
-                  padding: 4px 7px;
-                  max-width: 260px;
-                  font-size: 0.82rem;
+                  padding: 4px 6.5px;
+                  max-width: 245px;
+                  font-size: 0.79rem;
                   white-space: pre-line;
                 "
               >
@@ -360,7 +367,42 @@
             </template>
           </VDropdown>
         </template>
+      </FormSelect>
+
+      <!-- Precio Carton (solo si hay una moneda seleccionada) -->
+      <FormInput
+        v-show="(form.allowedCurrencies ?? []).length == 1"
+        label="Precio Carton"
+        name="card_price"
+        :error="errors.cardPrice"
+        type="number"
+        required
+        :step="0.05"
+        :min="0.35"
+        :max="50"
+        placeholder="Precio Cartón"
+        col="col-sm-6 col-md-4 col-lg-3"
+        inputGroup
+        v-model="form.cardPrice"
+      >
+        <template #prepend>
+          <span class="input-group-text">{{ singleCurrencyLabel }}</span>
+        </template>
       </FormInput>
+
+      <!-- Comisiones, jackpot y tiempo ficha -->
+      <FormInput
+        label="%Sala"
+        name="room_commission"
+        id="room-commn"
+        type="number"
+        required
+        :step="0.05"
+        :min="percentageLimits.roomCommn.min"
+        :max="percentageLimits.roomCommn.max"
+        col="col-sm-6 col-md-4 col-lg-3"
+        v-model="roomCommn"
+      />
 
       <!-- Inputs por moneda (cuando activo) -->
       <div
@@ -438,20 +480,6 @@
         </template>
       </FormInput>
 
-      <!-- Comisiones, jackpot y tiempo ficha -->
-      <FormInput
-        label="%Sala"
-        name="room_commission"
-        id="room-commn"
-        type="number"
-        required
-        :step="0.05"
-        :min="percentageLimits.roomCommn.min"
-        :max="percentageLimits.roomCommn.max"
-        col="col-sm-6 col-md-4 col-lg-3"
-        v-model="roomCommn"
-      />
-
       <FormInput
         label="%Jackpot"
         name="jackpot_pct"
@@ -478,16 +506,37 @@
         v-model="form.rounds"
       >
         <template #append>
-          <button
-            class="btn btn-outline-secondary"
-            type="button"
-            :data-active="form.roundsConfigActive ? 1 : 0"
-            @click="toggleRoundsConfig"
-            :disabled="(form.rounds ?? 1) <= 1"
-            title="Ajustar valores de las rondas"
+          <VDropdown
+            :shown="hasRoundsConfigErrors"
+            :triggers="[]"
+            placement="top-end"
+            :autoHide="false"
+            container="body"
+            popperClass="popover-error"
           >
-            <i class="fa-solid fa-sliders"></i>
-          </button>
+            <button
+              class="btn btn-outline-secondary"
+              type="button"
+              :data-active="roundsConfigActive ? 1 : 0"
+              @click="toggleRoundsConfig"
+              :disabled="(form.rounds ?? 1) < 1"
+            >
+              <i class="fa-solid fa-sliders"></i>
+            </button>
+
+            <template #popper>
+              <div
+                style="
+                  padding: 4px 6.5px;
+                  max-width: 245px;
+                  font-size: 0.79rem;
+                  white-space: pre-line;
+                "
+              >
+                {{ roundsConfigPopoverText }}
+              </div>
+            </template>
+          </VDropdown>
         </template>
       </FormInput>
 
@@ -509,7 +558,7 @@
       <!-- Configuración avanzada de rondas -->
       <div
         class="col-12"
-        v-show="form.roundsConfigActive && (form.rounds ?? 1) > 1"
+        v-show="roundsConfigActive"
         style="margin-top: 0.5rem; margin-bottom: 1rem"
       >
         <div
@@ -520,26 +569,31 @@
             padding: 1rem;
           "
         >
-          <div class="d-flex align-items-center mb-3">
-            <h6 class="mb-0" style="font-size: 0.9rem; font-weight: 600; margin-right: 0.5rem">
-              Ajustar valores de las rondas
-            </h6>
-            <div
-              v-if="form.loadingRoundsConfig"
-              class="spinner-border spinner-border-sm text-primary"
-              role="status"
-            >
-              <span class="sr-only">Cargando...</span>
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-center">
+              <h6 class="mb-0" style="font-size: 0.9rem; font-weight: 600">
+                Ajustar valores de las rondas
+              </h6>
+
+              <!-- Validación de suma (solo si hay más de una ronda) -->
+              <div class="ml-2" v-if="totalRoundValues > 0 && showRoundsPct">
+                <small :class="isRoundValuesValid ? 'text-success' : 'text-danger'">
+                  {{ isRoundValuesValid ? '✓' : '✗' }} Suma: {{ totalRoundValues }} /
+                  {{ roundsPct }}
+                </small>
+              </div>
             </div>
+
+            <button
+              type="button"
+              class="close"
+              @click="roundsConfigActive = false"
+              aria-label="Cerrar"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
           </div>
           <div class="row">
-            <!-- Validación de suma (solo si hay más de una ronda) -->
-            <div class="col-12 mb-2" v-if="totalRoundValues > 0 && showRoundsPct">
-              <small :class="isRoundValuesValid ? 'text-success' : 'text-danger'">
-                {{ isRoundValuesValid ? '✓' : '✗' }} Suma: {{ totalRoundValues }} /
-                {{ roundsPct }}
-              </small>
-            </div>
             <template v-for="(round, index) in form.roundsConfig" :key="`round_${index}`">
               <div class="col-lg-6 col-12 mb-2">
                 <div class="d-flex align-items-center" style="gap: 0.5rem">
@@ -559,7 +613,7 @@
                         ($event.target as HTMLSelectElement).value as any
                       )
                     "
-                    style="flex: 0 1 300px"
+                    style="flex: 1 0 70px"
                   >
                     <option
                       v-for="opt in roundPrizeTypeOptions"
@@ -573,7 +627,10 @@
                   <!-- Patrón de bingo -->
                   <select
                     :name="`rounds_bingo_patterns[${index}]`"
-                    class="form-control form-control-sm"
+                    :class="[
+                      'form-control form-control-sm',
+                      { 'is-invalid': !!getRoundFieldError(index, 'bingoPattern') }
+                    ]"
                     :value="round.bingoPattern"
                     @change="
                       updateRoundConfig(
@@ -594,8 +651,14 @@
                   <input
                     :name="`rounds_prize_value[${index}]`"
                     type="number"
-                    class="form-control form-control-sm"
-                    :class="{ 'is-invalid': !isRoundValuesValid && totalRoundValues > 0 }"
+                    :class="[
+                      'form-control form-control-sm',
+                      {
+                        'is-invalid':
+                          !!getRoundFieldError(index, 'prizeValue') ||
+                          (!isRoundValuesValid && totalRoundValues > 0)
+                      }
+                    ]"
                     placeholder="Valor"
                     :value="round.prizeValue"
                     @input="
@@ -608,7 +671,7 @@
                     step="0.5"
                     min="0"
                     :max="Number(roundsPct) || percentageLimits.roundsPct.max"
-                    style="flex: 0 1 100px"
+                    style="flex: 0 0 100px"
                   />
                 </div>
               </div>

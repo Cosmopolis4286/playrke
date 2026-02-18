@@ -1,7 +1,7 @@
 /**
  * Tipos de sala de bingo
  */
-export type BingoRoomType = 'PRIVATE' | 'PUBLIC'
+export type BingoRoomType = 'PRIVATE' | 'PUBLIC' | 'VIP' | 'MIXED'
 
 /**
  * Indica si los premios fueron pagados
@@ -90,7 +90,7 @@ export interface BingoRoom {
 /**
  * Tipo de premio por ronda
  */
-export type RoundPrizeType = 'percentage' | 'fixed'
+export type RoundPrizeType = 'percentage' | 'fixed' | 'prize'
 
 /**
  * Configuración individual de cada ronda
@@ -117,12 +117,10 @@ export interface BingoRoomFormData {
     jackpotPct?: number | null
     timeChip?: number | null
     rounds?: number | null
-    roundsConfigActive?: boolean
-    loadingRoundsConfig?: boolean
     roundsPct?: number | null
+    roundsConfig?: RoundConfig[]
     serialsPct?: number | null
     numSerials?: number | null
     cardPrice?: number | null
     cardPriceByCurrency?: Record<string, number | null>
-    roundsConfig?: RoundConfig[]
 }

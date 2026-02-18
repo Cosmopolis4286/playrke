@@ -7,7 +7,6 @@
   const vImask = IMaskDirective
 
   const props = defineProps({
-    container: { type: Boolean, default: false },
     id: { type: String, default: null },
     error: {
       type: [String, Object] as PropType<string | Record<string, string> | null>,
@@ -38,7 +37,6 @@
   const slots = useSlots()
 
   const inputId = computed(() => props.id ?? props.name)
-  const containerId = computed(() => (props.container ? `container-${inputId.value}` : undefined))
 
   /**
    * Valida y corrige valores numéricos dentro de los límites min/max
@@ -118,7 +116,7 @@
 </script>
 
 <template>
-  <div :id="containerId" :class="['form-group', col, className]">
+  <div :class="['form-group', col, className]">
     <!-- LABEL (igual que Blade) -->
     <label v-if="label" :for="inputId">
       {{ label }}
