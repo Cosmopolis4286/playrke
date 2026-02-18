@@ -32,6 +32,7 @@
   const props = defineProps<{
     tableId: string
     title: string
+    subtitle?: string
     columns: Column[]
     rows: TableRow[]
     filters?: Filter[]
@@ -79,7 +80,7 @@
 
 <template>
   <div class="card">
-    <CardHeader :title="title" />
+    <CardHeader :title="title" :subtitle="subtitle" />
     <div class="card-body">
       <TableFilter
         :search-placeholder="searchPlaceholder"

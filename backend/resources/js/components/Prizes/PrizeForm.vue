@@ -1,7 +1,7 @@
 <script setup lang="ts" name="PrizeForm">
   import { computed, watch } from 'vue'
 
-  import FormInput  from '@/js/Components/Common/Form/FormInput.vue'
+  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
 
   import type { Prize } from '@/js/types/prizes/prize'
@@ -24,8 +24,8 @@
    * ========================================================================== */
 
   const form = computed<Partial<Prize>>({
-    get:  () => props.modelValue,
-    set: (v) => emit('update:modelValue', v),
+    get: () => props.modelValue,
+    set: v => emit('update:modelValue', v)
   })
 
   /* ==========================================================================
@@ -34,12 +34,12 @@
 
   const rewardTypeOptions = [
     { value: 'PRODUCT', label: 'Producto' },
-    { value: 'SERVICE', label: 'Servicio' },
+    { value: 'SERVICE', label: 'Servicio' }
   ]
 
   const kitOptions = [
     { value: 'N', label: 'No' },
-    { value: 'Y', label: 'Sí — Kit' },
+    { value: 'Y', label: 'Sí — Kit' }
   ]
 
   /* ==========================================================================
@@ -48,7 +48,7 @@
 
   watch(
     () => form.value.kit,
-    (val) => {
+    val => {
       if (val !== 'Y') {
         form.value = { ...form.value, num_items: 1 }
       }
@@ -68,7 +68,7 @@
     mapToRadix: [','],
     padFractionalZeros: true,
     normalizeZeros: true,
-    thousandsSeparator: ',',
+    thousandsSeparator: ','
   }
 
   /* ==========================================================================
@@ -110,8 +110,8 @@
   })
 
   const isValid = computed(() => Object.keys(errors.value).length === 0)
-  const isKit   = computed(() => form.value.kit === 'Y')
-  const isEdit  = computed(() => !!form.value.id)
+  const isKit = computed(() => form.value.kit === 'Y')
+  const isEdit = computed(() => !!form.value.id)
 
   /* ==========================================================================
    * Submit / Expose
@@ -128,54 +128,7 @@
 
 <template>
   <form id="prize-form" novalidate @submit.prevent="submit">
-    <div class="row g-2">
-
-      <!-- ======================================================
-           FILA 1 — Identificación
-           código (3) | tipo (5) | kit (4)
-           ====================================================== -->
-
-      <FormInput
-        label="Código"
-        name="code"
-        required
-        maxlength="12"
-        placeholder="Ej: PRIZE001"
-        col="col-sm-3"
-        :error="errors.code"
-        :readonly="isEdit"
-        :class="{ 'opacity-75': isEdit }"
-        v-model="form.code"
-      />
-
-      <FormSelect
-        label="Tipo de recompensa"
-        name="reward_type"
-        required
-        placeholder="Seleccionar..."
-        :options="rewardTypeOptions"
-        optionValue="value"
-        optionLabel="label"
-        col="col-sm-5"
-        :error="errors.reward_type"
-        v-model="form.reward_type"
-      />
-
-      <FormSelect
-        label="¿Es Kit?"
-        name="kit"
-        :options="kitOptions"
-        optionValue="value"
-        optionLabel="label"
-        col="col-sm-4"
-        v-model="form.kit"
-      />
-
-      <!-- ======================================================
-           FILA 2 — Nombre y precio
-           nombre (8) | precio (4)
-           ====================================================== -->
-
+    <div class="row">
       <FormInput
         label="Nombre del premio"
         name="name"
@@ -202,39 +155,6 @@
         </template>
       </FormInput>
 
-      <!-- ======================================================
-           FILA 3 — Kit: N° de ítems (solo si kit = Y)
-           ====================================================== -->
-
-      <Transition name="fade">
-        <div v-if="isKit" class="col-sm-12">
-          <div class="row">
-            <FormInput
-              label="Cantidad de ítems en el kit"
-              name="num_items"
-              type="number"
-              required
-              placeholder="1"
-              :min="1"
-              :max="127"
-              col="col-sm-4"
-              :error="errors.num_items"
-              v-model="form.num_items"
-            />
-            <div class="col-sm-8 d-flex align-items-end pb-3">
-              <small class="text-muted">
-                <i class="fas fa-info-circle me-1"></i>
-                Un kit agrupa múltiples ítems como un solo premio.
-              </small>
-            </div>
-          </div>
-        </div>
-      </Transition>
-
-      <!-- ======================================================
-           FILA 4 — Descripción (ancho completo)
-           ====================================================== -->
-
       <FormInput
         label="Descripción"
         name="description"
@@ -244,18 +164,78 @@
         v-model="form.description"
       />
 
+      <FormInput
+        label="Código"
+        name="code"
+        required
+        maxlength="12"
+        placeholder="Ej: PRIZE001"
+        col="col-sm-6"
+        :error="errors.code"
+        :readonly="isEdit"
+        :class="{ 'opacity-75': isEdit }"
+        v-model="form.code"
+      />
+
+      <FormSelect
+        label="Tipo de recompensa"
+        name="reward_type"
+        required
+        placeholder="Seleccionar..."
+        :options="rewardTypeOptions"
+        optionValue="value"
+        optionLabel="label"
+        col="col-sm-6"
+        :error="errors.reward_type"
+        v-model="form.reward_type"
+      />
+
+      <FormSelect
+        label="¿Es Kit?"
+        name="kit"
+        :options="kitOptions"
+        optionValue="value"
+        optionLabel="label"
+        col="col-sm-4"
+        v-model="form.kit"
+      />
+
+      <Transition name="fade">
+        <FormInput
+          v-if="isKit"
+          label="Num. de ítems"
+          name="num_items"
+          type="number"
+          required
+          placeholder="1"
+          :min="1"
+          :max="127"
+          col="col-sm-8"
+          :error="errors.num_items"
+          v-model="form.num_items"
+        />
+
+        <div v-if="isKit" class="col-sm-12 d-flex align-items-end pb-3">
+          <small class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Un kit agrupa múltiples ítems como un solo premio.
+          </small>
+        </div>
+      </Transition>
     </div>
   </form>
 </template>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
+  .fade-enter-active,
+  .fade-leave-active {
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+  }
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 </style>

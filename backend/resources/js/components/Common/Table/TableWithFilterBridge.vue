@@ -10,6 +10,7 @@
   const props = defineProps<{
     tableId: string
     title: string
+    subtitle?: string
     columns: Column[]
     rows: Array<Record<string, any>> | string
     filters?: readonly TableFilter[]
@@ -166,6 +167,7 @@
   <TableWithFilter
     :table-id="props.tableId"
     :title="props.title"
+    :subtitle="props.subtitle"
     :columns="parsedColumns"
     :rows="parsedRows"
     :filters="parsedFilters"
