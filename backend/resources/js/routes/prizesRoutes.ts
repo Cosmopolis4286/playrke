@@ -1,11 +1,16 @@
 // ======================================================
 // Archivo: resources/js/routes/prizesRoutes.ts
-// Descripción: Rutas del módulo prizesRoutes
-// Fecha de actualización (GMT): 2026-01-20T13:36:15Z
-// Generado automáticamente con make:ts-routes-modules
+// Descripción: Rutas del módulo Prizes (CRUD completo)
+// Fecha de actualización (GMT): 2026-02-18T00:00:00Z
 // ======================================================
 
 export const prizesRoutes = {
-  index: "/prizes",
-  country: "/prizes/{countryCode}",
-} as const;
+  index:        '/prizes',
+  fetchList:    '/prizes/fetch-list',
+  store:        '/prizes',
+  show:         (id: string | number) => `/prizes/${id}/show`,
+  update:       (id: string | number) => `/prizes/${id}/update`,
+  delete:       (id: string | number) => `/prizes/${id}/delete`,
+  destroy:      (id: string | number) => `/prizes/${id}`,
+  toggleStatus: (id: string | number) => `/prizes/${id}/status`,
+} as const

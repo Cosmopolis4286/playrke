@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Http\Requests\Prize;
+namespace App\Http\Requests\Prizes;
 
 use App\Http\Requests\BaseRequest;
-use App\Models\Roles\Commerce;
+use App\Models\Prize;
 use App\Services\Auth\PermissionService;
 use Illuminate\Validation\Rule;
 
 /**
- * Request para validar datos de una Comercializadora (Commerce).
+ * Request para validar datos de un Premio.
  *
  * - Se usa tanto para creación como actualización.
  * - Aplica reglas dinámicas según el contexto.
@@ -17,12 +17,9 @@ class PrizeRequest extends BaseRequest
 {
     /**
      * Determina si el usuario está autorizado a realizar esta acción.
-     *
-     * @return bool
      */
     public function authorize(): bool
     {
-        // Solo permite usuarios con prefix "admin"
         return PermissionService::checkPrefix('admin');
     }
 
@@ -33,43 +30,25 @@ class PrizeRequest extends BaseRequest
      */
     public function rules(): array
     {
-        // Resuelve el modelo Commerce manualmente desde el route parameter
-        $commerce = $this->resolveCommerce();
+        $prize    = $this->resolvePrize();
+        $prizeId  = $prize?->id;
+        $userId   = $prize?->user_id;
+        $isUpdate = $prize !== null;
 
-        $commerceId = $commerce?->id;
-        $isUpdate   = $commerce !== null;
-        $userId     = $commerce?->user_id;
+        $codeRule = $isUpdate
+            ? Rule::unique('prizes')->where('user_id', $userId)->ignore($prizeId)
+            : Rule::unique('prizes')->where(fn ($q) => $q->where('user_id', auth()->id()));
 
-        $rules = [
-            'commission'     => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
-            'country'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
-            'currency'       => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
-            'time_zone'      => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
-            'phone'          => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:12'],
-            'name'           => [$isUpdate ? 'sometimes' : 'required', 'string'],
-            'other_currencies'   => ['sometimes', 'array'],
-            'other_currencies.*' => ['string', 'exists:currencies,id'],
-            'allowed_games'      => ['sometimes', 'array'],
-            'allowed_games.*'    => ['string', 'exists:games,id'],
+        return [
+            'code'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:12', 'alpha_num', $codeRule],
+            'reward_type' => [$isUpdate ? 'sometimes' : 'required', 'string', Rule::in(['PRODUCT', 'SERVICE'])],
+            'name'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:60'],
+            'kit'         => ['sometimes', 'string', Rule::in(['Y', 'N'])],
+            'num_items'   => ['sometimes', 'integer', 'min:1', 'max:127'],
+            'price'       => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:9999999999.99'],
+            'description' => ['nullable', 'string', 'max:255'],
+            'status'      => ['sometimes', 'string', Rule::in(['ACTIVE', 'INACTIVE'])],
         ];
-
-        // Regla unique para phone (excluye el comercio actual en update)
-        $rules['phone'][] = $commerceId
-            ? Rule::unique('commerces', 'phone')->ignore($commerceId)
-            : Rule::unique('commerces', 'phone');
-
-        // Reglas para username y email
-        if ($isUpdate) {
-            // En update: validar solo si se envían, excluyendo el usuario actual
-            $rules['username'] = ['sometimes', 'string', 'max:20', Rule::unique('users', 'username')->ignore($userId)];
-            $rules['email']    = ['sometimes', 'email', 'max:40', Rule::unique('users', 'email')->ignore($userId)];
-        } else {
-            // En creación: obligatorios y únicos
-            $rules['username'] = ['required', 'string', 'max:20', Rule::unique('users', 'username')];
-            $rules['email']    = ['required', 'email', 'max:40', Rule::unique('users', 'email')];
-        }
-
-        return $rules;
     }
 
     /**
@@ -80,49 +59,40 @@ class PrizeRequest extends BaseRequest
     public function messages(): array
     {
         return [
-            'username.required' => 'El nombre de usuario es obligatorio.',
-            'username.unique'   => 'El nombre de usuario no está disponible.',
-            'email.required'    => 'El correo electrónico es obligatorio.',
-            'email.email'       => 'El correo electrónico debe ser válido.',
-            'email.unique'      => 'Este correo ya está registrado.',
-            'phone.required'    => 'El teléfono es obligatorio.',
-            'phone.unique'      => 'El número ya está registrado.',
-            'name.required'     => 'El nombre del comercio es obligatorio.',
-            'country.required'  => 'El país es obligatorio.',
-            'currency.required' => 'La moneda principal es obligatoria.',
-            'time_zone.required' => 'La zona horaria es obligatoria.',
-            'commission.required' => 'La comisión es obligatoria.',
-            'commission.numeric' => 'La comisión debe ser un número.',
-            'commission.min' => 'La comisión no puede ser menor a 0.',
-            'commission.max' => 'La comisión no puede ser mayor a 100.',
-            'commission.regex' => 'La comisión debe tener máximo 2 decimales.',
-            'other_currencies.*.exists' => 'Una o más monedas adicionales no son válidas.',
-            'allowed_games.*.exists' => 'Uno o más juegos permitidos no son válidos.',
+            'code.required'        => 'El código del premio es obligatorio.',
+            'code.max'             => 'El código no puede tener más de 12 caracteres.',
+            'code.alpha_num'       => 'El código solo puede contener letras y números.',
+            'code.unique'          => 'Ya existe un premio con este código.',
+            'reward_type.required' => 'El tipo de recompensa es obligatorio.',
+            'reward_type.in'       => 'El tipo debe ser PRODUCT o SERVICE.',
+            'name.required'        => 'El nombre del premio es obligatorio.',
+            'name.max'             => 'El nombre no puede tener más de 60 caracteres.',
+            'kit.in'               => 'El campo kit debe ser Y o N.',
+            'num_items.integer'    => 'El número de ítems debe ser un entero.',
+            'num_items.min'        => 'El número de ítems debe ser al menos 1.',
+            'price.required'       => 'El precio es obligatorio.',
+            'price.numeric'        => 'El precio debe ser un número.',
+            'price.min'            => 'El precio no puede ser negativo.',
+            'description.max'      => 'La descripción no puede tener más de 255 caracteres.',
+            'status.in'            => 'El estado debe ser ACTIVE o INACTIVE.',
         ];
     }
 
     /**
-     * Resuelve el modelo Commerce desde el parámetro de ruta.
-     *
-     * El route model binding no está disponible durante la validación,
-     * por lo que debemos resolver el modelo manualmente usando el
-     * método resolveRouteBinding del modelo.
+     * Resuelve el modelo Prize desde el parámetro de ruta.
      */
-    protected function resolveCommerce(): ?Commerce
+    protected function resolvePrize(): ?Prize
     {
-        // Intentar obtener el parámetro por varios nombres posibles
-        $routeParam = $this->route('commerce') ?? $this->route('id');
+        $routeParam = $this->route('prize') ?? $this->route('id');
 
         if ($routeParam === null) {
             return null;
         }
 
-        // Si ya es una instancia de Commerce (binding ya resuelto)
-        if ($routeParam instanceof Commerce) {
+        if ($routeParam instanceof Prize) {
             return $routeParam;
         }
 
-        // Resolver manualmente usando el método del modelo (soporta Hashids)
-        return (new Commerce())->resolveRouteBinding($routeParam);
+        return (new Prize())->resolveRouteBinding($routeParam);
     }
 }

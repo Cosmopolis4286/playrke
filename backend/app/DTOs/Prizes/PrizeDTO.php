@@ -13,65 +13,43 @@ namespace App\DTOs\Prizes;
 final class PrizeDTO
 {
     public function __construct(
-        public readonly ?string $username,
-        public readonly ?string $email,
-        public readonly ?string $commission,
-        public readonly ?string $country,
-        public readonly ?string $timeZone,
-        public readonly ?string $currency,
-        public readonly ?string $phone,
+        public readonly ?string $code,
+        public readonly ?string $rewardType,
         public readonly ?string $name,
-        public readonly ?array $otherCurrencies,
-        public readonly ?array $allowedGames,
+        public readonly ?string $kit,
+        public readonly ?int    $numItems,
+        public readonly ?string $price,
+        public readonly ?string $description,
+        public readonly ?string $status,
     ) {}
 
     public static function fromArray(array $data): self
     {
         return new self(
-            $data['username'] ?? null,
-            $data['email'] ?? null,
-            $data['commission'] ?? null,
-            $data['country'] ?? null,
-            $data['time_zone'] ?? null,
-            $data['currency'] ?? null,
-            $data['phone'] ?? null,
-            $data['name'] ?? null,
-            isset($data['other_currencies'])
-                ? array_values((array) $data['other_currencies'])
-                : null,
-            isset($data['allowed_games'])
-                ? array_values((array) $data['allowed_games'])
-                : null,
+            code:        $data['code'] ?? null,
+            rewardType:  $data['reward_type'] ?? null,
+            name:        $data['name'] ?? null,
+            kit:         $data['kit'] ?? null,
+            numItems:    isset($data['num_items']) ? (int) $data['num_items'] : null,
+            price:       $data['price'] ?? null,
+            description: $data['description'] ?? null,
+            status:      $data['status'] ?? null,
         );
     }
 
     public function toArray(): array
     {
         return array_filter([
-            'username'         => $this->username,
-            'email'            => $this->email,
-            'commission'       => $this->commission,
-            'country'          => $this->country,
-            'time_zone'        => $this->timeZone,
-            'currency'         => $this->currency,
-            'phone'            => $this->phone,
-            'name'             => $this->name,
-            'other_currencies' => $this->otherCurrencies,
-            'allowed_games'    => $this->allowedGames,
+            'code'        => $this->code,
+            'reward_type' => $this->rewardType,
+            'name'        => $this->name,
+            'kit'         => $this->kit,
+            'num_items'   => $this->numItems,
+            'price'       => $this->price,
+            'description' => $this->description,
+            'status'      => $this->status,
         ], static function ($value) {
-            if ($value === null) {
-                return false;
-            }
-
-            if (is_string($value)) {
-                return $value !== '';
-            }
-
-            if (is_array($value)) {
-                return $value !== [];
-            }
-
-            return true;
+            return $value !== null && $value !== '';
         });
     }
 }

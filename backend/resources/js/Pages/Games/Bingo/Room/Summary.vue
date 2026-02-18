@@ -198,6 +198,7 @@
   <TableWithFilterBridge
     tableId="bingo-room-table"
     :title="props.title"
+    :subtitle"Ir a configuracion"
     :columns="props.rooms.columns"
     :rows="rooms"
     :filters="filters"

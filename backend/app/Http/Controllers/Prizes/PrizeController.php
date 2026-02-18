@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Prizes;
 
 use App\DTOs\Prizes\PrizeDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Prize\PrizeRequest;
+use App\Http\Requests\Prizes\PrizeRequest;
 use App\Models\Prize;
 use App\Services\Prizes\PrizeService;
 use Illuminate\Http\JsonResponse;
@@ -23,9 +23,6 @@ use Inertia\Response;
  */
 final class PrizeController extends Controller
 {
-    /**
-     * @param PrizeService $service
-     */
     public function __construct(
         protected readonly PrizeService $service
     ) {
@@ -34,15 +31,12 @@ final class PrizeController extends Controller
 
     /**
      * Muestra el listado de premios usando Inertia.
-     *
-     * @return Response
      */
     public function index(): Response
     {
         return $this->handleServiceInertia(
             function () {
                 $response = $this->service->context();
-
                 $response['title'] = 'Premios';
 
                 return Inertia::render('Prizes/Index', $response);
@@ -53,15 +47,12 @@ final class PrizeController extends Controller
 
     /**
      * Crear un premio.
-     *
-     * @param PrizeRequest $request
-     * @return JsonResponse
      */
     public function store(PrizeRequest $request): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => [
-                'password' => $this->service->create(
+                'data' => $this->service->create(
                     $request->toDTO(PrizeDTO::class)
                 ),
             ]
@@ -69,9 +60,7 @@ final class PrizeController extends Controller
     }
 
     /**
-     * Listado de premios
-     *
-     * @return JsonResponse
+     * Listado plano de premios.
      */
     public function fetchList(): JsonResponse
     {
@@ -82,9 +71,6 @@ final class PrizeController extends Controller
 
     /**
      * Mostrar detalle de un premio.
-     *
-     * @param Prize $prize
-     * @return JsonResponse
      */
     public function show(Prize $prize): JsonResponse
     {
@@ -97,10 +83,6 @@ final class PrizeController extends Controller
 
     /**
      * Actualizar un premio.
-     *
-     * @param PrizeRequest $request
-     * @param Prize $prize
-     * @return JsonResponse
      */
     public function update(PrizeRequest $request, Prize $prize): JsonResponse
     {
@@ -113,10 +95,7 @@ final class PrizeController extends Controller
     }
 
     /**
-     * Eliminar un premio (soft delete).
-     *
-     * @param Prize $prize
-     * @return JsonResponse
+     * Eliminar un premio (marca como INACTIVE).
      */
     public function delete(Prize $prize): JsonResponse
     {
@@ -127,9 +106,6 @@ final class PrizeController extends Controller
 
     /**
      * Eliminar un premio permanentemente (hard delete).
-     *
-     * @param Prize $prize
-     * @return JsonResponse
      */
     public function destroy(Prize $prize): JsonResponse
     {
@@ -140,9 +116,6 @@ final class PrizeController extends Controller
 
     /**
      * Alternar estado (ACTIVE / INACTIVE) del premio.
-     *
-     * @param Prize $prize
-     * @return JsonResponse
      */
     public function toggleStatus(Prize $prize): JsonResponse
     {

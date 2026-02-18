@@ -30,6 +30,12 @@ Route::put('games/handle-customer/{id?}', [GameController::class, 'handleCustome
 // SISTEMA DE RECOMPENSAS
 // ====================================
 route_group('prizes', 'prizes.', ['auth'], PrizeController::class, [
-    'index' => ['method' => 'get', 'uri' => ''],
-    'country' => ['method' => 'get', 'uri' => '{countryCode}'],
+    'index'     => ['method' => 'get',    'uri' => ''],
+    'fetchList' => ['method' => 'get',    'uri' => 'fetch-list'],
+    'store'     => ['method' => 'post',   'uri' => ''],
+    'show'      => ['method' => 'get',    'uri' => '{id}/show'],
+    'update'    => ['method' => 'put',    'uri' => '{id}/update'],
+    'delete'    => ['method' => 'put',    'uri' => '{id}/delete'],
+    'destroy'   => ['method' => 'delete', 'uri' => '{id}'],
+    'toggleStatus' => ['method' => 'put', 'uri' => '{id}/status'],
 ]);

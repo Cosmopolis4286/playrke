@@ -2,7 +2,7 @@
 
 namespace App\Policies\Prizes;
 
-use App\Models\Roles\Commerce;
+use App\Models\Prize;
 use App\Models\User;
 use App\Policies\Roles\BaseRolePolicy;
 
@@ -11,17 +11,18 @@ use App\Policies\Roles\BaseRolePolicy;
  *
  * Reglas:
  * - Solo usuarios con rol admin pueden operar
- * - Comercios en estados DELETED o BLOCKED no pueden mutar
  * - Compatible con authorizeResource()
  */
 class PrizePolicy extends BaseRolePolicy
 {
     /**
      * Rol requerido para operar sobre premios.
+     *
+     * @return string|string[]
      */
-    protected function requiredRole(): string
+    protected function requiredRole(): string|array
     {
-        return 'admin';
+        return ['admin', 'commerce', 'customer'];
     }
 
     /**
@@ -31,36 +32,14 @@ class PrizePolicy extends BaseRolePolicy
      */
     protected function forbiddenStatuses(): array
     {
-        return ['DELETED', 'BLOCKED'];
+        return [];
     }
 
     /**
-     * Cambiar estado del comercio.
-     *
-     * Acción de dominio (no CRUD estándar).
-     *
-     * @param User $user
-     * @param Commerce $commerce
-     * @return bool
+     * Cambiar estado del premio (ACTIVE / INACTIVE).
      */
-    public function changeStatus(User $user, Commerce $commerce): bool
+    public function toggleStatus(User $user, Prize $prize): bool
     {
-        return $this->hasAccess($user)
-            && $this->canMutate($commerce);
-    }
-
-    /**
-     * Cambiar contraseña asociada al comercio.
-     *
-     * Acción de dominio (no CRUD estándar).
-     *
-     * @param User $user
-     * @param Commerce $commerce
-     * @return bool
-     */
-    public function resetPassword(User $user, Commerce $commerce): bool
-    {
-        return $this->hasAccess($user)
-            && $this->canMutate($commerce);
+        return $this->hasAccess($user);
     }
 }
