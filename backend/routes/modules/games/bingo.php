@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Games\Bingo\Config\BingoConfigController;
 use App\Http\Controllers\Games\Bingo\GameBingoController;
+use App\Http\Controllers\Games\Bingo\Pattern\BingoPatternController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,15 +43,22 @@ route_group('bingo/config', 'bingo.config.', ['auth', 'role:admin,commerce'], Bi
     'index'      => ['method' => 'get',  'uri' => '',           'action' => 'index'],
     'save-rules' => ['method' => 'post', 'uri' => 'save-rules', 'action' => 'saveRules'],
     'save-image' => ['method' => 'post', 'uri' => 'save-image', 'action' => 'saveImage'],
-    // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
-    // 'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],
-    // 'patterns'           => ['method' => 'get', 'uri' => 'configuration/patterns/{userToken?}'],
-    // 'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
-    // 'public-room-info'   => ['method' => 'get', 'uri' => 'public-room-info'],
-    // 'pending-payments'   => ['method' => 'get', 'uri' => 'public-room-pending-payments'],
-    // 'rounds-config'      => ['method' => 'get', 'uri' => 'rounds-config/{room}/{type}'],
-    // 'datetime-rooms'     => ['method' => 'get', 'uri' => 'datetime-rooms/{creatorUser}/{player}'],
-    // 'price-currency'     => ['method' => 'get', 'uri' => 'price-currency/{creation}/{creatorType}/{creatorId}/{room?}'],
+]);
+
+/**
+ * ====================================
+ * PATRONES DE BINGO (CANTOS)
+ * ====================================
+ */
+route_group('bingo-patterns', 'bingo-pattern.', ['auth', 'role:admin,commerce'], BingoPatternController::class, [
+    'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
+    'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
+    'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
+    'show' => ['method' => 'get', 'uri' => '{pattern}/show', 'action' => 'show'],
+    'update' => ['method' => 'patch',  'uri' => '{pattern}/update', 'action' => 'update'],
+    'delete' => ['method' => 'delete', 'uri' => '{pattern}/delete', 'action' => 'delete'],
+    'destroy' => ['method' => 'delete', 'uri' => '{pattern}/force-delete', 'action' => 'destroy'],
+    'toggle-status' => ['method' => 'patch', 'uri' => '{pattern}/status', 'action' => 'toggleStatus'],
 ]);
 
 /**
@@ -73,7 +81,6 @@ multi_middleware_routes('bingo', 'bingo.', [
     ]
 ]);
 
-
 /**
  * ====================================
  * REPORTES Y ESTADÍSTICAS
@@ -89,14 +96,9 @@ route_group('bingo', 'bingo.', [], GameBingoController::class, [
 
 /**
  * ====================================
- * PATRONES Y SALAS AUTOMÁTICAS
+ * SALAS AUTOMÁTICAS
  * ====================================
  */
-route_group('bingo-patterns', 'bingo-pattern.', [], GameBingoController::class, [
-    'show'    => ['method' => 'get', 'uri' => '{id}'],
-    'handle'  => ['method' => 'put', 'uri' => 'handler/{id?}/{action?}'],
-]);
-
 route_group('bingo-automatic-room', 'bingo.automatic.', ['auth'], GameBingoController::class, [
     'show'          => ['method' => 'get', 'uri' => '{id}'],
     'create'        => ['method' => 'post', 'uri' => ''],
@@ -120,6 +122,15 @@ route_group('bingo', 'bingo.', [], GameBingoController::class, [
     'handle-rules'     => ['method' => 'put',  'uri' => 'handle-rules/{id?}'],
 ]);
 
+ // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
+    // 'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],
+    // 'patterns'           => ['method' => 'get', 'uri' => 'configuration/patterns/{userToken?}'],
+    // 'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
+    // 'public-room-info'   => ['method' => 'get', 'uri' => 'public-room-info'],
+    // 'pending-payments'   => ['method' => 'get', 'uri' => 'public-room-pending-payments'],
+    // 'rounds-config'      => ['method' => 'get', 'uri' => 'rounds-config/{room}/{type}'],
+    // 'datetime-rooms'     => ['method' => 'get', 'uri' => 'datetime-rooms/{creatorUser}/{player}'],
+    // 'price-currency'     => ['method' => 'get', 'uri' => 'price-currency/{creation}/{creatorType}/{creatorId}/{room?}'],
 
 /**
  * ====================================

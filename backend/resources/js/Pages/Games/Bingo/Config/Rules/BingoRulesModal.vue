@@ -1,11 +1,17 @@
 <script setup lang="ts">
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
+  import BingoRulesDefault from '@/js/Components/Games/Bingo/Config/Rules/Default.vue'
 
-  defineProps<{
+  const props = defineProps<{
     modelValue: boolean
     rules?: string | null
     image?: string | null
   }>()
+
+  /**
+   * Define el reglamento
+   */
+  const regulation = computed(() => props.rules ?? BingoRulesDefault.vue)
 
   const emit = defineEmits<{
     (e: 'update:modelValue', value: boolean): void
@@ -30,7 +36,7 @@
     </div>
 
     <!-- Reglamento interpretado como HTML -->
-    <div v-if="rules" class="bingo-rules-content" v-html="rules" />
+    <div v-if="rules" class="bingo-rules-content" v-html="regulation" />
 
     <div v-else class="text-muted py-4 text-center">
       <i class="fa-regular fa-file-lines fa-2x d-block mb-2 opacity-50" />
