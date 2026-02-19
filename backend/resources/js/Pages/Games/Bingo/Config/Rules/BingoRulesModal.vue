@@ -1,15 +1,72 @@
 <script setup lang="ts">
+  import Modal from '@/js/Components/Common/Modal/Modal.vue'
 
+  defineProps<{
+    modelValue: boolean
+    rules?: string | null
+    image?: string | null
+  }>()
+
+  const emit = defineEmits<{
+    (e: 'update:modelValue', value: boolean): void
+  }>()
 </script>
+
 <template>
-  <Modal v-model="showModalForm" :title="modalTitle" size="lg" static>
-  @if ($imageBingoRules)
-                    <div class="d-flex justify-content-center">
-                        <img style="max-height: 85px" src="{{ asset("storage/game/bingo/$imageBingoRules") }}"
-                            alt="Game Image">
-                    </div>
-                    <hr>
-                @endif
-                <div>{!! $bingoRules !!}</div>
-   </Modal>
+  <Modal
+    :model-value="modelValue"
+    title="Reglamento del Bingo"
+    size="lg"
+    @update:model-value="emit('update:modelValue', $event)"
+  >
+    <!-- Imagen -->
+    <div v-if="image" class="d-flex justify-content-center mb-4">
+      <img
+        :src="`/storage/game/bingo/${image}`"
+        alt="Imagen del reglamento"
+        class="img-fluid rounded"
+        style="max-height: 200px; object-fit: contain"
+      />
+    </div>
+
+    <!-- Reglamento interpretado como HTML -->
+    <div v-if="rules" class="bingo-rules-content" v-html="rules" />
+
+    <div v-else class="text-muted py-4 text-center">
+      <i class="fa-regular fa-file-lines fa-2x d-block mb-2 opacity-50" />
+      <small>No hay reglamento cargado.</small>
+    </div>
+
+    <template #footer>
+      <button class="btn btn-sm btn-secondary" @click="emit('update:modelValue', false)">
+        Cerrar
+      </button>
+    </template>
+  </Modal>
 </template>
+
+<style scoped>
+  .bingo-rules-content {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: #343a40;
+  }
+
+  .bingo-rules-content :deep(h1),
+  .bingo-rules-content :deep(h2),
+  .bingo-rules-content :deep(h3) {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  .bingo-rules-content :deep(p) {
+    margin-bottom: 0.75rem;
+  }
+
+  .bingo-rules-content :deep(ul),
+  .bingo-rules-content :deep(ol) {
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+</style>

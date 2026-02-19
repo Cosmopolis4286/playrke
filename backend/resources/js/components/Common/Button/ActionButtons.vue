@@ -58,10 +58,7 @@
 </script>
 
 <template>
-  <div
-    v-if="hasSelection() || showCreate"
-    class="action-buttons"
-  >
+  <div class="action-buttons">
     <!-- Crear -->
     <button
       v-if="showCreate"
