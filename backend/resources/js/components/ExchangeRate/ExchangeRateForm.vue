@@ -3,6 +3,9 @@
   import { useExchangeRateForm } from '@/js/composables/exchange-rate/useExchangeRateForm'
   import type { Currency } from '@/js/types/currency'
   import type { ExchangeRate, UsedCurrency } from '@/js/types/exchange-rate'
+  import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
+  import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
 
   /**
    * Props
@@ -77,72 +80,63 @@
 <template>
   <form @submit.prevent="submit" novalidate>
     <div class="row">
-      <div class="form-group col-md-6">
-        <label>Divisa*</label>
-        <!-- Input libre solo para roles privilegiados -->
-        <input
-          v-if="hasPrivilegedRole"
-          type="text"
-          class="form-control"
-          v-model="form.currency_id"
-          :disabled="isEditMode"
-          @blur="validate"
-        />
-        <!-- Select normal -->
-        <select
-          v-else
-          class="form-control"
-          v-model="form.currency_id"
-          :disabled="isEditMode"
-          @blur="validate"
-        >
-          <option disabled value="">Seleccione una moneda</option>
-          <option
-            v-for="currency in availableCurrencies"
-            :key="currency.id"
-            :value="currency.iso_code"
-          >
-            {{ currency.description }} ({{ currency.symbol }})
-          </option>
-        </select>
+      <!-- Divisa: input libre para privilegiados, select para el resto -->
+      <FormInput
+        v-if="hasPrivilegedRole"
+        name="currency_id"
+        label="Divisa"
+        col="col-md-6"
+        :required="true"
+        :disabled="isEditMode"
+        :error="errors.currency_id"
+        :modelValue="form.currency_id"
+        @update:modelValue="form.currency_id = $event"
+        @blur="validate"
+      />
+      <FormSelect
+        v-else
+        name="currency_id"
+        label="Divisa"
+        col="col-md-6"
+        :required="true"
+        :disabled="isEditMode"
+        :error="errors.currency_id"
+        :options="availableCurrencies"
+        option-value="iso_code"
+        option-label="description"
+        placeholder="Seleccione una moneda"
+        :modelValue="form.currency_id"
+        @update:modelValue="form.currency_id = $event"
+      />
 
-        <small v-if="errors.currency_id" class="text-danger">
-          {{ errors.currency_id }}
-        </small>
-      </div>
+      <!-- Valor de cambio -->
+      <FormInput
+        name="amount"
+        label="Valor de Cambio"
+        col="col-md-6"
+        :required="true"
+        placeholder="0.00"
+        :mask="maskOptions"
+        :error="errors.amount"
+        :modelValue="form.amount"
+        @update:modelValue="form.amount = $event"
+        @blur="validate"
+      />
 
-      <div class="form-group col-md-6">
-        <label>Valor de Cambio*</label>
-        <input
-          type="text"
-          class="form-control"
-          v-model="form.amount"
-          v-mask="maskOptions"
-          placeholder="0.00"
-          inputmode="decimal"
-          @blur="validate"
-        />
-        <small v-if="errors.amount" class="text-danger">
-          {{ errors.amount }}
-        </small>
-      </div>
+      <!-- Switch estado -->
+      <FormSwitch
+        name="exchange-rate-status"
+        label="Activar Tasa de Cambio"
+        col="col-12"
+        :modelValue="form.status"
+        @update:modelValue="form.status = $event"
+      />
 
-      <div class="form-group col-12">
-        <div class="custom-control custom-switch">
-          <input
-            id="exchange-rate-status"
-            type="checkbox"
-            class="custom-control-input"
-            v-model="form.status"
-          />
-          <label class="custom-control-label" for="exchange-rate-status">
-            Activar Tasa de Cambio
-          </label>
+      <div class="col-12">
+        <div class="alert alert-primary mb-0">
+          El tipo de cambio ingresado representa el valor de la moneda seleccionada equivalente a
+          <strong>1 USD</strong>.
         </div>
-      </div>
-      <div class="alert alert-primary mb-0">
-        El tipo de cambio ingresado representa el valor de la moneda seleccionada equivalente a
-        <strong>1 USD</strong>.
       </div>
     </div>
   </form>

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Shared\Utils;
+namespace App\Repositories\Games\Shared\Utils;
 
 use App\Models\Games\Common\Utils\GameRule;
 use App\Repositories\BaseRepository;

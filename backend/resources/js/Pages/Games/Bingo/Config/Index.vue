@@ -1,33 +1,39 @@
 <script setup lang="ts">
-  import { ref, computed, watch } from 'vue'
-
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import BingoConfigForm from '@/js/Components/Games/Bingo/Config/BingoConfigForm.vue'
-  import BingoRulesModal from './Rules/BingoRulesModal.vue'
 
   import { useBingoConfig } from '@/js/composables/games/bingo/config/useBingoConfig'
 
-  import type { BingoConfigPageProps } from '@/js/types/games/bingo/config/bingo-config'
+  import type { BingoConfigPageProps, BingoRulesFormData } from '@/js/types/games/bingo/config/bingo-config'
+
   /**
-   * Props Inertia
+   * Props de Inertia: imageBingoRules y bingoRules
    */
   const props = defineProps<BingoConfigPageProps>()
 
   /**
-   * Composable de negocio para manejo de la configuración
+   * Composable con la lógica de guardado
    */
-  const {} = useBingoConfig()
+  const { loading, save } = useBingoConfig()
 
   /**
-   * Navega a la vista de Ver Jugadas
+   * Recibe el form del hijo y lo envía al backend
    */
+  async function onSubmit(data: BingoRulesFormData): Promise<void> {
+    await save(data)
+  }
 </script>
+
 <template>
   <div class="card">
     <CardHeader title="Configuración Bingo" />
     <div class="card-body">
-      <BingoConfigForm v-model="exchangeRateData" />
+      <BingoConfigForm
+        :initial-rules="props.bingoRules ?? ''"
+        :current-image="props.imageBingoRules"
+        :loading="loading"
+        @submit="onSubmit"
+      />
     </div>
   </div>
-  <BingoRulesModal />
 </template>

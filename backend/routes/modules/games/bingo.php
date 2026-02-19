@@ -39,7 +39,8 @@ route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'role:admin,commerce'], Bing
  * ====================================
  */
 route_group('bingo/config', 'bingo.config.', ['auth', 'role:admin,commerce'], BingoConfigController::class, [
-    'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
+    'index' => ['method' => 'get',  'uri' => '',     'action' => 'index'],
+    'save'  => ['method' => 'post', 'uri' => 'save', 'action' => 'save'],
     // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
     // 'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],
     // 'patterns'           => ['method' => 'get', 'uri' => 'configuration/patterns/{userToken?}'],

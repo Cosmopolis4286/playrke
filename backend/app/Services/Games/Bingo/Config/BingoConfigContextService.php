@@ -4,8 +4,11 @@ namespace App\Services\Games\Bingo\Config;
 
 use App\DTOs\Games\Bingo\Config\BingoConfigDTO;
 use App\Contracts\Games\Common\Utils\GameRuleRepositoryInterface;
+use App\Models\Game;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 
 final class BingoConfigContextService
 {
@@ -16,9 +19,9 @@ final class BingoConfigContextService
     ) {}
 
     /**
-     * Resolver contexto para BingoRoom.
+     * Resolver contexto para BingoConfig.
      *
-     * @param string $context
+     * @param string   $context
      * @param int|null $userId
      * @return mixed
      * @throws DomainException Si el contexto no es válido
@@ -32,35 +35,97 @@ final class BingoConfigContextService
     }
 
     /**
-     * Resolver contexto para la configuracio del jugego bingo.
-     *
-     * @param int $userId ID del usuario
-     * @return BingoConfigDTO
-     *
-     * @throws DomainException Si no se puede resolver el contexto
+     * Resuelve el contexto de index para la configuración del bingo.
      */
     private function resolve(int $userId): BingoConfigDTO
     {
         return new BingoConfigDTO(
             imageBingoRules: $this->getImageBingoRules($userId),
-            bingoRules: $this->getBingoRules()
+            bingoRules:      $this->getBingoRules($userId),
         );
     }
 
-    private function getImageBingoRules($userId): string
+    /**
+     * Guarda o actualiza las reglas de bingo (imagen + texto) para un usuario.
+     *
+     * @param int               $userId
+     * @param string            $rules
+     * @param UploadedFile|null $image
+     * @throws DomainException
+     */
+    public function saveRules(int $userId, string $rules, ?UploadedFile $image): void
     {
-        $game = $this->gameRule->getByGame('BINGO', $userId, ['image', 'encrypted']);
-        $image = false;
+        $gameId = Game::where('name', 'BINGO')->value('id');
 
-        if ($game) {
-            $image = "bingo-rules/$game->encrypted/$game->image";
+        if (!$gameId) {
+            throw new DomainException('El juego BINGO no existe en la base de datos.');
         }
 
-        return $image;
+        DB::transaction(function () use ($userId, $gameId, $rules, $image) {
+            $existing = $this->gameRule->getByUserAndGame($userId, $gameId);
+
+            if ($existing) {
+                $updateData = [];
+
+                if ($existing->rules !== $rules) {
+                    $updateData['rules'] = $rules;
+                }
+
+                if ($image) {
+                    $updateData['image'] = $this->storeImage($image, $existing->encrypted);
+                }
+
+                if (!empty($updateData)) {
+                    $existing->update($updateData);
+                }
+            } else {
+                $encrypted = $this->gameRule->generateUniqueEncrypted();
+                $imageName = $image ? $this->storeImage($image, $encrypted) : null;
+
+                $this->gameRule->createRule(
+                    userId:    $userId,
+                    gameId:    $gameId,
+                    rules:     $rules,
+                    encrypted: $encrypted,
+                    image:     $imageName,
+                );
+            }
+        });
     }
 
-    public function getBingoRules($userId): string
+    /**
+     * Retorna el path relativo de la imagen de reglas del bingo para un usuario.
+     */
+    private function getImageBingoRules(int $userId): string
     {
-        return $this->gameRule->getValueByGame('BINGO', $userId);
+        $gameId = Game::where('name', 'BINGO')->value('id');
+        $game   = $gameId ? $this->gameRule->getByUserAndGame($userId, $gameId) : null;
+
+        if ($game && $game->image && $game->encrypted) {
+            return "bingo-rules/{$game->encrypted}/{$game->image}";
+        }
+
+        return '';
+    }
+
+    /**
+     * Retorna el texto de las reglas del bingo para un usuario.
+     */
+    public function getBingoRules(int $userId): string
+    {
+        $gameId = Game::where('name', 'BINGO')->value('id');
+        $game   = $gameId ? $this->gameRule->getByUserAndGame($userId, $gameId) : null;
+
+        return $game?->rules ?? '';
+    }
+
+    /**
+     * Guarda la imagen en storage y retorna el nombre del archivo.
+     */
+    private function storeImage(UploadedFile $file, string $encrypted): string
+    {
+        $path = $file->store("game/bingo/bingo-rules/{$encrypted}", 'public');
+
+        return basename($path);
     }
 }

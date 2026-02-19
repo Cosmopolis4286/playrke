@@ -1,92 +1,108 @@
 <script setup lang="ts" name="BingoConfigForm">
-  import { computed } from 'vue'
-  import { useBingoConfigForm } from '@/js/composables/exchange-rate/useBingoConfigForm'
-  import type { BingoConfig } from '@/js/types/games/bingo/config/bingo-config';
+  import FormTextArea from '@/js/Components/Common/Form/FormTextArea.vue'
+
+  import { useBingoRulesForm } from '@/js/composables/games/bingo/config/useBingoRulesForm'
+  import type { BingoRulesFormData } from '@/js/types/games/bingo/config/bingo-config'
 
   /**
    * Props
    */
   const props = defineProps<{
-    modelValue: Partial<BingoConfig>
+    /** Texto de reglas actual (viene de Inertia) */
+    initialRules?: string
+    /** Path de imagen actual (viene de Inertia) */
+    currentImage?: string | null
+    /** Estado de carga externo (mientras se envía) */
+    loading?: boolean
   }>()
 
   /**
    * Emits
    */
   const emit = defineEmits<{
-    (e: 'submit'): void
-    (e: 'update:modelValue', value: any): void
+    (e: 'submit', value: BingoRulesFormData): void
   }>()
 
   /**
    * Composable de formulario
    */
-  const { form, errors, maskOptions, isEditMode, isValid, validate } = useBingoConfigForm(
-    props.modelValue,
-    emit
+  const { form, errors, isValid, imagePreview, onImageChange } = useBingoRulesForm(
+    props.initialRules ?? ''
   )
 
-  /* =======================
-   * Computed
-   * ======================= */
-
-
-  /* =======================
-   * Methods
-   * ======================= */
-
   /**
-   * Submit interno del formulario
+   * Submit: valida y emite al padre
    */
-  const submit = (): boolean => {
-    validate()
-    if (!isValid.value) return false
-
-    emit('submit')
-    return true
+  function submit(): void {
+    if (!isValid.value) return
+    emit('submit', form.value)
   }
 
   /**
-   * API pública para el modal
+   * API pública expuesta al padre (Index.vue puede llamar submit desde fuera)
    */
-  defineExpose({
-    submit,
-    isValid
-  })
+  defineExpose({ submit, isValid })
 </script>
+
 <template>
   <form @submit.prevent="submit" novalidate>
     <div class="row">
-       <div class="form-group">
-                            <label for="image">Imagen</label>
-                            <input type="file" id="image" class="form-control-file" name="image"
-                                accept="image/png, image/jpeg">
-                        </div>
-                        <div class="mr-2">
-                            @if ($imageBingoRules)
-                                <img style="max-height: 68px" src="{{ asset("storage/game/bingo/$imageBingoRules") }}"
-                                    alt="Game Image">
-                            @else
-                                <div class="alert alert-primary p-3">
-                                    <h6 class="alert-heading m-0"><strong>¡Atención, no hay una imagen cargada!</strong>
-                                    </h6>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="bingo-rules">Reglamento:</label>
-                        <textarea class="form-control" id="bingo-rules" name="rules" rows="10">
-                            {{ $gameRules ?? view('includes.info.game.bingo')->render() }}
-                        </textarea>
-                    </div>
-                    <div class="d-flex justify-content-center">
-                        <button type="button" id="btn-form-bingo-rules" class="btn btn-primary">
-                            <i class="fa-solid fa-floppy-disk"></i> Guardar
-                            <span id="loader-btn-ctn" class="spinner-border spinner-border-sm" role="status"
-                                aria-hidden="true" style="display: none"></span>
-                        </button>
-                    </div>
+
+      <!-- Imagen actual -->
+      <div class="col-12 mb-3">
+        <template v-if="imagePreview || currentImage">
+          <img
+            :src="imagePreview ?? `/storage/game/bingo/${currentImage}`"
+            alt="Imagen del reglamento"
+            class="img-thumbnail"
+            style="max-height: 120px"
+          />
+        </template>
+        <div v-else class="alert alert-warning py-2">
+          <strong>No hay imagen cargada.</strong>
+        </div>
+      </div>
+
+      <!-- Input de imagen -->
+      <div class="form-group col-md-6">
+        <label for="bingo-image">Imagen del reglamento</label>
+        <input
+          id="bingo-image"
+          type="file"
+          name="image"
+          class="form-control-file"
+          accept="image/png, image/jpeg"
+          @change="(e) => onImageChange((e.target as HTMLInputElement).files?.[0] ?? null)"
+        />
+        <small class="text-muted">PNG o JPEG, máximo 2 MB.</small>
+      </div>
+
+      <!-- Textarea del reglamento -->
+      <FormTextArea
+        name="rules"
+        label="Reglamento"
+        col="col-12"
+        :required="true"
+        :rows="10"
+        :error="errors.rules"
+        :modelValue="form.rules"
+        @update:modelValue="form.rules = $event"
+      />
+
+      <!-- Botón guardar -->
+      <div class="col-12 d-flex justify-content-center mt-2">
+        <button type="submit" class="btn btn-primary" :disabled="loading">
+          <i class="fa-solid fa-floppy-disk me-1" />
+          Guardar
+          <span
+            v-if="loading"
+            class="spinner-border spinner-border-sm ms-1"
+            role="status"
+            aria-hidden="true"
+          />
+        </button>
+      </div>
+
     </div>
   </form>
 </template>
