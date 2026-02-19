@@ -26,7 +26,7 @@ final class PrizeController extends Controller
     public function __construct(
         protected readonly PrizeService $service
     ) {
-        $this->authorizeResource(Prize::class, 'id');
+        $this->authorizeResource(Prize::class, 'prize');
     }
 
     /**

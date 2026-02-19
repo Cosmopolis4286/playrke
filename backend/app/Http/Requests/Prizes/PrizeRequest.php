@@ -20,7 +20,7 @@ class PrizeRequest extends BaseRequest
      */
     public function authorize(): bool
     {
-        return PermissionService::checkPrefix('admin');
+        return PermissionService::checkPrefix(['admin', 'commerce']);
     }
 
     /**
@@ -83,7 +83,7 @@ class PrizeRequest extends BaseRequest
      */
     protected function resolvePrize(): ?Prize
     {
-        $routeParam = $this->route('prize') ?? $this->route('id');
+        $routeParam = $this->route('prize');
 
         if ($routeParam === null) {
             return null;

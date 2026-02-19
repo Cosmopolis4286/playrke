@@ -26,7 +26,10 @@ return new class extends Migration
                 ->comment('ID del usuario que creó el premio');
 
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
+
             $table->timestamps();
+
+            $table->softDeletes();
 
             // Clave única compuesta: evita duplicados de código por usuario
             $table->unique(['user_id', 'code']);

@@ -124,11 +124,12 @@ class RoleUserRepository extends BaseRepository implements RoleUserRepositoryInt
      */
     public function userHasAnyRole(User $user, array $roles): bool
     {
+        $rolesLower = array_map('strtolower', $roles);
         return $this->getActiveByUser($user->id)
             ->loadMissing('role')
-            ->contains(function ($assignment) use ($roles) {
+            ->contains(function ($assignment) use ($rolesLower) {
                 return $assignment->role
-                    && in_array($assignment->role->prefix, $roles, true);
+                    && in_array(strtolower((string) $assignment->role->prefix), $rolesLower, true);
             });
     }
 

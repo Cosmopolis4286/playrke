@@ -3,8 +3,6 @@
 namespace App\Models;
 
 use App\Models\User;
-use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -32,10 +30,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property-read User $user Usuario creador de la recompensa
  */
-class Prize extends Model
+class Prize extends BaseModel
 {
-    use SnowflakeId;
-
     /**
      * Nombre de la tabla en la base de datos
      */
@@ -94,10 +90,22 @@ class Prize extends Model
      * Campos adicionales que se incluyen en las respuestas JSON
      */
     protected $appends = [
-        'reward_type_description',
+        'prize_type_description',
         'kit_description',
-        'status_description',
+        'status_badge',
     ];
+
+    /**
+     * Accessor para el status con badge HTML
+     */
+    public function getStatusBadgeAttribute(): string
+    {
+        return match ($this->status) {
+            'ACTIVE' => '<span class="badge badge-success">Activo</span>',
+            'INACTIVE' => '<span class="badge badge-secondary">Inactivo</span>',
+            default => '<span class="badge badge-warning">Desconocido</span>'
+        };
+    }
 
     /**
      * Relación con el usuario creador de la recompensa

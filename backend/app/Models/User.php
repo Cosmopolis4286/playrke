@@ -356,15 +356,18 @@ class User extends Authenticatable implements MustVerifyEmail
 
         // Si es array, verificar si tiene alguno
         if (is_array($role)) {
-            return $this->roles->contains(function ($r) use ($role) {
-                return in_array($r->name, $role, true)
-                    || in_array($r->prefix, $role, true);
+            $roleLower = array_map('strtolower', $role);
+            return $this->roles->contains(function ($r) use ($roleLower) {
+                return in_array(strtolower($r->name), $roleLower, true)
+                    || in_array(strtolower((string) $r->prefix), $roleLower, true);
             });
         }
 
         // Caso string normal
-        return $this->roles->contains(function ($r) use ($role) {
-            return $r->name === $role || $r->prefix === $role;
+        $roleLower = strtolower($role);
+        return $this->roles->contains(function ($r) use ($roleLower) {
+            return strtolower($r->name) === $roleLower
+                || strtolower((string) $r->prefix) === $roleLower;
         });
     }
 

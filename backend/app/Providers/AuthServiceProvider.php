@@ -54,9 +54,10 @@ class AuthServiceProvider extends ServiceProvider
     {
         $prefixes = $allowedPrefixes ?? [$gateName];
 
-        Gate::define($gateName, function ($user) use ($prefixes) {
-            return $user->roles->contains(function ($role) use ($prefixes) {
-                return in_array($role->prefix, $prefixes, true);
+        $prefixesLower = array_map('strtolower', $prefixes);
+        Gate::define($gateName, function ($user) use ($prefixesLower) {
+            return $user->roles->contains(function ($role) use ($prefixesLower) {
+                return in_array(strtolower((string) $role->prefix), $prefixesLower, true);
             });
         });
     }
