@@ -10,27 +10,24 @@ final class BingoConfigService
         private readonly BingoConfigContextService $contextService,
     ) {}
 
-    /**
-     * Resolver contexto para BingoConfig.
-     *
-     * @param string   $context
-     * @param int|null $userId
-     * @return array
-     */
     public function context(string $context, ?int $userId = null): array
     {
         return $this->contextService->context($context, $userId)->toView();
     }
 
     /**
-     * Guarda o actualiza las reglas del bingo para un usuario.
-     *
-     * @param int               $userId
-     * @param string            $rules
-     * @param UploadedFile|null $image
+     * Guarda solo el texto del reglamento.
      */
-    public function saveRules(int $userId, string $rules, ?UploadedFile $image): void
+    public function saveRules(int $userId, string $rules): void
     {
-        $this->contextService->saveRules($userId, $rules, $image);
+        $this->contextService->saveOnlyRules($userId, $rules);
+    }
+
+    /**
+     * Guarda solo la imagen del reglamento.
+     */
+    public function saveImage(int $userId, UploadedFile $image): void
+    {
+        $this->contextService->saveOnlyImage($userId, $image);
     }
 }

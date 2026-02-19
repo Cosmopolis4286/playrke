@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Games\Bingo\Config;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Config\BingoConfigRequest;
+use App\Http\Requests\Games\Bingo\Config\BingoConfigImageRequest;
 use App\Services\Games\Bingo\Config\BingoConfigService;
 use App\Services\Security\UserContextService;
 use Illuminate\Http\JsonResponse;
@@ -14,8 +15,9 @@ use Inertia\Response;
  * Controlador de configuración general del juego de Bingo.
  *
  * Responsabilidades:
- * - Mostrar la página de configuración (reglamento e imagen)
- * - Guardar el reglamento e imagen del bingo
+ * - Renderizar la página de configuración
+ * - Guardar el reglamento (texto) de forma independiente
+ * - Guardar la imagen de forma independiente
  */
 final class BingoConfigController extends Controller
 {
@@ -38,20 +40,32 @@ final class BingoConfigController extends Controller
     }
 
     /**
-     * Guarda o actualiza las reglas del bingo (imagen + texto).
+     * Guarda solo el texto del reglamento.
      */
-    public function save(BingoConfigRequest $request): JsonResponse
+    public function saveRules(BingoConfigRequest $request): JsonResponse
     {
         return $this->handleServiceJson(function () use ($request) {
-            $userId = $this->userContext->resolveUserId();
-
             $this->service->saveRules(
-                userId: $userId,
+                userId: $this->userContext->resolveUserId(),
                 rules:  $request->input('rules'),
+            );
+
+            return ['message' => 'Reglamento guardado exitosamente.'];
+        });
+    }
+
+    /**
+     * Guarda solo la imagen del reglamento.
+     */
+    public function saveImage(BingoConfigImageRequest $request): JsonResponse
+    {
+        return $this->handleServiceJson(function () use ($request) {
+            $this->service->saveImage(
+                userId: $this->userContext->resolveUserId(),
                 image:  $request->file('image'),
             );
 
-            return ['message' => 'Configuración guardada exitosamente.'];
+            return ['message' => 'Imagen guardada exitosamente.'];
         });
     }
 }

@@ -1,108 +1,209 @@
 <script setup lang="ts" name="BingoConfigForm">
+  import { ref, computed } from 'vue'
   import FormTextArea from '@/js/Components/Common/Form/FormTextArea.vue'
 
-  import { useBingoRulesForm } from '@/js/composables/games/bingo/config/useBingoRulesForm'
-  import type { BingoRulesFormData } from '@/js/types/games/bingo/config/bingo-config'
-
-  /**
-   * Props
-   */
   const props = defineProps<{
-    /** Texto de reglas actual (viene de Inertia) */
     initialRules?: string
-    /** Path de imagen actual (viene de Inertia) */
     currentImage?: string | null
-    /** Estado de carga externo (mientras se envía) */
-    loading?: boolean
+    loadingRules?: boolean
+    loadingImage?: boolean
   }>()
 
-  /**
-   * Emits
-   */
   const emit = defineEmits<{
-    (e: 'submit', value: BingoRulesFormData): void
+    (e: 'save-rules', rules: string): void
+    (e: 'save-image', image: File): void
   }>()
 
-  /**
-   * Composable de formulario
-   */
-  const { form, errors, isValid, imagePreview, onImageChange } = useBingoRulesForm(
-    props.initialRules ?? ''
-  )
+  /* ── Imagen ── */
+  const selectedFile  = ref<File | null>(null)
+  const imagePreview  = ref<string | null>(null)
+  const imageError    = ref<string | null>(null)
 
-  /**
-   * Submit: valida y emite al padre
-   */
-  function submit(): void {
-    if (!isValid.value) return
-    emit('submit', form.value)
+  function onFileChange(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null
+    imageError.value = null
+
+    if (!file) {
+      selectedFile.value = null
+      imagePreview.value = null
+      return
+    }
+
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      imageError.value = 'Solo se aceptan imágenes JPEG o PNG.'
+      return
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      imageError.value = 'La imagen no puede superar los 2 MB.'
+      return
+    }
+
+    if (imagePreview.value) URL.revokeObjectURL(imagePreview.value)
+
+    selectedFile.value = file
+    imagePreview.value = URL.createObjectURL(file)
   }
 
-  /**
-   * API pública expuesta al padre (Index.vue puede llamar submit desde fuera)
-   */
-  defineExpose({ submit, isValid })
+  function submitImage(): void {
+    if (!selectedFile.value) {
+      imageError.value = 'Selecciona una imagen primero.'
+      return
+    }
+    emit('save-image', selectedFile.value)
+  }
+
+  const currentImageSrc = computed(() =>
+    imagePreview.value
+      ?? (props.currentImage ? `/storage/game/bingo/${props.currentImage}` : null)
+  )
+
+  /* ── Reglamento ── */
+  const rules      = ref(props.initialRules ?? '')
+  const rulesError = computed<string | null>(() => {
+    if (!rules.value.trim()) return 'El reglamento es obligatorio.'
+    if (rules.value.trim().length < 10) return 'Debe tener al menos 10 caracteres.'
+    return null
+  })
+
+  function submitRules(): void {
+    if (rulesError.value) return
+    emit('save-rules', rules.value)
+  }
 </script>
 
 <template>
-  <form @submit.prevent="submit" novalidate>
-    <div class="row">
+  <div class="row g-4">
 
-      <!-- Imagen actual -->
-      <div class="col-12 mb-3">
-        <template v-if="imagePreview || currentImage">
-          <img
-            :src="imagePreview ?? `/storage/game/bingo/${currentImage}`"
-            alt="Imagen del reglamento"
-            class="img-thumbnail"
-            style="max-height: 120px"
-          />
-        </template>
-        <div v-else class="alert alert-warning py-2">
-          <strong>No hay imagen cargada.</strong>
+    <!-- ══════════════════════════════════
+         SECCIÓN: IMAGEN
+    ══════════════════════════════════ -->
+    <div class="col-12 col-lg-5">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white border-bottom py-3">
+          <h6 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+            <i class="fa-regular fa-image text-primary" />
+            Imagen del reglamento
+          </h6>
+        </div>
+
+        <div class="card-body d-flex flex-column gap-3">
+
+          <!-- Preview actual o placeholder -->
+          <div
+            class="bingo-image-preview rounded border d-flex align-items-center justify-content-center overflow-hidden"
+            :class="currentImageSrc ? 'border-light' : 'border-dashed bg-light'"
+          >
+            <img
+              v-if="currentImageSrc"
+              :src="currentImageSrc"
+              alt="Imagen del reglamento"
+              class="img-fluid w-100 h-100 object-fit-cover"
+            />
+            <div v-else class="text-center text-muted p-4">
+              <i class="fa-regular fa-image fa-3x mb-2 d-block opacity-25" />
+              <small>Sin imagen cargada</small>
+            </div>
+          </div>
+
+          <!-- File input estilizado -->
+          <div class="form-group mb-0">
+            <label for="bingo-image" class="form-label fw-semibold mb-1">
+              Seleccionar archivo
+            </label>
+            <input
+              id="bingo-image"
+              type="file"
+              class="form-control form-control-sm"
+              :class="{ 'is-invalid': imageError }"
+              accept="image/jpeg,image/png"
+              @change="onFileChange"
+            />
+            <div v-if="imageError" class="invalid-feedback">{{ imageError }}</div>
+            <small v-else class="text-muted">PNG o JPEG · máx. 2 MB</small>
+          </div>
+
+          <!-- Nombre del archivo seleccionado -->
+          <div v-if="selectedFile" class="d-flex align-items-center gap-2 text-success small">
+            <i class="fa-solid fa-circle-check" />
+            <span class="text-truncate">{{ selectedFile.name }}</span>
+          </div>
+
+        </div>
+
+        <div class="card-footer bg-white border-top pt-3 pb-3 d-flex justify-content-end">
+          <button
+            type="button"
+            class="btn btn-primary btn-sm px-4"
+            :disabled="loadingImage || !selectedFile"
+            @click="submitImage"
+          >
+            <span v-if="loadingImage" class="spinner-border spinner-border-sm me-1" aria-hidden="true" />
+            <i v-else class="fa-solid fa-cloud-arrow-up me-1" />
+            {{ loadingImage ? 'Guardando…' : 'Guardar imagen' }}
+          </button>
         </div>
       </div>
-
-      <!-- Input de imagen -->
-      <div class="form-group col-md-6">
-        <label for="bingo-image">Imagen del reglamento</label>
-        <input
-          id="bingo-image"
-          type="file"
-          name="image"
-          class="form-control-file"
-          accept="image/png, image/jpeg"
-          @change="(e) => onImageChange((e.target as HTMLInputElement).files?.[0] ?? null)"
-        />
-        <small class="text-muted">PNG o JPEG, máximo 2 MB.</small>
-      </div>
-
-      <!-- Textarea del reglamento -->
-      <FormTextArea
-        name="rules"
-        label="Reglamento"
-        col="col-12"
-        :required="true"
-        :rows="10"
-        :error="errors.rules"
-        :modelValue="form.rules"
-        @update:modelValue="form.rules = $event"
-      />
-
-      <!-- Botón guardar -->
-      <div class="col-12 d-flex justify-content-center mt-2">
-        <button type="submit" class="btn btn-primary" :disabled="loading">
-          <i class="fa-solid fa-floppy-disk me-1" />
-          Guardar
-          <span
-            v-if="loading"
-            class="spinner-border spinner-border-sm ms-1"
-            role="status"
-            aria-hidden="true"
-          />
-        </button>
-      </div>
-
     </div>
-  </form>
+
+    <!-- ══════════════════════════════════
+         SECCIÓN: REGLAMENTO
+    ══════════════════════════════════ -->
+    <div class="col-12 col-lg-7">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-white border-bottom py-3">
+          <h6 class="mb-0 fw-semibold d-flex align-items-center gap-2">
+            <i class="fa-regular fa-file-lines text-primary" />
+            Texto del reglamento
+          </h6>
+        </div>
+
+        <div class="card-body">
+          <FormTextArea
+            name="rules"
+            col="col-12"
+            placeholder="Escribe aquí el reglamento del bingo…"
+            :rows="12"
+            :required="true"
+            :error="rulesError ?? undefined"
+            :modelValue="rules"
+            resize="vertical"
+            @update:modelValue="rules = $event"
+          />
+        </div>
+
+        <div class="card-footer bg-white border-top pt-3 pb-3 d-flex justify-content-between align-items-center">
+          <small class="text-muted">
+            {{ rules.trim().length }} / 10.000 caracteres
+          </small>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm px-4"
+            :disabled="loadingRules || !!rulesError"
+            @click="submitRules"
+          >
+            <span v-if="loadingRules" class="spinner-border spinner-border-sm me-1" aria-hidden="true" />
+            <i v-else class="fa-solid fa-floppy-disk me-1" />
+            {{ loadingRules ? 'Guardando…' : 'Guardar reglamento' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </template>
+
+<style scoped>
+.bingo-image-preview {
+  width: 100%;
+  height: 220px;
+}
+
+.border-dashed {
+  border-style: dashed !important;
+}
+
+.object-fit-cover {
+  object-fit: cover;
+}
+</style>

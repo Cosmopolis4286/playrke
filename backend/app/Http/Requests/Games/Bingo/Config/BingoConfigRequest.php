@@ -6,11 +6,7 @@ use App\Http\Requests\BaseRequest;
 use App\Services\Auth\PermissionService;
 
 /**
- * Request para guardar la configuración de reglas del bingo.
- *
- * Acepta multipart/form-data con:
- * - rules (texto de reglamento)
- * - image (imagen PNG/JPEG, opcional)
+ * Request para guardar solo el texto del reglamento del bingo.
  */
 class BingoConfigRequest extends BaseRequest
 {
@@ -23,7 +19,6 @@ class BingoConfigRequest extends BaseRequest
     {
         return [
             'rules' => ['required', 'string', 'min:10', 'max:10000'],
-            'image' => ['nullable', 'image', 'mimes:jpeg,png', 'max:2048'],
         ];
     }
 
@@ -33,9 +28,6 @@ class BingoConfigRequest extends BaseRequest
             'rules.required' => 'El reglamento es obligatorio.',
             'rules.min'      => 'El reglamento debe tener al menos 10 caracteres.',
             'rules.max'      => 'El reglamento no puede superar los 10.000 caracteres.',
-            'image.image'    => 'El archivo debe ser una imagen válida.',
-            'image.mimes'    => 'Solo se aceptan imágenes JPEG o PNG.',
-            'image.max'      => 'La imagen no puede superar los 2 MB.',
         ];
     }
 }

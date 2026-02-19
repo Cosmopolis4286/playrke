@@ -20,11 +20,6 @@ final class BingoConfigContextService
 
     /**
      * Resolver contexto para BingoConfig.
-     *
-     * @param string   $context
-     * @param int|null $userId
-     * @return mixed
-     * @throws DomainException Si el contexto no es válido
      */
     public function context(string $context, ?int $userId): mixed
     {
@@ -34,9 +29,6 @@ final class BingoConfigContextService
         };
     }
 
-    /**
-     * Resuelve el contexto de index para la configuración del bingo.
-     */
     private function resolve(int $userId): BingoConfigDTO
     {
         return new BingoConfigDTO(
@@ -46,48 +38,52 @@ final class BingoConfigContextService
     }
 
     /**
-     * Guarda o actualiza las reglas de bingo (imagen + texto) para un usuario.
-     *
-     * @param int               $userId
-     * @param string            $rules
-     * @param UploadedFile|null $image
-     * @throws DomainException
+     * Guarda solo el texto del reglamento.
      */
-    public function saveRules(int $userId, string $rules, ?UploadedFile $image): void
+    public function saveOnlyRules(int $userId, string $rules): void
     {
-        $gameId = Game::where('name', 'BINGO')->value('id');
+        $gameId = $this->resolveBingoGameId();
 
-        if (!$gameId) {
-            throw new DomainException('El juego BINGO no existe en la base de datos.');
-        }
-
-        DB::transaction(function () use ($userId, $gameId, $rules, $image) {
+        DB::transaction(function () use ($userId, $gameId, $rules) {
             $existing = $this->gameRule->getByUserAndGame($userId, $gameId);
 
             if ($existing) {
-                $updateData = [];
-
                 if ($existing->rules !== $rules) {
-                    $updateData['rules'] = $rules;
-                }
-
-                if ($image) {
-                    $updateData['image'] = $this->storeImage($image, $existing->encrypted);
-                }
-
-                if (!empty($updateData)) {
-                    $existing->update($updateData);
+                    $existing->update(['rules' => $rules]);
                 }
             } else {
-                $encrypted = $this->gameRule->generateUniqueEncrypted();
-                $imageName = $image ? $this->storeImage($image, $encrypted) : null;
-
                 $this->gameRule->createRule(
                     userId:    $userId,
                     gameId:    $gameId,
                     rules:     $rules,
+                    encrypted: $this->gameRule->generateUniqueEncrypted(),
+                );
+            }
+        });
+    }
+
+    /**
+     * Guarda solo la imagen del reglamento.
+     */
+    public function saveOnlyImage(int $userId, UploadedFile $image): void
+    {
+        $gameId = $this->resolveBingoGameId();
+
+        DB::transaction(function () use ($userId, $gameId, $image) {
+            $existing = $this->gameRule->getByUserAndGame($userId, $gameId);
+
+            if ($existing) {
+                $existing->update([
+                    'image' => $this->storeImage($image, $existing->encrypted),
+                ]);
+            } else {
+                $encrypted = $this->gameRule->generateUniqueEncrypted();
+                $this->gameRule->createRule(
+                    userId:    $userId,
+                    gameId:    $gameId,
+                    rules:     '',
                     encrypted: $encrypted,
-                    image:     $imageName,
+                    image:     $this->storeImage($image, $encrypted),
                 );
             }
         });
@@ -117,6 +113,22 @@ final class BingoConfigContextService
         $game   = $gameId ? $this->gameRule->getByUserAndGame($userId, $gameId) : null;
 
         return $game?->rules ?? '';
+    }
+
+    /**
+     * Resuelve el ID del juego BINGO.
+     *
+     * @throws DomainException
+     */
+    private function resolveBingoGameId(): int|string
+    {
+        $gameId = Game::where('name', 'BINGO')->value('id');
+
+        if (!$gameId) {
+            throw new DomainException('El juego BINGO no existe en la base de datos.');
+        }
+
+        return $gameId;
     }
 
     /**
