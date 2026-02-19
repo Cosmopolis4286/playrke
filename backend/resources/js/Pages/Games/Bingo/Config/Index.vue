@@ -14,6 +14,20 @@
   const { loadingRules, loadingImage, saveRules, saveImage } = useBingoConfig()
 
   const showRulesModal = ref(false)
+
+  // Estado local reactivo — se actualiza sin recargar la página
+  const currentRules = ref<string>(props.bingoRules ?? '')
+  const currentImage = ref<string | null>(props.imageBingoRules ?? null)
+
+  async function handleSaveRules(rules: string) {
+    const saved = await saveRules(rules)
+    if (saved !== null) currentRules.value = saved
+  }
+
+  async function handleSaveImage(image: File) {
+    const imagePath = await saveImage(image)
+    if (imagePath !== null) currentImage.value = imagePath
+  }
 </script>
 
 <template>
@@ -34,7 +48,7 @@
             Ver Reglamento
           </button>
 
-          <a href="/bingo-patterns" class="btn btn-sm btn-primary">
+          <a href="/bingo/patterns" class="btn btn-sm btn-primary">
             <i class="fa-solid fa-gamepad me-1" />
             Patrones
           </a>
@@ -44,12 +58,12 @@
       <!-- Formulario de edición (imagen + reglamento) -->
       <div class="mt-4">
         <BingoConfigForm
-          :initial-rules="props.bingoRules ?? ''"
-          :current-image="props.imageBingoRules"
+          :initial-rules="currentRules"
+          :current-image="currentImage"
           :loading-rules="loadingRules"
           :loading-image="loadingImage"
-          @save-rules="saveRules"
-          @save-image="saveImage"
+          @save-rules="handleSaveRules"
+          @save-image="handleSaveImage"
         />
       </div>
     </div>
@@ -58,7 +72,7 @@
   <!-- Modal de solo lectura: imagen + reglamento como HTML -->
   <BingoRulesModal
     v-model="showRulesModal"
-    :rules="props.bingoRules"
-    :image="props.imageBingoRules"
+    :rules="currentRules"
+    :image="currentImage"
   />
 </template>

@@ -9,6 +9,8 @@ use App\Traits\HashedTableDataTrait;
 use DomainException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 final class BingoConfigContextService
 {
@@ -63,30 +65,35 @@ final class BingoConfigContextService
     }
 
     /**
-     * Guarda solo la imagen del reglamento.
+     * Guarda solo la imagen del reglamento y retorna el path público relativo.
      */
-    public function saveOnlyImage(int $userId, UploadedFile $image): void
+    public function saveOnlyImage(int $userId, UploadedFile $image): string
     {
-        $gameId = $this->resolveBingoGameId();
+        $gameId    = $this->resolveBingoGameId();
+        $imagePath = '';
 
-        DB::transaction(function () use ($userId, $gameId, $image) {
+        DB::transaction(function () use ($userId, $gameId, $image, &$imagePath) {
             $existing = $this->gameRule->getByUserAndGame($userId, $gameId);
 
             if ($existing) {
-                $existing->update([
-                    'image' => $this->storeImage($image, $existing->encrypted),
-                ]);
+                $filename = $this->storeImage($image, $existing->encrypted);
+                $existing->update(['image' => $filename]);
+                $imagePath = "bingo-rules/{$existing->encrypted}/{$filename}";
             } else {
                 $encrypted = $this->gameRule->generateUniqueEncrypted();
+                $filename  = $this->storeImage($image, $encrypted);
                 $this->gameRule->createRule(
                     userId:    $userId,
                     gameId:    $gameId,
                     rules:     '',
                     encrypted: $encrypted,
-                    image:     $this->storeImage($image, $encrypted),
+                    image:     $filename,
                 );
+                $imagePath = "bingo-rules/{$encrypted}/{$filename}";
             }
         });
+
+        return $imagePath;
     }
 
     /**
@@ -136,8 +143,12 @@ final class BingoConfigContextService
      */
     private function storeImage(UploadedFile $file, string $encrypted): string
     {
-        $path = $file->store("game/bingo/bingo-rules/{$encrypted}", 'public');
+        $extension = $file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'jpg';
+        $filename  = Str::random(16) . '.' . $extension;
+        $path      = "game/bingo/bingo-rules/{$encrypted}/{$filename}";
 
-        return basename($path);
+        Storage::disk('public')->put($path, $file->getContent());
+
+        return $filename;
     }
 }

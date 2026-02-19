@@ -24,10 +24,10 @@ final class BingoConfigService
     }
 
     /**
-     * Guarda solo la imagen del reglamento.
+     * Guarda solo la imagen del reglamento y retorna el path público relativo.
      */
-    public function saveImage(int $userId, UploadedFile $image): void
+    public function saveImage(int $userId, UploadedFile $image): string
     {
-        $this->contextService->saveOnlyImage($userId, $image);
+        return $this->contextService->saveOnlyImage($userId, $image);
     }
 }

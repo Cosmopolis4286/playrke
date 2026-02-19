@@ -50,7 +50,7 @@ route_group('bingo/config', 'bingo.config.', ['auth', 'role:admin,commerce'], Bi
  * PATRONES DE BINGO (CANTOS)
  * ====================================
  */
-route_group('bingo-patterns', 'bingo-pattern.', ['auth', 'role:admin,commerce'], BingoPatternController::class, [
+route_group('bingo/patterns', 'bingo-pattern.', ['auth', 'role:admin,commerce'], BingoPatternController::class, [
     'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],

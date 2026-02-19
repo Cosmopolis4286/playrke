@@ -1,6 +1,6 @@
 <script setup lang="ts" name="BingoConfigForm">
   import { ref, computed } from 'vue'
-  import FormTextArea from '@/js/Components/Common/Form/FormTextArea.vue'
+  import RichTextEditor from '@/js/Components/Common/Form/RichTextEditor.vue'
 
   const props = defineProps<{
     initialRules?: string
@@ -60,9 +60,10 @@
 
   /* ── Reglamento ── */
   const rules      = ref(props.initialRules ?? '')
+  const rulesText = computed(() => rules.value.replace(/<[^>]*>/g, '').trim())
   const rulesError = computed<string | null>(() => {
-    if (!rules.value.trim()) return 'El reglamento es obligatorio.'
-    if (rules.value.trim().length < 10) return 'Debe tener al menos 10 caracteres.'
+    if (!rulesText.value) return 'El reglamento es obligatorio.'
+    if (rulesText.value.length < 10) return 'Debe tener al menos 10 caracteres.'
     return null
   })
 
@@ -159,22 +160,17 @@
         </div>
 
         <div class="card-body">
-          <FormTextArea
-            name="rules"
-            col="col-12"
+          <RichTextEditor
+            :model-value="rules"
             placeholder="Escribe aquí el reglamento del bingo…"
-            :rows="12"
-            :required="true"
-            :error="rulesError ?? undefined"
-            :modelValue="rules"
-            resize="vertical"
-            @update:modelValue="rules = $event"
+            @update:model-value="rules = $event"
           />
+          <div v-if="rulesError" class="text-danger small mt-1">{{ rulesError }}</div>
         </div>
 
         <div class="card-footer bg-white border-top pt-3 pb-3 d-flex justify-content-between align-items-center">
           <small class="text-muted">
-            {{ rules.trim().length }} / 10.000 caracteres
+            {{ rulesText.length }} / 10.000 caracteres
           </small>
           <button
             type="button"

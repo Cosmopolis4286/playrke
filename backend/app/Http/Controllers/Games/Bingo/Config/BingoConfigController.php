@@ -60,12 +60,15 @@ final class BingoConfigController extends Controller
     public function saveImage(BingoConfigImageRequest $request): JsonResponse
     {
         return $this->handleServiceJson(function () use ($request) {
-            $this->service->saveImage(
+            $imagePath = $this->service->saveImage(
                 userId: $this->userContext->resolveUserId(),
                 image:  $request->file('image'),
             );
 
-            return ['message' => 'Imagen guardada exitosamente.'];
+            return [
+                'message'    => 'Imagen guardada exitosamente.',
+                'image_path' => $imagePath,
+            ];
         });
     }
 }
