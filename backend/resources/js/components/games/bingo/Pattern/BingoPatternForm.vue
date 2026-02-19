@@ -54,8 +54,8 @@
 
     if (!form.value.name?.trim()) {
       e.name = 'El nombre es requerido.'
-    } else if (form.value.name.length > 15) {
-      e.name = 'Máx. 15 caracteres.'
+    } else if (form.value.name.length > 30) {
+      e.name = 'Máx. 30 caracteres.'
     }
 
     if (!form.value.type_pattern) {
@@ -101,7 +101,7 @@
         label="Nombre del patrón"
         name="name"
         required
-        maxlength="15"
+        maxlength="30"
         placeholder="Ej: Línea horizontal"
         col="col-sm-8"
         :error="errors.name"

@@ -21,7 +21,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('num_id');
             $table->unique(['num_id', 'user_id']);
             $table->enum('type_pattern', ['UNIQUE', 'MULTIPLE']);
-            $table->string('name', 15);
+            $table->string('name', 30);
             $table->foreignSnowflake('user_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->string('boxes', 150);
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');

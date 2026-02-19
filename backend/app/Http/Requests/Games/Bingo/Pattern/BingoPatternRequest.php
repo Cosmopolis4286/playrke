@@ -25,7 +25,7 @@ class BingoPatternRequest extends BaseRequest
     public function rules(): array
     {
         return [
-            'name'            => ['required', 'string', 'max:15'],
+            'name'            => ['required', 'string', 'max:30'],
             'type_pattern'    => ['required', 'in:' . implode(',', array_keys(BingoPattern::TYPES))],
             'default_pattern' => ['nullable', 'in:Y,N'],
             'boxes'           => ['required', 'string', 'max:150'],
@@ -54,7 +54,7 @@ class BingoPatternRequest extends BaseRequest
     {
         return [
             'name.required'         => 'El nombre del patrón es obligatorio.',
-            'name.max'              => 'El nombre no puede superar 15 caracteres.',
+            'name.max'              => 'El nombre no puede superar 30 caracteres.',
             'type_pattern.required' => 'El tipo de patrón es obligatorio.',
             'type_pattern.in'       => 'El tipo de patrón debe ser UNIQUE o MULTIPLE.',
             'boxes.required'        => 'Las casillas del patrón son obligatorias.',
