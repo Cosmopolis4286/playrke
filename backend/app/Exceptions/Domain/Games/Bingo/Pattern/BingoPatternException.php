@@ -86,4 +86,12 @@ final class BingoPatternException extends DomainException
     {
         return new self('BINGO_ROOM_INVALID_PRIZE_POOL_TYPE');
     }
+
+    /**
+     * Ya existe un patrón con ese nombre para el usuario.
+     */
+    public static function duplicateName(): self
+    {
+        return new self('BINGO_PATTERN_DUPLICATE_NAME');
+    }
 }

@@ -1,11 +1,9 @@
 import type { BingoPattern } from './bingo-pattern'
 import type { Column } from '@/js/types/common/table/column-row'
-import type { Pagination } from '@/js/types/common/table/pagination'
 
 export interface BingoPatternPageProps {
-    prizes: {
+    bingoPatterns: {
         columns: Column[]
-        rows: BingoPattern[]
+        rows:    BingoPattern[]
     }
-    prizes_pagination: Pagination | null
 }

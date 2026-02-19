@@ -15,12 +15,8 @@ final class BingoPatternService
         private readonly \App\Services\Security\UserContextService $userContext,
     ) {}
 
-    /** Resolver contexto para BingoRoom.
-     *
-     * @param string $context
-     * @param int|null $userId
-     * @return array
-     * @throws \BingoPatternException Si el contexto no es válido
+    /**
+     * Resolver contexto para la página de patrones.
      */
     public function context(string $context, ?int $userId = null): array
     {
@@ -28,16 +24,16 @@ final class BingoPatternService
     }
 
     /**
-     * Obtener listado de patrones de bingo filtrado por contexto del usuario.
+     * Obtener listado de patrones filtrado por contexto del usuario.
      */
     public function fetchList(): array
     {
         $userId = $this->userContext->resolveUserId();
-        return $this->contextService->context('fetch', $userId);
+        return $this->contextService->fetchList($userId);
     }
 
     /**
-     * Mostrar detalle de patron de bingo.
+     * Mostrar detalle de patrón de bingo.
      */
     public function show(BingoPattern $pattern): BingoPatternResource
     {
@@ -45,35 +41,23 @@ final class BingoPatternService
     }
 
     /**
-     * Crear un patron de Bingo.
-     *
-     * @param BingoPatternCreateDTO $dto
-     * @return bool
+     * Crear un patrón de bingo.
      */
     public function create(BingoPatternCreateDTO $dto): bool
     {
-        return $this->crudService->saveRoom($dto);
+        return $this->crudService->create($dto);
     }
 
     /**
-     * Actualizar un patron de bingo existente.
-     *
-     * @param BingoPattern $pattern Model
-     * @param BingoPatternUpdateDTO $dto
-     * @return bool
+     * Actualizar un patrón de bingo existente.
      */
     public function update(BingoPattern $pattern, BingoPatternUpdateDTO $dto): bool
     {
-        return $this->crudService->saveRoom($pattern, $dto);
+        return $this->crudService->update($pattern, $dto);
     }
 
     /**
-     * Eliminar patron de bingo (soft delete).
-     *
-     * @param BingoPattern $pattern Model
-     * @return bool
-     *
-     * @throws BingoPatternException Si falla la eliminación
+     * Eliminación lógica de un patrón (soft delete).
      */
     public function delete(BingoPattern $pattern): bool
     {
@@ -81,12 +65,7 @@ final class BingoPatternService
     }
 
     /**
-     * Alternar estado (ACTIVE / INACTIVE) de un patron de bingo.
-     *
-     * @param BingoPattern $pattern Model
-     * @return bool
-     *
-     * @throws BingoPatternException Si falla el cambio de estado
+     * Alternar estado (ACTIVE / INACTIVE) de un patrón.
      */
     public function toggleStatus(BingoPattern $pattern): bool
     {
@@ -94,7 +73,7 @@ final class BingoPatternService
     }
 
     /**
-     * Eliminar patron de bingo permanentemente (hard delete).
+     * Eliminación permanente (hard delete).
      */
     public function destroy(BingoPattern $pattern): bool
     {
