@@ -25,7 +25,7 @@
   // Types
   // ==========================================================================
 
-  import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/summary/bingo-room-summary'
+  import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/bingo-room-page'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilter } from '@js/types/common/table/table-filter'
 
