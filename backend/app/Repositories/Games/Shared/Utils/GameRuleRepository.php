@@ -4,11 +4,11 @@ namespace App\Repositories\Shared\Utils;
 
 use App\Models\Games\Common\Utils\GameRule;
 use App\Repositories\BaseRepository;
-use App\Repositories\Shared\Utils\Contracts\GameRuleRepositoryContract;
+use App\Contracts\Games\Common\Utils\GameRuleRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
 
-class GameRuleRepository extends BaseRepository implements GameRuleRepositoryContract
+class GameRuleRepository extends BaseRepository implements GameRuleRepositoryInterface
 {
     public function __construct(GameRule $model)
     {

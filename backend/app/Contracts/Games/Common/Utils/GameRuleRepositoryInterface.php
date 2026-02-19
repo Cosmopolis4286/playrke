@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Repositories\Shared\Utils\Contracts;
+namespace App\Contracts\Games\Common\Utils;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Models\Games\Common\Utils\GameRule;
 use Illuminate\Database\Eloquent\Collection;
 
-interface GameRuleRepositoryContract extends BaseRepositoryInterface
+interface GameRuleRepositoryInterface extends BaseRepositoryInterface
 {
     public function getByUser($userId): Collection;
 
