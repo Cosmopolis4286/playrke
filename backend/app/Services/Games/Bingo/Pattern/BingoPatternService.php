@@ -2,21 +2,33 @@
 
 namespace App\Services\Games\Bingo\Pattern;
 
-use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
+use App\DTOs\Games\Bingo\Pattern\BingoPatternCreateDTO;
+use App\DTOs\Games\Bingo\Pattern\BingoPatternUpdateDTO;
+use App\Http\Resources\Games\Bingo\Pattern\BingoPatternResource;
+use App\Models\Games\Bingo\Pattern\BingoPattern;
 
 final class BingoPatternService
 {
     public function __construct(
         private readonly BingoPatternContextService $contextService,
+        private readonly BingoPatternCrudService $crudService,
+        private readonly \App\Services\Security\UserContextService $userContext,
     ) {}
 
+    /** Resolver contexto para BingoRoom.
+     *
+     * @param string $context
+     * @param int|null $userId
+     * @return array
+     * @throws \BingoPatternException Si el contexto no es válido
+     */
     public function context(string $context, ?int $userId = null): array
     {
         return $this->contextService->context($context, $userId)->toView();
     }
 
     /**
-     * Obtener listado de salas filtrado por contexto del usuario.
+     * Obtener listado de patrones de bingo filtrado por contexto del usuario.
      */
     public function fetchList(): array
     {
@@ -25,67 +37,67 @@ final class BingoPatternService
     }
 
     /**
-     * Mostrar detalle de una sala de bingo.
+     * Mostrar detalle de patron de bingo.
      */
-    public function show(BingoRoom $room): BingoRoomResource
+    public function show(BingoPattern $pattern): BingoPatternResource
     {
-        return $this->crudService->show($room);
+        return $this->crudService->show($pattern);
     }
 
     /**
-     * Crear una nueva sala de bingo con su configuración y creador.
+     * Crear un patron de Bingo.
      *
-     * @param BingoRoomCreateDTO $dto
+     * @param BingoPatternCreateDTO $dto
      * @return bool
      */
-    public function create(BingoRoomCreateDTO $dto): bool
+    public function create(BingoPatternCreateDTO $dto): bool
     {
         return $this->crudService->saveRoom($dto);
     }
 
     /**
-     * Actualizar una sala de bingo existente.
+     * Actualizar un patron de bingo existente.
      *
-     * @param BingoRoom $room Model
-     * @param BingoRoomUpdateDTO $dto
+     * @param BingoPattern $pattern Model
+     * @param BingoPatternUpdateDTO $dto
      * @return bool
      */
-    public function update(BingoRoom $room, BingoRoomUpdateDTO $dto): bool
+    public function update(BingoPattern $pattern, BingoPatternUpdateDTO $dto): bool
     {
-        return $this->crudService->saveRoom($room, $dto);
+        return $this->crudService->saveRoom($pattern, $dto);
     }
 
     /**
-     * Eliminar una sala de bingo (soft delete).
+     * Eliminar patron de bingo (soft delete).
      *
-     * @param BingoRoom $room Model
+     * @param BingoPattern $pattern Model
      * @return bool
      *
-     * @throws BingoRoomException Si falla la eliminación
+     * @throws BingoPatternException Si falla la eliminación
      */
-    public function delete(BingoRoom $room): bool
+    public function delete(BingoPattern $pattern): bool
     {
-        return $this->crudService->delete($room);
+        return $this->crudService->delete($pattern);
     }
 
     /**
-     * Alternar estado (ACTIVE / INACTIVE) de una sala de bingo.
+     * Alternar estado (ACTIVE / INACTIVE) de un patron de bingo.
      *
-     * @param BingoRoom $room Model
+     * @param BingoPattern $pattern Model
      * @return bool
      *
-     * @throws BingoRoomException Si falla el cambio de estado
+     * @throws BingoPatternException Si falla el cambio de estado
      */
-    public function toggleStatus(BingoRoom $room): bool
+    public function toggleStatus(BingoPattern $pattern): bool
     {
-        return $this->crudService->toggleStatus($room);
+        return $this->crudService->toggleStatus($pattern);
     }
 
     /**
-     * Eliminar una sala de bingo permanentemente (hard delete).
+     * Eliminar patron de bingo permanentemente (hard delete).
      */
-    public function destroy(BingoRoom $room): bool
+    public function destroy(BingoPattern $pattern): bool
     {
-        return $room->forceDelete();
+        return $pattern->forceDelete();
     }
 }
