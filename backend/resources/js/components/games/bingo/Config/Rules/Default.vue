@@ -13,7 +13,7 @@
     distribuidos en una cuadrícula de 5 filas por 5 columnas.
     Debes ir marcando los números a medida que vayan saliendo las Fichas,
     así que no debes despistarte y estar muy atento para cantar ¡Bingo! en tu carton ganador.
-    </li>
+</p>
 <h5>Cómo Ganar:</h5>
 <p>
     Debes cantar Bingo al tener Cartón Lleno.

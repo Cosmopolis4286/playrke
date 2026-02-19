@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Domain\Common\Status\StatusChanger;
 use App\Repositories\BaseRepository;
-use App\Repositories\Directory\PagoMovilRepository;
 use App\Services\Games\Room\RoomTypeService;
 use App\Services\Route\RouteService;
 use Illuminate\Support\ServiceProvider;
@@ -51,9 +50,6 @@ class AppServiceProvider extends ServiceProvider
 
         // Servicio para manejo de rutas o helpers globales de rutas
         $this->app->singleton(RouteService::class, fn($app) => new RouteService());
-
-        // Repositorio para directorios de Pago Móvil (Venezuela)
-        $this->app->singleton(PagoMovilRepository::class);
 
         // -------------------------------------------
         // Binding obligatorio para 'files'
