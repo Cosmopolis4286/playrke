@@ -1,8 +1,10 @@
 <script setup lang="ts" name="BingoPatternForm">
   import { computed } from 'vue'
 
-  import FormInput  from '@/js/Components/Common/Form/FormInput.vue'
-  import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+  import FormInput         from '@/js/Components/Common/Form/FormInput.vue'
+  import FormSelect        from '@/js/Components/Common/Form/FormSelect.vue'
+  import FormSwitch        from '@/js/Components/Common/Form/FormSwitch.vue'
+  import BingoCardSelector from '@/js/Components/Games/Bingo/Pattern/BingoCardSelector.vue'
 
   import type { BingoPattern } from '@/js/types/games/bingo/pattern/bingo-pattern'
 
@@ -37,10 +39,11 @@
     { value: 'MULTIPLE', label: 'Múltiple' },
   ]
 
-  const defaultPatternOptions = [
-    { value: 'N', label: 'No' },
-    { value: 'Y', label: 'Sí' },
-  ]
+  /** boolean ↔ 'Y'/'N' para FormSwitch */
+  const defaultPatternBool = computed<boolean>({
+    get: () => form.value.default_pattern === 'Y',
+    set: v => { form.value = { ...form.value, default_pattern: v ? 'Y' : 'N' } },
+  })
 
   /* ==========================================================================
    * Validación reactiva
@@ -118,25 +121,20 @@
         v-model="form.type_pattern"
       />
 
-      <FormInput
-        label="Casillas (separadas por ;)"
-        name="boxes"
-        required
-        maxlength="150"
-        placeholder="Ej: 1;15;30;45;60"
-        col="col-sm-12"
-        :error="errors.boxes"
-        v-model="form.boxes"
-      />
+      <div class="col-sm-12 mb-3">
+        <label class="form-label">Casillas del patrón <span class="text-danger">*</span></label>
+        <BingoCardSelector
+          v-model="form.boxes"
+          :free-center="true"
+        />
+        <div v-if="errors.boxes" class="invalid-feedback d-block">{{ errors.boxes }}</div>
+      </div>
 
-      <FormSelect
-        label="¿Patrón por defecto?"
+      <FormSwitch
+        label="Patrón por defecto"
         name="default_pattern"
-        :options="defaultPatternOptions"
-        optionValue="value"
-        optionLabel="label"
         col="col-sm-6"
-        v-model="form.default_pattern"
+        v-model="defaultPatternBool"
       />
 
     </div>

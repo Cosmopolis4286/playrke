@@ -544,7 +544,7 @@
       >
         <template #append>
           <VDropdown
-            :shown="hasRoundsConfigErrors"
+            :shown="hasRoundsConfigErrors && !!roundsPct && !errors.roundsPct"
             :triggers="[]"
             placement="top-end"
             :autoHide="false"
@@ -556,7 +556,7 @@
               type="button"
               :data-active="roundsConfigActive ? 1 : 0"
               @click="toggleRoundsConfig"
-              :disabled="(form.rounds ?? 1) < 1"
+              :disabled="(form.rounds ?? 1) < 1 || !roundsPct"
             >
               <i class="fa-solid fa-sliders"></i>
             </button>
