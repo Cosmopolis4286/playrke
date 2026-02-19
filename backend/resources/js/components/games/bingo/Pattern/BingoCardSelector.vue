@@ -51,123 +51,157 @@ defineExpose({ clear })
 </script>
 
 <template>
-  <div class="bcs">
-    <!-- Cartón -->
-    <div class="bcs-grid">
-      <template v-for="letter in LETTERS" :key="letter">
-        <!-- Cabecera -->
-        <div class="bcs-hd">{{ letter }}</div>
-        <!-- Celdas -->
-        <span
-          v-for="row in 5"
-          :key="row"
-          class="bcs-cell"
-          :class="{
-            'bcs-active': isSelected(letter, row),
-            'bcs-free':   isFree(letter, row),
-            'bcs-off':    disabled && !isFree(letter, row),
-          }"
-          :title="`${letter}${row}`"
-          :tabindex="disabled || isFree(letter, row) ? -1 : 0"
-          :role="disabled || isFree(letter, row) ? undefined : 'checkbox'"
-          :aria-checked="isSelected(letter, row)"
-          @click="toggle(letter, row)"
-          @keydown.enter.space.prevent="toggle(letter, row)"
-        >
-          <i v-if="isFree(letter, row)" class="fa-solid fa-star fa-2xs"></i>
-          <template v-else>{{ letter }}{{ row }}</template>
-        </span>
-      </template>
-    </div>
+  <div class="bcs-wrap">
+    <div class="bcs">
 
-    <!-- Footer -->
-    <div class="bcs-footer">
-      <span class="text-muted" style="font-size:0.72rem">
-        {{ selectedSet.size ? `${selectedSet.size} sel.` : 'Sin selección' }}
-      </span>
-      <button
-        type="button"
-        class="btn btn-xs btn-outline-secondary"
-        :disabled="disabled || selectedSet.size === 0"
-        title="Limpiar"
-        @click="clear"
-      >
-        <i class="fa-solid fa-eraser fa-xs"></i>
-      </button>
+      <!-- Grid: fila de headers + 5 filas de celdas -->
+      <div class="bcs-grid">
+
+        <!-- Headers B I N G O -->
+        <div v-for="letter in LETTERS" :key="`hd-${letter}`" class="bcs-hd">
+          {{ letter }}
+        </div>
+
+        <!-- Filas 1-5 × 5 letras -->
+        <template v-for="row in 5" :key="`r${row}`">
+          <span
+            v-for="letter in LETTERS"
+            :key="`${letter}${row}`"
+            class="bcs-cell"
+            :class="{
+              'bcs-active': isSelected(letter, row),
+              'bcs-free':   isFree(letter, row),
+              'bcs-off':    disabled && !isFree(letter, row),
+            }"
+            :title="`${letter}${row}`"
+            :tabindex="disabled || isFree(letter, row) ? -1 : 0"
+            :role="disabled || isFree(letter, row) ? undefined : 'checkbox'"
+            :aria-checked="isSelected(letter, row)"
+            @click="toggle(letter, row)"
+            @keydown.enter.space.prevent="toggle(letter, row)"
+          >
+            <i v-if="isFree(letter, row)" class="fa-solid fa-star" style="font-size:9px"></i>
+            <template v-else>{{ letter }}{{ row }}</template>
+          </span>
+        </template>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="bcs-footer">
+        <span class="bcs-count">
+          <template v-if="selectedSet.size">
+            <i class="fa-solid fa-check-square fa-xs"></i> {{ selectedSet.size }} casilla{{ selectedSet.size !== 1 ? 's' : '' }}
+          </template>
+          <template v-else>Sin selección</template>
+        </span>
+        <button
+          type="button"
+          class="bcs-clear-btn"
+          :disabled="disabled || selectedSet.size === 0"
+          title="Limpiar selección"
+          @click="clear"
+        >
+          <i class="fa-solid fa-eraser fa-xs"></i> Limpiar
+        </button>
+      </div>
+
     </div>
   </div>
 </template>
 
 <style scoped>
-.bcs {
-  display: inline-block;
-  width: 100%;
+/* Wrapper: centra el cartón y le da un ancho máximo */
+.bcs-wrap {
+  display: flex;
+  justify-content: center;
 }
 
-/* Grid: 5 cols × 6 rows (1 header + 5 celdas) */
+.bcs {
+  width: 292px;
+  flex-shrink: 0;
+}
+
+/* Grid 5 columnas de tamaño fijo */
 .bcs-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 3px;
-  padding: 6px;
-  background: var(--bs-border-color, #dee2e6);
-  border-radius: 6px;
-  border: 1px solid var(--bs-border-color, #dee2e6);
+  grid-template-columns: repeat(5, 52px);
+  grid-auto-rows: auto;
+  gap: 2px;
+  padding: 5px;
+  background: #e9ecef;
+  border: 1px solid #dee2e6;
+  border-radius: 7px;
+  width: fit-content;
+  margin: 0 auto;
 }
 
-/* Cabecera letra */
+/* Header rectangular */
 .bcs-hd {
+  width: 52px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 24px;
-  font-size: 0.7rem;
+  font-size: 0.92rem;
   font-weight: 700;
+  letter-spacing: 0.03em;
   background: var(--bs-primary, #0d6efd);
   color: #fff;
-  border-radius: 3px;
+  border-radius: 4px;
   user-select: none;
 }
 
-/* Celda base */
+/* Celda cuadrada fija */
 .bcs-cell {
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 28px;
-  font-size: 0.62rem;
-  font-weight: 600;
-  border-radius: 3px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: 4px;
   cursor: pointer;
   user-select: none;
-  background: var(--bs-body-bg, #fff);
-  color: var(--bs-body-color, #212529);
-  transition: background 0.1s, color 0.1s;
+  background: #fff;
+  color: #343a40;
+  border: 1px solid #dee2e6;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.08s;
 }
 
 .bcs-cell:hover:not(.bcs-off):not(.bcs-free) {
-  background: var(--bs-primary-bg-subtle, #cfe2ff);
+  background: #dbeafe;
+  border-color: var(--bs-primary, #0d6efd);
+  color: var(--bs-primary, #0d6efd);
+  transform: scale(1.07);
+  z-index: 1;
 }
 
 /* Seleccionada */
 .bcs-cell.bcs-active {
   background: var(--bs-primary, #0d6efd);
+  border-color: var(--bs-primary, #0d6efd);
   color: #fff;
+  box-shadow: 0 1px 4px rgba(13,110,253,.35);
 }
 .bcs-cell.bcs-active:hover:not(.bcs-off) {
-  background: var(--bs-primary-text-emphasis, #052c65);
+  background: #0a58ca;
+  border-color: #0a58ca;
 }
 
-/* Libre */
+/* Libre (N3) */
 .bcs-cell.bcs-free {
-  background: var(--bs-warning-bg-subtle, #fff3cd);
-  color: var(--bs-warning-text-emphasis, #664d03);
+  background: #fff8e1;
+  border-color: #ffe082;
+  color: #b8860b;
   cursor: default;
 }
 
 /* Deshabilitada */
 .bcs-cell.bcs-off {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
   pointer-events: none;
 }
@@ -177,12 +211,40 @@ defineExpose({ clear })
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 4px;
+  margin-top: 6px;
+  padding: 0 1px;
 }
 
-.btn-xs {
-  padding: 1px 6px;
+.bcs-count {
+  font-size: 0.68rem;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.bcs-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
   font-size: 0.7rem;
-  line-height: 1.4;
+  font-weight: 500;
+  line-height: 1.5;
+  border: 1px solid #adb5bd;
+  border-radius: 4px;
+  background: #fff;
+  color: #495057;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.bcs-clear-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #6c757d;
+  color: #212529;
+}
+.bcs-clear-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
 }
 </style>

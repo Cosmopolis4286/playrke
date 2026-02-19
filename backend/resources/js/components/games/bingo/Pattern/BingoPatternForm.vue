@@ -121,13 +121,13 @@
         v-model="form.type_pattern"
       />
 
-      <div class="col-sm-12 mb-3">
-        <label class="form-label">Casillas del patrón <span class="text-danger">*</span></label>
+      <div class="col-sm-12 mb-3 text-center">
+        <label class="form-label d-block">Casillas del patrón <span class="text-danger">*</span></label>
         <BingoCardSelector
           v-model="form.boxes"
           :free-center="true"
         />
-        <div v-if="errors.boxes" class="invalid-feedback d-block">{{ errors.boxes }}</div>
+        <div v-if="errors.boxes" class="invalid-feedback d-block text-start mt-1">{{ errors.boxes }}</div>
       </div>
 
       <FormSwitch

@@ -56,8 +56,15 @@ class BingoPattern extends Model
     /**
      * Tipos como constantes
      */
-    public const TYPE_UNIQUE = 'UNIQUE';
+    public const TYPE_UNIQUE   = 'UNIQUE';
     public const TYPE_MULTIPLE = 'MULTIPLE';
+
+    /**
+     * Rango de num_id reservado para patrones de sistema (default_pattern='Y').
+     * Los patrones de usuario deben usar num_id >= SYSTEM_NUM_ID_MAX + 1.
+     */
+    public const SYSTEM_NUM_ID_MIN = 1;
+    public const SYSTEM_NUM_ID_MAX = 30;
 
     /**
      * Estados como constantes
@@ -69,6 +76,7 @@ class BingoPattern extends Model
      * Campos que pueden ser asignados masivamente
      */
     protected $fillable = [
+        'num_id',
         'name',
         'default_pattern',
         'type_pattern',
@@ -279,6 +287,24 @@ class BingoPattern extends Model
     }
 
     /**
+     * Obtener el siguiente num_id disponible para un usuario dado.
+     *
+     * Los patrones de sistema ocupan 1–SYSTEM_NUM_ID_MAX.
+     * Los patrones de usuario empiezan en SYSTEM_NUM_ID_MAX + 1.
+     *
+     * @param string $userId
+     * @return int
+     */
+    public static function nextNumIdForUser(string $userId): int
+    {
+        $max = static::where('user_id', $userId)
+            ->where('num_id', '>', self::SYSTEM_NUM_ID_MAX)
+            ->max('num_id');
+
+        return $max ? $max + 1 : self::SYSTEM_NUM_ID_MAX + 1;
+    }
+
+    /**
      * Obtener columnas y cajas formateadas
      *
      * @return array{type: string, columns: array}
@@ -296,12 +322,21 @@ class BingoPattern extends Model
             ];
         }
 
+        // Los boxes de un patrón MULTIPLE contienen num_id de otros patrones.
+        // Se busca primero en patrones de sistema (user_id=NULL), luego en los del mismo usuario.
         $columns = [];
-        foreach ($this->boxes_array as $patternId) {
-            $pattern = static::find($patternId);
+        foreach ($this->boxes_array as $numId) {
+            $numId = (int) $numId;
+            $pattern = static::where('num_id', $numId)
+                ->where(function ($q) {
+                    $q->whereNull('user_id')
+                      ->orWhere('user_id', $this->user_id);
+                })
+                ->first();
+
             if ($pattern && $pattern->boxes) {
                 $boxArray = array_values(array_unique(array_filter(explode(';', $pattern->boxes))));
-                $columns[$patternId] = $boxArray;
+                $columns[$numId] = $boxArray;
             }
         }
 

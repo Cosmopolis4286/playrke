@@ -45,6 +45,7 @@ final class BingoPatternCrudService
         }
 
         $this->repository->createPattern([
+            'num_id'          => BingoPattern::nextNumIdForUser((string) $userId),
             'name'            => $dto->name,
             'type_pattern'    => $dto->typePattern,
             'boxes'           => $dto->boxes,

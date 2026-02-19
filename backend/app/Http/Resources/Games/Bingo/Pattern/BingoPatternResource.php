@@ -10,6 +10,7 @@ class BingoPatternResource extends JsonResource
     {
         return [
             'id'              => $this->hashed_id ?? $this->id,
+            'num_id'          => $this->num_id,
             'name'            => $this->name,
             'type_pattern'    => $this->type_pattern,
             'type_description'=> $this->type_description,

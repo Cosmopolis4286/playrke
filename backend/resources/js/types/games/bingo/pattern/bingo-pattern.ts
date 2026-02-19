@@ -4,6 +4,7 @@ export type BingoPatternDefault     = 'Y' | 'N'
 
 export interface BingoPattern {
     readonly id?:               number | string
+    readonly num_id?:           number
     readonly name:              string
     readonly type_pattern:      BingoPatternType
     readonly type_description?: string
