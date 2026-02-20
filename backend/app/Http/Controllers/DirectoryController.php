@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Factories\Directories\Fiat\Venezuela\PagoMovilFactory;
 use App\Http\Requests\Directories\Fiat\Venezuela\PagoMovilRequest;
 use App\Http\Support\PublicTokenResolver;
+use App\Services\Banks\BrazilBankApiService;
 use App\Services\Directory\DirectoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,8 @@ class DirectoryController extends Controller
     public function __construct(
         private PagoMovilFactory $factory,
         private DirectoryService $service,
-        private PublicTokenResolver $tokenResolver
+        private PublicTokenResolver $tokenResolver,
+        private BrazilBankApiService $brazilBankApi
     ) {}
 
     /**
@@ -196,6 +198,20 @@ class DirectoryController extends Controller
                 'data'    => $this->service->toggleStatus($id),
             ],
             'No se pudo cambiar el estado del directorio.'
+        );
+    }
+
+    /**
+     * Obtiene la lista de bancos de Brasil desde la BrasilAPI,
+     * sincronizando los nuevos en la BD.
+     *
+     * @return JsonResponse
+     */
+    public function fetchBrazilBanks(): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => ['data' => $this->brazilBankApi->fetchAndSync()],
+            'No se pudo obtener la lista de bancos de Brasil.'
         );
     }
 }

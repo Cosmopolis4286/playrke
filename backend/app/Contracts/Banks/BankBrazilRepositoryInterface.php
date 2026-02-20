@@ -54,4 +54,14 @@ interface BankBrazilRepositoryInterface extends BaseRepositoryInterface
      * @return \Illuminate\Database\Eloquent\Collection<BankBrazil>
      */
     public function searchByName(string $searchTerm, array $columns = ['*']): \Illuminate\Database\Eloquent\Collection;
+
+    /**
+     * Obtiene o crea un banco por ISPB.
+     * Usado al sincronizar con la BrasilAPI.
+     *
+     * @param string $ispb   Código ISPB del banco
+     * @param array  $data   Datos a insertar si no existe (name, full_name, ispb)
+     * @return BankBrazil
+     */
+    public function firstOrCreateByISPB(string $ispb, array $data): BankBrazil;
 }

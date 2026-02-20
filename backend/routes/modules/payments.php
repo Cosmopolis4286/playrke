@@ -26,6 +26,7 @@ Route::middleware('auth')->group(function () {
     // API CRUD
     Route::get('admin/directory/fetch-list', [DirectoryController::class, 'fetchList'])->name('directory.fetch-list');
     Route::get('admin/directory/fetch-context', [DirectoryController::class, 'fetchContext'])->name('directory.fetch-context');
+    Route::get('admin/directory/fetch-brazil-banks', [DirectoryController::class, 'fetchBrazilBanks'])->name('directory.fetch-brazil-banks');
     Route::get('admin/directory/{id}', [DirectoryController::class, 'show'])->name('directory.show');
     Route::post('admin/directory', [DirectoryController::class, 'store'])->name('directory.store');
     Route::put('admin/directory/{id}', [DirectoryController::class, 'update'])->name('directory.update');

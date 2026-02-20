@@ -37,6 +37,26 @@ class CommerceCurrencyRepository extends BaseRepository implements CommerceCurre
     }
 
     /**
+     * Obtiene currency_id con su level mínimo para un comercio (solo ACTIVE).
+     * Retorna array indexado: currency_id => level.
+     *
+     * @param mixed $commerceId ID del comercio
+     * @return array<string, int>
+     */
+    public function getAvailableCurrenciesWithLevel($commerceId): array
+    {
+        return $this->model
+            ->select('currency_id', \Illuminate\Support\Facades\DB::raw('MIN(level) as level'))
+            ->where('commerce_id', $commerceId)
+            ->where('status', 'ACTIVE')
+            ->groupBy('currency_id')
+            ->get()
+            ->pluck('level', 'currency_id')
+            ->map(fn($level) => (int) $level)
+            ->all();
+    }
+
+    /**
      * Obtiene los códigos ISO de las monedas disponibles para un comercio
      *
      * @param mixed $commerceId ID del comercio

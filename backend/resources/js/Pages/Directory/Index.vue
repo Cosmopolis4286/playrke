@@ -21,14 +21,14 @@
   import { useModalForm } from '@/js/composables/common/useModalForm'
 
   // Types
-  import type { DirectoryVENPageProps } from '@/js/types/directory/directory-ven'
+  import type { DirectoryPageProps } from '@/js/types/directory/directory'
   import type { Row } from '@/js/types/common/table/column-row'
 
   /* ==========================================================================
    * Props
    * ========================================================================== */
 
-  const props = defineProps<DirectoryVENPageProps>()
+  const props = defineProps<DirectoryPageProps>()
 
   /* ==========================================================================
    * Lógica de negocio – Directorio
@@ -116,29 +116,47 @@
    * ========================================================================== */
 
   /**
-   * Obtener países únicos de las monedas disponibles.
+   * Obtener países únicos de las monedas disponibles, ordenados por level del pivot.
+   * level=1 (moneda principal) aparece primero.
    */
   const countries = computed(() => {
     if (props.currencies?.length) {
-      const uniqueCountries = new Map()
+      // Map: iso_code_2 → { country info, minLevel }
+      const uniqueCountries = new Map<string, { id: number; iso_code_2: string; name: string; level: number }>()
 
-      props.currencies.forEach((currency: any) => {
-        if (currency.country) {
-          uniqueCountries.set(currency.country.iso_code, {
-            id: currency.country.id,
-            iso_code_2: currency.country.iso_code,
-            name: currency.country.name
+      props.currencies.forEach(currency => {
+        const country = currency.country
+        if (!country?.iso_code_2) return
+
+        const code = country.iso_code_2
+        const level = currency.level ?? 99
+
+        // Guardar solo el level más bajo (principal) por país
+        if (!uniqueCountries.has(code) || level < uniqueCountries.get(code)!.level) {
+          uniqueCountries.set(code, {
+            id: country.id,
+            iso_code_2: code,
+            name: country.name,
+            level
           })
         }
       })
 
       return Array.from(uniqueCountries.values())
+        .sort((a, b) => a.level - b.level)
     }
 
-    return [{ id: 1, iso_code_2: 'VE', name: 'Venezuela' }]
+    return [{ id: 1, iso_code_2: 'VE', name: 'Venezuela', level: 1 }]
   })
 
-  const selectedCode = ref<string>('VE')
+  // El tab inicial es el país con level=1 (o 'VE' como fallback)
+  const defaultCode = props.currencies
+    ?.slice()
+    .sort((a, b) => (a.level ?? 99) - (b.level ?? 99))
+    .find(c => c.country?.iso_code_2)
+    ?.country?.iso_code_2 ?? 'VE'
+
+  const selectedCode = ref<string>(defaultCode)
 
   const selectedCountry = computed(() =>
     countries.value.find((c: any) => c.iso_code_2 === selectedCode.value)

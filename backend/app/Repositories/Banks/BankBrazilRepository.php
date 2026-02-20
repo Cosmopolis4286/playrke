@@ -110,4 +110,17 @@ class BankBrazilRepository extends BaseRepository implements BankBrazilRepositor
     {
         return $this->model->whereIn('ispb', $ispbs)->get($columns);
     }
+
+    /**
+     * Obtiene o crea un banco por ISPB.
+     * Si ya existe (por ISPB) lo retorna; si no, lo crea con los datos provistos.
+     *
+     * @param string $ispb Código ISPB del banco
+     * @param array  $data Datos a insertar si no existe (name, full_name, ispb)
+     * @return BankBrazil
+     */
+    public function firstOrCreateByISPB(string $ispb, array $data): BankBrazil
+    {
+        return $this->model->firstOrCreate(['ispb' => $ispb], $data);
+    }
 }

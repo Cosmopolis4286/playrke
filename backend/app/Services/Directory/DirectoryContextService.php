@@ -93,11 +93,7 @@ final class DirectoryContextService
         $country = $this->countryRepository
             ->findByIsoCode2($countryCode, ['id', 'name', 'iso_code_2']);
 
-        $currencies = $this->currencyService->getAvailableCurrencies(
-            $userId,
-            withCurrency: true,
-            withCountry: true
-        );
+        $currencies = $this->currencyService->getAvailableCurrenciesWithLevel($userId);
 
         return new DirectoryContextDTO(
             banks: $this->getBanksByCountry($countryCode),

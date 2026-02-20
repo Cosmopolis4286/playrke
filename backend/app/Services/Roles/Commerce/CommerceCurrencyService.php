@@ -27,6 +27,22 @@ class CommerceCurrencyService
     }
 
     /**
+     * Obtiene currency_id con su level mínimo para un comercio.
+     * Retorna array indexado: currency_id => level.
+     *
+     * @param mixed $commerceId ID del comercio.
+     * @return array<string, int>
+     */
+    public function getAvailableCurrenciesWithLevel($commerceId): array
+    {
+        if (!$commerceId) {
+            throw new DomainException('El ID del comercio es requerido.');
+        }
+
+        return $this->repository->getAvailableCurrenciesWithLevel($commerceId);
+    }
+
+    /**
      * Actualiza el estado de un registro.
      *
      * @param mixed $id

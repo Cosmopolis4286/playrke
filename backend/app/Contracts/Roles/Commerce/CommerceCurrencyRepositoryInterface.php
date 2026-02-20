@@ -19,6 +19,15 @@ interface CommerceCurrencyRepositoryInterface extends BaseRepositoryInterface
     public function getAvailableCurrenciesIds($commerceId): array;
 
     /**
+     * Obtiene currency_id con su level mínimo para un comercio (solo ACTIVE).
+     * Retorna array indexado: currency_id => level.
+     *
+     * @param mixed $commerceId ID del comercio
+     * @return array<string, int>
+     */
+    public function getAvailableCurrenciesWithLevel($commerceId): array;
+
+    /**
      * Obtiene los códigos ISO de las monedas disponibles para un comercio
      *
      * @param mixed $commerceId ID del comercio

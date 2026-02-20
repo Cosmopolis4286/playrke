@@ -64,6 +64,48 @@ class CurrencyService
     }
 
     /**
+     * Obtiene las monedas del comercio con su level del pivot incluido.
+     * Retorna una Collection de Currency con el atributo `level` añadido.
+     * Solo disponible para el rol 'commerce'.
+     *
+     * @param int $userId ID del usuario.
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getAvailableCurrenciesWithLevel(int $userId): \Illuminate\Database\Eloquent\Collection
+    {
+        $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        if ($userRolePrefix !== 'commerce') {
+            return collect();
+        }
+
+        $commerceId = $this->commerceRepository->getValueByUserId($userId, 'id');
+
+        if (!$commerceId) {
+            return collect();
+        }
+
+        // currency_id => level (mínimo por moneda)
+        $levelMap = $this->commerceCurrencyService->getAvailableCurrenciesWithLevel($commerceId);
+
+        if (empty($levelMap)) {
+            return collect();
+        }
+
+        $currencies = $this->currencyRepository->getByIdsWithRelations(
+            ['country'],
+            array_keys($levelMap)
+        );
+
+        // Inyectar level en cada modelo como atributo dinámico
+        $currencies->each(function ($currency) use ($levelMap) {
+            $currency->level = $levelMap[$currency->id] ?? 99;
+        });
+
+        return $currencies;
+    }
+
+    /**
      * Obtiene las monedas disponibles para un jugador.
      *
      * @param int $userId
