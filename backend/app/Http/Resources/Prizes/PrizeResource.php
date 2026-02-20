@@ -13,11 +13,18 @@ class PrizeResource extends JsonResource
         if ($this->kit === 'Y' && !empty($this->kit_items)) {
             $kitItemsData = Prize::whereIn('id', $this->kit_items)
                 ->get(['id', 'code', 'name', 'price'])
+                ->map(fn($p) => [
+                    'id'    => $p->hashed_id,
+                    'code'  => $p->code,
+                    'name'  => $p->name,
+                    'price' => $p->price,
+                ])
+                ->values()
                 ->toArray();
         }
 
         return [
-            'id'             => $this->id,
+            'id'             => $this->hashed_id,
             'code'           => $this->code,
             'slug'           => $this->slug,
             'reward_type'    => $this->reward_type,

@@ -148,4 +148,17 @@ final class BingoRoomController extends Controller
             fn() => $this->service->toggleStatus($room)
         );
     }
+
+    /**
+     * Copiar una sala de bingo como nuevo borrador (status DRAFT).
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function copy(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->copy($room)
+        );
+    }
 }

@@ -138,6 +138,9 @@
           case 'view':
             handleView()
             break
+          case 'copy':
+            handleCrudAction({ action: 'copy', selectionRequirement: 'single' })
+            break
           default:
             console.warn(`No handler para botón '${btn.label}' con acción '${btn.action}'`)
         }

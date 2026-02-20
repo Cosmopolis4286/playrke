@@ -109,9 +109,10 @@
    * Valida el valor cuando aceptan la máscara
    */
   function onAccept(event: CustomEvent) {
-    const value = event.detail.value
-    const adjusted = clampNumericValue(value)
-    emit('update:modelValue', adjusted)
+    // For Number masks, unmaskedValue is the clean numeric string (e.g. "1234.56")
+    // detail.value is the formatted display string (e.g. "1,234.56") — Number() of that returns NaN
+    const raw = event.detail.unmaskedValue ?? event.detail.value
+    emit('update:modelValue', raw)
   }
 </script>
 

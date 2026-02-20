@@ -58,7 +58,7 @@ final class PrizeService
             ->limit(15)
             ->get(['id', 'code', 'name', 'price', 'reward_type', 'kit', 'status'])
             ->map(fn ($p) => [
-                'id'    => $p->id,
+                'id'    => $p->hashed_id,
                 'code'  => $p->code,
                 'name'  => $p->name,
                 'price' => $p->price,

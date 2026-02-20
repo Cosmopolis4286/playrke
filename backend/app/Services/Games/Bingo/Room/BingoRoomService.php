@@ -69,6 +69,17 @@ final class BingoRoomService
     }
 
     /**
+     * Copiar una sala de bingo existente como nuevo borrador (status DRAFT).
+     *
+     * @param BingoRoom $room Model
+     * @return bool
+     */
+    public function copy(BingoRoom $room): bool
+    {
+        return $this->crudService->copyRoom($room);
+    }
+
+    /**
      * Eliminar una sala de bingo (soft delete).
      *
      * @param BingoRoom $room Model

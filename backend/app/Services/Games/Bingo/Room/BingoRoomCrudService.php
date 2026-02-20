@@ -134,7 +134,8 @@ final class BingoRoomCrudService
             $uuidCode = strtoupper(Str::uuid()->toString());
         } while (BingoRoom::where('uuid_code', $uuidCode)->exists());
 
-        $statusId = GameStatus::where('code', 'ACTIVE')->value('id');
+        $statusCode = $dto->isDraft ? 'DRAFT' : 'ACTIVE';
+        $statusId = GameStatus::where('code', $statusCode)->value('id');
 
         $room = BingoRoom::create([
             'status_id'       => $statusId,
@@ -351,6 +352,66 @@ final class BingoRoomCrudService
             : 'ACTIVE';
 
         return $this->bingoRooms->changeGameStatus($room->id, $newStatus);
+    }
+
+    /**
+     * Copia una sala de bingo existente como nuevo borrador (status DRAFT).
+     * Replica configuración, precios de cartones y rondas.
+     *
+     * @param BingoRoom $room Sala a copiar
+     * @return bool True si la copia fue exitosa
+     */
+    public function copyRoom(BingoRoom $room): bool
+    {
+        $room->load(['config', 'cardPrices', 'rounds']);
+
+        $config = $room->config;
+
+        if (!$config) {
+            throw BingoRoomException::notFound();
+        }
+
+        $cardPriceByCurrency = $room->cardPrices
+            ->pluck('card_price', 'currency_id')
+            ->map(fn($price) => (float) $price)
+            ->toArray();
+
+        $roundsConfig = $room->rounds
+            ->sortBy('round')
+            ->values()
+            ->map(fn($r) => [
+                'prizeType'    => match ($r->prize_type) {
+                    'PCT'   => 'percentage',
+                    'USD'   => 'fixed',
+                    default => 'prize',
+                },
+                'bingoPattern' => $r->bingo_pattern_id,
+                'prizeValue'   => $r->prize_value !== null ? (float) $r->prize_value : null,
+            ])
+            ->toArray();
+
+        $dto = BingoRoomCreateDTO::fromArray([
+            'date'                  => $config->date,
+            'time'                  => $config->time,
+            'roomType'              => $config->room_type_id,
+            'gameMode'              => $config->game_mode_id,
+            'prizePoolType'         => $config->prize_pool_type_id,
+            'cardPrice'             => (float) $config->card_price,
+            'allowedCurrencies'     => $config->allowed_currencies ?? [],
+            'amountAddedPrizePool'  => $config->amount_added_prize_pool ? (float) $config->amount_added_prize_pool : null,
+            'roomCommn'             => (float) $config->room_commission,
+            'jackpotPct'            => $config->jackpot_pct ? (float) $config->jackpot_pct : null,
+            'timeChip'              => (int) $config->time_chip,
+            'rounds'                => (int) $config->rounds,
+            'roundsPct'             => $config->rounds_pct ? (float) $config->rounds_pct : null,
+            'serialsPct'            => (float) $config->serials_pct,
+            'numSerials'            => (int) $config->num_serials,
+            'roundsConfig'          => $roundsConfig,
+            'cardPriceByCurrency'   => $cardPriceByCurrency,
+            'isDraft'               => true,
+        ]);
+
+        return $this->saveRoom($dto);
     }
 
     /**

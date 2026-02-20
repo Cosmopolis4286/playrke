@@ -29,6 +29,7 @@ final class BingoRoomCreateDTO
         public readonly int $numSerials,
         public readonly ?array $roundsConfig,
         public readonly ?array $cardPriceByCurrency,
+        public readonly bool $isDraft = false,
     ) {}
 
     public static function fromArray(array $data): self
@@ -59,6 +60,7 @@ final class BingoRoomCreateDTO
             numSerials: (int) ($data['numSerials'] ?? 5),
             roundsConfig: $data['roundsConfig'] ?? null,
             cardPriceByCurrency: $cardPriceByCurrency,
+            isDraft: (bool) ($data['isDraft'] ?? false),
         );
     }
 }

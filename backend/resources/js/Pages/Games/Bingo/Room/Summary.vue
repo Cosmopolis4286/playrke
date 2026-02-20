@@ -46,6 +46,7 @@
     setInitialRooms,
     create,
     edit,
+    copyRoom,
     toggleStatusBulk,
     removeBulk,
     submit
@@ -100,6 +101,11 @@
     toggleStatus: async ids => {
       if (!ids) return
       await toggleStatusBulk(ids)
+    },
+
+    copy: async ids => {
+      if (!ids || ids.length !== 1) return
+      await copyRoom(ids[0])
     }
   })
 
@@ -190,6 +196,13 @@
       class: 'btn-secondary',
       show: false,
       action: 'toggleStatus'
+    },
+    {
+      label: '',
+      icon: 'fas fa-copy',
+      class: 'btn-info text-white',
+      show: (ids: string[]) => ids.length === 1,
+      action: 'copy'
     }
   ]
 

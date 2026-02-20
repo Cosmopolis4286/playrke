@@ -84,10 +84,11 @@ export function usePrize(): UsePrizeReturn {
     async function fetchPrizes(): Promise<boolean> {
         try {
             loading.value = true
-            const response = await backendClient.get<{ data: Prize[] }>('/prizes/fetch-list')
+            const response = await backendClient.get<{ data: { prizes: { rows: Prize[] } } }>('/prizes/fetch-list')
+            const rows = response.data?.data?.prizes?.rows
 
-            if (Array.isArray(response.data?.data)) {
-                prizes.value = response.data.data
+            if (Array.isArray(rows)) {
+                prizes.value = rows
             }
             return true
         } catch (error) {
@@ -151,6 +152,14 @@ export function usePrize(): UsePrizeReturn {
             loading.value = true
             const { data } = await backendClient.get<{ data: Prize }>(`/prizes/${id}/show`)
 
+            // kit_items_data contains full objects with hashed IDs — use those as source of truth
+            const kitData = (data.data.kit_items_data ?? []).map((item: PrizeSearchResult) => ({
+                id:    item.id,
+                code:  item.code,
+                name:  item.name,
+                price: item.price,
+            }))
+
             prizeData.value = {
                 id:          data.data.id,
                 code:        data.data.code,
@@ -159,19 +168,13 @@ export function usePrize(): UsePrizeReturn {
                 name:        data.data.name,
                 kit:         data.data.kit,
                 num_items:   data.data.num_items,
-                kit_items:   data.data.kit_items ?? [],
+                kit_items:   kitData.map(i => String(i.id)),
                 price:       data.data.price,
                 description: data.data.description ?? '',
                 status:      data.data.status,
             }
 
-            // Populate full item objects (with price) for kit auto-sum
-            kitItemObjects.value = (data.data.kit_items_data ?? []).map((item: PrizeSearchResult) => ({
-                id:    item.id,
-                code:  item.code,
-                name:  item.name,
-                price: item.price,
-            }))
+            kitItemObjects.value = kitData
 
             return true
         } catch (error) {
@@ -224,7 +227,7 @@ export function usePrize(): UsePrizeReturn {
         if (!confirmed) return false
 
         try {
-            await backendClient.put(`/prizes/${id}/delete`)
+            await backendClient.delete(`/prizes/${id}`)
             showToast('Premio eliminado con éxito', 'success')
             await fetchPrizes()
             return true

@@ -88,18 +88,25 @@ final class PrizeCrudService
      */
     private function cascadeKitPrices(string $prizeId, string $userId): int
     {
-        // Buscar todos los kits del usuario que contengan este prize en su JSON kit_items
-        $kits = Prize::where('user_id', $userId)
+        // Cargar todos los kits del usuario en PHP y filtrar con in_array,
+        // evitando problemas de precisión de enteros grandes en MySQL JSON_CONTAINS.
+        $allKits = Prize::where('user_id', $userId)
             ->where('kit', 'Y')
-            ->whereJsonContains('kit_items', $prizeId)
+            ->whereNotNull('kit_items')
             ->get(['id', 'kit_items']);
 
         $updated = 0;
 
-        foreach ($kits as $kit) {
+        foreach ($allKits as $kit) {
             $itemIds = $kit->kit_items ?? [];
 
             if (empty($itemIds)) {
+                continue;
+            }
+
+            // Comparar como strings para evitar pérdida de precisión con IDs grandes
+            $itemIdStrings = array_map('strval', $itemIds);
+            if (!in_array($prizeId, $itemIdStrings, true)) {
                 continue;
             }
 

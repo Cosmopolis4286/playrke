@@ -32,6 +32,9 @@ interface UseBingoRoomReturn {
     /** Reset del formulario */
     reset: () => void
 
+    /** Copiar sala como borrador */
+    copyRoom: (id: string | number) => Promise<boolean>
+
     /** Cambio de estado (individual) */
     toggleStatus: (id: string | number) => Promise<boolean>
 
@@ -74,7 +77,8 @@ const emptyFormData = (): BingoRoomFormData => ({
     numSerials: 5,
     cardPrice: 1,
     cardPriceByCurrency: {},
-    roundsConfig: []
+    roundsConfig: [],
+    isDraft: true
 })
 
 /**
@@ -262,6 +266,29 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
     }
 
     /**
+     * Copiar sala de bingo como nuevo borrador (status DRAFT)
+     */
+    async function copyRoom(id: string | number): Promise<boolean> {
+        const confirm = await showToastConfirmAction({
+            html: `¿Deseas copiar esta sala de bingo? Se creará como borrador.`,
+            icon: 'warning',
+            confirmButtonText: 'Sí, copiar'
+        })
+
+        if (!confirm) return false
+
+        try {
+            await backendClient.post(`/bingo-rooms/${id}/copy`)
+            showToast('Sala copiada como borrador exitosamente', 'success')
+            await fetchRooms()
+            return true
+        } catch (error) {
+            showToast('Error al copiar la sala', 'error')
+            return false
+        }
+    }
+
+    /**
      * Eliminación (soft delete)
      */
     async function remove(id: string | number): Promise<boolean> {
@@ -383,6 +410,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         create,
         edit,
         reset,
+        copyRoom,
         toggleStatus,
         toggleStatusBulk,
         remove,

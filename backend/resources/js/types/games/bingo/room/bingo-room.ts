@@ -123,4 +123,5 @@ export interface BingoRoomFormData {
     numSerials?: number | null
     cardPrice?: number | null
     cardPriceByCurrency?: Record<string, number | null>
+    isDraft?: boolean
 }

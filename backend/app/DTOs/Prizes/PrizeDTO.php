@@ -2,6 +2,8 @@
 
 namespace App\DTOs\Prizes;
 
+use Vinkla\Hashids\Facades\Hashids;
+
 /**
  * Data Transfer Object para Premio.
  *
@@ -28,7 +30,13 @@ final class PrizeDTO
     {
         $kit      = $data['kit'] ?? null;
         $kitItems = ($kit === 'Y' && isset($data['kit_items']) && is_array($data['kit_items']))
-            ? array_values(array_filter($data['kit_items']))
+            ? array_values(array_filter(array_map(
+                static function ($hashedId) {
+                    $decoded = Hashids::connection('main')->decode((string) $hashedId);
+                    return !empty($decoded) ? (string) $decoded[0] : null;
+                },
+                $data['kit_items']
+            )))
             : null;
         $numItems = $kitItems !== null
             ? count($kitItems)
