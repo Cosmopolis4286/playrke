@@ -299,7 +299,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         const name = room?.id ?? ''
 
         const confirm = await showToastConfirmAction({
-            html: `¿Estás seguro que deseas eliminar <b>${name}</b>?`,
+            html: `¿Estás seguro que deseas eliminar esta sala <b>${name}</b>?`,
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar'
         })
