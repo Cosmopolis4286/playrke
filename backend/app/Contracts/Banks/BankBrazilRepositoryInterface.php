@@ -56,6 +56,14 @@ interface BankBrazilRepositoryInterface extends BaseRepositoryInterface
     public function searchByName(string $searchTerm, array $columns = ['*']): \Illuminate\Database\Eloquent\Collection;
 
     /**
+     * Obtener todos los bancos ordenados por nombre.
+     *
+     * @param array $columns Columnas a seleccionar
+     * @return \Illuminate\Database\Eloquent\Collection<BankBrazil>
+     */
+    public function getAllOrderedByName(array $columns = ['*']): \Illuminate\Database\Eloquent\Collection;
+
+    /**
      * Obtiene o crea un banco por ISPB.
      * Usado al sincronizar con la BrasilAPI.
      *
