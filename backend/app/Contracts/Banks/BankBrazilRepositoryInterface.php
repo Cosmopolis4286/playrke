@@ -64,4 +64,11 @@ interface BankBrazilRepositoryInterface extends BaseRepositoryInterface
      * @return BankBrazil
      */
     public function firstOrCreateByISPB(string $ispb, array $data): BankBrazil;
+
+    /**
+     * Verifica si la tabla de bancos de Brasil está vacía.
+     *
+     * @return bool
+     */
+    public function isEmpty(): bool;
 }

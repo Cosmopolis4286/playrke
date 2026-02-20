@@ -5,10 +5,10 @@ namespace App\Services\Directory;
 use App\Contracts\CountryRepositoryInterface;
 use App\Contracts\Shared\DocumentTypeRepositoryInterface;
 use App\DTOs\Directory\DirectoryContextDTO;
-use App\Models\Banks\BankBrazil;
 use App\Models\Banks\BankVenezuela;
 use App\Repositories\Directories\Fiat\Brazil\PixKeyRepository;
 use App\Repositories\Directories\Fiat\Venezuela\PagoMovilRepository;
+use App\Services\Banks\BrazilBankApiService;
 use App\Services\Currency\CurrencyService;
 use App\Services\Roles\RoleUserService;
 use App\Traits\HashedTableDataTrait;
@@ -68,12 +68,12 @@ final class DirectoryContextService
     public function __construct(
         private readonly RoleUserService $roleUserService,
         private readonly BankVenezuela $bankVenezuela,
-        private readonly BankBrazil $bankBrazil,
         private readonly DocumentTypeRepositoryInterface $documentTypeRepository,
         private readonly PagoMovilRepository $directoryRepository,
         private readonly PixKeyRepository $pixKeyRepository,
         private readonly CountryRepositoryInterface $countryRepository,
         private readonly CurrencyService $currencyService,
+        private readonly BrazilBankApiService $brazilBankApi,
     ) {}
 
     /**
@@ -204,10 +204,7 @@ final class DirectoryContextService
     private function getBanksByCountry(string $countryCode): Collection
     {
         if ($countryCode === 'BR') {
-            return $this->bankBrazil
-                ->select('id', 'name')
-                ->orderBy('name')
-                ->get();
+            return $this->brazilBankApi->getOrSync();
         }
 
         return $this->bankVenezuela

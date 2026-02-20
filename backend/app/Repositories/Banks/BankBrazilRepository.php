@@ -123,4 +123,14 @@ class BankBrazilRepository extends BaseRepository implements BankBrazilRepositor
     {
         return $this->model->firstOrCreate(['ispb' => $ispb], $data);
     }
+
+    /**
+     * Verifica si la tabla de bancos de Brasil está vacía.
+     *
+     * @return bool
+     */
+    public function isEmpty(): bool
+    {
+        return !$this->model->exists();
+    }
 }
