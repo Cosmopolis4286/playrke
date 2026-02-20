@@ -6,6 +6,7 @@ import { ref, computed, watch, Ref, ComputedRef } from 'vue'
 export interface ModalFormExpose {
     submit: () => boolean
     isValid: boolean
+    isActive?: boolean
     reset?: () => void
 }
 

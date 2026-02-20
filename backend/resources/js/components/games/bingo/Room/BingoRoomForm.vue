@@ -4,8 +4,6 @@
   // Components
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
-  import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
-
   // Composables
   import { useBingoRoomForm } from '@/js/composables/games/bingo/room/useBingoRoomForm'
 
@@ -274,21 +272,6 @@
   }
 
   /* ==========================================================================
-   * Estado de borrador (isDraft)
-   * ========================================================================== */
-
-  /**
-   * La sala está activa cuando isDraft es false.
-   * Por defecto isDraft=true → sala en borrador.
-   */
-  const isActive = computed({
-    get: () => !(form.value.isDraft ?? true),
-    set: (val: boolean) => {
-      form.value = { ...form.value, isDraft: !val }
-    }
-  })
-
-  /* ==========================================================================
    * Expose
    * ========================================================================== */
 
@@ -299,16 +282,6 @@
 </script>
 <template>
   <form id="bingo-room-form" novalidate @submit.prevent="submit">
-    <div class="row mb-2">
-      <!-- Activar sala -->
-      <FormSwitch
-        id="isDraft"
-        name="isDraft"
-        label="Activar sala"
-        col="col-12"
-        v-model="isActive"
-      />
-    </div>
     <div class="row">
       <!-- Fecha (solo si no es sala automática) -->
       <FormInput

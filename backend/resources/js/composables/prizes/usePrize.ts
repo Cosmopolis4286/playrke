@@ -291,7 +291,7 @@ export function usePrize(): UsePrizeReturn {
 
         try {
             for (const id of ids) {
-                await backendClient.put(`/prizes/${id}/delete`)
+                await backendClient.delete(`/prizes/${id}`)
             }
             showToast(`${ids.length} premios eliminados`, 'success')
             await fetchPrizes()

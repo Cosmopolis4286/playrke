@@ -244,10 +244,10 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
      */
     async function toggleStatus(id: string | number): Promise<boolean> {
         const room = rooms.value.find(c => c.id === id)
-        const name = room?.id ?? 'esta sala'
+        const name = room?.id ?? ''
 
         const confirm = await showToastConfirmAction({
-            html: `¿Quieres cambiar el estado de <b>${name}</b>?`,
+            html: `¿Quieres cambiar el estado de esta sala <b>${name}</b>?`,
             icon: 'warning',
             confirmButtonText: 'Sí, cambiar estado'
         })
@@ -269,8 +269,11 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
      * Copiar sala de bingo como nuevo borrador (status DRAFT)
      */
     async function copyRoom(id: string | number): Promise<boolean> {
+        const room = rooms.value.find(c => c.id === id)
+        const name = room?.id ?? ''
+
         const confirm = await showToastConfirmAction({
-            html: `¿Deseas copiar esta sala de bingo? Se creará como borrador.`,
+            html: `¿Quieres copiar esta sala <b>${name}</b>? Se creará como borrador.`,
             icon: 'warning',
             confirmButtonText: 'Sí, copiar'
         })
@@ -293,7 +296,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
      */
     async function remove(id: string | number): Promise<boolean> {
         const room = rooms.value.find(c => c.id === id)
-        const name = room?.id ?? 'esta sala'
+        const name = room?.id ?? ''
 
         const confirm = await showToastConfirmAction({
             html: `¿Estás seguro que deseas eliminar <b>${name}</b>?`,

@@ -391,7 +391,7 @@ final class BingoRoomCrudService
             ->toArray();
 
         $dto = BingoRoomCreateDTO::fromArray([
-            'date'                  => $config->date,
+            'date'                  => Carbon::parse($config->getRawOriginal('date'))->format('Y-m-d'),
             'time'                  => $config->time,
             'roomType'              => $config->room_type_id,
             'gameMode'              => $config->game_mode_id,
