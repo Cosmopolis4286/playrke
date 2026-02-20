@@ -255,6 +255,9 @@
     if (field === 'prizeType' && value === 'percentage') {
       updated.prizeValue = Number(form.value.roundsPct) || null
     }
+    if (field === 'bingoPattern' && updated.prizeType === 'percentage' && updated.prizeValue === null) {
+      updated.prizeValue = Number(form.value.roundsPct) || null
+    }
     configs[index] = updated
     form.value = { ...form.value, roundsConfig: configs }
   }

@@ -96,7 +96,7 @@ final class BingoRoomCrudService
             if (!$isCreate) {
                 BingoCreator::where('room_id', $room->id)
                     ->where('user_id', $room->creator_user_id)
-                    ->update(['creator_commn' => $dto->roomCommn]);
+                    ->update(['creator_commn' => $dto->roomCommission]);
             }
 
             // Sincronizar precios de cartones
@@ -197,7 +197,6 @@ final class BingoRoomCrudService
             'time'                    => $dto->time,
             'unix_date'               => $unixDate,
             'allowed_currencies'      => $dto->allowedCurrencies,
-            'card_price'              => $dto->cardPrice,
             'rke_commission'          => $rkeCommission,
             'room_commission'         => $dto->roomCommission,
             'prize_pool_type_id'      => $dto->prizePoolType,
@@ -205,7 +204,6 @@ final class BingoRoomCrudService
             'time_chip'               => $dto->timeChip,
             'rounds'                  => $dto->rounds,
             'rounds_pct'              => $dto->roundsPct ?? null,
-            'rounds_config'           => $dto->roundsConfig ?? null,
             'serials_pct'             => $dto->serialsPct,
             'num_serials'             => $dto->numSerials,
             'jackpot_pct'             => $dto->jackpotPct ?? null,

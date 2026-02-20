@@ -31,8 +31,10 @@ class BingoRound extends Model
     ];
 
     protected $casts = [
+        'room_id' => 'string',
         'round' => 'integer',
         'start_time' => 'datetime',
+        'bingo_pattern_id' => 'string',
         'prize_value' => 'decimal:6'
     ];
 

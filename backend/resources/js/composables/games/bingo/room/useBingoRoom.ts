@@ -210,7 +210,11 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 numSerials: config.num_serials ?? 5,
                 cardPrice: config.card_price ?? 1,
                 cardPriceByCurrency: room.card_price_by_currency ?? {},
-                roundsConfig: []
+                roundsConfig: (room.rounds_config ?? []).map((r: any) => ({
+                    prizeType: r.prizeType ?? 'percentage',
+                    bingoPattern: r.bingoPattern ?? null,
+                    prizeValue: r.prizeValue !== null && r.prizeValue !== undefined ? Number(r.prizeValue) : null,
+                }))
             }
 
             return true
