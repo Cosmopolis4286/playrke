@@ -10,15 +10,17 @@ export interface PrizeSearchResult {
 }
 
 export interface Prize {
-    readonly id?:          number | string
-    readonly code:         string
-    readonly reward_type:  PrizeRewardType
-    readonly name:         string
-    readonly kit:          PrizeKit
-    readonly num_items:    number
-    readonly kit_items:    (string | number)[]
-    readonly price:        string | number
-    readonly description?: string | null
-    readonly status:       PrizeStatus
-    readonly user_id?:     number | string
+    readonly id?:             number | string
+    readonly code?:           string
+    readonly slug?:           string
+    readonly reward_type:     PrizeRewardType
+    readonly name:            string
+    readonly kit:             PrizeKit
+    readonly num_items:       number
+    readonly kit_items:       (string | number)[]
+    readonly kit_items_data?: PrizeSearchResult[]
+    readonly price:           string | number
+    readonly description?:    string | null
+    readonly status:          PrizeStatus
+    readonly user_id?:        number | string
 }

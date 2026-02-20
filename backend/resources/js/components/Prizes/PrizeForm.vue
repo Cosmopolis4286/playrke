@@ -1,7 +1,7 @@
 <script setup lang="ts" name="PrizeForm">
   import { computed, ref, watch } from 'vue'
 
-  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
+  import FormInput  from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
   import backendClient from '@/js/plugins/axios'
@@ -13,7 +13,8 @@
    * ========================================================================== */
 
   const props = defineProps<{
-    modelValue: Partial<Prize>
+    modelValue:    Partial<Prize>
+    canCreateKit?: boolean
   }>()
 
   const emit = defineEmits<{
@@ -48,7 +49,7 @@
     set: (val: boolean) => {
       form.value = {
         ...form.value,
-        kit: val ? 'Y' : 'N',
+        kit:       val ? 'Y' : 'N',
         kit_items: val ? (form.value.kit_items ?? []) : [],
         num_items: val ? (form.value.kit_items?.length ?? 0) : 1,
       }
@@ -113,15 +114,9 @@
    * ========================================================================== */
 
   const priceMask = {
-    mask: Number,
-    scale: 2,
-    min: 0,
-    max: 9999999999,
-    radix: '.',
-    mapToRadix: [','],
-    padFractionalZeros: true,
-    normalizeZeros: true,
-    thousandsSeparator: ','
+    mask: Number, scale: 2, min: 0, max: 9999999999,
+    radix: '.', mapToRadix: [','], padFractionalZeros: true,
+    normalizeZeros: true, thousandsSeparator: ','
   }
 
   /* ==========================================================================
@@ -137,13 +132,8 @@
       e.code = 'Máx 12 caracteres alfanuméricos.'
     }
 
-    if (!form.value.reward_type) {
-      e.reward_type = 'El tipo es requerido.'
-    }
-
-    if (!form.value.name?.trim()) {
-      e.name = 'El nombre es requerido.'
-    }
+    if (!form.value.reward_type) e.reward_type = 'El tipo es requerido.'
+    if (!form.value.name?.trim()) e.name = 'El nombre es requerido.'
 
     const price = parseFloat(String(form.value.price ?? ''))
     if (form.value.price === '' || form.value.price === undefined || form.value.price === null) {
@@ -178,6 +168,7 @@
 <template>
   <form id="prize-form" novalidate @submit.prevent="submit">
     <div class="row">
+
       <FormInput
         label="Nombre del premio"
         name="name"
@@ -239,197 +230,323 @@
         v-model="form.reward_type"
       />
 
-      <!-- Kit switch + Núm. ítems readonly en la misma línea -->
-      <div class="col-12 d-flex align-items-end gap-3 mb-2" style="padding-top: 0.25rem">
-        <FormSwitch
-          label="¿Es Kit?"
-          name="kit_toggle"
-          col=""
-          :modelValue="kitToggle"
-          @update:modelValue="kitToggle = $event"
-        />
+      <!-- ------------------------------------------------------------------ -->
+      <!-- Sección Kit                                                         -->
+      <!-- ------------------------------------------------------------------ -->
+      <div class="col-12">
+        <div class="kit-section">
 
-        <Transition name="slide-fade">
-          <FormInput
-            v-if="isKit"
-            label="Núm. ítems"
-            name="num_items"
-            type="number"
-            readonly
-            col=""
-            style="width: 110px"
-            :modelValue="kitItems.length"
-            @update:modelValue="() => {}"
-          />
-        </Transition>
+          <!-- Switch + hint -->
+          <div class="kit-switch-row">
+            <FormSwitch
+              label="¿Es Kit?"
+              name="kit_toggle"
+              col=""
+              :modelValue="kitToggle"
+              :disabled="!canCreateKit && !isEdit"
+              @update:modelValue="kitToggle = $event"
+            />
+            <span v-if="!canCreateKit && !isEdit" class="kit-unavailable-hint">
+              <i class="fas fa-info-circle"></i>
+              Necesitas al menos 2 premios individuales para crear un kit.
+            </span>
+          </div>
+
+          <!-- Cuerpo del kit (buscador + ítems) -->
+          <Transition name="kit-expand">
+            <div v-if="isKit" class="kit-body">
+
+              <!-- Buscador -->
+              <div class="kit-search-wrapper">
+                <p class="kit-search-label">
+                  <i class="fas fa-layer-group"></i> Agregar ítems al kit
+                </p>
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text">
+                    <i :class="searching ? 'fas fa-spinner fa-spin' : 'fas fa-search'" style="width:14px"></i>
+                  </span>
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Buscar por nombre o código..."
+                    v-model="searchQuery"
+                    autocomplete="off"
+                  />
+                </div>
+
+                <!-- Dropdown de resultados -->
+                <Transition name="dropdown">
+                  <div v-if="searchResults.length > 0" class="kit-search-results">
+                    <button
+                      v-for="result in searchResults"
+                      :key="String(result.id)"
+                      type="button"
+                      class="kit-result-item"
+                      @click="addKitItem(result)"
+                    >
+                      <span class="r-code">{{ result.code }}</span>
+                      <span class="r-name">{{ result.name }}</span>
+                      <span class="r-price">${{ result.price }}</span>
+                      <span class="r-add"><i class="fas fa-plus-circle"></i></span>
+                    </button>
+                  </div>
+                </Transition>
+
+                <small v-if="errors.kit_items" class="text-danger d-block mt-1">
+                  <i class="fas fa-exclamation-circle"></i> {{ errors.kit_items }}
+                </small>
+              </div>
+
+              <!-- Panel de ítems seleccionados (solo si hay alguno) -->
+              <Transition name="slide-fade">
+                <div v-if="kitItems.length > 0" class="kit-items-panel">
+                  <div class="kit-items-header">
+                    <span class="kit-items-title">
+                      <i class="fas fa-boxes"></i> Ítems del kit
+                    </span>
+                    <span class="kit-items-count">
+                      {{ kitItems.length }} ítem{{ kitItems.length !== 1 ? 's' : '' }}
+                    </span>
+                  </div>
+                  <TransitionGroup name="kit-chip" tag="div" class="kit-chips">
+                    <span
+                      v-for="id in kitItems"
+                      :key="String(id)"
+                      class="kit-chip"
+                    >
+                      <i class="fas fa-tag chip-icon"></i>
+                      <span class="chip-id">{{ id }}</span>
+                      <button
+                        type="button"
+                        class="chip-remove"
+                        @click="removeKitItem(id)"
+                        title="Quitar del kit"
+                      >
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </span>
+                  </TransitionGroup>
+                </div>
+              </Transition>
+
+            </div>
+          </Transition>
+
+        </div>
       </div>
 
-      <!-- Buscador + lista inline de items del kit -->
-      <Transition name="slide-fade">
-        <div v-if="isKit" class="col-12">
-          <!-- Input de búsqueda -->
-          <div class="kit-search-wrapper mb-2">
-            <div class="input-group input-group-sm">
-              <span class="input-group-text">
-                <i
-                  :class="searching ? 'fas fa-spinner fa-spin' : 'fas fa-search'"
-                  style="width: 14px"
-                ></i>
-              </span>
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Buscar premio por nombre o código..."
-                v-model="searchQuery"
-                autocomplete="off"
-              />
-            </div>
-
-            <!-- Resultados del search -->
-            <div v-if="searchResults.length > 0" class="kit-search-results">
-              <button
-                v-for="result in searchResults"
-                :key="String(result.id)"
-                type="button"
-                class="kit-search-result-item"
-                @click="addKitItem(result)"
-              >
-                <span class="result-code">{{ result.code }}</span>
-                <span class="result-name">{{ result.name }}</span>
-                <span class="result-price">${{ result.price }}</span>
-                <i class="fas fa-plus result-add"></i>
-              </button>
-            </div>
-
-            <small v-if="errors.kit_items" class="text-danger d-block mt-1">
-              {{ errors.kit_items }}
-            </small>
-          </div>
-
-          <!-- Lista inline de items añadidos -->
-          <div v-if="kitItems.length > 0" class="kit-items-list">
-            <TransitionGroup name="kit-item" tag="div" class="kit-items-inline">
-              <span
-                v-for="id in kitItems"
-                :key="String(id)"
-                class="kit-item-badge"
-              >
-                <span class="kit-item-id">{{ id }}</span>
-                <button
-                  type="button"
-                  class="kit-item-remove"
-                  @click="removeKitItem(id)"
-                  title="Quitar"
-                >
-                  <i class="fas fa-times"></i>
-                </button>
-              </span>
-            </TransitionGroup>
-          </div>
-        </div>
-      </Transition>
     </div>
   </form>
 </template>
 
 <style scoped>
-  /* ---- Search ---- */
-  .kit-search-wrapper {
-    position: relative;
-    max-width: 480px;
-  }
+/* ============================================================
+   Kit section container
+   ============================================================ */
+.kit-section {
+  border: 1px solid #e9ecef;
+  border-radius: 0.4rem;
+  padding: 0.65rem 1rem 0.6rem;
+  margin-top: 0.25rem;
+  background: #fafbfc;
+}
 
-  .kit-search-results {
-    position: absolute;
-    top: calc(100% + 2px);
-    left: 0;
-    right: 0;
-    z-index: 100;
-    background: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: 0.25rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    max-height: 220px;
-    overflow-y: auto;
-  }
+.kit-switch-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
 
-  .kit-search-result-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 0.45rem 0.75rem;
-    background: none;
-    border: none;
-    border-bottom: 1px solid #f0f0f0;
-    cursor: pointer;
-    text-align: left;
-    font-size: 0.825rem;
-    transition: background 0.15s;
-  }
-  .kit-search-result-item:last-child { border-bottom: none; }
-  .kit-search-result-item:hover      { background: #f0f7ff; }
+.kit-unavailable-hint {
+  font-size: 0.775rem;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
 
-  .result-code  { font-family: monospace; font-size: 0.75rem; color: #6c757d; background: #f1f3f5; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
-  .result-name  { flex: 1; font-weight: 500; color: #212529; }
-  .result-price { color: #198754; font-size: 0.78rem; flex-shrink: 0; }
-  .result-add   { color: #0d6efd; font-size: 0.7rem; flex-shrink: 0; }
+/* ============================================================
+   Kit body
+   ============================================================ */
+.kit-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
 
-  /* ---- Items inline ---- */
-  .kit-items-list   { margin-top: 0.35rem; }
-  .kit-items-inline { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+/* ---- Search ---- */
+.kit-search-wrapper {
+  position: relative;
+}
 
-  .kit-item-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    background: #e7f0fd;
-    border: 1px solid #b6d0f7;
-    border-radius: 1rem;
-    padding: 0.2rem 0.5rem 0.2rem 0.65rem;
-    font-size: 0.78rem;
-    color: #1a56b0;
-    white-space: nowrap;
-  }
+.kit-search-label {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
 
-  .kit-item-id {
-    font-family: monospace;
-    font-size: 0.72rem;
-    color: #4a7fc1;
-  }
+.kit-search-results {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 0.3rem;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+  max-height: 200px;
+  overflow-y: auto;
+}
 
-  .kit-item-remove {
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    color: #6c757d;
-    line-height: 1;
-    font-size: 0.68rem;
-    display: flex;
-    align-items: center;
-    transition: color 0.15s;
-  }
-  .kit-item-remove:hover { color: #dc3545; }
+.kit-result-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.38rem 0.7rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.815rem;
+  transition: background 0.12s;
+}
+.kit-result-item:last-child { border-bottom: none; }
+.kit-result-item:hover      { background: #eef4ff; }
 
-  /* ---- Animaciones ---- */
-  .slide-fade-enter-active,
-  .slide-fade-leave-active {
-    transition: opacity 0.22s ease, transform 0.22s ease;
-  }
-  .slide-fade-enter-from,
-  .slide-fade-leave-to {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
+.r-code  { font-family: monospace; font-size: 0.72rem; background: #f1f3f5; color: #6c757d; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
+.r-name  { flex: 1; font-weight: 500; color: #212529; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.r-price { color: #198754; font-size: 0.77rem; flex-shrink: 0; }
+.r-add   { color: #0d6efd; flex-shrink: 0; font-size: 0.85rem; }
 
-  .kit-item-enter-active,
-  .kit-item-leave-active {
-    transition: opacity 0.18s ease, transform 0.18s ease;
-  }
-  .kit-item-enter-from,
-  .kit-item-leave-to {
-    opacity: 0;
-    transform: scale(0.8);
-  }
+/* ---- Items panel ---- */
+.kit-items-panel {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 0.3rem;
+  padding: 0.45rem 0.7rem 0.55rem;
+}
+
+.kit-items-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.kit-items-title {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #495057;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.kit-items-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #0d6efd;
+  color: #fff;
+  border-radius: 1rem;
+  padding: 1px 8px;
+  line-height: 1.7;
+}
+
+/* ---- Chips ---- */
+.kit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.kit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #e8f0fe;
+  border: 1px solid #c5d8f9;
+  border-radius: 1rem;
+  padding: 0.18rem 0.45rem 0.18rem 0.55rem;
+  font-size: 0.775rem;
+  color: #1a56b0;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.chip-icon { font-size: 0.58rem; color: #7aa3e0; flex-shrink: 0; }
+
+.chip-id {
+  font-family: monospace;
+  font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip-remove {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #9db8e0;
+  font-size: 0.6rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.chip-remove:hover { color: #dc3545; }
+
+/* ============================================================
+   Transiciones
+   ============================================================ */
+.kit-expand-enter-active,
+.kit-expand-leave-active {
+  transition: opacity 0.22s ease, max-height 0.25s ease;
+  overflow: hidden;
+  max-height: 600px;
+}
+.kit-expand-enter-from,
+.kit-expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: opacity 0.13s ease, transform 0.13s ease;
+}
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.kit-chip-enter-active,
+.kit-chip-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.kit-chip-enter-from,
+.kit-chip-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
 </style>

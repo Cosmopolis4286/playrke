@@ -6,6 +6,7 @@ use App\DTOs\Prizes\PrizeDTO;
 use App\Http\Resources\Prizes\PrizeResource;
 use App\Models\Prize;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Servicio de aplicación para los casos de uso del dominio Prizes.
@@ -47,6 +48,7 @@ final class PrizeService
     {
         return Prize::active()
             ->individual()
+            ->where('user_id', Auth::id())
             ->where(function ($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")
                   ->orWhere('code', 'like', "%{$query}%");

@@ -7,6 +7,7 @@ use App\DTOs\Prizes\PrizeDTO;
 use App\Http\Resources\Prizes\PrizeResource;
 use App\Models\Prize;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 /**
  * Servicio de dominio responsable de operaciones CRUD sobre Premios.
@@ -30,8 +31,11 @@ final class PrizeCrudService
      */
     public function create(PrizeDTO $dto): Prize
     {
+        $userId = (string) Auth::id();
+
         return $this->prizeRepository->create([
-            'code'        => $dto->code,
+            'code'        => $dto->code ?: $this->generateUniqueCode($userId),
+            'slug'        => $this->generateUniqueSlug($dto->name ?? '', $userId),
             'reward_type' => $dto->rewardType,
             'name'        => $dto->name,
             'kit'         => $dto->kit ?? 'N',
@@ -39,7 +43,7 @@ final class PrizeCrudService
             'kit_items'   => $dto->kitItems,
             'price'       => $dto->price,
             'description' => $dto->description,
-            'user_id'     => Auth::id(),
+            'user_id'     => $userId,
             'status'      => 'ACTIVE',
         ]);
     }
@@ -83,5 +87,34 @@ final class PrizeCrudService
     {
         $newStatus = $prize->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
         $this->prizeRepository->updatePrizeStatus($prize->id, $newStatus);
+    }
+
+    /**
+     * Genera un código único de 12 caracteres alfanuméricos en mayúsculas para el usuario.
+     */
+    private function generateUniqueCode(string $userId): string
+    {
+        do {
+            $code = strtoupper(Str::random(12));
+        } while (Prize::where('user_id', $userId)->where('code', $code)->exists());
+
+        return $code;
+    }
+
+    /**
+     * Genera un slug único basado en el nombre del premio para el usuario.
+     */
+    private function generateUniqueSlug(string $name, string $userId): string
+    {
+        $base = Str::slug($name);
+        $slug = $base;
+        $i    = 1;
+
+        while (Prize::where('user_id', $userId)->where('slug', $slug)->exists()) {
+            $slug = "{$base}-{$i}";
+            $i++;
+        }
+
+        return $slug;
     }
 }

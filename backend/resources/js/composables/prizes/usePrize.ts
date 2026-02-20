@@ -1,7 +1,7 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
-import type { Prize } from '@/js/types/prizes/prize'
+import type { Prize, PrizeSearchResult } from '@/js/types/prizes/prize'
 
 /**
  * Contrato público del composable usePrize

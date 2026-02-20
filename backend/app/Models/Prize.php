@@ -66,6 +66,7 @@ class Prize extends BaseModel
      */
     protected $fillable = [
         'code',
+        'slug',
         'reward_type',
         'name',
         'kit',

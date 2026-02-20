@@ -8,4 +8,5 @@ export interface PrizePageProps {
         rows:    Prize[]
     }
     prizes_pagination: Pagination | null
+    can_create_kit:    boolean
 }

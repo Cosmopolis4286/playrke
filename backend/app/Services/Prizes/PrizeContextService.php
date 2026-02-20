@@ -3,6 +3,7 @@
 namespace App\Services\Prizes;
 
 use App\Contracts\PrizeRepositoryInterface;
+use App\Models\Prize;
 use App\Traits\HashedTableDataTrait;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -29,9 +30,15 @@ final class PrizeContextService
     {
         $prizeData = $this->resolvePrizes();
 
+        $individualCount = Prize::where('user_id', Auth::id())
+            ->where('kit', 'N')
+            ->where('status', 'ACTIVE')
+            ->count();
+
         return [
             'prizes'            => $prizeData['prizes'],
             'prizes_pagination' => $prizeData['pagination'],
+            'can_create_kit'    => $individualCount >= 2,
         ];
     }
 

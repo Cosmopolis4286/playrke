@@ -173,6 +173,7 @@
     <PrizeForm
       ref="prizeFormRef"
       v-model="prizeData"
+      :can-create-kit="props.can_create_kit"
     />
   </Modal>
 </template>

@@ -31,16 +31,10 @@ class PrizeRequest extends BaseRequest
     public function rules(): array
     {
         $prize    = $this->resolvePrize();
-        $prizeId  = $prize?->id;
-        $userId   = $prize?->user_id;
         $isUpdate = $prize !== null;
 
-        $codeRule = $isUpdate
-            ? Rule::unique('prizes')->where('user_id', $userId)->ignore($prizeId)
-            : Rule::unique('prizes')->where(fn ($q) => $q->where('user_id', auth()->id()));
-
         return [
-            'code'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:12', 'alpha_num', $codeRule],
+            'code'        => ['sometimes', 'nullable', 'string', 'max:12', 'alpha_num'],
             'reward_type' => [$isUpdate ? 'sometimes' : 'required', 'string', Rule::in(['PRODUCT', 'SERVICE'])],
             'name'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:60'],
             'kit'         => ['sometimes', 'string', Rule::in(['Y', 'N'])],
