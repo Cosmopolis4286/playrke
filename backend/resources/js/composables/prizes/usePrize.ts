@@ -54,6 +54,7 @@ const emptyPrize = (): Partial<Prize> =>
         name:        '',
         kit:         'N',
         num_items:   1,
+        kit_items:   [],
         price:       '',
         description: '',
     })
@@ -142,6 +143,7 @@ export function usePrize(): UsePrizeReturn {
                 name:        data.data.name,
                 kit:         data.data.kit,
                 num_items:   data.data.num_items,
+                kit_items:   data.data.kit_items ?? [],
                 price:       data.data.price,
                 description: data.data.description ?? '',
                 status:      data.data.status,

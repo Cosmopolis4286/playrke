@@ -5,6 +5,7 @@ namespace App\Services\Prizes;
 use App\DTOs\Prizes\PrizeDTO;
 use App\Http\Resources\Prizes\PrizeResource;
 use App\Models\Prize;
+use Illuminate\Http\Request;
 
 /**
  * Servicio de aplicación para los casos de uso del dominio Prizes.
@@ -37,6 +38,24 @@ final class PrizeService
     public function fetchList(): array
     {
         return $this->context->fetchList();
+    }
+
+    /**
+     * Buscar premios individuales (no-kit) por nombre o código.
+     */
+    public function search(string $query, ?string $excludeId = null): array
+    {
+        return Prize::active()
+            ->individual()
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                  ->orWhere('code', 'like', "%{$query}%");
+            })
+            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->orderBy('name')
+            ->limit(15)
+            ->get(['id', 'code', 'name', 'price'])
+            ->toArray();
     }
 
     /**

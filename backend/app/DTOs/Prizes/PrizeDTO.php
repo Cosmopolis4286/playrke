@@ -18,6 +18,7 @@ final class PrizeDTO
         public readonly ?string $name,
         public readonly ?string $kit,
         public readonly ?int    $numItems,
+        public readonly ?array  $kitItems,
         public readonly ?string $price,
         public readonly ?string $description,
         public readonly ?string $status,
@@ -25,12 +26,21 @@ final class PrizeDTO
 
     public static function fromArray(array $data): self
     {
+        $kit      = $data['kit'] ?? null;
+        $kitItems = ($kit === 'Y' && isset($data['kit_items']) && is_array($data['kit_items']))
+            ? array_values(array_filter($data['kit_items']))
+            : null;
+        $numItems = $kitItems !== null
+            ? count($kitItems)
+            : (isset($data['num_items']) ? (int) $data['num_items'] : null);
+
         return new self(
             code:        $data['code'] ?? null,
             rewardType:  $data['reward_type'] ?? null,
             name:        $data['name'] ?? null,
-            kit:         $data['kit'] ?? null,
-            numItems:    isset($data['num_items']) ? (int) $data['num_items'] : null,
+            kit:         $kit,
+            numItems:    $numItems,
+            kitItems:    $kitItems,
             price:       $data['price'] ?? null,
             description: $data['description'] ?? null,
             status:      $data['status'] ?? null,
@@ -45,6 +55,7 @@ final class PrizeDTO
             'name'        => $this->name,
             'kit'         => $this->kit,
             'num_items'   => $this->numItems,
+            'kit_items'   => $this->kitItems,
             'price'       => $this->price,
             'description' => $this->description,
             'status'      => $this->status,

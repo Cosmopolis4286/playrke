@@ -70,6 +70,7 @@ class Prize extends BaseModel
         'name',
         'kit',
         'num_items',
+        'kit_items',
         'price',
         'description',
         'user_id',
@@ -82,6 +83,7 @@ class Prize extends BaseModel
     protected $casts = [
         'price' => 'decimal:2',
         'num_items' => 'integer',
+        'kit_items' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

@@ -15,6 +15,7 @@ class PrizeResource extends JsonResource
             'name'        => $this->name,
             'kit'         => $this->kit,
             'num_items'   => $this->num_items,
+            'kit_items'   => $this->kit_items ?? [],
             'price'       => $this->price,
             'description' => $this->description,
             'status'      => $this->status,

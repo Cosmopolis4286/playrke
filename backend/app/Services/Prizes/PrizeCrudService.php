@@ -36,6 +36,7 @@ final class PrizeCrudService
             'name'        => $dto->name,
             'kit'         => $dto->kit ?? 'N',
             'num_items'   => $dto->numItems ?? 1,
+            'kit_items'   => $dto->kitItems,
             'price'       => $dto->price,
             'description' => $dto->description,
             'user_id'     => Auth::id(),

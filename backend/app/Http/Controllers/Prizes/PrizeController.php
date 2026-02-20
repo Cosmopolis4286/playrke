@@ -8,6 +8,7 @@ use App\Http\Requests\Prizes\PrizeRequest;
 use App\Models\Prize;
 use App\Services\Prizes\PrizeService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -66,6 +67,19 @@ final class PrizeController extends Controller
     {
         return $this->handleServiceJson(
             fn() => ['data' => $this->service->fetchList()]
+        );
+    }
+
+    /**
+     * Buscar premios individuales (no-kit) por nombre o código.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $query     = (string) $request->query('q', '');
+        $excludeId = $request->query('exclude');
+
+        return $this->handleServiceJson(
+            fn() => ['data' => $this->service->search($query, $excludeId)]
         );
     }
 

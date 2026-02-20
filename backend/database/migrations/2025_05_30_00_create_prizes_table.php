@@ -15,10 +15,11 @@ return new class extends Migration
             $table->string('code', 12)->comment('Código único del premio');
             $table->enum('reward_type', ['PRODUCT', 'SERVICE'])->comment('Tipo de recompensa');
             $table->string('name', 60);
-            $table->enum('kit', ['Y', 'N'])->default('N')->comment('Indica si es un kit');
-            $table->tinyInteger('num_items')->default(1)->comment('Número de ítems en el kit');
             $table->decimal('price', 12, 2);
             $table->string('description', 255)->nullable();
+            $table->enum('kit', ['Y', 'N'])->default('N')->comment('Indica si es un kit');
+            $table->tinyInteger('num_items')->default(1)->comment('Número de ítems en el kit');
+            $table->json('kit_items')->nullable()->comment('IDs de prizes individuales que componen el kit');
 
             $table->foreignSnowflake('user_id')
                 ->constrained('users')

@@ -32,6 +32,7 @@ Route::put('games/handle-customer/{id?}', [GameController::class, 'handleCustome
 route_group('prizes', 'prizes.', ['auth'], PrizeController::class, [
     'index'        => ['method' => 'get',    'uri' => ''],
     'fetchList'    => ['method' => 'get',    'uri' => 'fetch-list'],
+    'search'       => ['method' => 'get',    'uri' => 'search'],
     'store'        => ['method' => 'post',   'uri' => ''],
     'show'         => ['method' => 'get',    'uri' => '{prize}/show'],
     'update'       => ['method' => 'put',    'uri' => '{prize}/update'],
