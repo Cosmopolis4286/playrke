@@ -80,9 +80,6 @@ final class PrizeContextService
      */
     public function fetchList(): array
     {
-        return $this->prizes
-            ->getPaginatedPrizes(perPage: 200, filters: ['user_id' => Auth::id()])
-            ->getCollection()
-            ->toArray();
+        return $this->resolvePrizes();
     }
 }

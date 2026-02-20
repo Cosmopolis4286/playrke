@@ -10,7 +10,7 @@
 
     <li class="nav-item has-treeview">
         <a href="{{ route('exchange-rate.index') }}" title="Tasa de Cambio"
-            class="nav-link {{ Route::is('exchange-rate.index') ? 'active' : '' }}">
+            class="nav-link {{ Route::is('exchange-rate.*') ? 'active' : '' }}">
             <i class="nav-icon fa-solid fa-circle-dollar-to-slot"></i>
             <p>Conversión</p>
         </a>

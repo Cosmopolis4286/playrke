@@ -13,13 +13,15 @@
    * ========================================================================== */
 
   const props = defineProps<{
-    modelValue:    Partial<Prize>
-    canCreateKit?: boolean
+    modelValue:     Partial<Prize>
+    kitItemObjects: PrizeSearchResult[]
+    canCreateKit?:  boolean
   }>()
 
   const emit = defineEmits<{
     (e: 'submit'): void
-    (e: 'update:modelValue', value: Partial<Prize>): void
+    (e: 'update:modelValue',     value: Partial<Prize>): void
+    (e: 'update:kitItemObjects', value: PrizeSearchResult[]): void
   }>()
 
   /* ==========================================================================
@@ -32,6 +34,15 @@
   })
 
   /* ==========================================================================
+   * Kit items (objetos completos con precio, sincronizados con el padre)
+   * ========================================================================== */
+
+  const localKitItems = computed<PrizeSearchResult[]>({
+    get: () => props.kitItemObjects,
+    set: v => emit('update:kitItemObjects', v)
+  })
+
+  /* ==========================================================================
    * Opciones estáticas
    * ========================================================================== */
 
@@ -41,17 +52,42 @@
   ]
 
   /* ==========================================================================
+   * Helpers
+   * ========================================================================== */
+
+  const isEdit = computed(() => !!form.value.id)
+  const isKit  = computed(() => form.value.kit === 'Y')
+  const kitIds = computed(() => localKitItems.value.map(i => String(i.id)))
+
+  /* ==========================================================================
+   * Kit price auto-sum
+   * ========================================================================== */
+
+  const kitPrice = computed(() =>
+    localKitItems.value.reduce((sum, item) => sum + Number(item.price ?? 0), 0)
+  )
+
+  watch(kitPrice, (val) => {
+    if (isKit.value) {
+      form.value = { ...form.value, price: val.toFixed(2) }
+    }
+  })
+
+  /* ==========================================================================
    * Kit switch
    * ========================================================================== */
 
   const kitToggle = computed({
     get: () => form.value.kit === 'Y',
     set: (val: boolean) => {
+      const newItems: PrizeSearchResult[] = val ? localKitItems.value : []
+      localKitItems.value = newItems
       form.value = {
         ...form.value,
         kit:       val ? 'Y' : 'N',
-        kit_items: val ? (form.value.kit_items ?? []) : [],
-        num_items: val ? (form.value.kit_items?.length ?? 0) : 1,
+        kit_items: val ? kitIds.value : [],
+        num_items: val ? newItems.length : 1,
+        price:     val ? kitPrice.value.toFixed(2) : '',
       }
       if (!val) {
         searchQuery.value   = ''
@@ -59,9 +95,6 @@
       }
     }
   })
-
-  const isKit    = computed(() => form.value.kit === 'Y')
-  const kitItems = computed(() => form.value.kit_items ?? [])
 
   /* ==========================================================================
    * Búsqueda de prizes individuales para el kit
@@ -88,7 +121,7 @@
         params: { q, exclude: form.value.id }
       })
       searchResults.value = (data.data ?? []).filter(
-        r => !kitItems.value.includes(r.id)
+        r => !kitIds.value.includes(String(r.id))
       )
     } catch {
       searchResults.value = []
@@ -98,15 +131,27 @@
   }
 
   function addKitItem(item: PrizeSearchResult) {
-    const current = [...kitItems.value, item.id]
-    form.value = { ...form.value, kit_items: current, num_items: current.length }
+    const updated = [...localKitItems.value, item]
+    localKitItems.value = updated
+    form.value = {
+      ...form.value,
+      kit_items: updated.map(i => String(i.id)),
+      num_items: updated.length,
+      price:     updated.reduce((s, i) => s + Number(i.price ?? 0), 0).toFixed(2),
+    }
     searchQuery.value   = ''
     searchResults.value = []
   }
 
   function removeKitItem(id: string | number) {
-    const current = kitItems.value.filter(i => i !== id)
-    form.value = { ...form.value, kit_items: current, num_items: current.length }
+    const updated = localKitItems.value.filter(i => String(i.id) !== String(id))
+    localKitItems.value = updated
+    form.value = {
+      ...form.value,
+      kit_items: updated.map(i => String(i.id)),
+      num_items: updated.length,
+      price:     updated.reduce((s, i) => s + Number(i.price ?? 0), 0).toFixed(2),
+    }
   }
 
   /* ==========================================================================
@@ -126,23 +171,19 @@
   const errors = computed<Record<string, string>>(() => {
     const e: Record<string, string> = {}
 
-    if (!form.value.code) {
-      e.code = 'El código es requerido.'
-    } else if (!/^[a-zA-Z0-9]{1,12}$/.test(form.value.code)) {
-      e.code = 'Máx 12 caracteres alfanuméricos.'
-    }
-
     if (!form.value.reward_type) e.reward_type = 'El tipo es requerido.'
     if (!form.value.name?.trim()) e.name = 'El nombre es requerido.'
 
-    const price = parseFloat(String(form.value.price ?? ''))
-    if (form.value.price === '' || form.value.price === undefined || form.value.price === null) {
-      e.price = 'El precio es requerido.'
-    } else if (isNaN(price) || price < 0) {
-      e.price = 'Precio inválido.'
+    if (!isKit.value) {
+      const price = parseFloat(String(form.value.price ?? ''))
+      if (form.value.price === '' || form.value.price === undefined || form.value.price === null) {
+        e.price = 'El precio es requerido.'
+      } else if (isNaN(price) || price < 0) {
+        e.price = 'Precio inválido.'
+      }
     }
 
-    if (form.value.kit === 'Y' && kitItems.value.length === 0) {
+    if (form.value.kit === 'Y' && localKitItems.value.length === 0) {
       e.kit_items = 'Agrega al menos un ítem al kit.'
     }
 
@@ -150,7 +191,6 @@
   })
 
   const isValid = computed(() => Object.keys(errors.value).length === 0)
-  const isEdit  = computed(() => !!form.value.id)
 
   /* ==========================================================================
    * Submit / Expose
@@ -188,6 +228,8 @@
         col="col-sm-4"
         :mask="priceMask"
         :error="errors.price"
+        :readonly="isKit"
+        :class="{ 'opacity-75': isKit }"
         v-model="form.price"
       >
         <template #prepend>
@@ -204,16 +246,15 @@
         v-model="form.description"
       />
 
+      <!-- Código: solo visible al editar (readonly, generado por backend) -->
       <FormInput
+        v-if="isEdit"
         label="Código"
         name="code"
-        required
         maxlength="12"
-        placeholder="Ej: PRIZE001"
         col="col-sm-6"
-        :error="errors.code"
-        :readonly="isEdit"
-        :class="{ 'opacity-75': isEdit }"
+        readonly
+        class="opacity-75"
         v-model="form.code"
       />
 
@@ -225,7 +266,7 @@
         :options="rewardTypeOptions"
         optionValue="value"
         optionLabel="label"
-        col="col-sm-6"
+        :col="isEdit ? 'col-sm-6' : 'col-sm-12'"
         :error="errors.reward_type"
         v-model="form.reward_type"
       />
@@ -299,27 +340,33 @@
 
               <!-- Panel de ítems seleccionados (solo si hay alguno) -->
               <Transition name="slide-fade">
-                <div v-if="kitItems.length > 0" class="kit-items-panel">
+                <div v-if="localKitItems.length > 0" class="kit-items-panel">
                   <div class="kit-items-header">
                     <span class="kit-items-title">
                       <i class="fas fa-boxes"></i> Ítems del kit
                     </span>
-                    <span class="kit-items-count">
-                      {{ kitItems.length }} ítem{{ kitItems.length !== 1 ? 's' : '' }}
-                    </span>
+                    <div class="kit-items-header-right">
+                      <span class="kit-items-count">
+                        {{ localKitItems.length }} ítem{{ localKitItems.length !== 1 ? 's' : '' }}
+                      </span>
+                      <span class="kit-items-total">
+                        Total: <strong>${{ kitPrice.toFixed(2) }}</strong>
+                      </span>
+                    </div>
                   </div>
                   <TransitionGroup name="kit-chip" tag="div" class="kit-chips">
                     <span
-                      v-for="id in kitItems"
-                      :key="String(id)"
+                      v-for="item in localKitItems"
+                      :key="String(item.id)"
                       class="kit-chip"
                     >
                       <i class="fas fa-tag chip-icon"></i>
-                      <span class="chip-id">{{ id }}</span>
+                      <span class="chip-name">{{ item.name }}</span>
+                      <span class="chip-price">${{ Number(item.price).toFixed(2) }}</span>
                       <button
                         type="button"
                         class="chip-remove"
-                        @click="removeKitItem(id)"
+                        @click="removeKitItem(item.id)"
                         title="Quitar del kit"
                       >
                         <i class="fas fa-times"></i>
@@ -354,6 +401,7 @@
 .kit-switch-row {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
@@ -369,9 +417,10 @@
    Kit body
    ============================================================ */
 .kit-body {
+  margin-top: 0.65rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 /* ---- Search ---- */
@@ -449,6 +498,12 @@
   gap: 0.3rem;
 }
 
+.kit-items-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .kit-items-count {
   font-size: 0.7rem;
   font-weight: 700;
@@ -457,6 +512,12 @@
   border-radius: 1rem;
   padding: 1px 8px;
   line-height: 1.7;
+}
+
+.kit-items-total {
+  font-size: 0.72rem;
+  color: #198754;
+  font-weight: 600;
 }
 
 /* ---- Chips ---- */
@@ -482,12 +543,19 @@
 
 .chip-icon { font-size: 0.58rem; color: #7aa3e0; flex-shrink: 0; }
 
-.chip-id {
-  font-family: monospace;
-  font-size: 0.7rem;
+.chip-name {
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
+}
+
+.chip-price {
+  font-size: 0.68rem;
+  color: #198754;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
 .chip-remove {

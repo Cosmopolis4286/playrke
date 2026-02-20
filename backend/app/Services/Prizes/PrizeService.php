@@ -56,7 +56,14 @@ final class PrizeService
             ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
             ->orderBy('name')
             ->limit(15)
-            ->get(['id', 'code', 'name', 'price'])
+            ->get(['id', 'code', 'name', 'price', 'reward_type', 'kit', 'status'])
+            ->map(fn ($p) => [
+                'id'    => $p->id,
+                'code'  => $p->code,
+                'name'  => $p->name,
+                'price' => $p->price,
+            ])
+            ->values()
             ->toArray();
     }
 
@@ -78,10 +85,12 @@ final class PrizeService
 
     /**
      * Actualizar un premio.
+     *
+     * @return int Número de kits cuyo precio fue recalculado.
      */
-    public function update(Prize $prize, PrizeDTO $dto): void
+    public function update(Prize $prize, PrizeDTO $dto): int
     {
-        $this->crud->update($prize, $dto);
+        return $this->crud->update($prize, $dto);
     }
 
     /**

@@ -100,12 +100,14 @@ final class PrizeController extends Controller
      */
     public function update(PrizeRequest $request, Prize $prize): JsonResponse
     {
-        return $this->handleServiceJson(
-            fn() => $this->service->update(
+        return $this->handleServiceJson(function () use ($request, $prize) {
+            $affectedKits = $this->service->update(
                 $prize,
                 $request->toDTO(PrizeDTO::class)
-            )
-        );
+            );
+
+            return ['affected_kits' => $affectedKits];
+        });
     }
 
     /**

@@ -41,6 +41,7 @@
 
   const {
     prizeData,
+    kitItemObjects,
     prizes,
     setInitialPrizes,
     create,
@@ -173,6 +174,7 @@
     <PrizeForm
       ref="prizeFormRef"
       v-model="prizeData"
+      v-model:kit-item-objects="kitItemObjects"
       :can-create-kit="props.can_create_kit"
     />
   </Modal>

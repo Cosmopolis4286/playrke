@@ -58,10 +58,60 @@ final class PrizeCrudService
 
     /**
      * Actualizar un premio.
+     *
+     * Si el precio cambia y el premio es individual, recalcula el precio
+     * de todos los kits que lo contengan.
+     *
+     * @return int Número de kits afectados por el recálculo de precio.
      */
-    public function update(Prize $prize, PrizeDTO $dto): void
+    public function update(Prize $prize, PrizeDTO $dto): int
     {
+        $oldPrice    = (float) $prize->price;
+        $newPrice    = $dto->price !== null ? (float) $dto->price : $oldPrice;
+        $priceChanged = $prize->kit === 'N' && abs($newPrice - $oldPrice) > 0.0001;
+
         $this->prizeRepository->update($prize->id, $dto->toArray());
+
+        if (!$priceChanged) {
+            return 0;
+        }
+
+        return $this->cascadeKitPrices((string) $prize->id, (string) Auth::id());
+    }
+
+    /**
+     * Recalcula el precio de todos los kits que contengan el premio dado.
+     *
+     * @param  string $prizeId  ID del premio individual modificado.
+     * @param  string $userId   ID del usuario propietario.
+     * @return int              Número de kits actualizados.
+     */
+    private function cascadeKitPrices(string $prizeId, string $userId): int
+    {
+        // Buscar todos los kits del usuario que contengan este prize en su JSON kit_items
+        $kits = Prize::where('user_id', $userId)
+            ->where('kit', 'Y')
+            ->whereJsonContains('kit_items', $prizeId)
+            ->get(['id', 'kit_items']);
+
+        $updated = 0;
+
+        foreach ($kits as $kit) {
+            $itemIds = $kit->kit_items ?? [];
+
+            if (empty($itemIds)) {
+                continue;
+            }
+
+            // Obtener los precios actualizados de todos los ítems del kit
+            $newKitPrice = Prize::whereIn('id', $itemIds)
+                ->sum('price');
+
+            $this->prizeRepository->update($kit->id, ['price' => (string) $newKitPrice]);
+            $updated++;
+        }
+
+        return $updated;
     }
 
     /**

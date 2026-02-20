@@ -40,7 +40,7 @@ class PrizeRequest extends BaseRequest
             'kit'         => ['sometimes', 'string', Rule::in(['Y', 'N'])],
             'num_items'   => ['sometimes', 'integer', 'min:1', 'max:127'],
             'kit_items'   => ['sometimes', 'nullable', 'array', 'max:127'],
-            'kit_items.*' => ['string'],
+            'kit_items.*' => ['required'],
             'price'       => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:9999999999.99'],
             'description' => ['nullable', 'string', 'max:255'],
             'status'      => ['sometimes', 'string', Rule::in(['ACTIVE', 'INACTIVE'])],

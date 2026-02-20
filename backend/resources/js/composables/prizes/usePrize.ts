@@ -10,6 +10,9 @@ interface UsePrizeReturn {
     /** Datos del premio (para crear o editar) */
     prizeData: Ref<Partial<Prize>>
 
+    /** Objetos completos de ítems del kit (con precio para auto-sum) */
+    kitItemObjects: Ref<PrizeSearchResult[]>
+
     /** Lista reactiva de premios */
     prizes: Ref<Prize[]>
 
@@ -45,11 +48,10 @@ interface UsePrizeReturn {
 }
 
 /**
- * Factory para un premio vacío
+ * Factory para un premio vacío (el code lo genera el backend automáticamente)
  */
 const emptyPrize = (): Partial<Prize> =>
     Object.freeze({
-        code:        '',
         reward_type: 'PRODUCT',
         name:        '',
         kit:         'N',
@@ -70,9 +72,10 @@ const emptyPrize = (): Partial<Prize> =>
  * ⚠️ No controla UI directamente
  */
 export function usePrize(): UsePrizeReturn {
-    const loading   = ref(false)
-    const prizeData = ref<Partial<Prize>>(emptyPrize())
-    const prizes    = ref<Prize[]>([])
+    const loading        = ref(false)
+    const prizeData      = ref<Partial<Prize>>(emptyPrize())
+    const prizes         = ref<Prize[]>([])
+    const kitItemObjects = ref<PrizeSearchResult[]>([])
 
     function setInitialPrizes(initial: Prize[]) {
         prizes.value = [...initial]
@@ -103,8 +106,19 @@ export function usePrize(): UsePrizeReturn {
             loading.value = true
 
             if (prizeData.value.id) {
-                await backendClient.put(`/prizes/${prizeData.value.id}/update`, prizeData.value)
+                const updateRes = await backendClient.put<{ affected_kits: number }>(
+                    `/prizes/${prizeData.value.id}/update`,
+                    prizeData.value
+                )
+                const affectedKits = updateRes.data?.affected_kits ?? 0
                 showToast('Premio actualizado con éxito', 'success')
+                if (affectedKits > 0) {
+                    const kitWord = affectedKits === 1 ? 'kit' : 'kits'
+                    showToast(
+                        `Se recalculó el precio de ${affectedKits} ${kitWord} que contenían este premio`,
+                        'info'
+                    )
+                }
             } else {
                 await backendClient.post('/prizes', prizeData.value)
                 showToast('Premio creado con éxito', 'success')
@@ -126,7 +140,8 @@ export function usePrize(): UsePrizeReturn {
     }
 
     function create(): void {
-        prizeData.value = { ...emptyPrize() }
+        prizeData.value      = { ...emptyPrize() }
+        kitItemObjects.value = []
     }
 
     async function edit(id: string | number): Promise<boolean> {
@@ -139,6 +154,7 @@ export function usePrize(): UsePrizeReturn {
             prizeData.value = {
                 id:          data.data.id,
                 code:        data.data.code,
+                slug:        data.data.slug,
                 reward_type: data.data.reward_type,
                 name:        data.data.name,
                 kit:         data.data.kit,
@@ -148,6 +164,14 @@ export function usePrize(): UsePrizeReturn {
                 description: data.data.description ?? '',
                 status:      data.data.status,
             }
+
+            // Populate full item objects (with price) for kit auto-sum
+            kitItemObjects.value = (data.data.kit_items_data ?? []).map((item: PrizeSearchResult) => ({
+                id:    item.id,
+                code:  item.code,
+                name:  item.name,
+                price: item.price,
+            }))
 
             return true
         } catch (error) {
@@ -160,7 +184,8 @@ export function usePrize(): UsePrizeReturn {
     }
 
     function reset(): void {
-        prizeData.value = { ...emptyPrize() }
+        prizeData.value      = { ...emptyPrize() }
+        kitItemObjects.value = []
     }
 
     async function toggleStatus(id: string | number): Promise<boolean> {
@@ -276,6 +301,7 @@ export function usePrize(): UsePrizeReturn {
 
     return {
         prizeData,
+        kitItemObjects,
         prizes,
         setInitialPrizes,
         submit,
