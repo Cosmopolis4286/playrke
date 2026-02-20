@@ -42,8 +42,12 @@ class BingoPatternRequest extends BaseRequest
 
             foreach ($parts as $box) {
                 $box = trim($box);
+                // Acepta formato numérico (1-75) o letra+fila (B1-O5)
+                if (preg_match('/^[BINGO][1-5]$/i', $box)) {
+                    continue;
+                }
                 if (!is_numeric($box) || (int) $box < 1 || (int) $box > 75) {
-                    $v->errors()->add('boxes', "Cada casilla debe ser un número entre 1 y 75. Valor inválido: '{$box}'.");
+                    $v->errors()->add('boxes', "Casilla inválida: '{$box}'. Use formato numérico (1-75) o letra+fila (B1-O5).");
                     return;
                 }
             }

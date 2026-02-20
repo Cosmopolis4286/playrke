@@ -22,11 +22,26 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
 
+/** Convierte una casilla en cualquier formato ('B1', 'b1', '1') a su número 1-75. */
+function parseCell(raw: string): number | null {
+  const s = raw.trim().toUpperCase()
+  // Formato letra+fila: B1, I3, N3, G5, O2…
+  const match = s.match(/^([BINGO])(\d)$/)
+  if (match) {
+    const letter = match[1] as BingoLetter
+    const row    = parseInt(match[2], 10)
+    if (row >= 1 && row <= 5) return cellNumber(letter, row)
+    return null
+  }
+  // Formato numérico directo: 1-75
+  const n = parseInt(s, 10)
+  return (!isNaN(n) && n >= 1 && n <= 75) ? n : null
+}
+
 const selectedSet = computed<Set<number>>(() => {
   if (!props.modelValue?.trim()) return new Set()
-  return new Set(
-    props.modelValue.split(';').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
-  )
+  const nums = props.modelValue.split(';').map(s => parseCell(s)).filter((n): n is number => n !== null)
+  return new Set(nums)
 })
 
 const isFree = (letter: BingoLetter, row: number) =>
@@ -118,14 +133,14 @@ defineExpose({ clear })
 }
 
 .bcs {
-  width: 292px;
+  width: 252px;
   flex-shrink: 0;
 }
 
 /* Grid 5 columnas de tamaño fijo */
 .bcs-grid {
   display: grid;
-  grid-template-columns: repeat(5, 52px);
+  grid-template-columns: repeat(5, 45px);
   grid-auto-rows: auto;
   gap: 2px;
   padding: 5px;
@@ -138,15 +153,15 @@ defineExpose({ clear })
 
 /* Header rectangular */
 .bcs-hd {
-  width: 52px;
+  width: 45px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   font-weight: 700;
   letter-spacing: 0.03em;
-  background: var(--bs-primary, #0d6efd);
+  background: var(--bs-primary, #0044aa);
   color: #fff;
   border-radius: 4px;
   user-select: none;
@@ -154,12 +169,12 @@ defineExpose({ clear })
 
 /* Celda cuadrada fija */
 .bcs-cell {
-  width: 52px;
-  height: 52px;
+  width: 45px;
+  height: 45px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   border-radius: 4px;
@@ -216,7 +231,7 @@ defineExpose({ clear })
 }
 
 .bcs-count {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   color: #6c757d;
   display: flex;
   align-items: center;

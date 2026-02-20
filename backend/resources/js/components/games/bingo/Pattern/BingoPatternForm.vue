@@ -14,6 +14,8 @@
 
   const props = defineProps<{
     modelValue: Partial<BingoPattern>
+    readonly?:  boolean
+    isAdmin?:   boolean
   }>()
 
   const emit = defineEmits<{
@@ -45,6 +47,9 @@
     set: v => { form.value = { ...form.value, default_pattern: v ? 'Y' : 'N' } },
   })
 
+  // Los patrones MULTIPLE referencian num_id de otros patrones, no celdas del cartón
+  const isMultiple = computed(() => form.value.type_pattern === 'MULTIPLE')
+
   /* ==========================================================================
    * Validación reactiva
    * ========================================================================== */
@@ -65,13 +70,21 @@
     if (!form.value.boxes?.trim()) {
       e.boxes = 'Las casillas son requeridas.'
     } else {
+      const COL_BASE: Record<string, number> = { B: 1, I: 16, N: 31, G: 46, O: 61 }
+      const parseBox = (raw: string): number | null => {
+        const s = raw.trim().toUpperCase()
+        const m = s.match(/^([BINGO])(\d)$/)
+        if (m) {
+          const row = parseInt(m[2], 10)
+          return (row >= 1 && row <= 5) ? COL_BASE[m[1]] + (row - 1) : null
+        }
+        const n = parseInt(s, 10)
+        return (!isNaN(n) && n >= 1 && n <= 75) ? n : null
+      }
       const parts = form.value.boxes.split(';').filter(b => b.trim())
-      const invalid = parts.find(b => {
-        const n = parseInt(b.trim(), 10)
-        return isNaN(n) || n < 1 || n > 75
-      })
+      const invalid = parts.find(b => parseBox(b) === null)
       if (invalid) {
-        e.boxes = `Casilla inválida: "${invalid.trim()}". Rango 1-75.`
+        e.boxes = `Casilla inválida: "${invalid.trim()}". Use formato numérico (1-75) o letra+fila (B1-O5).`
       }
     }
 
@@ -104,11 +117,22 @@
         maxlength="30"
         placeholder="Ej: Línea horizontal"
         col="col-sm-8"
-        :error="errors.name"
+        :error="readonly ? undefined : errors.name"
+        :disabled="readonly"
         v-model="form.name"
       />
 
+      <!-- No-admin: texto plano con la descripción legible del tipo -->
+      <FormInput
+        v-if="readonly"
+        label="Tipo"
+        name="type_pattern"
+        col="col-sm-4"
+        :model-value="typePatternOptions.find(o => o.value === form.type_pattern)?.label ?? form.type_pattern ?? ''"
+        disabled
+      />
       <FormSelect
+        v-else
         label="Tipo"
         name="type_pattern"
         required
@@ -122,18 +146,37 @@
       />
 
       <div class="col-sm-12 mb-3 text-center">
-        <label class="form-label d-block">Casillas del patrón <span class="text-danger">*</span></label>
+        <label class="form-label d-block">
+          Casillas del patrón
+          <span v-if="!readonly" class="text-danger">*</span>
+        </label>
+
+        <!-- Patrones MULTIPLE: muestran boxes como texto (son num_id de otros patrones) -->
+        <div v-if="isMultiple" class="alert alert-info py-2 px-3 text-start small">
+          <i class="fa-solid fa-circle-info me-1"></i>
+          Este patrón agrupa otros patrones: <strong>{{ form.boxes }}</strong>
+        </div>
+
+        <!-- Patrones UNIQUE: selector visual del cartón -->
         <BingoCardSelector
+          v-else
           v-model="form.boxes"
           :free-center="true"
+          :disabled="readonly"
         />
-        <div v-if="errors.boxes" class="invalid-feedback d-block text-start mt-1">{{ errors.boxes }}</div>
+
+        <div v-if="!readonly && !isMultiple && errors.boxes" class="invalid-feedback d-block text-start mt-1">
+          {{ errors.boxes }}
+        </div>
       </div>
 
+      <!-- Switch "Patrón por defecto": solo visible para admin -->
       <FormSwitch
+        v-if="isAdmin"
         label="Patrón por defecto"
         name="default_pattern"
         col="col-sm-6"
+        :disabled="readonly"
         v-model="defaultPatternBool"
       />
 

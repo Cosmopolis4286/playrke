@@ -4,6 +4,7 @@ namespace App\Services\Games\Bingo\Pattern;
 
 use App\Contracts\Games\Bingo\Pattern\BingoPatternRepositoryInterface;
 use App\DTOs\Games\Bingo\Pattern\BingoPatternDTO;
+use App\Services\Roles\RoleUserService;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
 
@@ -13,6 +14,7 @@ final class BingoPatternContextService
 
     public function __construct(
         private readonly BingoPatternRepositoryInterface $repository,
+        private readonly RoleUserService $roleUserService,
     ) {}
 
     /**
@@ -33,13 +35,16 @@ final class BingoPatternContextService
 
         $tableData = $this->processCollectionTableData(
             $patterns,
-            labels:  ['Nombre', 'Tipo', 'Cajas', 'Por defecto', 'Estado'],
-            rowKeys: ['name', 'type_description', 'boxes_count', 'default_pattern', 'status'],
+            labels: ['Nombre', 'Tipo', 'Casillas', 'Estado'],
+            rowKeys: ['name', 'type_description', 'boxes_count', 'status_badge'],
         );
+
+        $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
         return new BingoPatternDTO(
             columns: $tableData['columns'],
-            rows:    $tableData['rows'],
+            rows: $tableData['rows'],
+            roleUser: $userRolePrefix,
         );
     }
 
@@ -52,7 +57,7 @@ final class BingoPatternContextService
 
         return $this->processCollectionTableData(
             $patterns,
-            labels:  ['Nombre', 'Tipo', 'Cajas', 'Por defecto', 'Estado'],
+            labels: ['Nombre', 'Tipo', 'Casillas', 'Por defecto', 'Estado'],
             rowKeys: ['name', 'type_description', 'boxes_count', 'default_pattern', 'status'],
         )['rows'];
     }

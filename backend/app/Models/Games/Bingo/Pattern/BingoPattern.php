@@ -89,6 +89,7 @@ class BingoPattern extends Model
      * Campos que deben ser convertidos a tipos específicos
      */
     protected $casts = [
+        'id'             => 'string',
         'default_pattern' => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -101,7 +102,8 @@ class BingoPattern extends Model
         'type_description',
         'status_description',
         'boxes_array',
-        'boxes_count'
+        'boxes_count',
+        'status_badge'
     ];
 
     /**
@@ -214,6 +216,22 @@ class BingoPattern extends Model
     public function getTypeDescriptionAttribute(): string
     {
         return self::TYPES[$this->type_pattern] ?? $this->type_pattern ?? '';
+    }
+
+    /**
+     * Accessor para el status con badge HTML
+     *
+     * @return string
+     */
+    public function getStatusBadgeAttribute(): string
+    {
+        return match ($this->status) {
+            'ACTIVE' => '<span class="badge badge-success">Activo</span>',
+            'INACTIVE' => '<span class="badge badge-secondary">Inactivo</span>',
+            'BLOCKED' => '<span class="badge badge-danger">Bloqueado</span>',
+            'DELETED' => '<span class="badge badge-dark">Eliminado</span>',
+            default => '<span class="badge badge-warning">Desconocido</span>'
+        };
     }
 
     /**
@@ -330,7 +348,7 @@ class BingoPattern extends Model
             $pattern = static::where('num_id', $numId)
                 ->where(function ($q) {
                     $q->whereNull('user_id')
-                      ->orWhere('user_id', $this->user_id);
+                        ->orWhere('user_id', $this->user_id);
                 })
                 ->first();
 

@@ -3,7 +3,7 @@
    * Página → Bingo - Patrones (Bingo/Pattern/Index)
    */
 
-  import { watch } from 'vue'
+  import { ref, computed, watch } from 'vue'
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
@@ -18,6 +18,31 @@
   import type { TableFilter } from '@js/types/common/table/table-filter'
 
   const props = defineProps<BingoPatternPageProps>()
+
+  const isAdmin = computed(() => props.bingoPatterns.roleUser === 'admin')
+
+  // En modo visualización (no admin editando), el modal es solo lectura
+  const isViewMode = ref(false)
+
+  /**
+   * Dado un conjunto de IDs seleccionados, determina si TODOS son patrones de sistema
+   * (default_pattern = 'Y'). Para no-admin esto bloquea edición/borrado/toggleStatus.
+   */
+  function allSelectedAreSystem(ids: string[]): boolean {
+    return ids.every(id => {
+      const p = bingoPatterns.value.find(p => p.id === id)
+      return p?.default_pattern === 'Y'
+    })
+  }
+
+  /**
+   * Para no-admin: si algún patrón seleccionado es de sistema, bloquear la acción
+   * destructiva y devolver true (bloqueado).
+   */
+  function isBlockedForNonAdmin(ids: string[]): boolean {
+    if (isAdmin.value) return false
+    return allSelectedAreSystem(ids)
+  }
 
   const {
     bingoPatternData,
@@ -34,16 +59,22 @@
 
   const {
     showModalForm,
-    modalTitle,
+    formMode,
     formRef: bingoPatternFormRef,
     handleSubmit
   } = useModalForm(bingoPatternData, submit, {
     defaultTitle: 'Patrón de Bingo'
   })
 
+  const modalTitle = computed(() => {
+    if (isViewMode.value) return 'Visualizar Patrón de Bingo'
+    return formMode.value === 'create' ? 'Registrar Patrón de Bingo' : 'Editar Patrón de Bingo'
+  })
+
   watch(showModalForm, isOpen => {
     if (!isOpen) {
       bingoPatternFormRef.value?.reset?.()
+      isViewMode.value = false
       create()
     }
   })
@@ -51,19 +82,25 @@
   useCrudEventListener({
     create: () => {
       create()
+      isViewMode.value = false
       showModalForm.value = true
     },
     edit: async ids => {
       if (!ids || ids.length !== 1) return
       const ok = await edit(ids[0])
-      if (ok) showModalForm.value = true
+      if (ok) {
+        // No-admin viendo un patrón de sistema → solo visualizar
+        const isSystemPattern = bingoPatterns.value.find(p => p.id === ids[0])?.default_pattern === 'Y'
+        isViewMode.value = !isAdmin.value && isSystemPattern
+        showModalForm.value = true
+      }
     },
     delete: async ids => {
-      if (!ids) return
+      if (!ids || isBlockedForNonAdmin(ids)) return
       await removeBulk(ids)
     },
     toggleStatus: async ids => {
-      if (!ids) return
+      if (!ids || isBlockedForNonAdmin(ids)) return
       await toggleStatusBulk(ids)
     }
   })
@@ -98,15 +135,28 @@
     }
   ]
 
-  const extraButtons: ExtraButton[] = [
+  // IDs actualmente seleccionados en la tabla (sincronizados via @selection-change)
+  const selectedIds = ref<string[]>([])
+
+  /**
+   * Para no-admin: ocultar Editar/Eliminar/ToggleStatus cuando TODOS los
+   * seleccionados son patrones de sistema (default_pattern='Y').
+   * El admin siempre ve todos los botones.
+   */
+  const hideDestructiveButtons = computed(() =>
+    !isAdmin.value && selectedIds.value.length > 0 && allSelectedAreSystem(selectedIds.value)
+  )
+
+  const extraButtons = computed<ExtraButton[]>(() => [
     {
       label: '',
       icon: 'fas fa-exchange-alt',
       class: 'btn-secondary',
-      show: false,
+      // Ocultar para no-admin si selección es solo patrones de sistema
+      show: (ids: string[]) => ids.length > 0 && (isAdmin.value || !allSelectedAreSystem(ids)),
       action: 'toggleStatus'
     }
-  ]
+  ])
 </script>
 
 <template>
@@ -118,19 +168,25 @@
     :filters="filters"
     search-placeholder="Buscar por nombre..."
     showCreateButton
-    showEditButton
-    showDeleteButton
+    :showEditButton="!hideDestructiveButtons"
+    :showDeleteButton="isAdmin && !hideDestructiveButtons"
     :extra-buttons="extraButtons"
+    @selection-change="ids => selectedIds = ids"
   />
 
   <Modal
     v-model="showModalForm"
     :title="modalTitle"
     static
-    show-confirm
+    :show-confirm="!isViewMode"
     :on-submit="handleSubmit"
     :confirm-disabled="!(bingoPatternFormRef?.isValid ?? false)"
   >
-    <BingoPatternForm ref="bingoPatternFormRef" v-model="bingoPatternData" />
+    <BingoPatternForm
+      ref="bingoPatternFormRef"
+      v-model="bingoPatternData"
+      :readonly="isViewMode"
+      :is-admin="isAdmin"
+    />
   </Modal>
 </template>

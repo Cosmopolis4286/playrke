@@ -23,6 +23,10 @@
     extraButtons?: ExtraButton[]
   }>()
 
+  const emit = defineEmits<{
+    (e: 'selection-change', ids: string[]): void
+  }>()
+
   /** IDs seleccionados actualmente en la tabla */
   const selectedIds = ref<string[]>([])
 
@@ -151,9 +155,10 @@
     })
   )
 
-  /** Actualiza IDs seleccionados y puede emitir evento global (comentado para evitar ruido) */
+  /** Actualiza IDs seleccionados y re-emite al padre para control externo */
   const handleSelectionChange = (ids: string[]): void => {
     selectedIds.value = [...ids]
+    emit('selection-change', [...ids])
     // if (import.meta.env.DEV) {
     //   console.log('🔁 table-selection-updated', { tableId: props.tableId, selectedIds: selectedIds.value })
     // }
