@@ -41,7 +41,7 @@ class BingoRoomConfig extends Model
         'serials_pct',
         'num_serials',
         'jackpot_pct',
-        'plays_pct'
+        'plays_pct',
     ];
 
     protected $casts = [
@@ -62,7 +62,7 @@ class BingoRoomConfig extends Model
         'jackpot_pct' => 'decimal:2',
         'plays_pct' => 'decimal:2',
         'unix_date' => 'integer',
-        'num_serials' => 'integer'
+        'num_serials' => 'integer',
     ];
 
     /**

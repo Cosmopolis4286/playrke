@@ -12,6 +12,7 @@ use App\Models\Games\Bingo\Room\User\BingoRoomUser;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\Roles\SellerRoomLimits;
 use App\Models\User;
+use App\Models\Games\Bingo\Rounds\BingoRound;
 use App\Models\Games\Common\Utils\GameExchangeRate;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -119,6 +120,14 @@ class BingoRoom extends BaseModel
     public function config(): HasOne
     {
         return $this->hasOne(BingoRoomConfig::class, 'room_id', 'id');
+    }
+
+    /**
+     * Rondas de la sala
+     */
+    public function rounds(): HasMany
+    {
+        return $this->hasMany(BingoRound::class, 'room_id', 'id')->orderBy('round');
     }
 
     /**

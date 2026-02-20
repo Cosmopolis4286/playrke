@@ -9,6 +9,7 @@ use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Models\Games\Bingo\Creator\BingoCreator;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
+use App\Models\Games\Bingo\Rounds\BingoRound;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Utils\GameConfig;
 use App\Models\Games\Common\Utils\GameStatus;
@@ -52,7 +53,7 @@ final class BingoRoomCrudService
             throw BingoRoomException::notFound();
         }
 
-        $room->load(['config', 'status', 'cardPrices']);
+        $room->load(['config', 'status', 'cardPrices', 'rounds']);
 
         return new BingoRoomResource($room);
     }
@@ -106,6 +107,9 @@ final class BingoRoomCrudService
                 $dto->cardPriceByCurrency ?? [],
                 $userId,
             );
+
+            // Sincronizar rondas
+            $this->syncRounds($room->id, $dto->roundsConfig ?? []);
 
             return true;
         });
@@ -193,6 +197,7 @@ final class BingoRoomCrudService
             'time'                    => $dto->time,
             'unix_date'               => $unixDate,
             'allowed_currencies'      => $dto->allowedCurrencies,
+            'card_price'              => $dto->cardPrice,
             'rke_commission'          => $rkeCommission,
             'room_commission'         => $dto->roomCommission,
             'prize_pool_type_id'      => $dto->prizePoolType,
@@ -200,6 +205,7 @@ final class BingoRoomCrudService
             'time_chip'               => $dto->timeChip,
             'rounds'                  => $dto->rounds,
             'rounds_pct'              => $dto->roundsPct ?? null,
+            'rounds_config'           => $dto->roundsConfig ?? null,
             'serials_pct'             => $dto->serialsPct,
             'num_serials'             => $dto->numSerials,
             'jackpot_pct'             => $dto->jackpotPct ?? null,
@@ -277,6 +283,54 @@ final class BingoRoomCrudService
             ->delete();
     }
 
+
+    /**
+     * Sincroniza las rondas de una sala en bingo_rounds.
+     * Elimina las rondas previas y recrea según el roundsConfig del DTO.
+     *
+     * Mapeo prize_type (frontend → DB):
+     *   percentage → PCT
+     *   fixed      → USD
+     *   prize      → OTHER
+     *
+     * @param string $roomId
+     * @param array  $roundsConfig  [{prizeType, bingoPattern, prizeValue}]
+     */
+    private function syncRounds(string $roomId, array $roundsConfig): void
+    {
+        // Eliminar rondas previas (recrear siempre para mantener consistencia)
+        BingoRound::where('room_id', $roomId)->delete();
+
+        if (empty($roundsConfig)) {
+            return;
+        }
+
+        $prizeTypeMap = [
+            'percentage' => 'PCT',
+            'fixed'      => 'USD',
+            'prize'      => 'OTHER',
+        ];
+
+        $snowflakeService = app(\App\Services\Utils\Snowflake\SnowflakeBatchService::class);
+        $ids = $snowflakeService->batch(count($roundsConfig));
+
+        $rows = [];
+        foreach ($roundsConfig as $index => $config) {
+            $rows[] = [
+                'id'               => $ids[$index],
+                'room_id'          => $roomId,
+                'round'            => $index + 1,
+                'bingo_pattern_id' => $config['bingoPattern'] ?? null,
+                'prize_type'       => $prizeTypeMap[$config['prizeType'] ?? 'percentage'] ?? 'PCT',
+                'prize_value'      => isset($config['prizeValue']) ? (float) $config['prizeValue'] : null,
+                'status'           => 'ACTIVE',
+                'created_at'       => now(),
+                'updated_at'       => now(),
+            ];
+        }
+
+        BingoRound::insert($rows);
+    }
 
     /**
      * Alternar estado de una sala de bingo (ACTIVE / INACTIVE).

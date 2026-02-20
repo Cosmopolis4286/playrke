@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Bingo\Rounds;
+namespace App\Models\Games\Bingo\Rounds;
 
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Pattern\BingoPattern;

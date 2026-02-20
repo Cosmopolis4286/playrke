@@ -118,6 +118,8 @@
     handleCrudAction({ action: 'toggleStatus', logMessage: 'Cambio de estado para IDs:' })
   const handleResetPassword = () =>
     handleCrudAction({ action: 'resetPassword', logMessage: 'Reset contraseña para IDs:' })
+  const handleView = () =>
+    handleCrudAction({ action: 'view', selectionRequirement: 'single' })
 
   /**
    * Asigna onClick y disabled a botones extra basados en la acción
@@ -132,6 +134,9 @@
             break
           case 'resetPassword':
             handleResetPassword()
+            break
+          case 'view':
+            handleView()
             break
           default:
             console.warn(`No handler para botón '${btn.label}' con acción '${btn.action}'`)

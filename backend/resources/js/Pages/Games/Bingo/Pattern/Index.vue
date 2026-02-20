@@ -21,27 +21,24 @@
 
   const isAdmin = computed(() => props.bingoPatterns.roleUser === 'admin')
 
-  // En modo visualización (no admin editando), el modal es solo lectura
+  // En modo visualización el modal es solo lectura
   const isViewMode = ref(false)
 
-  /**
-   * Dado un conjunto de IDs seleccionados, determina si TODOS son patrones de sistema
-   * (default_pattern = 'Y'). Para no-admin esto bloquea edición/borrado/toggleStatus.
-   */
+  // IDs actualmente seleccionados en la tabla
+  const selectedIds = ref<string[]>([])
+
+  /** true si todos los IDs seleccionados son patrones de sistema (default_pattern='Y') */
   function allSelectedAreSystem(ids: string[]): boolean {
-    return ids.every(id => {
-      const p = bingoPatterns.value.find(p => p.id === id)
-      return p?.default_pattern === 'Y'
-    })
+    return ids.length > 0 && ids.every(id =>
+      bingoPatterns.value.find(p => p.id === id)?.default_pattern === 'Y'
+    )
   }
 
-  /**
-   * Para no-admin: si algún patrón seleccionado es de sistema, bloquear la acción
-   * destructiva y devolver true (bloqueado).
-   */
-  function isBlockedForNonAdmin(ids: string[]): boolean {
-    if (isAdmin.value) return false
-    return allSelectedAreSystem(ids)
+  /** true si todos los IDs seleccionados son patrones propios (default_pattern='N') */
+  function allSelectedAreOwn(ids: string[]): boolean {
+    return ids.length > 0 && ids.every(id =>
+      bingoPatterns.value.find(p => p.id === id)?.default_pattern === 'N'
+    )
   }
 
   const {
@@ -79,28 +76,37 @@
     }
   })
 
+  async function openEdit(ids: string[], viewOnly: boolean) {
+    if (!ids || ids.length !== 1) return
+    const ok = await edit(ids[0])
+    if (ok) {
+      isViewMode.value = viewOnly
+      showModalForm.value = true
+    }
+  }
+
   useCrudEventListener({
     create: () => {
       create()
       isViewMode.value = false
       showModalForm.value = true
     },
+    // Editar: admin siempre edita; no-admin solo edita sus propios (default_pattern='N')
     edit: async ids => {
-      if (!ids || ids.length !== 1) return
-      const ok = await edit(ids[0])
-      if (ok) {
-        // No-admin viendo un patrón de sistema → solo visualizar
-        const isSystemPattern = bingoPatterns.value.find(p => p.id === ids[0])?.default_pattern === 'Y'
-        isViewMode.value = !isAdmin.value && isSystemPattern
-        showModalForm.value = true
-      }
+      const isSystem = allSelectedAreSystem(ids ?? [])
+      await openEdit(ids ?? [], !isAdmin.value && isSystem)
     },
+    // Visualizar: acción exclusiva de no-admin para patrones de sistema
+    view: async ids => {
+      await openEdit(ids ?? [], true)
+    },
+    // Eliminar y ToggleStatus: solo permitido sobre patrones propios (default_pattern='N')
     delete: async ids => {
-      if (!ids || isBlockedForNonAdmin(ids)) return
+      if (!ids || (!isAdmin.value && !allSelectedAreOwn(ids))) return
       await removeBulk(ids)
     },
     toggleStatus: async ids => {
-      if (!ids || isBlockedForNonAdmin(ids)) return
+      if (!ids || (!isAdmin.value && !allSelectedAreOwn(ids))) return
       await toggleStatusBulk(ids)
     }
   })
@@ -135,27 +141,28 @@
     }
   ]
 
-  // IDs actualmente seleccionados en la tabla (sincronizados via @selection-change)
-  const selectedIds = ref<string[]>([])
-
-  /**
-   * Para no-admin: ocultar Editar/Eliminar/ToggleStatus cuando TODOS los
-   * seleccionados son patrones de sistema (default_pattern='Y').
-   * El admin siempre ve todos los botones.
-   */
-  const hideDestructiveButtons = computed(() =>
-    !isAdmin.value && selectedIds.value.length > 0 && allSelectedAreSystem(selectedIds.value)
+  // Para no-admin: ocultar Editar/Eliminar/ToggleStatus cuando la selección son patrones de sistema
+  const hideStandardButtons = computed(() =>
+    !isAdmin.value && allSelectedAreSystem(selectedIds.value)
   )
 
   const extraButtons = computed<ExtraButton[]>(() => [
+    // ToggleStatus: admin siempre; no-admin solo con sus propios patrones
     {
-      label: '',
-      icon: 'fas fa-exchange-alt',
-      class: 'btn-secondary',
-      // Ocultar para no-admin si selección es solo patrones de sistema
-      show: (ids: string[]) => ids.length > 0 && (isAdmin.value || !allSelectedAreSystem(ids)),
-      action: 'toggleStatus'
-    }
+      label:  '',
+      icon:   'fas fa-exchange-alt',
+      class:  'btn-secondary',
+      show:   (ids: string[]) => ids.length > 0 && (isAdmin.value || allSelectedAreOwn(ids)),
+      action: 'toggleStatus',
+    },
+    // Visualizar: solo no-admin, solo 1 seleccionado, solo patrones de sistema
+    {
+      label:  'Visualizar',
+      icon:   'fas fa-eye',
+      class:  'btn-info',
+      show:   (ids: string[]) => !isAdmin.value && ids.length === 1 && allSelectedAreSystem(ids),
+      action: 'view',
+    },
   ])
 </script>
 
@@ -168,8 +175,8 @@
     :filters="filters"
     search-placeholder="Buscar por nombre..."
     showCreateButton
-    :showEditButton="!hideDestructiveButtons"
-    :showDeleteButton="isAdmin && !hideDestructiveButtons"
+    :showEditButton="!hideStandardButtons"
+    :showDeleteButton="!hideStandardButtons"
     :extra-buttons="extraButtons"
     @selection-change="ids => selectedIds = ids"
   />

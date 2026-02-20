@@ -29,6 +29,15 @@ class BingoRoomResource extends JsonResource
                 ]);
             }),
 
+            'rounds_config' => $this->whenLoaded('rounds', function () {
+                $prizeTypeMap = ['PCT' => 'percentage', 'USD' => 'fixed', 'OTHER' => 'prize'];
+                return $this->rounds->map(fn($r) => [
+                    'prizeType'    => $prizeTypeMap[$r->prize_type] ?? 'percentage',
+                    'bingoPattern' => $r->bingo_pattern_id,
+                    'prizeValue'   => $r->prize_value,
+                ])->values();
+            }),
+
             'config' => $config ? [
                 'room_type_id'            => $config->room_type_id,
                 'date'                    => $config->date?->format('Y-m-d'),
@@ -37,8 +46,8 @@ class BingoRoomResource extends JsonResource
                 'prize_pool_type_id'      => $config->prize_pool_type_id,
                 'amount_added_prize_pool' => $config->amount_added_prize_pool,
                 'card_price'              => $config->card_price,
-                'room_commission'              => $config->room_commission,
-                'rke_commission'               => $config->rke_commission,
+                'room_commission'         => $config->room_commission,
+                'rke_commission'          => $config->rke_commission,
                 'jackpot_pct'             => $config->jackpot_pct,
                 'time_chip'               => $config->time_chip,
                 'rounds'                  => $config->rounds,

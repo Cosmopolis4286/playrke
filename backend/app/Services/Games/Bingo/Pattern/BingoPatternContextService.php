@@ -39,6 +39,14 @@ final class BingoPatternContextService
             rowKeys: ['name', 'type_description', 'boxes_count', 'status_badge'],
         );
 
+        // Inyectar default_pattern en cada fila como metadato oculto.
+        // No forma parte de las columnas visibles pero el frontend lo necesita
+        // para controlar permisos (botones Editar/Eliminar/Visualizar).
+        $tableData['rows'] = array_map(function (array $row, int $i) use ($patterns) {
+            $row['default_pattern'] = $patterns->values()->get($i)?->default_pattern ?? 'N';
+            return $row;
+        }, $tableData['rows'], array_keys($tableData['rows']));
+
         $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
         return new BingoPatternDTO(
