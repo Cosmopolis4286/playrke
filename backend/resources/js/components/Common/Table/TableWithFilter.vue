@@ -56,9 +56,9 @@
   const searchPlaceholder = props.searchPlaceholder ?? 'Buscar en la tabla...'
   const debounceDelay = props.debounceDelay ?? 300
   const emptyMessage = props.emptyMessage ?? 'No se encontraron registros'
-  const showCreateButton = props.showCreateButton ?? true
-  const showEditButton = props.showEditButton ?? true
-  const showDeleteButton = props.showDeleteButton ?? true
+  const showCreateButton = computed(() => props.showCreateButton ?? true)
+  const showEditButton   = computed(() => props.showEditButton   ?? true)
+  const showDeleteButton = computed(() => props.showDeleteButton ?? true)
 
   /** 👉 Controller */
   const { handleFilter, selectedIds, filteredRows } = useTableController({

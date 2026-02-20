@@ -145,7 +145,7 @@
         v-model="form.type_pattern"
       />
 
-      <div class="col-sm-12 mb-3 text-center">
+      <div class="col-sm-12 text-center">
         <label class="form-label d-block">
           Casillas del patrón
           <span v-if="!readonly" class="text-danger">*</span>
@@ -175,7 +175,7 @@
         v-if="isAdmin"
         label="Patrón por defecto"
         name="default_pattern"
-        col="col-sm-6"
+        col="mt-3 col-sm-6"
         :disabled="readonly"
         v-model="defaultPatternBool"
       />

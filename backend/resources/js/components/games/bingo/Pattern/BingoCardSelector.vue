@@ -38,8 +38,16 @@ function parseCell(raw: string): number | null {
   return (!isNaN(n) && n >= 1 && n <= 75) ? n : null
 }
 
+/** Conjunto de números de todas las celdas del cartón (sin la celda libre) */
+const ALL_CELLS = new Set(
+  LETTERS.flatMap(letter =>
+    [1, 2, 3, 4, 5].map(row => cellNumber(letter, row))
+  ).filter(n => n !== FREE_CELL)
+)
+
 const selectedSet = computed<Set<number>>(() => {
   if (!props.modelValue?.trim()) return new Set()
+  if (props.modelValue.trim().toUpperCase() === 'ALL') return ALL_CELLS
   const nums = props.modelValue.split(';').map(s => parseCell(s)).filter((n): n is number => n !== null)
   return new Set(nums)
 })

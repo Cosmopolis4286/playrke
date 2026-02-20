@@ -141,13 +141,20 @@
     }
   ]
 
-  // Para no-admin: ocultar Editar/Eliminar/ToggleStatus cuando la selección son patrones de sistema
-  const hideStandardButtons = computed(() =>
-    !isAdmin.value && allSelectedAreSystem(selectedIds.value)
+  /**
+   * true si la selección tiene algún patrón de sistema (default_pattern='Y').
+   * En ese caso, no-admin no puede editar ni eliminar.
+   */
+  const selectionHasSystemPattern = computed(() =>
+    !isAdmin.value &&
+    selectedIds.value.some(id => bingoPatterns.value.find(p => p.id === id)?.default_pattern === 'Y')
   )
 
+  // Para no-admin: ocultar Editar/Eliminar cuando la selección incluye patrones de sistema
+  const hideStandardButtons = computed(() => selectionHasSystemPattern.value)
+
   const extraButtons = computed<ExtraButton[]>(() => [
-    // ToggleStatus: admin siempre; no-admin solo con sus propios patrones
+    // ToggleStatus: admin siempre; no-admin solo si TODOS son propios (default_pattern='N')
     {
       label:  '',
       icon:   'fas fa-exchange-alt',
@@ -155,7 +162,7 @@
       show:   (ids: string[]) => ids.length > 0 && (isAdmin.value || allSelectedAreOwn(ids)),
       action: 'toggleStatus',
     },
-    // Visualizar: solo no-admin, solo 1 seleccionado, solo patrones de sistema
+    // Visualizar: solo no-admin, solo 1 seleccionado, solo patrón de sistema
     {
       label:  'Visualizar',
       icon:   'fas fa-eye',
