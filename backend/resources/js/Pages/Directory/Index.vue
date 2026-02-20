@@ -28,57 +28,59 @@
    * Props
    * ========================================================================== */
 
-  /**
-   * Props provenientes de Inertia
-   */
   const props = defineProps<DirectoryVENPageProps>()
 
   /* ==========================================================================
    * Lógica de negocio – Directorio
    * ========================================================================== */
 
-  const { directoryData, directories, setInitialDirectories, create, edit, submit, remove, changeStatus } =
-    useDirectory(props.tokenId)
+  const {
+    directoryData,
+    directories,
+    setInitialDirectories,
+    create,
+    edit,
+    submit,
+    remove,
+    changeStatus,
+    fetchContext
+  } = useDirectory(props.tokenId)
 
   // Inicializar directories con las props
   setInitialDirectories(props.directories)
 
   /* ==========================================================================
-   * Configuración de tabla (UI)
+   * Estado local – Bancos y Tipos de Documento (reactivos al cambiar de país)
    * ========================================================================== */
 
-  /**
-   * Filtros disponibles para la tabla
-   * Nota: key debe coincidir con la columna en las rows (bank_name viene de Bank.name)
-   */
-  const filters = [
-    {
-      key: 'bank_name',
-      label: 'Banco',
-      options: props.banks.map(bank => ({
-        label: bank.name,
-        value: bank.name
-      }))
-    }
-  ]
+  const localBanks = ref<any[]>(props.banks ?? [])
+  const localDocumentTypes = ref<any[]>(props.documentTypes ?? [])
 
   /* ==========================================================================
-   * Computed refs para tabla (requeridos por useTableController)
+   * Configuración de tabla (UI)
    * ========================================================================== */
 
   const columns = computed(() => directories.value.columns)
   const rows = computed(() => directories.value.rows)
 
+  /**
+   * Filtros dinámicos basados en los bancos del país activo
+   */
+  const filters = computed(() => [
+    {
+      key: 'bank_name',
+      label: 'Banco',
+      options: localBanks.value.map((bank: any) => ({
+        label: bank.name,
+        value: bank.name
+      }))
+    }
+  ])
+
   /* ==========================================================================
    * Table Controller
    * ========================================================================== */
 
-  /**
-   * Controller que maneja:
-   * - filtros
-   * - selección
-   * - filas filtradas
-   */
   const { handleFilter, selectedIds, filteredRows } = useTableController<Row>({
     columns,
     rows
@@ -115,8 +117,6 @@
 
   /**
    * Obtener países únicos de las monedas disponibles.
-   * Si no se proveen currencies (backend no las envía actualmente),
-   * se usa Venezuela como país por defecto.
    */
   const countries = computed(() => {
     if (props.currencies?.length) {
@@ -135,30 +135,17 @@
       return Array.from(uniqueCountries.values())
     }
 
-    // Default: Venezuela (esta página es para Pago Móvil)
     return [{ id: 1, iso_code_2: 'VE', name: 'Venezuela' }]
   })
 
-  /**
-   * País seleccionado (ISO code) — por defecto VE
-   */
   const selectedCode = ref<string>('VE')
 
-  /**
-   * País seleccionado completo
-   */
   const selectedCountry = computed(() =>
     countries.value.find((c: any) => c.iso_code_2 === selectedCode.value)
   )
 
-  /**
-   * Título dinámico
-   */
   const title = computed(() => `Directorio ${selectedCountry.value?.name || selectedCode.value}`)
 
-  /**
-   * Subtítulo dinámico por método de pago
-   */
   const subtitle = computed(() => {
     const paymentMethods: Record<string, string> = {
       VE: 'Pago Móvil',
@@ -174,34 +161,22 @@
    * Handlers
    * ========================================================================== */
 
-  /**
-   * Abrir modal en modo creación
-   */
   function handleCreate(): void {
     create()
     showModalForm.value = true
   }
 
-  /**
-   * Abrir modal en modo edición
-   */
   async function handleEdit(id: string): Promise<void> {
     await edit(id)
     showModalForm.value = true
   }
 
-  /**
-   * Cambiar estado del directorio
-   */
   async function handleToggleStatus(ids: string[]): Promise<void> {
     for (const id of ids) {
       await changeStatus(id)
     }
   }
 
-  /**
-   * Eliminar directorio
-   */
   async function handleDelete(ids: string[]): Promise<void> {
     for (const id of ids) {
       await remove(id)
@@ -209,11 +184,15 @@
   }
 
   /**
-   * Cambio de país
+   * Cambio de país: recarga bancos, documentTypes y directorios desde el backend
    */
-  function onTabChange(code: string): void {
+  async function onTabChange(code: string): Promise<void> {
     selectedCode.value = code
-    // Aquí puedes filtrar por país o recargar desde API
+    const ctx = await fetchContext(code)
+    if (ctx) {
+      localBanks.value = ctx.banks ?? []
+      localDocumentTypes.value = ctx.documentTypes ?? []
+    }
   }
 </script>
 
@@ -295,8 +274,9 @@
     <DirectoryForm
       ref="directoryFormRef"
       v-model="directoryData"
-      :banks="props.banks"
-      :documentTypes="props.documentTypes"
+      :banks="localBanks"
+      :documentTypes="localDocumentTypes"
+      :countryCode="selectedCode"
     />
   </Modal>
 </template>

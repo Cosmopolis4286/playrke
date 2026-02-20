@@ -37,7 +37,7 @@ class DirectoryController extends Controller
     }
 
     /**
-     * Muestra los directorios usando Inertia.
+     * Muestra los directorios usando Inertia (carga inicial con VE por defecto).
      *
      * @param Request $request
      * @return Response
@@ -46,7 +46,8 @@ class DirectoryController extends Controller
     {
         return $this->handleServiceInertia(
             function () use ($request) {
-                $response = $this->service->context($this->resolveToken($request));
+                $countryCode = strtoupper($request->get('country', 'VE'));
+                $response = $this->service->context($this->resolveToken($request), $countryCode);
 
                 return Inertia::render('Directory/Index', $response);
             },
@@ -55,7 +56,7 @@ class DirectoryController extends Controller
     }
 
     /**
-     * Endpoint para obtener los directorios según el pais.
+     * Endpoint para obtener los directorios según el país.
      *
      * @param Request $request
      * @return JsonResponse
@@ -64,12 +65,34 @@ class DirectoryController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($request) {
+                $countryCode = strtoupper($request->get('country', 'VE'));
 
-                $data = $this->service->getAll($this->resolveToken($request));
+                $data = $this->service->getAll($this->resolveToken($request), $countryCode);
 
                 return ['data' => $data];
             },
             'No se pudo cargar la lista de directorios.'
+        );
+    }
+
+    /**
+     * Endpoint AJAX para obtener bancos + documentTypes + directorios según el país.
+     * Usado al cambiar de tab en el frontend.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function fetchContext(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request) {
+                $countryCode = strtoupper($request->get('country', 'VE'));
+
+                $data = $this->service->getContextByCountry($this->resolveToken($request), $countryCode);
+
+                return ['data' => $data];
+            },
+            'No se pudo cargar el contexto del directorio.'
         );
     }
 

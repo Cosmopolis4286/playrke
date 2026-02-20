@@ -1,7 +1,7 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
-import type { DirectoryVEN, DirectoryTableData } from '@/js/types/directory/directory-ven'
+import type { DirectoryVEN, DirectoryTableData, DirectoryContext } from '@/js/types/directory/directory-ven'
 
 /**
  * Contrato público del composable useDirectory
@@ -12,6 +12,9 @@ interface UseDirectoryReturn {
 
     /** Datos de tabla (columns + rows) */
     directories: Ref<DirectoryTableData>
+
+    /** País actualmente seleccionado */
+    activeCountry: Ref<string>
 
     /** Inicializa la lista local */
     setInitialDirectories: (initialData: DirectoryTableData) => void
@@ -34,12 +37,15 @@ interface UseDirectoryReturn {
     /** Eliminación */
     remove: (id: string) => Promise<boolean>
 
-    /** Fetch desde backend */
-    fetchDirectories: () => Promise<boolean>
+    /** Fetch lista desde backend (por país) */
+    fetchDirectories: (countryCode?: string) => Promise<boolean>
+
+    /** Fetch contexto completo (bancos + documentTypes + directorios) por país */
+    fetchContext: (countryCode: string) => Promise<DirectoryContext | null>
 }
 
 /**
- * Factory para un directorio vacío (Pago Móvil)
+ * Factory para un directorio vacío (Pago Móvil VE)
  */
 const emptyDirectory = (): Partial<DirectoryVEN> =>
     Object.freeze({
@@ -59,18 +65,22 @@ const emptyTableData = (): DirectoryTableData => ({
 })
 
 /**
- * Composable para manejar directorios
+ * Composable para manejar directorios multi-país
  *
  * Responsabilidades:
  * - Control del estado del formulario (create / edit / reset)
  * - Envío de datos (POST / PUT)
  * - Gestión local de la lista
+ * - Carga dinámica de contexto al cambiar de país
  *
  * ⚠️ No controla UI directamente
  */
 export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
     /** Estado de carga global */
     const loading = ref(false)
+
+    /** País actualmente activo */
+    const activeCountry = ref<string>('VE')
 
     /** Estado único del formulario */
     const directoryData = ref<Partial<DirectoryVEN>>(emptyDirectory())
@@ -94,15 +104,15 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
     }
 
     /**
-     * Obtiene la lista desde backend
+     * Obtiene la lista de directorios desde backend para un país dado
      */
-    async function fetchDirectories(): Promise<boolean> {
+    async function fetchDirectories(countryCode: string = activeCountry.value): Promise<boolean> {
         try {
             loading.value = true
 
             const response = await backendClient.get<{ data: DirectoryTableData }>(
                 '/admin/directory/fetch-list',
-                { params: { token: tokenId } }
+                { params: { token: tokenId, country: countryCode } }
             )
 
             const data = response.data?.data
@@ -118,6 +128,36 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
             console.error(error)
             showToast('Error al cargar los directorios', 'error')
             return false
+        } finally {
+            loading.value = false
+        }
+    }
+
+    /**
+     * Obtiene el contexto completo (bancos + documentTypes + directorios) para un país.
+     * Usado al cambiar de tab.
+     */
+    async function fetchContext(countryCode: string): Promise<DirectoryContext | null> {
+        try {
+            loading.value = true
+            activeCountry.value = countryCode
+
+            const response = await backendClient.get<{ data: DirectoryContext }>(
+                '/admin/directory/fetch-context',
+                { params: { token: tokenId, country: countryCode } }
+            )
+
+            const data = response.data?.data
+            if (data) {
+                setInitialDirectories(data.directories)
+                return data
+            }
+
+            return null
+        } catch (error) {
+            console.error(error)
+            showToast('Error al cargar el directorio del país', 'error')
+            return null
         } finally {
             loading.value = false
         }
@@ -256,6 +296,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
     return {
         directoryData,
         directories,
+        activeCountry,
         setInitialDirectories,
         submit,
         create,
@@ -263,6 +304,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         reset,
         changeStatus,
         remove,
-        fetchDirectories
+        fetchDirectories,
+        fetchContext
     }
 }

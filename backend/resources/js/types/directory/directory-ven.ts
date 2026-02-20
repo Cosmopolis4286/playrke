@@ -21,6 +21,21 @@ export interface DirectoryVEN {
 }
 
 /**
+ * Directorio PIX (Brasil)
+ */
+export interface DirectoryBR {
+    readonly id: string
+    readonly name: string
+    readonly bank_id: string
+    readonly bank: { id: string; name: string }
+    readonly pix_key_type: string
+    readonly pix_key_value: string
+    readonly formatted_key?: string
+    readonly created_at?: string
+    readonly updated_at?: string
+}
+
+/**
  * Estructura de tabla para directorios (columns + rows)
  */
 export interface DirectoryTableData {
@@ -29,11 +44,20 @@ export interface DirectoryTableData {
 }
 
 /**
+ * Contexto dinámico devuelto por el endpoint fetch-context al cambiar de tab
+ */
+export interface DirectoryContext {
+    banks: any[]
+    documentTypes: any[]
+    directories: DirectoryTableData
+}
+
+/**
  * Props de la página de directorio
  */
 export interface DirectoryVENPageProps {
-    banks: BanksVEN[]
-    documentTypes: DocumentType[]
+    banks: any[]
+    documentTypes: any[]
     directories: DirectoryTableData
     currencies?: Currency[]
     tokenId?: string

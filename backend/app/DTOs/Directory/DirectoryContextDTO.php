@@ -12,11 +12,12 @@ use App\DTOs\ContextDTO;
 final class DirectoryContextDTO implements ContextDTO
 {
     /**
-     * @param mixed        $banks          Lista de bancos venezolanos.
+     * @param mixed        $banks          Lista de bancos (venezolanos o brasileños según país).
      * @param mixed        $directories    Lista de directorios del usuario.
      * @param mixed        $documentTypes  Lista de tipos de documento.
      * @param string|null  $tokenId        Token de usuario conectado por API (opcional).
      * @param string       $roleUser       Rol del usuario (ej. 'commerce', 'customer').
+     * @param mixed        $currencies     Monedas disponibles con información de país.
      */
     public function __construct(
         public readonly mixed $banks = [],
@@ -24,6 +25,7 @@ final class DirectoryContextDTO implements ContextDTO
         public readonly mixed $documentTypes = [],
         public readonly string $roleUser,
         public readonly ?string $tokenId = null,
+        public readonly mixed $currencies = [],
     ) {}
 
     /**
@@ -39,6 +41,7 @@ final class DirectoryContextDTO implements ContextDTO
             'documentTypes' => $this->documentTypes,
             'roleUser'      => $this->roleUser,
             'tokenId'       => $this->tokenId,
+            'currencies'    => $this->currencies,
         ];
     }
 }

@@ -5,8 +5,11 @@ namespace App\Services\Directory;
 use App\Contracts\CountryRepositoryInterface;
 use App\Contracts\Shared\DocumentTypeRepositoryInterface;
 use App\DTOs\Directory\DirectoryContextDTO;
+use App\Models\Banks\BankBrazil;
 use App\Models\Banks\BankVenezuela;
+use App\Repositories\Directories\Fiat\Brazil\PixKeyRepository;
 use App\Repositories\Directories\Fiat\Venezuela\PagoMovilRepository;
+use App\Services\Currency\CurrencyService;
 use App\Services\Roles\RoleUserService;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
@@ -17,7 +20,7 @@ use Illuminate\Database\Eloquent\Collection;
  *
  * Responsabilidades:
  * - Resolver usuario y rol activo
- * - Cargar datos necesarios para la vista
+ * - Cargar datos necesarios para la vista según el país seleccionado
  * - Construir data normalizada para tablas Inertia
  *
  * No contiene lógica de dominio.
@@ -27,9 +30,9 @@ final class DirectoryContextService
     use HashedTableDataTrait;
 
     /**
-     * Labels visibles de columnas para tabla.
+     * Columnas y keys para Venezuela (Pago Móvil).
      */
-    private const DIRECTORY_COLUMNS = [
+    private const VE_COLUMNS = [
         'Titular',
         'Documento',
         'Teléfono',
@@ -37,10 +40,7 @@ final class DirectoryContextService
         'Status',
     ];
 
-    /**
-     * Keys fuente para mapear valores desde el modelo.
-     */
-    private const DIRECTORY_ROW_KEYS = [
+    private const VE_ROW_KEYS = [
         'holder_name',
         'document',
         'phone',
@@ -48,12 +48,32 @@ final class DirectoryContextService
         'status_badge',
     ];
 
+    /**
+     * Columnas y keys para Brasil (PIX).
+     */
+    private const BR_COLUMNS = [
+        'Nombre',
+        'Tipo PIX',
+        'Clave PIX',
+        'Banco',
+    ];
+
+    private const BR_ROW_KEYS = [
+        'name',
+        'pix_key_type',
+        'pix_key_value',
+        'Bank.name',
+    ];
+
     public function __construct(
         private readonly RoleUserService $roleUserService,
         private readonly BankVenezuela $bankVenezuela,
+        private readonly BankBrazil $bankBrazil,
         private readonly DocumentTypeRepositoryInterface $documentTypeRepository,
         private readonly PagoMovilRepository $directoryRepository,
-        private readonly CountryRepositoryInterface $countryRepository
+        private readonly PixKeyRepository $pixKeyRepository,
+        private readonly CountryRepositoryInterface $countryRepository,
+        private readonly CurrencyService $currencyService,
     ) {}
 
     /**
@@ -73,56 +93,127 @@ final class DirectoryContextService
         $country = $this->countryRepository
             ->findByIsoCode2($countryCode, ['id', 'name', 'iso_code_2']);
 
+        $currencies = $this->currencyService->getAvailableCurrencies(
+            $userId,
+            withCurrency: true,
+            withCountry: true
+        );
+
         return new DirectoryContextDTO(
-            banks: $this->getBanks(),
-            directories: $this->getDirectoriesTableData($userId),
-            documentTypes: $country
+            banks: $this->getBanksByCountry($countryCode),
+            directories: $this->getDirectoriesTableData($userId, $countryCode),
+            documentTypes: ($country && $countryCode === 'VE')
                 ? $this->documentTypeRepository->getActiveByCountry((int) $country->id)
                 : collect(),
             roleUser: $role,
+            currencies: $currencies,
         );
     }
 
     /**
-     * Obtiene directorios del usuario listos para tabla Inertia.
+     * Obtiene directorios del usuario listos para tabla Inertia según el país.
      *
      * @param int $userId ID del usuario
+     * @param string $countryCode Código ISO2 del país (por defecto VE)
      *
      * @return array
      */
-    public function getAll(int $userId): array
+    public function getAll(int $userId, string $countryCode = 'VE'): array
     {
-        return $this->getDirectoriesTableData($userId);
+        return $this->getDirectoriesTableData($userId, $countryCode);
     }
 
     /**
-     * Construye el contexto de tabla para directorios:
+     * Retorna el contexto completo (bancos + documentTypes + directorios) para un país.
+     * Usado por el endpoint AJAX al cambiar de tab.
+     *
+     * @param int $userId
+     * @param string $countryCode
+     * @return array
+     */
+    public function getContextByCountry(int $userId, string $countryCode): array
+    {
+        $country = $this->countryRepository
+            ->findByIsoCode2($countryCode, ['id', 'name', 'iso_code_2']);
+
+        return [
+            'banks'         => $this->getBanksByCountry($countryCode),
+            'documentTypes' => ($country && $countryCode === 'VE')
+                ? $this->documentTypeRepository->getActiveByCountry((int) $country->id)
+                : collect(),
+            'directories'   => $this->getDirectoriesTableData($userId, $countryCode),
+        ];
+    }
+
+    /**
+     * Construye el contexto de tabla para directorios según el país:
      * - IDs hasheados
      * - Keys normalizadas
      * - Columnas para frontend
      *
      * @param int $userId ID del usuario
+     * @param string $countryCode Código ISO2 del país
      *
      * @return array
      */
-    private function getDirectoriesTableData(int $userId): array
+    private function getDirectoriesTableData(int $userId, string $countryCode = 'VE'): array
+    {
+        if ($countryCode === 'BR') {
+            return $this->getPixKeysTableData($userId);
+        }
+
+        return $this->getPagoMovilTableData($userId);
+    }
+
+    /**
+     * Obtiene datos de tabla para Pago Móvil (Venezuela).
+     *
+     * @param int $userId
+     * @return array
+     */
+    private function getPagoMovilTableData(int $userId): array
     {
         $directories = $this->directoryRepository->getByUser($userId);
 
         return $this->processCollectionTableData(
             $directories,
-            self::DIRECTORY_COLUMNS,
-            self::DIRECTORY_ROW_KEYS
+            self::VE_COLUMNS,
+            self::VE_ROW_KEYS
         );
     }
 
     /**
-     * Obtiene bancos venezolanos ordenados.
+     * Obtiene datos de tabla para PIX (Brasil).
      *
+     * @param int $userId
+     * @return array
+     */
+    private function getPixKeysTableData(int $userId): array
+    {
+        $pixKeys = $this->pixKeyRepository->getByUser((string) $userId);
+
+        return $this->processCollectionTableData(
+            $pixKeys,
+            self::BR_COLUMNS,
+            self::BR_ROW_KEYS
+        );
+    }
+
+    /**
+     * Obtiene bancos según el país.
+     *
+     * @param string $countryCode
      * @return Collection
      */
-    private function getBanks(): Collection
+    private function getBanksByCountry(string $countryCode): Collection
     {
+        if ($countryCode === 'BR') {
+            return $this->bankBrazil
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get();
+        }
+
         return $this->bankVenezuela
             ->select('id', 'name', 'code')
             ->orderBy('name')

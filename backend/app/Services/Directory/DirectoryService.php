@@ -31,30 +31,49 @@ final class DirectoryService
      * Obtener contexto para el directorio de acuerdo al codigo ISO.
      *
      * @param string|null $publicToken Token público opcional
+     * @param string $countryCode Código ISO2 del país (por defecto VE)
      * @return array Contexto listo para la vista
      *
      * @throws DomainException Si no se puede resolver el usuario o falla la obtención del contexto
      */
-    public function context(?string $publicToken = null): array
+    public function context(?string $publicToken = null, string $countryCode = 'VE'): array
     {
         $userId = $this->userContext->resolveUserId($publicToken);
 
-        return $this->context->resolve($userId)->toView();
+        return $this->context->resolve($userId, $countryCode)->toView();
     }
 
     /**
-     * Obtiene todos los registros de directorio del usuario.
+     * Obtiene todos los registros de directorio del usuario según el país.
      *
      * @param string|null $publicToken Token público opcional
+     * @param string $countryCode Código ISO2 del país (por defecto VE)
      * @return array Listado de directorios
      *
      * @throws DomainException Si no se puede resolver el usuario o falla la obtención de los regitros.
      */
-    public function getAll(?string $publicToken = null): array
+    public function getAll(?string $publicToken = null, string $countryCode = 'VE'): array
     {
         $userId = $this->userContext->resolveUserId($publicToken);
 
-        return $this->context->getAll($userId);
+        return $this->context->getAll($userId, $countryCode);
+    }
+
+    /**
+     * Obtiene el contexto completo (bancos + documentTypes + directorios) para un país.
+     * Usado por el endpoint AJAX al cambiar de tab.
+     *
+     * @param string|null $publicToken Token público opcional
+     * @param string $countryCode Código ISO2 del país
+     * @return array
+     *
+     * @throws DomainException
+     */
+    public function getContextByCountry(?string $publicToken = null, string $countryCode = 'VE'): array
+    {
+        $userId = $this->userContext->resolveUserId($publicToken);
+
+        return $this->context->getContextByCountry($userId, $countryCode);
     }
 
     /**
