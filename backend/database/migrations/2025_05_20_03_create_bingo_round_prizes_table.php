@@ -27,7 +27,7 @@ return new class extends Migration
 
             $table->decimal('prize_value', 15, 6)->nullable()->comment('Valor del premio');
 
-            $table->string();
+            $table->string('prize_description', 60);
 
             $table->timestamps();
 
