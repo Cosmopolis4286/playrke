@@ -31,7 +31,7 @@ class PixKeyRepository extends BaseRepository implements PixKeyRepositoryInterfa
      */
     public function getByUser(string $userId): Collection
     {
-        return $this->model->where('user_id', $userId)->get();
+        return $this->model->with('bank')->where('user_id', $userId)->get();
     }
 
     /**

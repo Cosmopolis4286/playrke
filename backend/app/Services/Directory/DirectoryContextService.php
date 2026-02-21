@@ -52,7 +52,7 @@ final class DirectoryContextService
      * Columnas y keys para Brasil (PIX).
      */
     private const BR_COLUMNS = [
-        'Nombre',
+        'Titular',
         'Tipo PIX',
         'Clave PIX',
         'Banco',
