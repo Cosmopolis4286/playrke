@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Bingo\Images\Contracts;
+namespace App\Repositories\Bingo\Image\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Bingo\Images\BingoImage;
+use App\Models\Bingo\Image\BingoImage;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos que debe implementar el repositorio para gestionar
  * las imágenes utilizadas en el sistema de bingo.
  *
- * @package App\Repositories\Bingo\Images\Contracts
+ * @package App\Repositories\Bingo\Image\Contracts
  * @author Sistema PlayRKE
  * @version 1.0
  */

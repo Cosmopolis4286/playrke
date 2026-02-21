@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Bingo\Draws;
+namespace App\Repositories\Bingo\Draw;
 
-use App\Models\Bingo\Draws\BingoDraw;
+use App\Models\Bingo\Draw\BingoDraw;
 use App\Repositories\BaseRepository;
-use App\Repositories\Bingo\Draws\Contracts\BingoDrawRepositoryContract;
+use App\Repositories\Bingo\Draw\Contracts\BingoDrawRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
  * Implementa todas las operaciones de consulta y manipulación de datos
  * para los sorteos de bolillas/chips en las salas de bingo.
  *
- * @package App\Repositories\Bingo\Draws
+ * @package App\Repositories\Bingo\Draw
  * @author Sistema PlayRKE
  * @version 1.0
  */

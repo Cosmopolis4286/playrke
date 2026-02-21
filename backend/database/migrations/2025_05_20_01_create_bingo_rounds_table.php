@@ -20,12 +20,12 @@ return new class extends Migration
             $table->timestamp('start_time')->nullable()->comment('Inicio de la ronda');
             $table->char('last_chip', 2)->nullable()->comment('Última ficha jugada');
 
-            $table->enum('prize_type', ['PCT', 'USD', 'OTHER'])->comment('Tipo de premio');
+            $table->enum('prize_type', ['PCT', 'FIXED', 'OTHER'])->comment('Tipo de premio');
+
             $table->foreignSnowflake('bingo_pattern_id')
                 ->constrained('bingo_patterns')
                 ->cascadeOnDelete();
 
-            $table->decimal('prize_value', 15, 6)->nullable()->comment('Valor del premio');
             $table->enum('status', ['ACTIVE', 'IN_PROGRESS', 'FINISHED'])
                 ->default('ACTIVE')
                 ->index();

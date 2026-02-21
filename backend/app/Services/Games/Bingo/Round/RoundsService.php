@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Games\Bingo\Rounds;
+namespace App\Services\Games\Bingo\Round;
 
 use App\Models\{BingoRound, BingoRoundDraft};
 use App\Enums\Games\Bingo\RoundStatus;

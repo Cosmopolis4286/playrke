@@ -5,7 +5,7 @@ namespace App\Services\Games\Bingo;
 use App\Models\BingoRoomAutomatic;
 use App\Services\Games\Bingo\Cards\CartonPriceService;
 use App\Services\Games\Bingo\Rooms\RoomConfigService;
-use App\Services\Games\Bingo\Rounds\RoundsService;
+use App\Services\Games\Bingo\Round\RoundsService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;

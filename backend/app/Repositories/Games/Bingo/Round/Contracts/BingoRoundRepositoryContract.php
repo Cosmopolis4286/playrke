@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Bingo\Rounds\Contracts;
+namespace App\Repositories\Bingo\Round\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Bingo\Rounds\BingoRound;
+use App\Models\Bingo\Round\BingoRound;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

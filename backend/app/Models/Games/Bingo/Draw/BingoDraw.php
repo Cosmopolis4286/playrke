@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Models\Games\Bingo\Draws;
+namespace App\Models\Games\Bingo\Draw;
 
-use App\Models\Games\Bingo\Draws\BingoDrawCode;
+use App\Models\Games\Bingo\Draw\BingoDrawCode;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa los sorteos de bolillas/chips en las salas de bingo.
  * Incluye información sobre el chip sorteado, código, sala, ronda y estado.
  *
- * @package App\Models\Bingo\Draws
+ * @package App\Models\Bingo\Draw
  * @author Sistema PlayRKE
  * @version 1.0
  *

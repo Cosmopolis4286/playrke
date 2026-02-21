@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Draws;
+namespace App\Models\Games\Bingo\Draw;
 
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Traits\SnowflakeId;
@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa los códigos de identificación de sorteos de bingo.
  * Incluye número y símbolo asociado a cada sala de bingo.
  *
- * @package App\Models\Bingo\Draws
+ * @package App\Models\Bingo\Draw
  * @author Sistema PlayRKE
  * @version 1.0
  *

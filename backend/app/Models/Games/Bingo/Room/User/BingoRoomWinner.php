@@ -3,7 +3,7 @@
 namespace App\Models\Games\Bingo\Room\User;
 
 use App\Models\Games\Bingo\Room\BingoRoom;
-use App\Models\Bingo\Rounds\BingoRound;
+use App\Models\Bingo\Round\BingoRound;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
