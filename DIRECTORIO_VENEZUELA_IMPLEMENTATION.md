@@ -147,11 +147,11 @@ npm run build
 | Método | Ruta | Descripción |
 |--------|------|-------------|
 | GET | `/directory/{countryCode?}` | Vista principal (Inertia) |
-| GET | `/admin/directory/fetch-list` | Listar directorios del usuario |
-| GET | `/admin/directory/{id}` | Obtener un directorio |
-| POST | `/admin/directory` | Crear directorio |
-| PUT | `/admin/directory/{id}` | Actualizar directorio |
-| DELETE | `/admin/directory/{id}/delete` | Eliminar directorio (soft) |
+| GET | `/directory/fetch-list` | Listar directorios del usuario |
+| GET | `/directory/{id}` | Obtener un directorio |
+| POST | `/directory` | Crear directorio |
+| PUT | `/directory/{id}` | Actualizar directorio |
+| DELETE | `/directory/{id}/delete` | Eliminar directorio (soft) |
 
 ---
 

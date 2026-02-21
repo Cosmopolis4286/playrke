@@ -64,32 +64,25 @@ class CurrencyService
     }
 
     /**
-     * Obtiene las monedas del comercio con su level del pivot incluido.
-     * Retorna una Collection de Currency con el atributo `level` añadido.
-     * Solo disponible para el rol 'commerce'.
+     * Obtiene las monedas disponibles con su level del pivot incluido.
+     * Soporta los roles 'commerce' y 'seller'.
+     * Siempre retorna Eloquent\Collection (vacía si no aplica).
      *
      * @param int $userId ID del usuario.
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @return Collection
      */
-    public function getAvailableCurrenciesWithLevel(int $userId): \Illuminate\Database\Eloquent\Collection
+    public function getAvailableCurrenciesWithLevel(int $userId): Collection
     {
         $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if ($userRolePrefix !== 'commerce') {
-            return collect();
-        }
-
-        $commerceId = $this->commerceRepository->getValueByUserId($userId, 'id');
-
-        if (!$commerceId) {
-            return collect();
-        }
-
-        // currency_id => level (mínimo por moneda)
-        $levelMap = $this->commerceCurrencyService->getAvailableCurrenciesWithLevel($commerceId);
+        $levelMap = match ($userRolePrefix) {
+            'commerce' => $this->getLevelMapForCommerce($userId),
+            'seller'   => $this->getLevelMapForSeller($userId),
+            default    => [],
+        };
 
         if (empty($levelMap)) {
-            return collect();
+            return new Collection();
         }
 
         $currencies = $this->currencyRepository->getByIdsWithRelations(
@@ -97,12 +90,54 @@ class CurrencyService
             array_keys($levelMap)
         );
 
-        // Inyectar level en cada modelo como atributo dinámico
         $currencies->each(function ($currency) use ($levelMap) {
             $currency->level = $levelMap[$currency->id] ?? 99;
         });
 
         return $currencies;
+    }
+
+    /**
+     * Retorna el mapa currency_id => level para un comercio.
+     *
+     * @param int $userId
+     * @return array<string, int>
+     */
+    private function getLevelMapForCommerce(int $userId): array
+    {
+        $commerceId = $this->commerceRepository->getValueByUserId($userId, 'id');
+
+        if (!$commerceId) {
+            return [];
+        }
+
+        return $this->commerceCurrencyService->getAvailableCurrenciesWithLevel($commerceId);
+    }
+
+    /**
+     * Retorna el mapa currency_id => level para un seller
+     * usando la relación sellers_currencies (status ACTIVE, MIN level).
+     *
+     * @param int $userId
+     * @return array<string, int>
+     */
+    private function getLevelMapForSeller(int $userId): array
+    {
+        $sellerId = $this->sellerRepository->getByUserId((string) $userId)?->id;
+
+        if (!$sellerId) {
+            return [];
+        }
+
+        return \Illuminate\Support\Facades\DB::table('sellers_currencies')
+            ->select('currency_id', \Illuminate\Support\Facades\DB::raw('MIN(level) as level'))
+            ->where('seller_id', $sellerId)
+            ->where('status', 'ACTIVE')
+            ->groupBy('currency_id')
+            ->get()
+            ->pluck('level', 'currency_id')
+            ->map(fn($level) => (int) $level)
+            ->all();
     }
 
     /**

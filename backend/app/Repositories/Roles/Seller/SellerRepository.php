@@ -47,7 +47,7 @@ class SellerRepository extends BaseRepository implements SellerRepositoryInterfa
      */
     public function getByUserId(string $userId): ?Seller
     {
-        return $this->model->where('user', $userId)->first();
+        return $this->model->where('user_id', $userId)->first();
     }
 
     /**

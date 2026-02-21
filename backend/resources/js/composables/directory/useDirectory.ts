@@ -111,7 +111,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
             loading.value = true
 
             const response = await backendClient.get<{ data: DirectoryTableData }>(
-                '/admin/directory/fetch-list',
+                '/directory/fetch-list',
                 { params: { token: tokenId, country: countryCode } }
             )
 
@@ -143,7 +143,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
             activeCountry.value = countryCode
 
             const response = await backendClient.get<{ data: DirectoryContext }>(
-                '/admin/directory/fetch-context',
+                '/directory/fetch-context',
                 { params: { token: tokenId, country: countryCode } }
             )
 
@@ -174,13 +174,13 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
 
             if (directoryData.value.id) {
                 const { data } = await backendClient.put(
-                    `/admin/directory/${directoryData.value.id}`,
+                    `/directory/${directoryData.value.id}/update`,
                     directoryData.value
                 )
                 showToast(data.message, 'success')
             } else {
                 const { data } = await backendClient.post(
-                    '/admin/directory',
+                    '/directory',
                     directoryData.value
                 )
                 showToast(data.message, 'success')
@@ -218,7 +218,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
             loading.value = true
 
             const { data } = await backendClient.get<{ data: DirectoryVEN }>(
-                `/admin/directory/${id}`
+                `/directory/${id}/show`
             )
 
             directoryData.value = {
@@ -260,7 +260,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/admin/directory/${id}/status`)
+            await backendClient.put(`/directory/${id}/status`)
             showToast('Estado cambiado con éxito', 'success')
             await fetchDirectories()
             return true
@@ -283,7 +283,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/admin/directory/${id}/delete`)
+            await backendClient.put(`/directory/${id}/delete`)
             showToast('Directorio eliminado con éxito', 'success')
             await fetchDirectories()
             return true

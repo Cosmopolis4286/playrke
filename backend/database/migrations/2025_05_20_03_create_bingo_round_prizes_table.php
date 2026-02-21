@@ -30,9 +30,6 @@ return new class extends Migration
             $table->string('prize_description', 60);
 
             $table->timestamps();
-
-            // Índice compuesto útil para evitar duplicados de ronda por sala
-            $table->unique(['room_id', 'round'], 'unique_round_per_room');
         });
     }
 
