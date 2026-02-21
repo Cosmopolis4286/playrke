@@ -4,11 +4,15 @@
   // Components
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+  import Modal from '@/js/Components/Common/Modal/Modal.vue'
+  import ItemSearchPicker from '@/js/Components/Common/Form/ItemSearchPicker.vue'
   // Composables
   import { useBingoRoomForm } from '@/js/composables/games/bingo/room/useBingoRoomForm'
+  import backendClient from '@/js/plugins/axios'
 
   // Types
   import type { BingoRoomFormData, RoundConfig } from '@/js/types/games/bingo/room/bingo-room'
+  import type { PrizeSearchResult } from '@/js/types/prizes/prize'
 
   /* ==========================================================================
    * Opción genérica para selects
@@ -66,6 +70,12 @@
 
   const cardPriceByCurrencyActive = ref(false)
   const roundsConfigActive = ref(false)
+
+  // Modal P/S: índice de la ronda que está seleccionando prize
+  const prizeModalRoundIndex = ref<number | null>(null)
+  const showPrizeModal = ref(false)
+  // Buffer temporal de selección en el modal (máximo 1 item)
+  const prizeModalSelected = ref<PrizeSearchResult[]>([])
 
   /* ==========================================================================
    * Computed
@@ -373,6 +383,43 @@
   function getRoundCurrencyError(index: number, currency: string | number): string | undefined {
     const err = errors.value.roundsConfig as Record<string, string> | undefined
     return err?.[`${index}_prizeValue_${String(currency)}`]
+  }
+
+  /* ==========================================================================
+   * Modal P/S — selección de prize para ronda
+   * ========================================================================== */
+
+  async function searchPrizes(q: string): Promise<PrizeSearchResult[]> {
+    const { data } = await backendClient.get<{ data: PrizeSearchResult[] }>('/prizes/search', {
+      params: { q }
+    })
+    return data.data ?? []
+  }
+
+  function openPrizeModal(index: number) {
+    prizeModalRoundIndex.value = index
+    const current = form.value.roundsConfig?.[index]
+    // Pre-cargar el prize ya seleccionado si existe
+    prizeModalSelected.value = current?.prizeId
+      ? [{ id: current.prizeId, name: current.prizeName ?? '', code: '', price: 0 }]
+      : []
+    showPrizeModal.value = true
+  }
+
+  function confirmPrizeSelection(): boolean {
+    const idx = prizeModalRoundIndex.value
+    if (idx === null) return false
+    const selected = prizeModalSelected.value[0] ?? null
+    const configs = [...(form.value.roundsConfig ?? [])]
+    configs[idx] = {
+      ...configs[idx],
+      prizeId: selected ? selected.id : null,
+      prizeName: selected ? selected.name : null,
+      prizeValue: selected ? selected.price : null,
+    }
+    form.value = { ...form.value, roundsConfig: configs }
+    prizeModalRoundIndex.value = null
+    return true
   }
 
   /* ==========================================================================
@@ -766,7 +813,7 @@
                         ($event.target as HTMLSelectElement).value as any
                       )
                     "
-                    style="flex: 1 0 70px"
+                    style="flex: 0 0 58px; min-width: 0; padding-left: 0.3rem; padding-right: 0.1rem"
                   >
                     <option
                       v-for="opt in roundPrizeTypeOptions"
@@ -793,12 +840,12 @@
                     inputGroupClass="input-group-sm"
                     :modelValue="round.bingoPattern"
                     @update:modelValue="updateRoundConfig(index, 'bingoPattern', $event)"
-                    style="flex: 1 1 auto; min-width: 130px; margin-bottom: 0"
+                    style="flex: 1 1 auto; min-width: 110px; margin-bottom: 0"
                   />
 
-                  <!-- Valor del premio ronda (% o prize) -->
+                  <!-- Valor % -->
                   <input
-                    v-if="round.prizeType !== 'fixed'"
+                    v-if="round.prizeType === 'percentage'"
                     :name="`rounds_prize_value[${index}]`"
                     type="number"
                     :class="[
@@ -806,23 +853,33 @@
                       {
                         'is-invalid':
                           !!getRoundFieldError(index, 'prizeValue') ||
-                          (!isRoundValuesValid && totalRoundValues > 0 && round.prizeType === 'percentage')
+                          (!isRoundValuesValid && totalRoundValues > 0)
                       }
                     ]"
-                    placeholder="Valor"
+                    placeholder="%"
                     :value="round.prizeValue"
-                    @change="
-                      updateRoundConfig(
-                        index,
-                        'prizeValue',
-                        ($event.target as HTMLInputElement).value
-                      )
-                    "
+                    @change="updateRoundConfig(index, 'prizeValue', ($event.target as HTMLInputElement).value)"
                     step="0.5"
                     min="0"
                     :max="getRoundMaxValue(index)"
-                    style="flex: 0 0 100px"
+                    style="flex: 0 0 72px"
                   />
+
+                  <!-- Botón P/S: abre modal de selección de prize -->
+                  <button
+                    v-else-if="round.prizeType === 'prize'"
+                    type="button"
+                    :class="[
+                      'btn btn-sm',
+                      round.prizeId ? 'btn-success' : (getRoundFieldError(index, 'prizeValue') ? 'btn-danger' : 'btn-outline-secondary')
+                    ]"
+                    style="flex: 1 1 auto; min-width: 80px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem"
+                    @click="openPrizeModal(index)"
+                    :title="round.prizeName ?? 'Seleccionar premio'"
+                  >
+                    <i class="fa-solid fa-gift" style="font-size: 0.7rem"></i>
+                    {{ round.prizeName ? round.prizeName : 'Seleccionar' }}
+                  </button>
                 </div>
 
                 <!-- Valores fijos por moneda (solo cuando prizeType === 'fixed') -->
@@ -901,4 +958,40 @@
       />
     </div>
   </form>
+
+  <!-- Modal selección de premio (P/S) -->
+  <Modal
+    v-model="showPrizeModal"
+    title="Seleccionar Premio"
+    size="sm"
+    show-confirm
+    confirm-text="Confirmar"
+    :confirm-disabled="prizeModalSelected.length === 0"
+    :on-submit="confirmPrizeSelection"
+  >
+    <ItemSearchPicker
+      :modelValue="prizeModalSelected"
+      :search="searchPrizes"
+      label="Buscar premio"
+      placeholder="Nombre o código del premio..."
+      panelTitle="Premio seleccionado"
+      :minChars="2"
+      @update:modelValue="prizeModalSelected = $event.slice(-1)"
+    >
+      <template #result="{ item }">
+        <span class="r-code">{{ (item as any).code }}</span>
+        <span class="r-name">{{ item.name }}</span>
+        <span class="r-price">${{ (item as any).price }}</span>
+        <span class="r-add"><i class="fas fa-plus-circle"></i></span>
+      </template>
+      <template #chip="{ item, remove }">
+        <i class="fas fa-gift chip-icon"></i>
+        <span class="chip-name">{{ item.name }}</span>
+        <span class="chip-price">${{ (item as any).price }}</span>
+        <button type="button" class="chip-remove" @click="remove()" title="Quitar">
+          <i class="fas fa-times"></i>
+        </button>
+      </template>
+    </ItemSearchPicker>
+  </Modal>
 </template>

@@ -27,6 +27,7 @@ class BingoRound extends Model
         'bingo_pattern_id',
         'prize_type',
         'prize_value',
+        'prize_id',
         'status'
     ];
 
@@ -35,6 +36,7 @@ class BingoRound extends Model
         'round'            => 'integer',
         'start_time'       => 'datetime',
         'bingo_pattern_id' => 'string',
+        'prize_id'         => 'string',
         'prize_value'      => 'decimal:6',
     ];
 

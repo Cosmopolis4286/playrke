@@ -100,6 +100,8 @@ export interface RoundConfig {
     bingoPattern: number | string | null
     prizeValue: number | string | null
     prizeValueByCurrency?: Record<string, number | null>
+    prizeId?: number | string | null
+    prizeName?: string | null
 }
 
 /**

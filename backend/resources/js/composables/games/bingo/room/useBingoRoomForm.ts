@@ -141,6 +141,10 @@ export function useBingoRoomForm(
                         roundErrors[`${i}_prizeValue_${key}`] = `El valor para la moneda es requerido.`
                     }
                 })
+            } else if (round.prizeType === 'prize') {
+                if (!round.prizeId) {
+                    roundErrors[`${i}_prizeValue`] = `Debe seleccionar un premio.`
+                }
             } else {
                 if (round.prizeValue === null || round.prizeValue === '' || Number(round.prizeValue) <= 0) {
                     roundErrors[`${i}_prizeValue`] = `El valor es requerido.`

@@ -1,12 +1,16 @@
 <script setup lang="ts" name="PrizeForm">
   import { computed, ref, watch } from 'vue'
 
-  import FormInput  from '@/js/Components/Common/Form/FormInput.vue'
-  import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
-  import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
-  import backendClient from '@/js/plugins/axios'
+  import FormInput        from '@/js/Components/Common/Form/FormInput.vue'
+  import FormSelect       from '@/js/Components/Common/Form/FormSelect.vue'
+  import FormSwitch       from '@/js/Components/Common/Form/FormSwitch.vue'
+  import ItemSearchPicker from '@/js/Components/Common/Form/ItemSearchPicker.vue'
+  import backendClient    from '@/js/plugins/axios'
 
   import type { Prize, PrizeSearchResult } from '@/js/types/prizes/prize'
+
+  /* ref al picker para poder llamar .clear() */
+  const pickerRef = ref<{ clear: () => void } | null>(null)
 
   /* ==========================================================================
    * Props / Emits
@@ -89,62 +93,22 @@
         num_items: val ? newItems.length : 1,
         price:     val ? kitPrice.value.toFixed(2) : '',
       }
-      if (!val) {
-        searchQuery.value   = ''
-        searchResults.value = []
-      }
+      if (!val) pickerRef.value?.clear()
     }
   })
 
   /* ==========================================================================
-   * Búsqueda de prizes individuales para el kit
+   * Búsqueda de prizes individuales para el kit (delegada a ItemSearchPicker)
    * ========================================================================== */
 
-  const searchQuery   = ref('')
-  const searchResults = ref<PrizeSearchResult[]>([])
-  const searching     = ref(false)
-  let   debounceTimer: ReturnType<typeof setTimeout> | null = null
-
-  watch(searchQuery, (val) => {
-    if (debounceTimer) clearTimeout(debounceTimer)
-    if (!val.trim() || val.trim().length < 2) {
-      searchResults.value = []
-      return
-    }
-    debounceTimer = setTimeout(() => doSearch(val.trim()), 350)
-  })
-
-  async function doSearch(q: string) {
-    searching.value = true
-    try {
-      const { data } = await backendClient.get<{ data: PrizeSearchResult[] }>('/prizes/search', {
-        params: { q, exclude: form.value.id }
-      })
-      searchResults.value = (data.data ?? []).filter(
-        r => !kitIds.value.includes(String(r.id))
-      )
-    } catch {
-      searchResults.value = []
-    } finally {
-      searching.value = false
-    }
+  async function searchPrizes(q: string): Promise<PrizeSearchResult[]> {
+    const { data } = await backendClient.get<{ data: PrizeSearchResult[] }>('/prizes/search', {
+      params: { q, exclude: form.value.id }
+    })
+    return data.data ?? []
   }
 
-  function addKitItem(item: PrizeSearchResult) {
-    const updated = [...localKitItems.value, item]
-    localKitItems.value = updated
-    form.value = {
-      ...form.value,
-      kit_items: updated.map(i => String(i.id)),
-      num_items: updated.length,
-      price:     updated.reduce((s, i) => s + Number(i.price ?? 0), 0).toFixed(2),
-    }
-    searchQuery.value   = ''
-    searchResults.value = []
-  }
-
-  function removeKitItem(id: string | number) {
-    const updated = localKitItems.value.filter(i => String(i.id) !== String(id))
+  function syncKit(updated: PrizeSearchResult[]) {
     localKitItems.value = updated
     form.value = {
       ...form.value,
@@ -297,84 +261,38 @@
           <Transition name="kit-expand">
             <div v-if="isKit" class="kit-body">
 
-              <!-- Buscador -->
-              <div class="kit-search-wrapper">
-                <p class="kit-search-label">
-                  <i class="fas fa-layer-group"></i> Agregar ítems al kit
-                </p>
-                <div class="input-group input-group-sm">
-                  <span class="input-group-text">
-                    <i :class="searching ? 'fas fa-spinner fa-spin' : 'fas fa-search'" style="width:14px"></i>
+              <ItemSearchPicker
+                ref="pickerRef"
+                :modelValue="localKitItems"
+                :search="searchPrizes"
+                label="Agregar ítems al kit"
+                placeholder="Buscar por nombre o código..."
+                panelTitle="Ítems del kit"
+                :error="errors.kit_items"
+                @update:modelValue="syncKit"
+              >
+                <template #result="{ item }">
+                  <span class="r-code">{{ (item as PrizeSearchResult).code }}</span>
+                  <span class="r-name">{{ item.name }}</span>
+                  <span class="r-price">${{ (item as PrizeSearchResult).price }}</span>
+                  <span class="r-add"><i class="fas fa-plus-circle"></i></span>
+                </template>
+
+                <template #chip="{ item, remove }">
+                  <i class="fas fa-tag chip-icon"></i>
+                  <span class="chip-name">{{ item.name }}</span>
+                  <span class="chip-price">${{ Number((item as PrizeSearchResult).price).toFixed(2) }}</span>
+                  <button type="button" class="chip-remove" @click="remove" title="Quitar del kit">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </template>
+
+                <template #panel-header-right>
+                  <span class="kit-items-total">
+                    Total: <strong>${{ kitPrice.toFixed(2) }}</strong>
                   </span>
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Buscar por nombre o código..."
-                    v-model="searchQuery"
-                    autocomplete="off"
-                  />
-                </div>
-
-                <!-- Dropdown de resultados -->
-                <Transition name="dropdown">
-                  <div v-if="searchResults.length > 0" class="kit-search-results">
-                    <button
-                      v-for="result in searchResults"
-                      :key="String(result.id)"
-                      type="button"
-                      class="kit-result-item"
-                      @click="addKitItem(result)"
-                    >
-                      <span class="r-code">{{ result.code }}</span>
-                      <span class="r-name">{{ result.name }}</span>
-                      <span class="r-price">${{ result.price }}</span>
-                      <span class="r-add"><i class="fas fa-plus-circle"></i></span>
-                    </button>
-                  </div>
-                </Transition>
-
-                <small v-if="errors.kit_items" class="text-danger d-block mt-1">
-                  <i class="fas fa-exclamation-circle"></i> {{ errors.kit_items }}
-                </small>
-              </div>
-
-              <!-- Panel de ítems seleccionados (solo si hay alguno) -->
-              <Transition name="slide-fade">
-                <div v-if="localKitItems.length > 0" class="kit-items-panel">
-                  <div class="kit-items-header">
-                    <span class="kit-items-title">
-                      <i class="fas fa-boxes"></i> Ítems del kit
-                    </span>
-                    <div class="kit-items-header-right">
-                      <span class="kit-items-count">
-                        {{ localKitItems.length }} ítem{{ localKitItems.length !== 1 ? 's' : '' }}
-                      </span>
-                      <span class="kit-items-total">
-                        Total: <strong>${{ kitPrice.toFixed(2) }}</strong>
-                      </span>
-                    </div>
-                  </div>
-                  <TransitionGroup name="kit-chip" tag="div" class="kit-chips">
-                    <span
-                      v-for="item in localKitItems"
-                      :key="String(item.id)"
-                      class="kit-chip"
-                    >
-                      <i class="fas fa-tag chip-icon"></i>
-                      <span class="chip-name">{{ item.name }}</span>
-                      <span class="chip-price">${{ Number(item.price).toFixed(2) }}</span>
-                      <button
-                        type="button"
-                        class="chip-remove"
-                        @click="removeKitItem(item.id)"
-                        title="Quitar del kit"
-                      >
-                        <i class="fas fa-times"></i>
-                      </button>
-                    </span>
-                  </TransitionGroup>
-                </div>
-              </Transition>
+                </template>
+              </ItemSearchPicker>
 
             </div>
           </Transition>
@@ -423,158 +341,15 @@
   gap: 0.6rem;
 }
 
-/* ---- Search ---- */
-.kit-search-wrapper {
-  position: relative;
-}
-
-.kit-search-label {
-  font-size: 0.775rem;
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 0.3rem;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.kit-search-results {
-  position: absolute;
-  top: calc(100% + 2px);
-  left: 0;
-  right: 0;
-  z-index: 200;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 0.3rem;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.kit-result-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.38rem 0.7rem;
-  background: none;
-  border: none;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-  text-align: left;
-  font-size: 0.815rem;
-  transition: background 0.12s;
-}
-.kit-result-item:last-child { border-bottom: none; }
-.kit-result-item:hover      { background: #eef4ff; }
-
-.r-code  { font-family: monospace; font-size: 0.72rem; background: #f1f3f5; color: #6c757d; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
-.r-name  { flex: 1; font-weight: 500; color: #212529; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.r-price { color: #198754; font-size: 0.77rem; flex-shrink: 0; }
-.r-add   { color: #0d6efd; flex-shrink: 0; font-size: 0.85rem; }
-
-/* ---- Items panel ---- */
-.kit-items-panel {
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 0.3rem;
-  padding: 0.45rem 0.7rem 0.55rem;
-}
-
-.kit-items-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.4rem;
-}
-
-.kit-items-title {
-  font-size: 0.775rem;
-  font-weight: 600;
-  color: #495057;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.kit-items-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.kit-items-count {
-  font-size: 0.7rem;
-  font-weight: 700;
-  background: #0d6efd;
-  color: #fff;
-  border-radius: 1rem;
-  padding: 1px 8px;
-  line-height: 1.7;
-}
-
+/* slot panel-header-right: total del kit */
 .kit-items-total {
   font-size: 0.72rem;
   color: #198754;
   font-weight: 600;
 }
 
-/* ---- Chips ---- */
-.kit-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.kit-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  background: #e8f0fe;
-  border: 1px solid #c5d8f9;
-  border-radius: 1rem;
-  padding: 0.18rem 0.45rem 0.18rem 0.55rem;
-  font-size: 0.775rem;
-  color: #1a56b0;
-  white-space: nowrap;
-  max-width: 220px;
-}
-
-.chip-icon { font-size: 0.58rem; color: #7aa3e0; flex-shrink: 0; }
-
-.chip-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 500;
-}
-
-.chip-price {
-  font-size: 0.68rem;
-  color: #198754;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.chip-remove {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: #9db8e0;
-  font-size: 0.6rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  transition: color 0.15s;
-}
-.chip-remove:hover { color: #dc3545; }
-
 /* ============================================================
-   Transiciones
+   Transición del cuerpo del kit (expand)
    ============================================================ */
 .kit-expand-enter-active,
 .kit-expand-leave-active {
@@ -586,35 +361,5 @@
 .kit-expand-leave-to {
   opacity: 0;
   max-height: 0;
-}
-
-.slide-fade-enter-active,
-.slide-fade-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
-}
-.slide-fade-enter-from,
-.slide-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: opacity 0.13s ease, transform 0.13s ease;
-}
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-
-.kit-chip-enter-active,
-.kit-chip-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-.kit-chip-enter-from,
-.kit-chip-leave-to {
-  opacity: 0;
-  transform: scale(0.8);
 }
 </style>

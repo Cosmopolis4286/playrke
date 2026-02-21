@@ -43,6 +43,7 @@
     prizeData,
     kitItemObjects,
     prizes,
+    canCreateKit,
     setInitialPrizes,
     create,
     edit,
@@ -51,7 +52,7 @@
     submit,
   } = usePrize()
 
-  setInitialPrizes(props.prizes.rows)
+  setInitialPrizes(props.prizes.rows, props.can_create_kit)
 
   // ==========================================================================
   // Modal + Form handler
@@ -175,7 +176,7 @@
       ref="prizeFormRef"
       v-model="prizeData"
       v-model:kit-item-objects="kitItemObjects"
-      :can-create-kit="props.can_create_kit"
+      :can-create-kit="canCreateKit"
     />
   </Modal>
 </template>

@@ -16,8 +16,11 @@ interface UsePrizeReturn {
     /** Lista reactiva de premios */
     prizes: Ref<Prize[]>
 
-    /** Inicializa la lista local */
-    setInitialPrizes: (initial: Prize[]) => void
+    /** Si el usuario puede crear kits (>= 2 premios individuales activos) */
+    canCreateKit: Ref<boolean>
+
+    /** Inicializa la lista local y el valor inicial de canCreateKit */
+    setInitialPrizes: (initial: Prize[], initialCanCreateKit?: boolean) => void
 
     /** Envío del formulario */
     submit: () => Promise<boolean>
@@ -76,19 +79,26 @@ export function usePrize(): UsePrizeReturn {
     const prizeData      = ref<Partial<Prize>>(emptyPrize())
     const prizes         = ref<Prize[]>([])
     const kitItemObjects = ref<PrizeSearchResult[]>([])
+    const canCreateKit   = ref(false)
 
-    function setInitialPrizes(initial: Prize[]) {
-        prizes.value = [...initial]
+    function setInitialPrizes(initial: Prize[], initialCanCreateKit = false) {
+        prizes.value      = [...initial]
+        canCreateKit.value = initialCanCreateKit
     }
 
     async function fetchPrizes(): Promise<boolean> {
         try {
             loading.value = true
-            const response = await backendClient.get<{ data: { prizes: { rows: Prize[] } } }>('/prizes/fetch-list')
+            const response = await backendClient.get<{
+                data: { prizes: { rows: Prize[] }; can_create_kit: boolean }
+            }>('/prizes/fetch-list')
             const rows = response.data?.data?.prizes?.rows
 
             if (Array.isArray(rows)) {
                 prizes.value = rows
+            }
+            if (typeof response.data?.data?.can_create_kit === 'boolean') {
+                canCreateKit.value = response.data.data.can_create_kit
             }
             return true
         } catch (error) {
@@ -306,6 +316,7 @@ export function usePrize(): UsePrizeReturn {
         prizeData,
         kitItemObjects,
         prizes,
+        canCreateKit,
         setInitialPrizes,
         submit,
         create,

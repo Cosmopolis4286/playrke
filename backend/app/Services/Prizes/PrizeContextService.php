@@ -76,10 +76,22 @@ final class PrizeContextService
     }
 
     /**
-     * Obtener lista plana de premios activos para selects.
+     * Obtener lista de premios con can_create_kit actualizado.
+     * Usado por fetch-list (AJAX) para refrescar el estado sin recargar la página.
      */
     public function fetchList(): array
     {
-        return $this->resolvePrizes();
+        $prizeData = $this->resolvePrizes();
+
+        $individualCount = Prize::where('user_id', Auth::id())
+            ->where('kit', 'N')
+            ->where('status', 'ACTIVE')
+            ->count();
+
+        return [
+            'prizes'         => $prizeData['prizes'],
+            'pagination'     => $prizeData['pagination'],
+            'can_create_kit' => $individualCount >= 2,
+        ];
     }
 }
