@@ -219,6 +219,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                     bingoPattern: r.bingoPattern ?? null,
                     prizeValue: r.prizeValue !== null && r.prizeValue !== undefined ? Number(r.prizeValue) : null,
                     ...(r.prizeValueByCurrency ? { prizeValueByCurrency: r.prizeValueByCurrency } : {}),
+                    ...(r.prizeType === 'prize' ? { prizeId: r.prizeId ?? null, prizeName: r.prizeName ?? null } : {}),
                 }))
             }
 

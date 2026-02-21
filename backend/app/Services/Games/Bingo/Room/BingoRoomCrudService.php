@@ -54,7 +54,7 @@ final class BingoRoomCrudService
             throw BingoRoomException::notFound();
         }
 
-        $room->load(['config', 'status', 'cardPrices', 'rounds.prizes']);
+        $room->load(['config', 'status', 'cardPrices', 'rounds.prizes', 'rounds.prize']);
 
         return new BingoRoomResource($room);
     }
@@ -328,6 +328,7 @@ final class BingoRoomCrudService
                 'prize_value'      => $prizeType !== 'FIXED' && isset($config['prizeValue'])
                     ? (float) $config['prizeValue']
                     : null,
+                'prize_id'         => $prizeType === 'OTHER' ? ($config['prizeId'] ?? null) : null,
                 'status'           => 'ACTIVE',
                 'created_at'       => now(),
                 'updated_at'       => now(),
@@ -403,7 +404,7 @@ final class BingoRoomCrudService
      */
     public function copyRoom(BingoRoom $room): bool
     {
-        $room->load(['config', 'cardPrices', 'rounds.prizes']);
+        $room->load(['config', 'cardPrices', 'rounds.prizes', 'rounds.prize']);
 
         $config = $room->config;
 
@@ -430,6 +431,8 @@ final class BingoRoomCrudService
                     'prizeType'    => $prizeType,
                     'bingoPattern' => $r->bingo_pattern_id,
                     'prizeValue'   => $r->prize_value !== null ? (float) $r->prize_value : null,
+                    'prizeId'      => $prizeType === 'prize' ? $r->prize_id : null,
+                    'prizeName'    => $prizeType === 'prize' ? ($r->prize?->name ?? null) : null,
                 ];
 
                 if ($prizeType === 'fixed' && $r->prizes->isNotEmpty()) {

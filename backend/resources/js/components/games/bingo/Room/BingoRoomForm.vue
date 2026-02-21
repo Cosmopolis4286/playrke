@@ -95,12 +95,12 @@
   const showRoundsPct = computed(() => (form.value.rounds ?? 1) >= 1)
 
   /**
-   * Suma total de los valores de los premios de las rondas
+   * Suma total solo de rondas con tipo 'percentage' (las P/S y fixed no cuentan contra %Rondas)
    */
   const totalRoundValues = computed(() => {
     return (form.value.roundsConfig ?? []).reduce((sum, round) => {
-      const value = Number(round.prizeValue) || 0
-      return sum + value
+      if (round.prizeType !== 'percentage') return sum
+      return sum + (Number(round.prizeValue) || 0)
     }, 0)
   })
 
@@ -866,20 +866,30 @@
                   />
 
                   <!-- Botón P/S: abre modal de selección de prize -->
-                  <button
+                  <div
                     v-else-if="round.prizeType === 'prize'"
-                    type="button"
-                    :class="[
-                      'btn btn-sm',
-                      round.prizeId ? 'btn-success' : (getRoundFieldError(index, 'prizeValue') ? 'btn-danger' : 'btn-outline-secondary')
-                    ]"
-                    style="flex: 1 1 auto; min-width: 80px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem"
-                    @click="openPrizeModal(index)"
-                    :title="round.prizeName ?? 'Seleccionar premio'"
+                    style="flex: 1 1 auto; min-width: 80px; max-width: 140px; display: flex; flex-direction: column; align-items: stretch"
                   >
-                    <i class="fa-solid fa-gift" style="font-size: 0.7rem"></i>
-                    {{ round.prizeName ? round.prizeName : 'Seleccionar' }}
-                  </button>
+                    <button
+                      type="button"
+                      :class="[
+                        'btn btn-sm',
+                        round.prizeId ? 'btn-success' : (getRoundFieldError(index, 'prizeValue') ? 'btn-danger' : 'btn-outline-secondary')
+                      ]"
+                      style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; width: 100%"
+                      @click="openPrizeModal(index)"
+                      :title="round.prizeName ?? 'Seleccionar premio'"
+                    >
+                      <i class="fa-solid fa-gift" style="font-size: 0.7rem"></i>
+                      {{ round.prizeName ? round.prizeName : 'Seleccionar' }}
+                    </button>
+                    <small
+                      v-if="round.prizeId && round.prizeValue"
+                      style="font-size: 0.68rem; color: #198754; font-weight: 600; text-align: center; margin-top: 1px; line-height: 1.2"
+                    >
+                      ${{ Number(round.prizeValue).toFixed(2) }} USD
+                    </small>
+                  </div>
                 </div>
 
                 <!-- Valores fijos por moneda (solo cuando prizeType === 'fixed') -->

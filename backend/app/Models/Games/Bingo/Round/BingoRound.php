@@ -5,6 +5,7 @@ namespace App\Models\Games\Bingo\Round;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Pattern\BingoPattern;
 use App\Models\Games\Bingo\Room\User\BingoRoomWinner;
+use App\Models\Prize;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -54,6 +55,14 @@ class BingoRound extends Model
     public function bingoPattern(): BelongsTo
     {
         return $this->belongsTo(BingoPattern::class, 'bingo_pattern_id');
+    }
+
+    /**
+     * Premio físico/servicio seleccionado (solo cuando prize_type = OTHER)
+     */
+    public function prize(): BelongsTo
+    {
+        return $this->belongsTo(Prize::class, 'prize_id');
     }
 
     /**

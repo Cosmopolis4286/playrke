@@ -44,6 +44,10 @@ class BingoRoomResource extends JsonResource
                             ->map(fn($v) => (float) $v)
                             ->toArray();
                     }
+                    if ($prizeType === 'prize') {
+                        $config['prizeId']   = $r->prize_id;
+                        $config['prizeName'] = $r->relationLoaded('prize') ? $r->prize?->name : null;
+                    }
                     return $config;
                 })->values();
             }),
