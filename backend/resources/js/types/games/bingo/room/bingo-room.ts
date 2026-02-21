@@ -99,6 +99,7 @@ export interface RoundConfig {
     prizeType: RoundPrizeType
     bingoPattern: number | string | null
     prizeValue: number | string | null
+    prizeValueByCurrency?: Record<string, number | null>
 }
 
 /**

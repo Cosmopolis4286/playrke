@@ -215,21 +215,38 @@
         )
       }
 
+      // Redistribuir equitativamente entre rondas % tras cambio de cantidad
+      const total = Number(form.value.roundsPct) || 0
+      const pctIndices = updated.reduce<number[]>((acc, r, i) => {
+        if (r.prizeType === 'percentage') acc.push(i)
+        return acc
+      }, [])
+      if (pctIndices.length > 0 && total > 0) {
+        const perRound = Math.round((total / pctIndices.length) * 100) / 100
+        pctIndices.forEach(i => {
+          updated[i] = { ...updated[i], prizeValue: perRound }
+        })
+      }
+
       form.value = { ...form.value, roundsConfig: updated }
     },
     { immediate: true }
   )
 
   /**
-   * Cuando cambia roundsPct, actualizar prizeValue de rondas con tipo 'percentage'
+   * Cuando cambia roundsPct o el número de rondas % cambia,
+   * distribuir equitativamente entre rondas con tipo 'percentage'
    */
   watch(
     () => form.value.roundsPct,
     newPct => {
-      const val = Number(newPct) || null
+      const total = Number(newPct) || 0
       const configs = form.value.roundsConfig ?? []
+      const pctCount = configs.filter(r => r.prizeType === 'percentage').length
+      if (pctCount === 0) return
+      const perRound = total > 0 ? Math.round((total / pctCount) * 100) / 100 : null
       const updated = configs.map(r =>
-        r.prizeType === 'percentage' ? { ...r, prizeValue: val } : r
+        r.prizeType === 'percentage' ? { ...r, prizeValue: perRound } : r
       )
       form.value = { ...form.value, roundsConfig: updated }
     }
@@ -251,14 +268,111 @@
   ) {
     const configs = [...(form.value.roundsConfig ?? [])]
     const updated = { ...configs[index], [field]: value }
-    if (field === 'prizeType' && value === 'percentage') {
-      updated.prizeValue = Number(form.value.roundsPct) || null
+
+    if (field === 'prizeType') {
+      if (value === 'percentage') {
+        // Al cambiar a %, limpiar fijo y redistribuir equitativamente incluyendo esta ronda
+        updated.prizeValueByCurrency = undefined
+        configs[index] = updated
+        redistributePercentageRounds(configs)
+        form.value = { ...form.value, roundsConfig: configs }
+        return
+      } else if (value === 'fixed') {
+        // Al cambiar a fijo, limpiar prizeValue e inicializar mapa de monedas
+        updated.prizeValue = null
+        updated.prizeValueByCurrency = (form.value.allowedCurrencies ?? []).reduce<Record<string, null>>(
+          (acc, cur) => { acc[String(cur)] = null; return acc },
+          {}
+        )
+        configs[index] = updated
+        redistributePercentageRounds(configs)
+        form.value = { ...form.value, roundsConfig: configs }
+        return
+      } else {
+        // Al cambiar a otro tipo (prize), limpiar ambos y redistribuir % restantes
+        updated.prizeValue = null
+        updated.prizeValueByCurrency = undefined
+        configs[index] = updated
+        redistributePercentageRounds(configs)
+        form.value = { ...form.value, roundsConfig: configs }
+        return
+      }
     }
+
+    if (field === 'prizeValue' && updated.prizeType === 'percentage') {
+      // El usuario editó el valor de esta ronda %: redistribuir el resto entre las demás rondas %
+      const total = Number(form.value.roundsPct) || 0
+      const thisVal = Math.min(Number(value) || 0, total)
+      updated.prizeValue = thisVal
+      configs[index] = updated
+
+      const others = configs.reduce<number[]>((acc, r, i) => {
+        if (i !== index && r.prizeType === 'percentage') acc.push(i)
+        return acc
+      }, [])
+
+      if (others.length > 0) {
+        const remaining = Math.max(0, total - thisVal)
+        const perOther = Math.round((remaining / others.length) * 100) / 100
+        others.forEach(i => {
+          configs[i] = { ...configs[i], prizeValue: perOther > 0 ? perOther : null }
+        })
+      }
+
+      form.value = { ...form.value, roundsConfig: configs }
+      return
+    }
+
     if (field === 'bingoPattern' && updated.prizeType === 'percentage' && updated.prizeValue === null) {
-      updated.prizeValue = Number(form.value.roundsPct) || null
+      configs[index] = updated
+      redistributePercentageRounds(configs)
+      form.value = { ...form.value, roundsConfig: configs }
+      return
     }
+
     configs[index] = updated
     form.value = { ...form.value, roundsConfig: configs }
+  }
+
+  /**
+   * Distribuye equitativamente roundsPct entre todas las rondas con tipo 'percentage'
+   */
+  function redistributePercentageRounds(configs: RoundConfig[]) {
+    const total = Number(form.value.roundsPct) || 0
+    const pctIndices = configs.reduce<number[]>((acc, r, i) => {
+      if (r.prizeType === 'percentage') acc.push(i)
+      return acc
+    }, [])
+    if (pctIndices.length === 0) return
+    const perRound = total > 0 ? Math.round((total / pctIndices.length) * 100) / 100 : null
+    pctIndices.forEach(i => {
+      configs[i] = { ...configs[i], prizeValue: perRound }
+    })
+  }
+
+  /**
+   * Actualiza el valor fijo de una ronda para una moneda específica
+   */
+  function updateRoundPriceByCurrency(
+    roundIndex: number,
+    currency: string | number,
+    value: string | number | null
+  ) {
+    const configs = [...(form.value.roundsConfig ?? [])]
+    const key = String(currency)
+    const current = { ...(configs[roundIndex].prizeValueByCurrency ?? {}) }
+    const parsed = value === null || value === '' ? null : Number(value)
+    current[key] = isNaN(Number(parsed)) ? null : (parsed as number)
+    configs[roundIndex] = { ...configs[roundIndex], prizeValueByCurrency: current }
+    form.value = { ...form.value, roundsConfig: configs }
+  }
+
+  /**
+   * Obtiene el error de prizeValueByCurrency para una ronda y moneda
+   */
+  function getRoundCurrencyError(index: number, currency: string | number): string | undefined {
+    const err = errors.value.roundsConfig as Record<string, string> | undefined
+    return err?.[`${index}_prizeValue_${String(currency)}`]
   }
 
   /* ==========================================================================
@@ -682,8 +796,9 @@
                     style="flex: 1 1 auto; min-width: 130px; margin-bottom: 0"
                   />
 
-                  <!-- Valor del premio ronda -->
+                  <!-- Valor del premio ronda (% o prize) -->
                   <input
+                    v-if="round.prizeType !== 'fixed'"
                     :name="`rounds_prize_value[${index}]`"
                     type="number"
                     :class="[
@@ -691,14 +806,12 @@
                       {
                         'is-invalid':
                           !!getRoundFieldError(index, 'prizeValue') ||
-                          (!isRoundValuesValid && totalRoundValues > 0)
+                          (!isRoundValuesValid && totalRoundValues > 0 && round.prizeType === 'percentage')
                       }
                     ]"
                     placeholder="Valor"
                     :value="round.prizeValue"
-                    :readonly="round.prizeType === 'percentage'"
-                    @input="
-                      round.prizeType !== 'percentage' &&
+                    @change="
                       updateRoundConfig(
                         index,
                         'prizeValue',
@@ -710,6 +823,34 @@
                     :max="getRoundMaxValue(index)"
                     style="flex: 0 0 100px"
                   />
+                </div>
+
+                <!-- Valores fijos por moneda (solo cuando prizeType === 'fixed') -->
+                <div
+                  v-if="round.prizeType === 'fixed'"
+                  class="d-flex flex-wrap mt-1"
+                  style="gap: 0.4rem; padding-left: 2rem"
+                >
+                  <template v-for="cur in form.allowedCurrencies ?? []" :key="`r${index}_cur_${cur}`">
+                    <div class="input-group input-group-sm" style="width: auto; flex: 0 0 140px">
+                      <div class="input-group-prepend">
+                        <span class="input-group-text">{{ getCurrencyLabel(cur) }}</span>
+                      </div>
+                      <input
+                        :name="`rounds_prize_value_currency[${index}][${cur}]`"
+                        type="number"
+                        :class="[
+                          'form-control form-control-sm',
+                          { 'is-invalid': !!getRoundCurrencyError(index, cur) }
+                        ]"
+                        placeholder="0.00"
+                        step="0.5"
+                        min="0"
+                        :value="round.prizeValueByCurrency?.[String(cur)] ?? ''"
+                        @change="updateRoundPriceByCurrency(index, cur, ($event.target as HTMLInputElement).value)"
+                      />
+                    </div>
+                  </template>
                 </div>
               </div>
             </template>

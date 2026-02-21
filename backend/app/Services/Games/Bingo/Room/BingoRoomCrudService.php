@@ -10,6 +10,7 @@ use App\Models\Games\Bingo\Creator\BingoCreator;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Models\Games\Bingo\Round\BingoRound;
+use App\Models\Games\Bingo\Round\BingoRoundPrize;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Utils\GameConfig;
 use App\Models\Games\Common\Utils\GameStatus;
@@ -53,7 +54,7 @@ final class BingoRoomCrudService
             throw BingoRoomException::notFound();
         }
 
-        $room->load(['config', 'status', 'cardPrices', 'rounds']);
+        $room->load(['config', 'status', 'cardPrices', 'rounds.prizes']);
 
         return new BingoRoomResource($room);
     }
@@ -297,7 +298,7 @@ final class BingoRoomCrudService
      */
     private function syncRounds(string $roomId, array $roundsConfig): void
     {
-        // Eliminar rondas previas (recrear siempre para mantener consistencia)
+        // Eliminar rondas previas (y sus premios en cascada)
         BingoRound::where('room_id', $roomId)->delete();
 
         if (empty($roundsConfig)) {
@@ -306,7 +307,7 @@ final class BingoRoomCrudService
 
         $prizeTypeMap = [
             'percentage' => 'PCT',
-            'fixed'      => 'USD',
+            'fixed'      => 'FIXED',
             'prize'      => 'OTHER',
         ];
 
@@ -314,21 +315,60 @@ final class BingoRoomCrudService
         $ids = $snowflakeService->batch(count($roundsConfig));
 
         $rows = [];
+        $fixedPrizes = []; // [round_id => [currency_id => value]]
+
         foreach ($roundsConfig as $index => $config) {
+            $prizeType = $prizeTypeMap[$config['prizeType'] ?? 'percentage'] ?? 'PCT';
             $rows[] = [
                 'id'               => $ids[$index],
                 'room_id'          => $roomId,
                 'round'            => $index + 1,
                 'bingo_pattern_id' => $config['bingoPattern'] ?? null,
-                'prize_type'       => $prizeTypeMap[$config['prizeType'] ?? 'percentage'] ?? 'PCT',
-                'prize_value'      => isset($config['prizeValue']) ? (float) $config['prizeValue'] : null,
+                'prize_type'       => $prizeType,
+                'prize_value'      => $prizeType !== 'FIXED' && isset($config['prizeValue'])
+                    ? (float) $config['prizeValue']
+                    : null,
                 'status'           => 'ACTIVE',
                 'created_at'       => now(),
                 'updated_at'       => now(),
             ];
+
+            if ($prizeType === 'FIXED' && !empty($config['prizeValueByCurrency'])) {
+                $fixedPrizes[$ids[$index]] = $config['prizeValueByCurrency'];
+            }
         }
 
         BingoRound::insert($rows);
+
+        // Insertar premios fijos por moneda
+        if (!empty($fixedPrizes)) {
+            $totalPrizes = array_sum(array_map('count', $fixedPrizes));
+            $prizeIds = $snowflakeService->batch($totalPrizes);
+            $prizeRows = [];
+            $prizeIdIndex = 0;
+
+            foreach ($fixedPrizes as $roundId => $byCurrency) {
+                foreach ($byCurrency as $currencyId => $value) {
+                    if ($value === null || $value === '' || (float) $value <= 0) {
+                        continue;
+                    }
+                    $prizeRows[] = [
+                        'id'                => $prizeIds[$prizeIdIndex++],
+                        'bingo_round_id'    => $roundId,
+                        'room_id'           => $roomId,
+                        'currency_id'       => $currencyId,
+                        'prize_value'       => (float) $value,
+                        'prize_description' => '',
+                        'created_at'        => now(),
+                        'updated_at'        => now(),
+                    ];
+                }
+            }
+
+            if (!empty($prizeRows)) {
+                BingoRoundPrize::insert($prizeRows);
+            }
+        }
     }
 
     /**
@@ -363,7 +403,7 @@ final class BingoRoomCrudService
      */
     public function copyRoom(BingoRoom $room): bool
     {
-        $room->load(['config', 'cardPrices', 'rounds']);
+        $room->load(['config', 'cardPrices', 'rounds.prizes']);
 
         $config = $room->config;
 
@@ -379,15 +419,28 @@ final class BingoRoomCrudService
         $roundsConfig = $room->rounds
             ->sortBy('round')
             ->values()
-            ->map(fn($r) => [
-                'prizeType'    => match ($r->prize_type) {
+            ->map(function ($r) {
+                $prizeType = match ($r->prize_type) {
                     'PCT'   => 'percentage',
-                    'USD'   => 'fixed',
+                    'FIXED' => 'fixed',
                     default => 'prize',
-                },
-                'bingoPattern' => $r->bingo_pattern_id,
-                'prizeValue'   => $r->prize_value !== null ? (float) $r->prize_value : null,
-            ])
+                };
+
+                $config = [
+                    'prizeType'    => $prizeType,
+                    'bingoPattern' => $r->bingo_pattern_id,
+                    'prizeValue'   => $r->prize_value !== null ? (float) $r->prize_value : null,
+                ];
+
+                if ($prizeType === 'fixed' && $r->prizes->isNotEmpty()) {
+                    $config['prizeValueByCurrency'] = $r->prizes
+                        ->pluck('prize_value', 'currency_id')
+                        ->map(fn($v) => (float) $v)
+                        ->toArray();
+                }
+
+                return $config;
+            })
             ->toArray();
 
         $dto = BingoRoomCreateDTO::fromArray([

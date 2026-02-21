@@ -31,11 +31,11 @@ class BingoRound extends Model
     ];
 
     protected $casts = [
-        'room_id' => 'string',
-        'round' => 'integer',
-        'start_time' => 'datetime',
+        'room_id'          => 'string',
+        'round'            => 'integer',
+        'start_time'       => 'datetime',
         'bingo_pattern_id' => 'string',
-        'prize_value' => 'decimal:6'
+        'prize_value'      => 'decimal:6',
     ];
 
     /**
@@ -52,6 +52,14 @@ class BingoRound extends Model
     public function bingoPattern(): BelongsTo
     {
         return $this->belongsTo(BingoPattern::class, 'bingo_pattern_id');
+    }
+
+    /**
+     * Premios fijos por moneda (solo cuando prize_type = FIXED)
+     */
+    public function prizes(): HasMany
+    {
+        return $this->hasMany(BingoRoundPrize::class, 'bingo_round_id');
     }
 
     /**

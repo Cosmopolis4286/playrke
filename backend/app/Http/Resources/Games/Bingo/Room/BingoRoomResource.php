@@ -30,12 +30,22 @@ class BingoRoomResource extends JsonResource
             }),
 
             'rounds_config' => $this->whenLoaded('rounds', function () {
-                $prizeTypeMap = ['PCT' => 'percentage', 'USD' => 'fixed', 'OTHER' => 'prize'];
-                return $this->rounds->map(fn($r) => [
-                    'prizeType'    => $prizeTypeMap[$r->prize_type] ?? 'percentage',
-                    'bingoPattern' => $r->bingo_pattern_id,
-                    'prizeValue'   => $r->prize_value,
-                ])->values();
+                $prizeTypeMap = ['PCT' => 'percentage', 'FIXED' => 'fixed', 'OTHER' => 'prize'];
+                return $this->rounds->map(function ($r) use ($prizeTypeMap) {
+                    $prizeType = $prizeTypeMap[$r->prize_type] ?? 'percentage';
+                    $config = [
+                        'prizeType'    => $prizeType,
+                        'bingoPattern' => $r->bingo_pattern_id,
+                        'prizeValue'   => $r->prize_value,
+                    ];
+                    if ($prizeType === 'fixed' && $r->relationLoaded('prizes') && $r->prizes->isNotEmpty()) {
+                        $config['prizeValueByCurrency'] = $r->prizes
+                            ->pluck('prize_value', 'currency_id')
+                            ->map(fn($v) => (float) $v)
+                            ->toArray();
+                    }
+                    return $config;
+                })->values();
             }),
 
             'config' => $config ? [

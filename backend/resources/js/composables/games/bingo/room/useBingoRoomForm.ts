@@ -126,13 +126,25 @@ export function useBingoRoomForm(
         }
         const configs = form.value.roundsConfig ?? []
         const roundErrors: Record<string, string> = {}
+        const currencies = form.value.allowedCurrencies ?? []
 
         configs.forEach((round, i) => {
             if (!round.bingoPattern) {
                 roundErrors[`${i}_bingoPattern`] = `El patrón es requerido.`
             }
-            if (round.prizeValue === null || round.prizeValue === '' || Number(round.prizeValue) <= 0) {
-                roundErrors[`${i}_prizeValue`] = `El valor es requerido.`
+            if (round.prizeType === 'fixed') {
+                // Para tipo fijo: validar que cada moneda tenga valor
+                currencies.forEach(cur => {
+                    const key = String(cur)
+                    const val = round.prizeValueByCurrency?.[key]
+                    if (val === null || val === undefined || Number(val) <= 0) {
+                        roundErrors[`${i}_prizeValue_${key}`] = `El valor para la moneda es requerido.`
+                    }
+                })
+            } else {
+                if (round.prizeValue === null || round.prizeValue === '' || Number(round.prizeValue) <= 0) {
+                    roundErrors[`${i}_prizeValue`] = `El valor es requerido.`
+                }
             }
         })
 

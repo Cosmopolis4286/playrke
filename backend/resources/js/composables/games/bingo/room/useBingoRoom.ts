@@ -218,6 +218,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                     prizeType: r.prizeType ?? 'percentage',
                     bingoPattern: r.bingoPattern ?? null,
                     prizeValue: r.prizeValue !== null && r.prizeValue !== undefined ? Number(r.prizeValue) : null,
+                    ...(r.prizeValueByCurrency ? { prizeValueByCurrency: r.prizeValueByCurrency } : {}),
                 }))
             }
 

@@ -66,10 +66,12 @@ class BingoRoomRequest extends BaseRequest
             'numSerials'                  => ['required', 'integer', 'min:3', 'max:30'],
 
             // Configuración de rondas
-            'roundsConfig'                => ['nullable', 'array'],
-            'roundsConfig.*.prizeType'    => ['required_with:roundsConfig', 'in:percentage,fixed'],
-            'roundsConfig.*.bingoPattern' => ['nullable', 'exists:bingo_patterns,id'],
-            'roundsConfig.*.prizeValue'   => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'roundsConfig'                                  => ['nullable', 'array'],
+            'roundsConfig.*.prizeType'                      => ['required_with:roundsConfig', 'in:percentage,fixed,prize'],
+            'roundsConfig.*.bingoPattern'                   => ['nullable', 'exists:bingo_patterns,id'],
+            'roundsConfig.*.prizeValue'                     => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'roundsConfig.*.prizeValueByCurrency'           => ['nullable', 'array'],
+            'roundsConfig.*.prizeValueByCurrency.*'         => ['nullable', 'numeric', 'min:0', 'max:1000000'],
         ];
     }
 
@@ -128,6 +130,31 @@ class BingoRoomRequest extends BaseRequest
                             "cardPriceByCurrency.$key",
                             "Falta el precio del cartón para la moneda $key."
                         );
+                    }
+                }
+            }
+
+            // Validar prizeValueByCurrency para rondas con tipo 'fixed'
+            $roundsConfig = $this->input('roundsConfig', []);
+            if (is_array($roundsConfig)) {
+                foreach ($roundsConfig as $i => $config) {
+                    if (($config['prizeType'] ?? '') !== 'fixed') {
+                        continue;
+                    }
+                    $byCurrency = $config['prizeValueByCurrency'] ?? [];
+                    foreach ($allowedCurrencies as $currencyId) {
+                        $key = (string) $currencyId;
+                        if (
+                            !array_key_exists($key, $byCurrency)
+                            || $byCurrency[$key] === null
+                            || $byCurrency[$key] === ''
+                            || (float) $byCurrency[$key] <= 0
+                        ) {
+                            $validator->errors()->add(
+                                "roundsConfig.$i.prizeValueByCurrency.$key",
+                                "Falta el valor fijo de la ronda " . ($i + 1) . " para la moneda $key."
+                            );
+                        }
                     }
                 }
             }
