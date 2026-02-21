@@ -39,6 +39,7 @@ export const backendClient: AxiosInstance = axios.create({
     headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
     },
 })
 

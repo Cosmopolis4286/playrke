@@ -29,7 +29,33 @@ class Handler extends ExceptionHandler
             return $this->renderDomainException($request, $exception);
         }
 
+        // Para requests AJAX/JSON, siempre responder con JSON
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage() ?: 'Error interno del servidor.',
+            ], $this->getStatusCode($exception));
+        }
+
         return parent::render($request, $exception);
+    }
+
+    /**
+     * Obtiene el HTTP status code apropiado para la excepción.
+     */
+    protected function getStatusCode(Throwable $exception): int
+    {
+        if (method_exists($exception, 'getStatusCode')) {
+            return $exception->getStatusCode();
+        }
+
+        return match (true) {
+            $exception instanceof \Illuminate\Auth\AuthenticationException => 401,
+            $exception instanceof \Illuminate\Auth\Access\AuthorizationException => 403,
+            $exception instanceof \Illuminate\Database\Eloquent\ModelNotFoundException => 404,
+            $exception instanceof \Illuminate\Validation\ValidationException => 422,
+            default => 500,
+        };
     }
 
     /**

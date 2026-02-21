@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 // DIRECTORIO BANCARIO POR PAÍSES
 // ====================================
 route_group('directory', 'directory.', ['auth', 'role:admin,commerce,customer,seller'], DirectoryController::class, [
-    'index' => ['method' => 'get', 'uri' => '{countryCode?}', 'action' => 'index'],
+    'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
     'fetch-context' => ['method' => 'get', 'uri' => 'fetch-context', 'action' => 'fetchContext'],
