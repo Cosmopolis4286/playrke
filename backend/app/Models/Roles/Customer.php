@@ -162,4 +162,12 @@ class Customer extends Model
             'game_id'
         )->withTimestamps();
     }
+
+    /**
+     * Obtener el valor de un campo específico por user_id.
+     */
+    public static function getValueByUserId(string|int $userId, string $field): mixed
+    {
+        return static::where('user_id', $userId)->value($field);
+    }
 }

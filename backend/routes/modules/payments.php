@@ -31,9 +31,9 @@ route_group('directory', 'directory.', ['auth', 'role:admin,commerce,customer,se
 // ====================================
 // COMPROBANTES DE PAGO
 // ====================================
-Route::middleware('auth')
-    ->get('payment/proof/{fileName}', [PaymentController::class, 'showPaymentProof'])
-    ->name('payment.proof');
+// Route::middleware('auth')
+//     ->get('payment/proof/{fileName}', [PaymentController::class, 'showPaymentProof'])
+//     ->name('payment.proof');
 
 // // ====================================
 // // MÉTODOS DE PAGO COLOMBIA

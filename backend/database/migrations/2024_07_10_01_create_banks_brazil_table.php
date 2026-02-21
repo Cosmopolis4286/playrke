@@ -16,8 +16,8 @@ return new class extends Migration
         Schema::create('banks_brazil', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();;
-            $table->string('name', 40);
-            $table->string('full_name', 60);
+            $table->string('name', 100);
+            $table->string('full_name', 150);
             $table->string('ispb', 8);
             $table->timestamps();
         });

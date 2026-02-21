@@ -99,8 +99,8 @@ final class BrazilBankApiService
             }
 
             $incoming[$ispb] = [
-                'name'      => $name,
-                'full_name' => trim($item['fullName'] ?? $name),
+                'name'      => mb_substr($name, 0, 100),
+                'full_name' => mb_substr(trim($item['fullName'] ?? $name), 0, 150),
                 'ispb'      => $ispb,
             ];
         }
