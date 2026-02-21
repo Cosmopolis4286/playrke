@@ -122,7 +122,7 @@ final class DirectoryService
     }
 
     /**
-     * Elimina un registro de directorio (soft delete).
+     * Elimina un registro de directorio (soft delete) — VE.
      *
      * @param string $id ID del registro
      * @return bool True si se eliminó correctamente
@@ -133,6 +133,35 @@ final class DirectoryService
     {
         $userId = $this->userContext->resolveUserId();
         return $this->crud->delete($id, $userId);
+    }
+
+    /**
+     * Elimina una clave PIX — BR.
+     *
+     * @param string $id ID de la clave PIX
+     * @return bool True si se eliminó correctamente
+     *
+     * @throws DomainException Si no se puede resolver el usuario o falla la eliminación
+     */
+    public function deletePixKey(string $id): bool
+    {
+        $userId = $this->userContext->resolveUserId();
+        return $this->pixCrud->delete($id, (string) $userId);
+    }
+
+    /**
+     * Obtiene una clave PIX por ID (Brasil).
+     *
+     * @param string $id ID de la clave PIX
+     * @return array Datos de la clave PIX
+     *
+     * @throws DomainException Si no se puede resolver el usuario o no existe la clave
+     */
+    public function showPixKey(string $id): array
+    {
+        $userId = $this->userContext->resolveUserId();
+
+        return $this->pixCrud->show($id, (string) $userId);
     }
 
     /**
@@ -166,7 +195,7 @@ final class DirectoryService
     }
 
     /**
-     * Alternar estado (ACTIVE / INACTIVE) del directorio.
+     * Alternar estado (ACTIVE / INACTIVE) del directorio — VE.
      *
      * @param string $id ID del registro de directorio
      *
@@ -177,5 +206,20 @@ final class DirectoryService
         $pagoMovil = PagoMovil::findOrFail($id);
 
         return $this->crud->toggleStatus($pagoMovil);
+    }
+
+    /**
+     * Alternar estado (ACTIVE / INACTIVE) de una clave PIX — BR.
+     *
+     * @param string $id ID de la clave PIX
+     * @return bool True si el cambio fue exitoso
+     *
+     * @throws DomainException Si no se puede resolver el usuario o falla el cambio de estado
+     */
+    public function togglePixKeyStatus(string $id): bool
+    {
+        $userId = $this->userContext->resolveUserId();
+
+        return $this->pixCrud->toggleStatus($id, (string) $userId);
     }
 }

@@ -30,6 +30,9 @@ return new class extends Migration
                 ->constrained('users')
                 ->cascadeOnDelete();
 
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'DELETED', 'OLD', 'DIRECTORY'])
+                ->default('ACTIVE');
+
             $table->timestamps();
 
             // Evitar duplicados por clave y usuario

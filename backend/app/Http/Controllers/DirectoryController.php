@@ -100,11 +100,17 @@ class DirectoryController extends Controller
     /* Show                                                                */
     /* ------------------------------------------------------------------ */
 
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
-        return $this->handleServiceJson(
-            fn() => ['data' => $this->service->show($id)]
-        );
+        $countryCode = strtoupper($request->get('country', 'VE'));
+
+        return $this->handleServiceJson(function () use ($id, $countryCode) {
+            $data = $countryCode === 'BR'
+                ? $this->service->showPixKey($id)
+                : $this->service->show($id);
+
+            return ['data' => $data];
+        });
     }
 
     /* ------------------------------------------------------------------ */
@@ -136,19 +142,33 @@ class DirectoryController extends Controller
     /* Delete / ToggleStatus                                               */
     /* ------------------------------------------------------------------ */
 
-    public function delete(string $id): JsonResponse
+    public function delete(Request $request, string $id): JsonResponse
     {
-        return $this->handleServiceJson(function () use ($id) {
+        $countryCode = strtoupper($request->get('country', 'VE'));
+
+        return $this->handleServiceJson(function () use ($id, $countryCode) {
+            if ($countryCode === 'BR') {
+                $response = $this->service->deletePixKey($id);
+                return $response ? ['message' => '✅ Clave PIX eliminada correctamente'] : false;
+            }
+
             $response = $this->service->delete($id);
             return $response ? ['message' => '✅ Directorio eliminado correctamente'] : false;
         });
     }
 
-    public function toggleStatus(string $id): JsonResponse
+    public function toggleStatus(Request $request, string $id): JsonResponse
     {
-        return $this->handleServiceJson(
-            fn() => ['message' => 'Estado actualizado correctamente', 'data' => $this->service->toggleStatus($id)]
-        );
+        $countryCode = strtoupper($request->get('country', 'VE'));
+
+        return $this->handleServiceJson(function () use ($id, $countryCode) {
+            if ($countryCode === 'BR') {
+                $this->service->togglePixKeyStatus($id);
+                return ['message' => 'Estado actualizado correctamente'];
+            }
+
+            return ['message' => 'Estado actualizado correctamente', 'data' => $this->service->toggleStatus($id)];
+        });
     }
 
     /* ------------------------------------------------------------------ */

@@ -190,7 +190,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
             }
 
             if (directoryData.value.id) {
-                const { data } = await backendClient.put(
+                const { data } = await backendClient.patch(
                     `/directory/${directoryData.value.id}/update`,
                     payload
                 )
@@ -235,7 +235,8 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
             loading.value = true
 
             const { data } = await backendClient.get<{ data: any }>(
-                `/directory/${id}/show`
+                `/directory/${id}/show`,
+                { params: { country: activeCountry.value } }
             )
 
             const raw = data.data
@@ -291,7 +292,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/directory/${id}/status`)
+            await backendClient.patch(`/directory/${id}/status`, {}, { params: { country: activeCountry.value } })
             showToast('Estado cambiado con éxito', 'success')
             await fetchDirectories()
             return true
@@ -314,7 +315,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         if (!confirm) return false
 
         try {
-            await backendClient.put(`/directory/${id}/delete`)
+            await backendClient.delete(`/directory/${id}/delete`, { params: { country: activeCountry.value } })
             showToast('Directorio eliminado con éxito', 'success')
             await fetchDirectories()
             return true

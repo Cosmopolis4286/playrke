@@ -56,6 +56,7 @@ final class DirectoryContextService
         'Tipo PIX',
         'Clave PIX',
         'Banco',
+        'Status',
     ];
 
     private const BR_ROW_KEYS = [
@@ -63,6 +64,7 @@ final class DirectoryContextService
         'pix_key_type',
         'pix_key_value',
         'Bank.name',
+        'status_badge',
     ];
 
     public function __construct(

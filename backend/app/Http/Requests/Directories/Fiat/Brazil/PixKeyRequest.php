@@ -46,7 +46,7 @@ final class PixKeyRequest extends BaseRequest
         }
 
         $this->merge([
-            'name'          => $this->input('name') ? trim((string) $this->input('name')) : null,
+            'holder_name'   => $this->input('holder_name') ? trim((string) $this->input('holder_name')) : null,
             'pix_key_type'  => $type ?: null,
             'pix_key_value' => $value ?: null,
             'bank_id'       => $this->input('bank_id') ? (string) $this->input('bank_id') : null,
@@ -59,7 +59,7 @@ final class PixKeyRequest extends BaseRequest
         $req      = $isUpdate ? 'sometimes' : 'required';
 
         return [
-            'name' => [
+            'holder_name' => [
                 'nullable',
                 'string',
                 'max:35',

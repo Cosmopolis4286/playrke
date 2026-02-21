@@ -22,7 +22,7 @@ final class PixKeyFactory
             pixKeyType:  $data['pix_key_type'],
             pixKeyValue: $data['pix_key_value'],
             bankId:      $data['bank_id'],
-            name:        $data['name'] ?? null,
+            holderName:  $data['holder_name'] ?? null,
         );
     }
 }

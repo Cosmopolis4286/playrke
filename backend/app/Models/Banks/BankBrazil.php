@@ -40,6 +40,7 @@ class BankBrazil extends Model
     // Casting de tipos
     // ========================
     protected $casts = [
+        'id'   => 'string',
         'ispb' => 'string',
     ];
 

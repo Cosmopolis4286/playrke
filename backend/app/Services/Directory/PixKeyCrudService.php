@@ -15,6 +15,34 @@ final class PixKeyCrudService
     ) {}
 
     /**
+     * Obtiene una clave PIX verificando que pertenece al usuario.
+     *
+     * @throws DomainException Si no existe o no pertenece al usuario
+     */
+    public function show(string $id, string $userId): array
+    {
+        $pixKey = $this->repository->find($id);
+
+        if (!$pixKey || (string) $pixKey->user_id !== $userId) {
+            throw new DomainException('Clave PIX no encontrada.');
+        }
+
+        $pixKey->loadMissing('bank');
+
+        return [
+            'id'            => (string) $pixKey->id,
+            'name'          => $pixKey->name,
+            'pix_key_type'  => $pixKey->pix_key_type,
+            'pix_key_value' => $pixKey->pix_key_value,
+            'status'        => $pixKey->status,
+            'bank_id'       => (string) $pixKey->bank_id,
+            'bank'          => $pixKey->bank
+                ? ['id' => (string) $pixKey->bank->id, 'name' => $pixKey->bank->name]
+                : null,
+        ];
+    }
+
+    /**
      * Crea una nueva clave PIX para el usuario.
      *
      * @throws DomainException Si ya existe una clave PIX duplicada para el usuario
@@ -99,6 +127,38 @@ final class PixKeyCrudService
             DB::rollBack();
             Log::error('Error al eliminar PixKey', ['id' => $id, 'error' => $e->getMessage()]);
             throw new DomainException('Error al eliminar la clave PIX.');
+        }
+    }
+
+    /**
+     * Alterna el status ACTIVE/INACTIVE de una clave PIX.
+     *
+     * @throws DomainException Si no existe o no pertenece al usuario
+     */
+    public function toggleStatus(string $id, string $userId): bool
+    {
+        $pixKey = $this->repository->find($id);
+
+        if (!$pixKey || (string) $pixKey->user_id !== $userId) {
+            throw new DomainException('Clave PIX no encontrada.');
+        }
+
+        $newStatus = $pixKey->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+
+        try {
+            DB::beginTransaction();
+
+            $this->repository->update($id, ['status' => $newStatus]);
+
+            DB::commit();
+
+            Log::info('PixKey status actualizado', ['id' => $id, 'status' => $newStatus]);
+
+            return true;
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Error al cambiar status PixKey', ['id' => $id, 'error' => $e->getMessage()]);
+            throw new DomainException('Error al cambiar el estado de la clave PIX.');
         }
     }
 }

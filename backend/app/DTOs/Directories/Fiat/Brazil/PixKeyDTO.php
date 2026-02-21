@@ -9,7 +9,7 @@ final class PixKeyDTO
         public readonly string  $pixKeyType,
         public readonly string  $pixKeyValue,
         public readonly string  $bankId,
-        public readonly ?string $name    = null,
+        public readonly ?string $holderName = null,
         public readonly ?string $tokenId = null,
     ) {}
 
@@ -19,7 +19,7 @@ final class PixKeyDTO
             'pix_key_type'  => $this->pixKeyType,
             'pix_key_value' => $this->pixKeyValue,
             'bank_id'       => $this->bankId,
-            'name'          => $this->name,
+            'holder_name'   => $this->holderName,
         ];
     }
 

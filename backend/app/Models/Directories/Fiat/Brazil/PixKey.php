@@ -24,11 +24,12 @@ class PixKey extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',           // Nombre descriptivo de la clave PIX
+        'holder_name',           // Nombre descriptivo de la clave PIX
         'bank_id',        // ID del banco brasileño
         'pix_key_type',   // Tipo de clave PIX (CPF, CNPJ, EMAIL, PHONE, RANDOM)
         'pix_key_value',  // Valor de la clave PIX
         'user_id',        // ID del usuario propietario
+        'status'
     ];
 
     /**
@@ -37,8 +38,10 @@ class PixKey extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'id'      => 'string',
         'user_id' => 'string',
         'bank_id' => 'string',
+        'status'  => 'string'
     ];
 
     /**
@@ -46,7 +49,7 @@ class PixKey extends Model
      *
      * @var array<int, string>
      */
-    protected $appends = ['chave_pix', 'formatted_key'];
+    protected $appends = ['chave_pix', 'formatted_key', 'status_badge'];
 
     /**
      * Tipos de clave PIX válidos.
@@ -54,6 +57,18 @@ class PixKey extends Model
      * @var array<string>
      */
     public static array $pixKeyTypes = ['CPF', 'CNPJ', 'EMAIL', 'PHONE', 'RANDOM'];
+
+    /**
+     * Accessor para el status con badge HTML
+     */
+    public function getStatusBadgeAttribute(): string
+    {
+        return match ($this->status) {
+            'ACTIVE' => '<span class="badge badge-success">Activo</span>',
+            'INACTIVE' => '<span class="badge badge-secondary">Inactivo</span>',
+            default => '<span class="badge badge-warning">Desconocido</span>'
+        };
+    }
 
     /**
      * Relación con el banco brasileño.
