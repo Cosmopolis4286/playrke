@@ -11,10 +11,10 @@
   import type { DirectoryVEN } from '@/js/types/directory/directory-ven'
 
   const PIX_KEY_TYPES = [
-    { id: 'CPF', name: 'CPF' },
-    { id: 'CNPJ', name: 'CNPJ' },
-    { id: 'EMAIL', name: 'E-mail' },
-    { id: 'PHONE', name: 'Teléfono' },
+    { id: 'CPF',    name: 'CPF' },
+    { id: 'CNPJ',   name: 'CNPJ' },
+    { id: 'EMAIL',  name: 'E-mail' },
+    { id: 'PHONE',  name: 'Teléfono' },
     { id: 'RANDOM', name: 'Clave Aleatoria' },
   ]
 
@@ -22,7 +22,7 @@
    * Props
    */
   const props = defineProps<{
-    modelValue: Partial<DirectoryVEN>
+    modelValue: Partial<DirectoryVEN> & { country_code?: string; name?: string; pix_key_type?: string; pix_key_value?: string }
     banks?: any[]
     documentTypes?: Array<{ id: string; code: string; description: string }>
     countryCode?: string
@@ -39,7 +39,7 @@
   /**
    * Composable de formulario
    */
-  const { form, errors, isEditMode, isValid, validate, reset } = useDirectoryForm(props.modelValue, emit)
+  const { form, errors, isEditMode, isValid, pixFieldMeta, validate, reset } = useDirectoryForm(props.modelValue, emit)
 
   /* =======================
    * Computed
@@ -156,17 +156,17 @@
       <!-- FORMULARIO BRASIL (PIX)                                      -->
       <!-- ============================================================ -->
       <template v-else-if="isBR">
-        <!-- Nombre descriptivo -->
+        <!-- Nombre -->
         <FormInput
           container
           label="Nombre"
           name="name"
-          v-model="form.holder_name"
+          v-model="form.name"
           type="text"
           maxlength="35"
-          placeholder="Ej: Mi cuenta principal"
+          placeholder="Nombre del titular"
           required
-          :error="errors.holder_name"
+          :error="errors.name"
           col="col-12"
         />
 
@@ -175,26 +175,26 @@
           container
           label="Tipo PIX"
           name="pix_key_type"
-          v-model="form.document_type_id"
+          v-model="form.pix_key_type"
           :options="PIX_KEY_TYPES"
           optionValue="id"
           optionLabel="name"
           required
-          :error="errors.document_type_id"
+          :error="errors.pix_key_type"
           col="col-12 col-md-6"
         />
 
-        <!-- Clave PIX -->
+        <!-- Clave PIX — placeholder y maxlength dinámicos según tipo -->
         <FormInput
           container
           label="Clave PIX"
           name="pix_key_value"
-          v-model="form.document_number"
+          v-model="form.pix_key_value"
           type="text"
-          maxlength="100"
-          placeholder="CPF, e-mail, teléfono..."
+          :maxlength="pixFieldMeta.maxlength"
+          :placeholder="pixFieldMeta.placeholder"
           required
-          :error="errors.document_number"
+          :error="errors.pix_key_value"
           col="col-12 col-md-6"
         />
 

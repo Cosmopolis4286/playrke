@@ -12,7 +12,9 @@ return new class extends Migration
             // PK con Snowflake
             $table->snowflake('id')->primary();;
 
-            $table->string('name', 35)->nullable();
+            $table->string('holder_name', 100)
+                ->nullable()
+                ->comment('Nombre del titular de la cuenta');
 
             $table->foreignSnowflake('bank_id')
                 ->constrained('banks_brazil')

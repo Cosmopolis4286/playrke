@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Factories\Directories\Fiat\Brazil\PixKeyFactory;
 use App\Factories\Directories\Fiat\Venezuela\PagoMovilFactory;
+use App\Http\Requests\Directories\Fiat\Brazil\PixKeyRequest;
 use App\Http\Requests\Directories\Fiat\Venezuela\PagoMovilRequest;
 use App\Http\Support\PublicTokenResolver;
 use App\Services\Banks\BrazilBankApiService;
@@ -13,205 +15,150 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Controlador para la gestión de directorios.
+ * Controlador para la gestión de directorios multi-país.
  *
- * Recibe las peticiones HTTP y delega en el DirectoryService.
- * Maneja respuestas Inertia y JSON, con manejo centralizado de errores.
+ * Despacha operaciones de Pago Móvil (VE) y PIX (BR)
+ * según el campo country_code del payload.
  */
 class DirectoryController extends Controller
 {
     public function __construct(
-        private PagoMovilFactory $factory,
-        private DirectoryService $service,
+        private PagoMovilFactory  $veFactory,
+        private PixKeyFactory     $brFactory,
+        private DirectoryService  $service,
         private PublicTokenResolver $tokenResolver,
         private BrazilBankApiService $brazilBankApi
     ) {}
 
-    /**
-     * Obtiene el token público desde el request (si existe).
-     *
-     * @param Request $request
-     * @return string|null
-     */
     private function resolveToken(Request $request): ?string
     {
         return $this->tokenResolver->resolve($request);
     }
 
-    /**
-     * Muestra los directorios usando Inertia (carga inicial con VE por defecto).
-     *
-     * @param Request $request
-     * @return Response
-     */
+    /* ------------------------------------------------------------------ */
+    /* Inertia (carga inicial)                                             */
+    /* ------------------------------------------------------------------ */
+
     public function index(Request $request): Response
     {
-        return $this->handleServiceInertia(
-            function () use ($request) {
-                $countryCode = strtoupper($request->get('country', 'VE'));
-                $response = $this->service->context($this->resolveToken($request), $countryCode);
+        return $this->handleServiceInertia(function () use ($request) {
+            $countryCode = strtoupper($request->get('country', 'VE'));
+            $response    = $this->service->context($this->resolveToken($request), $countryCode);
 
-                return Inertia::render('Directory/Index', $response);
-            },
-            'No se pudo cargar la lista de directorios.'
-        );
+            return Inertia::render('Directory/Index', $response);
+        });
     }
 
-    /**
-     * Endpoint para obtener los directorios según el país.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
+    /* ------------------------------------------------------------------ */
+    /* AJAX helpers                                                        */
+    /* ------------------------------------------------------------------ */
+
     public function fetchList(Request $request): JsonResponse
     {
-        return $this->handleServiceJson(
-            function () use ($request) {
-                $countryCode = strtoupper($request->get('country', 'VE'));
-
-                $data = $this->service->getAll($this->resolveToken($request), $countryCode);
-
-                return ['data' => $data];
-            },
-            'No se pudo cargar la lista de directorios.'
-        );
+        return $this->handleServiceJson(function () use ($request) {
+            $countryCode = strtoupper($request->get('country', 'VE'));
+            return ['data' => $this->service->getAll($this->resolveToken($request), $countryCode)];
+        });
     }
 
-    /**
-     * Endpoint AJAX para obtener bancos + documentTypes + directorios según el país.
-     * Usado al cambiar de tab en el frontend.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
     public function fetchContext(Request $request): JsonResponse
     {
-        return $this->handleServiceJson(
-            function () use ($request) {
-                $countryCode = strtoupper($request->get('country', 'VE'));
-
-                $data = $this->service->getContextByCountry($this->resolveToken($request), $countryCode);
-
-                return ['data' => $data];
-            },
-            'No se pudo cargar el contexto del directorio.'
-        );
+        return $this->handleServiceJson(function () use ($request) {
+            $countryCode = strtoupper($request->get('country', 'VE'));
+            return ['data' => $this->service->getContextByCountry($this->resolveToken($request), $countryCode)];
+        });
     }
 
-    /**
-     * Crear/registrar un directorio.
-     *
-     * @param PagoMovilRequest $request
-     * @return JsonResponse
-     */
-    public function store(PagoMovilRequest $request): JsonResponse
+    /* ------------------------------------------------------------------ */
+    /* Store — VE usa PagoMovilRequest, BR usa PixKeyRequest              */
+    /* ------------------------------------------------------------------ */
+
+    public function store(Request $request): JsonResponse
     {
-        return $this->handleServiceJson(
-            function () use ($request) {
-                $dto = $this->factory->fromRequest($request->validated());
+        $countryCode = strtoupper($request->input('country_code', 'VE'));
 
-                $response = $this->service->create($dto);
+        if ($countryCode === 'BR') {
+            /** @var PixKeyRequest $validated */
+            $pixRequest = app(PixKeyRequest::class);
+            return $this->handleServiceJson(function () use ($pixRequest) {
+                $dto      = $this->brFactory->fromRequest($pixRequest->validated());
+                $response = $this->service->createPixKey($dto);
+                return $response ? ['message' => '✅ Clave PIX registrada'] : false;
+            });
+        }
 
-                if ($response === true) {
-                    return ['message' => '✅ Registro exitoso'];
-                }
-
-                // Retorna false para que el helper considere error
-                return false;
-            },
-            'Hubo un error al registrar un directorio.'
-        );
+        /** @var PagoMovilRequest $veRequest */
+        $veRequest = app(PagoMovilRequest::class);
+        return $this->handleServiceJson(function () use ($veRequest) {
+            $dto      = $this->veFactory->fromRequest($veRequest->validated());
+            $response = $this->service->create($dto);
+            return $response ? ['message' => '✅ Registro exitoso'] : false;
+        });
     }
 
-    /**
-     * Mostrar detalle de un directorio por su ID.
-     *
-     * @param string $id Identificador del directorio.
-     * @return JsonResponse
-     */
+    /* ------------------------------------------------------------------ */
+    /* Show                                                                */
+    /* ------------------------------------------------------------------ */
+
     public function show(string $id): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => ['data' => $this->service->show($id)],
-            'No se pudo cargar la información del directorio.'
+            fn() => ['data' => $this->service->show($id)]
         );
     }
 
-    /**
-     * Actualizar un directorio existente.
-     *
-     * @param PagoMovilRequest $request
-     * @param string $id Identificador del directorio.
-     * @return JsonResponse
-     */
-    public function update(PagoMovilRequest $request, string $id): JsonResponse
+    /* ------------------------------------------------------------------ */
+    /* Update — VE usa PagoMovilRequest, BR usa PixKeyRequest             */
+    /* ------------------------------------------------------------------ */
+
+    public function update(Request $request, string $id): JsonResponse
     {
-        return $this->handleServiceJson(
-            function () use ($request, $id) {
-                $dto = $this->factory->fromRequest($request->validated(), $id);
+        $countryCode = strtoupper($request->input('country_code', 'VE'));
 
-                $response = $this->service->update($dto);
+        if ($countryCode === 'BR') {
+            $pixRequest = app(PixKeyRequest::class);
+            return $this->handleServiceJson(function () use ($pixRequest, $id) {
+                $dto      = $this->brFactory->fromRequest($pixRequest->validated(), $id);
+                $response = $this->service->updatePixKey($dto);
+                return $response ? ['message' => '✅ Clave PIX actualizada'] : false;
+            });
+        }
 
-                if ($response === true) {
-                    return ['message' => '✅ Actualización exitosa'];
-                }
-
-                return false;
-            },
-            'No se pudo actualizar el directorio.'
-        );
+        $veRequest = app(PagoMovilRequest::class);
+        return $this->handleServiceJson(function () use ($veRequest, $id) {
+            $dto      = $this->veFactory->fromRequest($veRequest->validated(), $id);
+            $response = $this->service->update($dto);
+            return $response ? ['message' => '✅ Actualización exitosa'] : false;
+        });
     }
 
-    /**
-     * Eliminar un directorio (soft delete).
-     *
-     * @param string $id Identificador del directorio.
-     * @return JsonResponse
-     */
+    /* ------------------------------------------------------------------ */
+    /* Delete / ToggleStatus                                               */
+    /* ------------------------------------------------------------------ */
+
     public function delete(string $id): JsonResponse
     {
-        return $this->handleServiceJson(
-            function () use ($id) {
-                $response = $this->service->delete($id);
-
-                if ($response === true) {
-                    return ['message' => '✅ Directorio eliminado correctamente'];
-                }
-
-                return false;
-            },
-            'No se pudo eliminar el directorio.'
-        );
+        return $this->handleServiceJson(function () use ($id) {
+            $response = $this->service->delete($id);
+            return $response ? ['message' => '✅ Directorio eliminado correctamente'] : false;
+        });
     }
 
-    /**
-     * Alternar estado (ACTIVE / INACTIVE).
-     *
-     * @param string $id
-     * @return JsonResponse
-     */
     public function toggleStatus(string $id): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => [
-                'message' => 'Estado actualizado correctamente',
-                'data'    => $this->service->toggleStatus($id),
-            ],
-            'No se pudo cambiar el estado del directorio.'
+            fn() => ['message' => 'Estado actualizado correctamente', 'data' => $this->service->toggleStatus($id)]
         );
     }
 
-    /**
-     * Obtiene la lista de bancos de Brasil desde la BrasilAPI,
-     * sincronizando los nuevos en la BD.
-     *
-     * @return JsonResponse
-     */
+    /* ------------------------------------------------------------------ */
+    /* Brazil banks sync                                                   */
+    /* ------------------------------------------------------------------ */
+
     public function fetchBrazilBanks(): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => ['data' => $this->brazilBankApi->fetchAndSync()],
-            'No se pudo obtener la lista de bancos de Brasil.'
+            fn() => ['data' => $this->brazilBankApi->fetchAndSync()]
         );
     }
 }

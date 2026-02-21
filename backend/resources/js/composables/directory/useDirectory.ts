@@ -45,16 +45,27 @@ interface UseDirectoryReturn {
 }
 
 /**
- * Factory para un directorio vacío (Pago Móvil VE)
+ * Factory para un directorio vacío según país
  */
-const emptyDirectory = (): Partial<DirectoryVEN> =>
-    Object.freeze({
+const emptyDirectory = (countryCode: string = 'VE'): Partial<DirectoryVEN> => {
+    if (countryCode === 'BR') {
+        return Object.freeze({
+            name: '',
+            pix_key_type: '',
+            pix_key_value: '',
+            bank_id: '',
+            country_code: 'BR',
+        } as any)
+    }
+    return Object.freeze({
         holder_name: '',
         document_type_id: '',
         document_number: '',
         phone: '',
-        bank_id: ''
-    })
+        bank_id: '',
+        country_code: 'VE',
+    } as any)
+}
 
 /**
  * Factory para datos de tabla vacíos
@@ -164,7 +175,8 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
     }
 
     /**
-     * Envío del formulario (create / update)
+     * Envío del formulario (create / update).
+     * Incluye country_code para que el backend despache VE vs BR.
      */
     async function submit(): Promise<boolean> {
         if (loading.value) return false
@@ -172,16 +184,21 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         try {
             loading.value = true
 
+            const payload = {
+                ...directoryData.value,
+                country_code: activeCountry.value,
+            }
+
             if (directoryData.value.id) {
                 const { data } = await backendClient.put(
                     `/directory/${directoryData.value.id}/update`,
-                    directoryData.value
+                    payload
                 )
                 showToast(data.message, 'success')
             } else {
                 const { data } = await backendClient.post(
                     '/directory',
-                    directoryData.value
+                    payload
                 )
                 showToast(data.message, 'success')
             }
@@ -205,11 +222,11 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
      * Modo creación
      */
     function create(): void {
-        directoryData.value = { ...emptyDirectory() }
+        directoryData.value = { ...emptyDirectory(activeCountry.value) }
     }
 
     /**
-     * Modo edición
+     * Modo edición — soporta VE (Pago Móvil) y BR (PIX)
      */
     async function edit(id: string): Promise<boolean> {
         if (loading.value) return false
@@ -217,17 +234,31 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
         try {
             loading.value = true
 
-            const { data } = await backendClient.get<{ data: DirectoryVEN }>(
+            const { data } = await backendClient.get<{ data: any }>(
                 `/directory/${id}/show`
             )
 
-            directoryData.value = {
-                id: data.data.id,
-                holder_name: data.data.holder_name,
-                document_type_id: data.data.document_type?.id ?? data.data.document_type_id,
-                document_number: data.data.document_number,
-                phone: data.data.phone,
-                bank_id: data.data.bank?.id ?? data.data.bank_id
+            const raw = data.data
+
+            if (activeCountry.value === 'BR') {
+                directoryData.value = {
+                    id: raw.id,
+                    name: raw.name,
+                    pix_key_type: raw.pix_key_type,
+                    pix_key_value: raw.pix_key_value,
+                    bank_id: raw.bank?.id ?? raw.bank_id,
+                    country_code: 'BR',
+                } as any
+            } else {
+                directoryData.value = {
+                    id: raw.id,
+                    holder_name: raw.holder_name,
+                    document_type_id: raw.document_type?.id ?? raw.document_type_id,
+                    document_number: raw.document_number,
+                    phone: raw.phone,
+                    bank_id: raw.bank?.id ?? raw.bank_id,
+                    country_code: 'VE',
+                } as any
             }
 
             return true
@@ -244,7 +275,7 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
      * Reset del formulario
      */
     function reset(): void {
-        directoryData.value = { ...emptyDirectory() }
+        directoryData.value = { ...emptyDirectory(activeCountry.value) }
     }
 
     /**

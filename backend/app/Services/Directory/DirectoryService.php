@@ -2,6 +2,7 @@
 
 namespace App\Services\Directory;
 
+use App\DTOs\Directories\Fiat\Brazil\PixKeyDTO;
 use App\DTOs\Directories\Fiat\Venezuela\PagoMovilDTO;
 use App\Http\Resources\Directories\Fiat\Venezuela\PagoMovilResource;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
@@ -25,6 +26,7 @@ final class DirectoryService
         private readonly UserContextService $userContext,
         private readonly DirectoryContextService $context,
         private readonly DirectoryCrudService $crud,
+        private readonly PixKeyCrudService $pixCrud,
     ) {}
 
     /**
@@ -131,6 +133,36 @@ final class DirectoryService
     {
         $userId = $this->userContext->resolveUserId();
         return $this->crud->delete($id, $userId);
+    }
+
+    /**
+     * Crea una nueva clave PIX (Brasil).
+     *
+     * @param PixKeyDTO $dto DTO con los datos de la clave PIX
+     * @return bool True si la creación fue exitosa
+     *
+     * @throws DomainException Si no se puede resolver el usuario o falla la creación
+     */
+    public function createPixKey(PixKeyDTO $dto): bool
+    {
+        $userId = $this->userContext->resolveUserId($dto->tokenId);
+
+        return $this->pixCrud->create($dto, $userId);
+    }
+
+    /**
+     * Actualiza una clave PIX existente (Brasil).
+     *
+     * @param PixKeyDTO $dto DTO con los datos actualizados
+     * @return bool True si la actualización fue exitosa
+     *
+     * @throws DomainException Si no se puede resolver el usuario o falla la actualización
+     */
+    public function updatePixKey(PixKeyDTO $dto): bool
+    {
+        $userId = $this->userContext->resolveUserId($dto->tokenId);
+
+        return $this->pixCrud->update($dto, $userId);
     }
 
     /**
