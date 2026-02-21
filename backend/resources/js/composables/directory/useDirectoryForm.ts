@@ -9,17 +9,19 @@ const PIX_RULES: Record<string, { pattern: RegExp; message: string; placeholder:
     CNPJ:   { pattern: /^\d{14}$/,                           message: 'CNPJ inválido (14 dígitos sin puntos).', placeholder: '00000000000000',           maxlength: 14  },
     EMAIL:  { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,         message: 'E-mail inválido.',                       placeholder: 'ejemplo@correo.com',        maxlength: 77  },
     PHONE:  { pattern: /^\+55\d{10,11}$/,                    message: 'Formato: +55XXXXXXXXXXX.',               placeholder: '+5511999999999',            maxlength: 14  },
-    RANDOM: { pattern: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, message: 'UUID inválido.', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', maxlength: 36  },
+    RANDOM: { pattern: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, message: 'UUID inválido.', placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', maxlength: 36 },
 }
 
 /**
  * Composable para manejar el formulario de directorio multi-país.
  *
  * VE → Pago Móvil (holder_name, document_type_id, document_number, phone, bank_id)
- * BR → PIX        (name, pix_key_type, pix_key_value, bank_id)
+ * BR → PIX        (holder_name, pix_key_type, pix_key_value, bank_id)
+ *
+ * El campo "Nombre" en ambos casos se mapea a holder_name (columna real en ambas tablas).
  */
 export function useDirectoryForm(
-    modelValue: Partial<DirectoryVEN> & { country_code?: string; name?: string; pix_key_type?: string; pix_key_value?: string },
+    modelValue: Partial<DirectoryVEN> & { country_code?: string; holder_name?: string; pix_key_type?: string; pix_key_value?: string },
     emit: (event: 'update:modelValue', value: any) => void
 ) {
     const countryCode = computed<string>(() => (modelValue as any).country_code ?? 'VE')
@@ -35,7 +37,6 @@ export function useDirectoryForm(
         document_number: '',
         phone: '',
         // BR fields
-        name: '',
         pix_key_type: '' as PixKeyType,
         pix_key_value: '',
         // shared
@@ -49,7 +50,6 @@ export function useDirectoryForm(
         document_type_id?: string
         document_number?: string
         phone?: string
-        name?: string
         pix_key_type?: string
         pix_key_value?: string
         bank_id?: string
@@ -63,7 +63,7 @@ export function useDirectoryForm(
 
     const isValid = computed(() => {
         if (isBR.value) {
-            return !errors.value.name &&
+            return !errors.value.holder_name &&
                 !errors.value.pix_key_type &&
                 !errors.value.pix_key_value &&
                 !errors.value.bank_id
@@ -91,7 +91,6 @@ export function useDirectoryForm(
             document_type_id: '',
             document_number: '',
             phone: '',
-            name: '',
             pix_key_type: '',
             pix_key_value: '',
             bank_id: '',
@@ -102,14 +101,15 @@ export function useDirectoryForm(
     const validate = () => {
         errors.value = {}
 
+        // holder_name es requerido en ambos países
+        if (!form.value.holder_name?.trim()) {
+            errors.value.holder_name = 'El nombre es requerido.'
+        } else if (form.value.holder_name.length > (isBR.value ? 35 : 100)) {
+            errors.value.holder_name = `Máximo ${isBR.value ? 35 : 100} caracteres.`
+        }
+
         if (isBR.value) {
             // --- Brasil (PIX) ---
-            if (!form.value.name?.trim()) {
-                errors.value.name = 'El nombre es requerido.'
-            } else if (form.value.name.length > 35) {
-                errors.value.name = 'Máximo 35 caracteres.'
-            }
-
             if (!form.value.pix_key_type) {
                 errors.value.pix_key_type = 'El tipo de clave PIX es requerido.'
             }
@@ -124,12 +124,6 @@ export function useDirectoryForm(
             }
         } else {
             // --- Venezuela (Pago Móvil) ---
-            if (!form.value.holder_name?.trim()) {
-                errors.value.holder_name = 'El nombre del titular es requerido.'
-            } else if (form.value.holder_name.length > 100) {
-                errors.value.holder_name = 'Máximo 100 caracteres.'
-            }
-
             if (!form.value.document_type_id) {
                 errors.value.document_type_id = 'El tipo de documento es requerido.'
             }
@@ -166,7 +160,6 @@ export function useDirectoryForm(
                 document_type_id: v.document_type_id?.toString() ?? '',
                 document_number:  v.document_number   ?? '',
                 phone:            v.phone             ?? '',
-                name:             v.name              ?? '',
                 pix_key_type:     v.pix_key_type      ?? '',
                 pix_key_value:    v.pix_key_value      ?? '',
                 bank_id:          v.bank_id?.toString() ?? '',
@@ -179,17 +172,19 @@ export function useDirectoryForm(
     watch(
         form,
         value => {
-            const base: any = { id: directoryId.value, bank_id: value.bank_id }
+            const base: any = {
+                id:          directoryId.value,
+                holder_name: value.holder_name,
+                bank_id:     value.bank_id,
+            }
 
             if (isBR.value) {
                 Object.assign(base, {
-                    name:          value.name,
                     pix_key_type:  value.pix_key_type,
                     pix_key_value: value.pix_key_value,
                 })
             } else {
                 Object.assign(base, {
-                    holder_name:      value.holder_name,
                     document_type_id: value.document_type_id,
                     document_number:  value.document_number,
                     phone:            value.phone,
@@ -208,7 +203,6 @@ export function useDirectoryForm(
             form.value.document_type_id,
             form.value.document_number,
             form.value.phone,
-            form.value.name,
             form.value.pix_key_type,
             form.value.pix_key_value,
             form.value.bank_id,

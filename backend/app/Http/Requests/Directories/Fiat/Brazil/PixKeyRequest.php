@@ -103,7 +103,7 @@ final class PixKeyRequest extends BaseRequest
     public function messages(): array
     {
         return [
-            'name.max'                 => 'El nombre no puede exceder 35 caracteres.',
+            'holder_name.max'          => 'El nombre no puede exceder 35 caracteres.',
             'pix_key_type.required'    => 'El tipo de clave PIX es obligatorio.',
             'pix_key_type.in'          => 'Tipo de clave PIX inválido.',
             'pix_key_value.required'   => 'La clave PIX es obligatoria.',

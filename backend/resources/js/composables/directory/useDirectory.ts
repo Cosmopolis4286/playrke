@@ -50,7 +50,7 @@ interface UseDirectoryReturn {
 const emptyDirectory = (countryCode: string = 'VE'): Partial<DirectoryVEN> => {
     if (countryCode === 'BR') {
         return Object.freeze({
-            name: '',
+            holder_name: '',
             pix_key_type: '',
             pix_key_value: '',
             bank_id: '',
@@ -243,12 +243,12 @@ export function useDirectory(tokenId: string = ''): UseDirectoryReturn {
 
             if (activeCountry.value === 'BR') {
                 directoryData.value = {
-                    id: raw.id,
-                    name: raw.name,
-                    pix_key_type: raw.pix_key_type,
+                    id:            raw.id,
+                    holder_name:   raw.holder_name,
+                    pix_key_type:  raw.pix_key_type,
                     pix_key_value: raw.pix_key_value,
-                    bank_id: raw.bank?.id ?? raw.bank_id,
-                    country_code: 'BR',
+                    bank_id:       raw.bank?.id ?? raw.bank_id,
+                    country_code:  'BR',
                 } as any
             } else {
                 directoryData.value = {

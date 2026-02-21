@@ -60,7 +60,7 @@ final class DirectoryContextService
     ];
 
     private const BR_ROW_KEYS = [
-        'name',
+        'holder_name',
         'pix_key_type',
         'pix_key_value',
         'Bank.name',

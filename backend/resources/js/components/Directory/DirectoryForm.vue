@@ -22,7 +22,7 @@
    * Props
    */
   const props = defineProps<{
-    modelValue: Partial<DirectoryVEN> & { country_code?: string; name?: string; pix_key_type?: string; pix_key_value?: string }
+    modelValue: Partial<DirectoryVEN> & { country_code?: string; holder_name?: string; pix_key_type?: string; pix_key_value?: string }
     banks?: any[]
     documentTypes?: Array<{ id: string; code: string; description: string }>
     countryCode?: string
@@ -160,13 +160,13 @@
         <FormInput
           container
           label="Nombre"
-          name="name"
-          v-model="form.name"
+          name="holder_name"
+          v-model="form.holder_name"
           type="text"
           maxlength="35"
           placeholder="Nombre del titular"
           required
-          :error="errors.name"
+          :error="errors.holder_name"
           col="col-12"
         />
 

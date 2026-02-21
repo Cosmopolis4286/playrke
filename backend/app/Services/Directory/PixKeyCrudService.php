@@ -31,7 +31,7 @@ final class PixKeyCrudService
 
         return [
             'id'            => (string) $pixKey->id,
-            'name'          => $pixKey->name,
+            'holder_name'   => $pixKey->holder_name,
             'pix_key_type'  => $pixKey->pix_key_type,
             'pix_key_value' => $pixKey->pix_key_value,
             'status'        => $pixKey->status,
