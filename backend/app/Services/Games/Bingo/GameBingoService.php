@@ -38,8 +38,8 @@ final class GameBingoService
      * Generar cartón de bingo.
      * @return array
      */
-    public function generateBingoCard(): array
+    public function cards(): array
     {
-        return $this->bingoCard->generate();
+        return $this->bingoCard->context('generate-card');
     }
 }

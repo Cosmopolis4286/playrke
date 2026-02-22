@@ -3,6 +3,8 @@
 use App\Http\Controllers\Games\Bingo\Config\BingoConfigController;
 use App\Http\Controllers\Games\Bingo\GameBingoController;
 use App\Http\Controllers\Games\Bingo\Pattern\BingoPatternController;
+use App\Http\Controllers\Games\Bingo\Card\BingoCardController;
+use App\Http\Controllers\Games\Bingo\Room\BingoRoomAutomaticController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomController;
 use Illuminate\Support\Facades\Route;
 
@@ -63,6 +65,37 @@ route_group('bingo/patterns', 'bingo-pattern.', ['auth', 'role:admin,commerce'],
 
 /**
  * ====================================
+ * SALAS AUTOMÁTICAS
+ * ====================================
+ */
+route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'role:admin,commerce'], BingoRoomAutomaticController::class, [
+    'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
+    'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
+    'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
+    'show' => ['method' => 'get', 'uri' => '{room}/show', 'action' => 'show'],
+    'update' => ['method' => 'patch',  'uri' => '{room}/update', 'action' => 'update'],
+    'delete' => ['method' => 'delete', 'uri' => '{room}/delete', 'action' => 'delete'],
+    'destroy' => ['method' => 'delete', 'uri' => '{room}/force-delete', 'action' => 'destroy'],
+    'toggle-status' => ['method' => 'patch', 'uri' => '{room}/status', 'action' => 'toggleStatus'],
+    'copy' => ['method' => 'post',  'uri' => '{room}/copy', 'action' => 'copy'],
+    'execute-job'   => ['method' => 'get', 'uri' => 'execute-job/{creatorType}/{creatorId}'],
+]);
+
+/**
+ * ====================================
+ * OPERACIONES DE JUEGO
+ * ====================================
+ */
+route_group('bingo', 'bingo.', ['auth'], BingoCardController::class, [
+    'generate-card'    => ['method' => 'get', 'uri' => 'generate-card', 'action' => 'generateBingoCard'],
+    'call-number'      => ['method' => 'post', 'uri' => 'room/{roomId}/call-number'],
+    'participate'      => ['method' => 'put',  'uri' => 'participate/public-room/{id?}/{getOut?}'],
+    'notify-payment'   => ['method' => 'post', 'uri' => 'carton/notify/payment/win-ctn'],
+    'handle-rules'     => ['method' => 'put',  'uri' => 'handle-rules/{id?}'],
+]);
+
+/**
+ * ====================================
  * RUTAS ADMIN Y COMMERCE (MULTI-MIDDLEWARE)
  * ====================================
  */
@@ -94,37 +127,7 @@ route_group('bingo', 'bingo.', [], GameBingoController::class, [
     'cartons-sold'     => ['method' => 'get', 'uri' => 'cartons-sold/{currency?}/{dateFilter?}'],
 ]);
 
-/**
- * ====================================
- * SALAS AUTOMÁTICAS
- * ====================================
- */
-route_group('bingo-automatic-room', 'bingo.automatic.', ['auth'], GameBingoController::class, [
-    'show'          => ['method' => 'get', 'uri' => '{id}'],
-    'create'        => ['method' => 'post', 'uri' => ''],
-    'update'        => ['method' => 'put', 'uri' => '{id}'],
-    'changeStatus' => ['method' => 'put', 'uri' => '{id}/status'],
-    'destroy'       => ['method' => 'put', 'uri' => '{id}/delete'],
-    'copy'          => ['method' => 'put', 'uri' => '{id}/copy'],
-    'execute-job'   => ['method' => 'get', 'uri' => 'execute-job/{creatorType}/{creatorId}'],
-]);
-
-/**
- * ====================================
- * OPERACIONES DE JUEGO
- * ====================================
- */
-route_group('bingo', 'bingo.', [], GameBingoController::class, [
-    'generate-card'    => ['method' => 'get', 'uri' => 'generate-card', 'action' => 'generateBingoCard'],
-    'call-number'      => ['method' => 'post', 'uri' => 'room/{roomId}/call-number'],
-    'participate'      => ['method' => 'put',  'uri' => 'participate/public-room/{id?}/{getOut?}'],
-    'notify-payment'   => ['method' => 'post', 'uri' => 'carton/notify/payment/win-ctn'],
-    'handle-rules'     => ['method' => 'put',  'uri' => 'handle-rules/{id?}'],
-]);
-
  // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
-    // 'configuration'      => ['method' => 'get', 'uri' => 'configuration/{userToken?}'],
-    // 'patterns'           => ['method' => 'get', 'uri' => 'configuration/patterns/{userToken?}'],
     // 'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
     // 'public-room-info'   => ['method' => 'get', 'uri' => 'public-room-info'],
     // 'pending-payments'   => ['method' => 'get', 'uri' => 'public-room-pending-payments'],
