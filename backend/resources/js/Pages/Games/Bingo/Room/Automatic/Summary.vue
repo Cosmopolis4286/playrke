@@ -11,7 +11,7 @@
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import BingoRoomForm from '@/js/Components/Games/Bingo/Room/BingoRoomForm.vue'
+  import BingoRoomAutomaticForm from '@/js/Components/Games/Bingo/Room/Automatic/BingoRoomAutomaticForm.vue'
   import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
 
   // ==========================================================================
@@ -62,7 +62,7 @@
   const {
     showModalForm,
     modalTitle,
-    formRef: bingoGameRoomFormRef,
+    formRef: gameBingoRoomFormRef,
     handleSubmit
   } = useModalForm(roomData, submit, {
     defaultTitle: 'Sala de Bingo'
@@ -70,7 +70,7 @@
 
   watch(showModalForm, isOpen => {
     if (!isOpen) {
-      bingoGameRoomFormRef.value?.reset?.()
+      gameBingoRoomFormRef.value?.reset?.()
       create()
     }
   })
@@ -232,10 +232,10 @@
     static
     show-confirm
     :on-submit="handleSubmit"
-    :confirm-disabled="!(bingoGameRoomFormRef?.isValid ?? false)"
+    :confirm-disabled="!(gameBingoRoomFormRef?.isValid ?? false)"
   >
-    <BingoRoomForm
-      ref="bingoGameRoomFormRef"
+    <BingoRoomAutomaticForm
+      ref="gameBingoRoomFormRef"
       v-model="roomFormData"
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"
@@ -255,7 +255,7 @@
       <button class="btn btn-sm btn-secondary" @click="showModalForm = false">Cerrar</button>
       <button
         class="btn btn-sm btn-primary"
-        :disabled="!(bingoGameRoomFormRef?.isValid ?? false)"
+        :disabled="!(gameBingoRoomFormRef?.isValid ?? false)"
         @click="handleSubmit"
       >Guardar</button>
     </template>

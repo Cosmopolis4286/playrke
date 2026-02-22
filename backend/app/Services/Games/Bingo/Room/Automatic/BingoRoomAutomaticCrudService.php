@@ -2,12 +2,12 @@
 
 namespace App\Services\Games\Bingo\Room\Automatic;
 
-use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
-use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
-use App\Exceptions\Domain\Games\Bingo\Room\BingoRoomException;
-use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
+use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticCreateDTO;
+use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticUpdateDTO;
+use App\Exceptions\Domain\Games\Bingo\Room\Automatic\BingoRoomAutomaticException;
+use App\Http\Resources\Games\Bingo\Room\Automatic\BingoRoomAutomaticResource;
 use App\Models\Games\Bingo\Creator\BingoCreator;
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Models\Games\Bingo\Round\BingoRound;
 use App\Models\Games\Bingo\Round\BingoRoundPrize;
@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Servicio de aplicación para operaciones CRUD de salas de bingo.
+ * Servicio de aplicación para operaciones CRUD de salas de bingo automaticas.
  *
  * Responsabilidades:
  * - Resolver rol activo del usuario
@@ -35,7 +35,7 @@ use Illuminate\Support\Str;
 final class BingoRoomAutomaticCrudService
 {
     public function __construct(
-        private readonly \App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface $bingoRooms,
+        private readonly \App\Contracts\Games\Bingo\Room\BingoRoomAutomaticRepositoryInterface $bingoRooms,
         private readonly \App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface $bingoCardPrices,
         private readonly ExchangeRateDomainService $exchangeRateService,
     ) {}
@@ -43,36 +43,36 @@ final class BingoRoomAutomaticCrudService
     /**
      * Obtener sala de bingo para visualización.
      *
-     * @param BingoRoom $room
-     * @return BingoRoomResource
+     * @param BingoRoomAutomatic $room
+     * @return BingoRoomAutomaticResource
      *
-     * @throws BingoRoomException
+     * @throws BingoRoomAutomaticException
      */
-    public function show(BingoRoom $room): BingoRoomResource
+    public function show(BingoRoomAutomatic $room): BingoRoomAutomaticResource
     {
         if (!$room->exists) {
-            throw BingoRoomException::notFound();
+            throw BingoRoomAutomaticException::notFound();
         }
 
         $room->load(['config', 'status', 'cardPrices', 'rounds.prizes', 'rounds.prize']);
 
-        return new BingoRoomResource($room);
+        return new BingoRoomAutomaticResource($room);
     }
 
     /**
-     * Guardar sala de bingo (create o update) con su configuración y precios de cartones.
+     * Guardar sala automatica de bingo (create o update) con su configuración y precios de cartones.
      *
-     * @param BingoRoom|BingoRoomCreateDTO $roomOrDto
-     * @param BingoRoomUpdateDTO|null $updateDto Solo requerido para update
+     * @param BingoRoomAutomatic|BingoRoomAutomaticCreateDTO $roomOrDto
+     * @param BingoRoomAutomaticUpdateDTO|null $updateDto Solo requerido para update
      * @return bool
-     * @throws BingoRoomException Si ocurre un error durante la operación
+     * @throws BingoRoomAutomaticException Si ocurre un error durante la operación
      */
-    public function saveRoom(BingoRoom|BingoRoomCreateDTO $roomOrDto, ?BingoRoomUpdateDTO $updateDto = null): bool
+    public function saveRoom(BingoRoomAutomatic|BingoRoomAutomaticCreateDTO $roomOrDto, ?BingoRoomAutomaticUpdateDTO $updateDto = null): bool
     {
         return DB::transaction(function () use ($roomOrDto, $updateDto) {
 
             $userId = Auth::id();
-            $isCreate = $roomOrDto instanceof BingoRoomCreateDTO;
+            $isCreate = $roomOrDto instanceof BingoRoomAutomaticCreateDTO;
             $dto = $isCreate ? $roomOrDto : $updateDto;
 
             // Sala base (crear o usar existente)
@@ -124,21 +124,21 @@ final class BingoRoomAutomaticCrudService
      * - NO crea configuración ni precios de cartones, eso se maneja en saveRoom después de crear la sala base
      *
      * @param int $userId ID del usuario creador
-     * @param BingoRoomCreateDTO $dto DTO con datos de creación
+     * @param BingoRoomAutomaticCreateDTO $dto DTO con datos de creación
      *
-     * @return BingoRoom La sala creada con ID y UUID generado
-     * @throws BingoRoomException Si ocurre un error durante la creación de la sala base
+     * @return BingoRoomAutomatic La sala creada con ID y UUID generado
+     * @throws BingoRoomAutomaticException Si ocurre un error durante la creación de la sala base
      */
-    private function createBaseRoom(int $userId, BingoRoomCreateDTO $dto): BingoRoom
+    private function createBaseRoom(int $userId, BingoRoomAutomaticCreateDTO $dto): BingoRoomAutomatic
     {
         do {
             $uuidCode = strtoupper(Str::uuid()->toString());
-        } while (BingoRoom::where('uuid_code', $uuidCode)->exists());
+        } while (BingoRoomAutomatic::where('uuid_code', $uuidCode)->exists());
 
         $statusCode = $dto->isDraft ? 'DRAFT' : 'ACTIVE';
         $statusId = GameStatus::where('code', $statusCode)->value('id');
 
-        $room = BingoRoom::create([
+        $room = BingoRoomAutomatic::create([
             'status_id'       => $statusId,
             'creator_user_id' => $userId,
             'paid_prizes'     => 'N',
@@ -164,7 +164,7 @@ final class BingoRoomAutomaticCrudService
      * @param string|int $prizePoolTypeId ID o valor del tipo de prize pool
      * @param float|null $amountAddedPrizePool Monto a agregar al prize pool (solo para no acumulativos)
      * @return array ['rkeCommission' => float, 'prizePool' => float]
-     * @throws BingoRoomException Si el tipo de prize pool no es válido
+     * @throws BingoRoomAutomaticException Si el tipo de prize pool no es válido
      */
     private function resolveGameConfig(string|int $prizePoolTypeId, ?float $amountAddedPrizePool): array
     {
@@ -172,7 +172,7 @@ final class BingoRoomAutomaticCrudService
         $rkeCommission = $config['COMMISSION'] ?? 5;
 
         $type = PrizePoolType::find($prizePoolTypeId);
-        if (!$type) throw BingoRoomException::invalidPrizePoolType();
+        if (!$type) throw BingoRoomAutomaticException::invalidPrizePoolType();
 
         $prizePool = !$type->is_accumulative ? ($amountAddedPrizePool ?? 0) : 0;
         return compact('rkeCommission', 'prizePool');
@@ -181,7 +181,7 @@ final class BingoRoomAutomaticCrudService
     /**
      * Construye el array de datos para la configuración de la sala
      *
-     * @param BingoRoomCreateDTO|BingoRoomUpdateDTO $dto DTO con los datos de entrada
+     * @param BingoRoomAutomaticCreateDTO|BingoRoomAutomaticUpdateDTO $dto DTO con los datos de entrada
      * @param int $userId ID del usuario para asignar como creador en caso de creación
      * @param float $rkeCommission Comisión de RKE resuelta desde configuración
      * @param int $unixDate Fecha y hora del juego en formato timestamp
@@ -373,18 +373,18 @@ final class BingoRoomAutomaticCrudService
     }
 
     /**
-     * Alternar estado de una sala de bingo (ACTIVE / INACTIVE).
+     * Alternar estado de una sala de bingo automatica (ACTIVE / INACTIVE).
      * También sincroniza el estado del usuario asociado.
      *
-     * @param BingoRoom $room
+     * @param BingoRoomAutomatic $room
      * @return bool True si el cambio fue exitoso
      *
-     * @throws BingoRoomException Si la sala de bingo está eliminada
+     * @throws BingoRoomAutomaticException Si la sala de bingo está eliminada
      */
-    public function toggleStatus(BingoRoom $room): bool
+    public function toggleStatus(BingoRoomAutomatic $room): bool
     {
         if ($room->status?->code === 'DELETED') {
-            throw BingoRoomException::invalidStatusChange();
+            throw BingoRoomAutomaticException::invalidStatusChange();
         }
 
         // Definir nuevo estado alternando entre ACTIVE y INACTIVE
@@ -396,20 +396,20 @@ final class BingoRoomAutomaticCrudService
     }
 
     /**
-     * Copia una sala de bingo existente como nuevo borrador (status DRAFT).
+     * Copia una sala de bingo automatica (autogenerable) existente como nuevo borrador (status DRAFT).
      * Replica configuración, precios de cartones y rondas.
      *
-     * @param BingoRoom $room Sala a copiar
+     * @param BingoRoomAutomatic $room Sala a copiar
      * @return bool True si la copia fue exitosa
      */
-    public function copyRoom(BingoRoom $room): bool
+    public function copyRoom(BingoRoomAutomatic $room): bool
     {
         $room->load(['config', 'cardPrices', 'rounds.prizes', 'rounds.prize']);
 
         $config = $room->config;
 
         if (!$config) {
-            throw BingoRoomException::notFound();
+            throw BingoRoomAutomaticException::notFound();
         }
 
         $cardPriceByCurrency = $room->cardPrices
@@ -446,7 +446,7 @@ final class BingoRoomAutomaticCrudService
             })
             ->toArray();
 
-        $dto = BingoRoomCreateDTO::fromArray([
+        $dto = BingoRoomAutomaticCreateDTO::fromArray([
             'date'                  => Carbon::parse($config->getRawOriginal('date'))->format('Y-m-d'),
             'time'                  => $config->time,
             'roomType'              => $config->room_type_id,
@@ -471,18 +471,18 @@ final class BingoRoomAutomaticCrudService
     }
 
     /**
-     * Eliminación lógica (soft delete) de una sala de bingo.
+     * Eliminación lógica (soft delete) de una sala de bingo automatica (autogenerable).
      * También marca el usuario asociado como DELETED.
      *
-     * @param BingoRoom $room
+     * @param BingoRoomAutomatic $room
      * @return bool True si la eliminación fue exitosa
      *
-     * @throws BingoRoomException Si la sala de bingo ya está eliminada
+     * @throws BingoRoomAutomaticException Si la sala de bingo ya está eliminada
      */
-    public function delete(BingoRoom $room): bool
+    public function delete(BingoRoomAutomatic $room): bool
     {
         if ($room->status?->code === 'DELETED') {
-            throw BingoRoomException::alreadyDeleted();
+            throw BingoRoomAutomaticException::alreadyDeleted();
         }
 
         $statusId = GameStatus::where('code', 'DELETED')->value('id');

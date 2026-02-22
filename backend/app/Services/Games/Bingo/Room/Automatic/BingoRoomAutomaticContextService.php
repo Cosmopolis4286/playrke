@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Room\Automatic;
 
-use App\DTOs\Games\Bingo\Room\BingoRoomSummaryDTO;
+use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticSummaryDTO;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -100,17 +100,17 @@ final class BingoRoomAutomaticContextService
      * Resolver contexto para el listado de salas de bingo.
      *
      * @param int $userId ID del usuario para filtrar patrones de bingo
-     * @return BingoRoomSummaryDTO
+     * @return BingoRoomAutomaticSummaryDTO
      *
      * @throws DomainException Si no se puede resolver el contexto
      */
-    private function summaryGameRooms(int $userId): BingoRoomSummaryDTO
+    private function summaryGameRooms(int $userId): BingoRoomAutomaticSummaryDTO
     {
         $commerceData = $this->resolveGameRooms($userId);
 
         $currencies = $this->currencyService->getAvailableCurrencies($userId, true);
 
-        return new BingoRoomSummaryDTO(
+        return new BingoRoomAutomaticSummaryDTO(
             rooms: $commerceData['rooms'],
             pagination: $commerceData['pagination'],
             currencies: $currencies,

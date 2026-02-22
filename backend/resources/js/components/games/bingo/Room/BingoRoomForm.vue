@@ -1,4 +1,4 @@
-<script setup lang="ts" name="BingoGameRoomForm">
+<script setup lang="ts" name="GameBingoRoomForm">
   import { computed, watch, ref } from 'vue'
 
   // Components
