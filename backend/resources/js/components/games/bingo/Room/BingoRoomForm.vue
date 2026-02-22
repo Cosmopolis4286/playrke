@@ -9,7 +9,6 @@
   // Composables
   import { useBingoRoomForm } from '@/js/composables/games/bingo/room/useBingoRoomForm'
   import backendClient from '@/js/plugins/axios'
-
   // Types
   import type { BingoRoomFormData, RoundConfig } from '@/js/types/games/bingo/room/bingo-room'
   import type { PrizeSearchResult } from '@/js/types/prizes/prize'

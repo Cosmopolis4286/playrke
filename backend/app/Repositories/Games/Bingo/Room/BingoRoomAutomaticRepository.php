@@ -4,7 +4,7 @@ namespace App\Repositories\Games\Bingo\Room;
 
 use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
 use App\Repositories\BaseRepository;
-use App\Repositories\Games\Bingo\Room\Contracts\BingoRoomAutomaticRepositoryContract;
+use App\Contracts\Games\Bingo\Room\BingoRoomAutomaticRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 
@@ -18,7 +18,7 @@ use Illuminate\Support\Carbon;
  * @author Sistema PlayRKE
  * @version 1.0
  */
-class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAutomaticRepositoryContract
+class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAutomaticRepositoryInterface
 {
     /**
      * Estados de salas

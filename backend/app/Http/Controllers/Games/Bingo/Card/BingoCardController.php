@@ -52,6 +52,24 @@ final class BingoCardController extends Controller
     }
 
     /**
+     * Vista para generar cartones de de bingo.
+     *
+     * @return Response
+     */
+    public function viewGenerateCard(): Response
+    {
+        return $this->handleServiceInertia(
+            function () {
+                $userId = $this->userContext->resolveUserId();
+                $response = $this->service->context('summary', $userId);
+
+                return Inertia::render('Games/Bingo/Card/Generate', $response);
+            },
+            'No se pudo cargar la vista para generar cartones de de bingo.'
+        );
+    }
+
+    /**
      * Crear una sala de bingo.
      *
      * @param BingoRoomRequest $request

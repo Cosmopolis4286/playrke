@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
  * @author Sistema PlayRKE
  * @version 1.0
  */
-interface BingoRoomAutomaticRepositoryContract extends BaseRepositoryInterface
+interface BingoRoomAutomaticRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtener salas por creador
