@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Policies\Roles\BaseRolePolicy;
 
 /**
- * Policy de autorización para el dominio Seller Manager.
+ * Policy de autorización para el dominio BingoRoom.
  *
  * Reglas:
  * - Solo usuarios con roles permitidos pueden operar

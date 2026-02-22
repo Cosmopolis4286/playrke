@@ -2,17 +2,18 @@
 
 namespace App\Http\Controllers\Games\Bingo\Room;
 
-use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
-use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Games\Bingo\Room\BingoRoomRequest;
-use App\Models\Games\Bingo\Room\BingoRoom;
+
+use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticCreateDTO;
+use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticUpdateDTO;
+use App\Http\Requests\Games\Bingo\Room\Automatic\BingoRoomAutomaticRequest;
+use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Controlador de administración del juego de Bingo.
+ * Controlador de administración de las salas automaticas/regenerables del juego de Bingo.
  *
  * Responsabilidades:
  * - Orquestar requests HTTP
@@ -24,17 +25,17 @@ use Inertia\Response;
 final class BingoRoomAutomaticController extends Controller
 {
     /**
-     * @param BingoRoomService $service
+     * @param BingoRoomAutomaticService $service
      */
     public function __construct(
-        private readonly \App\Services\Games\Bingo\Room\BingoRoomService $service,
+        private readonly \App\Services\Games\Bingo\Room\Automatic\BingoRoomAutomaticService $service,
         private readonly \App\Services\Security\UserContextService $userContext
     ) {
-        $this->authorizeResource(BingoRoom::class, 'room');
+        $this->authorizeResource(BingoRoomAutomatic::class, 'room');
     }
 
     /**
-     * Resumen de salas de bingo (admin y commerce).
+     * Resumen de salas automaticas de bingo (admin y commerce).
      *
      * @return Response
      */
@@ -45,29 +46,29 @@ final class BingoRoomAutomaticController extends Controller
                 $userId = $this->userContext->resolveUserId();
                 $response = $this->service->context('summary', $userId);
 
-                return Inertia::render('Games/Bingo/Room/Summary', $response);
+                return Inertia::render('Games/Bingo/Room/Automatic/Summary', $response);
             },
             'No se pudo cargar la lista de salas de bingo.'
         );
     }
 
     /**
-     * Crear una sala de bingo.
+     * Crear una sala automatica (autogenerable) de bingo.
      *
-     * @param BingoRoomRequest $request
+     * @param BingoRoomAutomaticRequest $request
      * @return JsonResponse
      */
-    public function store(BingoRoomRequest $request): JsonResponse
+    public function store(BingoRoomAutomaticRequest $request): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => $this->service->create(
-                $request->toDTO(BingoRoomCreateDTO::class)
+                $request->toDTO(BingoRoomAutomaticCreateDTO::class)
             )
         );
     }
 
     /**
-     * Obtener lista de salas de bingo filtradas por el contexto del usuario (admin o commerce).
+     * Obtener lista de salas automaticas de bingo filtradas.
      *
      * @return JsonResponse
      */
@@ -79,12 +80,12 @@ final class BingoRoomAutomaticController extends Controller
     }
 
     /**
-     * Mostrar detalle de una sala de bingo.
+     * Mostrar detalle de una sala automatica de bingo.
      *
-     * @param BingoRoom $room
+     * @param BingoRoomAutomatic $room
      * @return JsonResponse
      */
-    public function show(BingoRoom $room): JsonResponse
+    public function show(BingoRoomAutomatic $room): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => [
@@ -94,29 +95,29 @@ final class BingoRoomAutomaticController extends Controller
     }
 
     /**
-     * Actualizar una sala de bingo.
+     * Actualizar una sala automatica (autogenerable) de bingo.
      *
-     * @param BingoRoomRequest $request
-     * @param BingoRoom $room
+     * @param BingoRoomAutomaticRequest $request
+     * @param BingoRoomAutomatic $room
      * @return JsonResponse
      */
-    public function update(BingoRoomRequest $request, BingoRoom $room): JsonResponse
+    public function update(BingoRoomAutomaticRequest $request, BingoRoomAutomatic $room): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => $this->service->update(
                 $room,
-                $request->toDTO(BingoRoomUpdateDTO::class)
+                $request->toDTO(BingoRoomAutomaticUpdateDTO::class)
             )
         );
     }
 
     /**
-     * Eliminar una sala de bingo (soft delete).
+     * Eliminar una sala automatica (autogenerable) de bingo (soft delete).
      *
-     * @param BingoRoom $room
+     * @param BingoRoomAutomatic $room
      * @return JsonResponse
      */
-    public function delete(BingoRoom $room): JsonResponse
+    public function delete(BingoRoomAutomatic $room): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => $this->service->delete($room)
@@ -124,12 +125,12 @@ final class BingoRoomAutomaticController extends Controller
     }
 
     /**
-     * Eliminar una sala de bingo permanentemente (hard delete).
+     * Eliminar una sala automatica (autogenerable) de bingo permanentemente (hard delete).
      *
-     * @param BingoRoom $room
+     * @param BingoRoomAutomatic $room
      * @return JsonResponse
      */
-    public function destroy(BingoRoom $room): JsonResponse
+    public function destroy(BingoRoomAutomatic $room): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => $this->service->destroy($room)
@@ -137,12 +138,12 @@ final class BingoRoomAutomaticController extends Controller
     }
 
     /**
-     * Alternar estado (ACTIVE / INACTIVE) de una sala de bingo.
+     * Alternar estado (ACTIVE / INACTIVE) de una sala automatica de bingo.
      *
-     * @param BingoRoom $room
+     * @param BingoRoomAutomatic $room
      * @return JsonResponse
      */
-    public function toggleStatus(BingoRoom $room): JsonResponse
+    public function toggleStatus(BingoRoomAutomatic $room): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => $this->service->toggleStatus($room)
@@ -150,12 +151,12 @@ final class BingoRoomAutomaticController extends Controller
     }
 
     /**
-     * Copiar una sala de bingo como nuevo borrador (status DRAFT).
+     * Copiar una sala automatica de bingo como nuevo borrador (status DRAFT).
      *
-     * @param BingoRoom $room
+     * @param BingoRoomAutomatic $room
      * @return JsonResponse
      */
-    public function copy(BingoRoom $room): JsonResponse
+    public function copy(BingoRoomAutomatic $room): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => $this->service->copy($room)
