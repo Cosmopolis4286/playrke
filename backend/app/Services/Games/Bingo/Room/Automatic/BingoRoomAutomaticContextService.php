@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Games\Bingo\Room;
+namespace App\Services\Games\Bingo\Room\Automatic;
 
 use App\DTOs\Games\Bingo\Room\BingoRoomSummaryDTO;
 use App\Traits\HashedTableDataTrait;

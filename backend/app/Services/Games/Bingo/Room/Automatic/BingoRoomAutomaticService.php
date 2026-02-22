@@ -1,27 +1,27 @@
 <?php
 
-namespace App\Services\Games\Bingo\Room;
+namespace App\Services\Games\Bingo\Room\Automatic;
 
-use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
-use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
-use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticCreateDTO;
+use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticUpdateDTO;
+use App\Http\Resources\Games\Bingo\Room\Automatic\BingoRoomAutomaticResource;
+use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
 
 final class BingoRoomAutomaticService
 {
     public function __construct(
-        private readonly BingoRoomContextService $contextService,
-        private readonly BingoRoomCrudService $crudService,
+        private readonly BingoRoomAutomaticContextService $contextService,
+        private readonly BingoRoomAutomaticCrudService $crudService,
         private readonly \App\Services\Security\UserContextService $userContext,
     ) {}
 
     /**
-     * Resolver contexto para BingoRoom.
+     * Resolver contexto para BingoRoomAutomatic.
      *
      * @param string $context
      * @param int|null $userId
      * @return array
-     * @throws \BingoRoomException Si el contexto no es válido
+     * @throws \BingoRoomAutomaticException Si el contexto no es válido
      */
     public function context(string $context, ?int $userId = null): array
     {
@@ -40,7 +40,7 @@ final class BingoRoomAutomaticService
     /**
      * Mostrar detalle de una sala de bingo.
      */
-    public function show(BingoRoom $room): BingoRoomResource
+    public function show(BingoRoomAutomatic $room): BingoRoomAutomaticResource
     {
         return $this->crudService->show($room);
     }
@@ -48,10 +48,10 @@ final class BingoRoomAutomaticService
     /**
      * Crear una nueva sala de bingo con su configuración y creador.
      *
-     * @param BingoRoomCreateDTO $dto
+     * @param BingoRoomAutomaticCreateDTO $dto
      * @return bool
      */
-    public function create(BingoRoomCreateDTO $dto): bool
+    public function create(BingoRoomAutomaticCreateDTO $dto): bool
     {
         return $this->crudService->saveRoom($dto);
     }
@@ -59,11 +59,11 @@ final class BingoRoomAutomaticService
     /**
      * Actualizar una sala de bingo existente.
      *
-     * @param BingoRoom $room Model
-     * @param BingoRoomUpdateDTO $dto
+     * @param BingoRoomAutomatic $room Model
+     * @param BingoRoomAutomaticUpdateDTO $dto
      * @return bool
      */
-    public function update(BingoRoom $room, BingoRoomUpdateDTO $dto): bool
+    public function update(BingoRoomAutomatic $room, BingoRoomAutomaticUpdateDTO $dto): bool
     {
         return $this->crudService->saveRoom($room, $dto);
     }
@@ -71,10 +71,10 @@ final class BingoRoomAutomaticService
     /**
      * Copiar una sala de bingo existente como nuevo borrador (status DRAFT).
      *
-     * @param BingoRoom $room Model
+     * @param BingoRoomAutomatic $room Model
      * @return bool
      */
-    public function copy(BingoRoom $room): bool
+    public function copy(BingoRoomAutomatic $room): bool
     {
         return $this->crudService->copyRoom($room);
     }
@@ -82,12 +82,12 @@ final class BingoRoomAutomaticService
     /**
      * Eliminar una sala de bingo (soft delete).
      *
-     * @param BingoRoom $room Model
+     * @param BingoRoomAutomatic $room Model
      * @return bool
      *
-     * @throws BingoRoomException Si falla la eliminación
+     * @throws BingoRoomAutomaticException Si falla la eliminación
      */
-    public function delete(BingoRoom $room): bool
+    public function delete(BingoRoomAutomatic $room): bool
     {
         return $this->crudService->delete($room);
     }
@@ -100,7 +100,7 @@ final class BingoRoomAutomaticService
      *
      * @throws BingoRoomException Si falla el cambio de estado
      */
-    public function toggleStatus(BingoRoom $room): bool
+    public function toggleStatus(BingoRoomAutomatic $room): bool
     {
         return $this->crudService->toggleStatus($room);
     }
@@ -108,7 +108,7 @@ final class BingoRoomAutomaticService
     /**
      * Eliminar una sala de bingo permanentemente (hard delete).
      */
-    public function destroy(BingoRoom $room): bool
+    public function destroy(BingoRoomAutomatic $room): bool
     {
         return $room->forceDelete();
     }

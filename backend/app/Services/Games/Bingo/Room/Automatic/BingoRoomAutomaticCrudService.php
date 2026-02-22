@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Games\Bingo\Room;
+namespace App\Services\Games\Bingo\Room\Automatic;
 
 use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
 use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
