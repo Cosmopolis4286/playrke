@@ -4,10 +4,7 @@
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import BingoCardGenerateForm from '@/js/Components/Games/Bingo/Card/BingoCardGenerateForm.vue'
   // Composables
-    import { useBingoRoom } from '@/js/composables/games/bingo/room/useBingoRoom'
-
-
-  import axios from 'axios'
+  import { useBingoCardGenerate } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
 
   /**
    * Props recibidas desde Laravel (Inertia o blade -> json)

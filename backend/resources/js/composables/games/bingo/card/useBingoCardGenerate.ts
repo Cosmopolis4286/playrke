@@ -2,23 +2,23 @@ import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 
-import type { BingoRoom, BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
+import type { BingoCardGenerate, BingoCardGenerateFormData } from '@/js/types/games/bingo/room/bingo-room'
 
 /**
- * Contrato público del composable useBingoRoom
+ * Contrato público del composable useBingoCardGenerate
  */
-interface UseBingoRoomReturn {
+interface UseBingoCardGenerateReturn {
     /** Datos de la sala (para crear o editar) */
-    roomData: Ref<Partial<BingoRoom>>
+    roomData: Ref<Partial<BingoCardGenerate>>
 
     /** Datos del formulario de creación */
-    roomFormData: Ref<BingoRoomFormData>
+    roomFormData: Ref<BingoCardGenerateFormData>
 
     /** Lista reactiva de salas */
-    rooms: Ref<BingoRoom[]>
+    rooms: Ref<BingoCardGenerate[]>
 
     /** Inicializa la lista local */
-    setInitialRooms: (initialBingoRooms: BingoRoom[]) => void
+    setInitialRooms: (initialBingoCardGenerates: BingoCardGenerate[]) => void
 
     /** Envío del formulario */
     submit: () => Promise<boolean>
@@ -54,13 +54,13 @@ interface UseBingoRoomReturn {
 /**
  * Factory para una sala vacía
  */
-const emptyBingoRoom = (): Partial<BingoRoom> =>
+const emptyBingoCardGenerate = (): Partial<BingoCardGenerate> =>
     Object.freeze({})
 
 /**
  * Factory para formulario vacío
  */
-const emptyFormData = (): BingoRoomFormData => ({
+const emptyFormData = (): BingoCardGenerateFormData => ({
     date: null,
     time: null,
     roomType: null,
@@ -89,24 +89,24 @@ const emptyFormData = (): BingoRoomFormData => ({
  * - Envío de datos (POST / PUT)
  * - Gestión local de la lista
  */
-export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
+export function useBingoCardGenerate(tokenId: string = ''): UseBingoCardGenerateReturn {
     /** Estado de carga global */
     const loading = ref(false)
 
     /** Estado único del formulario (para tabla CRUD) */
-    const roomData = ref<Partial<BingoRoom>>(emptyBingoRoom())
+    const roomData = ref<Partial<BingoCardGenerate>>(emptyBingoCardGenerate())
 
     /** Datos del formulario de creación/edición */
-    const roomFormData = ref<BingoRoomFormData>(emptyFormData())
+    const roomFormData = ref<BingoCardGenerateFormData>(emptyFormData())
 
     /** Lista reactiva local */
-    const rooms = ref<BingoRoom[]>([])
+    const rooms = ref<BingoCardGenerate[]>([])
 
     /**
      * Inicializa la lista local
      */
-    function setInitialRooms(initialBingoRooms: BingoRoom[]) {
-        rooms.value = [...initialBingoRooms]
+    function setInitialRooms(initialBingoCardGenerates: BingoCardGenerate[]) {
+        rooms.value = [...initialBingoCardGenerates]
     }
 
     /**
@@ -116,7 +116,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         try {
             loading.value = true
 
-            const response = await backendClient.get<{ data: BingoRoom[] }>(
+            const response = await backendClient.get<{ data: BingoCardGenerate[] }>(
                 '/bingo-rooms/fetch-list',
                 { params: { token: tokenId } }
             )
@@ -175,7 +175,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
      * Modo creación
      */
     function create(): void {
-        roomData.value = { ...emptyBingoRoom() }
+        roomData.value = { ...emptyBingoCardGenerate() }
         roomFormData.value = emptyFormData()
     }
 
@@ -237,7 +237,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
      * Reset del formulario
      */
     function reset(): void {
-        roomData.value = { ...emptyBingoRoom() }
+        roomData.value = { ...emptyBingoCardGenerate() }
         roomFormData.value = emptyFormData()
     }
 

@@ -40,9 +40,9 @@
   // ==========================================================================
 
   const {
-    commerceData,
-    commerces,
-    setInitialCommerces,
+    customerData,
+    customers,
+    setInitialCustomers,
     create,
     edit,
     toggleStatusBulk,
@@ -51,7 +51,7 @@
     submit
   } = useAdminCustomer()
 
-  setInitialCommerces(props.customers.rows)
+  setInitialCustomers(props.customers.rows)
 
   // ==========================================================================
   // Modal + Form handler
@@ -62,7 +62,7 @@
     modalTitle,
     formRef: adminCustomerFormRef,
     handleSubmit
-  } = useModalForm(commerceData, submit, {
+  } = useModalForm(customerData, submit, {
     defaultTitle: 'Cliente'
   })
 
@@ -154,16 +154,16 @@
    * Deshabilitado cuando el elemento seleccionado no está en status ACTIVE.
    */
   function isResetPasswordDisabled(selectedIds: string[]): boolean {
-    const commerce = commerces.value.find(c => c.id === selectedIds[0])
-    return commerce?.status !== 'ACTIVE'
+    const customer = customers.value.find(c => c.id === selectedIds[0])
+    return customer?.status !== 'ACTIVE'
   }
 
   /**
    * Retorna la razón por la cual resetPassword está deshabilitado.
    */
   function getResetPasswordDisabledReason(selectedIds: string[]): string {
-    const commerce = commerces.value.find(c => c.id === selectedIds[0])
-    if (commerce?.status !== 'ACTIVE') {
+    const customer = customers.value.find(c => c.id === selectedIds[0])
+    if (customer?.status !== 'ACTIVE') {
       return 'Solo se puede resetear la contraseña de comercializadoras activas'
     }
     return ''
@@ -194,7 +194,7 @@
     tableId="customer-table"
     title="Clientes"
     :columns="props.customers.columns"
-    :rows="commerces"
+    :rows="customers"
     :filters="filters"
     search-placeholder="Buscar por nombre, email, teléfono..."
     showCreateButton
@@ -213,7 +213,7 @@
   >
     <AdminCustomerForm
       ref="adminCustomerFormRef"
-      v-model="commerceData"
+      v-model="customerData"
       :countries="props.countries"
       :currencies="props.currencies"
       :time-zones="props.timeZones"
