@@ -13,7 +13,7 @@
   import type { Country } from '@/js/types/country'
   import type { TimeZone } from '@/js/types/time-zone'
   import type { Game } from '@/js/types/game'
-  import type { Commerce } from '@/js/types/roles/commerce/commerce'
+  import type { Customer } from '@/js/types/roles/customer/customer'
 
   /* ==========================================================================
    * Props
@@ -24,7 +24,7 @@
     currencies: Currency[]
     timeZones: TimeZone[]
     games: Game[]
-    modelValue: Partial<Commerce>
+    modelValue: Partial<Customer>
   }>()
 
   /* ==========================================================================
@@ -33,7 +33,7 @@
 
   const emit = defineEmits<{
     (e: 'submit'): void
-    (e: 'update:modelValue', value: Partial<Commerce>): void
+    (e: 'update:modelValue', value: Partial<Customer>): void
   }>()
 
   /* ==========================================================================
@@ -176,6 +176,33 @@
         placeholder="0.00"
         :mask="commissionMask"
         v-model="form.commission"
+      />
+
+      <FormInput label="Ruta API" name="api_route" required col="col-12" v-model="form.api_route" />
+
+      <FormInput
+        label="Llave de Conexión"
+        name="customer_key"
+        :error="errors.customer_key"
+        required
+        col="col-12"
+        inputGroup
+        v-model="form.customer_key"
+      >
+        <template #append>
+          <button class="btn btn-outline-secondary" type="button" id="btn-change-customer-key">
+            <i class="fa-solid fa-rotate"></i>
+          </button>
+        </template>
+      </FormInput>
+
+      <FormInput
+        label="Logo"
+        type="file"
+        name="logo"
+        accept="image/png, image/jpeg"
+        col="col-12"
+        v-model="form.logo"
       />
 
       <FormSelect

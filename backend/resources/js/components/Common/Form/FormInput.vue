@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" name="FormInput">
   import { computed, useSlots } from 'vue'
   import { IMaskDirective } from 'vue-imask'
   import type { PropType } from 'vue'

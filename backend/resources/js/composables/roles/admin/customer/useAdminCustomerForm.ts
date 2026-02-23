@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import type { Commerce } from '@/js/types/roles/commerce/commerce'
+import type { Customer } from '@/js/types/roles/customer/customer'
 
 /**
  * Composable para formulario de Comercializadoras
@@ -13,14 +13,14 @@ import type { Commerce } from '@/js/types/roles/commerce/commerce'
  * ✅ v-model computado
  */
 export function useAdminCustomerForm(
-    modelValueGetter: () => Partial<Commerce>,
-    emit: (event: 'update:modelValue', value: Partial<Commerce>) => void
+    modelValueGetter: () => Partial<Customer>,
+    emit: (event: 'update:modelValue', value: Partial<Customer>) => void
 ) {
     /* =======================
      * v-model computado
      * ======================= */
 
-    const form = computed<Partial<Commerce>>({
+    const form = computed<Partial<Customer>>({
         get: () => modelValueGetter(),
         set: value => emit('update:modelValue', value)
     })
