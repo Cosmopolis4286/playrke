@@ -1,178 +1,190 @@
 <script setup lang="ts" name="PrizeForm">
-  import { computed, ref, watch } from 'vue'
+import { computed, ref, watch } from "vue";
 
-  import FormInput        from '@/js/Components/Common/Form/FormInput.vue'
-  import FormSelect       from '@/js/Components/Common/Form/FormSelect.vue'
-  import FormSwitch       from '@/js/Components/Common/Form/FormSwitch.vue'
-  import ItemSearchPicker from '@/js/Components/Common/Form/ItemSearchPicker.vue'
-  import backendClient    from '@/js/plugins/axios'
+import FormInput from "@/js/Components/Common/Form/FormInput.vue";
+import FormSelect from "@/js/Components/Common/Form/FormSelect.vue";
+import FormSwitch from "@/js/Components/Common/Form/FormSwitch.vue";
+import ItemSearchPicker from "@/js/Components/Common/Form/ItemSearchPicker.vue";
+import backendClient from "@/js/plugins/axios";
 
-  import type { Prize, PrizeSearchResult } from '@/js/types/prizes/prize'
+import type { Prize, PrizeSearchResult } from "@/js/types/prizes/prize";
 
-  /* ref al picker para poder llamar .clear() */
-  const pickerRef = ref<{ clear: () => void } | null>(null)
+/* ref al picker para poder llamar .clear() */
+const pickerRef = ref<{ clear: () => void } | null>(null);
 
-  /* ==========================================================================
-   * Props / Emits
-   * ========================================================================== */
+/* ==========================================================================
+ * Props / Emits
+ * ========================================================================== */
 
-  const props = defineProps<{
-    modelValue:     Partial<Prize>
-    kitItemObjects: PrizeSearchResult[]
-    canCreateKit?:  boolean
-  }>()
+const props = defineProps<{
+  modelValue: Partial<Prize>;
+  kitItemObjects: PrizeSearchResult[];
+  canCreateKit?: boolean;
+}>();
 
-  const emit = defineEmits<{
-    (e: 'submit'): void
-    (e: 'update:modelValue',     value: Partial<Prize>): void
-    (e: 'update:kitItemObjects', value: PrizeSearchResult[]): void
-  }>()
+const emit = defineEmits<{
+  (e: "submit"): void;
+  (e: "update:modelValue", value: Partial<Prize>): void;
+  (e: "update:kitItemObjects", value: PrizeSearchResult[]): void;
+}>();
 
-  /* ==========================================================================
-   * v-model computado
-   * ========================================================================== */
+/* ==========================================================================
+ * v-model computado
+ * ========================================================================== */
 
-  const form = computed<Partial<Prize>>({
-    get: () => props.modelValue,
-    set: v => emit('update:modelValue', v)
-  })
+const form = computed<Partial<Prize>>({
+  get: () => props.modelValue,
+  set: (v) => emit("update:modelValue", v),
+});
 
-  /* ==========================================================================
-   * Kit items (objetos completos con precio, sincronizados con el padre)
-   * ========================================================================== */
+/* ==========================================================================
+ * Kit items (objetos completos con precio, sincronizados con el padre)
+ * ========================================================================== */
 
-  const localKitItems = computed<PrizeSearchResult[]>({
-    get: () => props.kitItemObjects,
-    set: v => emit('update:kitItemObjects', v)
-  })
+const localKitItems = computed<PrizeSearchResult[]>({
+  get: () => props.kitItemObjects,
+  set: (v) => emit("update:kitItemObjects", v),
+});
 
-  /* ==========================================================================
-   * Opciones estáticas
-   * ========================================================================== */
+/* ==========================================================================
+ * Opciones estáticas
+ * ========================================================================== */
 
-  const rewardTypeOptions = [
-    { value: 'PRODUCT', label: 'Producto' },
-    { value: 'SERVICE', label: 'Servicio' }
-  ]
+const rewardTypeOptions = [
+  { value: "PRODUCT", label: "Producto" },
+  { value: "SERVICE", label: "Servicio" },
+];
 
-  /* ==========================================================================
-   * Helpers
-   * ========================================================================== */
+/* ==========================================================================
+ * Helpers
+ * ========================================================================== */
 
-  const isEdit = computed(() => !!form.value.id)
-  const isKit  = computed(() => form.value.kit === 'Y')
-  const kitIds = computed(() => localKitItems.value.map(i => String(i.id)))
+const isEdit = computed(() => !!form.value.id);
+const isKit = computed(() => form.value.kit === "Y");
+const kitIds = computed(() => localKitItems.value.map((i) => String(i.id)));
 
-  /* ==========================================================================
-   * Kit price auto-sum
-   * ========================================================================== */
+/* ==========================================================================
+ * Kit price auto-sum
+ * ========================================================================== */
 
-  const kitPrice = computed(() =>
-    localKitItems.value.reduce((sum, item) => sum + Number(item.price ?? 0), 0)
-  )
+const kitPrice = computed(() =>
+  localKitItems.value.reduce((sum, item) => sum + Number(item.price ?? 0), 0)
+);
 
-  watch(kitPrice, (val) => {
-    if (isKit.value) {
-      form.value = { ...form.value, price: val.toFixed(2) }
-    }
-  })
-
-  /* ==========================================================================
-   * Kit switch
-   * ========================================================================== */
-
-  const kitToggle = computed({
-    get: () => form.value.kit === 'Y',
-    set: (val: boolean) => {
-      const newItems: PrizeSearchResult[] = val ? localKitItems.value : []
-      localKitItems.value = newItems
-      form.value = {
-        ...form.value,
-        kit:       val ? 'Y' : 'N',
-        kit_items: val ? kitIds.value : [],
-        num_items: val ? newItems.length : 1,
-        price:     val ? kitPrice.value.toFixed(2) : '',
-      }
-      if (!val) pickerRef.value?.clear()
-    }
-  })
-
-  /* ==========================================================================
-   * Búsqueda de prizes individuales para el kit (delegada a ItemSearchPicker)
-   * ========================================================================== */
-
-  async function searchPrizes(q: string): Promise<PrizeSearchResult[]> {
-    const { data } = await backendClient.get<{ data: PrizeSearchResult[] }>('/prizes/search', {
-      params: { q, exclude: form.value.id }
-    })
-    return data.data ?? []
+watch(kitPrice, (val) => {
+  if (isKit.value) {
+    form.value = { ...form.value, price: val.toFixed(2) };
   }
+});
 
-  function syncKit(updated: PrizeSearchResult[]) {
-    localKitItems.value = updated
+/* ==========================================================================
+ * Kit switch
+ * ========================================================================== */
+
+const kitToggle = computed({
+  get: () => form.value.kit === "Y",
+  set: (val: boolean) => {
+    const newItems: PrizeSearchResult[] = val ? localKitItems.value : [];
+    localKitItems.value = newItems;
     form.value = {
       ...form.value,
-      kit_items: updated.map(i => String(i.id)),
-      num_items: updated.length,
-      price:     updated.reduce((s, i) => s + Number(i.price ?? 0), 0).toFixed(2),
+      kit: val ? "Y" : "N",
+      kit_items: val ? kitIds.value : [],
+      num_items: val ? newItems.length : 1,
+      price: val ? kitPrice.value.toFixed(2) : "",
+    };
+    if (!val) pickerRef.value?.clear();
+  },
+});
+
+/* ==========================================================================
+ * Búsqueda de prizes individuales para el kit (delegada a ItemSearchPicker)
+ * ========================================================================== */
+
+async function searchPrizes(q: string): Promise<PrizeSearchResult[]> {
+  const { data } = await backendClient.get<{ data: PrizeSearchResult[] }>(
+    "/prizes/search",
+    {
+      params: { q, exclude: form.value.id },
+    }
+  );
+  return data.data ?? [];
+}
+
+function syncKit(updated: PrizeSearchResult[]) {
+  localKitItems.value = updated;
+  form.value = {
+    ...form.value,
+    kit_items: updated.map((i) => String(i.id)),
+    num_items: updated.length,
+    price: updated.reduce((s, i) => s + Number(i.price ?? 0), 0).toFixed(2),
+  };
+}
+
+/* ==========================================================================
+ * Máscara precio
+ * ========================================================================== */
+
+const priceMask = {
+  mask: Number,
+  scale: 2,
+  min: 0,
+  max: 9999999999,
+  radix: ".",
+  mapToRadix: [","],
+  padFractionalZeros: true,
+  normalizeZeros: true,
+  thousandsSeparator: ",",
+};
+
+/* ==========================================================================
+ * Validación reactiva
+ * ========================================================================== */
+
+const errors = computed<Record<string, string>>(() => {
+  const e: Record<string, string> = {};
+
+  if (!form.value.reward_type) e.reward_type = "El tipo es requerido.";
+  if (!form.value.name?.trim()) e.name = "El nombre es requerido.";
+
+  if (!isKit.value) {
+    const price = parseFloat(String(form.value.price ?? ""));
+    if (
+      form.value.price === "" ||
+      form.value.price === undefined ||
+      form.value.price === null
+    ) {
+      e.price = "El precio es requerido.";
+    } else if (isNaN(price) || price < 0) {
+      e.price = "Precio inválido.";
     }
   }
 
-  /* ==========================================================================
-   * Máscara precio
-   * ========================================================================== */
-
-  const priceMask = {
-    mask: Number, scale: 2, min: 0, max: 9999999999,
-    radix: '.', mapToRadix: [','], padFractionalZeros: true,
-    normalizeZeros: true, thousandsSeparator: ','
+  if (form.value.kit === "Y" && localKitItems.value.length === 0) {
+    e.kit_items = "Agrega al menos un ítem al kit.";
   }
 
-  /* ==========================================================================
-   * Validación reactiva
-   * ========================================================================== */
+  return e;
+});
 
-  const errors = computed<Record<string, string>>(() => {
-    const e: Record<string, string> = {}
+const isValid = computed(() => Object.keys(errors.value).length === 0);
 
-    if (!form.value.reward_type) e.reward_type = 'El tipo es requerido.'
-    if (!form.value.name?.trim()) e.name = 'El nombre es requerido.'
+/* ==========================================================================
+ * Submit / Expose
+ * ========================================================================== */
 
-    if (!isKit.value) {
-      const price = parseFloat(String(form.value.price ?? ''))
-      if (form.value.price === '' || form.value.price === undefined || form.value.price === null) {
-        e.price = 'El precio es requerido.'
-      } else if (isNaN(price) || price < 0) {
-        e.price = 'Precio inválido.'
-      }
-    }
+const submit = (): boolean => {
+  if (!isValid.value) return false;
+  emit("submit");
+  return true;
+};
 
-    if (form.value.kit === 'Y' && localKitItems.value.length === 0) {
-      e.kit_items = 'Agrega al menos un ítem al kit.'
-    }
-
-    return e
-  })
-
-  const isValid = computed(() => Object.keys(errors.value).length === 0)
-
-  /* ==========================================================================
-   * Submit / Expose
-   * ========================================================================== */
-
-  const submit = (): boolean => {
-    if (!isValid.value) return false
-    emit('submit')
-    return true
-  }
-
-  defineExpose({ submit, isValid, reset: () => {} })
+defineExpose({ submit, isValid, reset: () => {} });
 </script>
 
 <template>
   <form id="prize-form" novalidate @submit.prevent="submit">
     <div class="row">
-
       <FormInput
         label="Nombre del premio"
         name="name"
@@ -238,9 +250,8 @@
       <!-- ------------------------------------------------------------------ -->
       <!-- Sección Kit                                                         -->
       <!-- ------------------------------------------------------------------ -->
-      <div class="col-12">
+      <div class="col-12" v-if="!isEdit">
         <div class="kit-section">
-
           <!-- Switch + hint -->
           <div class="kit-switch-row">
             <FormSwitch
@@ -248,10 +259,10 @@
               name="kit_toggle"
               col=""
               :modelValue="kitToggle"
-              :disabled="!canCreateKit && !isEdit"
+              :disabled="!canCreateKit"
               @update:modelValue="kitToggle = $event"
             />
-            <span v-if="!canCreateKit && !isEdit" class="kit-unavailable-hint">
+            <span v-if="!canCreateKit" class="kit-unavailable-hint">
               <i class="fas fa-info-circle"></i>
               Necesitas al menos 2 premios individuales para crear un kit.
             </span>
@@ -260,7 +271,6 @@
           <!-- Cuerpo del kit (buscador + ítems) -->
           <Transition name="kit-expand">
             <div v-if="isKit" class="kit-body">
-
               <ItemSearchPicker
                 ref="pickerRef"
                 :modelValue="localKitItems"
@@ -281,8 +291,15 @@
                 <template #chip="{ item, remove }">
                   <i class="fas fa-tag chip-icon"></i>
                   <span class="chip-name">{{ item.name }}</span>
-                  <span class="chip-price">${{ Number((item as PrizeSearchResult).price).toFixed(2) }}</span>
-                  <button type="button" class="chip-remove" @click="remove" title="Quitar del kit">
+                  <span class="chip-price"
+                    >${{ Number((item as PrizeSearchResult).price).toFixed(2) }}</span
+                  >
+                  <button
+                    type="button"
+                    class="chip-remove"
+                    @click="remove"
+                    title="Quitar del kit"
+                  >
                     <i class="fas fa-times"></i>
                   </button>
                 </template>
@@ -293,13 +310,10 @@
                   </span>
                 </template>
               </ItemSearchPicker>
-
             </div>
           </Transition>
-
         </div>
       </div>
-
     </div>
   </form>
 </template>

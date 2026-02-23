@@ -78,15 +78,6 @@ export function useModalForm<T extends { id?: number | string }>(
         return response
     }
 
-    /**
-     * Reset automático al cerrar el modal
-     */
-    watch(showModalForm, open => {
-        if (!open) {
-            formRef.value?.reset?.()
-        }
-    })
-
     return {
         showModalForm,
         modalTitle,
