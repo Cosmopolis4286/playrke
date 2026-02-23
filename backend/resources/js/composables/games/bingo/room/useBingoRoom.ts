@@ -110,6 +110,21 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
     }
 
     /**
+     * Reset del formulario
+     */
+    function reset(): void {
+        roomData.value = { ...emptyBingoRoom() }
+        roomFormData.value = emptyFormData()
+    }
+
+    /**
+     * Modo creación
+     */
+    const create = (): void => {
+        reset()
+    }
+
+    /**
      * Obtiene la lista desde backend
      */
     async function fetchRooms(): Promise<boolean> {
@@ -158,6 +173,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             }
 
             await fetchRooms()
+            reset();
             return true
         } catch (error: any) {
             console.error(error)
@@ -169,14 +185,6 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         } finally {
             loading.value = false
         }
-    }
-
-    /**
-     * Modo creación
-     */
-    function create(): void {
-        roomData.value = { ...emptyBingoRoom() }
-        roomFormData.value = emptyFormData()
     }
 
     /**
@@ -231,14 +239,6 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         } finally {
             loading.value = false
         }
-    }
-
-    /**
-     * Reset del formulario
-     */
-    function reset(): void {
-        roomData.value = { ...emptyBingoRoom() }
-        roomFormData.value = emptyFormData()
     }
 
     /**

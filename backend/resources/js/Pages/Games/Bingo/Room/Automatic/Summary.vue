@@ -1,6 +1,6 @@
 <script setup lang="ts">
   /**
-   * Página Juego BINGO → GameRoom/Summary
+   * Página Salas de Bingo Automaticas (Autogenerables) → Bingo/Room/Automatic/Summary
    */
 
   import { computed, watch } from 'vue'
@@ -192,14 +192,21 @@
 
   const extraButtons: ExtraButton[] = [
     {
-      label: '',
+      label: 'Salas de Juego',
+      class: 'btn-secondary',
+      show: (ids: string[]) => !ids.length,
+      onClick: (ids: string[]) => {
+        if (ids.length) return
+        window.location.href = `/bingo-rooms`
+      }
+    },
+    {
       icon: 'fas fa-exchange-alt',
       class: 'btn-secondary',
       show: false,
       action: 'toggleStatus'
     },
     {
-      label: '',
       icon: 'fas fa-copy',
       class: 'btn-info text-white',
       show: (ids: string[]) => ids.length === 1,
@@ -250,14 +257,16 @@
         name="isDraft"
         label="Activar sala"
         :model-value="!(roomFormData.isDraft ?? true)"
-        @update:model-value="(val: boolean) => roomFormData.isDraft = !val"
+        @update:model-value="(val: boolean) => (roomFormData.isDraft = !val)"
       />
       <button class="btn btn-sm btn-secondary" @click="showModalForm = false">Cerrar</button>
       <button
         class="btn btn-sm btn-primary"
         :disabled="!(gameBingoRoomFormRef?.isValid ?? false)"
         @click="handleSubmit"
-      >Guardar</button>
+      >
+        Guardar
+      </button>
     </template>
   </Modal>
 </template>

@@ -66,13 +66,6 @@
     defaultTitle: 'Comercializadora'
   })
 
-  watch(showModalForm, isOpen => {
-    if (!isOpen) {
-      adminCommerceFormRef.value?.reset?.()
-      create()
-    }
-  })
-
   // ==========================================================================
   // CRUD global (eventos tabla)
   // ==========================================================================
@@ -171,14 +164,12 @@
 
   const extraButtons: ExtraButton[] = [
     {
-      label: '',
       icon: 'fas fa-exchange-alt',
       class: 'btn-secondary',
       show: false,
       action: 'toggleStatus'
     },
     {
-      label: '',
       icon: 'fas fa-key',
       class: 'btn-dark',
       show: isResetPasswordVisible,

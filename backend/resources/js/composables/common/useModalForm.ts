@@ -73,7 +73,9 @@ export function useModalForm<T extends { id?: number | string }>(
      */
     async function handleSubmit(): Promise<boolean> {
         if (!formRef.value?.submit()) return false
-        return await submitFn()
+        const response = await submitFn()
+        if (response) showModalForm.value = false
+        return response
     }
 
     /**

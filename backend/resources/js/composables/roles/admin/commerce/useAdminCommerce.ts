@@ -93,6 +93,20 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
     }
 
     /**
+    * Reset del formulario
+    */
+    function reset(): void {
+        commerceData.value = { ...emptyCommerce() }
+    }
+
+    /**
+    * Modo creación
+    */
+    const create = (): void => {
+        reset()
+    }
+
+    /**
      * Obtiene la lista desde backend
      */
     async function fetchCommerces(): Promise<boolean> {
@@ -174,13 +188,6 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
     }
 
     /**
-     * Modo creación
-     */
-    function create(): void {
-        commerceData.value = { ...emptyCommerce() }
-    }
-
-    /**
      * Modo edición
      */
     async function edit(id: string | number): Promise<boolean> {
@@ -220,13 +227,6 @@ export function useAdminCommerce(tokenId: string = ''): UseAdminCommerceReturn {
         } finally {
             loading.value = false
         }
-    }
-
-    /**
-     * Reset del formulario
-     */
-    function reset(): void {
-        commerceData.value = { ...emptyCommerce() }
     }
 
     /**

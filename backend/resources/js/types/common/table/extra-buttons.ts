@@ -3,7 +3,7 @@
  */
 export interface ExtraButton {
     /** Texto visible en el botón */
-    label: string
+    label?: string
     /** Clases CSS para ícono (FontAwesome, etc.) */
     icon?: string
     /** Clases CSS para el botón (ej: 'btn-info') */

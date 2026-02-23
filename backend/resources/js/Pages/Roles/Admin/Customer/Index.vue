@@ -171,14 +171,12 @@
 
   const extraButtons: ExtraButton[] = [
     {
-      label: '',
       icon: 'fas fa-exchange-alt',
       class: 'btn-secondary',
       show: false,
       action: 'toggleStatus'
     },
     {
-      label: '',
       icon: 'fas fa-key',
       class: 'btn-dark',
       show: isResetPasswordVisible,

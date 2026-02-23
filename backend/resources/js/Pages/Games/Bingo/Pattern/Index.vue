@@ -156,7 +156,6 @@
   const extraButtons = computed<ExtraButton[]>(() => [
     // ToggleStatus: admin siempre; no-admin solo si TODOS son propios (default_pattern='N')
     {
-      label:  '',
       icon:   'fas fa-exchange-alt',
       class:  'btn-secondary',
       show:   (ids: string[]) => ids.length > 0 && (isAdmin.value || allSelectedAreOwn(ids)),

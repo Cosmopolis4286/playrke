@@ -52,9 +52,7 @@
    */
   function getDisabledReason(btn: ExtraButton, ids: string[]): string {
     if (!btn.disabledReason) return ''
-    return typeof btn.disabledReason === 'function'
-      ? btn.disabledReason(ids)
-      : btn.disabledReason
+    return typeof btn.disabledReason === 'function' ? btn.disabledReason(ids) : btn.disabledReason
   }
 
   /** Requisitos para cantidad mínima de selección */
@@ -118,8 +116,7 @@
     handleCrudAction({ action: 'toggleStatus', logMessage: 'Cambio de estado para IDs:' })
   const handleResetPassword = () =>
     handleCrudAction({ action: 'resetPassword', logMessage: 'Reset contraseña para IDs:' })
-  const handleView = () =>
-    handleCrudAction({ action: 'view', selectionRequirement: 'single' })
+  const handleView = () => handleCrudAction({ action: 'view', selectionRequirement: 'single' })
 
   /**
    * Asigna onClick y disabled a botones extra basados en la acción
@@ -128,6 +125,13 @@
     (props.extraButtons ?? []).map(btn => ({
       ...btn,
       onClick: () => {
+        // ✅ Si el botón ya trae su propio handler, usarlo
+        if (btn.onClick) {
+          btn.onClick(selectedIds.value)
+          return
+        }
+
+        // Si no, usar sistema por action
         switch (btn.action) {
           case 'toggleStatus':
             handleToggleStatus()
@@ -145,10 +149,7 @@
             console.warn(`No handler para botón '${btn.label}' con acción '${btn.action}'`)
         }
       },
-      disabled: (selectedIds: string[]) =>
-        btn.disabled
-          ? btn.disabled(selectedIds)
-          : false
+      disabled: (selectedIds: string[]) => (btn.disabled ? btn.disabled(selectedIds) : false)
     }))
   )
 
@@ -167,12 +168,6 @@
   const handleSelectionChange = (ids: string[]): void => {
     selectedIds.value = [...ids]
     emit('selection-change', [...ids])
-    // if (import.meta.env.DEV) {
-    //   console.log('🔁 table-selection-updated', { tableId: props.tableId, selectedIds: selectedIds.value })
-    // }
-    // window.dispatchEvent(new CustomEvent('table-selection-updated', {
-    //   detail: { tableId: props.tableId, selectedIds: [...selectedIds.value] }
-    // }))
   }
 </script>
 
