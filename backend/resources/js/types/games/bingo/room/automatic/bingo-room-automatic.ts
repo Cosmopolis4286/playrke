@@ -1,7 +1,7 @@
 /**
  * Tipos de sala de bingo
  */
-export type BingoRoomType = 'PRIVATE' | 'PUBLIC' | 'VIP' | 'MIXED'
+export type BingoRoomAutomaticType = 'PRIVATE' | 'PUBLIC' | 'VIP' | 'MIXED'
 
 /**
  * Indica si los premios fueron pagados
@@ -11,19 +11,19 @@ export type BingoPrizesPaid = 'Y' | 'N'
 /**
  * Estado de la sala
  */
-export type BingoRoomStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED'
+export type BingoRoomAutomaticStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED'
 
 /**
  * Relación: estado de la sala
  */
-export interface BingoRoomGameStatus {
+export interface BingoRoomAutomaticGameStatus {
     readonly id: number | string
 }
 
 /**
  * Relación: país
  */
-export interface BingoRoomCountry {
+export interface BingoRoomAutomaticCountry {
     readonly id: number | string
     readonly name: string
 }
@@ -31,7 +31,7 @@ export interface BingoRoomCountry {
 /**
  * Relación: usuario
  */
-export interface BingoRoomUser {
+export interface BingoRoomAutomaticUser {
     readonly id: number | string
     readonly email: string
     readonly username?: string
@@ -39,13 +39,13 @@ export interface BingoRoomUser {
 }
 
 /**
- * Modelo BingoRoom
+ * Modelo BingoRoomAutomatic
  * Basado en: 2024_06_14_04_create_bingo_rooms_table
  */
-export interface BingoRoom {
+export interface BingoRoomAutomatic {
     readonly id: number | string
     readonly status_id: number | string
-    readonly room_type: BingoRoomType
+    readonly room_type: BingoRoomAutomaticType
     readonly creator_user_id: number | string
     readonly paid_prizes: BingoPrizesPaid
     readonly published_at: string | null
@@ -70,7 +70,7 @@ export interface BingoRoom {
     // Campos del servicio (summary / listado)
     readonly name?: string
     readonly phone?: string
-    readonly status?: BingoRoomStatus
+    readonly status?: BingoRoomAutomaticStatus
     readonly country_id?: number | string | null
     readonly user_id?: number | string | null
     readonly currency_id?: number | string | null
@@ -82,9 +82,9 @@ export interface BingoRoom {
     readonly allowed_games?: (number | string)[]
 
     // Relaciones opcionales
-    readonly country?: BingoRoomCountry | null
-    readonly user?: BingoRoomUser | null
-    readonly status_relation?: BingoRoomGameStatus | null
+    readonly country?: BingoRoomAutomaticCountry | null
+    readonly user?: BingoRoomAutomaticUser | null
+    readonly status_relation?: BingoRoomAutomaticGameStatus | null
 }
 
 /**
@@ -108,10 +108,10 @@ export interface RoundConfig {
  * Campos del formulario de creación/edición de sala
  * Basado en: bingo_rooms_config + bingo_rooms_automatic
  */
-export interface BingoRoomFormData {
+export interface BingoRoomAutomaticFormData {
     date?: string | null
     time?: string | null
-    roomType?: BingoRoomType | null
+    roomType?: BingoRoomAutomaticType | null
     gameMode?: number | string | null
     prizePoolType?: number | string | null
     allowedCurrencies?: (number | string)[]

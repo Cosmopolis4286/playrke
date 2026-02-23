@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
+import type { BingoRoomAutomaticFormData } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
 
 /**
  * Límites de porcentajes (expuestos para usar en atributos min/max del FormInput)
@@ -12,7 +12,7 @@ const PERCENTAGE_LIMITS = {
 } as const
 
 /**
- * Composable para formulario de sala de bingo
+ * Composable para formulario de sala de bingo automaticas
  *
  * Responsabilidades:
  * - Adaptar modelValue al formulario
@@ -23,16 +23,16 @@ const PERCENTAGE_LIMITS = {
  * ✅ Sin lógica de clamping (delegado al FormInput)
  * ✅ v-model computado
  */
-export function useBingoRoomForm(
-    modelValueGetter: () => BingoRoomFormData,
-    emit: (event: 'update:modelValue', value: BingoRoomFormData) => void,
+export function useBingoRoomAutomaticForm(
+    modelValueGetter: () => BingoRoomAutomaticFormData,
+    emit: (event: 'update:modelValue', value: BingoRoomAutomaticFormData) => void,
     automaticRoom: () => boolean
 ) {
     /* =======================
      * v-model computado
      * ======================= */
 
-    const form = computed<BingoRoomFormData>({
+    const form = computed<BingoRoomAutomaticFormData>({
         get: () => modelValueGetter(),
         set: value => emit('update:modelValue', value)
     })

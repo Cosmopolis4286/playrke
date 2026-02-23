@@ -1,7 +1,7 @@
-import type { Currency } from '../../../../currency'
+import type { Currency } from '@/js/types/currency'
 import type { BingoRoom } from '../bingo-room'
-import type { Column } from '../../../../common/table/column-row'
-import type { Pagination } from '../../../../common/table/pagination'
+import type { Column } from '@/js/types/common/table/column-row'
+import type { Pagination } from '@/js/types/common/table/pagination'
 
 export interface BingoRoomSummaryPageProps {
     title?: string,

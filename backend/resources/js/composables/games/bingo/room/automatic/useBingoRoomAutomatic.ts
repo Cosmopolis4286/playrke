@@ -2,23 +2,23 @@ import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 
-import type { BingoRoom, BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
+import type { BingoRoomAutomatic, BingoRoomAutomaticFormData } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
 
 /**
- * Contrato público del composable useBingoRoom
+ * Contrato público del composable useBingoRoomAutomatic
  */
-interface UseBingoRoomReturn {
+interface UseBingoRoomAutomaticReturn {
     /** Datos de la sala (para crear o editar) */
-    roomData: Ref<Partial<BingoRoom>>
+    roomData: Ref<Partial<BingoRoomAutomatic>>
 
     /** Datos del formulario de creación */
-    roomFormData: Ref<BingoRoomFormData>
+    roomFormData: Ref<BingoRoomAutomaticFormData>
 
     /** Lista reactiva de salas */
-    rooms: Ref<BingoRoom[]>
+    rooms: Ref<BingoRoomAutomatic[]>
 
     /** Inicializa la lista local */
-    setInitialRooms: (initialBingoRooms: BingoRoom[]) => void
+    setInitialRooms: (initialBingoRoomAutomatics: BingoRoomAutomatic[]) => void
 
     /** Envío del formulario */
     submit: () => Promise<boolean>
@@ -54,13 +54,13 @@ interface UseBingoRoomReturn {
 /**
  * Factory para una sala vacía
  */
-const emptyBingoRoom = (): Partial<BingoRoom> =>
+const emptyBingoRoomAutomatic = (): Partial<BingoRoomAutomatic> =>
     Object.freeze({})
 
 /**
  * Factory para formulario vacío
  */
-const emptyFormData = (): BingoRoomFormData => ({
+const emptyFormData = (): BingoRoomAutomaticFormData => ({
     date: null,
     time: null,
     roomType: null,
@@ -82,31 +82,31 @@ const emptyFormData = (): BingoRoomFormData => ({
 })
 
 /**
- * Composable para manejar salas de bingo
+ * Composable para manejar salas de bingo automaticas
  *
  * Responsabilidades:
  * - Control del estado del formulario (create / edit / reset)
  * - Envío de datos (POST / PUT)
  * - Gestión local de la lista
  */
-export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
+export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomaticReturn {
     /** Estado de carga global */
     const loading = ref(false)
 
     /** Estado único del formulario (para tabla CRUD) */
-    const roomData = ref<Partial<BingoRoom>>(emptyBingoRoom())
+    const roomData = ref<Partial<BingoRoomAutomatic>>(emptyBingoRoomAutomatic())
 
     /** Datos del formulario de creación/edición */
-    const roomFormData = ref<BingoRoomFormData>(emptyFormData())
+    const roomFormData = ref<BingoRoomAutomaticFormData>(emptyFormData())
 
     /** Lista reactiva local */
-    const rooms = ref<BingoRoom[]>([])
+    const rooms = ref<BingoRoomAutomatic[]>([])
 
     /**
      * Inicializa la lista local
      */
-    function setInitialRooms(initialBingoRooms: BingoRoom[]) {
-        rooms.value = [...initialBingoRooms]
+    function setInitialRooms(initialBingoRoomAutomatics: BingoRoomAutomatic[]) {
+        rooms.value = [...initialBingoRoomAutomatics]
     }
 
     /**
@@ -116,7 +116,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         try {
             loading.value = true
 
-            const response = await backendClient.get<{ data: BingoRoom[] }>(
+            const response = await backendClient.get<{ data: BingoRoomAutomatic[] }>(
                 '/bingo-rooms/fetch-list',
                 { params: { token: tokenId } }
             )
@@ -175,7 +175,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
      * Modo creación
      */
     function create(): void {
-        roomData.value = { ...emptyBingoRoom() }
+        roomData.value = { ...emptyBingoRoomAutomatic() }
         roomFormData.value = emptyFormData()
     }
 
@@ -237,7 +237,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
      * Reset del formulario
      */
     function reset(): void {
-        roomData.value = { ...emptyBingoRoom() }
+        roomData.value = { ...emptyBingoRoomAutomatic() }
         roomFormData.value = emptyFormData()
     }
 
