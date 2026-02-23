@@ -270,6 +270,7 @@
       <FormSelect
         label="Juegos Permitidos"
         name="allowed_games"
+        required
         multiple
         select2
         placeholder="Seleccionar juegos"

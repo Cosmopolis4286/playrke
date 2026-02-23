@@ -52,7 +52,7 @@ class AdminCustomerRequest extends BaseRequest
             'logo'               => ['nullable', 'file', 'image', 'max:2048'], // Max 2MB
             'other_currencies'   => ['sometimes', 'array'],
             'other_currencies.*' => ['string', 'exists:currencies,id'],
-            'allowed_games'      => ['sometimes', 'array'],
+            'allowed_games'      => ['required', 'array'],
             'allowed_games.*'    => ['string', 'exists:games,id'],
         ];
 
@@ -104,6 +104,7 @@ class AdminCustomerRequest extends BaseRequest
             'commission.max' => 'La comisión no puede ser mayor a 100.',
             'commission.regex' => 'La comisión debe tener máximo 2 decimales.',
             'other_currencies.*.exists' => 'Una o más monedas adicionales no son válidas.',
+            'allowed_games.required' => 'Debes permitir al menos un juego.',
             'allowed_games.*.exists' => 'Uno o más juegos permitidos no son válidos.',
         ];
     }
