@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Cartons;
 
-use App\Models\{BingoCardPrice, BingoCardPriceDraft};
+use App\Models\{BingoCardPrice, BingoCardPriceAutomatic};
 use Illuminate\Support\Facades\Log;
 
 class PrizeCartonService
@@ -18,7 +18,7 @@ class PrizeCartonService
     {
         try {
             // Obtener draft de precios para la sala
-            $draft = BingoCardPriceDraft::getByRoom($roomId, ['creator_user_id', 'currencies', 'card_prices', 'status']);
+            $draft = BingoCardPriceAutomatic::getByRoom($roomId, ['creator_user_id', 'currencies', 'card_prices', 'status']);
 
             if (!$draft) {
                 Log::info("No se encontró draft de precios para sala ID {$roomId}");

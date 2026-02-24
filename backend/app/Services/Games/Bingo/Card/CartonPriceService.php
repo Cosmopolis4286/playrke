@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Cartons;
 
-use App\Models\{BingoCardPrice, BingoCardPriceDraft};
+use App\Models\{BingoCardPrice, BingoCardPriceAutomatic};
 
 class CartonPriceService
 {
@@ -11,7 +11,7 @@ class CartonPriceService
      */
     public function associateCtnPrices(int $automaticBingoId, int $roomId): void
     {
-        $draft = BingoCardPriceDraft::getByAutomaticRoom($automaticBingoId);
+        $draft = BingoCardPriceAutomatic::getByAutomaticRoom($automaticBingoId);
 
         if (!$draft) {
             return;

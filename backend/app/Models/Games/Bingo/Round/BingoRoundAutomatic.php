@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Modelo para automatic de rondas de bingo
  */
-class BingoRoundDraft extends Model
+class BingoRoundAutomatic extends Model
 {
     use HasFactory, SnowflakeId;
 

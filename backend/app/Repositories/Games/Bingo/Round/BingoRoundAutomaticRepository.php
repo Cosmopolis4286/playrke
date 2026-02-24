@@ -2,22 +2,22 @@
 
 namespace App\Repositories\Bingo\Round;
 
-use App\Models\Bingo\Round\BingoRoundDraft;
+use App\Models\Bingo\Round\BingoRoundAutomatic;
 use App\Repositories\BaseRepository;
-use App\Repositories\Bingo\Round\Contracts\BingoRoundDraftRepositoryContract;
+use App\Repositories\Bingo\Round\Contracts\BingoRoundAutomaticRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repository para manejar operaciones de automatic de rondas de bingo
  */
-class BingoRoundDraftRepository extends BaseRepository implements BingoRoundDraftRepositoryContract
+class BingoRoundAutomaticRepository extends BaseRepository implements BingoRoundAutomaticRepositoryContract
 {
     /**
      * Constructor del repository
      *
-     * @param BingoRoundDraft $model
+     * @param BingoRoundAutomatic $model
      */
-    public function __construct(BingoRoundDraft $model)
+    public function __construct(BingoRoundAutomatic $model)
     {
         $this->model = $model;
     }
@@ -27,9 +27,9 @@ class BingoRoundDraftRepository extends BaseRepository implements BingoRoundDraf
      *
      * @param mixed $bingoRoomId ID de la sala de bingo
      * @param array $fields Campos a seleccionar
-     * @return BingoRoundDraft|null
+     * @return BingoRoundAutomatic|null
      */
-    public function getByRoom($bingoRoomId, array $fields = ['*']): ?BingoRoundDraft
+    public function getByRoom($bingoRoomId, array $fields = ['*']): ?BingoRoundAutomatic
     {
         return $this->model->select($fields)
             ->where('bingo_room_id', $bingoRoomId)
@@ -41,9 +41,9 @@ class BingoRoundDraftRepository extends BaseRepository implements BingoRoundDraf
      *
      * @param mixed $automaticBingoRoomId ID de la sala automática
      * @param array $fields Campos a seleccionar
-     * @return BingoRoundDraft|null
+     * @return BingoRoundAutomatic|null
      */
-    public function getByAutomaticRoom($automaticBingoRoomId, array $fields = ['*']): ?BingoRoundDraft
+    public function getByAutomaticRoom($automaticBingoRoomId, array $fields = ['*']): ?BingoRoundAutomatic
     {
         return $this->model->select($fields)
             ->where('automatic_bingo_room_id', $automaticBingoRoomId)
@@ -55,7 +55,7 @@ class BingoRoundDraftRepository extends BaseRepository implements BingoRoundDraf
      *
      * @return Collection
      */
-    public function getActiveDrafts(): Collection
+    public function getActiveAutomatics(): Collection
     {
         return $this->model->where('status', 'ACTIVE')->get();
     }
@@ -65,7 +65,7 @@ class BingoRoundDraftRepository extends BaseRepository implements BingoRoundDraf
      *
      * @return Collection
      */
-    public function getExecutedDrafts(): Collection
+    public function getExecutedAutomatics(): Collection
     {
         return $this->model->where('status', 'EXECUTED')->get();
     }

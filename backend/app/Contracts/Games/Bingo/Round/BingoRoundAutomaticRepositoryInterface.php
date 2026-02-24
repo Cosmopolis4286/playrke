@@ -3,45 +3,45 @@
 namespace App\Repositories\Bingo\Round\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Bingo\Round\BingoRoundDraft;
+use App\Models\Bingo\Round\BingoRoundAutomatic;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Contrato para el repository de automatic de rondas de bingo
  */
-interface BingoRoundDraftRepositoryContract extends BaseRepositoryInterface
+interface BingoRoundAutomaticRepositoryContract extends BaseRepositoryInterface
 {
     /**
      * Obtiene draft por sala de bingo
      *
      * @param mixed $bingoRoomId ID de la sala de bingo
      * @param array $fields Campos a seleccionar
-     * @return BingoRoundDraft|null
+     * @return BingoRoundAutomatic|null
      */
-    public function getByRoom($bingoRoomId, array $fields = ['*']): ?BingoRoundDraft;
+    public function getByRoom($bingoRoomId, array $fields = ['*']): ?BingoRoundAutomatic;
 
     /**
      * Obtiene draft por sala automática de bingo
      *
      * @param mixed $automaticBingoRoomId ID de la sala automática
      * @param array $fields Campos a seleccionar
-     * @return BingoRoundDraft|null
+     * @return BingoRoundAutomatic|null
      */
-    public function getByAutomaticRoom($automaticBingoRoomId, array $fields = ['*']): ?BingoRoundDraft;
+    public function getByAutomaticRoom($automaticBingoRoomId, array $fields = ['*']): ?BingoRoundAutomatic;
 
     /**
      * Obtiene automatic activos
      *
      * @return Collection
      */
-    public function getActiveDrafts(): Collection;
+    public function getActiveAutomatics(): Collection;
 
     /**
      * Obtiene automatic ejecutados
      *
      * @return Collection
      */
-    public function getExecutedDrafts(): Collection;
+    public function getExecutedAutomatics(): Collection;
 
     /**
      * Actualiza estado del draft

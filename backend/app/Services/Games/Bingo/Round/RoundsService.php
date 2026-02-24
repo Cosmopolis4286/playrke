@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Round;
 
-use App\Models\{BingoRound, BingoRoundDraft};
+use App\Models\{BingoRound, BingoRoundAutomatic};
 use App\Enums\Games\Bingo\RoundStatus;
 use Illuminate\Support\Facades\Log;
 
@@ -17,7 +17,7 @@ class RoundsService
      */
     public function associateRounds(int $automaticBingoId, int $roomId): void
     {
-        $draft = BingoRoundDraft::getByAutomaticRoom($automaticBingoId);
+        $draft = BingoRoundAutomatic::getByAutomaticRoom($automaticBingoId);
 
         if (!$draft) {
             Log::warning("No hay draft de rondas para automatic bingo ID {$automaticBingoId}");

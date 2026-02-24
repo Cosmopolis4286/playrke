@@ -16,7 +16,7 @@ use App\Models\BingoPrizeCtns;
 use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoRound;
-use App\Models\BingoRoundDraft;
+use App\Models\BingoRoundAutomatic;
 use App\Models\BingoRoomUser;
 use App\Models\CurrencyGameRoom;
 use App\Models\Country;
@@ -124,7 +124,7 @@ trait BingoTrait
             $this->encryptDraw($room);
 
             $symbols = BingoDrawCode::where('room', $room)->pluck('sym', 'num');
-            $bingoRoundDraft = BingoRoundDraft::where('bingo_room_id', $room)->first();
+            $bingoRoundAutomatic = BingoRoundAutomatic::where('bingo_room_id', $room)->first();
 
             $allDraws = [];
             $allRounds = [];
@@ -136,9 +136,9 @@ trait BingoTrait
                 $currentTimestamp = now();
 
                 // Preparar info de las rondas
-                $playType = $bingoRoundDraft->bingo_patterns[$round - 1];
-                $prizeType = $bingoRoundDraft->prize_types[$round - 1];
-                $prizeValue = $bingoRoundDraft->prize_values[$round - 1];
+                $playType = $bingoRoundAutomatic->bingo_patterns[$round - 1];
+                $prizeType = $bingoRoundAutomatic->prize_types[$round - 1];
+                $prizeValue = $bingoRoundAutomatic->prize_values[$round - 1];
 
                 $allRounds[] = [
                     'room' => $room,
@@ -176,7 +176,7 @@ trait BingoTrait
             try {
                 BingoDraw::insert($allDraws);
                 BingoRound::insert($allRounds);
-                $bingoRoundDraft->update(['status' => 'FINISHED']);
+                $bingoRoundAutomatic->update(['status' => 'FINISHED']);
                 DB::commit();
             } catch (\Throwable $e) {
                 DB::rollBack();

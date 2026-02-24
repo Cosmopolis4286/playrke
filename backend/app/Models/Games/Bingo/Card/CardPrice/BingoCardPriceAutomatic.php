@@ -34,7 +34,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read BingoRoomAutomatic|null $automaticBingoRoom Sala autom\u00e1tica asociada
  * @property-read User $creatorUser Usuario creador del borrador
  */
-class BingoCardPriceDraft extends Model
+class BingoCardPriceAutomatic extends Model
 {
     use SnowflakeId;
 
@@ -76,7 +76,7 @@ class BingoCardPriceDraft extends Model
     /**
      * Relaci\u00f3n con la sala de bingo
      *
-     * @return BelongsTo<BingoRoom, BingoCardPriceDraft>
+     * @return BelongsTo<BingoRoom, BingoCardPriceAutomatic>
      */
     public function bingoRoom(): BelongsTo
     {
@@ -86,7 +86,7 @@ class BingoCardPriceDraft extends Model
     /**
      * Relaci\u00f3n con la sala autom\u00e1tica de bingo
      *
-     * @return BelongsTo<BingoRoomAutomatic, BingoCardPriceDraft>
+     * @return BelongsTo<BingoRoomAutomatic, BingoCardPriceAutomatic>
      */
     public function automaticBingoRoom(): BelongsTo
     {
@@ -96,7 +96,7 @@ class BingoCardPriceDraft extends Model
     /**
      * Relaci\u00f3n con el usuario creador del borrador
      *
-     * @return BelongsTo<User, BingoCardPriceDraft>
+     * @return BelongsTo<User, BingoCardPriceAutomatic>
      */
     public function creatorUser(): BelongsTo
     {

@@ -135,7 +135,7 @@ final class BingoRoomAutomaticCrudService
             $uuidCode = strtoupper(Str::uuid()->toString());
         } while (BingoRoomAutomatic::where('uuid_code', $uuidCode)->exists());
 
-        $statusCode = $dto->isDraft ? 'DRAFT' : 'ACTIVE';
+        $statusCode = $dto->isAutomatic ? 'DRAFT' : 'ACTIVE';
         $statusId = GameStatus::where('code', $statusCode)->value('id');
 
         $room = BingoRoomAutomatic::create([
@@ -464,7 +464,7 @@ final class BingoRoomAutomaticCrudService
             'numSerials'            => (int) $config->num_serials,
             'roundsConfig'          => $roundsConfig,
             'cardPriceByCurrency'   => $cardPriceByCurrency,
-            'isDraft'               => true,
+            'isAutomatic'               => true,
         ]);
 
         return $this->saveRoom($dto);

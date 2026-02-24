@@ -2,8 +2,8 @@
 
 namespace App\Repositories\Bingo\Card\CardPrice;
 
-use App\Models\Games\Bingo\Card\CardPrice\BingoCardPriceDraft;
-use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceDraftRepositoryInterface;
+use App\Models\Games\Bingo\Card\CardPrice\BingoCardPriceAutomatic;
+use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceAutomaticRepositoryInterface;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
@@ -19,9 +19,9 @@ use Carbon\Carbon;
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  */
-class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardPriceDraftRepositoryInterface
+class BingoCardPriceAutomaticRepository extends BaseRepository implements BingoCardPriceAutomaticRepositoryInterface
 {
-    public function __construct(BingoCardPriceDraft $model)
+    public function __construct(BingoCardPriceAutomatic $model)
     {
         $this->model = $model;
     }
@@ -29,7 +29,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Obtiene todos los borradores de una sala de bingo específica
      */
-    public function getDraftsByBingoRoom(string $bingoRoomId, array $filters = []): Collection
+    public function getAutomaticsByBingoRoom(string $bingoRoomId, array $filters = []): Collection
     {
         $query = $this->model->where('bingo_room_id', $bingoRoomId);
 
@@ -50,7 +50,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Obtiene todos los borradores de una sala automática específica
      */
-    public function getDraftsByAutomaticBingoRoom(string $automaticBingoRoomId, array $filters = []): Collection
+    public function getAutomaticsByAutomaticBingoRoom(string $automaticBingoRoomId, array $filters = []): Collection
     {
         $query = $this->model->where('automatic_bingo_room_id', $automaticBingoRoomId);
 
@@ -71,7 +71,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Obtiene borradores por usuario creador
      */
-    public function getDraftsByCreator(string $creatorUserId, array $filters = []): Collection
+    public function getAutomaticsByCreator(string $creatorUserId, array $filters = []): Collection
     {
         $query = $this->model->where('creator_user_id', $creatorUserId);
 
@@ -96,7 +96,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Obtiene borradores por estado
      */
-    public function getDraftsByStatus(string $status, array $filters = []): Collection
+    public function getAutomaticsByStatus(string $status, array $filters = []): Collection
     {
         $query = $this->model->where('status', $status);
 
@@ -117,7 +117,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Busca un borrador específico por sala y usuario
      */
-    public function findDraftByRoomAndCreator(?string $bingoRoomId, ?string $automaticBingoRoomId, string $creatorUserId): ?BingoCardPriceDraft
+    public function findAutomaticByRoomAndCreator(?string $bingoRoomId, ?string $automaticBingoRoomId, string $creatorUserId): ?BingoCardPriceAutomatic
     {
         $query = $this->model->where('creator_user_id', $creatorUserId);
 
@@ -140,7 +140,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Obtiene borradores que contienen una moneda específica
      */
-    public function getDraftsByCurrency(string $currencyCode, array $filters = []): Collection
+    public function getAutomaticsByCurrency(string $currencyCode, array $filters = []): Collection
     {
         $query = $this->model->whereJsonContains('currencies', $currencyCode);
 
@@ -161,7 +161,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Obtiene borradores con precios en un rango específico para una moneda
      */
-    public function getDraftsByPriceRange(string $currencyCode, float $minPrice, float $maxPrice, array $filters = []): Collection
+    public function getAutomaticsByPriceRange(string $currencyCode, float $minPrice, float $maxPrice, array $filters = []): Collection
     {
         $query = $this->model->whereJsonContains('currencies', $currencyCode)
                            ->whereRaw("JSON_EXTRACT(card_prices, '$.{$currencyCode}') BETWEEN ? AND ?", [$minPrice, $maxPrice]);
@@ -183,7 +183,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Actualiza el estado de un borrador
      */
-    public function updateDraftStatus(string $draftId, string $newStatus): bool
+    public function updateAutomaticStatus(string $draftId, string $newStatus): bool
     {
         return $this->model->where('id', $draftId)
                           ->update(['status' => $newStatus]) > 0;
@@ -192,7 +192,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Actualiza múltiples borradores a estado ejecutado
      */
-    public function markDraftsAsExecuted(array $draftIds): int
+    public function markAutomaticsAsExecuted(array $draftIds): int
     {
         return $this->model->whereIn('id', $draftIds)
                           ->update(['status' => 'EXECUTED']);
@@ -201,7 +201,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Crea o actualiza un borrador (upsert)
      */
-    public function createOrUpdateDraft(?string $bingoRoomId, ?string $automaticBingoRoomId, string $creatorUserId, array $currencies, array $cardPrices): BingoCardPriceDraft
+    public function createOrUpdateAutomatic(?string $bingoRoomId, ?string $automaticBingoRoomId, string $creatorUserId, array $currencies, array $cardPrices): BingoCardPriceAutomatic
     {
         return $this->model->updateOrCreate(
             [
@@ -220,7 +220,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Elimina borradores ejecutados antiguos
      */
-    public function deleteOldExecutedDrafts(int $daysOld = 30): int
+    public function deleteOldExecutedAutomatics(int $daysOld = 30): int
     {
         $cutoffDate = Carbon::now()->subDays($daysOld);
 
@@ -232,7 +232,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Obtiene estadísticas de borradores por usuario
      */
-    public function getDraftStatsByCreator(string $creatorUserId): array
+    public function getAutomaticStatsByCreator(string $creatorUserId): array
     {
         $stats = $this->model->where('creator_user_id', $creatorUserId)
                             ->selectRaw('
@@ -252,7 +252,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Obtiene estadísticas generales de borradores
      */
-    public function getGeneralDraftStats(): array
+    public function getGeneralAutomaticStats(): array
     {
         $stats = $this->model->selectRaw('
                                 COUNT(*) as total_automatic,
@@ -273,7 +273,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Obtiene borradores activos más recientes
      */
-    public function getRecentActiveDrafts(int $limit = 10, array $filters = []): Collection
+    public function getRecentActiveAutomatics(int $limit = 10, array $filters = []): Collection
     {
         $query = $this->model->where('status', 'ACTIVE');
 
@@ -295,7 +295,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Cuenta borradores por estado
      */
-    public function countDraftsByStatus(array $filters = []): array
+    public function countAutomaticsByStatus(array $filters = []): array
     {
         $query = $this->model->newQuery();
 
@@ -327,7 +327,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Obtiene borradores creados en un rango de fechas
      */
-    public function getDraftsByDateRange(string $startDate, string $endDate, array $filters = []): Collection
+    public function getAutomaticsByDateRange(string $startDate, string $endDate, array $filters = []): Collection
     {
         $query = $this->model->whereBetween('created_at', [$startDate, $endDate]);
 
@@ -348,7 +348,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Obtiene todas las monedas utilizadas en los borradores
      */
-    public function getAllCurrenciesUsedInDrafts(array $filters = []): array
+    public function getAllCurrenciesUsedInAutomatics(array $filters = []): array
     {
         $query = $this->model->newQuery();
 
@@ -373,7 +373,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Verifica si existe un borrador activo para una sala y usuario
      */
-    public function hasActiveDraftForRoomAndCreator(?string $bingoRoomId, ?string $automaticBingoRoomId, string $creatorUserId): bool
+    public function hasActiveAutomaticForRoomAndCreator(?string $bingoRoomId, ?string $automaticBingoRoomId, string $creatorUserId): bool
     {
         $query = $this->model->where('creator_user_id', $creatorUserId)
                             ->where('status', 'ACTIVE');
@@ -396,7 +396,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Obtiene el precio de una moneda específica de un borrador
      */
-    public function getPriceFromDraft(string $draftId, string $currencyCode): ?float
+    public function getPriceFromAutomatic(string $draftId, string $currencyCode): ?float
     {
         $draft = $this->model->find($draftId);
 
@@ -412,7 +412,7 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     /**
      * Actualiza el precio de una moneda específica en un borrador
      */
-    public function updatePriceInDraft(string $draftId, string $currencyCode, float $newPrice): bool
+    public function updatePriceInAutomatic(string $draftId, string $currencyCode, float $newPrice): bool
     {
         $draft = $this->model->find($draftId);
 
