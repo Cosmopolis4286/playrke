@@ -7,7 +7,7 @@ use App\Models\Bingo\Round\BingoRoundDraft;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Contrato para el repository de drafts de rondas de bingo
+ * Contrato para el repository de automatic de rondas de bingo
  */
 interface BingoRoundDraftRepositoryContract extends BaseRepositoryInterface
 {
@@ -30,14 +30,14 @@ interface BingoRoundDraftRepositoryContract extends BaseRepositoryInterface
     public function getByAutomaticRoom($automaticBingoRoomId, array $fields = ['*']): ?BingoRoundDraft;
 
     /**
-     * Obtiene drafts activos
+     * Obtiene automatic activos
      *
      * @return Collection
      */
     public function getActiveDrafts(): Collection;
 
     /**
-     * Obtiene drafts ejecutados
+     * Obtiene automatic ejecutados
      *
      * @return Collection
      */

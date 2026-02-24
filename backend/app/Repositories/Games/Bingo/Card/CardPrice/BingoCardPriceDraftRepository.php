@@ -236,16 +236,16 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     {
         $stats = $this->model->where('creator_user_id', $creatorUserId)
                             ->selectRaw('
-                                COUNT(*) as total_drafts,
-                                SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active_drafts,
-                                SUM(CASE WHEN status = "EXECUTED" THEN 1 ELSE 0 END) as executed_drafts
+                                COUNT(*) as total_automatic,
+                                SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active_automatic,
+                                SUM(CASE WHEN status = "EXECUTED" THEN 1 ELSE 0 END) as executed_automatic
                             ')
                             ->first();
 
         return [
-            'total_drafts' => $stats->total_drafts ?? 0,
-            'active_drafts' => $stats->active_drafts ?? 0,
-            'executed_drafts' => $stats->executed_drafts ?? 0,
+            'total_automatic' => $stats->total_automatic ?? 0,
+            'active_automatic' => $stats->active_automatic ?? 0,
+            'executed_automatic' => $stats->executed_automatic ?? 0,
         ];
     }
 
@@ -255,17 +255,17 @@ class BingoCardPriceDraftRepository extends BaseRepository implements BingoCardP
     public function getGeneralDraftStats(): array
     {
         $stats = $this->model->selectRaw('
-                                COUNT(*) as total_drafts,
-                                SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active_drafts,
-                                SUM(CASE WHEN status = "EXECUTED" THEN 1 ELSE 0 END) as executed_drafts,
+                                COUNT(*) as total_automatic,
+                                SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active_automatic,
+                                SUM(CASE WHEN status = "EXECUTED" THEN 1 ELSE 0 END) as executed_automatic,
                                 COUNT(DISTINCT creator_user_id) as total_creators
                             ')
                             ->first();
 
         return [
-            'total_drafts' => $stats->total_drafts ?? 0,
-            'active_drafts' => $stats->active_drafts ?? 0,
-            'executed_drafts' => $stats->executed_drafts ?? 0,
+            'total_automatic' => $stats->total_automatic ?? 0,
+            'active_automatic' => $stats->active_automatic ?? 0,
+            'executed_automatic' => $stats->executed_automatic ?? 0,
             'total_creators' => $stats->total_creators ?? 0,
         ];
     }

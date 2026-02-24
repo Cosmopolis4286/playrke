@@ -10,13 +10,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Modelo para drafts de rondas de bingo
+ * Modelo para automatic de rondas de bingo
  */
 class BingoRoundDraft extends Model
 {
     use HasFactory, SnowflakeId;
 
-    protected $table = 'bingo_rounds_drafts';
+    protected $table = 'bingo_rounds_automatic';
 
     protected $fillable = [
         'bingo_room_id',

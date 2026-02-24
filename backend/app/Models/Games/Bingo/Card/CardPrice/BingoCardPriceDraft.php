@@ -41,7 +41,7 @@ class BingoCardPriceDraft extends Model
     /**
      * Nombre de la tabla en la base de datos
      */
-    protected $table = 'bingo_card_price_drafts';
+    protected $table = 'bingo_card_price_automatic';
 
     /**
      * Estados de borrador disponibles

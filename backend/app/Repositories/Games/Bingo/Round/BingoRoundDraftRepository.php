@@ -8,7 +8,7 @@ use App\Repositories\Bingo\Round\Contracts\BingoRoundDraftRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Repository para manejar operaciones de drafts de rondas de bingo
+ * Repository para manejar operaciones de automatic de rondas de bingo
  */
 class BingoRoundDraftRepository extends BaseRepository implements BingoRoundDraftRepositoryContract
 {
@@ -51,7 +51,7 @@ class BingoRoundDraftRepository extends BaseRepository implements BingoRoundDraf
     }
 
     /**
-     * Obtiene drafts activos
+     * Obtiene automatic activos
      *
      * @return Collection
      */
@@ -61,7 +61,7 @@ class BingoRoundDraftRepository extends BaseRepository implements BingoRoundDraf
     }
 
     /**
-     * Obtiene drafts ejecutados
+     * Obtiene automatic ejecutados
      *
      * @return Collection
      */

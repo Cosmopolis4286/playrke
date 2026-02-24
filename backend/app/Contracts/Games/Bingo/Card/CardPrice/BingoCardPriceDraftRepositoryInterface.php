@@ -26,7 +26,7 @@ interface BingoCardPriceDraftRepositoryInterface extends BaseRepositoryInterface
      * @return Collection<BingoCardPriceDraft> Borradores de la sala
      *
      * @example
-     * $drafts = $repository->getDraftsByBingoRoom('123', ['status' => 'ACTIVE']);
+     * $automatic = $repository->getDraftsByBingoRoom('123', ['status' => 'ACTIVE']);
      */
     public function getDraftsByBingoRoom(string $bingoRoomId, array $filters = []): Collection;
 
@@ -38,7 +38,7 @@ interface BingoCardPriceDraftRepositoryInterface extends BaseRepositoryInterface
      * @return Collection<BingoCardPriceDraft> Borradores de la sala automática
      *
      * @example
-     * $drafts = $repository->getDraftsByAutomaticBingoRoom('456', ['status' => 'ACTIVE']);
+     * $automatic = $repository->getDraftsByAutomaticBingoRoom('456', ['status' => 'ACTIVE']);
      */
     public function getDraftsByAutomaticBingoRoom(string $automaticBingoRoomId, array $filters = []): Collection;
 
@@ -50,7 +50,7 @@ interface BingoCardPriceDraftRepositoryInterface extends BaseRepositoryInterface
      * @return Collection<BingoCardPriceDraft> Borradores del usuario
      *
      * @example
-     * $drafts = $repository->getDraftsByCreator('789', ['status' => 'ACTIVE']);
+     * $automatic = $repository->getDraftsByCreator('789', ['status' => 'ACTIVE']);
      */
     public function getDraftsByCreator(string $creatorUserId, array $filters = []): Collection;
 
@@ -87,7 +87,7 @@ interface BingoCardPriceDraftRepositoryInterface extends BaseRepositoryInterface
      * @return Collection<BingoCardPriceDraft> Borradores que contienen la moneda
      *
      * @example
-     * $draftsWithUSD = $repository->getDraftsByCurrency('USD');
+     * $automaticWithUSD = $repository->getDraftsByCurrency('USD');
      */
     public function getDraftsByCurrency(string $currencyCode, array $filters = []): Collection;
 
@@ -101,7 +101,7 @@ interface BingoCardPriceDraftRepositoryInterface extends BaseRepositoryInterface
      * @return Collection<BingoCardPriceDraft> Borradores en el rango de precio
      *
      * @example
-     * $drafts = $repository->getDraftsByPriceRange('USD', 10.00, 50.00);
+     * $automatic = $repository->getDraftsByPriceRange('USD', 10.00, 50.00);
      */
     public function getDraftsByPriceRange(string $currencyCode, float $minPrice, float $maxPrice, array $filters = []): Collection;
 
@@ -162,7 +162,7 @@ interface BingoCardPriceDraftRepositoryInterface extends BaseRepositoryInterface
      *
      * @example
      * $stats = $repository->getDraftStatsByCreator('789');
-     * // ['total_drafts' => 15, 'active_drafts' => 5, 'executed_drafts' => 10]
+     * // ['total_automatic' => 15, 'active_automatic' => 5, 'executed_automatic' => 10]
      */
     public function getDraftStatsByCreator(string $creatorUserId): array;
 
@@ -209,7 +209,7 @@ interface BingoCardPriceDraftRepositoryInterface extends BaseRepositoryInterface
      * @return Collection<BingoCardPriceDraft> Borradores creados en el rango
      *
      * @example
-     * $drafts = $repository->getDraftsByDateRange('2024-01-01', '2024-01-31');
+     * $automatic = $repository->getDraftsByDateRange('2024-01-01', '2024-01-31');
      */
     public function getDraftsByDateRange(string $startDate, string $endDate, array $filters = []): Collection;
 

@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('bingo_card_price_drafts', function (Blueprint $table) {
+        Schema::create('bingo_card_price_automatic', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();;
 
@@ -43,6 +43,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('bingo_card_price_drafts');
+        Schema::dropIfExists('bingo_card_price_automatic');
     }
 };
