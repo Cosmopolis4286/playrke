@@ -5,7 +5,7 @@ namespace App\Services\Games\Bingo\Rooms;
 use App\Models\BingoPrizeCtns;
 use Illuminate\Support\Facades\Log;
 
-class WinnerService
+final class BingoWinnerService
 {
     /**
      * Maneja los ganadores de una sala.

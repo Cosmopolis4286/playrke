@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Domain\Common\Status\StatusChanger;
 use App\Repositories\BaseRepository;
-use App\Services\Games\Room\RoomTypeService;
 use App\Services\Route\RouteService;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
@@ -44,9 +43,6 @@ class AppServiceProvider extends ServiceProvider
                 $repo->setStatusChanger($app->make(StatusChanger::class));
             }
         });
-
-        // Servicio para la lógica de tipos de salas de juego
-        $this->app->singleton(RoomTypeService::class, fn($app) => new RoomTypeService());
 
         // Servicio para manejo de rutas o helpers globales de rutas
         $this->app->singleton(RouteService::class, fn($app) => new RouteService());

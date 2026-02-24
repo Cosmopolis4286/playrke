@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services\Games\Bingo;
+namespace App\Services\Games\Bingo\Room;
 
 use App\Models\BingoRoom;
 use App\Services\Games\Bingo\Rooms\{RoomClosureService, FinishedRoomService};
 
-class HandleBingoRoomsService
+final class HandleBingoRoomsService
 {
     private RoomClosureService $closureService;
     private FinishedRoomService $finishedService;

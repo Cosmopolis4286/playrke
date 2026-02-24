@@ -13,7 +13,7 @@ class FinishedRoomService
 {
     private RoundsService $roundsService;
     private CustomerCartonService $customerCartonService;
-    private WinnerService $winnerService;
+    private BingoWinnerService $winnerService;
 
     /**
      * Inyecta dependencias necesarias para procesar salas finalizadas.
@@ -21,7 +21,7 @@ class FinishedRoomService
     public function __construct(
         RoundsService $roundsService,
         CustomerCartonService $customerCartonService,
-        WinnerService $winnerService
+        BingoWinnerService $winnerService
     ) {
         $this->roundsService = $roundsService;
         $this->customerCartonService = $customerCartonService;
