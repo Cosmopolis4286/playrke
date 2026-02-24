@@ -2,6 +2,7 @@
 
 namespace App\Models\Games\Bingo\Room;
 
+use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\GameMode\GameModes;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\User;
@@ -170,7 +171,7 @@ class BingoRoomAutomatic extends Model
      */
     public function gameMode(): BelongsTo
     {
-        return $this->belongsTo(GameModes::class, 'game_mode');
+        return $this->belongsTo(GameMode::class, 'game_mode');
     }
 
     /**

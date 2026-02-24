@@ -13,7 +13,7 @@ final class BingoRoomAutomaticContextService
 
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
-        private readonly \App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface $bingoRooms,
+        private readonly \App\Contracts\Games\Bingo\Room\BingoRoomAutomaticRepositoryInterface $bingoRooms,
         private readonly \App\Services\Currency\CurrencyService $currencyService,
         private readonly \App\Contracts\GameRepositoryInterface $games,
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
@@ -25,7 +25,7 @@ final class BingoRoomAutomaticContextService
     ) {}
 
     /**
-     * Resolver contexto para BingoRoom.
+     * Resolver contexto para BingoRoomAutomatic.
      *
      * @param string $context
      * @param int|null $userId
@@ -42,9 +42,9 @@ final class BingoRoomAutomaticContextService
     }
 
     /**
-     * Resolver listado de salas de bingo.
+     * Resolver listado de salas de bingo automaticas.
      *
-     * @param int|null $userId ID del usuario para filtrar patrones de bingo
+     * @param int|null $userId ID del usuario para filtrar
      * @return array Listado de salas con paginación
      * @throws DomainException Si no se pueden resolver las salas de bingo
      */
@@ -86,9 +86,9 @@ final class BingoRoomAutomaticContextService
     }
 
     /**
-     * Obtener las salas de bingo.
+     * Obtener las salas de bingo automaticas.
      *
-     * @param int $userId ID del usuario para filtrar patrones de bingo
+     * @param int $userId ID del usuario para filtrar
      * @return array
      */
     private function fetchGameRooms(int $userId): array
@@ -97,9 +97,9 @@ final class BingoRoomAutomaticContextService
     }
 
     /**
-     * Resolver contexto para el listado de salas de bingo.
+     * Resolver contexto para el listado de salas de bingo automaticas.
      *
-     * @param int $userId ID del usuario para filtrar patrones de bingo
+     * @param int $userId ID del usuario para filtrar
      * @return BingoRoomAutomaticSummaryDTO
      *
      * @throws DomainException Si no se puede resolver el contexto

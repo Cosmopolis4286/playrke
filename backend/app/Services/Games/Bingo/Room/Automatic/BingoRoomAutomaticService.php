@@ -95,7 +95,7 @@ final class BingoRoomAutomaticService
     /**
      * Alternar estado (ACTIVE / INACTIVE) de una sala de bingo.
      *
-     * @param BingoRoom $room Model
+     * @param BingoRoomAutomatic $room Model
      * @return bool
      *
      * @throws BingoRoomException Si falla el cambio de estado
