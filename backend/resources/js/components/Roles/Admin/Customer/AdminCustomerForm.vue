@@ -119,14 +119,27 @@ const {
   phoneMask,
   phonePlaceholder,
   phoneHint,
+  phoneDialPrefix,
   phoneError,
   isPhoneValid,
-  onPhoneFocus,
 } = usePhoneField(
   selectedIso2,
   phoneRef,
   (v) => { phoneRef.value = v; }
 );
+
+// Al seleccionar un país, pre-rellenar el campo con el prefijo (+58, +55, +57).
+// flush:'post' garantiza que se ejecuta DESPUÉS del watch de limpieza en usePhoneField.
+watch(selectedIso2, (iso, prevIso) => {
+  if (iso && iso !== prevIso) {
+    // nextTick para que usePhoneField ya haya limpiado el valor
+    nextTick(() => {
+      if (!phoneRef.value?.trim()) {
+        phoneRef.value = phoneDialPrefix.value;
+      }
+    });
+  }
+});
 
 /** Error visible: validación de formato primero, luego campo requerido */
 const phoneErrorDisplay = computed(
@@ -387,19 +400,24 @@ defineExpose({ submit, isValid });
         v-model="form.country_id"
       />
 
-      <!-- Teléfono: máscara IMask + validación dinámicas según el país -->
+      <!--
+        Teléfono: la máscara IMask incluye el prefijo como literal fijo (+58, +55, +57).
+        maskEmitFormatted=true para guardar el valor con formato (+58 0414-...) y no
+        solo los dígitos crudos. La validación compara contra ese valor formateado.
+      -->
       <FormInput
         label="Teléfono"
         name="phone"
         required
         col="col-sm-6"
-        :placeholder="form.country_id ? phonePlaceholder : 'Selecciona un país primero'"
+        :placeholder="phonePlaceholder"
         :mask="phoneMask"
+        :maskEmitFormatted="true"
         :disabled="!form.country_id"
         :inputValidState="phoneValidState"
         :error="phoneErrorDisplay"
+        :hint="!phoneErrorDisplay && form.country_id ? phoneHint : (!form.country_id ? 'Selecciona un país primero' : undefined)"
         v-model="phoneRef"
-        @focus="() => onPhoneFocus(phoneRef, (v) => { phoneRef = v; })"
       >
         <template #prepend>
           <span class="input-group-text px-2">
@@ -482,6 +500,7 @@ defineExpose({ submit, isValid });
         optionValue="id"
         optionLabel="name"
         col="col-12"
+        :error="errors.allowed_games"
         v-model="form.allowed_games"
       />
 

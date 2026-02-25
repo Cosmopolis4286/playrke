@@ -88,6 +88,10 @@ export function useAdminCustomerForm(
             e.currency_id = 'La moneda principal es requerida.'
         }
 
+        if (!form.value.allowed_games?.length) {
+            e.allowed_games = 'Debes seleccionar al menos un juego permitido.'
+        }
+
         return e
     })
 

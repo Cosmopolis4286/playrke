@@ -3,64 +3,73 @@
 namespace App\DTOs\Games\Bingo\Room\Automatic;
 
 /**
- * Data Transfer Object para la actualización de una Sala de Bingo Automatica.
- *
- * - Inmutable
- * - Tipado
- * - Sin lógica de negocio
+ * DTO para la actualización de una Sala de Bingo Automática.
+ * Basado en: 2024_06_15_07_create_bingo_rooms_automatic_table
  */
 final class BingoRoomAutomaticUpdateDTO
 {
     public function __construct(
-        public readonly ?string $time,
-        public readonly ?array $days = null,
-        public readonly ?string $roomType,
-        public readonly string|int|null $gameMode,
-        public readonly string|int|null $prizePoolType,
-        public readonly ?array $allowedCurrencies,
-        public readonly ?float $amountAddedPrizePool,
-        public readonly ?float $roomCommission,
-        public readonly ?float $jackpotPct,
-        public readonly ?int $timeChip,
-        public readonly ?int $rounds,
-        public readonly ?string $useSerials,
-        public readonly ?float $roundsPct,
-        public readonly ?float $serialsPct,
-        public readonly ?int $numSerials,
-        public readonly ?array $roundsConfig,
-        public readonly ?array $cardPriceByCurrency,
-        public readonly ?string $description = null,
+        public readonly ?string       $time                = null,
+        public readonly ?string       $date                = null,
+        public readonly ?array        $days                = null,
+        public readonly ?string       $roomType            = null,
+        public readonly string|int|null $gameMode          = null,
+        public readonly string|int|null $prizePoolType     = null,
+        public readonly ?array        $allowedCurrencies   = null,
+        public readonly ?float        $roomCommission      = null,
+        public readonly ?int          $rounds              = null,
+        public readonly ?string       $useSerials          = null,  // 'Y' | 'N'
+        public readonly ?float        $cardPriceUsd        = null,
+        public readonly ?float        $usdExchangeRoundStep = null,
+        public readonly ?array        $cardPriceByCurrency  = null,
+        public readonly ?float        $amountAddedPrizePool = null,
+        public readonly ?float        $jackpotPct          = null,
+        public readonly ?string       $timeChip            = null,
+        public readonly ?float        $roundsPct           = null,
+        public readonly ?float        $serialsPct          = null,
+        public readonly ?int          $numSerials          = null,
+        public readonly ?array        $roundsConfig        = null,
+        public readonly bool          $isDraft             = false,
+        public readonly string        $inLive              = 'N',
     ) {}
 
     public static function fromArray(array $data): self
     {
-        // Normalizar allowedCurrencies: array de strings
-        $allowedCurrencies = array_map('strval', array_values((array) ($data['allowedCurrencies'] ?? [])));
+        $allowedCurrencies   = isset($data['allowedCurrencies'])
+            ? array_map('strval', array_values((array) $data['allowedCurrencies']))
+            : null;
 
-        // Normalizar cardPriceByCurrency: array de monedas a precios
         $cardPriceByCurrency = is_array($data['cardPriceByCurrency'] ?? null)
-            ? array_map(fn($v) => (float)$v, $data['cardPriceByCurrency'])
+            ? array_map(fn($v) => (float) $v, $data['cardPriceByCurrency'])
             : [];
 
+        $useSerials = isset($data['useSerials'])
+            ? (filter_var($data['useSerials'], FILTER_VALIDATE_BOOLEAN) ? 'Y' : 'N')
+            : null;
+
         return new self(
-            time: $data['time'] ?? null,
-            roomType: $data['roomType'] ?? null,
-            gameMode: $data['gameMode'] ?? null,
-            prizePoolType: $data['prizePoolType'] ?? null,
-            allowedCurrencies: $allowedCurrencies,
-            amountAddedPrizePool: isset($data['amountAddedPrizePool'])
-                ? (float) $data['amountAddedPrizePool']
-                : null,
-            roomCommission: isset($data['roomCommn']) ? (float) $data['roomCommn'] : null,
-            jackpotPct: isset($data['jackpotPct']) ? (float) $data['jackpotPct'] : null,
-            timeChip: isset($data['timeChip']) ? (int) $data['timeChip'] : null,
-            rounds: isset($data['rounds']) ? (int) $data['rounds'] : null,
-            roundsPct: isset($data['roundsPct']) ? (float) $data['roundsPct'] : null,
-            useSerials: $data['useSerials'],
-            serialsPct: isset($data['serialsPct']) ? (float) $data['serialsPct'] : null,
-            numSerials: isset($data['numSerials']) ? (int) $data['numSerials'] : null,
-            roundsConfig: $data['roundsConfig'] ?? null,
-            cardPriceByCurrency: $cardPriceByCurrency,
+            time:                  $data['time']     ?? null,
+            date:                  $data['date']     ?? null,
+            days:                  isset($data['days']) && is_array($data['days']) ? $data['days'] : null,
+            roomType:              $data['roomType'] ?? null,
+            gameMode:              $data['gameMode'] ?? null,
+            prizePoolType:         $data['prizePoolType'] ?? null,
+            allowedCurrencies:     $allowedCurrencies,
+            roomCommission:        isset($data['roomCommn'])             ? (float)  $data['roomCommn']             : null,
+            rounds:                isset($data['rounds'])                ? (int)    $data['rounds']                : null,
+            useSerials:            $useSerials,
+            cardPriceUsd:          isset($data['cardPriceUsd'])          ? (float)  $data['cardPriceUsd']          : null,
+            usdExchangeRoundStep:  isset($data['usdExchangeRoundStep'])  ? (float)  $data['usdExchangeRoundStep']  : null,
+            cardPriceByCurrency:   $cardPriceByCurrency,
+            amountAddedPrizePool:  isset($data['amountAddedPrizePool'])  ? (float)  $data['amountAddedPrizePool']  : null,
+            jackpotPct:            isset($data['jackpotPct'])            ? (float)  $data['jackpotPct']            : null,
+            timeChip:              isset($data['timeChip'])              ? (string) $data['timeChip']              : null,
+            roundsPct:             isset($data['roundsPct'])             ? (float)  $data['roundsPct']             : null,
+            serialsPct:            isset($data['serialsPct'])            ? (float)  $data['serialsPct']            : null,
+            numSerials:            isset($data['numSerials'])            ? (int)    $data['numSerials']            : null,
+            roundsConfig:          $data['roundsConfig'] ?? null,
+            isDraft:               (bool) ($data['isDraft'] ?? false),
+            inLive:                ($data['inLive'] ?? 'N') === 'Y' ? 'Y' : 'N',
         );
     }
 }

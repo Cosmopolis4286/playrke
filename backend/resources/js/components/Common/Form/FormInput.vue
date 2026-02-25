@@ -37,8 +37,14 @@
     inputGroup: { type: Boolean, default: false },
     inputGroupClass: { type: String, default: '' },
     mask: { type: [String, Object, Array] as PropType<FactoryArg>, default: null },
-    /** Si true, emite el valor con formato (value) en lugar del valor sin máscara (unmaskedValue) */
-    maskEmitFormatted: { type: Boolean, default: false }
+    /**
+     * Si true, emite el valor con formato completo (event.detail.value).
+     * Usar para máscaras con prefijos fijos (ej: teléfonos +58, +55).
+     * Si false (default), emite unmaskedValue (solo los dígitos/caracteres sin máscara).
+     */
+    maskEmitFormatted: { type: Boolean, default: false },
+    /** Texto de ayuda que se muestra debajo del campo (si no hay error) */
+    hint: { type: String, default: null }
   })
 
   const emit = defineEmits(['update:modelValue', 'focus', 'blur'])
@@ -57,13 +63,25 @@
   const hasAppend  = computed(() => !!slots.append)
   const useInputGroup = computed(() => props.inputGroup || hasPrepend.value || hasAppend.value)
 
+  /**
+   * Objeto de configuración que v-imask necesita para sincronizar
+   * el valor externo (modelValue) con la instancia IMask.
+   * Al incluir `value`, IMask aplica la máscara sobre el valor actual
+   * cada vez que el objeto cambia (ej: al cambiar de país).
+   */
+  const imaskOptions = computed(() => {
+    if (!props.mask) return null
+    return {
+      mask: props.mask,
+      value: String(props.modelValue ?? '')
+    }
+  })
+
   function clampNumericValue(value: string | number): number {
     if (props.type !== 'number') return Number(value) || 0
-
     const num = Number(value) || 0
     const min = props.min !== null ? Number(props.min) : null
     const max = props.max !== null ? Number(props.max) : null
-
     if (min !== null && num < min) return min
     if (max !== null && num > max) return max
     return num
@@ -72,7 +90,6 @@
   function onInput(event: Event) {
     const target = event.target as HTMLInputElement
     const value  = target.value
-
     if (props.type === 'number') {
       if (value === '') { emit('update:modelValue', ''); return }
       const adjusted = clampNumericValue(value)
@@ -80,14 +97,12 @@
       emit('update:modelValue', adjusted)
       return
     }
-
     emit('update:modelValue', value)
   }
 
   function onBlur(event: FocusEvent) {
     const target = event.target as HTMLInputElement
     const value  = target.value
-
     if (props.type === 'number') {
       if (value === '') { emit('update:modelValue', ''); return }
       const adjusted = clampNumericValue(value)
@@ -95,7 +110,6 @@
       emit('update:modelValue', adjusted)
       return
     }
-
     emit('update:modelValue', value)
     emit('blur', event)
   }
@@ -133,12 +147,11 @@
       </div>
 
       <input
-        v-if="mask"
-        v-imask="mask"
+        v-if="imaskOptions"
+        v-imask="imaskOptions"
         :type="type"
         :id="inputId"
         :name="name"
-        :value="modelValue"
         :class="['form-control', stateClasses]"
         :readonly="readonly"
         :disabled="disabled"
@@ -151,6 +164,7 @@
         :step="step"
         :accept="accept"
         @accept="onAccept"
+        @focus="onFocus"
       />
 
       <input
@@ -195,12 +209,11 @@
 
     <!-- INPUT CON MÁSCARA -->
     <input
-      v-else-if="mask"
-      v-imask="mask"
+      v-else-if="imaskOptions"
+      v-imask="imaskOptions"
       :type="type"
       :id="inputId"
       :name="name"
-      :value="modelValue"
       :class="['form-control', inputClass, stateClasses]"
       :readonly="readonly"
       :disabled="disabled"
@@ -241,6 +254,10 @@
     <!-- ERROR MESSAGE -->
     <small v-if="error" class="text-danger d-block mt-1">
       {{ error }}
+    </small>
+    <!-- HINT (solo si no hay error) -->
+    <small v-else-if="hint" class="text-muted d-block mt-1">
+      <i class="fa-solid fa-circle-info fa-fw"></i> {{ hint }}
     </small>
   </div>
 </template>

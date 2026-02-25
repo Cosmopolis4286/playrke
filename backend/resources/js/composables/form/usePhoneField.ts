@@ -1,108 +1,97 @@
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import type { Ref, ComputedRef } from 'vue'
 
 /**
  * Configuración de teléfono por código ISO-2 del país.
  *
- * Cada entrada define:
- * - dialCode    : prefijo internacional (sin "+")
- * - areaDigits  : dígitos del código de área
- * - localDigits : dígitos del número local (sin dialCode ni área)
- * - totalDigits : total de dígitos del número local (sin dialCode)
- * - pattern     : RegExp sobre el valor completo incluyendo dialCode
- * - mask        : string de máscara imask (0 = dígito)
- * - placeholder : ejemplo visible en el campo
- * - hint        : texto de ayuda corto
+ * IMPORTANTE: el valor que viaja en el modelo es el FORMATEADO por IMask
+ * (maskEmitFormatted=true), porque los literales fijos (+58, +55, etc.)
+ * son parte del valor y debemos guardar el teléfono completo con prefijo.
+ *
+ * Máscaras IMask:
+ *   0        → dígito obligatorio
+ *   {texto}  → literal fijo (no editable por el usuario)
+ *   espacio/guión fuera de {} → separadores opcionales del patrón
  */
 interface PhoneConfig {
+    /** Código de discado sin "+" */
     dialCode: string
-    areaDigits: number
-    localDigits: number
-    totalDigits: number        // areaDigits + localDigits
+    /** Máscara IMask pattern */
+    mask: string
+    /** Regex que valida el valor FORMATEADO (con prefijo +XX ...) */
     pattern: RegExp
-    mask: string               // IMask pattern
+    /** Ejemplo para el placeholder */
     placeholder: string
+    /** Texto de ayuda */
     hint: string
 }
 
 const PHONE_CONFIG: Record<string, PhoneConfig> = {
-    // Venezuela: +58 | área 3 dígitos (0414) | local 7 dígitos → total 11 (sin +58)
+    /**
+     * Venezuela: +58
+     * Operadoras móviles: 0412, 0414, 0416, 0424, 0426
+     * Fijos:              02XX-XXXXXXX
+     * Formato almacenado: +58 0414-1234567  (11 dígitos locales)
+     */
     VE: {
         dialCode: '58',
-        areaDigits: 4,          // 04XX
-        localDigits: 7,
-        totalDigits: 11,        // 04XX-XXXXXXX
-        pattern: /^\+58\s?0?(4|2)\d{2}[\s-]?\d{3}[\s-]?\d{4}$/,
         mask: '+{58} 0000-0000000',
+        pattern: /^\+58 0[2-4]\d{2}-\d{7}$/,
         placeholder: '+58 0414-1234567',
-        hint: '+58 04XX-XXXXXXX'
+        hint: 'Ej: +58 0414-1234567'
     },
-    // Brasil: +55 | DDD 2 dígitos | celular 9 dígitos o fijo 8 → usamos 9 (padrão)
+
+    /**
+     * Brasil: +55
+     * Celular: (DDD) 9XXXX-XXXX  → 11 dígitos locales
+     * Formato almacenado: +55 (11) 91234-5678
+     */
     BR: {
         dialCode: '55',
-        areaDigits: 2,          // DDD
-        localDigits: 9,
-        totalDigits: 11,
-        pattern: /^\+55\s?\(?\d{2}\)?\s?9?\d{4}[\s-]?\d{4}$/,
         mask: '+{55} (00) 00000-0000',
+        pattern: /^\+55 \(\d{2}\) \d{5}-\d{4}$/,
         placeholder: '+55 (11) 91234-5678',
-        hint: '+55 (DDD) 9XXXX-XXXX'
+        hint: 'Ej: +55 (11) 91234-5678'
     },
-    // Colombia: +57 | área 1–3 dígitos | celular 10 dígitos sin +57 (3XX XXX XXXX)
+
+    /**
+     * Colombia: +57
+     * Celular: 3XX XXX XXXX  → 10 dígitos locales
+     * Formato almacenado: +57 312 345 6789
+     */
     CO: {
         dialCode: '57',
-        areaDigits: 3,          // 3XX (operadora)
-        localDigits: 7,
-        totalDigits: 10,
-        pattern: /^\+57\s?3\d{2}[\s-]?\d{3}[\s-]?\d{4}$/,
         mask: '+{57} 000 000 0000',
+        pattern: /^\+57 3\d{2} \d{3} \d{4}$/,
         placeholder: '+57 312 345 6789',
-        hint: '+57 3XX XXX XXXX'
+        hint: 'Ej: +57 312 345 6789'
     }
 }
 
-const FALLBACK_CONFIG: PhoneConfig = {
-    dialCode: '',
-    areaDigits: 0,
-    localDigits: 0,
-    totalDigits: 15,
-    pattern: /^.{6,20}$/,
-    mask: '',
-    placeholder: 'Número de teléfono',
-    hint: ''
-}
-
 export interface UsePhoneFieldReturn {
-    /** Máscara IMask dinámica según el país seleccionado (null = sin máscara) */
+    /** Máscara IMask dinámica (null = sin país seleccionado) */
     phoneMask: ComputedRef<string | null>
-    /** Placeholder dinámico */
+    /** Placeholder dinámico según el país */
     phonePlaceholder: ComputedRef<string>
-    /** Texto de ayuda (hint) */
+    /** Texto de ayuda con el formato esperado */
     phoneHint: ComputedRef<string>
-    /** Prefijo internacional ("+58", "+55", "+57") */
-    dialCode: ComputedRef<string>
+    /** Prefijo internacional listo para pre-rellenar: "+58 ", "+55 ", etc. */
+    phoneDialPrefix: ComputedRef<string>
     /** Error de validación (null = válido o vacío) */
     phoneError: ComputedRef<string | null>
-    /** true si el valor actual es válido según las reglas del país */
+    /** true si el valor formateado cumple el patrón del país */
     isPhoneValid: ComputedRef<boolean>
-    /** Prefija automáticamente el dialCode cuando el usuario empieza a escribir */
-    onPhoneFocus: (currentValue: string, update: (v: string) => void) => void
-    /** Configuración completa del país activo */
-    activeConfig: ComputedRef<PhoneConfig>
 }
 
 /**
  * Composable reutilizable para campos de teléfono con validación por país.
  *
- * Uso:
- * ```ts
- * const iso = computed(() => selectedCountry?.iso_code_2 ?? null)
- * const { phoneMask, phonePlaceholder, phoneError } = usePhoneField(iso, phoneValue)
- * ```
+ * Requiere que FormInput use maskEmitFormatted=true para que el valor
+ * almacenado sea el texto formateado (con prefijo +XX), no los dígitos crudos.
  *
- * @param isoCode2  - Ref/ComputedRef con el código ISO-2 del país activo (ej: 'VE')
- * @param phoneValue - Ref con el valor actual del campo de teléfono
- * @param update    - Función para actualizar el valor del teléfono (como emit v-model)
+ * @param isoCode2   - ISO-2 del país activo ('VE', 'BR', 'CO' o null)
+ * @param phoneValue - Ref con el valor actual del campo (formateado)
+ * @param update     - Función para limpiar el valor al cambiar de país
  */
 export function usePhoneField(
     isoCode2: Ref<string | null | undefined> | ComputedRef<string | null | undefined>,
@@ -110,56 +99,44 @@ export function usePhoneField(
     update: (value: string) => void
 ): UsePhoneFieldReturn {
 
-    const activeConfig = computed<PhoneConfig>(() => {
+    const activeConfig = computed<PhoneConfig | null>(() => {
         const iso = isoCode2.value?.toUpperCase()
-        return iso && PHONE_CONFIG[iso] ? PHONE_CONFIG[iso] : FALLBACK_CONFIG
+        return iso ? (PHONE_CONFIG[iso] ?? null) : null
     })
 
-    const phoneMask = computed(() => activeConfig.value.mask || null)
-    const phonePlaceholder = computed(() => activeConfig.value.placeholder)
-    const phoneHint = computed(() => activeConfig.value.hint)
-    const dialCode = computed(() =>
-        activeConfig.value.dialCode ? `+${activeConfig.value.dialCode}` : ''
+    const phoneMask = computed(() => activeConfig.value?.mask ?? null)
+
+    const phonePlaceholder = computed(() =>
+        activeConfig.value?.placeholder ?? 'Selecciona un país primero'
     )
 
-    /**
-     * Valida el valor actual contra el patrón del país.
-     * Retorna null si es válido o si está vacío (sin tocar).
-     */
+    const phoneHint = computed(() => activeConfig.value?.hint ?? '')
+
+    /** Prefijo con espacio para pre-rellenar el campo al elegir país: "+58 " */
+    const phoneDialPrefix = computed(() =>
+        activeConfig.value ? `+${activeConfig.value.dialCode} ` : ''
+    )
+
     const phoneError = computed<string | null>(() => {
         const val = phoneValue.value?.trim() ?? ''
-        if (!val) return null  // campo vacío: error lo maneja el campo required externo
-
+        if (!val) return null
         const config = activeConfig.value
+        if (!config) return null
         if (!config.pattern.test(val)) {
-            return `Formato inválido. Ej: ${config.placeholder}`
+            return `Formato inválido. ${config.hint}`
         }
         return null
     })
 
     const isPhoneValid = computed(() => {
         const val = phoneValue.value?.trim() ?? ''
-        if (!val) return false
+        if (!val || !activeConfig.value) return false
         return activeConfig.value.pattern.test(val)
     })
 
-    /**
-     * Al hacer focus en el campo, si está vacío y hay dialCode configurado,
-     * prellena con el prefijo para guiar al usuario.
-     */
-    function onPhoneFocus(currentValue: string, updateFn: (v: string) => void) {
-        const prefix = dialCode.value
-        if (!currentValue?.trim() && prefix) {
-            updateFn(prefix + ' ')
-        }
-    }
-
-    /**
-     * Cuando cambia el país, limpiar el valor del teléfono
-     * para evitar formatos inválidos mezclados.
-     */
+    // Al cambiar de país, limpiar el número anterior para evitar formatos mezclados
     watch(isoCode2, (newIso, oldIso) => {
-        if (oldIso !== undefined && newIso !== oldIso && phoneValue.value) {
+        if (oldIso !== undefined && newIso !== oldIso) {
             update('')
         }
     })
@@ -168,14 +145,11 @@ export function usePhoneField(
         phoneMask,
         phonePlaceholder,
         phoneHint,
-        dialCode,
+        phoneDialPrefix,
         phoneError,
-        isPhoneValid,
-        onPhoneFocus,
-        activeConfig
+        isPhoneValid
     }
 }
 
-/** Exporta las configuraciones para usarlas directamente si se necesita */
-export { PHONE_CONFIG, FALLBACK_CONFIG }
+export { PHONE_CONFIG }
 export type { PhoneConfig }
