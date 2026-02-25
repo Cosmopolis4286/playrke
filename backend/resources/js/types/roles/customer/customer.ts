@@ -10,6 +10,7 @@ export interface Customer {
     readonly time_zone_id: number,
     readonly currency_id: number,
     readonly phone: string,
+    readonly has_commission?: boolean,
     readonly commission: string,
     readonly status: CustomerStatus,
     readonly username: string,

@@ -46,6 +46,12 @@ interface UseAdminCustomerReturn {
 
     /** Fetch desde backend */
     fetchCustomers: () => Promise<boolean>
+
+    /** Genera una nueva llave de conexión desde el backend */
+    generateKey: () => Promise<boolean>
+
+    /** Estado de carga */
+    loading: Ref<boolean>
 }
 
 /**
@@ -56,6 +62,7 @@ const emptyCustomer = (): Partial<Customer> =>
         name: '',
         username: '',
         email: '',
+        has_commission: false,
         commission: '',
         country_id: null,
         time_zone_id: null,
@@ -122,13 +129,15 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
      * Transforma el payload del frontend al formato esperado por el backend
      */
     function buildPayload(): Record<string, unknown> {
-        const { country_id, currency_id, time_zone_id, ...rest } = customerData.value
+        const { country_id, currency_id, time_zone_id, has_commission, ...rest } = customerData.value
 
         return {
             ...rest,
             country: country_id,
             currency: currency_id,
-            time_zone: time_zone_id
+            time_zone: time_zone_id,
+            // Si no tiene comisión, enviar null para limpiarla
+            commission: has_commission ? rest.commission : null
         }
     }
 
@@ -195,11 +204,15 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
 
             const customer = data.data
 
+            const commission = customer.commission ?? ''
             customerData.value = {
                 id: customer.id,
                 name: customer.name,
                 phone: customer.phone,
-                commission: customer.commission ?? '',
+                has_commission: !!commission && commission !== '0.00' && commission !== '0',
+                commission,
+                api_route: customer.api_route ?? '',
+                customer_key: customer.customer_key ?? '',
                 // Datos del usuario anidado
                 username: customer.user?.username,
                 email: customer.user?.email,
@@ -403,9 +416,43 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
         }
     }
 
+    /**
+     * Genera una nueva llave de conexión desde el backend.
+     * En modo edición se pasa el ID; en creación se genera sin ID.
+     */
+    async function generateKey(): Promise<boolean> {
+        if (loading.value) return false
+
+        try {
+            loading.value = true
+
+            const params = customerData.value.id
+                ? { id: customerData.value.id }
+                : {}
+
+            const { data } = await backendClient.post<{ key: string }>(
+                '/admin/customer/generate-key',
+                params
+            )
+
+            if (data?.key) {
+                customerData.value = { ...customerData.value, customer_key: data.key }
+            }
+
+            return true
+        } catch (error) {
+            console.error(error)
+            showToast('Error al generar la llave de conexión', 'error')
+            return false
+        } finally {
+            loading.value = false
+        }
+    }
+
     return {
         customerData,
         customers,
+        loading,
         setInitialCustomers,
         submit,
         create,
@@ -416,6 +463,7 @@ export function useAdminCustomer(tokenId: string = ''): UseAdminCustomerReturn {
         resetPassword,
         remove,
         removeBulk,
-        fetchCustomers
+        fetchCustomers,
+        generateKey
     }
 }

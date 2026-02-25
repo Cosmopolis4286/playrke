@@ -126,4 +126,9 @@ Route::middleware('auth')->group(function () {
     role_protected_routes(['role:admin'], 'admin/customer', AdminCustomerController::class, $adminCrudRoutes, 'customer');
     role_protected_routes(['role:admin'], 'admin/treasurer', TreasurerController::class, $adminCrudRoutes, 'treasurer');
     role_protected_routes(['role:admin'], 'admin/other-treasurers', OtherTreasurersController::class, $adminCrudRoutes, 'otherTreasurer');
+
+    // Generación de llave de conexión para Customer
+    Route::middleware('role:admin')
+        ->post('admin/customer/generate-key', [AdminCustomerController::class, 'generateKey'])
+        ->name('admin.customer.generate-key');
 });

@@ -144,4 +144,20 @@ final class AdminCustomerController extends Controller
             ]
         );
     }
+
+    /**
+     * Generar una nueva llave de conexión (customer_key).
+     * Si se pasa un Customer, actualiza el registro; si no, devuelve una nueva llave temporal.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return JsonResponse
+     */
+    public function generateKey(\Illuminate\Http\Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(function () use ($request) {
+            $id  = $request->input('id');
+            $key = $this->service->generateKey($id ? Customer::findOrFail($id) : null);
+            return ['key' => $key];
+        });
+    }
 }

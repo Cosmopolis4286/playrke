@@ -129,4 +129,24 @@ final class AdminCustomerService
     {
         $this->crud->destroy($customer);
     }
+
+    /**
+     * Generar una nueva llave de conexión (customer_key).
+     *
+     * Si se proporciona el modelo, actualiza el campo en BD y retorna la llave.
+     * Si no, solo genera y retorna una llave sin persistir (para el formulario de creación).
+     *
+     * @param Customer|null $customer
+     * @return string
+     */
+    public function generateKey(?Customer $customer): string
+    {
+        $key = bin2hex(random_bytes(32));
+
+        if ($customer !== null) {
+            $customer->update(['customer_key' => $key]);
+        }
+
+        return $key;
+    }
 }

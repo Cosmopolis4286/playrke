@@ -61,7 +61,7 @@
    * Form logic (computed v-model)
    * ========================================================================== */
 
-  const { form, errors, isValid, roomCommn, jackpotPct, roundsPct, serialsPct, percentageLimits } =
+  const { form, errors, isValid, roomCommn, jackpotPct, roundsPct, serialsPct, availablePct, percentageLimits } =
     useBingoRoomAutomaticForm(
       () => props.modelValue,
       emit,
@@ -235,10 +235,21 @@
       const current = form.value.roundsConfig ?? []
       const updated: RoundConfig[] = []
 
+      // FULL HOUSE es el patrón por defecto cuando hay 1 sola ronda
+      const fullHouseId = props.bingoPatternOptions.find(
+        o => o.label.toUpperCase() === 'FULL HOUSE'
+      )?.value ?? null
+
       for (let i = 0; i < count; i++) {
+        const defaultPattern = count === 1 ? fullHouseId : null
         updated.push(
-          current[i] ?? { prizeType: 'percentage', bingoPattern: null, prizeValue: null }
+          current[i] ?? { prizeType: 'percentage', bingoPattern: defaultPattern, prizeValue: null }
         )
+      }
+
+      // Si hay 1 sola ronda, forzar FULL HOUSE en R1 (aunque ya existiera)
+      if (count === 1 && fullHouseId !== null) {
+        updated[0] = { ...updated[0], bingoPattern: fullHouseId }
       }
 
       // Redistribuir equitativamente entre rondas % tras cambio de cantidad
@@ -263,18 +274,53 @@
    * Cuando cambia roundsPct o el número de rondas % cambia,
    * distribuir equitativamente entre rondas con tipo 'percentage'
    */
+  /**
+   * Cuando cambia roundsPct:
+   * 1. Distribuir equitativamente entre rondas con tipo 'percentage'
+   * 2. Ajustar %Sala para que la suma siempre sea 100 (con múltiples rondas)
+   */
   watch(
     () => form.value.roundsPct,
     newPct => {
       const total = Number(newPct) || 0
       const configs = form.value.roundsConfig ?? []
       const pctCount = configs.filter(r => r.prizeType === 'percentage').length
-      if (pctCount === 0) return
-      const perRound = total > 0 ? Math.round((total / pctCount) * 100) / 100 : null
-      const updated = configs.map(r =>
-        r.prizeType === 'percentage' ? { ...r, prizeValue: perRound } : r
-      )
-      form.value = { ...form.value, roundsConfig: updated }
+
+      let nextForm = { ...form.value }
+      if (pctCount > 0) {
+        const perRound = total > 0 ? Math.round((total / pctCount) * 100) / 100 : null
+        const updated = configs.map(r =>
+          r.prizeType === 'percentage' ? { ...r, prizeValue: perRound } : r
+        )
+        nextForm = { ...nextForm, roundsConfig: updated }
+      }
+
+      // Con múltiples rondas: %Sala absorbe el restante para sumar 100
+      const rounds = Number(form.value.rounds) || 1
+      if (rounds > 1) {
+        const jk  = Number(nextForm.jackpotPct) || 0
+        const ser = Number(nextForm.serialsPct)  || 0
+        const newCommn = Math.round((100 - total - jk - ser) * 100) / 100
+        const clamped  = Math.min(
+          percentageLimits.roomCommn.max,
+          Math.max(percentageLimits.roomCommn.min, newCommn)
+        )
+        nextForm = { ...nextForm, roomCommn: clamped }
+      }
+
+      form.value = nextForm
+    }
+  )
+
+  /**
+   * Cuando hay 1 sola ronda, %Rondas = disponible automáticamente
+   */
+  watch(
+    () => [form.value.rounds, availablePct.value] as const,
+    ([newRounds, avail]) => {
+      if (Number(newRounds) !== 1) return
+      if (Number(form.value.roundsPct) === avail) return
+      form.value = { ...form.value, roundsPct: avail }
     }
   )
 

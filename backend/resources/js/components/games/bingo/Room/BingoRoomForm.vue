@@ -240,10 +240,21 @@ watch(
     const current = form.value.roundsConfig ?? [];
     const updated: RoundConfig[] = [];
 
+    // FULL HOUSE es el patrón por defecto cuando hay 1 sola ronda
+    const fullHouseId = props.bingoPatternOptions.find(
+      (o) => o.label.toUpperCase() === 'FULL HOUSE'
+    )?.value ?? null;
+
     for (let i = 0; i < count; i++) {
+      const defaultPattern = count === 1 ? fullHouseId : null;
       updated.push(
-        current[i] ?? { prizeType: "percentage", bingoPattern: null, prizeValue: null }
+        current[i] ?? { prizeType: "percentage", bingoPattern: defaultPattern, prizeValue: null }
       );
+    }
+
+    // Si hay 1 sola ronda, forzar FULL HOUSE en R1 (aunque ya existiera)
+    if (count === 1 && fullHouseId !== null) {
+      updated[0] = { ...updated[0], bingoPattern: fullHouseId };
     }
 
     // Redistribuir equitativamente entre rondas % tras cambio de cantidad

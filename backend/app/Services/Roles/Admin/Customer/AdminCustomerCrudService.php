@@ -61,6 +61,8 @@ final class AdminCustomerCrudService
                 'phone'          => $dto->phone,
                 'commission'     => $dto->commission,
                 'country_id'     => $dto->country,
+                'api_route'      => $dto->apiRoute,
+                'customer_key'   => $dto->customerKey,
                 'status'         => 'ACTIVE',
                 'user_id'        => $user->id,
                 'unique_code_id' => $uniqueCode->id,
@@ -118,10 +120,11 @@ final class AdminCustomerCrudService
             $this->customerRepository->update(
                 $customer->id,
                 array_filter([
-                    'name'       => $dto->name,
-                    'phone'      => $dto->phone,
-                    'commission' => $dto->commission,
-                    'country_id' => $dto->country,
+                    'name'         => $dto->name,
+                    'phone'        => $dto->phone,
+                    'commission'   => $dto->commission,
+                    'country_id'   => $dto->country,
+                    'api_route'    => $dto->apiRoute,
                 ])
             );
 

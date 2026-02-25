@@ -52,12 +52,14 @@ export function useAdminCustomerForm(
             e.email = 'El email es requerido.'
         }
 
-        if (!form.value.commission) {
-            e.commission = 'La comisión es requerida.'
-        } else {
-            const commissionValue = parseFloat(form.value.commission)
-            if (isNaN(commissionValue) || commissionValue < 0 || commissionValue > 100) {
-                e.commission = 'La comisión debe estar entre 0 y 100.'
+        if (form.value.has_commission) {
+            if (!form.value.commission) {
+                e.commission = 'La comisión es requerida.'
+            } else {
+                const commissionValue = parseFloat(form.value.commission)
+                if (isNaN(commissionValue) || commissionValue < 0 || commissionValue > 100) {
+                    e.commission = 'La comisión debe estar entre 0 y 100.'
+                }
             }
         }
 
@@ -80,6 +82,7 @@ export function useAdminCustomerForm(
     return {
         form,
         errors,
-        isValid
+        isValid,
+        isEditMode
     }
 }

@@ -41,14 +41,15 @@ class AdminCustomerRequest extends BaseRequest
         $userId     = $customer?->user_id;
 
         $rules = [
-            'commission'     => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
+            // commission es nullable: solo se valida si viene en el payload
+            'commission'     => ['nullable', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
             'country'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
             'currency'       => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
             'time_zone'      => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
             'phone'          => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:12'],
             'name'           => [$isUpdate ? 'sometimes' : 'required', 'string'],
-            'api_route'          => ['required', 'string', 'max:255'],
-            'customer_key'       => ['required', 'string', 'max:255'],
+            'api_route'          => [$isUpdate ? 'sometimes' : 'required', 'string', 'url', 'max:255'],
+            'customer_key'       => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:255'],
             'logo'               => ['nullable', 'file', 'image', 'max:2048'], // Max 2MB
             'other_currencies'   => ['sometimes', 'array'],
             'other_currencies.*' => ['string', 'exists:currencies,id'],
