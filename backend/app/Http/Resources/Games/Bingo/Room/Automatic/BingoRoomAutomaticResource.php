@@ -8,67 +8,71 @@ class BingoRoomAutomaticResource extends JsonResource
 {
     public function toArray($request): array
     {
-        $config  = $this->config->first();
-
         return [
-            'id'                 => $this->hashed_id,
-            'status_id'          => $this->status_id,
-            'paid_prizes'        => $this->paid_prizes,
-            'prize_pool'         => $this->prize_pool,
-            'total_players'      => $this->total_players,
-            'total_cards'        => $this->total_cards,
-            'total_sales'        => $this->total_sales,
-            'is_closed'          => $this->is_closed,
-            'total_commissions'  => $this->total_commissions,
+            'id'          => (string) $this->id,
+            'status'      => $this->status,
+            'description' => $this->description,
+            'days'        => $this->days ?? [],
+            'plays_pct'   => $this->plays_pct,
 
-            'allowed_currencies' => $config?->allowed_currencies ?? [],
+            'allowed_currencies' => $this->allowed_currencies ?? [],
 
-            'card_price_by_currency' => $this->whenLoaded('cardPrices', function () {
-                return $this->cardPrices->mapWithKeys(fn($p) => [
-                    $p->currency_id => $p->card_price
-                ]);
-            }),
+            'card_price_by_currency' => $this->whenLoaded('cardPriceAutomatic', function () {
+                return $this->cardPriceAutomatic?->card_prices ?? [];
+            }, []),
 
-            'rounds_config' => $this->whenLoaded('rounds', function () {
-                $prizeTypeMap = ['PCT' => 'percentage', 'FIXED' => 'fixed', 'OTHER' => 'prize'];
-                return $this->rounds->map(function ($r) use ($prizeTypeMap) {
-                    $prizeType = $prizeTypeMap[$r->prize_type] ?? 'percentage';
-                    $config = [
-                        'prizeType'    => $prizeType,
-                        'bingoPattern' => $r->bingo_pattern_id,
-                        'prizeValue'   => $r->prize_value,
+            'rounds_config' => $this->whenLoaded('roundAutomatic', function () {
+                $round = $this->roundAutomatic;
+                if (!$round) return [];
+
+                $prizeTypeMap  = ['PCT' => 'percentage', 'FIXED' => 'fixed', 'OTHER' => 'prize'];
+                $prizeTypes    = $round->prize_types ?? [];
+                $patterns      = $round->bingo_patterns ?? [];
+                $prizeValues   = $round->prize_values ?? [];
+
+                $config = [];
+                foreach ($prizeTypes as $i => $type) {
+                    $frontendType = $prizeTypeMap[$type] ?? 'percentage';
+                    $entry = [
+                        'prizeType'    => $frontendType,
+                        'bingoPattern' => $patterns[$i] ?? null,
                     ];
-                    if ($prizeType === 'fixed' && $r->relationLoaded('prizes') && $r->prizes->isNotEmpty()) {
-                        $config['prizeValueByCurrency'] = $r->prizes
-                            ->pluck('prize_value', 'currency_id')
-                            ->map(fn($v) => (float) $v)
-                            ->toArray();
-                    }
-                    if ($prizeType === 'prize') {
-                        $config['prizeId']   = $r->prize_id;
-                        $config['prizeName'] = $r->relationLoaded('prize') ? $r->prize?->name : null;
-                    }
-                    return $config;
-                })->values();
-            }),
 
-            'config' => $config ? [
-                'room_type_id'            => $config->room_type_id,
-                'date'                    => $config->date?->format('Y-m-d'),
-                'time'                    => $config->time,
-                'game_mode_id'            => $config->game_mode_id,
-                'prize_pool_type_id'      => $config->prize_pool_type_id,
-                'amount_added_prize_pool' => $config->amount_added_prize_pool,
-                'room_commission'         => $config->room_commission,
-                'rke_commission'          => $config->rke_commission,
-                'jackpot_pct'             => $config->jackpot_pct,
-                'time_chip'               => $config->time_chip,
-                'rounds'                  => $config->rounds,
-                'rounds_pct'              => $config->rounds_pct,
-                'serials_pct'             => $config->serials_pct,
-                'num_serials'             => $config->num_serials,
-                'in_live'                 => $config->in_live,
-            ] : null,
+                    if ($frontendType === 'fixed') {
+                        $entry['prizeValueByCurrency'] = $prizeValues[$i] ?? null;
+                        $entry['prizeValue'] = null;
+                    } elseif ($frontendType === 'prize') {
+                        $entry['prizeId']    = ($prizeValues[$i] ?? [])['prizeId'] ?? null;
+                        $entry['prizeName']  = ($prizeValues[$i] ?? [])['prizeName'] ?? null;
+                        $entry['prizeValue'] = null;
+                    } else {
+                        $entry['prizeValue'] = $prizeValues[$i] ?? null;
+                    }
+
+                    $config[] = $entry;
+                }
+
+                return $config;
+            }, []),
+
+            'config' => [
+                'room_type_id'            => (string) $this->room_type_id,
+                'date'                    => $this->date?->format('Y-m-d'),
+                'time'                    => $this->formatted_time,
+                'game_mode_id'            => (string) $this->game_mode_id,
+                'prize_pool_type_id'      => (string) $this->prize_pool_type_id,
+                'amount_added_prize_pool' => $this->amount_added_prize_pool,
+                'room_commission'         => $this->room_commission,
+                'rke_commission'          => $this->rke_commission,
+                'jackpot_pct'             => $this->jackpot_pct,
+                'time_chip'               => $this->time_chip,
+                'rounds'                  => $this->rounds,
+                'rounds_pct'              => $this->rounds_pct,
+                'serials_pct'             => $this->serials_pct,
+                'num_serials'             => $this->num_serials,
+                'in_live'                 => $this->in_live,
+                'card_price'              => $this->card_price,
+            ],
         ];
     }
 }

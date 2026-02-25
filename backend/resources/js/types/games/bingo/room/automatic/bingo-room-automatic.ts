@@ -39,52 +39,41 @@ export interface BingoRoomAutomaticUser {
 }
 
 /**
+ * Días de la semana disponibles
+ */
+export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+
+/**
  * Modelo BingoRoomAutomatic
- * Basado en: 2024_06_14_04_create_bingo_rooms_table
+ * Basado en: 2024_06_15_07_create_bingo_rooms_automatic_table
  */
 export interface BingoRoomAutomatic {
-    readonly id: number | string
-    readonly status_id: number | string
-    readonly room_type: BingoRoomAutomaticType
-    readonly creator_user_id: number | string
-    readonly paid_prizes: BingoPrizesPaid
-    readonly published_at: string | null
-    readonly total_players: number
-    readonly total_cards: number
-    readonly total_sales: number
-    readonly rke_commission: number
-    readonly room_commission: number
-    readonly seller_commission: number
-    readonly prize_pool: number
-    readonly full_house_prize: number
-    readonly serial_prize: number
-    readonly finished_at: string | null
-    readonly uuid_code: string | null
-    readonly created_at: string
-    readonly updated_at: string
-
-    // Appended accessors
-    readonly is_closed: boolean
-    readonly total_commissions: number
-
-    // Campos del servicio (summary / listado)
-    readonly name?: string
-    readonly phone?: string
+    readonly id: string
+    readonly description?: string | null
+    readonly date?: string | null
+    readonly days?: DayOfWeek[] | null
+    readonly time?: string | null
+    readonly game_mode_id?: string | null
+    readonly in_live?: 'Y' | 'N'
+    readonly room_type_id?: string | null
+    readonly prize_pool_type_id?: string | null
+    readonly amount_added_prize_pool?: number | null
+    readonly rke_commission?: number
+    readonly room_commission?: number
+    readonly card_price?: number
+    readonly allowed_currencies?: (number | string)[] | null
+    readonly time_chip?: number | null
+    readonly rounds?: number
+    readonly rounds_pct?: number | null
+    readonly serials_pct?: number | null
+    readonly num_serials?: number | null
+    readonly jackpot_pct?: number | null
+    readonly plays_pct?: number | null
+    readonly bingo_patterns?: (number | string)[] | null
+    readonly creator_user_id?: string
     readonly status?: BingoRoomAutomaticStatus
-    readonly country_id?: number | string | null
-    readonly user_id?: number | string | null
-    readonly currency_id?: number | string | null
-    readonly time_zone_id?: number | string | null
-    readonly username?: string
-    readonly email?: string
-    readonly commission?: string | number
-    readonly other_currencies?: (number | string)[]
-    readonly allowed_games?: (number | string)[]
-
-    // Relaciones opcionales
-    readonly country?: BingoRoomAutomaticCountry | null
-    readonly user?: BingoRoomAutomaticUser | null
-    readonly status_relation?: BingoRoomAutomaticGameStatus | null
+    readonly created_at?: string
+    readonly updated_at?: string
 }
 
 /**
@@ -105,11 +94,13 @@ export interface RoundConfig {
 }
 
 /**
- * Campos del formulario de creación/edición de sala
- * Basado en: bingo_rooms_config + bingo_rooms_automatic
+ * Campos del formulario de creación/edición de sala automática
+ * Basado en: bingo_rooms_automatic
  */
 export interface BingoRoomAutomaticFormData {
+    description?: string | null
     date?: string | null
+    days?: DayOfWeek[]
     time?: string | null
     roomType?: BingoRoomAutomaticType | null
     gameMode?: number | string | null
@@ -118,6 +109,7 @@ export interface BingoRoomAutomaticFormData {
     amountAddedPrizePool?: number | null
     roomCommn?: number | null
     jackpotPct?: number | null
+    playsPct?: number | null
     timeChip?: number | null
     rounds?: number | null
     roundsPct?: number | null

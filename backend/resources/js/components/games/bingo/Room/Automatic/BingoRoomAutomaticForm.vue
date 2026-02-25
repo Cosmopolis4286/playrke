@@ -7,11 +7,11 @@
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import ItemSearchPicker from '@/js/Components/Common/Form/ItemSearchPicker.vue'
   // Composables
-  import { useBingoRoomForm } from '@/js/composables/games/bingo/room/useBingoRoomForm'
+  import { useBingoRoomAutomaticForm } from '@/js/composables/games/bingo/room/automatic/useBingoRoomAutomaticForm'
   import backendClient from '@/js/plugins/axios'
 
   // Types
-  import type { BingoRoomFormData, RoundConfig } from '@/js/types/games/bingo/room/bingo-room'
+  import type { BingoRoomAutomaticFormData, RoundConfig, DayOfWeek } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
   import type { PrizeSearchResult } from '@/js/types/prizes/prize'
 
   /* ==========================================================================
@@ -45,7 +45,7 @@
     prizePoolTypeOptions: SelectOption[]
     allowedCurrenciesOptions: SelectOption[]
     bingoPatternOptions: SelectOption[]
-    modelValue: BingoRoomFormData
+    modelValue: BingoRoomAutomaticFormData
   }>()
 
   /* ==========================================================================
@@ -54,7 +54,7 @@
 
   const emit = defineEmits<{
     (e: 'submit'): void
-    (e: 'update:modelValue', value: BingoRoomFormData): void
+    (e: 'update:modelValue', value: BingoRoomAutomaticFormData): void
   }>()
 
   /* ==========================================================================
@@ -62,11 +62,27 @@
    * ========================================================================== */
 
   const { form, errors, isValid, roomCommn, jackpotPct, roundsPct, serialsPct, percentageLimits } =
-    useBingoRoomForm(
+    useBingoRoomAutomaticForm(
       () => props.modelValue,
       emit,
       () => props.automaticRoom ?? false
     )
+
+  const DAYS_OPTIONS: { value: DayOfWeek; label: string }[] = [
+    { value: 'monday',    label: 'Lun' },
+    { value: 'tuesday',   label: 'Mar' },
+    { value: 'wednesday', label: 'Mié' },
+    { value: 'thursday',  label: 'Jue' },
+    { value: 'friday',    label: 'Vie' },
+    { value: 'saturday',  label: 'Sáb' },
+    { value: 'sunday',    label: 'Dom' },
+  ]
+
+  function toggleDay(day: DayOfWeek) {
+    const current = form.value.days ?? []
+    const updated = current.includes(day) ? current.filter(d => d !== day) : [...current, day]
+    form.value = { ...form.value, days: updated }
+  }
 
   const cardPriceByCurrencyActive = ref(false)
   const roundsConfigActive = ref(false)
@@ -444,6 +460,17 @@
 <template>
   <form id="bingo-room-form" novalidate @submit.prevent="submit">
     <div class="row">
+      <!-- Descripción -->
+      <FormInput
+        label="Descripción"
+        name="description"
+        type="text"
+        maxlength="50"
+        placeholder="Opcional"
+        col="col-sm-12 col-md-6"
+        v-model="form.description"
+      />
+
       <!-- Fecha (solo si no es sala automática) -->
       <FormInput
         v-if="!automaticRoom"
@@ -456,6 +483,25 @@
         col="col-sm-6 col-md-4 col-lg-3"
         v-model="form.date"
       />
+
+      <!-- Días de la semana (solo para salas automáticas) -->
+      <div v-if="automaticRoom" class="col-12 mb-3">
+        <label class="form-label d-block">Días de la semana</label>
+        <div class="d-flex flex-wrap" style="gap: 0.4rem">
+          <button
+            v-for="day in DAYS_OPTIONS"
+            :key="day.value"
+            type="button"
+            :class="[
+              'btn btn-sm',
+              (form.days ?? []).includes(day.value) ? 'btn-primary' : 'btn-outline-secondary'
+            ]"
+            @click="toggleDay(day.value)"
+          >
+            {{ day.label }}
+          </button>
+        </div>
+      </div>
 
       <!-- Hora -->
       <FormInput
@@ -965,6 +1011,18 @@
         :max="percentageLimits.jackpotPct.max"
         col="col-sm-6 col-md-4 col-lg-3"
         v-model="jackpotPct"
+      />
+
+      <FormInput
+        label="%Jugadas"
+        name="plays_pct"
+        :error="(errors as any).playsPct"
+        type="number"
+        :step="0.5"
+        :min="0"
+        :max="50"
+        col="col-sm-6 col-md-4 col-lg-3"
+        v-model="form.playsPct"
       />
     </div>
   </form>

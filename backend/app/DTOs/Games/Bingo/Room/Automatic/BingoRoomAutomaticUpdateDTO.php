@@ -21,6 +21,7 @@ final class BingoRoomAutomaticUpdateDTO
         public readonly ?float $amountAddedPrizePool,
         public readonly ?float $roomCommission,
         public readonly ?float $jackpotPct,
+        public readonly ?float $playsPct,
         public readonly ?int $timeChip,
         public readonly ?int $rounds,
         public readonly ?float $roundsPct,
@@ -29,6 +30,8 @@ final class BingoRoomAutomaticUpdateDTO
         public readonly ?float $cardPrice,
         public readonly ?array $roundsConfig,
         public readonly ?array $cardPriceByCurrency,
+        public readonly ?string $description = null,
+        public readonly ?array $days = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -53,6 +56,7 @@ final class BingoRoomAutomaticUpdateDTO
                 : null,
             roomCommission: isset($data['roomCommn']) ? (float) $data['roomCommn'] : null,
             jackpotPct: isset($data['jackpotPct']) ? (float) $data['jackpotPct'] : null,
+            playsPct: isset($data['playsPct']) ? (float) $data['playsPct'] : null,
             timeChip: isset($data['timeChip']) ? (int) $data['timeChip'] : null,
             rounds: isset($data['rounds']) ? (int) $data['rounds'] : null,
             roundsPct: isset($data['roundsPct']) ? (float) $data['roundsPct'] : null,
@@ -61,6 +65,8 @@ final class BingoRoomAutomaticUpdateDTO
             cardPrice: isset($data['cardPrice']) ? (float) $data['cardPrice'] : null,
             roundsConfig: $data['roundsConfig'] ?? null,
             cardPriceByCurrency: $cardPriceByCurrency,
+            description: isset($data['description']) ? (string) $data['description'] : null,
+            days: isset($data['days']) && is_array($data['days']) ? $data['days'] : null,
         );
     }
 }

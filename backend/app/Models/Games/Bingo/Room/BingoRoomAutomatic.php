@@ -2,6 +2,8 @@
 
 namespace App\Models\Games\Bingo\Room;
 
+use App\Models\Games\Bingo\Card\CardPrice\BingoCardPriceAutomatic;
+use App\Models\Games\Bingo\Round\BingoRoundAutomatic;
 use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\GameMode\GameModes;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
@@ -9,6 +11,8 @@ use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Modelo para las salas de bingo automáticas
@@ -55,7 +59,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class BingoRoomAutomatic extends Model
 {
-    use SnowflakeId;
+    use SnowflakeId, SoftDeletes;
 
     /**
      * Nombre de la tabla en la base de datos
@@ -132,26 +136,30 @@ class BingoRoomAutomatic extends Model
      * Campos que deben ser convertidos a tipos específicos
      */
     protected $casts = [
-        'allowed_currencies' => 'array',
-        'bingo_patterns' => 'array',
-        'days' => 'array',
-        'in_live' => 'string',
-        'date' => 'date',
-        'time' => 'datetime:H:i:s',
-        'card_price' => 'decimal:8',
-        'rke_commission' => 'decimal:8',
-        'room_commission' => 'decimal:8',
+        'id'                      => 'string',
+        'allowed_currencies'      => 'array',
+        'bingo_patterns'          => 'array',
+        'days'                    => 'array',
+        'in_live'                 => 'string',
+        'date'                    => 'date',
+        'time'                    => 'datetime:H:i:s',
+        'card_price'              => 'decimal:8',
+        'rke_commission'          => 'decimal:8',
+        'room_commission'         => 'decimal:8',
         'amount_added_prize_pool' => 'decimal:8',
-        'room_type_id' => 'string',
-        'rounds_pct' => 'decimal:8',
-        'serials_pct' => 'decimal:8',
-        'jackpot_pct' => 'decimal:8',
-        'plays_pct' => 'decimal:8',
-        'time_chip' => 'integer',
-        'rounds' => 'integer',
-        'num_serials' => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'room_type_id'            => 'string',
+        'game_mode_id'            => 'string',
+        'prize_pool_type_id'      => 'string',
+        'creator_user_id'         => 'string',
+        'rounds_pct'              => 'decimal:8',
+        'serials_pct'             => 'decimal:8',
+        'jackpot_pct'             => 'decimal:8',
+        'plays_pct'               => 'decimal:8',
+        'time_chip'               => 'integer',
+        'rounds'                  => 'integer',
+        'num_serials'             => 'integer',
+        'created_at'              => 'datetime',
+        'updated_at'              => 'datetime',
     ];
 
     /**
@@ -163,6 +171,26 @@ class BingoRoomAutomatic extends Model
         'total_commission',
         'days_description'
     ];
+
+    /**
+     * Relación con los precios de cartones automáticos
+     *
+     * @return HasOne<BingoCardPriceAutomatic>
+     */
+    public function cardPriceAutomatic(): HasOne
+    {
+        return $this->hasOne(BingoCardPriceAutomatic::class, 'automatic_bingo_room_id');
+    }
+
+    /**
+     * Relación con la configuración de rondas automáticas
+     *
+     * @return HasOne<BingoRoundAutomatic>
+     */
+    public function roundAutomatic(): HasOne
+    {
+        return $this->hasOne(BingoRoundAutomatic::class, 'automatic_bingo_room_id');
+    }
 
     /**
      * Relación con el modo de juego

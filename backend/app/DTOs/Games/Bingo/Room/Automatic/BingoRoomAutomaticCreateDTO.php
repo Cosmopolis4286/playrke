@@ -22,6 +22,7 @@ final class BingoRoomAutomaticCreateDTO
         public readonly ?float $amountAddedPrizePool,
         public readonly float $roomCommission,
         public readonly ?float $jackpotPct,
+        public readonly ?float $playsPct,
         public readonly int $timeChip,
         public readonly int $rounds,
         public readonly ?float $roundsPct,
@@ -29,6 +30,8 @@ final class BingoRoomAutomaticCreateDTO
         public readonly int $numSerials,
         public readonly ?array $roundsConfig,
         public readonly ?array $cardPriceByCurrency,
+        public readonly ?string $description = null,
+        public readonly ?array $days = null,
         public readonly bool $isDraft = false,
     ) {}
 
@@ -53,6 +56,7 @@ final class BingoRoomAutomaticCreateDTO
             amountAddedPrizePool: isset($data['amountAddedPrizePool']) ? (float) $data['amountAddedPrizePool'] : null,
             roomCommission: (float) ($data['roomCommn'] ?? 20),
             jackpotPct: isset($data['jackpotPct']) ? (float) $data['jackpotPct'] : null,
+            playsPct: isset($data['playsPct']) ? (float) $data['playsPct'] : null,
             timeChip: (int) ($data['timeChip'] ?? 5),
             rounds: (int) ($data['rounds'] ?? 1),
             roundsPct: isset($data['roundsPct']) ? (float) $data['roundsPct'] : null,
@@ -60,6 +64,8 @@ final class BingoRoomAutomaticCreateDTO
             numSerials: (int) ($data['numSerials'] ?? 5),
             roundsConfig: $data['roundsConfig'] ?? null,
             cardPriceByCurrency: $cardPriceByCurrency,
+            description: isset($data['description']) ? (string) $data['description'] : null,
+            days: isset($data['days']) && is_array($data['days']) ? $data['days'] : null,
             isDraft: (bool) ($data['isDraft'] ?? false),
         );
     }

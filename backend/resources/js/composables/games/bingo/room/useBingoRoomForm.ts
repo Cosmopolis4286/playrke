@@ -7,7 +7,7 @@ import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
 const PERCENTAGE_LIMITS = {
     roomCommn: { min: 10, max: 50 },
     jackpotPct: { min: 1, max: 15 },
-    roundsPct: { min: 3, max: 30 },
+    roundsPct: { min: 5, max: 30 },
     serialsPct: { min: 2, max: 35 },
 } as const
 
@@ -115,15 +115,25 @@ export function useBingoRoomForm(
             }
         }
 
-        // Validaciones por ronda (solo si hay más de 1 ronda)
         const rounds = Number(form.value.rounds) || 1
 
         const rPct = Number(form.value.roundsPct) || 0
-        if (!form.value.roundsPct || rPct === 0) {
-            e.roundsPct = 'El % de rondas es requerido.'
-        } else if (rPct < PERCENTAGE_LIMITS.roundsPct.min || rPct > PERCENTAGE_LIMITS.roundsPct.max) {
-            e.roundsPct = `El % de rondas debe estar entre ${PERCENTAGE_LIMITS.roundsPct.min} y ${PERCENTAGE_LIMITS.roundsPct.max}.`
+        if (rounds > 1) {
+            // Max dinámico: lo que queda disponible de los otros porcentajes
+            const roomCommn_ = Number(form.value.roomCommn) || 0
+            const jackpot_   = Number(form.value.jackpotPct) || 0
+            const serials_   = Number(form.value.serialsPct) || 0
+            const maxRounds  = Math.max(0, 100 - roomCommn_ - jackpot_ - serials_)
+
+            if (!form.value.roundsPct || rPct === 0) {
+                e.roundsPct = 'El % de rondas es requerido.'
+            } else if (rPct < PERCENTAGE_LIMITS.roundsPct.min) {
+                e.roundsPct = `El % de rondas no puede ser menor a ${PERCENTAGE_LIMITS.roundsPct.min}.`
+            } else if (rPct > maxRounds) {
+                e.roundsPct = `El % de rondas no puede superar el disponible (${maxRounds.toFixed(2)}%).`
+            }
         }
+        // Con 1 ronda: el valor es calculado automáticamente, no se valida rango
         const configs = form.value.roundsConfig ?? []
         const roundErrors: Record<string, string> = {}
         const currencies = form.value.allowedCurrencies ?? []
@@ -156,19 +166,18 @@ export function useBingoRoomForm(
             e.roundsConfig = roundErrors
         }
 
-        // Validar suma de porcentajes
+        // Validar suma de porcentajes (roundsPct siempre incluido)
         const roomCommn = Number(form.value.roomCommn) || 0
         const jackpotPct = Number(form.value.jackpotPct) || 0
         const serialsPct = Number(form.value.serialsPct) || 0
         const roundsPct = Number(form.value.roundsPct) || 0
 
-        const totalPct = roundsPct > 0 && rounds > 1
-            ? roomCommn + jackpotPct + serialsPct + roundsPct
-            : roomCommn + jackpotPct + serialsPct
+        const totalPct = roomCommn + jackpotPct + serialsPct + roundsPct
 
         if (totalPct > 100) {
-            e.percentageSum = `La suma de porcentajes (${totalPct.toFixed(2)}%) no puede exceder el 100%.`
+            e.percentageSum = `La suma (${totalPct.toFixed(2)}%) excede el 100%.`
         }
+
 
         return e
     })
@@ -210,6 +219,16 @@ export function useBingoRoomForm(
         }
     })
 
+    /**
+     * Porcentaje disponible para %Rondas = 100 - %Sala - %Jackpot - %Seriales
+     */
+    const availablePct = computed(() => {
+        const commn  = Number(form.value.roomCommn)  || 0
+        const jk     = Number(form.value.jackpotPct) || 0
+        const ser    = Number(form.value.serialsPct)  || 0
+        return Math.max(0, Math.round((100 - commn - jk - ser) * 100) / 100)
+    })
+
     return {
         form,
         errors,
@@ -218,6 +237,7 @@ export function useBingoRoomForm(
         jackpotPct,
         roundsPct,
         serialsPct,
+        availablePct,
         percentageLimits: PERCENTAGE_LIMITS,
     }
 }

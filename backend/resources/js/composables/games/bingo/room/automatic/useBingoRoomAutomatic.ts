@@ -61,7 +61,9 @@ const emptyBingoRoomAutomatic = (): Partial<BingoRoomAutomatic> =>
  * Factory para formulario vacío
  */
 const emptyFormData = (): BingoRoomAutomaticFormData => ({
+    description: null,
     date: null,
+    days: [],
     time: null,
     roomType: null,
     gameMode: null,
@@ -70,6 +72,7 @@ const emptyFormData = (): BingoRoomAutomaticFormData => ({
     amountAddedPrizePool: null,
     roomCommn: 20,
     jackpotPct: null,
+    playsPct: null,
     timeChip: 5,
     rounds: 1,
     roundsPct: null,
@@ -117,7 +120,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
             loading.value = true
 
             const response = await backendClient.get<{ data: BingoRoomAutomatic[] }>(
-                '/bingo-rooms/fetch-list',
+                '/bingo-automatic-rooms/fetch-list',
                 { params: { token: tokenId } }
             )
 
@@ -148,12 +151,12 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
 
             if (roomData.value.id) {
                 await backendClient.patch(
-                    `/bingo-rooms/${roomData.value.id}/update`,
+                    `/bingo-automatic-rooms/${roomData.value.id}/update`,
                     payload
                 )
                 showToast('Sala actualizada exitosamente', 'success')
             } else {
-                await backendClient.post('/bingo-rooms', payload)
+                await backendClient.post('/bingo-automatic-rooms', payload)
                 showToast('Sala creada exitosamente', 'success')
             }
 
@@ -189,7 +192,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
             loading.value = true
 
             const { data } = await backendClient.get<{ data: Record<string, any> }>(
-                `/bingo-rooms/${id}/show`
+                `/bingo-automatic-rooms/${id}/show`
             )
 
             const room = data.data
@@ -198,7 +201,9 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
             roomData.value = { id: room.id }
 
             roomFormData.value = {
+                description: room.description ?? null,
                 date: config.date ?? null,
+                days: room.days ?? [],
                 time: config.time ?? null,
                 roomType: config.room_type_id ?? null,
                 gameMode: config.game_mode_id ?? null,
@@ -207,6 +212,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
                 amountAddedPrizePool: config.amount_added_prize_pool ?? null,
                 roomCommn: config.room_commission ?? 20,
                 jackpotPct: config.jackpot_pct ?? null,
+                playsPct: room.plays_pct ?? null,
                 timeChip: config.time_chip ?? 5,
                 rounds: config.rounds ?? 1,
                 roundsPct: config.rounds_pct ?? null,
@@ -220,7 +226,8 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
                     prizeValue: r.prizeValue !== null && r.prizeValue !== undefined ? Number(r.prizeValue) : null,
                     ...(r.prizeValueByCurrency ? { prizeValueByCurrency: r.prizeValueByCurrency } : {}),
                     ...(r.prizeType === 'prize' ? { prizeId: r.prizeId ?? null, prizeName: r.prizeName ?? null } : {}),
-                }))
+                })),
+                isDraft: room.status === 'INACTIVE',
             }
 
             return true
@@ -257,7 +264,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
         if (!confirm) return false
 
         try {
-            await backendClient.patch(`/bingo-rooms/${id}/status`)
+            await backendClient.patch(`/bingo-automatic-rooms/${id}/status`)
             showToast('Estado cambiado con éxito', 'success')
             await fetchRooms()
             return true
@@ -283,7 +290,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
         if (!confirm) return false
 
         try {
-            await backendClient.post(`/bingo-rooms/${id}/copy`)
+            await backendClient.post(`/bingo-automatic-rooms/${id}/copy`)
             showToast('Sala copiada como borrador exitosamente', 'success')
             await fetchRooms()
             return true
@@ -309,7 +316,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
         if (!confirm) return false
 
         try {
-            await backendClient.delete(`/bingo-rooms/${id}/delete`)
+            await backendClient.delete(`/bingo-automatic-rooms/${id}/delete`)
             showToast('Sala eliminada con éxito', 'success')
             await fetchRooms()
             return true
@@ -359,7 +366,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
 
         try {
             for (const id of ids) {
-                await backendClient.patch(`/bingo-rooms/${id}/status`)
+                await backendClient.patch(`/bingo-automatic-rooms/${id}/status`)
             }
             showToast(`Estado cambiado con éxito para ${ids.length} salas`, 'success')
             await fetchRooms()
@@ -393,7 +400,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
 
         try {
             for (const id of ids) {
-                await backendClient.delete(`/bingo-rooms/${id}/delete`)
+                await backendClient.delete(`/bingo-automatic-rooms/${id}/delete`)
             }
             showToast(`${ids.length} salas eliminadas con éxito`, 'success')
             await fetchRooms()

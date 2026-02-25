@@ -31,6 +31,9 @@ class BingoRoomAutomaticRequest extends BaseRequest
     public function rules(): array
     {
         return [
+            'description'                 => ['nullable', 'string', 'max:50'],
+            'days'                        => ['nullable', 'array'],
+            'days.*'                      => ['string', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
             'date'                        => ['required', 'date', 'after_or_equal:today'],
             'time'                        => ['required', 'date_format:H:i'],
             'roomType'                    => ['required', 'exists:room_types,id'],
@@ -57,6 +60,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
             // Comisiones
             'roomCommn'                   => ['required', 'numeric', 'min:10', 'max:50'],
             'jackpotPct'                  => ['nullable', 'numeric', 'min:1', 'max:15'],
+            'playsPct'                    => ['nullable', 'numeric', 'min:0', 'max:50'],
 
             // Configuración general del juego
             'timeChip'                    => ['required', 'integer', 'min:3', 'max:10'],

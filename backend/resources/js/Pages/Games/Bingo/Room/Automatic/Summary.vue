@@ -20,7 +20,7 @@
 
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
-  import { useBingoRoom } from '@/js/composables/games/bingo/room/useBingoRoom'
+  import { useBingoRoomAutomatic } from '@/js/composables/games/bingo/room/automatic/useBingoRoomAutomatic'
 
   // ==========================================================================
   // Types
@@ -51,7 +51,7 @@
     toggleStatusBulk,
     removeBulk,
     submit
-  } = useBingoRoom()
+  } = useBingoRoomAutomatic()
 
   setInitialRooms(props.rooms.rows)
 
