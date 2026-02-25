@@ -39,7 +39,7 @@
     mask: { type: Object as () => FactoryArg, default: null }
   })
 
-  const emit = defineEmits(['update:modelValue'])
+  const emit = defineEmits(['update:modelValue', 'focus', 'blur'])
   const slots = useSlots()
 
   const inputId = computed(() => props.id ?? props.name)
@@ -95,6 +95,11 @@
     }
 
     emit('update:modelValue', value)
+    emit('blur', event)
+  }
+
+  function onFocus(event: FocusEvent) {
+    emit('focus', event)
   }
 
   function onAccept(event: CustomEvent) {
@@ -163,6 +168,7 @@
         :accept="accept"
         @input="onInput"
         @blur="onBlur"
+        @focus="onFocus"
       />
 
       <div v-if="hasAppend" class="input-group-append">
@@ -202,6 +208,7 @@
       :max="max"
       :step="step"
       @accept="onAccept"
+      @focus="onFocus"
     />
 
     <!-- INPUT SIMPLE -->
@@ -224,6 +231,7 @@
       :accept="accept"
       @input="onInput"
       @blur="onBlur"
+      @focus="onFocus"
     />
 
     <!-- ERROR MESSAGE -->
