@@ -12,12 +12,11 @@ namespace App\DTOs\Games\Bingo\Room\Automatic;
 final class BingoRoomAutomaticCreateDTO
 {
     public function __construct(
-        public readonly string $date,
         public readonly string $time,
+        public readonly ?array $days = null,
         public readonly string $roomType,
         public readonly string|int $gameMode,
         public readonly string|int $prizePoolType,
-        public readonly float $cardPrice,
         public readonly array $allowedCurrencies,
         public readonly ?float $amountAddedPrizePool,
         public readonly float $roomCommission,
@@ -26,13 +25,11 @@ final class BingoRoomAutomaticCreateDTO
         public readonly int $timeChip,
         public readonly int $rounds,
         public readonly ?float $roundsPct,
+        public readonly string $useSerials,
         public readonly float $serialsPct,
         public readonly int $numSerials,
         public readonly ?array $roundsConfig,
         public readonly ?array $cardPriceByCurrency,
-        public readonly ?string $description = null,
-        public readonly ?array $days = null,
-        public readonly bool $isDraft = false,
     ) {}
 
     public static function fromArray(array $data): self
@@ -46,12 +43,11 @@ final class BingoRoomAutomaticCreateDTO
             : [];
 
         return new self(
-            date: $data['date'],
+            days: isset($data['days']) && is_array($data['days']) ? $data['days'] : null,
             time: $data['time'],
             roomType: $data['roomType'] ?? 'PRIVATE',
             gameMode: $data['gameMode'],
             prizePoolType: $data['prizePoolType'],
-            cardPrice: (float) ($data['cardPrice'] ?? 1),
             allowedCurrencies: $allowedCurrencies,
             amountAddedPrizePool: isset($data['amountAddedPrizePool']) ? (float) $data['amountAddedPrizePool'] : null,
             roomCommission: (float) ($data['roomCommn'] ?? 20),
@@ -60,13 +56,11 @@ final class BingoRoomAutomaticCreateDTO
             timeChip: (int) ($data['timeChip'] ?? 5),
             rounds: (int) ($data['rounds'] ?? 1),
             roundsPct: isset($data['roundsPct']) ? (float) $data['roundsPct'] : null,
+            useSerials:$data['useSerials'],
             serialsPct: (float) ($data['serialsPct'] ?? 5),
             numSerials: (int) ($data['numSerials'] ?? 5),
             roundsConfig: $data['roundsConfig'] ?? null,
             cardPriceByCurrency: $cardPriceByCurrency,
-            description: isset($data['description']) ? (string) $data['description'] : null,
-            days: isset($data['days']) && is_array($data['days']) ? $data['days'] : null,
-            isDraft: (bool) ($data['isDraft'] ?? false),
         );
     }
 }

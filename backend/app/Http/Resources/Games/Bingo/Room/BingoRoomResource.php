@@ -65,10 +65,14 @@ class BingoRoomResource extends JsonResource
                 'time_chip'               => $config->time_chip,
                 'rounds'                  => $config->rounds,
                 'rounds_pct'              => $config->rounds_pct,
-                'serials_pct'             => $config->serials_pct,
-                'num_serials'             => $config->num_serials,
+                'use_serials'             => $config->use_serials,
                 'in_live'                 => $config->in_live,
             ] : null,
+
+            if($config->use_serials==='Y'){
+                ['config']='serials_pct'             => $config->serials_pct,
+                ['config']='num_serials'             => $config->num_serials,
+            }
         ];
     }
 }

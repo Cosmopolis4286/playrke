@@ -56,6 +56,9 @@ return new class extends Migration
             $table->decimal('rke_commission', 8, 2)->nullable()->comment('Comisión del RKE');
             $table->decimal('room_commission', 8, 2)->nullable()->comment('Comisión de la sala');
 
+            // Precio Carton en USD
+            $table->decimal('card_price_usd', 6, 2)->nullable()->comment('Precio del Cartón en USD');
+
             // Monedas permitidas para el precio del cartón
             $table->json('allowed_currencies')->nullable()
                 ->comment('Monedas permitidas para el precio del cartón');
@@ -73,12 +76,15 @@ return new class extends Migration
 
             // Configuración de tiempo y rondas
             $table->string('time_chip', 2)->nullable()->comment('Duración del chip');
-            $table->string('rounds', 2)->default('1')->comment('Número de rondas');
+
+            $table->tinyInteger('rounds', 2)->default(1)->comment('Número de rondas');
             $table->decimal('rounds_pct', 5, 2)->nullable()->comment('Porcentaje aplicado a las rondas');
+
+            $table->enum('use_serials', ['Y', 'N'])->default('N');
             $table->decimal('serials_pct', 5, 2)->nullable()->comment('Porcentaje aplicado a seriales');
             $table->tinyInteger('num_serials')->nullable()->comment('Número de seriales disponibles');
+
             $table->decimal('jackpot_pct', 5, 2)->nullable()->comment('Porcentaje destinado al jackpot');
-            $table->decimal('plays_pct', 5, 2)->nullable()->comment('Porcentaje destinado a las jugadas');
 
             $table->timestamps(); // created_at y updated_at
 

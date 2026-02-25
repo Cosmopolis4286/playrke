@@ -12,8 +12,8 @@ namespace App\DTOs\Games\Bingo\Room\Automatic;
 final class BingoRoomAutomaticUpdateDTO
 {
     public function __construct(
-        public readonly ?string $date,
         public readonly ?string $time,
+        public readonly ?array $days = null,
         public readonly ?string $roomType,
         public readonly string|int|null $gameMode,
         public readonly string|int|null $prizePoolType,
@@ -21,17 +21,15 @@ final class BingoRoomAutomaticUpdateDTO
         public readonly ?float $amountAddedPrizePool,
         public readonly ?float $roomCommission,
         public readonly ?float $jackpotPct,
-        public readonly ?float $playsPct,
         public readonly ?int $timeChip,
         public readonly ?int $rounds,
+        public readonly ?string $useSerials,
         public readonly ?float $roundsPct,
         public readonly ?float $serialsPct,
         public readonly ?int $numSerials,
-        public readonly ?float $cardPrice,
         public readonly ?array $roundsConfig,
         public readonly ?array $cardPriceByCurrency,
         public readonly ?string $description = null,
-        public readonly ?array $days = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -45,7 +43,6 @@ final class BingoRoomAutomaticUpdateDTO
             : [];
 
         return new self(
-            date: $data['date'] ?? null,
             time: $data['time'] ?? null,
             roomType: $data['roomType'] ?? null,
             gameMode: $data['gameMode'] ?? null,
@@ -56,17 +53,14 @@ final class BingoRoomAutomaticUpdateDTO
                 : null,
             roomCommission: isset($data['roomCommn']) ? (float) $data['roomCommn'] : null,
             jackpotPct: isset($data['jackpotPct']) ? (float) $data['jackpotPct'] : null,
-            playsPct: isset($data['playsPct']) ? (float) $data['playsPct'] : null,
             timeChip: isset($data['timeChip']) ? (int) $data['timeChip'] : null,
             rounds: isset($data['rounds']) ? (int) $data['rounds'] : null,
             roundsPct: isset($data['roundsPct']) ? (float) $data['roundsPct'] : null,
+            useSerials: $data['useSerials'],
             serialsPct: isset($data['serialsPct']) ? (float) $data['serialsPct'] : null,
             numSerials: isset($data['numSerials']) ? (int) $data['numSerials'] : null,
-            cardPrice: isset($data['cardPrice']) ? (float) $data['cardPrice'] : null,
             roundsConfig: $data['roundsConfig'] ?? null,
             cardPriceByCurrency: $cardPriceByCurrency,
-            description: isset($data['description']) ? (string) $data['description'] : null,
-            days: isset($data['days']) && is_array($data['days']) ? $data['days'] : null,
         );
     }
 }

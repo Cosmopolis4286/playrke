@@ -9,11 +9,9 @@ class BingoRoomAutomaticResource extends JsonResource
     public function toArray($request): array
     {
         return [
-            'id'          => (string) $this->id,
+            'id'          => $this->hashed_id,
             'status'      => $this->status,
-            'description' => $this->description,
             'days'        => $this->days ?? [],
-            'plays_pct'   => $this->plays_pct,
 
             'allowed_currencies' => $this->allowed_currencies ?? [],
 
@@ -68,11 +66,14 @@ class BingoRoomAutomaticResource extends JsonResource
                 'time_chip'               => $this->time_chip,
                 'rounds'                  => $this->rounds,
                 'rounds_pct'              => $this->rounds_pct,
-                'serials_pct'             => $this->serials_pct,
-                'num_serials'             => $this->num_serials,
+                'use_serials'             => $this->use_serials,
                 'in_live'                 => $this->in_live,
-                'card_price'              => $this->card_price,
             ],
+
+            if($this->use_serials==='Y'){
+                ['config']='serials_pct'             => $this->serials_pct,
+                ['config']='num_serials'             => $this->num_serials,
+            }
         ];
     }
 }

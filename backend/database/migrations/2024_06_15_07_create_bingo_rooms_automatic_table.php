@@ -15,46 +15,51 @@ return new class extends Migration
             // PK con Snowflake
             $table->snowflake('id')->primary();;
 
-            $table->string('description', 50)->nullable();
             $table->date('date')->nullable();
             $table->string('days')->nullable();
             $table->string('time', 10);
+            $table->enum('in_live', ['Y', 'N'])->default('N');
 
             $table->foreignSnowflake('game_mode_id')->constrained('game_modes')->onDelete('cascade');
-
-            $table->enum('in_live', ['Y', 'N'])->default('N');
 
             $table->foreignSnowflake('room_type_id')
                 ->constrained('room_types')
                 ->cascadeOnDelete()
                 ->comment('Tipo de sala');
 
+            // Comisiones
+            $table->decimal('rke_commission', 8, 2)->default(0)->comment('Comisión RKE');
+            $table->decimal('room_commission', 8, 2)->default(0)->comment('Comisión de la sala');
+
+            // Precio Carton en USD
+            $table->decimal('card_price_usd', 6, 2)->nullable()->comment('Precio del Cartón en USD');
+
+            // Monedas permitidas para el precio del cartón
+            $table->json('allowed_currencies')->nullable()
+                ->comment('Monedas permitidas para el precio del cartón');
+
             $table->foreignSnowflake('prize_pool_type_id')
                 ->constrained('prize_pool_types')
                 ->onDelete('cascade')
                 ->default(1);
 
-            $table->decimal('amount_added_prize_pool', 12, 2)->nullable()
+            $table->decimal('amount_added_prize_pool', 10, 2)->nullable()
                 ->comment('Monto agregado al pool de premios');
 
-            $table->decimal('rke_commission', 8, 2)->default(0)->comment('Comisión RKE');
-            $table->decimal('room_commission', 8, 2)->default(0)->comment('Comisión de la sala');
-
-            $table->decimal('card_price', 12, 2)->comment('Precio del cartón');
-
-            $table->json('allowed_currencies')->nullable();
             $table->string('time_chip', 2)->nullable();
-            $table->string('rounds', 2)->default('1');
+
+            $table->tinyInteger('rounds', 2)->default(1);
             $table->decimal('rounds_pct', 5, 2)->nullable();
+
+            $table->enum('use_serials', ['Y', 'N'])->default('N');
             $table->decimal('serials_pct', 5, 2)->nullable();
-            $table->string('num_serials', 2)->nullable();
+            $table->tinyInteger('num_serials', 2)->nullable();
+
             $table->decimal('jackpot_pct', 5, 2)->nullable();
-            $table->decimal('plays_pct', 5, 2)->nullable();
-            $table->json('bingo_patterns')->nullable();
 
             $table->foreignSnowflake('creator_user_id')->constrained('users')->onDelete('cascade');
 
-            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('INACTIVE');
 
             $table->timestamps();
 

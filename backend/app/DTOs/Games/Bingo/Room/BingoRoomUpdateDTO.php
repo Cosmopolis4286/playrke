@@ -24,9 +24,9 @@ final class BingoRoomUpdateDTO
         public readonly ?int $timeChip,
         public readonly ?int $rounds,
         public readonly ?float $roundsPct,
+        public readonly ?string $useSerials,
         public readonly ?float $serialsPct,
         public readonly ?int $numSerials,
-        public readonly ?float $cardPrice,
         public readonly ?array $roundsConfig,
         public readonly ?array $cardPriceByCurrency,
     ) {}
@@ -56,9 +56,9 @@ final class BingoRoomUpdateDTO
             timeChip: isset($data['timeChip']) ? (int) $data['timeChip'] : null,
             rounds: isset($data['rounds']) ? (int) $data['rounds'] : null,
             roundsPct: isset($data['roundsPct']) ? (float) $data['roundsPct'] : null,
+            useSerials: $data['serialsPct'],
             serialsPct: isset($data['serialsPct']) ? (float) $data['serialsPct'] : null,
             numSerials: isset($data['numSerials']) ? (int) $data['numSerials'] : null,
-            cardPrice: isset($data['cardPrice']) ? (float) $data['cardPrice'] : null,
             roundsConfig: $data['roundsConfig'] ?? null,
             cardPriceByCurrency: $cardPriceByCurrency,
         );

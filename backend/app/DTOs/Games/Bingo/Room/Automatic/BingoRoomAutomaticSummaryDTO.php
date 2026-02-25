@@ -21,7 +21,8 @@ final class BingoRoomAutomaticSummaryDTO implements ContextDTO
     public function toView(): array
     {
         return [
-            'title' => 'Salas de Juego',
+            'title' => 'Salas de Bingo',
+            'subtitle' => 'Creación Automática',
             'rooms' => $this->rooms,
             'rooms_pagination' => $this->pagination,
             'currencies' => $this->currencies,
