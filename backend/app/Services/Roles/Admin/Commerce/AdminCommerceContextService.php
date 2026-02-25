@@ -31,7 +31,7 @@ final class AdminCommerceContextService
         return new AdminCommerceContextDTO(
             commerces: $commerceData['commerces'],
             pagination: $commerceData['pagination'],
-            countries: $this->countries->getActive(['id', 'name']),
+            countries: $this->countries->getActive(['id', 'name', 'iso_code_2']),
             currencies: $this->currencies->getActive(['id', 'iso_code', 'symbol', 'name', 'country_id']),
             games: $this->games->getActive(['id', 'name']),
             timeZones: $this->timeZones->getActive(['id', 'name', 'utc', 'country_id'])

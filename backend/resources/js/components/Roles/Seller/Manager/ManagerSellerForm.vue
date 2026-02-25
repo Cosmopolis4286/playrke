@@ -201,7 +201,7 @@
 <template>
   <form id="seller-form" novalidate @submit.prevent="submit">
     <div class="row">
-      <FormInput label="Razon Social" name="name" required col="col-sm-6" v-model="form.name" />
+      <FormInput label="Razon Social" name="name" required col="col-sm-6" :error="errors.name" v-model="form.name" />
 
       <FormInput
         label="Username"
@@ -210,6 +210,7 @@
         minlength="5"
         maxlength="20"
         col="col-sm-6"
+        :error="errors.username"
         v-model="form.username"
       />
 
@@ -219,6 +220,7 @@
         type="email"
         required
         col="col-md-8"
+        :error="errors.email"
         v-model="form.email"
       />
 
@@ -230,6 +232,7 @@
         col="col-md-4"
         placeholder="0.00"
         :mask="commissionMask"
+        :error="errors.commission"
         v-model="form.commission"
       />
 
@@ -242,6 +245,7 @@
         optionValue="id"
         optionLabel="name"
         col="col-sm-6"
+        :error="errors.country_id"
         v-model="form.country_id"
       />
 
@@ -289,6 +293,7 @@
         optionValue="id"
         optionLabel="name"
         col="col-sm-6"
+        :error="errors.currency_id"
         v-model="form.currency_id"
       />
 
