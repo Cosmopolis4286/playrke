@@ -1,6 +1,17 @@
 import { computed } from 'vue'
 import type { Customer } from '@/js/types/roles/customer/customer'
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function isValidUrl(val: string): boolean {
+    try {
+        const url = new URL(val)
+        return url.protocol === 'https:' || url.protocol === 'http:'
+    } catch {
+        return false
+    }
+}
+
 /**
  * Composable para formulario de Comercializadoras
  *
@@ -29,35 +40,41 @@ export function useAdminCustomerForm(
      * Computed
      * ======================= */
 
-    /**
-     * Modo edición
-     */
     const isEditMode = computed(() => !!form.value.id)
 
-    /**
-     * Validaciones reactivas
-     */
     const errors = computed<Record<string, string>>(() => {
         const e: Record<string, string> = {}
 
-        if (!form.value.name) {
-            e.name = 'El nombre es requerido.'
+        if (!form.value.name?.trim()) {
+            e.name = 'La razón social es requerida.'
         }
 
-        if (!form.value.username || form.value.username.length < 5) {
+        const username = form.value.username ?? ''
+        if (!username || username.length < 5) {
             e.username = 'El username debe tener al menos 5 caracteres.'
         }
 
-        if (!form.value.email) {
+        const email = form.value.email ?? ''
+        if (!email) {
             e.email = 'El email es requerido.'
+        } else if (!EMAIL_RE.test(email)) {
+            e.email = 'Ingresa un email válido.'
+        }
+
+        const apiRoute = form.value.api_route?.trim() ?? ''
+        if (!apiRoute) {
+            e.api_route = 'La ruta API es requerida.'
+        } else if (!isValidUrl(apiRoute)) {
+            e.api_route = 'Ingresa una URL válida (ej: https://api.ejemplo.com/).'
         }
 
         if (form.value.has_commission) {
-            if (!form.value.commission) {
+            const commission = form.value.commission ?? ''
+            if (!commission) {
                 e.commission = 'La comisión es requerida.'
             } else {
-                const commissionValue = parseFloat(form.value.commission)
-                if (isNaN(commissionValue) || commissionValue < 0 || commissionValue > 100) {
+                const v = parseFloat(commission)
+                if (isNaN(v) || v < 0 || v > 100) {
                     e.commission = 'La comisión debe estar entre 0 y 100.'
                 }
             }
@@ -74,9 +91,6 @@ export function useAdminCustomerForm(
         return e
     })
 
-    /**
-     * Estado de validez
-     */
     const isValid = computed(() => Object.keys(errors.value).length === 0)
 
     return {

@@ -12,6 +12,11 @@
       type: [String, Object] as PropType<string | Record<string, string> | null>,
       default: null
     },
+    /** Fuerza is-valid / is-invalid desde fuera sin depender solo del error prop */
+    inputValidState: {
+      type: String as PropType<'valid' | 'invalid' | null>,
+      default: null
+    },
     label: { type: String, default: null },
     name: { type: String, required: true },
     type: { type: String, default: 'text' },
@@ -25,6 +30,7 @@
     max: { type: [String, Number], default: null },
     step: { type: [String, Number], default: null },
     placeholder: { type: String, default: null },
+    accept: { type: String, default: null },
     col: { type: String, default: 'col-sm-6' },
     className: { type: String, default: '' },
     inputClass: { type: String, default: '' },
@@ -38,64 +44,50 @@
 
   const inputId = computed(() => props.id ?? props.name)
 
-  /**
-   * Valida y corrige valores numéricos dentro de los límites min/max
-   */
+  /** Clases de estado: error prop tiene prioridad, luego inputValidState */
+  const stateClasses = computed(() => ({
+    'is-invalid': !!props.error || props.inputValidState === 'invalid',
+    'is-valid':   !props.error && props.inputValidState === 'valid'
+  }))
+
+  /** Hay slot prepend o append (para mostrar input-group automáticamente) */
+  const hasPrepend = computed(() => !!slots.prepend)
+  const hasAppend  = computed(() => !!slots.append)
+  const useInputGroup = computed(() => props.inputGroup || hasPrepend.value || hasAppend.value)
+
   function clampNumericValue(value: string | number): number {
-    if (props.type !== 'number') {
-      return Number(value) || 0
-    }
+    if (props.type !== 'number') return Number(value) || 0
 
     const num = Number(value) || 0
     const min = props.min !== null ? Number(props.min) : null
     const max = props.max !== null ? Number(props.max) : null
 
-    if (min !== null && num < min) {
-      return min
-    }
-    if (max !== null && num > max) {
-      return max
-    }
-
+    if (min !== null && num < min) return min
+    if (max !== null && num > max) return max
     return num
   }
 
-  /**
-   * Maneja el evento @input
-   */
   function onInput(event: Event) {
     const target = event.target as HTMLInputElement
-    const value = target.value
+    const value  = target.value
 
     if (props.type === 'number') {
-      if (value === '') {
-        emit('update:modelValue', '')
-        return
-      }
-
+      if (value === '') { emit('update:modelValue', ''); return }
       const adjusted = clampNumericValue(value)
       target.value = String(adjusted)
       emit('update:modelValue', adjusted)
       return
     }
 
-    // ✅ Para date, time, text, etc
     emit('update:modelValue', value)
   }
 
-  /**
-   * Maneja el @blur
-   */
   function onBlur(event: FocusEvent) {
     const target = event.target as HTMLInputElement
-    const value = target.value
+    const value  = target.value
 
     if (props.type === 'number') {
-      if (value === '') {
-        emit('update:modelValue', '')
-        return
-      }
-
+      if (value === '') { emit('update:modelValue', ''); return }
       const adjusted = clampNumericValue(value)
       target.value = String(adjusted)
       emit('update:modelValue', adjusted)
@@ -105,28 +97,29 @@
     emit('update:modelValue', value)
   }
 
-  /**
-   * Valida el valor cuando aceptan la máscara
-   */
   function onAccept(event: CustomEvent) {
-    // For Number masks, unmaskedValue is the clean numeric string (e.g. "1234.56")
-    // detail.value is the formatted display string (e.g. "1,234.56") — Number() of that returns NaN
     const raw = event.detail.unmaskedValue ?? event.detail.value
     emit('update:modelValue', raw)
+  }
+
+  function onFileChange(event: Event) {
+    const target = event.target as HTMLInputElement
+    const file = target.files?.[0] ?? null
+    emit('update:modelValue', file)
   }
 </script>
 
 <template>
   <div :class="['form-group', col, className]">
-    <!-- LABEL (igual que Blade) -->
+    <!-- LABEL -->
     <label v-if="label" :for="inputId">
       {{ label }}
       <span v-if="required" class="text-danger">*</span>
     </label>
 
-    <!-- INPUT GROUP -->
-    <div v-if="inputGroup" :class="['input-group', inputGroupClass]">
-      <div v-if="slots.prepend" class="input-group-prepend">
+    <!-- INPUT GROUP (explicit prop OR prepend/append slots present) -->
+    <div v-if="useInputGroup" :class="['input-group', inputGroupClass]">
+      <div v-if="hasPrepend" class="input-group-prepend">
         <slot name="prepend" />
       </div>
 
@@ -137,7 +130,7 @@
         :id="inputId"
         :name="name"
         :value="modelValue"
-        :class="['form-control', { 'is-invalid': !!error }]"
+        :class="['form-control', stateClasses]"
         :readonly="readonly"
         :disabled="disabled"
         :required="required"
@@ -147,6 +140,7 @@
         :min="min"
         :max="max"
         :step="step"
+        :accept="accept"
         @accept="onAccept"
       />
 
@@ -156,7 +150,7 @@
         :id="inputId"
         :name="name"
         :value="modelValue"
-        :class="['form-control', { 'is-invalid': !!error }]"
+        :class="['form-control', stateClasses]"
         :readonly="readonly"
         :disabled="disabled"
         :required="required"
@@ -166,14 +160,28 @@
         :min="min"
         :max="max"
         :step="step"
+        :accept="accept"
         @input="onInput"
         @blur="onBlur"
       />
 
-      <div v-if="slots.append" class="input-group-append">
+      <div v-if="hasAppend" class="input-group-append">
         <slot name="append" />
       </div>
     </div>
+
+    <!-- FILE INPUT -->
+    <input
+      v-else-if="type === 'file'"
+      :type="type"
+      :id="inputId"
+      :name="name"
+      :class="['form-control-file', inputClass, stateClasses]"
+      :disabled="disabled"
+      :required="required"
+      :accept="accept"
+      @change="onFileChange"
+    />
 
     <!-- INPUT CON MÁSCARA -->
     <input
@@ -183,7 +191,7 @@
       :id="inputId"
       :name="name"
       :value="modelValue"
-      :class="['form-control', inputClass, { 'is-invalid': !!error }]"
+      :class="['form-control', inputClass, stateClasses]"
       :readonly="readonly"
       :disabled="disabled"
       :required="required"
@@ -203,7 +211,7 @@
       :id="inputId"
       :name="name"
       :value="modelValue"
-      :class="['form-control', inputClass, { 'is-invalid': !!error }]"
+      :class="['form-control', inputClass, stateClasses]"
       :readonly="readonly"
       :disabled="disabled"
       :required="required"
@@ -213,6 +221,7 @@
       :min="min"
       :max="max"
       :step="step"
+      :accept="accept"
       @input="onInput"
       @blur="onBlur"
     />

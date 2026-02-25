@@ -206,8 +206,8 @@ final class BingoRoomCrudService
             'time_chip'               => $dto->timeChip,
             'rounds'                  => $dto->rounds,
             'rounds_pct'              => $dto->roundsPct ?? null,
-            'serials_pct'             => $dto->serialsPct,
-            'num_serials'             => $dto->numSerials,
+            'serials_pct'             => $dto->serialsPct ?? null,
+            'num_serials'             => $dto->numSerials ?? null,
             'jackpot_pct'             => $dto->jackpotPct ?? null,
         ];
 

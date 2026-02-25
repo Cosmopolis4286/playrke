@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
  * Servicio para generar salas de bingo automáticas.
  * Totalmente desacoplado para testeo y mantenibilidad.
  */
-class AutoGenerateBingoRoomsService
+final class AutoGenerateBingoRoomsService
 {
     public function __construct(
         protected RoomConfigService $roomConfigService,

@@ -65,9 +65,10 @@ class BingoRoomAutomaticRequest extends BaseRequest
             // Configuración general del juego
             'timeChip'                    => ['required', 'integer', 'min:3', 'max:10'],
             'rounds'                      => ['required', 'integer', 'min:1', 'max:15'],
-            'roundsPct'                   => ['nullable', 'numeric', 'min:3', 'max:30'],
-            'serialsPct'                  => ['required', 'numeric', 'min:2', 'max:35'],
-            'numSerials'                  => ['required', 'integer', 'min:3', 'max:30'],
+            'roundsPct'                   => ['nullable', 'numeric', 'min:5', 'max:30'],
+            'useSerials'                  => ['boolean'],
+            'serialsPct'                  => ['required_if:useSerials,true', 'nullable', 'numeric', 'min:2', 'max:35'],
+            'numSerials'                  => ['required_if:useSerials,true', 'nullable', 'integer', 'min:1', 'max:30'],
 
             // Configuración de rondas
             'roundsConfig'                                  => ['nullable', 'array'],
@@ -164,6 +165,21 @@ class BingoRoomAutomaticRequest extends BaseRequest
                     }
                 }
             }
+
+            // Validar que la suma de porcentajes no supere 100
+            $useSerials  = filter_var($this->input('useSerials', false), FILTER_VALIDATE_BOOLEAN);
+            $roomCommn   = (float) ($this->input('roomCommn')  ?? 0);
+            $jackpotPct  = (float) ($this->input('jackpotPct') ?? 0);
+            $serialsPct  = $useSerials ? (float) ($this->input('serialsPct') ?? 0) : 0;
+            $roundsPct   = (float) ($this->input('roundsPct')  ?? 0);
+            $totalPct    = $roomCommn + $jackpotPct + $serialsPct + $roundsPct;
+
+            if ($totalPct > 100) {
+                $validator->errors()->add(
+                    'percentageSum',
+                    "La suma de porcentajes ({$totalPct}%) no puede exceder el 100%."
+                );
+            }
         });
     }
 
@@ -211,9 +227,12 @@ class BingoRoomAutomaticRequest extends BaseRequest
 
             'rounds.required'                 => 'El número de rondas es obligatorio.',
 
-            'serialsPct.required'             => 'El porcentaje de seriales es obligatorio.',
+            'serialsPct.required_if'          => 'El porcentaje de seriales es obligatorio cuando se usan seriales.',
+            'serialsPct.min'                  => 'El porcentaje de seriales no puede ser menor a 2.',
+            'serialsPct.max'                  => 'El porcentaje de seriales no puede ser mayor a 35.',
 
-            'numSerials.required'             => 'El número de seriales es obligatorio.',
+            'numSerials.required_if'          => 'El número de seriales es obligatorio cuando se usan seriales.',
+            'numSerials.min'                  => 'El número de seriales debe ser al menos 1.',
         ];
     }
 }

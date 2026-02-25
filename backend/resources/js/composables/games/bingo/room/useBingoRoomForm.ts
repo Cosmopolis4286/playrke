@@ -83,12 +83,13 @@ export function useBingoRoomForm(
             e.rounds = 'El número de rondas es requerido.'
         }
 
-        if (!form.value.serialsPct) {
-            e.serialsPct = 'El % de seriales es requerido.'
-        }
-
-        if (!form.value.numSerials) {
-            e.numSerials = 'El número de seriales es requerido.'
+        if (form.value.useSerials) {
+            if (!form.value.serialsPct) {
+                e.serialsPct = 'El % de seriales es requerido.'
+            }
+            if (!form.value.numSerials) {
+                e.numSerials = 'El número de seriales es requerido.'
+            }
         }
 
         // Validaciones simples
@@ -122,7 +123,7 @@ export function useBingoRoomForm(
             // Max dinámico: lo que queda disponible de los otros porcentajes
             const roomCommn_ = Number(form.value.roomCommn) || 0
             const jackpot_   = Number(form.value.jackpotPct) || 0
-            const serials_   = Number(form.value.serialsPct) || 0
+            const serials_   = form.value.useSerials ? (Number(form.value.serialsPct) || 0) : 0
             const maxRounds  = Math.max(0, 100 - roomCommn_ - jackpot_ - serials_)
 
             if (!form.value.roundsPct || rPct === 0) {
@@ -166,10 +167,10 @@ export function useBingoRoomForm(
             e.roundsConfig = roundErrors
         }
 
-        // Validar suma de porcentajes (roundsPct siempre incluido)
+        // Validar suma de porcentajes (serialsPct solo si useSerials)
         const roomCommn = Number(form.value.roomCommn) || 0
         const jackpotPct = Number(form.value.jackpotPct) || 0
-        const serialsPct = Number(form.value.serialsPct) || 0
+        const serialsPct = form.value.useSerials ? (Number(form.value.serialsPct) || 0) : 0
         const roundsPct = Number(form.value.roundsPct) || 0
 
         const totalPct = roomCommn + jackpotPct + serialsPct + roundsPct
@@ -220,12 +221,12 @@ export function useBingoRoomForm(
     })
 
     /**
-     * Porcentaje disponible para %Rondas = 100 - %Sala - %Jackpot - %Seriales
+     * Porcentaje disponible para %Rondas = 100 - %Sala - %Jackpot - %Seriales (si useSerials)
      */
     const availablePct = computed(() => {
         const commn  = Number(form.value.roomCommn)  || 0
         const jk     = Number(form.value.jackpotPct) || 0
-        const ser    = Number(form.value.serialsPct)  || 0
+        const ser    = form.value.useSerials ? (Number(form.value.serialsPct) || 0) : 0
         return Math.max(0, Math.round((100 - commn - jk - ser) * 100) / 100)
     })
 

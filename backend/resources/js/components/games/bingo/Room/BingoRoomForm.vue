@@ -4,6 +4,7 @@ import { computed, watch, ref } from "vue";
 // Components
 import FormInput from "@/js/Components/Common/Form/FormInput.vue";
 import FormSelect from "@/js/Components/Common/Form/FormSelect.vue";
+import FormSwitch from "@/js/Components/Common/Form/FormSwitch.vue";
 import Modal from "@/js/Components/Common/Modal/Modal.vue";
 import ItemSearchPicker from "@/js/Components/Common/Form/ItemSearchPicker.vue";
 // Composables
@@ -1043,8 +1044,18 @@ defineExpose({
         </div>
       </div>
 
-      <!-- %Bote Seriales -->
+      <!-- ¿Usar Seriales? -->
+      <FormSwitch
+        label="¿Usar Seriales?"
+        name="use_serials"
+        col="col-sm-6 col-md-4 col-lg-3"
+        :modelValue="form.useSerials ?? false"
+        @update:modelValue="form = { ...form, useSerials: $event }"
+      />
+
+      <!-- %Bote Seriales (solo si useSerials) -->
       <FormInput
+        v-if="form.useSerials"
         label="%Bote Seriales"
         name="serials_pct"
         :error="errors.serialsPct"
@@ -1058,8 +1069,9 @@ defineExpose({
         v-model="serialsPct"
       />
 
-      <!-- #Max. Seriales -->
+      <!-- #Max. Seriales (solo si useSerials) -->
       <FormInput
+        v-if="form.useSerials"
         label="#Max. Seriales"
         name="num_serials"
         :error="errors.numSerials"
@@ -1081,6 +1093,7 @@ defineExpose({
         :step="0.5"
         :min="percentageLimits.jackpotPct.min"
         :max="percentageLimits.jackpotPct.max"
+        placeholder="Opcional"
         col="col-sm-6 col-md-4 col-lg-3"
         v-model="jackpotPct"
       />
@@ -1091,8 +1104,10 @@ defineExpose({
           <i class="fa-solid fa-triangle-exclamation"></i>
           {{ errors.percentageSum }}
           <small class="d-block mt-1" style="opacity: 0.85">
-            %Sala ({{ form.roomCommn ?? 0 }}) + %Rondas ({{ form.roundsPct ?? 0 }}) + %Seriales ({{ form.serialsPct ?? 0 }}) + %Jackpot ({{ form.jackpotPct ?? 0 }})
-            = {{ (Number(form.roomCommn) + Number(form.roundsPct) + Number(form.serialsPct) + Number(form.jackpotPct)).toFixed(2) }}%
+            %Sala ({{ form.roomCommn ?? 0 }}) + %Rondas ({{ form.roundsPct ?? 0 }})
+            <template v-if="form.useSerials"> + %Seriales ({{ form.serialsPct ?? 0 }})</template>
+            + %Jackpot ({{ form.jackpotPct ?? 0 }})
+            = {{ (Number(form.roomCommn) + Number(form.roundsPct) + (form.useSerials ? Number(form.serialsPct) : 0) + Number(form.jackpotPct)).toFixed(2) }}%
           </small>
         </div>
       </div>

@@ -122,6 +122,7 @@ export interface BingoRoomFormData {
     rounds?: number | null
     roundsPct?: number | null
     roundsConfig?: RoundConfig[]
+    useSerials?: boolean
     serialsPct?: number | null
     numSerials?: number | null
     cardPrice?: number | null
