@@ -21,7 +21,7 @@ Schedule::command('validate:transactions')
 
 Schedule::command('generate:bingo-rooms')
     ->timezone('America/Caracas')
-    ->everyThreeHours()
+    ->hourly()
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/schedule.log'));
 

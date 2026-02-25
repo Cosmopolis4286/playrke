@@ -36,7 +36,9 @@
     inputClass: { type: String, default: '' },
     inputGroup: { type: Boolean, default: false },
     inputGroupClass: { type: String, default: '' },
-    mask: { type: Object as () => FactoryArg, default: null }
+    mask: { type: [String, Object, Array] as PropType<FactoryArg>, default: null },
+    /** Si true, emite el valor con formato (value) en lugar del valor sin máscara (unmaskedValue) */
+    maskEmitFormatted: { type: Boolean, default: false }
   })
 
   const emit = defineEmits(['update:modelValue', 'focus', 'blur'])
@@ -103,8 +105,10 @@
   }
 
   function onAccept(event: CustomEvent) {
-    const raw = event.detail.unmaskedValue ?? event.detail.value
-    emit('update:modelValue', raw)
+    const val = props.maskEmitFormatted
+      ? event.detail.value
+      : (event.detail.unmaskedValue ?? event.detail.value)
+    emit('update:modelValue', val)
   }
 
   function onFileChange(event: Event) {

@@ -1,522 +1,511 @@
 <script setup lang="ts" name="GameBingoRoomForm">
-import { computed, watch, ref } from "vue";
+  import { computed, watch, ref } from 'vue'
 
-// Components
-import FormInput from "@/js/Components/Common/Form/FormInput.vue";
-import FormSelect from "@/js/Components/Common/Form/FormSelect.vue";
-import FormSwitch from "@/js/Components/Common/Form/FormSwitch.vue";
-import Modal from "@/js/Components/Common/Modal/Modal.vue";
-import ItemSearchPicker from "@/js/Components/Common/Form/ItemSearchPicker.vue";
-// Composables
-import { useBingoRoomForm } from "@/js/composables/games/bingo/room/useBingoRoomForm";
-import backendClient from "@/js/plugins/axios";
-// Types
-import type {
-  BingoRoomFormData,
-  RoundConfig,
-} from "@/js/types/games/bingo/room/bingo-room";
-import type { PrizeSearchResult } from "@/js/types/prizes/prize";
+  // Components
+  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
+  import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+  import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
+  import Modal from '@/js/Components/Common/Modal/Modal.vue'
+  import ItemSearchPicker from '@/js/Components/Common/Form/ItemSearchPicker.vue'
+  // Composables
+  import { useBingoRoomForm } from '@/js/composables/games/bingo/room/useBingoRoomForm'
+  import backendClient from '@/js/plugins/axios'
+  // Types
+  import type { BingoRoomFormData, RoundConfig } from '@/js/types/games/bingo/room/bingo-room'
+  import type { PrizeSearchResult } from '@/js/types/prizes/prize'
 
-/* ==========================================================================
- * Opción genérica para selects
- * ========================================================================== */
+  /* ==========================================================================
+   * Opción genérica para selects
+   * ========================================================================== */
 
-interface SelectOption {
-  value: string | number;
-  code?: string;
-  label: string;
-}
-
-/* ==========================================================================
- * Opciones de tipo de premio por ronda
- * ========================================================================== */
-
-const roundPrizeTypeOptions: SelectOption[] = [
-  { value: "percentage", label: "%" },
-  { value: "fixed", label: "Fijo" },
-  { value: "prize", label: "P/S" },
-];
-
-/* ==========================================================================
- * Props
- * ========================================================================== */
-
-const props = defineProps<{
-  automaticRoom?: boolean;
-  roomTypeOptions: SelectOption[];
-  gameModeOptions: SelectOption[];
-  prizePoolTypeOptions: SelectOption[];
-  allowedCurrenciesOptions: SelectOption[];
-  bingoPatternOptions: SelectOption[];
-  modelValue: BingoRoomFormData;
-}>();
-
-/* ==========================================================================
- * Emits
- * ========================================================================== */
-
-const emit = defineEmits<{
-  (e: "submit"): void;
-  (e: "update:modelValue", value: BingoRoomFormData): void;
-}>();
-
-/* ==========================================================================
- * Form logic (computed v-model)
- * ========================================================================== */
-
-const {
-  form,
-  errors,
-  isValid,
-  roomCommn,
-  jackpotPct,
-  roundsPct,
-  serialsPct,
-  availablePct,
-  percentageLimits,
-} = useBingoRoomForm(
-  () => props.modelValue,
-  emit,
-  () => props.automaticRoom ?? false
-);
-
-const cardPriceByCurrencyActive = ref(false);
-const roundsConfigActive = ref(false);
-
-// Modal P/S: índice de la ronda que está seleccionando prize
-const prizeModalRoundIndex = ref<number | null>(null);
-const showPrizeModal = ref(false);
-// Buffer temporal de selección en el modal (máximo 1 item)
-const prizeModalSelected = ref<PrizeSearchResult[]>([]);
-
-/* ==========================================================================
- * Computed
- * ========================================================================== */
-
-/**
- * Fecha mínima: hoy (formato YYYY-MM-DD)
- */
-const minDate = computed(() => {
-  const today = new Date();
-  return today.toISOString().split("T")[0];
-});
-
-/**
- * Mostrar %Rondas y config (más de 1 ronda)
- */
-const showRoundsPct = computed(() => (form.value.rounds ?? 1) >= 1);
-
-/**
- * Cuando hay exactamente 1 ronda, %Rondas es readonly (= disponible)
- */
-const isSingleRound = computed(() => Number(form.value.rounds ?? 1) === 1);
-
-/**
- * Suma total solo de rondas con tipo 'percentage' (las P/S y fixed no cuentan contra %Rondas)
- */
-const totalRoundValues = computed(() => {
-  return (form.value.roundsConfig ?? []).reduce((sum, round) => {
-    if (round.prizeType !== "percentage") return sum;
-    return sum + (Number(round.prizeValue) || 0);
-  }, 0);
-});
-
-/**
- * Max disponible para una ronda = %Rondas - suma de las demás rondas
- */
-function getRoundMaxValue(index: number): number {
-  const limit = Number(form.value.roundsPct) || percentageLimits.roundsPct.max;
-  const othersSum = (form.value.roundsConfig ?? []).reduce((sum, round, i) => {
-    if (i === index) return sum;
-    return sum + (Number(round.prizeValue) || 0);
-  }, 0);
-  return Math.max(0, limit - othersSum);
-}
-
-/**
- * Valida que la suma de valores de rondas sea igual a %Rondas
- */
-const isRoundValuesValid = computed(() => {
-  const roundsPct = Number(form.value.roundsPct) || 0;
-  if (roundsPct === 0) return true; // No validar si no hay valor
-  const total = totalRoundValues.value;
-  return Math.abs(total - roundsPct) < 0.01; // Permitir pequeñas diferencias por redondeo
-});
-
-/**
- * Mostrar container de valor fijo/extra (cuando NO es Acumulativo)
- */
-const showAmountAddedPrizePool = computed(() => {
-  const selected = props.prizePoolTypeOptions.find(
-    (opt) => String(opt.value) === String(form.value.prizePoolType)
-  );
-  return selected ? selected.code !== "ACCUMULATIVE" : false;
-});
-
-/**
- * Permite ajustar precio por moneda solo si hay más de una moneda seleccionada
- */
-const canAdjustCtnPriceByCurrency = computed(() => {
-  const allowed = form.value.allowedCurrencies;
-  return Array.isArray(allowed) && allowed.length > 1;
-});
-
-function toggleCtnPriceByCurrency() {
-  if (!canAdjustCtnPriceByCurrency.value) return;
-  cardPriceByCurrencyActive.value = !cardPriceByCurrencyActive.value;
-  if (!form.value.cardPriceByCurrency) {
-    form.value = { ...form.value, cardPriceByCurrency: {} };
+  interface SelectOption {
+    value: string | number
+    code?: string
+    label: string
   }
-}
 
-function updateCtnPriceForCurrency(
-  currency: string | number,
-  value: string | number | null
-) {
-  const key = String(currency);
-  const current = { ...(form.value.cardPriceByCurrency ?? {}) };
-  const parsed = value === null || value === "" ? null : Number(value);
-  current[key] = isNaN(Number(parsed)) ? null : (parsed as number);
-  form.value = { ...form.value, cardPriceByCurrency: current };
-}
+  /* ==========================================================================
+   * Opciones de tipo de premio por ronda
+   * ========================================================================== */
 
-function getCurrencyLabel(id: string | number) {
-  const found = props.allowedCurrenciesOptions.find(
-    (opt) => String(opt.value) === String(id)
-  );
-  return found ? String(found.label) : String(id);
-}
+  const roundPrizeTypeOptions: SelectOption[] = [
+    { value: 'percentage', label: '%' },
+    { value: 'fixed', label: 'Fijo' },
+    { value: 'prize', label: 'P/S' }
+  ]
 
-const singleCurrencyLabel = computed(() => {
-  const currencies = form.value.allowedCurrencies ?? [];
-  if (currencies.length !== 1) return "";
-  return getCurrencyLabel(currencies[0]);
-});
+  /* ==========================================================================
+   * Props
+   * ========================================================================== */
 
-const hasCardPriceByCurrencyErrors = computed(() => {
-  const err = errors.value.cardPriceByCurrency;
-  return err && Object.keys(err).length > 0 && !cardPriceByCurrencyActive.value;
-});
+  const props = defineProps<{
+    automaticRoom?: boolean
+    roomTypeOptions: SelectOption[]
+    gameModeOptions: SelectOption[]
+    prizePoolTypeOptions: SelectOption[]
+    allowedCurrenciesOptions: SelectOption[]
+    bingoPatternOptions: SelectOption[]
+    modelValue: BingoRoomFormData
+  }>()
 
-const cardPriceByCurrencyPopoverText = computed(() => {
-  const err = errors.value.cardPriceByCurrency;
-  if (!err) return "";
-  return "Ajustar precio de los cartones";
-});
+  /* ==========================================================================
+   * Emits
+   * ========================================================================== */
 
-const hasRoundsConfigErrors = computed(() => {
-  const err = errors.value.roundsConfig;
-  return err && Object.keys(err).length > 0 && !roundsConfigActive.value;
-});
+  const emit = defineEmits<{
+    (e: 'submit'): void
+    (e: 'update:modelValue', value: BingoRoomFormData): void
+  }>()
 
-const roundsConfigPopoverText = computed(() => {
-  const err = errors.value.roundsConfig as Record<string, string> | undefined;
-  if (!err) return "";
-  return "Ajustar valores";
-});
+  /* ==========================================================================
+   * Form logic (computed v-model)
+   * ========================================================================== */
 
-/**
- * Error por campo individual de ronda
- */
-function getRoundFieldError(
-  index: number,
-  field: "bingoPattern" | "prizeValue"
-): string | undefined {
-  const err = errors.value.roundsConfig as Record<string, string> | undefined;
-  return err?.[`${index}_${field}`];
-}
+  const {
+    form,
+    errors,
+    isValid,
+    roomCommn,
+    jackpotPct,
+    roundsPct,
+    serialsPct,
+    availablePct,
+    percentageLimits
+  } = useBingoRoomForm(
+    () => props.modelValue,
+    emit,
+    () => props.automaticRoom ?? false
+  )
 
-/* ==========================================================================
- * Watchers
- * ========================================================================== */
+  const cardPriceByCurrencyActive = ref(false)
+  const roundsConfigActive = ref(false)
 
-/**
- * Cuando cambia el número de rondas, sincronizar el array roundsConfig
- */
-watch(
-  () => form.value.rounds,
-  (newRounds) => {
-    const count = Math.max(1, Number(newRounds) || 1);
+  // Modal P/S: índice de la ronda que está seleccionando prize
+  const prizeModalRoundIndex = ref<number | null>(null)
+  const showPrizeModal = ref(false)
+  // Buffer temporal de selección en el modal (máximo 1 item)
+  const prizeModalSelected = ref<PrizeSearchResult[]>([])
 
-    const current = form.value.roundsConfig ?? [];
-    const updated: RoundConfig[] = [];
+  /* ==========================================================================
+   * Computed
+   * ========================================================================== */
 
-    // FULL HOUSE es el patrón por defecto cuando hay 1 sola ronda
-    const fullHouseId = props.bingoPatternOptions.find(
-      (o) => o.label.toUpperCase() === 'FULL HOUSE'
-    )?.value ?? null;
+  /**
+   * Fecha mínima: hoy (formato YYYY-MM-DD)
+   */
+  const minDate = computed(() => {
+    const today = new Date()
+    return today.toISOString().split('T')[0]
+  })
 
-    for (let i = 0; i < count; i++) {
-      const defaultPattern = count === 1 ? fullHouseId : null;
-      updated.push(
-        current[i] ?? { prizeType: "percentage", bingoPattern: defaultPattern, prizeValue: null }
-      );
-    }
+  /**
+   * Mostrar %Rondas y config (más de 1 ronda)
+   */
+  const showRoundsPct = computed(() => (form.value.rounds ?? 1) >= 1)
 
-    // Si hay 1 sola ronda, forzar FULL HOUSE en R1 (aunque ya existiera)
-    if (count === 1 && fullHouseId !== null) {
-      updated[0] = { ...updated[0], bingoPattern: fullHouseId };
-    }
+  /**
+   * Cuando hay exactamente 1 ronda, %Rondas es readonly (= disponible)
+   */
+  const isSingleRound = computed(() => Number(form.value.rounds ?? 1) === 1)
 
-    // Redistribuir equitativamente entre rondas % tras cambio de cantidad
-    const total = Number(form.value.roundsPct) || 0;
-    const pctIndices = updated.reduce<number[]>((acc, r, i) => {
-      if (r.prizeType === "percentage") acc.push(i);
-      return acc;
-    }, []);
-    if (pctIndices.length > 0 && total > 0) {
-      const perRound = Math.round((total / pctIndices.length) * 100) / 100;
-      pctIndices.forEach((i) => {
-        updated[i] = { ...updated[i], prizeValue: perRound };
-      });
-    }
+  /**
+   * Suma total solo de rondas con tipo 'percentage' (las P/S y fixed no cuentan contra %Rondas)
+   */
+  const totalRoundValues = computed(() => {
+    return (form.value.roundsConfig ?? []).reduce((sum, round) => {
+      if (round.prizeType !== 'percentage') return sum
+      return sum + (Number(round.prizeValue) || 0)
+    }, 0)
+  })
 
-    form.value = { ...form.value, roundsConfig: updated };
-  },
-  { immediate: true }
-);
-
-/**
- * Cuando cambia roundsPct (con múltiples rondas):
- * 1. Distribuir equitativamente entre rondas con tipo 'percentage'
- * 2. Ajustar %Sala para que la suma siempre sea 100
- */
-watch(
-  () => form.value.roundsPct,
-  (newPct) => {
-    const total = Number(newPct) || 0;
-    const configs = form.value.roundsConfig ?? [];
-    const pctCount = configs.filter((r) => r.prizeType === "percentage").length;
-
-    // Redistribuir entre rondas %
-    let nextForm = { ...form.value }
-    if (pctCount > 0) {
-      const perRound = total > 0 ? Math.round((total / pctCount) * 100) / 100 : null;
-      const updated = configs.map((r) =>
-        r.prizeType === "percentage" ? { ...r, prizeValue: perRound } : r
-      );
-      nextForm = { ...nextForm, roundsConfig: updated };
-    }
-
-    // Con múltiples rondas: %Sala absorbe el restante para sumar 100
-    const rounds = Number(form.value.rounds) || 1
-    if (rounds > 1) {
-      const jk  = Number(nextForm.jackpotPct) || 0
-      const ser = Number(nextForm.serialsPct)  || 0
-      const newCommn = Math.round((100 - total - jk - ser) * 100) / 100
-      const clamped  = Math.min(
-        percentageLimits.roomCommn.max,
-        Math.max(percentageLimits.roomCommn.min, newCommn)
-      )
-      nextForm = { ...nextForm, roomCommn: clamped }
-    }
-
-    form.value = nextForm
+  /**
+   * Max disponible para una ronda = %Rondas - suma de las demás rondas
+   */
+  function getRoundMaxValue(index: number): number {
+    const limit = Number(form.value.roundsPct) || percentageLimits.roundsPct.max
+    const othersSum = (form.value.roundsConfig ?? []).reduce((sum, round, i) => {
+      if (i === index) return sum
+      return sum + (Number(round.prizeValue) || 0)
+    }, 0)
+    return Math.max(0, limit - othersSum)
   }
-);
 
-/**
- * Cuando hay 1 sola ronda, %Rondas = disponible automáticamente
- */
-watch(
-  () => [form.value.rounds, availablePct.value] as const,
-  ([newRounds, avail]) => {
-    if (Number(newRounds) !== 1) return
-    if (Number(form.value.roundsPct) === avail) return
-    form.value = { ...form.value, roundsPct: avail }
-  }
-)
+  /**
+   * Valida que la suma de valores de rondas sea igual a %Rondas
+   */
+  const isRoundValuesValid = computed(() => {
+    const roundsPct = Number(form.value.roundsPct) || 0
+    if (roundsPct === 0) return true // No validar si no hay valor
+    const total = totalRoundValues.value
+    return Math.abs(total - roundsPct) < 0.01 // Permitir pequeñas diferencias por redondeo
+  })
 
-/* ==========================================================================
- * Métodos
- * ========================================================================== */
+  /**
+   * Mostrar container de valor fijo/extra (cuando NO es Acumulativo)
+   */
+  const showAmountAddedPrizePool = computed(() => {
+    const selected = props.prizePoolTypeOptions.find(
+      opt => String(opt.value) === String(form.value.prizePoolType)
+    )
+    return selected ? selected.code !== 'ACCUMULATIVE' : false
+  })
 
-function toggleRoundsConfig() {
-  if ((form.value.rounds ?? 1) < 1) return;
-  roundsConfigActive.value = !roundsConfigActive.value;
-}
+  /**
+   * Permite ajustar precio por moneda solo si hay más de una moneda seleccionada
+   */
+  const canAdjustCtnPriceByCurrency = computed(() => {
+    const allowed = form.value.allowedCurrencies
+    return Array.isArray(allowed) && allowed.length > 1
+  })
 
-function updateRoundConfig(
-  index: number,
-  field: keyof RoundConfig,
-  value: RoundConfig[keyof RoundConfig]
-) {
-  const configs = [...(form.value.roundsConfig ?? [])];
-  const updated = { ...configs[index], [field]: value };
-
-  if (field === "prizeType") {
-    if (value === "percentage") {
-      // Al cambiar a %, limpiar fijo y redistribuir equitativamente incluyendo esta ronda
-      updated.prizeValueByCurrency = undefined;
-      configs[index] = updated;
-      redistributePercentageRounds(configs);
-      form.value = { ...form.value, roundsConfig: configs };
-      return;
-    } else if (value === "fixed") {
-      // Al cambiar a fijo, limpiar prizeValue e inicializar mapa de monedas
-      updated.prizeValue = null;
-      updated.prizeValueByCurrency = (form.value.allowedCurrencies ?? []).reduce<
-        Record<string, null>
-      >((acc, cur) => {
-        acc[String(cur)] = null;
-        return acc;
-      }, {});
-      configs[index] = updated;
-      redistributePercentageRounds(configs);
-      form.value = { ...form.value, roundsConfig: configs };
-      return;
-    } else {
-      // Al cambiar a otro tipo (prize), limpiar ambos y redistribuir % restantes
-      updated.prizeValue = null;
-      updated.prizeValueByCurrency = undefined;
-      configs[index] = updated;
-      redistributePercentageRounds(configs);
-      form.value = { ...form.value, roundsConfig: configs };
-      return;
+  function toggleCtnPriceByCurrency() {
+    if (!canAdjustCtnPriceByCurrency.value) return
+    cardPriceByCurrencyActive.value = !cardPriceByCurrencyActive.value
+    if (!form.value.cardPriceByCurrency) {
+      form.value = { ...form.value, cardPriceByCurrency: {} }
     }
   }
 
-  if (field === "prizeValue" && updated.prizeType === "percentage") {
-    // El usuario editó el valor de esta ronda %: redistribuir el resto entre las demás rondas %
-    const total = Number(form.value.roundsPct) || 0;
-    const thisVal = Math.min(Number(value) || 0, total);
-    updated.prizeValue = thisVal;
-    configs[index] = updated;
-
-    const others = configs.reduce<number[]>((acc, r, i) => {
-      if (i !== index && r.prizeType === "percentage") acc.push(i);
-      return acc;
-    }, []);
-
-    if (others.length > 0) {
-      const remaining = Math.max(0, total - thisVal);
-      const perOther = Math.round((remaining / others.length) * 100) / 100;
-      others.forEach((i) => {
-        configs[i] = { ...configs[i], prizeValue: perOther > 0 ? perOther : null };
-      });
-    }
-
-    form.value = { ...form.value, roundsConfig: configs };
-    return;
+  function updateCtnPriceForCurrency(currency: string | number, value: string | number | null) {
+    const key = String(currency)
+    const current = { ...(form.value.cardPriceByCurrency ?? {}) }
+    const parsed = value === null || value === '' ? null : Number(value)
+    current[key] = isNaN(Number(parsed)) ? null : (parsed as number)
+    form.value = { ...form.value, cardPriceByCurrency: current }
   }
 
-  if (
-    field === "bingoPattern" &&
-    updated.prizeType === "percentage" &&
-    updated.prizeValue === null
+  function getCurrencyLabel(id: string | number) {
+    const found = props.allowedCurrenciesOptions.find(opt => String(opt.value) === String(id))
+    return found ? String(found.label) : String(id)
+  }
+
+  const singleCurrencyLabel = computed(() => {
+    const currencies = form.value.allowedCurrencies ?? []
+    if (currencies.length !== 1) return ''
+    return getCurrencyLabel(currencies[0])
+  })
+
+  const hasCardPriceByCurrencyErrors = computed(() => {
+    const err = errors.value.cardPriceByCurrency
+    return err && Object.keys(err).length > 0 && !cardPriceByCurrencyActive.value
+  })
+
+  const cardPriceByCurrencyPopoverText = computed(() => {
+    const err = errors.value.cardPriceByCurrency
+    if (!err) return ''
+    return 'Ajustar precio de los cartones'
+  })
+
+  const hasRoundsConfigErrors = computed(() => {
+    const err = errors.value.roundsConfig
+    return err && Object.keys(err).length > 0 && !roundsConfigActive.value
+  })
+
+  const roundsConfigPopoverText = computed(() => {
+    const err = errors.value.roundsConfig as Record<string, string> | undefined
+    if (!err) return ''
+    return 'Ajustar valores'
+  })
+
+  /**
+   * Error por campo individual de ronda
+   */
+  function getRoundFieldError(
+    index: number,
+    field: 'bingoPattern' | 'prizeValue'
+  ): string | undefined {
+    const err = errors.value.roundsConfig as Record<string, string> | undefined
+    return err?.[`${index}_${field}`]
+  }
+
+  /* ==========================================================================
+   * Watchers
+   * ========================================================================== */
+
+  /**
+   * Cuando cambia el número de rondas, sincronizar el array roundsConfig
+   */
+  watch(
+    () => form.value.rounds,
+    newRounds => {
+      const count = Math.max(1, Number(newRounds) || 1)
+
+      const current = form.value.roundsConfig ?? []
+      const updated: RoundConfig[] = []
+
+      // FULL HOUSE es el patrón por defecto cuando hay 1 sola ronda
+      const fullHouseId =
+        props.bingoPatternOptions.find(o => o.label.toUpperCase() === 'FULL HOUSE')?.value ?? null
+
+      for (let i = 0; i < count; i++) {
+        const defaultPattern = count === 1 ? fullHouseId : null
+        updated.push(
+          current[i] ?? {
+            prizeType: 'percentage',
+            bingoPattern: defaultPattern,
+            prizeValue: null
+          }
+        )
+      }
+
+      // Si hay 1 sola ronda, forzar FULL HOUSE en R1 (aunque ya existiera)
+      if (count === 1 && fullHouseId !== null) {
+        updated[0] = { ...updated[0], bingoPattern: fullHouseId }
+      }
+
+      // Redistribuir equitativamente entre rondas % tras cambio de cantidad
+      const total = Number(form.value.roundsPct) || 0
+      const pctIndices = updated.reduce<number[]>((acc, r, i) => {
+        if (r.prizeType === 'percentage') acc.push(i)
+        return acc
+      }, [])
+      if (pctIndices.length > 0 && total > 0) {
+        const perRound = Math.round((total / pctIndices.length) * 100) / 100
+        pctIndices.forEach(i => {
+          updated[i] = { ...updated[i], prizeValue: perRound }
+        })
+      }
+
+      form.value = { ...form.value, roundsConfig: updated }
+    },
+    { immediate: true }
+  )
+
+  /**
+   * Cuando cambia roundsPct (con múltiples rondas):
+   * 1. Distribuir equitativamente entre rondas con tipo 'percentage'
+   * 2. Ajustar %Sala para que la suma siempre sea 100
+   */
+  watch(
+    () => form.value.roundsPct,
+    newPct => {
+      const total = Number(newPct) || 0
+      const configs = form.value.roundsConfig ?? []
+      const pctCount = configs.filter(r => r.prizeType === 'percentage').length
+
+      // Redistribuir entre rondas %
+      let nextForm = { ...form.value }
+      if (pctCount > 0) {
+        const perRound = total > 0 ? Math.round((total / pctCount) * 100) / 100 : null
+        const updated = configs.map(r =>
+          r.prizeType === 'percentage' ? { ...r, prizeValue: perRound } : r
+        )
+        nextForm = { ...nextForm, roundsConfig: updated }
+      }
+
+      // Con múltiples rondas: %Sala absorbe el restante para sumar 100
+      const rounds = Number(form.value.rounds) || 1
+      if (rounds > 1) {
+        const jk = Number(nextForm.jackpotPct) || 0
+        const ser = Number(nextForm.serialsPct) || 0
+        const newCommn = Math.round((100 - total - jk - ser) * 100) / 100
+        const clamped = Math.min(
+          percentageLimits.roomCommn.max,
+          Math.max(percentageLimits.roomCommn.min, newCommn)
+        )
+        nextForm = { ...nextForm, roomCommn: clamped }
+      }
+
+      form.value = nextForm
+    }
+  )
+
+  /**
+   * Cuando hay 1 sola ronda, %Rondas = disponible automáticamente
+   */
+  watch(
+    () => [form.value.rounds, availablePct.value] as const,
+    ([newRounds, avail]) => {
+      if (Number(newRounds) !== 1) return
+      if (Number(form.value.roundsPct) === avail) return
+      form.value = { ...form.value, roundsPct: avail }
+    }
+  )
+
+  /* ==========================================================================
+   * Métodos
+   * ========================================================================== */
+
+  function toggleRoundsConfig() {
+    if ((form.value.rounds ?? 1) < 1) return
+    roundsConfigActive.value = !roundsConfigActive.value
+  }
+
+  function updateRoundConfig(
+    index: number,
+    field: keyof RoundConfig,
+    value: RoundConfig[keyof RoundConfig]
   ) {
-    configs[index] = updated;
-    redistributePercentageRounds(configs);
-    form.value = { ...form.value, roundsConfig: configs };
-    return;
+    const configs = [...(form.value.roundsConfig ?? [])]
+    const updated = { ...configs[index], [field]: value }
+
+    if (field === 'prizeType') {
+      if (value === 'percentage') {
+        // Al cambiar a %, limpiar fijo y redistribuir equitativamente incluyendo esta ronda
+        updated.prizeValueByCurrency = undefined
+        configs[index] = updated
+        redistributePercentageRounds(configs)
+        form.value = { ...form.value, roundsConfig: configs }
+        return
+      } else if (value === 'fixed') {
+        // Al cambiar a fijo, limpiar prizeValue e inicializar mapa de monedas
+        updated.prizeValue = null
+        updated.prizeValueByCurrency = (form.value.allowedCurrencies ?? []).reduce<
+          Record<string, null>
+        >((acc, cur) => {
+          acc[String(cur)] = null
+          return acc
+        }, {})
+        configs[index] = updated
+        redistributePercentageRounds(configs)
+        form.value = { ...form.value, roundsConfig: configs }
+        return
+      } else {
+        // Al cambiar a otro tipo (prize), limpiar ambos y redistribuir % restantes
+        updated.prizeValue = null
+        updated.prizeValueByCurrency = undefined
+        configs[index] = updated
+        redistributePercentageRounds(configs)
+        form.value = { ...form.value, roundsConfig: configs }
+        return
+      }
+    }
+
+    if (field === 'prizeValue' && updated.prizeType === 'percentage') {
+      // El usuario editó el valor de esta ronda %: redistribuir el resto entre las demás rondas %
+      const total = Number(form.value.roundsPct) || 0
+      const thisVal = Math.min(Number(value) || 0, total)
+      updated.prizeValue = thisVal
+      configs[index] = updated
+
+      const others = configs.reduce<number[]>((acc, r, i) => {
+        if (i !== index && r.prizeType === 'percentage') acc.push(i)
+        return acc
+      }, [])
+
+      if (others.length > 0) {
+        const remaining = Math.max(0, total - thisVal)
+        const perOther = Math.round((remaining / others.length) * 100) / 100
+        others.forEach(i => {
+          configs[i] = { ...configs[i], prizeValue: perOther > 0 ? perOther : null }
+        })
+      }
+
+      form.value = { ...form.value, roundsConfig: configs }
+      return
+    }
+
+    if (
+      field === 'bingoPattern' &&
+      updated.prizeType === 'percentage' &&
+      updated.prizeValue === null
+    ) {
+      configs[index] = updated
+      redistributePercentageRounds(configs)
+      form.value = { ...form.value, roundsConfig: configs }
+      return
+    }
+
+    configs[index] = updated
+    form.value = { ...form.value, roundsConfig: configs }
   }
 
-  configs[index] = updated;
-  form.value = { ...form.value, roundsConfig: configs };
-}
+  /**
+   * Distribuye equitativamente roundsPct entre todas las rondas con tipo 'percentage'
+   */
+  function redistributePercentageRounds(configs: RoundConfig[]) {
+    const total = Number(form.value.roundsPct) || 0
+    const pctIndices = configs.reduce<number[]>((acc, r, i) => {
+      if (r.prizeType === 'percentage') acc.push(i)
+      return acc
+    }, [])
+    if (pctIndices.length === 0) return
+    const perRound = total > 0 ? Math.round((total / pctIndices.length) * 100) / 100 : null
+    pctIndices.forEach(i => {
+      configs[i] = { ...configs[i], prizeValue: perRound }
+    })
+  }
 
-/**
- * Distribuye equitativamente roundsPct entre todas las rondas con tipo 'percentage'
- */
-function redistributePercentageRounds(configs: RoundConfig[]) {
-  const total = Number(form.value.roundsPct) || 0;
-  const pctIndices = configs.reduce<number[]>((acc, r, i) => {
-    if (r.prizeType === "percentage") acc.push(i);
-    return acc;
-  }, []);
-  if (pctIndices.length === 0) return;
-  const perRound = total > 0 ? Math.round((total / pctIndices.length) * 100) / 100 : null;
-  pctIndices.forEach((i) => {
-    configs[i] = { ...configs[i], prizeValue: perRound };
-  });
-}
+  /**
+   * Actualiza el valor fijo de una ronda para una moneda específica
+   */
+  function updateRoundPriceByCurrency(
+    roundIndex: number,
+    currency: string | number,
+    value: string | number | null
+  ) {
+    const configs = [...(form.value.roundsConfig ?? [])]
+    const key = String(currency)
+    const current = { ...(configs[roundIndex].prizeValueByCurrency ?? {}) }
+    const parsed = value === null || value === '' ? null : Number(value)
+    current[key] = isNaN(Number(parsed)) ? null : (parsed as number)
+    configs[roundIndex] = { ...configs[roundIndex], prizeValueByCurrency: current }
+    form.value = { ...form.value, roundsConfig: configs }
+  }
 
-/**
- * Actualiza el valor fijo de una ronda para una moneda específica
- */
-function updateRoundPriceByCurrency(
-  roundIndex: number,
-  currency: string | number,
-  value: string | number | null
-) {
-  const configs = [...(form.value.roundsConfig ?? [])];
-  const key = String(currency);
-  const current = { ...(configs[roundIndex].prizeValueByCurrency ?? {}) };
-  const parsed = value === null || value === "" ? null : Number(value);
-  current[key] = isNaN(Number(parsed)) ? null : (parsed as number);
-  configs[roundIndex] = { ...configs[roundIndex], prizeValueByCurrency: current };
-  form.value = { ...form.value, roundsConfig: configs };
-}
+  /**
+   * Obtiene el error de prizeValueByCurrency para una ronda y moneda
+   */
+  function getRoundCurrencyError(index: number, currency: string | number): string | undefined {
+    const err = errors.value.roundsConfig as Record<string, string> | undefined
+    return err?.[`${index}_prizeValue_${String(currency)}`]
+  }
 
-/**
- * Obtiene el error de prizeValueByCurrency para una ronda y moneda
- */
-function getRoundCurrencyError(
-  index: number,
-  currency: string | number
-): string | undefined {
-  const err = errors.value.roundsConfig as Record<string, string> | undefined;
-  return err?.[`${index}_prizeValue_${String(currency)}`];
-}
+  /* ==========================================================================
+   * Modal P/S — selección de prize para ronda
+   * ========================================================================== */
 
-/* ==========================================================================
- * Modal P/S — selección de prize para ronda
- * ========================================================================== */
+  async function searchPrizes(q: string): Promise<PrizeSearchResult[]> {
+    const { data } = await backendClient.get<{ data: PrizeSearchResult[] }>('/prizes/search', {
+      params: { q }
+    })
+    return data.data ?? []
+  }
 
-async function searchPrizes(q: string): Promise<PrizeSearchResult[]> {
-  const { data } = await backendClient.get<{ data: PrizeSearchResult[] }>(
-    "/prizes/search",
-    {
-      params: { q },
+  function openPrizeModal(index: number) {
+    prizeModalRoundIndex.value = index
+    const current = form.value.roundsConfig?.[index]
+    // Pre-cargar el prize ya seleccionado si existe
+    prizeModalSelected.value = current?.prizeId
+      ? [{ id: current.prizeId, name: current.prizeName ?? '', code: '', price: 0 }]
+      : []
+    showPrizeModal.value = true
+  }
+
+  function confirmPrizeSelection(): boolean {
+    const idx = prizeModalRoundIndex.value
+    if (idx === null) return false
+    const selected = prizeModalSelected.value[0] ?? null
+    const configs = [...(form.value.roundsConfig ?? [])]
+    configs[idx] = {
+      ...configs[idx],
+      prizeId: selected ? selected.id : null,
+      prizeName: selected ? selected.name : null,
+      prizeValue: selected ? selected.price : null
     }
-  );
-  return data.data ?? [];
-}
+    form.value = { ...form.value, roundsConfig: configs }
+    prizeModalRoundIndex.value = null
+    return true
+  }
 
-function openPrizeModal(index: number) {
-  prizeModalRoundIndex.value = index;
-  const current = form.value.roundsConfig?.[index];
-  // Pre-cargar el prize ya seleccionado si existe
-  prizeModalSelected.value = current?.prizeId
-    ? [{ id: current.prizeId, name: current.prizeName ?? "", code: "", price: 0 }]
-    : [];
-  showPrizeModal.value = true;
-}
+  /* ==========================================================================
+   * Submit
+   * ========================================================================== */
 
-function confirmPrizeSelection(): boolean {
-  const idx = prizeModalRoundIndex.value;
-  if (idx === null) return false;
-  const selected = prizeModalSelected.value[0] ?? null;
-  const configs = [...(form.value.roundsConfig ?? [])];
-  configs[idx] = {
-    ...configs[idx],
-    prizeId: selected ? selected.id : null,
-    prizeName: selected ? selected.name : null,
-    prizeValue: selected ? selected.price : null,
-  };
-  form.value = { ...form.value, roundsConfig: configs };
-  prizeModalRoundIndex.value = null;
-  return true;
-}
+  const submit = (): boolean => {
+    if (!isValid.value) return false
+    emit('submit')
+    return true
+  }
 
-/* ==========================================================================
- * Submit
- * ========================================================================== */
+  /* ==========================================================================
+   * Expose
+   * ========================================================================== */
 
-const submit = (): boolean => {
-  if (!isValid.value) return false;
-  emit("submit");
-  return true;
-};
-
-/* ==========================================================================
- * Expose
- * ========================================================================== */
-
-defineExpose({
-  submit,
-  isValid,
-});
+  defineExpose({
+    submit,
+    isValid
+  })
 </script>
 <template>
   <form id="bingo-room-form" novalidate @submit.prevent="submit">
@@ -709,9 +698,7 @@ defineExpose({
               <FormInput
                 :name="`ctn_price_${String(cur)}`"
                 :error="
-                  errors.cardPriceByCurrency
-                    ? errors.cardPriceByCurrency[String(cur)]
-                    : undefined
+                  errors.cardPriceByCurrency ? errors.cardPriceByCurrency[String(cur)] : undefined
                 "
                 type="number"
                 :step="0.05"
@@ -858,7 +845,7 @@ defineExpose({
               <!-- Validación de suma (solo si hay más de una ronda) -->
               <div class="ml-2" v-if="totalRoundValues > 0 && showRoundsPct">
                 <small :class="isRoundValuesValid ? 'text-success' : 'text-danger'">
-                  {{ isRoundValuesValid ? "✓" : "✗" }} Suma: {{ totalRoundValues }} /
+                  {{ isRoundValuesValid ? '✓' : '✗' }} Suma: {{ totalRoundValues }} /
                   {{ roundsPct }}
                 </small>
               </div>
@@ -877,10 +864,7 @@ defineExpose({
             <template v-for="(round, index) in form.roundsConfig" :key="`round_${index}`">
               <div class="col-lg-6 col-12 mb-2">
                 <div class="d-flex align-items-center" style="gap: 0.5rem">
-                  <span
-                    class="badge badge-secondary"
-                    style="white-space: nowrap; flex-shrink: 0"
-                  >
+                  <span class="badge badge-secondary" style="white-space: nowrap; flex-shrink: 0">
                     R{{ index + 1 }}
                   </span>
 
@@ -941,13 +925,20 @@ defineExpose({
                       {
                         'is-invalid':
                           !!getRoundFieldError(index, 'prizeValue') ||
-                          (!isRoundValuesValid && totalRoundValues > 0),
-                      },
+                          (!isRoundValuesValid && totalRoundValues > 0)
+                      }
                     ]"
                     placeholder="%"
                     :value="isSingleRound ? roundsPct : round.prizeValue"
                     :readonly="isSingleRound"
-                    @change="!isSingleRound && updateRoundConfig(index, 'prizeValue', ($event.target as HTMLInputElement).value)"
+                    @change="
+                      !isSingleRound &&
+                      updateRoundConfig(
+                        index,
+                        'prizeValue',
+                        ($event.target as HTMLInputElement).value
+                      )
+                    "
                     step="0.5"
                     min="0"
                     :max="isSingleRound ? 100 : getRoundMaxValue(index)"
@@ -973,8 +964,8 @@ defineExpose({
                         round.prizeId
                           ? 'btn-success'
                           : getRoundFieldError(index, 'prizeValue')
-                          ? 'btn-danger'
-                          : 'btn-outline-secondary',
+                            ? 'btn-danger'
+                            : 'btn-outline-secondary'
                       ]"
                       style="
                         overflow: hidden;
@@ -987,7 +978,7 @@ defineExpose({
                       :title="round.prizeName ?? 'Seleccionar premio'"
                     >
                       <i class="fa-solid fa-gift" style="font-size: 0.7rem"></i>
-                      {{ round.prizeName ? round.prizeName : "Seleccionar" }}
+                      {{ round.prizeName ? round.prizeName : 'Seleccionar' }}
                     </button>
                     <small
                       v-if="round.prizeId && round.prizeValue"
@@ -1008,17 +999,14 @@ defineExpose({
                 <!-- Valores fijos por moneda (solo cuando prizeType === 'fixed') -->
                 <div
                   v-if="round.prizeType === 'fixed'"
-                  class="d-flex flex-wrap mt-1"
+                  class="d-flex mt-1 flex-wrap"
                   style="gap: 0.4rem; padding-left: 2rem"
                 >
                   <template
                     v-for="cur in form.allowedCurrencies ?? []"
                     :key="`r${index}_cur_${cur}`"
                   >
-                    <div
-                      class="input-group input-group-sm"
-                      style="width: auto; flex: 0 0 140px"
-                    >
+                    <div class="input-group input-group-sm" style="width: auto; flex: 0 0 140px">
                       <div class="input-group-prepend">
                         <span class="input-group-text">{{ getCurrencyLabel(cur) }}</span>
                       </div>
@@ -1027,13 +1015,19 @@ defineExpose({
                         type="number"
                         :class="[
                           'form-control form-control-sm',
-                          { 'is-invalid': !!getRoundCurrencyError(index, cur) },
+                          { 'is-invalid': !!getRoundCurrencyError(index, cur) }
                         ]"
                         placeholder="0.00"
                         step="0.5"
                         min="0"
                         :value="round.prizeValueByCurrency?.[String(cur)] ?? ''"
-                        @change="updateRoundPriceByCurrency(index, cur, ($event.target as HTMLInputElement).value)"
+                        @change="
+                          updateRoundPriceByCurrency(
+                            index,
+                            cur,
+                            ($event.target as HTMLInputElement).value
+                          )
+                        "
                       />
                     </div>
                   </template>
@@ -1043,6 +1037,19 @@ defineExpose({
           </div>
         </div>
       </div>
+
+      <FormInput
+        label="%Jackpot"
+        name="jackpot_pct"
+        id="jackpot-pct"
+        type="number"
+        :step="0.5"
+        :min="percentageLimits.jackpotPct.min"
+        :max="percentageLimits.jackpotPct.max"
+        placeholder="Opcional"
+        col="col-sm-6 col-md-4 col-lg-3"
+        v-model="jackpotPct"
+      />
 
       <!-- ¿Usar Seriales? -->
       <FormSwitch
@@ -1085,29 +1092,23 @@ defineExpose({
         v-model="form.numSerials"
       />
 
-      <FormInput
-        label="%Jackpot"
-        name="jackpot_pct"
-        id="jackpot-pct"
-        type="number"
-        :step="0.5"
-        :min="percentageLimits.jackpotPct.min"
-        :max="percentageLimits.jackpotPct.max"
-        placeholder="Opcional"
-        col="col-sm-6 col-md-4 col-lg-3"
-        v-model="jackpotPct"
-      />
-
       <!-- Alerta suma de porcentajes -->
       <div v-if="errors.percentageSum" class="col-12">
-        <div class="alert alert-danger py-2 px-3 mb-0" style="font-size: 0.82rem">
+        <div class="alert alert-danger mb-0 px-3 py-2" style="font-size: 0.82rem">
           <i class="fa-solid fa-triangle-exclamation"></i>
           {{ errors.percentageSum }}
           <small class="d-block mt-1" style="opacity: 0.85">
             %Sala ({{ form.roomCommn ?? 0 }}) + %Rondas ({{ form.roundsPct ?? 0 }})
             <template v-if="form.useSerials"> + %Seriales ({{ form.serialsPct ?? 0 }})</template>
-            + %Jackpot ({{ form.jackpotPct ?? 0 }})
-            = {{ (Number(form.roomCommn) + Number(form.roundsPct) + (form.useSerials ? Number(form.serialsPct) : 0) + Number(form.jackpotPct)).toFixed(2) }}%
+            + %Jackpot ({{ form.jackpotPct ?? 0 }}) =
+            {{
+              (
+                Number(form.roomCommn) +
+                Number(form.roundsPct) +
+                (form.useSerials ? Number(form.serialsPct) : 0) +
+                Number(form.jackpotPct)
+              ).toFixed(2)
+            }}%
           </small>
         </div>
       </div>

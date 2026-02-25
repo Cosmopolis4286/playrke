@@ -67,14 +67,14 @@ const FALLBACK_CONFIG: PhoneConfig = {
     localDigits: 0,
     totalDigits: 15,
     pattern: /^.{6,20}$/,
-    mask: '0000000000000000000',
+    mask: '',
     placeholder: 'Número de teléfono',
     hint: ''
 }
 
 export interface UsePhoneFieldReturn {
-    /** Máscara IMask dinámica según el país seleccionado */
-    phoneMask: ComputedRef<string>
+    /** Máscara IMask dinámica según el país seleccionado (null = sin máscara) */
+    phoneMask: ComputedRef<string | null>
     /** Placeholder dinámico */
     phonePlaceholder: ComputedRef<string>
     /** Texto de ayuda (hint) */
@@ -115,7 +115,7 @@ export function usePhoneField(
         return iso && PHONE_CONFIG[iso] ? PHONE_CONFIG[iso] : FALLBACK_CONFIG
     })
 
-    const phoneMask = computed(() => activeConfig.value.mask)
+    const phoneMask = computed(() => activeConfig.value.mask || null)
     const phonePlaceholder = computed(() => activeConfig.value.placeholder)
     const phoneHint = computed(() => activeConfig.value.hint)
     const dialCode = computed(() =>

@@ -8,6 +8,7 @@ import FormSwitch from "@/js/Components/Common/Form/FormSwitch.vue";
 
 // Composables
 import { useAdminCustomerForm } from "@/js/composables/roles/admin/customer/useAdminCustomerForm";
+import { usePhoneField } from "@/js/composables/form/usePhoneField";
 
 // Types
 import type { Currency } from "@/js/types/currency";
@@ -49,7 +50,7 @@ const { form, errors, isValid, isEditMode } = useAdminCustomerForm(
 );
 
 /* ==========================================================================
- * Máscaras
+ * Máscara comisión
  * ========================================================================== */
 
 const commissionMask = {
@@ -80,6 +81,65 @@ const apiRouteState = computed<"valid" | "invalid" | null>(() => {
 });
 
 /* ==========================================================================
+ * Teléfono — usePhoneField
+ *
+ * Necesitamos un ref local sincronizado con form.phone porque
+ * usePhoneField necesita un Ref mutable (no un ComputedRef).
+ * ========================================================================== */
+
+/** ISO-2 del país seleccionado */
+const selectedIso2 = computed<string | null>(() => {
+  if (!form.value.country_id) return null;
+  const match = props.countries.find(
+    // eslint-disable-next-line eqeqeq
+    (c) => c.id == form.value.country_id
+  );
+  return match?.iso_code_2 ?? null;
+});
+
+/** Ref local del teléfono — fuente de verdad para usePhoneField */
+const phoneRef = ref<string>(form.value.phone ?? "");
+
+// form → phoneRef  (ej: al cargar en modo edición)
+watch(
+  () => form.value.phone,
+  (v) => {
+    if (v !== phoneRef.value) phoneRef.value = v ?? "";
+  }
+);
+
+// phoneRef → form
+watch(phoneRef, (v) => {
+  if (v !== form.value.phone) {
+    form.value = { ...form.value, phone: v };
+  }
+});
+
+const {
+  phoneMask,
+  phonePlaceholder,
+  phoneHint,
+  phoneError,
+  isPhoneValid,
+  onPhoneFocus,
+} = usePhoneField(
+  selectedIso2,
+  phoneRef,
+  (v) => { phoneRef.value = v; }
+);
+
+/** Error visible: validación de formato primero, luego campo requerido */
+const phoneErrorDisplay = computed(
+  () => phoneError.value ?? errors.value.phone ?? null
+);
+
+/** Estado visual del campo teléfono */
+const phoneValidState = computed<"valid" | "invalid" | null>(() => {
+  if (!phoneRef.value?.trim()) return null;
+  return isPhoneValid.value ? "valid" : "invalid";
+});
+
+/* ==========================================================================
  * Logo — preview
  * ========================================================================== */
 
@@ -93,11 +153,8 @@ function onLogoChange(event: Event) {
     return;
   }
   const reader = new FileReader();
-  reader.onload = (e) => {
-    logoPreview.value = e.target?.result as string;
-  };
+  reader.onload = (e) => { logoPreview.value = e.target?.result as string; };
   reader.readAsDataURL(file);
-  // El padre recibe el File object a través del update:modelValue
   form.value = { ...form.value, logo: file as any };
 }
 
@@ -106,15 +163,11 @@ function clearLogo() {
   form.value = { ...form.value, logo: undefined };
 }
 
-// Si cambia a modo edición con logo existente, mostrar preview del logo guardado
 watch(
   () => form.value.logo,
   (val) => {
-    if (typeof val === "string" && val) {
-      logoPreview.value = val;
-    } else if (!val) {
-      logoPreview.value = null;
-    }
+    if (typeof val === "string" && val) logoPreview.value = val;
+    else if (!val) logoPreview.value = null;
   },
   { immediate: true }
 );
@@ -150,17 +203,22 @@ const otherCurrenciesOptions = computed(() => {
 
 watch(
   () => form.value.country_id,
-  async (newCountryId, oldCountryId) => {
-    if (oldCountryId !== undefined) {
-      form.value = { ...form.value, currency_id: null, time_zone_id: null, other_currencies: [] };
+  async (newVal, oldVal) => {
+    if (oldVal !== undefined) {
+      form.value = {
+        ...form.value,
+        currency_id: null,
+        time_zone_id: null,
+        other_currencies: [],
+      };
     }
-    if (!newCountryId) return;
+    if (!newVal) return;
     await nextTick();
 
     // eslint-disable-next-line eqeqeq
-    const currencies = props.currencies.filter((c) => c.country_id == newCountryId);
+    const currencies = props.currencies.filter((c) => c.country_id == newVal);
     // eslint-disable-next-line eqeqeq
-    const timeZones = props.timeZones.filter((tz) => tz.country_id == newCountryId);
+    const timeZones = props.timeZones.filter((tz) => tz.country_id == newVal);
 
     form.value = {
       ...form.value,
@@ -182,9 +240,7 @@ watch(
 
 watch(
   () => form.value.has_commission,
-  (val) => {
-    if (!val) form.value = { ...form.value, commission: "" };
-  }
+  (val) => { if (!val) form.value = { ...form.value, commission: "" }; }
 );
 
 /* ==========================================================================
@@ -204,7 +260,7 @@ defineExpose({ submit, isValid });
   <form id="commerce-form" novalidate @submit.prevent="submit">
     <div class="row">
 
-      <!-- ── SECCIÓN: Datos de acceso ──────────────────────────────────── -->
+      <!-- ── Datos de acceso ─────────────────────────────────────────────── -->
       <div class="col-12 mb-1">
         <small class="text-muted text-uppercase font-weight-bold" style="letter-spacing:.05em;">
           <i class="fa-solid fa-user fa-fw mr-1"></i>Datos de acceso
@@ -237,23 +293,12 @@ defineExpose({ submit, isValid });
         name="email"
         type="email"
         required
-        col="col-sm-8"
+        col="col-12"
         :error="errors.email"
         v-model="form.email"
       />
 
-      <FormInput
-        label="Teléfono"
-        name="phone"
-        required
-        placeholder="Ej: +58412000000"
-        maxlength="20"
-        col="col-sm-4"
-        :error="errors.phone"
-        v-model="form.phone"
-      />
-
-      <!-- ── SECCIÓN: Configuración de integración ──────────────────────── -->
+      <!-- ── Integración API ─────────────────────────────────────────────── -->
       <div class="col-12 mb-1 mt-2">
         <small class="text-muted text-uppercase font-weight-bold" style="letter-spacing:.05em;">
           <i class="fa-solid fa-plug fa-fw mr-1"></i>Integración API
@@ -261,7 +306,6 @@ defineExpose({ submit, isValid });
         <hr class="mt-1 mb-2" />
       </div>
 
-      <!-- Ruta API usando FormInput con slot prepend (ícono de estado) -->
       <FormInput
         label="Ruta API"
         name="api_route"
@@ -289,7 +333,6 @@ defineExpose({ submit, isValid });
         </template>
       </FormInput>
 
-      <!-- Llave de Conexión: solo en modo edición, campo bloqueado + botón regenerar -->
       <FormInput
         v-if="isEditMode"
         label="Llave de Conexión"
@@ -304,7 +347,7 @@ defineExpose({ submit, isValid });
           <button
             class="btn btn-outline-secondary"
             type="button"
-            title="Generar nueva llave"
+            title="Regenerar llave de conexión"
             :disabled="props.generatingKey"
             @click.prevent="emit('generate-key')"
           >
@@ -312,13 +355,13 @@ defineExpose({ submit, isValid });
               :class="['fa-solid', props.generatingKey ? 'fa-spinner fa-spin' : 'fa-rotate']"
             ></i>
             <span class="ml-1 d-none d-sm-inline">
-              {{ props.generatingKey ? 'Generando…' : 'Regenerar' }}
+              {{ props.generatingKey ? "Generando…" : "Regenerar" }}
             </span>
           </button>
         </template>
       </FormInput>
 
-      <!-- ── SECCIÓN: Configuración comercial ──────────────────────────── -->
+      <!-- ── Configuración comercial ─────────────────────────────────────── -->
       <div class="col-12 mb-1 mt-2">
         <small class="text-muted text-uppercase font-weight-bold" style="letter-spacing:.05em;">
           <i class="fa-solid fa-gear fa-fw mr-1"></i>Configuración comercial
@@ -326,6 +369,11 @@ defineExpose({ submit, isValid });
         <hr class="mt-1 mb-2" />
       </div>
 
+      <!--
+        País y Teléfono en la misma fila (col-sm-6 cada uno).
+        Al cambiar el país, usePhoneField actualiza la máscara,
+        placeholder, validación y limpia el teléfono automáticamente.
+      -->
       <FormSelect
         label="País"
         name="country_id"
@@ -338,6 +386,27 @@ defineExpose({ submit, isValid });
         :error="errors.country_id"
         v-model="form.country_id"
       />
+
+      <!-- Teléfono: máscara IMask + validación dinámicas según el país -->
+      <FormInput
+        label="Teléfono"
+        name="phone"
+        required
+        col="col-sm-6"
+        :placeholder="form.country_id ? phonePlaceholder : 'Selecciona un país primero'"
+        :mask="phoneMask"
+        :disabled="!form.country_id"
+        :inputValidState="phoneValidState"
+        :error="phoneErrorDisplay"
+        v-model="phoneRef"
+        @focus="() => onPhoneFocus(phoneRef, (v) => { phoneRef = v; })"
+      >
+        <template #prepend>
+          <span class="input-group-text px-2">
+            <i class="fa-solid fa-phone fa-fw text-muted"></i>
+          </span>
+        </template>
+      </FormInput>
 
       <FormSelect
         v-if="form.country_id"
@@ -384,7 +453,7 @@ defineExpose({ submit, isValid });
       <FormSwitch
         label="¿Posee comisión?"
         name="has_commission"
-        :col="form.has_commission ? 'col-sm-6' : 'col-sm-6'"
+        col="col-sm-6"
         class="d-flex align-items-end pb-3"
         v-model="form.has_commission"
       />
@@ -416,7 +485,7 @@ defineExpose({ submit, isValid });
         v-model="form.allowed_games"
       />
 
-      <!-- ── SECCIÓN: Logo ───────────────────────────────────────────────── -->
+      <!-- ── Logo ────────────────────────────────────────────────────────── -->
       <div class="col-12 mb-1 mt-2">
         <small class="text-muted text-uppercase font-weight-bold" style="letter-spacing:.05em;">
           <i class="fa-solid fa-image fa-fw mr-1"></i>Logo
@@ -426,30 +495,24 @@ defineExpose({ submit, isValid });
 
       <div class="col-12">
         <div class="form-group">
-          <label for="logo">Logo <small class="text-muted">(PNG o JPG, máx. 2 MB)</small></label>
-
-          <div class="d-flex align-items-start gap-3" style="gap:1rem;">
-            <!-- Preview -->
+          <label for="logo">
+            Logo <small class="text-muted">(PNG o JPG, máx. 2 MB)</small>
+          </label>
+          <div class="d-flex align-items-start" style="gap:1rem;">
+            <!-- Preview / placeholder -->
             <div
-              v-if="logoPreview"
               class="border rounded d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0"
               style="width:80px;height:80px;background:#f8f9fa;"
             >
               <img
+                v-if="logoPreview"
                 :src="logoPreview"
                 alt="Preview logo"
                 style="max-width:100%;max-height:100%;object-fit:contain;"
               />
+              <i v-else class="fa-solid fa-image fa-2x text-muted" style="opacity:.35;"></i>
             </div>
-            <div
-              v-else
-              class="border rounded d-flex align-items-center justify-content-center flex-shrink-0 text-muted"
-              style="width:80px;height:80px;background:#f8f9fa;"
-            >
-              <i class="fa-solid fa-image fa-2x opacity-50"></i>
-            </div>
-
-            <!-- Input file + botón limpiar -->
+            <!-- Input file + botón quitar -->
             <div class="flex-grow-1">
               <input
                 id="logo"

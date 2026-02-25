@@ -59,6 +59,11 @@ return new class extends Migration
             // Precio Carton en USD
             $table->decimal('card_price_usd', 6, 2)->nullable()->comment('Precio del Cartón en USD');
 
+            // Incremento de redondeo
+            $table->decimal('usd_exchange_round_step', 4, 2)
+                ->nullable()
+                ->comment('Incremento de redondeo USD (null = sin redonde0, 1.00 = entero, 0.50 = múltiplos de 0.5)');
+
             // Monedas permitidas para el precio del cartón
             $table->json('allowed_currencies')->nullable()
                 ->comment('Monedas permitidas para el precio del cartón');

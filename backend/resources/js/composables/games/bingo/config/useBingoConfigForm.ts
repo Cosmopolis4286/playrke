@@ -88,7 +88,7 @@ export function useBingoConfigForm(
         }
 
         if (!form.value.numSerials) {
-            e.numSerials = 'El número de seriales es requerido.'
+            e.numSerials = 'Ingrese cantidad de seriales.'
         }
 
         // Validaciones simples
