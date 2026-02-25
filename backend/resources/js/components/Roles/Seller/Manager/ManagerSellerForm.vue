@@ -1,5 +1,5 @@
-<script setup lang="ts" name="AdminCommerceForm">
-  import { computed, watch, nextTick } from 'vue'
+<script setup lang="ts" name="ManagerSellerForm">
+  import { computed, ref, watch, nextTick } from 'vue'
 
   // Components
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
@@ -7,6 +7,7 @@
 
   // Composables
   import { useManagerSellerForm } from '@/js/composables/roles/seller/manager/useManagerSellerForm'
+  import { usePhoneField } from '@/js/composables/form/usePhoneField'
 
   // Types
   import type { Currency } from '@/js/types/currency'
@@ -37,13 +38,13 @@
   }>()
 
   /* ==========================================================================
-   * Form logic (PRO: computed v-model)
+   * Form logic
    * ========================================================================== */
 
   const { form, errors, isValid } = useManagerSellerForm(() => props.modelValue, emit)
 
   /* ==========================================================================
-   * Máscaras
+   * Máscara comisión
    * ========================================================================== */
 
   const commissionMask = {
@@ -59,7 +60,72 @@
   }
 
   /* ==========================================================================
-   * Filtered currencies by country
+   * Teléfono — usePhoneField
+   * ========================================================================== */
+
+  /** ISO-2 del país seleccionado */
+  const selectedIso2 = computed<string | null>(() => {
+    if (!form.value.country_id) return null
+    const match = props.countries.find(
+      // eslint-disable-next-line eqeqeq
+      (c) => c.id == form.value.country_id
+    )
+    return match?.iso_code_2 ?? null
+  })
+
+  /** Ref local del teléfono — fuente de verdad para usePhoneField */
+  const phoneRef = ref<string>(form.value.phone ?? '')
+
+  // form → phoneRef  (ej: al cargar en modo edición)
+  watch(
+    () => form.value.phone,
+    (v) => { if (v !== phoneRef.value) phoneRef.value = v ?? '' }
+  )
+
+  // phoneRef → form
+  watch(phoneRef, (v) => {
+    if (v !== form.value.phone) {
+      form.value = { ...form.value, phone: v }
+    }
+  })
+
+  const {
+    phoneMask,
+    phonePlaceholder,
+    phoneHint,
+    phoneDialPrefix,
+    phoneError,
+    isPhoneValid,
+  } = usePhoneField(
+    selectedIso2,
+    phoneRef,
+    (v) => { phoneRef.value = v }
+  )
+
+  // Al seleccionar un país, pre-rellenar el campo con el prefijo (+58, +55, +57)
+  watch(selectedIso2, (iso, prevIso) => {
+    if (iso && iso !== prevIso) {
+      nextTick(() => {
+        if (!phoneRef.value?.trim()) {
+          phoneRef.value = phoneDialPrefix.value
+        }
+      })
+    }
+  })
+
+  /** Error visible: validación de formato primero, luego campo requerido */
+  const phoneErrorDisplay = computed(
+    () => phoneError.value ?? errors.value.phone ?? null
+  )
+
+  /** Estado visual del campo teléfono */
+  const phoneValidState = computed<'valid' | 'invalid' | null>(() => {
+    if (!phoneRef.value?.trim()) return null
+    return isPhoneValid.value ? 'valid' : 'invalid'
+  })
+
+  /* ==========================================================================
+   * Filtered currencies / timezones by country
    * ========================================================================== */
 
   const filteredCurrencies = computed(() => {
@@ -74,37 +140,33 @@
     return props.timeZones.filter(tz => tz.country_id == form.value.country_id)
   })
 
-  // Computed para saber si hay una sola opción (no mostrar placeholder)
   const hasSingleCurrency = computed(() => filteredCurrencies.value.length === 1)
   const hasSingleTimeZone = computed(() => filteredTimeZones.value.length === 1)
 
-  // Otras monedas: todas las monedas excepto la principal seleccionada
   const otherCurrenciesOptions = computed(() => {
     if (!form.value.currency_id) return props.currencies
     // eslint-disable-next-line eqeqeq
     return props.currencies.filter(c => c.id != form.value.currency_id)
   })
 
-  // Auto-select currency and timezone when country changes
+  /* ==========================================================================
+   * Watchers
+   * ========================================================================== */
+
   watch(
     () => form.value.country_id,
-    async (newCountryId, oldCountryId) => {
-      // Solo resetear si cambió el país (no en la carga inicial con valor)
-      if (oldCountryId !== undefined) {
+    async (newVal, oldVal) => {
+      if (oldVal !== undefined) {
         form.value = { ...form.value, currency_id: null, time_zone_id: null, other_currencies: [] }
       }
-
-      if (!newCountryId) return
-
-      // Wait for DOM to update (v-if to show selects)
+      if (!newVal) return
       await nextTick()
 
       // eslint-disable-next-line eqeqeq
-      const currencies = props.currencies.filter(c => c.country_id == newCountryId)
+      const currencies = props.currencies.filter(c => c.country_id == newVal)
       // eslint-disable-next-line eqeqeq
-      const timeZones = props.timeZones.filter(tz => tz.country_id == newCountryId)
+      const timeZones = props.timeZones.filter(tz => tz.country_id == newVal)
 
-      // Auto-select si hay una sola opción
       form.value = {
         ...form.value,
         currency_id: currencies.length === 1 ? currencies[0].id : form.value.currency_id,
@@ -114,11 +176,10 @@
     { immediate: true }
   )
 
-  // Limpiar otras monedas cuando cambia la moneda principal
   watch(
     () => form.value.currency_id,
-    (newCurrencyId, oldCurrencyId) => {
-      if (oldCurrencyId !== undefined && newCurrencyId !== oldCurrencyId) {
+    (newVal, oldVal) => {
+      if (oldVal !== undefined && newVal !== oldVal) {
         form.value = { ...form.value, other_currencies: [] }
       }
     }
@@ -134,15 +195,9 @@
     return true
   }
 
-  /* ==========================================================================
-   * Expose
-   * ========================================================================== */
-
-  defineExpose({
-    submit,
-    isValid
-  })
+  defineExpose({ submit, isValid })
 </script>
+
 <template>
   <form id="seller-form" novalidate @submit.prevent="submit">
     <div class="row">
@@ -190,6 +245,27 @@
         v-model="form.country_id"
       />
 
+      <FormInput
+        label="Teléfono"
+        name="phone"
+        required
+        col="col-sm-6"
+        :placeholder="phonePlaceholder"
+        :mask="phoneMask"
+        :maskEmitFormatted="true"
+        :disabled="!form.country_id"
+        :inputValidState="phoneValidState"
+        :error="phoneErrorDisplay"
+        :hint="!phoneErrorDisplay && form.country_id ? phoneHint : (!form.country_id ? 'Selecciona un país primero' : undefined)"
+        v-model="phoneRef"
+      >
+        <template #prepend>
+          <span class="input-group-text px-2">
+            <i class="fa-solid fa-phone fa-fw text-muted"></i>
+          </span>
+        </template>
+      </FormInput>
+
       <FormSelect
         v-if="form.country_id"
         label="Zona Horaria"
@@ -201,16 +277,6 @@
         optionLabel="name"
         col="col-sm-6"
         v-model="form.time_zone_id"
-      />
-
-      <FormInput
-        label="Teléfono"
-        name="phone"
-        required
-        placeholder="Ingresa el número"
-        maxlength="20"
-        col="col-sm-6"
-        v-model="form.phone"
       />
 
       <FormSelect

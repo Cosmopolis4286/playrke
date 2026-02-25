@@ -123,7 +123,7 @@ export function usePhoneField(
         const config = activeConfig.value
         if (!config) return null
         if (!config.pattern.test(val)) {
-            return `Formato inválido. ${config.hint}`
+            return `Formato. ${config.hint}`
         }
         return null
     })

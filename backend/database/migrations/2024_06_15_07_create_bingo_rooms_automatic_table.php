@@ -53,12 +53,12 @@ return new class extends Migration
 
             $table->string('time_chip', 2)->nullable();
 
-            $table->tinyInteger('rounds', 2)->default(1);
+            $table->string('rounds', 2)->default('1');
             $table->decimal('rounds_pct', 5, 2)->nullable();
 
-            $table->enum('use_serials', ['Y', 'N'])->default('N');
+            $table->boolean('use_serials')->default(false);
             $table->decimal('serials_pct', 5, 2)->nullable();
-            $table->tinyInteger('num_serials', 2)->nullable();
+            $table->string('num_serials', 2)->nullable();
 
             $table->decimal('jackpot_pct', 5, 2)->nullable();
 

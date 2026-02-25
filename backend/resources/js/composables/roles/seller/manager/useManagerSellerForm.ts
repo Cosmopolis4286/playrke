@@ -65,6 +65,10 @@ export function useManagerSellerForm(
             e.country_id = 'El país es requerido.'
         }
 
+        if (!form.value.phone?.trim()) {
+            e.phone = 'El teléfono es requerido.'
+        }
+
         if (!form.value.currency_id) {
             e.currency_id = 'La moneda principal es requerida.'
         }

@@ -82,12 +82,12 @@ return new class extends Migration
             // Configuración de tiempo y rondas
             $table->string('time_chip', 2)->nullable()->comment('Duración del chip');
 
-            $table->tinyInteger('rounds', 2)->default(1)->comment('Número de rondas');
+            $table->string('rounds', 2)->default('1')->comment('Número de rondas');
             $table->decimal('rounds_pct', 5, 2)->nullable()->comment('Porcentaje aplicado a las rondas');
 
-            $table->enum('use_serials', ['Y', 'N'])->default('N');
+            $table->boolean('use_serials')->default(false);
             $table->decimal('serials_pct', 5, 2)->nullable()->comment('Porcentaje aplicado a seriales');
-            $table->tinyInteger('num_serials')->nullable()->comment('Número de seriales disponibles');
+            $table->string('num_serials', 2)->nullable()->comment('Número de seriales disponibles');
 
             $table->decimal('jackpot_pct', 5, 2)->nullable()->comment('Porcentaje destinado al jackpot');
 

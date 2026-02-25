@@ -52,10 +52,15 @@
 
   const inputId = computed(() => props.id ?? props.name)
 
-  /** Clases de estado: error prop tiene prioridad, luego inputValidState */
+  /**
+   * Clases de estado: error prop tiene prioridad, luego inputValidState.
+   * Dentro de input-group Bootstrap suprime el ícono de validación pero
+   * mantiene el padding-right extra → se añade no-validation-icon para resetearlo.
+   */
   const stateClasses = computed(() => ({
-    'is-invalid': !!props.error || props.inputValidState === 'invalid',
-    'is-valid':   !props.error && props.inputValidState === 'valid'
+    'is-invalid':          !!props.error || props.inputValidState === 'invalid',
+    'is-valid':            !props.error && props.inputValidState === 'valid',
+    'no-validation-icon':  useInputGroup.value,
   }))
 
   /** Hay slot prepend o append (para mostrar input-group automáticamente) */
@@ -63,18 +68,9 @@
   const hasAppend  = computed(() => !!slots.append)
   const useInputGroup = computed(() => props.inputGroup || hasPrepend.value || hasAppend.value)
 
-  /**
-   * Objeto de configuración que v-imask necesita para sincronizar
-   * el valor externo (modelValue) con la instancia IMask.
-   * Al incluir `value`, IMask aplica la máscara sobre el valor actual
-   * cada vez que el objeto cambia (ej: al cambiar de país).
-   */
   const imaskOptions = computed(() => {
     if (!props.mask) return null
-    return {
-      mask: props.mask,
-      value: String(props.modelValue ?? '')
-    }
+    return props.mask
   })
 
   function clampNumericValue(value: string | number): number {
@@ -261,3 +257,14 @@
     </small>
   </div>
 </template>
+
+<style scoped>
+/* Bootstrap agrega padding-right + background-image para el ícono de validación
+   en .is-valid / .is-invalid, pero dentro de .input-group ese ícono no se muestra.
+   Reseteamos solo el padding extra para evitar que el texto se corte. */
+.no-validation-icon.is-valid,
+.no-validation-icon.is-invalid {
+  padding-right: 0.75rem;
+  background-image: none;
+}
+</style>
