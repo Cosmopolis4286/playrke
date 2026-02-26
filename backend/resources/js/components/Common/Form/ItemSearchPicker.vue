@@ -167,9 +167,9 @@
           <slot name="chip" :item="item" :remove="() => removeItem(item.id)">
             <i class="fas fa-tag chip-icon"></i>
             <span class="chip-name">{{ item.name }}</span>
-            <button type="button" class="chip-remove" @click="removeItem(item.id)" title="Quitar">
-              <i class="fas fa-times"></i>
-            </button>
+            <span class="chip-remove" @click="removeItem(item.id)" role="button" title="Quitar">
+              <i class="fas fa-xmark"></i>
+            </span>
           </slot>
         </span>
       </TransitionGroup>
@@ -315,19 +315,25 @@
 }
 
 .chip-remove {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: #9db8e0;
-  font-size: 0.6rem;
-  line-height: 1;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  transition: color 0.15s;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #a8c4e8;
+  font-size: 0.65rem;
+  line-height: 1;
+  margin-left: 1px;
+  transition: background 0.15s, color 0.15s;
+  user-select: none;
 }
-.chip-remove:hover { color: #dc3545; }
+.chip-remove:hover {
+  background: #fecaca;
+  color: #dc2626;
+}
 
 /* ------------------------------------------------------------------ */
 /* Transiciones                                                        */
