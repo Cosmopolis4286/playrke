@@ -35,7 +35,7 @@ class PrizeRequest extends BaseRequest
 
         return [
             'code'        => ['sometimes', 'nullable', 'string', 'max:12', 'alpha_num'],
-            'reward_type' => [$isUpdate ? 'sometimes' : 'required', 'string', Rule::in(['PRODUCT', 'SERVICE'])],
+            'reward_type' => [$isUpdate ? 'sometimes' : 'required', 'string', Rule::in(['PRODUCT', 'SERVICE', 'MIXED'])],
             'name'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:60'],
             'kit'         => ['sometimes', 'string', Rule::in(['Y', 'N'])],
             'num_items'   => ['sometimes', 'integer', 'min:1', 'max:127'],
@@ -60,7 +60,7 @@ class PrizeRequest extends BaseRequest
             'code.alpha_num'       => 'El código solo puede contener letras y números.',
             'code.unique'          => 'Ya existe un premio con este código.',
             'reward_type.required' => 'El tipo de recompensa es obligatorio.',
-            'reward_type.in'       => 'El tipo debe ser PRODUCT o SERVICE.',
+            'reward_type.in'       => 'El tipo debe ser PRODUCT, SERVICE o MIXED.',
             'name.required'        => 'El nombre del premio es obligatorio.',
             'name.max'             => 'El nombre no puede tener más de 60 caracteres.',
             'kit.in'               => 'El campo kit debe ser Y o N.',

@@ -110,9 +110,16 @@ final class PrizeCrudService
                 continue;
             }
 
-            // Obtener los precios actualizados de todos los ítems del kit
-            $newKitPrice = Prize::whereIn('id', $itemIds)
-                ->sum('price');
+            // Sumar precio × cantidad (kit_items puede tener IDs repetidos)
+            $qtyCounts   = array_count_values(array_map('strval', $itemIds));
+            $unitPrices  = Prize::whereIn('id', array_keys($qtyCounts))
+                ->get(['id', 'price'])
+                ->keyBy(fn($p) => (string) $p->id);
+
+            $newKitPrice = 0;
+            foreach ($qtyCounts as $id => $qty) {
+                $newKitPrice += (float) ($unitPrices->get($id)?->price ?? 0) * $qty;
+            }
 
             $this->prizeRepository->update($kit->id, ['price' => (string) $newKitPrice]);
             $updated++;

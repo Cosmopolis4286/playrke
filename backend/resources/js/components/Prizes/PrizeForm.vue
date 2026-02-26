@@ -52,17 +52,17 @@
   const rewardTypeOptions = [
     { value: 'PRODUCT', label: 'Producto' },
     { value: 'SERVICE', label: 'Servicio' },
-    { value: 'MIXED',   label: 'Mixta' }
+    { value: 'MIXED', label: 'Mixta' }
   ]
 
   /* ==========================================================================
    * Helpers
    * ========================================================================== */
 
-  const isEdit   = computed(() => !!form.value.id)
-  const isMixed  = computed(() => form.value.reward_type === 'MIXED')
-  const isKit    = computed(() => form.value.kit === 'Y' || isMixed.value)
-  const kitIds   = computed(() => localKitItems.value.map(i => String(i.id)))
+  const isEdit = computed(() => !!form.value.id)
+  const isMixed = computed(() => form.value.reward_type === 'MIXED')
+  const isKit = computed(() => form.value.kit === 'Y' || isMixed.value)
+  const kitIds = computed(() => localKitItems.value.map(i => String(i.id)))
 
   // Cuando se selecciona MIXED, activar kit automáticamente
   watch(isMixed, val => {
@@ -83,6 +83,22 @@
 
   const kitPrice = computed(() =>
     localKitItems.value.reduce((sum, item) => sum + Number(item.price ?? 0), 0)
+  )
+
+  // Sincroniza kit_items (IDs con repetidos) y num_items cuando cambia el picker
+  watch(
+    localKitItems,
+    items => {
+      if (isKit.value) {
+        form.value = {
+          ...form.value,
+          kit_items: items.map(i => String(i.id)),
+          num_items: items.length,
+          price: kitPrice.value.toFixed(2)
+        }
+      }
+    },
+    { deep: true }
   )
 
   watch(kitPrice, val => {
@@ -244,13 +260,14 @@
               label="¿Es Kit?"
               name="kit_toggle"
               col=""
+              class="mb-0"
               :modelValue="kitToggle"
               :disabled="!canCreateKit || isMixed"
               @update:modelValue="kitToggle = $event"
             />
             <span v-if="isMixed" class="kit-unavailable-hint kit-mixed-hint">
               <i class="fas fa-info-circle"></i>
-              El tipo Mixta requiere kit obligatoriamente.
+              Recompensa Mixta requiere kit obligatoriamente.
             </span>
             <span v-else-if="!canCreateKit" class="kit-unavailable-hint">
               <i class="fas fa-info-circle"></i>
