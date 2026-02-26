@@ -49,11 +49,21 @@
    * Opciones estáticas
    * ========================================================================== */
 
-  const rewardTypeOptions = [
+  const rewardTypeOptions = computed(() => [
     { value: 'PRODUCT', label: 'Producto' },
     { value: 'SERVICE', label: 'Servicio' },
-    { value: 'MIXED', label: 'Mixta' }
-  ]
+    { value: 'MIXED', label: 'Mixta', disabled: !props.canCreateKit }
+  ])
+
+  // Si canCreateKit pasa a false estando MIXED seleccionado, limpiar la selección
+  watch(
+    () => props.canCreateKit,
+    canCreate => {
+      if (!canCreate && form.value.reward_type === 'MIXED') {
+        form.value = { ...form.value, reward_type: undefined }
+      }
+    }
+  )
 
   /* ==========================================================================
    * Helpers
@@ -162,8 +172,8 @@
       }
     }
 
-    if (form.value.kit === 'Y' && localKitItems.value.length === 0) {
-      e.kit_items = 'Agrega al menos un ítem al kit.'
+    if (form.value.kit === 'Y' && localKitItems.value.length < 2) {
+      e.kit_items = 'Agrega al menos 2 ítems al kit.'
     }
 
     return e
@@ -248,6 +258,12 @@
         :error="errors.reward_type"
         v-model="form.reward_type"
       />
+      <div v-if="!canCreateKit && !isEdit" class="col-12 mt-n2 mb-1">
+        <small class="text-muted">
+          <i class="fas fa-lock me-1"></i>
+          La opción <strong>Mixta</strong> requiere al menos 2 premios individuales.
+        </small>
+      </div>
 
       <!-- ------------------------------------------------------------------ -->
       <!-- Sección Kit                                                         -->

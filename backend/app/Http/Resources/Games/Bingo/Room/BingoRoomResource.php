@@ -32,23 +32,29 @@ class BingoRoomResource extends JsonResource
             'rounds_config' => $this->whenLoaded('rounds', function () {
                 $prizeTypeMap = ['PCT' => 'percentage', 'FIXED' => 'fixed', 'OTHER' => 'prize'];
                 return $this->rounds->map(function ($r) use ($prizeTypeMap) {
-                    $prizeType = $prizeTypeMap[$r->prize_type] ?? 'percentage';
-                    $config = [
+                    $prizeType  = $prizeTypeMap[$r->prize_type] ?? 'percentage';
+                    $prizes     = $r->relationLoaded('prizes') ? $r->prizes : collect();
+                    $pctPrize   = $prizes->first(); // PCT tiene un único registro
+
+                    $entry = [
                         'prizeType'    => $prizeType,
                         'bingoPattern' => $r->bingo_pattern_id,
-                        'prizeValue'   => $r->prize_value,
+                        'prizeValue'   => $prizeType === 'percentage' ? (float) ($pctPrize?->prize_value ?? 0) : null,
                     ];
-                    if ($prizeType === 'fixed' && $r->relationLoaded('prizes') && $r->prizes->isNotEmpty()) {
-                        $config['prizeValueByCurrency'] = $r->prizes
+
+                    if ($prizeType === 'fixed') {
+                        $entry['prizeValueByCurrency'] = $prizes
                             ->pluck('prize_value', 'currency_id')
                             ->map(fn($v) => (float) $v)
                             ->toArray();
                     }
-                    if ($prizeType === 'prize') {
-                        $config['prizeId']   = $r->prize_id;
-                        $config['prizeName'] = $r->relationLoaded('prize') ? $r->prize?->name : null;
+
+                    if ($prizeType === 'prize' && $pctPrize) {
+                        $entry['prizeId']   = $pctPrize->prize_id;
+                        $entry['prizeName'] = $pctPrize->relationLoaded('prize') ? $pctPrize->prize?->name : null;
                     }
-                    return $config;
+
+                    return $entry;
                 })->values();
             }),
 
@@ -66,13 +72,10 @@ class BingoRoomResource extends JsonResource
                 'rounds'                  => $config->rounds,
                 'rounds_pct'              => $config->rounds_pct,
                 'use_serials'             => $config->use_serials,
+                'serials_pct'             => $config->serials_pct,
+                'num_serials'             => $config->num_serials,
                 'in_live'                 => $config->in_live,
             ] : null,
-
-            if($config->use_serials==='Y'){
-                ['config']='serials_pct'             => $config->serials_pct,
-                ['config']='num_serials'             => $config->num_serials,
-            }
         ];
     }
 }

@@ -5,7 +5,6 @@ namespace App\Models\Games\Bingo\Round;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Pattern\BingoPattern;
 use App\Models\Games\Bingo\Room\User\BingoRoomWinner;
-use App\Models\Prize;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,8 +26,6 @@ class BingoRound extends Model
         'last_chip',
         'bingo_pattern_id',
         'prize_type',
-        'prize_value',
-        'prize_id',
         'status'
     ];
 
@@ -37,8 +34,6 @@ class BingoRound extends Model
         'round'            => 'integer',
         'start_time'       => 'datetime',
         'bingo_pattern_id' => 'string',
-        'prize_id'         => 'string',
-        'prize_value'      => 'decimal:6',
     ];
 
     /**
@@ -58,15 +53,7 @@ class BingoRound extends Model
     }
 
     /**
-     * Premio físico/servicio seleccionado (solo cuando prize_type = OTHER)
-     */
-    public function prize(): BelongsTo
-    {
-        return $this->belongsTo(Prize::class, 'prize_id');
-    }
-
-    /**
-     * Premios fijos por moneda (solo cuando prize_type = FIXED)
+     * Premio(s) de la ronda — PCT, FIXED y OTHER se almacenan en bingo_round_prizes
      */
     public function prizes(): HasMany
     {

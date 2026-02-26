@@ -54,7 +54,7 @@ final class BingoRoomCrudService
             throw BingoRoomException::notFound();
         }
 
-        $room->load(['config', 'status', 'cardPrices', 'rounds.prizes', 'rounds.prize']);
+        $room->load(['config', 'status', 'cardPrices', 'rounds.prizes', 'rounds.prizes.prize']);
 
         return new BingoRoomResource($room);
     }
@@ -314,61 +314,82 @@ final class BingoRoomCrudService
         $snowflakeService = app(\App\Services\Utils\Snowflake\SnowflakeBatchService::class);
         $ids = $snowflakeService->batch(count($roundsConfig));
 
-        $rows = [];
-        $fixedPrizes = []; // [round_id => [currency_id => value]]
+        $rows      = [];
+        $prizeRows = []; // [round_id => [ [...entry], ... ]]
 
         foreach ($roundsConfig as $index => $config) {
             $prizeType = $prizeTypeMap[$config['prizeType'] ?? 'percentage'] ?? 'PCT';
+            $roundId   = $ids[$index];
+
             $rows[] = [
-                'id'               => $ids[$index],
+                'id'               => $roundId,
                 'room_id'          => $roomId,
                 'round'            => $index + 1,
                 'bingo_pattern_id' => $config['bingoPattern'] ?? null,
                 'prize_type'       => $prizeType,
-                'prize_value'      => $prizeType !== 'FIXED' && isset($config['prizeValue'])
-                    ? (float) $config['prizeValue']
-                    : null,
-                'prize_id'         => $prizeType === 'OTHER' ? ($config['prizeId'] ?? null) : null,
                 'status'           => 'ACTIVE',
                 'created_at'       => now(),
                 'updated_at'       => now(),
             ];
 
+            // PCT — porcentaje sin moneda
+            if ($prizeType === 'PCT' && isset($config['prizeValue'])) {
+                $prizeRows[$roundId][] = [
+                    'currency_id'       => null,
+                    'prize_id'          => null,
+                    'prize_value'       => (float) $config['prizeValue'],
+                    'prize_description' => '',
+                ];
+            }
+
+            // FIXED — un registro por moneda
             if ($prizeType === 'FIXED' && !empty($config['prizeValueByCurrency'])) {
-                $fixedPrizes[$ids[$index]] = $config['prizeValueByCurrency'];
+                foreach ($config['prizeValueByCurrency'] as $currencyId => $value) {
+                    if ($value === null || $value === '' || (float) $value <= 0) {
+                        continue;
+                    }
+                    $prizeRows[$roundId][] = [
+                        'currency_id'       => $currencyId,
+                        'prize_id'          => null,
+                        'prize_value'       => (float) $value,
+                        'prize_description' => '',
+                    ];
+                }
+            }
+
+            // OTHER — premio físico, sin moneda ni valor numérico
+            if ($prizeType === 'OTHER' && !empty($config['prizeId'])) {
+                $prizeRows[$roundId][] = [
+                    'currency_id'       => null,
+                    'prize_id'          => $config['prizeId'],
+                    'prize_value'       => null,
+                    'prize_description' => $config['prizeName'] ?? '',
+                ];
             }
         }
 
         BingoRound::insert($rows);
 
-        // Insertar premios fijos por moneda
-        if (!empty($fixedPrizes)) {
-            $totalPrizes = array_sum(array_map('count', $fixedPrizes));
-            $prizeIds = $snowflakeService->batch($totalPrizes);
-            $prizeRows = [];
+        // Insertar todos los premios en bingo_round_prizes
+        if (!empty($prizeRows)) {
+            $totalPrizes  = array_sum(array_map('count', $prizeRows));
+            $prizeIds     = $snowflakeService->batch($totalPrizes);
             $prizeIdIndex = 0;
+            $insertRows   = [];
 
-            foreach ($fixedPrizes as $roundId => $byCurrency) {
-                foreach ($byCurrency as $currencyId => $value) {
-                    if ($value === null || $value === '' || (float) $value <= 0) {
-                        continue;
-                    }
-                    $prizeRows[] = [
-                        'id'                => $prizeIds[$prizeIdIndex++],
-                        'bingo_round_id'    => $roundId,
-                        'room_id'           => $roomId,
-                        'currency_id'       => $currencyId,
-                        'prize_value'       => (float) $value,
-                        'prize_description' => '',
-                        'created_at'        => now(),
-                        'updated_at'        => now(),
-                    ];
+            foreach ($prizeRows as $roundId => $entries) {
+                foreach ($entries as $entry) {
+                    $insertRows[] = array_merge([
+                        'id'             => $prizeIds[$prizeIdIndex++],
+                        'bingo_round_id' => $roundId,
+                        'room_id'        => $roomId,
+                        'created_at'     => now(),
+                        'updated_at'     => now(),
+                    ], $entry);
                 }
             }
 
-            if (!empty($prizeRows)) {
-                BingoRoundPrize::insert($prizeRows);
-            }
+            BingoRoundPrize::insert($insertRows);
         }
     }
 
@@ -404,7 +425,7 @@ final class BingoRoomCrudService
      */
     public function copyRoom(BingoRoom $room): bool
     {
-        $room->load(['config', 'cardPrices', 'rounds.prizes', 'rounds.prize']);
+        $room->load(['config', 'cardPrices', 'rounds.prizes', 'rounds.prizes.prize']);
 
         $config = $room->config;
 
