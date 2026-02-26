@@ -68,7 +68,7 @@
     if (!form.value.country_id) return null
     const match = props.countries.find(
       // eslint-disable-next-line eqeqeq
-      (c) => c.id == form.value.country_id
+      c => c.id == form.value.country_id
     )
     return match?.iso_code_2 ?? null
   })
@@ -79,28 +79,22 @@
   // form → phoneRef  (ej: al cargar en modo edición)
   watch(
     () => form.value.phone,
-    (v) => { if (v !== phoneRef.value) phoneRef.value = v ?? '' }
+    v => {
+      if (v !== phoneRef.value) phoneRef.value = v ?? ''
+    }
   )
 
   // phoneRef → form
-  watch(phoneRef, (v) => {
+  watch(phoneRef, v => {
     if (v !== form.value.phone) {
       form.value = { ...form.value, phone: v }
     }
   })
 
-  const {
-    phoneMask,
-    phonePlaceholder,
-    phoneHint,
-    phoneDialPrefix,
-    phoneError,
-    isPhoneValid,
-  } = usePhoneField(
-    selectedIso2,
-    phoneRef,
-    (v) => { phoneRef.value = v }
-  )
+  const { phoneMask, phonePlaceholder, phoneHint, phoneDialPrefix, phoneError, isPhoneValid } =
+    usePhoneField(selectedIso2, phoneRef, v => {
+      phoneRef.value = v
+    })
 
   // Al seleccionar un país, pre-rellenar el campo con el prefijo (+58, +55, +57)
   watch(selectedIso2, (iso, prevIso) => {
@@ -114,9 +108,7 @@
   })
 
   /** Error visible: validación de formato primero, luego campo requerido */
-  const phoneErrorDisplay = computed(
-    () => phoneError.value ?? errors.value.phone ?? null
-  )
+  const phoneErrorDisplay = computed(() => phoneError.value ?? errors.value.phone ?? null)
 
   /** Estado visual del campo teléfono */
   const phoneValidState = computed<'valid' | 'invalid' | null>(() => {
@@ -201,7 +193,14 @@
 <template>
   <form id="seller-form" novalidate @submit.prevent="submit">
     <div class="row">
-      <FormInput label="Razon Social" name="name" required col="col-sm-6" :error="errors.name" v-model="form.name" />
+      <FormInput
+        label="Razon Social"
+        name="name"
+        required
+        col="col-sm-6"
+        :error="errors.name"
+        v-model="form.name"
+      />
 
       <FormInput
         label="Username"
@@ -260,7 +259,13 @@
         :disabled="!form.country_id"
         :inputValidState="phoneValidState"
         :error="phoneErrorDisplay"
-        :hint="!phoneErrorDisplay && form.country_id ? phoneHint : (!form.country_id ? 'Selecciona un país primero' : undefined)"
+        :hint="
+          !phoneErrorDisplay && form.country_id
+            ? phoneHint
+            : !form.country_id
+              ? 'Selecciona un país primero'
+              : undefined
+        "
         v-model="phoneRef"
       >
         <template #prepend>
@@ -322,6 +327,7 @@
         optionValue="id"
         optionLabel="name"
         col="col-sm-6"
+        :error="errors.allowed_games"
         v-model="form.allowed_games"
       />
     </div>

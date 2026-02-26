@@ -17,7 +17,7 @@ return new class extends Migration
 
             // Datos del vendedor
             $table->string('name', 30)->comment('Nombre del vendedor');
-            $table->string('phone', 14)->nullable()->comment('Teléfono de contacto');
+            $table->string('phone', 20)->unique()->comment('Teléfono de contacto');
             $table->decimal('commission', 5, 2)->default(0.00)->comment('Comisión (%)');
 
             $table->foreignSnowflake('user_id')
