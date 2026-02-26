@@ -48,7 +48,7 @@ final class PrizeContextService
     public function resolvePrizes(): array
     {
         $labels  = ['Código', 'Nombre', 'Tipo', 'Kit', 'Ítems', 'Precio', 'Estado'];
-        $rowKeys = ['code', 'name', 'reward_type', 'kit', 'num_items', 'price', 'status_badge'];
+        $rowKeys = ['code', 'name', 'reward_type', 'kit', 'num_items', 'formatted_price', 'status_badge'];
 
         $source = $this->prizes->getPaginatedPrizes(
             perPage: 15,

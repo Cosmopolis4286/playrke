@@ -212,13 +212,13 @@ class Prize extends BaseModel
     }
 
     /**
-     * Obtiene el precio formateado
+     * Accessor: precio con símbolo $ para tablas (formatted_price)
      *
      * @return string
      */
-    public function getFormattedPrice(): string
+    public function getFormattedPriceAttribute(): string
     {
-        return number_format($this->price, 2);
+        return '$' . number_format((float) $this->price, 2, '.', ',');
     }
 
     /**
