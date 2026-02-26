@@ -58,14 +58,14 @@
    * mantiene el padding-right extra → se añade no-validation-icon para resetearlo.
    */
   const stateClasses = computed(() => ({
-    'is-invalid':          !!props.error || props.inputValidState === 'invalid',
-    'is-valid':            !props.error && props.inputValidState === 'valid',
-    'no-validation-icon':  useInputGroup.value,
+    'is-invalid': !!props.error || props.inputValidState === 'invalid',
+    'is-valid': !props.error && props.inputValidState === 'valid',
+    'no-validation-icon': useInputGroup.value
   }))
 
   /** Hay slot prepend o append (para mostrar input-group automáticamente) */
   const hasPrepend = computed(() => !!slots.prepend)
-  const hasAppend  = computed(() => !!slots.append)
+  const hasAppend = computed(() => !!slots.append)
   const useInputGroup = computed(() => props.inputGroup || hasPrepend.value || hasAppend.value)
 
   const imaskOptions = computed(() => {
@@ -85,9 +85,12 @@
 
   function onInput(event: Event) {
     const target = event.target as HTMLInputElement
-    const value  = target.value
+    const value = target.value
     if (props.type === 'number') {
-      if (value === '') { emit('update:modelValue', ''); return }
+      if (value === '') {
+        emit('update:modelValue', '')
+        return
+      }
       const adjusted = clampNumericValue(value)
       target.value = String(adjusted)
       emit('update:modelValue', adjusted)
@@ -98,9 +101,12 @@
 
   function onBlur(event: FocusEvent) {
     const target = event.target as HTMLInputElement
-    const value  = target.value
+    const value = target.value
     if (props.type === 'number') {
-      if (value === '') { emit('update:modelValue', ''); return }
+      if (value === '') {
+        emit('update:modelValue', '')
+        return
+      }
       const adjusted = clampNumericValue(value)
       target.value = String(adjusted)
       emit('update:modelValue', adjusted)
@@ -145,6 +151,7 @@
       <input
         v-if="imaskOptions"
         v-imask="imaskOptions"
+        :value="modelValue"
         :type="type"
         :id="inputId"
         :name="name"
@@ -207,6 +214,7 @@
     <input
       v-else-if="imaskOptions"
       v-imask="imaskOptions"
+      :value="modelValue"
       :type="type"
       :id="inputId"
       :name="name"
@@ -259,12 +267,12 @@
 </template>
 
 <style scoped>
-/* Bootstrap agrega padding-right + background-image para el ícono de validación
+  /* Bootstrap agrega padding-right + background-image para el ícono de validación
    en .is-valid / .is-invalid, pero dentro de .input-group ese ícono no se muestra.
    Reseteamos solo el padding extra para evitar que el texto se corte. */
-.no-validation-icon.is-valid,
-.no-validation-icon.is-invalid {
-  padding-right: 0.75rem;
-  background-image: none;
-}
+  .no-validation-icon.is-valid,
+  .no-validation-icon.is-invalid {
+    padding-right: 0.75rem;
+    background-image: none;
+  }
 </style>

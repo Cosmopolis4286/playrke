@@ -1,12 +1,14 @@
 export type PrizeStatus     = 'ACTIVE' | 'INACTIVE'
-export type PrizeRewardType = 'PRODUCT' | 'SERVICE'
+export type PrizeRewardType = 'PRODUCT' | 'SERVICE' | 'MIXED'
 export type PrizeKit        = 'Y' | 'N'
 
 export interface PrizeSearchResult {
-    id:    string | number
-    code:  string
-    name:  string
-    price: string | number
+    id:           string | number
+    code:         string
+    name:         string
+    price:        string | number
+    reward_type:  PrizeRewardType
+    description?: string | null
 }
 
 export interface Prize {

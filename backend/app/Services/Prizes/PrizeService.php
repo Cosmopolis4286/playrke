@@ -44,7 +44,7 @@ final class PrizeService
     /**
      * Buscar premios individuales (no-kit) por nombre o código.
      */
-    public function search(string $query, ?string $excludeId = null): array
+    public function search(string $query, ?string $excludeId = null, ?string $rewardType = null): array
     {
         return Prize::active()
             ->individual()
@@ -53,15 +53,18 @@ final class PrizeService
                 $q->where('name', 'like', "%{$query}%")
                   ->orWhere('code', 'like', "%{$query}%");
             })
-            ->when($excludeId, fn($q) => $q->where('id', '!=', $excludeId))
+            ->when($excludeId,  fn($q) => $q->where('id', '!=', $excludeId))
+            ->when($rewardType, fn($q) => $q->where('reward_type', $rewardType))
             ->orderBy('name')
             ->limit(15)
-            ->get(['id', 'code', 'name', 'price', 'reward_type', 'kit', 'status'])
+            ->get(['id', 'code', 'name', 'price', 'reward_type', 'description', 'kit', 'status'])
             ->map(fn ($p) => [
-                'id'    => $p->hashed_id,
-                'code'  => $p->code,
-                'name'  => $p->name,
-                'price' => $p->price,
+                'id'          => $p->hashed_id,
+                'code'        => $p->code,
+                'name'        => $p->name,
+                'price'       => $p->price,
+                'reward_type' => $p->reward_type,
+                'description' => $p->description,
             ])
             ->values()
             ->toArray();

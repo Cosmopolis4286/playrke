@@ -1,4 +1,9 @@
-<script setup lang="ts" name="ItemSearchPicker" generic="T extends { id: string | number; name: string }">
+<script
+  setup
+  lang="ts"
+  name="ItemSearchPicker"
+  generic="T extends { id: string | number; name: string }"
+>
   /**
    * ItemSearchPicker — Buscador + Panel de ítems seleccionados reutilizable.
    *
@@ -14,7 +19,7 @@
    *
    * Slots:
    *  - result(item: T)  — fila del dropdown (default: muestra item.name)
-   *  - chip(item: T)    — contenido del chip (default: muestra item.name)
+   *  - chip(item: T, qty: number, remove: fn, increment: fn, decrement: fn) — chip con cantidad
    *  - panel-header-right — zona derecha del header del panel (ej: total $)
    *
    * Emits:
@@ -23,22 +28,27 @@
 
   import { ref, computed, watch } from 'vue'
 
-  const props = withDefaults(defineProps<{
-    modelValue:  T[]
-    search:      (query: string) => Promise<T[]>
-    label?:      string
-    placeholder?: string
-    panelTitle?: string
-    error?:      string
-    debounce?:   number
-    minChars?:   number
-  }>(), {
-    label:       'Agregar ítems',
-    placeholder: 'Buscar...',
-    panelTitle:  'Ítems seleccionados',
-    debounce:    350,
-    minChars:    2,
-  })
+  const props = withDefaults(
+    defineProps<{
+      modelValue: T[]
+      search: (query: string) => Promise<T[]>
+      label?: string
+      placeholder?: string
+      panelTitle?: string
+      error?: string
+      debounce?: number
+      minChars?: number
+      chipLayout?: 'wrap' | 'list'
+    }>(),
+    {
+      label: 'Agregar ítems',
+      placeholder: 'Buscar...',
+      panelTitle: 'Ítems seleccionados',
+      debounce: 350,
+      minChars: 2,
+      chipLayout: 'wrap'
+    }
+  )
 
   const emit = defineEmits<{
     (e: 'update:modelValue', value: T[]): void
@@ -48,27 +58,34 @@
   /* Búsqueda con debounce                                               */
   /* ------------------------------------------------------------------ */
 
-  const searchQuery   = ref('')
+  const searchQuery = ref('')
   const searchResults = ref<T[]>([])
-  const searching     = ref(false)
-  let   debounceTimer: ReturnType<typeof setTimeout> | null = null
+  const searching = ref(false)
+  const isFocused = ref(false)
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+  let lastQuery = ''
 
-  const selectedIds = computed(() => new Set(props.modelValue.map(i => String(i.id))))
-
-  watch(searchQuery, (val) => {
+  watch(searchQuery, val => {
+    const trimmed = val.trim()
     if (debounceTimer) clearTimeout(debounceTimer)
-    if (!val.trim() || val.trim().length < props.minChars) {
+    if (!trimmed || trimmed.length < props.minChars) {
       searchResults.value = []
+      lastQuery = ''
       return
     }
-    debounceTimer = setTimeout(() => runSearch(val.trim()), props.debounce)
+    // Solo consulta si el query cambió
+    if (trimmed === lastQuery) return
+    debounceTimer = setTimeout(() => {
+      lastQuery = trimmed
+      runSearch(trimmed)
+    }, props.debounce)
   })
 
   async function runSearch(q: string) {
     searching.value = true
     try {
       const results = await props.search(q)
-      searchResults.value = results.filter(r => !selectedIds.value.has(String(r.id)))
+      searchResults.value = results
     } catch {
       searchResults.value = []
     } finally {
@@ -76,295 +93,511 @@
     }
   }
 
-  /* ------------------------------------------------------------------ */
-  /* Agregar / quitar                                                    */
-  /* ------------------------------------------------------------------ */
-
-  function addItem(item: T) {
-    emit('update:modelValue', [...props.modelValue, item])
-    searchQuery.value   = ''
-    searchResults.value = []
+  function onFocus() {
+    isFocused.value = true
   }
 
-  function removeItem(id: string | number) {
-    emit('update:modelValue', props.modelValue.filter(i => String(i.id) !== String(id)))
+  function onBlur() {
+    // Delay para permitir clicks en el dropdown
+    setTimeout(() => {
+      isFocused.value = false
+    }, 180)
   }
+
+  /* ------------------------------------------------------------------ */
+  /* Agrupación por id (qty)                                             */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Unique items con su cantidad. Orden de primera aparición.
+   */
+  const groupedItems = computed<Array<{ item: T; qty: number }>>(() => {
+    const map = new Map<string, { item: T; qty: number }>()
+    for (const i of props.modelValue) {
+      const key = String(i.id)
+      if (map.has(key)) {
+        map.get(key)!.qty++
+      } else {
+        map.set(key, { item: i, qty: 1 })
+      }
+    }
+    return Array.from(map.values())
+  })
+
+  /* ------------------------------------------------------------------ */
+  /* Agregar / quitar / incrementar / decrementar                        */
+  /* ------------------------------------------------------------------ */
+
+  function addItem(item: { id: string | number; name: string }) {
+    emit('update:modelValue', [...props.modelValue, item as T])
+  }
+
+  function removeAll(id: string | number) {
+    emit(
+      'update:modelValue',
+      props.modelValue.filter(i => String(i.id) !== String(id))
+    )
+  }
+
+  function increment(item: { id: string | number; name: string }) {
+    emit('update:modelValue', [...props.modelValue, item as T])
+  }
+
+  function decrement(id: string | number) {
+    // Elimina solo la última ocurrencia
+    const arr = [...props.modelValue]
+    const idx = arr.map(i => String(i.id)).lastIndexOf(String(id))
+    if (idx !== -1) arr.splice(idx, 1)
+    emit('update:modelValue', arr)
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Totales para el contador                                            */
+  /* ------------------------------------------------------------------ */
+
+  const totalQty = computed(() => props.modelValue.length)
 
   /* exponer para que el padre pueda limpiar */
-  defineExpose({ clear: () => { searchQuery.value = ''; searchResults.value = [] } })
+  defineExpose({
+    clear: () => {
+      searchQuery.value = ''
+      searchResults.value = []
+      lastQuery = ''
+    }
+  })
 </script>
 
 <template>
   <!-- ================================================================
-       Buscador
+       Contenedor principal con flexbox para reordenar
        ================================================================ -->
-  <div class="isp-search-wrapper">
-    <p class="isp-search-label">
-      <slot name="label-icon"><i class="fas fa-layer-group"></i></slot>
-      {{ label }}
-    </p>
+  <div class="isp-root" :class="{ 'isp-focused': isFocused }">
 
-    <div class="input-group input-group-sm">
-      <span class="input-group-text">
-        <i :class="searching ? 'fas fa-spinner fa-spin' : 'fas fa-search'" style="width:14px"></i>
-      </span>
-      <input
-        type="text"
-        class="form-control"
-        :placeholder="placeholder"
-        v-model="searchQuery"
-        autocomplete="off"
-      />
+    <!-- ================================================================
+         Buscador
+         ================================================================ -->
+    <div class="isp-search-wrapper">
+      <p class="isp-search-label">
+        <slot name="label-icon"><i class="fas fa-layer-group"></i></slot>
+        {{ label }}
+      </p>
+
+      <div class="input-group input-group-sm">
+        <span class="input-group-text">
+          <i :class="searching ? 'fas fa-spinner fa-spin' : 'fas fa-search'" style="width: 14px"></i>
+        </span>
+        <input
+          type="text"
+          class="form-control"
+          :placeholder="placeholder"
+          v-model="searchQuery"
+          autocomplete="off"
+          @focus="onFocus"
+          @blur="onBlur"
+        />
+      </div>
+
+      <!-- Dropdown de resultados (siempre bajo el input) -->
+      <Transition name="isp-dropdown">
+        <div v-if="isFocused && searchResults.length > 0" class="isp-results">
+          <button
+            v-for="result in searchResults"
+            :key="String(result.id)"
+            type="button"
+            class="isp-result-item"
+            @mousedown.prevent="addItem(result)"
+          >
+            <slot name="result" :item="result">
+              <span class="r-name">{{ result.name }}</span>
+              <span class="r-add"><i class="fas fa-plus-circle"></i></span>
+            </slot>
+          </button>
+        </div>
+      </Transition>
+
+      <small v-if="error" class="text-danger d-block mt-1">
+        <i class="fas fa-exclamation-circle"></i> {{ error }}
+      </small>
     </div>
 
-    <!-- Dropdown de resultados -->
-    <Transition name="isp-dropdown">
-      <div v-if="searchResults.length > 0" class="isp-results">
-        <button
-          v-for="result in searchResults"
-          :key="String(result.id)"
-          type="button"
-          class="isp-result-item"
-          @click="addItem(result)"
-        >
-          <slot name="result" :item="result">
-            <span class="r-name">{{ result.name }}</span>
-            <span class="r-add"><i class="fas fa-plus-circle"></i></span>
-          </slot>
-        </button>
+    <!-- ================================================================
+         Panel de ítems seleccionados
+         ================================================================ -->
+    <Transition name="isp-slide-fade">
+      <div v-if="modelValue.length > 0" class="isp-panel">
+        <div class="isp-panel-header">
+          <span class="isp-panel-title">
+            <slot name="panel-icon"><i class="fas fa-boxes"></i></slot>
+            {{ panelTitle }}
+          </span>
+          <div class="isp-panel-header-right">
+            <span class="isp-count">
+              {{ totalQty }} ítem{{ totalQty !== 1 ? 's' : '' }}
+            </span>
+            <slot name="panel-header-right" />
+          </div>
+        </div>
+
+        <TransitionGroup name="isp-chip" tag="div" class="isp-chips" :class="`isp-chips--${chipLayout}`">
+          <span
+            v-for="{ item, qty } in groupedItems"
+            :key="String(item.id)"
+            class="isp-chip"
+            :class="{ 'isp-chip--row': chipLayout === 'list' }"
+          >
+            <slot
+              name="chip"
+              :item="item"
+              :qty="qty"
+              :remove="() => removeAll(item.id)"
+              :increment="() => increment(item)"
+              :decrement="() => decrement(item.id)"
+            >
+              <i class="fas fa-tag chip-icon"></i>
+              <span class="chip-name">{{ item.name }}</span>
+              <span v-if="qty > 1" class="chip-qty">×{{ qty }}</span>
+              <span class="chip-remove" @click="removeAll(item.id)" role="button" title="Quitar">
+                <i class="fas fa-xmark"></i>
+              </span>
+            </slot>
+          </span>
+        </TransitionGroup>
       </div>
     </Transition>
 
-    <small v-if="error" class="text-danger d-block mt-1">
-      <i class="fas fa-exclamation-circle"></i> {{ error }}
-    </small>
   </div>
-
-  <!-- ================================================================
-       Panel de ítems seleccionados
-       ================================================================ -->
-  <Transition name="isp-slide-fade">
-    <div v-if="modelValue.length > 0" class="isp-panel">
-      <div class="isp-panel-header">
-        <span class="isp-panel-title">
-          <slot name="panel-icon"><i class="fas fa-boxes"></i></slot>
-          {{ panelTitle }}
-        </span>
-        <div class="isp-panel-header-right">
-          <span class="isp-count">
-            {{ modelValue.length }} ítem{{ modelValue.length !== 1 ? 's' : '' }}
-          </span>
-          <slot name="panel-header-right" />
-        </div>
-      </div>
-
-      <TransitionGroup name="isp-chip" tag="div" class="isp-chips">
-        <span
-          v-for="item in modelValue"
-          :key="String(item.id)"
-          class="isp-chip"
-        >
-          <slot name="chip" :item="item" :remove="() => removeItem(item.id)">
-            <i class="fas fa-tag chip-icon"></i>
-            <span class="chip-name">{{ item.name }}</span>
-            <span class="chip-remove" @click="removeItem(item.id)" role="button" title="Quitar">
-              <i class="fas fa-xmark"></i>
-            </span>
-          </slot>
-        </span>
-      </TransitionGroup>
-    </div>
-  </Transition>
 </template>
 
 <style scoped>
-/* ------------------------------------------------------------------ */
-/* Buscador                                                            */
-/* ------------------------------------------------------------------ */
-.isp-search-wrapper {
-  position: relative;
-}
+  /* ------------------------------------------------------------------ */
+  /* Root                                                                 */
+  /* ------------------------------------------------------------------ */
+  .isp-root {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 
-.isp-search-label {
-  font-size: 0.775rem;
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 0.3rem;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
+  /* Cuando está enfocado, el dropdown queda encima del panel visualmente
+     pero el DOM no se reordena — el z-index + position:absolute lo maneja */
 
-.isp-results {
-  position: absolute;
-  top: calc(100% + 2px);
-  left: 0;
-  right: 0;
-  z-index: 200;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 0.3rem;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-  max-height: 200px;
-  overflow-y: auto;
-}
+  /* ------------------------------------------------------------------ */
+  /* Buscador */
+  /* ------------------------------------------------------------------ */
+  .isp-search-wrapper {
+    position: relative;
+  }
 
-.isp-result-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.38rem 0.7rem;
-  background: none;
-  border: none;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-  text-align: left;
-  font-size: 0.815rem;
-  transition: background 0.12s;
-}
-.isp-result-item:last-child { border-bottom: none; }
-.isp-result-item:hover      { background: #eef4ff; }
+  .isp-search-label {
+    font-size: 0.775rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
 
-/* slots de result — clases públicas para el consumidor */
-:deep(.r-code)  { font-family: monospace; font-size: 0.72rem; background: #f1f3f5; color: #6c757d; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
-:deep(.r-name)  { flex: 1; font-weight: 500; color: #212529; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-:deep(.r-price) { color: #198754; font-size: 0.77rem; flex-shrink: 0; }
-:deep(.r-add)   { color: #0d6efd; flex-shrink: 0; font-size: 0.85rem; }
+  .isp-results {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.3rem;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    max-height: 220px;
+    overflow-y: auto;
+  }
 
-/* ------------------------------------------------------------------ */
-/* Panel                                                               */
-/* ------------------------------------------------------------------ */
-.isp-panel {
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 0.3rem;
-  padding: 0.45rem 0.7rem 0.55rem;
-}
+  .isp-result-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.38rem 0.7rem;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.815rem;
+    transition: background 0.12s;
+  }
 
-.isp-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.4rem;
-}
+  .isp-result-item:last-child {
+    border-bottom: none;
+  }
 
-.isp-panel-title {
-  font-size: 0.775rem;
-  font-weight: 600;
-  color: #495057;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
+  .isp-result-item:hover {
+    background: #eef4ff;
+  }
 
-.isp-panel-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+  /* ---------------- SLOT RESULT ---------------- */
 
-.isp-count {
-  font-size: 0.7rem;
-  font-weight: 700;
-  background: #0d6efd;
-  color: #fff;
-  border-radius: 1rem;
-  padding: 1px 8px;
-  line-height: 1.7;
-}
+  :deep(.r-code) {
+    font-family: monospace;
+    font-size: 0.72rem;
+    background: #f1f3f5;
+    color: #6c757d;
+    padding: 1px 5px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
 
-/* ------------------------------------------------------------------ */
-/* Chips                                                               */
-/* ------------------------------------------------------------------ */
-.isp-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
+  :deep(.r-name) {
+    flex: 1;
+    font-weight: 500;
+    color: #212529;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-.isp-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  background: #e8f0fe;
-  border: 1px solid #c5d8f9;
-  border-radius: 1rem;
-  padding: 0.18rem 0.45rem 0.18rem 0.55rem;
-  font-size: 0.775rem;
-  color: #1a56b0;
-  white-space: nowrap;
-  max-width: 220px;
-}
+  :deep(.r-price) {
+    color: #198754;
+    font-size: 0.77rem;
+    flex-shrink: 0;
+  }
 
-.chip-icon  { font-size: 0.58rem; color: #7aa3e0; flex-shrink: 0; }
+  :deep(.r-add) {
+    color: #0d6efd;
+    flex-shrink: 0;
+    font-size: 0.85rem;
+  }
 
-.chip-name {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 500;
-}
+  /* ------------------------------------------------------------------ */
+  /* Panel */
+  /* ------------------------------------------------------------------ */
 
-:deep(.chip-price) {
-  font-size: 0.68rem;
-  color: #198754;
-  font-weight: 600;
-  flex-shrink: 0;
-}
+  .isp-panel {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.3rem;
+    padding: 0.45rem 0.7rem 0.55rem;
+  }
 
-.chip-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  cursor: pointer;
-  color: #a8c4e8;
-  font-size: 0.65rem;
-  line-height: 1;
-  margin-left: 1px;
-  transition: background 0.15s, color 0.15s;
-  user-select: none;
-}
-.chip-remove:hover {
-  background: #fecaca;
-  color: #dc2626;
-}
+  .isp-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+  }
 
-/* ------------------------------------------------------------------ */
-/* Transiciones                                                        */
-/* ------------------------------------------------------------------ */
-.isp-dropdown-enter-active,
-.isp-dropdown-leave-active {
-  transition: opacity 0.13s ease, transform 0.13s ease;
-}
-.isp-dropdown-enter-from,
-.isp-dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
+  .isp-panel-title {
+    font-size: 0.775rem;
+    font-weight: 600;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
 
-.isp-slide-fade-enter-active,
-.isp-slide-fade-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
-}
-.isp-slide-fade-enter-from,
-.isp-slide-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
+  .isp-panel-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
 
-.isp-chip-enter-active,
-.isp-chip-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-.isp-chip-enter-from,
-.isp-chip-leave-to {
-  opacity: 0;
-  transform: scale(0.8);
-}
+  .isp-count {
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #0d6efd;
+    color: #fff;
+    border-radius: 1rem;
+    padding: 1px 8px;
+    line-height: 1.7;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Chips */
+  /* ------------------------------------------------------------------ */
+
+  .isp-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  /* layout lista (filas tipo factura) */
+  .isp-chips--list {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+  }
+
+  .isp-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #e8f0fe;
+    border: 1px solid #c5d8f9;
+    border-radius: 1rem;
+    padding: 0.18rem 0.45rem 0.18rem 0.55rem;
+    font-size: 0.775rem;
+    color: #1a56b0;
+    white-space: nowrap;
+    max-width: 260px;
+  }
+
+  /* En modo lista: ocupa todo el ancho, sin pill */
+  .isp-chip--row {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .chip-qty {
+    font-size: 0.65rem;
+    font-weight: 700;
+    background: #0d6efd;
+    color: #fff;
+    border-radius: 0.6rem;
+    padding: 0 5px;
+    line-height: 1.55;
+    flex-shrink: 0;
+  }
+
+  /* ---------------- SLOT CHIP ---------------- */
+
+  :deep(.chip-icon) {
+    font-size: 0.58rem;
+    color: #7aa3e0;
+    flex-shrink: 0;
+  }
+
+  :deep(.chip-name) {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  :deep(.chip-price) {
+    font-size: 0.68rem;
+    color: #198754;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  :deep(.chip-qty-badge) {
+    font-size: 0.65rem;
+    font-weight: 700;
+    background: #0d6efd;
+    color: #fff;
+    border-radius: 0.6rem;
+    padding: 0 5px;
+    line-height: 1.55;
+    flex-shrink: 0;
+  }
+
+  :deep(.chip-qty-controls) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    flex-shrink: 0;
+  }
+
+  :deep(.chip-qty-btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: none;
+    border: none;
+    outline: none;
+    padding: 0;
+    cursor: pointer;
+    color: #7aa3e0;
+    font-size: 0.6rem;
+    line-height: 1;
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+
+  :deep(.chip-qty-btn:hover) {
+    background: #c5d8f9;
+    color: #1a56b0;
+  }
+
+  :deep(.chip-remove) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    cursor: pointer;
+    color: #a8c4e8;
+    font-size: 0.65rem;
+    line-height: 1;
+    margin-left: 1px;
+    background: none;
+    border: none;
+    outline: none;
+    padding: 0;
+    transition:
+      background 0.15s,
+      color 0.15s;
+    user-select: none;
+  }
+
+  :deep(.chip-remove:hover) {
+    background: #fecaca;
+    color: #dc2626;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Transiciones */
+  /* ------------------------------------------------------------------ */
+
+  .isp-dropdown-enter-active,
+  .isp-dropdown-leave-active {
+    transition:
+      opacity 0.13s ease,
+      transform 0.13s ease;
+  }
+
+  .isp-dropdown-enter-from,
+  .isp-dropdown-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  .isp-slide-fade-enter-active,
+  .isp-slide-fade-leave-active {
+    transition:
+      opacity 0.18s ease,
+      transform 0.18s ease;
+  }
+
+  .isp-slide-fade-enter-from,
+  .isp-slide-fade-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  .isp-chip-enter-active,
+  .isp-chip-leave-active {
+    transition:
+      opacity 0.15s ease,
+      transform 0.15s ease;
+  }
+
+  .isp-chip-enter-from,
+  .isp-chip-leave-to {
+    opacity: 0;
+    transform: scale(0.8);
+  }
 </style>

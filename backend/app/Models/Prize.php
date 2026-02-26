@@ -43,6 +43,7 @@ class Prize extends BaseModel
     public const REWARD_TYPES = [
         'PRODUCT' => 'Producto',
         'SERVICE' => 'Servicio',
+        'MIXED'   => 'Mixta',
     ];
 
     /**

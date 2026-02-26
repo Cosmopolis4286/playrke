@@ -14,7 +14,7 @@ return new class extends Migration
 
             $table->string('code', 12)->comment('Código único del premio');
             $table->string('slug', 80);
-            $table->enum('reward_type', ['PRODUCT', 'SERVICE'])->comment('Tipo de recompensa');
+            $table->enum('reward_type', ['PRODUCT', 'SERVICE', 'MIXED'])->comment('Tipo de recompensa');
             $table->string('name', 60);
             $table->decimal('price', 12, 2);
             $table->string('description', 255)->nullable();

@@ -75,11 +75,12 @@ final class PrizeController extends Controller
      */
     public function search(Request $request): JsonResponse
     {
-        $query     = (string) $request->query('q', '');
-        $excludeId = $request->query('exclude');
+        $query      = (string) $request->query('q', '');
+        $excludeId  = $request->query('exclude');
+        $rewardType = $request->query('reward_type');
 
         return $this->handleServiceJson(
-            fn() => ['data' => $this->service->search($query, $excludeId)]
+            fn() => ['data' => $this->service->search($query, $excludeId, $rewardType)]
         );
     }
 
