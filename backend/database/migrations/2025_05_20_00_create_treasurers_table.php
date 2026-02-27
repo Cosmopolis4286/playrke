@@ -14,14 +14,14 @@ return new class extends Migration
 
             $table->string('name', 75)->comment('Nombre del tesorero');
 
+            $table->string('phone', 20)->unique()->comment('Teléfono de contacto');
+
+            $table->decimal('commission', 5, 2)->nullable()->comment('Comisión (%)');
+
             $table->foreignSnowflake('country_id')
                 ->constrained('countries')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
-
-            $table->string('phone', 20)->nullable()->comment('Teléfono de contacto');
-
-            $table->decimal('commission', 5, 2)->nullable()->comment('Comisión (%)');
 
             $table->foreignSnowflake('user_id')
                 ->constrained('users')

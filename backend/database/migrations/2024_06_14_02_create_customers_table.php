@@ -31,6 +31,7 @@ return new class extends Migration
             // ============================================
             $table->string('name', 255)->comment('Nombre del cliente');
             $table->string('business_name', 255)->nullable()->comment('Razón social del cliente');
+            $table->decimal('commission', 5, 2)->nullable()->comment('Comisión (%) por defecto');
 
             // ============================================
             // DATOS DE CONTACTO

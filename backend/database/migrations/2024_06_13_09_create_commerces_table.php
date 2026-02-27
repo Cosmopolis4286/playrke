@@ -17,7 +17,7 @@ return new class extends Migration
 
             // Datos del comercio
             $table->string('name', 30)->comment('Nombre del comercio');
-            $table->decimal('commission', 5, 2)->default(25)->comment('Comisión (%) por defecto');
+            $table->decimal('commission', 5, 2)->comment('Comisión (%) por defecto');
             $table->string('phone', 20)->unique()->comment('Teléfono del comercio');
 
             // Relaciones Snowflake

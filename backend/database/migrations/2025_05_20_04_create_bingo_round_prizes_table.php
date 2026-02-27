@@ -26,6 +26,7 @@ return new class extends Migration
                 ->comment('Moneda asociada a la tasa');
 
             $table->foreignSnowflake('prize_id')
+                ->nullable()
                 ->constrained('prizes')
                 ->nullOnDelete()
                 ->comment('ID del premio si existe uno asociado');
