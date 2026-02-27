@@ -34,7 +34,6 @@ class GenerateTsRoutesByModule extends Command
         'info',
         'report',
         'prizes',
-        'other-treasurers',
         'pagomovil',
         'payment',
         'payment_accounts_co',
