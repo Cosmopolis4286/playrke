@@ -27,7 +27,6 @@ const props = defineProps<{
   timeZones: TimeZone[];
   games: Game[];
   modelValue: Partial<Treasurer>;
-  generatingKey?: boolean;
 }>();
 
 /* ==========================================================================
@@ -37,14 +36,13 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "submit"): void;
   (e: "update:modelValue", value: Partial<Treasurer>): void;
-  (e: "generate-key"): void;
 }>();
 
 /* ==========================================================================
  * Form logic
  * ========================================================================== */
 
-const { form, errors, isValid, isEditMode } = useAdminTreasurerForm(
+const { form, errors, isValid } = useAdminTreasurerForm(
   () => props.modelValue,
   emit
 );
@@ -66,49 +64,23 @@ const commissionMask = {
 };
 
 /* ==========================================================================
- * Ruta API — estado visual
- * ========================================================================== */
-
-const apiRouteState = computed<"valid" | "invalid" | null>(() => {
-  const val = form.value.api_route?.trim();
-  if (!val) return null;
-  try {
-    const url = new URL(val);
-    return url.protocol === "https:" || url.protocol === "http:" ? "valid" : "invalid";
-  } catch {
-    return "invalid";
-  }
-});
-
-/* ==========================================================================
  * Teléfono — usePhoneField
- *
- * Necesitamos un ref local sincronizado con form.phone porque
- * usePhoneField necesita un Ref mutable (no un ComputedRef).
  * ========================================================================== */
 
-/** ISO-2 del país seleccionado */
 const selectedIso2 = computed<string | null>(() => {
   if (!form.value.country_id) return null;
-  const match = props.countries.find(
-    // eslint-disable-next-line eqeqeq
-    (c) => c.id == form.value.country_id
-  );
+  // eslint-disable-next-line eqeqeq
+  const match = props.countries.find((c) => c.id == form.value.country_id);
   return match?.iso_code_2 ?? null;
 });
 
-/** Ref local del teléfono — fuente de verdad para usePhoneField */
 const phoneRef = ref<string>(form.value.phone ?? "");
 
-// form → phoneRef  (ej: al cargar en modo edición)
 watch(
   () => form.value.phone,
-  (v) => {
-    if (v !== phoneRef.value) phoneRef.value = v ?? "";
-  }
+  (v) => { if (v !== phoneRef.value) phoneRef.value = v ?? ""; }
 );
 
-// phoneRef → form
 watch(phoneRef, (v) => {
   if (v !== form.value.phone) {
     form.value = { ...form.value, phone: v };
@@ -128,11 +100,8 @@ const {
   (v) => { phoneRef.value = v; }
 );
 
-// Al seleccionar un país, pre-rellenar el campo con el prefijo (+58, +55, +57).
-// flush:'post' garantiza que se ejecuta DESPUÉS del watch de limpieza en usePhoneField.
 watch(selectedIso2, (iso, prevIso) => {
   if (iso && iso !== prevIso) {
-    // nextTick para que usePhoneField ya haya limpiado el valor
     nextTick(() => {
       if (!phoneRef.value?.trim()) {
         phoneRef.value = phoneDialPrefix.value;
@@ -141,49 +110,14 @@ watch(selectedIso2, (iso, prevIso) => {
   }
 });
 
-/** Error visible: validación de formato primero, luego campo requerido */
 const phoneErrorDisplay = computed(
   () => phoneError.value ?? errors.value.phone ?? null
 );
 
-/** Estado visual del campo teléfono */
 const phoneValidState = computed<"valid" | "invalid" | null>(() => {
   if (!phoneRef.value?.trim()) return null;
   return isPhoneValid.value ? "valid" : "invalid";
 });
-
-/* ==========================================================================
- * Logo — preview
- * ========================================================================== */
-
-const logoPreview = ref<string | null>(null);
-
-function onLogoChange(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0];
-  if (!file) {
-    logoPreview.value = null;
-    form.value = { ...form.value, logo: undefined };
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = (e) => { logoPreview.value = e.target?.result as string; };
-  reader.readAsDataURL(file);
-  form.value = { ...form.value, logo: file as any };
-}
-
-function clearLogo() {
-  logoPreview.value = null;
-  form.value = { ...form.value, logo: undefined };
-}
-
-watch(
-  () => form.value.logo,
-  (val) => {
-    if (typeof val === "string" && val) logoPreview.value = val;
-    else if (!val) logoPreview.value = null;
-  },
-  { immediate: true }
-);
 
 /* ==========================================================================
  * Filtered currencies / timezones by country
@@ -270,7 +204,7 @@ defineExpose({ submit, isValid });
 </script>
 
 <template>
-  <form id="commerce-form" novalidate @submit.prevent="submit">
+  <form id="treasurer-form" novalidate @submit.prevent="submit">
     <div class="row">
 
       <!-- ── Datos de acceso ─────────────────────────────────────────────── -->
@@ -282,7 +216,7 @@ defineExpose({ submit, isValid });
       </div>
 
       <FormInput
-        label="Razón Social"
+        label="Nombre completo"
         name="name"
         required
         col="col-sm-6"
@@ -311,82 +245,14 @@ defineExpose({ submit, isValid });
         v-model="form.email"
       />
 
-      <!-- ── Integración API ─────────────────────────────────────────────── -->
-      <div class="col-12 mb-1 mt-2">
-        <small class="text-muted text-uppercase font-weight-bold" style="letter-spacing:.05em;">
-          <i class="fa-solid fa-plug fa-fw mr-1"></i>Integración API
-        </small>
-        <hr class="mt-1 mb-2" />
-      </div>
-
-      <FormInput
-        label="Ruta API"
-        name="api_route"
-        type="url"
-        required
-        col="col-12"
-        placeholder="https://www.api.com/"
-        :error="errors.api_route"
-        :inputValidState="!errors.api_route && apiRouteState === 'valid' ? 'valid' : null"
-        v-model="form.api_route"
-      >
-        <template #prepend>
-          <span class="input-group-text px-2">
-            <i
-              :class="[
-                'fa-solid fa-fw',
-                apiRouteState === 'valid'
-                  ? 'fa-circle-check text-success'
-                  : apiRouteState === 'invalid'
-                  ? 'fa-circle-xmark text-danger'
-                  : 'fa-link text-muted',
-              ]"
-            ></i>
-          </span>
-        </template>
-      </FormInput>
-
-      <FormInput
-        v-if="isEditMode"
-        label="Llave de Conexión"
-        name="treasurer_key"
-        col="col-12"
-        :disabled="true"
-        :readonly="true"
-        inputClass="font-monospace text-muted"
-        v-model="form.treasurer_key"
-      >
-        <template #append>
-          <button
-            class="btn btn-outline-secondary"
-            type="button"
-            title="Regenerar llave de conexión"
-            :disabled="props.generatingKey"
-            @click.prevent="emit('generate-key')"
-          >
-            <i
-              :class="['fa-solid', props.generatingKey ? 'fa-spinner fa-spin' : 'fa-rotate']"
-            ></i>
-            <span class="ml-1 d-none d-sm-inline">
-              {{ props.generatingKey ? "Generando…" : "Regenerar" }}
-            </span>
-          </button>
-        </template>
-      </FormInput>
-
       <!-- ── Configuración comercial ─────────────────────────────────────── -->
       <div class="col-12 mb-1 mt-2">
         <small class="text-muted text-uppercase font-weight-bold" style="letter-spacing:.05em;">
-          <i class="fa-solid fa-gear fa-fw mr-1"></i>Configuración comercial
+          <i class="fa-solid fa-gear fa-fw mr-1"></i>Configuración
         </small>
         <hr class="mt-1 mb-2" />
       </div>
 
-      <!--
-        País y Teléfono en la misma fila (col-sm-6 cada uno).
-        Al cambiar el país, usePhoneField actualiza la máscara,
-        placeholder, validación y limpia el teléfono automáticamente.
-      -->
       <FormSelect
         label="País"
         name="country_id"
@@ -400,11 +266,6 @@ defineExpose({ submit, isValid });
         v-model="form.country_id"
       />
 
-      <!--
-        Teléfono: la máscara IMask incluye el prefijo como literal fijo (+58, +55, +57).
-        maskEmitFormatted=true para guardar el valor con formato (+58 0414-...) y no
-        solo los dígitos crudos. La validación compara contra ese valor formateado.
-      -->
       <FormInput
         label="Teléfono"
         name="phone"
@@ -503,56 +364,6 @@ defineExpose({ submit, isValid });
         :error="errors.allowed_games"
         v-model="form.allowed_games"
       />
-
-      <!-- ── Logo ────────────────────────────────────────────────────────── -->
-      <div class="col-12 mb-1 mt-2">
-        <small class="text-muted text-uppercase font-weight-bold" style="letter-spacing:.05em;">
-          <i class="fa-solid fa-image fa-fw mr-1"></i>Logo
-        </small>
-        <hr class="mt-1 mb-2" />
-      </div>
-
-      <div class="col-12">
-        <div class="form-group">
-          <label for="logo">
-            Logo <small class="text-muted">(PNG o JPG, máx. 2 MB)</small>
-          </label>
-          <div class="d-flex align-items-start" style="gap:1rem;">
-            <!-- Preview / placeholder -->
-            <div
-              class="border rounded d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0"
-              style="width:80px;height:80px;background:#f8f9fa;"
-            >
-              <img
-                v-if="logoPreview"
-                :src="logoPreview"
-                alt="Preview logo"
-                style="max-width:100%;max-height:100%;object-fit:contain;"
-              />
-              <i v-else class="fa-solid fa-image fa-2x text-muted" style="opacity:.35;"></i>
-            </div>
-            <!-- Input file + botón quitar -->
-            <div class="flex-grow-1">
-              <input
-                id="logo"
-                name="logo"
-                type="file"
-                class="form-control-file"
-                accept="image/png, image/jpeg"
-                @change="onLogoChange"
-              />
-              <button
-                v-if="logoPreview"
-                type="button"
-                class="btn btn-sm btn-outline-danger mt-1"
-                @click.prevent="clearLogo"
-              >
-                <i class="fa-solid fa-trash fa-fw"></i> Quitar logo
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
 
     </div>
   </form>

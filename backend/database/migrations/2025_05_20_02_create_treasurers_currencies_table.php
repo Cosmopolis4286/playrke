@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('treasurers_currencies', function (Blueprint $table) {
-            // Comercio
-            $table->foreignSnowflake('commerce_id')
+            // Tesorero
+            $table->foreignSnowflake('treasurer_id')
                 ->constrained('treasurers')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
-                ->comment('Comercio asociado');
+                ->comment('Tesorero asociado');
 
             // Moneda
             $table->foreignSnowflake('currency_id')
@@ -42,8 +42,8 @@ return new class extends Migration
             $table->softDeletes();
 
             // Índices para optimizar búsquedas frecuentes
-            $table->primary(['commerce_id', 'currency_id']);
-            $table->index(['commerce_id', 'currency_id'], 'idx_commerce_currency');
+            $table->primary(['treasurer_id', 'currency_id']);
+            $table->index(['treasurer_id', 'currency_id'], 'idx_treasurer_currency');
         });
     }
 

@@ -4,7 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Roles\AdminController;
 use App\Http\Controllers\Roles\Admin\AdminCommerceController;
 use App\Http\Controllers\Roles\Admin\AdminCustomerController;
-use App\Http\Controllers\Roles\Treasurer\{TreasurerController, OtherTreasurersController};
+use App\Http\Controllers\Roles\Admin\AdminTreasurerController;
+use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
 
 /*
 |--------------------------------------------------------------------------
@@ -50,11 +51,6 @@ Route::middleware('auth')->group(function () {
                 'method' => 'get',
                 'uri'    => 'treasurers',
                 'action' => 'treasurers',
-            ],
-            'other-treasurers' => [
-                'method' => 'get',
-                'uri'    => 'other-treasurers',
-                'action' => 'otherTreasurers',
             ],
             'subsidiaries' => [
                 'method' => 'get',
@@ -124,8 +120,7 @@ Route::middleware('auth')->group(function () {
 
     role_protected_routes(['role:admin'], 'admin/commerce', AdminCommerceController::class, $adminCrudRoutes, 'commerce');
     role_protected_routes(['role:admin'], 'admin/customer', AdminCustomerController::class, $adminCrudRoutes, 'customer');
-    role_protected_routes(['role:admin'], 'admin/treasurer', TreasurerController::class, $adminCrudRoutes, 'treasurer');
-    role_protected_routes(['role:admin'], 'admin/other-treasurers', OtherTreasurersController::class, $adminCrudRoutes, 'otherTreasurer');
+    role_protected_routes(['role:admin'], 'admin/treasurer', AdminTreasurerController::class, $adminCrudRoutes, 'commerce');
 
     // Generación de llave de conexión para Customer
     Route::middleware('role:admin')

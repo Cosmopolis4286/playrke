@@ -11,7 +11,7 @@ interface UseAdminTreasurerReturn {
     /** Datos del tesorero (para crear o editar) */
     treasurerData: Ref<Partial<Treasurer>>
 
-    /** Lista reactiva de comercializadoras */
+    /** Lista reactiva de tesoreros */
     treasurers: Ref<Treasurer[]>
 
     /** Inicializa la lista local */
@@ -47,9 +47,6 @@ interface UseAdminTreasurerReturn {
     /** Fetch desde backend */
     fetchTreasurers: () => Promise<boolean>
 
-    /** Genera una nueva llave de conexión desde el backend */
-    generateKey: () => Promise<boolean>
-
     /** Estado de carga */
     loading: Ref<boolean>
 }
@@ -73,7 +70,7 @@ const emptyTreasurer = (): Partial<Treasurer> =>
     })
 
 /**
- * Composable para manejar comercializadoras
+ * Composable para manejar tesoreros
  *
  * Responsabilidades:
  * - Control del estado del formulario (create / edit / reset)
@@ -82,33 +79,21 @@ const emptyTreasurer = (): Partial<Treasurer> =>
  *
  * ⚠️ No controla UI directamente
  */
-export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn {
-    /** Estado de carga global */
+export function useAdminTreasurer(): UseAdminTreasurerReturn {
     const loading = ref(false)
-
-    /** Estado único del formulario */
     const treasurerData = ref<Partial<Treasurer>>(emptyTreasurer())
-
-    /** Lista reactiva local */
     const treasurers = ref<Treasurer[]>([])
 
-    /**
-     * Inicializa la lista local
-     */
     function setInitialTreasurers(initialTreasurers: Treasurer[]) {
         treasurers.value = [...initialTreasurers]
     }
 
-    /**
-     * Obtiene la lista desde backend
-     */
     async function fetchTreasurers(): Promise<boolean> {
         try {
             loading.value = true
 
             const response = await backendClient.get<{ data: Treasurer[] }>(
-                '/admin/treasurer/fetch-list',
-                { params: { token: tokenId } }
+                '/admin/treasurer/fetch-list'
             )
 
             if (Array.isArray(response.data?.data)) {
@@ -118,7 +103,7 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
             return true
         } catch (error) {
             console.error(error)
-            showToast('Error al cargar las comercializadoras', 'error')
+            showToast('Error al cargar los tesoreros', 'error')
             return false
         } finally {
             loading.value = false
@@ -136,14 +121,10 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
             country: country_id,
             currency: currency_id,
             time_zone: time_zone_id,
-            // Si no tiene comisión, enviar null para limpiarla
             commission: has_commission ? rest.commission : null
         }
     }
 
-    /**
-     * Envío del formulario (create / update)
-     */
     async function submit(): Promise<boolean> {
         if (loading.value) return false
 
@@ -157,13 +138,13 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
                     `/admin/treasurer/${treasurerData.value.id}/update`,
                     payload
                 )
-                showToast('Actualización exitosa', 'success')
+                showToast('Tesorero actualizado con éxito', 'success')
             } else {
                 const { data } = await backendClient.post(
                     '/admin/treasurer',
                     payload
                 )
-                showToast('Registro exitoso', 'success')
+                showToast('Tesorero creado con éxito', 'success')
                 await showPasswordModal(data.password)
             }
 
@@ -173,7 +154,7 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
         } catch (error: any) {
             console.error(error)
             showToast(
-                error?.response?.data?.message ?? 'Error al guardar la comercializadora',
+                error?.response?.data?.message ?? 'Error al guardar el tesorero',
                 'error'
             )
             return false
@@ -182,16 +163,10 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
         }
     }
 
-    /**
-     * Modo creación
-     */
     function create(): void {
         treasurerData.value = { ...emptyTreasurer() }
     }
 
-    /**
-     * Modo edición
-     */
     async function edit(id: string | number): Promise<boolean> {
         if (loading.value) return false
 
@@ -203,23 +178,18 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
             )
 
             const treasurer = data.data
-
             const commission = treasurer.commission ?? ''
+
             treasurerData.value = {
                 id: treasurer.id,
                 name: treasurer.name,
                 phone: treasurer.phone,
                 has_commission: !!commission && commission !== '0.00' && commission !== '0',
                 commission,
-                api_route: treasurer.api_route ?? '',
-                treasurer_key: treasurer.treasurer_key ?? '',
-                // Datos del usuario anidado
                 username: treasurer.user?.username,
                 email: treasurer.user?.email,
                 time_zone_id: treasurer.user?.time_zone_id,
-                // Country viene como objeto {id, name}
                 country_id: treasurer.country?.id,
-                // Currency viene como string (id)
                 currency_id: treasurer.currency,
                 other_currencies: treasurer.other_currencies ?? [],
                 allowed_games: treasurer.allowed_games ?? []
@@ -228,26 +198,20 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
             return true
         } catch (error) {
             console.error(error)
-            showToast('Error al cargar la comercializadora', 'error')
+            showToast('Error al cargar el tesorero', 'error')
             return false
         } finally {
             loading.value = false
         }
     }
 
-    /**
-     * Reset del formulario
-     */
     function reset(): void {
         treasurerData.value = { ...emptyTreasurer() }
     }
 
-    /**
-     * Alternar estado (ACTIVE / INACTIVE) del tesorero.
-     */
     async function toggleStatus(id: string | number): Promise<boolean> {
         const treasurer = treasurers.value.find(c => c.id === id)
-        const name = treasurer?.name ?? 'esta comercializadora'
+        const name = treasurer?.name ?? 'este tesorero'
 
         const confirm = await showToastConfirmAction({
             html: `¿Quieres cambiar el estado de <b>${name}</b>?`,
@@ -268,15 +232,12 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
         }
     }
 
-    /**
-     * Resetea la contraseña de una comercializadora
-     */
     async function resetPassword(id: string | number): Promise<boolean> {
         const treasurer = treasurers.value.find(c => c.id === id)
-        const name = treasurer?.name ?? 'esta comercializadora'
+        const name = treasurer?.name ?? 'este tesorero'
 
         if (treasurer?.status !== 'ACTIVE') {
-            showToast('Solo se puede resetear la contraseña de comercializadoras activas', 'warning')
+            showToast('Solo se puede resetear la contraseña de tesoreros activos', 'warning')
             return false
         }
 
@@ -304,12 +265,9 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
         }
     }
 
-    /**
-     * Eliminación (soft delete)
-     */
     async function remove(id: string | number): Promise<boolean> {
         const treasurer = treasurers.value.find(c => c.id === id)
-        const name = treasurer?.name ?? 'esta comercializadora'
+        const name = treasurer?.name ?? 'este tesorero'
 
         const confirm = await showToastConfirmAction({
             html: `¿Estás seguro que deseas eliminar <b>${name}</b>?`,
@@ -321,18 +279,15 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
 
         try {
             await backendClient.put(`/admin/treasurer/${id}/delete`)
-            showToast('Comercializadora eliminada con éxito', 'success')
+            showToast('Tesorero eliminado con éxito', 'success')
             await fetchTreasurers()
             return true
         } catch {
-            showToast('Error al eliminar la comercializadora', 'error')
+            showToast('Error al eliminar el tesorero', 'error')
             return false
         }
     }
 
-    /**
-     * Genera HTML con lista de nombres para mostrar en el modal de confirmación
-     */
     function buildItemListHtml(ids: (string | number)[]): string {
         const items = ids
             .map(id => treasurers.value.find(c => c.id === id))
@@ -348,13 +303,9 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
         `
     }
 
-    /**
-     * Alternar estado (masivo)
-     */
     async function toggleStatusBulk(ids: (string | number)[]): Promise<boolean> {
         if (ids.length === 0) return false
 
-        // Si es solo uno, usar el flujo individual
         if (ids.length === 1) {
             return toggleStatus(ids[0])
         }
@@ -362,7 +313,7 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
         const itemListHtml = buildItemListHtml(ids)
 
         const confirm = await showToastConfirmAction({
-            html: `¿Quieres cambiar el estado de estas ${ids.length} comercializadoras?${itemListHtml}`,
+            html: `¿Quieres cambiar el estado de estos ${ids.length} tesoreros?${itemListHtml}`,
             icon: 'warning',
             confirmButtonText: 'Sí, cambiar estado'
         })
@@ -373,7 +324,7 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
             for (const id of ids) {
                 await backendClient.put(`/admin/treasurer/${id}/status`)
             }
-            showToast(`Estado cambiado con éxito para ${ids.length} comercializadoras`, 'success')
+            showToast(`Estado cambiado con éxito para ${ids.length} tesoreros`, 'success')
             await fetchTreasurers()
             return true
         } catch {
@@ -382,13 +333,9 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
         }
     }
 
-    /**
-     * Eliminación masiva (soft delete)
-     */
     async function removeBulk(ids: (string | number)[]): Promise<boolean> {
         if (ids.length === 0) return false
 
-        // Si es solo uno, usar el flujo individual
         if (ids.length === 1) {
             return remove(ids[0])
         }
@@ -396,7 +343,7 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
         const itemListHtml = buildItemListHtml(ids)
 
         const confirm = await showToastConfirmAction({
-            html: `¿Estás seguro que deseas eliminar estas ${ids.length} comercializadoras?${itemListHtml}`,
+            html: `¿Estás seguro que deseas eliminar estos ${ids.length} tesoreros?${itemListHtml}`,
             icon: 'warning',
             confirmButtonText: 'Sí, eliminar'
         })
@@ -407,45 +354,12 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
             for (const id of ids) {
                 await backendClient.put(`/admin/treasurer/${id}/delete`)
             }
-            showToast(`${ids.length} comercializadoras eliminadas con éxito`, 'success')
+            showToast(`${ids.length} tesoreros eliminados con éxito`, 'success')
             await fetchTreasurers()
             return true
         } catch {
-            showToast('Error al eliminar las comercializadoras', 'error')
+            showToast('Error al eliminar los tesoreros', 'error')
             return false
-        }
-    }
-
-    /**
-     * Genera una nueva llave de conexión desde el backend.
-     * En modo edición se pasa el ID; en creación se genera sin ID.
-     */
-    async function generateKey(): Promise<boolean> {
-        if (loading.value) return false
-
-        try {
-            loading.value = true
-
-            const params = treasurerData.value.id
-                ? { id: treasurerData.value.id }
-                : {}
-
-            const { data } = await backendClient.post<{ key: string }>(
-                '/admin/treasurer/generate-key',
-                params
-            )
-
-            if (data?.key) {
-                treasurerData.value = { ...treasurerData.value, treasurer_key: data.key }
-            }
-
-            return true
-        } catch (error) {
-            console.error(error)
-            showToast('Error al generar la llave de conexión', 'error')
-            return false
-        } finally {
-            loading.value = false
         }
     }
 
@@ -463,7 +377,6 @@ export function useAdminTreasurer(tokenId: string = ''): UseAdminTreasurerReturn
         resetPassword,
         remove,
         removeBulk,
-        fetchTreasurers,
-        generateKey
+        fetchTreasurers
     }
 }

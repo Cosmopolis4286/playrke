@@ -33,6 +33,20 @@
                     <p>Tesoreros</p>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('admin.sellers') }}" title="Vendedores"
+                    class="nav-link {{ !Route::is('admin.sellers') ?: 'active' }}"> <i
+                        class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Vendedores</p>
+                </a>
+            </li>
+            {{-- <li class="nav-item">
+                <a href="{{ route('admin.players') }}" title="Jugadores"
+                    class="nav-link {{ !Route::is('admin.players') ?: 'active' }}"> <i
+                        class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Jugadores</p>
+                </a>
+            </li> --}}
         </ul>
     </li>
 </x-template.sidebar>

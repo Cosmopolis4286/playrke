@@ -3,15 +3,6 @@ import type { Treasurer } from '@/js/types/roles/treasurer/treasurer'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function isValidUrl(val: string): boolean {
-    try {
-        const url = new URL(val)
-        return url.protocol === 'https:' || url.protocol === 'http:'
-    } catch {
-        return false
-    }
-}
-
 /**
  * Composable para formulario de Tesoreros
  *
@@ -59,13 +50,6 @@ export function useAdminTreasurerForm(
             e.email = 'El email es requerido.'
         } else if (!EMAIL_RE.test(email)) {
             e.email = 'Ingresa un email válido.'
-        }
-
-        const apiRoute = form.value.api_route?.trim() ?? ''
-        if (!apiRoute) {
-            e.api_route = 'La ruta API es requerida.'
-        } else if (!isValidUrl(apiRoute)) {
-            e.api_route = 'Ingresa una URL válida (ej: https://api.ejemplo.com/).'
         }
 
         if (form.value.has_commission) {

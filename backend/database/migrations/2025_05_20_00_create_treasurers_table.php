@@ -19,26 +19,30 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
 
-            $table->foreignSnowflake('currency_id')
-                ->constrained('currencies')
-                ->cascadeOnUpdate()
-                ->cascadeOnDelete()
-                ->comment('ID de moneda asociada');
-
             $table->string('phone', 20)->nullable()->comment('Teléfono de contacto');
+
+            $table->decimal('commission', 5, 2)->nullable()->comment('Comisión (%)');
 
             $table->foreignSnowflake('user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
 
+            $table->foreignSnowflake('unique_code_id')
+                ->nullable()
+                ->constrained('unique_codes')
+                ->nullOnDelete()
+                ->comment('Código único asociado');
+
             $table->uuid('uuid_code')->unique()->comment('Identificador único universal');
 
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED', 'DELETED'])
                 ->default('ACTIVE')
                 ->index();
 
             $table->timestamps();
+
+            $table->softDeletes();
 
             // Índice compuesto si consultas frecuentes por país y estado
             $table->index(['country_id', 'status']);

@@ -20,7 +20,6 @@ role_protected_routes(['admin'], 'admin', AdminController::class, [
     'commerces' => ['method' => 'get', 'uri' => 'commerces'],
     'sellers' => ['method' => 'get', 'uri' => 'sellers'],
     'treasurers' => ['method' => 'get', 'uri' => 'treasurers'],
-    'other-treasurers' => ['method' => 'get', 'uri' => 'other-treasurers'],
     'subsidiaries' => ['method' => 'get', 'uri' => 'subsidiaries'],
     'users' => ['method' => 'get', 'uri' => 'users'],
     'getUserInfo' => ['method' => 'get', 'uri' => 'get-user-info/{userRole}/{exclude?}'],

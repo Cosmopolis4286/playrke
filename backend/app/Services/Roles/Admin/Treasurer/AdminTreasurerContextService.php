@@ -15,7 +15,6 @@ final class AdminTreasurerContextService
         private readonly \App\Contracts\CountryRepositoryInterface $countries,
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
         private readonly \App\Contracts\GameRepositoryInterface $games,
-        private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
         private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones
     ) {}
 
@@ -46,7 +45,7 @@ final class AdminTreasurerContextService
     public function resolveTreasurers(): array
     {
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
+        $rowKeys = ['name', 'country.name', 'phone', 'user.email', 'status_badge'];
 
         $source = $this->treasurers->paginateWithRelations(
             perPage: 15,

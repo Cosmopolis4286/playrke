@@ -75,6 +75,25 @@ class AdminController extends Controller
      *
      * @return Response
      */
+    public function seller(): Response
+    {
+        return $this->handleServiceInertia(
+            function () {
+                $response = $this->service->context('sellers');
+
+                $response['title'] = 'Vendedores';
+
+                return Inertia::render('Roles/Admin/Seller/Index', $response);
+            },
+            'No se pudo cargar la lista de vendedores.'
+        );
+    }
+
+    /**
+     * Muestra el listado de tesoreros usando Inertia.
+     *
+     * @return Response
+     */
     public function treasurers(): Response
     {
         return $this->handleServiceInertia(

@@ -54,10 +54,10 @@ class AdminTreasurerRequest extends BaseRequest
             'allowed_games.*'    => ['string', 'exists:games,id'],
         ];
 
-        // Regla unique para phone (excluye el comercio actual en update)
+        // Regla unique para phone (excluye el tesorero actual en update)
         $rules['phone'][] = $commerceId
-            ? Rule::unique('commerces', 'phone')->ignore($commerceId)
-            : Rule::unique('commerces', 'phone');
+            ? Rule::unique('treasurers', 'phone')->ignore($commerceId)
+            : Rule::unique('treasurers', 'phone');
 
         // Reglas para username y email
         if ($isUpdate) {
