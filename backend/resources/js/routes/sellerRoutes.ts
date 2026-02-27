@@ -22,5 +22,5 @@ export const sellerRoutes = {
   cartonPrice: "/seller/bingo/carton/price/{roomId}",
   paymentDetails: "/seller/payment-details/{currency}",
   salesReportPlayer: "/seller/bingo/sales-report/{room}/player/{playerLink}",
-  generateCarton: "/seller/bingo/generate-card",
+  generateCard: "/seller/bingo/generate-card",
 } as const;

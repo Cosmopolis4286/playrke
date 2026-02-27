@@ -5,7 +5,7 @@
 
 export default defineNuxtPlugin(() => {
   // Generar cartón de bingo aleatorio
-  const generateCarton = (id: number) => {
+  const generateCard = (id: number) => {
     const carton: number[][] = []
 
     for (let col = 0; col < 5; col++) {
@@ -73,7 +73,7 @@ export default defineNuxtPlugin(() => {
   return {
     provide: {
       gameEngine: {
-        generateCarton,
+        generateCard,
         checkBingo,
         markNumber
       }

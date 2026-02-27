@@ -226,7 +226,7 @@
             if (isLogged || player === 'GAMES') return;
 
             $.ajax({
-                url: route('bingo.generateCarton'),
+                url: route('bingo.generateCard'),
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': $('#5K3_70K').val()

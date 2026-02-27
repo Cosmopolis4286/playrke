@@ -86,8 +86,9 @@ route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'role:ad
  * OPERACIONES DE JUEGO
  * ====================================
  */
-route_group('bingo', 'bingo.', ['auth'], BingoCardController::class, [
+route_group('bingo', 'bingo.', ['auth', 'role:admin,commerce,seller'], BingoCardController::class, [
     'generate-card'    => ['method' => 'get', 'uri' => 'generate-card', 'action' => 'viewGenerateCard'],
+    'generate-card-store'    => ['method' => 'post', 'uri' => 'generate-card-store', 'action' => 'generateCard'],
     'call-number'      => ['method' => 'post', 'uri' => 'room/{roomId}/call-number'],
     'participate'      => ['method' => 'put',  'uri' => 'participate/public-room/{id?}/{getOut?}'],
     'notify-payment'   => ['method' => 'post', 'uri' => 'carton/notify/payment/win-ctn'],

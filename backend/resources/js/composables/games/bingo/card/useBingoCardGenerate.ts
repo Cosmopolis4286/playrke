@@ -1,425 +1,199 @@
-import { ref, Ref } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import backendClient from '@/js/plugins/axios'
-import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
+import { showToast } from '@/js/utils/toastNotify'
 
-import type { BingoCardGenerate, BingoCardGenerateFormData } from '@/js/types/games/bingo/room/bingo-room'
+export interface Room {
+    id: string
+    uuid_code: string
+    prize_pool: number
+    config?: {
+        card_price_usd: number | null
+    }
+}
 
-/**
- * Contrato público del composable useBingoCardGenerate
- */
-interface UseBingoCardGenerateReturn {
-    /** Datos de la sala (para crear o editar) */
-    roomData: Ref<Partial<BingoCardGenerate>>
+export interface Country {
+    id: number
+    name: string
+}
 
-    /** Datos del formulario de creación */
-    roomFormData: Ref<BingoCardGenerateFormData>
+export interface Player {
+    phone: string
+    name: string
+    lastName: string
+}
 
-    /** Lista reactiva de salas */
-    rooms: Ref<BingoCardGenerate[]>
-
-    /** Inicializa la lista local */
-    setInitialRooms: (initialBingoCardGenerates: BingoCardGenerate[]) => void
-
-    /** Envío del formulario */
-    submit: () => Promise<boolean>
-
-    /** Modo creación */
-    create: () => void
-
-    /** Modo edición */
-    edit: (id: string | number) => Promise<boolean>
-
-    /** Reset del formulario */
-    reset: () => void
-
-    /** Copiar sala como borrador */
-    copyRoom: (id: string | number) => Promise<boolean>
-
-    /** Cambio de estado (individual) */
-    toggleStatus: (id: string | number) => Promise<boolean>
-
-    /** Cambio de estado masivo */
-    toggleStatusBulk: (ids: (string | number)[]) => Promise<boolean>
-
-    /** Eliminación (individual) */
-    remove: (id: string | number) => Promise<boolean>
-
-    /** Eliminación masiva */
-    removeBulk: (ids: (string | number)[]) => Promise<boolean>
-
-    /** Fetch desde backend */
-    fetchRooms: () => Promise<boolean>
+export interface generateCardPayload {
+    room_id: string
+    num_ctns: number
+    country_id: number | null
+    player: {
+        phone: string
+        name: string
+        last_name: string
+    }
 }
 
 /**
- * Factory para una sala vacía
- */
-const emptyBingoCardGenerate = (): Partial<BingoCardGenerate> =>
-    Object.freeze({})
-
-/**
- * Factory para formulario vacío
- */
-const emptyFormData = (): BingoCardGenerateFormData => ({
-    date: null,
-    time: null,
-    roomType: null,
-    gameMode: null,
-    prizePoolType: null,
-    allowedCurrencies: [],
-    amountAddedPrizePool: null,
-    roomCommn: 20,
-    jackpotPct: null,
-    timeChip: 5,
-    rounds: 1,
-    roundsPct: null,
-    serialsPct: 5,
-    numSerials: 5,
-    cardPrice: 1,
-    cardPriceByCurrency: {},
-    roundsConfig: [],
-    isDraft: true
-})
-
-/**
- * Composable para manejar salas de bingo
+ * Composable para la generación de cartones de Bingo (rol seller).
  *
  * Responsabilidades:
- * - Control del estado del formulario (create / edit / reset)
- * - Envío de datos (POST / PUT)
- * - Gestión local de la lista
+ * - Estado del formulario de venta
+ * - Carga de países disponibles por sala
+ * - Cálculos de montos (total, comisión, monto banca)
+ * - Llamada al endpoint POST /bingo/generate-card
  */
-export function useBingoCardGenerate(tokenId: string = ''): UseBingoCardGenerateReturn {
-    /** Estado de carga global */
+export function useBingogenerateCard(sellerCommn: number) {
+    // ─── Estado ────────────────────────────────────────────────────────────────
+
+    const selectedRoom = ref<Room | null>(null)
+    const numCtns = ref<number>(1)
+    const selectedCountry = ref<number | null>(null)
     const loading = ref(false)
+    const countries = ref<Country[]>([])
+    const loadingCountries = ref(false)
 
-    /** Estado único del formulario (para tabla CRUD) */
-    const roomData = ref<Partial<BingoCardGenerate>>(emptyBingoCardGenerate())
+    const player = reactive<Player>({
+        phone: '',
+        name: '',
+        lastName: '',
+    })
 
-    /** Datos del formulario de creación/edición */
-    const roomFormData = ref<BingoCardGenerateFormData>(emptyFormData())
+    // ─── Computed ──────────────────────────────────────────────────────────────
 
-    /** Lista reactiva local */
-    const rooms = ref<BingoCardGenerate[]>([])
+    const roomCtnPrice = computed<number>(() =>
+        Number(selectedRoom.value?.config?.card_price_usd ?? 0)
+    )
+
+    const totalAmount = computed<number>(() =>
+        roomCtnPrice.value * numCtns.value
+    )
+
+    const sellerCommission = computed<number>(() =>
+        (totalAmount.value * sellerCommn) / 100
+    )
+
+    const commerceAmount = computed<number>(() =>
+        totalAmount.value - sellerCommission.value
+    )
+
+    const isFormValid = computed<boolean>(() => {
+        return (
+            !!selectedRoom.value &&
+            numCtns.value >= 1 &&
+            numCtns.value <= 40 &&
+            !!selectedCountry.value &&
+            !!player.phone.trim() &&
+            !!player.name.trim() &&
+            !!player.lastName.trim()
+        )
+    })
+
+    // ─── Watchers ──────────────────────────────────────────────────────────────
+
+    watch(selectedRoom, async (room) => {
+        numCtns.value = 1
+        selectedCountry.value = null
+        countries.value = []
+        player.phone = ''
+        player.name = ''
+        player.lastName = ''
+
+        if (room) {
+            await fetchCountries(room.id)
+        }
+    })
+
+    // ─── Métodos ───────────────────────────────────────────────────────────────
 
     /**
-     * Inicializa la lista local
+     * Carga los países disponibles para la sala seleccionada
+     * (usa el endpoint existente GET /seller/bingo/carton/price/{roomId})
      */
-    function setInitialRooms(initialBingoCardGenerates: BingoCardGenerate[]) {
-        rooms.value = [...initialBingoCardGenerates]
-    }
-
-    /**
-     * Obtiene la lista desde backend
-     */
-    async function fetchRooms(): Promise<boolean> {
+    async function fetchCountries(roomId: string): Promise<void> {
+        loadingCountries.value = true
         try {
-            loading.value = true
-
-            const response = await backendClient.get<{ data: BingoCardGenerate[] }>(
-                '/bingo-rooms/fetch-list',
-                { params: { token: tokenId } }
+            const response = await backendClient.get<{ countries: Country[] }>(
+                `/seller/bingo/carton/price/${roomId}`
             )
-
-            if (Array.isArray(response.data?.data)) {
-                rooms.value = response.data.data
-            }
-
-            return true
-        } catch (error) {
-            console.error(error)
-            showToast('Error al cargar las salas de bingo', 'error')
-            return false
+            countries.value = response.data.countries ?? []
+        } catch {
+            showToast('No se pudieron cargar los países disponibles.', 'error')
+            countries.value = []
         } finally {
-            loading.value = false
+            loadingCountries.value = false
         }
     }
 
     /**
-     * Envío del formulario (create / update)
+     * Genera los cartones enviando el formulario al backend.
+     * Retorna `true` en éxito, `false` en error.
      */
-    async function submit(): Promise<boolean> {
-        if (loading.value) return false
+    async function generate(): Promise<boolean> {
+        if (!isFormValid.value || loading.value) return false
+
+        loading.value = true
+
+        const payload: generateCardPayload = {
+            room_id: selectedRoom.value!.id,
+            num_ctns: numCtns.value,
+            country_id: selectedCountry.value,
+            player: {
+                phone: player.phone.trim(),
+                name: player.name.trim(),
+                last_name: player.lastName.trim(),
+            },
+        }
 
         try {
-            loading.value = true
+            const response = await backendClient.post<{
+                type: string
+                message: string
+                playerLink?: string
+            }>('/bingo/generate-card-store', payload)
 
-            const payload = { ...roomFormData.value }
+            const data = response.data
 
-            if (roomData.value.id) {
-                await backendClient.patch(
-                    `/bingo-rooms/${roomData.value.id}/update`,
-                    payload
-                )
-                showToast('Sala actualizada exitosamente', 'success')
-            } else {
-                await backendClient.post('/bingo-rooms', payload)
-                showToast('Sala creada exitosamente', 'success')
+            if (data.type === 'success') {
+                showToast(data.message, 'success')
+                resetPlayer()
+                numCtns.value = 1
+                return true
             }
 
-            await fetchRooms()
-            return true
+            showToast(data.message ?? 'Error al generar cartones.', 'warning')
+            return false
         } catch (error: any) {
-            console.error(error)
-            showToast(
-                error?.response?.data?.message ?? 'Error al guardar la sala de bingo',
-                'error'
-            )
+            const msg =
+                error?.response?.data?.message ??
+                'Error al generar cartones.'
+            showToast(msg, 'error')
             return false
         } finally {
             loading.value = false
         }
     }
 
-    /**
-     * Modo creación
-     */
-    function create(): void {
-        roomData.value = { ...emptyBingoCardGenerate() }
-        roomFormData.value = emptyFormData()
+    function resetPlayer(): void {
+        player.phone = ''
+        player.name = ''
+        player.lastName = ''
     }
 
-    /**
-     * Modo edición
-     */
-    async function edit(id: string | number): Promise<boolean> {
-        if (loading.value) return false
-
-        try {
-            loading.value = true
-
-            const { data } = await backendClient.get<{ data: Record<string, any> }>(
-                `/bingo-rooms/${id}/show`
-            )
-
-            const room = data.data
-            const config = room.config ?? {}
-
-            roomData.value = { id: room.id }
-
-            roomFormData.value = {
-                date: config.date ?? null,
-                time: config.time ?? null,
-                roomType: config.room_type_id ?? null,
-                gameMode: config.game_mode_id ?? null,
-                prizePoolType: config.prize_pool_type_id ?? null,
-                allowedCurrencies: room.allowed_currencies ?? [],
-                amountAddedPrizePool: config.amount_added_prize_pool ?? null,
-                roomCommn: config.room_commission ?? 20,
-                jackpotPct: config.jackpot_pct ?? null,
-                timeChip: config.time_chip ?? 5,
-                rounds: config.rounds ?? 1,
-                roundsPct: config.rounds_pct ?? null,
-                serialsPct: config.serials_pct ?? 5,
-                numSerials: config.num_serials ?? 5,
-                cardPrice: config.card_price ?? 1,
-                cardPriceByCurrency: room.card_price_by_currency ?? {},
-                roundsConfig: (room.rounds_config ?? []).map((r: any) => ({
-                    prizeType: r.prizeType ?? 'percentage',
-                    bingoPattern: r.bingoPattern ?? null,
-                    prizeValue: r.prizeValue !== null && r.prizeValue !== undefined ? Number(r.prizeValue) : null,
-                    ...(r.prizeValueByCurrency ? { prizeValueByCurrency: r.prizeValueByCurrency } : {}),
-                    ...(r.prizeType === 'prize' ? { prizeId: r.prizeId ?? null, prizeName: r.prizeName ?? null } : {}),
-                }))
-            }
-
-            return true
-        } catch (error) {
-            console.error(error)
-            showToast('Error al cargar la sala de bingo', 'error')
-            return false
-        } finally {
-            loading.value = false
-        }
-    }
-
-    /**
-     * Reset del formulario
-     */
-    function reset(): void {
-        roomData.value = { ...emptyBingoCardGenerate() }
-        roomFormData.value = emptyFormData()
-    }
-
-    /**
-     * Alternar estado (ACTIVE / INACTIVE) de la sala.
-     */
-    async function toggleStatus(id: string | number): Promise<boolean> {
-        const room = rooms.value.find(c => c.id === id)
-        const name = room?.id ?? ''
-
-        const confirm = await showToastConfirmAction({
-            html: `¿Quieres cambiar el estado de esta sala <b>${name}</b>?`,
-            icon: 'warning',
-            confirmButtonText: 'Sí, cambiar estado'
-        })
-
-        if (!confirm) return false
-
-        try {
-            await backendClient.patch(`/bingo-rooms/${id}/status`)
-            showToast('Estado cambiado con éxito', 'success')
-            await fetchRooms()
-            return true
-        } catch (error) {
-            showToast('Error al cambiar el estado', 'error')
-            return false
-        }
-    }
-
-    /**
-     * Copiar sala de bingo como nuevo borrador (status DRAFT)
-     */
-    async function copyRoom(id: string | number): Promise<boolean> {
-        const room = rooms.value.find(c => c.id === id)
-        const name = room?.id ?? ''
-
-        const confirm = await showToastConfirmAction({
-            html: `¿Quieres copiar esta sala <b>${name}</b>? Se creará como borrador.`,
-            icon: 'warning',
-            confirmButtonText: 'Sí, copiar'
-        })
-
-        if (!confirm) return false
-
-        try {
-            await backendClient.post(`/bingo-rooms/${id}/copy`)
-            showToast('Sala copiada como borrador exitosamente', 'success')
-            await fetchRooms()
-            return true
-        } catch (error) {
-            showToast('Error al copiar la sala', 'error')
-            return false
-        }
-    }
-
-    /**
-     * Eliminación (soft delete)
-     */
-    async function remove(id: string | number): Promise<boolean> {
-        const room = rooms.value.find(c => c.id === id)
-        const name = room?.id ?? ''
-
-        const confirm = await showToastConfirmAction({
-            html: `¿Estás seguro que deseas eliminar esta sala <b>${name}</b>?`,
-            icon: 'warning',
-            confirmButtonText: 'Sí, eliminar'
-        })
-
-        if (!confirm) return false
-
-        try {
-            await backendClient.delete(`/bingo-rooms/${id}/delete`)
-            showToast('Sala eliminada con éxito', 'success')
-            await fetchRooms()
-            return true
-        } catch (error) {
-            showToast('Error al eliminar la sala', 'error')
-            return false
-        }
-    }
-
-    /**
-     * Genera HTML con lista de códigos para mostrar en el modal de confirmación
-     */
-    function buildItemListHtml(ids: (string | number)[]): string {
-        const items = ids
-            .map(id => rooms.value.find(c => c.id === id))
-            .filter(Boolean)
-            .map(c => c!.id)
-
-        return `
-            <div style="max-height: 150px; overflow-y: auto; text-align: left; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-                <ul style="margin: 0; padding-left: 20px;">
-                    ${items.map(code => `<li style="padding: 4px 0;">${code}</li>`).join('')}
-                </ul>
-            </div>
-        `
-    }
-
-    /**
-     * Alternar estado (masivo)
-     */
-    async function toggleStatusBulk(ids: (string | number)[]): Promise<boolean> {
-        if (ids.length === 0) return false
-
-        if (ids.length === 1) {
-            return toggleStatus(ids[0])
-        }
-
-        const itemListHtml = buildItemListHtml(ids)
-
-        const confirm = await showToastConfirmAction({
-            html: `¿Quieres cambiar el estado de estas ${ids.length} salas?${itemListHtml}`,
-            icon: 'warning',
-            confirmButtonText: 'Sí, cambiar estado'
-        })
-
-        if (!confirm) return false
-
-        try {
-            for (const id of ids) {
-                await backendClient.patch(`/bingo-rooms/${id}/status`)
-            }
-            showToast(`Estado cambiado con éxito para ${ids.length} salas`, 'success')
-            await fetchRooms()
-            return true
-        } catch (error) {
-            console.error('Error al cambiar el estado de las salas:', error)
-            showToast('Error al cambiar el estado', 'error')
-            return false
-        }
-    }
-
-    /**
-     * Eliminación masiva (soft delete)
-     */
-    async function removeBulk(ids: (string | number)[]): Promise<boolean> {
-        if (ids.length === 0) return false
-
-        if (ids.length === 1) {
-            return remove(ids[0])
-        }
-
-        const itemListHtml = buildItemListHtml(ids)
-
-        const confirm = await showToastConfirmAction({
-            html: `¿Estás seguro que deseas eliminar estas ${ids.length} salas?${itemListHtml}`,
-            icon: 'warning',
-            confirmButtonText: 'Sí, eliminar'
-        })
-
-        if (!confirm) return false
-
-        try {
-            for (const id of ids) {
-                await backendClient.delete(`/bingo-rooms/${id}/delete`)
-            }
-            showToast(`${ids.length} salas eliminadas con éxito`, 'success')
-            await fetchRooms()
-            return true
-        } catch (error) {
-            console.error('Error al eliminar las salas:', error)
-
-            showToast('Error al eliminar las salas', 'error')
-            return false
-        }
-    }
+    // ─── Return ────────────────────────────────────────────────────────────────
 
     return {
-        roomData,
-        roomFormData,
-        rooms,
-        setInitialRooms,
-        submit,
-        create,
-        edit,
-        reset,
-        copyRoom,
-        toggleStatus,
-        toggleStatusBulk,
-        remove,
-        removeBulk,
-        fetchRooms
+        selectedRoom,
+        numCtns,
+        selectedCountry,
+        countries,
+        loadingCountries,
+        player,
+        loading,
+        roomCtnPrice,
+        totalAmount,
+        sellerCommission,
+        commerceAmount,
+        isFormValid,
+        generate,
     }
 }

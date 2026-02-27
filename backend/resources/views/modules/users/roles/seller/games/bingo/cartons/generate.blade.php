@@ -6,7 +6,7 @@
             @include('includes.card-header')
             @if ($status == 1)
                 <div class="card-body">
-                    <form id="form-ctns" action="{{ route('seller.generateCarton') }}" method="POST">@csrf
+                    <form id="form-ctns" action="{{ route('seller.generateCard') }}" method="POST">@csrf
 
                         {{-- Información del Bingo --}}
                         <div class="row">

@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Games\Bingo\Card;
 
+use App\DTOs\Games\Bingo\Card\BingoCardGenerateDTO;
 use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
 use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
 use App\Http\Requests\Games\Bingo\Room\BingoRoomRequest;
 use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Services\Games\Bingo\Card\BingoCardGenerateService;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -28,7 +31,8 @@ final class BingoCardController extends Controller
      */
     public function __construct(
         private readonly \App\Services\Games\Bingo\Room\BingoRoomService $service,
-        private readonly \App\Services\Security\UserContextService $userContext
+        private readonly \App\Services\Security\UserContextService $userContext,
+        private readonly BingoCardGenerateService $generateService,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
@@ -52,7 +56,7 @@ final class BingoCardController extends Controller
     }
 
     /**
-     * Vista para generar cartones de de bingo.
+     * Vista para generar cartones de bingo (rol seller).
      *
      * @return Response
      */
@@ -60,12 +64,26 @@ final class BingoCardController extends Controller
     {
         return $this->handleServiceInertia(
             function () {
-                $userId = $this->userContext->resolveUserId();
-                $response = $this->service->context('summary', $userId);
+                $context = $this->generateService->viewContext();
 
-                return Inertia::render('Games/Bingo/Card/Generate', $response);
+                return Inertia::render('Games/Bingo/Card/Generate', $context);
             },
-            'No se pudo cargar la vista para generar cartones de de bingo.'
+            'No se pudo cargar la vista para generar cartones de bingo.'
+        );
+    }
+
+    /**
+     * Generar cartones de bingo para un jugador (rol seller).
+     *
+     * @param BingoCardGenerateRequest $request
+     * @return JsonResponse
+     */
+    public function generateCard(BingoCardGenerateRequest $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->generateService->generate(
+                $request->toDTO(BingoCardGenerateDTO::class)
+            )
         );
     }
 

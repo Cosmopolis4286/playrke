@@ -438,7 +438,7 @@ class BingoController extends Controller
         return $data;
     }
 
-    public function generateCarton(Request $request)
+    public function generateCard(Request $request)
     {
         $room = BingoRoom::select('id', 'status', 'prize_pool')
             ->where('encrypted', $request->room)->first();
@@ -565,7 +565,7 @@ class BingoController extends Controller
             return redirect()->back();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error al procesar la solicitud generateCarton(): ' . $e->getMessage());
+            Log::error('Error al procesar la solicitud generateCard(): ' . $e->getMessage());
             $message = 'Error al procesar la solicitud';
             $response = isset($creator)
                 ? response()->json(['type' => 'warning', 'message' => $message])

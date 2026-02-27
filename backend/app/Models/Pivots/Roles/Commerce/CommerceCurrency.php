@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Models\Pivots\Roles\Treasurer;
+namespace App\Models\Pivots\Roles\Commerce;
 
 use App\Models\Pivots\BasePivot;
 use App\Models\Currency;
-use App\Models\Roles\Treasurer;
+use App\Models\Roles\Commerce;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * - Se identifica por una clave compuesta
  * - Es auditable mediante identidad serializada
  */
-class TreasurerCurrency extends BasePivot
+class CommerceCurrency extends BasePivot
 {
     /**
      * El pivot no es autoincremental.
@@ -72,7 +72,7 @@ class TreasurerCurrency extends BasePivot
      */
     public function commerce(): BelongsTo
     {
-        return $this->belongsTo(Treasurer::class, 'commerce_id');
+        return $this->belongsTo(Commerce::class, 'commerce_id');
     }
 
     /**

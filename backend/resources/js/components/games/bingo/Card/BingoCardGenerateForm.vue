@@ -1,192 +1,179 @@
 <script setup lang="ts" name="GameBingoCardGenerateForm">
-  import { computed, watch, ref } from 'vue'
+import type { Room, Country, Player } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
 
-  // Components
-  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
-  import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+/* ==========================================================================
+ * Props / Emits
+ * ========================================================================== */
 
-  // Composables
-  import { useBingoCardGenerateForm } from '@/js/composables/games/bingo/card/useBingoCardGenerateForm'
+const props = defineProps<{
+  rooms:            Room[]
+  countries:        Country[]
+  loadingCountries: boolean
+  roomCtnPrice:     number
+  totalAmount:      number
+  sellerCommission: number
+  commerceAmount:   number
+  isFormValid:      boolean
+  loading:          boolean
+  selectedRoom:     Room | null
+  numCtns:          number
+  selectedCountry:  number | null
+  player:           Player
+}>()
 
-  // Types
-  import type { BingoCardGenerateFormData } from '@/js/types/games/bingo/card/bingo-card-generate'
+const emit = defineEmits<{
+  (e: 'update:selectedRoom',    value: Room | null):   void
+  (e: 'update:numCtns',         value: number):        void
+  (e: 'update:selectedCountry', value: number | null): void
+  (e: 'update:player',          value: Player):        void
+  (e: 'generate'):                                     void
+}>()
 
-  /* ==========================================================================
-   * Opción genérica para selects
-   * ========================================================================== */
+/* ==========================================================================
+ * Helpers v-model
+ * ========================================================================== */
 
-  interface SelectOption {
-    value: string | number
-    code?: string
-    label: string
-  }
-
-  /* ==========================================================================
-   * Props
-   * ========================================================================== */
-
-  const props = defineProps<{
-    // automaticRoom?: boolean
-    // roomTypeOptions: SelectOption[]
-    // gameModeOptions: SelectOption[]
-    // prizePoolTypeOptions: SelectOption[]
-    // allowedCurrenciesOptions: SelectOption[]
-    // bingoPatternOptions: SelectOption[]
-    modelValue: BingoCardGenerateFormData
-  }>()
-
-  /* ==========================================================================
-   * Emits
-   * ========================================================================== */
-
-  const emit = defineEmits<{
-    (e: 'submit'): void
-    (e: 'update:modelValue', value: BingoCardGenerateFormData): void
-  }>()
-
-  /* ==========================================================================
-   * Form logic (computed v-model)
-   * ========================================================================== */
-
-  const { form, errors, isValid, roomCommn, jackpotPct, roundsPct, serialsPct, percentageLimits } =
-    useBingoCardGenerateForm(() => props.modelValue)
-
-  /* ==========================================================================
-   * Computed
-   * ========================================================================== */
-
-  /* ==========================================================================
-   * Watchers
-   * ========================================================================== */
-
-  /* ==========================================================================
-   * Submit
-   * ========================================================================== */
-
-  const submit = (): boolean => {
-    if (!isValid.value) return false
-    emit('submit')
-    return true
-  }
-
-  /* ==========================================================================
-   * Expose
-   * ========================================================================== */
-
-  defineExpose({
-    submit,
-    isValid
-  })
+function setPlayerField(field: keyof Player, value: string) {
+  emit('update:player', { ...props.player, [field]: value })
+}
 </script>
+
 <template>
-  <form id="bingo-card-generate-form" novalidate @submit.prevent="submit">
+  <form novalidate @submit.prevent="emit('generate')">
     <div class="row">
-      <!-- Información del Bingo -->
-      <!-- <div class="form-group col-12 col-md-5">
-          <label>Próximos Bingos</label>
-          <select v-model="selectedRoom" class="form-control">
-            <option :value="null">Seleccione</option>
-            <option v-for="room in rooms" :key="room.id" :value="room">
-              {{ room.name }}
+
+      <!-- ── Sala ──────────────────────────────────────────────────── -->
+      <div class="form-group col-12 col-md-6">
+        <label class="font-weight-bold">Sala de Bingo</label>
+        <select
+          :value="selectedRoom?.id ?? ''"
+          class="form-control"
+          @change="emit('update:selectedRoom', rooms.find(r => r.id === ($event.target as HTMLSelectElement).value) ?? null)"
+        >
+          <option value="">— Seleccione una sala —</option>
+          <option v-for="room in rooms" :key="room.id" :value="room.id">
+            {{ room.uuid_code }}
+          </option>
+        </select>
+      </div>
+
+      <!-- ── Precio & Cantidad ─────────────────────────────────────── -->
+      <div class="form-group col-6 col-md-3">
+        <label class="font-weight-bold">Precio Cartón (USD)</label>
+        <input class="form-control bg-light" :value="roomCtnPrice.toFixed(2)" disabled />
+      </div>
+
+      <div class="form-group col-6 col-md-3">
+        <label class="font-weight-bold"># Cartones</label>
+        <input
+          :value="numCtns"
+          type="number"
+          min="1"
+          max="40"
+          class="form-control"
+          :disabled="!selectedRoom"
+          @input="emit('update:numCtns', Math.max(1, Math.min(40, Number(($event.target as HTMLInputElement).value))))"
+        />
+      </div>
+
+    </div>
+
+    <!-- ── Resumen de venta ──────────────────────────────────────────── -->
+    <div v-if="selectedRoom" class="row mt-2 py-2 bg-light rounded">
+      <div class="col-4 text-center border-right">
+        <div class="text-muted small">Monto Total</div>
+        <div class="h5 font-weight-bold mb-0">$ {{ totalAmount.toFixed(2) }}</div>
+        <small class="text-muted">Cobrar al jugador</small>
+      </div>
+      <div class="col-4 text-center border-right">
+        <div class="text-muted small">Mi Comisión</div>
+        <div class="h5 text-success font-weight-bold mb-0">$ {{ sellerCommission.toFixed(2) }}</div>
+        <small class="text-muted">Tu ganancia</small>
+      </div>
+      <div class="col-4 text-center">
+        <div class="text-muted small">Total Banca</div>
+        <div class="h5 font-weight-bold mb-0">$ {{ commerceAmount.toFixed(2) }}</div>
+        <small class="text-muted">Enviar al comercio</small>
+      </div>
+    </div>
+
+    <!-- ── Datos del jugador ─────────────────────────────────────────── -->
+    <div v-if="selectedRoom" class="mt-4">
+      <hr />
+      <div class="alert alert-info py-2 mb-3">
+        <small>Genera los cartones <strong>solo después de confirmar el pago</strong> del jugador.</small>
+      </div>
+
+      <div class="row">
+
+        <!-- País -->
+        <div class="form-group col-12 col-md-6">
+          <label class="font-weight-bold">País del Jugador *</label>
+          <select
+            :value="selectedCountry ?? ''"
+            class="form-control"
+            :disabled="loadingCountries || countries.length === 0"
+            @change="emit('update:selectedCountry', Number(($event.target as HTMLSelectElement).value) || null)"
+          >
+            <option value="">
+              {{ loadingCountries ? 'Cargando países…' : '— Seleccione un país —' }}
+            </option>
+            <option v-for="country in countries" :key="country.id" :value="country.id">
+              {{ country.name }}
             </option>
           </select>
-
-          <div v-if="selectedRoom" class="mt-2">
-            <small>
-              <b>Premio actual:</b>
-              {{ currencySymbol }} {{ prizePool }}
-            </small>
-          </div>
         </div>
 
-        <div class="form-group col-6 col-md-4">
-          <label>Precio Cartón</label>
-          <div class="input-group">
-            <div class="input-group-prepend">
-              <span class="input-group-text">{{ currencySymbol }}</span>
-            </div>
-            <input class="form-control bg-light" :value="roomCtnPrice" disabled />
-          </div>
-        </div>
-
-        <div class="form-group col-6 col-md-3">
-          <label>#CTNs</label>
+        <!-- Teléfono -->
+        <div class="form-group col-12 col-md-6">
+          <label class="font-weight-bold">Teléfono *</label>
           <input
-            v-model="numCtns"
-            type="number"
-            min="1"
-            max="40"
+            :value="player.phone"
+            type="tel"
             class="form-control"
-            :disabled="!selectedRoom"
+            placeholder="Ej. 04121234567"
+            @input="setPlayerField('phone', ($event.target as HTMLInputElement).value)"
           />
         </div>
-      </div> -->
 
-      <!-- Información de venta -->
-      <!-- <div v-if="selectedRoom" class="row mt-3">
-        <div class="col-4">
-          <label>Monto Total</label>
-          <div>{{ currencySymbol }} {{ totalAmount.toFixed(2) }}</div>
-          <small>Costo de los cartones</small>
+        <!-- Nombre -->
+        <div class="form-group col-12 col-md-6">
+          <label class="font-weight-bold">Nombre *</label>
+          <input
+            :value="player.name"
+            type="text"
+            class="form-control"
+            placeholder="Nombre del jugador"
+            @input="setPlayerField('name', ($event.target as HTMLInputElement).value)"
+          />
         </div>
 
-        <div class="col-4">
-          <label>Mi Comisión</label>
-          <div>{{ currencySymbol }} {{ sellerCommission.toFixed(2) }}</div>
-          <small>Ganancia por venta</small>
+        <!-- Apellido -->
+        <div class="form-group col-12 col-md-6">
+          <label class="font-weight-bold">Apellido *</label>
+          <input
+            :value="player.lastName"
+            type="text"
+            class="form-control"
+            placeholder="Apellido del jugador"
+            @input="setPlayerField('lastName', ($event.target as HTMLInputElement).value)"
+          />
         </div>
 
-        <div class="col-4">
-          <label>Total Banca</label>
-          <div>{{ currencySymbol }} {{ commerceAmount.toFixed(2) }}</div>
-          <small>Enviar al comercio</small>
-        </div>
-      </div> -->
-
-      <!-- Información del jugador -->
-      <!-- <div v-if="selectedRoom" class="mt-4">
-        <hr />
-
-        <div class="alert alert-primary">
-          Genera los cartones solo después de confirmar el pago.
-        </div>
-
-        <div class="row">
-          <div class="form-group col-6">
-            <label>Venta*</label>
-            <select v-model="typeSale" class="form-control">
-              <option value="currency">Moneda</option>
-              <option value="transfer">Transferencia</option>
-            </select>
-          </div>
-
-          <div class="form-group col-6">
-            <label>País*</label>
-            <input v-model="selectedCountry" type="text" class="form-control" />
-          </div>
-
-          <div class="form-group col-6">
-            <label>Teléfono*</label>
-            <input v-model="player.phone" type="text" class="form-control" />
-          </div>
-
-          <div class="form-group col-6">
-            <label>Nombre*</label>
-            <input v-model="player.name" type="text" class="form-control" />
-          </div>
-
-          <div class="form-group col-6">
-            <label>Apellido*</label>
-            <input v-model="player.lastName" type="text" class="form-control" />
-          </div>
-        </div>
-      </div> -->
+      </div>
     </div>
-    <!-- <div v-if="status === 1" class="card-footer text-center">
-      <button class="btn btn-primary" :disabled="!selectedRoom || loading" @click="generateCarton">
-        Generar Cartón
-        <span v-if="loading" class="spinner-border spinner-border-sm ml-2"></span>
+
+    <!-- ── Botón ─────────────────────────────────────────────────────── -->
+    <div v-if="selectedRoom" class="text-center mt-3">
+      <button
+        type="submit"
+        class="btn btn-primary btn-lg px-5"
+        :disabled="!isFormValid || loading"
+      >
+        <span v-if="loading" class="spinner-border spinner-border-sm mr-2" role="status" />
+        {{ loading ? 'Generando…' : 'Generar Cartones' }}
       </button>
-    </div> -->
+    </div>
+
   </form>
 </template>
