@@ -1,0 +1,110 @@
+import { computed } from 'vue'
+import type { Treasurer } from '@/js/types/roles/treasurer/treasurer'
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function isValidUrl(val: string): boolean {
+    try {
+        const url = new URL(val)
+        return url.protocol === 'https:' || url.protocol === 'http:'
+    } catch {
+        return false
+    }
+}
+
+/**
+ * Composable para formulario de Tesoreros
+ *
+ * Responsabilidades:
+ * - Adaptar modelValue al formulario
+ * - Validación reactiva
+ * - Exponer estado de edición
+ *
+ * ❌ Sin watchers
+ * ✅ v-model computado
+ */
+export function useAdminTreasurerForm(
+    modelValueGetter: () => Partial<Treasurer>,
+    emit: (event: 'update:modelValue', value: Partial<Treasurer>) => void
+) {
+    /* =======================
+     * v-model computado
+     * ======================= */
+
+    const form = computed<Partial<Treasurer>>({
+        get: () => modelValueGetter(),
+        set: value => emit('update:modelValue', value)
+    })
+
+    /* =======================
+     * Computed
+     * ======================= */
+
+    const isEditMode = computed(() => !!form.value.id)
+
+    const errors = computed<Record<string, string>>(() => {
+        const e: Record<string, string> = {}
+
+        if (!form.value.name?.trim()) {
+            e.name = 'La razón social es requerida.'
+        }
+
+        const username = form.value.username ?? ''
+        if (!username || username.length < 5) {
+            e.username = 'El username debe tener al menos 5 caracteres.'
+        }
+
+        const email = form.value.email ?? ''
+        if (!email) {
+            e.email = 'El email es requerido.'
+        } else if (!EMAIL_RE.test(email)) {
+            e.email = 'Ingresa un email válido.'
+        }
+
+        const apiRoute = form.value.api_route?.trim() ?? ''
+        if (!apiRoute) {
+            e.api_route = 'La ruta API es requerida.'
+        } else if (!isValidUrl(apiRoute)) {
+            e.api_route = 'Ingresa una URL válida (ej: https://api.ejemplo.com/).'
+        }
+
+        if (form.value.has_commission) {
+            const commission = form.value.commission ?? ''
+            if (!commission) {
+                e.commission = 'La comisión es requerida.'
+            } else {
+                const v = parseFloat(commission)
+                if (isNaN(v) || v < 0 || v > 100) {
+                    e.commission = 'La comisión debe estar entre 0 y 100.'
+                }
+            }
+        }
+
+        if (!form.value.country_id) {
+            e.country_id = 'El país es requerido.'
+        }
+
+        if (!form.value.phone?.trim()) {
+            e.phone = 'El teléfono es requerido.'
+        }
+
+        if (!form.value.currency_id) {
+            e.currency_id = 'La moneda principal es requerida.'
+        }
+
+        if (!form.value.allowed_games?.length) {
+            e.allowed_games = 'Debes seleccionar al menos un juego permitido.'
+        }
+
+        return e
+    })
+
+    const isValid = computed(() => Object.keys(errors.value).length === 0)
+
+    return {
+        form,
+        errors,
+        isValid,
+        isEditMode
+    }
+}
