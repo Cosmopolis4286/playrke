@@ -25,13 +25,13 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Juego asociado');
 
-            $table->foreignSnowflake('room')->comment('ID de la sala');
+            $table->string('room_id')->comment('ID de la sala');
 
             $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
-                ->comment('Usuario creador');
+                ->comment('Usuario creador de la sala de juego');
 
             $table->foreignSnowflake('country_id')
                 ->constrained('countries')
@@ -64,6 +64,7 @@ return new class extends Migration
             $table->string('last_name', 50)->comment('Apellido del jugador');
             $table->string('identification', 20)->nullable()->comment('Documento de identificación');
             $table->string('phone', 14)->comment('Teléfono del jugador');
+
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
                 ->default('ACTIVE')
                 ->comment('Estado del jugador');
@@ -72,7 +73,7 @@ return new class extends Migration
             $table->timestamps();
 
             // Índices compuestos para consultas frecuentes
-            $table->index(['game_id', 'room', 'creator_user_id'], 'idx_game_room_creator');
+            $table->index(['game_id', 'room_id', 'creator_user_id'], 'idx_game_room_creator');
             $table->index(['country_id', 'currency_id'], 'idx_country_currency');
         });
     }

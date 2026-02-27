@@ -22,7 +22,7 @@ export interface BingoRoom {
   allSale: boolean;
   rkeCommn: number;
   roomCommn: number;
-  sellerCommn: number;
+  commission: number;
   prizePool: number;
   fullHousePrize: number;
   serialPrize: number;

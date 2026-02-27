@@ -42,7 +42,7 @@
                                             <td>{{ $currencyData->name }} ({{ $currencyData->iso_code }})</td>
                                             <td>{{ $room['cards_purchased'] }}</td>
                                             <td>{{ $currencyData->iso_code }} {{ $room['sales'] }}</td>
-                                            <td>{{ $currencyData->iso_code }} {{ $room['sellerCommn'] }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ $room['commission'] }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -52,7 +52,7 @@
                                             <td colspan="5" class="text-right"><b>Total:</b></td>
                                             <td>{{ $totalsFormatted['cards_purchased'] }}</td>
                                             <td>{{ $currencyData->iso_code }} {{ $totalsFormatted['sales'] }}</td>
-                                            <td>{{ $currencyData->iso_code }} {{ $totalsFormatted['sellerCommn'] }}</td>
+                                            <td>{{ $currencyData->iso_code }} {{ $totalsFormatted['commission'] }}</td>
                                         </tr>
                                     </tfoot>
                                 @endif

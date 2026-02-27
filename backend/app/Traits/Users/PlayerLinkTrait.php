@@ -14,7 +14,7 @@ trait PlayerLinkTrait
         $gameId = Game::getValueByName($game);
         do {
             $code = Str::random(20);
-        } while (ExternalPlayer::where('game', $gameId)->where('link', $code)->exists());
+        } while (ExternalPlayer::where('game_id', $gameId)->where('link', $code)->exists());
         return $code;
     }
 

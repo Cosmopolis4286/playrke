@@ -1,29 +1,29 @@
 <script setup lang="ts">
-import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
-import BingoCardGenerateForm from '@/js/Components/Games/Bingo/Card/BingoCardGenerateForm.vue'
-import { useBingogenerateCard } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
-import type { Room } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
+  import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
+  import BingoCardGenerateForm from '@/js/Components/Games/Bingo/Card/BingoCardGenerateForm.vue'
+  import { useBingogenerateCard } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
+  import type { Room } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
 
-const props = defineProps<{
-  rooms: Room[]
-  sellerCommn: number
-}>()
+  const props = defineProps<{
+    rooms: Room[]
+    commission: number
+  }>()
 
-const {
-  selectedRoom,
-  numCtns,
-  selectedCountry,
-  countries,
-  loadingCountries,
-  player,
-  loading,
-  roomCtnPrice,
-  totalAmount,
-  sellerCommission,
-  commerceAmount,
-  isFormValid,
-  generate,
-} = useBingogenerateCard(props.sellerCommn)
+  const {
+    selectedRoom,
+    numCtns,
+    selectedCountry,
+    countries,
+    loadingCountries,
+    player,
+    loading,
+    roomCtnPrice,
+    totalAmount,
+    sellerCommission,
+    commerceAmount,
+    isFormValid,
+    generate
+  } = useBingogenerateCard(props.commission)
 </script>
 
 <template>

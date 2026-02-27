@@ -11,6 +11,7 @@ use App\Models\Roles\Seller;
 use App\Models\Currency;
 use App\Models\ExternalPlayers;
 use App\Models\Games\Bingo\Creator\BingoCreator;
+use App\Models\Games\Common\Utils\GameStatus;
 use App\Traits\Games\Bingo\BingoTrait;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 
 /**
- * Servicio para la generación de cartones de Bingo por vendedor.
+ * Servicio para la generación de cartones de Bingo.
  *
  * Encapsula el flujo "seller" del legacy BingoController::generateCard()
  * adaptado a la arquitectura de servicios del proyecto.
@@ -27,41 +28,59 @@ final class BingoCardGenerateService
 {
     use BingoTrait;
 
+    public function __construct(
+        private readonly \App\Services\Roles\RoleUserService $roleUserService,
+        private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerceRepository,
+        private readonly \App\Contracts\Roles\Customer\CustomerRepositoryInterface $customerRepository,
+        private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
+    ) {}
+
     /**
-     * Contexto para la vista de generación de cartones (rol seller).
+     * Contexto para la vista de generación de cartones.
      *
      * Devuelve las salas activas del commerce que gestiona al seller,
      * filtradas por modo OFFLINE (venta manual), y la comisión del seller.
      *
-     * @return array{rooms: Collection, sellerCommn: float}
+     * @param int $userId
+     *
+     * @return array{rooms: Collection, commission: float}
      * @throws DomainException
      */
-    public function viewContext(): array
+    public function viewContext(int $userId): array
     {
-        $seller = Seller::select(['id', 'commission', 'manager_user_id'])
-            ->where('user_id', Auth::id())
-            ->first();
+        // Obtiene el prefijo del rol activo del usuario.
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if (!$seller) {
-            throw new DomainException('Vendedor no encontrado.');
+        $user = match ($role) {
+            'commerce' => $this->commerceRepository->getByUserId($userId, ['commission']),
+            'customer' => $this->commerceRepository->getByUserId($userId, ['commission']),
+            'seller' => $this->sellerRepository->getByUserId($userId, ['commission', 'manager_user_id']),
+            default => throw new DomainException("Rol inválido: {$role}"),
+        };
+
+        if (!$user) {
+            throw new DomainException("Usuario '$role' no encontrado.");
         }
 
-        $creatorUser = $seller->manager_user_id;
+        // Definir ID del usuario creador/manejador de la sala
+        $creatorUser = $role === 'seller' ? $user->manager_user_id : $userId;
 
-        // Salas activas del commerce, modo OFFLINE (vendedor genera cartones presencialmente)
+        $statusId = GameStatus::where('code', 'ACTIVE')->value('id');
+
+        // Salas activas del usuario creador/manejador, modo OFFLINE (vendedor genera cartones presencialmente)
         $rooms = BingoRoom::with([
             'config:id,room_id,game_mode_id,card_price_usd',
             'config.gameMode:id,code',
         ])
             ->where('creator_user_id', $creatorUser)
-            ->where('status_id', 2)   // ACTIVE
+            ->where('status_id', $statusId)   // ACTIVE
             ->whereHas('config.gameMode', fn($q) => $q->where('code', 'OFFLINE'))
             ->orderBy('created_at', 'desc')
             ->get(['id', 'uuid_code', 'prize_pool', 'creator_user_id']);
 
         return [
-            'rooms'       => $rooms,
-            'sellerCommn' => (float) $seller->commission,
+            'rooms' => $rooms,
+            'commission' => (float) $user->commission,
         ];
     }
 
@@ -148,7 +167,7 @@ final class BingoCardGenerateService
             'country'       => $dto->countryId,
             'playerPhone'   => $dto->playerPhone,
             'playerName'    => $dto->playerName,
-            'playerLastName'=> $dto->playerLastName,
+            'playerLastName' => $dto->playerLastName,
             'initials'      => $arrInitials[0] . $arrInitials[1],
             'exchangeRate'  => $exchangeRate,
         ];

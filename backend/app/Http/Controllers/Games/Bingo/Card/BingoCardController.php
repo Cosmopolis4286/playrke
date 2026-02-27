@@ -64,7 +64,8 @@ final class BingoCardController extends Controller
     {
         return $this->handleServiceInertia(
             function () {
-                $context = $this->generateService->viewContext();
+                $userId = $this->userContext->resolveUserId();
+                $context = $this->generateService->viewContext($userId);
 
                 return Inertia::render('Games/Bingo/Card/Generate', $context);
             },

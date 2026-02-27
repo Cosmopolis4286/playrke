@@ -588,8 +588,8 @@ trait BingoTrait
         $seller = $arrCtn['seller'] ?? null;
 
         if ($seller) {
-            $sellerCommn = Seller::getValueById($seller, 'commission') / 100;
-            $sellerCommn = round($saleAmount * $sellerCommn, 2);
+            $commission = Seller::getValueById($seller, 'commission') / 100;
+            $commission = round($saleAmount * $commission, 2);
         }
 
         $creatorUser = $arrCtn['creator']['userId'];
@@ -611,14 +611,14 @@ trait BingoTrait
                 'card_price' => $arrCtn['cardPrice'],
                 'exchange_rate' => $arrCtn['exchangeRate'],
                 'sale_amount' => $saleAmount,
-                'seller_commn' => $sellerCommn ?? null,
+                'seller_commn' => $commission ?? null,
                 'status' => 0,
                 'created_at' => $currentTime,
                 'updated_at' => $currentTime,
             ]);
 
             // Actualizar monto de venta total por monedas
-            BingoCreatorSale::updateOrCreateSale($roomId, $creatorUser, $currency, $saleAmount, $sellerCommn);
+            BingoCreatorSale::updateOrCreateSale($roomId, $creatorUser, $currency, $saleAmount, $commission);
 
             return $BingoCtnsLotID;
         } catch (Exception $e) {

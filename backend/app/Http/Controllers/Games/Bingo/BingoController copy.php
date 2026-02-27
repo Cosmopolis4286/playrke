@@ -3131,7 +3131,7 @@ class BingoController extends Controller
             'cards_purchased' => 0,
             'sales' => 0,
             'roomCommn' => 0,
-            'sellerCommn' => 0,
+            'commission' => 0,
             'prizePool' => 0,
         ]);
 
@@ -3140,7 +3140,7 @@ class BingoController extends Controller
         foreach ($rooms as $room) {
             $ctns = $room->CtnsLot->sum('cards_purchased');
             $allSale = $room->CtnsLot->sum('sale_amount');
-            $sellerCommn = $room->CtnsLot->sum('seller_commn');
+            $commission = $room->CtnsLot->sum('seller_commn');
 
             $row = [
                 'encrypted' => $room->encrypted,
@@ -3149,24 +3149,24 @@ class BingoController extends Controller
                 'time' => $room->Config->time,
                 'cards_purchased' => $ctns,
                 'sales' => number_format($allSale, 2, '.', ','),
-                'sellerCommn' => number_format($sellerCommn, 2, '.', ','),
+                'commission' => number_format($commission, 2, '.', ','),
             ];
 
             $totals['cards_purchased'] += $ctns;
             $totals['sales'] += $allSale;
-            $totals['sellerCommn'] += $sellerCommn;
+            $totals['commission'] += $commission;
 
             if ($userRole === 'commerce') {
                 $roomCommn = $allSale * ($room->Config->room_commission / 100);
                 $rkeCommn = $allSale * ($room->Config->rke_commission / 100);
-                $prizePool = $allSale - $roomCommn - $sellerCommn - $rkeCommn;
+                $prizePool = $allSale - $roomCommn - $commission - $rkeCommn;
 
                 $row['roomCommn'] = number_format($roomCommn, 2, '.', ',');
-                $row['sellerCommn'] = number_format($sellerCommn, 2, '.', ',');
+                $row['commission'] = number_format($commission, 2, '.', ',');
                 $row['prizePool'] = number_format($prizePool, 2, '.', ',');
 
                 $totals['roomCommn'] += $roomCommn;
-                $totals['sellerCommn'] += $sellerCommn;
+                $totals['commission'] += $commission;
                 $totals['prizePool'] += $prizePool;
             }
 
@@ -3177,12 +3177,12 @@ class BingoController extends Controller
         $totalsFormatted = [
             'cards_purchased' => $totals['cards_purchased'],
             'sales' => number_format($totals['sales'], 2, '.', ','),
-            'sellerCommn' => number_format($totals['sellerCommn'], 2, '.', ','),
+            'commission' => number_format($totals['commission'], 2, '.', ','),
         ];
 
         if ($userRole === 'commerce') {
             $totalsFormatted['roomCommn'] = number_format($totals['roomCommn'], 2, '.', ',');
-            $totalsFormatted['sellerCommn'] = number_format($totals['sellerCommn'], 2, '.', ',');
+            $totalsFormatted['commission'] = number_format($totals['commission'], 2, '.', ',');
             $totalsFormatted['prizePool'] = number_format($totals['prizePool'], 2, '.', ',');
             $view = 'modules.commerce.games.bingo.report.rooms';
         } else {
@@ -3253,7 +3253,7 @@ class BingoController extends Controller
             'cards_purchased' => 0,
             'sales' => 0,
             'roomCommn' => 0,
-            'sellerCommn' => 0,
+            'commission' => 0,
             'prizePool' => 0,
         ]);
 

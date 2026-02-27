@@ -149,7 +149,7 @@
         const numCtns = $("#num-ctns");
         const typeSale = $("#type-sale");
         const country = $("#country");
-        const sellerCommn = @json($commn);
+        const commission = @json($commn);
         const btnGenerate = $("#btn-generate-ctn");
         const btnSearchPhone = $("#btn-search-phone");
         let roomId = '';
@@ -236,13 +236,13 @@
         function calculateSale() {
             const ctns = numCtns.val();
             const total = formatNumber(cardPrice * ctns);
-            const totalsellerCommn = formatNumber(total * (sellerCommn / 100));
-            const prizePool = formatNumber((total - totalsellerCommn));
+            const totalcommission = formatNumber(total * (commission / 100));
+            const prizePool = formatNumber((total - totalcommission));
 
             if (roomId) {
                 $(".currency-symbol").text(currencySymbol);
                 $("#tx-total-amount").text(total);
-                $("#tx-seller-commn").text(totalsellerCommn);
+                $("#tx-seller-commn").text(totalcommission);
                 $("#tx-commerce-amount").text(prizePool);
             }
         }

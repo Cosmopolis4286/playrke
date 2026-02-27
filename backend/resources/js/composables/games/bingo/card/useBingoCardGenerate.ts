@@ -42,7 +42,7 @@ export interface generateCardPayload {
  * - Cálculos de montos (total, comisión, monto banca)
  * - Llamada al endpoint POST /bingo/generate-card
  */
-export function useBingogenerateCard(sellerCommn: number) {
+export function useBingogenerateCard(commission: number) {
     // ─── Estado ────────────────────────────────────────────────────────────────
 
     const selectedRoom = ref<Room | null>(null)
@@ -69,7 +69,7 @@ export function useBingogenerateCard(sellerCommn: number) {
     )
 
     const sellerCommission = computed<number>(() =>
-        (totalAmount.value * sellerCommn) / 100
+        (totalAmount.value * commission) / 100
     )
 
     const commerceAmount = computed<number>(() =>
