@@ -50,8 +50,11 @@ class BingoRoomResource extends JsonResource
                     }
 
                     if ($prizeType === 'prize' && $pctPrize) {
-                        $entry['prizeId']   = $pctPrize->prize_id;
-                        $entry['prizeName'] = $pctPrize->relationLoaded('prize') ? $pctPrize->prize?->name : null;
+                        $entry['prizeId']    = $pctPrize->prize_id;
+                        $entry['prizeName']  = $pctPrize->relationLoaded('prize') ? $pctPrize->prize?->name : null;
+                        $entry['prizeValue'] = $pctPrize->relationLoaded('prize') && $pctPrize->prize
+                            ? (float) $pctPrize->prize->price
+                            : null;
                     }
 
                     return $entry;

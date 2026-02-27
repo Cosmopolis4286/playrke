@@ -12,7 +12,11 @@
   import backendClient from '@/js/plugins/axios'
 
   // Types
-  import type { BingoRoomAutomaticFormData, RoundConfig, DayOfWeek } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
+  import type {
+    BingoRoomAutomaticFormData,
+    RoundConfig,
+    DayOfWeek
+  } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
   import type { PrizeSearchResult } from '@/js/types/prizes/prize'
 
   /* ==========================================================================
@@ -62,21 +66,30 @@
    * Form logic (computed v-model)
    * ========================================================================== */
 
-  const { form, errors, isValid, roomCommn, jackpotPct, roundsPct, serialsPct, availablePct, percentageLimits } =
-    useBingoRoomAutomaticForm(
-      () => props.modelValue,
-      emit,
-      () => props.automaticRoom ?? false
-    )
+  const {
+    form,
+    errors,
+    isValid,
+    roomCommn,
+    jackpotPct,
+    roundsPct,
+    serialsPct,
+    availablePct,
+    percentageLimits
+  } = useBingoRoomAutomaticForm(
+    () => props.modelValue,
+    emit,
+    () => props.automaticRoom ?? false
+  )
 
   const DAYS_OPTIONS: { value: DayOfWeek; label: string }[] = [
-    { value: 'monday',    label: 'Lun' },
-    { value: 'tuesday',   label: 'Mar' },
+    { value: 'monday', label: 'Lun' },
+    { value: 'tuesday', label: 'Mar' },
     { value: 'wednesday', label: 'Mié' },
-    { value: 'thursday',  label: 'Jue' },
-    { value: 'friday',    label: 'Vie' },
-    { value: 'saturday',  label: 'Sáb' },
-    { value: 'sunday',    label: 'Dom' },
+    { value: 'thursday', label: 'Jue' },
+    { value: 'friday', label: 'Vie' },
+    { value: 'saturday', label: 'Sáb' },
+    { value: 'sunday', label: 'Dom' }
   ]
 
   function toggleDay(day: DayOfWeek) {
@@ -237,9 +250,8 @@
       const updated: RoundConfig[] = []
 
       // FULL HOUSE es el patrón por defecto cuando hay 1 sola ronda
-      const fullHouseId = props.bingoPatternOptions.find(
-        o => o.label.toUpperCase() === 'FULL HOUSE'
-      )?.value ?? null
+      const fullHouseId =
+        props.bingoPatternOptions.find(o => o.label.toUpperCase() === 'FULL HOUSE')?.value ?? null
 
       for (let i = 0; i < count; i++) {
         const defaultPattern = count === 1 ? fullHouseId : null
@@ -299,10 +311,10 @@
       // Con múltiples rondas: %Sala absorbe el restante para sumar 100
       const rounds = Number(form.value.rounds) || 1
       if (rounds > 1) {
-        const jk  = Number(nextForm.jackpotPct) || 0
-        const ser = Number(nextForm.serialsPct)  || 0
+        const jk = Number(nextForm.jackpotPct) || 0
+        const ser = Number(nextForm.serialsPct) || 0
         const newCommn = Math.round((100 - total - jk - ser) * 100) / 100
-        const clamped  = Math.min(
+        const clamped = Math.min(
           percentageLimits.roomCommn.max,
           Math.max(percentageLimits.roomCommn.min, newCommn)
         )
@@ -353,10 +365,12 @@
       } else if (value === 'fixed') {
         // Al cambiar a fijo, limpiar prizeValue e inicializar mapa de monedas
         updated.prizeValue = null
-        updated.prizeValueByCurrency = (form.value.allowedCurrencies ?? []).reduce<Record<string, null>>(
-          (acc, cur) => { acc[String(cur)] = null; return acc },
-          {}
-        )
+        updated.prizeValueByCurrency = (form.value.allowedCurrencies ?? []).reduce<
+          Record<string, null>
+        >((acc, cur) => {
+          acc[String(cur)] = null
+          return acc
+        }, {})
         configs[index] = updated
         redistributePercentageRounds(configs)
         form.value = { ...form.value, roundsConfig: configs }
@@ -396,7 +410,11 @@
       return
     }
 
-    if (field === 'bingoPattern' && updated.prizeType === 'percentage' && updated.prizeValue === null) {
+    if (
+      field === 'bingoPattern' &&
+      updated.prizeType === 'percentage' &&
+      updated.prizeValue === null
+    ) {
       configs[index] = updated
       redistributePercentageRounds(configs)
       form.value = { ...form.value, roundsConfig: configs }
@@ -464,7 +482,15 @@
     const current = form.value.roundsConfig?.[index]
     // Pre-cargar el prize ya seleccionado si existe
     prizeModalSelected.value = current?.prizeId
-      ? [{ id: current.prizeId, name: current.prizeName ?? '', code: '', price: 0 }]
+      ? [
+          {
+            id: current.prizeId,
+            name: current.prizeName ?? '',
+            code: '',
+            price: current.prizeValue ?? 0,
+            reward_type: 'PRODUCT' as const
+          }
+        ]
       : []
     showPrizeModal.value = true
   }
@@ -478,7 +504,7 @@
       ...configs[idx],
       prizeId: selected ? selected.id : null,
       prizeName: selected ? selected.name : null,
-      prizeValue: selected ? selected.price : null,
+      prizeValue: selected ? selected.price : null
     }
     form.value = { ...form.value, roundsConfig: configs }
     prizeModalRoundIndex.value = null
@@ -906,7 +932,12 @@
                         ($event.target as HTMLSelectElement).value as any
                       )
                     "
-                    style="flex: 0 0 58px; min-width: 0; padding-left: 0.3rem; padding-right: 0.1rem"
+                    style="
+                      flex: 0 0 58px;
+                      min-width: 0;
+                      padding-left: 0.3rem;
+                      padding-right: 0.1rem;
+                    "
                   >
                     <option
                       v-for="opt in roundPrizeTypeOptions"
@@ -951,7 +982,13 @@
                     ]"
                     placeholder="%"
                     :value="round.prizeValue"
-                    @change="updateRoundConfig(index, 'prizeValue', ($event.target as HTMLInputElement).value)"
+                    @change="
+                      updateRoundConfig(
+                        index,
+                        'prizeValue',
+                        ($event.target as HTMLInputElement).value
+                      )
+                    "
                     step="0.5"
                     min="0"
                     :max="getRoundMaxValue(index)"
@@ -961,15 +998,25 @@
                   <!-- Botón P/S: abre modal de selección de prize -->
                   <div
                     v-else-if="round.prizeType === 'prize'"
-                    style="flex: 1 1 auto; min-width: 80px; max-width: 140px; display: flex; flex-direction: column; align-items: stretch"
+                    style="position: relative; flex: 1 1 auto; min-width: 80px; max-width: 140px"
                   >
                     <button
                       type="button"
                       :class="[
                         'btn btn-sm',
-                        round.prizeId ? 'btn-success' : (getRoundFieldError(index, 'prizeValue') ? 'btn-danger' : 'btn-outline-secondary')
+                        round.prizeId
+                          ? 'btn-success'
+                          : getRoundFieldError(index, 'prizeValue')
+                            ? 'btn-danger'
+                            : 'btn-outline-secondary'
                       ]"
-                      style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.75rem; width: 100%"
+                      style="
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        font-size: 0.75rem;
+                        width: 100%;
+                      "
                       @click="openPrizeModal(index)"
                       :title="round.prizeName ?? 'Seleccionar premio'"
                     >
@@ -978,7 +1025,18 @@
                     </button>
                     <small
                       v-if="round.prizeId && round.prizeValue"
-                      style="font-size: 0.68rem; color: #198754; font-weight: 600; text-align: center; margin-top: 1px; line-height: 1.2"
+                      style="
+                        position: absolute;
+                        top: 107%;
+                        left: 0;
+                        right: 0;
+                        font-size: 0.7rem;
+                        color: #198754;
+                        font-weight: 600;
+                        text-align: center;
+                        line-height: 1.2;
+                        white-space: nowrap;
+                      "
                     >
                       ${{ Number(round.prizeValue).toFixed(2) }} USD
                     </small>
@@ -988,10 +1046,13 @@
                 <!-- Valores fijos por moneda (solo cuando prizeType === 'fixed') -->
                 <div
                   v-if="round.prizeType === 'fixed'"
-                  class="d-flex flex-wrap mt-1"
+                  class="d-flex mt-1 flex-wrap"
                   style="gap: 0.4rem; padding-left: 2rem"
                 >
-                  <template v-for="cur in form.allowedCurrencies ?? []" :key="`r${index}_cur_${cur}`">
+                  <template
+                    v-for="cur in form.allowedCurrencies ?? []"
+                    :key="`r${index}_cur_${cur}`"
+                  >
                     <div class="input-group input-group-sm" style="width: auto; flex: 0 0 140px">
                       <div class="input-group-prepend">
                         <span class="input-group-text">{{ getCurrencyLabel(cur) }}</span>
@@ -1007,7 +1068,13 @@
                         step="0.5"
                         min="0"
                         :value="round.prizeValueByCurrency?.[String(cur)] ?? ''"
-                        @change="updateRoundPriceByCurrency(index, cur, ($event.target as HTMLInputElement).value)"
+                        @change="
+                          updateRoundPriceByCurrency(
+                            index,
+                            cur,
+                            ($event.target as HTMLInputElement).value
+                          )
+                        "
                       />
                     </div>
                   </template>
@@ -1086,14 +1153,21 @@
 
       <!-- Alerta suma de porcentajes -->
       <div v-if="errors.percentageSum" class="col-12">
-        <div class="alert alert-danger py-2 px-3 mb-0" style="font-size: 0.82rem">
+        <div class="alert alert-danger mb-0 px-3 py-2" style="font-size: 0.82rem">
           <i class="fa-solid fa-triangle-exclamation"></i>
           {{ errors.percentageSum }}
           <small class="d-block mt-1" style="opacity: 0.85">
             %Sala ({{ form.roomCommn ?? 0 }}) + %Rondas ({{ form.roundsPct ?? 0 }})
             <template v-if="form.useSerials"> + %Seriales ({{ form.serialsPct ?? 0 }})</template>
-            + %Jackpot ({{ form.jackpotPct ?? 0 }})
-            = {{ (Number(form.roomCommn) + Number(form.roundsPct) + (form.useSerials ? Number(form.serialsPct) : 0) + Number(form.jackpotPct)).toFixed(2) }}%
+            + %Jackpot ({{ form.jackpotPct ?? 0 }}) =
+            {{
+              (
+                Number(form.roomCommn) +
+                Number(form.roundsPct) +
+                (form.useSerials ? Number(form.serialsPct) : 0) +
+                Number(form.jackpotPct)
+              ).toFixed(2)
+            }}%
           </small>
         </div>
       </div>

@@ -467,7 +467,15 @@
     const current = form.value.roundsConfig?.[index]
     // Pre-cargar el prize ya seleccionado si existe
     prizeModalSelected.value = current?.prizeId
-      ? [{ id: current.prizeId, name: current.prizeName ?? '', code: '', price: 0 }]
+      ? [
+          {
+            id: current.prizeId,
+            name: current.prizeName ?? '',
+            code: '',
+            price: current.prizeValue ?? 0,
+            reward_type: 'PRODUCT' as const
+          }
+        ]
       : []
     showPrizeModal.value = true
   }
@@ -948,14 +956,7 @@
                   <!-- Botón P/S: abre modal de selección de prize -->
                   <div
                     v-else-if="round.prizeType === 'prize'"
-                    style="
-                      flex: 1 1 auto;
-                      min-width: 80px;
-                      max-width: 140px;
-                      display: flex;
-                      flex-direction: column;
-                      align-items: stretch;
-                    "
+                    style="position: relative; flex: 1 1 auto; min-width: 80px; max-width: 140px"
                   >
                     <button
                       type="button"
@@ -983,12 +984,16 @@
                     <small
                       v-if="round.prizeId && round.prizeValue"
                       style="
-                        font-size: 0.68rem;
+                        position: absolute;
+                        top: 107%;
+                        left: 0;
+                        right: 0;
+                        font-size: 0.7rem;
                         color: #198754;
                         font-weight: 600;
                         text-align: center;
-                        margin-top: 1px;
                         line-height: 1.2;
+                        white-space: nowrap;
                       "
                     >
                       ${{ Number(round.prizeValue).toFixed(2) }} USD

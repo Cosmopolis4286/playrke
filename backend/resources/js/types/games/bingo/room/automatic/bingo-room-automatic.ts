@@ -1,3 +1,7 @@
+import type { BingoRoomFormData, RoundConfig, RoundPrizeType } from '@/js/types/games/bingo/room/bingo-room'
+
+export type { RoundConfig, RoundPrizeType }
+
 /**
  * Tipos de sala de bingo
  */
@@ -77,47 +81,11 @@ export interface BingoRoomAutomatic {
 }
 
 /**
- * Tipo de premio por ronda
- */
-export type RoundPrizeType = 'percentage' | 'fixed' | 'prize'
-
-/**
- * Configuración individual de cada ronda
- */
-export interface RoundConfig {
-    prizeType: RoundPrizeType
-    bingoPattern: number | string | null
-    prizeValue: number | string | null
-    prizeValueByCurrency?: Record<string, number | null>
-    prizeId?: number | string | null
-    prizeName?: string | null
-}
-
-/**
  * Campos del formulario de creación/edición de sala automática
- * Basado en: bingo_rooms_automatic
+ * Extiende BingoRoomFormData con campos exclusivos de salas automáticas
  */
-export interface BingoRoomAutomaticFormData {
+export interface BingoRoomAutomaticFormData extends BingoRoomFormData {
     description?: string | null
-    date?: string | null
     days?: DayOfWeek[]
-    time?: string | null
-    roomType?: BingoRoomAutomaticType | null
-    gameMode?: number | string | null
-    prizePoolType?: number | string | null
-    allowedCurrencies?: (number | string)[]
-    amountAddedPrizePool?: number | null
-    roomCommn?: number | null
-    jackpotPct?: number | null
     playsPct?: number | null
-    timeChip?: number | null
-    rounds?: number | null
-    roundsPct?: number | null
-    roundsConfig?: RoundConfig[]
-    useSerials?: boolean
-    serialsPct?: number | null
-    numSerials?: number | null
-    cardPrice?: number | null
-    cardPriceByCurrency?: Record<string, number | null>
-    isDraft?: boolean
 }
