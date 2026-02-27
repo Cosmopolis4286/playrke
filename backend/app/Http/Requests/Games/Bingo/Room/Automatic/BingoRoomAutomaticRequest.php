@@ -33,16 +33,19 @@ class BingoRoomAutomaticRequest extends BaseRequest
         return [
             'days'                        => ['nullable', 'array'],
             'days.*'                      => ['string', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
-            'date'                        => ['required', 'date', 'after_or_equal:today'],
+            'date'                        => ['nullable', 'date', 'after_or_equal:today'],
             'time'                        => ['required', 'date_format:H:i'],
             'roomType'                    => ['required', 'exists:room_types,id'],
             'gameMode'                    => ['required', 'exists:game_modes,id'],
             'prizePoolType'               => ['required', 'exists:prize_pool_types,id'],
 
-            // Precio base del cartón:
+            // Precio base del cartón en USD:
             // - Si solo hay 1 moneda, este es el precio real
             // - Si hay varias monedas, puede ser usado como fallback
-            'cardPrice'                    => ['required', 'numeric', 'min:0.5', 'max:500'],
+            'cardPriceUsd'                 => ['required', 'numeric', 'min:0.5', 'max:500'],
+
+            // Incremento de redondeo para conversión USD (null = sin redondeo)
+            'usdExchangeRoundStep'         => ['nullable', 'numeric', 'min:0.01', 'max:100'],
 
             // Monedas permitidas
             'allowedCurrencies'           => ['required', 'array', 'min:1'],
@@ -204,9 +207,9 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'prizePoolType.required'          => 'El tipo de bote es obligatorio.',
             'prizePoolType.exists'            => 'El tipo de bote seleccionado no es válido.',
 
-            'cardPrice.required'               => 'El precio del cartón es obligatorio.',
-            'cardPrice.min'                    => 'El precio del cartón no puede ser menor a 0.35.',
-            'cardPrice.max'                    => 'El precio del cartón no puede ser mayor a 50.',
+            'cardPriceUsd.required'            => 'El precio del cartón en USD es obligatorio.',
+            'cardPriceUsd.min'                 => 'El precio del cartón no puede ser menor a 0.5.',
+            'cardPriceUsd.max'                 => 'El precio del cartón no puede ser mayor a 500.',
 
             'allowedCurrencies.required'      => 'Debe seleccionar al menos una moneda.',
             'allowedCurrencies.min'           => 'Debe seleccionar al menos una moneda.',

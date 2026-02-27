@@ -18,7 +18,7 @@ final class BingoRoomAutomaticUpdateDTO
         public readonly ?array        $allowedCurrencies   = null,
         public readonly ?float        $roomCommission      = null,
         public readonly ?int          $rounds              = null,
-        public readonly ?string       $useSerials          = null,  // 'Y' | 'N'
+        public readonly ?bool         $useSerials          = null,
         public readonly ?float        $cardPriceUsd        = null,
         public readonly ?float        $usdExchangeRoundStep = null,
         public readonly ?array        $cardPriceByCurrency  = null,
@@ -44,7 +44,7 @@ final class BingoRoomAutomaticUpdateDTO
             : [];
 
         $useSerials = isset($data['useSerials'])
-            ? (filter_var($data['useSerials'], FILTER_VALIDATE_BOOLEAN) ? 'Y' : 'N')
+            ? filter_var($data['useSerials'], FILTER_VALIDATE_BOOLEAN)
             : null;
 
         return new self(

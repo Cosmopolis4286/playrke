@@ -53,27 +53,26 @@ export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'frida
  */
 export interface BingoRoomAutomatic {
     readonly id: string
-    readonly description?: string | null
     readonly date?: string | null
     readonly days?: DayOfWeek[] | null
     readonly time?: string | null
-    readonly game_mode_id?: string | null
     readonly in_live?: 'Y' | 'N'
+    readonly game_mode_id?: string | null
     readonly room_type_id?: string | null
-    readonly prize_pool_type_id?: string | null
-    readonly amount_added_prize_pool?: number | null
     readonly rke_commission?: number
     readonly room_commission?: number
-    readonly card_price?: number
+    readonly card_price_usd?: number | null
+    readonly usd_exchange_round_step?: number | null
     readonly allowed_currencies?: (number | string)[] | null
-    readonly time_chip?: number | null
+    readonly prize_pool_type_id?: string | null
+    readonly amount_added_prize_pool?: number | null
+    readonly time_chip?: string | null
     readonly rounds?: number
     readonly rounds_pct?: number | null
+    readonly use_serials?: 'Y' | 'N'
     readonly serials_pct?: number | null
     readonly num_serials?: number | null
     readonly jackpot_pct?: number | null
-    readonly plays_pct?: number | null
-    readonly bingo_patterns?: (number | string)[] | null
     readonly creator_user_id?: string
     readonly status?: BingoRoomAutomaticStatus
     readonly created_at?: string
@@ -85,7 +84,5 @@ export interface BingoRoomAutomatic {
  * Extiende BingoRoomFormData con campos exclusivos de salas automáticas
  */
 export interface BingoRoomAutomaticFormData extends BingoRoomFormData {
-    description?: string | null
     days?: DayOfWeek[]
-    playsPct?: number | null
 }

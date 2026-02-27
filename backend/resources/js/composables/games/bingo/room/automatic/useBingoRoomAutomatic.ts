@@ -61,7 +61,6 @@ const emptyBingoRoomAutomatic = (): Partial<BingoRoomAutomatic> =>
  * Factory para formulario vacío
  */
 const emptyFormData = (): BingoRoomAutomaticFormData => ({
-    description: null,
     date: null,
     days: [],
     time: null,
@@ -70,16 +69,17 @@ const emptyFormData = (): BingoRoomAutomaticFormData => ({
     prizePoolType: null,
     allowedCurrencies: [],
     amountAddedPrizePool: null,
+    rkeCommission: null,
     roomCommn: 20,
     jackpotPct: null,
-    playsPct: null,
     timeChip: 5,
     rounds: 1,
     roundsPct: null,
     useSerials: false,
     serialsPct: null,
     numSerials: null,
-    cardPrice: 1,
+    cardPriceUsd: 1,
+    usdExchangeRoundStep: null,
     cardPriceByCurrency: {},
     roundsConfig: [],
     isDraft: true
@@ -202,7 +202,6 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
             roomData.value = { id: room.id }
 
             roomFormData.value = {
-                description: room.description ?? null,
                 date: config.date ?? null,
                 days: room.days ?? [],
                 time: config.time ?? null,
@@ -211,16 +210,17 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
                 prizePoolType: config.prize_pool_type_id ?? null,
                 allowedCurrencies: room.allowed_currencies ?? [],
                 amountAddedPrizePool: config.amount_added_prize_pool ?? null,
+                rkeCommission: config.rke_commission ?? null,
                 roomCommn: config.room_commission ?? 20,
                 jackpotPct: config.jackpot_pct ?? null,
-                playsPct: room.plays_pct ?? null,
                 timeChip: config.time_chip ?? 5,
                 rounds: config.rounds ?? 1,
                 roundsPct: config.rounds_pct ?? null,
-                useSerials: config.serials_pct != null && Number(config.serials_pct) > 0,
+                useSerials: config.use_serials === true,
                 serialsPct: config.serials_pct ?? null,
                 numSerials: config.num_serials ?? null,
-                cardPrice: config.card_price ?? 1,
+                cardPriceUsd: config.card_price_usd != null ? Number(config.card_price_usd) : 1,
+                usdExchangeRoundStep: config.usd_exchange_round_step != null ? Number(config.usd_exchange_round_step) : null,
                 cardPriceByCurrency: room.card_price_by_currency ?? {},
                 roundsConfig: (room.rounds_config ?? []).map((r: any) => ({
                     prizeType: r.prizeType ?? 'percentage',

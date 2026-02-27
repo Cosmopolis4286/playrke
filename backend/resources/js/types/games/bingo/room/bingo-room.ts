@@ -116,6 +116,7 @@ export interface BingoRoomFormData {
     prizePoolType?: number | string | null
     allowedCurrencies?: (number | string)[]
     amountAddedPrizePool?: number | null
+    rkeCommission?: number | null
     roomCommn?: number | null
     jackpotPct?: number | null
     timeChip?: number | null
@@ -125,7 +126,8 @@ export interface BingoRoomFormData {
     useSerials?: boolean
     serialsPct?: number | null
     numSerials?: number | null
-    cardPrice?: number | null
+    cardPriceUsd?: number | null
+    usdExchangeRoundStep?: number | null
     cardPriceByCurrency?: Record<string, number | null>
     isDraft?: boolean
 }

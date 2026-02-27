@@ -24,10 +24,12 @@ final class BingoRoomUpdateDTO
         public readonly ?int $timeChip,
         public readonly ?int $rounds,
         public readonly ?float $roundsPct,
-        public readonly ?string $useSerials,
+        public readonly ?bool $useSerials,
         public readonly ?float $serialsPct,
         public readonly ?int $numSerials,
         public readonly ?array $roundsConfig,
+        public readonly ?float $cardPriceUsd,
+        public readonly ?float $usdExchangeRoundStep,
         public readonly ?array $cardPriceByCurrency,
     ) {}
 
@@ -40,6 +42,10 @@ final class BingoRoomUpdateDTO
         $cardPriceByCurrency = is_array($data['cardPriceByCurrency'] ?? null)
             ? array_map(fn($v) => (float)$v, $data['cardPriceByCurrency'])
             : [];
+
+        $useSerials = isset($data['useSerials'])
+            ? filter_var($data['useSerials'], FILTER_VALIDATE_BOOLEAN)
+            : null;
 
         return new self(
             date: $data['date'] ?? null,
@@ -56,10 +62,12 @@ final class BingoRoomUpdateDTO
             timeChip: isset($data['timeChip']) ? (int) $data['timeChip'] : null,
             rounds: isset($data['rounds']) ? (int) $data['rounds'] : null,
             roundsPct: isset($data['roundsPct']) ? (float) $data['roundsPct'] : null,
-            useSerials: $data['serialsPct'],
+            useSerials: $useSerials,
             serialsPct: isset($data['serialsPct']) ? (float) $data['serialsPct'] : null,
             numSerials: isset($data['numSerials']) ? (int) $data['numSerials'] : null,
             roundsConfig: $data['roundsConfig'] ?? null,
+            cardPriceUsd: isset($data['cardPriceUsd']) ? (float) $data['cardPriceUsd'] : null,
+            usdExchangeRoundStep: isset($data['usdExchangeRoundStep']) ? (float) $data['usdExchangeRoundStep'] : null,
             cardPriceByCurrency: $cardPriceByCurrency,
         );
     }

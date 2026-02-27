@@ -83,6 +83,7 @@ class BingoRoomAutomatic extends Model
         'serials_pct'             => 'decimal:2',
         'jackpot_pct'             => 'decimal:2',
         'time_chip'               => 'string',
+        'use_serials'             => 'boolean',
         'rounds'                  => 'integer',
         'num_serials'             => 'integer',
         'created_at'              => 'datetime',

@@ -195,12 +195,6 @@
     return found ? String(found.label) : String(id)
   }
 
-  const singleCurrencyLabel = computed(() => {
-    const currencies = form.value.allowedCurrencies ?? []
-    if (currencies.length !== 1) return ''
-    return getCurrencyLabel(currencies[0])
-  })
-
   const hasCardPriceByCurrencyErrors = computed(() => {
     const err = errors.value.cardPriceByCurrency
     return err && Object.keys(err).length > 0 && !cardPriceByCurrencyActive.value
@@ -533,17 +527,6 @@
 <template>
   <form id="bingo-room-form" novalidate @submit.prevent="submit">
     <div class="row">
-      <!-- Descripción -->
-      <FormInput
-        label="Descripción"
-        name="description"
-        type="text"
-        maxlength="50"
-        placeholder="Opcional"
-        col="col-sm-12 col-md-6"
-        v-model="form.description"
-      />
-
       <!-- Fecha (solo si no es sala automática) -->
       <FormInput
         v-if="!automaticRoom"
@@ -682,12 +665,11 @@
         </template>
       </FormSelect>
 
-      <!-- Precio Carton (solo si hay una moneda seleccionada) -->
+      <!-- Precio Carton USD -->
       <FormInput
-        v-show="(form.allowedCurrencies ?? []).length == 1"
-        label="Precio Carton"
-        name="card_price"
-        :error="errors.cardPrice"
+        label="Precio Cartón (USD)"
+        name="card_price_usd"
+        :error="(errors as any).cardPriceUsd"
         type="number"
         required
         :step="0.05"
@@ -696,10 +678,29 @@
         placeholder="Precio Cartón"
         col="col-sm-6 col-md-4 col-lg-3"
         inputGroup
-        v-model="form.cardPrice"
+        v-model="form.cardPriceUsd"
       >
         <template #prepend>
-          <span class="input-group-text">{{ singleCurrencyLabel }}</span>
+          <span class="input-group-text">USD</span>
+        </template>
+      </FormInput>
+
+      <!-- Redondeo de tipo de cambio (opcional) -->
+      <FormInput
+        label="Redondeo Cambio"
+        name="usd_exchange_round_step"
+        :error="(errors as any).usdExchangeRoundStep"
+        type="number"
+        :step="0.5"
+        :min="0.01"
+        :max="100"
+        placeholder="Opcional"
+        col="col-sm-6 col-md-4 col-lg-3"
+        inputGroup
+        v-model="form.usdExchangeRoundStep"
+      >
+        <template #prepend>
+          <span class="input-group-text">$</span>
         </template>
       </FormInput>
 
@@ -1137,18 +1138,6 @@
         placeholder="Opcional"
         col="col-sm-6 col-md-4 col-lg-3"
         v-model="jackpotPct"
-      />
-
-      <FormInput
-        label="%Jugadas"
-        name="plays_pct"
-        :error="(errors as any).playsPct"
-        type="number"
-        :step="0.5"
-        :min="0"
-        :max="50"
-        col="col-sm-6 col-md-4 col-lg-3"
-        v-model="form.playsPct"
       />
 
       <!-- Alerta suma de porcentajes -->

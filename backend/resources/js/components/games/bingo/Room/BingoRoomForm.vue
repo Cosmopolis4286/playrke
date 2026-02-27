@@ -179,12 +179,6 @@
     return found ? String(found.label) : String(id)
   }
 
-  const singleCurrencyLabel = computed(() => {
-    const currencies = form.value.allowedCurrencies ?? []
-    if (currencies.length !== 1) return ''
-    return getCurrencyLabel(currencies[0])
-  })
-
   const hasCardPriceByCurrencyErrors = computed(() => {
     const err = errors.value.cardPriceByCurrency
     return err && Object.keys(err).length > 0 && !cardPriceByCurrencyActive.value
@@ -637,12 +631,11 @@
         </template>
       </FormSelect>
 
-      <!-- Precio Carton (solo si hay una moneda seleccionada) -->
+      <!-- Precio Carton USD -->
       <FormInput
-        v-show="(form.allowedCurrencies ?? []).length == 1"
-        label="Precio Carton"
-        name="card_price"
-        :error="errors.cardPrice"
+        label="Precio Cartón (USD)"
+        name="card_price_usd"
+        :error="errors.cardPriceUsd"
         type="number"
         required
         :step="0.05"
@@ -651,12 +644,26 @@
         placeholder="Precio Cartón"
         col="col-sm-6 col-md-4 col-lg-3"
         inputGroup
-        v-model="form.cardPrice"
+        v-model="form.cardPriceUsd"
       >
         <template #prepend>
-          <span class="input-group-text">{{ singleCurrencyLabel }}</span>
+          <span class="input-group-text">USD</span>
         </template>
       </FormInput>
+
+      <!-- Redondeo tipo de cambio USD -->
+      <FormInput
+        label="Redondeo Tipo de Cambio"
+        name="usd_exchange_round_step"
+        :error="errors.usdExchangeRoundStep"
+        type="number"
+        :step="0.01"
+        :min="0.01"
+        :max="100"
+        placeholder="Opcional"
+        col="col-sm-6 col-md-4 col-lg-3"
+        v-model="form.usdExchangeRoundStep"
+      />
 
       <!-- Comisiones, jackpot y tiempo ficha -->
       <FormInput

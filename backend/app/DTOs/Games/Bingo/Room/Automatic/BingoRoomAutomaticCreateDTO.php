@@ -16,7 +16,7 @@ final class BingoRoomAutomaticCreateDTO
         public readonly array         $allowedCurrencies,
         public readonly float         $roomCommission,
         public readonly int           $rounds,
-        public readonly string        $useSerials,       // 'Y' | 'N'
+        public readonly bool          $useSerials,
         public readonly ?string       $date              = null,
         public readonly ?array        $days              = null,
         public readonly ?float        $cardPriceUsd      = null,
@@ -40,7 +40,7 @@ final class BingoRoomAutomaticCreateDTO
             ? array_map(fn($v) => (float) $v, $data['cardPriceByCurrency'])
             : [];
 
-        $useSerials = filter_var($data['useSerials'] ?? false, FILTER_VALIDATE_BOOLEAN) ? 'Y' : 'N';
+        $useSerials = filter_var($data['useSerials'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         return new self(
             time:                   $data['time'],

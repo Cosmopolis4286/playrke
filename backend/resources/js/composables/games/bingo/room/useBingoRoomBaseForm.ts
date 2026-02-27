@@ -89,8 +89,8 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
             }
         }
 
-        if (!form.value.cardPrice && (form.value.allowedCurrencies?.length ?? 0) === 1) {
-            e.cardPrice = 'El precio del cartón es requerido.'
+        if (!form.value.cardPriceUsd) {
+            e.cardPriceUsd = 'El precio del cartón en USD es requerido.'
         }
 
         const allowedCurrencies = form.value.allowedCurrencies ?? []

@@ -24,10 +24,12 @@ final class BingoRoomCreateDTO
         public readonly int $timeChip,
         public readonly int $rounds,
         public readonly ?float $roundsPct,
-        public readonly string $useSerials,
-        public readonly float $serialsPct,
-        public readonly int $numSerials,
+        public readonly bool $useSerials,
+        public readonly ?float $serialsPct,
+        public readonly ?int $numSerials,
         public readonly ?array $roundsConfig,
+        public readonly ?float $cardPriceUsd,
+        public readonly ?float $usdExchangeRoundStep,
         public readonly ?array $cardPriceByCurrency,
         public readonly bool $isDraft = false,
     ) {}
@@ -42,6 +44,8 @@ final class BingoRoomCreateDTO
             ? array_map(fn($v) => (float)$v, $data['cardPriceByCurrency'])
             : [];
 
+        $useSerials = filter_var($data['useSerials'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
         return new self(
             date: $data['date'],
             time: $data['time'],
@@ -55,10 +59,12 @@ final class BingoRoomCreateDTO
             timeChip: (int) ($data['timeChip'] ?? 5),
             rounds: (int) ($data['rounds'] ?? 1),
             roundsPct: isset($data['roundsPct']) ? (float) $data['roundsPct'] : null,
-            useSerials: $data['serialsPct'],
-            serialsPct: (float) ($data['serialsPct'] ?? 5),
-            numSerials: (int) ($data['numSerials'] ?? 5),
+            useSerials: $useSerials,
+            serialsPct: isset($data['serialsPct']) ? (float) $data['serialsPct'] : null,
+            numSerials: isset($data['numSerials']) ? (int) $data['numSerials'] : null,
             roundsConfig: $data['roundsConfig'] ?? null,
+            cardPriceUsd: isset($data['cardPriceUsd']) ? (float) $data['cardPriceUsd'] : null,
+            usdExchangeRoundStep: isset($data['usdExchangeRoundStep']) ? (float) $data['usdExchangeRoundStep'] : null,
             cardPriceByCurrency: $cardPriceByCurrency,
             isDraft: (bool) ($data['isDraft'] ?? false),
         );

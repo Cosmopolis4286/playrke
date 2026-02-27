@@ -24,7 +24,7 @@ class RoomConfigService
         $creatorUser = $room->creator_user;
         $roomDate = $this->calculateRoomDate($room->time);
 
-        $existingRoom = $this->existingRoom($creatorUser, $roomDate, $room->time, $room->card_price);
+        $existingRoom = $this->existingRoom($creatorUser, $roomDate, $room->time, $room->card_price_usd);
 
         if ($existingRoom && $existingRoom->Room->status >= 2) {
             return null;
@@ -83,7 +83,7 @@ class RoomConfigService
                 'creator_type' => $dataRoom->creator_type,
                 'creator_id' => $dataRoom->creator_id,
                 'creator_commn' => $dataRoom->room_commission,
-                'card_price' => $dataRoom->card_price,
+                'card_price' => $dataRoom->card_price_usd,
                 'allowed_currencies' => $dataRoom->allowed_currencies
             ]
         );
@@ -114,7 +114,7 @@ class RoomConfigService
             ->where('creator_user_id', $creatorUser)
             ->whereBetween('date', [$startDate, $date])
             ->where('time', $time)
-            ->where('card_price', $cardPrice)
+            ->where('card_price', $cardPrice) // card_price aquí es de bingo_room_configs (tabla de salas normales)
             ->first();
     }
 }

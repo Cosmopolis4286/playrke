@@ -54,25 +54,26 @@ final class BingoRoomAutomaticCrudService
             $dto     = $isCreate ? $roomOrDto : $updateDto;
 
             $roomData = [
-                'description'            => $dto->description ?? null,
-                'date'                   => $dto->date,
-                'days'                   => $dto->days ?? null,
-                'time'                   => $dto->time,
-                'game_mode_id'           => $dto->gameMode,
-                'room_type_id'           => $dto->roomType,
-                'prize_pool_type_id'     => $dto->prizePoolType,
-                'amount_added_prize_pool'=> $dto->amountAddedPrizePool,
-                'room_commission'        => $dto->roomCommission,
-                'card_price'             => $dto->cardPrice,
-                'allowed_currencies'     => $dto->allowedCurrencies,
-                'time_chip'              => $dto->timeChip,
-                'rounds'                 => $dto->rounds,
-                'rounds_pct'             => $dto->roundsPct,
-                'serials_pct'            => $dto->serialsPct ?? null,
-                'num_serials'            => $dto->numSerials ?? null,
-                'jackpot_pct'            => $dto->jackpotPct,
-                'plays_pct'              => $dto->playsPct ?? null,
-                'status'                 => ($dto->isDraft ?? false) ? 'INACTIVE' : 'ACTIVE',
+                'date'                    => $dto->date,
+                'days'                    => $dto->days ?? null,
+                'time'                    => $dto->time,
+                'in_live'                 => $dto->inLive ?? 'N',
+                'game_mode_id'            => $dto->gameMode,
+                'room_type_id'            => $dto->roomType,
+                'prize_pool_type_id'      => $dto->prizePoolType,
+                'amount_added_prize_pool' => $dto->amountAddedPrizePool,
+                'room_commission'         => $dto->roomCommission,
+                'card_price_usd'          => $dto->cardPriceUsd,
+                'usd_exchange_round_step' => $dto->usdExchangeRoundStep ?? null,
+                'allowed_currencies'      => $dto->allowedCurrencies,
+                'use_serials'             => $dto->useSerials ?? false,
+                'time_chip'               => $dto->timeChip,
+                'rounds'                  => $dto->rounds,
+                'rounds_pct'              => $dto->roundsPct,
+                'serials_pct'             => $dto->serialsPct ?? null,
+                'num_serials'             => $dto->numSerials ?? null,
+                'jackpot_pct'             => $dto->jackpotPct,
+                'status'                  => ($dto->isDraft ?? false) ? 'INACTIVE' : 'ACTIVE',
             ];
 
             if ($isCreate) {
@@ -84,7 +85,7 @@ final class BingoRoomAutomaticCrudService
             }
 
             // Sincronizar precios de cartones por moneda
-            $this->syncCardPrices($room->id, $dto->allowedCurrencies, $dto->cardPrice, $dto->cardPriceByCurrency ?? [], $userId);
+            $this->syncCardPrices($room->id, $dto->allowedCurrencies, $dto->cardPriceUsd ?? 0, $dto->cardPriceByCurrency ?? [], $userId);
 
             // Sincronizar rondas
             $this->syncRounds($room->id, $dto->rounds, $dto->roundsConfig ?? []);
@@ -239,7 +240,7 @@ final class BingoRoomAutomaticCrudService
             'roomType'             => $room->room_type_id,
             'gameMode'             => $room->game_mode_id,
             'prizePoolType'        => $room->prize_pool_type_id,
-            'cardPrice'            => (float) $room->card_price,
+            'cardPriceUsd'         => $room->card_price_usd !== null ? (float) $room->card_price_usd : null,
             'allowedCurrencies'    => $room->allowed_currencies ?? [],
             'amountAddedPrizePool' => $room->amount_added_prize_pool ? (float) $room->amount_added_prize_pool : null,
             'roomCommn'            => (float) $room->room_commission,
