@@ -7,28 +7,51 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Ejecutar la migración: crear tabla 'treasurers_currencies'.
      */
     public function up(): void
     {
-        Schema::create('treasurers_countries_currencies', function (Blueprint $table) {
-            // PK con Snowflake
-            $table->snowflake('id')->primary();;
-            $table->foreignSnowflake('treasurer_id')->constrained('treasurers');
-            $table->foreignSnowflake('country_id')->nullable()->constrained('countries');
-            $table->foreignSnowflake('currency_id')->constrained('currencies');
-            $table->enum('level', ['1', '2', '3']);
-            $table->foreignSnowflake('creator_user_id')->constrained('users')->onDelete('cascade');
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])->default('ACTIVE');
+        Schema::create('treasurers_currencies', function (Blueprint $table) {
+            // Comercio
+            $table->foreignSnowflake('commerce_id')
+                ->constrained('treasurers')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Comercio asociado');
+
+            // Moneda
+            $table->foreignSnowflake('currency_id')
+                ->constrained('currencies')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Moneda asociada');
+
+            // Nivel de asignación
+            $table->tinyInteger('level')
+                ->default(1)
+                ->comment('Nivel asignado: 1 = básico, 2 = intermedio, 3 = avanzado');
+
+            // Estado
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+                ->default('ACTIVE')
+                ->comment('Estado del registro');
+
             $table->timestamps();
+
+            // Soft deletes
+            $table->softDeletes();
+
+            // Índices para optimizar búsquedas frecuentes
+            $table->primary(['commerce_id', 'currency_id']);
+            $table->index(['commerce_id', 'currency_id'], 'idx_commerce_currency');
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Revertir la migración: eliminar tabla 'treasurers_currencies'.
      */
     public function down(): void
     {
-        Schema::dropIfExists('treasurers_countries_currencies');
+        Schema::dropIfExists('treasurers_currencies');
     }
 };

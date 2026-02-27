@@ -8,10 +8,12 @@ use App\Models\Roles\Seller;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Modelo para la gestión de relaciones vendedor-país-moneda.
+ * Modelo Pivot para las monedas de los vendedores.
  *
- * Representa las asociaciones entre vendedores, países y monedas,
- * incluyendo niveles de operación y estados de las relaciones.
+ * Este pivot:
+ * - No posee clave primaria propia
+ * - Se identifica por una clave compuesta
+ * - Es auditable mediante identidad serializada
  */
 class SellerCurrency extends BasePivot
 {

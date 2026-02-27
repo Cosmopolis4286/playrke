@@ -8,7 +8,7 @@ use App\Models\Roles\Seller;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Modelo para permisos de juegos de comercios
+ * Modelo para permisos de juegos de los vendedores
  */
 class SellerGame extends BasePivot
 {

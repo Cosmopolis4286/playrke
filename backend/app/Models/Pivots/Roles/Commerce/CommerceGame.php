@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Modelo para permisos de juegos de comercios
+ * Modelo para permisos de juegos de los comercios
  */
 class CommerceGame extends Pivot
 {
