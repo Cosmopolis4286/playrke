@@ -20,6 +20,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         \App\Models\Roles\Commerce::class => \App\Policies\Roles\Admin\AdminCommercePolicy::class,
         \App\Models\Roles\Customer::class => \App\Policies\Roles\Admin\AdminCustomerPolicy::class,
+        \App\Models\Roles\Treasurer::class => \App\Policies\Roles\Admin\AdminTreasurerPolicy::class,
         \App\Models\Roles\Seller::class => \App\Policies\Roles\Seller\Manager\ManagerSellerPolicy::class,
         \App\Models\Prize::class => \App\Policies\Prizes\PrizePolicy::class,
         \App\Models\Games\Bingo\Room\BingoRoom::class => \App\Policies\Games\Bingo\Room\BingoRoomPolicy::class,

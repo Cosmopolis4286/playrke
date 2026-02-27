@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Roles\Treasurer;
+namespace App\Models\Roles;
 
 use App\Models\Country;
 use App\Models\User;

@@ -5,6 +5,7 @@ namespace App\Services\Roles\Admin;
 use App\DTOs\ContextDTO;
 use App\Services\Roles\Admin\Commerce\AdminCommerceContextService;
 use App\Services\Roles\Admin\Customer\AdminCustomerContextService;
+use App\Services\Roles\Admin\Treasurer\AdminTreasurerContextService;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
 
@@ -15,6 +16,7 @@ final class AdminContextService
     public function __construct(
         private readonly AdminCommerceContextService $commerceContextService,
         private readonly AdminCustomerContextService $customerContextService,
+        private readonly AdminTreasurerContextService $treasurerContextService,
     ) {}
 
     /**
@@ -30,6 +32,7 @@ final class AdminContextService
         return match ($context) {
             'commerces' => $this->commerceContextService->commerceContext(),
             'customers' => $this->customerContextService->customerContext(),
+            'treasurers' => $this->treasurerContextService->treasurerContext(),
             default => throw new DomainException('Tipo Rol inválido, no existe el contexto'),
         };
     }
