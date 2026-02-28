@@ -78,7 +78,7 @@ route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'role:ad
     'destroy' => ['method' => 'delete', 'uri' => '{room}/force-delete', 'action' => 'destroy'],
     'toggle-status' => ['method' => 'patch', 'uri' => '{room}/status', 'action' => 'toggleStatus'],
     'copy' => ['method' => 'post',  'uri' => '{room}/copy', 'action' => 'copy'],
-    'execute-job'   => ['method' => 'get', 'uri' => 'execute-job/{creatorType}/{creatorId}'],
+    'execute-job'   => ['method' => 'get', 'uri' => 'execute-job', 'action' => 'executeJob'],
 ]);
 
 /**

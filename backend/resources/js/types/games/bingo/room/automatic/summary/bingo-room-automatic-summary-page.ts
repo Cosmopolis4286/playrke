@@ -1,4 +1,4 @@
-import type { Currency } from '@/js/Services/walletService'
+import type { Currency } from '@/js/types/currency'
 import type { BingoRoomAutomatic } from '../bingo-room-automatic'
 import type { Column } from '@/js/types/common/table/column-row'
 import type { Pagination } from '@/js/types/common/table/pagination'

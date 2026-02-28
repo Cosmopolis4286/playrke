@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Games\Bingo\Room;
 use App\Http\Controllers\Controller;
 
 use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticCreateDTO;
+use App\Services\Games\Bingo\Room\Automatic\AutoGenerateBingoRoomsService;
 use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticUpdateDTO;
 use App\Http\Requests\Games\Bingo\Room\Automatic\BingoRoomAutomaticRequest;
 use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
@@ -29,7 +30,8 @@ final class BingoRoomAutomaticController extends Controller
      */
     public function __construct(
         private readonly \App\Services\Games\Bingo\Room\Automatic\BingoRoomAutomaticService $service,
-        private readonly \App\Services\Security\UserContextService $userContext
+        private readonly \App\Services\Security\UserContextService $userContext,
+        private readonly AutoGenerateBingoRoomsService $autoGenerator,
     ) {
         $this->authorizeResource(BingoRoomAutomatic::class, 'room');
     }
@@ -161,5 +163,30 @@ final class BingoRoomAutomaticController extends Controller
         return $this->handleServiceJson(
             fn() => $this->service->copy($room)
         );
+    }
+
+    /**
+     * Ejecuta el auto-generador de salas de bingo de forma manual.
+     * Equivale a correr el Artisan command generate:bingo-rooms
+     * pero restringido al creador autenticado.
+     *
+     * @return JsonResponse
+     */
+    public function executeJob(): JsonResponse
+    {
+        return $this->handleServiceJson(function () {
+            $userId = $this->userContext->resolveUserId();
+
+            $created = $this->autoGenerator->createBingoRooms([
+                'id' => $userId,
+            ]);
+
+            return [
+                'created' => $created,
+                'message' => $created
+                    ? 'Salas generadas correctamente.'
+                    : 'No hay plantillas activas para el horario actual.',
+            ];
+        });
     }
 }

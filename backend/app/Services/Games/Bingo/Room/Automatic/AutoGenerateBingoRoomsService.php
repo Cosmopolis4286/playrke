@@ -80,8 +80,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             ->whereTime('time', '<=', $windowEnd->format('H:i:s'));
 
         if ($creator) {
-            $query->where('creator_type', $creator['type'])
-                  ->where('creator_id', $creator['id']);
+            $query->where('creator_user_id', $creator['id']);
         }
 
         return $query->get();

@@ -49,6 +49,9 @@ interface UseBingoRoomAutomaticReturn {
 
     /** Fetch desde backend */
     fetchRooms: () => Promise<boolean>
+
+    /** Ejecutar el job de auto-generación manualmente */
+    executeJob: () => Promise<boolean>
 }
 
 /**
@@ -417,6 +420,45 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
         }
     }
 
+    /**
+     * Ejecuta el job de auto-generación de salas de bingo manualmente.
+     * Llama al mismo generador que el scheduler, filtrado por el creador autenticado.
+     */
+    async function executeJob(): Promise<boolean> {
+        const confirm = await showToastConfirmAction({
+            html: '¿Ejecutar el generador de salas ahora?<br><small>Solo se crearán salas cuyo horario esté dentro de la ventana actual.</small>',
+            icon: 'question',
+            confirmButtonText: 'Sí, ejecutar'
+        })
+
+        if (!confirm) return false
+
+        try {
+            loading.value = true
+
+            const { data } = await backendClient.get<{ created: boolean; message: string }>(
+                '/bingo-automatic-rooms/execute-job'
+            )
+
+            showToast(data.message, data.created ? 'success' : 'info')
+
+            if (data.created) {
+                await fetchRooms()
+            }
+
+            return data.created
+        } catch (error: any) {
+            console.error(error)
+            showToast(
+                error?.response?.data?.message ?? 'Error al ejecutar el job',
+                'error'
+            )
+            return false
+        } finally {
+            loading.value = false
+        }
+    }
+
     return {
         roomData,
         roomFormData,
@@ -431,6 +473,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
         toggleStatusBulk,
         remove,
         removeBulk,
-        fetchRooms
+        fetchRooms,
+        executeJob,
     }
 }
