@@ -2,12 +2,15 @@
 
 namespace App\Services\Games\Bingo\Room\Automatic;
 
-use App\Models\Games\Bingo\Card\CardPrice\BingoCardPrice;
+use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface;
+use App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface;
+use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
-use App\Models\Games\Bingo\Round\BingoRound;
-use App\Models\Games\Bingo\Round\BingoRoundPrize;
+use App\Services\ExchangeRate\ExchangeRateDomainService;
+use App\Services\Games\Bingo\Room\BingoRoomCrudService;
+use App\Models\Games\Common\Utils\GameStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -16,15 +19,19 @@ use Illuminate\Support\Facades\Log;
 /**
  * Genera salas de bingo reales a partir de las plantillas automáticas activas.
  *
+ * Extiende BingoRoomCrudService para reutilizar los métodos protegidos:
+ *  - createBaseRoom  → crea BingoRoom + BingoCreator con uuid_code único
+ *  - syncCardPrices  → inserta precios de cartón por moneda vía upsert batch
+ *  - syncRounds      → inserta rondas + premios vía batch
+ *
  * Flujo:
- *  1. Obtiene las plantillas ACTIVE cuyo campo `days` incluye el día actual.
+ *  1. Obtiene plantillas ACTIVE cuyo campo `days` incluye el día actual.
  *  2. Filtra las que tienen una hora programada dentro de la ventana de tiempo
  *     (próximas N minutos desde ahora).
- *  3. Por cada plantilla, crea un BingoRoom con su BingoRoomConfig, precios de
- *     cartón (BingoCardPrice) y rondas (BingoRound), usando los datos de las
- *     relaciones cardPriceAutomatic y roundAutomatic.
+ *  3. Por cada plantilla transforma sus datos al formato que esperan los métodos
+ *     del padre y delega la creación.
  */
-final class AutoGenerateBingoRoomsService
+final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
 {
     /**
      * Ventana de tiempo (en minutos) para considerar que una sala debe generarse ahora.
@@ -32,11 +39,16 @@ final class AutoGenerateBingoRoomsService
      */
     private const TIME_WINDOW_MINUTES = 60;
 
+    public function __construct(
+        BingoRoomRepositoryInterface $bingoRooms,
+        BingoCardPriceRepositoryInterface $bingoCardPrices,
+        ExchangeRateDomainService $exchangeRateService,
+    ) {
+        parent::__construct($bingoRooms, $bingoCardPrices, $exchangeRateService);
+    }
+
     /**
      * Crea las salas de bingo reales a partir de las plantillas automáticas.
-     *
-     * @param array|null $creator  Filtro opcional: ['type' => ..., 'id' => ...]
-     * @return bool
      */
     public function createBingoRooms(?array $creator = null): bool
     {
@@ -57,7 +69,7 @@ final class AutoGenerateBingoRoomsService
     private function getActiveTemplates(?array $creator): Collection
     {
         $now       = Carbon::now('America/Caracas');
-        $dayName   = strtolower($now->englishDayOfWeek); // 'monday', 'tuesday', ...
+        $dayName   = strtolower($now->englishDayOfWeek);
         $windowEnd = $now->copy()->addMinutes(self::TIME_WINDOW_MINUTES);
 
         $query = BingoRoomAutomatic::query()
@@ -98,18 +110,65 @@ final class AutoGenerateBingoRoomsService
 
     /**
      * Genera un BingoRoom real a partir de una plantilla automática.
+     * Delega la creación de sala base, precios y rondas a los métodos
+     * protegidos de BingoRoomCrudService.
      */
     private function generateRoomFromTemplate(BingoRoomAutomatic $template): void
     {
-        // 1. Crear la sala principal
-        $room = BingoRoom::create([
-            'status_id'       => 'DRAFT',
-            'creator_user_id' => $template->creator_user_id,
+        // 1. Construir DTO mínimo para createBaseRoom (solo usa isDraft y roomCommission)
+        $dto = $this->buildDtoFromTemplate($template);
+
+        // 2. Crear BingoRoom + BingoCreator (reutiliza createBaseRoom del padre)
+        $room = $this->createBaseRoom((int) $template->creator_user_id, $dto);
+
+        // Establecer comisiones en la sala (createBaseRoom no las incluye)
+        $room->update([
             'rke_commission'  => $template->rke_commission,
             'room_commission' => $template->room_commission,
         ]);
 
-        // 2. Crear configuración de sala
+        // 3. Crear configuración de sala (creation='A' para automática)
+        $this->createRoomConfig($room, $template);
+
+        // 4. Sincronizar precios de cartones (reutiliza syncCardPrices del padre)
+        $this->syncCardPricesFromTemplate($room, $template);
+
+        // 5. Sincronizar rondas con sus premios (reutiliza syncRounds del padre)
+        $this->syncRoundsFromTemplate($room, $template);
+
+        Log::info('[AutoGenerateBingoRooms] Sala generada.', [
+            'room_id'     => $room->id,
+            'template_id' => $template->id,
+        ]);
+    }
+
+    /**
+     * Construye un BingoRoomCreateDTO mínimo desde la plantilla.
+     * createBaseRoom solo usa: isDraft y roomCommission.
+     */
+    private function buildDtoFromTemplate(BingoRoomAutomatic $template): BingoRoomCreateDTO
+    {
+        return BingoRoomCreateDTO::fromArray([
+            'date'              => Carbon::now('America/Caracas')->format('Y-m-d'),
+            'time'              => $template->time ? $template->time->format('H:i') : '00:00',
+            'roomType'          => $template->room_type_id,
+            'gameMode'          => $template->game_mode_id,
+            'prizePoolType'     => $template->prize_pool_type_id,
+            'allowedCurrencies' => $template->allowed_currencies ?? [],
+            'roomCommn'         => (float) $template->room_commission,
+            'useBaseUsd'        => (bool) $template->use_base_usd,
+            'timeChip'          => (int) $template->time_chip,
+            'rounds'            => (int) ($template->rounds ?? 1),
+            'useSerials'        => (bool) $template->use_serials,
+            'isDraft'           => true,
+        ]);
+    }
+
+    /**
+     * Crea la BingoRoomConfig con creation='A' (automática).
+     */
+    private function createRoomConfig(BingoRoom $room, BingoRoomAutomatic $template): void
+    {
         $scheduledDate = Carbon::now('America/Caracas')->format('Y-m-d');
         $scheduledTime = $template->time ? $template->time->format('H:i:s') : null;
         $unixDate      = $scheduledTime
@@ -118,6 +177,7 @@ final class AutoGenerateBingoRoomsService
 
         BingoRoomConfig::create([
             'room_id'                 => $room->id,
+            'creation'                => 'A',
             'room_type_id'            => $template->room_type_id,
             'creator_user_id'         => $template->creator_user_id,
             'game_mode_id'            => $template->game_mode_id,
@@ -141,23 +201,13 @@ final class AutoGenerateBingoRoomsService
             'num_serials'             => $template->num_serials,
             'jackpot_pct'             => $template->jackpot_pct,
         ]);
-
-        // 3. Crear precios de cartones por moneda
-        $this->createCardPrices($room, $template);
-
-        // 4. Crear rondas
-        $this->createRounds($room, $template);
-
-        Log::info('[AutoGenerateBingoRooms] Sala generada.', [
-            'room_id'     => $room->id,
-            'template_id' => $template->id,
-        ]);
     }
 
     /**
-     * Crea los registros de precio de cartón a partir del automatic draft.
+     * Transforma los precios de cartón de la plantilla al formato
+     * que espera syncCardPrices del padre: allowedCurrencies[] + cardPriceByCurrency[].
      */
-    private function createCardPrices(BingoRoom $room, BingoRoomAutomatic $template): void
+    private function syncCardPricesFromTemplate(BingoRoom $room, BingoRoomAutomatic $template): void
     {
         $draft = $template->cardPriceAutomatic;
 
@@ -165,28 +215,40 @@ final class AutoGenerateBingoRoomsService
             return;
         }
 
-        foreach ($draft->card_prices as $currencyId => $price) {
-            if ($price === null || $price === '') {
-                continue;
-            }
-            BingoCardPrice::create([
-                'room_id'         => $room->id,
-                'creator_user_id' => $template->creator_user_id,
-                'currency_id'     => $currencyId,
-                'card_price'      => $price,
-            ]);
+        $prices = array_filter(
+            $draft->card_prices,
+            fn($price) => $price !== null && $price !== ''
+        );
+
+        if (empty($prices)) {
+            return;
         }
+
+        // syncCardPrices espera: allowedCurrencies[], defaultCardPrice, cardPriceByCurrency[], creatorUserId
+        $this->syncCardPrices(
+            roomId: (string) $room->id,
+            allowedCurrencies: array_keys($prices),
+            defaultCardPrice: 0,
+            cardPriceByCurrency: $prices,
+            creatorUserId: (string) $template->creator_user_id,
+        );
     }
 
     /**
-     * Crea los registros de ronda + premios a partir del automatic draft.
+     * Transforma las rondas de la plantilla al formato roundsConfig[]
+     * que espera syncRounds del padre.
      *
-     * Tipos de premio:
-     *  - PCT  : prize_value = porcentaje, currency_id = null
-     *  - FIXED: prize_value por moneda (prizeValues[$i] es array {currencyId => amount})
-     *  - OTHER: prize_id = FK a prizes, currency_id = null
+     * Formato de entrada (template):
+     *   prize_types[]   = ['PCT', 'FIXED', 'OTHER']
+     *   bingo_patterns[] = [patternId, ...]
+     *   prize_values[]  = [pct|fixedByCurrency|{prizeId,prizeName}, ...]
+     *
+     * Formato de salida (roundsConfig):
+     *   [prizeType, bingoPattern, prizeValue?, prizeValueByCurrency?, prizeId?, prizeName?]
+     *
+     * Mapeo inverso: PCT→'percentage', FIXED→'fixed', OTHER→'prize'
      */
-    private function createRounds(BingoRoom $room, BingoRoomAutomatic $template): void
+    private function syncRoundsFromTemplate(BingoRoom $room, BingoRoomAutomatic $template): void
     {
         $draft = $template->roundAutomatic;
 
@@ -199,72 +261,41 @@ final class AutoGenerateBingoRoomsService
         $patterns    = $draft->bingo_patterns ?? [];
         $prizeValues = $draft->prize_values   ?? [];
 
+        if ($totalRounds === 0) {
+            return;
+        }
+
+        // Mapeo inverso DB→frontend (que espera syncRounds del padre)
+        $prizeTypeMap = [
+            'PCT'   => 'percentage',
+            'FIXED' => 'fixed',
+            'OTHER' => 'prize',
+        ];
+
+        $roundsConfig = [];
+
         for ($i = 0; $i < $totalRounds; $i++) {
-            $prizeType = $prizeTypes[$i] ?? null;
+            $prizeType = $prizeTypes[$i] ?? 'PCT';
+            $value     = $prizeValues[$i] ?? null;
 
-            $round = BingoRound::create([
-                'room_id'          => $room->id,
-                'round'            => $i + 1,
-                'bingo_pattern_id' => $patterns[$i] ?? null,
-                'prize_type'       => $prizeType,
-                'status'           => 'PENDING',
-            ]);
+            $config = [
+                'prizeType'    => $prizeTypeMap[$prizeType] ?? 'percentage',
+                'bingoPattern' => $patterns[$i] ?? null,
+            ];
 
-            $this->createRoundPrize($round, $room, $prizeType, $prizeValues[$i] ?? null);
-        }
-    }
-
-    /**
-     * Crea el registro de prize para una ronda según su tipo.
-     */
-    private function createRoundPrize(BingoRound $round, BingoRoom $room, ?string $prizeType, mixed $prizeValue): void
-    {
-        if ($prizeType === null) {
-            return;
-        }
-
-        match ($prizeType) {
-            'PCT' => BingoRoundPrize::create([
-                'bingo_round_id' => $round->id,
-                'room_id'        => $room->id,
-                'currency_id'    => null,
-                'prize_value'    => $prizeValue !== null ? (float) $prizeValue : null,
-            ]),
-
-            'FIXED' => $this->createFixedRoundPrizes($round, $room, $prizeValue),
-
-            'OTHER' => BingoRoundPrize::create([
-                'bingo_round_id'    => $round->id,
-                'room_id'           => $room->id,
-                'currency_id'       => null,
-                'prize_id'          => is_array($prizeValue) ? ($prizeValue['prizeId'] ?? null) : null,
-                'prize_description' => is_array($prizeValue) ? ($prizeValue['prizeName'] ?? null) : null,
-            ]),
-
-            default => null,
-        };
-    }
-
-    /**
-     * Crea un BingoRoundPrize por cada moneda para premios de tipo FIXED.
-     * prizeValue es array {currencyId => amount}.
-     */
-    private function createFixedRoundPrizes(BingoRound $round, BingoRoom $room, mixed $prizeValue): void
-    {
-        if (!is_array($prizeValue)) {
-            return;
-        }
-
-        foreach ($prizeValue as $currencyId => $amount) {
-            if ($amount === null || $amount === '') {
-                continue;
+            if ($prizeType === 'PCT') {
+                $config['prizeValue'] = $value !== null ? (float) $value : null;
+            } elseif ($prizeType === 'FIXED' && is_array($value)) {
+                $config['prizeValueByCurrency'] = $value;
+            } elseif ($prizeType === 'OTHER' && is_array($value)) {
+                $config['prizeId']   = $value['prizeId'] ?? null;
+                $config['prizeName'] = $value['prizeName'] ?? '';
             }
-            BingoRoundPrize::create([
-                'bingo_round_id' => $round->id,
-                'room_id'        => $room->id,
-                'currency_id'    => $currencyId,
-                'prize_value'    => (float) $amount,
-            ]);
+
+            $roundsConfig[] = $config;
         }
+
+        // Delegar al método protegido del padre
+        $this->syncRounds((string) $room->id, $roundsConfig);
     }
 }

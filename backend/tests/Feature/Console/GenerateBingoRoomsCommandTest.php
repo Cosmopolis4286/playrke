@@ -3,34 +3,47 @@
 namespace Tests\Feature\Console;
 
 use App\Models\Games\Bingo\Card\CardPrice\BingoCardPrice;
+use App\Models\Games\Bingo\Creator\BingoCreator;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Models\Games\Bingo\Round\BingoRound;
 use App\Models\Games\Bingo\Round\BingoRoundPrize;
+use App\Models\Games\Common\Utils\GameStatus;
 use App\Services\Games\Bingo\Room\Automatic\AutoGenerateBingoRoomsService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class GenerateBingoRoomsCommandTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     // ─── Setup ────────────────────────────────────────────────────────────────
 
     protected function setUp(): void
     {
         parent::setUp();
-        // Disable FK checks so we can insert test rows without creating all referenced rows
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        $this->seedGameStatuses();
     }
 
     protected function tearDown(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
         parent::tearDown();
+    }
+
+    private function seedGameStatuses(): void
+    {
+        $statuses = ['NONE', 'DRAFT', 'ACTIVE', 'INACTIVE', 'DELETED', 'CLOSED', 'IN_PROGRESS', 'FINISHED', 'REFUND', 'OFFLINE'];
+        foreach ($statuses as $code) {
+            if (!GameStatus::where('code', $code)->exists()) {
+                GameStatus::create(['code' => $code, 'label' => $code]);
+            }
+        }
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -129,13 +142,13 @@ class GenerateBingoRoomsCommandTest extends TestCase
 
     // ─── Command tests ────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function command_is_registered_and_runs_successfully(): void
     {
         $this->artisan('generate:bingo-rooms')->assertExitCode(0);
     }
 
-    /** @test */
+    #[Test]
     public function command_logs_execution_on_success(): void
     {
         $this->artisan('generate:bingo-rooms');
@@ -146,7 +159,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function command_output_mentions_success(): void
     {
         $this->artisan('generate:bingo-rooms')
@@ -156,7 +169,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
 
     // ─── Template filtering ───────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function service_returns_false_when_no_active_templates(): void
     {
         $result = app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
@@ -165,7 +178,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $this->assertEquals(0, BingoRoom::count());
     }
 
-    /** @test */
+    #[Test]
     public function service_skips_inactive_templates(): void
     {
         $this->makeTemplate(['status' => BingoRoomAutomatic::STATUS_INACTIVE]);
@@ -176,7 +189,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $this->assertEquals(0, BingoRoom::count());
     }
 
-    /** @test */
+    #[Test]
     public function service_skips_templates_not_scheduled_today(): void
     {
         $now      = Carbon::now('America/Caracas');
@@ -190,7 +203,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $this->assertEquals(0, BingoRoom::count());
     }
 
-    /** @test */
+    #[Test]
     public function service_skips_templates_outside_time_window(): void
     {
         $futureTime = Carbon::now('America/Caracas')->addHours(2)->format('H:i:s');
@@ -205,7 +218,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
 
     // ─── Room creation ────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function service_creates_bingo_room_from_active_template(): void
     {
         $template = $this->makeTemplate();
@@ -216,13 +229,41 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $this->assertEquals(1, BingoRoom::count());
 
         $room = BingoRoom::first();
-        $this->assertEquals('DRAFT', $room->status_id);
+        $draftId = GameStatus::where('code', 'DRAFT')->value('id');
+        $this->assertEquals($draftId, $room->status_id);
         $this->assertEquals($template->creator_user_id, $room->creator_user_id);
         $this->assertEquals((float) $template->rke_commission, (float) $room->rke_commission);
         $this->assertEquals((float) $template->room_commission, (float) $room->room_commission);
     }
 
-    /** @test */
+    #[Test]
+    public function service_creates_bingo_creator_for_room(): void
+    {
+        $template = $this->makeTemplate();
+
+        app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
+
+        $room    = BingoRoom::first();
+        $creator = BingoCreator::where('room_id', $room->id)->first();
+
+        $this->assertNotNull($creator);
+        $this->assertEquals($template->creator_user_id, $creator->user_id);
+        $this->assertEquals((float) $template->room_commission, (float) $creator->creator_commn);
+        $this->assertEquals('ACTIVE', $creator->status);
+    }
+
+    #[Test]
+    public function service_creates_config_with_creation_automatic(): void
+    {
+        $this->makeTemplate();
+
+        app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
+
+        $config = BingoRoomConfig::first();
+        $this->assertEquals('A', $config->creation);
+    }
+
+    #[Test]
     public function service_creates_config_with_correct_fields(): void
     {
         $template = $this->makeTemplate([
@@ -254,7 +295,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function service_creates_multiple_rooms_for_multiple_templates(): void
     {
         $this->makeTemplate();
@@ -269,29 +310,33 @@ class GenerateBingoRoomsCommandTest extends TestCase
 
     // ─── Card prices ──────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function service_creates_card_prices_per_currency(): void
     {
-        $template = $this->makeTemplate();
-        $this->addCardPrices($template, ['USD' => 10.00, 'VES' => 35000.00]);
+        $template   = $this->makeTemplate();
+        $currencyId1 = $this->nextId();
+        $currencyId2 = $this->nextId();
+        $this->addCardPrices($template, [$currencyId1 => 10.00, $currencyId2 => 35000.00]);
 
         app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
 
         $room = BingoRoom::first();
+        $this->assertNotNull($room, 'Room should be created');
         $this->assertEquals(2, BingoCardPrice::where('room_id', $room->id)->count());
 
-        $usd = BingoCardPrice::where('room_id', $room->id)->where('currency_id', 'USD')->first();
-        $this->assertEquals(10.00, (float) $usd->card_price);
+        $p1 = BingoCardPrice::where('room_id', $room->id)->where('currency_id', $currencyId1)->first();
+        $this->assertEquals(10.00, (float) $p1->card_price);
 
-        $ves = BingoCardPrice::where('room_id', $room->id)->where('currency_id', 'VES')->first();
-        $this->assertEquals(35000.00, (float) $ves->card_price);
+        $p2 = BingoCardPrice::where('room_id', $room->id)->where('currency_id', $currencyId2)->first();
+        $this->assertEquals(35000.00, (float) $p2->card_price);
     }
 
-    /** @test */
+    #[Test]
     public function service_skips_empty_card_price_entries(): void
     {
-        $template = $this->makeTemplate();
-        $this->addCardPrices($template, ['USD' => 10.00, 'VES' => '']);
+        $template    = $this->makeTemplate();
+        $currencyId1 = $this->nextId();
+        $this->addCardPrices($template, [$currencyId1 => 10.00, $this->nextId() => '']);
 
         app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
 
@@ -299,7 +344,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $this->assertEquals(1, BingoCardPrice::where('room_id', $room->id)->count());
     }
 
-    /** @test */
+    #[Test]
     public function service_creates_no_card_prices_when_template_has_none(): void
     {
         $this->makeTemplate();
@@ -311,7 +356,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
 
     // ─── Rounds: PCT ─────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function service_creates_pct_round_with_prize(): void
     {
         $template  = $this->makeTemplate(['rounds' => 1]);
@@ -325,7 +370,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $this->assertEquals(1, $round->round);
         $this->assertEquals('PCT', $round->prize_type);
         $this->assertEquals($patternId, $round->bingo_pattern_id);
-        $this->assertEquals('PENDING', $round->status);
+        $this->assertEquals('ACTIVE', $round->status);
 
         $prize = BingoRoundPrize::where('bingo_round_id', $round->id)->first();
         $this->assertNotNull($prize);
@@ -335,35 +380,39 @@ class GenerateBingoRoomsCommandTest extends TestCase
 
     // ─── Rounds: FIXED ────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function service_creates_fixed_round_prizes_per_currency(): void
     {
+        $currencyId1 = $this->nextId();
+        $currencyId2 = $this->nextId();
+
         $template = $this->makeTemplate(['rounds' => 1]);
         $this->addRoundConfig(
             $template,
             ['FIXED'],
             [$this->nextId()],
-            [['USD' => 100.00, 'VES' => 350000.00]]
+            [[$currencyId1 => 100.00, $currencyId2 => 350000.00]]
         );
 
         app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
 
-        $round  = BingoRound::first();
+        $round = BingoRound::first();
+        $this->assertNotNull($round, 'Round should be created');
         $this->assertEquals('FIXED', $round->prize_type);
 
         $prizes = BingoRoundPrize::where('bingo_round_id', $round->id)->get();
         $this->assertEquals(2, $prizes->count());
 
-        $usd = $prizes->firstWhere('currency_id', 'USD');
-        $this->assertEquals(100.00, (float) $usd->prize_value);
+        $p1 = $prizes->firstWhere('currency_id', $currencyId1);
+        $this->assertEquals(100.00, (float) $p1->prize_value);
 
-        $ves = $prizes->firstWhere('currency_id', 'VES');
-        $this->assertEquals(350000.00, (float) $ves->prize_value);
+        $p2 = $prizes->firstWhere('currency_id', $currencyId2);
+        $this->assertEquals(350000.00, (float) $p2->prize_value);
     }
 
     // ─── Rounds: OTHER ────────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function service_creates_other_round_with_prize_reference(): void
     {
         $prizeId  = $this->nextId();
@@ -388,7 +437,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
 
     // ─── Rounds: multiple ────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function service_creates_multiple_rounds_in_correct_order(): void
     {
         $template = $this->makeTemplate(['rounds' => 3]);
@@ -411,7 +460,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $this->assertEquals(3, $prizes->count());
     }
 
-    /** @test */
+    #[Test]
     public function service_creates_no_rounds_when_template_has_no_round_config(): void
     {
         $this->makeTemplate(['rounds' => 2]);
@@ -423,13 +472,13 @@ class GenerateBingoRoomsCommandTest extends TestCase
 
     // ─── Serials config ───────────────────────────────────────────────────────
 
-    /** @test */
+    #[Test]
     public function service_copies_serials_config_to_room_config(): void
     {
         $this->makeTemplate([
             'use_serials' => true,
             'serials_pct' => 15.00,
-            'num_serials' => 100,
+            'num_serials' => 10,   // varchar(2) in migration — max "99"
         ]);
 
         app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
@@ -437,6 +486,6 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $config = BingoRoomConfig::first();
         $this->assertTrue((bool) $config->use_serials);
         $this->assertEquals(15.00, (float) $config->serials_pct);
-        $this->assertEquals(100, (int) $config->num_serials);
+        $this->assertEquals(10, (int) $config->num_serials);
     }
 }

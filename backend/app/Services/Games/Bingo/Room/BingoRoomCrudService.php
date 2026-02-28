@@ -29,10 +29,8 @@ use Illuminate\Support\Str;
  * - Delegar operaciones a repositorios según rol
  *
  * NO maneja autenticación ni lógica HTTP.
- *
- * @final
  */
-final class BingoRoomCrudService
+class BingoRoomCrudService
 {
     public function __construct(
         private readonly \App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface $bingoRooms,
@@ -129,7 +127,7 @@ final class BingoRoomCrudService
      * @return BingoRoom La sala creada con ID y UUID generado
      * @throws BingoRoomException Si ocurre un error durante la creación de la sala base
      */
-    private function createBaseRoom(int $userId, BingoRoomCreateDTO $dto): BingoRoom
+    protected function createBaseRoom(int $userId, BingoRoomCreateDTO $dto): BingoRoom
     {
         do {
             $uuidCode = strtoupper(Str::uuid()->toString());
@@ -239,7 +237,7 @@ final class BingoRoomCrudService
      * @param float $defaultPrice Precio por defecto si no se proporciona un precio específico para una moneda
      * @return void
      */
-    private function syncCardPrices(string $roomId, array $allowedCurrencies, float $defaultCardPrice, ?array $cardPriceByCurrency, string $creatorUserId): void
+    protected function syncCardPrices(string $roomId, array $allowedCurrencies, float $defaultCardPrice, ?array $cardPriceByCurrency, string $creatorUserId): void
     {
         if (empty($allowedCurrencies)) {
             // Si no hay monedas permitidas, eliminar todos los precios de la sala
@@ -300,7 +298,7 @@ final class BingoRoomCrudService
      * @param string $roomId
      * @param array  $roundsConfig  [{prizeType, bingoPattern, prizeValue}]
      */
-    private function syncRounds(string $roomId, array $roundsConfig): void
+    protected function syncRounds(string $roomId, array $roundsConfig): void
     {
         // Eliminar rondas previas (y sus premios en cascada)
         BingoRound::where('room_id', $roomId)->delete();
