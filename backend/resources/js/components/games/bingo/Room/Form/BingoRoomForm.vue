@@ -16,6 +16,8 @@
   import { syncRoundsConfig, redistributePercentageRounds } from './Composables/useRoomRounds'
   // Premios
   import { searchPrizes } from '@/js/composables/prizes/usePrize'
+  import backendClient from '@/js/plugins/axios'
+  import { router } from '@inertiajs/vue3'
   // Types
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
   import type { BingoRoomAutomaticFormData } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
@@ -213,9 +215,21 @@
 
   const prizeModalRoundIndex = ref<number | null>(null)
   const showPrizeModal = ref(false)
+  const showNoPrizesAlert = ref(false)
   const prizeModalSelected = ref<PrizeSearchResult[]>([])
 
-  function openPrizeModal(index: number) {
+  async function openPrizeModal(index: number) {
+    try {
+      const { data } = await backendClient.get<{ data: any[] }>('/prizes/search', { params: { q: '' } })
+      const hasPrizes = Array.isArray(data.data) && data.data.length > 0
+      if (!hasPrizes) {
+        showNoPrizesAlert.value = true
+        return
+      }
+    } catch {
+      // Si falla la consulta, abrir el modal igual
+    }
+
     prizeModalRoundIndex.value = index
     const current = form.value.roundsConfig?.[index]
     prizeModalSelected.value = current?.prizeId
@@ -336,6 +350,21 @@
       />
     </div>
   </form>
+
+  <!-- Alerta: sin premios registrados -->
+  <Modal
+    v-model="showNoPrizesAlert"
+    title="Sin premios disponibles"
+    size="sm"
+    show-confirm
+    confirm-text="Ir a Premios"
+    :on-submit="() => { router.visit('/prizes'); return true }"
+  >
+    <div class="text-center py-2">
+      <i class="fas fa-gift fa-3x text-muted mb-3 d-block"></i>
+      <p class="mb-0">No hay premios registrados. Crea al menos un premio antes de asignarlo a una ronda.</p>
+    </div>
+  </Modal>
 
   <!-- Modal selección de premio (P/S) -->
   <Modal

@@ -7,6 +7,7 @@ use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Models\Games\Bingo\Round\BingoRound;
+use App\Models\Games\Bingo\Round\BingoRoundPrize;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -119,23 +120,26 @@ final class AutoGenerateBingoRoomsService
             'room_id'                 => $room->id,
             'room_type_id'            => $template->room_type_id,
             'creator_user_id'         => $template->creator_user_id,
-            'game_mode_id'            => $template->game_mode,
+            'game_mode_id'            => $template->game_mode_id,
             'in_live'                 => $template->in_live ?? 'N',
             'date'                    => $scheduledDate,
             'time'                    => $scheduledTime,
             'unix_date'               => $unixDate,
             'rke_commission'          => $template->rke_commission,
             'room_commission'         => $template->room_commission,
+            'use_base_usd'            => $template->use_base_usd,
+            'card_price_usd'          => $template->card_price_usd,
+            'usd_exchange_round_step' => $template->usd_exchange_round_step,
             'allowed_currencies'      => $template->allowed_currencies,
-            'prize_pool_type_id'      => $template->prize_pool_type,
+            'prize_pool_type_id'      => $template->prize_pool_type_id,
             'amount_added_prize_pool' => $template->amount_added_prize_pool,
             'time_chip'               => $template->time_chip,
             'rounds'                  => $template->rounds,
             'rounds_pct'              => $template->rounds_pct,
+            'use_serials'             => $template->use_serials,
             'serials_pct'             => $template->serials_pct,
             'num_serials'             => $template->num_serials,
             'jackpot_pct'             => $template->jackpot_pct,
-            'plays_pct'               => $template->plays_pct,
         ]);
 
         // 3. Crear precios de cartones por moneda
@@ -175,7 +179,12 @@ final class AutoGenerateBingoRoomsService
     }
 
     /**
-     * Crea los registros de ronda a partir del automatic draft.
+     * Crea los registros de ronda + premios a partir del automatic draft.
+     *
+     * Tipos de premio:
+     *  - PCT  : prize_value = porcentaje, currency_id = null
+     *  - FIXED: prize_value por moneda (prizeValues[$i] es array {currencyId => amount})
+     *  - OTHER: prize_id = FK a prizes, currency_id = null
      */
     private function createRounds(BingoRoom $room, BingoRoomAutomatic $template): void
     {
@@ -185,19 +194,76 @@ final class AutoGenerateBingoRoomsService
             return;
         }
 
-        $totalRounds  = $template->rounds ?? 1;
-        $prizeTypes   = $draft->prize_types   ?? [];
-        $patterns     = $draft->bingo_patterns ?? [];
-        $prizeValues  = $draft->prize_values   ?? [];
+        $totalRounds = $template->rounds ?? 1;
+        $prizeTypes  = $draft->prize_types   ?? [];
+        $patterns    = $draft->bingo_patterns ?? [];
+        $prizeValues = $draft->prize_values   ?? [];
 
         for ($i = 0; $i < $totalRounds; $i++) {
-            BingoRound::create([
+            $prizeType = $prizeTypes[$i] ?? null;
+
+            $round = BingoRound::create([
                 'room_id'          => $room->id,
                 'round'            => $i + 1,
                 'bingo_pattern_id' => $patterns[$i] ?? null,
-                'prize_type'       => $prizeTypes[$i] ?? null,
-                'prize_value'      => $prizeValues[$i] ?? null,
+                'prize_type'       => $prizeType,
                 'status'           => 'PENDING',
+            ]);
+
+            $this->createRoundPrize($round, $room, $prizeType, $prizeValues[$i] ?? null);
+        }
+    }
+
+    /**
+     * Crea el registro de prize para una ronda según su tipo.
+     */
+    private function createRoundPrize(BingoRound $round, BingoRoom $room, ?string $prizeType, mixed $prizeValue): void
+    {
+        if ($prizeType === null) {
+            return;
+        }
+
+        match ($prizeType) {
+            'PCT' => BingoRoundPrize::create([
+                'bingo_round_id' => $round->id,
+                'room_id'        => $room->id,
+                'currency_id'    => null,
+                'prize_value'    => $prizeValue !== null ? (float) $prizeValue : null,
+            ]),
+
+            'FIXED' => $this->createFixedRoundPrizes($round, $room, $prizeValue),
+
+            'OTHER' => BingoRoundPrize::create([
+                'bingo_round_id'    => $round->id,
+                'room_id'           => $room->id,
+                'currency_id'       => null,
+                'prize_id'          => is_array($prizeValue) ? ($prizeValue['prizeId'] ?? null) : null,
+                'prize_description' => is_array($prizeValue) ? ($prizeValue['prizeName'] ?? null) : null,
+            ]),
+
+            default => null,
+        };
+    }
+
+    /**
+     * Crea un BingoRoundPrize por cada moneda para premios de tipo FIXED.
+     * prizeValue es array {currencyId => amount}.
+     */
+    private function createFixedRoundPrizes(BingoRound $round, BingoRoom $room, mixed $prizeValue): void
+    {
+        if (!is_array($prizeValue)) {
+            return;
+        }
+
+        foreach ($prizeValue as $currencyId => $amount) {
+            if ($amount === null || $amount === '') {
+                continue;
+            }
+            BingoRoundPrize::create([
+                'bingo_round_id' => $round->id,
+                'room_id'        => $room->id,
+                'currency_id'    => $currencyId,
+                'prize_value'    => (float) $amount,
             ]);
         }
     }

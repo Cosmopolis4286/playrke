@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\Games\Bingo\Room\Automatic\AutoGenerateBingoRoomsService;
-use App\Services\Helpers\HandleCommands;
+use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -31,7 +31,7 @@ class GenerateBingoRoomsCommand extends Command
             $this->error($output);
         }
 
-        app(HandleCommands::class)->logCommandExecution($this->signature, $output, $status);
+        app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
 
         if ($status === 'SUCCESS') {
             $this->info($output);
