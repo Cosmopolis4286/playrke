@@ -26,6 +26,9 @@ importers:
       yup:
         specifier: ^1.7.1
         version: 1.7.1
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       concurrently:
         specifier: ^9.1.2
@@ -2853,6 +2856,9 @@ packages:
   zhead@2.2.4:
     resolution: {integrity: sha512-8F0OI5dpWIA5IGG5NHUg9staDwz/ZPxZtvGVf01j7vHqSyZ0raHY+78atOVxRqb73AotX22uV1pXt3gYSstGag==}
 
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
+
 snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
@@ -5495,3 +5501,5 @@ snapshots:
       type-fest: 2.19.0
 
   zhead@2.2.4: {}
+
+  zod@4.3.6: {}
