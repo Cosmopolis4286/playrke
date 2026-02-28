@@ -6,6 +6,8 @@ use App\Models\Games\Bingo\Card\CardPrice\BingoCardPriceAutomatic;
 use App\Models\Games\Bingo\Round\BingoRoundAutomatic;
 use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
+use App\Models\Concerns\HasHashedRouteKey;
+use App\Models\Games\Common\Room\RoomType;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BingoRoomAutomatic extends Model
 {
-    use SnowflakeId, SoftDeletes;
+    use SnowflakeId, SoftDeletes, HasHashedRouteKey;
 
     protected $table = 'bingo_rooms_automatic';
 
@@ -95,9 +97,15 @@ class BingoRoomAutomatic extends Model
     protected $appends = [
         'formatted_time',
         'days_description',
+        'status_badge',
     ];
 
     // ─── Relations ────────────────────────────────────────────────────────────
+
+    public function roomType(): BelongsTo
+    {
+        return $this->belongsTo(RoomType::class, 'room_type_id');
+    }
 
     public function cardPriceAutomatic(): HasOne
     {
@@ -155,5 +163,14 @@ class BingoRoomAutomatic extends Model
     public function getIsActiveAttribute(): bool
     {
         return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function getStatusBadgeAttribute(): string
+    {
+        return match ($this->status) {
+            'ACTIVE'   => '<span class="badge badge-success">Activa</span>',
+            'INACTIVE' => '<span class="badge badge-secondary">Inactiva</span>',
+            default    => '<span class="badge badge-dark">Desconocido</span>',
+        };
     }
 }

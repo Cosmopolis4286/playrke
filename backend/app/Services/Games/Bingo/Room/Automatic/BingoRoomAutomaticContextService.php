@@ -50,8 +50,8 @@ final class BingoRoomAutomaticContextService
      */
     private function resolveGameRooms(?int $userId): array
     {
-        $labels  = ['Código', 'Tipo', 'Hora', 'Creación', 'Estado'];
-        $rowKeys = ['id', 'room_type_id', 'formatted_time', 'created_at', 'status'];
+        $labels  = ['Código', 'Días', 'Hora', 'Tipo de Sala', 'Modo de Juego', 'Tipo Bote', 'Estado'];
+        $rowKeys = ['id', 'days_description', 'formatted_time', 'roomType.label', 'gameMode.label', 'prizePoolType.label', 'status_badge'];
 
         $conditions = $userId
             ? ['creator_user_id' => $userId]
@@ -60,9 +60,9 @@ final class BingoRoomAutomaticContextService
         $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
-            relations: [],
+            relations: ['roomType:id,label', 'gameMode:id,label', 'prizePoolType:id,label'],
             conditions: $conditions,
-            fields: ['id', 'room_type_id', 'time', 'creator_user_id', 'created_at', 'status']
+            fields: ['id', 'room_type_id', 'game_mode_id', 'prize_pool_type_id', 'days', 'time', 'creator_user_id', 'created_at', 'status']
         );
 
         $collection = $source instanceof LengthAwarePaginator

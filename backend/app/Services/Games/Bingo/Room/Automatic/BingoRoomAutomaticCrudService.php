@@ -235,23 +235,26 @@ final class BingoRoomAutomaticCrudService
         }
 
         $dto = BingoRoomAutomaticCreateDTO::fromArray([
-            'date'                 => $room->date?->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'days'                 => $room->days ?? [],
             'time'                 => $room->formatted_time,
             'roomType'             => $room->room_type_id,
             'gameMode'             => $room->game_mode_id,
             'prizePoolType'        => $room->prize_pool_type_id,
-            'cardPriceUsd'         => $room->card_price_usd !== null ? (float) $room->card_price_usd : null,
             'allowedCurrencies'    => $room->allowed_currencies ?? [],
             'amountAddedPrizePool' => $room->amount_added_prize_pool ? (float) $room->amount_added_prize_pool : null,
             'roomCommn'            => (float) $room->room_commission,
+            'useBaseUsd'           => (bool) $room->use_base_usd,
+            'cardPriceUsd'         => $room->card_price_usd !== null ? (float) $room->card_price_usd : null,
+            'usdExchangeRoundStep' => $room->usd_exchange_round_step !== null ? (float) $room->usd_exchange_round_step : null,
+            'cardPriceByCurrency'  => $cardPriceByCurrency,
             'jackpotPct'           => $room->jackpot_pct ? (float) $room->jackpot_pct : null,
             'timeChip'             => (int) $room->time_chip,
             'rounds'               => (int) $room->rounds,
             'roundsPct'            => $room->rounds_pct ? (float) $room->rounds_pct : null,
-            'serialsPct'           => (float) $room->serials_pct,
-            'numSerials'           => (int) $room->num_serials,
+            'useSerials'           => (bool) $room->use_serials,
+            'serialsPct'           => $room->serials_pct ? (float) $room->serials_pct : null,
+            'numSerials'           => $room->num_serials ? (int) $room->num_serials : null,
             'roundsConfig'         => $roundsConfig,
-            'cardPriceByCurrency'  => $cardPriceByCurrency,
             'isDraft'              => true,
         ]);
 
