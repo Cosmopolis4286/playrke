@@ -1,164 +1,165 @@
 <script setup lang="ts">
-  import { reactive, watch, computed } from 'vue'
-  import { useRoomRounds } from '../Composables/useRoomRounds'
-  import { useRoomCurrency, type CurrencyOption } from '../Composables/useRoomCurrency'
+  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
+  import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+  import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
+  import type { BingoRoomAutomaticFormData, DayOfWeek } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
 
-  interface RoomBasicForm {
-    name: string
-    date: string
-    rounds: number
-    roundsPct: number
-    mainCurrency: string
+  interface SelectOption {
+    value: string | number
+    code?: string
+    label: string
   }
 
   const props = defineProps<{
-    modelValue: RoomBasicForm
-    currencies: CurrencyOption[]
+    modelValue: BingoRoomFormData | BingoRoomAutomaticFormData
+    errors: Record<string, any>
+    automaticRoom?: boolean
+    roomTypeOptions: SelectOption[]
+    gameModeOptions: SelectOption[]
+    prizePoolTypeOptions: SelectOption[]
+    minDate: string
+    roomCommn: string | number
+    percentageLimits: { roomCommn: { min: number; max: number } }
   }>()
 
   const emit = defineEmits<{
-    (e: 'update:modelValue', value: RoomBasicForm): void
+    (e: 'update:modelValue', value: BingoRoomFormData | BingoRoomAutomaticFormData): void
+    (e: 'update:roomCommn', value: string | number): void
   }>()
 
-  const localForm = reactive({ ...props.modelValue })
-
-  /**
-   * Rondas composable
-   */
-  const {
-    rounds,
-    roundsPct,
-    errors: roundsErrors
-  } = useRoomRounds({
-    maxRounds: 15,
-    percentageStep: 5
-  })
-
-  rounds.value = localForm.rounds
-  roundsPct.value = localForm.roundsPct
-
-  /**
-   * Moneda composable
-   */
-  const {
-    allowedCurrencies,
-    mainCurrency,
-    errors: currencyErrors
-  } = useRoomCurrency(props.currencies)
-
-  const selectedCurrencyCode = computed({
-    get: () => mainCurrency.value?.code ?? '',
-    set: (code: string) => {
-      const found = allowedCurrencies.value.find(c => c.code === code)
-      if (found) mainCurrency.value = found
-    }
-  })
-
-  /**
-   * Validación simple básica
-   */
-  const localErrors = reactive<{ name?: string; date?: string }>({})
-
-  function validateBasic() {
-    localErrors.name = !localForm.name ? 'Nombre requerido' : undefined
-    localErrors.date = !localForm.date ? 'Fecha requerida' : undefined
-  }
-
-  /**
-   * Sync hacia padre
-   */
-  watch(
-    [localForm, rounds, roundsPct, mainCurrency],
-    () => {
-      validateBasic()
-
-      emit('update:modelValue', {
-        ...localForm,
-        rounds: rounds.value,
-        roundsPct: roundsPct.value,
-        mainCurrency: mainCurrency.value?.code ?? ''
-      })
-    },
-    { deep: true }
-  )
+  const DAYS_OPTIONS: { value: DayOfWeek; label: string }[] = [
+    { value: 'monday', label: 'Lunes' },
+    { value: 'tuesday', label: 'Martes' },
+    { value: 'wednesday', label: 'Miércoles' },
+    { value: 'thursday', label: 'Jueves' },
+    { value: 'friday', label: 'Viernes' },
+    { value: 'saturday', label: 'Sábado' },
+    { value: 'sunday', label: 'Domingo' }
+  ]
 </script>
 
 <template>
-  <div class="row g-3">
-    <!-- Nombre -->
-    <div class="col-md-6">
-      <label class="form-label">Nombre de la sala</label>
-      <input
-        type="text"
-        class="form-control"
-        :class="{ 'is-invalid': localErrors.name }"
-        v-model="localForm.name"
-      />
-      <div class="invalid-feedback" v-if="localErrors.name">
-        {{ localErrors.name }}
-      </div>
-    </div>
+  <!-- Fecha (solo salas normales) -->
+  <FormInput
+    v-if="!automaticRoom"
+    label="Fecha"
+    name="date"
+    :error="errors.date"
+    type="date"
+    required
+    :min="minDate"
+    col="col-sm-6 col-md-4 col-lg-3"
+    :modelValue="modelValue.date"
+    @update:modelValue="emit('update:modelValue', { ...modelValue, date: $event })"
+  />
 
-    <!-- Fecha -->
-    <div class="col-md-6">
-      <label class="form-label">Fecha</label>
-      <input
-        type="date"
-        class="form-control"
-        :class="{ 'is-invalid': localErrors.date }"
-        v-model="localForm.date"
-      />
-      <div class="invalid-feedback" v-if="localErrors.date">
-        {{ localErrors.date }}
-      </div>
-    </div>
+  <!-- Días de publicación (solo salas automáticas) -->
+  <FormSelect
+    v-if="automaticRoom"
+    label="Días de publicación"
+    name="days"
+    :error="(errors as any).days"
+    required
+    multiple
+    placeholder="Seleccionar días"
+    :options="DAYS_OPTIONS"
+    optionValue="value"
+    optionLabel="label"
+    col="col-sm-6"
+    :modelValue="(modelValue as BingoRoomAutomaticFormData).days ?? []"
+    @update:modelValue="emit('update:modelValue', { ...modelValue, days: $event } as BingoRoomAutomaticFormData)"
+  />
 
-    <!-- Rondas -->
-    <div class="col-md-4">
-      <label class="form-label">Rondas</label>
-      <input
-        type="number"
-        min="1"
-        class="form-control"
-        :class="{ 'is-invalid': roundsErrors.rounds }"
-        v-model.number="rounds"
-      />
-      <div class="invalid-feedback" v-if="roundsErrors.rounds">
-        {{ roundsErrors.rounds }}
-      </div>
-    </div>
+  <!-- Hora -->
+  <FormInput
+    label="Hora"
+    name="time"
+    :error="errors.time"
+    type="time"
+    required
+    col="col-sm-6 col-md-4 col-lg-3"
+    :modelValue="modelValue.time"
+    @update:modelValue="emit('update:modelValue', { ...modelValue, time: $event })"
+  />
 
-    <!-- % Premio -->
-    <div class="col-md-4">
-      <label class="form-label">% Premio</label>
-      <input
-        type="number"
-        min="0"
-        max="100"
-        class="form-control"
-        :class="{ 'is-invalid': roundsErrors.roundsPct }"
-        v-model.number="roundsPct"
-      />
-      <div class="invalid-feedback" v-if="roundsErrors.roundsPct">
-        {{ roundsErrors.roundsPct }}
-      </div>
-    </div>
+  <!-- Tipo de sala -->
+  <FormSelect
+    label="Tipo de Sala"
+    name="room_type"
+    :error="errors.roomType"
+    required
+    placeholder="Selecciona tipo"
+    :options="roomTypeOptions"
+    optionValue="value"
+    optionLabel="label"
+    col="col-sm-6 col-md-4 col-lg-3"
+    :modelValue="modelValue.roomType"
+    @update:modelValue="emit('update:modelValue', { ...modelValue, roomType: $event })"
+  />
 
-    <!-- Moneda principal -->
-    <div class="col-md-4">
-      <label class="form-label">Moneda principal</label>
-      <select
-        class="form-select"
-        :class="{ 'is-invalid': currencyErrors.mainCurrency }"
-        v-model="selectedCurrencyCode"
-      >
-        <option v-for="c in allowedCurrencies" :key="c.code" :value="c.code">
-          {{ c.code }}
-        </option>
-      </select>
-      <div class="invalid-feedback" v-if="currencyErrors.mainCurrency">
-        {{ currencyErrors.mainCurrency }}
-      </div>
-    </div>
-  </div>
+  <!-- Modo de juego -->
+  <FormSelect
+    label="Modo de Juego"
+    name="game_mode"
+    :error="errors.gameMode"
+    id="game-mode"
+    required
+    placeholder="Selecciona modo"
+    :options="gameModeOptions"
+    optionValue="value"
+    optionLabel="label"
+    col="col-sm-6 col-md-4 col-lg-3"
+    :modelValue="modelValue.gameMode"
+    @update:modelValue="emit('update:modelValue', { ...modelValue, gameMode: $event })"
+  />
+
+  <!-- Tipo Bote -->
+  <FormSelect
+    label="Tipo Bote"
+    name="prize_pool_type"
+    :error="errors.prizePoolType"
+    required
+    placeholder="Selecciona tipo bote"
+    :options="prizePoolTypeOptions"
+    optionValue="value"
+    optionLabel="label"
+    col="col-sm-6 col-md-4 col-lg-3"
+    :modelValue="modelValue.prizePoolType"
+    @update:modelValue="emit('update:modelValue', { ...modelValue, prizePoolType: $event })"
+  />
+
+  <!-- %Sala -->
+  <FormInput
+    label="%Sala"
+    name="room_commission"
+    id="room-commn"
+    type="number"
+    required
+    :step="0.05"
+    :min="percentageLimits.roomCommn.min"
+    :max="percentageLimits.roomCommn.max"
+    col="col-sm-6 col-md-4 col-lg-3"
+    :modelValue="roomCommn"
+    @update:modelValue="emit('update:roomCommn', $event)"
+  />
+
+  <!-- Tiempo Ficha -->
+  <FormInput
+    label="Tiempo Ficha"
+    name="time_chip"
+    :error="errors.timeChip"
+    type="number"
+    required
+    :step="1"
+    :min="3"
+    :max="10"
+    col="col-sm-6 col-md-4 col-lg-3"
+    inputGroup
+    :modelValue="modelValue.timeChip"
+    @update:modelValue="emit('update:modelValue', { ...modelValue, timeChip: $event })"
+  >
+    <template #append>
+      <span class="input-group-text">SEG</span>
+    </template>
+  </FormInput>
 </template>

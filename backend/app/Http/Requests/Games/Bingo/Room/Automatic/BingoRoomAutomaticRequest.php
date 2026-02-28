@@ -40,10 +40,10 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'prizePoolType'               => ['required', 'exists:prize_pool_types,id'],
 
             // Precio base del cartón en USD:
-            // - Si useSerials = true → cardPriceUsd es obligatorio
-            // - Si useSerials = false → puede venir null o no enviarse
+            // - Si useBaseUsd = true → cardPriceUsd es obligatorio
+            // - Si useBaseUsd = false → puede venir null o no enviarse
             // - Si viene con valor → siempre debe ser numérico y estar entre 0.5 y 500
-            'cardPriceUsd' => ['required_if:useSerials,true', 'nullable', 'numeric', 'min:0.5', 'max:500'],
+            'cardPriceUsd' => ['required_if:useBaseUsd,true', 'nullable', 'numeric', 'min:0.5', 'max:500'],
 
             // Incremento de redondeo para conversión USD (null = sin redondeo)
             'usdExchangeRoundStep'         => ['nullable', 'numeric', 'min:0.01', 'max:100'],
@@ -54,7 +54,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
 
             // Precios por moneda
             // NOTA: la validación fuerte se hace en withValidator()
-            'cardPriceByCurrency'          => ['required_if:useSerials,false', 'nullable', 'array'],
+            'cardPriceByCurrency'          => ['required_if:useBaseUsd,false', 'nullable', 'array'],
             'cardPriceByCurrency.*'        => ['nullable', 'numeric', 'min:1', 'max:5000'],
 
             // Pool de premios

@@ -1,107 +1,162 @@
 // useRoomRounds.ts
-import { ref, computed, watch } from 'vue'
-import { z } from 'zod'
+import type { RoundConfig } from '@/js/types/games/bingo/room/bingo-room'
+import { normalizeToStep } from '../Utils/percentage'
 
 /**
- * Schema base porcentaje 0 - 100
+ * Rellena/ajusta el array roundsConfig al nuevo número de rondas.
+ * - 1 ronda: fuerza FULL HOUSE y redistribuye el % disponible.
+ * - N rondas: preserva configuraciones existentes y redistribuye equitativamente.
  */
-const percentageSchema = z.number().min(0).max(100)
+export function syncRoundsConfig(
+  count: number,
+  roundsPct: number,
+  currentConfigs: RoundConfig[],
+  fullHouseId: string | number | null
+): RoundConfig[] {
+  const updated: RoundConfig[] = []
+
+  for (let i = 0; i < count; i++) {
+    const defaultPattern = count === 1 ? fullHouseId : null
+    updated.push(
+      currentConfigs[i] ?? {
+        prizeType: 'percentage',
+        bingoPattern: defaultPattern,
+        prizeValue: null
+      }
+    )
+  }
+
+  if (count === 1 && fullHouseId !== null) {
+    updated[0] = { ...updated[0], bingoPattern: fullHouseId }
+  }
+
+  return redistributePercentageRounds(updated, roundsPct)
+}
 
 /**
- * Composable para manejar rondas de sala
+ * Distribuye equitativamente roundsPct entre las rondas con tipo 'percentage'.
+ * Muta el array en copia inmutable.
  */
-export function useRoomRounds(options?: {
-    maxRounds?: number
-    percentageStep?: number
-    autoNormalize?: boolean
-}) {
-    const maxRounds = options?.maxRounds ?? 15
-    const percentageStep = options?.percentageStep ?? 5
-    const autoNormalize = options?.autoNormalize ?? true
+export function redistributePercentageRounds(
+  configs: RoundConfig[],
+  roundsPct: number
+): RoundConfig[] {
+  const total = Number(roundsPct) || 0
+  const pctIndices = configs.reduce<number[]>((acc, r, i) => {
+    if (r.prizeType === 'percentage') acc.push(i)
+    return acc
+  }, [])
 
-    const rounds = ref<number>(1)
-    const roundsPct = ref<number>(0)
+  if (pctIndices.length === 0) return configs
 
-    const errors = ref<{
-        rounds?: string
-        roundsPct?: string
-    }>({})
+  const perRound = total > 0 ? normalizeToStep(total / pctIndices.length, 0.01) : null
+  return configs.map((r, i) =>
+    pctIndices.includes(i) ? { ...r, prizeValue: perRound } : r
+  )
+}
 
-    /**
-     * Validar rondas
-     */
-    function validateRounds() {
-        if (rounds.value < 1) {
-            errors.value.rounds = 'Debe haber al menos 1 ronda'
-        } else if (rounds.value > maxRounds) {
-            errors.value.rounds = `Máximo ${maxRounds} rondas`
-        } else {
-            errors.value.rounds = undefined
-        }
+/**
+ * Calcula el máximo disponible para una ronda % = roundsPct - suma de las demás rondas %.
+ */
+export function getRoundMaxValue(
+  index: number,
+  configs: RoundConfig[],
+  roundsPct: number,
+  roundsPctMax: number
+): number {
+  const limit = Number(roundsPct) || roundsPctMax
+  const othersSum = configs.reduce((sum, round, i) => {
+    if (i === index || round.prizeType !== 'percentage') return sum
+    return sum + (Number(round.prizeValue) || 0)
+  }, 0)
+  return Math.max(0, limit - othersSum)
+}
+
+/**
+ * Actualiza un campo de una RoundConfig y gestiona los efectos secundarios:
+ * - prizeType → limpiar campos del tipo anterior y redistribuir %
+ * - prizeValue (%) → redistribuir el resto entre las demás rondas %
+ */
+export function updateRoundConfig(
+  configs: RoundConfig[],
+  index: number,
+  field: keyof RoundConfig,
+  value: RoundConfig[keyof RoundConfig],
+  allowedCurrencies: (string | number)[],
+  roundsPct: number
+): RoundConfig[] {
+  const copy = [...configs]
+  const updated = { ...copy[index], [field]: value }
+
+  if (field === 'prizeType') {
+    if (value === 'percentage') {
+      updated.prizeValueByCurrency = undefined
+      copy[index] = updated
+      return redistributePercentageRounds(copy, roundsPct)
     }
 
-    /**
-     * Validar porcentaje
-     */
-    function validatePercentage() {
-        try {
-            percentageSchema.parse(roundsPct.value)
-
-            if (roundsPct.value % percentageStep !== 0) {
-                errors.value.roundsPct = `Debe ser múltiplo de ${percentageStep}`
-            } else {
-                errors.value.roundsPct = undefined
-            }
-        } catch {
-            errors.value.roundsPct = 'Porcentaje inválido (0 - 100)'
-        }
+    if (value === 'fixed') {
+      updated.prizeValue = null
+      updated.prizeValueByCurrency = allowedCurrencies.reduce<Record<string, null>>(
+        (acc, cur) => { acc[String(cur)] = null; return acc },
+        {}
+      )
+      copy[index] = updated
+      return redistributePercentageRounds(copy, roundsPct)
     }
 
-    /**
-     * Normalizar automáticamente al múltiplo configurado
-     */
-    function normalizePercentage() {
-        if (!autoNormalize) return
-        roundsPct.value =
-            Math.round(roundsPct.value / percentageStep) * percentageStep
+    // prize
+    updated.prizeValue = null
+    updated.prizeValueByCurrency = undefined
+    copy[index] = updated
+    return redistributePercentageRounds(copy, roundsPct)
+  }
+
+  if (field === 'prizeValue' && updated.prizeType === 'percentage') {
+    const total = Number(roundsPct) || 0
+    const thisVal = Math.min(Number(value) || 0, total)
+    updated.prizeValue = thisVal
+    copy[index] = updated
+
+    const others = copy.reduce<number[]>((acc, r, i) => {
+      if (i !== index && r.prizeType === 'percentage') acc.push(i)
+      return acc
+    }, [])
+
+    if (others.length > 0) {
+      const remaining = Math.max(0, total - thisVal)
+      const perOther = normalizeToStep(remaining / others.length, 0.01)
+      others.forEach(i => {
+        copy[i] = { ...copy[i], prizeValue: perOther > 0 ? perOther : null }
+      })
     }
 
-    /**
-     * Aplicar porcentaje a un valor base
-     */
-    function applyPercentage(base: number): number {
-        return (base * roundsPct.value) / 100
-    }
+    return copy
+  }
 
-    /**
-     * Computed helpers
-     */
-    const isValid = computed(() => {
-        return !errors.value.rounds && !errors.value.roundsPct
-    })
+  if (field === 'bingoPattern' && updated.prizeType === 'percentage' && updated.prizeValue === null) {
+    copy[index] = updated
+    return redistributePercentageRounds(copy, roundsPct)
+  }
 
-    const percentageDecimal = computed(() => {
-        return roundsPct.value / 100
-    })
+  copy[index] = updated
+  return copy
+}
 
-    /**
-     * Watchers automáticos
-     */
-    watch(rounds, validateRounds, { immediate: true })
-    watch(roundsPct, () => {
-        normalizePercentage()
-        validatePercentage()
-    }, { immediate: true })
-
-    return {
-        rounds,
-        roundsPct,
-        errors,
-        isValid,
-        percentageDecimal,
-        validateRounds,
-        validatePercentage,
-        normalizePercentage,
-        applyPercentage
-    }
+/**
+ * Actualiza el precio fijo de una ronda para una moneda específica.
+ */
+export function updateRoundPriceByCurrency(
+  configs: RoundConfig[],
+  roundIndex: number,
+  currency: string | number,
+  value: string | number | null
+): RoundConfig[] {
+  const copy = [...configs]
+  const key = String(currency)
+  const current = { ...(copy[roundIndex].prizeValueByCurrency ?? {}) }
+  const parsed = value === null || value === '' ? null : Number(value)
+  current[key] = isNaN(Number(parsed)) ? null : (parsed as number)
+  copy[roundIndex] = { ...copy[roundIndex], prizeValueByCurrency: current }
+  return copy
 }

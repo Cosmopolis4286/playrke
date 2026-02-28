@@ -329,3 +329,14 @@ export function usePrize(): UsePrizeReturn {
         fetchPrizes,
     }
 }
+
+/**
+ * Busca premios por término (para el picker de salas de bingo, etc.)
+ * Función independiente — no necesita el estado completo de usePrize.
+ */
+export async function searchPrizes(q: string): Promise<PrizeSearchResult[]> {
+    const { data } = await backendClient.get<{ data: PrizeSearchResult[] }>('/prizes/search', {
+        params: { q }
+    })
+    return data.data ?? []
+}
