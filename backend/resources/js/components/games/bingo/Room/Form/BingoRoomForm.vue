@@ -106,7 +106,7 @@
 
   const canAdjustCtnPriceByCurrency = computed(() => {
     const allowed = form.value.allowedCurrencies
-    return Array.isArray(allowed) && allowed.length > 1
+    return Array.isArray(allowed) && allowed.length >= 1
   })
 
   const hasCardPriceByCurrencyErrors = computed(() => {
