@@ -76,7 +76,6 @@ return new class extends Migration
             // Índices compuestos útiles
             $table->index(['status', 'room_type_id'], 'idx_status_roomtype_automatic');
             $table->index(['creator_user_id', 'created_at'], 'idx_creator_createdat_automatic');
-            $table->index(['date'], 'idx_date_automatic');
         });
     }
 

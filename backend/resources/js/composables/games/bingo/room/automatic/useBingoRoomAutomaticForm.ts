@@ -1,5 +1,5 @@
 import type { BingoRoomAutomaticFormData } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
-import { useBingoRoomBaseForm } from '../useBingoRoomBaseForm'
+import { useBingoRoomBaseForm } from '../shared/useBingoRoomBaseForm'
 
 export function useBingoRoomAutomaticForm(
     modelValueGetter: () => BingoRoomAutomaticFormData,

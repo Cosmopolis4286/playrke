@@ -11,14 +11,14 @@
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import BingoRoomForm from '@/js/Components/Games/Bingo/Room/BingoRoomForm.vue'
+  import BingoRoomForm from '@/js/Components/Games/Bingo/Room/BingoRoomForm1.vue'
   // ==========================================================================
   // Composables
   // ==========================================================================
 
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
-  import { useBingoRoom } from '@/js/composables/games/bingo/room/useBingoRoom'
+  import { useBingoRoom } from '@/js/composables/games/bingo/room/default/useBingoRoom'
 
   // ==========================================================================
   // Types
