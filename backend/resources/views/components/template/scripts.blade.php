@@ -69,3 +69,32 @@
 @endif
 
 @yield('scripts')
+
+{{-- Cerrar sidebar al tocar/hacer click fuera en dispositivos móviles --}}
+<script>
+(function () {
+    document.addEventListener('click', function (e) {
+        var body = document.body;
+
+        // Solo actuar si el sidebar está abierto en móvil
+        if (!body.classList.contains('sidebar-open')) return;
+
+        var sidebar  = document.querySelector('.main-sidebar');
+        var toggler  = document.querySelector('[data-widget="pushmenu"]');
+
+        if (!sidebar || !toggler) return;
+
+        // Si el click fue dentro del sidebar o en el botón toggle, ignorar
+        if (sidebar.contains(e.target) || toggler.contains(e.target)) return;
+
+        // Click fuera → cerrar via AdminLTE PushMenu si está disponible,
+        // sino quitar la clase manualmente
+        if (window.$ && $.fn && $.fn.PushMenu) {
+            $('[data-widget="pushmenu"]').PushMenu('collapse');
+        } else {
+            body.classList.remove('sidebar-open');
+            body.classList.add('sidebar-collapse');
+        }
+    }, true);
+})();
+</script>

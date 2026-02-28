@@ -164,6 +164,11 @@ aside.main-sidebar {
   color: #e6e3e3;
 }
 
+/* Ocultar etiqueta de rol cuando el sidebar está colapsado (modo mini) */
+body.sidebar-collapse .container-role-user {
+  display: none !important;
+}
+
 /*!
  * Bootstrap v4.6.1 (https://getbootstrap.com/)
  * Copyright 2011-2021 The Bootstrap Authors
