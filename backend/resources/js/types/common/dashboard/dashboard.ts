@@ -8,7 +8,9 @@
 // --------------------------------------------------------------------------
 
 export type StatCardTrend = 'up' | 'down' | 'neutral'
-export type StatCardVariant = 'primary' | 'success' | 'danger' | 'warning' | 'info' | 'secondary'
+export type StatCardVariant =
+    | 'primary' | 'success' | 'danger' | 'warning' | 'info' | 'secondary'
+    | 'outline-primary' | 'outline-success' | 'outline-danger' | 'outline-warning' | 'outline-info' | 'outline-secondary'
 
 export interface StatCardData {
     /** Etiqueta visible */

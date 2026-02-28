@@ -9,10 +9,10 @@
   // Componentes
   // ==========================================================================
 
-  import DashboardWelcomeBanner from '@/js/components/Common/Dashboard/DashboardWelcomeBanner.vue'
-  import DashboardStatCard from '@/js/components/Common/Dashboard/DashboardStatCard.vue'
-  import DashboardSection from '@/js/components/Common/Dashboard/DashboardSection.vue'
-  import DashboardActivityFeed from '@/js/components/Common/Dashboard/DashboardActivityFeed.vue'
+  import DashboardWelcomeBanner from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
+  import DashboardStatCard from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
+  import DashboardSection from '@/js/Components/Common/Dashboard/DashboardSection.vue'
+  import DashboardActivityFeed from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
 
   // ==========================================================================
   // Composables
