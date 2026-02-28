@@ -65,6 +65,10 @@
    * Form logic (computed v-model)
    * ========================================================================== */
 
+  const cardPriceByCurrencyActive = ref(false)
+  const useBaseUsd = ref(true)
+  const roundsConfigActive = ref(false)
+
   const {
     form,
     errors,
@@ -78,7 +82,8 @@
   } = useBingoRoomForm(
     () => props.modelValue,
     emit,
-    () => props.automaticRoom ?? false
+    () => props.automaticRoom ?? false,
+    () => useBaseUsd.value
   )
 
   const DAYS_OPTIONS: { value: DayOfWeek; label: string }[] = [
@@ -90,10 +95,6 @@
     { value: 'saturday', label: 'Sábado' },
     { value: 'sunday', label: 'Domingo' }
   ]
-
-  const cardPriceByCurrencyActive = ref(false)
-  const useBaseUsd = ref(true)
-  const roundsConfigActive = ref(false)
 
   // Modal P/S: índice de la ronda que está seleccionando prize
   const prizeModalRoundIndex = ref<number | null>(null)
@@ -179,8 +180,10 @@
   }
 
   const hasCardPriceByCurrencyErrors = computed(() => {
+    if (cardPriceByCurrencyActive.value) return false
+    if (errors.value.cardPriceUsd || errors.value.usdExchangeRoundStep) return true
     const err = errors.value.cardPriceByCurrency
-    return err && Object.keys(err).length > 0 && !cardPriceByCurrencyActive.value
+    return !!(err && Object.keys(err).length > 0)
   })
 
   function updateCtnPriceForCurrency(currency: string | number, value: string | number | null) {
@@ -321,6 +324,19 @@
       form.value = { ...form.value, roundsPct: avail }
     }
   )
+
+  /**
+   * Al cambiar useBaseUsd, limpiar los campos del modo que queda oculto
+   */
+  watch(useBaseUsd, (isBaseUsd) => {
+    if (isBaseUsd) {
+      // Activado USD base → limpiar precios por moneda
+      form.value = { ...form.value, cardPriceByCurrency: {} }
+    } else {
+      // Desactivado USD base → limpiar USD y redondeo
+      form.value = { ...form.value, cardPriceUsd: null, usdExchangeRoundStep: null }
+    }
+  })
 
   /* ==========================================================================
    * Métodos
@@ -602,6 +618,19 @@
         v-model="form.prizePoolType"
       />
 
+      <FormInput
+        label="%Sala"
+        name="room_commission"
+        id="room-commn"
+        type="number"
+        required
+        :step="0.05"
+        :min="percentageLimits.roomCommn.min"
+        :max="percentageLimits.roomCommn.max"
+        col="col-sm-6 col-md-4 col-lg-3"
+        v-model="roomCommn"
+      />
+
       <!-- Monedas permitidas -->
       <FormSelect
         label="Monedas Permitidas"
@@ -638,7 +667,14 @@
               <i class="fa-solid fa-sliders"></i>
             </button>
             <template #popper>
-              <div style="padding: 4px 6.5px; max-width: 245px; font-size: 0.79rem; white-space: pre-line">
+              <div
+                style="
+                  padding: 4px 6.5px;
+                  max-width: 245px;
+                  font-size: 0.79rem;
+                  white-space: pre-line;
+                "
+              >
                 Configuración pendiente
               </div>
             </template>
@@ -646,35 +682,24 @@
         </template>
       </FormSelect>
 
-      <!-- Comisiones, jackpot y tiempo ficha -->
-      <FormInput
-        label="%Sala"
-        name="room_commission"
-        id="room-commn"
-        type="number"
-        required
-        :step="0.05"
-        :min="percentageLimits.roomCommn.min"
-        :max="percentageLimits.roomCommn.max"
-        col="col-sm-6 col-md-4 col-lg-3"
-        v-model="roomCommn"
-      />
-
       <!-- Panel de precios de cartones -->
       <div class="col-12" v-show="cardPriceByCurrencyActive" style="margin-bottom: 1rem">
         <div style="border: 1px solid #dee2e6; border-radius: 0.3rem; padding: 0.6rem 0.85rem">
-
           <!-- Cabecera -->
           <div class="d-flex align-items-center justify-content-between mb-1">
             <div class="d-flex align-items-center" style="gap: 0.4rem">
               <i class="fa-solid fa-coins" style="font-size: 0.75rem; color: #6c757d"></i>
-              <span style="font-size: 0.8rem; font-weight: 600; color: #343a40">Precio de cartones</span>
+              <span style="font-size: 0.8rem; font-weight: 600; color: #343a40"
+                >Precio de cartones</span
+              >
               <span style="font-size: 0.75rem; color: #6c757d">— Base USD + ajuste por moneda</span>
             </div>
             <div class="d-flex align-items-center" style="gap: 0.75rem">
               <!-- Switch: usar precio base USD -->
               <div class="d-flex align-items-center" style="gap: 0.35rem">
-                <span style="font-size: 0.74rem; color: #6c757d; white-space: nowrap">Usar Base USD</span>
+                <span style="font-size: 0.74rem; color: #6c757d; white-space: nowrap"
+                  >Usar Base USD</span
+                >
                 <div
                   class="custom-control custom-switch"
                   style="padding-left: 2.1rem; margin-bottom: 0"
@@ -685,10 +710,20 @@
                     id="useBaseUsdSwitch"
                     v-model="useBaseUsd"
                   />
-                  <label class="custom-control-label" for="useBaseUsdSwitch" style="cursor: pointer" />
+                  <label
+                    class="custom-control-label"
+                    for="useBaseUsdSwitch"
+                    style="cursor: pointer"
+                  />
                 </div>
               </div>
-              <button type="button" class="close" style="font-size: 1rem; line-height: 1" @click="cardPriceByCurrencyActive = false" aria-label="Cerrar">
+              <button
+                type="button"
+                class="close"
+                style="font-size: 1rem; line-height: 1"
+                @click="cardPriceByCurrencyActive = false"
+                aria-label="Cerrar"
+              >
                 <span aria-hidden="true">&times;</span>
               </button>
             </div>
@@ -696,13 +731,12 @@
 
           <div style="border-top: 1px solid #e9ecef; margin: 0.4rem 0 0.55rem" />
 
-          <!-- Fila única de campos -->
-          <div class="d-flex flex-wrap align-items-start" style="gap: 0.5rem">
-
+          <!-- Fila única: USD · Redondeo · monedas -->
+          <div class="d-flex align-items-start flex-wrap" style="gap: 0.5rem">
             <!-- Precio USD + Redondeo (solo si useBaseUsd) -->
             <template v-if="useBaseUsd">
               <div>
-                <div class="input-group input-group-sm" style="width: auto; flex: 0 0 130px">
+                <div class="input-group input-group-sm" style="width: 130px">
                   <div class="input-group-prepend">
                     <span class="input-group-text" title="Precio base en USD">USD</span>
                   </div>
@@ -715,16 +749,21 @@
                     min="0.5"
                     max="500"
                     :value="form.cardPriceUsd ?? ''"
-                    @change="form = { ...form, cardPriceUsd: Number(($event.target as HTMLInputElement).value) || null }"
+                    @change="
+                      form = {
+                        ...form,
+                        cardPriceUsd: Number(($event.target as HTMLInputElement).value) || null
+                      }
+                    "
                   />
                 </div>
-                <small v-if="errors.cardPriceUsd" class="text-danger" style="font-size: 0.72rem; display: block; margin-top: 0.15rem">{{ errors.cardPriceUsd }}</small>
+                <small v-if="errors.cardPriceUsd" class="text-danger" style="font-size: 0.72rem">{{ errors.cardPriceUsd }}</small>
               </div>
 
-              <div style="color: #ced4da; font-size: 0.85rem; margin-top: 0.35rem">·</div>
+              <div style="color: #ced4da; font-size: 0.85rem; margin-top: 0.42rem">·</div>
 
               <div>
-                <div class="input-group input-group-sm" style="width: auto; flex: 0 0 155px">
+                <div class="input-group input-group-sm" style="width: 155px">
                   <div class="input-group-prepend">
                     <span class="input-group-text" title="Incremento de redondeo para la tasa de cambio">
                       <i class="fa-solid fa-rotate" style="font-size: 0.7rem"></i>
@@ -739,18 +778,23 @@
                     min="0.01"
                     max="100"
                     :value="form.usdExchangeRoundStep ?? ''"
-                    @change="form = { ...form, usdExchangeRoundStep: Number(($event.target as HTMLInputElement).value) || null }"
+                    @change="
+                      form = {
+                        ...form,
+                        usdExchangeRoundStep: Number(($event.target as HTMLInputElement).value) || null
+                      }
+                    "
                   />
                 </div>
-                <small v-if="errors.usdExchangeRoundStep" class="text-danger" style="font-size: 0.72rem; display: block; margin-top: 0.15rem">{{ errors.usdExchangeRoundStep }}</small>
+                <small v-if="errors.usdExchangeRoundStep" class="text-danger" style="font-size: 0.72rem">{{ errors.usdExchangeRoundStep }}</small>
               </div>
             </template>
 
-            <!-- Precios por moneda (solo si NO useBaseUsd y hay más de una moneda) -->
+            <!-- Precios por moneda (solo si NO useBaseUsd) -->
             <template v-if="!useBaseUsd && canAdjustCtnPriceByCurrency">
               <template v-for="cur in form.allowedCurrencies ?? []" :key="String(cur)">
                 <div>
-                  <div class="input-group input-group-sm" style="width: auto; flex: 0 0 130px">
+                  <div class="input-group input-group-sm" style="width: 130px">
                     <div class="input-group-prepend">
                       <span
                         class="input-group-text"
@@ -769,12 +813,11 @@
                       @change="updateCtnPriceForCurrency(cur, ($event.target as HTMLInputElement).value)"
                     />
                   </div>
-                  <small v-if="errors.cardPriceByCurrency?.[String(cur)]" class="text-danger" style="font-size: 0.72rem; display: block; margin-top: 0.15rem">{{ errors.cardPriceByCurrency[String(cur)] }}</small>
+                  <small v-if="errors.cardPriceByCurrency?.[String(cur)]" class="text-danger" style="font-size: 0.72rem">{{ errors.cardPriceByCurrency[String(cur)] }}</small>
                 </div>
               </template>
             </template>
           </div>
-
         </div>
       </div>
 
@@ -1106,46 +1149,75 @@
         v-model="jackpotPct"
       />
 
-      <!-- ¿Usar Seriales? -->
-      <FormSwitch
-        label="¿Usar Seriales?"
-        name="use_serials"
-        col="col-sm-6 col-md-4 col-lg-3"
-        :modelValue="form.useSerials ?? false"
-        @update:modelValue="form = { ...form, useSerials: $event }"
-      />
+      <!-- Seriales -->
+      <div class="col-12">
+        <hr style="margin: 0.25rem 0 0.75rem" />
+        <div class="d-flex align-items-center flex-wrap" style="gap: 1.25rem">
+          <!-- Toggle -->
+          <div class="custom-control custom-switch" style="padding-left: 2.25rem; flex-shrink: 0">
+            <input
+              id="use_serials"
+              name="use_serials"
+              type="checkbox"
+              class="custom-control-input"
+              :checked="form.useSerials ?? false"
+              @change="form = { ...form, useSerials: ($event.target as HTMLInputElement).checked }"
+            />
+            <label class="custom-control-label" for="use_serials" style="font-weight: 500">
+              ¿Usar Seriales?
+            </label>
+          </div>
 
-      <!-- %Bote Seriales (solo si useSerials) -->
-      <FormInput
-        v-if="form.useSerials"
-        label="%Bote Seriales"
-        name="serials_pct"
-        :error="errors.serialsPct"
-        type="number"
-        required
-        :step="0.25"
-        :min="percentageLimits.serialsPct.min"
-        :max="percentageLimits.serialsPct.max"
-        placeholder="Ingrese valor"
-        col="col-sm-6 col-md-4 col-lg-3"
-        v-model="serialsPct"
-      />
+          <!-- Campos condicionales (inline cuando useSerials) -->
+          <template v-if="form.useSerials">
+            <div>
+              <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
+                %Bote Seriales <span class="text-danger">*</span>
+              </label>
+              <div class="input-group input-group-sm" style="width: 130px">
+                <input
+                  name="serials_pct"
+                  type="number"
+                  :class="['form-control', { 'is-invalid': errors.serialsPct }]"
+                  placeholder="Ej: 5"
+                  :step="0.25"
+                  :min="percentageLimits.serialsPct.min"
+                  :max="percentageLimits.serialsPct.max"
+                  :value="serialsPct"
+                  @change="serialsPct = Number(($event.target as HTMLInputElement).value) as any"
+                />
+                <div class="input-group-append">
+                  <span class="input-group-text">%</span>
+                </div>
+              </div>
+              <small v-if="errors.serialsPct" class="text-danger" style="font-size: 0.72rem">
+                {{ errors.serialsPct }}
+              </small>
+            </div>
 
-      <!-- #Max. Seriales (solo si useSerials) -->
-      <FormInput
-        v-if="form.useSerials"
-        label="#Max. Seriales"
-        name="num_serials"
-        :error="errors.numSerials"
-        type="number"
-        required
-        :step="1"
-        :min="0"
-        :max="30"
-        placeholder="Ingrese la cantidad"
-        col="col-sm-6 col-md-4 col-lg-3"
-        v-model="form.numSerials"
-      />
+            <div>
+              <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
+                #Máx. Seriales <span class="text-danger">*</span>
+              </label>
+              <input
+                name="num_serials"
+                type="number"
+                :class="['form-control form-control-sm', { 'is-invalid': errors.numSerials }]"
+                placeholder="Ej: 10"
+                :step="1"
+                :min="1"
+                :max="30"
+                style="width: 110px"
+                :value="form.numSerials ?? ''"
+                @change="form = { ...form, numSerials: Number(($event.target as HTMLInputElement).value) || null }"
+              />
+              <small v-if="errors.numSerials" class="text-danger" style="font-size: 0.72rem">
+                {{ errors.numSerials }}
+              </small>
+            </div>
+          </template>
+        </div>
+      </div>
 
       <!-- Alerta suma de porcentajes -->
       <div v-if="errors.percentageSum" class="col-12">

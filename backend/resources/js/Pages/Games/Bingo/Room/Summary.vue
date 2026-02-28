@@ -12,8 +12,6 @@
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import BingoRoomForm from '@/js/Components/Games/Bingo/Room/BingoRoomForm.vue'
-  import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
-
   // ==========================================================================
   // Composables
   // ==========================================================================
@@ -245,13 +243,16 @@
     />
 
     <template #footer>
-      <FormSwitch
-        id="isDraft"
-        name="isDraft"
-        label="Activar sala"
-        :model-value="!(roomFormData.isDraft ?? true)"
-        @update:model-value="(val: boolean) => (roomFormData.isDraft = !val)"
-      />
+      <div class="custom-control custom-switch mr-auto">
+        <input
+          type="checkbox"
+          class="custom-control-input"
+          id="isDraft"
+          :checked="!(roomFormData.isDraft ?? true)"
+          @change="roomFormData.isDraft = !(($event.target as HTMLInputElement).checked)"
+        />
+        <label class="custom-control-label" for="isDraft">Activar sala</label>
+      </div>
       <button class="btn btn-sm btn-secondary" @click="showModalForm = false">Cerrar</button>
       <button
         class="btn btn-sm btn-primary"

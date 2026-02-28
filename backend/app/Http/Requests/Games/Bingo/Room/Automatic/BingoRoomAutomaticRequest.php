@@ -66,8 +66,9 @@ class BingoRoomAutomaticRequest extends BaseRequest
             // Configuración general del juego
             'timeChip'                    => ['required', 'integer', 'min:3', 'max:10'],
             'rounds'                      => ['required', 'integer', 'min:1', 'max:15'],
-            'roundsPct'                   => ['nullable', 'numeric', 'min:5', 'max:30'],
+            'roundsPct'                   => ['nullable', 'numeric', 'min:5', 'max:90'],
             'useSerials'                  => ['boolean'],
+            'isDraft'                     => ['boolean'],
             'serialsPct'                  => ['required_if:useSerials,true', 'nullable', 'numeric', 'min:2', 'max:35'],
             'numSerials'                  => ['required_if:useSerials,true', 'nullable', 'integer', 'min:1', 'max:30'],
 

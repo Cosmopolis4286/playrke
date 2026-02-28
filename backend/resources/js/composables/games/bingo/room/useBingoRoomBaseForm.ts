@@ -26,7 +26,8 @@ export const BINGO_ROOM_PERCENTAGE_LIMITS = {
 export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
     modelValueGetter: () => T,
     emit: (event: 'update:modelValue', value: T) => void,
-    automaticRoom: () => boolean
+    automaticRoom: () => boolean,
+    useBaseUsd: () => boolean = () => true
 ) {
     /* =======================
      * v-model computado
@@ -93,25 +94,27 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
             }
         }
 
-        if (!form.value.cardPriceUsd) {
-            e.cardPriceUsd = 'El precio del cartón en USD es requerido.'
-        }
-
         const allowedCurrencies = form.value.allowedCurrencies ?? []
 
-        const byCurrency = form.value.cardPriceByCurrency ?? {}
-        const currencyErrors: Record<string, string> = {}
-
-        allowedCurrencies.forEach(cur => {
-            const key = String(cur)
-            const value = Number(byCurrency[key])
-            if (isNaN(value) || value <= 0) {
-                currencyErrors[key] = 'Ingrese un precio válido.'
+        if (useBaseUsd()) {
+            if (!form.value.cardPriceUsd) {
+                e.cardPriceUsd = 'Valor en USD requerido.'
             }
-        })
+        } else {
+            const byCurrency = form.value.cardPriceByCurrency ?? {}
+            const currencyErrors: Record<string, string> = {}
 
-        if (Object.keys(currencyErrors).length) {
-            e.cardPriceByCurrency = currencyErrors
+            allowedCurrencies.forEach(cur => {
+                const key = String(cur)
+                const value = Number(byCurrency[key])
+                if (isNaN(value) || value <= 0) {
+                    currencyErrors[key] = 'Ingrese un precio válido.'
+                }
+            })
+
+            if (Object.keys(currencyErrors).length) {
+                e.cardPriceByCurrency = currencyErrors
+            }
         }
 
         const rounds = Number(form.value.rounds) || 1
