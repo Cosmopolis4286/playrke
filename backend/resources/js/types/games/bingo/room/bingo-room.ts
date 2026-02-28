@@ -126,6 +126,7 @@ export interface BingoRoomFormData {
     useSerials?: boolean
     serialsPct?: number | null
     numSerials?: number | null
+    useBaseUsd?: boolean,
     cardPriceUsd?: number | null
     usdExchangeRoundStep?: number | null
     cardPriceByCurrency?: Record<string, number | null>

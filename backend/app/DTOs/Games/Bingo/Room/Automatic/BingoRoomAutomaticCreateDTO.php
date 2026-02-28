@@ -17,8 +17,8 @@ final class BingoRoomAutomaticCreateDTO
         public readonly float         $roomCommission,
         public readonly int           $rounds,
         public readonly bool          $useSerials,
-        public readonly ?string       $date              = null,
         public readonly ?array        $days              = null,
+        public readonly bool          $useBaseUsd,
         public readonly ?float        $cardPriceUsd      = null,
         public readonly ?float        $usdExchangeRoundStep = null,
         public readonly ?array        $cardPriceByCurrency  = null,
@@ -40,7 +40,7 @@ final class BingoRoomAutomaticCreateDTO
             ? array_map(fn($v) => (float) $v, $data['cardPriceByCurrency'])
             : [];
 
-        $useSerials = filter_var($data['useSerials'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $useBaseUsd = filter_var($data['useBaseUsd'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         $useSerials = filter_var($data['useSerials'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
@@ -53,8 +53,8 @@ final class BingoRoomAutomaticCreateDTO
             roomCommission: (float) ($data['roomCommn'] ?? 20),
             rounds: (int)   ($data['rounds']   ?? 1),
             useSerials: $useSerials,
-            date: $data['date'] ?? null,
             days: isset($data['days']) && is_array($data['days']) ? $data['days'] : null,
+            useBaseUsd: $useBaseUsd,
             cardPriceUsd: isset($data['cardPriceUsd'])  ? (float) $data['cardPriceUsd']  : null,
             usdExchangeRoundStep: isset($data['usdExchangeRoundStep']) ? (float) $data['usdExchangeRoundStep'] : null,
             cardPriceByCurrency: $cardPriceByCurrency,
