@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { ref, computed } from 'vue'
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   import {
@@ -115,6 +115,7 @@
 </script>
 
 <template>
+  <div style="display: contents">
   <!-- Rondas -->
   <FormInput
     label="Rondas"
@@ -328,4 +329,5 @@
     :modelValue="jackpotPct"
     @update:modelValue="emit('update:jackpotPct', $event)"
   />
+  </div>
 </template>

@@ -39,6 +39,7 @@
 </script>
 
 <template>
+  <div style="display: contents">
   <!-- Fecha (solo salas normales) -->
   <FormInput
     v-if="!automaticRoom"
@@ -162,4 +163,5 @@
       <span class="input-group-text">SEG</span>
     </template>
   </FormInput>
+  </div>
 </template>

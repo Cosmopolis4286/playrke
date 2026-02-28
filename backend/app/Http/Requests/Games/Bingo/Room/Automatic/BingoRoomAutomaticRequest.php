@@ -117,6 +117,11 @@ class BingoRoomAutomaticRequest extends BaseRequest
                 $allowedCurrencies = [];
             }
 
+            $useBaseUsd = (bool) $this->input('useBaseUsd', true);
+            if ($useBaseUsd) {
+                return;
+            }
+
             if (!is_array($cardPriceByCurrency) || empty($cardPriceByCurrency)) {
                 $validator->errors()->add(
                     'cardPriceByCurrency',

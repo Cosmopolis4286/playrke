@@ -50,7 +50,9 @@
    * Estado principal (única fuente de verdad)
    * ========================================================================== */
 
-  const useBaseUsd = ref(true)
+  // useBaseUsd: inicializa desde el modelo (edición) o true por defecto
+  // Se sincroniza bidirecccionalmente con form.value.useBaseUsd via watcher
+  const useBaseUsd = ref(props.modelValue.useBaseUsd ?? true)
   const cardPriceByCurrencyActive = ref(false)
 
   const {
@@ -171,12 +173,18 @@
     }
   )
 
-  // Limpiar campos al cambiar modo USD
+  // Sincronizar useBaseUsd ↔ form.useBaseUsd y limpiar campos del modo desactivado
   watch(useBaseUsd, isBaseUsd => {
     if (isBaseUsd) {
-      form.value = { ...form.value, cardPriceByCurrency: {} }
+      form.value = { ...form.value, useBaseUsd: true, cardPriceByCurrency: {} }
     } else {
-      form.value = { ...form.value, cardPriceUsd: null, usdExchangeRoundStep: null }
+      // Inicializar mapa de precios por moneda con las monedas actualmente seleccionadas
+      const currencies = form.value.allowedCurrencies ?? []
+      const cardPriceByCurrency = currencies.reduce<Record<string, number | null>>(
+        (acc, cur) => { acc[String(cur)] = form.value.cardPriceByCurrency?.[String(cur)] ?? null; return acc },
+        {}
+      )
+      form.value = { ...form.value, useBaseUsd: false, cardPriceUsd: null, usdExchangeRoundStep: null, cardPriceByCurrency }
     }
   })
 
@@ -184,6 +192,20 @@
   watch(canAdjustCtnPriceByCurrency, can => {
     if (!can) cardPriceByCurrencyActive.value = false
   })
+
+  // Sincronizar claves de cardPriceByCurrency cuando cambian las monedas (modo !useBaseUsd)
+  watch(
+    () => form.value.allowedCurrencies,
+    currencies => {
+      if (useBaseUsd.value) return
+      const current = form.value.cardPriceByCurrency ?? {}
+      const updated = (currencies ?? []).reduce<Record<string, number | null>>(
+        (acc, cur) => { acc[String(cur)] = current[String(cur)] ?? null; return acc },
+        {}
+      )
+      form.value = { ...form.value, cardPriceByCurrency: updated }
+    }
+  )
 
   /* ==========================================================================
    * Modal P/S — selección de prize para ronda

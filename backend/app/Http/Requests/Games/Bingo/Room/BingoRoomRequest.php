@@ -114,8 +114,9 @@ class BingoRoomRequest extends BaseRequest
                 $allowedCurrencies = [];
             }
 
-            // Si hay más de una moneda, cardPriceByCurrency es obligatorio
-            if (count($allowedCurrencies) > 1) {
+            // Si hay más de una moneda Y no usa base USD, cardPriceByCurrency es obligatorio
+            $useBaseUsd = (bool) $this->input('useBaseUsd', true);
+            if (!$useBaseUsd && count($allowedCurrencies) > 1) {
 
                 if (!is_array($cardPriceByCurrency) || empty($cardPriceByCurrency)) {
                     $validator->errors()->add(

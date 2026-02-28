@@ -11,7 +11,7 @@ import { computed, watch } from "vue";
 
 import TableWithFilterBridge from "@js/Components/Common/Table/TableWithFilterBridge.vue";
 import Modal from "@/js/Components/Common/Modal/Modal.vue";
-import BingoRoomForm from "@/js/Components/Games/Bingo/Room/BingoRoomForm1.vue";
+import BingoRoomForm from "@/js/Components/Games/Bingo/Room/Form/BingoRoomForm.vue";
 import FormSwitch from "@/js/Components/Common/Form/FormSwitch.vue";
 
 // ==========================================================================

@@ -40,6 +40,7 @@
 </script>
 
 <template>
+  <div style="display: contents">
   <!-- Monedas permitidas -->
   <FormSelect
     label="Monedas Permitidas"
@@ -199,5 +200,6 @@
         </template>
       </div>
     </div>
+  </div>
   </div>
 </template>
