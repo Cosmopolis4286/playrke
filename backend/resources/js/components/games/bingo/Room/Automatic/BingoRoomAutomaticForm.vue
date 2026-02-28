@@ -44,7 +44,6 @@
    * ========================================================================== */
 
   const props = defineProps<{
-    automaticRoom?: boolean
     roomTypeOptions: SelectOption[]
     gameModeOptions: SelectOption[]
     prizePoolTypeOptions: SelectOption[]
@@ -78,25 +77,18 @@
     percentageLimits
   } = useBingoRoomAutomaticForm(
     () => props.modelValue,
-    emit,
-    () => props.automaticRoom ?? false
+    emit
   )
 
   const DAYS_OPTIONS: { value: DayOfWeek; label: string }[] = [
-    { value: 'monday', label: 'Lun' },
-    { value: 'tuesday', label: 'Mar' },
-    { value: 'wednesday', label: 'Mié' },
-    { value: 'thursday', label: 'Jue' },
-    { value: 'friday', label: 'Vie' },
-    { value: 'saturday', label: 'Sáb' },
-    { value: 'sunday', label: 'Dom' }
+    { value: 'monday', label: 'Lunes' },
+    { value: 'tuesday', label: 'Martes' },
+    { value: 'wednesday', label: 'Miércoles' },
+    { value: 'thursday', label: 'Jueves' },
+    { value: 'friday', label: 'Viernes' },
+    { value: 'saturday', label: 'Sábado' },
+    { value: 'sunday', label: 'Domingo' }
   ]
-
-  function toggleDay(day: DayOfWeek) {
-    const current = form.value.days ?? []
-    const updated = current.includes(day) ? current.filter(d => d !== day) : [...current, day]
-    form.value = { ...form.value, days: updated }
-  }
 
   const cardPriceByCurrencyActive = ref(false)
   const roundsConfigActive = ref(false)
@@ -527,37 +519,20 @@
 <template>
   <form id="bingo-room-form" novalidate @submit.prevent="submit">
     <div class="row">
-      <!-- Fecha (solo si no es sala automática) -->
-      <FormInput
-        v-if="!automaticRoom"
-        label="Fecha"
-        name="date"
-        :error="errors.date"
-        type="date"
+      <!-- Días de publicación -->
+      <FormSelect
+        label="Días de publicación"
+        name="days"
+        :error="(errors as any).days"
         required
-        :min="minDate"
-        col="col-sm-6 col-md-4 col-lg-3"
-        v-model="form.date"
+        multiple
+        placeholder="Seleccionar días"
+        :options="DAYS_OPTIONS"
+        optionValue="value"
+        optionLabel="label"
+        col="col-sm-6 col-md-4"
+        v-model="form.days"
       />
-
-      <!-- Días de la semana (solo para salas automáticas) -->
-      <div v-if="automaticRoom" class="col-12 mb-3">
-        <label class="form-label d-block">Días de la semana</label>
-        <div class="d-flex flex-wrap" style="gap: 0.4rem">
-          <button
-            v-for="day in DAYS_OPTIONS"
-            :key="day.value"
-            type="button"
-            :class="[
-              'btn btn-sm',
-              (form.days ?? []).includes(day.value) ? 'btn-primary' : 'btn-outline-secondary'
-            ]"
-            @click="toggleDay(day.value)"
-          >
-            {{ day.label }}
-          </button>
-        </div>
-      </div>
 
       <!-- Hora -->
       <FormInput
@@ -631,7 +606,7 @@
       >
         <template #append>
           <VDropdown
-            v-show="(form.allowedCurrencies ?? []).length > 1"
+            v-show="(form.allowedCurrencies ?? []).length"
             :shown="hasCardPriceByCurrencyErrors"
             :triggers="[]"
             placement="top-end"

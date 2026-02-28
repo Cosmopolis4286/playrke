@@ -242,6 +242,7 @@ const extraButtons: ExtraButton[] = [
     <BingoRoomAutomaticForm
       ref="gameBingoRoomFormRef"
       v-model="roomFormData"
+      :automatic-room="true"
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"

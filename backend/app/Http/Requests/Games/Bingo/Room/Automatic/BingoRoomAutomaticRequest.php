@@ -31,7 +31,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
     public function rules(): array
     {
         return [
-            'days'                        => ['nullable', 'array'],
+            'days'                        => ['required', 'array', 'min:1'],
             'days.*'                      => ['string', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
             'date'                        => ['nullable', 'date', 'after_or_equal:today'],
             'time'                        => ['required', 'date_format:H:i'],
@@ -192,6 +192,11 @@ class BingoRoomAutomaticRequest extends BaseRequest
     public function messages(): array
     {
         return [
+            'days.required'                   => 'Debe seleccionar al menos un día de publicación.',
+            'days.array'                      => 'Los días deben ser un listado válido.',
+            'days.min'                        => 'Debe seleccionar al menos un día de publicación.',
+            'days.*.in'                       => 'Uno o más días seleccionados no son válidos.',
+
             'date.required'                   => 'La fecha es obligatoria.',
             'date.after_or_equal'             => 'La fecha debe ser hoy o posterior.',
 

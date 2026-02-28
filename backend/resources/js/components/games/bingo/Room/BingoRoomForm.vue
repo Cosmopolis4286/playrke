@@ -597,7 +597,7 @@
       >
         <template #append>
           <VDropdown
-            v-show="(form.allowedCurrencies ?? []).length > 1"
+            v-show="(form.allowedCurrencies ?? []).length"
             :shown="hasCardPriceByCurrencyErrors"
             :triggers="[]"
             placement="top-end"
@@ -651,9 +651,9 @@
         </template>
       </FormInput>
 
-      <!-- Redondeo tipo de cambio USD -->
+      <!-- Redondeo Tasa USD -->
       <FormInput
-        label="Redondeo Tipo de Cambio"
+        label="Redondeo Tasa"
         name="usd_exchange_round_step"
         :error="errors.usdExchangeRoundStep"
         type="number"

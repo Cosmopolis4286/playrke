@@ -5,10 +5,10 @@ import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
  * Límites de porcentajes (expuestos para usar en atributos min/max del FormInput)
  */
 export const BINGO_ROOM_PERCENTAGE_LIMITS = {
-    roomCommn:  { min: 10, max: 50 },
-    jackpotPct: { min: 1,  max: 15 },
-    roundsPct:  { min: 5,  max: 30 },
-    serialsPct: { min: 2,  max: 35 },
+    roomCommn: { min: 10, max: 50 },
+    jackpotPct: { min: 1, max: 15 },
+    roundsPct: { min: 5, max: 30 },
+    serialsPct: { min: 2, max: 35 },
 } as const
 
 /**
@@ -46,6 +46,10 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
 
         if (!automaticRoom() && !form.value.date) {
             e.date = 'La fecha es requerida.'
+        }
+
+        if (automaticRoom() && (!(form.value as any).days || (form.value as any).days.length === 0)) {
+            e.days = 'Debe seleccionar al menos un día.'
         }
 
         if (!form.value.time) {
@@ -94,31 +98,30 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
         }
 
         const allowedCurrencies = form.value.allowedCurrencies ?? []
-        if (allowedCurrencies.length > 1) {
-            const byCurrency = form.value.cardPriceByCurrency ?? {}
-            const currencyErrors: Record<string, string> = {}
 
-            allowedCurrencies.forEach(cur => {
-                const key = String(cur)
-                const value = Number(byCurrency[key])
-                if (isNaN(value) || value <= 0) {
-                    currencyErrors[key] = 'Ingrese un precio válido.'
-                }
-            })
+        const byCurrency = form.value.cardPriceByCurrency ?? {}
+        const currencyErrors: Record<string, string> = {}
 
-            if (Object.keys(currencyErrors).length) {
-                e.cardPriceByCurrency = currencyErrors
+        allowedCurrencies.forEach(cur => {
+            const key = String(cur)
+            const value = Number(byCurrency[key])
+            if (isNaN(value) || value <= 0) {
+                currencyErrors[key] = 'Ingrese un precio válido.'
             }
+        })
+
+        if (Object.keys(currencyErrors).length) {
+            e.cardPriceByCurrency = currencyErrors
         }
 
         const rounds = Number(form.value.rounds) || 1
-        const rPct   = Number(form.value.roundsPct) || 0
+        const rPct = Number(form.value.roundsPct) || 0
 
         if (rounds > 1) {
             const roomCommn_ = Number(form.value.roomCommn) || 0
-            const jackpot_   = Number(form.value.jackpotPct) || 0
-            const serials_   = form.value.useSerials ? (Number(form.value.serialsPct) || 0) : 0
-            const maxRounds  = Math.max(0, 100 - roomCommn_ - jackpot_ - serials_)
+            const jackpot_ = Number(form.value.jackpotPct) || 0
+            const serials_ = form.value.useSerials ? (Number(form.value.serialsPct) || 0) : 0
+            const maxRounds = Math.max(0, 100 - roomCommn_ - jackpot_ - serials_)
 
             if (!form.value.roundsPct || rPct === 0) {
                 e.roundsPct = 'El % de rondas es requerido.'
@@ -129,8 +132,8 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
             }
         }
 
-        const configs      = form.value.roundsConfig ?? []
-        const currencies   = form.value.allowedCurrencies ?? []
+        const configs = form.value.roundsConfig ?? []
+        const currencies = form.value.allowedCurrencies ?? []
         const roundErrors: Record<string, string> = {}
 
         configs.forEach((round, i) => {
@@ -160,11 +163,11 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
             e.roundsConfig = roundErrors
         }
 
-        const roomCommn  = Number(form.value.roomCommn)  || 0
+        const roomCommn = Number(form.value.roomCommn) || 0
         const jackpotPct = Number(form.value.jackpotPct) || 0
         const serialsPct = form.value.useSerials ? (Number(form.value.serialsPct) || 0) : 0
-        const roundsPct  = Number(form.value.roundsPct)  || 0
-        const totalPct   = roomCommn + jackpotPct + serialsPct + roundsPct
+        const roundsPct = Number(form.value.roundsPct) || 0
+        const totalPct = roomCommn + jackpotPct + serialsPct + roundsPct
 
         if (totalPct > 100) {
             e.percentageSum = `La suma (${totalPct.toFixed(2)}%) excede el 100%.`
@@ -203,9 +206,9 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
      * Porcentaje disponible para %Rondas = 100 - %Sala - %Jackpot - %Seriales (si useSerials)
      */
     const availablePct = computed(() => {
-        const commn = Number(form.value.roomCommn)  || 0
-        const jk    = Number(form.value.jackpotPct) || 0
-        const ser   = form.value.useSerials ? (Number(form.value.serialsPct) || 0) : 0
+        const commn = Number(form.value.roomCommn) || 0
+        const jk = Number(form.value.jackpotPct) || 0
+        const ser = form.value.useSerials ? (Number(form.value.serialsPct) || 0) : 0
         return Math.max(0, Math.round((100 - commn - jk - ser) * 100) / 100)
     })
 

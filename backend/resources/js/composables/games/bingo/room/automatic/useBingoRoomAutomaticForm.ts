@@ -3,8 +3,7 @@ import { useBingoRoomBaseForm } from '../useBingoRoomBaseForm'
 
 export function useBingoRoomAutomaticForm(
     modelValueGetter: () => BingoRoomAutomaticFormData,
-    emit: (event: 'update:modelValue', value: BingoRoomAutomaticFormData) => void,
-    automaticRoom: () => boolean
+    emit: (event: 'update:modelValue', value: BingoRoomAutomaticFormData) => void
 ) {
-    return useBingoRoomBaseForm(modelValueGetter, emit, automaticRoom)
+    return useBingoRoomBaseForm(modelValueGetter, emit, () => true)
 }

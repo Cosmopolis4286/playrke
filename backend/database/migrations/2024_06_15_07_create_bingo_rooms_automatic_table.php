@@ -15,8 +15,7 @@ return new class extends Migration
             // PK con Snowflake
             $table->snowflake('id')->primary();;
 
-            $table->date('date')->nullable();
-            $table->string('days')->nullable();
+            $table->json('days')->nullable();
             $table->string('time', 10);
             $table->enum('in_live', ['Y', 'N'])->default('N');
 
