@@ -70,6 +70,7 @@ class BingoRoomResource extends JsonResource
                 'amount_added_prize_pool' => $config->amount_added_prize_pool,
                 'room_commission'         => $config->room_commission,
                 'rke_commission'          => $config->rke_commission,
+                'use_base_usd'            => $config->use_base_usd,
                 'card_price_usd'          => $config->card_price_usd,
                 'usd_exchange_round_step' => $config->usd_exchange_round_step,
                 'jackpot_pct'             => $config->jackpot_pct,

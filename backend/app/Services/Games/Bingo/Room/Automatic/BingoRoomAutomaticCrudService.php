@@ -63,6 +63,7 @@ final class BingoRoomAutomaticCrudService
                 'prize_pool_type_id'      => $dto->prizePoolType,
                 'amount_added_prize_pool' => $dto->amountAddedPrizePool,
                 'room_commission'         => $dto->roomCommission,
+                'use_base_usd'            => $dto->useBaseUsd ?? false,
                 'card_price_usd'          => $dto->cardPriceUsd,
                 'usd_exchange_round_step' => $dto->usdExchangeRoundStep ?? null,
                 'allowed_currencies'      => $dto->allowedCurrencies,
@@ -172,7 +173,7 @@ final class BingoRoomAutomaticCrudService
             [
                 'rounds'        => (string) $roundsCount,
                 'prize_types'   => $prizeTypes,
-                'bingo_patterns'=> $bingoPatterns,
+                'bingo_patterns' => $bingoPatterns,
                 'prize_values'  => $prizeValues,
                 'status'        => 'ACTIVE',
             ]

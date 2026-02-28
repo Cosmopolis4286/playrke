@@ -30,6 +30,9 @@ return new class extends Migration
             $table->decimal('rke_commission', 8, 2)->default(0)->comment('Comisión RKE');
             $table->decimal('room_commission', 8, 2)->default(0)->comment('Comisión de la sala');
 
+            // Usar base USD
+            $table->boolean('use_base_usd')->default(false)->comment('Usar Base USD; calcular tasa de cambio');
+
             // Precio Carton en USD
             $table->decimal('card_price_usd', 6, 2)->nullable()->comment('Precio del Cartón en USD');
 

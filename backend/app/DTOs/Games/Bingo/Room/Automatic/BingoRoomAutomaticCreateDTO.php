@@ -42,29 +42,31 @@ final class BingoRoomAutomaticCreateDTO
 
         $useSerials = filter_var($data['useSerials'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
+        $useSerials = filter_var($data['useSerials'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
         return new self(
-            time:                   $data['time'],
-            roomType:               (string) ($data['roomType'] ?? 'PRIVATE'),
-            gameMode:               $data['gameMode'],
-            prizePoolType:          $data['prizePoolType'],
-            allowedCurrencies:      $allowedCurrencies,
-            roomCommission:         (float) ($data['roomCommn'] ?? 20),
-            rounds:                 (int)   ($data['rounds']   ?? 1),
-            useSerials:             $useSerials,
-            date:                   $data['date'] ?? null,
-            days:                   isset($data['days']) && is_array($data['days']) ? $data['days'] : null,
-            cardPriceUsd:           isset($data['cardPriceUsd'])  ? (float) $data['cardPriceUsd']  : null,
-            usdExchangeRoundStep:   isset($data['usdExchangeRoundStep']) ? (float) $data['usdExchangeRoundStep'] : null,
-            cardPriceByCurrency:    $cardPriceByCurrency,
-            amountAddedPrizePool:   isset($data['amountAddedPrizePool']) ? (float) $data['amountAddedPrizePool'] : null,
-            jackpotPct:             isset($data['jackpotPct'])  ? (float) $data['jackpotPct']  : null,
-            timeChip:               isset($data['timeChip'])   ? (string) $data['timeChip']   : null,
-            roundsPct:              isset($data['roundsPct'])  ? (float)  $data['roundsPct']  : null,
-            serialsPct:             isset($data['serialsPct']) ? (float)  $data['serialsPct'] : null,
-            numSerials:             isset($data['numSerials']) ? (int)    $data['numSerials'] : null,
-            roundsConfig:           $data['roundsConfig'] ?? null,
-            isDraft:                (bool) ($data['isDraft'] ?? false),
-            inLive:                 ($data['inLive'] ?? 'N') === 'Y' ? 'Y' : 'N',
+            time: $data['time'],
+            roomType: (string) ($data['roomType'] ?? 'PRIVATE'),
+            gameMode: $data['gameMode'],
+            prizePoolType: $data['prizePoolType'],
+            allowedCurrencies: $allowedCurrencies,
+            roomCommission: (float) ($data['roomCommn'] ?? 20),
+            rounds: (int)   ($data['rounds']   ?? 1),
+            useSerials: $useSerials,
+            date: $data['date'] ?? null,
+            days: isset($data['days']) && is_array($data['days']) ? $data['days'] : null,
+            cardPriceUsd: isset($data['cardPriceUsd'])  ? (float) $data['cardPriceUsd']  : null,
+            usdExchangeRoundStep: isset($data['usdExchangeRoundStep']) ? (float) $data['usdExchangeRoundStep'] : null,
+            cardPriceByCurrency: $cardPriceByCurrency,
+            amountAddedPrizePool: isset($data['amountAddedPrizePool']) ? (float) $data['amountAddedPrizePool'] : null,
+            jackpotPct: isset($data['jackpotPct'])  ? (float) $data['jackpotPct']  : null,
+            timeChip: isset($data['timeChip'])   ? (string) $data['timeChip']   : null,
+            roundsPct: isset($data['roundsPct'])  ? (float)  $data['roundsPct']  : null,
+            serialsPct: isset($data['serialsPct']) ? (float)  $data['serialsPct'] : null,
+            numSerials: isset($data['numSerials']) ? (int)    $data['numSerials'] : null,
+            roundsConfig: $data['roundsConfig'] ?? null,
+            isDraft: (bool) ($data['isDraft'] ?? false),
+            inLive: ($data['inLive'] ?? 'N') === 'Y' ? 'Y' : 'N',
         );
     }
 }
