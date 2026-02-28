@@ -12,6 +12,10 @@
   import backendClient from '@/js/plugins/axios'
   // Types
   import type { BingoRoomFormData, RoundConfig } from '@/js/types/games/bingo/room/bingo-room'
+  import type {
+    BingoRoomAutomaticFormData,
+    DayOfWeek
+  } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
   import type { PrizeSearchResult } from '@/js/types/prizes/prize'
 
   /* ==========================================================================
@@ -45,7 +49,7 @@
     prizePoolTypeOptions: SelectOption[]
     allowedCurrenciesOptions: SelectOption[]
     bingoPatternOptions: SelectOption[]
-    modelValue: BingoRoomFormData
+    modelValue: BingoRoomFormData | BingoRoomAutomaticFormData
   }>()
 
   /* ==========================================================================
@@ -54,7 +58,7 @@
 
   const emit = defineEmits<{
     (e: 'submit'): void
-    (e: 'update:modelValue', value: BingoRoomFormData): void
+    (e: 'update:modelValue', value: BingoRoomFormData | BingoRoomAutomaticFormData): void
   }>()
 
   /* ==========================================================================
@@ -77,7 +81,16 @@
     () => props.automaticRoom ?? false
   )
 
-  const cardPriceByCurrencyActive = ref(false)
+  const DAYS_OPTIONS: { value: DayOfWeek; label: string }[] = [
+    { value: 'monday', label: 'Lunes' },
+    { value: 'tuesday', label: 'Martes' },
+    { value: 'wednesday', label: 'Miércoles' },
+    { value: 'thursday', label: 'Jueves' },
+    { value: 'friday', label: 'Viernes' },
+    { value: 'saturday', label: 'Sábado' },
+    { value: 'sunday', label: 'Domingo' }
+  ]
+
   const roundsConfigActive = ref(false)
 
   // Modal P/S: índice de la ronda que está seleccionando prize
@@ -158,14 +171,6 @@
     return Array.isArray(allowed) && allowed.length > 1
   })
 
-  function toggleCtnPriceByCurrency() {
-    if (!canAdjustCtnPriceByCurrency.value) return
-    cardPriceByCurrencyActive.value = !cardPriceByCurrencyActive.value
-    if (!form.value.cardPriceByCurrency) {
-      form.value = { ...form.value, cardPriceByCurrency: {} }
-    }
-  }
-
   function updateCtnPriceForCurrency(currency: string | number, value: string | number | null) {
     const key = String(currency)
     const current = { ...(form.value.cardPriceByCurrency ?? {}) }
@@ -178,17 +183,6 @@
     const found = props.allowedCurrenciesOptions.find(opt => String(opt.value) === String(id))
     return found ? String(found.label) : String(id)
   }
-
-  const hasCardPriceByCurrencyErrors = computed(() => {
-    const err = errors.value.cardPriceByCurrency
-    return err && Object.keys(err).length > 0 && !cardPriceByCurrencyActive.value
-  })
-
-  const cardPriceByCurrencyPopoverText = computed(() => {
-    const err = errors.value.cardPriceByCurrency
-    if (!err) return ''
-    return 'Ajustar precio de los cartones'
-  })
 
   const hasRoundsConfigErrors = computed(() => {
     const err = errors.value.roundsConfig
@@ -512,7 +506,7 @@
 <template>
   <form id="bingo-room-form" novalidate @submit.prevent="submit">
     <div class="row">
-      <!-- Fecha (solo si no es sala automática) -->
+      <!-- Fecha (solo salas normales) -->
       <FormInput
         v-if="!automaticRoom"
         label="Fecha"
@@ -523,6 +517,23 @@
         :min="minDate"
         col="col-sm-6 col-md-4 col-lg-3"
         v-model="form.date"
+      />
+
+      <!-- Días de publicación (solo salas automáticas) -->
+      <FormSelect
+        v-if="automaticRoom"
+        label="Días de publicación"
+        name="days"
+        :error="(errors as any).days"
+        required
+        multiple
+        placeholder="Seleccionar días"
+        :options="DAYS_OPTIONS"
+        optionValue="value"
+        optionLabel="label"
+        col="col-sm-6"
+        :modelValue="(form as BingoRoomAutomaticFormData).days ?? []"
+        @update:modelValue="form = { ...form, days: $event } as BingoRoomAutomaticFormData"
       />
 
       <!-- Hora -->
@@ -594,75 +605,6 @@
         col="col-sm-6"
         inputGroup
         v-model="form.allowedCurrencies"
-      >
-        <template #append>
-          <VDropdown
-            v-show="(form.allowedCurrencies ?? []).length"
-            :shown="hasCardPriceByCurrencyErrors"
-            :triggers="[]"
-            placement="top-end"
-            :autoHide="false"
-            container="body"
-            popperClass="popover-error"
-          >
-            <button
-              class="btn btn-outline-secondary"
-              type="button"
-              :data-active="cardPriceByCurrencyActive ? 1 : 0"
-              @click="toggleCtnPriceByCurrency"
-              :disabled="!canAdjustCtnPriceByCurrency"
-            >
-              <i class="fa-solid fa-sliders"></i>
-            </button>
-
-            <template #popper>
-              <div
-                style="
-                  padding: 4px 6.5px;
-                  max-width: 245px;
-                  font-size: 0.79rem;
-                  white-space: pre-line;
-                "
-              >
-                {{ cardPriceByCurrencyPopoverText }}
-              </div>
-            </template>
-          </VDropdown>
-        </template>
-      </FormSelect>
-
-      <!-- Precio Carton USD -->
-      <FormInput
-        label="Precio Cartón (USD)"
-        name="card_price_usd"
-        :error="errors.cardPriceUsd"
-        type="number"
-        required
-        :step="0.05"
-        :min="0.5"
-        :max="500"
-        placeholder="Precio Cartón"
-        col="col-sm-6 col-md-4 col-lg-3"
-        inputGroup
-        v-model="form.cardPriceUsd"
-      >
-        <template #prepend>
-          <span class="input-group-text">USD</span>
-        </template>
-      </FormInput>
-
-      <!-- Redondeo Tasa USD -->
-      <FormInput
-        label="Redondeo Tasa"
-        name="usd_exchange_round_step"
-        :error="errors.usdExchangeRoundStep"
-        type="number"
-        :step="0.01"
-        :min="0.01"
-        :max="100"
-        placeholder="Opcional"
-        col="col-sm-6 col-md-4 col-lg-3"
-        v-model="form.usdExchangeRoundStep"
       />
 
       <!-- Comisiones, jackpot y tiempo ficha -->
@@ -679,10 +621,10 @@
         v-model="roomCommn"
       />
 
-      <!-- Inputs por moneda (cuando activo) -->
+      <!-- Precio de cartones (siempre visible cuando hay monedas) -->
       <div
         class="col-12"
-        v-show="cardPriceByCurrencyActive && canAdjustCtnPriceByCurrency"
+        v-show="(form.allowedCurrencies ?? []).length > 0"
         style="margin-top: 0.5rem; margin-bottom: 1rem"
       >
         <div
@@ -693,23 +635,58 @@
             padding: 1rem;
           "
         >
-          <div class="d-flex align-items-center justify-content-between mb-3">
-            <h6 class="mb-0" style="font-size: 0.9rem; font-weight: 600">
-              Ajustar precio de los cartones por moneda
-            </h6>
-
-            <button
-              type="button"
-              class="close"
-              @click="cardPriceByCurrencyActive = false"
-              aria-label="Cerrar"
-            >
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
+          <h6 class="mb-3" style="font-size: 0.9rem; font-weight: 600">
+            Precio de los cartones
+          </h6>
 
           <div class="row">
-            <template v-for="cur in form.allowedCurrencies ?? []" :key="String(cur)">
+            <!-- Precio base USD -->
+            <FormInput
+              label="Precio Cartón (USD)"
+              name="card_price_usd"
+              :error="errors.cardPriceUsd"
+              type="number"
+              required
+              :step="0.05"
+              :min="0.5"
+              :max="500"
+              placeholder="Precio Cartón"
+              col="col-sm-6 col-md-4 col-lg-3 mb-2"
+              inputGroup
+              inputGroupClass="input-group-sm"
+              v-model="form.cardPriceUsd"
+            >
+              <template #prepend>
+                <span class="input-group-text">USD</span>
+              </template>
+            </FormInput>
+
+            <!-- Redondeo Tasa -->
+            <FormInput
+              label="Redondeo Tasa"
+              name="usd_exchange_round_step"
+              :error="errors.usdExchangeRoundStep"
+              type="number"
+              :step="0.01"
+              :min="0.01"
+              :max="100"
+              placeholder="Opcional"
+              col="col-sm-6 col-md-4 col-lg-3 mb-2"
+              inputGroup
+              inputGroupClass="input-group-sm"
+              v-model="form.usdExchangeRoundStep"
+            >
+              <template #prepend>
+                <span class="input-group-text">$</span>
+              </template>
+            </FormInput>
+
+            <!-- Precios por moneda adicional (cuando hay más de una) -->
+            <template
+              v-if="canAdjustCtnPriceByCurrency"
+              v-for="cur in form.allowedCurrencies ?? []"
+              :key="String(cur)"
+            >
               <FormInput
                 :name="`ctn_price_${String(cur)}`"
                 :error="
@@ -720,7 +697,7 @@
                 :min="0"
                 :max="1000"
                 :placeholder="`Precio Cartón ${getCurrencyLabel(cur)}`"
-                col="col-6 col-md-3 mb-2"
+                col="col-sm-6 col-md-4 col-lg-3 mb-2"
                 inputGroup
                 inputGroupClass="input-group-sm"
                 :modelValue="form.cardPriceByCurrency?.[String(cur)] ?? ''"

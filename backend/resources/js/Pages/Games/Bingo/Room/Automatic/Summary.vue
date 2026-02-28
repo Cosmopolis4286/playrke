@@ -11,7 +11,7 @@ import { computed, watch } from "vue";
 
 import TableWithFilterBridge from "@js/Components/Common/Table/TableWithFilterBridge.vue";
 import Modal from "@/js/Components/Common/Modal/Modal.vue";
-import BingoRoomAutomaticForm from "@/js/Components/Games/Bingo/Room/Automatic/BingoRoomAutomaticForm.vue";
+import BingoRoomForm from "@/js/Components/Games/Bingo/Room/BingoRoomForm.vue";
 import FormSwitch from "@/js/Components/Common/Form/FormSwitch.vue";
 
 // ==========================================================================
@@ -239,7 +239,7 @@ const extraButtons: ExtraButton[] = [
     :on-submit="handleSubmit"
     :confirm-disabled="!(gameBingoRoomFormRef?.isValid ?? false)"
   >
-    <BingoRoomAutomaticForm
+    <BingoRoomForm
       ref="gameBingoRoomFormRef"
       v-model="roomFormData"
       :automatic-room="true"
