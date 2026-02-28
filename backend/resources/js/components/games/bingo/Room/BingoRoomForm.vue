@@ -91,6 +91,8 @@
     { value: 'sunday', label: 'Domingo' }
   ]
 
+  const cardPriceByCurrencyActive = ref(false)
+  const useBaseUsd = ref(true)
   const roundsConfigActive = ref(false)
 
   // Modal P/S: índice de la ronda que está seleccionando prize
@@ -169,6 +171,16 @@
   const canAdjustCtnPriceByCurrency = computed(() => {
     const allowed = form.value.allowedCurrencies
     return Array.isArray(allowed) && allowed.length > 1
+  })
+
+  function toggleCtnPriceByCurrency() {
+    if (!canAdjustCtnPriceByCurrency.value) return
+    cardPriceByCurrencyActive.value = !cardPriceByCurrencyActive.value
+  }
+
+  const hasCardPriceByCurrencyErrors = computed(() => {
+    const err = errors.value.cardPriceByCurrency
+    return err && Object.keys(err).length > 0 && !cardPriceByCurrencyActive.value
   })
 
   function updateCtnPriceForCurrency(currency: string | number, value: string | number | null) {
@@ -605,7 +617,34 @@
         col="col-sm-6"
         inputGroup
         v-model="form.allowedCurrencies"
-      />
+      >
+        <template #append>
+          <VDropdown
+            :shown="hasCardPriceByCurrencyErrors"
+            :triggers="[]"
+            placement="top-end"
+            :autoHide="false"
+            container="body"
+            popperClass="popover-error"
+          >
+            <button
+              class="btn btn-outline-secondary"
+              type="button"
+              :data-active="cardPriceByCurrencyActive ? 1 : 0"
+              :disabled="!canAdjustCtnPriceByCurrency"
+              @click="toggleCtnPriceByCurrency"
+              title="Ajustar precios por moneda"
+            >
+              <i class="fa-solid fa-sliders"></i>
+            </button>
+            <template #popper>
+              <div style="padding: 4px 6.5px; max-width: 245px; font-size: 0.79rem; white-space: pre-line">
+                Configuración pendiente
+              </div>
+            </template>
+          </VDropdown>
+        </template>
+      </FormSelect>
 
       <!-- Comisiones, jackpot y tiempo ficha -->
       <FormInput
@@ -621,94 +660,121 @@
         v-model="roomCommn"
       />
 
-      <!-- Precio de cartones (siempre visible cuando hay monedas) -->
-      <div
-        class="col-12"
-        v-show="(form.allowedCurrencies ?? []).length > 0"
-        style="margin-top: 0.5rem; margin-bottom: 1rem"
-      >
-        <div
-          style="
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 0.25rem;
-            padding: 1rem;
-          "
-        >
-          <h6 class="mb-3" style="font-size: 0.9rem; font-weight: 600">
-            Precio de los cartones
-          </h6>
+      <!-- Panel de precios de cartones -->
+      <div class="col-12" v-show="cardPriceByCurrencyActive" style="margin-bottom: 1rem">
+        <div style="border: 1px solid #dee2e6; border-radius: 0.3rem; padding: 0.6rem 0.85rem">
 
-          <div class="row">
-            <!-- Precio base USD -->
-            <FormInput
-              label="Precio Cartón (USD)"
-              name="card_price_usd"
-              :error="errors.cardPriceUsd"
-              type="number"
-              required
-              :step="0.05"
-              :min="0.5"
-              :max="500"
-              placeholder="Precio Cartón"
-              col="col-sm-6 col-md-4 col-lg-3 mb-2"
-              inputGroup
-              inputGroupClass="input-group-sm"
-              v-model="form.cardPriceUsd"
-            >
-              <template #prepend>
-                <span class="input-group-text">USD</span>
+          <!-- Cabecera -->
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <div class="d-flex align-items-center" style="gap: 0.4rem">
+              <i class="fa-solid fa-coins" style="font-size: 0.75rem; color: #6c757d"></i>
+              <span style="font-size: 0.8rem; font-weight: 600; color: #343a40">Precio de cartones</span>
+              <span style="font-size: 0.75rem; color: #6c757d">— Base USD + ajuste por moneda</span>
+            </div>
+            <div class="d-flex align-items-center" style="gap: 0.75rem">
+              <!-- Switch: usar precio base USD -->
+              <div class="d-flex align-items-center" style="gap: 0.35rem">
+                <span style="font-size: 0.74rem; color: #6c757d; white-space: nowrap">Usar Base USD</span>
+                <div
+                  class="custom-control custom-switch"
+                  style="padding-left: 2.1rem; margin-bottom: 0"
+                >
+                  <input
+                    type="checkbox"
+                    class="custom-control-input"
+                    id="useBaseUsdSwitch"
+                    v-model="useBaseUsd"
+                  />
+                  <label class="custom-control-label" for="useBaseUsdSwitch" style="cursor: pointer" />
+                </div>
+              </div>
+              <button type="button" class="close" style="font-size: 1rem; line-height: 1" @click="cardPriceByCurrencyActive = false" aria-label="Cerrar">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+          </div>
+
+          <div style="border-top: 1px solid #e9ecef; margin: 0.4rem 0 0.55rem" />
+
+          <!-- Fila única de campos -->
+          <div class="d-flex flex-wrap align-items-start" style="gap: 0.5rem">
+
+            <!-- Precio USD + Redondeo (solo si useBaseUsd) -->
+            <template v-if="useBaseUsd">
+              <div>
+                <div class="input-group input-group-sm" style="width: auto; flex: 0 0 130px">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text" title="Precio base en USD">USD</span>
+                  </div>
+                  <input
+                    name="card_price_usd"
+                    type="number"
+                    :class="['form-control', { 'is-invalid': errors.cardPriceUsd }]"
+                    placeholder="0.00"
+                    step="0.05"
+                    min="0.5"
+                    max="500"
+                    :value="form.cardPriceUsd ?? ''"
+                    @change="form = { ...form, cardPriceUsd: Number(($event.target as HTMLInputElement).value) || null }"
+                  />
+                </div>
+                <small v-if="errors.cardPriceUsd" class="text-danger" style="font-size: 0.72rem; display: block; margin-top: 0.15rem">{{ errors.cardPriceUsd }}</small>
+              </div>
+
+              <div style="color: #ced4da; font-size: 0.85rem; margin-top: 0.35rem">·</div>
+
+              <div>
+                <div class="input-group input-group-sm" style="width: auto; flex: 0 0 155px">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text" title="Incremento de redondeo para la tasa de cambio">
+                      <i class="fa-solid fa-rotate" style="font-size: 0.7rem"></i>
+                    </span>
+                  </div>
+                  <input
+                    name="usd_exchange_round_step"
+                    type="number"
+                    :class="['form-control', { 'is-invalid': errors.usdExchangeRoundStep }]"
+                    placeholder="Redondeo opc."
+                    step="0.01"
+                    min="0.01"
+                    max="100"
+                    :value="form.usdExchangeRoundStep ?? ''"
+                    @change="form = { ...form, usdExchangeRoundStep: Number(($event.target as HTMLInputElement).value) || null }"
+                  />
+                </div>
+                <small v-if="errors.usdExchangeRoundStep" class="text-danger" style="font-size: 0.72rem; display: block; margin-top: 0.15rem">{{ errors.usdExchangeRoundStep }}</small>
+              </div>
+            </template>
+
+            <!-- Precios por moneda (solo si NO useBaseUsd y hay más de una moneda) -->
+            <template v-if="!useBaseUsd && canAdjustCtnPriceByCurrency">
+              <template v-for="cur in form.allowedCurrencies ?? []" :key="String(cur)">
+                <div>
+                  <div class="input-group input-group-sm" style="width: auto; flex: 0 0 130px">
+                    <div class="input-group-prepend">
+                      <span
+                        class="input-group-text"
+                        :class="{ 'border-danger text-danger': errors.cardPriceByCurrency?.[String(cur)] }"
+                      >{{ getCurrencyLabel(cur) }}</span>
+                    </div>
+                    <input
+                      :name="`ctn_price_${String(cur)}`"
+                      type="number"
+                      :class="['form-control', { 'is-invalid': errors.cardPriceByCurrency?.[String(cur)] }]"
+                      placeholder="0.00"
+                      step="0.05"
+                      min="0"
+                      max="1000"
+                      :value="form.cardPriceByCurrency?.[String(cur)] ?? ''"
+                      @change="updateCtnPriceForCurrency(cur, ($event.target as HTMLInputElement).value)"
+                    />
+                  </div>
+                  <small v-if="errors.cardPriceByCurrency?.[String(cur)]" class="text-danger" style="font-size: 0.72rem; display: block; margin-top: 0.15rem">{{ errors.cardPriceByCurrency[String(cur)] }}</small>
+                </div>
               </template>
-            </FormInput>
-
-            <!-- Redondeo Tasa -->
-            <FormInput
-              label="Redondeo Tasa"
-              name="usd_exchange_round_step"
-              :error="errors.usdExchangeRoundStep"
-              type="number"
-              :step="0.01"
-              :min="0.01"
-              :max="100"
-              placeholder="Opcional"
-              col="col-sm-6 col-md-4 col-lg-3 mb-2"
-              inputGroup
-              inputGroupClass="input-group-sm"
-              v-model="form.usdExchangeRoundStep"
-            >
-              <template #prepend>
-                <span class="input-group-text">$</span>
-              </template>
-            </FormInput>
-
-            <!-- Precios por moneda adicional (cuando hay más de una) -->
-            <template
-              v-if="canAdjustCtnPriceByCurrency"
-              v-for="cur in form.allowedCurrencies ?? []"
-              :key="String(cur)"
-            >
-              <FormInput
-                :name="`ctn_price_${String(cur)}`"
-                :error="
-                  errors.cardPriceByCurrency ? errors.cardPriceByCurrency[String(cur)] : undefined
-                "
-                type="number"
-                :step="0.05"
-                :min="0"
-                :max="1000"
-                :placeholder="`Precio Cartón ${getCurrencyLabel(cur)}`"
-                col="col-sm-6 col-md-4 col-lg-3 mb-2"
-                inputGroup
-                inputGroupClass="input-group-sm"
-                :modelValue="form.cardPriceByCurrency?.[String(cur)] ?? ''"
-                @update:modelValue="updateCtnPriceForCurrency(cur, $event)"
-              >
-                <template #prepend>
-                  <span class="input-group-text">{{ getCurrencyLabel(cur) }}</span>
-                </template>
-              </FormInput>
             </template>
           </div>
+
         </div>
       </div>
 
