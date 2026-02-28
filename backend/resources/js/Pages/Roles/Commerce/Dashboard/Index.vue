@@ -40,11 +40,18 @@
   const { sortedActivity } = useDashboard(undefined, props.recentActivity)
 
   // ==========================================================================
-  // Stats en array para v-for
+  // Stats: si no vienen del backend, muestra placeholders vacíos
   // ==========================================================================
 
+  const DEFAULT_STATS: StatCardData[] = [
+    { label: 'Total ventas',      value: '—', icon: 'fas fa-shopping-cart',  variant: 'primary'  },
+    { label: 'Ingresos',          value: '—', icon: 'fas fa-dollar-sign',     variant: 'success'  },
+    { label: 'Juegos activos',    value: '—', icon: 'fas fa-gamepad',         variant: 'info'     },
+    { label: 'Pagos pendientes',  value: '—', icon: 'fas fa-clock',           variant: 'warning'  },
+  ]
+
   const statCards = computed<StatCardData[]>(() => {
-    if (!props.stats) return []
+    if (!props.stats) return DEFAULT_STATS
     return [
       props.stats.totalSales,
       props.stats.totalRevenue,
@@ -55,89 +62,98 @@
 </script>
 
 <template>
-  <div class="dashboard-commerce">
+  <div class="dc-page">
+    <div class="dc-inner">
 
-    <!-- Bienvenida -->
-    <DashboardWelcomeBanner
-      :userName="userName ?? 'Usuario'"
-      roleName="Comercio"
-      :message="period ? `Período: ${period}` : undefined"
-      :actions="[
-        { label: 'Ver juegos', icon: 'fas fa-gamepad', href: '/games', variant: 'outline-primary' },
-        { label: 'Ver ventas', icon: 'fas fa-chart-bar', href: '/sales', variant: 'primary' },
-      ]"
-    />
+      <!-- Bienvenida -->
+      <DashboardWelcomeBanner
+        :userName="userName ?? 'Usuario'"
+        roleName="Comercio"
+        :message="period ? `Período: ${period}` : undefined"
+        :actions="[
+          { label: 'Ver juegos', icon: 'fas fa-gamepad', href: '/games', variant: 'outline-primary' },
+          { label: 'Ver ventas', icon: 'fas fa-chart-bar', href: '/sales', variant: 'primary' },
+        ]"
+      />
 
-    <!-- Stats -->
-    <div v-if="statCards.length" class="row g-3 mt-1">
-      <div
-        v-for="(stat, i) in statCards"
-        :key="i"
-        class="col-12 col-sm-6 col-xl-3"
-      >
-        <DashboardStatCard v-bind="stat" />
-      </div>
-    </div>
-
-    <!-- Sin stats: skeleton placeholder -->
-    <div v-else class="row g-3 mt-1">
-      <div v-for="n in 4" :key="n" class="col-12 col-sm-6 col-xl-3">
-        <div class="card h-100">
-          <div class="card-body">
-            <div class="skeleton-block mb-2" style="height:12px;width:50%;border-radius:4px;"></div>
-            <div class="skeleton-block" style="height:28px;width:70%;border-radius:4px;"></div>
-          </div>
+      <!-- Stats -->
+      <div class="row g-3 mt-0">
+        <div
+          v-for="(stat, i) in statCards"
+          :key="i"
+          class="col-12 col-sm-6 col-xl-3"
+        >
+          <DashboardStatCard v-bind="stat" />
         </div>
       </div>
-    </div>
 
-    <!-- Fila inferior -->
-    <div class="row g-3 mt-1">
+      <!-- Fila inferior -->
+      <div class="row g-3">
 
-      <!-- Actividad reciente -->
-      <div class="col-12 col-lg-6">
-        <DashboardSection
-          title="Actividad reciente"
-          icon="fas fa-history"
-          subtitle="Últimas acciones en tu cuenta"
-        >
-          <DashboardActivityFeed :items="sortedActivity" :maxItems="8" />
-        </DashboardSection>
+        <!-- Actividad reciente -->
+        <div class="col-12 col-lg-6">
+          <DashboardSection
+            title="Actividad reciente"
+            icon="fas fa-history"
+            subtitle="Últimas acciones en tu cuenta"
+          >
+            <DashboardActivityFeed :items="sortedActivity" :maxItems="8" />
+          </DashboardSection>
+        </div>
+
+        <!-- Widget resumen (extensible) -->
+        <div class="col-12 col-lg-6">
+          <DashboardSection
+            title="Resumen"
+            icon="fas fa-chart-pie"
+            subtitle="Métricas del período"
+          >
+            <slot name="summary">
+              <div class="dc-empty-widget">
+                <i class="fas fa-chart-line"></i>
+                <p class="mb-0">Aquí se mostrará el resumen gráfico.</p>
+              </div>
+            </slot>
+          </DashboardSection>
+        </div>
+
       </div>
-
-      <!-- Slot libre para widgets adicionales -->
-      <div class="col-12 col-lg-6">
-        <DashboardSection
-          title="Resumen"
-          icon="fas fa-chart-pie"
-          subtitle="Métricas del período"
-        >
-          <slot name="summary">
-            <p class="text-muted small text-center py-4 mb-0">
-              <i class="fas fa-chart-line d-block mb-2 fs-4"></i>
-              Aquí se mostrará el resumen gráfico.
-            </p>
-          </slot>
-        </DashboardSection>
-      </div>
-
     </div>
   </div>
 </template>
 
 <style scoped>
-.dashboard-commerce {
+/* Contenedor raíz: ocupa el espacio disponible sin overflow horizontal */
+.dc-page {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  padding: 1.25rem 1rem;
+  box-sizing: border-box;
+}
+
+/* Columna interna con ancho máximo y sin desbordamiento */
+.dc-inner {
+  max-width: 1400px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 1rem;
 }
-.skeleton-block {
-  background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
+
+/* Placeholder vacío para widgets futuros */
+.dc-empty-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  color: #adb5bd;
+  font-size: 0.85rem;
+  text-align: center;
 }
-@keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+.dc-empty-widget i {
+  font-size: 2rem;
 }
 </style>

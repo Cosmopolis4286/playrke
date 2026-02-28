@@ -13,30 +13,35 @@
     if (hour < 19) return 'Buenas tardes'
     return 'Buenas noches'
   })
+
+  /** Iniciales del nombre para el avatar */
+  const initials = computed<string>(() => {
+    const parts = props.userName.trim().split(' ')
+    return parts.length >= 2
+      ? (parts[0][0] + parts[1][0]).toUpperCase()
+      : parts[0].slice(0, 2).toUpperCase()
+  })
 </script>
 
 <template>
-  <div class="welcome-banner card border-0">
-    <div class="card-body d-flex flex-column flex-sm-row align-items-sm-center gap-3">
-      <!-- Avatar / icono -->
-      <div class="welcome-banner__avatar d-flex align-items-center justify-content-center rounded-circle bg-primary bg-opacity-10 text-primary flex-shrink-0">
-        <i class="fas fa-user fs-4"></i>
-      </div>
+  <div class="wb">
+    <div class="wb__body">
+      <!-- Avatar con iniciales -->
+      <div class="wb__avatar" aria-hidden="true">{{ initials }}</div>
 
       <!-- Texto -->
-      <div class="flex-grow-1">
-        <h5 class="mb-0 fw-bold">
-          {{ greeting }}, <span class="text-primary">{{ userName }}</span>
-        </h5>
-        <p class="text-muted mb-0 small">
-          <span v-if="roleName" class="badge bg-secondary me-2">{{ roleName }}</span>
-          <span v-if="message">{{ message }}</span>
-          <span v-else>Bienvenido a tu panel de control.</span>
+      <div class="wb__text">
+        <p class="wb__greeting">
+          {{ greeting }}, <strong>{{ userName }}</strong>
+        </p>
+        <p class="wb__sub">
+          <span v-if="roleName" class="wb__badge">{{ roleName }}</span>
+          <span>{{ message || 'Bienvenido a tu panel de control.' }}</span>
         </p>
       </div>
 
       <!-- Acciones rápidas -->
-      <div v-if="actions.length" class="d-flex flex-wrap gap-2">
+      <div v-if="actions.length" class="wb__actions">
         <component
           v-for="(action, i) in actions"
           :key="i"
@@ -56,12 +61,75 @@
 </template>
 
 <style scoped>
-.welcome-banner {
-  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
-  border-bottom: 1px solid #e9ecef !important;
+.wb {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e9ecef;
+  border-left: 4px solid #0d6efd;
 }
-.welcome-banner__avatar {
-  width: 56px;
-  height: 56px;
+
+.wb__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+}
+
+/* Avatar */
+.wb__avatar {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #0d6efd;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  user-select: none;
+}
+
+/* Texto */
+.wb__text { flex: 1; min-width: 0; }
+
+.wb__greeting {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #212529;
+  line-height: 1.3;
+}
+
+.wb__sub {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.wb__badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 20px;
+  background: #e9ecef;
+  color: #495057;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+/* Acciones */
+.wb__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-left: auto;
 }
 </style>
