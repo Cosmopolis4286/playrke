@@ -4,8 +4,8 @@
         <img src="{{ asset('img/stam.png') }}" alt="Logo PlayRKE" class="brand-image">
     </a>
 
-    <div class="cont-user-type">
-        <span class="tx-user-type">{{ $userRole }}</span>
+    <div class="container-role-user">
+        <span>{{ $userRole }}</span>
     </div>
 
     <section class="sidebar mt-2" role="navigation" aria-label="Menú lateral">
