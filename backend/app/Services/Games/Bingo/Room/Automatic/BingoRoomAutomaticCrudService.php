@@ -54,7 +54,6 @@ final class BingoRoomAutomaticCrudService
             $dto     = $isCreate ? $roomOrDto : $updateDto;
 
             $roomData = [
-                'date'                    => $dto->date,
                 'days'                    => $dto->days ?? null,
                 'time'                    => $dto->time,
                 'in_live'                 => $dto->inLive ?? 'N',

@@ -21,6 +21,7 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             $table->foreignSnowflake('currency_id')
+                ->nullable()
                 ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->comment('Moneda asociada a la tasa');

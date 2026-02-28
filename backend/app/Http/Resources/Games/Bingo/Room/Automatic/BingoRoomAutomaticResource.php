@@ -8,17 +8,16 @@ class BingoRoomAutomaticResource extends JsonResource
 {
     public function toArray($request): array
     {
-        $useSerials = $this->use_serials === 'Y';
-
         return [
-            'id'     => (string) $this->id,
+            'id'     => $this->hashed_id,
             'status' => $this->status,
             'days'   => $this->days ?? [],
 
             'allowed_currencies' => $this->allowed_currencies ?? [],
 
             'card_price_by_currency' => $this->whenLoaded('cardPriceAutomatic', function () {
-                return $this->cardPriceAutomatic?->card_prices ?? [];
+                $prices = $this->cardPriceAutomatic?->card_prices ?? [];
+                return collect($prices)->map(fn($v) => (float) $v)->toArray();
             }, []),
 
             'rounds_config' => $this->whenLoaded('roundAutomatic', function () {
@@ -40,13 +39,13 @@ class BingoRoomAutomaticResource extends JsonResource
 
                     if ($frontendType === 'fixed') {
                         $entry['prizeValueByCurrency'] = $prizeValues[$i] ?? null;
-                        $entry['prizeValue'] = null;
+                        $entry['prizeValue']           = null;
                     } elseif ($frontendType === 'prize') {
                         $entry['prizeId']    = ($prizeValues[$i] ?? [])['prizeId']   ?? null;
                         $entry['prizeName']  = ($prizeValues[$i] ?? [])['prizeName'] ?? null;
                         $entry['prizeValue'] = null;
                     } else {
-                        $entry['prizeValue'] = $prizeValues[$i] ?? null;
+                        $entry['prizeValue'] = isset($prizeValues[$i]) ? (float) $prizeValues[$i] : null;
                     }
 
                     $config[] = $entry;
@@ -56,23 +55,23 @@ class BingoRoomAutomaticResource extends JsonResource
             }, []),
 
             'config' => [
-                'room_type_id'            => (string) $this->room_type_id,
-                'date'                    => $this->date?->format('Y-m-d'),
+                'room_type_id'            => $this->room_type_id,
                 'time'                    => $this->formatted_time,
-                'game_mode_id'            => (string) $this->game_mode_id,
-                'prize_pool_type_id'      => (string) $this->prize_pool_type_id,
+                'game_mode_id'            => $this->game_mode_id,
+                'prize_pool_type_id'      => $this->prize_pool_type_id,
                 'amount_added_prize_pool' => $this->amount_added_prize_pool,
                 'room_commission'         => $this->room_commission,
                 'rke_commission'          => $this->rke_commission,
-                'card_price_usd'          => $this->card_price_usd,
-                'usd_exchange_round_step' => $this->usd_exchange_round_step,
+                'use_base_usd'            => (bool) $this->use_base_usd,
+                'card_price_usd'          => $this->card_price_usd !== null ? (float) $this->card_price_usd : null,
+                'usd_exchange_round_step' => $this->usd_exchange_round_step !== null ? (float) $this->usd_exchange_round_step : null,
                 'jackpot_pct'             => $this->jackpot_pct,
                 'time_chip'               => $this->time_chip,
                 'rounds'                  => $this->rounds,
                 'rounds_pct'              => $this->rounds_pct,
-                'use_serials'             => $useSerials,
-                'serials_pct'             => $useSerials ? $this->serials_pct : null,
-                'num_serials'             => $useSerials ? $this->num_serials : null,
+                'use_serials'             => (bool) $this->use_serials,
+                'serials_pct'             => $this->use_serials ? $this->serials_pct : null,
+                'num_serials'             => $this->use_serials ? $this->num_serials : null,
                 'in_live'                 => $this->in_live,
             ],
         ];
