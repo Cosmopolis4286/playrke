@@ -165,12 +165,12 @@ aside.main-sidebar {
 }
 
 /* Ocultar etiqueta de rol cuando el sidebar está colapsado (modo mini) */
-body.sidebar-collapse .container-role-user {
+body.sidebar-mini.sidebar-collapse .container-role-user {
   display: none !important;
 }
 
-/* Volver a mostrar cuando el usuario hace hover sobre el sidebar expandido */
-body.sidebar-collapse.sidebar-mini-expand .container-role-user {
+/* Volver a mostrar en hover: .container-role-user es hijo directo de .main-sidebar */
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(.sidebar-no-expand):hover .container-role-user {
   display: flex !important;
 }
 
