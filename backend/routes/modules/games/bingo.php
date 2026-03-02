@@ -31,10 +31,9 @@ route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'role:admin,commerce'], Bing
     'delete' => ['method' => 'delete', 'uri' => '{room}/delete', 'action' => 'delete'],
     'destroy' => ['method' => 'delete', 'uri' => '{room}/force-delete', 'action' => 'destroy'],
     'toggle-status' => ['method' => 'patch', 'uri' => '{room}/status', 'action' => 'toggleStatus'],
-    'replay' => ['method' => 'get',  'uri' => '{room}/replay', 'action' => 'replay'],
+    'copy' => ['method' => 'post',  'uri' => '{room}/copy', 'action' => 'copy'],
     'publish' => ['method' => 'patch',  'uri' => '{room}/publish', 'action' => 'publish'],
-    'refund' => ['method' => 'patch',  'uri' => '{room}/refund', 'action' => 'refund'],
-    'copy' => ['method' => 'post',  'uri' => '{room}/copy', 'action' => 'copy']
+    'cancel' => ['method' => 'patch',  'uri' => '{room}/cancel', 'action' => 'cancel'],
 ]);
 
 /**

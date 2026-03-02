@@ -28,13 +28,6 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('ID del usuario creador de la sala');
 
-            $table->foreignSnowflake('seller_user_id')
-                ->nullable()
-                ->constrained('users')
-                ->cascadeOnUpdate()
-                ->nullOnDelete()
-                ->comment('Id de usuario del vendedor/generador del carton');
-
             $table->foreignSnowflake('room_user_id')
                 ->constrained('bingo_room_users')
                 ->cascadeOnUpdate()
@@ -94,7 +87,6 @@ return new class extends Migration
             $table->index(['room_id', 'creator_user_id'], 'idx_bingo_cards_room_creator');
             $table->index(['room_id', 'card_lot_id'], 'idx_bingo_cards_room_lot');
             $table->index(['room_id', 'card_status'], 'idx_bingo_cards_room_status');
-            $table->index(['seller_user_id', 'card_status'], 'idx_bingo_cards_seller_status');
             $table->index(['room_user_id', 'card_status'], 'idx_bingo_cards_user_status');
             $table->index('serial_number', 'idx_bingo_cards_serial');
             $table->index('card_hash', 'idx_bingo_cards_hash');
