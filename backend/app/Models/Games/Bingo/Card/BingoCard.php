@@ -58,7 +58,7 @@ use App\Models\Games\Bingo\Cards\CardPrize\BingoCardPrize;
  * @property int|null $o4 Número en posición O4
  * @property int|null $o5 Número en posición O5
  * @property string $card_hash Hash único del cartón
- * @property string $card_status Estado del cartón
+ * @property string $status Estado del cartón
  * @property bool $is_validated Si el cartón ha sido validado
  * @property \Carbon\Carbon|null $validated_at Fecha de validación
  * @property \Carbon\Carbon $created_at Fecha de creación
@@ -120,7 +120,7 @@ class BingoCard extends Model
         'g1', 'g2', 'g3', 'g4', 'g5',
         'o1', 'o2', 'o3', 'o4', 'o5',
         'card_hash',
-        'card_status',
+        'status',
         'is_validated',
         'validated_at',
     ];
@@ -266,7 +266,7 @@ class BingoCard extends Model
      */
     public function getCardStatusDescription(): string
     {
-        return self::CARD_STATUSES[$this->card_status] ?? $this->card_status;
+        return self::CARD_STATUSES[$this->status] ?? $this->status;
     }
 
     /**
@@ -276,7 +276,7 @@ class BingoCard extends Model
      */
     public function isActive(): bool
     {
-        return $this->card_status === 'active';
+        return $this->status === 'active';
     }
 
     /**
@@ -286,7 +286,7 @@ class BingoCard extends Model
      */
     public function isWinner(): bool
     {
-        return $this->card_status === 'winner';
+        return $this->status === 'winner';
     }
 
 
@@ -299,7 +299,7 @@ class BingoCard extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('card_status', 'active');
+        return $query->where('status', 'active');
     }
 
     /**
@@ -310,7 +310,7 @@ class BingoCard extends Model
      */
     public function scopeWinners($query)
     {
-        return $query->where('card_status', 'winner');
+        return $query->where('status', 'winner');
     }
 
     /**

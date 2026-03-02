@@ -15,6 +15,11 @@ return new class extends Migration
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID del cartón de bingo');
 
+            // Estado del cartón
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'WINNER', 'CANCELLED'])
+                ->default('ACTIVE')
+                ->comment('Estado del cartón');
+
             // Relaciones
             $table->foreignSnowflake('room_id')
                 ->constrained('bingo_rooms')
@@ -27,6 +32,13 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
                 ->comment('ID del usuario creador de la sala');
+
+            $table->foreignSnowflake('seller_user_id')
+                ->nullable()
+                ->constrained('users')
+                ->cascadeOnUpdate()
+                ->nullOnDelete()
+                ->comment('Id de usuario del vendedor/generador del carton');
 
             $table->foreignSnowflake('room_user_id')
                 ->constrained('bingo_room_users')
@@ -66,11 +78,6 @@ return new class extends Migration
                 ->unique()
                 ->comment('Hash único del cartón para verificación de integridad');
 
-            // Estado del cartón
-            $table->enum('card_status', ['ACTIVE', 'INACTIVE', 'WINNER', 'CANCELLED'])
-                ->default('ACTIVE')
-                ->comment('Estado del cartón');
-
             // Campos de auditoría
             $table->boolean('is_validated')
                 ->default(false)
@@ -84,10 +91,11 @@ return new class extends Migration
             $table->softDeletes();
 
             // Índices para consultas frecuentes y rendimiento
-            $table->index(['room_id', 'creator_user_id'], 'idx_bingo_cards_room_creator');
+            $table->index(['room_id', 'creator_room_user_id'], 'idx_bingo_cards_room_creator');
             $table->index(['room_id', 'card_lot_id'], 'idx_bingo_cards_room_lot');
-            $table->index(['room_id', 'card_status'], 'idx_bingo_cards_room_status');
-            $table->index(['room_user_id', 'card_status'], 'idx_bingo_cards_user_status');
+            $table->index(['room_id', 'status'], 'idx_bingo_cards_room_status');
+            $table->index(['seller_user_id', 'status'], 'idx_bingo_cards_seller_status');
+            $table->index(['room_user_id', 'status'], 'idx_bingo_cards_user_status');
             $table->index('serial_number', 'idx_bingo_cards_serial');
             $table->index('card_hash', 'idx_bingo_cards_hash');
             $table->index('created_at', 'idx_bingo_cards_created');

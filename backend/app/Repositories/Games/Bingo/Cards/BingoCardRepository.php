@@ -35,7 +35,7 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
 
         // Aplicar filtros
         if (isset($filters['status'])) {
-            $query->where('card_status', $filters['status']);
+            $query->where('status', $filters['status']);
         }
 
         if (isset($filters['user_id'])) {
@@ -85,7 +85,7 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
         $query = $this->model->where('room_user_id', $roomUserId);
 
         if ($status) {
-            $query->where('card_status', $status);
+            $query->where('status', $status);
         }
 
         return $query->with(['room', 'seller', 'cardLot', 'currency'])
@@ -101,7 +101,7 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
         $query = $this->model->where('card_lot_id', $cardLotId);
 
         if ($status) {
-            $query->where('card_status', $status);
+            $query->where('status', $status);
         }
 
         return $query->with(['room', 'roomUser.user', 'seller'])
@@ -122,7 +122,7 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
         }
 
         if (isset($filters['status'])) {
-            $query->where('card_status', $filters['status']);
+            $query->where('status', $filters['status']);
         }
 
         if (isset($filters['date_from'])) {
@@ -144,7 +144,7 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
     public function getWinnerCards(string $roomId, array $orderBy = []): Collection
     {
         $query = $this->model->where('room_id', $roomId)
-                            ->where('card_status', 'winner');
+                            ->where('status', 'winner');
 
         // Aplicar ordenamiento
         foreach ($orderBy as $campo => $direccion) {
@@ -168,7 +168,7 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
         $datosActualizacion = [
             'is_validated' => true,
             'validated_at' => now(),
-            'card_status' => 'winner'
+            'status' => 'winner'
         ];
 
         // Agregar datos adicionales de validación si existen
@@ -182,7 +182,7 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
      */
     public function changeBulkStatus(array $cardIds, string $newStatus): int
     {
-        $updateData = ['card_status' => $newStatus];
+        $updateData = ['status' => $newStatus];
 
         // Si el estado es winner, marcar como validado
         if ($newStatus === 'winner') {
@@ -200,9 +200,9 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
     public function getStatsByRoom(string $roomId): array
     {
         $stats = $this->model->where('room_id', $roomId)
-                            ->select('card_status', DB::raw('count(*) as total'))
-                            ->groupBy('card_status')
-                            ->pluck('total', 'card_status')
+                            ->select('status', DB::raw('count(*) as total'))
+                            ->groupBy('status')
+                            ->pluck('total', 'status')
                             ->toArray();
 
         // Asegurar que todos los estados estén presentes
@@ -264,7 +264,7 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
         }
 
         if (isset($filters['status'])) {
-            $query->where('card_status', $filters['status']);
+            $query->where('status', $filters['status']);
         }
 
         if (isset($filters['seller_id'])) {
