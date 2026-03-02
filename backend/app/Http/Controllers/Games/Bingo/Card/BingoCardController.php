@@ -66,7 +66,7 @@ final class BingoCardController extends Controller
         );
     }
 
-    public function getAvailableCountriesBySeller($roomId)
+    public function availableCountries($roomId)
     {
         $seller = $this->seller(['id', 'commerce_id']);
         $creatorUser = Commerce::getValueById($seller->commerce, 'user');

@@ -13,7 +13,7 @@ final class AdminContextService
     public function __construct(
         private readonly \App\Services\Roles\Admin\Commerce\AdminCommerceContextService $commerceContextService,
         private readonly \App\Services\Roles\Admin\Customer\AdminCustomerContextService $customerContextService,
-        private readonly \App\Services\Roles\Admin\Seller\AdminSellerContextService $sellerContextService,
+        private readonly \App\Services\Roles\Seller\Manager\ManagerSellerContextService $sellerContextService,
         private readonly \App\Services\Roles\Admin\Treasurer\AdminTreasurerContextService $treasurerContextService,
     ) {}
 
@@ -30,7 +30,7 @@ final class AdminContextService
         return match ($context) {
             'commerces' => $this->commerceContextService->commerceContext(),
             'customers' => $this->customerContextService->customerContext(),
-            'sellers' => $this->sellerContextService->sellerContext(),
+            'sellers' => $this->sellerContextService->resolve(),
             'treasurers' => $this->treasurerContextService->treasurerContext(),
             default => throw new DomainException('Tipo Rol inválido, no existe el contexto'),
         };

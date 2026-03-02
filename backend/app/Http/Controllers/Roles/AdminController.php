@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Roles;
 
 use App\Http\Controllers\Controller;
 use App\Services\Roles\Admin\AdminService;
-
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -71,11 +70,11 @@ class AdminController extends Controller
     }
 
     /**
-     * Muestra el listado de tesoreros usando Inertia.
+     * Muestra el listado de vendedores usando Inertia.
      *
      * @return Response
      */
-    public function seller(): Response
+    public function sellers(): Response
     {
         return $this->handleServiceInertia(
             function () {
@@ -83,7 +82,7 @@ class AdminController extends Controller
 
                 $response['title'] = 'Vendedores';
 
-                return Inertia::render('Roles/Admin/Seller/Index', $response);
+                return Inertia::render('Roles/Seller/Manager/Index', $response);
             },
             'No se pudo cargar la lista de vendedores.'
         );

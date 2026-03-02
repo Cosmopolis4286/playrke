@@ -8,6 +8,8 @@ use App\Contracts\GameRepositoryInterface;
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
 use App\Contracts\TimeZoneRepositoryInterface;
 use App\DTOs\Roles\Seller\Manager\ManagerSellerContextDTO;
+use App\Services\Roles\RoleUserService;
+use App\Services\Security\UserContextService;
 use App\Traits\HashedTableDataTrait;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -20,25 +22,32 @@ class ManagerSellerContextService
         private readonly CurrencyRepositoryInterface $currencies,
         private readonly GameRepositoryInterface $games,
         private readonly SellerRepositoryInterface $sellerRepository,
-        private readonly TimeZoneRepositoryInterface $timeZones
+        private readonly TimeZoneRepositoryInterface $timeZones,
+        private readonly RoleUserService $roleUserService,
+        private readonly UserContextService $userContext
     ) {}
 
     /**
      * Resolver listado de vendedores del manager.
      *
-     * @param int $userId ID del usuario manager
+     * @param int|null $managerUserId ID del usuario manager
+     * @param string $role Rol de usuario manager
      * @return array [sellers, pagination]
      */
-    private function resolveSellers(int $userId): array
+    private function resolveSellers(?int $managerUserId = null, string $role): array
     {
         $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
         $rowKeys = ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
+
+        $conditions = [];
+
+        if ($role !== 'admin') $conditions = ['manager_user_id' => $managerUserId];
 
         $source = $this->sellerRepository->paginateWithRelations(
             perPage: 15,
             page: 1,
             relations: ['country:id,name', 'user:id,email'],
-            conditions: ['manager_user_id' => $userId],
+            conditions: $conditions,
             fields: ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
         );
 
@@ -65,12 +74,18 @@ class ManagerSellerContextService
     /**
      * Obtener contexto de vendedores del usuario manager.
      *
-     * @param int|null $userId ID del usuario manager
+     * @param int|null $managerUserId ID del usuario manager
      * @return ManagerSellerContextDTO Contexto de vendedores para la vista Inertia
      */
-    public function resolve(int $userId): ManagerSellerContextDTO
+    public function resolve(?int $managerUserId = null): ManagerSellerContextDTO
     {
-        $result = $this->resolveSellers($userId);
+        // Resolver ID del usuario Manager si no corresponde
+        if (!$managerUserId) $managerUserId = $this->userContext->resolveUserId();
+
+        // Resolver rol del usuario manager
+        $role = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
+
+        $result = $this->resolveSellers($managerUserId, $role);
 
         return new ManagerSellerContextDTO(
             sellers: $result['sellers'],
@@ -90,6 +105,8 @@ class ManagerSellerContextService
      */
     public function getAll(int $managerUserId): array
     {
-        return $this->resolveSellers($managerUserId)['sellers']['rows'] ?? [];
+        // Resolver rol del usuario manager
+        $role = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
+        return $this->resolveSellers($managerUserId, $role)['sellers']['rows'] ?? [];
     }
 }
