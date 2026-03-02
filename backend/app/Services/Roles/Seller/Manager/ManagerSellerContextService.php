@@ -30,18 +30,25 @@ class ManagerSellerContextService
     /**
      * Resolver listado de vendedores del manager.
      *
-     * @param int|null $managerUserId ID del usuario manager
-     * @param string $role Rol de usuario manager
-     * @return array [sellers, pagination]
+     * @param int|null $managerUserId
+     * @param string   $role
+     * @return array{sellers: array, pagination: ?array}
      */
     private function resolveSellers(?int $managerUserId = null, string $role): array
     {
-        $labels  = ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
-        $rowKeys = ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
+        $isAdmin = $role === 'admin';
 
-        $conditions = [];
+        $labels = $isAdmin
+            ? ['Manejador', 'Vendedor', 'País', 'Teléfono', 'Email', 'Status']
+            : ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
 
-        if ($role !== 'admin') $conditions = ['manager_user_id' => $managerUserId];
+        $rowKeys = $isAdmin
+            ? ['manager_role', 'name', 'country.name', 'phone', 'User.email', 'status_badge']
+            : ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
+
+        $conditions = $isAdmin && $managerUserId
+            ? ['manager_user_id' => $managerUserId]
+            : [];
 
         $source = $this->sellerRepository->paginateWithRelations(
             perPage: 15,
@@ -51,24 +58,25 @@ class ManagerSellerContextService
             fields: ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
         );
 
-        $collection = $source instanceof LengthAwarePaginator
+        $isPaginator = $source instanceof LengthAwarePaginator;
+
+        $collection = $isPaginator
             ? $source->getCollection()
             : collect($source);
 
-        $pagination = $source instanceof LengthAwarePaginator
-            ? [
-                'total'        => $source->total(),
-                'per_page'     => $source->perPage(),
-                'current_page' => $source->currentPage(),
-                'last_page'    => $source->lastPage(),
-                'from'         => $source->firstItem(),
-                'to'           => $source->lastItem(),
-            ]
-            : null;
+        $pagination = $isPaginator ? [
+            'total'        => $source->total(),
+            'per_page'     => $source->perPage(),
+            'current_page' => $source->currentPage(),
+            'last_page'    => $source->lastPage(),
+            'from'         => $source->firstItem(),
+            'to'           => $source->lastItem(),
+        ] : null;
 
-        $sellers = $this->processCollectionTableData($collection, $labels, $rowKeys);
-
-        return ['sellers' => $sellers, 'pagination' => $pagination];
+        return [
+            'sellers'    => $this->processCollectionTableData($collection, $labels, $rowKeys),
+            'pagination' => $pagination,
+        ];
     }
 
     /**

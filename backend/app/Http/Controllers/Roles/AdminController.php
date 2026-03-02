@@ -70,6 +70,25 @@ class AdminController extends Controller
     }
 
     /**
+     * Muestra el listado de jugadores usando Inertia.
+     *
+     * @return Response
+     */
+    public function players(): Response
+    {
+        return $this->handleServiceInertia(
+            function () {
+                $response = $this->service->context('players');
+
+                $response['title'] = 'Jugadores';
+
+                return Inertia::render('Roles/Admin/Player/Index', $response);
+            },
+            'No se pudo cargar la lista de jugadores.'
+        );
+    }
+
+    /**
      * Muestra el listado de vendedores usando Inertia.
      *
      * @return Response
@@ -104,6 +123,25 @@ class AdminController extends Controller
                 return Inertia::render('Roles/Admin/Treasurer/Index', $response);
             },
             'No se pudo cargar la lista de tesoreros.'
+        );
+    }
+
+    /**
+     * Muestra el listado de todos los usuarios usando Inertia.
+     *
+     * @return Response
+     */
+    public function users(): Response
+    {
+        return $this->handleServiceInertia(
+            function () {
+                $response = $this->service->context('users');
+
+                $response['title'] = 'Usuarios';
+
+                return Inertia::render('Roles/Admin/User/Index', $response);
+            },
+            'No se pudo cargar la lista de usuarios.'
         );
     }
 }
