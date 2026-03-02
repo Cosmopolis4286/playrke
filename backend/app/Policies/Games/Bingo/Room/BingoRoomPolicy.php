@@ -44,4 +44,6 @@ class BingoRoomPolicy extends BaseRolePolicy
         return $this->hasAccess($user)
             && $this->canMutate($bingoRoom);
     }
+
+    public function generateDraw() {}
 }

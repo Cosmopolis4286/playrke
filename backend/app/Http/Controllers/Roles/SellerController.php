@@ -36,52 +36,6 @@ class SellerController extends Controller
 {
     use EncryptTrait, BingoTrait,  UserTrait, FiltersTrait;
 
-    public function generateBingoCard()
-    {
-        $documentType = DocumentType::where('country', 234)->get();
-
-        $seller = $this->seller(['commerce_id', 'country', 'commission', 'status']);
-
-        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
-
-        app(HandleBingoRooms::class)->checkRoomClosure();
-
-        (new HandleExchangeRatesCommand())->updateRates($creatorUser);
-
-        $rooms = BingoRoom::with([
-            'Creator' => function ($query) use ($creatorUser) {
-                $query->select('room', 'creator_user_id', 'status')
-                    ->where('creator_user_id', $creatorUser)
-                    ->where('status', 1);
-            },
-            'Config' => function ($query) {
-                $query->select('room', 'game_mode', 'unix_date');
-            }
-        ])->select('id', 'encrypted', 'room_type', 'prize_pool')->where('status', 2)
-            ->where(function ($query) use ($creatorUser) {
-                $query->where('creator_user_id', $creatorUser)
-                    ->orWhere('room_type', 'PUBLIC');
-            })
-            ->whereHas('Creator', function ($query) use ($creatorUser) {
-                $query->where('creator_user_id', $creatorUser);
-            })
-            ->whereHas('Config', function ($query) {
-                $query->where('game_mode', 2)
-                    ->whereNotNull('room');
-            })
-            ->orderByRaw("(SELECT unix_date FROM bingo_rooms_config WHERE bingo_rooms_config.room = bingo_rooms.id LIMIT 1)")
-            ->get();
-
-        return view('modules/seller/games/bingo/cartons/generate')->with([
-            'title' => 'Generar Cartón',
-            'documentType' => $documentType,
-            'status' => $seller->status,
-            'commission' => $seller->commn,
-            'country' => $seller->country,
-            'rooms' => $rooms
-        ]);
-    }
-
     public function getAvailableCountriesBySeller($roomId)
     {
         $seller = $this->seller(['id', 'commerce_id']);

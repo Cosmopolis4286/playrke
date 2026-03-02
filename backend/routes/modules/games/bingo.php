@@ -6,6 +6,7 @@ use App\Http\Controllers\Games\Bingo\Pattern\BingoPatternController;
 use App\Http\Controllers\Games\Bingo\Card\BingoCardController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomAutomaticController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomController;
+use App\Http\Controllers\Games\Bingo\Testing\BingoTestingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -83,16 +84,22 @@ route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'role:ad
 
 /**
  * ====================================
- * OPERACIONES DE JUEGO
+ * OPERACIONES CARTONES
  * ====================================
  */
-route_group('bingo', 'bingo.', ['auth', 'role:admin,commerce,seller'], BingoCardController::class, [
-    'generate-card'    => ['method' => 'get', 'uri' => 'generate-card', 'action' => 'viewGenerateCard'],
-    'generate-card-store'    => ['method' => 'post', 'uri' => 'generate-card-store', 'action' => 'generateCard'],
-    'call-number'      => ['method' => 'post', 'uri' => 'room/{roomId}/call-number'],
-    'participate'      => ['method' => 'put',  'uri' => 'participate/public-room/{id?}/{getOut?}'],
-    'notify-payment'   => ['method' => 'post', 'uri' => 'carton/notify/payment/win-ctn'],
-    'handle-rules'     => ['method' => 'put',  'uri' => 'handle-rules/{id?}'],
+route_group('bingo-card', 'bingo-card.', ['auth', 'role:admin,commerce,seller'], BingoCardController::class, [
+    'view-generate-card' => ['method' => 'get', 'uri' => 'generate', 'action' => 'viewGenerateCard'],
+    'generate-card-store' => ['method' => 'post', 'uri' => 'generate-card-store', 'action' => 'generateCardStore'],
+    'available-countries' => ['method' => 'get', 'uri' => '{room}/available-countries', 'action' => 'availableCountries'],
+]);
+
+/**
+ * ====================================
+ * TESTING Y DESARROLLO
+ * ====================================
+ */
+route_group('bingo-test', 'bingo-test.', ['auth', 'role:admin'], BingoTestingController::class, [
+    'generate-draw' => ['method' => 'get', 'uri' => 'generate-draw', 'action' => 'generateDraw']
 ]);
 
 /**
@@ -163,6 +170,3 @@ route_group('bingocash', 'bingocash.', [], GameBingoController::class, [
 Route::get('bingo/k3yg4m3/play-rke', function () {
     return response()->json(['key' => session('r4m60nk3y')]);
 })->name('bingo.session-key');
-
-// Testing y desarrollo
-Route::post('bingo/test/regenerate-draw', [GameBingoController::class, 'regenerateDraw'])->name('bingo.test.regenerate-draw');

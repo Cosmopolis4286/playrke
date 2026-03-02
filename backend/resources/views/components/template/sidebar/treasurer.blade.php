@@ -1,7 +1,3 @@
-@php
-    $countryCode = strtolower(session('countryCode'));
-@endphp
-
 <x-template.sidebar :userRolePrefix="$userRolePrefix" userRole="Tesorero">
     {{-- Slot de navegación específica para Tesorero --}}
     <li class="nav-item has-treeview">

@@ -19,7 +19,6 @@ export const sellerRoutes = {
   playerInfo: "/seller/bingo/player/{playerLink}/info",
   playerCartons: "/seller/bingo/player/cartons/{playerLink}/{room}",
   getPlayer: "/seller/bingo/player/search",
-  cartonPrice: "/seller/bingo/carton/price/{roomId}",
   paymentDetails: "/seller/payment-details/{currency}",
   salesReportPlayer: "/seller/bingo/sales-report/{room}/player/{playerLink}",
   generateCard: "/seller/bingo/generate-card",

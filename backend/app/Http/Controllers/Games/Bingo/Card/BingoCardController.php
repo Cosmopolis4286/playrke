@@ -3,11 +3,8 @@
 namespace App\Http\Controllers\Games\Bingo\Card;
 
 use App\DTOs\Games\Bingo\Card\BingoCardGenerateDTO;
-use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
-use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
-use App\Http\Requests\Games\Bingo\Room\BingoRoomRequest;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Services\Games\Bingo\Card\BingoCardGenerateService;
 use Illuminate\Http\JsonResponse;
@@ -30,7 +27,6 @@ final class BingoCardController extends Controller
      * @param BingoRoomService $service
      */
     public function __construct(
-        private readonly \App\Services\Games\Bingo\Room\BingoRoomService $service,
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly BingoCardGenerateService $generateService,
     ) {
@@ -38,25 +34,7 @@ final class BingoCardController extends Controller
     }
 
     /**
-     * Resumen de salas de bingo (admin y commerce).
-     *
-     * @return Response
-     */
-    public function index(): Response
-    {
-        return $this->handleServiceInertia(
-            function () {
-                $userId = $this->userContext->resolveUserId();
-                $response = $this->service->context('summary', $userId);
-
-                return Inertia::render('Games/Bingo/Room/Summary', $response);
-            },
-            'No se pudo cargar la lista de salas de bingo.'
-        );
-    }
-
-    /**
-     * Vista para generar cartones de bingo (rol seller).
+     * Vista para generar cartones de bingo.
      *
      * @return Response
      */
@@ -74,12 +52,12 @@ final class BingoCardController extends Controller
     }
 
     /**
-     * Generar cartones de bingo para un jugador (rol seller).
+     * Generar cartones de bingo para un jugador.
      *
      * @param BingoCardGenerateRequest $request
      * @return JsonResponse
      */
-    public function generateCard(BingoCardGenerateRequest $request): JsonResponse
+    public function generateCardStore(BingoCardGenerateRequest $request): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => $this->generateService->generate(
@@ -88,114 +66,38 @@ final class BingoCardController extends Controller
         );
     }
 
-    /**
-     * Crear una sala de bingo.
-     *
-     * @param BingoRoomRequest $request
-     * @return JsonResponse
-     */
-    public function store(BingoRoomRequest $request): JsonResponse
+    public function getAvailableCountriesBySeller($roomId)
     {
-        return $this->handleServiceJson(
-            fn() => $this->service->create(
-                $request->toDTO(BingoRoomCreateDTO::class)
-            )
-        );
-    }
+        $seller = $this->seller(['id', 'commerce_id']);
+        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
 
-    /**
-     * Obtener lista de salas de bingo filtradas por el contexto del usuario (admin o commerce).
-     *
-     * @return JsonResponse
-     */
-    public function fetchList(): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => ['data' => $this->service->fetchList()]
-        );
-    }
+        // Obtenemos las monedas disponibles para el vendedor y el comercio
+        $sellerCurrencies = SellerCurrency::getAvailableCurrencies($seller->id);
+        $commerceCurrencies = CommerceExchangeRate::getCurrenciesByCommerce($seller->commerce, 'ACTIVE');
 
-    /**
-     * Mostrar detalle de una sala de bingo.
-     *
-     * @param BingoRoom $room
-     * @return JsonResponse
-     */
-    public function show(BingoRoom $room): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => [
-                'data' => $this->service->show($room),
-            ]
-        );
-    }
+        // Obtenemos el campo allowed_currencies (json o null) y lo forzamos a array
+        $allowedCurrenciesRoom = BingoCreator::where('creator_user_id', $creatorUser)
+            ->where('room', $roomId)->value('allowed_currencies');
 
-    /**
-     * Actualizar una sala de bingo.
-     *
-     * @param BingoRoomRequest $request
-     * @param BingoRoom $room
-     * @return JsonResponse
-     */
-    public function update(BingoRoomRequest $request, BingoRoom $room): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => $this->service->update(
-                $room,
-                $request->toDTO(BingoRoomUpdateDTO::class)
-            )
-        );
-    }
+        $allowedCurrenciesRoom = is_array($allowedCurrenciesRoom) ? $allowedCurrenciesRoom : [];
 
-    /**
-     * Eliminar una sala de bingo (soft delete).
-     *
-     * @param BingoRoom $room
-     * @return JsonResponse
-     */
-    public function delete(BingoRoom $room): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => $this->service->delete($room)
-        );
-    }
+        $currenciesAvailable = array_values(array_intersect(
+            array_map('strval', $sellerCurrencies),
+            array_map('strval', $commerceCurrencies),
+            array_map('strval', $allowedCurrenciesRoom)
+        ));
 
-    /**
-     * Eliminar una sala de bingo permanentemente (hard delete).
-     *
-     * @param BingoRoom $room
-     * @return JsonResponse
-     */
-    public function destroy(BingoRoom $room): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => $this->service->destroy($room)
-        );
-    }
+        // Eliminamos '1' si existe
+        $USDT = ($key = array_search('1', $currenciesAvailable, true)) !== false;
+        if ($USDT) {
+            unset($currenciesAvailable[$key]);
+            $currenciesAvailable = array_values($currenciesAvailable);
+        }
 
-    /**
-     * Alternar estado (ACTIVE / INACTIVE) de una sala de bingo.
-     *
-     * @param BingoRoom $room
-     * @return JsonResponse
-     */
-    public function toggleStatus(BingoRoom $room): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => $this->service->toggleStatus($room)
-        );
-    }
+        $countriesAvailable = Currency::getCountriesByCurrencyInArray($currenciesAvailable);
 
-    /**
-     * Copiar una sala de bingo como nuevo borrador (status DRAFT).
-     *
-     * @param BingoRoom $room
-     * @return JsonResponse
-     */
-    public function copy(BingoRoom $room): JsonResponse
-    {
-        return $this->handleServiceJson(
-            fn() => $this->service->copy($room)
-        );
+        $countries = Country::getCountries($countriesAvailable, ['id', 'name']);
+
+        return ['countries' => $countries, 'USDT' => $USDT];
     }
 }

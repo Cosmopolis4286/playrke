@@ -35,7 +35,6 @@ export const bingoRoutes = {
   callNumber: "/bingo/room/{roomId}/call-number",
   participate: "/bingo/participate/public-room/{id?}/{getOut?}",
   notifyPayment: "/bingo/carton/notify/payment/win-ctn",
-  handleRules: "/bingo/handle-rules/{id?}",
   salesReport: "/bingo/sales-report/{currency?}/{dateFilter?}",
   salesByRoom: "/bingo/sales-report-by-room/{room}/{currency}",
   winnersByRoom: "/bingo/sales-report-by-room-winners/{room}/{currency}",

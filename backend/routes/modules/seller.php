@@ -45,7 +45,6 @@ multi_middleware_routes('seller', 'seller.', [
             'player-info' => ['method' => 'get', 'uri' => 'bingo/player/{playerLink}/info'],
             'player-cartons' => ['method' => 'get', 'uri' => 'bingo/player/cartons/{playerLink}/{room}'],
             'get-player' => ['method' => 'post', 'uri' => 'bingo/player/search'],
-            'carton-price' => ['method' => 'get', 'uri' => 'bingo/carton/price/{roomId}'],
             'payment-details' => ['method' => 'get', 'uri' => 'payment-details/{currency}'],
             'sales-report-player' => ['method' => 'get', 'uri' => 'bingo/sales-report/{room}/player/{playerLink}'],
         ]

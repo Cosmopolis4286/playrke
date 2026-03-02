@@ -40,7 +40,7 @@ export interface generateCardPayload {
  * - Estado del formulario de venta
  * - Carga de países disponibles por sala
  * - Cálculos de montos (total, comisión, monto banca)
- * - Llamada al endpoint POST /bingo/generate-card
+ * - Llamada al endpoint POST /bingo-card/generate-card
  */
 export function useBingogenerateCard(commission: number) {
     // ─── Estado ────────────────────────────────────────────────────────────────
@@ -107,13 +107,13 @@ export function useBingogenerateCard(commission: number) {
 
     /**
      * Carga los países disponibles para la sala seleccionada
-     * (usa el endpoint existente GET /seller/bingo/carton/price/{roomId})
+     * (usa el endpoint existente GET /bingo-card/{roomId}/available-countries)
      */
     async function fetchCountries(roomId: string): Promise<void> {
         loadingCountries.value = true
         try {
             const response = await backendClient.get<{ countries: Country[] }>(
-                `/seller/bingo/carton/price/${roomId}`
+                `/bingo-card/${roomId}/available-countries`
             )
             countries.value = response.data.countries ?? []
         } catch {
@@ -149,7 +149,7 @@ export function useBingogenerateCard(commission: number) {
                 type: string
                 message: string
                 playerLink?: string
-            }>('/bingo/generate-card-store', payload)
+            }>('/bingo-card/generate-card-store', payload)
 
             const data = response.data
 
