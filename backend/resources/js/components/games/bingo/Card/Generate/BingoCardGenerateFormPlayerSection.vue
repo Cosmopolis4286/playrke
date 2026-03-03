@@ -1,12 +1,9 @@
 <script setup lang="ts" name="BingoCardGenerateFormPlayerSection">
-  import { computed } from 'vue'
-
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
 
-  import { Country } from '@/js/types/country'
-
-  import { Player, Room } from '@/js/types/games/bingo/card/bingo-card-generate'
+  import type { Country } from '@/js/types/country'
+  import type { Player, Room } from '@/js/types/games/bingo/card/bingo-card-generate'
 
   const props = defineProps<{
     selectedRoom: Room | null
@@ -23,8 +20,11 @@
     (e: 'update:numCtns', value: number): void
   }>()
 
-  function setPlayerField(field: keyof Player, value: string) {
-    emit('update:player', { ...props.player, [field]: value })
+  function setPlayerField(field: keyof Player, value: string | number) {
+    emit('update:player', {
+      ...props.player,
+      [field]: String(value)
+    })
   }
 
   function handleNumCtns(value: string | number) {
@@ -37,71 +37,64 @@
 <template>
   <div style="display: contents">
     <hr />
+
     <div class="alert alert-info mb-3 py-2">
-      <small
-        >Genera los cartones <strong>solo después de confirmar el pago</strong> del jugador.</small
-      >
+      <small>
+        Genera los cartones <strong>solo después de confirmar el pago</strong> del jugador.
+      </small>
     </div>
 
     <div class="row">
       <!-- País -->
-      <div class="form-group col-12 col-md-6">
-        <label class="font-weight-bold">País del Jugador *</label>
-        <select
-          :value="selectedCountry ?? ''"
-          class="form-control"
-          :disabled="loadingCountries || countries.length === 0"
-          @change="
-            emit(
-              'update:selectedCountry',
-              Number(($event.target as HTMLSelectElement).value) || null
-            )
-          "
-        >
-          <option value="">
-            {{ loadingCountries ? 'Cargando países…' : '— Seleccione un país —' }}
-          </option>
-          <option v-for="country in countries" :key="country.id" :value="country.id">
-            {{ country.name }}
-          </option>
-        </select>
-      </div>
+      <FormSelect
+        label="País del Jugador"
+        name="country_id"
+        required
+        col="col-12 col-md-6"
+        :options="countries.map(c => ({ value: c.id, label: c.name }))"
+        optionValue="value"
+        optionLabel="label"
+        :modelValue="selectedCountry"
+        :disabled="loadingCountries || countries.length === 0"
+        :placeholder="loadingCountries ? 'Cargando países…' : 'Seleccione un país'"
+        @update:modelValue="emit('update:selectedCountry', $event)"
+      />
 
       <!-- Teléfono -->
-      <div class="form-group col-12 col-md-6">
-        <label class="font-weight-bold">Teléfono *</label>
-        <input
-          :value="player.phone"
-          type="tel"
-          class="form-control"
-          placeholder="Ej. 04121234567"
-          @input="setPlayerField('phone', ($event.target as HTMLInputElement).value)"
-        />
-      </div>
+      <FormInput
+        label="Teléfono"
+        name="phone"
+        type="tel"
+        required
+        col="col-12 col-md-6"
+        placeholder="Ej. 04121234567"
+        :modelValue="player.phone"
+        @update:modelValue="value => setPlayerField('phone', value)"
+      />
 
       <!-- Nombre -->
-      <div class="form-group col-12 col-md-6">
-        <label class="font-weight-bold">Nombre *</label>
-        <input
-          :value="player.name"
-          type="text"
-          class="form-control"
-          placeholder="Nombre del jugador"
-          @input="setPlayerField('name', ($event.target as HTMLInputElement).value)"
-        />
-      </div>
+      <FormInput
+        label="Nombre"
+        name="name"
+        type="text"
+        required
+        col="col-12 col-md-6"
+        placeholder="Nombre del jugador"
+        :modelValue="player.name"
+        @update:modelValue="value => setPlayerField('name', value)"
+      />
 
       <!-- Apellido -->
-      <div class="form-group col-12 col-md-6">
-        <label class="font-weight-bold">Apellido *</label>
-        <input
-          :value="player.lastName"
-          type="text"
-          class="form-control"
-          placeholder="Apellido del jugador"
-          @input="setPlayerField('lastName', ($event.target as HTMLInputElement).value)"
-        />
-      </div>
+      <FormInput
+        label="Apellido"
+        name="last_name"
+        type="text"
+        required
+        col="col-12 col-md-6"
+        placeholder="Apellido del jugador"
+        :modelValue="player.lastName"
+        @update:modelValue="value => setPlayerField('lastName', value)"
+      />
 
       <!-- Cantidad -->
       <FormInput
@@ -110,6 +103,7 @@
         type="number"
         min="1"
         max="40"
+        required
         col="col-6 col-md-3"
         :disabled="!selectedRoom"
         :modelValue="numCtns"

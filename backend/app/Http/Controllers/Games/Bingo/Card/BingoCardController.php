@@ -8,11 +8,12 @@ use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Services\Games\Bingo\Card\BingoCardGenerateService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Controlador de administración del juego de Bingo.
+ * Controlador de administración de Cartones de Bingo.
  *
  * Responsabilidades:
  * - Orquestar requests HTTP
@@ -43,7 +44,7 @@ final class BingoCardController extends Controller
         return $this->handleServiceInertia(
             function () {
                 $userId = $this->userContext->resolveUserId();
-                $context = $this->generateService->viewContext($userId);
+                $context = $this->generateService->viewContext($userId)->toView();
 
                 return Inertia::render('Games/Bingo/Card/Generate', $context);
             },
@@ -63,6 +64,23 @@ final class BingoCardController extends Controller
             fn() => $this->generateService->generate(
                 $request->toDTO(BingoCardGenerateDTO::class)
             )
+        );
+    }
+
+    /**
+     * Obtener lista/detalles de salas de bingo filtradas.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function fetchRoom(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => [
+                'data' => $this->generateService->fetchRoom(
+                    $request->all() ?? []
+                ),
+            ]
         );
     }
 

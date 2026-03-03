@@ -90,11 +90,6 @@ class BingoRoom extends BaseModel
     ];
 
     // ========================
-    // Accessors computados
-    // ========================
-    protected $appends = ['status_badge', 'is_closed', 'total_commissions'];
-
-    // ========================
     // Relaciones
     // ========================
 

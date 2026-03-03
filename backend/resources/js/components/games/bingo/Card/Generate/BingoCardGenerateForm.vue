@@ -3,22 +3,21 @@
   import BingoCardGenerateFormPlayerSection from './BingoCardGenerateFormPlayerSection.vue'
 
   import { useBingoGenerateCard } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
+  import type { SelectOption } from '@/js/types/common/form/form'
 
-  /* ==========================================================================
-   * Composable
-   * ========================================================================== */
+  const props = defineProps<{
+    roomTypeOptions: SelectOption[]
+    gameModeOptions: SelectOption[]
+  }>()
+
+  /* ========================================================================== */
+  /* Composable */
+  /* ========================================================================== */
 
   const {
-    /* setters */
-    setRooms,
-
-    /* filtros */
     filters,
-    roomTypeOptions,
-    gameModeOptions,
     filteredRooms,
 
-    /* venta */
     selectedRoom,
     numCtns,
     selectedCountry,
@@ -26,6 +25,7 @@
     loadingCountries,
     player,
     loading,
+
     roomCtnPrice,
     totalAmount,
     sellerCommission,
@@ -34,9 +34,9 @@
     generate
   } = useBingoGenerateCard()
 
-  /* ==========================================================================
-   * Submit
-   * ========================================================================== */
+  /* ========================================================================== */
+  /* Submit */
+  /* ========================================================================== */
 
   async function handleSubmit() {
     await generate()
@@ -89,12 +89,15 @@
     <BingoCardGenerateFormPlayerSection
       v-if="selectedRoom"
       class="mt-4"
+      :selected-room="selectedRoom"
       :countries="countries"
       :loading-countries="loadingCountries"
       :selected-country="selectedCountry"
       :player="player"
+      :num-ctns="numCtns"
       @update:selectedCountry="selectedCountry = $event"
       @update:player="Object.assign(player, $event)"
+      @update:numCtns="numCtns = $event"
     />
 
     <!-- ───────────────── Botón ───────────────── -->

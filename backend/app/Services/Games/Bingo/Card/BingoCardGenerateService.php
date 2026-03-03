@@ -29,6 +29,7 @@ final class BingoCardGenerateService
     use BingoTrait;
 
     public function __construct(
+        private readonly \App\Services\Security\UserContextService $userContext,
         private readonly \App\Services\Roles\RoleUserService $roleUserService,
         private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerceRepository,
         private readonly \App\Contracts\Roles\Customer\CustomerRepositoryInterface $customerRepository,
@@ -36,55 +37,6 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
     ) {}
-
-    /**
-     * Contexto para la vista de generación de cartones.
-     *
-     * Devuelve las salas activas del commerce que gestiona al seller,
-     * filtradas por modo OFFLINE (venta manual), y la comisión del seller.
-     *
-     * @param int $userId
-     *
-     * @return array{rooms: Collection, commission: float}
-     * @throws DomainException
-     */
-    // public function viewContext(int $userId): array
-    // {
-    //     // Obtiene el prefijo del rol activo del usuario.
-    //     $role = $this->roleUserService->getActiveUserRolePrefix($userId);
-
-    //     $user = match ($role) {
-    //         'commerce' => $this->commerceRepository->getByUserId($userId, ['commission']),
-    //         'customer' => $this->commerceRepository->getByUserId($userId, ['commission']),
-    //         'seller' => $this->sellerRepository->getByUserId($userId, ['commission', 'manager_user_id']),
-    //         default => throw new DomainException("Rol inválido: {$role}"),
-    //     };
-
-    //     if (!$user) {
-    //         throw new DomainException("Usuario '$role' no encontrado.");
-    //     }
-
-    //     // Definir ID del usuario creador/manejador de la sala
-    //     $creatorUser = $role === 'seller' ? $user->manager_user_id : $userId;
-
-    //     $statusId = GameStatus::where('code', 'ACTIVE')->value('id');
-
-    //     // Salas activas del usuario creador/manejador, modo OFFLINE (vendedor genera cartones presencialmente)
-    //     $rooms = BingoRoom::with([
-    //         'config:id,room_id,game_mode_id,card_price_usd',
-    //         'config.gameMode:id,code',
-    //     ])
-    //         ->where('creator_user_id', $creatorUser)
-    //         ->where('status_id', $statusId)   // ACTIVE
-    //         ->whereHas('config.gameMode', fn($q) => $q->where('code', 'OFFLINE'))
-    //         ->orderBy('created_at', 'desc')
-    //         ->get(['id', 'uuid_code', 'prize_pool', 'creator_user_id']);
-
-    //     return [
-    //         'rooms' => $rooms,
-    //         'commission' => (float) $user->commission,
-    //     ];
-    // }
 
     /**
      * Resolver contexto la vista de generar cartones de bingo.
@@ -100,6 +52,128 @@ final class BingoCardGenerateService
             gameModes: $this->gameModes->getActiveGameModes(),
             roomTypes: $this->roomTypes->getActiveTypes()
         );
+    }
+
+    /**
+     * Obtener lista de salas de bingo filtradas.
+     *
+     * Regla de negocio:
+     * - Salas activas
+     * - Salas creadas por el usuario
+     * - O salas públicas
+     * - Opcionalmente filtrar por roomType y gameMode
+     *
+     * @param array $filters
+     * @return array
+     */
+    public function fetchRoom(array $filters): array
+    {
+        $date = $filters['date'] ?? null;
+
+        // Si no existe fecha no se consulta nada
+        if (!$date) {
+            return [];
+        }
+
+        $userId = $this->userContext->resolveUserId();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Rol activo del usuario
+        |--------------------------------------------------------------------------
+        */
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Determinar usuario creador permitido
+        | - Commerce y Customer → solo sus propias salas
+        | - Seller → salas de su manager
+        |--------------------------------------------------------------------------
+        */
+        $creatorUserId = match ($role) {
+            'commerce',
+            'customer' => $userId,
+
+            'seller' => $this->sellerRepository
+                ->getValueByUserId($userId, 'manager_user_id'),
+
+            default => throw new DomainException("Rol inválido: {$role}")
+        };
+
+        /*
+        |--------------------------------------------------------------------------
+        | Estado activo del juego
+        |--------------------------------------------------------------------------
+        */
+        $statusId = GameStatus::where('code', 'ACTIVE')->value('id');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Construcción base del query
+        |--------------------------------------------------------------------------
+        */
+        $rooms = BingoRoom::query()
+            ->where('status_id', $statusId)
+
+            /*
+            |--------------------------------------------------
+            | Regla principal:
+            | - Salas creadas por el usuario
+            | - O salas públicas
+            |--------------------------------------------------
+            */
+            ->where(function ($query) use ($creatorUserId) {
+                $query->where('creator_user_id', $creatorUserId)
+                    ->orWhereHas('config.roomType', function ($q) {
+                        $q->where('code', 'PUBLIC');
+                    });
+            });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Filtros opcionales
+        |--------------------------------------------------------------------------
+        */
+        $roomType = $filters['roomType'] ?? null;
+        $gameMode = $filters['gameMode'] ?? null;
+
+        if ($roomType || $gameMode) {
+            /*
+            |--------------------------------------------------------------------------
+            | Relaciones necesarias (Eager Loading)
+            |--------------------------------------------------------------------------
+            */
+            $rooms->with([
+                'config:id,room_id,room_type_id,game_mode_id,card_price_usd',
+                'config.roomType:id,code',
+                'config.gameMode:id,code'
+            ]);
+        }
+
+        // Filtrar por tipo de sala
+        if ($roomType) {
+            $rooms->whereHas('config.roomType', function ($q) use ($roomType) {
+                $q->where('code', $roomType);
+            });
+        }
+
+        // Filtrar por modo de juego
+        if ($gameMode) {
+            $rooms->whereHas('config.gameMode', function ($q) use ($gameMode) {
+                $q->where('code', $gameMode);
+            });
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Orden y ejecución
+        |--------------------------------------------------------------------------
+        */
+        return $rooms
+            ->orderByDesc('created_at')
+            ->get(['hashed_id', 'uuid_code', 'prize_pool', 'creator_user_id'])
+            ->toArray();
     }
 
     /**
