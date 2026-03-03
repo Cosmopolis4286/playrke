@@ -78,8 +78,6 @@
    * Computed derivados del form
    * ========================================================================== */
 
-  const minDate = computed(() => new Date().toISOString().split('T')[0])
-
   const showRoundsPct = computed(() => (form.value.rounds ?? 1) >= 1)
 
   const isSingleRound = computed(() => Number(form.value.rounds ?? 1) === 1)
@@ -278,7 +276,6 @@
         :roomTypeOptions="roomTypeOptions"
         :gameModeOptions="gameModeOptions"
         :prizePoolTypeOptions="prizePoolTypeOptions"
-        :minDate="minDate"
         :roomCommn="roomCommn"
         :percentageLimits="percentageLimits"
         @update:modelValue="form = $event"

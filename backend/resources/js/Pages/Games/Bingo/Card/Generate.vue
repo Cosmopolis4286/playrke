@@ -1,8 +1,8 @@
 <script setup lang="ts">
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
-  import BingoCardGenerateForm from '@/js/Components/Games/Bingo/Card/BingoCardGenerateForm.vue'
+  import BingoCardGenerateForm from '@/js/Components/Games/Bingo/Card/Generate/BingoCardGenerateForm.vue'
   import { useBingogenerateCard } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
-  import type { Room } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
+  import type { Room } from '@/js/types/games/bingo/card/bingo-card-generate'
 
   const props = defineProps<{
     rooms: Room[]

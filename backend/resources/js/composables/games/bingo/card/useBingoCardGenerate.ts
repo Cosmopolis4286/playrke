@@ -1,37 +1,9 @@
 import { ref, computed, reactive, watch } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
+import type { Country } from '@/js/types/country'
+import type { generateCardPayload, Player, Room } from '@/js/types/games/bingo/card/bingo-card-generate'
 
-export interface Room {
-    id: string
-    uuid_code: string
-    prize_pool: number
-    config?: {
-        card_price_usd: number | null
-    }
-}
-
-export interface Country {
-    id: number
-    name: string
-}
-
-export interface Player {
-    phone: string
-    name: string
-    lastName: string
-}
-
-export interface generateCardPayload {
-    room_id: string
-    num_ctns: number
-    country_id: number | null
-    player: {
-        phone: string
-        name: string
-        last_name: string
-    }
-}
 
 /**
  * Composable para la generación de cartones de Bingo (rol seller).
