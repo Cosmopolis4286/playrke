@@ -6,22 +6,31 @@
 
   import { Country } from '@/js/types/country'
 
-  import { Player } from '@/js/types/games/bingo/card/bingo-card-generate';
+  import { Player, Room } from '@/js/types/games/bingo/card/bingo-card-generate'
 
   const props = defineProps<{
+    selectedRoom: Room | null
     countries: Country[]
     loadingCountries: boolean
     selectedCountry: number | null
     player: Player
+    numCtns: number
   }>()
 
   const emit = defineEmits<{
     (e: 'update:selectedCountry', value: number | null): void
     (e: 'update:player', value: Player): void
+    (e: 'update:numCtns', value: number): void
   }>()
 
   function setPlayerField(field: keyof Player, value: string) {
     emit('update:player', { ...props.player, [field]: value })
+  }
+
+  function handleNumCtns(value: string | number) {
+    const raw = Number(value)
+    const clamped = Math.max(1, Math.min(40, raw || 1))
+    emit('update:numCtns', clamped)
   }
 </script>
 
@@ -93,6 +102,19 @@
           @input="setPlayerField('lastName', ($event.target as HTMLInputElement).value)"
         />
       </div>
+
+      <!-- Cantidad -->
+      <FormInput
+        label="Cartones"
+        name="num_ctns"
+        type="number"
+        min="1"
+        max="40"
+        col="col-6 col-md-3"
+        :disabled="!selectedRoom"
+        :modelValue="numCtns"
+        @update:modelValue="handleNumCtns"
+      />
     </div>
   </div>
 </template>

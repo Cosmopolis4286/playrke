@@ -16,18 +16,13 @@
   import { syncRoundsConfig, redistributePercentageRounds } from './Composables/useRoomRounds'
   // Premios
   import { searchPrizes } from '@/js/composables/prizes/usePrize'
-  import backendClient from '@/js/plugins/axios'
+  import { useBingoRoomPrizeRound } from '@/js/composables/games/bingo/room/shared/useBingoRoomPrizeRound'
   import { router } from '@inertiajs/vue3'
   // Types
+  import type { SelectOption } from '@/js/types/common/form/form'
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
   import type { BingoRoomAutomaticFormData } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
   import type { PrizeSearchResult } from '@/js/types/prizes/prize'
-
-  interface SelectOption {
-    value: string | number
-    code?: string
-    label: string
-  }
 
   /* ==========================================================================
    * Props / Emits
@@ -180,11 +175,17 @@
     } else {
       // Inicializar mapa de precios por moneda con las monedas actualmente seleccionadas
       const currencies = form.value.allowedCurrencies ?? []
-      const cardPriceByCurrency = currencies.reduce<Record<string, number | null>>(
-        (acc, cur) => { acc[String(cur)] = form.value.cardPriceByCurrency?.[String(cur)] ?? null; return acc },
-        {}
-      )
-      form.value = { ...form.value, useBaseUsd: false, cardPriceUsd: null, usdExchangeRoundStep: null, cardPriceByCurrency }
+      const cardPriceByCurrency = currencies.reduce<Record<string, number | null>>((acc, cur) => {
+        acc[String(cur)] = form.value.cardPriceByCurrency?.[String(cur)] ?? null
+        return acc
+      }, {})
+      form.value = {
+        ...form.value,
+        useBaseUsd: false,
+        cardPriceUsd: null,
+        usdExchangeRoundStep: null,
+        cardPriceByCurrency
+      }
     }
   })
 
@@ -199,10 +200,10 @@
     currencies => {
       if (useBaseUsd.value) return
       const current = form.value.cardPriceByCurrency ?? {}
-      const updated = (currencies ?? []).reduce<Record<string, number | null>>(
-        (acc, cur) => { acc[String(cur)] = current[String(cur)] ?? null; return acc },
-        {}
-      )
+      const updated = (currencies ?? []).reduce<Record<string, number | null>>((acc, cur) => {
+        acc[String(cur)] = current[String(cur)] ?? null
+        return acc
+      }, {})
       form.value = { ...form.value, cardPriceByCurrency: updated }
     }
   )
@@ -210,47 +211,13 @@
   /* ==========================================================================
    * Modal P/S — selección de prize para ronda
    * ========================================================================== */
-
-  const prizeModalRoundIndex = ref<number | null>(null)
-  const showPrizeModal = ref(false)
-  const showNoPrizesAlert = ref(false)
-  const prizeModalSelected = ref<PrizeSearchResult[]>([])
-
-  async function openPrizeModal(index: number) {
-    try {
-      const { data } = await backendClient.get<{ data: any[] }>('/prizes/search', { params: { q: '' } })
-      const hasPrizes = Array.isArray(data.data) && data.data.length > 0
-      if (!hasPrizes) {
-        showNoPrizesAlert.value = true
-        return
-      }
-    } catch {
-      // Si falla la consulta, abrir el modal igual
-    }
-
-    prizeModalRoundIndex.value = index
-    const current = form.value.roundsConfig?.[index]
-    prizeModalSelected.value = current?.prizeId
-      ? [{ id: current.prizeId, name: current.prizeName ?? '', code: '', price: current.prizeValue ?? 0, reward_type: 'PRODUCT' as const }]
-      : []
-    showPrizeModal.value = true
-  }
-
-  function confirmPrizeSelection(): boolean {
-    const idx = prizeModalRoundIndex.value
-    if (idx === null) return false
-    const selected = prizeModalSelected.value[0] ?? null
-    const configs = [...(form.value.roundsConfig ?? [])]
-    configs[idx] = {
-      ...configs[idx],
-      prizeId: selected ? selected.id : null,
-      prizeName: selected ? selected.name : null,
-      prizeValue: selected ? selected.price : null
-    }
-    form.value = { ...form.value, roundsConfig: configs }
-    prizeModalRoundIndex.value = null
-    return true
-  }
+  const {
+    showPrizeModal,
+    showNoPrizesAlert,
+    prizeModalSelected,
+    openPrizeModal,
+    confirmPrizeSelection
+  } = useBingoRoomPrizeRound(form)
 
   /* ==========================================================================
    * Submit / Expose
@@ -355,11 +322,18 @@
     size="sm"
     show-confirm
     confirm-text="Ir a Premios"
-    :on-submit="() => { router.visit('/prizes'); return true }"
+    :on-submit="
+      () => {
+        router.visit('/prizes')
+        return true
+      }
+    "
   >
-    <div class="text-center py-2">
-      <i class="fas fa-gift fa-3x text-muted mb-3 d-block"></i>
-      <p class="mb-0">No hay premios registrados. Crea al menos un premio antes de asignarlo a una ronda.</p>
+    <div class="py-2 text-center">
+      <i class="fas fa-gift fa-3x text-muted d-block mb-3"></i>
+      <p class="mb-0">
+        No hay premios registrados. Crea al menos un premio antes de asignarlo a una ronda.
+      </p>
     </div>
   </Modal>
 
