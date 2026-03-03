@@ -2,6 +2,7 @@ import type { Currency } from '@/js/types/currency'
 import type { BingoRoom } from '../bingo-room'
 import type { Column } from '@/js/types/common/table/column-row'
 import type { Pagination } from '@/js/types/common/table/pagination'
+import type { SelectOption } from "@/js/types/common/form/form"
 
 export interface BingoRoomSummaryPageProps {
     title?: string,
@@ -12,8 +13,8 @@ export interface BingoRoomSummaryPageProps {
     },
     rooms_pagination: Pagination | null,
     currencies: Currency[],
-    roomTypes: { id: string | number; label: string }[],
-    gameModes: { id: string | number; label: string }[],
+    roomTypes: SelectOption[],
+    gameModes: SelectOption[],
     prizePoolTypes: { id: string | number; code: string; label: string }[],
     bingoPatterns?: { id: string | number; name: string }[]
 }

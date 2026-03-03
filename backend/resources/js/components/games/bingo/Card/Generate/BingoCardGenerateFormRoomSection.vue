@@ -38,12 +38,24 @@
 
   const minDate = computed(() => new Date().toISOString().split('T')[0])
 
-  const roomOptions = computed(() =>
+  const roomOptions = computed<SelectOption[]>(() =>
     props.rooms.map(room => ({
       value: room.id,
       label: room.uuid_code
     }))
   )
+
+  /**
+   * Evita buscar en cada render dentro del template
+   */
+  const selectedRoomId = computed({
+    get: () => props.selectedRoom?.id ?? null,
+    set: (id: string | null) => {
+      const room = props.rooms.find(r => r.id === id) ?? null
+
+      emit('update:selectedRoom', room)
+    }
+  })
 </script>
 
 <template>
@@ -100,8 +112,7 @@
       optionLabel="label"
       placeholder="Seleccione una sala"
       col="col-12 col-md-6"
-      :modelValue="selectedRoom?.id ?? null"
-      @update:modelValue="emit('update:selectedRoom', rooms.find(r => r.id === $event) ?? null)"
+      v-model="selectedRoomId"
     />
 
     <!-- Precio -->

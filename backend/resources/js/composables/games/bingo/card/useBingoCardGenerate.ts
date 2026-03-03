@@ -1,28 +1,48 @@
 import { ref, computed, reactive, watch } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
+
 import type { Country } from '@/js/types/country'
-import type { generateCardPayload, Player, Room } from '@/js/types/games/bingo/card/bingo-card-generate'
+import type {
+    generateCardPayload,
+    Player,
+    Room
+} from '@/js/types/games/bingo/card/bingo-card-generate'
+import type { SelectOption } from '@/js/types/common/form/form'
 
+export function useBingoGenerateCard() {
+    /* ───────────────────────────────────────────
+     * Estado fuente
+     * ─────────────────────────────────────────── */
 
-/**
- * Composable para la generación de cartones de Bingo (rol seller).
- *
- * Responsabilidades:
- * - Estado del formulario de venta
- * - Carga de países disponibles por sala
- * - Cálculos de montos (total, comisión, monto banca)
- * - Llamada al endpoint POST /bingo-card/generate-card
- */
-export function useBingogenerateCard(commission: number) {
-    // ─── Estado ────────────────────────────────────────────────────────────────
+    const rooms = ref<Room[]>([])
+    const commission = ref<number>(0)
+
+    function setRooms(data: Room[]) {
+        rooms.value = data ?? []
+    }
+
+    function setCommission(value: number) {
+        commission.value = value ?? 0
+    }
+
+    /* ───────────────────────────────────────────
+     * Filtros
+     * ─────────────────────────────────────────── */
+
+    const filters = reactive({
+        date: '',
+        roomType: null as string | null,
+        gameMode: null as string | null,
+    })
 
     const selectedRoom = ref<Room | null>(null)
-    const numCtns = ref<number>(1)
+    const numCtns = ref(1)
     const selectedCountry = ref<number | null>(null)
+
     const loading = ref(false)
-    const countries = ref<Country[]>([])
     const loadingCountries = ref(false)
+    const countries = ref<Country[]>([])
 
     const player = reactive<Player>({
         phone: '',
@@ -30,76 +50,125 @@ export function useBingogenerateCard(commission: number) {
         lastName: '',
     })
 
-    // ─── Computed ──────────────────────────────────────────────────────────────
+    /* ───────────────────────────────────────────
+     * Computeds
+     * ─────────────────────────────────────────── */
 
-    const roomCtnPrice = computed<number>(() =>
+    const roomTypeOptions = computed<SelectOption[]>(() => {
+        const types = [...new Set(rooms.value.map(r => r.room_type))]
+        return types.map(type => ({ value: type, label: type }))
+    })
+
+    const gameModeOptions = computed<SelectOption[]>(() => {
+        if (!filters.roomType) return []
+
+        const modes = [
+            ...new Set(
+                rooms.value
+                    .filter(r => r.room_type === filters.roomType)
+                    .map(r => r.game_mode)
+            )
+        ]
+
+        return modes.map(mode => ({ value: mode, label: mode }))
+    })
+
+    const filteredRooms = computed(() =>
+        rooms.value.filter(r =>
+            (!filters.date || r.date === filters.date) &&
+            (!filters.roomType || r.room_type === filters.roomType) &&
+            (!filters.gameMode || r.game_mode === filters.gameMode)
+        )
+    )
+
+    const roomCtnPrice = computed(() =>
         Number(selectedRoom.value?.config?.card_price_usd ?? 0)
     )
 
-    const totalAmount = computed<number>(() =>
+    const totalAmount = computed(() =>
         roomCtnPrice.value * numCtns.value
     )
 
-    const sellerCommission = computed<number>(() =>
-        (totalAmount.value * commission) / 100
+    const sellerCommission = computed(() =>
+        (totalAmount.value * commission.value) / 100
     )
 
-    const commerceAmount = computed<number>(() =>
+    const commerceAmount = computed(() =>
         totalAmount.value - sellerCommission.value
     )
 
-    const isFormValid = computed<boolean>(() => {
-        return (
-            !!selectedRoom.value &&
-            numCtns.value >= 1 &&
-            numCtns.value <= 40 &&
-            !!selectedCountry.value &&
-            !!player.phone.trim() &&
-            !!player.name.trim() &&
-            !!player.lastName.trim()
-        )
-    })
+    const isFormValid = computed(() =>
+        !!filters.date &&
+        !!filters.roomType &&
+        !!filters.gameMode &&
+        !!selectedRoom.value &&
+        numCtns.value >= 1 &&
+        numCtns.value <= 40 &&
+        !!selectedCountry.value &&
+        !!player.phone.trim() &&
+        !!player.name.trim() &&
+        !!player.lastName.trim()
+    )
 
-    // ─── Watchers ──────────────────────────────────────────────────────────────
+    /* ───────────────────────────────────────────
+     * Watchers
+     * ─────────────────────────────────────────── */
 
-    watch(selectedRoom, async (room) => {
-        numCtns.value = 1
-        selectedCountry.value = null
-        countries.value = []
-        player.phone = ''
-        player.name = ''
-        player.lastName = ''
+    watch(
+        () => filters.date,
+        () => {
+            filters.roomType = null
+            filters.gameMode = null
+            selectedRoom.value = null
+        }
+    )
+
+    watch(
+        () => filters.roomType,
+        () => {
+            filters.gameMode = null
+            selectedRoom.value = null
+        }
+    )
+
+    watch(
+        () => filters.gameMode,
+        () => {
+            selectedRoom.value = null
+        }
+    )
+
+    watch(selectedRoom, async room => {
+        resetFormDetails()
 
         if (room) {
             await fetchCountries(room.id)
         }
     })
 
-    // ─── Métodos ───────────────────────────────────────────────────────────────
+    /* ───────────────────────────────────────────
+     * Backend
+     * ─────────────────────────────────────────── */
 
-    /**
-     * Carga los países disponibles para la sala seleccionada
-     * (usa el endpoint existente GET /bingo-card/{roomId}/available-countries)
-     */
-    async function fetchCountries(roomId: string): Promise<void> {
+    async function fetchCountries(roomId: string) {
         loadingCountries.value = true
+
         try {
-            const response = await backendClient.get<{ countries: Country[] }>(
-                `/bingo-card/${roomId}/available-countries`
-            )
-            countries.value = response.data.countries ?? []
+            const { data } = await backendClient.get<{
+                countries: Country[]
+            }>(`/bingo-card/${roomId}/available-countries`)
+
+            countries.value = data.countries ?? []
         } catch {
-            showToast('No se pudieron cargar los países disponibles.', 'error')
-            countries.value = []
+            showToast(
+                'No se pudieron cargar los países disponibles.',
+                'error'
+            )
         } finally {
             loadingCountries.value = false
         }
     }
 
-    /**
-     * Genera los cartones enviando el formulario al backend.
-     * Retorna `true` en éxito, `false` en error.
-     */
     async function generate(): Promise<boolean> {
         if (!isFormValid.value || loading.value) return false
 
@@ -117,43 +186,52 @@ export function useBingogenerateCard(commission: number) {
         }
 
         try {
-            const response = await backendClient.post<{
-                type: string
-                message: string
-                playerLink?: string
-            }>('/bingo-card/generate-card-store', payload)
+            const { data } = await backendClient.post(
+                '/bingo-card/generate-card-store',
+                payload
+            )
 
-            const data = response.data
-
-            if (data.type === 'success') {
-                showToast(data.message, 'success')
-                resetPlayer()
-                numCtns.value = 1
-                return true
-            }
-
-            showToast(data.message ?? 'Error al generar cartones.', 'warning')
-            return false
+            showToast(data.message, 'success')
+            resetFormDetails()
+            return true
         } catch (error: any) {
-            const msg =
+            showToast(
                 error?.response?.data?.message ??
-                'Error al generar cartones.'
-            showToast(msg, 'error')
+                'Error al generar cartones.',
+                'error'
+            )
             return false
         } finally {
             loading.value = false
         }
     }
 
-    function resetPlayer(): void {
+    /* ───────────────────────────────────────────
+     * Helpers
+     * ─────────────────────────────────────────── */
+
+    function resetPlayer() {
         player.phone = ''
         player.name = ''
         player.lastName = ''
     }
 
-    // ─── Return ────────────────────────────────────────────────────────────────
+    function resetFormDetails() {
+        numCtns.value = 1
+        selectedCountry.value = null
+        countries.value = []
+        resetPlayer()
+    }
+
+    /* ─────────────────────────────────────────── */
 
     return {
+        // setters
+        setRooms,
+        setCommission,
+
+        // state
+        filters,
         selectedRoom,
         numCtns,
         selectedCountry,
@@ -161,11 +239,18 @@ export function useBingogenerateCard(commission: number) {
         loadingCountries,
         player,
         loading,
+
+        // computed
+        roomTypeOptions,
+        gameModeOptions,
+        filteredRooms,
         roomCtnPrice,
         totalAmount,
         sellerCommission,
         commerceAmount,
         isFormValid,
+
+        // actions
         generate,
     }
 }

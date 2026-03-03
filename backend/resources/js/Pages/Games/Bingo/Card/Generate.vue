@@ -1,50 +1,43 @@
 <script setup lang="ts">
+  import { computed } from 'vue'
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import BingoCardGenerateForm from '@/js/Components/Games/Bingo/Card/Generate/BingoCardGenerateForm.vue'
-  import { useBingogenerateCard } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
-  import type { Room } from '@/js/types/games/bingo/card/bingo-card-generate'
+  import type { BingoCardGeneratePageProps } from '@/js/types/games/bingo/card/bingo-card-generate-page'
 
-  const props = defineProps<{
-    rooms: Room[]
-    commission: number
-  }>()
+  // ==========================================================================
+  // Props (Inertia)
+  // ==========================================================================
+  const props = defineProps<BingoCardGeneratePageProps>()
 
-  const {
-    selectedRoom,
-    numCtns,
-    selectedCountry,
-    countries,
-    loadingCountries,
-    player,
-    loading,
-    roomCtnPrice,
-    totalAmount,
-    sellerCommission,
-    commerceAmount,
-    isFormValid,
-    generate
-  } = useBingogenerateCard(props.commission)
+  /**
+   * Opciones para tipos de sala.
+   */
+  const roomTypeOptions = computed(() => {
+    return (props.roomTypes ?? []).map(r => ({
+      value: String(r.id),
+      label: r.label
+    }))
+  })
+
+  /**
+   * Opciones para modos de juego.
+   */
+  const gameModeOptions = computed(() => {
+    return (props.gameModes ?? []).map(g => ({
+      value: String(g.id),
+      label: g.label
+    }))
+  })
 </script>
 
 <template>
   <div class="card">
-    <CardHeader title="Generar Cartones" />
+    <CardHeader :title="props.title" />
+
     <div class="card-body">
       <BingoCardGenerateForm
-        v-model:selected-room="selectedRoom"
-        v-model:num-ctns="numCtns"
-        v-model:selected-country="selectedCountry"
-        v-model:player="player"
-        :rooms="rooms"
-        :countries="countries"
-        :loading-countries="loadingCountries"
-        :room-ctn-price="roomCtnPrice"
-        :total-amount="totalAmount"
-        :seller-commission="sellerCommission"
-        :commerce-amount="commerceAmount"
-        :is-form-valid="isFormValid"
-        :loading="loading"
-        @generate="generate"
+        :room-type-options="roomTypeOptions"
+        :game-mode-options="gameModeOptions"
       />
     </div>
   </div>

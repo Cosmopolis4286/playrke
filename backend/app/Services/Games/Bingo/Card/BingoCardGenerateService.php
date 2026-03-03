@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Card;
 
-use App\DTOs\Games\Bingo\Card\BingoCardGenerateDTO;
+use App\DTOs\Games\Bingo\Card\Generate\{BingoCardGenerateContexDTO, BingoCardGenerateDTO};
 use App\Models\Games\Bingo\Card\CardPrice\BingoCardPrice;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
@@ -33,6 +33,8 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerceRepository,
         private readonly \App\Contracts\Roles\Customer\CustomerRepositoryInterface $customerRepository,
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
+        private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
+        private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
     ) {}
 
     /**
@@ -46,42 +48,58 @@ final class BingoCardGenerateService
      * @return array{rooms: Collection, commission: float}
      * @throws DomainException
      */
-    public function viewContext(int $userId): array
+    // public function viewContext(int $userId): array
+    // {
+    //     // Obtiene el prefijo del rol activo del usuario.
+    //     $role = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+    //     $user = match ($role) {
+    //         'commerce' => $this->commerceRepository->getByUserId($userId, ['commission']),
+    //         'customer' => $this->commerceRepository->getByUserId($userId, ['commission']),
+    //         'seller' => $this->sellerRepository->getByUserId($userId, ['commission', 'manager_user_id']),
+    //         default => throw new DomainException("Rol inválido: {$role}"),
+    //     };
+
+    //     if (!$user) {
+    //         throw new DomainException("Usuario '$role' no encontrado.");
+    //     }
+
+    //     // Definir ID del usuario creador/manejador de la sala
+    //     $creatorUser = $role === 'seller' ? $user->manager_user_id : $userId;
+
+    //     $statusId = GameStatus::where('code', 'ACTIVE')->value('id');
+
+    //     // Salas activas del usuario creador/manejador, modo OFFLINE (vendedor genera cartones presencialmente)
+    //     $rooms = BingoRoom::with([
+    //         'config:id,room_id,game_mode_id,card_price_usd',
+    //         'config.gameMode:id,code',
+    //     ])
+    //         ->where('creator_user_id', $creatorUser)
+    //         ->where('status_id', $statusId)   // ACTIVE
+    //         ->whereHas('config.gameMode', fn($q) => $q->where('code', 'OFFLINE'))
+    //         ->orderBy('created_at', 'desc')
+    //         ->get(['id', 'uuid_code', 'prize_pool', 'creator_user_id']);
+
+    //     return [
+    //         'rooms' => $rooms,
+    //         'commission' => (float) $user->commission,
+    //     ];
+    // }
+
+    /**
+     * Resolver contexto la vista de generar cartones de bingo.
+     *
+     * @param int $userId ID del usuario
+     * @return BingoCardGenerateContexDTO
+     *
+     * @throws DomainException Si no se puede resolver el contexto
+     */
+    public function viewContext(int $userId): BingoCardGenerateContexDTO
     {
-        // Obtiene el prefijo del rol activo del usuario.
-        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
-
-        $user = match ($role) {
-            'commerce' => $this->commerceRepository->getByUserId($userId, ['commission']),
-            'customer' => $this->commerceRepository->getByUserId($userId, ['commission']),
-            'seller' => $this->sellerRepository->getByUserId($userId, ['commission', 'manager_user_id']),
-            default => throw new DomainException("Rol inválido: {$role}"),
-        };
-
-        if (!$user) {
-            throw new DomainException("Usuario '$role' no encontrado.");
-        }
-
-        // Definir ID del usuario creador/manejador de la sala
-        $creatorUser = $role === 'seller' ? $user->manager_user_id : $userId;
-
-        $statusId = GameStatus::where('code', 'ACTIVE')->value('id');
-
-        // Salas activas del usuario creador/manejador, modo OFFLINE (vendedor genera cartones presencialmente)
-        $rooms = BingoRoom::with([
-            'config:id,room_id,game_mode_id,card_price_usd',
-            'config.gameMode:id,code',
-        ])
-            ->where('creator_user_id', $creatorUser)
-            ->where('status_id', $statusId)   // ACTIVE
-            ->whereHas('config.gameMode', fn($q) => $q->where('code', 'OFFLINE'))
-            ->orderBy('created_at', 'desc')
-            ->get(['id', 'uuid_code', 'prize_pool', 'creator_user_id']);
-
-        return [
-            'rooms' => $rooms,
-            'commission' => (float) $user->commission,
-        ];
+        return new BingoCardGenerateContexDTO(
+            gameModes: $this->gameModes->getActiveGameModes(),
+            roomTypes: $this->roomTypes->getActiveTypes()
+        );
     }
 
     /**
