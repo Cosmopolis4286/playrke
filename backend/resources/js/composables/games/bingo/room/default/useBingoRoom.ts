@@ -78,7 +78,7 @@ const emptyFormData = (): BingoRoomFormData => ({
     serialsPct: null,
     numSerials: null,
     useBaseUsd: false,
-    cardPriceUsd: 1,
+    cardPriceUsd: 0.5,
     usdExchangeRoundStep: null,
     cardPriceByCurrency: {},
     roundsConfig: [],

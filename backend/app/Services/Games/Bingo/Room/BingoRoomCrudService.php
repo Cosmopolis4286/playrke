@@ -199,7 +199,7 @@ class BingoRoomCrudService
             'allowed_currencies'      => $dto->allowedCurrencies,
             'rke_commission'          => $rkeCommission,
             'room_commission'         => $dto->roomCommission,
-            'use_base_usd'            => $dto->useBaseUsd,
+            'use_base_usd'            => $dto->useBaseUsd ?? false,
             'card_price_usd'          => $dto->cardPriceUsd ?? null,
             'usd_exchange_round_step' => $dto->usdExchangeRoundStep ?? null,
             'prize_pool_type_id'      => $dto->prizePoolType,
