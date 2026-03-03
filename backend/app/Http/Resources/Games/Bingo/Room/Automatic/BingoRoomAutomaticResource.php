@@ -10,7 +10,7 @@ class BingoRoomAutomaticResource extends JsonResource
     {
         return [
             'id'     => $this->hashed_id,
-            'status' => $this->status,
+            'status' => $this->status->code,
             'days'   => $this->days ?? [],
 
             'allowed_currencies' => $this->allowed_currencies ?? [],

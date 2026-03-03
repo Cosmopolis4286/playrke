@@ -35,8 +35,10 @@ final class BingoRoomContextService
     public function context(string $context, ?int $userId): mixed
     {
         return match ($context) {
-            'fetch' => $this->fetchGameRooms($userId),
+            'fetch-summary' => $this->fetchSummaryGameRooms($userId),
             'summary' => $this->summaryGameRooms($userId),
+            'fetch-game-rooms' => $this->fetchSummaryGameRooms($userId),
+            'game-rooms' => $this->viewGameRooms($userId),
             default => throw new DomainException('No existe el contexto: ' . $context),
         };
     }
@@ -44,11 +46,11 @@ final class BingoRoomContextService
     /**
      * Resolver listado de salas de bingo.
      *
-     * @param int|null $userId ID del usuario para filtrar patrones de bingo
+     * @param int|null $userId ID del usuario
      * @return array Listado de salas con paginación
      * @throws DomainException Si no se pueden resolver las salas de bingo
      */
-    private function resolveGameRooms(?int $userId): array
+    private function resolveSummaryGameRooms(?int $userId): array
     {
         $labels  = ['Código', 'Tipo', 'Jugadores', 'Premio', 'Creación', 'Estado'];
         $rowKeys = ['id', 'config.roomType.label', 'total_players', 'prize_pool', 'created_at', 'status_badge'];
@@ -88,25 +90,25 @@ final class BingoRoomContextService
     /**
      * Obtener las salas de bingo.
      *
-     * @param int $userId ID del usuario para filtrar patrones de bingo
+     * @param int $userId ID del usuario
      * @return array
      */
-    private function fetchGameRooms(int $userId): array
+    private function fetchSummaryGameRooms(int $userId): array
     {
-        return $this->resolveGameRooms($userId)['rooms']['rows'] ?? [];
+        return $this->resolveSummaryGameRooms($userId)['rooms']['rows'] ?? [];
     }
 
     /**
      * Resolver contexto para el listado de salas de bingo.
      *
-     * @param int $userId ID del usuario para filtrar patrones de bingo
+     * @param int $userId ID del usuario
      * @return BingoRoomSummaryDTO
      *
      * @throws DomainException Si no se puede resolver el contexto
      */
     private function summaryGameRooms(int $userId): BingoRoomSummaryDTO
     {
-        $commerceData = $this->resolveGameRooms($userId);
+        $commerceData = $this->resolveSummaryGameRooms($userId);
 
         $currencies = $this->currencyService->getAvailableCurrencies($userId, true);
 
@@ -119,5 +121,49 @@ final class BingoRoomContextService
             gameModes: $this->gameModes->getActiveGameModes(),
             roomTypes: $this->roomTypes->getActiveTypes()
         );
+    }
+
+    /**
+     * Resolver listado de salas de juego de bingo.
+     *
+     * @param int|null $userId ID del usuario
+     * @return array Listado de salas con paginación
+     * @throws DomainException Si no se pueden resolver las salas de juego
+     */
+    private function viewGameRooms(?int $userId): array
+    {
+        $labels  = ['Código', 'Tipo', 'Jugadores', 'Premio', 'Creación', 'Estado'];
+        $rowKeys = ['id', 'config.roomType.label', 'total_players', 'prize_pool', 'created_at', 'status_badge'];
+
+        $conditions = $userId
+            ? ['creator_user_id' => $userId]
+            : [];
+
+        $source = $this->bingoRooms->paginateWithRelations(
+            perPage: 15,
+            page: 1,
+            relations: ['config:room_id,room_type_id'],
+            conditions: $conditions,
+            fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
+        );
+
+        $collection = $source instanceof LengthAwarePaginator
+            ? $source->getCollection()
+            : collect($source);
+
+        $pagination = $source instanceof LengthAwarePaginator
+            ? [
+                'total'        => $source->total(),
+                'per_page'     => $source->perPage(),
+                'current_page' => $source->currentPage(),
+                'last_page'    => $source->lastPage(),
+                'from'         => $source->firstItem(),
+                'to'           => $source->lastItem(),
+            ]
+            : null;
+
+        $rooms = $this->processCollectionTableData($collection, $labels, $rowKeys);
+
+        return ['rooms' => $rooms, 'pagination' => $pagination];
     }
 }

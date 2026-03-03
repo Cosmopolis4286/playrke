@@ -13,21 +13,21 @@ use Illuminate\Support\Facades\Route;
 // ====================================
 // GESTIÓN DE COMERCIOS (ADMIN + COMMERCE)
 // ====================================
-multi_middleware_routes('commerce', 'commerce.', [
-    [
-        'middleware' => ['auth', 'role:commerce'],
-        'controller' => CommerceController::class,
-        'routes' => [
-            'prizes' => ['method' => 'get', 'uri' => 'prizes'],
-            'currency-by-country' => ['method' => 'get', 'uri' => 'seller/currency/{country}/{seller}'],
-            'seller-info-by-carton' => ['method' => 'get', 'uri' => 'seller/info/{ctnId}'],
-            'carton-lot-payment' => ['method' => 'put', 'uri' => 'bingo/carton-lot/payment'],
-        ]
-    ]
-]);
+// multi_middleware_routes('commerce', 'commerce.', [
+//     [
+//         'middleware' => ['auth', 'role:commerce'],
+//         'controller' => CommerceController::class,
+//         'routes' => [
+//             'prizes' => ['method' => 'get', 'uri' => 'prizes'],
+//             'currency-by-country' => ['method' => 'get', 'uri' => 'seller/currency/{country}/{seller}'],
+//             'seller-info-by-carton' => ['method' => 'get', 'uri' => 'seller/info/{ctnId}'],
+//             'carton-lot-payment' => ['method' => 'put', 'uri' => 'bingo/carton-lot/payment'],
+//         ]
+//     ]
+// ]);
 
-// ====================================
-// RUTA PÚBLICA DE PAGO (SIN AUTH)
-// ====================================
-Route::get('commerce/payment-details/{commerce}/{currency}', [CommerceController::class, 'getPaymentCommerceDetails'])
-    ->name('commerce.payment-details-public');
+// // ====================================
+// // RUTA PÚBLICA DE PAGO (SIN AUTH)
+// // ====================================
+// Route::get('commerce/payment-details/{commerce}/{currency}', [CommerceController::class, 'getPaymentCommerceDetails'])
+//     ->name('commerce.payment-details-public');

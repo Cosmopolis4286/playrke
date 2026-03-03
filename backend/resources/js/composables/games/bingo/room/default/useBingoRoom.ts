@@ -82,7 +82,7 @@ const emptyFormData = (): BingoRoomFormData => ({
     usdExchangeRoundStep: null,
     cardPriceByCurrency: {},
     roundsConfig: [],
-    isDraft: true
+    activateRoom: true
 })
 
 /**
@@ -236,7 +236,8 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                     prizeValue: r.prizeValue !== null && r.prizeValue !== undefined ? Number(r.prizeValue) : null,
                     ...(r.prizeValueByCurrency ? { prizeValueByCurrency: r.prizeValueByCurrency } : {}),
                     ...(r.prizeType === 'prize' ? { prizeId: r.prizeId ?? null, prizeName: r.prizeName ?? null } : {}),
-                }))
+                })),
+                activateRoom: room.status === 'ACTIVE',
             }
 
             return true

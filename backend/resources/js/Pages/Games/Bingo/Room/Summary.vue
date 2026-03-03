@@ -2,20 +2,18 @@
   /**
    * Página Juego BINGO → GameRoom/Summary
    */
-
   import { computed } from 'vue'
 
   // ==========================================================================
   // Componentes
   // ==========================================================================
-
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import BingoRoomForm from '@/js/Components/Games/Bingo/Room/Form/BingoRoomForm.vue'
+
   // ==========================================================================
   // Composables
   // ==========================================================================
-
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useBingoRoom } from '@/js/composables/games/bingo/room/default/useBingoRoom'
@@ -23,7 +21,6 @@
   // ==========================================================================
   // Types
   // ==========================================================================
-
   import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/summary/bingo-room-summary-page'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilter } from '@js/types/common/table/table-filter'
@@ -31,13 +28,11 @@
   // ==========================================================================
   // Props (Inertia)
   // ==========================================================================
-
   const props = defineProps<BingoRoomSummaryPageProps>()
 
   // ==========================================================================
   // Lógica de negocio
   // ==========================================================================
-
   const {
     roomData,
     roomFormData,
@@ -192,16 +187,34 @@
       }
     },
     {
+      label: 'Ver Salas',
+      class: 'btn-primary',
+      show: (ids: string[]) => !ids.length,
+      onClick: (ids: string[]) => {
+        if (ids.length) return
+        window.location.href = `/bingo-game-rooms`
+      }
+    },
+    {
       icon: 'fas fa-exchange-alt',
       class: 'btn-secondary',
+      title: 'Alternar Estado',
       show: false,
       action: 'toggleStatus'
     },
     {
       icon: 'fas fa-copy',
       class: 'btn-info text-white',
+      title: 'Copiar Sala',
       show: (ids: string[]) => ids.length === 1,
       action: 'copy'
+    },
+    {
+      icon: 'fas fa-sign-out-alt',
+      class: 'btn-dark',
+      title: 'Ir a Sala',
+      show: (ids: string[]) => ids.length === 1,
+      action: 'goToRoom'
     }
   ]
 
@@ -247,11 +260,11 @@
         <input
           type="checkbox"
           class="custom-control-input"
-          id="isDraft"
-          :checked="!(roomFormData.isDraft ?? true)"
-          @change="roomFormData.isDraft = !(($event.target as HTMLInputElement).checked)"
+          id="activateRoom"
+          :checked="roomFormData.activateRoom ?? false"
+          @change="roomFormData.activateRoom = ($event.target as HTMLInputElement).checked"
         />
-        <label class="custom-control-label" for="isDraft">Activar sala</label>
+        <label class="custom-control-label" for="activateRoom">¿Activar sala?</label>
       </div>
       <button class="btn btn-sm btn-secondary" @click="showModalForm = false">Cerrar</button>
       <button

@@ -8,6 +8,8 @@ export interface ExtraButton {
     icon?: string
     /** Clases CSS para el botón (ej: 'btn-info') */
     class?: string
+    /** Atributo title='' */
+    title?: string
     /**
      * Controla si el botón se muestra.
      * Puede ser booleano o función que recibe IDs seleccionados.

@@ -258,11 +258,11 @@
 
     <template #footer>
       <FormSwitch
-        id="isDraft"
-        name="isDraft"
-        label="Activar sala"
-        :model-value="!(roomFormData.isDraft ?? true)"
-        @update:model-value="(val: boolean) => (roomFormData.isDraft = !val)"
+        id="activateRoom"
+        name="activateRoom"
+        label="¿Activar sala?"
+        :model-value="roomFormData.activateRoom ?? false"
+        @update:model-value="(val: boolean) => (roomFormData.activateRoom = val)"
       />
       <button class="btn btn-sm btn-secondary" @click="showModalForm = false">Cerrar</button>
       <button

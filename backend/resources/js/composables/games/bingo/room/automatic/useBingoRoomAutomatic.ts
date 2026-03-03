@@ -86,7 +86,7 @@ const emptyFormData = (): BingoRoomAutomaticFormData => ({
     usdExchangeRoundStep: null,
     cardPriceByCurrency: {},
     roundsConfig: [],
-    isDraft: true
+    activateRoom: true
 })
 
 /**
@@ -234,7 +234,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
                     ...(r.prizeValueByCurrency ? { prizeValueByCurrency: r.prizeValueByCurrency } : {}),
                     ...(r.prizeType === 'prize' ? { prizeId: r.prizeId ?? null, prizeName: r.prizeName ?? null } : {}),
                 })),
-                isDraft: room.status === 'INACTIVE',
+                activateRoom: room.status === 'ACTIVE',
             }
 
             return true

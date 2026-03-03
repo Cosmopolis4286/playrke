@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Games\Bingo\Config\BingoConfigController;
-use App\Http\Controllers\Games\Bingo\GameBingoController;
+use App\Http\Controllers\Games\Bingo\Report\BingoReportController;
 use App\Http\Controllers\Games\Bingo\Pattern\BingoPatternController;
 use App\Http\Controllers\Games\Bingo\Card\BingoCardController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomAutomaticController;
@@ -32,7 +32,6 @@ route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'role:admin,commerce'], Bing
     'destroy' => ['method' => 'delete', 'uri' => '{room}/force-delete', 'action' => 'destroy'],
     'toggle-status' => ['method' => 'patch', 'uri' => '{room}/status', 'action' => 'toggleStatus'],
     'copy' => ['method' => 'post',  'uri' => '{room}/copy', 'action' => 'copy'],
-    'publish' => ['method' => 'patch',  'uri' => '{room}/publish', 'action' => 'publish'],
     'cancel' => ['method' => 'patch',  'uri' => '{room}/cancel', 'action' => 'cancel'],
 ]);
 
@@ -94,6 +93,15 @@ route_group('bingo-card', 'bingo-card.', ['auth', 'role:admin,commerce,seller'],
 
 /**
  * ====================================
+ * SALAS DE JUEGO
+ * ====================================
+ */
+route_group('bingo-game-rooms', 'bingo-game-rooms.', ['auth', 'role:admin,commerce,seller'], BingoRoomController::class, [
+    'view-game-rooms' => ['method' => 'get', 'uri' => '', 'action' => 'viewGameRooms'],
+]);
+
+/**
+ * ====================================
  * TESTING Y DESARROLLO
  * ====================================
  */
@@ -106,27 +114,26 @@ route_group('bingo-test', 'bingo-test.', ['auth', 'role:admin'], BingoTestingCon
  * RUTAS ADMIN Y COMMERCE (MULTI-MIDDLEWARE)
  * ====================================
  */
-multi_middleware_routes('bingo', 'bingo.', [
-    [
-        'middleware' => ['auth', 'commerce'],
-        'controller' => GameBingoController::class,
-        'routes' => [
-            'game-rooms-commerce'          => ['method' => 'get', 'uri' => '{roomType}/game-rooms/{currency?}'],
-            'prizes'                      => ['method' => 'get', 'uri' => 'prizes'],
-            'sellers'                      => ['method' => 'get', 'uri' => 'sellers'],
-            'getCurrencyByCountry'         => ['method' => 'get', 'uri' => 'seller/getCurrencyByCountry/{country}/{seller}'],
-            'getSellerInfoByCtn'           => ['method' => 'get', 'uri' => 'seller/getSellerInfoByCtn/{ctnId}'],
-            'ctnsLotPayment'               => ['method' => 'put', 'uri' => 'bingo/carton-lot/payment'],
-        ]
-    ]
-]);
+// multi_middleware_routes('bingo', 'bingo.', [
+//     [
+//         'middleware' => ['auth', 'commerce'],
+//         'controller' => BingoReportController::class,
+//         'routes' => [
+//             'prizes'                      => ['method' => 'get', 'uri' => 'prizes'],
+//             'sellers'                      => ['method' => 'get', 'uri' => 'sellers'],
+//             'getCurrencyByCountry'         => ['method' => 'get', 'uri' => 'seller/getCurrencyByCountry/{country}/{seller}'],
+//             'getSellerInfoByCtn'           => ['method' => 'get', 'uri' => 'seller/getSellerInfoByCtn/{ctnId}'],
+//             'ctnsLotPayment'               => ['method' => 'put', 'uri' => 'bingo/carton-lot/payment'],
+//         ]
+//     ]
+// ]);
 
 /**
  * ====================================
  * REPORTES Y ESTADÍSTICAS
  * ====================================
  */
-route_group('bingo', 'bingo.', [], GameBingoController::class, [
+route_group('bingo', 'bingo.', [], BingoReportController::class, [
     'sales-report'     => ['method' => 'get', 'uri' => 'sales-report/{currency?}/{dateFilter?}'],
     'sales-by-room'    => ['method' => 'get', 'uri' => 'sales-report-by-room/{room}/{currency}'],
     'winners-by-room'  => ['method' => 'get', 'uri' => 'sales-report-by-room-winners/{room}/{currency}'],
@@ -147,23 +154,23 @@ route_group('bingo', 'bingo.', [], GameBingoController::class, [
  * BINGO CASH (JUEGO PÚBLICO)
  * ====================================
  */
-route_group('bingocash', 'bingocash.', [], GameBingoController::class, [
-    'out-game'        => ['method' => 'get',  'uri' => 'game-room/{uuidCode}/{room?}/{currency?}'],
-    'generate-card' => ['method' => 'post', 'uri' => 'generate-card/store'],
-    'get-draw'        => ['method' => 'get',  'uri' => 'get-draw/{room}'],
-    'get-chips'       => ['method' => 'get',  'uri' => 'get/chips/{room}'],
-    'get-result'      => ['method' => 'get',  'uri' => 'get/result/{room}/{value}/{column?}'],
-]);
+// route_group('bingocash', 'bingocash.', [], BingoReportController::class, [
+//     'out-game'        => ['method' => 'get',  'uri' => 'game-room/{uuidCode}/{room?}/{currency?}'],
+//     'generate-card' => ['method' => 'post', 'uri' => 'generate-card/store'],
+//     'get-draw'        => ['method' => 'get',  'uri' => 'get-draw/{room}'],
+//     'get-chips'       => ['method' => 'get',  'uri' => 'get/chips/{room}'],
+//     'get-result'      => ['method' => 'get',  'uri' => 'get/result/{room}/{value}/{column?}'],
+// ]);
 
 /**
  * ====================================
  * RUTAS ESPECIALES
  * ====================================
  */
-// Route::get('bingo/view-ctn/{ctnId}', [GameBingoController::class, 'viewCtn'])->name('bingo.view-carton');
-// Route::get('bingo/{roomType}/{creatorType}/{creatorId?}/{currency?}', [GameBingoController::class, 'handleGameRoomSummary'])->name('bingo-rooms.index');
-// Route::get('{customer}/{userToken}/room/{room}', [GameBingoController::class, 'inGameCustomer'])->name('bingo.in-game-customer');
-// Route::get('game/{customer}/room/{room}/{currency}', [GameBingoController::class, 'outGameCustomer'])->name('bingo.out-game-customer');
+// Route::get('bingo/view-ctn/{ctnId}', [BingoReportController::class, 'viewCtn'])->name('bingo.view-carton');
+// Route::get('bingo/{roomType}/{creatorType}/{creatorId?}/{currency?}', [BingoReportController::class, 'handleGameRoomSummary'])->name('bingo-rooms.index');
+// Route::get('{customer}/{userToken}/room/{room}', [BingoReportController::class, 'inGameCustomer'])->name('bingo.in-game-customer');
+// Route::get('game/{customer}/room/{room}/{currency}', [BingoReportController::class, 'outGameCustomer'])->name('bingo.out-game-customer');
 
 // Ruta especial de sesión
 Route::get('bingo/k3yg4m3/play-rke', function () {

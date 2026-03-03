@@ -34,7 +34,7 @@ final class BingoRoomService
     public function fetchList(): array
     {
         $userId = $this->userContext->resolveUserId();
-        return $this->contextService->context('fetch', $userId);
+        return $this->contextService->context('fetch-summary', $userId);
     }
 
     /**

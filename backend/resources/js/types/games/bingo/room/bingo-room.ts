@@ -130,5 +130,5 @@ export interface BingoRoomFormData {
     cardPriceUsd?: number | null
     usdExchangeRoundStep?: number | null
     cardPriceByCurrency?: Record<string, number | null>
-    isDraft?: boolean
+    activateRoom?: boolean
 }

@@ -23,8 +23,8 @@ use Illuminate\Support\Facades\Route;
 // ====================================
 // JUEGOS GENERALES
 // ====================================
-Route::put('games/handle-customer/{id?}', [GameController::class, 'handleCustomerGame'])
-    ->name('games.handle-customer');
+// Route::put('games/handle-customer/{id?}', [GameController::class, 'handleCustomerGame'])
+//     ->name('games.handle-customer');
 
 // ====================================
 // SISTEMA DE RECOMPENSAS

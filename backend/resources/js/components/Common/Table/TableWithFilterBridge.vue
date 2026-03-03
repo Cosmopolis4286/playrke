@@ -205,6 +205,7 @@
           disabled: !btn.disabled?.(selectedIds) || !getDisabledReason(btn, selectedIds)
         }"
         :class="['btn', 'btn-sm', btn.class || 'btn-secondary']"
+        :title="btn.title"
         :disabled="btn.disabled ? btn.disabled(selectedIds) : false"
         @click="() => btn.onClick()"
         type="button"
