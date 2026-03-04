@@ -1,3 +1,5 @@
+export type RoomStep = 'date' | 'roomType' | 'gameMode'
+
 /**
  * Configuración asociada a una sala de bingo.
  */

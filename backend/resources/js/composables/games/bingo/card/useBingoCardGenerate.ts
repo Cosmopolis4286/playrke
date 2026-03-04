@@ -9,10 +9,9 @@ import type {
     FetchRoomResponse,
     GenerateCardPayload,
     Player,
-    Room
+    Room,
+    RoomStep
 } from '@/js/types/games/bingo/card/bingo-card-generate'
-
-type RoomStep = 'date' | 'roomType' | 'gameMode'
 
 export function useBingoGenerateCard() {
 
@@ -326,6 +325,7 @@ export function useBingoGenerateCard() {
         canSelectRoomType,
         canSelectGameMode,
         canSelectRoom,
+
         roomCtnPrice,
         totalAmount,
         sellerCommission,

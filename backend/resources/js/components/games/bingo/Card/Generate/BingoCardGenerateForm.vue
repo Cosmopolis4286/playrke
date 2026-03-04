@@ -24,6 +24,7 @@
     player,
     loading,
 
+    existsRoom,
     canSelectRoomType,
     canSelectGameMode,
     canSelectRoom,
@@ -59,6 +60,7 @@
       :game-mode="filters.gameMode"
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"
+      :exists-room="existsRoom"
       @update:date="filters.date = $event"
       @update:roomType="filters.roomType = $event"
       @update:gameMode="filters.gameMode = $event"

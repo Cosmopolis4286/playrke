@@ -3,7 +3,7 @@
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
 
-  import type { Room } from '@/js/types/games/bingo/card/bingo-card-generate'
+  import type { Room, RoomStep } from '@/js/types/games/bingo/card/bingo-card-generate'
   import type { SelectOption } from '@/js/types/common/form/form'
 
   /* ───────────────── Props ───────────────── */
@@ -20,6 +20,7 @@
     gameMode: string | null
     roomTypeOptions: SelectOption[]
     gameModeOptions: SelectOption[]
+    existsRoom: RoomStep[]
   }>()
 
   /* ───────────────── Emits ───────────────── */
@@ -69,9 +70,13 @@
       @update:modelValue="emit('update:date', $event)"
     />
 
+    <div v-if="date && !existsRoom.includes('date')" class="alert alert-info">
+      No existen salas disponibles para la fecha
+    </div>
+
     <!-- Tipo de Sala -->
     <FormSelect
-      v-if="date"
+      v-if="canSelectRoomType"
       label="Tipo de Sala"
       name="room_type"
       required
@@ -84,8 +89,11 @@
       @update:modelValue="emit('update:roomType', $event)"
     />
 
+    <div v-if="date && roomType && !existsRoom.includes('roomType')" class="alert alert-info">
+      No existen salas disponibles para el tipo de sala
+    </div>
+
     <!-- Modo de Juego -->
-    {{ canSelectRoomType }}
     <FormSelect
       v-if="roomType && canSelectRoomType"
       label="Modo de Juego"
@@ -99,6 +107,13 @@
       :modelValue="gameMode"
       @update:modelValue="emit('update:gameMode', $event)"
     />
+
+    <div
+      v-if="date && roomType && gameMode && !existsRoom.includes('gameMode')"
+      class="alert alert-info"
+    >
+      No existen salas disponibles para el modo de juego
+    </div>
 
     <!-- Sala -->
     <FormSelect
