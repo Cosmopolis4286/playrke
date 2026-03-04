@@ -12,24 +12,11 @@ import type {
     Room
 } from '@/js/types/games/bingo/card/bingo-card-generate'
 
-/**
- * Representa los pasos progresivos del filtro de salas.
- */
 type RoomStep = 'date' | 'roomType' | 'gameMode'
 
-/**
- * Composable para la generación de cartones de bingo.
- *
- * Características:
- * - Step machine progresiva usando existsRoom
- * - Sin estados derivados manuales inconsistentes
- * - Protección básica contra race conditions
- * - Estado reactivo claro y predecible
- */
 export function useBingoGenerateCard() {
-    /* ─────────────────────────────────────────────
-     * STATE
-     * ───────────────────────────────────────────── */
+
+    /* ───────────────── STATE ───────────────── */
 
     const rooms = ref<Room[]>([])
     const countries = ref<Country[]>([])
@@ -57,14 +44,9 @@ export function useBingoGenerateCard() {
         lastName: ''
     })
 
-    /**
-     * Identificador incremental para evitar respuestas viejas (race condition).
-     */
     let fetchToken = 0
 
-    /* ─────────────────────────────────────────────
-     * DERIVED STATE
-     * ───────────────────────────────────────────── */
+    /* ───────────────── DERIVED ───────────────── */
 
     const canSelectRoomType = computed(() =>
         existsRoom.value.includes('date')
@@ -110,27 +92,85 @@ export function useBingoGenerateCard() {
         )
     })
 
-    /* ─────────────────────────────────────────────
-     * WATCHERS
-     * ───────────────────────────────────────────── */
+    /* ───────────────── HELPERS ───────────────── */
+
+    function resetPlayer() {
+        player.phone = ''
+        player.name = ''
+        player.lastName = ''
+    }
+
+    function resetRoomSelection() {
+        selectedRoom.value = null
+        resetFormDetails()
+    }
+
+    function resetFormDetails() {
+        numCtns.value = 1
+        selectedCountry.value = null
+        countries.value = []
+        resetPlayer()
+    }
+
+    function resetFiltersFrom(step: RoomStep) {
+        if (step === 'date') {
+            filters.roomType = null
+            filters.gameMode = null
+        }
+
+        if (step === 'roomType') {
+            filters.gameMode = null
+        }
+
+        rooms.value = []
+        existsRoom.value = []
+        resetRoomSelection()
+    }
+
+    function resetAfterSuccess() {
+        resetFormDetails()
+    }
+
+    /* ───────────────── WATCHERS ───────────────── */
 
     const debouncedFetch = useDebounceFn(fetchRooms, 300)
 
-    watch(
-        () => [filters.date, filters.roomType, filters.gameMode],
-        () => {
-            resetRoomSelection()
+    // 1️⃣ Cuando cambia la fecha → reset total
+    watch(() => filters.date, (newValue, oldValue) => {
+        if (newValue === oldValue) return
 
-            if (!filters.date) {
-                rooms.value = []
-                existsRoom.value = []
-                return
-            }
+        resetFiltersFrom('date')
 
-            debouncedFetch()
-        }
-    )
+        if (!newValue) return
 
+        debouncedFetch()
+    })
+
+    // 2️⃣ Cuando cambia roomType → reset gameMode
+    watch(() => filters.roomType, (newValue, oldValue) => {
+        if (newValue === oldValue) return
+
+        resetFiltersFrom('roomType')
+
+        if (!filters.date) return
+
+        debouncedFetch()
+    })
+
+    // 3️⃣ Cuando cambia gameMode → solo recalcula rooms
+    watch(() => filters.gameMode, (newValue, oldValue) => {
+        if (newValue === oldValue) return
+
+        rooms.value = []
+        existsRoom.value = []
+        resetRoomSelection()
+
+        if (!filters.date) return
+
+        debouncedFetch()
+    })
+
+    // 4️⃣ Cuando cambia la sala → cargar países
     watch(selectedRoom, async (room) => {
         resetFormDetails()
 
@@ -139,14 +179,8 @@ export function useBingoGenerateCard() {
         await fetchCountries(room.id)
     })
 
-    /* ─────────────────────────────────────────────
-     * API
-     * ───────────────────────────────────────────── */
+    /* ───────────────── API ───────────────── */
 
-    /**
-     * Obtiene salas según filtros progresivos.
-     * Mantiene coherencia de existsRoom según respuesta del backend.
-     */
     async function fetchRooms(): Promise<void> {
         if (!filters.date) {
             rooms.value = []
@@ -169,30 +203,35 @@ export function useBingoGenerateCard() {
                 }
             )
 
-            const response = data.data
-
-            // Evita aplicar respuestas viejas
             if (currentToken !== fetchToken) return
 
-            if (!response.exists) {
-                rooms.value = []
-                existsRoom.value = []
-                return
-            }
-
-            rooms.value = response.rooms ?? []
+            const response = data.data
 
             const steps: RoomStep[] = ['date']
 
             if (filters.roomType) {
+                if (!response.exists) {
+                    rooms.value = []
+                    existsRoom.value = steps
+                    return
+                }
                 steps.push('roomType')
-            } else if (filters.roomType && filters.gameMode) {
+            }
+
+            if (filters.gameMode) {
+                if (!response.exists) {
+                    rooms.value = []
+                    console.log('steps', steps)
+
+                    existsRoom.value = steps
+
+                    return
+                }
                 steps.push('gameMode')
             }
 
+            rooms.value = response.rooms ?? []
             existsRoom.value = steps
-
-            console.log('existsRoom', existsRoom)
 
         } catch (error: any) {
             if (currentToken !== fetchToken) return
@@ -212,16 +251,13 @@ export function useBingoGenerateCard() {
         }
     }
 
-    /**
-     * Obtiene los países habilitados para la sala seleccionada.
-     */
     async function fetchCountries(roomId: string): Promise<void> {
         loadingCountries.value = true
 
         try {
-            const { data } = await backendClient.get<{
-                countries: Country[]
-            }>(`/bingo-card/${roomId}/available-countries`)
+            const { data } = await backendClient.get<{ countries: Country[] }>(
+                `/bingo-card/${roomId}/available-countries`
+            )
 
             countries.value = data.countries ?? []
         } catch {
@@ -235,11 +271,6 @@ export function useBingoGenerateCard() {
         }
     }
 
-    /**
-     * Genera los cartones seleccionados.
-     *
-     * @returns Promise<boolean>
-     */
     async function generate(): Promise<boolean> {
         if (!isFormValid.value || loading.value) return false
 
@@ -277,36 +308,9 @@ export function useBingoGenerateCard() {
         }
     }
 
-    /* ─────────────────────────────────────────────
-     * HELPERS
-     * ───────────────────────────────────────────── */
-
-    function resetPlayer(): void {
-        player.phone = ''
-        player.name = ''
-        player.lastName = ''
-    }
-
-    function resetRoomSelection(): void {
-        selectedRoom.value = null
-        resetFormDetails()
-    }
-
-    function resetFormDetails(): void {
-        numCtns.value = 1
-        selectedCountry.value = null
-        countries.value = []
-        resetPlayer()
-    }
-
-    function resetAfterSuccess(): void {
-        resetFormDetails()
-    }
-
-    /* ───────────────────────────────────────────── */
+    /* ───────────────── RETURN ───────────────── */
 
     return {
-        // state
         filters,
         rooms,
         selectedRoom,
@@ -319,7 +323,6 @@ export function useBingoGenerateCard() {
         player,
         existsRoom,
 
-        // computed
         canSelectRoomType,
         canSelectGameMode,
         canSelectRoom,
@@ -329,7 +332,6 @@ export function useBingoGenerateCard() {
         commerceAmount,
         isFormValid,
 
-        // actions
         fetchRooms,
         generate
     }

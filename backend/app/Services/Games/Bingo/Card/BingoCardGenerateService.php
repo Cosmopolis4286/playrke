@@ -90,26 +90,14 @@ final class BingoCardGenerateService
 
         $creatorUserId = $this->resolveCreatorUserId();
 
-        $query = $this->baseRoomQuery($date, $creatorUserId);
+        $query = BingoRoom::query()
+            ->active()
+            ->forDate($date)
+            ->accessibleBy($creatorUserId)
+            ->filterRoomType($roomType)
+            ->filterGameMode($gameMode);
 
-        // Aplicar filtros progresivos
-        if ($roomType) {
-            $query->whereHas(
-                'config.roomType',
-                fn($q) => $q->where('code', $roomType)
-            );
-        }
-
-        if ($gameMode) {
-            $query->whereHas(
-                'config.gameMode',
-                fn($q) => $q->where('code', $gameMode)
-            );
-        }
-
-        /**
-         * Si no hay gameMode → solo validar existencia.
-         */
+        // Si no hay gameMode → solo validar existencia
         if (!$gameMode) {
             return [
                 'exists' => $query->exists(),
@@ -117,9 +105,6 @@ final class BingoCardGenerateService
             ];
         }
 
-        /**
-         * Si hay gameMode → traer data completa.
-         */
         $rooms = $query
             ->select([
                 'id',
@@ -145,26 +130,6 @@ final class BingoCardGenerateService
             'exists' => !empty($rooms),
             'rooms'  => $rooms
         ];
-    }
-
-    /**
-     * Construye la query base de salas.
-     */
-    private function baseRoomQuery(string $date, int $creatorUserId)
-    {
-        return BingoRoom::query()
-            ->active()
-            ->whereHas(
-                'config',
-                fn($q) => $q->whereDate('date', $date)
-            )
-            ->where(function ($q) use ($creatorUserId) {
-                $q->where('creator_user_id', $creatorUserId)
-                    ->orWhereHas(
-                        'config.roomType',
-                        fn($r) => $r->where('code', 'PUBLIC')
-                    );
-            });
     }
 
     /**

@@ -174,7 +174,7 @@ final class BingoRoomController extends Controller
                 $userId = $this->userContext->resolveUserId();
                 $response = $this->service->context('game-rooms', $userId);
 
-                return Inertia::render('Games/Bingo/Room/Summary', $response);
+                return Inertia::render('Games/Bingo/Room/GameRooms', $response);
             },
             'No se pudo cargar la lista de salas de bingo.'
         );

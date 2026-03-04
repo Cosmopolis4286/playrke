@@ -53,6 +53,9 @@
     /** Campo requerido */
     required: { type: Boolean, default: false },
 
+    /** Campo deshabilitado */
+    disabled: { type: Boolean, default: false },
+
     /** Multiselect */
     multiple: { type: Boolean, default: false },
 
@@ -125,6 +128,7 @@
           :searchable="true"
           :clearable="!required"
           :can-clear="!required"
+          :disabled="disabled"
           class="multiselect-bootstrap"
           :class="{ 'ms-invalid': !!error }"
           style="width: 100%"
@@ -151,6 +155,7 @@
       :searchable="true"
       :clearable="!required"
       :can-clear="!required"
+      :disabled="disabled"
       class="multiselect-bootstrap"
       :class="{ 'ms-invalid': !!error }"
     />

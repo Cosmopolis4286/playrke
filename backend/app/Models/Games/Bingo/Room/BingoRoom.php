@@ -257,4 +257,47 @@ class BingoRoom extends BaseModel
         return $query->where('paid_prizes', 'N')
             ->where('prize_pool', '>', 0);
     }
+
+    public function scopeForDate($query, string $date)
+    {
+        return $query->whereHas(
+            'config',
+            fn($q) => $q->whereDate('date', $date)
+        );
+    }
+
+    public function scopeAccessibleBy($query, int $creatorUserId)
+    {
+        return $query->where(function ($q) use ($creatorUserId) {
+            $q->where('creator_user_id', $creatorUserId)
+                ->orWhereHas(
+                    'config.roomType',
+                    fn($r) => $r->where('code', 'PUBLIC')
+                );
+        });
+    }
+
+    public function scopeFilterRoomType($query, ?string $roomTypeId)
+    {
+        if (!$roomTypeId) {
+            return $query;
+        }
+
+        return $query->whereHas(
+            'config.roomType',
+            fn($q) => $q->where('id', $roomTypeId)
+        );
+    }
+
+    public function scopeFilterGameMode($query, ?string $gameModeId)
+    {
+        if (!$gameModeId) {
+            return $query;
+        }
+
+        return $query->whereHas(
+            'config.gameMode',
+            fn($q) => $q->where('id', $gameModeId)
+        );
+    }
 }

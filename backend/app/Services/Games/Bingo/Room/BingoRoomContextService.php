@@ -130,7 +130,7 @@ final class BingoRoomContextService
      * @return array Listado de salas con paginación
      * @throws DomainException Si no se pueden resolver las salas de juego
      */
-    private function viewGameRooms(?int $userId): array
+    private function resolveViewGameRooms(?int $userId): array
     {
         $labels  = ['Código', 'Tipo', 'Jugadores', 'Premio', 'Creación', 'Estado'];
         $rowKeys = ['id', 'config.roomType.label', 'total_players', 'prize_pool', 'created_at', 'status_badge'];
@@ -165,5 +165,30 @@ final class BingoRoomContextService
         $rooms = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
         return ['rooms' => $rooms, 'pagination' => $pagination];
+    }
+
+    /**
+     * Resolver vista para el listado de salas de juego de bingo.
+     *
+     * @param int $userId ID del usuario
+     * @return BingoRoomSummaryDTO
+     *
+     * @throws DomainException Si no se puede resolver el contexto
+     */
+    private function viewGameRooms(int $userId): BingoRoomSummaryDTO
+    {
+        $commerceData = $this->resolveViewGameRooms($userId);
+
+        $currencies = $this->currencyService->getAvailableCurrencies($userId, true);
+
+        return new BingoRoomSummaryDTO(
+            rooms: $commerceData['rooms'],
+            pagination: $commerceData['pagination'],
+            currencies: $currencies,
+            bingoPatterns: $this->bingoPatterns->getByUserAndDefault($userId, ['id', 'name'], 'ACTIVE'),
+            prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
+            gameModes: $this->gameModes->getActiveGameModes(),
+            roomTypes: $this->roomTypes->getActiveTypes()
+        );
     }
 }

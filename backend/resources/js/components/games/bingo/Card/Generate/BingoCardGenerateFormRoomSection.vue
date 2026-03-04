@@ -71,7 +71,7 @@
 
     <!-- Tipo de Sala -->
     <FormSelect
-      v-if="canSelectRoomType"
+      v-if="date"
       label="Tipo de Sala"
       name="room_type"
       required
@@ -85,6 +85,7 @@
     />
 
     <!-- Modo de Juego -->
+    {{ canSelectRoomType }}
     <FormSelect
       v-if="roomType && canSelectRoomType"
       label="Modo de Juego"
