@@ -11,6 +11,7 @@
    * ========================================================================== */
 
   const props = defineProps<{
+    existsRooms: boolean
     rooms: Room[]
     selectedRoom: Room | null
     roomCtnPrice: number
@@ -74,7 +75,7 @@
 
     <!-- Tipo de Sala -->
     <FormSelect
-      v-if="date"
+      v-if="date && existsRooms"
       label="Tipo de Sala"
       name="room_type"
       required

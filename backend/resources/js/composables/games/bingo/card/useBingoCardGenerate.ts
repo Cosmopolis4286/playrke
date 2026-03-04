@@ -31,6 +31,7 @@ export function useBingoGenerateCard() {
     const selectedCountry = ref<number | null>(null)
 
     const countries = ref<Country[]>([])
+    const existsRooms = ref(false)
     const loadingRooms = ref(false)
     const loadingCountries = ref(false)
     const loading = ref(false)
@@ -150,10 +151,12 @@ export function useBingoGenerateCard() {
 
             if (!data.exists) {
                 setRooms([])
+                existsRooms.value = false;
                 return
             }
 
             setRooms(data.rooms)
+            existsRooms.value = true;
 
         } catch (error: any) {
             setRooms([])
@@ -261,6 +264,7 @@ export function useBingoGenerateCard() {
         loadingCountries,
         player,
         loading,
+        existsRooms,
 
         // computed
         filteredRooms,

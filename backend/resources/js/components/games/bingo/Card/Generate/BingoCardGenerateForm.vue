@@ -25,6 +25,7 @@
     loadingCountries,
     player,
     loading,
+    existsRooms,
 
     roomCtnPrice,
     totalAmount,
@@ -48,6 +49,7 @@
     <!-- ───────────────── Room Section ───────────────── -->
 
     <BingoCardGenerateFormRoomSection
+    :exists-rooms="existsRooms"
       :rooms="filteredRooms"
       :selected-room="selectedRoom"
       :room-ctn-price="roomCtnPrice"
