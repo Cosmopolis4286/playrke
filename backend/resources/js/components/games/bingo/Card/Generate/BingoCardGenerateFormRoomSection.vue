@@ -6,12 +6,12 @@
   import type { Room } from '@/js/types/games/bingo/card/bingo-card-generate'
   import type { SelectOption } from '@/js/types/common/form/form'
 
-  /* ==========================================================================
-   * Props
-   * ========================================================================== */
+  /* ───────────────── Props ───────────────── */
 
   const props = defineProps<{
-    existsRooms: boolean
+    canSelectRoomType: boolean
+    canSelectGameMode: boolean
+    canSelectRoom: boolean
     rooms: Room[]
     selectedRoom: Room | null
     roomCtnPrice: number
@@ -22,9 +22,7 @@
     gameModeOptions: SelectOption[]
   }>()
 
-  /* ==========================================================================
-   * Emits
-   * ========================================================================== */
+  /* ───────────────── Emits ───────────────── */
 
   const emit = defineEmits<{
     (e: 'update:selectedRoom', value: Room | null): void
@@ -33,9 +31,7 @@
     (e: 'update:gameMode', value: string | null): void
   }>()
 
-  /* ==========================================================================
-   * Computed
-   * ========================================================================== */
+  /* ───────────────── Computed ───────────────── */
 
   const minDate = computed(() => new Date().toISOString().split('T')[0])
 
@@ -47,7 +43,7 @@
   )
 
   /**
-   * Evita buscar en cada render dentro del template
+   * Proxy limpio para v-model
    */
   const selectedRoomId = computed({
     get: () => props.selectedRoom?.id ?? null,
@@ -75,7 +71,7 @@
 
     <!-- Tipo de Sala -->
     <FormSelect
-      v-if="date && existsRooms"
+      v-if="canSelectRoomType"
       label="Tipo de Sala"
       name="room_type"
       required
@@ -90,7 +86,7 @@
 
     <!-- Modo de Juego -->
     <FormSelect
-      v-if="roomType"
+      v-if="roomType && canSelectRoomType"
       label="Modo de Juego"
       name="game_mode"
       required
@@ -105,7 +101,7 @@
 
     <!-- Sala -->
     <FormSelect
-      v-if="gameMode"
+      v-if="gameMode && canSelectRoom"
       label="Sala de Bingo"
       name="room_id"
       :options="roomOptions"

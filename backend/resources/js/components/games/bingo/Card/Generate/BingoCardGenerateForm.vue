@@ -10,13 +10,11 @@
     gameModeOptions: SelectOption[]
   }>()
 
-  /* ========================================================================== */
-  /* Composable */
-  /* ========================================================================== */
+  /* ───────────────── Composable ───────────────── */
 
   const {
     filters,
-    filteredRooms,
+    rooms,
 
     selectedRoom,
     numCtns,
@@ -25,7 +23,10 @@
     loadingCountries,
     player,
     loading,
-    existsRooms,
+
+    canSelectRoomType,
+    canSelectGameMode,
+    canSelectRoom,
 
     roomCtnPrice,
     totalAmount,
@@ -35,9 +36,7 @@
     generate
   } = useBingoGenerateCard()
 
-  /* ========================================================================== */
-  /* Submit */
-  /* ========================================================================== */
+  /* ───────────────── Submit ───────────────── */
 
   async function handleSubmit() {
     await generate()
@@ -46,11 +45,13 @@
 
 <template>
   <form novalidate @submit.prevent="handleSubmit">
-    <!-- ───────────────── Room Section ───────────────── -->
+    <!-- ─────────────── Room Section ─────────────── -->
 
     <BingoCardGenerateFormRoomSection
-    :exists-rooms="existsRooms"
-      :rooms="filteredRooms"
+      :can-select-room-type="canSelectRoomType"
+      :can-select-game-mode="canSelectGameMode"
+      :can-select-room="canSelectRoom"
+      :rooms="rooms"
       :selected-room="selectedRoom"
       :room-ctn-price="roomCtnPrice"
       :date="filters.date"
@@ -64,7 +65,7 @@
       @update:selectedRoom="selectedRoom = $event"
     />
 
-    <!-- ───────────────── Resumen ───────────────── -->
+    <!-- ─────────────── Resumen ─────────────── -->
 
     <div v-if="selectedRoom" class="row bg-light mt-2 rounded py-2">
       <div class="col-4 border-right text-center">
@@ -86,7 +87,7 @@
       </div>
     </div>
 
-    <!-- ───────────────── Player Section ───────────────── -->
+    <!-- ─────────────── Player Section ─────────────── -->
 
     <BingoCardGenerateFormPlayerSection
       v-if="selectedRoom"
@@ -102,7 +103,7 @@
       @update:numCtns="numCtns = $event"
     />
 
-    <!-- ───────────────── Botón ───────────────── -->
+    <!-- ─────────────── Botón ─────────────── -->
 
     <div v-if="selectedRoom" class="mt-3 text-center">
       <button type="submit" class="btn btn-primary btn-lg px-5" :disabled="!isFormValid || loading">

@@ -55,44 +55,108 @@ final class BingoCardGenerateService
     }
 
     /**
-     * Obtener lista de salas de bingo filtradas.
+     * Obtiene lista de salas de bingo filtradas.
      *
      * Reglas:
-     * - Salas activas
+     * - Solo salas activas
      * - Del creador o públicas
-     * - Filtrado opcional por date, roomType y gameMode
+     * - Filtrado progresivo por date, roomType y gameMode
      *
-     * @param array $filters
-     * @return array
+     * Estrategia:
+     * - date obligatorio
+     * - roomType opcional (valida existencia)
+     * - gameMode opcional (si viene, trae data completa)
+     *
+     * @param array{
+     *     date?: string|null,
+     *     roomType?: string|null,
+     *     gameMode?: string|null
+     * } $filters
+     *
+     * @return array{
+     *     exists: bool,
+     *     rooms: array<int, array<string, mixed>>
+     * }
      */
     public function fetchRoom(array $filters): array
     {
-        $date     = $filters['date'] ?? null;
+        $date     = $filters['date']     ?? null;
         $roomType = $filters['roomType'] ?? null;
         $gameMode = $filters['gameMode'] ?? null;
 
         if (!$date) {
+            return $this->emptyResponse();
+        }
+
+        $creatorUserId = $this->resolveCreatorUserId();
+
+        $query = $this->baseRoomQuery($date, $creatorUserId);
+
+        // Aplicar filtros progresivos
+        if ($roomType) {
+            $query->whereHas(
+                'config.roomType',
+                fn($q) => $q->where('code', $roomType)
+            );
+        }
+
+        if ($gameMode) {
+            $query->whereHas(
+                'config.gameMode',
+                fn($q) => $q->where('code', $gameMode)
+            );
+        }
+
+        /**
+         * Si no hay gameMode → solo validar existencia.
+         */
+        if (!$gameMode) {
             return [
-                'exists' => false,
+                'exists' => $query->exists(),
                 'rooms'  => []
             ];
         }
 
-        $userId = $this->userContext->resolveUserId();
+        /**
+         * Si hay gameMode → traer data completa.
+         */
+        $rooms = $query
+            ->select([
+                'id',
+                'uuid_code',
+                'prize_pool',
+                'creator_user_id'
+            ])
+            ->with([
+                'config:id,room_id,room_type_id,game_mode_id,card_price_usd,date'
+            ])
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn($room) => [
+                'id'              => $room->hashed_id,
+                'uuid_code'       => $room->uuid_code,
+                'prize_pool'      => $room->prize_pool,
+                'creator_user_id' => $room->creator_user_id,
+                'config'          => $room->config,
+            ])
+            ->toArray();
 
-        $creatorUserId = match ($this->roleUserService->getActiveUserRolePrefix($userId)) {
-            'commerce', 'customer' => $userId,
-            'seller' => $this->sellerRepository
-                ->getValueByUserId($userId, 'manager_user_id'),
-            default => throw new DomainException('Rol inválido')
-        };
+        return [
+            'exists' => !empty($rooms),
+            'rooms'  => $rooms
+        ];
+    }
 
-        $query = BingoRoom::query()
+    /**
+     * Construye la query base de salas.
+     */
+    private function baseRoomQuery(string $date, int $creatorUserId)
+    {
+        return BingoRoom::query()
             ->active()
             ->whereHas(
                 'config',
-                fn($q) =>
-                $q->whereDate('date', $date)
+                fn($q) => $q->whereDate('date', $date)
             )
             ->where(function ($q) use ($creatorUserId) {
                 $q->where('creator_user_id', $creatorUserId)
@@ -101,71 +165,29 @@ final class BingoCardGenerateService
                         fn($r) => $r->where('code', 'PUBLIC')
                     );
             });
+    }
 
-        /* Caso 1: solo date → solo validar existencia */
-        if (!$roomType && !$gameMode) {
-            return [
-                'exists' => $query->exists(),
-                'rooms'  => []
-            ];
-        }
+    /**
+     * Resuelve el creator_user_id según rol activo.
+     */
+    private function resolveCreatorUserId(): int
+    {
+        $userId = $this->userContext->resolveUserId();
+        $role   = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        /* Caso 2: date + roomType → validar existencia */
-        if ($roomType && !$gameMode) {
-            $exists = $query
-                ->whereHas(
-                    'config.roomType',
-                    fn($q) =>
-                    $q->where('code', $roomType)
-                )
-                ->exists();
+        return match ($role) {
+            'commerce', 'customer' => $userId,
+            'seller' => $this->sellerRepository
+                ->getValueByUserId($userId, 'manager_user_id'),
+            default => throw new DomainException('Rol inválido'),
+        };
+    }
 
-            return [
-                'exists' => $exists,
-                'rooms'  => []
-            ];
-        }
-
-        /* Caso 3: date + roomType + gameMode → traer data completa */
-        if ($roomType && $gameMode) {
-
-            $rooms = $query
-                ->select([
-                    'id',
-                    'uuid_code',
-                    'prize_pool',
-                    'creator_user_id'
-                ])
-                ->whereHas(
-                    'config.roomType',
-                    fn($q) =>
-                    $q->where('code', $roomType)
-                )
-                ->whereHas(
-                    'config.gameMode',
-                    fn($q) =>
-                    $q->where('code', $gameMode)
-                )
-                ->with([
-                    'config:id,room_id,room_type_id,game_mode_id,card_price_usd,date'
-                ])
-                ->orderByDesc('created_at')
-                ->get()
-                ->map(fn($room) => [
-                    'id' => $room->hashed_id,
-                    'uuid_code' => $room->uuid_code,
-                    'prize_pool' => $room->prize_pool,
-                    'creator_user_id' => $room->creator_user_id,
-                    'config' => $room->config,
-                ])
-                ->toArray();
-
-            return [
-                'exists' => !empty($rooms),
-                'rooms'  => $rooms
-            ];
-        }
-
+    /**
+     * Respuesta vacía estándar.
+     */
+    private function emptyResponse(): array
+    {
         return [
             'exists' => false,
             'rooms'  => []
@@ -236,11 +258,11 @@ final class BingoCardGenerateService
             : $this->calculateCtnPrice($roomCtnPrice, false, $exchangeRate);
 
         // 6. Buscar jugador existente en la sala
-        $existingRoomUser = ExternalPlayers::select('id', 'link')
-            ->where('game', 1)
-            ->where('room', $room->id)
-            ->where('phone', $dto->playerPhone)
-            ->value('room_user');
+        // $existingRoomUser = ExternalPlayers::select('id', 'link')
+        //     ->where('game', 1)
+        //     ->where('room', $room->id)
+        //     ->where('phone', $dto->playerPhone)
+        //     ->value('room_user');
 
         $arrInitials = $this->initialCharacters([$dto->playerName, $dto->playerLastName]);
 
@@ -260,9 +282,9 @@ final class BingoCardGenerateService
             'exchangeRate'  => $exchangeRate,
         ];
 
-        if ($existingRoomUser) {
-            $arrCtn['roomUser'] = $existingRoomUser;
-        }
+        // if ($existingRoomUser) {
+        //     $arrCtn['roomUser'] = $existingRoomUser;
+        // }
 
         // 7. Ejecutar transacción atómica
         return DB::transaction(function () use ($arrCtn, $room) {
