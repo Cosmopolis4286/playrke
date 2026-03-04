@@ -57,123 +57,119 @@ final class BingoCardGenerateService
     /**
      * Obtener lista de salas de bingo filtradas.
      *
-     * Regla de negocio:
+     * Reglas:
      * - Salas activas
-     * - Salas creadas por el usuario
-     * - O salas públicas
-     * - Opcionalmente filtrar por roomType y gameMode
+     * - Del creador o públicas
+     * - Filtrado opcional por date, roomType y gameMode
      *
      * @param array $filters
      * @return array
      */
     public function fetchRoom(array $filters): array
     {
-        $date = $filters['date'] ?? null;
+        $date     = $filters['date'] ?? null;
+        $roomType = $filters['roomType'] ?? null;
+        $gameMode = $filters['gameMode'] ?? null;
 
-        // Si no existe fecha no se consulta nada
         if (!$date) {
-            return [];
+            return [
+                'exists' => false,
+                'rooms'  => []
+            ];
         }
 
         $userId = $this->userContext->resolveUserId();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Rol activo del usuario
-        |--------------------------------------------------------------------------
-        */
-        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Determinar usuario creador permitido
-        | - Commerce y Customer → solo sus propias salas
-        | - Seller → salas de su manager
-        |--------------------------------------------------------------------------
-        */
-        $creatorUserId = match ($role) {
-            'commerce',
-            'customer' => $userId,
-
+        $creatorUserId = match ($this->roleUserService->getActiveUserRolePrefix($userId)) {
+            'commerce', 'customer' => $userId,
             'seller' => $this->sellerRepository
                 ->getValueByUserId($userId, 'manager_user_id'),
-
-            default => throw new DomainException("Rol inválido: {$role}")
+            default => throw new DomainException('Rol inválido')
         };
 
-        /*
-        |--------------------------------------------------------------------------
-        | Estado activo del juego
-        |--------------------------------------------------------------------------
-        */
-        $statusId = GameStatus::where('code', 'ACTIVE')->value('id');
-
-        /*
-        |--------------------------------------------------------------------------
-        | Construcción base del query
-        |--------------------------------------------------------------------------
-        */
-        $rooms = BingoRoom::query()
-            ->where('status_id', $statusId)
-
-            /*
-            |--------------------------------------------------
-            | Regla principal:
-            | - Salas creadas por el usuario
-            | - O salas públicas
-            |--------------------------------------------------
-            */
-            ->where(function ($query) use ($creatorUserId) {
-                $query->where('creator_user_id', $creatorUserId)
-                    ->orWhereHas('config.roomType', function ($q) {
-                        $q->where('code', 'PUBLIC');
-                    });
+        $query = BingoRoom::query()
+            ->active()
+            ->whereHas(
+                'config',
+                fn($q) =>
+                $q->whereDate('date', $date)
+            )
+            ->where(function ($q) use ($creatorUserId) {
+                $q->where('creator_user_id', $creatorUserId)
+                    ->orWhereHas(
+                        'config.roomType',
+                        fn($r) => $r->where('code', 'PUBLIC')
+                    );
             });
 
-        /*
-        |--------------------------------------------------------------------------
-        | Filtros opcionales
-        |--------------------------------------------------------------------------
-        */
-        $roomType = $filters['roomType'] ?? null;
-        $gameMode = $filters['gameMode'] ?? null;
-
-        if ($roomType || $gameMode) {
-            /*
-            |--------------------------------------------------------------------------
-            | Relaciones necesarias (Eager Loading)
-            |--------------------------------------------------------------------------
-            */
-            $rooms->with([
-                'config:id,room_id,room_type_id,game_mode_id,card_price_usd',
-                'config.roomType:id,code',
-                'config.gameMode:id,code'
-            ]);
+        /* Caso 1: solo date → solo validar existencia */
+        if (!$roomType && !$gameMode) {
+            return [
+                'exists' => $query->exists(),
+                'rooms'  => []
+            ];
         }
 
-        // Filtrar por tipo de sala
-        if ($roomType) {
-            $rooms->whereHas('config.roomType', function ($q) use ($roomType) {
-                $q->where('code', $roomType);
-            });
+        /* Caso 2: date + roomType → validar existencia */
+        if ($roomType && !$gameMode) {
+            $exists = $query
+                ->whereHas(
+                    'config.roomType',
+                    fn($q) =>
+                    $q->where('code', $roomType)
+                )
+                ->exists();
+
+            return [
+                'exists' => $exists,
+                'rooms'  => []
+            ];
         }
 
-        // Filtrar por modo de juego
-        if ($gameMode) {
-            $rooms->whereHas('config.gameMode', function ($q) use ($gameMode) {
-                $q->where('code', $gameMode);
-            });
+        /* Caso 3: date + roomType + gameMode → traer data completa */
+        if ($roomType && $gameMode) {
+
+            $rooms = $query
+                ->select([
+                    'id',
+                    'uuid_code',
+                    'prize_pool',
+                    'creator_user_id'
+                ])
+                ->whereHas(
+                    'config.roomType',
+                    fn($q) =>
+                    $q->where('code', $roomType)
+                )
+                ->whereHas(
+                    'config.gameMode',
+                    fn($q) =>
+                    $q->where('code', $gameMode)
+                )
+                ->with([
+                    'config:id,room_id,room_type_id,game_mode_id,card_price_usd,date'
+                ])
+                ->orderByDesc('created_at')
+                ->get()
+                ->map(fn($room) => [
+                    'id' => $room->hashed_id,
+                    'uuid_code' => $room->uuid_code,
+                    'prize_pool' => $room->prize_pool,
+                    'creator_user_id' => $room->creator_user_id,
+                    'config' => $room->config,
+                ])
+                ->toArray();
+
+            return [
+                'exists' => !empty($rooms),
+                'rooms'  => $rooms
+            ];
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Orden y ejecución
-        |--------------------------------------------------------------------------
-        */
-        return $rooms
-            ->orderByDesc('created_at')
-            ->get(['hashed_id', 'uuid_code', 'prize_pool', 'creator_user_id'])
-            ->toArray();
+        return [
+            'exists' => false,
+            'rooms'  => []
+        ];
     }
 
     /**

@@ -1,9 +1,12 @@
 import { ref, computed, reactive, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
+
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
 
 import type { Country } from '@/js/types/country'
 import type {
+    fetchRoomData,
     generateCardPayload,
     Player,
     Room
@@ -98,16 +101,23 @@ export function useBingoGenerateCard() {
      * Watchers optimizados
      * ─────────────────────────────────────────── */
 
-    watch(
-        () => filters.date,
-        async (newDate) => {
-            filters.roomType = null
-            filters.gameMode = null
-            selectedRoom.value = null
+    const debouncedFetch = useDebounceFn((date: string) => {
+        fetchRoom(date)
+    }, 300)
 
+    watch(
+        () => [filters.date, filters.roomType, filters.gameMode],
+        ([date]) => {
+
+            selectedRoom.value = null
             resetFormDetails()
 
-            await fetchRoom(newDate)
+            if (!date) {
+                setRooms([])
+                return
+            }
+
+            debouncedFetch(date)
         }
     )
 
@@ -133,14 +143,18 @@ export function useBingoGenerateCard() {
 
         try {
             const { data } = await backendClient.get<{
-                data: Room[]
+                data: fetchRoomData
             }>('/bingo-card/fetch-room', {
-                params: {
-                    date,
-},
+                params: { date, roomType: filters.roomType, gameMode: filters.gameMode },
             })
 
-            setRooms(data.data ?? [])
+            if (!data.exists) {
+                setRooms([])
+                return
+            }
+
+            setRooms(data.rooms)
+
         } catch (error: any) {
             setRooms([])
 

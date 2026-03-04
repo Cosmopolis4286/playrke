@@ -7,6 +7,11 @@ export interface Room {
     }
 }
 
+export interface fetchRoomData {
+    exists: boolean
+    rooms: Room
+}
+
 export interface Player {
     phone: string
     name: string
