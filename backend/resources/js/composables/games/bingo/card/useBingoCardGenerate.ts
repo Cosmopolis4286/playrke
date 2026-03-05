@@ -9,8 +9,7 @@ import type {
     FetchRoomResponse,
     GenerateCardPayload,
     Player,
-    Room,
-    RoomStep
+    Room
 } from '@/js/types/games/bingo/card/bingo-card-generate'
 
 export function useBingoGenerateCard() {
@@ -19,12 +18,12 @@ export function useBingoGenerateCard() {
 
     const rooms = ref<Room[]>([])
     const countries = ref<Country[]>([])
-    const existsRoom = ref<RoomStep[]>([])
 
     const loading = ref(false)
     const loadingRooms = ref(false)
     const loadingCountries = ref(false)
 
+    const existsRoom = ref<boolean | null>(null)
     const commission = ref<number>(0)
 
     const filters = reactive({
@@ -35,7 +34,7 @@ export function useBingoGenerateCard() {
 
     const selectedRoom = ref<Room | null>(null)
     const selectedCountry = ref<number | null>(null)
-    const numCtns = ref<number>(1)
+    const numCtns = ref(1)
 
     const player = reactive<Player>({
         phone: '',
@@ -45,37 +44,43 @@ export function useBingoGenerateCard() {
 
     let fetchToken = 0
 
-    /* ───────────────── DERIVED ───────────────── */
+    /* ───────────────── COMPUTED ───────────────── */
 
     const canSelectRoomType = computed(() =>
-        existsRoom.value.includes('date')
+        !!filters.date && existsRoom.value === true
     )
 
     const canSelectGameMode = computed(() =>
-        existsRoom.value.includes('roomType')
+        canSelectRoomType.value && !!filters.roomType
     )
 
     const canSelectRoom = computed(() =>
-        existsRoom.value.includes('gameMode')
+        canSelectGameMode.value && !!filters.gameMode
     )
 
-    const roomCtnPrice = computed<number>(() =>
+    const noRoomsForDate = computed(() =>
+        !!filters.date &&
+        existsRoom.value === false &&
+        !loadingRooms.value
+    )
+
+    const roomCtnPrice = computed(() =>
         Number(selectedRoom.value?.config?.card_price_usd ?? 0)
     )
 
-    const totalAmount = computed<number>(() =>
+    const totalAmount = computed(() =>
         roomCtnPrice.value * numCtns.value
     )
 
-    const sellerCommission = computed<number>(() =>
+    const sellerCommission = computed(() =>
         totalAmount.value * (commission.value / 100)
     )
 
-    const commerceAmount = computed<number>(() =>
+    const commerceAmount = computed(() =>
         totalAmount.value - sellerCommission.value
     )
 
-    const isFormValid = computed<boolean>(() => {
+    const isFormValid = computed(() => {
         if (!selectedRoom.value) return false
 
         return (
@@ -85,9 +90,9 @@ export function useBingoGenerateCard() {
             selectedCountry.value !== null &&
             numCtns.value >= 1 &&
             numCtns.value <= 40 &&
-            player.phone.trim().length > 0 &&
-            player.name.trim().length > 0 &&
-            player.lastName.trim().length > 0
+            player.phone.trim() &&
+            player.name.trim() &&
+            player.lastName.trim()
         )
     })
 
@@ -99,94 +104,47 @@ export function useBingoGenerateCard() {
         player.lastName = ''
     }
 
-    function resetRoomSelection() {
+    function resetRoomState() {
         selectedRoom.value = null
-        resetFormDetails()
-    }
-
-    function resetFormDetails() {
-        numCtns.value = 1
         selectedCountry.value = null
         countries.value = []
+        numCtns.value = 1
         resetPlayer()
     }
 
-    function resetFiltersFrom(step: RoomStep) {
-        if (step === 'date') {
-            filters.roomType = null
-            filters.gameMode = null
-        }
-
-        if (step === 'roomType') {
-            filters.gameMode = null
-        }
-
+    function resetRooms() {
         rooms.value = []
-        existsRoom.value = []
-        resetRoomSelection()
-    }
-
-    function resetAfterSuccess() {
-        resetFormDetails()
+        existsRoom.value = null
+        resetRoomState()
     }
 
     /* ───────────────── WATCHERS ───────────────── */
 
-    const debouncedFetch = useDebounceFn(fetchRooms, 300)
+    const debouncedFetchRooms = useDebounceFn(fetchRooms, 300)
 
-    // 1️⃣ Cuando cambia la fecha → reset total
-    watch(() => filters.date, (newValue, oldValue) => {
-        if (newValue === oldValue) return
+    watch(
+        () => [filters.date, filters.roomType, filters.gameMode],
+        () => {
+            resetRooms()
 
-        resetFiltersFrom('date')
+            if (!filters.date) return
+            debouncedFetchRooms()
+        }
+    )
 
-        if (!newValue) return
-
-        debouncedFetch()
-    })
-
-    // 2️⃣ Cuando cambia roomType → reset gameMode
-    watch(() => filters.roomType, (newValue, oldValue) => {
-        if (newValue === oldValue) return
-
-        resetFiltersFrom('roomType')
-
-        if (!filters.date) return
-
-        debouncedFetch()
-    })
-
-    // 3️⃣ Cuando cambia gameMode → solo recalcula rooms
-    watch(() => filters.gameMode, (newValue, oldValue) => {
-        if (newValue === oldValue) return
-
-        rooms.value = []
-        existsRoom.value = []
-        resetRoomSelection()
-
-        if (!filters.date) return
-
-        debouncedFetch()
-    })
-
-    // 4️⃣ Cuando cambia la sala → cargar países
     watch(selectedRoom, async (room) => {
-        resetFormDetails()
+        selectedCountry.value = null
+        countries.value = []
+        numCtns.value = 1
+        resetPlayer()
 
         if (!room) return
-
         await fetchCountries(room.id)
     })
 
     /* ───────────────── API ───────────────── */
 
-    async function fetchRooms(): Promise<void> {
-        if (!filters.date) {
-            rooms.value = []
-            existsRoom.value = []
-            return
-        }
-
+    async function fetchRooms() {
         const currentToken = ++fetchToken
         loadingRooms.value = true
 
@@ -206,43 +164,21 @@ export function useBingoGenerateCard() {
 
             const response = data.data
 
-            const steps: RoomStep[] = ['date']
-
-            if (filters.roomType) {
-                if (!response.exists) {
-                    rooms.value = []
-                    existsRoom.value = steps
-                    return
-                }
-                steps.push('roomType')
-            }
-
-            if (filters.gameMode) {
-                if (!response.exists) {
-                    rooms.value = []
-                    console.log('steps', steps)
-
-                    existsRoom.value = steps
-
-                    return
-                }
-                steps.push('gameMode')
-            }
-
+            existsRoom.value = response.exists
             rooms.value = response.rooms ?? []
-            existsRoom.value = steps
 
         } catch (error: any) {
             if (currentToken !== fetchToken) return
 
+            existsRoom.value = false
             rooms.value = []
-            existsRoom.value = []
 
             showToast(
                 error?.response?.data?.message ??
                 'No se pudieron cargar las salas.',
                 'error'
             )
+
         } finally {
             if (currentToken === fetchToken) {
                 loadingRooms.value = false
@@ -250,7 +186,7 @@ export function useBingoGenerateCard() {
         }
     }
 
-    async function fetchCountries(roomId: string): Promise<void> {
+    async function fetchCountries(roomId: string) {
         loadingCountries.value = true
 
         try {
@@ -259,12 +195,15 @@ export function useBingoGenerateCard() {
             )
 
             countries.value = data.countries ?? []
+
         } catch {
             countries.value = []
+
             showToast(
                 'No se pudieron cargar los países disponibles.',
                 'error'
             )
+
         } finally {
             loadingCountries.value = false
         }
@@ -293,15 +232,19 @@ export function useBingoGenerateCard() {
             )
 
             showToast(data.message, 'success')
-            resetAfterSuccess()
+            resetRoomState()
+
             return true
+
         } catch (error: any) {
             showToast(
                 error?.response?.data?.message ??
                 'Error al generar cartones.',
                 'error'
             )
+
             return false
+
         } finally {
             loading.value = false
         }
@@ -312,19 +255,22 @@ export function useBingoGenerateCard() {
     return {
         filters,
         rooms,
+        countries,
+
         selectedRoom,
         selectedCountry,
         numCtns,
-        countries,
+        player,
+
         loading,
         loadingRooms,
         loadingCountries,
-        player,
-        existsRoom,
 
+        existsRoom,
         canSelectRoomType,
         canSelectGameMode,
         canSelectRoom,
+        noRoomsForDate,
 
         roomCtnPrice,
         totalAmount,
@@ -332,7 +278,6 @@ export function useBingoGenerateCard() {
         commerceAmount,
         isFormValid,
 
-        fetchRooms,
         generate
     }
 }

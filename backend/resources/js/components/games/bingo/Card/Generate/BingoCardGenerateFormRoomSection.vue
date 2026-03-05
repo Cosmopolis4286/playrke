@@ -2,141 +2,126 @@
   import { computed } from 'vue'
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
-
-  import type { Room, RoomStep } from '@/js/types/games/bingo/card/bingo-card-generate'
   import type { SelectOption } from '@/js/types/common/form/form'
-
-  /* ───────────────── Props ───────────────── */
+  import type { Room } from '@/js/types/games/bingo/card/bingo-card-generate'
 
   const props = defineProps<{
-    canSelectRoomType: boolean
-    canSelectGameMode: boolean
-    canSelectRoom: boolean
-    rooms: Room[]
-    selectedRoom: Room | null
-    roomCtnPrice: number
     date: string
     roomType: string | null
     gameMode: string | null
+
+    rooms: Room[]
+    selectedRoom: Room | null
+
     roomTypeOptions: SelectOption[]
     gameModeOptions: SelectOption[]
-    existsRoom: RoomStep[]
+
+    canSelectRoomType: boolean
+    canSelectGameMode: boolean
+    canSelectRoom: boolean
+
+    loadingRooms: boolean
+    noRoomsForDate: boolean
   }>()
 
-  /* ───────────────── Emits ───────────────── */
-
   const emit = defineEmits<{
-    (e: 'update:selectedRoom', value: Room | null): void
     (e: 'update:date', value: string): void
     (e: 'update:roomType', value: string | null): void
     (e: 'update:gameMode', value: string | null): void
+    (e: 'update:selectedRoom', value: Room | null): void
   }>()
-
-  /* ───────────────── Computed ───────────────── */
 
   const minDate = computed(() => new Date().toISOString().split('T')[0])
 
-  const roomOptions = computed<SelectOption[]>(() =>
-    props.rooms.map(room => ({
-      value: room.id,
-      label: room.uuid_code
-    }))
-  )
+  /* helpers para evitar errores TS en template */
 
-  /**
-   * Proxy limpio para v-model
-   */
-  const selectedRoomId = computed({
-    get: () => props.selectedRoom?.id ?? null,
-    set: (id: string | null) => {
-      const room = props.rooms.find(r => r.id === id) ?? null
+  function handleDate(e: Event) {
+    const value = (e.target as HTMLInputElement).value
+    emit('update:date', value)
+  }
 
-      emit('update:selectedRoom', room)
-    }
-  })
+  function handleRoomType(e: Event) {
+    const value = (e.target as HTMLSelectElement).value || null
+    emit('update:roomType', value)
+  }
+
+  function handleGameMode(e: Event) {
+    const value = (e.target as HTMLSelectElement).value || null
+    emit('update:gameMode', value)
+  }
+
+  function handleRoom(e: Event) {
+    const value = (e.target as HTMLSelectElement).value
+    const room = props.rooms.find(r => r.id === value) ?? null
+    emit('update:selectedRoom', room)
+  }
 </script>
 
 <template>
-  <div class="row">
-    <!-- Fecha -->
-    <FormInput
-      label="Fecha"
-      name="date"
-      type="date"
-      required
-      :min="minDate"
-      col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="date"
-      @update:modelValue="emit('update:date', $event)"
-    />
+  <!-- Fecha -->
 
-    <div v-if="date && !existsRoom.includes('date')" class="alert alert-info">
-      No existen salas disponibles para la fecha
-    </div>
+  <FormInput
+    label="Fecha"
+    name="date"
+    type="date"
+    required
+    :min="minDate"
+    col="col-sm-6 col-md-4 col-lg-3"
+    :modelValue="date"
+    @input="handleDate"
+  />
 
-    <!-- Tipo de Sala -->
-    <FormSelect
-      v-if="canSelectRoomType"
-      label="Tipo de Sala"
-      name="room_type"
-      required
-      placeholder="Selecciona tipo"
-      :options="roomTypeOptions"
-      optionValue="value"
-      optionLabel="label"
-      col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="roomType"
-      @update:modelValue="emit('update:roomType', $event)"
-    />
+  <!-- Loading -->
 
-    <div v-if="date && roomType && !existsRoom.includes('roomType')" class="alert alert-info">
-      No existen salas disponibles para el tipo de sala
-    </div>
+  <div v-if="loadingRooms" class="my-3 text-center">
+    <div class="spinner-border" role="status" />
+  </div>
 
-    <!-- Modo de Juego -->
-    <FormSelect
-      v-if="roomType && canSelectRoomType"
-      label="Modo de Juego"
-      name="game_mode"
-      required
-      placeholder="Selecciona modo"
-      :options="gameModeOptions"
-      optionValue="value"
-      optionLabel="label"
-      col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="gameMode"
-      @update:modelValue="emit('update:gameMode', $event)"
-    />
+  <!-- Sin salas -->
 
-    <div
-      v-if="date && roomType && gameMode && !existsRoom.includes('gameMode')"
-      class="alert alert-info"
-    >
-      No existen salas disponibles para el modo de juego
-    </div>
+  <div v-else-if="noRoomsForDate" class="alert alert-warning">
+    No hay salas disponibles para la fecha seleccionada.
+  </div>
 
-    <!-- Sala -->
-    <FormSelect
-      v-if="gameMode && canSelectRoom"
-      label="Sala de Bingo"
-      name="room_id"
-      :options="roomOptions"
-      optionValue="value"
-      optionLabel="label"
-      placeholder="Seleccione una sala"
-      col="col-12 col-md-6"
-      v-model="selectedRoomId"
-    />
+  <!-- Tipo de sala -->
 
-    <!-- Precio -->
-    <FormInput
-      v-if="selectedRoom"
-      label="Precio Cartón (USD)"
-      name="room_price"
-      type="number"
-      col="col-6 col-md-3"
-      :modelValue="roomCtnPrice"
-      readonly
-    />
+  <div v-if="canSelectRoomType" class="mb-3">
+    <label class="form-label">Tipo de sala</label>
+
+    <select class="form-select" :value="roomType" @change="handleRoomType">
+      <option :value="null">Seleccionar</option>
+
+      <option v-for="option in roomTypeOptions" :key="option.value" :value="option.value">
+        {{ option.label }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Modo de juego -->
+
+  <div v-if="canSelectGameMode" class="mb-3">
+    <label class="form-label">Modo de juego</label>
+
+    <select class="form-select" :value="gameMode" @change="handleGameMode">
+      <option :value="null">Seleccionar</option>
+
+      <option v-for="option in gameModeOptions" :key="option.value" :value="option.value">
+        {{ option.label }}
+      </option>
+    </select>
+  </div>
+
+  <!-- Selección de sala -->
+
+  <div v-if="canSelectRoom" class="mb-3">
+    <label class="form-label">Sala</label>
+
+    <select class="form-select" :value="selectedRoom?.id ?? null" @change="handleRoom">
+      <option :value="null">Seleccionar</option>
+
+      <option v-for="room in rooms" :key="room.id" :value="room.id">
+        {{ room.uuid_code }}
+      </option>
+    </select>
   </div>
 </template>

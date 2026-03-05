@@ -20,20 +20,24 @@
     numCtns,
     selectedCountry,
     countries,
-    loadingCountries,
-    player,
-    loading,
 
-    existsRoom,
+    loading,
+    loadingRooms,
+    loadingCountries,
+
+    player,
+
     canSelectRoomType,
     canSelectGameMode,
     canSelectRoom,
+    noRoomsForDate,
 
     roomCtnPrice,
     totalAmount,
     sellerCommission,
     commerceAmount,
     isFormValid,
+
     generate
   } = useBingoGenerateCard()
 
@@ -60,7 +64,8 @@
       :game-mode="filters.gameMode"
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"
-      :exists-room="existsRoom"
+      :loading-rooms="loadingRooms"
+      :no-rooms-for-date="noRoomsForDate"
       @update:date="filters.date = $event"
       @update:roomType="filters.roomType = $event"
       @update:gameMode="filters.gameMode = $event"
