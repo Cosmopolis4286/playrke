@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Roles\AdminController;
 use App\Http\Controllers\Roles\Admin\AdminCommerceController;
 use App\Http\Controllers\Roles\Admin\AdminCustomerController;
+use App\Http\Controllers\Roles\Admin\AdminPlayerController;
 use App\Http\Controllers\Roles\Admin\AdminTreasurerController;
 use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
 
@@ -41,6 +42,11 @@ Route::middleware('auth')->group(function () {
                 'method' => 'get',
                 'uri'    => 'commerces',
                 'action' => 'commerces',
+            ],
+            'players' => [
+                'method' => 'get',
+                'uri'    => 'players',
+                'action' => 'players',
             ],
             'sellers' => [
                 'method' => 'get',
@@ -118,8 +124,9 @@ Route::middleware('auth')->group(function () {
         ]
     ];
 
-    role_protected_routes(['role:admin'], 'admin/commerce', AdminCommerceController::class, $adminCrudRoutes, 'commerce');
-    role_protected_routes(['role:admin'], 'admin/customer', AdminCustomerController::class, $adminCrudRoutes, 'customer');
+    role_protected_routes(['role:admin'], 'admin/commerce',  AdminCommerceController::class,  $adminCrudRoutes, 'commerce');
+    role_protected_routes(['role:admin'], 'admin/customer',  AdminCustomerController::class,  $adminCrudRoutes, 'customer');
+    role_protected_routes(['role:admin'], 'admin/player',    AdminPlayerController::class,    $adminCrudRoutes, 'player');
     role_protected_routes(['role:admin'], 'admin/treasurer', AdminTreasurerController::class, $adminCrudRoutes, 'commerce');
 
     // Generación de llave de conexión para Customer

@@ -11,9 +11,10 @@ final class AdminContextService
     use HashedTableDataTrait;
 
     public function __construct(
-        private readonly \App\Services\Roles\Admin\Commerce\AdminCommerceContextService $commerceContextService,
-        private readonly \App\Services\Roles\Admin\Customer\AdminCustomerContextService $customerContextService,
-        private readonly \App\Services\Roles\Seller\Manager\ManagerSellerContextService $sellerContextService,
+        private readonly \App\Services\Roles\Admin\Commerce\AdminCommerceContextService  $commerceContextService,
+        private readonly \App\Services\Roles\Admin\Customer\AdminCustomerContextService  $customerContextService,
+        private readonly \App\Services\Roles\Admin\Player\AdminPlayerContextService     $playerContextService,
+        private readonly \App\Services\Roles\Seller\Manager\ManagerSellerContextService  $sellerContextService,
         private readonly \App\Services\Roles\Admin\Treasurer\AdminTreasurerContextService $treasurerContextService,
     ) {}
 
@@ -28,11 +29,12 @@ final class AdminContextService
     public function resolve(string $context): ContextDTO
     {
         return match ($context) {
-            'commerces' => $this->commerceContextService->commerceContext(),
-            'customers' => $this->customerContextService->customerContext(),
-            'sellers' => $this->sellerContextService->resolve(),
+            'commerces'  => $this->commerceContextService->commerceContext(),
+            'customers'  => $this->customerContextService->customerContext(),
+            'players'    => $this->playerContextService->playerContext(),
+            'sellers'    => $this->sellerContextService->resolve(),
             'treasurers' => $this->treasurerContextService->treasurerContext(),
-            default => throw new DomainException('Tipo Rol inválido, no existe el contexto'),
+            default      => throw new DomainException('Tipo Rol inválido, no existe el contexto'),
         };
     }
 }

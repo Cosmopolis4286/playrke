@@ -1,9 +1,9 @@
 <script setup lang="ts">
   /**
-   * Página Admin → Comercializadoras
+   * Página Admin → Jugadores
    */
 
-  import { computed, watch } from 'vue'
+  import { computed } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -11,7 +11,7 @@
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import AdminCommerceForm from '@/js/Components/Roles/Admin/Commerce/AdminCommerceForm.vue'
+  import AdminPlayerForm from '@/js/Components/Roles/Admin/Player/AdminPlayerForm.vue'
 
   // ==========================================================================
   // Composables
@@ -19,13 +19,13 @@
 
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
-  import { useAdminCommerce } from '@/js/composables/roles/admin/commerce/useAdminCommerce'
+  import { useAdminPlayer } from '@/js/composables/roles/admin/player/useAdminPlayer'
 
   // ==========================================================================
   // Types
   // ==========================================================================
 
-  import type { AdminCommercePageProps } from '@js/types/roles/admin/admin-commerce'
+  import type { AdminPlayerPageProps } from '@js/types/roles/admin/admin-player'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
 
@@ -33,25 +33,25 @@
   // Props (Inertia)
   // ==========================================================================
 
-  const props = defineProps<AdminCommercePageProps>()
+  const props = defineProps<AdminPlayerPageProps>()
 
   // ==========================================================================
   // Lógica de negocio
   // ==========================================================================
 
   const {
-    commerceData,
-    commerces,
-    setInitialCommerces,
+    playerData,
+    players,
+    setInitialPlayers,
     create,
     edit,
     toggleStatusBulk,
     resetPassword,
     removeBulk,
     submit
-  } = useAdminCommerce()
+  } = useAdminPlayer()
 
-  setInitialCommerces(props.commerces.rows)
+  setInitialPlayers(props.players.rows)
 
   // ==========================================================================
   // Modal + Form handler
@@ -60,10 +60,10 @@
   const {
     showModalForm,
     modalTitle,
-    formRef: adminCommerceFormRef,
+    formRef: adminPlayerFormRef,
     handleSubmit
-  } = useModalForm(commerceData, submit, {
-    defaultTitle: 'Comercializadora'
+  } = useModalForm(playerData, submit, {
+    defaultTitle: 'Jugador'
   })
 
   // ==========================================================================
@@ -78,11 +78,8 @@
 
     edit: async ids => {
       if (!ids || ids.length !== 1) return
-
       const ok = await edit(ids[0])
-      if (ok) {
-        showModalForm.value = true
-      }
+      if (ok) showModalForm.value = true
     },
 
     delete: async ids => {
@@ -94,6 +91,7 @@
       if (!ids) return
       await toggleStatusBulk(ids)
     },
+
     resetPassword: async ids => {
       if (!ids || ids.length !== 1) return
       await resetPassword(ids[0])
@@ -134,30 +132,19 @@
   // Botones extra
   // ==========================================================================
 
-  /**
-   * Verifica si el botón resetPassword debe mostrarse.
-   * Solo visible cuando hay exactamente 1 elemento seleccionado.
-   */
   function isResetPasswordVisible(selectedIds: string[]): boolean {
     return selectedIds.length === 1
   }
 
-  /**
-   * Verifica si el botón resetPassword debe estar deshabilitado.
-   * Deshabilitado cuando el elemento seleccionado no está en status ACTIVE.
-   */
   function isResetPasswordDisabled(selectedIds: string[]): boolean {
-    const commerce = commerces.value.find(c => c.id === selectedIds[0])
-    return commerce?.status !== 'ACTIVE'
+    const player = players.value.find(p => p.id === selectedIds[0])
+    return player?.status !== 'ACTIVE'
   }
 
-  /**
-   * Retorna la razón por la cual resetPassword está deshabilitado.
-   */
   function getResetPasswordDisabledReason(selectedIds: string[]): string {
-    const commerce = commerces.value.find(c => c.id === selectedIds[0])
-    if (commerce?.status !== 'ACTIVE') {
-      return 'Solo se puede resetear la contraseña de comercializadoras activas'
+    const player = players.value.find(p => p.id === selectedIds[0])
+    if (player?.status !== 'ACTIVE') {
+      return 'Solo se puede resetear la contraseña de jugadores activos'
     }
     return ''
   }
@@ -182,10 +169,10 @@
 
 <template>
   <TableWithFilterBridge
-    tableId="commerce-table"
-    title="Comercializadoras"
-    :columns="props.commerces.columns"
-    :rows="commerces"
+    tableId="player-table"
+    title="Jugadores"
+    :columns="props.players.columns"
+    :rows="players"
     :filters="filters"
     search-placeholder="Buscar por nombre, email, teléfono..."
     showCreateButton
@@ -200,15 +187,13 @@
     static
     show-confirm
     :on-submit="handleSubmit"
-    :confirm-disabled="!(adminCommerceFormRef?.isValid ?? false)"
+    :confirm-disabled="!(adminPlayerFormRef?.isValid ?? false)"
   >
-    <AdminCommerceForm
-      ref="adminCommerceFormRef"
-      v-model="commerceData"
+    <AdminPlayerForm
+      ref="adminPlayerFormRef"
+      v-model="playerData"
       :countries="props.countries"
-      :currencies="props.currencies"
       :time-zones="props.timeZones"
-      :games="props.games"
     />
   </Modal>
 </template>
