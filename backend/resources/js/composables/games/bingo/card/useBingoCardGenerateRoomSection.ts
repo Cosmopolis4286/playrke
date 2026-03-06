@@ -67,31 +67,45 @@ export function useBingoCardGenerateRoomSection() {
 
     /* ───────── COMPUTED ───────── */
 
-    const canSelectRoomType = computed(() =>
+    /** El fetch está en curso. */
+    const isLoading = computed(() => roomStepStatus.value === 'loading')
+
+    /**
+     * Visibilidad: fecha elegida y el primer fetch terminó con al menos un resultado.
+     * Se mantiene visible (disabled durante loading) mientras haya roomType elegido.
+     */
+    const showRoomType = computed(() =>
         !!filters.date &&
         (roomStepStatus.value === 'ready' ||
-         roomStepStatus.value === 'loading' ||
-         roomStepStatus.value === 'noDateRooms' ||
          roomStepStatus.value === 'noRoomTypeRooms' ||
          roomStepStatus.value === 'noGameModeRooms' ||
-         roomStepStatus.value === 'noPrizePoolTypeRooms')
+         roomStepStatus.value === 'noPrizePoolTypeRooms' ||
+         (roomStepStatus.value === 'loading' && !!filters.roomType))
     )
 
-    const canSelectGameMode = computed(() =>
+    /**
+     * Visibilidad: roomType elegido y el fetch de roomType fue exitoso.
+     * Se oculta si no hay salas para el tipo de sala.
+     * Se mantiene visible (disabled durante loading) mientras haya gameMode elegido.
+     */
+    const showGameMode = computed(() =>
         !!filters.roomType &&
         (roomStepStatus.value === 'ready' ||
-         roomStepStatus.value === 'loading' ||
-         roomStepStatus.value === 'noRoomTypeRooms' ||
          roomStepStatus.value === 'noGameModeRooms' ||
-         roomStepStatus.value === 'noPrizePoolTypeRooms')
+         roomStepStatus.value === 'noPrizePoolTypeRooms' ||
+         (roomStepStatus.value === 'loading' && !!filters.gameMode))
     )
 
-    const canSelectPrizePoolType = computed(() =>
+    /**
+     * Visibilidad: gameMode elegido y el fetch de gameMode fue exitoso.
+     * Se oculta si no hay salas para el modo de juego.
+     * Se mantiene visible (disabled durante loading) mientras haya prizePoolType elegido.
+     */
+    const showPrizePoolType = computed(() =>
         !!filters.gameMode &&
         (roomStepStatus.value === 'ready' ||
-         roomStepStatus.value === 'loading' ||
-         roomStepStatus.value === 'noGameModeRooms' ||
-         roomStepStatus.value === 'noPrizePoolTypeRooms')
+         roomStepStatus.value === 'noPrizePoolTypeRooms' ||
+         (roomStepStatus.value === 'loading' && !!filters.prizePoolType))
     )
 
     /**
@@ -150,8 +164,10 @@ export function useBingoCardGenerateRoomSection() {
             filters.prizePoolType = null
             rooms.value = []
             selectedRoom.value = null
-            if (!filters.date || !filters.roomType) return
-            roomStepStatus.value = 'loading'
+            if (!filters.date || !filters.roomType) {
+                roomStepStatus.value = 'idle'
+                return
+            }
             debouncedFetchRooms()
         }
     )
@@ -261,10 +277,11 @@ export function useBingoCardGenerateRoomSection() {
         selectedRoom,
         selectedRoomId,
         loadingRooms,
+        isLoading,
         roomAlert,
-        canSelectRoomType,
-        canSelectGameMode,
-        canSelectPrizePoolType,
+        showRoomType,
+        showGameMode,
+        showPrizePoolType,
         canSelectRoom,
     }
 }
