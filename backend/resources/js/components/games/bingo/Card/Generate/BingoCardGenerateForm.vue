@@ -1,53 +1,38 @@
 <script setup lang="ts" name="GameBingoCardGenerateForm">
+  import { ref, computed } from 'vue'
   import BingoCardGenerateFormRoomSection from './BingoCardGenerateFormRoomSection.vue'
   import BingoCardGenerateFormPlayerSection from './BingoCardGenerateFormPlayerSection.vue'
 
-  import { useBingoGenerateCard } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
+  import { useBingoCardGenerate } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
   import type { SelectOption } from '@/js/types/common/form/form'
 
-  /**
-   * Opciones configuradas desde backend
-   */
   defineProps<{
     roomTypeOptions: SelectOption[]
     gameModeOptions: SelectOption[]
   }>()
 
-  /* ───────────────── Composable ───────────────── */
+  /* ───────── Room Section ref ───────── */
+
+  const roomSectionRef = ref<InstanceType<typeof BingoCardGenerateFormRoomSection> | null>(null)
+
+  const selectedRoom = computed(() => roomSectionRef.value?.selectedRoom ?? null)
+
+  /* ───────── Composable ───────── */
 
   const {
-    filters,
-    rooms,
-
-    selectedRoom,
+    countries,
+    selectedCountry,
     numCtns,
     player,
-    selectedCountry,
-    countries,
-
     loading,
-    loadingRooms,
     loadingCountries,
-
-    roomStepStatus,
-    roomAlert,
-
-    canSelectRoomType,
-    canSelectGameMode,
-    canSelectRoom,
-
-    roomCtnPrice,
     totalAmount,
     sellerCommission,
     commerceAmount,
     isFormValid,
-
     generate
-  } = useBingoGenerateCard()
+  } = useBingoCardGenerate(selectedRoom)
 
-  /**
-   * Submit del formulario
-   */
   async function handleSubmit() {
     await generate()
   }
@@ -58,27 +43,14 @@
     <!-- ───────────── Room Section ───────────── -->
 
     <BingoCardGenerateFormRoomSection
-      v-model:date="filters.date"
-      v-model:roomType="filters.roomType"
-      v-model:gameMode="filters.gameMode"
-      v-model:selectedRoom="selectedRoom"
-      :room-step="roomStepStatus"
-         roomAlert,
-
-    canSelectRoomType,
-    canSelectGameMode,
-    canSelectRoom,
-
-    roomCtnPrice,
-      :rooms="rooms"
+      ref="roomSectionRef"
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"
-      :loading-rooms="loadingRooms"
     />
 
     <!-- ───────────── Resumen ───────────── -->
 
-    <div v-if="selectedRoom" class="row bg-light mt-2 rounded py-2">
+    <div v-if="roomSectionRef?.selectedRoom" class="row bg-light mt-2 rounded py-2">
       <div class="col-4 border-right text-center">
         <div class="text-muted small">Monto Total</div>
         <div class="h5 font-weight-bold mb-0">$ {{ totalAmount.toFixed(2) }}</div>
@@ -101,9 +73,9 @@
     <!-- ───────────── Player Section ───────────── -->
 
     <BingoCardGenerateFormPlayerSection
-      v-if="selectedRoom"
+      v-if="roomSectionRef?.selectedRoom"
       class="mt-4"
-      :selected-room="selectedRoom"
+      :selected-room="roomSectionRef.selectedRoom"
       :countries="countries"
       :loading-countries="loadingCountries"
       v-model:selectedCountry="selectedCountry"
@@ -113,10 +85,9 @@
 
     <!-- ───────────── Botón ───────────── -->
 
-    <div v-if="selectedRoom" class="mt-3 text-center">
+    <div v-if="roomSectionRef?.selectedRoom" class="mt-3 text-center">
       <button type="submit" class="btn btn-primary btn-lg px-5" :disabled="!isFormValid || loading">
         <span v-if="loading" class="spinner-border spinner-border-sm mr-2" role="status" />
-
         {{ loading ? 'Generando…' : 'Generar Cartones' }}
       </button>
     </div>

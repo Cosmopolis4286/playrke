@@ -140,7 +140,6 @@ export function useBingoCardGenerateRoomSection() {
         rooms,
         selectedRoom,
         loadingRooms,
-        roomStepStatus,
         roomAlert,
         canSelectRoomType,
         canSelectGameMode,
