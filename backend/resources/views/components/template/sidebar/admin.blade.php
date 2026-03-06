@@ -1,7 +1,7 @@
 <x-template.sidebar :userRolePrefix="$userRolePrefix" userRole="Admin">
     {{-- Slot de navegación específica para Admin --}}
     <li class="nav-item has-treeview">
-        <a href="#" class="nav-link {{ !Route::is('admin.customers', 'admin.commerces') ?: 'active' }} ">
+        <a href="#" class="nav-link {{ !Route::is('admin.*') ?: 'active' }} ">
             <i class="fa-solid fa-users-gear nav-icon"></i>
             <p>Usuarios
                 <i class="right fas fa-angle-left"></i>
@@ -36,13 +36,20 @@
                     <p>Vendedores</p>
                 </a>
             </li>
-            {{-- <li class="nav-item">
+            <li class="nav-item">
                 <a href="{{ route('admin.players') }}" title="Jugadores"
                     class="nav-link {{ !Route::is('admin.players') ?: 'active' }}"> <i
                         class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Jugadores</p>
                 </a>
-            </li> --}}
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('admin.users') }}" title="Jugadores"
+                    class="nav-link {{ !Route::is('admin.users') ?: 'active' }}"> <i
+                        class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Todos</p>
+                </a>
+            </li>
         </ul>
     </li>
 </x-template.sidebar>
