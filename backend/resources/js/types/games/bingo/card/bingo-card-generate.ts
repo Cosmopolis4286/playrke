@@ -54,3 +54,14 @@ export interface GenerateCardPayload {
         last_name: string
     }
 }
+
+/**
+ * Estado del proceso de selección de salas.
+ */
+export type RoomStepStatus =
+    | 'idle'
+    | 'loading'
+    | 'noDateRooms'
+    | 'noRoomTypeRooms'
+    | 'noGameModeRooms'
+    | 'ready'
