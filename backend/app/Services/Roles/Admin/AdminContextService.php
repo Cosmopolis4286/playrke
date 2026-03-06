@@ -11,11 +11,12 @@ final class AdminContextService
     use HashedTableDataTrait;
 
     public function __construct(
-        private readonly \App\Services\Roles\Admin\Commerce\AdminCommerceContextService  $commerceContextService,
-        private readonly \App\Services\Roles\Admin\Customer\AdminCustomerContextService  $customerContextService,
-        private readonly \App\Services\Roles\Admin\Player\AdminPlayerContextService     $playerContextService,
-        private readonly \App\Services\Roles\Admin\User\AdminUserContextService         $userContextService,
-        private readonly \App\Services\Roles\Seller\Manager\ManagerSellerContextService  $sellerContextService,
+        private readonly \App\Services\Roles\Admin\Dashboard\AdminDashboardContextService $dashboardContextService,
+        private readonly \App\Services\Roles\Admin\Commerce\AdminCommerceContextService   $commerceContextService,
+        private readonly \App\Services\Roles\Admin\Customer\AdminCustomerContextService   $customerContextService,
+        private readonly \App\Services\Roles\Admin\Player\AdminPlayerContextService       $playerContextService,
+        private readonly \App\Services\Roles\Admin\User\AdminUserContextService           $userContextService,
+        private readonly \App\Services\Roles\Seller\Manager\ManagerSellerContextService   $sellerContextService,
         private readonly \App\Services\Roles\Admin\Treasurer\AdminTreasurerContextService $treasurerContextService,
     ) {}
 
@@ -30,6 +31,7 @@ final class AdminContextService
     public function resolve(string $context): ContextDTO
     {
         return match ($context) {
+            'dashboard'  => $this->dashboardContextService->dashboardContext(),
             'commerces'  => $this->commerceContextService->commerceContext(),
             'customers'  => $this->customerContextService->customerContext(),
             'players'    => $this->playerContextService->playerContext(),

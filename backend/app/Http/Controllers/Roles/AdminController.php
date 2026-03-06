@@ -27,9 +27,14 @@ class AdminController extends Controller
      */
     public function dashboard(): Response
     {
-        return Inertia::render('modules/users/roles/admin/Dashboard', [
-            'title' => 'Dashboard Admin',
-        ]);
+        return $this->handleServiceInertia(
+            function () {
+                $response = $this->service->context('dashboard');
+                $response['title'] = 'Dashboard';
+                return Inertia::render('Roles/Admin/Dashboard/Index', $response);
+            },
+            'No se pudo cargar el dashboard.'
+        );
     }
 
     /**
