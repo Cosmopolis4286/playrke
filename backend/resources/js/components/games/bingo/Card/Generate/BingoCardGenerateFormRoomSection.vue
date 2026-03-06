@@ -22,7 +22,8 @@
     roomAlert,
     canSelectRoomType,
     canSelectGameMode,
-    canSelectRoom
+    canSelectPrizePoolType,
+    canSelectRoom,
   } = useBingoCardGenerateRoomSection()
 
   const minDate = computed(() => new Date().toISOString().split('T')[0])
@@ -31,6 +32,12 @@
 </script>
 
 <template>
+  <div class="position-relative">
+    <!-- Loader -->
+    <div v-if="loadingRooms" class="position-absolute" style="top: 0; right: 0;">
+      <div class="spinner-border spinner-border-sm text-secondary" role="status" />
+    </div>
+
   <div class="row">
     <!-- Fecha -->
 
@@ -73,7 +80,7 @@
     <!-- Tipo de Bote -->
 
     <FormSelect
-      v-if="canSelectGameMode"
+      v-if="canSelectPrizePoolType"
       label="Tipo de Bote"
       name="prize_pool_type"
       :options="props.prizePoolTypeOptions"
@@ -83,15 +90,9 @@
       v-model="filters.prizePoolType"
     />
 
-    <!-- Loader -->
-
-    <div v-if="loadingRooms" class="col-12 my-3 text-center">
-      <div class="spinner-border" role="status" />
-    </div>
-
     <!-- Alert -->
 
-    <div v-else-if="roomAlert" class="col-12">
+    <div v-if="roomAlert" class="col-12">
       <div class="alert alert-warning my-2">{{ roomAlert }}</div>
     </div>
 
@@ -107,5 +108,6 @@
       col="col-12"
       v-model="selectedRoomId"
     />
+  </div>
   </div>
 </template>

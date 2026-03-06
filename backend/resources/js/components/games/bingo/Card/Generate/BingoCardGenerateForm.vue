@@ -9,6 +9,7 @@
   defineProps<{
     roomTypeOptions: SelectOption[]
     gameModeOptions: SelectOption[]
+    prizePoolTypeOptions: SelectOption[]
   }>()
 
   /* ───────── Room Section ref ───────── */
@@ -46,6 +47,7 @@
       ref="roomSectionRef"
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"
+      :prize-pool-type-options="prizePoolTypeOptions"
     />
 
     <!-- ───────────── Resumen ───────────── -->

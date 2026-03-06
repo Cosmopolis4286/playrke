@@ -28,6 +28,16 @@
       label: g.label
     }))
   })
+
+  /**
+   * Opciones para tipos de bote.
+   */
+  const prizePoolTypeOptions = computed(() => {
+    return (props.prizePoolTypes ?? []).map(p => ({
+      value: String(p.id),
+      label: p.label
+    }))
+  })
 </script>
 
 <template>
@@ -38,6 +48,7 @@
       <BingoCardGenerateForm
         :room-type-options="roomTypeOptions"
         :game-mode-options="gameModeOptions"
+        :prize-pool-type-options="prizePoolTypeOptions"
       />
     </div>
   </div>

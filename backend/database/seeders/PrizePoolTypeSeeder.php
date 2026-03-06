@@ -13,7 +13,7 @@ class PrizePoolTypeSeeder extends Seeder
             ['code' => 'ACCUMULATIVE', 'label' => 'Bote Acumulativo'],
             ['code' => 'FIXED',        'label' => 'Bote Fijo'],
             ['code' => 'MIXED',        'label' => 'Bote Mixto'],
-            ['code' => 'PRIZE',        'label' => 'Premio o Servicio'],
+            ['code' => 'PRIZE',        'label' => 'Premio/Servicio'],
         ];
 
         foreach ($types as $type) {
