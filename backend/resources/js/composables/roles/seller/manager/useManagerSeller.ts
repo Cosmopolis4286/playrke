@@ -63,7 +63,8 @@ const emptySeller = (): Partial<Seller> =>
         phone: '',
         currency_id: null,
         other_currencies: [],
-        allowed_games: []
+        allowed_games: [],
+        manager_user_id: null
     })
 
 /**

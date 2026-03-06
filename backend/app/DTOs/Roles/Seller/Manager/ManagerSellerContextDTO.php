@@ -15,6 +15,7 @@ final class ManagerSellerContextDTO implements ContextDTO
         public readonly Collection $currencies,
         public readonly Collection $games,
         public readonly Collection $timeZones,
+        public readonly string $roleUser,
     ) {}
 
     public function toView(): array
@@ -26,6 +27,7 @@ final class ManagerSellerContextDTO implements ContextDTO
             'currencies'            => $this->currencies,
             'games'                 => $this->games,
             'timeZones'             => $this->timeZones,
+            'roleUser'              => $this->roleUser
         ];
     }
 }

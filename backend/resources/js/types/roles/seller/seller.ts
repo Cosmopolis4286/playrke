@@ -12,5 +12,6 @@ export interface Seller {
     readonly username: string,
     readonly email: string,
     readonly other_currencies?: number[],
-    readonly allowed_games?: number[]
+    readonly allowed_games?: number[],
+    readonly manager_user_id?: number | string | null
 }

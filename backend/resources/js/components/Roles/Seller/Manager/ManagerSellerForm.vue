@@ -15,6 +15,7 @@
   import type { TimeZone } from '@/js/types/time-zone'
   import type { Game } from '@/js/types/game'
   import type { Seller } from '@/js/types/roles/seller/seller'
+  import type { ManagerOption } from '@/js/types/roles/seller/manager/manager-seller'
 
   /* ==========================================================================
    * Props
@@ -25,6 +26,7 @@
     currencies: Currency[]
     timeZones: TimeZone[]
     games: Game[]
+    roleUser: string
     modelValue: Partial<Seller>
   }>()
 
@@ -41,7 +43,7 @@
    * Form logic
    * ========================================================================== */
 
-  const { form, errors, isValid } = useManagerSellerForm(() => props.modelValue, emit)
+  const { form, errors, isValid } = useManagerSellerForm(() => props.modelValue, emit, () => props.roleUser)
 
   /* ==========================================================================
    * Máscara comisión
@@ -58,6 +60,42 @@
     normalizeZeros: true,
     thousandsSeparator: ''
   }
+
+  /* ==========================================================================
+   * Admin — lista de managers (commerces activos)
+   * ========================================================================== */
+
+  const managers = ref<ManagerOption[]>([])
+  const loadingManagers = ref(false)
+
+  async function fetchManagers(): Promise<void> {
+    if (props.roleUser !== 'admin') return
+    try {
+      loadingManagers.value = true
+      const { default: backendClient } = await import('@/js/plugins/axios')
+      const { data } = await backendClient.get<ManagerOption[]>('/admin/get-user-info/commerce')
+      managers.value = Array.isArray(data) ? data : []
+    } catch {
+      managers.value = []
+    } finally {
+      loadingManagers.value = false
+    }
+  }
+
+  if (props.roleUser === 'admin') {
+    fetchManagers()
+  }
+
+  /* ==========================================================================
+   * Visibilidad del formulario del seller
+   * Para admin: solo mostrar si ya seleccionó un manager
+   * Para otros roles: siempre mostrar
+   * ========================================================================== */
+
+  const showSellerForm = computed<boolean>(() => {
+    if (props.roleUser !== 'admin') return true
+    return !!form.value.manager_user_id
+  })
 
   /* ==========================================================================
    * Teléfono — usePhoneField
@@ -192,7 +230,23 @@
 
 <template>
   <form id="seller-form" novalidate @submit.prevent="submit">
-    <div class="row">
+    <div v-if="roleUser === 'admin'" class="row mb-3">
+      <FormSelect
+        label="Manager (Commerce)"
+        name="manager_user_id"
+        required
+        placeholder="Seleccionar manager"
+        :options="managers"
+        optionValue="id"
+        optionLabel="name"
+        col="col-sm-12"
+        :error="errors.manager_user_id"
+        :disabled="loadingManagers"
+        v-model="form.manager_user_id"
+      />
+    </div>
+
+    <div v-if="showSellerForm" class="row">
       <FormInput
         label="Razon Social"
         name="name"

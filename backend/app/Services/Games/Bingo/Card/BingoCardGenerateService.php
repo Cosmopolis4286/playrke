@@ -114,10 +114,11 @@ final class BingoCardGenerateService
                 'id',
                 'uuid_code',
                 'prize_pool',
-                'creator_user_id'
+                'total_players',
+                'creator_user_id',
             ])
             ->with([
-                'config:id,room_id,room_type_id,game_mode_id,card_price_usd,date'
+                'config:id,room_id,room_type_id,game_mode_id,card_price_usd,date,time'
             ])
             ->orderByDesc('created_at')
             ->get()
@@ -125,6 +126,7 @@ final class BingoCardGenerateService
                 'id'              => $room->hashed_id,
                 'uuid_code'       => $room->uuid_code,
                 'prize_pool'      => $room->prize_pool,
+                'total_players'   => $room->total_players,
                 'creator_user_id' => $room->creator_user_id,
                 'config'          => $room->config,
             ])

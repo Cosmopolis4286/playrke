@@ -35,8 +35,6 @@
 
   const props = defineProps<ManagerSellerPageProps>()
 
-  console.log('ManagerSellerPageProps', props)
-
   // ==========================================================================
   // Lógica de negocio
   // ==========================================================================
@@ -218,6 +216,7 @@
       :currencies="props.currencies"
       :time-zones="props.timeZones"
       :games="props.games"
+      :role-user="props.roleUser"
     />
   </Modal>
 </template>

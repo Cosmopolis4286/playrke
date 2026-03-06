@@ -14,7 +14,8 @@ import type { Seller } from '@/js/types/roles/seller/seller'
  */
 export function useManagerSellerForm(
     modelValueGetter: () => Partial<Seller>,
-    emit: (event: 'update:modelValue', value: Partial<Seller>) => void
+    emit: (event: 'update:modelValue', value: Partial<Seller>) => void,
+    roleUserGetter: () => string = () => ''
 ) {
     /* =======================
      * v-model computado
@@ -39,6 +40,16 @@ export function useManagerSellerForm(
      */
     const errors = computed<Record<string, string>>(() => {
         const e: Record<string, string> = {}
+        const isAdmin = roleUserGetter() === 'admin'
+
+        if (isAdmin && !form.value.manager_user_id) {
+            e.manager_user_id = 'El manager es requerido.'
+        }
+
+        // Si es admin y aún no seleccionó manager, no validar el resto del form
+        if (isAdmin && !form.value.manager_user_id) {
+            return e
+        }
 
         if (!form.value.name) {
             e.name = 'El nombre es requerido.'

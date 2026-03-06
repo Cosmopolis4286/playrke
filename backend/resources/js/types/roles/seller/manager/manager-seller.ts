@@ -6,6 +6,11 @@ import type { Seller } from '@/js/types/roles/seller/seller'
 import type { Column } from '@/js/types/common/table/column-row'
 import type { Pagination } from '@/js/types/common/table/pagination'
 
+export interface ManagerOption {
+    id: number | string
+    name: string
+}
+
 export interface ManagerSellerPageProps {
     sellers: {
         columns: Column[],
@@ -15,5 +20,6 @@ export interface ManagerSellerPageProps {
     countries: Country[],
     currencies: Currency[],
     games: Game[],
-    timeZones: TimeZone[]
+    timeZones: TimeZone[],
+    roleUser: string
 }
