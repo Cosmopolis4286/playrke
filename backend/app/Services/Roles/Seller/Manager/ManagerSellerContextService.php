@@ -39,23 +39,32 @@ class ManagerSellerContextService
         $isAdmin = $role === 'admin';
 
         $labels = $isAdmin
-            ? ['Manejador', 'Vendedor', 'País', 'Teléfono', 'Email', 'Status']
+            ? ['Rol', 'Manejador', 'Vendedor', 'País', 'Teléfono', 'Email', 'Status']
             : ['Nombre', 'País', 'Teléfono', 'Email', 'Status'];
 
         $rowKeys = $isAdmin
-            ? ['manager_role', 'name', 'country.name', 'phone', 'User.email', 'status_badge']
+            ? ['manager_role_badge', 'manager_name', 'name', 'country.name', 'phone', 'User.email', 'status_badge']
             : ['name', 'country.name', 'phone', 'User.email', 'status_badge'];
 
-        $conditions = $isAdmin && $managerUserId
+        // Admin ve todos los sellers; commerce/customer solo los suyos
+        $conditions = !$isAdmin && $managerUserId
             ? ['manager_user_id' => $managerUserId]
             : [];
+
+        $relations = $isAdmin
+            ? ['country:id,name', 'user:id,email', 'managerCommerce:id,user_id,name']
+            : ['country:id,name', 'user:id,email'];
+
+        $fields = $isAdmin
+            ? ['id', 'country_id', 'user_id', 'manager_user_id', 'name', 'phone', 'status']
+            : ['id', 'country_id', 'user_id', 'name', 'phone', 'status'];
 
         $source = $this->sellerRepository->paginateWithRelations(
             perPage: 15,
             page: 1,
-            relations: ['country:id,name', 'user:id,email'],
+            relations: $relations,
             conditions: $conditions,
-            fields: ['id', 'country_id', 'user_id', 'name', 'phone', 'status']
+            fields: $fields
         );
 
         $isPaginator = $source instanceof LengthAwarePaginator;

@@ -162,7 +162,7 @@ trait HashedTableDataTrait
             fn(string $label, int $index) => [
                 'key'   => $this->normalizeKey($rowKeys[$index]),
                 'label' => $label,
-                'html'  => $rowKeys[$index] === 'status_badge',
+                'html'  => str_ends_with($rowKeys[$index], '_badge'),
             ]
         )->all();
     }

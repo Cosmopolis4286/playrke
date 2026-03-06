@@ -11,6 +11,7 @@ use App\Models\Pivots\Roles\Seller\SellerGame;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Modelo para vendedores
@@ -87,6 +88,31 @@ class Seller extends BaseModel
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Commerce que actúa como manager de este vendedor.
+     * Busca el commerce cuyo user_id = manager_user_id del seller.
+     */
+    public function managerCommerce(): HasOne
+    {
+        return $this->hasOne(Commerce::class, 'user_id', 'manager_user_id');
+    }
+
+    /**
+     * Accessor: nombre del manager (texto plano).
+     */
+    public function getManagerNameAttribute(): string
+    {
+        return $this->managerCommerce?->name ?? '—';
+    }
+
+    /**
+     * Accessor: rol del manager como badge HTML.
+     */
+    public function getManagerRoleBadgeAttribute(): string
+    {
+        return '<span class="badge badge-info text-white">Commerce</span>';
     }
 
     /**
