@@ -27,10 +27,20 @@ class DashboardController extends Controller
         $rolePrefix = Auth::user()?->roles?->first()?->prefix ?? 'user';
 
         return $this->handleServiceInertia(
-            fn() => Inertia::render("Roles/" . ucfirst($rolePrefix) . "/Dashboard/Index", [
-                'title' => 'Dashboard',
-                'userRole' => $rolePrefix,
-            ]),
+            function () use ($rolePrefix) {
+                $view = "Roles/" . ucfirst($rolePrefix) . "/Dashboard/Index";
+
+                try {
+                    $context = $this->service->resolve($rolePrefix . '_dashboard')->toView();
+                } catch (\Throwable) {
+                    $context = [];
+                }
+
+                return Inertia::render($view, array_merge($context, [
+                    'title'    => 'Dashboard',
+                    'userRole' => $rolePrefix,
+                ]));
+            },
             'No se pudo cargar el dashboard.'
         );
     }

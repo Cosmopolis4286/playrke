@@ -31,7 +31,7 @@ final class AdminContextService
     public function resolve(string $context): ContextDTO
     {
         return match ($context) {
-            'dashboard'  => $this->dashboardContextService->dashboardContext(),
+            'dashboard', 'admin_dashboard' => $this->dashboardContextService->dashboardContext(),
             'commerces'  => $this->commerceContextService->commerceContext(),
             'customers'  => $this->customerContextService->customerContext(),
             'players'    => $this->playerContextService->playerContext(),
