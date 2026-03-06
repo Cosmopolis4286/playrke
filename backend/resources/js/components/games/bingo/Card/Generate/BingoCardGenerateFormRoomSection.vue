@@ -2,6 +2,8 @@
   import { computed } from 'vue'
 
   import { useBingoCardGenerateRoomSection } from '@/js/composables/games/bingo/card/useBingoCardGenerateRoomSection'
+  import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
 
   import type { SelectOption } from '@/js/types/common/form/form'
 
@@ -14,6 +16,7 @@
     filters,
     rooms,
     selectedRoom,
+    selectedRoomId,
     loadingRooms,
     roomAlert,
     canSelectRoomType,
@@ -29,15 +32,15 @@
 <template>
   <!-- Fecha -->
 
-  <div class="mb-3">
-    <label class="form-label">Fecha <span class="text-danger">*</span></label>
-    <input
-      type="date"
-      class="form-control"
-      :min="minDate"
-      v-model="filters.date"
-    />
-  </div>
+  <FormInput
+    label="Fecha"
+    name="date"
+    type="date"
+    :min="minDate"
+    col="col-12 mb-3"
+    required
+    v-model="filters.date"
+  />
 
   <!-- Loader -->
 
@@ -53,43 +56,40 @@
 
   <!-- Tipo de sala -->
 
-  <div v-if="canSelectRoomType" class="mb-3">
-    <label class="form-label">Tipo de sala</label>
-
-    <select class="form-select" v-model="filters.roomType">
-      <option :value="null">Seleccionar</option>
-
-      <option v-for="option in props.roomTypeOptions" :key="option.value" :value="option.value">
-        {{ option.label }}
-      </option>
-    </select>
-  </div>
+  <FormSelect
+    v-if="canSelectRoomType"
+    label="Tipo de sala"
+    name="room_type"
+    :options="props.roomTypeOptions"
+    option-value="value"
+    option-label="label"
+    col="col-12 mb-3"
+    v-model="filters.roomType"
+  />
 
   <!-- Modo de juego -->
 
-  <div v-if="canSelectGameMode" class="mb-3">
-    <label class="form-label">Modo de juego</label>
-
-    <select class="form-select" v-model="filters.gameMode">
-      <option :value="null">Seleccionar</option>
-
-      <option v-for="option in props.gameModeOptions" :key="option.value" :value="option.value">
-        {{ option.label }}
-      </option>
-    </select>
-  </div>
+  <FormSelect
+    v-if="canSelectGameMode"
+    label="Modo de juego"
+    name="game_mode"
+    :options="props.gameModeOptions"
+    option-value="value"
+    option-label="label"
+    col="col-12 mb-3"
+    v-model="filters.gameMode"
+  />
 
   <!-- Sala -->
 
-  <div v-if="canSelectRoom" class="mb-3">
-    <label class="form-label">Sala</label>
-
-    <select class="form-select" v-model="selectedRoom">
-      <option :value="null">Seleccionar</option>
-
-      <option v-for="room in rooms" :key="room.id" :value="room">
-        {{ room.uuid_code }}
-      </option>
-    </select>
-  </div>
+  <FormSelect
+    v-if="canSelectRoom"
+    label="Sala"
+    name="room"
+    :options="rooms"
+    option-value="id"
+    option-label="uuid_code"
+    col="col-12 mb-3"
+    v-model="selectedRoomId"
+  />
 </template>
