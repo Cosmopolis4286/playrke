@@ -36,6 +36,7 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
         private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
+        private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
     ) {}
 
     /**
@@ -49,8 +50,9 @@ final class BingoCardGenerateService
     public function viewContext(int $userId): BingoCardGenerateContexDTO
     {
         return new BingoCardGenerateContexDTO(
-            gameModes: $this->gameModes->getActiveGameModes(),
-            roomTypes: $this->roomTypes->getActiveTypes()
+            gameModes:      $this->gameModes->getActiveGameModes(),
+            roomTypes:      $this->roomTypes->getActiveTypes(),
+            prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
         );
     }
 
@@ -80,9 +82,10 @@ final class BingoCardGenerateService
      */
     public function fetchRoom(array $filters): array
     {
-        $date     = $filters['date']     ?? null;
-        $roomType = $filters['roomType'] ?? null;
-        $gameMode = $filters['gameMode'] ?? null;
+        $date          = $filters['date']          ?? null;
+        $roomType      = $filters['roomType']      ?? null;
+        $gameMode      = $filters['gameMode']      ?? null;
+        $prizePoolType = $filters['prizePoolType'] ?? null;
 
         if (!$date) {
             return $this->emptyResponse();
@@ -95,7 +98,8 @@ final class BingoCardGenerateService
             ->forDate($date)
             ->accessibleBy($creatorUserId)
             ->filterRoomType($roomType)
-            ->filterGameMode($gameMode);
+            ->filterGameMode($gameMode)
+            ->filterPrizePoolType($prizePoolType);
 
         // Si no hay gameMode → solo validar existencia
         if (!$gameMode) {

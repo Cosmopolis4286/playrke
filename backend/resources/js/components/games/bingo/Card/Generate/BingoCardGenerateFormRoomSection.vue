@@ -10,6 +10,7 @@
   const props = defineProps<{
     roomTypeOptions: SelectOption[]
     gameModeOptions: SelectOption[]
+    prizePoolTypeOptions: SelectOption[]
   }>()
 
   const {
@@ -30,66 +31,81 @@
 </script>
 
 <template>
-  <!-- Fecha -->
+  <div class="row">
+    <!-- Fecha -->
 
-  <FormInput
-    label="Fecha"
-    name="date"
-    type="date"
-    :min="minDate"
-    col="col-12 mb-3"
-    required
-    v-model="filters.date"
-  />
+    <FormInput
+      label="Fecha"
+      name="date"
+      type="date"
+      :min="minDate"
+      col="col-sm-6 col-md-3"
+      required
+      v-model="filters.date"
+    />
 
-  <!-- Loader -->
+    <!-- Tipo de sala -->
 
-  <div v-if="loadingRooms" class="my-3 text-center">
-    <div class="spinner-border" role="status" />
+    <FormSelect
+      v-if="canSelectRoomType"
+      label="Tipo de sala"
+      name="room_type"
+      :options="props.roomTypeOptions"
+      option-value="value"
+      option-label="label"
+      col="col-sm-6 col-md-3"
+      v-model="filters.roomType"
+    />
+
+    <!-- Modo de juego -->
+
+    <FormSelect
+      v-if="canSelectGameMode"
+      label="Modo de juego"
+      name="game_mode"
+      :options="props.gameModeOptions"
+      option-value="value"
+      option-label="label"
+      col="col-sm-6 col-md-3"
+      v-model="filters.gameMode"
+    />
+
+    <!-- Tipo de Bote -->
+
+    <FormSelect
+      v-if="canSelectGameMode"
+      label="Tipo de Bote"
+      name="prize_pool_type"
+      :options="props.prizePoolTypeOptions"
+      option-value="value"
+      option-label="label"
+      col="col-sm-6 col-md-3"
+      v-model="filters.prizePoolType"
+    />
+
+    <!-- Loader -->
+
+    <div v-if="loadingRooms" class="col-12 my-3 text-center">
+      <div class="spinner-border" role="status" />
+    </div>
+
+    <!-- Alert -->
+
+    <div v-else-if="roomAlert" class="col-12">
+      <div class="alert alert-warning my-2">{{ roomAlert }}</div>
+    </div>
+
+    <!-- Sala -->
+
+    <FormSelect
+      v-if="canSelectRoom"
+      label="Sala"
+      name="room"
+      :options="rooms"
+      option-value="id"
+      option-label="uuid_code"
+      col="col-12"
+      v-model="selectedRoomId"
+    />
   </div>
-
-  <!-- Alert -->
-
-  <div v-else-if="roomAlert" class="alert alert-warning">
-    {{ roomAlert }}
-  </div>
-
-  <!-- Tipo de sala -->
-
-  <FormSelect
-    v-if="canSelectRoomType"
-    label="Tipo de sala"
-    name="room_type"
-    :options="props.roomTypeOptions"
-    option-value="value"
-    option-label="label"
-    col="col-12 mb-3"
-    v-model="filters.roomType"
-  />
-
-  <!-- Modo de juego -->
-
-  <FormSelect
-    v-if="canSelectGameMode"
-    label="Modo de juego"
-    name="game_mode"
-    :options="props.gameModeOptions"
-    option-value="value"
-    option-label="label"
-    col="col-12 mb-3"
-    v-model="filters.gameMode"
-  />
-
-  <!-- Sala -->
-
-  <FormSelect
-    v-if="canSelectRoom"
-    label="Sala"
-    name="room"
-    :options="rooms"
-    option-value="id"
-    option-label="uuid_code"
-    col="col-12 mb-3"
-    v-model="selectedRoomId"
-  />
 </template>

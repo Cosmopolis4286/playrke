@@ -13,14 +13,16 @@ final class BingoCardGenerateContexDTO implements ContextDTO
     public function __construct(
         public readonly Collection $gameModes,
         public readonly Collection $roomTypes,
+        public readonly Collection $prizePoolTypes,
     ) {}
 
     public function toView(): array
     {
         return [
-            'title' => 'Generar Cartones',
-            'gameModes' => $this->gameModes,
-            'roomTypes' => $this->roomTypes,
+            'title'          => 'Generar Cartones',
+            'gameModes'      => $this->gameModes,
+            'roomTypes'      => $this->roomTypes,
+            'prizePoolTypes' => $this->prizePoolTypes,
         ];
     }
 }

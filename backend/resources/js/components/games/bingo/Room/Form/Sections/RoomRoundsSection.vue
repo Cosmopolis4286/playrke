@@ -9,11 +9,7 @@
   } from '../Composables/useRoomRounds'
   import { getCurrencyLabel } from '../Composables/useRoomCurrency'
   import type { BingoRoomFormData, RoundConfig } from '@/js/types/games/bingo/room/bingo-room'
-
-  interface SelectOption {
-    value: string | number
-    label: string
-  }
+  import type { SelectOption } from '@/js/types/common/form/form'
 
   const roundPrizeTypeOptions: SelectOption[] = [
     { value: 'percentage', label: '%' },

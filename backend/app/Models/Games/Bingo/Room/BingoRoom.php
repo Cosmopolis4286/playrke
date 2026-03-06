@@ -300,4 +300,16 @@ class BingoRoom extends BaseModel
             fn($q) => $q->where('id', $gameModeId)
         );
     }
+
+    public function scopeFilterPrizePoolType($query, ?string $prizePoolTypeId)
+    {
+        if (!$prizePoolTypeId) {
+            return $query;
+        }
+
+        return $query->whereHas(
+            'config',
+            fn($q) => $q->where('prize_pool_type_id', $prizePoolTypeId)
+        );
+    }
 }

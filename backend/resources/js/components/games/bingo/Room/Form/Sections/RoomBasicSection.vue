@@ -9,12 +9,7 @@
     BingoRoomAutomaticFormData,
     DayOfWeek
   } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
-
-  interface SelectOption {
-    value: string | number
-    code?: string
-    label: string
-  }
+import { SelectOption } from '@/js/types/common/form/form'
 
   const props = defineProps<{
     modelValue: BingoRoomFormData | BingoRoomAutomaticFormData

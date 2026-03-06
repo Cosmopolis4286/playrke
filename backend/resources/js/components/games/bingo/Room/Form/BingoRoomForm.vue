@@ -19,10 +19,9 @@
   import { useBingoRoomPrizeRound } from '@/js/composables/games/bingo/room/shared/useBingoRoomPrizeRound'
   import { router } from '@inertiajs/vue3'
   // Types
-  import type { SelectOption } from '@/js/types/common/form/form'
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
   import type { BingoRoomAutomaticFormData } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
-  import type { PrizeSearchResult } from '@/js/types/prizes/prize'
+  import { SelectOption } from '@/js/types/common/form/form'
 
   /* ==========================================================================
    * Props / Emits

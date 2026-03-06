@@ -67,19 +67,29 @@ export function useBingoCardGenerateRoomSection() {
     /* ───────── COMPUTED ───────── */
 
     /**
-     * Habilita el selector de tipo de sala.
-     * Requiere fecha seleccionada y que las salas hayan cargado correctamente.
+     * Muestra el selector de tipo de sala en cuanto hay fecha y el primer fetch terminó
+     * (ready, noDateRooms, noRoomTypeRooms, noGameModeRooms o loading con roomType ya elegido).
+     * Se mantiene visible mientras el usuario sigue eligiendo tipos/modos.
      */
     const canSelectRoomType = computed(() =>
-        !!filters.date && roomStepStatus.value === 'ready'
+        !!filters.date &&
+        (roomStepStatus.value === 'ready' ||
+         roomStepStatus.value === 'noDateRooms' ||
+         roomStepStatus.value === 'noRoomTypeRooms' ||
+         roomStepStatus.value === 'noGameModeRooms' ||
+         (roomStepStatus.value === 'loading' && !!filters.roomType))
     )
 
     /**
-     * Habilita el selector de modo de juego.
-     * Requiere tipo de sala seleccionado y estado listo.
+     * Muestra el selector de modo de juego una vez elegido el tipo de sala
+     * y el fetch correspondiente ha terminado (o está en curso con gameMode ya elegido).
      */
     const canSelectGameMode = computed(() =>
-        !!filters.roomType && roomStepStatus.value === 'ready'
+        !!filters.roomType &&
+        (roomStepStatus.value === 'ready' ||
+         roomStepStatus.value === 'noRoomTypeRooms' ||
+         roomStepStatus.value === 'noGameModeRooms' ||
+         (roomStepStatus.value === 'loading' && !!filters.gameMode))
     )
 
     /**
@@ -105,30 +115,53 @@ export function useBingoCardGenerateRoomSection() {
 
     /* ───────── HELPERS ───────── */
 
-    /**
-     * Resetea la lista de salas, el estado del flujo y la sala seleccionada.
-     * Se llama al cambiar cualquier filtro.
-     */
-    function resetRooms() {
-        rooms.value = []
-        roomStepStatus.value = 'idle'
-        selectedRoom.value = null
-    }
-
     /* ───────── WATCHERS ───────── */
 
     /** Versión debounced de `fetchRooms` para evitar peticiones en cada keystroke. */
     const debouncedFetchRooms = useDebounceFn(fetchRooms, 300)
 
     /**
-     * Observa los tres filtros en conjunto.
-     * Al cambiar cualquiera: resetea el estado y lanza un nuevo fetch si hay fecha.
+     * Al cambiar la fecha: resetea todo y relanza el fetch.
      */
     watch(
-        () => [filters.date, filters.roomType, filters.gameMode],
+        () => filters.date,
         () => {
-            resetRooms()
+            filters.roomType = null
+            filters.gameMode = null
+            rooms.value = []
+            roomStepStatus.value = 'idle'
+            selectedRoom.value = null
             if (!filters.date) return
+            debouncedFetchRooms()
+        }
+    )
+
+    /**
+     * Al cambiar el tipo de sala: limpia gameMode y selectedRoom, relanza fetch.
+     * Si roomType queda null (limpiado por el watcher de fecha) no hace nada extra.
+     */
+    watch(
+        () => filters.roomType,
+        () => {
+            filters.gameMode = null
+            rooms.value = []
+            selectedRoom.value = null
+            if (!filters.date || !filters.roomType) return
+            roomStepStatus.value = 'loading'
+            debouncedFetchRooms()
+        }
+    )
+
+    /**
+     * Al cambiar el modo de juego: solo limpia la sala seleccionada y relanza fetch.
+     * Si gameMode queda null (limpiado por watcher anterior) no hace nada extra.
+     */
+    watch(
+        () => filters.gameMode,
+        () => {
+            rooms.value = []
+            selectedRoom.value = null
+            if (!filters.date || !filters.gameMode) return
             debouncedFetchRooms()
         }
     )

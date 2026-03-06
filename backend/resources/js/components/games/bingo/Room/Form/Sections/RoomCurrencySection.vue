@@ -2,11 +2,7 @@
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   import { updateCtnPriceForCurrency, getCurrencyLabel } from '../Composables/useRoomCurrency'
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
-
-  interface SelectOption {
-    value: string | number
-    label: string
-  }
+  import type { SelectOption } from '@/js/types/common/form/form'
 
   const props = defineProps<{
     modelValue: BingoRoomFormData
