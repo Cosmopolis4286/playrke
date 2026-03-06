@@ -30,7 +30,7 @@ final class AdminUserContextService
     public function resolveUsers(): array
     {
         $labels  = ['Nombre', 'Username', 'Email', 'Entidad / Nombre', 'País', 'Status'];
-        $rowKeys = ['full_name', 'username', 'email', 'role_name', 'country.name', 'status_badge'];
+        $rowKeys = ['full_name', 'username', 'email', 'role_name', 'country_name', 'status_badge'];
 
         $source = User::with([
                 'country:id,name',
@@ -43,9 +43,11 @@ final class AdminUserContextService
             ->paginate(15);
 
         $collection = $source->getCollection()->map(function (User $user) {
-            $user->full_name    = trim("{$user->first_name} {$user->last_name}");
-            $user->role_name    = $this->resolveEntityName($user);
-            $user->status_badge = $this->statusBadge($user->status ?? '');
+            $fullName = trim("{$user->first_name} {$user->last_name}");
+            $user->setAttribute('full_name',    $fullName);
+            $user->setAttribute('role_name',    $this->resolveEntityName($user, $fullName));
+            $user->setAttribute('country_name', $user->country?->name ?? '—');
+            $user->setAttribute('status_badge', $this->statusBadge($user->status ?? ''));
             return $user;
         });
 
@@ -63,16 +65,16 @@ final class AdminUserContextService
         return ['users' => $users, 'pagination' => $pagination];
     }
 
-    private function resolveEntityName(User $user): string
+    private function resolveEntityName(User $user, string $fullName): string
     {
         $role = $user->roles->first()?->name ?? '';
 
         return match (strtolower($role)) {
-            'commerce'  => $user->commerce?->name   ?? $user->full_name,
-            'seller'    => $user->seller?->name      ?? $user->full_name,
-            'customer'  => $user->customer?->name    ?? $user->full_name,
-            'treasurer' => $user->treasurer?->name   ?? $user->full_name,
-            default     => $user->full_name,
+            'commerce'  => $user->commerce?->name  ?? $fullName,
+            'seller'    => $user->seller?->name     ?? $fullName,
+            'customer'  => $user->customer?->name   ?? $fullName,
+            'treasurer' => $user->treasurer?->name  ?? $fullName,
+            default     => $fullName,
         };
     }
 
