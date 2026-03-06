@@ -6,6 +6,7 @@ use App\Http\Controllers\Roles\Admin\AdminCommerceController;
 use App\Http\Controllers\Roles\Admin\AdminCustomerController;
 use App\Http\Controllers\Roles\Admin\AdminPlayerController;
 use App\Http\Controllers\Roles\Admin\AdminTreasurerController;
+use App\Http\Controllers\Roles\Admin\AdminUserController;
 use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
 
 /*
@@ -128,6 +129,16 @@ Route::middleware('auth')->group(function () {
     role_protected_routes(['role:admin'], 'admin/customer',  AdminCustomerController::class,  $adminCrudRoutes, 'customer');
     role_protected_routes(['role:admin'], 'admin/player',    AdminPlayerController::class,    $adminCrudRoutes, 'player');
     role_protected_routes(['role:admin'], 'admin/treasurer', AdminTreasurerController::class, $adminCrudRoutes, 'commerce');
+
+    // Rutas de usuarios (sin store/show/update — la creación se delega al flujo del rol)
+    $userRoutes = [
+        'fetchList'     => ['method' => 'get',    'uri' => 'fetch-list',          'action' => 'fetchList'],
+        'toggleStatus'  => ['method' => 'put',    'uri' => '{user}/status',       'action' => 'toggleStatus'],
+        'delete'        => ['method' => 'put',    'uri' => '{user}/delete',       'action' => 'delete'],
+        'destroy'       => ['method' => 'delete', 'uri' => '{user}',              'action' => 'destroy'],
+        'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password','action' => 'resetPassword'],
+    ];
+    role_protected_routes(['role:admin'], 'admin/user', AdminUserController::class, $userRoutes, 'user');
 
     // Generación de llave de conexión para Customer
     Route::middleware('role:admin')

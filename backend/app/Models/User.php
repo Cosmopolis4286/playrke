@@ -7,7 +7,9 @@ use App\Models\Country;
 use App\Models\Roles\Company;
 use App\Models\Role;
 use App\Models\Roles\Commerce;
+use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
+use App\Models\Roles\Treasurer;
 use App\Models\Wallet;
 use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
@@ -200,6 +202,26 @@ class User extends Authenticatable implements MustVerifyEmail
     public function seller(): HasOne
     {
         return $this->hasOne(Seller::class, 'user_id');
+    }
+
+    /**
+     * Customer asociado (si rol customer)
+     *
+     * @return HasOne<Customer>
+     */
+    public function customer(): HasOne
+    {
+        return $this->hasOne(Customer::class, 'user_id');
+    }
+
+    /**
+     * Tesorero asociado (si rol treasurer)
+     *
+     * @return HasOne<Treasurer>
+     */
+    public function treasurer(): HasOne
+    {
+        return $this->hasOne(Treasurer::class, 'user_id');
     }
 
     /**
