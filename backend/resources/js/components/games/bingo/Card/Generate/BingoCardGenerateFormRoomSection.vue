@@ -15,7 +15,7 @@
 
   const {
     filters,
-    rooms,
+    roomOptions,
     selectedRoom,
     selectedRoomId,
     loadingRooms,
@@ -107,9 +107,9 @@
         v-if="canSelectRoom"
         label="Sala"
         name="room"
-        :options="rooms"
+        :options="roomOptions"
         option-value="id"
-        option-label="uuid_code"
+        option-label="label"
         col="col-12"
         v-model="selectedRoomId"
       />

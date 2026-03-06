@@ -111,16 +111,17 @@ final class BingoCardGenerateService
 
         $rooms = $query
             ->select([
-                'id',
-                'uuid_code',
-                'prize_pool',
-                'total_players',
-                'creator_user_id',
+                'bingo_rooms.id',
+                'bingo_rooms.uuid_code',
+                'bingo_rooms.prize_pool',
+                'bingo_rooms.total_players',
+                'bingo_rooms.creator_user_id',
             ])
+            ->join('bingo_rooms_config', 'bingo_rooms_config.room_id', '=', 'bingo_rooms.id')
             ->with([
                 'config:id,room_id,room_type_id,game_mode_id,card_price_usd,date,time'
             ])
-            ->orderByDesc('created_at')
+            ->orderBy('bingo_rooms_config.time')
             ->get()
             ->map(fn($room) => [
                 'id'              => $room->hashed_id,

@@ -73,8 +73,10 @@
     try {
       loadingManagers.value = true
       const { default: backendClient } = await import('@/js/plugins/axios')
-      const { data } = await backendClient.get<ManagerOption[]>('/admin/get-user-info/commerce')
-      managers.value = Array.isArray(data) ? data : []
+      const { data } = await backendClient.get<Array<{ user_id: number | string; name: string }>>('/admin/get-user-info/commerce')
+      managers.value = Array.isArray(data)
+        ? data.map(m => ({ id: m.user_id, name: m.name }))
+        : []
     } catch {
       managers.value = []
     } finally {

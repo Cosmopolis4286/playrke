@@ -42,16 +42,17 @@ class ManagerSellerRequest extends BaseRequest
         $userId     = $seller?->user_id;
 
         $rules = [
-            'commission'     => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
-            'country'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
-            'currency'       => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
-            'time_zone'      => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
-            'phone'          => array_filter([$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', $this->phoneRegex()]),
-            'name'           => [$isUpdate ? 'sometimes' : 'required', 'string'],
+            'commission'       => [$isUpdate ? 'sometimes' : 'required', 'numeric', 'min:0', 'max:100', 'regex:/^\d{1,3}(\.\d{1,2})?$/'],
+            'country'          => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:countries,id'],
+            'currency'         => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:currencies,id'],
+            'time_zone'        => [$isUpdate ? 'sometimes' : 'required', 'string', 'exists:time_zones,id'],
+            'phone'            => array_filter([$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', $this->phoneRegex()]),
+            'name'             => [$isUpdate ? 'sometimes' : 'required', 'string'],
             'other_currencies'   => ['sometimes', 'array'],
             'other_currencies.*' => ['string', 'exists:currencies,id'],
             'allowed_games'      => ['required', 'array'],
             'allowed_games.*'    => ['string', 'exists:games,id'],
+            'manager_user_id'    => ['sometimes', 'nullable', 'string', 'exists:users,id'],
         ];
 
         // Regla unique para phone (excluye el vendedor actual en update)

@@ -67,8 +67,12 @@ final class ManagerSellerService
      */
     public function create(ManagerSellerDTO $dto, ?string $publicToken = null): string
     {
-        // Resolver ID del usuario
-        $managerUserId = $this->userContext->resolveUserId($publicToken);
+        // Si el DTO trae manager_user_id (caso admin asignando a otro manager), usarlo.
+        // Si no, usar el usuario autenticado (caso commerce/customer creando sus propios sellers).
+        $managerUserId = $dto->managerUserId !== null
+            ? (int) $dto->managerUserId
+            : $this->userContext->resolveUserId($publicToken);
+
         return $this->crud->create($dto, $managerUserId);
     }
 

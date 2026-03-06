@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Roles;
 
 use App\Http\Controllers\Controller;
 use App\Services\Roles\Admin\AdminService;
+use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -143,5 +144,17 @@ class AdminController extends Controller
             },
             'No se pudo cargar la lista de usuarios.'
         );
+    }
+
+    /**
+     * Obtiene información de usuarios según rol.
+     *
+     * @param string $userRole Rol del usuario (commerce, customer, treasurer...)
+     * @param string $exclude  Modelo a excluir (opcional)
+     * @return JsonResponse
+     */
+    public function getUserInfo(string $userRole, string $exclude = ''): JsonResponse
+    {
+        return $this->service->getUserInfo($userRole, $exclude);
     }
 }

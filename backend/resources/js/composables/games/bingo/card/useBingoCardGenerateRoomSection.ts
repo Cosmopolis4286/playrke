@@ -59,6 +59,19 @@ export function useBingoCardGenerateRoomSection() {
         }
     })
 
+    /** Opciones de sala con label compuesto: "HH:MM — UUID — N jugadores — $X bote" */
+    const roomOptions = computed(() =>
+        rooms.value.map(room => ({
+            id:    room.id,
+            label: [
+                room.config?.time?.slice(0, 5) ?? '--:--',
+                room.uuid_code,
+                `${room.total_players} jugadores`,
+                `$${Number(room.prize_pool).toFixed(2)} bote`,
+            ].join('  —  '),
+        }))
+    )
+
     /**
      * Token incremental para evitar race conditions.
      * Solo se aplica el resultado del fetch más reciente.
@@ -274,6 +287,7 @@ export function useBingoCardGenerateRoomSection() {
     return {
         filters,
         rooms,
+        roomOptions,
         selectedRoom,
         selectedRoomId,
         loadingRooms,

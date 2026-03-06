@@ -6,6 +6,7 @@ export type RoomStep = 'date' | 'roomType' | 'gameMode'
 export interface RoomConfig {
     card_price_usd: number | null
     date?: string
+    time?: string
     room_type_id?: number
     game_mode_id?: number
 }
@@ -17,6 +18,7 @@ export interface Room {
     id: string
     uuid_code: string
     prize_pool: number
+    total_players: number
     creator_user_id?: number
     config: RoomConfig
 }

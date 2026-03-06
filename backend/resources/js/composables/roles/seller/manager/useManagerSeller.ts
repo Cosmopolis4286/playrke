@@ -124,13 +124,14 @@ export function useManagerSeller(tokenId: string = ''): UseManagerSellerReturn {
      * Transforma el payload del frontend al formato esperado por el backend
      */
     function buildPayload(): Record<string, unknown> {
-        const { country_id, currency_id, time_zone_id, ...rest } = sellerData.value
+        const { country_id, currency_id, time_zone_id, manager_user_id, ...rest } = sellerData.value
 
         return {
             ...rest,
             country: country_id,
             currency: currency_id,
-            time_zone: time_zone_id
+            time_zone: time_zone_id,
+            ...(manager_user_id != null ? { manager_user_id } : {})
         }
     }
 

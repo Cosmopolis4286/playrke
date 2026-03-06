@@ -23,6 +23,7 @@ final class ManagerSellerDTO
         public readonly ?string $name,
         public readonly ?array $otherCurrencies,
         public readonly ?array $allowedGames,
+        public readonly ?string $managerUserId = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -42,6 +43,7 @@ final class ManagerSellerDTO
             isset($data['allowed_games'])
                 ? array_values((array) $data['allowed_games'])
                 : null,
+            isset($data['manager_user_id']) ? (string) $data['manager_user_id'] : null,
         );
     }
 
