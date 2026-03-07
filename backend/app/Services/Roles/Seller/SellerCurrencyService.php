@@ -38,18 +38,6 @@ class SellerCurrencyService
     }
 
     /**
-     * Obtiene países disponibles para un vendedor
-     *
-     * @param string $sellerId
-     * @param bool $activeOnly
-     * @return array
-     */
-    public function getAvailableCountries(string $sellerId, bool $activeOnly = true): array
-    {
-        return $this->repository->getAvailableCountries($sellerId, $activeOnly);
-    }
-
-    /**
      * Obtiene monedas disponibles para un vendedor
      *
      * @param string $sellerId
@@ -59,19 +47,6 @@ class SellerCurrencyService
     public function getAvailableCurrencies(string $sellerId, bool $activeOnly = true): array
     {
         return $this->repository->getAvailableCurrencies($sellerId, $activeOnly);
-    }
-
-    /**
-     * Verifica si un vendedor puede operar en un país y moneda específicos
-     *
-     * @param string $sellerId
-     * @param string $countryId
-     * @param string $currencyId
-     * @return bool
-     */
-    public function canOperateIn(string $sellerId, string $countryId, string $currencyId): bool
-    {
-        return $this->repository->canSellerOperateInCountryCurrency($sellerId, $countryId, $currencyId);
     }
 
     /**

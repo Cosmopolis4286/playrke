@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Repositorio para la gestión de relaciones vendedor-país-moneda.
+ * Repositorio para la gestión de relaciones vendedor-moneda.
  *
  * Implementa las operaciones específicas para el modelo SellerCurrency,
  * incluyendo gestión de estados, validaciones y estadísticas de relaciones.
@@ -32,14 +32,6 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     public function getBySeller(string $sellerId): Collection
     {
         return $this->model->where('seller', $sellerId)->get();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getByCountry(string $countryId): Collection
-    {
-        return $this->model->where('country_id', $countryId)->get();
     }
 
     /**
@@ -72,17 +64,6 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     public function getBySellerAndCurrency(string $sellerId, string $currencyId): ?SellerCurrency
     {
         return $this->model->where('seller', $sellerId)
-            ->where('currency_id', $currencyId)
-            ->first();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getBySellerCountryAndCurrency(string $sellerId, string $countryId, string $currencyId): ?SellerCurrency
-    {
-        return $this->model->where('seller', $sellerId)
-            ->where('country_id', $countryId)
             ->where('currency_id', $currencyId)
             ->first();
     }
@@ -173,22 +154,6 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     /**
      * {@inheritDoc}
      */
-    public function getAvailableCountries(string $sellerId, bool $activeOnly = true): array
-    {
-        $query = $this->model->select('country_id')
-            ->where('seller', $sellerId)
-            ->distinct();
-
-        if ($activeOnly) {
-            $query->where('status', true);
-        }
-
-        return $query->pluck('country_id')->toArray();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getAvailableCurrencies(string $sellerId, bool $activeOnly = true): array
     {
         $query = $this->model->select('currency_id')
@@ -229,7 +194,6 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
         $active = $this->model->where('status', true)->count();
         $inactive = $this->model->where('status', false)->count();
         $uniqueSellers = $this->model->distinct('seller')->count();
-        $uniqueCountries = $this->model->distinct('country_id')->count();
         $uniqueCurrencies = $this->model->distinct('currency_id')->count();
         $avgLevel = $this->model->avg('level');
 
@@ -239,11 +203,9 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
             'inactive_relations' => $inactive,
             'active_percentage' => $total > 0 ? round(($active / $total) * 100, 2) : 0,
             'unique_sellers' => $uniqueSellers,
-            'unique_countries' => $uniqueCountries,
             'unique_currencies' => $uniqueCurrencies,
             'average_level' => round($avgLevel ?? 0, 2),
             'sellers_with_multiple_currencies' => $this->getSellersWithMultipleCurrencies(),
-            'most_popular_country' => $this->getMostPopularCountry(),
             'most_popular_currency' => $this->getMostPopularCurrency()
         ];
     }
@@ -253,7 +215,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
      */
     public function getRelationsWithData(bool $activeOnly = true): Collection
     {
-        $query = $this->model->with(['seller', 'country', 'currency']);
+        $query = $this->model->with(['seller', 'currency']);
 
         if ($activeOnly) {
             $query->where('status', true);
@@ -282,7 +244,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
      */
     public function getForSelect(?string $sellerId = null, bool $activeOnly = true): array
     {
-        $query = $this->model->with(['seller', 'country', 'currency']);
+        $query = $this->model->with(['seller', 'currency']);
 
         if ($sellerId) {
             $query->where('seller', $sellerId);
@@ -297,10 +259,9 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
 
         foreach ($relations as $relation) {
             $sellerName = $relation->seller?->name ?? 'Sin vendedor';
-            $countryName = $relation->country?->name ?? 'Sin país';
             $currencyCode = $relation->currency?->code ?? 'Sin moneda';
 
-            $result[$relation->id] = "{$sellerName} - {$countryName}/{$currencyCode}";
+            $result[$relation->id] = "{$sellerName} - {$currencyCode}";
         }
 
         return $result;
@@ -318,10 +279,6 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
             $errors['seller'] = 'El vendedor es requerido';
         }
 
-        if (empty($data['country_id'])) {
-            $errors['country_id'] = 'El país es requerido';
-        }
-
         if (empty($data['currency_id'])) {
             $errors['currency_id'] = 'La moneda es requerida';
         }
@@ -334,10 +291,9 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
             }
         }
 
-        // Validar unicidad de la combinación vendedor-país-moneda
-        if (!empty($data['seller']) && !empty($data['country_id']) && !empty($data['currency_id'])) {
+        // Validar unicidad de la combinación vendedor-moneda
+        if (!empty($data['seller']) && !empty($data['currency_id'])) {
             $existingQuery = $this->model->where('seller', $data['seller'])
-                ->where('country_id', $data['country_id'])
                 ->where('currency_id', $data['currency_id']);
 
             if ($excludeId) {
@@ -345,7 +301,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
             }
 
             if ($existingQuery->exists()) {
-                $errors['combination'] = 'Ya existe una relación para este vendedor, país y moneda';
+                $errors['combination'] = 'Ya existe una relación para este vendedor y moneda';
             }
         }
 
@@ -359,22 +315,6 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     {
         return $this->model->whereIn('id', $relationIds)
             ->update(['status' => $status]);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getSellersByCountry(string $countryId, bool $activeOnly = true): Collection
-    {
-        $query = $this->model->with('seller')
-            ->where('country_id', $countryId)
-            ->distinct('seller');
-
-        if ($activeOnly) {
-            $query->where('status', true);
-        }
-
-        return $query->get()->pluck('seller')->filter();
     }
 
     /**
@@ -396,18 +336,6 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     /**
      * {@inheritDoc}
      */
-    public function getCountryDistribution(): array
-    {
-        return $this->model->select('countries.name', DB::raw('COUNT(sellers_currencies.id) as count'))
-            ->leftJoin('countries', 'sellers_currencies.country_id', '=', 'countries.id')
-            ->groupBy('countries.id', 'countries.name')
-            ->pluck('count', 'countries.name')
-            ->toArray();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function getCurrencyDistribution(): array
     {
         return $this->model->select('currencies.code', DB::raw('COUNT(sellers_currencies.id) as count'))
@@ -420,22 +348,9 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     /**
      * {@inheritDoc}
      */
-    public function canSellerOperateInCountryCurrency(string $sellerId, string $countryId, string $currencyId): bool
+    public function getOperationLevel(string $sellerId, string $currencyId): ?int
     {
         return $this->model->where('seller', $sellerId)
-            ->where('country_id', $countryId)
-            ->where('currency_id', $currencyId)
-            ->where('status', true)
-            ->exists();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getOperationLevel(string $sellerId, string $countryId, string $currencyId): ?int
-    {
-        return $this->model->where('seller', $sellerId)
-            ->where('country_id', $countryId)
             ->where('currency_id', $currencyId)
             ->value('level');
     }
@@ -443,14 +358,13 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     /**
      * {@inheritDoc}
      */
-    public function updateOperationLevel(string $sellerId, string $countryId, string $currencyId, int $level): bool
+    public function updateOperationLevel(string $sellerId, string $currencyId, int $level): bool
     {
         if ($level < 1 || $level > 10) {
             throw new \InvalidArgumentException('El nivel debe estar entre 1 y 10');
         }
 
         return $this->model->where('seller', $sellerId)
-            ->where('country_id', $countryId)
             ->where('currency_id', $currencyId)
             ->update(['level' => $level]) > 0;
     }
@@ -466,22 +380,6 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
             ->groupBy('seller')
             ->havingRaw('COUNT(DISTINCT currency_id) > 1')
             ->count();
-    }
-
-    /**
-     * Obtener el país más popular.
-     *
-     * @return string|null
-     */
-    private function getMostPopularCountry(): ?string
-    {
-        $result = $this->model->select('countries.name', DB::raw('COUNT(*) as count'))
-            ->leftJoin('countries', 'sellers_currencies.country_id', '=', 'countries.id')
-            ->groupBy('countries.id', 'countries.name')
-            ->orderBy('count', 'desc')
-            ->first();
-
-        return $result?->name;
     }
 
     /**

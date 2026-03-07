@@ -23,14 +23,6 @@ interface SellerCurrencyRepositoryInterface extends BaseRepositoryInterface
     public function getBySeller(string $sellerId): Collection;
 
     /**
-     * Obtener relaciones por país.
-     *
-     * @param string $countryId ID del país
-     * @return Collection Colección de relaciones del país
-     */
-    public function getByCountry(string $countryId): Collection;
-
-    /**
      * Obtener relaciones por moneda.
      *
      * @param string $currencyId ID de la moneda
@@ -65,11 +57,10 @@ interface SellerCurrencyRepositoryInterface extends BaseRepositoryInterface
      * Buscar relación específica por vendedor, país y moneda.
      *
      * @param string $sellerId ID del vendedor
-     * @param string $countryId ID del país
      * @param string $currencyId ID de la moneda
      * @return SellerCurrency|null La relación encontrada o null
      */
-    public function getBySellerCountryAndCurrency(string $sellerId, string $countryId, string $currencyId): ?SellerCurrency;
+    public function getBySellerCountryAndCurrency(string $sellerId, string $currencyId): ?SellerCurrency;
 
     /**
      * Verificar si existe una relación específica.
@@ -225,15 +216,6 @@ interface SellerCurrencyRepositoryInterface extends BaseRepositoryInterface
     public function bulkUpdateStatus(array $relationIds, bool $status): int;
 
     /**
-     * Obtener vendedores que operan en un país específico.
-     *
-     * @param string $countryId ID del país
-     * @param bool $activeOnly Solo relaciones activas (por defecto true)
-     * @return Collection Vendedores que operan en el país
-     */
-    public function getSellersByCountry(string $countryId, bool $activeOnly = true): Collection;
-
-    /**
      * Obtener vendedores que operan con una moneda específica.
      *
      * @param string $currencyId ID de la moneda
@@ -257,33 +239,21 @@ interface SellerCurrencyRepositoryInterface extends BaseRepositoryInterface
     public function getCurrencyDistribution(): array;
 
     /**
-     * Verificar si un vendedor puede operar en un país-moneda específico.
+     * Obtener nivel de operación de un vendedor para moneda específico.
      *
      * @param string $sellerId ID del vendedor
-     * @param string $countryId ID del país
-     * @param string $currencyId ID de la moneda
-     * @return bool True si puede operar, false en caso contrario
-     */
-    public function canSellerOperateInCountryCurrency(string $sellerId, string $countryId, string $currencyId): bool;
-
-    /**
-     * Obtener nivel de operación de un vendedor para país-moneda específico.
-     *
-     * @param string $sellerId ID del vendedor
-     * @param string $countryId ID del país
      * @param string $currencyId ID de la moneda
      * @return int|null Nivel de operación o null si no existe
      */
-    public function getOperationLevel(string $sellerId, string $countryId, string $currencyId): ?int;
+    public function getOperationLevel(string $sellerId, string $currencyId): ?int;
 
     /**
      * Actualizar el nivel de operación de una relación.
      *
      * @param string $sellerId ID del vendedor
-     * @param string $countryId ID del país
      * @param string $currencyId ID de la moneda
      * @param int $level Nuevo nivel
      * @return bool True si se actualizó correctamente
      */
-    public function updateOperationLevel(string $sellerId, string $countryId, string $currencyId, int $level): bool;
+    public function updateOperationLevel(string $sellerId, string $currencyId, int $level): bool;
 }

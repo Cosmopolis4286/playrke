@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Games\Bingo\Card;
+namespace App\Services\Games\Bingo\Card\Generate;
 
 use App\DTOs\Games\Bingo\Card\Generate\{BingoCardGenerateContexDTO, BingoCardGenerateDTO};
 use App\Models\Games\Bingo\Card\CardPrice\BingoCardPrice;
@@ -11,12 +11,11 @@ use App\Models\Roles\Seller;
 use App\Models\Currency;
 use App\Models\ExternalPlayers;
 use App\Models\Games\Bingo\Creator\BingoCreator;
-use App\Models\Games\Common\Utils\GameStatus;
+use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Traits\Games\Bingo\BingoTrait;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Collection;
 
 /**
  * Servicio para la generación de cartones de Bingo.
@@ -31,6 +30,9 @@ final class BingoCardGenerateService
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly \App\Services\Roles\RoleUserService $roleUserService,
+        private readonly \App\Services\Roles\RoleEntityResolver $roleEntityResolver,
+        private readonly \App\Contracts\CountryRepositoryInterface $countries,
+        private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
         private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerceRepository,
         private readonly \App\Contracts\Roles\Customer\CustomerRepositoryInterface $customerRepository,
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
@@ -50,8 +52,8 @@ final class BingoCardGenerateService
     public function viewContext(int $userId): BingoCardGenerateContexDTO
     {
         return new BingoCardGenerateContexDTO(
-            gameModes:      $this->gameModes->getActiveGameModes(),
-            roomTypes:      $this->roomTypes->getActiveTypes(),
+            gameModes: $this->gameModes->getActiveGameModes(),
+            roomTypes: $this->roomTypes->getActiveTypes(),
             prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
         );
     }
@@ -91,7 +93,7 @@ final class BingoCardGenerateService
             return $this->emptyResponse();
         }
 
-        $creatorUserId = $this->resolveCreatorUserId();
+        $creatorUserId = $this->resolveCreatorOrManagerUserId();
 
         $query = BingoRoom::query()
             ->active()
@@ -140,30 +142,60 @@ final class BingoCardGenerateService
     }
 
     /**
-     * Resuelve el creator_user_id según rol activo.
+     * Obtener lista de paises disponibles para el vendedor.
+     * - En base a las monedas permitidas de su manager_user_id, si aplica
+     * - En base a las monedas permitidas de la sala de bingo
+     *
+     * @param BingoRoom $roomId
+     * @param string $userId
+     * @return JsonResponse
      */
-    private function resolveCreatorUserId(): int
+    public function getAvailableCountries(string $roomId, string $userId): array
     {
-        $userId = $this->userContext->resolveUserId();
-        $role   = $this->roleUserService->getActiveUserRolePrefix($userId);
+        // Obtener rol del usuario
+        $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        return match ($role) {
-            'commerce', 'customer' => $userId,
-            'seller' => $this->sellerRepository
-                ->getValueByUserId($userId, 'manager_user_id'),
-            default => throw new DomainException('Rol inválido'),
+        // Resolver la entidad asociada al rol (commerce, customer, etc.)
+        $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
+
+        // Obtenemos las monedas disponibles para el vendedor (generador de los cartones)
+   const function getEntityAvaliableCurrencies($userId,$role) = match ($role) {
+            'commerce' => $this->commerceCurrencyRepository->getActiveCurrencies($userId),
+            'customer' => $this->customerCurrencyRepository->getActiveCurrencies($userId),
+            'seller' => $this->sellerCurrencyRepository->getActiveCurrencies($userId),
+            default => throw new DomainException('No existe el rol de usuario: ' . $context),
         };
-    }
 
-    /**
-     * Respuesta vacía estándar.
-     */
-    private function emptyResponse(): array
-    {
-        return [
-            'exists' => false,
-            'rooms'  => []
-        ];
+        $entityAvaliableCurrencies= getentityAvaliableCurrencies($userId,$role)
+
+        if ($role === 'seller') {
+            // Resolver el manager del vendedor (manager_user_id)
+                    $managerUserId = $this->resolveCreatorOrManagerUserId();
+
+            // Obtener rol del usuario manager del vendedor
+            $managerRole = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
+
+            // Resolver la entidad asociada al rol del manager del vendedor (commerce, customer, etc.)
+            $managerEntityId = $this->roleEntityResolver->resolveEntityId($managerUserId, $managerRole);
+
+            // Obtenemos las monedas disponibles para el manager del vendedor (generador de los cartones)
+            $managerSellerCurrencies = $this->$entityAvaliableCurrencies($managerUserId,$managerRole)
+        }
+
+        // Obtenemos las monedas permitidas para la sala de juego (allowed_currencies es tipo JSON)
+        $allowedCurrenciesRoom = BingoRoomConfig::where('room', $roomId)->value('allowed_currencies');
+
+        $currenciesAllowedInTheRoom = array_values(array_intersect(
+            array_map('strval', $entityAvaliableCurrencies),
+          if($role ==='seller')  array_map('strval', $managerSellerCurrencies),
+            array_map('strval', $allowedCurrenciesRoom)
+        ));
+
+        $countriesIdsAvailable = $this->currencies->getCountryIdsByCurrencies($currenciesAllowedInTheRoom);
+
+        $countries = $this->countries->getByIds($countriesIdsAvailable, ['id', 'name', 'iso_code_2']);
+
+        return ['countries' => $countries];
     }
 
     /**
@@ -280,5 +312,32 @@ final class BingoCardGenerateService
                 'playerLink' => $playerLink,
             ];
         });
+    }
+
+    /**
+     * Resuelve el creator_user_id/manager_user_id según rol activo.
+     */
+    private function resolveCreatorOrManagerUserId(): int
+    {
+        $userId = $this->userContext->resolveUserId();
+        $role   = $this->roleUserService->getActiveUserRolePrefix($userId);
+
+        return match ($role) {
+            'commerce', 'customer' => $userId,
+            'seller' => $this->sellerRepository
+                ->getValueByUserId($userId, 'manager_user_id'),
+            default => throw new DomainException('Rol inválido'),
+        };
+    }
+
+    /**
+     * Respuesta vacía estándar.
+     */
+    private function emptyResponse(): array
+    {
+        return [
+            'exists' => false,
+            'rooms'  => []
+        ];
     }
 }

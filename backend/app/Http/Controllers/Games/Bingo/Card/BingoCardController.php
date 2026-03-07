@@ -6,7 +6,6 @@ use App\DTOs\Games\Bingo\Card\Generate\BingoCardGenerateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
 use App\Models\Games\Bingo\Room\BingoRoom;
-use App\Services\Games\Bingo\Card\BingoCardGenerateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,7 +28,7 @@ final class BingoCardController extends Controller
      */
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
-        private readonly BingoCardGenerateService $generateService,
+        private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $generateService,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
@@ -84,38 +83,20 @@ final class BingoCardController extends Controller
         );
     }
 
-    public function availableCountries($roomId)
+    /**
+     * Obtener lista de paises disponibles para el vendedor.
+     * - En base a las monedas permitidas de su manager_user_id, si aplica
+     * - En base a las monedas permitidas de la sala de bingo
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function availableCountries(BingoRoom $room): JsonResponse
     {
-        $seller = $this->seller(['id', 'commerce_id']);
-        $creatorUser = Commerce::getValueById($seller->commerce, 'user');
+        $userId = $this->userContext->resolveUserId();
 
-        // Obtenemos las monedas disponibles para el vendedor y el comercio
-        $sellerCurrencies = SellerCurrency::getAvailableCurrencies($seller->id);
-        $commerceCurrencies = CommerceExchangeRate::getCurrenciesByCommerce($seller->commerce, 'ACTIVE');
-
-        // Obtenemos el campo allowed_currencies (json o null) y lo forzamos a array
-        $allowedCurrenciesRoom = BingoCreator::where('creator_user_id', $creatorUser)
-            ->where('room', $roomId)->value('allowed_currencies');
-
-        $allowedCurrenciesRoom = is_array($allowedCurrenciesRoom) ? $allowedCurrenciesRoom : [];
-
-        $currenciesAvailable = array_values(array_intersect(
-            array_map('strval', $sellerCurrencies),
-            array_map('strval', $commerceCurrencies),
-            array_map('strval', $allowedCurrenciesRoom)
-        ));
-
-        // Eliminamos '1' si existe
-        $USDT = ($key = array_search('1', $currenciesAvailable, true)) !== false;
-        if ($USDT) {
-            unset($currenciesAvailable[$key]);
-            $currenciesAvailable = array_values($currenciesAvailable);
-        }
-
-        $countriesAvailable = Currency::getCountriesByCurrencyInArray($currenciesAvailable);
-
-        $countries = Country::getCountries($countriesAvailable, ['id', 'name']);
-
-        return ['countries' => $countries, 'USDT' => $USDT];
+        return $this->handleServiceJson(
+            fn() => [$this->generateService->getAvailableCountries($room->id, $userId)]
+        );
     }
 }
