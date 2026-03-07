@@ -48,11 +48,14 @@
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
+      :num-ctns="numCtns"
+      :selected-country="selectedCountry"
+      @update:numCtns="numCtns = $event"
     />
 
     <!-- ───────────── Resumen ───────────── -->
 
-    <div v-if="roomSectionRef?.selectedRoom" class="row bg-light mt-2 rounded py-2">
+    <div v-if="roomSectionRef?.selectedRoom && selectedCountry" class="row bg-light mt-2 rounded py-2">
       <div class="col-4 border-right text-center">
         <div class="text-muted small">Monto Total</div>
         <div class="h5 font-weight-bold mb-0">$ {{ totalAmount.toFixed(2) }}</div>
@@ -81,7 +84,6 @@
       :countries="countries"
       :loading-countries="loadingCountries"
       v-model:selectedCountry="selectedCountry"
-      v-model:numCtns="numCtns"
       v-model:player="player"
     />
 

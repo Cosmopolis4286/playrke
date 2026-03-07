@@ -11,6 +11,12 @@
     roomTypeOptions: SelectOption[]
     gameModeOptions: SelectOption[]
     prizePoolTypeOptions: SelectOption[]
+    numCtns: number
+    selectedCountry: number | null
+  }>()
+
+  const emit = defineEmits<{
+    (e: 'update:numCtns', value: number): void
   }>()
 
   const {
@@ -28,6 +34,12 @@
   } = useBingoCardGenerateRoomSection()
 
   const minDate = computed(() => new Date().toISOString().split('T')[0])
+
+  function handleNumCtns(value: string | number) {
+    const raw = Number(value)
+    const clamped = Math.max(1, Math.min(40, raw || 1))
+    emit('update:numCtns', clamped)
+  }
 
   defineExpose({ selectedRoom })
 </script>
@@ -110,8 +122,23 @@
         :options="roomOptions"
         option-value="id"
         option-label="label"
-        col="col-12"
+        col="col-12 col-md-9"
         v-model="selectedRoomId"
+      />
+
+      <!-- Cantidad de cartones -->
+      <FormInput
+        v-if="selectedRoomId"
+        label="Cartones"
+        name="num_ctns"
+        type="number"
+        min="1"
+        max="40"
+        required
+        col="col-md-3"
+        :disabled="!props.selectedCountry"
+        :modelValue="props.numCtns"
+        @update:modelValue="handleNumCtns"
       />
     </div>
   </div>

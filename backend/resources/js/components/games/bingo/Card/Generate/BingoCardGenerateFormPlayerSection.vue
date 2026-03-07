@@ -1,6 +1,8 @@
 <script setup lang="ts" name="BingoCardGenerateFormPlayerSection">
+  import { computed, ref, watch } from 'vue'
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+  import { usePhoneField } from '@/js/composables/form/usePhoneField'
 
   import type { Country } from '@/js/types/country'
   import type { Player, Room } from '@/js/types/games/bingo/card/bingo-card-generate'
@@ -11,13 +13,11 @@
     loadingCountries: boolean
     selectedCountry: number | null
     player: Player
-    numCtns: number
   }>()
 
   const emit = defineEmits<{
     (e: 'update:selectedCountry', value: number | null): void
     (e: 'update:player', value: Player): void
-    (e: 'update:numCtns', value: number): void
   }>()
 
   function setPlayerField(field: keyof Player, value: string | number) {
@@ -27,11 +27,37 @@
     })
   }
 
-  function handleNumCtns(value: string | number) {
-    const raw = Number(value)
-    const clamped = Math.max(1, Math.min(40, raw || 1))
-    emit('update:numCtns', clamped)
-  }
+  /* ───────── Phone field with IMask ───────── */
+
+  /** ISO-2 del país actualmente seleccionado (ej: 'VE', 'BR', 'CO'). */
+  const selectedIso2 = computed<string | null>(() => {
+    if (!props.selectedCountry) return null
+    return props.countries.find(c => c.id === props.selectedCountry)?.iso_code_2 ?? null
+  })
+
+  /**
+   * Ref local sincronizado con props.player.phone.
+   * usePhoneField lo observa para validar y limpiar al cambiar de país.
+   */
+  const phoneRef = ref<string | undefined>(props.player.phone)
+
+  // Sincroniza hacia abajo cuando el padre resetea el player (ej: tras generate())
+  watch(() => props.player.phone, (val) => { phoneRef.value = val })
+
+  const {
+    phoneMask,
+    phonePlaceholder,
+    phoneHint,
+    phoneError,
+    isPhoneValid
+  } = usePhoneField(
+    selectedIso2,
+    phoneRef,
+    (val) => {
+      phoneRef.value = val
+      setPlayerField('phone', val)
+    }
+  )
 </script>
 
 <template>
@@ -47,7 +73,7 @@
     <div class="row">
       <!-- País -->
       <FormSelect
-        label="País del Jugador"
+        label="País"
         name="country_id"
         required
         col="col-12 col-md-6"
@@ -55,8 +81,8 @@
         optionValue="value"
         optionLabel="label"
         :modelValue="selectedCountry"
-        :disabled="loadingCountries || countries.length === 0"
-        :placeholder="loadingCountries ? 'Cargando países…' : 'Seleccione un país'"
+        :disabled="loadingCountries"
+        :placeholder="loadingCountries ? 'Cargando países…' : countries.length === 0 ? 'Sin países disponibles' : 'Seleccione un país'"
         @update:modelValue="emit('update:selectedCountry', $event)"
       />
 
@@ -67,9 +93,15 @@
         type="tel"
         required
         col="col-12 col-md-6"
-        placeholder="Ej. 04121234567"
+        :mask="phoneMask ?? undefined"
+        :maskEmitFormatted="true"
+        :placeholder="phonePlaceholder"
+        :hint="!phoneError ? phoneHint : undefined"
+        :error="phoneError ?? undefined"
+        :inputValidState="player.phone && isPhoneValid ? 'valid' : null"
+        :disabled="!selectedCountry"
         :modelValue="player.phone"
-        @update:modelValue="value => setPlayerField('phone', value)"
+        @update:modelValue="value => { phoneRef = String(value); setPlayerField('phone', value) }"
       />
 
       <!-- Nombre -->
@@ -96,19 +128,6 @@
         @update:modelValue="value => setPlayerField('lastName', value)"
       />
 
-      <!-- Cantidad -->
-      <FormInput
-        label="Cartones"
-        name="num_ctns"
-        type="number"
-        min="1"
-        max="40"
-        required
-        col="col-6 col-md-3"
-        :disabled="!selectedRoom"
-        :modelValue="numCtns"
-        @update:modelValue="handleNumCtns"
-      />
     </div>
   </div>
 </template>

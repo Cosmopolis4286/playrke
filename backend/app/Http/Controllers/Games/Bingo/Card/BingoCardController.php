@@ -96,7 +96,7 @@ final class BingoCardController extends Controller
         $userId = $this->userContext->resolveUserId();
 
         return $this->handleServiceJson(
-            fn() => [$this->generateService->getAvailableCountries($room->id, $userId)]
+            fn() => $this->generateService->getAvailableCountries($room->id, $userId)
         );
     }
 }
