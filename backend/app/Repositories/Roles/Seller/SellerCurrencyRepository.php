@@ -31,7 +31,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
      */
     public function getBySeller(string $sellerId): Collection
     {
-        return $this->model->where('seller', $sellerId)->get();
+        return $this->model->where('seller_id', $sellerId)->get();
     }
 
     /**
@@ -63,7 +63,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
      */
     public function getBySellerAndCurrency(string $sellerId, string $currencyId): ?SellerCurrency
     {
-        return $this->model->where('seller', $sellerId)
+        return $this->model->where('seller_id', $sellerId)
             ->where('currency_id', $currencyId)
             ->first();
     }
@@ -73,7 +73,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
      */
     public function existsRelation(string $sellerId, string $currencyId): bool
     {
-        return $this->model->where('seller', $sellerId)
+        return $this->model->where('seller_id', $sellerId)
             ->where('currency_id', $currencyId)
             ->exists();
     }
@@ -145,7 +145,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     public function getCountCurrency(string $sellerId): int
     {
         return $this->model->select('currency_id')
-            ->where('seller', $sellerId)
+            ->where('seller_id', $sellerId)
             ->whereNotNull('currency_id')
             ->distinct()
             ->count();
@@ -157,7 +157,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     public function getAvailableCurrencies(string $sellerId, bool $activeOnly = true): array
     {
         $query = $this->model->select('currency_id')
-            ->where('seller', $sellerId)
+            ->where('seller_id', $sellerId)
             ->distinct();
 
         if ($activeOnly) {
@@ -172,7 +172,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
      */
     public function getValue(string $sellerId, string $currencyId, string $field): mixed
     {
-        return $this->model->where('seller', $sellerId)
+        return $this->model->where('seller_id', $sellerId)
             ->where('currency_id', $currencyId)
             ->value($field);
     }
@@ -182,7 +182,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
      */
     public function getCountCountryCurrency(string $sellerId): int
     {
-        return $this->model->where('seller', $sellerId)->count();
+        return $this->model->where('seller_id', $sellerId)->count();
     }
 
     /**
@@ -193,7 +193,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
         $total = $this->model->count();
         $active = $this->model->where('status', true)->count();
         $inactive = $this->model->where('status', false)->count();
-        $uniqueSellers = $this->model->distinct('seller')->count();
+        $uniqueSellers = $this->model->distinct('seller_id')->count();
         $uniqueCurrencies = $this->model->distinct('currency_id')->count();
         $avgLevel = $this->model->avg('level');
 
@@ -247,7 +247,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
         $query = $this->model->with(['seller', 'currency']);
 
         if ($sellerId) {
-            $query->where('seller', $sellerId);
+            $query->where('seller_id', $sellerId);
         }
 
         if ($activeOnly) {
@@ -275,8 +275,8 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
         $errors = [];
 
         // Validar campos requeridos
-        if (empty($data['seller'])) {
-            $errors['seller'] = 'El vendedor es requerido';
+        if (empty($data['seller_id'])) {
+            $errors['seller_id'] = 'El vendedor es requerido';
         }
 
         if (empty($data['currency_id'])) {
@@ -292,8 +292,8 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
         }
 
         // Validar unicidad de la combinación vendedor-moneda
-        if (!empty($data['seller']) && !empty($data['currency_id'])) {
-            $existingQuery = $this->model->where('seller', $data['seller'])
+        if (!empty($data['seller_id']) && !empty($data['currency_id'])) {
+            $existingQuery = $this->model->where('seller_id', $data['seller_id'])
                 ->where('currency_id', $data['currency_id']);
 
             if ($excludeId) {
@@ -324,13 +324,13 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     {
         $query = $this->model->with('seller')
             ->where('currency_id', $currencyId)
-            ->distinct('seller');
+            ->distinct('seller_id');
 
         if ($activeOnly) {
             $query->where('status', true);
         }
 
-        return $query->get()->pluck('seller')->filter();
+        return $query->get()->pluck('seller_id')->filter();
     }
 
     /**
@@ -350,7 +350,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
      */
     public function getOperationLevel(string $sellerId, string $currencyId): ?int
     {
-        return $this->model->where('seller', $sellerId)
+        return $this->model->where('seller_id', $sellerId)
             ->where('currency_id', $currencyId)
             ->value('level');
     }
@@ -364,7 +364,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
             throw new \InvalidArgumentException('El nivel debe estar entre 1 y 10');
         }
 
-        return $this->model->where('seller', $sellerId)
+        return $this->model->where('seller_id', $sellerId)
             ->where('currency_id', $currencyId)
             ->update(['level' => $level]) > 0;
     }
@@ -374,7 +374,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
      */
     public function getBySellerCountryAndCurrency(string $sellerId, string $currencyId): ?SellerCurrency
     {
-        return $this->model->where('seller', $sellerId)
+        return $this->model->where('seller_id', $sellerId)
             ->where('currency_id', $currencyId)
             ->first();
     }
@@ -386,7 +386,7 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     {
         $query = $this->model->select('currencies.country_id')
             ->join('currencies', 'sellers_currencies.currency_id', '=', 'currencies.id')
-            ->where('seller', $sellerId)
+            ->where('seller_id', $sellerId)
             ->whereNotNull('currencies.country_id')
             ->distinct();
 
@@ -417,8 +417,8 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
      */
     private function getSellersWithMultipleCurrencies(): int
     {
-        return $this->model->select('seller')
-            ->groupBy('seller')
+        return $this->model->select('seller_id')
+            ->groupBy('seller_id')
             ->havingRaw('COUNT(DISTINCT currency_id) > 1')
             ->count();
     }

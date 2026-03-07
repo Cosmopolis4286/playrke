@@ -66,7 +66,7 @@ class SellerCurrency extends BasePivot
      */
     public function seller(): BelongsTo
     {
-        return $this->belongsTo(Seller::class, 'seller');
+        return $this->belongsTo(Seller::class, 'seller_id');
     }
 
     /**
@@ -78,7 +78,7 @@ class SellerCurrency extends BasePivot
      */
     public function scopeBySeller($query, string $sellerId)
     {
-        return $query->where('seller', $sellerId);
+        return $query->where('seller_id', $sellerId);
     }
 
     /**
@@ -291,7 +291,7 @@ class SellerCurrency extends BasePivot
     public static function getById(string $sellerId, string $currencyId, array $fields = ['*']): ?SellerCurrency
     {
         return self::select($fields)
-            ->where('seller', $sellerId)
+            ->where('seller_id', $sellerId)
             ->where('currency_id', $currencyId)
             ->first();
     }
@@ -306,7 +306,7 @@ class SellerCurrency extends BasePivot
      */
     public static function getValue(string $sellerId, string $currencyId, string $field): mixed
     {
-        return self::where('seller', $sellerId)
+        return self::where('seller_id', $sellerId)
             ->where('currency_id', $currencyId)
             ->value($field);
     }
@@ -320,7 +320,7 @@ class SellerCurrency extends BasePivot
     public static function getCountCurrency(string $sellerId): int
     {
         return self::select('currency_id')
-            ->where('seller', $sellerId)
+            ->where('seller_id', $sellerId)
             ->whereNotNull('currency_id')
             ->distinct()
             ->count();
@@ -335,7 +335,7 @@ class SellerCurrency extends BasePivot
     public static function getAvailableCurrencies(string $sellerId): array
     {
         return self::select('currency_id')
-            ->where('seller', $sellerId)
+            ->where('seller_id', $sellerId)
             ->where('status', true)
             ->distinct()
             ->pluck('currency_id')
