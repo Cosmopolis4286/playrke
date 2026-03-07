@@ -138,4 +138,12 @@ interface CurrencyRepositoryInterface extends BaseRepositoryInterface
      * @return Collection<Currency>
      */
     public function getByDecimalPlaces(int $decimalPlaces, array $columns = ['*']): Collection;
+
+    /**
+     * Obtener IDs de países a partir de un array de IDs de monedas
+     *
+     * @param array $currencyIds IDs de monedas
+     * @return array IDs de países
+     */
+    public function getCountriesByCurrencies(array $currencyIds): array;
 }

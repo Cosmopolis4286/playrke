@@ -370,6 +370,47 @@ class SellerCurrencyRepository extends BaseRepository implements SellerCurrencyR
     }
 
     /**
+     * {@inheritDoc}
+     */
+    public function getBySellerCountryAndCurrency(string $sellerId, string $currencyId): ?SellerCurrency
+    {
+        return $this->model->where('seller', $sellerId)
+            ->where('currency_id', $currencyId)
+            ->first();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getAvailableCountries(string $sellerId, bool $activeOnly = true): array
+    {
+        $query = $this->model->select('currencies.country_id')
+            ->join('currencies', 'sellers_currencies.currency_id', '=', 'currencies.id')
+            ->where('seller', $sellerId)
+            ->whereNotNull('currencies.country_id')
+            ->distinct();
+
+        if ($activeOnly) {
+            $query->where('sellers_currencies.status', true);
+        }
+
+        return $query->pluck('currencies.country_id')->toArray();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getCountryDistribution(): array
+    {
+        return $this->model->select('countries.name', DB::raw('COUNT(sellers_currencies.id) as count'))
+            ->leftJoin('currencies', 'sellers_currencies.currency_id', '=', 'currencies.id')
+            ->leftJoin('countries', 'currencies.country_id', '=', 'countries.id')
+            ->groupBy('countries.id', 'countries.name')
+            ->pluck('count', 'countries.name')
+            ->toArray();
+    }
+
+    /**
      * Obtener vendedores con múltiples monedas.
      *
      * @return int

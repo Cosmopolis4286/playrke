@@ -34,8 +34,10 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\CountryRepositoryInterface $countries,
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
         private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerceRepository,
+        private readonly \App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface $commerceCurrencyRepository,
         private readonly \App\Contracts\Roles\Customer\CustomerRepositoryInterface $customerRepository,
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
+        private readonly \App\Contracts\Roles\Seller\SellerCurrencyRepositoryInterface $sellerCurrencyRepository,
         private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
@@ -142,60 +144,97 @@ final class BingoCardGenerateService
     }
 
     /**
-     * Obtener lista de paises disponibles para el vendedor.
-     * - En base a las monedas permitidas de su manager_user_id, si aplica
-     * - En base a las monedas permitidas de la sala de bingo
+     * Obtener países disponibles para el usuario según su rol y la sala de bingo.
      *
-     * @param BingoRoom $roomId
-     * @param string $userId
-     * @return JsonResponse
+     * Lógica de intersección:
+     * 1. Monedas activas de la entidad del usuario (commerce o seller).
+     * 2. Si el usuario es seller, además intersecta con las monedas activas
+     *    de su manager (commerce padre), ya que el seller opera dentro del
+     *    catálogo del commerce que lo gestiona.
+     * 3. Monedas permitidas en la sala (campo JSON `allowed_currencies`
+     *    en `bingo_rooms_config`).
+     *
+     * El resultado son los países cuya moneda queda en la intersección final.
+     *
+     * @param string $roomId ID de la sala de bingo
+     * @param string $userId ID del usuario autenticado (puede ser commerce o seller)
+     * @return array{countries: \Illuminate\Database\Eloquent\Collection} Países disponibles con id, name e iso_code_2
+     *
+     * @throws DomainException Si el rol no tiene soporte de monedas
      */
     public function getAvailableCountries(string $roomId, string $userId): array
     {
-        // Obtener rol del usuario
+        // Determinar el prefijo de rol activo del usuario (ej. 'commerce', 'seller')
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        // Resolver la entidad asociada al rol (commerce, customer, etc.)
+        // Obtener el ID de la entidad (commerce_id, seller_id, etc.) asociada al usuario
         $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
 
-        // Obtenemos las monedas disponibles para el vendedor (generador de los cartones)
-   const function getEntityAvaliableCurrencies($userId,$role) = match ($role) {
-            'commerce' => $this->commerceCurrencyRepository->getActiveCurrencies($userId),
-            'customer' => $this->customerCurrencyRepository->getActiveCurrencies($userId),
-            'seller' => $this->sellerCurrencyRepository->getActiveCurrencies($userId),
-            default => throw new DomainException('No existe el rol de usuario: ' . $context),
-        };
+        // Monedas activas habilitadas para esta entidad según su rol
+        $entityCurrencies = $this->resolveEntityCurrencies($entityId, $role);
 
-        $entityAvaliableCurrencies= getentityAvaliableCurrencies($userId,$role)
-
+        // Para sellers: también se requiere la intersección con las monedas
+        // del commerce que los gestiona (manager_user_id → commerce).
+        // Esto evita que un seller ofrezca monedas que su commerce no opera.
+        $managerCurrencies = null;
         if ($role === 'seller') {
-            // Resolver el manager del vendedor (manager_user_id)
-                    $managerUserId = $this->resolveCreatorOrManagerUserId();
-
-            // Obtener rol del usuario manager del vendedor
-            $managerRole = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
-
-            // Resolver la entidad asociada al rol del manager del vendedor (commerce, customer, etc.)
+            // manager_user_id es el user_id del commerce padre del seller
+            $managerUserId   = $this->resolveCreatorOrManagerUserId();
+            $managerRole     = $this->roleUserService->getActiveUserRolePrefix($managerUserId);
             $managerEntityId = $this->roleEntityResolver->resolveEntityId($managerUserId, $managerRole);
 
-            // Obtenemos las monedas disponibles para el manager del vendedor (generador de los cartones)
-            $managerSellerCurrencies = $this->$entityAvaliableCurrencies($managerUserId,$managerRole)
+            // Monedas activas del commerce manager
+            $managerCurrencies = $this->resolveEntityCurrencies($managerEntityId, $managerRole);
         }
 
-        // Obtenemos las monedas permitidas para la sala de juego (allowed_currencies es tipo JSON)
-        $allowedCurrenciesRoom = BingoRoomConfig::where('room', $roomId)->value('allowed_currencies');
+        // Monedas explícitamente permitidas en la sala (JSON nullable → fallback a [])
+        $allowedCurrenciesRoom = BingoRoomConfig::where('room_id', $roomId)->value('allowed_currencies') ?? [];
 
-        $currenciesAllowedInTheRoom = array_values(array_intersect(
-            array_map('strval', $entityAvaliableCurrencies),
-          if($role ==='seller')  array_map('strval', $managerSellerCurrencies),
-            array_map('strval', $allowedCurrenciesRoom)
-        ));
+        // Construir los conjuntos a intersectar (todos como strings para evitar
+        // comparaciones fallidas por tipo int vs string en los IDs)
+        $sets = [
+            array_map('strval', $entityCurrencies),
+            array_map('strval', $allowedCurrenciesRoom),
+        ];
 
-        $countriesIdsAvailable = $this->currencies->getCountryIdsByCurrencies($currenciesAllowedInTheRoom);
+        if ($managerCurrencies !== null) {
+            $sets[] = array_map('strval', $managerCurrencies);
+        }
 
+        // Monedas que pasan los tres filtros: entidad + sala [+ manager si es seller]
+        $currenciesAllowedInTheRoom = array_values(array_intersect(...$sets));
+
+        // Obtener los country_id de cada moneda resultante
+        $countriesIdsAvailable = $this->currencies->getCountriesByCurrencies($currenciesAllowedInTheRoom);
+
+        // Hidratar los modelos de país con los campos mínimos necesarios para la vista
         $countries = $this->countries->getByIds($countriesIdsAvailable, ['id', 'name', 'iso_code_2']);
 
         return ['countries' => $countries];
+    }
+
+    /**
+     * Resuelve las monedas activas disponibles para una entidad según su rol.
+     *
+     * Centraliza el despacho a los repositorios correctos para no duplicar
+     * el bloque match en `getAvailableCountries` (usado tanto para la entidad
+     * propia como para el manager del seller).
+     *
+     * @param string $entityId ID de la entidad (commerce_id o seller_id)
+     * @param string $role     Prefijo de rol ('commerce' | 'seller')
+     * @return array<int, string> Array de IDs de monedas activas
+     *
+     * @throws DomainException Si el rol no tiene soporte de monedas implementado
+     */
+    private function resolveEntityCurrencies(string $entityId, string $role): array
+    {
+        return match ($role) {
+            // getAvailableCurrenciesIds filtra por status = 'ACTIVE' internamente
+            'commerce' => $this->commerceCurrencyRepository->getAvailableCurrenciesIds($entityId),
+            // segundo parámetro true = solo relaciones activas (status = 1)
+            'seller'   => $this->sellerCurrencyRepository->getAvailableCurrencies($entityId, true),
+            default    => throw new DomainException('Rol sin soporte de monedas: ' . $role),
+        };
     }
 
     /**
