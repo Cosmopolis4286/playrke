@@ -269,7 +269,7 @@ class BingoRoom extends BaseModel
     public function scopeAccessibleBy($query, int $creatorUserId)
     {
         return $query->where(function ($q) use ($creatorUserId) {
-            $q->where('creator_user_id', $creatorUserId)
+            $q->where('bingo_rooms.creator_user_id', $creatorUserId)
                 ->orWhereHas(
                     'config.roomType',
                     fn($r) => $r->where('code', 'PUBLIC')
