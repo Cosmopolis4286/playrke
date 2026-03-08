@@ -11,12 +11,13 @@
     selectedRoom: Room | null
     countries: Country[]
     loadingCountries: boolean
-    selectedCountry: number | null
+    /** Snowflake ID del país seleccionado como string (evita truncado JS). */
+    selectedCountry: string | null
     player: Player
   }>()
 
   const emit = defineEmits<{
-    (e: 'update:selectedCountry', value: number | null): void
+    (e: 'update:selectedCountry', value: string | null): void
     (e: 'update:player', value: Player): void
   }>()
 
@@ -42,18 +43,17 @@
   const phoneRef = ref<string | undefined>(props.player.phone)
 
   // Sincroniza hacia abajo cuando el padre resetea el player (ej: tras generate())
-  watch(() => props.player.phone, (val) => { phoneRef.value = val })
+  watch(
+    () => props.player.phone,
+    val => {
+      phoneRef.value = val
+    }
+  )
 
-  const {
-    phoneMask,
-    phonePlaceholder,
-    phoneHint,
-    phoneError,
-    isPhoneValid
-  } = usePhoneField(
+  const { phoneMask, phonePlaceholder, phoneHint, phoneError, isPhoneValid } = usePhoneField(
     selectedIso2,
     phoneRef,
-    (val) => {
+    val => {
       phoneRef.value = val
       setPlayerField('phone', val)
     }
@@ -64,10 +64,10 @@
   <div style="display: contents">
     <hr />
 
-    <div class="alert alert-info mb-3 py-2">
-      <small>
+    <div class="alert alert-info mb-3 pt-3 pb-1">
+      <h6>
         Genera los cartones <strong>solo después de confirmar el pago</strong> del jugador.
-      </small>
+      </h6>
     </div>
 
     <div class="row">
@@ -76,13 +76,19 @@
         label="País"
         name="country_id"
         required
-        col="col-12 col-md-6"
+        col="col-sm-6 col-md-3"
         :options="countries.map(c => ({ value: c.id, label: c.name }))"
         optionValue="value"
         optionLabel="label"
         :modelValue="selectedCountry"
         :disabled="loadingCountries"
-        :placeholder="loadingCountries ? 'Cargando países…' : countries.length === 0 ? 'Sin países disponibles' : 'Seleccione un país'"
+        :placeholder="
+          loadingCountries
+            ? 'Cargando países…'
+            : countries.length === 0
+              ? 'Sin países disponibles'
+              : 'Seleccione un país'
+        "
         @update:modelValue="emit('update:selectedCountry', $event)"
       />
 
@@ -92,7 +98,7 @@
         name="phone"
         type="tel"
         required
-        col="col-12 col-md-6"
+        col="col-sm-6 col-md-3"
         :mask="phoneMask ?? undefined"
         :maskEmitFormatted="true"
         :placeholder="phonePlaceholder"
@@ -101,7 +107,12 @@
         :inputValidState="player.phone && isPhoneValid ? 'valid' : null"
         :disabled="!selectedCountry"
         :modelValue="player.phone"
-        @update:modelValue="value => { phoneRef = String(value); setPlayerField('phone', value) }"
+        @update:modelValue="
+          value => {
+            phoneRef = String(value)
+            setPlayerField('phone', value)
+          }
+        "
       />
 
       <!-- Nombre -->
@@ -110,7 +121,7 @@
         name="name"
         type="text"
         required
-        col="col-12 col-md-6"
+        col="col-sm-6 col-md-3"
         placeholder="Nombre del jugador"
         :modelValue="player.name"
         @update:modelValue="value => setPlayerField('name', value)"
@@ -122,12 +133,11 @@
         name="last_name"
         type="text"
         required
-        col="col-12 col-md-6"
+        col="col-sm-6 col-md-3"
         placeholder="Apellido del jugador"
         :modelValue="player.lastName"
         @update:modelValue="value => setPlayerField('lastName', value)"
       />
-
     </div>
   </div>
 </template>

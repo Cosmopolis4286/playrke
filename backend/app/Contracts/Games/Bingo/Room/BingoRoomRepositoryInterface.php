@@ -127,4 +127,14 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
     public function updatePrizePool(string $roomId, float $amount): bool;
 
     public function changeGameStatus(string $roomId,string $newStatusCode): bool;
+
+    /**
+     * Obtener salas activas de un usuario para la vista de juego (game-rooms).
+     * Incluye config (unix_date, card_price, prize_pool_type) ordenadas por hora.
+     *
+     * @param int    $userId ID del usuario creador
+     * @param string $today  Fecha en formato YYYY-MM-DD
+     * @return Collection<BingoRoom>
+     */
+    public function getActiveRoomsForView(int $userId, string $today): Collection;
 }

@@ -27,6 +27,9 @@
     player,
     loading,
     loadingCountries,
+    loadingCardPrice,
+    cardPriceData,
+    currencySymbol,
     totalAmount,
     sellerCommission,
     commerceAmount,
@@ -56,23 +59,38 @@
     <!-- ───────────── Resumen ───────────── -->
 
     <div v-if="roomSectionRef?.selectedRoom && selectedCountry" class="row bg-light mt-2 rounded py-2">
-      <div class="col-4 border-right text-center">
-        <div class="text-muted small">Monto Total</div>
-        <div class="h5 font-weight-bold mb-0">$ {{ totalAmount.toFixed(2) }}</div>
-        <small class="text-muted">Cobrar al jugador</small>
+
+      <!-- Cargando precio -->
+      <div v-if="loadingCardPrice" class="col-12 text-center text-muted small py-1">
+        <span class="spinner-border spinner-border-sm mr-1" role="status" />
+        Calculando precio del cartón…
       </div>
 
-      <div class="col-4 border-right text-center">
-        <div class="text-muted small">Mi Comisión</div>
-        <div class="h5 text-success font-weight-bold mb-0">$ {{ sellerCommission.toFixed(2) }}</div>
-        <small class="text-muted">Tu ganancia</small>
-      </div>
+      <template v-else-if="cardPriceData">
+        <div class="col-4 border-right text-center">
+          <div class="text-muted small">Monto Total</div>
+          <div class="h5 font-weight-bold mb-0">
+            {{ currencySymbol }} {{ totalAmount.toFixed(2) }}
+          </div>
+          <small class="text-muted">Cobrar al jugador</small>
+        </div>
 
-      <div class="col-4 text-center">
-        <div class="text-muted small">Total Banca</div>
-        <div class="h5 font-weight-bold mb-0">$ {{ commerceAmount.toFixed(2) }}</div>
-        <small class="text-muted">Enviar al comercio</small>
-      </div>
+        <div class="col-4 border-right text-center">
+          <div class="text-muted small">Mi Comisión</div>
+          <div class="h5 text-success font-weight-bold mb-0">
+            {{ currencySymbol }} {{ sellerCommission.toFixed(2) }}
+          </div>
+          <small class="text-muted">Tu ganancia</small>
+        </div>
+
+        <div class="col-4 text-center">
+          <div class="text-muted small">Total Banca</div>
+          <div class="h5 font-weight-bold mb-0">
+            {{ currencySymbol }} {{ commerceAmount.toFixed(2) }}
+          </div>
+          <small class="text-muted">Enviar al comercio</small>
+        </div>
+      </template>
     </div>
 
     <!-- ───────────── Player Section ───────────── -->

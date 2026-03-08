@@ -6,6 +6,7 @@ import { showToast } from '@/js/utils/toastNotify'
 
 import type { Country } from '@/js/types/country'
 import type {
+    CardPriceResponse,
     GenerateCardPayload,
     Player,
     Room
@@ -16,13 +17,16 @@ import type {
  *
  * Responsabilidades:
  * - Obtener los países disponibles al seleccionar una sala.
+ * - Consultar el precio del cartón según el país seleccionado (moneda).
  * - Gestionar los datos del jugador, cantidad de cartones y país.
  * - Calcular montos totales, comisión del vendedor y monto al comercio.
  * - Validar el formulario antes de enviar.
  * - Ejecutar la petición de generación de cartones.
  *
- * @param selectedRoom - Ref reactiva a la sala seleccionada, provista por `useBingoCardGenerateRoomSection` vía el componente padre.
- * @returns Estado y métodos necesarios para `BingoCardGenerateFormPlayerSection` y el formulario principal.
+ * @param selectedRoom - Ref reactiva a la sala seleccionada, provista por
+ *   `useBingoCardGenerateRoomSection` vía el componente padre.
+ * @returns Estado y métodos necesarios para `BingoCardGenerateFormPlayerSection`
+ *   y el formulario principal.
  */
 export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
 
@@ -37,14 +41,20 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
     /** Indica si se están cargando los países de la sala. */
     const loadingCountries = ref(false)
 
+    /** Indica si se está consultando el precio del cartón para el país elegido. */
+    const loadingCardPrice = ref(false)
+
     /**
      * Porcentaje de comisión del vendedor.
      * Se obtiene del perfil del vendedor autenticado (actualmente inicializado en 0).
      */
     const commission = ref(0)
 
-    /** País seleccionado por el vendedor para la venta. */
-    const selectedCountry = ref<number | null>(null)
+    /**
+     * País seleccionado por el vendedor para la venta.
+     * Se mantiene como string porque los IDs de país son Snowflakes (> MAX_SAFE_INTEGER).
+     */
+    const selectedCountry = ref<string | null>(null)
 
     /** Cantidad de cartones a generar (mínimo 1, máximo 40). */
     const numCtns = ref(1)
@@ -56,17 +66,27 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         lastName: ''
     })
 
+    /**
+     * Precio del cartón obtenido desde el backend para la sala + país seleccionados.
+     * `null` mientras no se haya consultado o si no hay país seleccionado.
+     */
+    const cardPriceData = ref<CardPriceResponse | null>(null)
+
     /* ───────── COMPUTED ───────── */
 
     /**
-     * Precio unitario del cartón según la configuración de la sala.
-     * Retorna 0 si no hay sala seleccionada o el precio no está definido.
+     * Precio unitario real del cartón en la moneda local.
+     * Usa el precio devuelto por la API; 0 si aún no se consultó.
      */
-    const roomCtnPrice = computed(() =>
-        Number(selectedRoom.value?.config?.card_price_usd ?? 0)
-    )
+    const roomCtnPrice = computed(() => cardPriceData.value?.card_price ?? 0)
 
-    /** Monto total a cobrar al jugador (precio × cantidad). */
+    /**
+     * Símbolo de la moneda del país seleccionado (ej. '$', 'Bs', 'R$').
+     * Vacío mientras no se haya consultado el precio.
+     */
+    const currencySymbol = computed(() => cardPriceData.value?.currency_symbol ?? '')
+
+    /** Monto total a cobrar al jugador (precio unitario × cantidad). */
     const totalAmount = computed(() => roomCtnPrice.value * numCtns.value)
 
     /** Comisión que retiene el vendedor sobre el monto total. */
@@ -77,10 +97,11 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
 
     /**
      * Indica si el formulario está listo para generar cartones.
-     * Requiere sala seleccionada, país, cantidad válida y datos completos del jugador.
+     * Requiere sala, país, precio cargado, cantidad válida y datos completos del jugador.
      */
     const isFormValid = computed(() => {
         if (!selectedRoom.value) return false
+        if (loadingCardPrice.value || !cardPriceData.value) return false
         return (
             selectedCountry.value !== null &&
             numCtns.value >= 1 &&
@@ -95,26 +116,46 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
 
     /**
      * Resetea el estado dependiente de la sala:
-     * país, cantidad de cartones, lista de países y datos del jugador.
+     * país, cantidad de cartones, lista de países, precio y datos del jugador.
      */
     function resetState() {
         selectedCountry.value = null
         numCtns.value = 1
         countries.value = []
+        cardPriceData.value = null
         player.phone = ''
         player.name = ''
         player.lastName = ''
+    }
+
+    /**
+     * Resetea únicamente el precio del cartón cuando se cambia de país
+     * pero la sala no cambia.
+     */
+    function resetCardPrice() {
+        cardPriceData.value = null
     }
 
     /* ───────── WATCHERS ───────── */
 
     /**
      * Reacciona al cambio de sala seleccionada.
-     * Resetea el estado y carga los países disponibles para la nueva sala.
+     * Resetea todo el estado y carga los países disponibles para la nueva sala.
      */
     watch(selectedRoom, async (room) => {
         resetState()
         if (room) await fetchCountries(room.id)
+    })
+
+    /**
+     * Reacciona al cambio de país seleccionado.
+     * Consulta el precio del cartón según la moneda del nuevo país.
+     */
+    watch(selectedCountry, async (countryId) => {
+        resetCardPrice()
+        if (selectedRoom.value && countryId !== null) {
+            await fetchCardPrice(selectedRoom.value.id, countryId)
+        }
     })
 
     /* ───────── API ───────── */
@@ -138,6 +179,34 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         }
         finally {
             loadingCountries.value = false
+        }
+    }
+
+    /**
+     * Consulta el precio del cartón para la sala y país seleccionados.
+     *
+     * El backend calcula el precio en la moneda local del país aplicando:
+     * 1. Precio personalizado en `bingo_card_prices` (si existe).
+     * 2. En su defecto, precio base de la sala (card_price_usd) × tasa de cambio del comercio.
+     *
+     * @param roomId    - ID de la sala seleccionada.
+     * @param countryId - ID del país seleccionado.
+     */
+    async function fetchCardPrice(roomId: string, countryId: number) {
+        loadingCardPrice.value = true
+        try {
+            const { data } = await backendClient.get<CardPriceResponse>(
+                `/bingo-card/${roomId}/card-price`,
+                { params: { country_id: countryId } }
+            )
+            cardPriceData.value = data
+        }
+        catch {
+            cardPriceData.value = null
+            showToast('No se pudo obtener el precio del cartón para el país seleccionado.', 'error')
+        }
+        finally {
+            loadingCardPrice.value = false
         }
     }
 
@@ -189,6 +258,9 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         player,
         loading,
         loadingCountries,
+        loadingCardPrice,
+        cardPriceData,
+        currencySymbol,
         totalAmount,
         sellerCommission,
         commerceAmount,

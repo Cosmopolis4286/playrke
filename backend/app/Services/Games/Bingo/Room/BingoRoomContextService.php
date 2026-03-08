@@ -2,6 +2,7 @@
 
 namespace App\Services\Games\Bingo\Room;
 
+use App\DTOs\Games\Bingo\Room\BingoGameRoomsDTO;
 use App\DTOs\Games\Bingo\Room\BingoRoomSummaryDTO;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
@@ -124,71 +125,44 @@ final class BingoRoomContextService
     }
 
     /**
-     * Resolver listado de salas de juego de bingo.
-     *
-     * @param int|null $userId ID del usuario
-     * @return array Listado de salas con paginación
-     * @throws DomainException Si no se pueden resolver las salas de juego
-     */
-    private function resolveViewGameRooms(?int $userId): array
-    {
-        $labels  = ['Código', 'Tipo', 'Jugadores', 'Premio', 'Creación', 'Estado'];
-        $rowKeys = ['id', 'config.roomType.label', 'total_players', 'prize_pool', 'created_at', 'status_badge'];
-
-        $conditions = $userId
-            ? ['creator_user_id' => $userId]
-            : [];
-
-        $source = $this->bingoRooms->paginateWithRelations(
-            perPage: 15,
-            page: 1,
-            relations: ['config:room_id,room_type_id'],
-            conditions: $conditions,
-            fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
-        );
-
-        $collection = $source instanceof LengthAwarePaginator
-            ? $source->getCollection()
-            : collect($source);
-
-        $pagination = $source instanceof LengthAwarePaginator
-            ? [
-                'total'        => $source->total(),
-                'per_page'     => $source->perPage(),
-                'current_page' => $source->currentPage(),
-                'last_page'    => $source->lastPage(),
-                'from'         => $source->firstItem(),
-                'to'           => $source->lastItem(),
-            ]
-            : null;
-
-        $rooms = $this->processCollectionTableData($collection, $labels, $rowKeys);
-
-        return ['rooms' => $rooms, 'pagination' => $pagination];
-    }
-
-    /**
      * Resolver vista para el listado de salas de juego de bingo.
      *
+     * Retorna salas activas del usuario con config (fecha, precio, unix_date)
+     * para que el frontend construya los cards con countdown.
+     *
      * @param int $userId ID del usuario
-     * @return BingoRoomSummaryDTO
+     * @return BingoGameRoomsDTO
      *
      * @throws DomainException Si no se puede resolver el contexto
      */
-    private function viewGameRooms(int $userId): BingoRoomSummaryDTO
+    private function viewGameRooms(int $userId): BingoGameRoomsDTO
     {
-        $commerceData = $this->resolveViewGameRooms($userId);
+        $today = now()->toDateString();
 
-        $currencies = $this->currencyService->getAvailableCurrencies($userId, true);
+        $rooms = $this->bingoRooms->getActiveRoomsForView($userId, $today);
 
-        return new BingoRoomSummaryDTO(
-            rooms: $commerceData['rooms'],
-            pagination: $commerceData['pagination'],
-            currencies: $currencies,
-            bingoPatterns: $this->bingoPatterns->getByUserAndDefault($userId, ['id', 'name'], 'ACTIVE'),
-            prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
-            gameModes: $this->gameModes->getActiveGameModes(),
-            roomTypes: $this->roomTypes->getActiveTypes()
+        $timestamp = now()->valueOf(); // ms
+
+        $dateTimeRooms = [
+            'timestamp' => $timestamp,
+            'rooms'     => $rooms->map(fn($room) => [
+                'id'          => (string) $room->id,
+                'config'      => ['unix_date' => $room->config?->unix_date],
+                'players_room' => null,
+            ])->values()->all(),
+        ];
+
+        return new BingoGameRoomsDTO(
+            rooms: $rooms,
+            exchangeRate: 1.0,
+            currencySym: 'USD',
+            currency: null,
+            creator: null,
+            player: null,
+            userToken: null,
+            customerId: null,
+            creatorUser: null,
+            dateTimeRooms: $dateTimeRooms,
         );
     }
 }

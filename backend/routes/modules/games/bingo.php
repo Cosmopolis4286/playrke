@@ -90,6 +90,7 @@ route_group('bingo-card', 'bingo-card.', ['auth', 'role:admin,commerce,seller'],
     'generate-card-store' => ['method' => 'post', 'uri' => 'generate-card-store', 'action' => 'generateCardStore'],
     'fetch-room' => ['method' => 'get', 'uri' => 'fetch-room', 'action' => 'fetchRoom'],
     'available-countries' => ['method' => 'get', 'uri' => '{room}/available-countries', 'action' => 'availableCountries'],
+    'card-price'          => ['method' => 'get', 'uri' => '{room}/card-price',           'action' => 'cardPrice'],
 ]);
 
 /**

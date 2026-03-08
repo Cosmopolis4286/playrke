@@ -12,7 +12,8 @@
     gameModeOptions: SelectOption[]
     prizePoolTypeOptions: SelectOption[]
     numCtns: number
-    selectedCountry: number | null
+    /** Snowflake ID del país seleccionado como string (evita truncado JS). */
+    selectedCountry: string | null
   }>()
 
   const emit = defineEmits<{

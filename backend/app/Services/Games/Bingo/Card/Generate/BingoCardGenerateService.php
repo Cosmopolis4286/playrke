@@ -10,12 +10,12 @@ use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
 use App\Models\Currency;
 use App\Models\ExternalPlayers;
-use App\Models\Games\Bingo\Creator\BingoCreator;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Traits\Games\Bingo\BingoTrait;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface;
 
 /**
  * Servicio para la generación de cartones de Bingo.
@@ -35,9 +35,11 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
         private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerceRepository,
         private readonly \App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface $commerceCurrencyRepository,
+        private readonly \App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface $exchangeRateRepository,
         private readonly \App\Contracts\Roles\Customer\CustomerRepositoryInterface $customerRepository,
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
         private readonly \App\Contracts\Roles\Seller\SellerCurrencyRepositoryInterface $sellerCurrencyRepository,
+        private readonly BingoCardPriceRepositoryInterface $cardPriceRepository,
         private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
@@ -238,6 +240,83 @@ final class BingoCardGenerateService
     }
 
     /**
+     * Obtiene el precio de un cartón para una sala y país específicos.
+     *
+     * Lógica (igual a la usada en generate()):
+     * 1. Resuelve la moneda del país seleccionado.
+     * 2. Obtiene el commerce del seller autenticado.
+     * 3. Obtiene la tasa de cambio del commerce para esa moneda.
+     * 4. Busca el precio personalizado en bingo_card_prices (room + bingo_creator).
+     * 5. Calcula el precio final con calculateCtnPrice().
+     *
+     * @param string $roomId    ID (hasheado) de la sala de bingo.
+     * @param string $userId    ID del usuario autenticado.
+     * @param string $countryId ID del país seleccionado (Snowflake, se pasa como string para evitar truncado).
+     *
+     * @return array{
+     *     card_price: float,
+     *     currency_symbol: string,
+     *     exchange_rate: float,
+     *     is_custom_price: bool
+     * }
+     *
+     * @throws DomainException Si la moneda, el commerce o la tasa no se encuentran.
+     */
+    public function getCardPrice(string $roomId, string $userId, string $countryId): array
+    {
+        // 1. Seller autenticado → commerce_id del manager
+        $seller = Seller::select(['id', 'commission', 'manager_user_id'])
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$seller) {
+            throw new DomainException('Vendedor no encontrado.');
+        }
+
+        $commerce = Commerce::where('user_id', $seller->manager_user_id)->value('id');
+
+        if (!$commerce) {
+            throw new DomainException('Comercio asociado no encontrado.');
+        }
+
+        // 2. Moneda del país (id + symbol para mostrar en UI)
+        $currencyId     = $this->currencies->getValueByCountry($countryId, 'id');
+        $currencySymbol = $this->currencies->getValueByCountry($countryId, 'symbol');
+
+        if (!$currencyId) {
+            throw new DomainException('No se encontró moneda para el país seleccionado.');
+        }
+
+        // 3. Tasa de cambio activa del commerce para esa moneda
+        $exchangeRate = (float) $this->exchangeRateRepository->getCommerceCurrencyValue($commerce, $currencyId);
+
+        // 4. Precio personalizado en bingo_card_prices (room + currency + creator_user_id del commerce)
+        //    creator_user_id corresponde al user_id del commerce que gestiona la sala.
+        $customPrice = BingoCardPrice::byRoom($roomId)
+            ->byCurrency($currencyId)
+            ->where('creator_user_id', $seller->manager_user_id)
+            ->value('card_price');
+
+        // 5. Si no hay precio personalizado, usar el precio base de la sala en USD × tasa
+        $isCustomPrice = $customPrice !== null;
+
+        if ($isCustomPrice) {
+            $cardPrice = $this->calculateCtnPrice($customPrice, true, $exchangeRate);
+        } else {
+            $room         = BingoRoom::select('id')->with('config:id,room_id,card_price_usd')->find($roomId);
+            $roomCtnPrice = $room?->config?->card_price_usd ?? 0;
+            $cardPrice    = $this->calculateCtnPrice($roomCtnPrice, false, $exchangeRate);
+        }
+
+        return [
+            'card_price'      => (float) $cardPrice,
+            'currency_symbol' => (string) ($currencySymbol ?? ''),
+            'exchange_rate'   => $exchangeRate,
+            'is_custom_price' => $isCustomPrice,
+        ];
+    }
+
+    /**
      * Genera cartones de bingo para un jugador, operado por un vendedor.
      *
      * @param BingoCardGenerateDTO $dto
@@ -286,17 +365,16 @@ final class BingoCardGenerateService
         );
 
         // 5. Calcular precio del cartón
-        $creator = [
-            'type'   => 'commerce_id',
-            'id'     => $commerce,
-            'userId' => $creatorUser,
-        ];
+        //    Busca precio personalizado en bingo_card_prices para la sala, moneda y commerce.
+        //    creator_user_id = user_id del commerce manager del seller.
+        $customPrice  = BingoCardPrice::byRoom($room->id)
+            ->byCurrency($currency)
+            ->where('creator_user_id', $creatorUser)
+            ->value('card_price');
 
-        $bingoCreatorId = BingoCreator::getValueByCreatorRoom($creator, $room->id, 'id');
-        $customPrice    = BingoCardPrice::getValueCtnPrice($room->id, $currency, $bingoCreatorId);
-        $roomCtnPrice   = $room->config?->card_price_usd ?? $room->config?->card_price ?? 0;
+        $roomCtnPrice = $room->config?->card_price_usd ?? $room->config?->card_price ?? 0;
 
-        $cardPrice = $customPrice
+        $cardPrice = $customPrice !== null
             ? $this->calculateCtnPrice($customPrice, true)
             : $this->calculateCtnPrice($roomCtnPrice, false, $exchangeRate);
 

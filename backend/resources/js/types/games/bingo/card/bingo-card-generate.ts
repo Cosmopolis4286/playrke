@@ -49,12 +49,29 @@ export interface Player {
 export interface GenerateCardPayload {
     room_id: string
     num_ctns: number
-    country_id: number | null
+    /** Snowflake ID del país, enviado como string para evitar truncado. */
+    country_id: string | null
     player: {
         phone: string
         name: string
         last_name: string
     }
+}
+
+/**
+ * Respuesta del endpoint GET /bingo-card/{room}/card-price?country_id=X
+ *
+ * - card_price:      Precio calculado del cartón en la moneda local del país.
+ * - currency_symbol: Símbolo de la moneda (ej: "Bs.", "R$", "$").
+ * - exchange_rate:   Tasa de cambio aplicada (commerce → moneda del país).
+ * - is_custom_price: true si el precio viene de bingo_card_prices, false si
+ *                    es el precio base de la sala × tasa.
+ */
+export interface CardPriceResponse {
+    card_price: number
+    currency_symbol: string
+    exchange_rate: number
+    is_custom_price: boolean
 }
 
 /**

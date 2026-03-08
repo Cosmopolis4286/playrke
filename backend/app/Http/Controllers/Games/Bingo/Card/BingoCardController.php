@@ -99,4 +99,25 @@ final class BingoCardController extends Controller
             fn() => $this->generateService->getAvailableCountries($room->id, $userId)
         );
     }
+
+    /**
+     * Obtener el precio del cartón para una sala y país específicos.
+     *
+     * El precio se calcula aplicando:
+     * - Precio personalizado en bingo_card_prices (si existe para la sala y moneda del país).
+     * - En su defecto, precio base de la sala (card_price_usd) × tasa de cambio del commerce.
+     *
+     * @param BingoRoom $room    Sala de bingo (model binding por {room}).
+     * @param Request   $request Parámetros de la petición; debe incluir `country_id` (string Snowflake).
+     * @return JsonResponse      Respuesta con card_price, currency_symbol, exchange_rate, is_custom_price.
+     */
+    public function cardPrice(BingoRoom $room, Request $request): JsonResponse
+    {
+        $userId    = $this->userContext->resolveUserId();
+        $countryId = (string) $request->query('country_id');
+
+        return $this->handleServiceJson(
+            fn() => $this->generateService->getCardPrice($room->id, $userId, $countryId)
+        );
+    }
 }
