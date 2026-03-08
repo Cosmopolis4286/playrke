@@ -72,6 +72,8 @@ export interface CardPriceResponse {
     currency_symbol: string
     exchange_rate: number
     is_custom_price: boolean
+    /** Porcentaje de comisión del vendedor autenticado (ej: 5.00 = 5%). */
+    seller_commission: number
 }
 
 /**

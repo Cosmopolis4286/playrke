@@ -311,10 +311,11 @@ final class BingoCardGenerateService
         }
 
         return [
-            'card_price'      => (float) $cardPrice,
-            'currency_symbol' => (string) ($currencySymbol ?? ''),
-            'exchange_rate'   => $exchangeRate,
-            'is_custom_price' => $isCustomPrice,
+            'card_price'        => (float) $cardPrice,
+            'currency_symbol'   => (string) ($currencySymbol ?? ''),
+            'exchange_rate'     => $exchangeRate,
+            'is_custom_price'   => $isCustomPrice,
+            'seller_commission' => (float) $seller->commission,
         ];
     }
 

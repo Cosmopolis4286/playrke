@@ -44,11 +44,6 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
     /** Indica si se está consultando el precio del cartón para el país elegido. */
     const loadingCardPrice = ref(false)
 
-    /**
-     * Porcentaje de comisión del vendedor.
-     * Se obtiene del perfil del vendedor autenticado (actualmente inicializado en 0).
-     */
-    const commission = ref(0)
 
     /**
      * País seleccionado por el vendedor para la venta.
@@ -85,6 +80,12 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
      * Vacío mientras no se haya consultado el precio.
      */
     const currencySymbol = computed(() => cardPriceData.value?.currency_symbol ?? '')
+
+    /**
+     * Porcentaje de comisión del vendedor autenticado.
+     * Proviene del campo `commission` del seller, devuelto por el endpoint de precio.
+     */
+    const commission = computed(() => cardPriceData.value?.seller_commission ?? 0)
 
     /** Monto total a cobrar al jugador (precio unitario × cantidad). */
     const totalAmount = computed(() => roomCtnPrice.value * numCtns.value)
