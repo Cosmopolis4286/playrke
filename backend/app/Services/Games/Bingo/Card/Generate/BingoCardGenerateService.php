@@ -248,8 +248,8 @@ final class BingoCardGenerateService
      * 1. Resuelve la moneda del país seleccionado.
      * 2. Obtiene el commerce del seller autenticado.
      * 3. Obtiene la tasa de cambio del commerce para esa moneda.
-     * 4. Busca el precio personalizado en bingo_card_prices (room + bingo_creator).
-     * 5. Calcula el precio final con calculateCtnPrice().
+     * 4. Busca el precio personalizado en bingo_card_prices (room + currency + creator_user_id).
+     * 5. Calcula el precio final con BingoCardPriceCalculator::calculate().
      *
      * @param string $roomId    ID (hasheado) de la sala de bingo.
      * @param string $userId    ID del usuario autenticado.
