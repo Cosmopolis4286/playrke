@@ -54,14 +54,20 @@ final class BingoCardController extends Controller
     /**
      * Generar cartones de bingo para un jugador.
      *
-     * @param BingoCardGenerateRequest $request
+     * El `{room}` en la URL usa route model binding (HasHashedRouteKey),
+     * por lo que el hash se decodifica automáticamente antes de llegar aquí.
+     *
+     * @param BingoRoom                $room    Sala decodificada por route model binding.
+     * @param BingoCardGenerateRequest $request Body con num_ctns, country_id y player.
      * @return JsonResponse
      */
-    public function generateCardStore(BingoCardGenerateRequest $request): JsonResponse
+    public function generateCardStore(BingoRoom $room, BingoCardGenerateRequest $request): JsonResponse
     {
         return $this->handleServiceJson(
             fn() => $this->generateService->generate(
-                $request->toDTO(BingoCardGenerateDTO::class)
+                BingoCardGenerateDTO::fromArray(
+                    array_merge($request->validated(), ['room_id' => (string) $room->id])
+                )
             )
         );
     }
