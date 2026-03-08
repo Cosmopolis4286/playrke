@@ -18,7 +18,6 @@ class BingoCardGenerateRequest extends BaseRequest
     public function rules(): array
     {
         return [
-            'room_id'          => ['required', 'string'],
             'num_ctns'         => ['required', 'integer', 'min:1', 'max:40'],
             'country_id'       => ['required', 'string', 'exists:countries,id'],
             'player.phone'     => ['required', 'string', 'max:20'],
@@ -30,7 +29,6 @@ class BingoCardGenerateRequest extends BaseRequest
     public function messages(): array
     {
         return [
-            'room_id.required'          => 'Debe seleccionar una sala.',
             'num_ctns.required'         => 'Debe indicar la cantidad de cartones.',
             'num_ctns.min'              => 'Debe generar al menos 1 cartón.',
             'num_ctns.max'              => 'No puede generar más de 40 cartones.',

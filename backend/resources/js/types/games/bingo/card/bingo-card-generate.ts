@@ -47,7 +47,6 @@ export interface Player {
  * Payload para generar cartones.
  */
 export interface GenerateCardPayload {
-    room_id: string
     num_ctns: number
     /** Snowflake ID del país, enviado como string para evitar truncado. */
     country_id: string | null

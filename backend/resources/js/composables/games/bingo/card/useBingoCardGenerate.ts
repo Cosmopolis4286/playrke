@@ -224,8 +224,8 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
 
         loading.value = true
 
+        const roomHashedId = selectedRoom.value!.id
         const payload: GenerateCardPayload = {
-            room_id: selectedRoom.value!.id,
             num_ctns: numCtns.value,
             country_id: selectedCountry.value,
             player: {
@@ -236,7 +236,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         }
 
         try {
-            const { data } = await backendClient.post('/bingo-card/generate-card-store', payload)
+            const { data } = await backendClient.post(`/bingo-card/${roomHashedId}/generate`, payload)
             showToast(data.message, 'success')
             resetState()
             return true
