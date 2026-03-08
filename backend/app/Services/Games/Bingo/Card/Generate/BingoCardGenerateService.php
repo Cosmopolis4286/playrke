@@ -11,6 +11,7 @@ use App\Models\Roles\Seller;
 use App\Models\Currency;
 use App\Models\ExternalPlayers;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
+use App\Services\Games\Bingo\Card\BingoCardPriceCalculator;
 use App\Traits\Games\Bingo\BingoTrait;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
@@ -43,6 +44,7 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
+        private readonly BingoCardPriceCalculator $priceCalculator,
     ) {}
 
     /**
@@ -301,11 +303,11 @@ final class BingoCardGenerateService
         $isCustomPrice = $customPrice !== null;
 
         if ($isCustomPrice) {
-            $cardPrice = $this->calculateCtnPrice($customPrice, true, $exchangeRate);
+            $cardPrice = $this->priceCalculator->calculate($customPrice, true, $exchangeRate);
         } else {
             $room         = BingoRoom::select('id')->with('config:id,room_id,card_price_usd')->find($roomId);
             $roomCtnPrice = $room?->config?->card_price_usd ?? 0;
-            $cardPrice    = $this->calculateCtnPrice($roomCtnPrice, false, $exchangeRate);
+            $cardPrice    = $this->priceCalculator->calculate($roomCtnPrice, false, $exchangeRate);
         }
 
         return [
@@ -375,8 +377,8 @@ final class BingoCardGenerateService
         $roomCtnPrice = $room->config?->card_price_usd ?? $room->config?->card_price ?? 0;
 
         $cardPrice = $customPrice !== null
-            ? $this->calculateCtnPrice($customPrice, true)
-            : $this->calculateCtnPrice($roomCtnPrice, false, $exchangeRate);
+            ? $this->priceCalculator->calculate($customPrice, true, $exchangeRate)
+            : $this->priceCalculator->calculate($roomCtnPrice, false, $exchangeRate);
 
         // 6. Buscar jugador existente en la sala
         // $existingRoomUser = ExternalPlayers::select('id', 'link')

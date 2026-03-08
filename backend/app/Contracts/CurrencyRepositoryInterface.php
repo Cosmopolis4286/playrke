@@ -146,4 +146,13 @@ interface CurrencyRepositoryInterface extends BaseRepositoryInterface
      * @return array IDs de países
      */
     public function getCountriesByCurrencies(array $currencyIds): array;
+
+    /**
+     * Obtener un valor específico de la moneda asociada a un país.
+     *
+     * @param int|string $countryId ID del país
+     * @param string     $field     Campo a retornar (ej. 'id', 'symbol')
+     * @return mixed|null
+     */
+    public function getValueByCountry($countryId, string $field): mixed;
 }
