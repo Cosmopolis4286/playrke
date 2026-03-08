@@ -397,12 +397,13 @@ final class BingoCardGenerateService
             throw new DomainException('Comercio asociado no encontrado.');
         }
 
-        // 2. Validar sala ($dto->roomId es el ID real, decodificado por route model binding)
+        // 2. Validar sala — solo se permiten salas con código ACTIVE o IN_PROGRESS
         $room = BingoRoom::select('id', 'status_id', 'prize_pool', 'creator_user_id')
+            ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
             ->where('id', $dto->roomId)
             ->first();
 
-        if (!$room || $room->status_id > 2) {
+        if (!$room) {
             throw new DomainException('Sala no encontrada o no disponible.');
         }
 
@@ -444,7 +445,7 @@ final class BingoCardGenerateService
 
         $arrCtn = [
             'room'          => $room->id,
-            'creator'       => $creator,
+            'creator'       => $creatorUser,
             'seller'        => $seller->id,
             'commerce'      => $commerce,
             'currency'      => $currency,
@@ -482,6 +483,100 @@ final class BingoCardGenerateService
                 'type'       => 'success',
                 'message'    => 'Cartones generados correctamente.',
                 'playerLink' => $playerLink,
+            ];
+        });
+    }
+
+    /**
+     * Compra de cartones desde la vista game-rooms (commerce/seller para su player).
+     *
+     * Los datos del jugador (teléfono, nombre) vienen del contexto del commerce/seller
+     * autenticado — no se requiere formulario de datos del jugador.
+     *
+     * @param \App\DTOs\Games\Bingo\Room\BingoRoomPlayerBuyDTO $dto
+     * @return array{type: string, message: string, prize_pool?: float, ctns?: int}
+     * @throws DomainException
+     */
+    public function buyFromGameRooms(\App\DTOs\Games\Bingo\Room\BingoRoomPlayerBuyDTO $dto): array
+    {
+        $userId = (string) $this->userContext->resolveUserId();
+        $role   = $this->roleUserService->getActiveUserRolePrefix((int) $userId);
+
+        // 1. Resolver commerce responsable según rol
+        [$commerceId, $creatorUserId] = $this->resolveCommerceContext($userId, $role);
+
+        // 2. Validar sala
+        $room = BingoRoom::select('id', 'status_id', 'prize_pool', 'creator_user_id')
+            ->with('config:id,room_id,card_price_usd')
+            ->where('id', $dto->roomId)
+            ->first();
+
+        if (!$room || $room->status_id > 2) {
+            throw new DomainException('Sala no encontrada o no disponible.');
+        }
+
+        // 3. Moneda del país seleccionado
+        $currencyId = $this->currencies->getValueByCountry($dto->countryId, 'id');
+
+        if (!$currencyId) {
+            throw new DomainException('Moneda no disponible para el país seleccionado.');
+        }
+
+        // 4. Tasa de cambio
+        $exchangeRate = round(
+            (float) $this->exchangeRateRepository->getCommerceCurrencyValue($commerceId, $currencyId),
+            2,
+        );
+
+        // 5. Precio del cartón
+        $customPrice = BingoCardPrice::byRoom($room->id)
+            ->byCurrency($currencyId)
+            ->where('creator_user_id', $creatorUserId)
+            ->value('card_price');
+
+        $cardPrice = $customPrice !== null
+            ? $this->priceCalculator->calculate($customPrice, true, $exchangeRate)
+            : $this->priceCalculator->calculate($room->config?->card_price_usd ?? 0, false, $exchangeRate);
+
+        // 6. Seller ID (null si es commerce)
+        $sellerId = $role === 'seller'
+            ? $this->sellerRepository->getValueByUserId($userId, 'id')
+            : null;
+
+        $arrCtn = [
+            'room'           => $room->id,
+            'creator'        => $creatorUserId,
+            'seller'         => $sellerId,
+            'commerce'       => $commerceId,
+            'currency'       => $currencyId,
+            'numOfCtns'      => $dto->numCtns,
+            'cardPrice'      => $cardPrice,
+            'country'        => $dto->countryId,
+            'playerPhone'    => '',
+            'playerName'     => '',
+            'playerLastName' => '',
+            'initials'       => '',
+            'exchangeRate'   => $exchangeRate,
+        ];
+
+        return DB::transaction(function () use ($arrCtn, $room) {
+            $cartonStore = $this->cartonStore($arrCtn);
+
+            if (isset($cartonStore['Error'])) {
+                throw new DomainException($cartonStore['Error']);
+            }
+
+            if (!isset($arrCtn['roomUser'])) {
+                $arrCtn['roomUser'] = $cartonStore;
+            }
+
+            $this->handleExternalPlayers($arrCtn);
+
+            return [
+                'type'       => 'success',
+                'message'    => 'Cartones generados correctamente.',
+                'prize_pool' => (float) $room->prize_pool,
+                'ctns'       => $arrCtn['numOfCtns'],
             ];
         });
     }

@@ -65,9 +65,7 @@ final class BingoCardController extends Controller
     {
         return $this->handleServiceJson(
             fn() => $this->generateService->generate(
-                BingoCardGenerateDTO::fromArray(
-                    array_merge($request->validated(), ['room_id' => (string) $room->id])
-                )
+                BingoCardGenerateDTO::fromArray($request->validated())
             )
         );
     }

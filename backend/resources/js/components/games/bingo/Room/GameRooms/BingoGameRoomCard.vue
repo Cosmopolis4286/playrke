@@ -54,8 +54,8 @@ const emit = defineEmits<{
 // Computed
 // ---------------------------------------------------------------------------
 
-/** Si la sala está activa (status 2 = disponible para comprar) */
-const isAvailable = computed(() => props.room.status === 2)
+/** Si la sala está activa (ACTIVE = disponible para comprar) */
+const isAvailable = computed(() => props.room.status_code === 'ACTIVE')
 
 /** Etiqueta de estado visible */
 const statusLabel = computed(() =>

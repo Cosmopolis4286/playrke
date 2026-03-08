@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Games\Bingo\Room;
 
 use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
+use App\DTOs\Games\Bingo\Room\BingoRoomPlayerBuyDTO;
 use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Games\Bingo\Room\BingoRoomPlayerBuyRequest;
 use App\Http\Requests\Games\Bingo\Room\BingoRoomRequest;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use Illuminate\Http\JsonResponse;
@@ -28,7 +30,8 @@ final class BingoRoomController extends Controller
      */
     public function __construct(
         private readonly \App\Services\Games\Bingo\Room\BingoRoomService $service,
-        private readonly \App\Services\Security\UserContextService $userContext
+        private readonly \App\Services\Security\UserContextService $userContext,
+        private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $generateService,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
@@ -177,6 +180,28 @@ final class BingoRoomController extends Controller
                 return Inertia::render('Games/Bingo/Room/GameRooms', $response);
             },
             'No se pudo cargar la lista de salas de bingo.'
+        );
+    }
+
+    /**
+     * Compra de cartones desde la vista game-rooms.
+     *
+     * Flujo exclusivo para commerce/seller — el jugador (player)
+     * ya está registrado en el sistema. Solo se requiere país y cantidad.
+     *
+     * @param BingoRoom                $room    Sala decodificada por route model binding.
+     * @param BingoRoomPlayerBuyRequest $request Body con num_ctns y country_id.
+     * @return JsonResponse
+     */
+    public function buyFromGameRooms(BingoRoom $room, BingoRoomPlayerBuyRequest $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->generateService->buyFromGameRooms(
+                BingoRoomPlayerBuyDTO::fromArray(
+                    $request->validated(),
+                    (string) $room->id,
+                )
+            )
         );
     }
 }

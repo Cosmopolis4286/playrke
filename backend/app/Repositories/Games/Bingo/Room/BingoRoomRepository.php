@@ -258,6 +258,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             ->with([
                 'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time',
                 'config.prizePoolType:id,code,label',
+                'status:id,code',
             ])
             ->whereHas('status', fn($q) => $q->where('code', 'ACTIVE'))
             ->whereHas('config', fn($q) => $q->whereDate('date', $today))

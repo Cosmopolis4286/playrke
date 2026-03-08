@@ -15,9 +15,23 @@ class BingoCardGenerateRequest extends BaseRequest
         return PermissionService::checkPrefix(['seller']);
     }
 
+    /**
+     * Inyecta el room_id real desde el route model binding antes de validar.
+     * Así el DTO puede recibirlo via validated() sin que el frontend lo envíe en el body.
+     */
+    protected function prepareForValidation(): void
+    {
+        $room = $this->route('room');
+
+        if ($room instanceof \App\Models\Games\Bingo\Room\BingoRoom) {
+            $this->merge(['room_id' => (string) $room->id]);
+        }
+    }
+
     public function rules(): array
     {
         return [
+            'room_id'          => ['required', 'string', 'exists:bingo_rooms,id'],
             'num_ctns'         => ['required', 'integer', 'min:1', 'max:40'],
             'country_id'       => ['required', 'string', 'exists:countries,id'],
             'player.phone'     => ['required', 'string', 'max:20'],
@@ -29,6 +43,8 @@ class BingoCardGenerateRequest extends BaseRequest
     public function messages(): array
     {
         return [
+            'room_id.required'          => 'Debe seleccionar una sala.',
+            'room_id.exists'            => 'La sala seleccionada no es válida.',
             'num_ctns.required'         => 'Debe indicar la cantidad de cartones.',
             'num_ctns.min'              => 'Debe generar al menos 1 cartón.',
             'num_ctns.max'              => 'No puede generar más de 40 cartones.',

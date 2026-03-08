@@ -8,31 +8,37 @@
  * Responsabilidades:
  *  - Renderizar las salas activas del día como tarjetas
  *  - Gestionar el countdown de cada sala
- *  - Manejar la selección de sala y compra de cartones
+ *  - Manejar la selección de sala y compra de cartones (modal)
  */
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import '@/css/games/bingo/bingo-game-rooms.css'
 
 // ==========================================================================
 // Componentes
 // ==========================================================================
-import BingoGameRoomCard from '@/js/Components/Games/Bingo/Room/GameRooms/BingoGameRoomCard.vue'
+import BingoGameRoomCard    from '@/js/Components/Games/Bingo/Room/GameRooms/BingoGameRoomCard.vue'
+import BingoPurchaseModal   from '@/js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModal.vue'
 
 // ==========================================================================
 // Composables
 // ==========================================================================
-import { useGameRoomCountdown } from '@/js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
-import { useGameRoomCardPurchase } from '@/js/composables/games/bingo/room/game-rooms/useGameRoomCardPurchase'
+import { useGameRoomCountdown }      from '@/js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
+import { useGameRoomPurchaseModal }  from '@/js/composables/games/bingo/card/purchase-modal/useGameRoomPurchaseModal'
 
 // ==========================================================================
 // Types
 // ==========================================================================
-import type { BingoGameRoomsPageProps } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
+import type { BingoGameRoomsPageProps, BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
 
 // ==========================================================================
 // Props (Inertia)
 // ==========================================================================
 const props = defineProps<BingoGameRoomsPageProps>()
+
+// ==========================================================================
+// Estado local de salas (mutable para actualizar prize_pool y ctns)
+// ==========================================================================
+const rooms = ref<BingoGameRoom[]>(props.rooms.map(r => ({ ...r })))
 
 // ==========================================================================
 // Countdown
@@ -49,30 +55,34 @@ const { init: initCountdown, getCountdown } = useGameRoomCountdown(
 )
 
 // ==========================================================================
-// Compra de cartones
+// Modal de compra de cartones
 // ==========================================================================
 
-const {
-  selectedRoomId,
-  roomDetail,
-  numCtns,
-  showPurchasePanel,
-  loading,
-  totalAmount,
-  prizePoolLabel,
-  fetchRoomDetail,
-  closePurchasePanel,
-  incrementCtns,
-  decrementCtns,
-  setNumCtns,
-  purchase,
-} = useGameRoomCardPurchase({
-  creatorId: props.creator?.id ?? '',
-  creatorType: props.creator?.type ?? '',
-  player: props.player ?? null,
-  currency: props.currency ?? null,
-  creatorUser: props.creatorUser ?? null,
-})
+const modal = useGameRoomPurchaseModal()
+
+/** Abre el modal para la sala con el ID dado. */
+function openModal(roomId: string): void {
+  const room = rooms.value.find(r => r.id === roomId)
+  if (room) modal.open(room)
+}
+
+/**
+ * Callback de compra exitosa:
+ * actualiza prize_pool y ctns del jugador sin recargar la página.
+ */
+function onPurchaseSuccess(roomId: string, result: { prizePool: number; ctns: number }): void {
+  const idx = rooms.value.findIndex(r => r.id === roomId)
+  if (idx === -1) return
+
+  const room = rooms.value[idx]
+  const updatedPlayer = { ctns: (room.players_room?.[0]?.ctns ?? 0) + result.ctns }
+
+  rooms.value[idx] = {
+    ...room,
+    prize_pool:   result.prizePool,
+    players_room: [updatedPlayer],
+  }
+}
 
 // ==========================================================================
 // Lifecycle
@@ -96,7 +106,7 @@ onMounted(() => {
     </div>
 
     <!-- ── Sin salas ── -->
-    <div v-if="!props.rooms.length" class="game-rooms-page__empty">
+    <div v-if="!rooms.length" class="game-rooms-page__empty">
       <i class="fas fa-door-closed" />
       <p>No hay salas activas para hoy</p>
     </div>
@@ -105,10 +115,10 @@ onMounted(() => {
     <div v-else class="game-rooms-page__grid-wrap">
       <div
         class="game-rooms-page__grid"
-        :class="{ 'game-rooms-page__grid--centered': props.rooms.length < 4 }"
+        :class="{ 'game-rooms-page__grid--centered': rooms.length < 4 }"
       >
         <div
-          v-for="room in props.rooms"
+          v-for="room in rooms"
           :key="room.id"
           class="game-rooms-page__grid-item"
         >
@@ -117,24 +127,45 @@ onMounted(() => {
             :exchange-rate="props.exchangeRate ?? 1"
             :currency-sym="props.currencySym ?? ''"
             :countdown="getCountdown(room.id)"
-            :is-purchasing="showPurchasePanel && selectedRoomId === room.id"
-            :room-detail="roomDetail"
-            :num-ctns="numCtns"
-            :total-amount="totalAmount"
-            :prize-pool-label="prizePoolLabel"
-            :loading="loading"
-            @select="fetchRoomDetail"
-            @close="closePurchasePanel"
-            @increment="incrementCtns"
-            @decrement="decrementCtns"
-            @set-ctns="setNumCtns"
-            @purchase="purchase()"
+            :is-purchasing="false"
+            :room-detail="null"
+            :num-ctns="1"
+            :total-amount="0"
+            :prize-pool-label="'Premio'"
+            :loading="false"
+            @select="openModal"
           />
         </div>
       </div>
     </div>
 
   </div>
+
+  <!-- ══ Modal de compra ══ -->
+  <BingoPurchaseModal
+    :is-open="modal.isOpen.value"
+    :step="modal.step.value"
+    :selected-room="modal.selectedRoom.value"
+    :countries="modal.countries.value"
+    :loading-countries="modal.loadingCountries.value"
+    :selected-country="modal.selectedCountry.value"
+    :card-price="modal.cardPrice.value"
+    :currency-symbol="modal.currencySymbol.value"
+    :loading-price="modal.loadingPrice.value"
+    :num-ctns="modal.numCtns.value"
+    :total-amount="modal.totalAmount.value"
+    :can-advance="modal.canAdvance.value"
+    :purchasing="modal.purchasing.value"
+    :exchange-rate="props.exchangeRate ?? 1"
+    @close="modal.close()"
+    @select-country="modal.selectCountry($event)"
+    @next="modal.nextStep()"
+    @prev="modal.prevStep()"
+    @increment="modal.increment()"
+    @decrement="modal.decrement()"
+    @set-ctns="modal.setNumCtns($event)"
+    @purchase="modal.purchase((result) => onPurchaseSuccess(modal.selectedRoom.value!.id, result))"
+  />
 </template>
 
 <style>

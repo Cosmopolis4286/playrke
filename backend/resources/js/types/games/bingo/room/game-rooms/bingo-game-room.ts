@@ -46,10 +46,10 @@ export interface BingoGameRoom {
   /** Cartones del jugador actual en esta sala */
   readonly players_room?: BingoGameRoomPlayer[] | null
   /**
-   * Estado de la sala: 2 = activa (compra disponible),
-   * 3 = en juego, otros = no disponible.
+   * Código de estado de la sala: 'ACTIVE' = disponible para comprar,
+   * 'PLAYING' = en juego, etc.
    */
-  readonly status: number
+  readonly status_code: string
   /** Encrypted ID para rutas legacy */
   readonly encrypted?: string | null
 }
