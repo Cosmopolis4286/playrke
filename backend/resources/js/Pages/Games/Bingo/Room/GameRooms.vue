@@ -23,6 +23,7 @@ import BingoPurchaseModal   from '@/js/Components/Games/Bingo/Card/PurchaseModal
 // Composables
 // ==========================================================================
 import { useGameRoomCountdown }      from '@/js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
+import { useGameRoomEcho }           from '@/js/composables/games/bingo/room/game-rooms/useGameRoomEcho'
 import { useGameRoomPurchaseModal }  from '@/js/composables/games/bingo/card/purchase-modal/useGameRoomPurchaseModal'
 
 // ==========================================================================
@@ -39,6 +40,11 @@ const props = defineProps<BingoGameRoomsPageProps>()
 // Estado local de salas (mutable para actualizar prize_pool y ctns)
 // ==========================================================================
 const rooms = ref<BingoGameRoom[]>(props.rooms.map(r => ({ ...r })))
+
+// ==========================================================================
+// WebSocket — actualizaciones en tiempo real (prize_pool, total_players, card_price)
+// ==========================================================================
+useGameRoomEcho(rooms)
 
 // ==========================================================================
 // Countdown

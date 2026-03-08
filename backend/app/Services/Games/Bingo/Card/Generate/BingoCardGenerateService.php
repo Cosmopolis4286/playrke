@@ -464,7 +464,7 @@ final class BingoCardGenerateService
         // }
 
         // 7. Ejecutar transacción atómica
-        return DB::transaction(function () use ($arrCtn, $room) {
+        $result = DB::transaction(function () use ($arrCtn, $room) {
             $cartonStore = $this->cartonStore($arrCtn);
 
             if (isset($cartonStore['Error'])) {
@@ -485,6 +485,23 @@ final class BingoCardGenerateService
                 'playerLink' => $playerLink,
             ];
         });
+
+        // 8. Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
+        //    Recarga los datos frescos después del commit para garantizar consistencia.
+        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players')
+            ->with('config:id,room_id,card_price_usd')
+            ->find($room->id);
+
+        if ($fresh) {
+            broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
+                roomId:       (string) $fresh->id,
+                prizePool:    (float)  $fresh->prize_pool,
+                totalPlayers: (int)    $fresh->total_players,
+                cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
+            ));
+        }
+
+        return $result;
     }
 
     /**
