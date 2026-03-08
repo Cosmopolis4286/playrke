@@ -109,7 +109,7 @@
         :modelValue="player.phone"
         @update:modelValue="
           value => {
-            phoneRef = String(value)
+            phoneRef.value = String(value)
             setPlayerField('phone', value)
           }
         "
