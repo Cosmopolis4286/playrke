@@ -193,7 +193,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
      * @param roomId    - ID de la sala seleccionada.
      * @param countryId - ID del país seleccionado.
      */
-    async function fetchCardPrice(roomId: string, countryId: number) {
+    async function fetchCardPrice(roomId: string, countryId: string) {
         loadingCardPrice.value = true
         try {
             const { data } = await backendClient.get<CardPriceResponse>(

@@ -5,6 +5,7 @@
 
   import { useBingoCardGenerate } from '@/js/composables/games/bingo/card/useBingoCardGenerate'
   import type { SelectOption } from '@/js/types/common/form/form'
+  import type { Player } from '@/js/types/games/bingo/card/bingo-card-generate'
 
   defineProps<{
     roomTypeOptions: SelectOption[]
@@ -36,6 +37,16 @@
     isFormValid,
     generate
   } = useBingoCardGenerate(selectedRoom)
+
+  /**
+   * Actualiza los campos del jugador usando Object.assign para preservar
+   * la reactividad del objeto reactive<Player> del composable.
+   *
+   * @param updated - Objeto Player completo emitido por BingoCardGenerateFormPlayerSection.
+   */
+  function onUpdatePlayer(updated: Player) {
+    Object.assign(player, updated)
+  }
 
   async function handleSubmit() {
     await generate()
@@ -102,7 +113,8 @@
       :countries="countries"
       :loading-countries="loadingCountries"
       v-model:selectedCountry="selectedCountry"
-      v-model:player="player"
+      :player="player"
+      @update:player="onUpdatePlayer"
     />
 
     <!-- ───────────── Botón ───────────── -->
@@ -110,7 +122,10 @@
     <div v-if="roomSectionRef?.selectedRoom" class="mt-3 text-center">
       <button type="submit" class="btn btn-primary btn-lg px-5" :disabled="!isFormValid || loading">
         <span v-if="loading" class="spinner-border spinner-border-sm mr-2" role="status" />
-        {{ loading ? 'Generando…' : 'Generar Cartones' }}
+        <template v-if="loading">Generando…</template>
+        <template v-else>
+          {{ numCtns === 1 ? 'Generar Cartón' : 'Generar Cartones' }}
+        </template>
       </button>
     </div>
   </form>
