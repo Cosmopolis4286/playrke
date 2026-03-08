@@ -244,44 +244,37 @@ final class BingoCardGenerateService
     /**
      * Obtiene el precio de un cartón para una sala y país específicos.
      *
-     * Lógica (igual a la usada en generate()):
-     * 1. Resuelve la moneda del país seleccionado.
-     * 2. Obtiene el commerce del seller autenticado.
-     * 3. Obtiene la tasa de cambio del commerce para esa moneda.
-     * 4. Busca el precio personalizado en bingo_card_prices (room + currency + creator_user_id).
-     * 5. Calcula el precio final con BingoCardPriceCalculator::calculate().
+     * Lógica:
+     * 1. Resuelve el rol y la entidad del usuario autenticado.
+     * 2. Deriva el commerce responsable (propio si es commerce, del manager si es seller).
+     * 3. Obtiene la moneda del país y la tasa de cambio del commerce.
+     * 4. Busca precio personalizado en bingo_card_prices; si no existe, usa precio base USD × tasa.
+     * 5. Retorna comisión de la entidad autenticada (commerce.commission o seller.commission).
      *
-     * @param string $roomId    ID (hasheado) de la sala de bingo.
+     * @param string $roomId    ID real de la sala de bingo (decodificado por route model binding).
      * @param string $userId    ID del usuario autenticado.
-     * @param string $countryId ID del país seleccionado (Snowflake, se pasa como string para evitar truncado).
+     * @param string $countryId ID del país seleccionado (Snowflake como string).
      *
      * @return array{
      *     card_price: float,
      *     currency_symbol: string,
      *     exchange_rate: float,
-     *     is_custom_price: bool
+     *     is_custom_price: bool,
+     *     seller_commission: float
      * }
      *
      * @throws DomainException Si la moneda, el commerce o la tasa no se encuentran.
      */
     public function getCardPrice(string $roomId, string $userId, string $countryId): array
     {
-        // 1. Seller autenticado → commerce_id del manager
-        $seller = Seller::select(['id', 'commission', 'manager_user_id'])
-            ->where('user_id', $userId)
-            ->first();
+        // 1. Rol y entidad del usuario autenticado
+        $role     = $this->roleUserService->getActiveUserRolePrefix($userId);
+        $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
 
-        if (!$seller) {
-            throw new DomainException('Vendedor no encontrado.');
-        }
+        // 2. Commerce responsable y user_id de su creador (para filtrar bingo_card_prices)
+        [$commerceId, $creatorUserId] = $this->resolveCommerceContext($userId, $role);
 
-        $commerce = Commerce::where('user_id', $seller->manager_user_id)->value('id');
-
-        if (!$commerce) {
-            throw new DomainException('Comercio asociado no encontrado.');
-        }
-
-        // 2. Moneda del país (id + symbol para mostrar en UI)
+        // 3. Moneda del país seleccionado
         $currencyId     = $this->currencies->getValueByCountry($countryId, 'id');
         $currencySymbol = $this->currencies->getValueByCountry($countryId, 'symbol');
 
@@ -289,17 +282,15 @@ final class BingoCardGenerateService
             throw new DomainException('No se encontró moneda para el país seleccionado.');
         }
 
-        // 3. Tasa de cambio activa del commerce para esa moneda
-        $exchangeRate = (float) $this->exchangeRateRepository->getCommerceCurrencyValue($commerce, $currencyId);
+        // 4. Tasa de cambio activa del commerce para esa moneda
+        $exchangeRate = (float) $this->exchangeRateRepository->getCommerceCurrencyValue($commerceId, $currencyId);
 
-        // 4. Precio personalizado en bingo_card_prices (room + currency + creator_user_id del commerce)
-        //    creator_user_id corresponde al user_id del commerce que gestiona la sala.
+        // 5. Precio personalizado en bingo_card_prices (room + currency + creator_user_id del commerce)
         $customPrice = BingoCardPrice::byRoom($roomId)
             ->byCurrency($currencyId)
-            ->where('creator_user_id', $seller->manager_user_id)
+            ->where('creator_user_id', $creatorUserId)
             ->value('card_price');
 
-        // 5. Si no hay precio personalizado, usar el precio base de la sala en USD × tasa
         $isCustomPrice = $customPrice !== null;
 
         if ($isCustomPrice) {
@@ -310,13 +301,74 @@ final class BingoCardGenerateService
             $cardPrice    = $this->priceCalculator->calculate($roomCtnPrice, false, $exchangeRate);
         }
 
+        // 6. Comisión de la entidad autenticada según su rol
+        $commission = $this->resolveEntityCommission($userId, $role);
+
         return [
             'card_price'        => (float) $cardPrice,
             'currency_symbol'   => (string) ($currencySymbol ?? ''),
             'exchange_rate'     => $exchangeRate,
             'is_custom_price'   => $isCustomPrice,
-            'seller_commission' => (float) $seller->commission,
+            'seller_commission' => $commission,
         ];
+    }
+
+    /**
+     * Resuelve el commerce_id y el creator_user_id (user_id del commerce) según el rol.
+     *
+     * - commerce: el propio commerce; creator_user_id = $userId.
+     * - seller:   el commerce del manager; creator_user_id = manager_user_id del seller.
+     *
+     * @param string $userId ID del usuario autenticado.
+     * @param string $role   Rol activo ('commerce' | 'seller').
+     *
+     * @return array{0: string, 1: string} [commerce_id, creator_user_id]
+     *
+     * @throws DomainException Si el commerce no existe.
+     */
+    private function resolveCommerceContext(string $userId, string $role): array
+    {
+        return match ($role) {
+            'commerce' => [
+                $this->commerceRepository->getValueByUserId($userId, 'id'),
+                $userId,
+            ],
+            'seller' => (function () use ($userId): array {
+                $managerUserId = $this->sellerRepository->getValueByUserId($userId, 'manager_user_id');
+                $commerceId    = $this->commerceRepository->getValueByUserId($managerUserId, 'id');
+
+                if (!$commerceId) {
+                    throw new DomainException('Comercio asociado al vendedor no encontrado.');
+                }
+
+                return [$commerceId, $managerUserId];
+            })(),
+            default => throw new DomainException("Rol sin soporte de commerce: {$role}"),
+        };
+    }
+
+    /**
+     * Resuelve la comisión de la entidad autenticada según su rol.
+     *
+     * Cada entidad (commerce, seller) almacena su propia comisión en la columna
+     * `commission` de su tabla correspondiente.
+     *
+     * @param string $userId ID del usuario autenticado.
+     * @param string $role   Rol activo ('commerce' | 'seller').
+     *
+     * @return float Porcentaje de comisión (ej: 5.00 = 5%).
+     *
+     * @throws DomainException Si el rol no tiene soporte de comisión.
+     */
+    private function resolveEntityCommission(string $userId, string $role): float
+    {
+        $commission = match ($role) {
+            'commerce' => $this->commerceRepository->getValueByUserId($userId, 'commission'),
+            'seller'   => $this->sellerRepository->getValueByUserId($userId, 'commission'),
+            default    => throw new DomainException("Rol sin soporte de comisión: {$role}"),
+        };
+
+        return (float) ($commission ?? 0);
     }
 
     /**

@@ -6,7 +6,7 @@ use App\DTOs\Games\Bingo\Card\BingoCardGenerateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
 use App\Models\Games\Bingo\Room\BingoRoom;
-use App\Services\Games\Bingo\Card\BingoCardGenerateService;
+use App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
