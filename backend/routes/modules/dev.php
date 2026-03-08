@@ -10,6 +10,11 @@
 // Demo del nuevo frontend
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\Auth\DemoCredentialsController;
+
+// Credenciales demo para el componente DemoCredentials en Login
+Route::get('dev/demo-credentials', [DemoCredentialsController::class, 'index'])
+    ->name('dev.demo-credentials');
 
 Route::get('demo', function () {
     return view('demo');

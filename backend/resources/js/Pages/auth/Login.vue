@@ -3,16 +3,19 @@
   import { Link } from '@inertiajs/vue3'
   import { useLogin } from '@js/composables/auth/useLogin'
   import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
+  import DemoCredentials from '@js/Components/Auth/DemoCredentials.vue'
 
-  /**
-   * Props tipadas correctamente para Inertia
-   */
   const props = defineProps<{
     register: Boolean
   }>()
 
   const { form, errors, loading, isBusy, submit } = useLogin()
   const { showPassword, togglePassword } = usePasswordToggle()
+
+  const fillFromDemo = ({ login, password }: { login: string; password: string }) => {
+    form.login    = login
+    form.password = password
+  }
 </script>
 
 <template>
@@ -73,4 +76,7 @@
       </Link>
     </template>
   </GuestLayout>
+
+  <!-- Demo credentials (solo local/test) -->
+  <DemoCredentials @fill-credentials="fillFromDemo" />
 </template>

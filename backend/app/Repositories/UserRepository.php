@@ -58,22 +58,28 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
     public function getDemoUsersForFrontend(): SupportCollection
     {
+        $roleDescriptions = [
+            'admin'    => 'Administrador del sistema',
+            'commerce' => 'Comercio de prueba',
+            'seller'   => 'Vendedor asociado al comercio demo',
+            'customer' => 'Cliente de prueba',
+            'player'   => 'Jugador de prueba',
+        ];
+
         return $this->model
             ->with('roles')
             ->where('is_demo_user', true)
             ->get()
-            ->map(function (User $user) {
-                // Obtener el primer rol del usuario o usar 'player' por defecto
+            ->map(function (User $user) use ($roleDescriptions) {
                 $roleName = $user->roles->first()?->name ?? 'player';
 
                 return [
-                    'id'          => $user->id,
+                    'id'          => (string) $user->id,
                     'email'       => $user->email,
                     'password'    => $user->demo_password ?? 'password123',
-                    'firstName'   => $user->first_name,
-                    'lastName'    => $user->last_name,
+                    'label'       => $user->first_name . ' ' . $user->last_name,
                     'role'        => $roleName,
-                    'description' => $user->description ?? 'Usuario de prueba',
+                    'description' => $roleDescriptions[$roleName] ?? 'Usuario de prueba',
                 ];
             });
     }

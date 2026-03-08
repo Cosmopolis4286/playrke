@@ -28,112 +28,128 @@ class UserSeeder extends Seeder
             $userRepo = app(UserRepository::class);
 
             // ================================
-            // Crear o recuperar usuario admin
+            // Usuarios demo por rol
             // ================================
-            $admin = User::firstOrCreate(
-                ['email' => 'admin@playrke.com'],
+            $demoUsers = [
+                // Admin
                 [
-                    'username' => 'admin',
-                    'first_name' => 'Play',
-                    'last_name' => 'RKE',
-                    'country_id' => $venezuela->id,
-                    'email_verified_at' => now(),
-                    'password' => Hash::make('password123'),
-                    'remember_token' => Str::random(10),
-                    'referral_code' => $userRepo->generateUniqueReferralCode(),
-                    'status' => 'ACTIVE',
-                    'is_demo_user' => true,
-                    'demo_password' => 'password123',
-                ]
-            );
-
-            if (!$admin->hasRole('admin')) {
-                $admin->assignRole('admin');
-                $this->command->info('Rol admin asignado correctamente.');
-            }
-
-            // ================================
-            // Crear usuarios demo player
-            // ================================
-            $demoPlayers = [
+                    'email'       => 'admin@playrke.com',
+                    'username'    => 'admin',
+                    'first_name'  => 'Play',
+                    'last_name'   => 'RKE',
+                    'password'    => 'password123',
+                    'role'        => 'admin',
+                    'description' => 'Administrador del sistema',
+                ],
+                // Commerce
                 [
-                    'email' => 'player1@test.com',
-                    'username' => 'player1',
-                    'first_name' => 'Juan',
-                    'last_name' => 'Pérez',
-                    'password' => 'password123',
+                    'email'       => 'commerce@playrke.com',
+                    'username'    => 'commerce_demo',
+                    'first_name'  => 'Comercio',
+                    'last_name'   => 'Demo',
+                    'password'    => 'password123',
+                    'role'        => 'commerce',
+                    'description' => 'Comercio de prueba',
+                ],
+                // Seller (gestionado por el commerce)
+                [
+                    'email'       => 'seller@playrke.com',
+                    'username'    => 'seller_demo',
+                    'first_name'  => 'Vendedor',
+                    'last_name'   => 'Demo',
+                    'password'    => 'password123',
+                    'role'        => 'seller',
+                    'description' => 'Vendedor asociado al comercio demo',
+                ],
+                // Customer (API guard)
+                [
+                    'email'       => 'customer@playrke.com',
+                    'username'    => 'customer_demo',
+                    'first_name'  => 'Cliente',
+                    'last_name'   => 'Demo',
+                    'password'    => 'password123',
+                    'role'        => 'customer',
+                    'description' => 'Cliente de prueba',
+                ],
+                // Players
+                [
+                    'email'       => 'player1@test.com',
+                    'username'    => 'player1',
+                    'first_name'  => 'Juan',
+                    'last_name'   => 'Pérez',
+                    'password'    => 'password123',
+                    'role'        => 'player',
                     'description' => 'Jugador de prueba 1',
                 ],
                 [
-                    'email' => 'player2@test.com',
-                    'username' => 'player2',
-                    'first_name' => 'Ana',
-                    'last_name' => 'Gómez',
-                    'password' => 'password123',
+                    'email'       => 'player2@test.com',
+                    'username'    => 'player2',
+                    'first_name'  => 'Ana',
+                    'last_name'   => 'Gómez',
+                    'password'    => 'password123',
+                    'role'        => 'player',
                     'description' => 'Jugador de prueba 2',
                 ],
                 [
-                    'email' => 'player3@test.com',
-                    'username' => 'player3',
-                    'first_name' => 'Luis',
-                    'last_name' => 'Martínez',
-                    'password' => 'password123',
+                    'email'       => 'player3@test.com',
+                    'username'    => 'player3',
+                    'first_name'  => 'Luis',
+                    'last_name'   => 'Martínez',
+                    'password'    => 'password123',
+                    'role'        => 'player',
                     'description' => 'Jugador de prueba 3',
                 ],
             ];
 
-            foreach ($demoPlayers as $playerData) {
-                $player = User::firstOrCreate(
-                    ['email' => $playerData['email']],
+            foreach ($demoUsers as $data) {
+                $user = User::firstOrCreate(
+                    ['email' => $data['email']],
                     [
-                        'username' => $playerData['username'],
-                        'first_name' => $playerData['first_name'],
-                        'last_name' => $playerData['last_name'],
-                        'country_id' => $venezuela->id,
-                        'email_verified_at' => now(),
-                        'password' => Hash::make($playerData['password']),
-                        'remember_token' => Str::random(10),
-                        'referral_code' => $userRepo->generateUniqueReferralCode(),
-                        'status' => 'ACTIVE',
-                        'is_demo_user' => true,
-                        'demo_password' => $playerData['password'],
+                        'username'           => $data['username'],
+                        'first_name'         => $data['first_name'],
+                        'last_name'          => $data['last_name'],
+                        'country_id'         => $venezuela->id,
+                        'email_verified_at'  => now(),
+                        'password'           => Hash::make($data['password']),
+                        'remember_token'     => Str::random(10),
+                        'referral_code'      => $userRepo->generateUniqueReferralCode(),
+                        'status'             => 'ACTIVE',
+                        'is_demo_user'       => true,
+                        'demo_password'      => $data['password'],
                     ]
                 );
 
-                if (!$player->hasRole('player')) {
-                    $player->assignRole('player');
+                if (!$user->hasRole($data['role'])) {
+                    $user->assignRole($data['role']);
                 }
 
-                $this->command->info("Usuario demo player creado o actualizado: {$player->email}");
+                $this->command->info("✔ {$data['role']}: {$user->email}");
             }
 
             // ================================
-            // Monedero VES para admin y demos
+            // Monedero VES para todos los demos
             // ================================
             $currency = Currency::where('iso_code', 'VES')->first();
 
             if (!$currency) {
                 $this->command->warn('Moneda VES no encontrada. Ejecute CurrenciesSeeder primero.');
             } else {
-                $usersToAssignWallet = collect([$admin])->concat(
-                    User::whereIn('email', array_column($demoPlayers, 'email'))->get()
-                );
+                $demoEmails = array_column($demoUsers, 'email');
+                $users = User::whereIn('email', $demoEmails)->get();
 
-                foreach ($usersToAssignWallet as $user) {
-                    $walletExists = $user->wallets()->where('currency_id', $currency->id)->exists();
-
-                    if (!$walletExists) {
+                foreach ($users as $user) {
+                    if (!$user->wallets()->where('currency_id', $currency->id)->exists()) {
                         $user->wallets()->create([
                             'currency_id' => $currency->id,
-                            'balance' => 0,
-                            'status' => 'ACTIVE',
+                            'balance'     => 0,
+                            'status'      => 'ACTIVE',
                         ]);
-                        $this->command->info("Monedero VES creado para el usuario {$user->email}.");
+                        $this->command->info("  → Monedero VES creado para {$user->email}.");
                     }
                 }
             }
 
-            $this->command->info("✅ Usuarios admin y demo player asegurados exitosamente.");
+            $this->command->info('✅ Usuarios demo asegurados exitosamente.');
         } catch (\Throwable $e) {
             $this->command->error("❌ Error en UserSeeder: {$e->getMessage()}");
             throw $e;

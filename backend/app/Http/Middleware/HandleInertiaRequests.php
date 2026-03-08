@@ -80,10 +80,10 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
 
-            // Ejemplo:
-            // 'auth' => [
-            //     'user' => $request->user(),
-            // ],
+            'app' => [
+                'env'   => app()->environment(),
+                'debug' => config('app.debug'),
+            ],
         ];
     }
 }
