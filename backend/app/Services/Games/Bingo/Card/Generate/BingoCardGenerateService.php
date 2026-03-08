@@ -16,6 +16,7 @@ use App\Traits\Games\Bingo\BingoTrait;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Vinkla\Hashids\Facades\Hashids;
 use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface;
 
 /**
@@ -345,9 +346,10 @@ final class BingoCardGenerateService
             throw new DomainException('Comercio asociado no encontrado.');
         }
 
-        // 2. Validar sala
+        // 2. Validar sala (decodificar hash → ID real para query directa)
+        $realRoomId = $this->decodeRoomId($dto->roomId);
         $room = BingoRoom::select('id', 'status_id', 'prize_pool', 'creator_user_id')
-            ->where('id', $dto->roomId)
+            ->where('id', $realRoomId)
             ->first();
 
         if (!$room || $room->status_id > 2) {
@@ -448,6 +450,27 @@ final class BingoCardGenerateService
                 ->getValueByUserId($userId, 'manager_user_id'),
             default => throw new DomainException('Rol inválido'),
         };
+    }
+
+    /**
+     * Decodifica un room ID hasheado (Hashids) al ID real de la sala.
+     *
+     * El frontend recibe y envía el ID hasheado (ej: "ryzowvAxJrVNZ").
+     * Las queries directas con `where('id', ...)` requieren el ID numérico real.
+     *
+     * @param string $hashedId ID hasheado recibido del frontend.
+     * @return string ID real de la sala.
+     * @throws DomainException Si el hash es inválido o no decodifica.
+     */
+    private function decodeRoomId(string $hashedId): string
+    {
+        $decoded = Hashids::connection('main')->decode($hashedId);
+
+        if (empty($decoded)) {
+            throw new DomainException('ID de sala inválido.');
+        }
+
+        return (string) $decoded[0];
     }
 
     /**
