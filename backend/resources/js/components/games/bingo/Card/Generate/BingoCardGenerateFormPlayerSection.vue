@@ -1,5 +1,5 @@
 <script setup lang="ts" name="BingoCardGenerateFormPlayerSection">
-  import { computed, ref, watch } from 'vue'
+  import { computed } from 'vue'
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   import { usePhoneField } from '@/js/composables/form/usePhoneField'
@@ -37,26 +37,20 @@
   })
 
   /**
-   * Ref local sincronizado con props.player.phone.
-   * usePhoneField lo observa para validar y limpiar al cambiar de país.
+   * Computed con getter/setter que actúa como fuente de verdad del teléfono.
+   * - getter: lee desde props.player.phone (fuente de verdad del padre).
+   * - setter: emite update:player para propagar el cambio al padre.
+   * Evita el uso de un ref local intermedio que puede desincronizarse.
    */
-  const phoneRef = ref<string | undefined>(props.player.phone)
-
-  // Sincroniza hacia abajo cuando el padre resetea el player (ej: tras generate())
-  watch(
-    () => props.player.phone,
-    val => {
-      phoneRef.value = val
-    }
-  )
+  const phoneValue = computed<string | undefined>({
+    get: () => props.player.phone || undefined,
+    set: (val) => setPlayerField('phone', val ?? '')
+  })
 
   const { phoneMask, phonePlaceholder, phoneHint, phoneError, isPhoneValid } = usePhoneField(
     selectedIso2,
-    phoneRef,
-    val => {
-      phoneRef.value = val
-      setPlayerField('phone', val)
-    }
+    phoneValue,
+    val => setPlayerField('phone', val)
   )
 </script>
 
@@ -107,12 +101,7 @@
         :inputValidState="player.phone && isPhoneValid ? 'valid' : null"
         :disabled="!selectedCountry"
         :modelValue="player.phone"
-        @update:modelValue="
-          value => {
-            phoneRef.value = String(value)
-            setPlayerField('phone', value)
-          }
-        "
+        @update:modelValue="value => setPlayerField('phone', value)"
       />
 
       <!-- Nombre -->
