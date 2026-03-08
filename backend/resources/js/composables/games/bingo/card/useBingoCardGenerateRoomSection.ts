@@ -48,6 +48,13 @@ export function useBingoCardGenerateRoomSection() {
         prizePoolType: null as string | null,
     })
 
+    /**
+     * Indica si el servidor confirmó que existe al menos una sala para el
+     * roomType+gameMode actual (response.exists === true con gameMode activo).
+     * Se resetea en cuanto cambia gameMode o roomType.
+     */
+    const gameModeConfirmed = ref(false)
+
     /** Sala seleccionada por el usuario. Expuesta vía `defineExpose` al padre. */
     const selectedRoom = ref<Room | null>(null)
 
@@ -85,7 +92,7 @@ export function useBingoCardGenerateRoomSection() {
 
     /**
      * Visibilidad: fecha elegida y el primer fetch terminó con al menos un resultado.
-     * Se mantiene visible (disabled durante loading) mientras haya roomType elegido.
+     * Se mantiene visible durante cualquier carga posterior (fecha ya validada).
      */
     const showRoomType = computed(() =>
         !!filters.date &&
@@ -93,32 +100,31 @@ export function useBingoCardGenerateRoomSection() {
          roomStepStatus.value === 'noRoomTypeRooms' ||
          roomStepStatus.value === 'noGameModeRooms' ||
          roomStepStatus.value === 'noPrizePoolTypeRooms' ||
-         (roomStepStatus.value === 'loading' && !!filters.roomType))
+         roomStepStatus.value === 'loading')
     )
 
     /**
-     * Visibilidad: roomType elegido y el fetch de roomType fue exitoso.
-     * Se oculta si no hay salas para el tipo de sala.
-     * Se mantiene visible (disabled durante loading) mientras haya gameMode elegido.
+     * Visibilidad: roomType elegido y el fetch retornó exists para roomType.
+     * Se mantiene visible durante cualquier carga posterior (roomType ya validado).
      */
     const showGameMode = computed(() =>
         !!filters.roomType &&
         (roomStepStatus.value === 'ready' ||
          roomStepStatus.value === 'noGameModeRooms' ||
          roomStepStatus.value === 'noPrizePoolTypeRooms' ||
-         (roomStepStatus.value === 'loading' && !!filters.gameMode))
+         roomStepStatus.value === 'loading')
     )
 
     /**
-     * Visibilidad: gameMode elegido y el fetch de gameMode fue exitoso.
-     * Se oculta si no hay salas para el modo de juego.
-     * Se mantiene visible (disabled durante loading) mientras haya prizePoolType elegido.
+     * Visibilidad: el servidor confirmó salas para el gameMode actual.
+     * No se muestra durante la carga del gameMode — solo tras respuesta positiva.
+     * Se mantiene visible en cargas posteriores (prizePoolType ya validado).
      */
     const showPrizePoolType = computed(() =>
-        !!filters.gameMode &&
+        gameModeConfirmed.value &&
         (roomStepStatus.value === 'ready' ||
          roomStepStatus.value === 'noPrizePoolTypeRooms' ||
-         (roomStepStatus.value === 'loading' && !!filters.prizePoolType))
+         roomStepStatus.value === 'loading')
     )
 
     /**
@@ -169,46 +175,61 @@ export function useBingoCardGenerateRoomSection() {
 
     /**
      * Al cambiar el tipo de sala: limpia gameMode, prizePoolType y selectedRoom.
+     * Si se limpia roomType pero hay fecha, relanza el fetch sin roomType para
+     * mantener el campo visible (ya se hizo consulta de fecha).
      */
     watch(
         () => filters.roomType,
         () => {
             filters.gameMode = null
             filters.prizePoolType = null
-            rooms.value = []
+            gameModeConfirmed.value = false
             selectedRoom.value = null
-            if (!filters.date || !filters.roomType) {
+            if (!filters.date) {
+                rooms.value = []
                 roomStepStatus.value = 'idle'
                 return
             }
+            roomStepStatus.value = 'loading'
+            rooms.value = []
             debouncedFetchRooms()
         }
     )
 
     /**
      * Al cambiar el modo de juego: limpia prizePoolType y selectedRoom.
+     * Adelanta status a 'loading' antes de limpiar rooms para evitar parpadeo.
      */
     watch(
         () => filters.gameMode,
         () => {
             filters.prizePoolType = null
-            rooms.value = []
+            gameModeConfirmed.value = false
             selectedRoom.value = null
-            if (!filters.date || !filters.gameMode) return
+            if (!filters.date || !filters.gameMode) {
+                rooms.value = []
+                return
+            }
+            roomStepStatus.value = 'loading'
+            rooms.value = []
             debouncedFetchRooms()
         }
     )
 
     /**
      * Al cambiar el tipo de bote: limpia la sala y relanza el fetch si hay gameMode.
-     * Es opcional: si se limpia (null) también relanza para mostrar todas las salas del gameMode.
+     * Adelanta status a 'loading' antes de limpiar rooms para evitar parpadeo.
      */
     watch(
         () => filters.prizePoolType,
         () => {
-            rooms.value = []
             selectedRoom.value = null
-            if (!filters.date || !filters.gameMode) return
+            if (!filters.date || !filters.gameMode) {
+                rooms.value = []
+                return
+            }
+            roomStepStatus.value = 'loading'
+            rooms.value = []
             debouncedFetchRooms()
         }
     )
@@ -253,10 +274,12 @@ export function useBingoCardGenerateRoomSection() {
                 else if (!filters.gameMode)     roomStepStatus.value = 'noRoomTypeRooms'
                 else if (filters.prizePoolType) roomStepStatus.value = 'noPrizePoolTypeRooms'
                 else                            roomStepStatus.value = 'noGameModeRooms'
+                gameModeConfirmed.value = false
                 return
             }
 
             roomStepStatus.value = 'ready'
+            if (filters.gameMode) gameModeConfirmed.value = true
 
         }
         catch (error: any) {
