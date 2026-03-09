@@ -2,6 +2,12 @@
 
 use Illuminate\Support\Facades\Schedule;
 
+Schedule::command('check:expired-bingo-rooms')
+    ->timezone('America/Caracas')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/schedule.log'));
+
 Schedule::command('handle:bingo-rooms')
     ->timezone('America/Caracas')
     ->everyMinute()

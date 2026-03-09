@@ -6,6 +6,7 @@ use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
 use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
 use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Services\Games\Bingo\Room\Utils\CheckExpiredBingoRoomsService;
 
 final class BingoRoomService
 {
@@ -13,6 +14,7 @@ final class BingoRoomService
         private readonly BingoRoomContextService $contextService,
         private readonly BingoRoomCrudService $crudService,
         private readonly \App\Services\Security\UserContextService $userContext,
+        private readonly CheckExpiredBingoRoomsService $checkExpired,
     ) {}
 
     /**
@@ -25,6 +27,7 @@ final class BingoRoomService
      */
     public function context(string $context, ?int $userId = null): array
     {
+        $this->checkExpired->handle();
         return $this->contextService->context($context, $userId)->toView();
     }
 
@@ -33,6 +36,7 @@ final class BingoRoomService
      */
     public function fetchList(): array
     {
+        $this->checkExpired->handle();
         $userId = $this->userContext->resolveUserId();
         return $this->contextService->context('fetch-summary', $userId);
     }

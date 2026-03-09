@@ -52,6 +52,7 @@ class BingoRoomCrudService
             throw BingoRoomException::notFound();
         }
 
+        $room->refresh();
         $room->load(['config', 'status', 'cardPrices', 'rounds.prizes', 'rounds.prizes.prize']);
 
         return new BingoRoomResource($room);
