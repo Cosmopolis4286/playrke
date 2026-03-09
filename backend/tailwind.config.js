@@ -15,6 +15,10 @@ export default {
 
   darkMode: 'class',
 
+  corePlugins: {
+    preflight: false, // Evita que el reset de Tailwind rompa Bootstrap 4
+  },
+
   theme: {
     extend: {
       fontFamily: {

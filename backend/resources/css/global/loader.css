@@ -45,7 +45,7 @@
 
     transform: translate(-50%, -50%) rotate(0deg);
     transform-origin: center;
-    animation: spin 1.2s linear infinite;
+    animation: loader-spin 1.2s linear infinite;
 }
 
 /* Texto */
@@ -56,7 +56,7 @@
 }
 
 /* Animación */
-@keyframes spin {
+@keyframes loader-spin {
     to {
         transform: translate(-50%, -50%) rotate(360deg);
     }
