@@ -93,6 +93,21 @@ class BingoRoomRequest extends BaseRequest
     {
         $validator->after(function ($validator) {
 
+            // Validar que fecha+hora sea al menos 15 minutos desde ahora
+            $date = $this->input('date');
+            $time = $this->input('time');
+            if ($date && $time && !$validator->errors()->has('date') && !$validator->errors()->has('time')) {
+                $scheduled  = \Carbon\Carbon::createFromFormat('Y-m-d H:i', "{$date} {$time}", 'America/Caracas');
+                $minAllowed = \Carbon\Carbon::now('America/Caracas')->addMinutes(15);
+
+                if ($scheduled->lt($minAllowed)) {
+                    $validator->errors()->add(
+                        'time',
+                        'La hora debe ser al menos 15 minutos desde ahora (' . $minAllowed->format('H:i') . ' o posterior).'
+                    );
+                }
+            }
+
             $allowedCurrencies = $this->input('allowedCurrencies');
             $cardPriceByCurrency = $this->input('cardPriceByCurrency');
 

@@ -42,6 +42,14 @@ import { SelectOption } from '@/js/types/common/form/form'
    * ========================================================================== */
 
   const minDate = computed(() => new Date().toISOString().split('T')[0])
+
+  const minTime = computed(() => {
+    if (props.automaticRoom) return undefined
+    const todayStr = minDate.value
+    if (props.modelValue.date !== todayStr) return undefined
+    const min15 = new Date(Date.now() + 15 * 60 * 1000)
+    return `${String(min15.getHours()).padStart(2, '0')}:${String(min15.getMinutes()).padStart(2, '0')}`
+  })
 </script>
 
 <template>
@@ -86,6 +94,7 @@ import { SelectOption } from '@/js/types/common/form/form'
       :error="errors.time"
       type="time"
       required
+      :min="minTime"
       col="col-sm-6 col-md-4 col-lg-3"
       :modelValue="modelValue.time"
       @update:modelValue="emit('update:modelValue', { ...modelValue, time: $event })"

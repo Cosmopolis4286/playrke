@@ -45,8 +45,17 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
     const errors = computed<Record<string, string | Record<string, string>>>(() => {
         const e: Record<string, string | Record<string, string>> = {}
 
-        if (!automaticRoom() && !form.value.date) {
-            e.date = 'La fecha es requerida.'
+        if (!automaticRoom()) {
+            if (!form.value.date) {
+                e.date = 'La fecha es requerida.'
+            } else {
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                const selected = new Date(form.value.date + 'T00:00:00')
+                if (selected < today) {
+                    e.date = 'No puedes registrar una sala en una fecha anterior a hoy.'
+                }
+            }
         }
 
         if (automaticRoom() && (!(form.value as any).days || (form.value as any).days.length === 0)) {
@@ -55,6 +64,17 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
 
         if (!form.value.time) {
             e.time = 'La hora es requerida.'
+        } else if (!automaticRoom() && form.value.date) {
+            const now = new Date()
+            const todayStr = now.toISOString().split('T')[0]
+            const minDateTime = new Date(now.getTime() + 15 * 60 * 1000)
+            const selectedDateTime = new Date(`${form.value.date}T${form.value.time}:00`)
+
+            if (form.value.date === todayStr && selectedDateTime < minDateTime) {
+                const h = String(minDateTime.getHours()).padStart(2, '0')
+                const m = String(minDateTime.getMinutes()).padStart(2, '0')
+                e.time = `La hora debe ser al menos 15 minutos desde ahora (${h}:${m} o posterior).`
+            }
         }
 
         if (!form.value.roomType) {
