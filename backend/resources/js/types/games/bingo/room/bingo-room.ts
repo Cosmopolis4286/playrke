@@ -67,6 +67,9 @@ export interface BingoRoom {
     readonly is_closed: boolean
     readonly total_commissions: number
 
+    // Campo meta: unix timestamp de la fecha+hora programada (desde config)
+    readonly unix_date?: number | null
+
     // Campos del servicio (summary / listado)
     readonly name?: string
     readonly phone?: string

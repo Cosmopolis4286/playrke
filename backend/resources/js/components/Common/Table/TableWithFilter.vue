@@ -42,6 +42,8 @@
     showCreateButton?: boolean
     showEditButton?: boolean
     showDeleteButton?: boolean
+    disableDelete?: boolean
+    disableDeleteReason?: string
   }>()
 
   /** Emits */
@@ -95,6 +97,8 @@
         :show-create-button="showCreateButton"
         :show-edit-button="showEditButton"
         :show-delete-button="showDeleteButton"
+        :disable-delete="props.disableDelete ?? false"
+        :disable-delete-reason="props.disableDeleteReason ?? ''"
         @create="$emit('create')"
         @edit="$emit('edit', $event)"
         @delete="$emit('delete', $event)"

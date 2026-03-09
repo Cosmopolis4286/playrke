@@ -411,6 +411,12 @@ class BingoRoomCrudService
             throw BingoRoomException::invalidStatusChange();
         }
 
+        // Bloquear si la fecha+hora de la sala ya expiró
+        $room->loadMissing('config');
+        if ($room->config && $room->config->unix_date <= Carbon::now()->timestamp) {
+            throw BingoRoomException::expiredRoomStatusLocked();
+        }
+
         // Definir nuevo estado alternando entre ACTIVE y INACTIVE
         $newStatus = $room->status?->code === 'ACTIVE'
             ? 'INACTIVE'
@@ -510,6 +516,10 @@ class BingoRoomCrudService
     {
         if ($room->status?->code === 'DELETED') {
             throw BingoRoomException::alreadyDeleted();
+        }
+
+        if (($room->total_players ?? 0) > 0) {
+            throw BingoRoomException::roomHasPlayers();
         }
 
         $statusId = GameStatus::where('code', 'DELETED')->value('id');

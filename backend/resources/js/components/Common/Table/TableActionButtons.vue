@@ -7,10 +7,12 @@
   import type { PropType } from 'vue'
 
   defineProps({
-    selectedIds:      { type: Array as PropType<string[]>, required: true },
-    showCreateButton: { type: Boolean, default: true },
-    showEditButton:   { type: Boolean, default: true },
-    showDeleteButton: { type: Boolean, default: true }
+    selectedIds:         { type: Array as PropType<string[]>, required: true },
+    showCreateButton:    { type: Boolean, default: true },
+    showEditButton:      { type: Boolean, default: true },
+    showDeleteButton:    { type: Boolean, default: true },
+    disableDelete:       { type: Boolean, default: false },
+    disableDeleteReason: { type: String,  default: '' }
   })
 
   const emit = defineEmits<{
@@ -26,6 +28,8 @@
     :show-create="showCreateButton"
     :show-edit="showEditButton"
     :show-delete="showDeleteButton"
+    :disable-delete="disableDelete"
+    :disable-delete-reason="disableDeleteReason"
     @create="emit('create')"
     @edit="(id) => emit('edit', id)"
     @delete="(ids) => emit('delete', ids)"

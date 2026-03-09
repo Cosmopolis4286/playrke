@@ -1,5 +1,6 @@
 <script setup lang="ts" name="ActionButtons">
   import type { PropType } from 'vue'
+  import { vTooltip } from 'floating-vue'
 
   const props = defineProps({
     /** IDs seleccionados */
@@ -24,6 +25,18 @@
     showDelete: {
       type: Boolean,
       default: true
+    },
+
+    /** Deshabilita el botón Eliminar */
+    disableDelete: {
+      type: Boolean,
+      default: false
+    },
+
+    /** Razón por la que el botón Eliminar está deshabilitado */
+    disableDeleteReason: {
+      type: String,
+      default: ''
     },
 
     /** Muestra el botón Cambiar estado */
@@ -93,8 +106,10 @@
     <!-- Eliminar -->
     <button
       v-if="hasSelection() && showDelete"
+      v-tooltip="{ content: disableDeleteReason, disabled: !disableDelete || !disableDeleteReason }"
       :class="['btn', 'btn-danger', btnSize()]"
       :title="selectedIds.length > 1 ? `Eliminar (${selectedIds.length})` : 'Eliminar'"
+      :disabled="disableDelete"
       @click="emit('delete', selectedIds)"
     >
       <i class="fas fa-trash" />

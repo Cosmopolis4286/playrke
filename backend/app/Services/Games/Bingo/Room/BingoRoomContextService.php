@@ -63,7 +63,7 @@ final class BingoRoomContextService
         $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
-            relations: ['config:room_id,room_type_id'],
+            relations: ['config:room_id,room_type_id,unix_date'],
             conditions: $conditions,
             fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
         );
@@ -84,6 +84,13 @@ final class BingoRoomContextService
             : null;
 
         $rooms = $this->processCollectionTableData($collection, $labels, $rowKeys);
+
+        // Enriquecer cada row con unix_date (campo meta, no visible como columna)
+        $unixDates = $collection->pluck('config.unix_date')->values()->all();
+        foreach ($rooms['rows'] as $i => &$row) {
+            $row['unix_date'] = $unixDates[$i] ?? null;
+        }
+        unset($row);
 
         return ['rooms' => $rooms, 'pagination' => $pagination];
     }

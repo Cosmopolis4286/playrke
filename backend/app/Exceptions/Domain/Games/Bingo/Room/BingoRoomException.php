@@ -86,4 +86,14 @@ final class BingoRoomException extends DomainException
     {
         return new self('BINGO_ROOM_INVALID_PRIZE_POOL_TYPE');
     }
+
+    public static function expiredRoomStatusLocked(): self
+    {
+        return new self('No puedes cambiar el estado de una sala cuya fecha/hora ya expiró.');
+    }
+
+    public static function roomHasPlayers(): self
+    {
+        return new self('No puedes eliminar una sala que ya tiene jugadores registrados.');
+    }
 }

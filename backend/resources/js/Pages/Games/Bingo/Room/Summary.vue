@@ -176,6 +176,20 @@
   // Botones extra
   // ==========================================================================
 
+  const nowUnix = (): number => Math.floor(Date.now() / 1000)
+
+  const isExpired = (ids: string[]): boolean =>
+    ids.some(id => {
+      const room = rooms.value.find(r => String(r.id) === String(id))
+      return room != null && room.unix_date != null && Number(room.unix_date) <= nowUnix()
+    })
+
+  const hasPlayers = (ids: string[]): boolean =>
+    ids.some(id => {
+      const room = rooms.value.find(r => String(r.id) === String(id))
+      return room != null && (room.total_players ?? 0) > 0
+    })
+
   const extraButtons: ExtraButton[] = [
     {
       label: 'Salas Automáticas',
@@ -200,7 +214,9 @@
       class: 'btn-secondary',
       title: 'Alternar Estado',
       show: false,
-      action: 'toggleStatus'
+      action: 'toggleStatus',
+      disabled: (ids: string[]) => isExpired(ids),
+      disabledReason: 'La sala ya expiró, no se puede cambiar el estado'
     },
     {
       icon: 'fas fa-copy',
@@ -233,6 +249,8 @@
     showCreateButton
     showEditButton
     showDeleteButton
+    :disable-delete="hasPlayers"
+    disable-delete-reason="No se puede eliminar una sala con jugadores registrados"
     :extra-buttons="extraButtons"
   />
 

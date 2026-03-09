@@ -20,6 +20,8 @@
     showCreateButton?: boolean
     showEditButton?: boolean
     showDeleteButton?: boolean
+    disableDelete?: boolean | ((selectedIds: string[]) => boolean)
+    disableDeleteReason?: string | ((selectedIds: string[]) => string)
     extraButtons?: ExtraButton[]
   }>()
 
@@ -169,6 +171,18 @@
     selectedIds.value = [...ids]
     emit('selection-change', [...ids])
   }
+
+  const resolvedDisableDelete = computed((): boolean => {
+    if (!props.disableDelete) return false
+    if (typeof props.disableDelete === 'function') return props.disableDelete(selectedIds.value)
+    return props.disableDelete
+  })
+
+  const resolvedDisableDeleteReason = computed((): string => {
+    if (!props.disableDeleteReason) return ''
+    if (typeof props.disableDeleteReason === 'function') return props.disableDeleteReason(selectedIds.value)
+    return props.disableDeleteReason
+  })
 </script>
 
 <template>
@@ -185,6 +199,8 @@
     :show-create-button="props.showCreateButton"
     :show-edit-button="props.showEditButton"
     :show-delete-button="props.showDeleteButton"
+    :disable-delete="resolvedDisableDelete"
+    :disable-delete-reason="resolvedDisableDeleteReason"
     @create="handleCreate"
     @edit="handleEdit"
     @delete="handleDelete"
