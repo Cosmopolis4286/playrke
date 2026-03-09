@@ -24,8 +24,8 @@
         <x-template.sidebar.treasurer />
     @break
 
-    @case('user')
-        <x-template.sidebar.user />
+    @case('player')
+        <x-template.sidebar.player />
     @break
 
     @default
