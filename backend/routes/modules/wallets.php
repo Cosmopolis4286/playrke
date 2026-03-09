@@ -12,11 +12,13 @@ use Illuminate\Support\Facades\Route;
 */
 
 // ====================================
-// BILLETERA PRINCIPAL
+// BILLETERA DEL JUGADOR
 // ====================================
-route_group('wallet', 'wallet.', ['auth'], WalletController::class, [
-    'index' => ['method' => 'get', 'uri' => ''],
-]);
+Route::middleware(['auth', 'role:player'])->group(function () {
+    Route::get('wallet',           [WalletController::class, 'index'])   ->name('wallet.index');
+    Route::post('wallet/deposit',  [WalletController::class, 'deposit']) ->name('wallet.deposit');
+    Route::post('wallet/withdraw', [WalletController::class, 'withdraw'])->name('wallet.withdraw');
+});
 
 // ====================================
 // BINANCE (CRIPTOMONEDAS)
