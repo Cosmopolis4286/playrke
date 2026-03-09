@@ -92,11 +92,24 @@ class BingoRoomCrudService
                 $this->buildConfigData($dto, $userId, $rkeCommission, $unixDate, $room->id, $isCreate)
             );
 
-            // Actualizar comisión del creador si es update
+            // Actualizar comisión del creador y estado si es update
             if (!$isCreate) {
                 BingoCreator::where('room_id', $room->id)
                     ->where('user_id', $room->creator_user_id)
                     ->update(['creator_commn' => $dto->roomCommission]);
+
+                // Aplicar activateRoom si viene explícito
+                if ($dto->activateRoom !== null) {
+                    $room->loadMissing('status');
+                    $currentCode = $room->status?->code ?? '';
+                    $allowedCodes = ['ACTIVE', 'INACTIVE', 'DRAFT'];
+                    if (in_array($currentCode, $allowedCodes, true)) {
+                        $newCode = $dto->activateRoom ? 'ACTIVE' : 'INACTIVE';
+                        if ($currentCode !== $newCode) {
+                            $this->bingoRooms->changeGameStatus($room->id, $newCode);
+                        }
+                    }
+                }
             }
 
             // Sincronizar precios de cartones

@@ -68,7 +68,9 @@ final class BingoRoomCreateDTO
             cardPriceUsd: isset($data['cardPriceUsd']) ? (float) $data['cardPriceUsd'] : null,
             usdExchangeRoundStep: isset($data['usdExchangeRoundStep']) ? (float) $data['usdExchangeRoundStep'] : null,
             cardPriceByCurrency: $cardPriceByCurrency,
-            isDraft: (bool) ($data['isDraft'] ?? false),
+            isDraft: isset($data['isDraft'])
+                ? (bool) $data['isDraft']
+                : !(bool) ($data['activateRoom'] ?? true),
         );
     }
 }
