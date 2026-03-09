@@ -15,7 +15,8 @@
         </a>
     </li>
     <li class="nav-item has-treeview">
-        <a href="#" title="Salas de Juego" class="nav-link">
+        <a href="{{ route('bingo-game-rooms.view-game-rooms') }}" title="Bingo"
+            class="nav-link {{ Route::is('bingo-game-rooms.view-game-rooms') ? 'active' : '' }}">
             <i class="nav-icon fa-solid fa-hat-wizard"></i>
             <p>Bingo</p>
         </a>

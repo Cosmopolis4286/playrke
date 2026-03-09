@@ -98,7 +98,7 @@ route_group('bingo-card', 'bingo-card.', ['auth', 'role:admin,commerce,seller'],
  * SALAS DE JUEGO
  * ====================================
  */
-route_group('bingo-game-rooms', 'bingo-game-rooms.', ['auth', 'role:admin,commerce,seller'], BingoRoomController::class, [
+route_group('bingo-game-rooms', 'bingo-game-rooms.', ['auth', 'role:admin,commerce,seller,player'], BingoRoomController::class, [
     'view-game-rooms' => ['method' => 'get',  'uri' => '',           'action' => 'viewGameRooms'],
     'buy-from-rooms'  => ['method' => 'post', 'uri' => '{room}/buy', 'action' => 'buyFromGameRooms'],
 ]);
