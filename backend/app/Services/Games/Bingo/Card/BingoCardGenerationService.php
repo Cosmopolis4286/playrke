@@ -124,16 +124,21 @@ final class BingoCardGenerationService
                 throw new \DomainException('Error al generar cartones');
             }
 
-            // Si no es modo offline y el creador es <> a un customer
-            if ($gameMode != 2 && $creator['type'] !== 'customer') {
-                // Determinar la columna de saldo en función de la moneda
-                $columnBalance = $currency == 1 ? 'usdt' : 'balance';
+            // Descuento de saldo según tipo de usuario
+            if ($gameMode != 2) {
+                // Los players pagan con wallet
+                // Los sellers/comercios pagan con wallet según modo de juego
+                // Solo los customers no pagan con wallet (usan otros medios)
+                if ($creator['type'] === 'player' || $creator['type'] !== 'customer') {
+                    // Determinar la columna de saldo en función de la moneda
+                    $columnBalance = $currency == 1 ? 'usdt' : 'balance';
 
-                // Descontar monto del saldo del usuario
-                $walletUpdated = Wallet::where('user', $playerUser)->decrement($columnBalance, $saleAmount);
+                    // Descontar monto del saldo del usuario
+                    $walletUpdated = Wallet::where('user', $playerUser)->decrement($columnBalance, $saleAmount);
 
-                if ($walletUpdated === 0) {
-                    throw new \DomainException('Error al descontar saldo del usuario');
+                    if ($walletUpdated === 0) {
+                        throw new \DomainException('Error al descontar saldo del usuario');
+                    }
                 }
             }
 

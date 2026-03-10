@@ -73,6 +73,10 @@ const prizeFormatted = computed(() => {
   return (props.selectedRoom.prize_pool * props.exchangeRate).toFixed(2)
 })
 
+const currentCtns = computed(() => {
+  return props.selectedRoom?.players_room?.[0]?.ctns ?? 0
+})
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Handlers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -193,6 +197,14 @@ function onCtnsInput(e: Event) {
               <div v-if="step === 'confirm'" key="confirm" class="pm-step">
                 <p class="pm-step__label">Cantidad de cartones</p>
 
+                <!-- Cartones actuales del usuario -->
+                <div v-if="currentCtns > 0" class="pm-current-cards">
+                  <div class="pm-current-cards__info">
+                    <i class="fas fa-ticket-alt mr-2" />
+                    <span>Ya tienes <strong>{{ currentCtns }}</strong> cartone{{ currentCtns === 1 ? '' : 's' }} en esta sala</span>
+                  </div>
+                </div>
+
                 <!-- Selector cantidad -->
                 <div class="pm-qty-row">
                   <button
@@ -233,6 +245,10 @@ function onCtnsInput(e: Event) {
                   <div class="pm-summary__row">
                     <span>Cartones</span>
                     <span>× {{ numCtns }}</span>
+                  </div>
+                  <div v-if="currentCtns > 0" class="pm-summary__row pm-summary__row--highlight">
+                    <span>Total después de compra</span>
+                    <span><strong>{{ currentCtns + numCtns }}</strong> cartone{{ (currentCtns + numCtns) === 1 ? '' : 's' }}</span>
                   </div>
                   <div class="pm-summary__row pm-summary__row--total">
                     <span>Total</span>
@@ -726,6 +742,35 @@ function onCtnsInput(e: Event) {
   background: linear-gradient(90deg, #2af598 0%, #009efd 100%);
   color: #051830;
   min-width: 160px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CURRENT CARDS
+═══════════════════════════════════════════════════════ */
+.pm-current-cards {
+  margin-bottom: 16px;
+}
+
+.pm-current-cards__info {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(42, 245, 152, 0.08);
+  border: 1px solid rgba(42, 245, 152, 0.2);
+  border-radius: 12px;
+  color: #2af598;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.pm-current-cards__info i {
+  color: #2af598;
+  opacity: 0.8;
+}
+
+.pm-current-cards__info strong {
+  color: #fff;
+  font-weight: 700;
 }
 
 /* ═══════════════════════════════════════════════════════
