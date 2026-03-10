@@ -40,8 +40,13 @@ class CurrencyService
                 $currenciesIds = $this->handlePlayerCurrencies($userId);
                 break;
             case 'admin':
-                // TODO: Definir lógica para admin si aplica
-                return [];
+                // Admin users can see all active currencies from currencies_table via repository
+                if ($withCurrency && $withCountry) {
+                    return $this->currencyRepository->getActive()->load('country');
+                } else if ($withCurrency) {
+                    return $this->currencyRepository->getActive();
+                }
+                return $this->currencyRepository->getActive()->pluck('id')->toArray();
                 break;
             case 'commerce': // Comercio
                 $currenciesIds = $this->handleCommerceCurrencies($userId);

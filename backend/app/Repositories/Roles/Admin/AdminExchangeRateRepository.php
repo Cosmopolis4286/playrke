@@ -55,7 +55,8 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
      */
     public function getAllExchangeRates(): Collection
     {
-        return $this->model->with('currency:id,iso_code,name')
+        return $this->model->with('currency:id,iso_code,name,description,type,status,country_id')
+            ->with('currency.country:id,name,iso_code_2,iso_code_3')
             ->orderBy('currency_id')
             ->get();
     }
@@ -143,7 +144,8 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
      */
     public function getAvailableExchangeRates(): Collection
     {
-        return $this->model->with('currency:id,iso_code,name')
+        return $this->model->with('currency:id,iso_code,name,description,type,status,country_id')
+            ->with('currency.country:id,name,iso_code_2,iso_code_3')
             ->orderBy('currency_id')
             ->get();
     }

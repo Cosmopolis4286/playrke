@@ -75,10 +75,20 @@
       usedCurrencies.value = newRates.map(rate => {
         // Handle both ExchangeRate and AdminExchangeRate types
         const currencyId = rate.currency_id
-        const currency = currencies.find(c => c.id === currencyId)
         
-        // Handle different currency objects for different roles
-        const currencyData = rate.currency || currency
+        // For AdminExchangeRate, use the embedded currency object
+        // For regular ExchangeRate, try to find by ID or ISO code
+        let currencyData = rate.currency
+        
+        if (!currencyData) {
+          // Try to find by ID first (for regular ExchangeRate)
+          currencyData = currencies.find(c => c.id === currencyId)
+          
+          // If not found by ID, try by ISO code
+          if (!currencyData) {
+            currencyData = currencies.find(c => c.iso_code === currencyId)
+          }
+        }
 
         return {
           id: currencyId,
@@ -90,7 +100,7 @@
             ? {
                 id: String(currencyData.country.id),
                 name: currencyData.country.name,
-                iso_code: currencyData.country.iso_code_3 || currencyData.country.iso_code
+                iso_code: currencyData.country.iso_code_3 || currencyData.country.iso_code_2
               }
             : null
         }

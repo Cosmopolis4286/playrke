@@ -60,7 +60,7 @@ class Currency extends Model
         'type' => 'string',
         'country_id' => 'string',
         'decimal_places' => 'integer',
-        'status' => 'boolean',
+        'status' => 'string',
     ];
 
     // ========================

@@ -60,6 +60,18 @@ class ExchangeRateRequest extends BaseRequest
             $currencyRules[] = 'exists:currencies,iso_code';
         }
 
+        /**
+         * Para creación, verificar que no exista una tasa de cambio para esta moneda
+         */
+        if (!$isUpdate) {
+            $currencyRules[] = function ($attribute, $value, $fail) {
+                $exists = \App\Models\ExchangeRate::where('currency_id', $value)->exists();
+                if ($exists) {
+                    $fail('Ya existe una tasa de cambio registrada para esta moneda.');
+                }
+            };
+        }
+
         return [
             /**
              * Rol de usuario al que aplica la tasa de cambio.

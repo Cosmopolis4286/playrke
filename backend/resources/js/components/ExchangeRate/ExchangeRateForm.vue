@@ -39,19 +39,28 @@
 
   /**
    * Monedas disponibles:
-   * - Solo FIAT
+   * - Solo FIAT y Activas
    * - En create: excluye usadas
    * - En edit: permite la moneda actual
    */
   const availableCurrencies = computed(() => {
-    const fiatCurrencies = props.currencies.filter(c => c.type === 'FIAT')
+    const activeFiatCurrencies = props.currencies.filter(c => 
+      c.type === 'FIAT' && c.status === 'ACTIVE'
+    )
 
-    if (isEditMode.value || !props.usedCurrencies?.length) {
-      return fiatCurrencies
+    // En modo edición, mostrar solo la moneda actual
+    if (isEditMode.value) {
+      const currentCurrency = activeFiatCurrencies.find(c => c.iso_code === form.value.currency_id)
+      return currentCurrency ? [currentCurrency] : []
+    }
+
+    // En modo creación, excluir monedas ya usadas
+    if (!props.usedCurrencies?.length) {
+      return activeFiatCurrencies
     }
 
     const usedIsoCodes = new Set(props.usedCurrencies.map(c => c.iso_code))
-    return fiatCurrencies.filter(c => !usedIsoCodes.has(c.iso_code))
+    return activeFiatCurrencies.filter(c => !usedIsoCodes.has(c.iso_code))
   })
 
   /* =======================
@@ -80,21 +89,8 @@
 <template>
   <form @submit.prevent="submit" novalidate>
     <div class="row">
-      <!-- Divisa: input libre para privilegiados, select para el resto -->
-      <FormInput
-        v-if="hasPrivilegedRole"
-        name="currency_id"
-        label="Divisa"
-        col="col-md-6"
-        :required="true"
-        :disabled="isEditMode"
-        :error="errors.currency_id"
-        :modelValue="form.currency_id"
-        @update:modelValue="form.currency_id = $event"
-        @blur="validate"
-      />
+      <!-- Divisa: select para todos los usuarios con monedas FIAT activas filtradas -->
       <FormSelect
-        v-else
         name="currency_id"
         label="Divisa"
         col="col-md-6"
