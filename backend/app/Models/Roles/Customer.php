@@ -18,7 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  *
  * @property string $id
  * @property string $name Nombre del cliente
- * @property string $customer_id ID único del cliente
+ * @property string|null $business_name Razón social del cliente
+ * @property float|null $commission Comisión (%) por defecto
  * @property string $country_id Foreign key a countries
  * @property string $currency_id Foreign key a currencies (moneda principal)
  * @property string $user_id Foreign key a users
@@ -48,7 +49,8 @@ class Customer extends Model
      */
     protected $fillable = [
         'name',
-        'customer_id',
+        'business_name',
+        'commission',
         'country_id',
         'currency_id',
         'user_id',

@@ -20,14 +20,9 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         return $this->model->where('user_id', $userId)->first();
     }
 
-    public function getByCustomerCode(string $customerCode): ?Customer
+    public function getByCustomerKey(string $customerKey): ?Customer
     {
-        return $this->model->where('customer_code', $customerCode)->first();
-    }
-
-    public function getByToken(string $token): ?Customer
-    {
-        return $this->model->where('token', $token)->first();
+        return $this->model->where('customer_key', $customerKey)->first();
     }
 
     public function existsCustomerById($id): bool
@@ -40,14 +35,9 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         return $this->model->where($column, $value)->exists();
     }
 
-    public function getValueByToken(string $token, string $column)
+    public function getValueByCustomerKey(string $customerKey, string $column)
     {
-        return $this->model->where('token', $token)->value($column);
-    }
-
-    public function getValueByCustomerCode(string $customerCode, string $column)
-    {
-        return $this->model->where('customer_code', $customerCode)->value($column);
+        return $this->model->where('customer_key', $customerKey)->value($column);
     }
 
     public function getBlockedCustomers(): Collection
@@ -76,13 +66,13 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
             ->update(['status' => $status]) > 0;
     }
 
-    public function generateUniqueToken(): string
+    public function generateUniqueCustomerKey(): string
     {
         do {
-            $token = Str::uuid()->toString();
-        } while ($this->existsByColumn('token', $token));
+            $customerKey = bin2hex(random_bytes(32));
+        } while ($this->existsByColumn('customer_key', $customerKey));
 
-        return $token;
+        return $customerKey;
     }
 
     public function getCustomersWithCommission(float $minCommission = 0): Collection
@@ -90,10 +80,5 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
         return $this->model->where('commission', '>=', $minCommission)
             ->whereNotNull('commission')
             ->get();
-    }
-
-    public function getAllInCustomers(): Collection
-    {
-        return $this->model->where('all_in', true)->get();
     }
 }

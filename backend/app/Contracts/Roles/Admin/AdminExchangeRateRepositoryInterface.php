@@ -59,4 +59,11 @@ interface AdminExchangeRateRepositoryInterface extends RoleExchangeRateRepositor
      * @return Collection
      */
     public function getHistoryByCurrency($currencyId): Collection;
+
+    /**
+     * Obtiene las tasas de cambio disponibles para administradores
+     *
+     * @return Collection
+     */
+    public function getAvailableExchangeRates(): Collection;
 }

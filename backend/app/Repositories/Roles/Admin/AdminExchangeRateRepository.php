@@ -99,7 +99,7 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
         try {
             $this->model->updateOrCreate(
                 ['currency_id' => $currencyId],
-                ['value' => $value]
+                ['amount' => $value]
             );
 
             return true;
@@ -137,64 +137,14 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
     }
 
     /**
-     * Implementación requerida por la interfaz base
-     * Obtiene tasas disponibles (para admin, todas las tasas)
+     * Obtiene las tasas de cambio disponibles para administradores
      *
      * @return Collection
      */
-    public function getAvailableExchangeRates($entityId = null): Collection
+    public function getAvailableExchangeRates(): Collection
     {
-        return $this->getAllExchangeRates();
-    }
-
-    /**
-     * Find exchange rate with relations
-     */
-    public function findWithRelations(array $relations, string $id, array $columns = ['*']): ?ExchangeRate
-    {
-        return $this->model->with($relations)->select($columns)->find($id);
-    }
-
-    /**
-     * Check if exchange rate exists
-     */
-    public function exists(string $id): bool
-    {
-        return $this->model->where('id', $id)->exists();
-    }
-
-    /**
-     * Find by ID or throw exception
-     */
-    public function findOrFail(string|int $id, array $columns = ['*']): ExchangeRate
-    {
-        return $this->model->findOrFail($id, $columns);
-    }
-
-    /**
-     * Update exchange rate
-     */
-    public function update(string|int $id, array $data): Model
-    {
-        $model = $this->findOrFail($id);
-        $model->update($data);
-        return $model->fresh();
-    }
-
-    /**
-     * Delete exchange rate
-     */
-    public function delete(string $id): bool
-    {
-        return $this->model->where('id', $id)->delete() > 0;
-    }
-
-    /**
-     * Toggle status (not applicable for admin, but implementing for interface compatibility)
-     */
-    public function toggleStatus(ExchangeRate $exchangeRate): bool
-    {
-        // Admin exchange rates don't have status, but we implement for compatibility
-        return true;
+        return $this->model->with('currency:id,iso_code,name')
+            ->orderBy('currency_id')
+            ->get();
     }
 }
