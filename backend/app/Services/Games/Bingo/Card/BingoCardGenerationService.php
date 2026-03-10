@@ -13,7 +13,8 @@ use App\Services\Games\Bingo\Round\RoundsService;
 use App\Services\Games\Bingo\Card\PrizeCartonService;
 use App\Services\Games\Bingo\Round\RoundsService as BingoRoundsService;
 use App\Services\Games\Bingo\Card\Customer\CustomerCartonService;
-use App\Traits\Games\Bingo\BingoTrait;
+use App\Services\Games\Bingo\Room\User\RoomUserRegistrationService;
+use App\Services\Games\Bingo\Room\Validation\RoomValidationService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -28,19 +29,23 @@ use Illuminate\Support\Facades\DB;
  */
 final class BingoCardGenerationService
 {
-    use BingoTrait;
-
     private HandleBingoRoomsService $handleBingoRooms;
+    private RoomUserRegistrationService $roomUserRegistration;
+    private RoomValidationService $roomValidation;
 
     public function __construct(
         BingoRoundsService $roundsService,
         PrizeCartonService $prizeCartonService,
-        CustomerCartonService $customerCartonService
+        CustomerCartonService $customerCartonService,
+        RoomUserRegistrationService $roomUserRegistration,
+        RoomValidationService $roomValidation
     ) {
         $closureService = new RoomClosureService($roundsService, $prizeCartonService);
         // Temporalmente sin BingoWinnerService hasta resolver autocarga
         $finishedService = new FinishedRoomService($roundsService, $customerCartonService, null);
         $this->handleBingoRooms = new HandleBingoRoomsService($closureService, $finishedService);
+        $this->roomUserRegistration = $roomUserRegistration;
+        $this->roomValidation = $roomValidation;
     }
 
     /**
@@ -56,7 +61,7 @@ final class BingoCardGenerationService
         $this->handleBingoRooms->checkRoomClosure();
 
         $roomId = $arrCtn['room'];
-        $room = $this->getRoomDetails($roomId);
+        $room = $this->roomValidation->getRoomDetails($roomId);
 
         if (!$room) {
             throw new \DomainException('Sala no disponible');
@@ -74,14 +79,14 @@ final class BingoCardGenerationService
             $saleAmount = round($numOfCtns * $arrCtn['cardPrice'], 2);
 
             // Registrar o actualizar el usuario en la sala
-            $roomUser = $this->registerOrUpdateRoomUser($room, $arrCtn);
+            $roomUserId = $this->roomUserRegistration->registerOrUpdateRoomUser($room, $arrCtn);
 
-            if (!$roomUser) {
+            if (!$roomUserId) {
                 throw new \DomainException('Error al registrar usuario en la sala');
             }
 
             // Anexar atributo al array
-            $arrCtn['roomUser'] = $roomUser;
+            $arrCtn['roomUser'] = $roomUserId;
 
             $gameMode = $room->Config->game_mode;
 

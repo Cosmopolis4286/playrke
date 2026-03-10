@@ -751,7 +751,7 @@ trait BingoTrait
             // Definir los valores por defecto para crear un nuevo registro
             $defaults = [
                 'room_id' => $arrCtn['room'],
-                'creator_user_id' => $arrCtn['creator']['id'],
+                'user_id' => $arrCtn['creator']['id'],
                 'cards_purchased' => $arrCtn['numOfCtns'],
                 'automarker' => 1,
             ];
