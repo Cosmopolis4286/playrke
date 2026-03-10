@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Contracts\Roles\Admin\AdminRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
@@ -15,6 +16,7 @@ use App\Models\Pivots\Roles\Customer\CustomerCurrency;
 use App\Models\Pivots\Roles\Customer\CustomerGame;
 use App\Models\Pivots\Roles\Seller\SellerCurrency;
 use App\Models\Pivots\Roles\Seller\SellerGame;
+use App\Models\Roles\Admin;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
@@ -25,7 +27,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Crea los registros de entidad para los usuarios demo
- * de roles commerce, seller y customer.
+ * de roles admin, commerce, seller y customer.
  *
  * Depende de: RoleSeeder, UserSeeder, CountrySeeder, CurrencySeeder, GameSeeder
  */
@@ -33,6 +35,7 @@ class DemoRoleDataSeeder extends Seeder
 {
     public function __construct(
         private readonly UserService $userService,
+        private readonly AdminRepositoryInterface $adminRepository,
         private readonly CommerceRepositoryInterface $commerceRepository,
         private readonly SellerRepositoryInterface $sellerRepository,
         private readonly CustomerRepositoryInterface $customerRepository,
@@ -51,6 +54,38 @@ class DemoRoleDataSeeder extends Seeder
         }
 
         DB::transaction(function () use ($venezuela, $ves, $firstGame) {
+            // ──────────────────────────────────────────────────────────
+            // 0. ADMIN
+            // ──────────────────────────────────────────────────────────
+            $adminUser = User::where('email', 'admin@playrke.com')->first();
+
+            if ($adminUser && ! Admin::where('user_id', $adminUser->id)->exists()) {
+                $uniqueCode = $this->userService->createUniqueCode((string) $adminUser->id);
+
+                $admin = Admin::create([
+                    'user_id' => $adminUser->id,
+                    'country_id' => $venezuela->id,
+                    'currency_id' => $ves->id,
+                    'unique_code_id' => $uniqueCode->id,
+                    'status' => 'ACTIVE',
+                    'permissions' => json_encode([
+                        'manage_exchange_rates',
+                        'manage_users',
+                        'manage_commerces',
+                        'manage_sellers',
+                        'manage_customers',
+                        'view_reports',
+                        'system_settings',
+                        'audit_logs',
+                        'manage_treasurers',
+                    ]),
+                    'last_login_at' => null,
+                ]);
+
+                $this->ensureWallet($adminUser->id, $ves->id);
+                $this->command->info("✔ Admin entity creada para {$adminUser->email}");
+            }
+
             // ──────────────────────────────────────────────────────────
             // 1. COMMERCE
             // ──────────────────────────────────────────────────────────
