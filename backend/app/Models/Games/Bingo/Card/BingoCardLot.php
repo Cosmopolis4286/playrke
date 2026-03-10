@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  *
  * @property int $id ID único del lote
  * @property string $room_id ID de la sala de bingo
- * @property string $creator_user_id ID del usuario creador
+ * @property string $user_id ID del usuario creador
  * @property string|null $seller_id ID del vendedor (opcional)
  * @property string $room_user_id ID del usuario en la sala
  * @property string $currency_id ID de la moneda utilizada
@@ -62,7 +62,7 @@ class BingoCardLot extends Model
      */
     protected $fillable = [
         'room_id',
-        'creator_user_id',
+        'user_id',
         'seller_id',
         'room_user_id',
         'currency_id',
@@ -104,9 +104,9 @@ class BingoCardLot extends Model
      *
      * @return BelongsTo<User, BingoCardLot>
      */
-    public function creatorUser(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'creator_user_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**

@@ -61,11 +61,18 @@ class BingoCardManagementService
             $roomUserId = $cartonData['roomUser'];
             $userId = $cartonData['creator']['id'];
 
+            // Generar todos los IDs Snowflake de una vez (más eficiente)
+            $cardIds = [];
+            for ($i = 0; $i < $numOfCtns; $i++) {
+                $cardIds[] = BingoCard::generateSnowflakeId();
+            }
+
             // Generar cartones únicos
             for ($i = 0; $i < $numOfCtns; $i++) {
                 $cardData = $this->generateSingleCard($roomId, $roomUserId);
                 
                 $cards[] = [
+                    'id' => $cardIds[$i], // Usar ID pre-generado
                     'card_lot_id' => $lotId,
                     'room_id' => $roomId,
                     'creator_room_user_id' => $userId,

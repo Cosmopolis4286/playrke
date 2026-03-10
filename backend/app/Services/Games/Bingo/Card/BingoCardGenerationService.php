@@ -4,7 +4,7 @@ namespace App\Services\Games\Bingo\Card;
 
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Currency;
-use App\Models\CurrencyGameRoom;
+use App\Models\Shared\GameRoom\CurrencyGameRoom;
 use App\Models\Wallet;
 use App\Services\Games\Bingo\Room\Utils\HandleBingoRoomsService;
 use App\Services\Games\Bingo\Room\Utils\RoomClosureService;

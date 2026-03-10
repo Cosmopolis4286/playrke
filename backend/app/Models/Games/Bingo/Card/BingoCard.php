@@ -26,8 +26,8 @@ use App\Models\Games\Bingo\Card\CardPrize\BingoCardPrize;
  *
  * @property int $id ID único del cartón
  * @property string $room_id ID de la sala de bingo
- * @property string $creator_user_id ID del usuario creador
- * @property string|null $seller_id ID del vendedor (opcional)
+ * @property string $creator_room_user_id ID del usuario creador
+ * @property string|null $seller_user_id ID del vendedor (opcional)
  * @property string $room_user_id ID del usuario en la sala
  * @property string $card_lot_id ID del lote de cartones
  * @property string $currency_id ID de la moneda utilizada
@@ -108,8 +108,8 @@ class BingoCard extends Model
      */
     protected $fillable = [
         'room_id',
-        'creator_user_id',
-        'seller_id',
+        'creator_room_user_id',
+        'seller_user_id',
         'room_user_id',
         'card_lot_id',
         'currency_id',
@@ -158,7 +158,7 @@ class BingoCard extends Model
      */
     public function creatorUser(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'creator_user_id');
+        return $this->belongsTo(User::class, 'creator_room_user_id');
     }
 
     /**
@@ -168,7 +168,7 @@ class BingoCard extends Model
      */
     public function seller(): BelongsTo
     {
-        return $this->belongsTo(Seller::class, 'seller_id');
+        return $this->belongsTo(Seller::class, 'seller_user_id');
     }
 
     /**
