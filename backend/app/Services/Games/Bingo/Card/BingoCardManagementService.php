@@ -24,14 +24,14 @@ class BingoCardManagementService
         try {
             $lotData = [
                 'room_id' => $cartonData['room'],
-                'creator_user_id' => $cartonData['creator']['id'],
+                'user_id' => $cartonData['creator']['id'],
                 'room_user_id' => $cartonData['roomUser'],
                 'currency_id' => $cartonData['currency'],
                 'card_count' => $cartonData['numOfCtns'],
                 'card_price' => $cartonData['cardPrice'],
                 'sale_amount' => $saleAmount,
                 'exchange_rate' => $cartonData['exchangeRate'] ?? 1,
-                'status' => 'active',
+                'status' => 'ACTIVE',
             ];
 
             $lot = BingoCardLot::create($lotData);
@@ -59,7 +59,7 @@ class BingoCardManagementService
             $numOfCtns = $cartonData['numOfCtns'];
             $roomId = $cartonData['room'];
             $roomUserId = $cartonData['roomUser'];
-            $creatorUserId = $cartonData['creator']['id'];
+            $userId = $cartonData['creator']['id'];
 
             // Generar cartones únicos
             for ($i = 0; $i < $numOfCtns; $i++) {
@@ -68,7 +68,7 @@ class BingoCardManagementService
                 $cards[] = [
                     'card_lot_id' => $lotId,
                     'room_id' => $roomId,
-                    'creator_user_id' => $creatorUserId,
+                    'creator_room_user_id' => $userId,
                     'room_user_id' => $roomUserId,
                     'currency_id' => $cartonData['currency'],
                     'serial_number' => $this->generateSerialNumber(),
@@ -98,7 +98,7 @@ class BingoCardManagementService
                     'o4' => $cardData['numbers']['O'][3] ?? null,
                     'o5' => $cardData['numbers']['O'][4] ?? null,
                     'card_hash' => $cardData['hash'],
-                    'status' => 'active',
+                    'status' => 'ACTIVE',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
@@ -133,9 +133,10 @@ class BingoCardManagementService
                 'user_id' => $cartonData['creator']['id'],
                 'currency_id' => $cartonData['currency'],
                 'payment_amount' => $saleAmount,
-                'payment_method' => 'wallet',
+                'payment_method' => 'payment_system',
                 'payment_status' => 'completed',
                 'processed_at' => now(),
+                'payment_proof' => 'system-generated',
             ];
 
             $payment = BingoCardPayment::create($paymentData);
