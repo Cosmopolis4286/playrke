@@ -148,20 +148,21 @@ final class BingoCardGenerationService
             // Si la sala es de un cliente
             if ($creator['type'] === 'customer') {
                 // Registrar transacción (se consulta nuevamente el saldo del jugador)
-                $roomId = BingoRoom::getValueById($roomId, 'uuid_code') ?? $this->getCodeUUID('BingoRoom');
+                $roomId = BingoRoom::where('id', $roomId)->value('uuid_code') ?? $this->getCodeUUID('BingoRoom');
 
-                $transactionBet = $this->handleTransactionByBET(
-                    $game,
-                    $creator['id'],
-                    $roomId,
-                    $playerUser,
-                    $currency,
-                    $saleAmount
-                );
+                // TODO: Implementar handleTransactionByBET method
+                // $transactionBet = $this->handleTransactionByBET(
+                //     $game,
+                //     $creator['id'],
+                //     $roomId,
+                //     $playerUser,
+                //     $currency,
+                //     $saleAmount
+                // );
 
-                if (isset($transactionBet['Error'])) {
-                    throw new \DomainException('Error al registrar transacción');
-                }
+                // if (isset($transactionBet['Error'])) {
+                //     throw new \DomainException('Error al registrar transacción');
+                // }
             }
 
             return $roomUser;
