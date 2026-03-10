@@ -217,8 +217,8 @@ class DemoRoleDataSeeder extends Seeder
     private function syncCurrencyCustomer(Customer $customer, string $currencyId): void
     {
         CustomerCurrency::updateOrCreate(
-            ['customer_id' => $customer->id, 'level' => 1],
-            ['currency_id' => $currencyId, 'status' => 'ACTIVE']
+            ['customer_id' => $customer->id, 'currency_id' => $currencyId],
+            ['level' => 1, 'status' => 'ACTIVE']
         );
     }
 

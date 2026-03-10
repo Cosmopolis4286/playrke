@@ -11,23 +11,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Modelo Pivot para las monedas los de clientes.
  *
  * Este pivot:
- * - No posee clave primaria propia
- * - Se identifica por una clave compuesta
+ * - Posee clave primaria snowflake autoincremental
+ * - Tiene clave compuesta única para evitar duplicados (customer_id, currency_id)
  * - Es auditable mediante identidad serializada
  */
 class CustomerCurrency extends BasePivot
 {
     /**
-     * El pivot no es autoincremental.
+     * El pivot es autoincremental con snowflake ID.
      */
-    public $incrementing = false;
+    public $incrementing = true;
 
     /**
-     * El pivot no tiene primary key tradicional.
-     *
-     * Eloquent espera un string, no null.
+     * La clave primaria del pivot.
      */
-    protected $primaryKey = '';
+    protected $primaryKey = 'id';
 
     /**
      * Tabla asociada al pivot.

@@ -22,12 +22,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('customers_currencies', function (Blueprint $table) {
-            // ============================================
-            // PRIMARY KEY
-            // ============================================
-            $table->snowflake('id')->primary()->comment('ID único de la relación (Snowflake)');
-
+        Schema::create('customers_currencies', function (Blueprint $table) {       
             // ============================================
             // FOREIGN KEYS
             // ============================================
