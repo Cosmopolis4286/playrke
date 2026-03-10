@@ -15,6 +15,8 @@ use App\Services\Games\Bingo\Round\RoundsService as BingoRoundsService;
 use App\Services\Games\Bingo\Card\Customer\CustomerCartonService;
 use App\Services\Games\Bingo\Room\User\RoomUserRegistrationService;
 use App\Services\Games\Bingo\Room\Validation\RoomValidationService;
+use App\Services\Games\Bingo\Payment\CommissionCalculationService;
+use App\Services\Games\Bingo\Room\Metrics\RoomMetricsService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -32,13 +34,17 @@ final class BingoCardGenerationService
     private HandleBingoRoomsService $handleBingoRooms;
     private RoomUserRegistrationService $roomUserRegistration;
     private RoomValidationService $roomValidation;
+    private CommissionCalculationService $commissionCalculation;
+    private RoomMetricsService $roomMetrics;
 
     public function __construct(
         BingoRoundsService $roundsService,
         PrizeCartonService $prizeCartonService,
         CustomerCartonService $customerCartonService,
         RoomUserRegistrationService $roomUserRegistration,
-        RoomValidationService $roomValidation
+        RoomValidationService $roomValidation,
+        CommissionCalculationService $commissionCalculation,
+        RoomMetricsService $roomMetrics
     ) {
         $closureService = new RoomClosureService($roundsService, $prizeCartonService);
         // Temporalmente sin BingoWinnerService hasta resolver autocarga
@@ -46,6 +52,8 @@ final class BingoCardGenerationService
         $this->handleBingoRooms = new HandleBingoRoomsService($closureService, $finishedService);
         $this->roomUserRegistration = $roomUserRegistration;
         $this->roomValidation = $roomValidation;
+        $this->commissionCalculation = $commissionCalculation;
+        $this->roomMetrics = $roomMetrics;
     }
 
     /**
@@ -92,11 +100,11 @@ final class BingoCardGenerationService
 
             if ($gameMode != 1 && ($creator['type'] === 'commerce_id' || $seller)) {
                 // Calcular monto total de venta y comisiones si es un vendedor
-                $sellerSaleCommn = $this->calculateSellerCommission($seller, $saleAmount, $roomId);
+                $sellerSaleCommn = $this->commissionCalculation->calculateSellerCommission($saleAmount, $seller, $roomId);
             }
 
             // Actualizar acumulado y comisiones de la sala
-            $updateRoomMetrics = $this->updateRoomMetrics($room, $arrCtn, $saleAmount, $sellerSaleCommn ?? 0);
+            $updateRoomMetrics = $this->roomMetrics->updateRoomMetricsWithCommissions($room, $arrCtn, $saleAmount, $sellerSaleCommn ?? 0);
 
             if (!$updateRoomMetrics) {
                 throw new \DomainException('Error al actualizar los valores de la sala');
