@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Shared\GameRoom;
+namespace App\Models\Games\Common\GameRoom;
 
 use App\Models\Game;
 use App\Models\Games\Common\GameMode\GameModes;
