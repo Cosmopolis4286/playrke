@@ -17,6 +17,7 @@ use App\Services\Games\Bingo\Room\User\RoomUserRegistrationService;
 use App\Services\Games\Bingo\Room\Validation\RoomValidationService;
 use App\Services\Games\Bingo\Payment\CommissionCalculationService;
 use App\Services\Games\Bingo\Room\Metrics\RoomMetricsService;
+use App\Services\Games\Bingo\Card\BingoCardManagementService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -36,6 +37,7 @@ final class BingoCardGenerationService
     private RoomValidationService $roomValidation;
     private CommissionCalculationService $commissionCalculation;
     private RoomMetricsService $roomMetrics;
+    private BingoCardManagementService $cardManagement;
 
     public function __construct(
         BingoRoundsService $roundsService,
@@ -44,7 +46,8 @@ final class BingoCardGenerationService
         RoomUserRegistrationService $roomUserRegistration,
         RoomValidationService $roomValidation,
         CommissionCalculationService $commissionCalculation,
-        RoomMetricsService $roomMetrics
+        RoomMetricsService $roomMetrics,
+        BingoCardManagementService $cardManagement
     ) {
         $closureService = new RoomClosureService($roundsService, $prizeCartonService);
         // Temporalmente sin BingoWinnerService hasta resolver autocarga
@@ -54,6 +57,7 @@ final class BingoCardGenerationService
         $this->roomValidation = $roomValidation;
         $this->commissionCalculation = $commissionCalculation;
         $this->roomMetrics = $roomMetrics;
+        $this->cardManagement = $cardManagement;
     }
 
     /**
@@ -111,10 +115,10 @@ final class BingoCardGenerationService
             }
 
             // Crear lote de cartones
-            $lotID = $this->createCtnsLot($arrCtn, $saleAmount);
+            $lotID = $this->cardManagement->createCtnsLot($arrCtn, $saleAmount);
 
             // Generar y almacenar los cartones de bingo
-            $generateAndStoreCtns = $this->generateAndStoreCtns($arrCtn, $lotID);
+            $generateAndStoreCtns = $this->cardManagement->generateAndStoreCtns($arrCtn, $lotID);
 
             if (!$generateAndStoreCtns) {
                 throw new \DomainException('Error al generar cartones');
