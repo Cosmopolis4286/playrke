@@ -57,4 +57,34 @@ class CurrencyGameRoom extends Model
     {
         return $this->belongsTo(Currency::class, 'currency_id');
     }
+
+    /**
+     * Verificar si existe una moneda configurada para una sala
+     */
+    public static function existsCurrencyGameRoom(string $currencyId, string $roomId, string $gameName, $gameMode): bool
+    {
+        return static::where('currency_id', $currencyId)
+            ->where('room_id', $roomId)
+            ->whereHas('game', function($query) use ($gameName) {
+                $query->where('name', $gameName);
+            })
+            ->where('game_mode_id', $gameMode) // Usar ID directamente
+            ->exists();
+    }
+
+    /**
+     * Crear nueva configuración de moneda en sala
+     */
+    public static function createNewCurrencyInRoom(array $game, string $roomId, string $currencyId): self
+    {
+        // Obtener ID del juego
+        $gameModel = \App\Models\Game::where('name', $game['name'])->first();
+
+        return static::create([
+            'game_id' => $gameModel?->id,
+            'game_mode_id' => $game['game_mode'], // Usar ID directamente
+            'room_id' => $roomId,
+            'currency_id' => $currencyId
+        ]);
+    }
 }
