@@ -59,8 +59,13 @@ class AdminSeeder extends Seeder
                 $userData
             );
 
-            // Asignar rol de admin al usuario
-            $user->roles()->syncWithoutDetaching([1]); // Asumiendo que el rol admin tiene ID 1
+            // Asignar rol de admin al usuario usando el nombre del rol
+            $adminRole = \Spatie\Permission\Models\Role::where('name', 'admin')->where('guard_name', 'web')->first();
+            if ($adminRole) {
+                $user->roles()->syncWithoutDetaching([$adminRole->id]);
+            } else {
+                $this->command->warn("⚠ No se encontró el rol 'admin' para asignar al usuario {$user->email}");
+            }
 
             // Crear registro admin correspondiente
             Admin::factory()->create([

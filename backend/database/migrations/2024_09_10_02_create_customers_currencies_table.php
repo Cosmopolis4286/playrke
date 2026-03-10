@@ -43,10 +43,20 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Moneda adicional permitida');
 
-            // ============================================
-            // TIMESTAMPS
-            // ============================================
+            // Nivel de asignación
+            $table->tinyInteger('level')
+                ->default(1)
+                ->comment('Nivel asignado: 1 = básico, 2 = intermedio, 3 = avanzado');
+          
+            // Estado
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+                ->default('ACTIVE')
+                ->comment('Estado del registro');
+
             $table->timestamps();
+
+            // Soft deletes
+            $table->softDeletes();
 
             // ============================================
             // ÍNDICES Y CONSTRAINTS

@@ -122,26 +122,27 @@ class UserSeeder extends Seeder
 
                 // Asignar rol según corresponda
                 try {
-                    if ($data['role'] === 'customer') {
-                        // Customer usa guard API
-                        if (!$user->hasRole($data['role'], 'api')) {
-                            $user->assignRole($data['role'], 'api');
-                        }
-                    } else {
-                        // Los demás roles usan guard web
-                        if (!$user->hasRole($data['role'], 'web')) {
-                            $user->assignRole($data['role'], 'web');
-                        }
+                    $guardName = $data['role'] === 'customer' ? 'api' : 'web';
+                    
+                    // Buscar el rol por nombre y guard
+                    $role = \Spatie\Permission\Models\Role::where('name', $data['role'])
+                        ->where('guard_name', $guardName)
+                        ->first();
+                        
+                    if ($role && !$user->hasRole($data['role'], $guardName)) {
+                        $user->assignRole($role);
+                        $this->command->info("  ✅ Rol {$data['role']} asignado");
                     }
                 } catch (\Exception $e) {
-                    $this->command->warn("⚠ No se pudo asignar rol {$data['role']}: {$e->getMessage()}");
+                    // Silenciar errores de rol para continuar con el proceso
+                    $this->command->warn("⚠ Error rol {$data['role']}: " . substr($e->getMessage(), 0, 50) . "...");
                 }
 
                 $this->command->info("✔ {$data['role']}: {$user->email}");
             }
 
             // ================================
-            // Monedero VES para todos los demos
+            // Monedero VES para todos los usuarios (simplificado)
             // ================================
             $currency = Currency::where('iso_code', 'VES')->first();
 

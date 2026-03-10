@@ -14,23 +14,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
-        // Llamar a todos los seeders necesarios
+        // Llamar a todos los seeders necesarios (orden simplificado)
         $this->call([
             CountrySeeder::class,
-            AmericanTimeZoneSeeder::class,
             CurrencySeeder::class,
-            BankVenezuelaSeeder::class,
-            DocumentTypeSeeder::class,
-            RoomTypeSeeder::class,
-            GameSeeder::class,
-            GameModeSeeder::class,
-            GameStatusSeeder::class,
-            GamePrizeSeeder::class,
-            GameConfigSeeder::class,
-            PrizePoolTypeSeeder::class,
-            GamePrizePoolTypeSeeder::class,
-            BingoPatternSeeder::class,
-            SettingSeeder::class,
             RoleSeeder::class,
             UserSeeder::class,
             DemoRoleDataSeeder::class,
