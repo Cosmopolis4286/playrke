@@ -2,6 +2,7 @@
 
 namespace App\Services\ExchangeRate;
 
+use App\Contracts\Roles\Admin\AdminExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateContextDTO;
 use App\Services\Currency\CurrencyService;
@@ -27,6 +28,7 @@ final class ExchangeRateContextService
 
     public function __construct(
         private readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRate,
+        private readonly AdminExchangeRateRepositoryInterface $adminExchangeRate,
         private readonly CurrencyService $currency,
         private readonly UserContextService $userContext,
         private readonly RoleUserService $roleUserService,
@@ -83,8 +85,9 @@ final class ExchangeRateContextService
 
         return match ($role) {
             'commerce' => $this->commerceExchangeRate->getAvailableExchangeRates($entityId),
-            'customer', 'admin' => collect(),
-            default => collect(),
+            'admin' => $this->adminExchangeRate->getAvailableExchangeRates(),
+            'customer' => new Collection(),
+            default => new Collection(),
         };
     }
 
@@ -122,7 +125,8 @@ final class ExchangeRateContextService
 
         $history = match ($role) {
             'commerce' => $this->commerceExchangeRate->getHistoryByCurrency($entityId, $currencyId),
-            default => collect(),
+            'admin' => $this->adminExchangeRate->getHistoryByCurrency($currencyId),
+            default => new Collection(),
         };
 
         return [

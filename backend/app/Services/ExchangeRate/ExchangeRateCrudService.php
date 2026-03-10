@@ -2,6 +2,7 @@
 
 namespace App\Services\ExchangeRate;
 
+use App\Contracts\Roles\Admin\AdminExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
@@ -33,6 +34,7 @@ final class ExchangeRateCrudService
         private readonly ExchangeRateDomainService $domain,
         private readonly CommerceExchangeRateRepositoryInterface $commerce,
         private readonly CustomerExchangeRateRepositoryInterface $customer,
+        private readonly AdminExchangeRateRepositoryInterface $admin,
         private readonly RoleUserService $roleUserService,
         private readonly RoleEntityResolver $roleEntityResolver,
     ) {}
@@ -45,6 +47,20 @@ final class ExchangeRateCrudService
     public function create(ExchangeRateDTO $dto, int $userId): bool
     {
         [$repo, $role, $entityId] = $this->resolveContext($userId);
+
+        // For admin role, we don't need foreign key data
+        if ($role === 'admin') {
+            return DB::transaction(function () use ($repo, $dto, $role) {
+                $repo->create($dto->toArray());
+
+                Log::info('ExchangeRate creado', [
+                    'role'        => $role,
+                    'currency_id' => $dto->currencyId,
+                ]);
+
+                return true;
+            });
+        }
 
         $model = $repo->getModel();
         $foreignKey = $this->foreignKeyData($entityId, $model);
@@ -198,10 +214,11 @@ final class ExchangeRateCrudService
      */
     private function repo(
         string $role
-    ): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface {
+    ): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface {
         return match ($role) {
             'commerce' => $this->commerce,
             'customer' => $this->customer,
+            'admin' => $this->admin,
             default    => throw new DomainException("Rol inválido: {$role}"),
         };
     }

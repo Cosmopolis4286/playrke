@@ -56,6 +56,9 @@ return new class extends Migration
             // ============================================
             // ÍNDICES Y CONSTRAINTS
             // ============================================
+            // Primary key compuesta
+            $table->primary(['customer_id', 'currency_id']);
+
             // Evitar duplicados: un cliente no puede tener la misma moneda adicional dos veces
             $table->unique(['customer_id', 'currency_id'], 'uk_customer_currency');
 
