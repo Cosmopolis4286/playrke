@@ -82,10 +82,10 @@ route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'role:ad
 
 /**
  * ====================================
- * OPERACIONES CARTONES
+ * OPERACIONES CARTONES (PARA JUGADORES)
  * ====================================
  */
-route_group('bingo-card', 'bingo-card.', ['auth', 'role:admin,commerce,seller'], BingoCardController::class, [
+route_group('bingo-card', 'bingo-card.', ['auth', 'role:admin,commerce,seller,player'], BingoCardController::class, [
     'view-generate-card' => ['method' => 'get', 'uri' => 'generate', 'action' => 'viewGenerateCard'],
     'generate-card-store' => ['method' => 'post', 'uri' => '{room}/generate', 'action' => 'generateCardStore'],
     'fetch-room' => ['method' => 'get', 'uri' => 'fetch-room', 'action' => 'fetchRoom'],
@@ -101,6 +101,9 @@ route_group('bingo-card', 'bingo-card.', ['auth', 'role:admin,commerce,seller'],
 route_group('bingo-game-rooms', 'bingo-game-rooms.', ['auth', 'role:admin,commerce,seller,player'], BingoRoomController::class, [
     'view-game-rooms' => ['method' => 'get',  'uri' => '',           'action' => 'viewGameRooms'],
     'buy-from-rooms'  => ['method' => 'post', 'uri' => '{room}/buy', 'action' => 'buyFromGameRooms'],
+    'player-buy'       => ['method' => 'post', 'uri' => '{room}/player-buy', 'action' => 'playerBuyFromGameRooms'],
+    'check-user-role'  => ['method' => 'get',  'uri' => 'check-user-role', 'action' => 'checkUserRole'],
+    'player-card-price' => ['method' => 'get', 'uri' => '{room}/player-card-price', 'action' => 'playerCardPrice'],
 ]);
 
 /**

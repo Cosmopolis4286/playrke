@@ -204,4 +204,63 @@ final class BingoRoomController extends Controller
             )
         );
     }
+
+    /**
+     * Compra de cartones para jugadores (player role).
+     *
+     * Flujo simplificado para jugadores que ya tienen billetera configurada.
+     * Solo se requiere la cantidad de cartones.
+     *
+     * @param BingoRoom $room    Sala decodificada por route model binding.
+     * @param Request    $request Body con num_ctns.
+     * @return JsonResponse
+     */
+    public function playerBuyFromGameRooms(BingoRoom $room, Request $request): JsonResponse
+    {
+        $request->validate(['num_ctns' => 'required|integer|min:1|max:40']);
+
+        return $this->handleServiceJson(
+            fn() => $this->generateService->playerBuyFromGameRooms($room->id, (int) $request->input('num_ctns'))
+        );
+    }
+
+    /**
+     * Verificar el rol del usuario autenticado.
+     *
+     * @return JsonResponse
+     */
+    public function checkUserRole(): JsonResponse
+    {
+        $isPlayer = $this->userContext->userHasRole('player');
+
+        return $this->handleServiceJson(
+            fn() => [
+                'is_player' => $isPlayer,
+                'user_id' => $this->userContext->isAuthenticated() ? $this->userContext->resolveUserId() : null,
+            ]
+        );
+    }
+
+    /**
+     * Obtener el precio del cartón para un jugador usando su billetera configurada.
+     *
+     * @param BingoRoom $room Sala de bingo (model binding por {room}).
+     * @return JsonResponse  Respuesta con card_price, currency_symbol, exchange_rate, is_custom_price.
+     */
+    public function playerCardPrice(BingoRoom $room): JsonResponse
+    {
+        // Debug log
+        \Log::info('playerCardPrice called', [
+            'room_id' => $room->id,
+            'room_exists' => $room->exists,
+            'room_status' => $room->status?->code,
+            'room_deleted_at' => $room->deleted_at,
+        ]);
+
+        $userId = $this->userContext->resolveUserId();
+
+        return $this->handleServiceJson(
+            fn() => $this->generateService->getPlayerCardPrice($room->id, $userId)
+        );
+    }
 }

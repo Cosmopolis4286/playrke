@@ -136,6 +136,7 @@ final class BingoRoomContextService
      *
      * Retorna salas activas del usuario con config (fecha, precio, unix_date)
      * para que el frontend construya los cards con countdown.
+     * Si el usuario tiene rol 'player', solo devuelve salas PUBLIC.
      *
      * @param int $userId ID del usuario
      * @return BingoGameRoomsDTO
@@ -146,7 +147,11 @@ final class BingoRoomContextService
     {
         $today = now()->toDateString();
 
-        $rooms = $this->bingoRooms->getActiveRoomsForView($userId, $today);
+        // Verificar si el usuario tiene rol 'player'
+        $isPlayer = $this->userContext->userHasRole('player');
+
+        // Usar el nuevo método con filtrado por rol
+        $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, $today, $isPlayer);
 
         $timestamp = now()->valueOf(); // ms
 
@@ -154,7 +159,10 @@ final class BingoRoomContextService
             'timestamp' => $timestamp,
             'rooms'     => $rooms->map(fn($room) => [
                 'id'          => (string) $room->id,
-                'config'      => ['unix_date' => $room->config?->unix_date],
+                'config'      => [
+                    'unix_date' => $room->config?->unix_date,
+                    'room_type' => $room->config?->roomType?->code ?? 'PUBLIC'
+                ],
                 'players_room' => null,
             ])->values()->all(),
         ];

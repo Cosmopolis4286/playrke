@@ -17,6 +17,7 @@ final class UserContextService
 {
     public function __construct(
         private readonly TokenUserResolver $tokenResolver,
+        private readonly \App\Services\Roles\RoleUserService $roleUserService,
     ) {}
 
     /**
@@ -53,5 +54,25 @@ final class UserContextService
     public function isAuthenticated(): bool
     {
         return Auth::check();
+    }
+
+    /**
+     * Verifica si el usuario autenticado tiene un rol específico.
+     *
+     * @param string $roleName Nombre del rol a verificar (ej. 'player', 'admin', 'seller')
+     * @return bool True si el usuario tiene el rol, false en caso contrario.
+     */
+    public function userHasRole(string $roleName): bool
+    {
+        if (!$this->isAuthenticated()) {
+            return false;
+        }
+
+        try {
+            $rolePrefix = $this->roleUserService->getActiveUserRolePrefix((int) Auth::id());
+            return strtolower($rolePrefix) === strtolower($roleName);
+        } catch (DomainException $e) {
+            return false;
+        }
     }
 }

@@ -197,7 +197,7 @@ export class AuthService {
    */
   static hasRole(role: string): boolean {
     const user = this.getUser();
-    return user?.userRoles?.some((userRole: any) => userRole.role.name === role) || false;
+    return user?.userRoles?.some((userRole: any) => userRole.role?.name === role || userRole.role_name === role) || false;
   }
 
   /**

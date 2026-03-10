@@ -34,6 +34,7 @@ const props = defineProps<{
   canAdvance:       boolean
   purchasing:       boolean
   exchangeRate:     number
+  isPlayer:         boolean | null
 }>()
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,7 +56,17 @@ const emit = defineEmits<{
 // Computed
 // ─────────────────────────────────────────────────────────────────────────────
 
-const stepIndex = computed(() => props.step === 'country' ? 0 : 1)
+const stepIndex = computed(() => {
+  if (props.isPlayer === null) return 0 // Loading state
+  if (props.isPlayer) return 0 // Players only have one step
+  return props.step === 'country' ? 0 : 1
+})
+
+const stepperLabels = computed(() => {
+  if (props.isPlayer === null) return ['Cargando...'] // Loading state
+  if (props.isPlayer) return ['Confirmar'] // Players only see confirm step
+  return ['País', 'Confirmar'] // Other roles see both steps
+})
 
 const prizeFormatted = computed(() => {
   if (!props.selectedRoom) return '0.00'
@@ -88,10 +99,10 @@ function onCtnsInput(e: Event) {
               <span class="pm-header__title">Comprar Cartones</span>
             </div>
 
-            <!-- Stepper 2 pasos -->
+            <!-- Stepper dinámico -->
             <div class="pm-stepper">
               <div
-                v-for="(lbl, i) in ['País', 'Confirmar']"
+                v-for="(lbl, i) in stepperLabels"
                 :key="i"
                 class="pm-stepper__step"
                 :class="{
@@ -122,7 +133,7 @@ function onCtnsInput(e: Event) {
               <div class="pm-room-banner__prize">
                 <span class="pm-room-banner__prize-num">{{ prizeFormatted }}</span>
                 <span class="pm-room-banner__prize-sym">
-                  {{ selectedCountry?.currency_symbol ?? currencySymbol ?? 'USD' }}
+                  {{ isPlayer ? currencySymbol : (selectedCountry?.currency_symbol ?? currencySymbol ?? 'USD') }}
                 </span>
               </div>
             </div>
@@ -131,9 +142,9 @@ function onCtnsInput(e: Event) {
           <!-- ═══════════════════ BODY ═══════════════════ -->
           <div class="pm-body">
 
-            <!-- ── STEP 1: País ── -->
+            <!-- ── STEP 1: País (solo para no-players) ── -->
             <Transition name="step-slide" mode="out-in">
-              <div v-if="step === 'country'" key="country" class="pm-step">
+              <div v-if="!isPlayer && isPlayer !== null && step === 'country'" key="country" class="pm-step">
                 <p class="pm-step__label">Selecciona el país del jugador</p>
 
                 <div v-if="loadingCountries" class="pm-loading">
@@ -211,7 +222,7 @@ function onCtnsInput(e: Event) {
 
                 <!-- Resumen -->
                 <div class="pm-summary">
-                  <div class="pm-summary__row">
+                  <div v-if="!isPlayer && isPlayer !== null" class="pm-summary__row">
                     <span>País</span>
                     <span>{{ selectedCountry?.name ?? '—' }}</span>
                   </div>
@@ -239,7 +250,7 @@ function onCtnsInput(e: Event) {
           <!-- ═══════════════════ FOOTER ═══════════════════ -->
           <div class="pm-footer">
             <button
-              v-if="step === 'confirm'"
+              v-if="!isPlayer && isPlayer !== null && step === 'confirm'"
               class="pm-btn pm-btn--secondary"
               :disabled="purchasing"
               @click="emit('prev')"
@@ -250,7 +261,7 @@ function onCtnsInput(e: Event) {
             <div class="pm-footer__spacer" />
 
             <button
-              v-if="step === 'country'"
+              v-if="!isPlayer && isPlayer !== null && step === 'country'"
               class="pm-btn pm-btn--primary"
               :disabled="!canAdvance || loadingPrice"
               @click="emit('next')"
@@ -261,7 +272,7 @@ function onCtnsInput(e: Event) {
             <button
               v-else
               class="pm-btn pm-btn--buy"
-              :disabled="purchasing"
+              :disabled="purchasing || isPlayer === null"
               @click="emit('purchase')"
             >
               <span v-if="purchasing" class="pm-spinner pm-spinner--sm mr-1" />

@@ -40,7 +40,10 @@ final class BingoGameRoomsDTO implements ContextDTO
             'title'         => 'Salas de Juego',
             'rooms'         => $this->rooms->map(fn($room) => array_merge(
                 $room->toArray(),
-                ['status_code' => $room->status?->code ?? 'ACTIVE'],
+                [
+                    'status_code' => $room->status?->code ?? 'ACTIVE',
+                    'room_type'   => $room->config?->roomType?->code ?? 'PUBLIC',
+                ],
             ))->values()->all(),
             'exchangeRate'  => $this->exchangeRate,
             'currencySym'   => $this->currencySym,

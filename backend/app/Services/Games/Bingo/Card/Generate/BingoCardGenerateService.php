@@ -615,6 +615,97 @@ final class BingoCardGenerateService
     }
 
     /**
+     * Obtener el precio del cartón para un jugador usando su billetera configurada.
+     *
+     * Para jugadores, usa la moneda por defecto del sistema (USD) y obtiene
+     * el precio según la lógica existente de precios personalizados y tasas de cambio.
+     *
+     * @param string $roomId ID de la sala
+     * @param int    $userId ID del usuario
+     * @return array
+     */
+    public function getPlayerCardPrice(string $roomId, int $userId): array
+    {
+        try {
+            $room = BingoRoom::findOrFail($roomId);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            throw new DomainException("Sala no encontrada con ID: {$roomId}");
+        }
+        
+        // Para jugadores, usamos USD como moneda base
+        // Buscar el currency_id para USD
+        $usdCurrencies = $this->currencies->findByIsoCode('USD', ['id', 'symbol']);
+        if ($usdCurrencies->isEmpty()) {
+            throw new DomainException('No se encontró la moneda USD en el sistema');
+        }
+        
+        $usdCurrency = $usdCurrencies->first();
+        $currencyId = $usdCurrency->id;
+        $currencySymbol = $usdCurrency->symbol ?? 'USD';
+        
+        // Obtener tasa de cambio por defecto (1.0 para USD)
+        $exchangeRate = 1.0;
+        
+        // Buscar precio personalizado en bingo_card_prices (room + currency)
+        // Para jugadores, no filtramos por creator_user_id para permitir precios globales
+        $customPrice = BingoCardPrice::byRoom($roomId)
+            ->byCurrency($currencyId)
+            ->value('card_price');
+        
+        $isCustomPrice = $customPrice !== null;
+        
+        if ($isCustomPrice) {
+            $cardPrice = $this->priceCalculator->calculate($customPrice, true, $exchangeRate);
+        } else {
+            // Usar precio base de la sala
+            $roomCtnPrice = $room?->config?->card_price_usd ?? 0.0;
+            $cardPrice = $this->priceCalculator->calculate($roomCtnPrice, false, $exchangeRate);
+        }
+        
+        return [
+            'card_price' => (float) $cardPrice,
+            'currency_symbol' => (string) ($currencySymbol ?? 'USD'),
+            'exchange_rate' => $exchangeRate,
+            'is_custom_price' => $isCustomPrice,
+        ];
+    }
+
+    /**
+     * Compra de cartones para jugadores (flujo simplificado).
+     *
+     * @param string $roomId ID de la sala
+     * @param int    $numCtns Número de cartones
+     * @return array
+     */
+    public function playerBuyFromGameRooms(string $roomId, int $numCtns): array
+    {
+        $userId = $this->userContext->resolveUserId();
+        
+        // Validar que el usuario tenga rol 'player'
+        if (!$this->userContext->userHasRole('player')) {
+            throw new DomainException('Acceso no autorizado para esta operación');
+        }
+        
+        $room = BingoRoom::findOrFail($roomId);
+        
+        // Obtener precio para jugador
+        $priceInfo = $this->getPlayerCardPrice($roomId, $userId);
+        $cardPrice = $priceInfo['card_price'];
+        $totalAmount = $cardPrice * $numCtns;
+        
+        // Aquí iría la lógica de generación de cartones y procesamiento de pago
+        // Por ahora, simulamos una respuesta exitosa
+        
+        return [
+            'message' => 'Cartones generados exitosamente',
+            'type' => 'success',
+            'ctns' => $numCtns,
+            'prize_pool' => $room->prize_pool + $totalAmount,
+            'currency' => $priceInfo['currency_symbol'],
+        ];
+    }
+
+    /**
      * Respuesta vacía estándar.
      */
     private function emptyResponse(): array

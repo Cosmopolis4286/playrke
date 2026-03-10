@@ -10,8 +10,16 @@
  *  - Gestionar el countdown de cada sala
  *  - Manejar la selección de sala y compra de cartones (modal)
  */
-import { ref, onMounted } from 'vue'
+// ==========================================================================
+// Imports
+// ==========================================================================
+import { ref, onMounted, computed } from 'vue'
 import '@/css/games/bingo/bingo-game-rooms.css'
+
+// ==========================================================================
+// Services
+// ==========================================================================
+import { AuthService } from '@/js/Services/authService'
 
 // ==========================================================================
 // Componentes
@@ -42,6 +50,18 @@ const props = defineProps<BingoGameRoomsPageProps>()
 const rooms = ref<BingoGameRoom[]>(props.rooms.map(r => ({ ...r })))
 
 // ==========================================================================
+// Filtrado de salas por rol de usuario
+// ==========================================================================
+const filteredRooms = computed(() => {
+  // Si el usuario tiene rol 'player', mostrar solo salas PUBLIC
+  if (AuthService.hasRole('player')) {
+    return rooms.value.filter(room => room.room_type === 'PUBLIC')
+  }
+  // Para otros roles, mostrar todas las salas
+  return rooms.value
+})
+
+// ==========================================================================
 // WebSocket — actualizaciones en tiempo real (prize_pool, total_players, card_price)
 // ==========================================================================
 useGameRoomEcho(rooms)
@@ -68,7 +88,7 @@ const modal = useGameRoomPurchaseModal()
 
 /** Abre el modal para la sala con el ID dado. */
 function openModal(roomId: string): void {
-  const room = rooms.value.find(r => r.id === roomId)
+  const room = filteredRooms.value.find(r => r.id === roomId)
   if (room) modal.open(room)
 }
 
@@ -112,7 +132,7 @@ onMounted(() => {
     </div>
 
     <!-- ── Sin salas ── -->
-    <div v-if="!rooms.length" class="game-rooms-page__empty">
+    <div v-if="!filteredRooms.length" class="game-rooms-page__empty">
       <i class="fas fa-door-closed" />
       <p>No hay salas activas para hoy</p>
     </div>
@@ -121,10 +141,10 @@ onMounted(() => {
     <div v-else class="game-rooms-page__grid-wrap">
       <div
         class="game-rooms-page__grid"
-        :class="{ 'game-rooms-page__grid--centered': rooms.length < 4 }"
+        :class="{ 'game-rooms-page__grid--centered': filteredRooms.length < 4 }"
       >
         <div
-          v-for="room in rooms"
+          v-for="room in filteredRooms"
           :key="room.id"
           class="game-rooms-page__grid-item"
         >
@@ -163,6 +183,7 @@ onMounted(() => {
     :can-advance="modal.canAdvance.value"
     :purchasing="modal.purchasing.value"
     :exchange-rate="props.exchangeRate ?? 1"
+    :is-player="modal.isPlayer.value"
     @close="modal.close()"
     @select-country="modal.selectCountry($event)"
     @next="modal.nextStep()"

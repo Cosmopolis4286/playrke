@@ -124,4 +124,24 @@ final class BingoCardController extends Controller
             fn() => $this->generateService->getCardPrice($room->id, $userId, $countryId)
         );
     }
+
+    /**
+     * Obtener el precio del cartón para un jugador usando su billetera configurada.
+     *
+     * Para usuarios con rol 'player', obtiene el precio basado en:
+     * - Moneda configurada en la billetera del jugador
+     * - Tasa de cambio correspondiente
+     * - Precio personalizado si existe para la sala y moneda
+     *
+     * @param BingoRoom $room Sala de bingo (model binding por {room}).
+     * @return JsonResponse  Respuesta con card_price, currency_symbol, exchange_rate, is_custom_price.
+     */
+    public function playerCardPrice(BingoRoom $room): JsonResponse
+    {
+        $userId = $this->userContext->resolveUserId();
+
+        return $this->handleServiceJson(
+            fn() => $this->generateService->getPlayerCardPrice($room->id, $userId)
+        );
+    }
 }

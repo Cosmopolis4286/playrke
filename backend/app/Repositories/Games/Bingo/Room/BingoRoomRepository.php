@@ -256,8 +256,9 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
     {
         return $this->model
             ->with([
-                'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time',
+                'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id',
                 'config.prizePoolType:id,code,label',
+                'config.roomType:id,code,label',
                 'status:id,code',
             ])
             ->whereHas('status', fn($q) => $q->where('code', 'ACTIVE'))
@@ -270,6 +271,44 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
                     ->limit(1)
             )
             ->get();
+    }
+
+    /**
+     * Obtener salas activas de un usuario para la vista de juego (game-rooms) con filtrado por rol.
+     * Si el usuario tiene rol 'player', solo devuelve salas PUBLIC.
+     * Para otros roles, devuelve todas las salas activas.
+     *
+     * @param int    $userId ID del usuario creador
+     * @param string $today  Fecha en formato YYYY-MM-DD
+     * @param bool   $isPlayer Si el usuario tiene rol 'player'
+     * @return Collection<BingoRoom>
+     */
+    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer): Collection
+    {
+        $query = $this->model
+            ->with([
+                'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id',
+                'config.prizePoolType:id,code,label',
+                'config.roomType:id,code,label',
+                'status:id,code',
+            ])
+            ->whereHas('status', fn($q) => $q->where('code', 'ACTIVE'))
+            ->whereHas('config', fn($q) => $q->whereDate('date', $today))
+            ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'creator_user_id', 'status_id']);
+
+        // Si el usuario es player, aplicar filtro de room_type PUBLIC
+        if ($isPlayer) {
+            $query->whereHas('config.roomType', fn($q) => $q->where('code', 'PUBLIC'));
+        } else {
+            // Para otros roles, filtrar por creador (comportamiento original)
+            $query->where('bingo_rooms.creator_user_id', $userId);
+        }
+
+        return $query->orderBy(
+            \App\Models\Games\Bingo\Room\BingoRoomConfig::select('time')
+                ->whereColumn('room_id', 'bingo_rooms.id')
+                ->limit(1)
+        )->get();
     }
 
     /**
