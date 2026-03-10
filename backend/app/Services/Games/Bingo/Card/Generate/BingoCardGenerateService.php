@@ -12,7 +12,7 @@ use App\Models\Currency;
 use App\Models\ExternalPlayers;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Services\Games\Bingo\Card\BingoCardPriceCalculator;
-use App\Traits\Games\Bingo\BingoTrait;
+use App\Services\Games\Bingo\Card\BingoCardGenerationService;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +26,6 @@ use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface;
  */
 final class BingoCardGenerateService
 {
-    use BingoTrait;
 
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
