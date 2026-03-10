@@ -5,9 +5,11 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Country;
 use App\Models\Currency;
+use App\Models\Roles\Admin;
 use App\Repositories\UserRepository;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
@@ -123,6 +125,11 @@ class UserSeeder extends Seeder
                     $user->assignRole($data['role']);
                 }
 
+                // Si el rol es admin, crear registro en tabla admins
+                if ($data['role'] === 'admin') {
+                    $this->createAdminRecord($user, $data, $venezuela);
+                }
+
                 $this->command->info("✔ {$data['role']}: {$user->email}");
             }
 
@@ -154,5 +161,93 @@ class UserSeeder extends Seeder
             $this->command->error("❌ Error en UserSeeder: {$e->getMessage()}");
             throw $e;
         }
+    }
+
+    /**
+     * Crear registro en tabla admins para usuarios con rol admin
+     */
+    private function createAdminRecord(User $user, array $data, Country $country): void
+    {
+        // Verificar si ya existe el registro admin
+        if (Admin::where('user_id', $user->id)->exists()) {
+            return;
+        }
+
+        // Obtener moneda por defecto (VES)
+        $currency = Currency::where('iso_code', 'VES')->first();
+        
+        // Generar código único
+        $uniqueCode = $this->generateUniqueCode();
+
+        // Crear registro en unique_codes si no existe
+        $this->createUniqueCode($uniqueCode);
+
+        // Permisos según el tipo de admin
+        $permissions = $this->getAdminPermissions($data['email']);
+
+        Admin::create([
+            'user_id' => $user->id,
+            'country_id' => $country->id,
+            'currency_id' => $currency?->id,
+            'unique_code_id' => $this->getUniqueCodeId($uniqueCode),
+            'status' => 'ACTIVE',
+            'permissions' => json_encode($permissions),
+            'last_login_at' => null,
+        ]);
+
+        $this->command->info("  → Registro admin creado para {$user->email}");
+    }
+
+    /**
+     * Generar código único para admin
+     */
+    private function generateUniqueCode(): string
+    {
+        return 'ADM-' . strtoupper(uniqid());
+    }
+
+    /**
+     * Crear registro en tabla unique_codes
+     */
+    private function createUniqueCode(string $code): void
+    {
+        DB::table('unique_codes')->insertOrIgnore([
+            'code' => $code,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    /**
+     * Obtener ID del código único
+     */
+    private function getUniqueCodeId(string $code): ?int
+    {
+        $record = DB::table('unique_codes')->where('code', $code)->first();
+        return $record?->id;
+    }
+
+    /**
+     * Obtener permisos según el email del admin
+     */
+    private function getAdminPermissions(string $email): array
+    {
+        return match (true) {
+            str_contains($email, 'admin@playrke.com') => [
+                'manage_exchange_rates',
+                'manage_users',
+                'manage_commerces',
+                'manage_sellers',
+                'manage_customers',
+                'view_reports',
+                'system_settings',
+                'audit_logs',
+                'manage_treasurers',
+            ],
+            default => [
+                'manage_exchange_rates',
+                'view_reports',
+            ],
+        };
     }
 }

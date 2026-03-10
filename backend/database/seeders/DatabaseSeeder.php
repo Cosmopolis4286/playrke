@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,
             RoleSeeder::class,
             UserSeeder::class,
+            AdminSeeder::class,
             DemoRoleDataSeeder::class,
         ]);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Services\Roles;
 
+use App\Contracts\Roles\Admin\AdminRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\Roles\Seller\SellerRepositoryInterface;
@@ -13,6 +14,7 @@ use DomainException;
  * de la entidad asociada a un usuario según su rol.
  *
  * Ejemplos:
+ *  - Rol "admin"     → entidad Admin
  *  - Rol "commerce"  → entidad Commerce
  *  - Rol "customer"  → entidad Customer
  *  - Rol "seller"    → entidad Seller
@@ -20,6 +22,7 @@ use DomainException;
 final class RoleEntityResolver
 {
     public function __construct(
+        private readonly AdminRepositoryInterface $adminRepository,
         private readonly CommerceRepositoryInterface $commerceRepository,
         private readonly CustomerRepositoryInterface $customerRepository,
         private readonly SellerRepositoryInterface $sellerRepository,
@@ -48,6 +51,7 @@ final class RoleEntityResolver
         }
 
         return match ($role) {
+            'admin'    => $this->adminRepository->getValueByUserId($userId, 'id'),
             'commerce' => $this->commerceRepository->getValueByUserId($userId, 'id'),
             'customer' => $this->customerRepository->getValueByUserId($userId, 'id'),
             'seller'   => $this->sellerRepository->getValueByUserId($userId, 'id'),
