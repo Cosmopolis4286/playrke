@@ -198,14 +198,16 @@ class RoomMetricsService implements RoomMetricsInterface
             $sellerCommission = round($sellerCommission / $exchangeRate, 3);
 
             // Obtener configuración de la sala
-            $bingoConfig = \App\Models\BingoRoomConfig::getByRoom($room->id, ['rke_commission', 'room_commission', 'prize_pool_type']);
+            $bingoConfig = \App\Models\Games\Bingo\Room\BingoRoomConfig::where('room_id', $room->id)
+                ->select(['rke_commission', 'room_commission', 'prize_pool_type_id'])
+                ->first();
             
             if (!$bingoConfig) {
                 Log::error('Configuración de sala no encontrada', ['roomId' => $room->id]);
                 return false;
             }
 
-            $prizePoolType = $bingoConfig->prize_pool_type;
+            $prizePoolType = $bingoConfig->prize_pool_type_id;
             $updateData = [];
 
             // Si el bote acumulado no es tipo "Premio"

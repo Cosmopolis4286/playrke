@@ -2,9 +2,9 @@
 
 namespace App\Services\Games\Bingo\Card;
 
-use App\Models\BingoCtns;
-use App\Models\BingoCtnsLot;
-use App\Models\BingoCtnsPayment;
+use App\Models\Games\Bingo\Card\BingoCard;
+use App\Models\Games\Bingo\Card\BingoCardLot;
+use App\Models\Games\Bingo\Card\BingoCardPayment;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -24,17 +24,17 @@ class BingoCardManagementService
         try {
             $lotData = [
                 'room_id' => $cartonData['room'],
-                'user_id' => $cartonData['creator']['id'],
+                'creator_user_id' => $cartonData['creator']['id'],
                 'room_user_id' => $cartonData['roomUser'],
-                'quantity' => $cartonData['numOfCtns'],
-                'price' => $cartonData['cardPrice'],
-                'total_amount' => $saleAmount,
                 'currency_id' => $cartonData['currency'],
+                'card_count' => $cartonData['numOfCtns'],
+                'card_price' => $cartonData['cardPrice'],
+                'sale_amount' => $saleAmount,
                 'exchange_rate' => $cartonData['exchangeRate'] ?? 1,
                 'status' => 'active',
             ];
 
-            $lot = BingoCtnsLot::create($lotData);
+            $lot = BingoCardLot::create($lotData);
             return $lot->id;
         } catch (\Throwable $e) {
             Log::error('Error al crear lote de cartones: ' . $e->getMessage(), [
@@ -59,23 +59,53 @@ class BingoCardManagementService
             $numOfCtns = $cartonData['numOfCtns'];
             $roomId = $cartonData['room'];
             $roomUserId = $cartonData['roomUser'];
+            $creatorUserId = $cartonData['creator']['id'];
 
             // Generar cartones únicos
             for ($i = 0; $i < $numOfCtns; $i++) {
                 $cardData = $this->generateSingleCard($roomId, $roomUserId);
+                
                 $cards[] = [
-                    'lot_id' => $lotId,
+                    'card_lot_id' => $lotId,
                     'room_id' => $roomId,
+                    'creator_user_id' => $creatorUserId,
                     'room_user_id' => $roomUserId,
-                    'card_data' => json_encode($cardData),
-                    'hash' => $cardData['hash'],
+                    'currency_id' => $cartonData['currency'],
+                    'serial_number' => $this->generateSerialNumber(),
+                    'b1' => $cardData['numbers']['B'][0] ?? null,
+                    'b2' => $cardData['numbers']['B'][1] ?? null,
+                    'b3' => $cardData['numbers']['B'][2] ?? null,
+                    'b4' => $cardData['numbers']['B'][3] ?? null,
+                    'b5' => $cardData['numbers']['B'][4] ?? null,
+                    'i1' => $cardData['numbers']['I'][0] ?? null,
+                    'i2' => $cardData['numbers']['I'][1] ?? null,
+                    'i3' => $cardData['numbers']['I'][2] ?? null,
+                    'i4' => $cardData['numbers']['I'][3] ?? null,
+                    'i5' => $cardData['numbers']['I'][4] ?? null,
+                    'n1' => $cardData['numbers']['N'][0] ?? null,
+                    'n2' => $cardData['numbers']['N'][1] ?? null,
+                    'n3' => null, // Centro libre
+                    'n4' => $cardData['numbers']['N'][2] ?? null,
+                    'n5' => $cardData['numbers']['N'][3] ?? null,
+                    'g1' => $cardData['numbers']['G'][0] ?? null,
+                    'g2' => $cardData['numbers']['G'][1] ?? null,
+                    'g3' => $cardData['numbers']['G'][2] ?? null,
+                    'g4' => $cardData['numbers']['G'][3] ?? null,
+                    'g5' => $cardData['numbers']['G'][4] ?? null,
+                    'o1' => $cardData['numbers']['O'][0] ?? null,
+                    'o2' => $cardData['numbers']['O'][1] ?? null,
+                    'o3' => $cardData['numbers']['O'][2] ?? null,
+                    'o4' => $cardData['numbers']['O'][3] ?? null,
+                    'o5' => $cardData['numbers']['O'][4] ?? null,
+                    'card_hash' => $cardData['hash'],
+                    'status' => 'active',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
             }
 
             // Insertar todos los cartones en lote
-            return BingoCtns::insert($cards) > 0;
+            return BingoCard::insert($cards) > 0;
         } catch (\Throwable $e) {
             Log::error('Error al generar y almacenar cartones: ' . $e->getMessage(), [
                 'cartonData' => $cartonData,
@@ -97,17 +127,18 @@ class BingoCardManagementService
     {
         try {
             $paymentData = [
-                'lot_id' => $lotId,
+                'card_lot_id' => $lotId,
                 'room_id' => $cartonData['room'],
+                'creator_user_id' => $cartonData['creator']['id'],
                 'user_id' => $cartonData['creator']['id'],
-                'amount' => $saleAmount,
                 'currency_id' => $cartonData['currency'],
-                'exchange_rate' => $cartonData['exchangeRate'] ?? 1,
-                'payment_method' => 'wallet', // Por defecto
-                'status' => 'completed',
+                'payment_amount' => $saleAmount,
+                'payment_method' => 'wallet',
+                'payment_status' => 'completed',
+                'processed_at' => now(),
             ];
 
-            $payment = BingoCtnsPayment::create($paymentData);
+            $payment = BingoCardPayment::create($paymentData);
             return $payment->id;
         } catch (\Throwable $e) {
             Log::error('Error al crear pago de cartones: ' . $e->getMessage(), [
@@ -117,6 +148,16 @@ class BingoCardManagementService
             ]);
             return null;
         }
+    }
+
+    /**
+     * Generar número de serie único para el cartón
+     *
+     * @return string Número de serie único
+     */
+    private function generateSerialNumber(): string
+    {
+        return 'BINGO-' . strtoupper(uniqid()) . '-' . rand(1000, 9999);
     }
 
     /**
@@ -224,7 +265,7 @@ class BingoCardManagementService
     public function getUserCards(string $roomUserId)
     {
         try {
-            return BingoCtns::where('room_user_id', $roomUserId)
+            return BingoCard::where('room_user_id', $roomUserId)
                 ->with('lot')
                 ->orderBy('created_at', 'desc')
                 ->get();

@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Bingo\Card\CardPrize;
 
-use App\Models\Bingo\Cards\CardPrize\BingoCardPrizePayment;
+use App\Models\Bingo\Card\CardPrize\BingoCardPrizePayment;
 use App\Repositories\Bingo\Card\CardPrize\Contracts\BingoCardPrizePaymentRepositoryContract;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;

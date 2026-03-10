@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cards\CardPrize;
+namespace App\Models\Games\Bingo\Card\CardPrize;
 
 use App\Models\Currency;
-use App\Models\Games\Bingo\Cards\BingoCard;
-use App\Models\Games\Bingo\Cards\BingoCardLot;
+use App\Models\Games\Bingo\Card\BingoCard;
+use App\Models\Games\Bingo\Card\BingoCardLot;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Games\Bingo\Room\User\BingoRoomUser;
 use App\Models\Roles\Seller;
@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Representa un premio otorgado a un cartón ganador en una sala de bingo.
  * Incluye información sobre el tipo de premio, montos, estado y patrón ganador.
  *
- * @package App\Models\Bingo\Cards
+ * @package App\Models\Bingo\Card
  * @author Sistema PlayRKE
  * @version 1.0
  *

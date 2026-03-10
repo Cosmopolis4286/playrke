@@ -2,7 +2,7 @@
 
 namespace App\Contracts\Games\Bingo\Card\CardLot;
 
-use App\Models\Bingo\Cards\BingoCardLot;
+use App\Models\Bingo\Card\BingoCardLot;
 use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos disponibles para gestionar lotes de cartones de bingo,
  * incluyendo operaciones CRUD y consultas específicas del dominio.
  *
- * @package App\Repositories\Contracts\Games\Bingo\Cards
+ * @package App\Repositories\Contracts\Games\Bingo\Card
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  */

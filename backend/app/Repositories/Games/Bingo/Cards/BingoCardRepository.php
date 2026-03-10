@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Bingo\Card\CardLot;
 
-use App\Models\Bingo\Cards\BingoCard;
+use App\Models\Bingo\Card\BingoCard;
 use App\Repositories\Games\Bingo\Card\CardLot\Contracts\BingoCardRepositoryContract;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cards;
+namespace App\Models\Games\Bingo\Card;
 
 use App\Models\Currency;
 use App\Models\Games\Bingo\Room\BingoRoom;
@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Cada lote contiene información sobre la cantidad de cartones, precios, comisiones
  * y está asociado a una sala específica y un jugador.
  *
- * @package App\Models\Bingo\Cards
+ * @package App\Models\Bingo\Card
  * @author Sistema PlayRKE
  * @version 1.0
  *

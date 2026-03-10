@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cards;
+namespace App\Models\Games\Bingo\Card;
 
 use App\Models\Currency;
 use App\Models\Games\Bingo\Room\BingoRoom;
@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Representa un pago realizado por la compra de cartones de bingo.
  * Incluye información sobre el método de pago, monto, comprobante y estado.
  *
- * @package App\Models\Bingo\Cards
+ * @package App\Models\Bingo\Card
  * @author Sistema PlayRKE
  * @version 1.0
  *

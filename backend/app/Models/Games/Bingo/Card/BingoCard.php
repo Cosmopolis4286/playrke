@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cards;
+namespace App\Models\Games\Bingo\Card;
 
 use App\Models\Currency;
 use App\Models\Games\Bingo\Room\BingoRoom;
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\Games\Bingo\Cards\CardPrize\BingoCardPrize;
+use App\Models\Games\Bingo\Card\CardPrize\BingoCardPrize;
 
 /**
  * Modelo para los cartones de bingo
@@ -20,7 +20,7 @@ use App\Models\Games\Bingo\Cards\CardPrize\BingoCardPrize;
  * Representa un cartón individual de bingo con su matriz de números 5x5.
  * Cada cartón pertenece a un lote y contiene los números del juego BINGO.
  *
- * @package App\Models\Bingo\Cards
+ * @package App\Models\Bingo\Card
  * @author Sistema PlayRKE
  * @version 1.0
  *

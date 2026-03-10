@@ -3,7 +3,7 @@
 namespace App\Services\Roles\Admin\Dashboard;
 
 use App\DTOs\Roles\Admin\Dashboard\AdminDashboardContextDTO;
-use App\Models\Games\Bingo\Cards\BingoCard;
+use App\Models\Games\Bingo\Card\BingoCard;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Customer;

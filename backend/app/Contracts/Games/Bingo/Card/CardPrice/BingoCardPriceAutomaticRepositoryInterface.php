@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos disponibles para gestionar borradores de precios de cartones,
  * incluyendo operaciones CRUD y consultas específicas del dominio.
  *
- * @package App\Repositories\Contracts\Games\Bingo\Cards\CardPrice
+ * @package App\Repositories\Contracts\Games\Bingo\Card\CardPrice
  * @author Sistema de Gestión de Bingo
  * @version 1.0
  */

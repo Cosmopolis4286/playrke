@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Games\Bingo\Cards\CardPrize;
+namespace App\Models\Games\Bingo\Card\CardPrize;
 
 use App\Models\Currency;
 use App\Models\Games\Bingo\Room\BingoRoom;
@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Representa un pago realizado por un premio ganado en bingo.
  * Incluye información sobre el método de pago, monto, comprobante y estado del pago del premio.
  *
- * @package App\Models\Bingo\Cards
+ * @package App\Models\Bingo\Card
  * @author Sistema PlayRKE
  * @version 1.0
  *

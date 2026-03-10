@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Bingo\Card\CardPrize\Contracts;
 
-use App\Models\Bingo\Cards\CardPrize\BingoCardPrize;
+use App\Models\Bingo\Card\CardPrize\BingoCardPrize;
 use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos disponibles para gestionar premios de cartones de bingo,
  * incluyendo operaciones CRUD y consultas específicas del dominio.
  *
- * @package App\Repositories\Contracts\Games\Bingo\Cards\CardPrize
+ * @package App\Repositories\Contracts\Games\Bingo\Card\CardPrize
  * @author Sistema de Gestión de Premios de Bingo
  * @version 1.0
  */
