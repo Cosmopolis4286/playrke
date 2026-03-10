@@ -43,6 +43,7 @@ final class BingoGameRoomsDTO implements ContextDTO
                 [
                     'status_code' => $room->status?->code ?? 'ACTIVE',
                     'room_type'   => $room->config?->roomType?->code ?? 'PUBLIC',
+                    'id'          => $room->getRouteKey(), // Usar ID hasheado para route binding
                 ],
             ))->values()->all(),
             'exchangeRate'  => $this->exchangeRate,

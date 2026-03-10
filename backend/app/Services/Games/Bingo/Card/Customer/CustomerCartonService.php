@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Games\Bingo\Cartons\Customer;
+namespace App\Services\Games\Bingo\Card\Customer;
 
 use App\Models\{BingoPrizeCtns, BingoRoom, Customer};
 use App\Services\Users\Customer\HandleTransactions;

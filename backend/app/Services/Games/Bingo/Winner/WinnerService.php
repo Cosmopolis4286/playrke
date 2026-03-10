@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Games\Bingo\Rooms;
+namespace App\Services\Games\Bingo\Winner;
 
 use App\Models\BingoPrizeCtns;
 use Illuminate\Support\Facades\Log;

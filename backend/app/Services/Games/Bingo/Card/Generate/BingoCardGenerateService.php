@@ -45,6 +45,8 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
         private readonly BingoCardPriceCalculator $priceCalculator,
+        private readonly \App\Contracts\WalletRepositoryInterface $walletRepository,
+        private readonly \App\Services\Games\Bingo\Card\BingoCardGenerationService $cardGenerationService,
     ) {}
 
     /**
@@ -465,15 +467,13 @@ final class BingoCardGenerateService
 
         // 7. Ejecutar transacción atómica
         $result = DB::transaction(function () use ($arrCtn, $room) {
-            $cartonStore = $this->cartonStore($arrCtn);
+            $roomUser = $this->cardGenerationService->generateCards($arrCtn);
 
-            if (isset($cartonStore['Error'])) {
-                throw new DomainException($cartonStore['Error']);
+            if (!$roomUser) {
+                throw new DomainException('Error al generar cartones');
             }
 
-            if (!isset($arrCtn['roomUser'])) {
-                $arrCtn['roomUser'] = $cartonStore;
-            }
+            $arrCtn['roomUser'] = $roomUser;
 
             $arrCtn = $this->handleExternalPlayers($arrCtn);
 
@@ -577,14 +577,10 @@ final class BingoCardGenerateService
         ];
 
         return DB::transaction(function () use ($arrCtn, $room) {
-            $cartonStore = $this->cartonStore($arrCtn);
+            $roomUser = $this->cardGenerationService->generateCards($arrCtn);
 
-            if (isset($cartonStore['Error'])) {
-                throw new DomainException($cartonStore['Error']);
-            }
-
-            if (!isset($arrCtn['roomUser'])) {
-                $arrCtn['roomUser'] = $cartonStore;
+            if (!$roomUser) {
+                throw new DomainException('Error al generar cartones');
             }
 
             $this->handleExternalPlayers($arrCtn);
@@ -617,7 +613,7 @@ final class BingoCardGenerateService
     /**
      * Obtener el precio del cartón para un jugador usando su billetera configurada.
      *
-     * Para jugadores, usa la moneda por defecto del sistema (USD) y obtiene
+     * Para jugadores, usa la moneda de su billetera activa y obtiene
      * el precio según la lógica existente de precios personalizados y tasas de cambio.
      *
      * @param string $roomId ID de la sala
@@ -632,18 +628,22 @@ final class BingoCardGenerateService
             throw new DomainException("Sala no encontrada con ID: {$roomId}");
         }
         
-        // Para jugadores, usamos USD como moneda base
-        // Buscar el currency_id para USD
-        $usdCurrencies = $this->currencies->findByIsoCode('USD', ['id', 'symbol']);
-        if ($usdCurrencies->isEmpty()) {
-            throw new DomainException('No se encontró la moneda USD en el sistema');
+        // Obtener la billetera activa del jugador
+        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['currency_id']);
+        
+        if ($activeWallets->isEmpty()) {
+            throw new DomainException('El jugador no tiene billeteras activas configuradas');
         }
         
-        $usdCurrency = $usdCurrencies->first();
-        $currencyId = $usdCurrency->id;
-        $currencySymbol = $usdCurrency->symbol ?? 'USD';
+        // Usar la primera billetera activa (podría haber lógica para seleccionar una específica)
+        $playerWallet = $activeWallets->first();
+        $currencyId = $playerWallet->currency_id;
         
-        // Obtener tasa de cambio por defecto (1.0 para USD)
+        // Obtener información de la moneda
+        $currency = $this->currencies->find($currencyId, ['symbol']);
+        $currencySymbol = $currency?->symbol ?? 'USD';
+        
+        // Obtener tasa de cambio por defecto (1.0 para la moneda del jugador)
         $exchangeRate = 1.0;
         
         // Buscar precio personalizado en bingo_card_prices (room + currency)
@@ -693,15 +693,43 @@ final class BingoCardGenerateService
         $cardPrice = $priceInfo['card_price'];
         $totalAmount = $cardPrice * $numCtns;
         
-        // Aquí iría la lógica de generación de cartones y procesamiento de pago
-        // Por ahora, simulamos una respuesta exitosa
+        // Obtener billetera activa del jugador
+        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['currency_id']);
         
+        if ($activeWallets->isEmpty()) {
+            throw new DomainException('El jugador no tiene billeteras activas configuradas');
+        }
+        
+        $playerWallet = $activeWallets->first();
+        $currencyId = $playerWallet->currency_id;
+        
+        // Preparar array para cartonStore (versión simplificada para jugadores)
+        $arrCtn = [
+            'room'          => $roomId,
+            'creator'       => ['id' => $userId, 'type' => 'customer'], // Player actúa como customer
+            'seller'        => null, // No hay seller para jugadores
+            'currency'      => $currencyId,
+            'numOfCtns'     => $numCtns,
+            'cardPrice'     => $cardPrice,
+            'country'       => null, // No se usa país para jugadores
+            'playerPhone'   => '', // No requerido para jugadores autenticados
+            'playerName'    => 'Player', // Puede obtenerse del usuario si es necesario
+            'playerLastName'=> 'User',
+            'initials'      => 'PU',
+            'exchangeRate'  => 1.0,
+            'playerUser'    => $userId, // ID del jugador
+        ];
+        
+        // Ejecutar transacción atómica para generar cartones
+        $result = $this->cardGenerationService->generateInTransaction($arrCtn, $room, $totalAmount);
+
         return [
             'message' => 'Cartones generados exitosamente',
             'type' => 'success',
             'ctns' => $numCtns,
             'prize_pool' => $room->prize_pool + $totalAmount,
             'currency' => $priceInfo['currency_symbol'],
+            'room_user' => $result['roomUser'] ?? null,
         ];
     }
 
