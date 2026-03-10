@@ -165,7 +165,7 @@ final class BingoCardGenerationService
                 // }
             }
 
-            return $roomUser;
+            return ['room_user_id' => $roomUserId];
 
         } catch (\Exception $e) {
             throw new \DomainException('Error en generación de cartones: ' . $e->getMessage());
