@@ -59,4 +59,11 @@
             <p>Conversión</p>
         </a>
     </li>
+    <li class="nav-item has-treeview">
+        <a href="{{ route('currency.index') }}" title="Monedas"
+            class="nav-link {{ Route::is('currency.*') ? 'active' : '' }}">
+            <i class="nav-icon fa-solid fa-coins"></i>
+            <p>Monedas</p>
+        </a>
+    </li>
 </x-template.sidebar>

@@ -28,6 +28,11 @@ class CustomerCurrency extends BasePivot
     protected $primaryKey = ['customer_id', 'currency_id'];
 
     /**
+     * Indica que la clave primaria es compuesta.
+     */
+    protected $keyType = 'string';
+
+    /**
      * Tabla asociada al pivot.
      */
     protected $table = 'customers_currencies';

@@ -2,16 +2,25 @@ import { Country } from "./country"
 
 /**
  * Información de una moneda.
- * `level` viene del pivot commerces_currencies (1 = principal).
+ * Basado en la migración y modelo de Currency.
  */
 export interface Currency {
-    readonly id: number
-    readonly symbol: string
-    readonly description: string
-    readonly name: string
-    readonly country_id: number
-    readonly iso_code: string
-    readonly type: string
-    readonly level?: number    // nivel de asignación en el pivot (1 = primario)
+    readonly id: string // Snowflake ID
+    readonly iso_code: string // Código único (USD, BTC, CASINO) - max 10 chars
+    readonly symbol: string | null // Símbolo ($, €, ₿, 🎰) - max 12 chars, nullable
+    readonly name: string // Nombre corto (Dollar, Bitcoin) - max 50 chars
+    readonly description: string | null // Descripción extendida - max 255 chars, nullable
+    readonly type: 'FIAT' | 'CRYPTO' | 'TOKEN' // Tipo de moneda
+    readonly country_id: string | null // Referencia a país - nullable
+    readonly decimal_places: number // Cantidad de decimales - default 2
+    readonly status: 'ACTIVE' | 'INACTIVE' // Estado - default ACTIVE
     readonly country?: Country // relación opcional incluida
+    readonly created_at?: string
+    readonly updated_at?: string
+}
+
+export interface CurrencyPageProps {
+    currencies: Currency[]
+    roleUser: string
+    tokenId?: string
 }

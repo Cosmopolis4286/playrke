@@ -37,6 +37,7 @@ require __DIR__ . '/modules/seller.php';          // TODO: Revisar controllers
 // ====================================
 require __DIR__ . '/modules/games/bingo.php';    // TODO: Revisar controllers
 require __DIR__ . '/modules/exchange-rate.php';
+require __DIR__ . '/modules/currency.php';
 require __DIR__ . '/modules/payments.php';        // TODO: Revisar controllers
 require __DIR__ . '/modules/wallets.php';
 // require __DIR__ . '/modules/reports.php';         // TODO: Revisar controllers

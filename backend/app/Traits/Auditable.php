@@ -110,15 +110,13 @@ trait Auditable
      */
     protected function getAuditableId(): int|string|array|null
     {
-        if (! is_null($this->getKey())) {
-            return $this->getKey();
-        }
-
+        // Si es un pivot con clave compuesta, usar la identidad del pivot
         if ($this instanceof Pivot) {
             return $this->getPivotIdentity();
         }
 
-        return null;
+        // Para modelos normales, usar la clave primaria
+        return $this->getKey();
     }
 
     /**
