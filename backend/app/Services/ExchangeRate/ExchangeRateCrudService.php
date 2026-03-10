@@ -84,7 +84,23 @@ final class ExchangeRateCrudService
      */
     public function show(string $exchangeRateId, int $userId): ExchangeRateResource
     {
-        [$repo] = $this->resolveContext($userId);
+        [$repo, $role] = $this->resolveContext($userId);
+
+        if ($role === 'admin') {
+            $exchangeRate = $repo->findWithRelations(
+                ['currency:id,iso_code,name'],
+                $exchangeRateId,
+                ['id', 'currency_id', 'amount', 'created_at', 'updated_at']
+            );
+
+            throw_if(
+                !$exchangeRate,
+                DomainException::class,
+                "Tasa de cambio no encontrada: {$exchangeRateId}"
+            );
+
+            return new \App\Http\Resources\ExchangeRate\AdminExchangeRateResource($exchangeRate);
+        }
 
         $exchangeRate = $repo->findWithRelations(
             ['currency:id,iso_code'],
@@ -110,7 +126,30 @@ final class ExchangeRateCrudService
     {
         throw_if(!$dto->id, DomainException::class, 'ID requerido');
 
-        [$repo] = $this->resolveContext($userId);
+        [$repo, $role] = $this->resolveContext($userId);
+
+        if ($role === 'admin') {
+            return DB::transaction(function () use ($repo, $dto) {
+                $oldAmount = $repo->getValueById($dto->id, 'amount');
+
+                throw_if(
+                    is_null($oldAmount),
+                    DomainException::class,
+                    "Tasa con ID {$dto->id} no encontrada"
+                );
+
+                // For admin, simply update the amount
+                $repo->update($dto->id, ['amount' => $dto->amount]);
+
+                Log::info('ExchangeRate actualizado', [
+                    'id'         => $dto->id,
+                    'old_amount' => (float) $oldAmount,
+                    'new_amount' => $dto->amount,
+                ]);
+
+                return true;
+            });
+        }
 
         return DB::transaction(function () use ($repo, $dto) {
             $oldAmount = $repo->getValueById($dto->id, 'amount');
@@ -168,7 +207,12 @@ final class ExchangeRateCrudService
      */
     public function changeStatusByRole(string $id, int $userId): bool
     {
-        [$repo] = $this->resolveContext($userId);
+        [$repo, $role] = $this->resolveContext($userId);
+
+        if ($role === 'admin') {
+            // Admin exchange rates don't have status, but we return true for compatibility
+            return true;
+        }
 
         return $repo->toggleStatus(
             $repo->findOrFail($id)

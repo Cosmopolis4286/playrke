@@ -20,7 +20,7 @@ class AdminExchangeRateResource extends JsonResource
         return [
             'id'          => $this->id,
             'currency_id' => $this->currency_id,
-            'value'       => $this->value,
+            'amount'      => $this->amount,
             'currency'    => [
                 'id'       => $this->currency->id,
                 'iso_code' => $this->currency->iso_code,

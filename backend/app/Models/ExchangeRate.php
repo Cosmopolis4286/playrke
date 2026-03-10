@@ -31,7 +31,9 @@ class ExchangeRate extends Model
      */
     protected $fillable = [
         'currency_id',  // ID de la moneda
-        'value',        // Valor del tipo de cambio
+        'amount',       // Valor del tipo de cambio
+        'percentage',   // Porcentaje de subida/bajada
+        'status',       // Estado de la tasa
     ];
 
     /**
@@ -40,7 +42,8 @@ class ExchangeRate extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'value' => 'decimal:4',
+        'amount' => 'decimal:4',
+        'percentage' => 'decimal:3',
     ];
 
     /**
@@ -75,7 +78,7 @@ class ExchangeRate extends Model
      */
     public function scopeByValueRange($query, float $minValue, float $maxValue)
     {
-        return $query->whereBetween('value', [$minValue, $maxValue]);
+        return $query->whereBetween('amount', [$minValue, $maxValue]);
     }
 
     /**
@@ -87,7 +90,7 @@ class ExchangeRate extends Model
      */
     public function scopeHighValue($query, float $threshold = 100.0)
     {
-        return $query->where('value', '>', $threshold);
+        return $query->where('amount', '>', $threshold);
     }
 
     /**
@@ -99,7 +102,7 @@ class ExchangeRate extends Model
      */
     public function scopeLowValue($query, float $threshold = 1.0)
     {
-        return $query->where('value', '<', $threshold);
+        return $query->where('amount', '<', $threshold);
     }
 
     /**
@@ -111,7 +114,7 @@ class ExchangeRate extends Model
      */
     public function scopeOrderByValue($query, string $direction = 'desc')
     {
-        return $query->orderBy('value', $direction);
+        return $query->orderBy('amount', $direction);
     }
 
     /**
@@ -153,7 +156,7 @@ class ExchangeRate extends Model
      */
     public function getFormattedValue(): string
     {
-        return number_format($this->value, 4);
+        return number_format($this->amount, 4);
     }
 
     /**
@@ -164,7 +167,7 @@ class ExchangeRate extends Model
      */
     public function isHighValue(float $threshold = 100.0): bool
     {
-        return $this->value > $threshold;
+        return $this->amount > $threshold;
     }
 
     /**
@@ -175,7 +178,7 @@ class ExchangeRate extends Model
      */
     public function isLowValue(float $threshold = 1.0): bool
     {
-        return $this->value < $threshold;
+        return $this->amount < $threshold;
     }
 
     /**
@@ -185,7 +188,7 @@ class ExchangeRate extends Model
      */
     public function hasValidValue(): bool
     {
-        return $this->value > 0 && $this->value <= 999999.9999;
+        return $this->amount > 0 && $this->amount <= 999999.9999;
     }
 
     /**
@@ -198,10 +201,10 @@ class ExchangeRate extends Model
     public function convert(float $amount, bool $inverse = false): float
     {
         if ($inverse) {
-            return $this->value > 0 ? $amount / $this->value : 0;
+            return $this->amount > 0 ? $amount / $this->amount : 0;
         }
 
-        return $amount * $this->value;
+        return $amount * $this->amount;
     }
 
     /**
@@ -261,13 +264,13 @@ class ExchangeRate extends Model
      * @param float $value
      * @return void
      */
-    public function setValueAttribute(float $value): void
+    public function setAmountAttribute(float $value): void
     {
         if (!self::isValidValue($value)) {
             throw new \InvalidArgumentException('El valor del tipo de cambio debe estar entre 0.0001 y 999999.9999');
         }
 
-        $this->attributes['value'] = $value;
+        $this->attributes['amount'] = $value;
     }
 
     /**

@@ -19,9 +19,9 @@
   const props = defineProps<ExchangeRatePageProps>()
 
   /**
-   * Determina si el usuario tiene privilegios (company o customer)
+   * Determina si el usuario tiene privilegios (company, customer, admin)
    */
-  const hasPrivilegedRole = computed(() => ['company', 'customer'].includes(props.roleUser))
+  const hasPrivilegedRole = computed(() => ['company', 'customer', 'admin'].includes(props.roleUser))
 
   /**
    * Indica si es posible registrar una nueva tasa de cambio
@@ -73,19 +73,24 @@
     exchangeRates,
     newRates => {
       usedCurrencies.value = newRates.map(rate => {
-        const currency = currencies.find(c => c.id === rate.currency_id)
+        // Handle both ExchangeRate and AdminExchangeRate types
+        const currencyId = rate.currency_id
+        const currency = currencies.find(c => c.id === currencyId)
+        
+        // Handle different currency objects for different roles
+        const currencyData = rate.currency || currency
 
         return {
-          id: rate.currency_id,
-          name: currency?.name ?? 'Desconocido',
-          description: currency?.description ?? 'Desconocido',
-          iso_code: currency?.iso_code ?? 'Desconocido',
-          type: currency?.type,
-          country: currency?.country
+          id: currencyId,
+          name: currencyData?.name ?? 'Desconocido',
+          description: currencyData?.description ?? 'Desconocido',
+          iso_code: currencyData?.iso_code ?? 'Desconocido',
+          type: currencyData?.type,
+          country: currencyData?.country
             ? {
-                id: currency.country.id,
-                name: currency.country.name,
-                iso_code: currency.country.iso_code_3
+                id: String(currencyData.country.id),
+                name: currencyData.country.name,
+                iso_code: currencyData.country.iso_code_3 || currencyData.country.iso_code
               }
             : null
         }
