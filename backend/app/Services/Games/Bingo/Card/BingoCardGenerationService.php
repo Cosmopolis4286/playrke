@@ -6,14 +6,13 @@ use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Currency;
 use App\Models\CurrencyGameRoom;
 use App\Models\Wallet;
-use App\Services\Games\Bingo\Room\HandleBingoRoomsService;
-use App\Services\Games\Bingo\Rooms\RoomClosureService;
-use App\Services\Games\Bingo\Rooms\FinishedRoomService;
+use App\Services\Games\Bingo\Room\Utils\HandleBingoRoomsService;
+use App\Services\Games\Bingo\Room\Utils\RoomClosureService;
+use App\Services\Games\Bingo\Room\Utils\FinishedRoomService;
 use App\Services\Games\Bingo\Round\RoundsService;
 use App\Services\Games\Bingo\Card\PrizeCartonService;
 use App\Services\Games\Bingo\Round\RoundsService as BingoRoundsService;
 use App\Services\Games\Bingo\Card\Customer\CustomerCartonService;
-use App\Services\Games\Bingo\Winner\BingoWinnerService;
 use App\Traits\Games\Bingo\BingoTrait;
 use Illuminate\Support\Facades\DB;
 
@@ -36,11 +35,11 @@ final class BingoCardGenerationService
     public function __construct(
         BingoRoundsService $roundsService,
         PrizeCartonService $prizeCartonService,
-        CustomerCartonService $customerCartonService,
-        BingoWinnerService $winnerService
+        CustomerCartonService $customerCartonService
     ) {
         $closureService = new RoomClosureService($roundsService, $prizeCartonService);
-        $finishedService = new FinishedRoomService($roundsService, $customerCartonService, $winnerService);
+        // Temporalmente sin BingoWinnerService hasta resolver autocarga
+        $finishedService = new FinishedRoomService($roundsService, $customerCartonService, null);
         $this->handleBingoRooms = new HandleBingoRoomsService($closureService, $finishedService);
     }
 

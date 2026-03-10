@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Services\Games\Bingo\Room;
+namespace App\Services\Games\Bingo\Room\Utils;
 
-use App\Models\BingoRoom;
-use App\Services\Games\Bingo\Rooms\{RoomClosureService, FinishedRoomService};
+use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Services\Games\Bingo\Room\Utils\RoomClosureService;
+use App\Services\Games\Bingo\Room\Utils\FinishedRoomService;
 
 final class HandleBingoRoomsService
 {
@@ -18,8 +19,8 @@ final class HandleBingoRoomsService
 
     public function checkRoomClosure($room = '', bool $creatorUser = false): void
     {
-        BingoRoom::with('Config:room,unix_date')
-            ->whereIn('status', [2, 3])
+        $query = BingoRoom::where('deleted_at', null)
+            ->whereIn('status_id', [2, 3])
             ->when($creatorUser, fn($q) => $q->where('creator_user_id', $creatorUser))
             ->when($room, fn($q) => $q->where('id', $room))
             ->get('id')
@@ -31,7 +32,7 @@ final class HandleBingoRoomsService
     public function handleFinishedRooms($creatorUser = false): void
     {
         BingoRoom::with('Config:room,date,time')
-            ->where('status', 4)
+            ->where('status_id', 4)
             ->when($creatorUser, fn($q) => $q->where('creator_user_id', $creatorUser))
             ->get(['id', 'creator_user_id'])
             ->each(fn($room) => $this->finishedService->processFinishedRoom($room));

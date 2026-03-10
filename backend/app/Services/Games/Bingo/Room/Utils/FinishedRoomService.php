@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services\Games\Bingo\Rooms;
+namespace App\Services\Games\Bingo\Room\Utils;
 
 use App\Models\{BingoRoom, BingoPrizeCtns, User};
 use App\Services\Games\Bingo\Round\RoundsService;
-use App\Services\Games\Bingo\Cards\Customer\CustomerCartonService;
+use App\Services\Games\Bingo\Card\Customer\CustomerCartonService;
 use Illuminate\Support\Facades\Log;
 use App\Enums\Games\Bingo\RoundStatus;
 use App\Enums\Games\GameStatus;
@@ -13,7 +13,7 @@ class FinishedRoomService
 {
     private RoundsService $roundsService;
     private CustomerCartonService $customerCartonService;
-    private BingoWinnerService $winnerService;
+    private ?BingoWinnerService $winnerService;
 
     /**
      * Inyecta dependencias necesarias para procesar salas finalizadas.
@@ -21,7 +21,7 @@ class FinishedRoomService
     public function __construct(
         RoundsService $roundsService,
         CustomerCartonService $customerCartonService,
-        BingoWinnerService $winnerService
+        ?BingoWinnerService $winnerService = null
     ) {
         $this->roundsService = $roundsService;
         $this->customerCartonService = $customerCartonService;
@@ -61,6 +61,11 @@ class FinishedRoomService
      */
     private function processWinners(int $roomId): void
     {
+        if (!$this->winnerService) {
+            Log::warning("BingoWinnerService no disponible para procesar ganadores de sala [ID => {$roomId}]");
+            return;
+        }
+
         if (!BingoPrizeCtns::getWinnersCountByPrizeType($roomId, 'Cartón Lleno')) {
             $this->winnerService->handleWinners($roomId);
         } else {

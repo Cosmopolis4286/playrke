@@ -17,7 +17,7 @@ use App\Models\BingoPrizeCtnsPayment;
 use App\Models\BingoRoomConfig;
 use App\Models\BingoRound;
 use App\Models\BingoRoundAutomatic;
-use App\Models\BingoRoomUser;
+use App\Models\Games\Bingo\Room\User\BingoRoomUser;
 use App\Models\CurrencyGameRoom;
 use App\Models\Country;
 use App\Models\Customer;
@@ -555,17 +555,19 @@ trait BingoTrait
     // Función para obtener detalles de la sala
     private function getRoomDetails($roomId)
     {
-        return BingoRoom::with('Config:room,game_mode')->select(
+        return BingoRoom::with('Config')->select(
             'id',
-            'players',
-            'cards_purchased',
-            'all_sale',
+            'total_players',
+            'total_cards',
+            'total_sales',
             'rke_commission',
             'room_commission',
-            'seller_commn',
+            'seller_commission',
             'prize_pool',
             'full_house_prize',
-        )->where('status', 2)->where('id', $roomId)->first();
+        )->whereHas('status', function($query) {
+            $query->where('code', 'ACTIVE');
+        })->where('id', $roomId)->first();
     }
 
     // Función para calcular la comisión del vendedor
@@ -740,11 +742,16 @@ trait BingoTrait
     private function registerOrUpdateRoomUser($room, array $arrCtn)
     {
         try {
+            // Validar que exista el creator id
+            if (!isset($arrCtn['creator']['id'])) {
+                Log::error('creator id no encontrado en arrCtn', ['arrCtn' => $arrCtn]);
+                return false;
+            }
+
             // Definir los valores por defecto para crear un nuevo registro
             $defaults = [
-                'room' => $arrCtn['room'],
-                'creator_user_id' => $arrCtn['creator']['userId'],
-                'player_user' => $arrCtn['playerUser'] ?? null,
+                'room_id' => $arrCtn['room'],
+                'creator_user_id' => $arrCtn['creator']['id'],
                 'cards_purchased' => $arrCtn['numOfCtns'],
                 'automarker' => 1,
             ];
@@ -754,7 +761,7 @@ trait BingoTrait
 
             if (!$roomUser) {
                 $roomUser = BingoRoomUser::create($defaults);
-                $room->increment('players');
+                $room->increment('total_players');
             } else {
                 $roomUser->increment('cards_purchased', $arrCtn['numOfCtns']);
             }
@@ -762,6 +769,7 @@ trait BingoTrait
             return $roomUser->id;
         } catch (\Throwable $e) {
             Log::error('Error al registrar o actualizar el usuario de sala: ' . $e->getMessage());
+            Log::error('Datos arrCtn:', $arrCtn);
             return false;
         }
     }
