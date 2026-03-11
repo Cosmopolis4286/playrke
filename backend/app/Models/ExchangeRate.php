@@ -42,6 +42,7 @@ class ExchangeRate extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'id' => 'string',
         'amount' => 'decimal:4',
         'percentage' => 'decimal:3',
     ];

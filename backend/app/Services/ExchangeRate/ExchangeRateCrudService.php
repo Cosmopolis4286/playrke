@@ -7,6 +7,7 @@ use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
+use App\Http\Resources\ExchangeRate\AdminExchangeRateResource;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
 use App\Traits\ExchangeRate\ResolvesExchangeRateForeignKey;
@@ -82,7 +83,7 @@ final class ExchangeRateCrudService
      *
      * @throws DomainException
      */
-    public function show(string $exchangeRateId, int $userId): ExchangeRateResource
+    public function show(string $exchangeRateId, int $userId): ExchangeRateResource|AdminExchangeRateResource
     {
         [$repo, $role] = $this->resolveContext($userId);
 
@@ -99,7 +100,7 @@ final class ExchangeRateCrudService
                 "Tasa de cambio no encontrada: {$exchangeRateId}"
             );
 
-            return new \App\Http\Resources\ExchangeRate\AdminExchangeRateResource($exchangeRate);
+            return new AdminExchangeRateResource($exchangeRate);
         }
 
         $exchangeRate = $repo->findWithRelations(
