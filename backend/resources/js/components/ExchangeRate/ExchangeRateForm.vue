@@ -44,19 +44,11 @@
    * - En edit: permite la moneda actual
    */
   const availableCurrencies = computed(() => {
-    console.log('availableCurrencies Debug:', {
-      allCurrencies: props.currencies,
-      isEditMode: isEditMode.value,
-      formCurrencyId: form.value.currency_id,
-      modelValue: props.modelValue
-    })
     
     const activeFiatCurrencies = props.currencies.filter(c => 
       c.type === 'FIAT' && c.status === 'ACTIVE'
     )
     
-    console.log('Active FIAT currencies:', activeFiatCurrencies)
-
     // En modo edición, mostrar solo la moneda actual
     if (isEditMode.value) {
       // Try to find by iso_code first (for regular ExchangeRate)
@@ -86,11 +78,9 @@
       
       // If we found a currency but the form has the wrong currency_id, update it
       if (currentCurrency && form.value.currency_id !== currentCurrency.iso_code) {
-        console.log('Updating form currency_id from', form.value.currency_id, 'to', currentCurrency.iso_code)
         form.value.currency_id = currentCurrency.iso_code
       }
       
-      console.log('Current currency found:', currentCurrency)
       return currentCurrency ? [currentCurrency] : []
     }
 
