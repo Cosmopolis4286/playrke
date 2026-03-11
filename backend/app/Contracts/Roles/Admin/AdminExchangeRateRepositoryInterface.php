@@ -67,4 +67,11 @@ interface AdminExchangeRateRepositoryInterface extends RoleExchangeRateRepositor
      * @return Collection
      */
     public function getAvailableExchangeRates(): Collection;
+
+    /**
+     * Obtiene los códigos ISO de las monedas disponibles
+     *
+     * @return array Lista de códigos ISO
+     */
+    public function getAvailableCurrenciesIsoCodes(): array;
 }

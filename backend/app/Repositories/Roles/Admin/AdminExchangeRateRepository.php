@@ -160,4 +160,19 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
             ->orderBy('currency_id')
             ->get();
     }
+
+    /**
+     * Obtiene los códigos ISO de las monedas disponibles
+     *
+     * @return array Lista de códigos ISO
+     */
+    public function getAvailableCurrenciesIsoCodes(): array
+    {
+        return $this->model
+            ->join('currencies', 'currencies.id', '=', 'exchange_rates.currency_id')
+            ->where('currencies.status', 'ACTIVE')
+            ->distinct()
+            ->pluck('currencies.iso_code')
+            ->toArray();
+    }
 }

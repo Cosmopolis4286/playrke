@@ -6,6 +6,7 @@ use App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Http\Resources\ExchangeRate\AdminExchangeRateResource;
+use App\Contracts\Roles\Admin\AdminExchangeRateRepositoryInterface;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
 use App\Services\Security\UserContextService;
@@ -152,41 +153,51 @@ final class ExchangeRateService
 
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        // For admin users, also include existing database rates
-        if ($role === 'admin') {
-            $existingRates = $this->adminExchangeRate->getAvailableExchangeRates()
-                ->mapWithKeys(function ($rate, $currencyIso) {
-                    return [$currencyIso => $rate->amount];
-                })
-                ->toArray();
-
-            // Merge external rates with existing database rates, giving priority to existing rates
-            $mergedRates = array_merge($existingRates, $filteredRates);
-            
-            return $mergedRates;
-        }else if($role === 'commerce'){
-            $commerceId = $this->roleEntityResolver->resolveEntityId($userId, $role);
-
+        if ($role !== 'admin' && $role !== 'commerce') {
+            return null;
+        }
+        
         $rates = $this->api->fetch();
 
         if (empty($rates)) {
             return null;
         }
 
-        $availableIsoCodes = $this->commerceCurrencyRepository
-            ->getAvailableCurrenciesIsoCodes($commerceId);
+        if ($role === 'admin') {
+            // For admin users, get all available currency ISO codes from database
+            $availableIsoCodes = $this->adminExchangeRate->getAvailableCurrenciesIsoCodes();
 
-        $filteredRates = collect($rates)
-            ->filter(
-                fn($value, $key) =>
-                $key !== 'Promedio'
-                    && $value != 0
-                    && in_array($key, $availableIsoCodes, true)
-            )
-            ->toArray();
+            // Filter external rates to only include available currencies
+            $filteredRates = collect($rates)
+                ->filter(
+                    fn($value, $key) =>
+                    $key !== 'Promedio'
+                        && $value != 0
+                        && in_array($key, $availableIsoCodes, true)
+                )
+                ->toArray();
+
+            return $filteredRates;
+        } elseif ($role === 'commerce') {
+
+            $commerceId = $this->roleEntityResolver->resolveEntityId($userId, $role);
+
+            $availableIsoCodes = $this->commerceCurrencyRepository
+                ->getAvailableCurrenciesIsoCodes($commerceId);
+
+            $filteredRates = collect($rates)
+                ->filter(
+                    fn($value, $key) =>
+                    $key !== 'Promedio'
+                        && $value != 0
+                        && in_array($key, $availableIsoCodes, true)
+                )
+                ->toArray();
+
+            return $filteredRates;
         }
 
-        return $filteredRates;
+        return null;
     }
 
     /**
@@ -204,24 +215,28 @@ final class ExchangeRateService
 
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if($role === 'admin'){
-            
-            
-        }else if($role === 'commerce'){
+        if ($role === 'admin') {
+            // For admin users, update all provided rates without filtering
+            $filteredRates = collect($rates)
+                ->filter(fn($value, $key) => $key !== 'Promedio' && $value != 0)
+                ->toArray();
+        } elseif ($role === 'commerce') {
             $commerceId = $this->roleEntityResolver
-            ->resolveEntityId($userId, $role);
+                ->resolveEntityId($userId, $role);
 
-        $availableIsoCodes = $this->commerceCurrencyRepository
-            ->getAvailableCurrenciesIsoCodes($commerceId);
+            $availableIsoCodes = $this->commerceCurrencyRepository
+                ->getAvailableCurrenciesIsoCodes($commerceId);
 
-        $filteredRates = collect($rates)
-            ->filter(
-                fn($value, $key) =>
-                $key !== 'Promedio'
-                    && $value != 0
-                    && in_array($key, $availableIsoCodes, true)
-            )
-            ->toArray();
+            $filteredRates = collect($rates)
+                ->filter(
+                    fn($value, $key) =>
+                    $key !== 'Promedio'
+                        && $value != 0
+                        && in_array($key, $availableIsoCodes, true)
+                )
+                ->toArray();
+        } else {
+            return false;
         }
 
         return $this->updater->updateRates($userId, $filteredRates);
