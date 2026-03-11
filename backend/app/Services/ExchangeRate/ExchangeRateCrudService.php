@@ -49,14 +49,15 @@ final class ExchangeRateCrudService
     {
         [$repo, $role, $entityId] = $this->resolveContext($userId);
 
-        // For admin role, we don't need foreign key data
+        // For admin role, save user_id for tracking
         if ($role === 'admin') {
             return DB::transaction(function () use ($repo, $dto, $role) {
-                $repo->create($dto->toArray());
+                $repo->create($dto->toArray() + ['user_id' => $userId]);
 
                 Log::info('ExchangeRate creado', [
                     'role'        => $role,
                     'currency_id' => $dto->currencyId,
+                    'user_id'     => $userId,
                 ]);
 
                 return true;
@@ -139,13 +140,17 @@ final class ExchangeRateCrudService
                     "Tasa con ID {$dto->id} no encontrada"
                 );
 
-                // For admin, simply update the amount
-                $repo->update($dto->id, ['amount' => $dto->amount]);
+                // For admin, update the amount and user_id
+                $repo->update($dto->id, [
+                    'amount'   => $dto->amount,
+                    'user_id'  => $userId
+                ]);
 
                 Log::info('ExchangeRate actualizado', [
                     'id'         => $dto->id,
                     'old_amount' => (float) $oldAmount,
                     'new_amount' => $dto->amount,
+                    'user_id'    => $userId,
                 ]);
 
                 return true;
