@@ -2,7 +2,7 @@
   import { computed } from 'vue'
   import { useExchangeRateForm } from '@/js/composables/exchange-rate/useExchangeRateForm'
   import type { Currency } from '@/js/types/currency'
-  import type { ExchangeRate, UsedCurrency } from '@/js/types/exchange-rate'
+  import type { ExchangeRate, AdminExchangeRate, UsedCurrency } from '@/js/types/exchange-rate'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
@@ -14,7 +14,7 @@
     usedCurrencies?: UsedCurrency[]
     currencies: Currency[]
     hasPrivilegedRole: boolean
-    modelValue: Partial<ExchangeRate>
+    modelValue: Partial<ExchangeRate> | Partial<AdminExchangeRate>
   }>()
 
   /**
@@ -44,13 +44,53 @@
    * - En edit: permite la moneda actual
    */
   const availableCurrencies = computed(() => {
+    console.log('availableCurrencies Debug:', {
+      allCurrencies: props.currencies,
+      isEditMode: isEditMode.value,
+      formCurrencyId: form.value.currency_id,
+      modelValue: props.modelValue
+    })
+    
     const activeFiatCurrencies = props.currencies.filter(c => 
       c.type === 'FIAT' && c.status === 'ACTIVE'
     )
+    
+    console.log('Active FIAT currencies:', activeFiatCurrencies)
 
     // En modo edición, mostrar solo la moneda actual
     if (isEditMode.value) {
-      const currentCurrency = activeFiatCurrencies.find(c => c.iso_code === form.value.currency_id)
+      // Try to find by iso_code first (for regular ExchangeRate)
+      let currentCurrency = activeFiatCurrencies.find(c => c.iso_code === form.value.currency_id)
+      
+      // If not found by iso_code, try by id (for AdminExchangeRate)
+      if (!currentCurrency) {
+        currentCurrency = activeFiatCurrencies.find(c => c.id === form.value.currency_id)
+      }
+      
+      // If still not found, try to find by checking the modelValue currency data
+      if (!currentCurrency && props.modelValue && 'currency' in props.modelValue && props.modelValue.currency) {
+        const modelCurrency = props.modelValue as Partial<AdminExchangeRate>
+        currentCurrency = activeFiatCurrencies.find(c => 
+          c.iso_code === modelCurrency.currency?.iso_code || 
+          c.id === modelCurrency.currency?.id
+        )
+      }
+      
+      // If still not found, try to match by the first few digits of the ID (data inconsistency workaround)
+      if (!currentCurrency && props.modelValue?.currency_id) {
+        const targetId = String(props.modelValue.currency_id)
+        currentCurrency = activeFiatCurrencies.find(c => 
+          c.id.startsWith(targetId.substring(0, 10)) // Match first 10 characters
+        )
+      }
+      
+      // If we found a currency but the form has the wrong currency_id, update it
+      if (currentCurrency && form.value.currency_id !== currentCurrency.iso_code) {
+        console.log('Updating form currency_id from', form.value.currency_id, 'to', currentCurrency.iso_code)
+        form.value.currency_id = currentCurrency.iso_code
+      }
+      
+      console.log('Current currency found:', currentCurrency)
       return currentCurrency ? [currentCurrency] : []
     }
 

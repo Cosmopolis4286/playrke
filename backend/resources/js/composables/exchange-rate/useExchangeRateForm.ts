@@ -1,5 +1,5 @@
 import { ref, watch, computed } from 'vue'
-import type { ExchangeRate } from '@/js/types/exchange-rate'
+import type { ExchangeRate, AdminExchangeRate } from '@/js/types/exchange-rate'
 
 /**
  * Composable para manejar el formulario de Exchange Rate
@@ -8,7 +8,7 @@ import type { ExchangeRate } from '@/js/types/exchange-rate'
  * @param emit Emit de Vue para sync con v-model
  */
 export function useExchangeRateForm(
-    modelValue: Partial<ExchangeRate>,
+    modelValue: Partial<ExchangeRate> | Partial<AdminExchangeRate>,
     emit: (event: 'update:modelValue', value: ExchangeRate) => void
 ) {
     /* =======================
@@ -44,7 +44,7 @@ export function useExchangeRateForm(
     /**
      * Indica si el formulario está en modo edición
      */
-    const isEditMode = computed(() => !!modelValue?.currency_id)
+    const isEditMode = computed(() => !!modelValue?.currency_id || !!modelValue?.id)
 
     /**
      * Estado de validez del formulario
@@ -94,10 +94,21 @@ export function useExchangeRateForm(
     watch(
         () => modelValue,
         value => {
+            // Handle both ExchangeRate and AdminExchangeRate types
+            let currencyId = value.currency_id
+            
+            // If we have a currency object (AdminExchangeRate), use the iso_code
+            if ('currency' in value && value.currency && typeof value.currency === 'object' && value.currency.iso_code) {
+                currencyId = value.currency.iso_code
+            }
+            
+            // Handle status - AdminExchangeRate doesn't have status, default to ACTIVE
+            const status = 'status' in value ? value.status : 'ACTIVE'
+            
             form.value = {
-                currency_id: value.currency_id?.toString() ?? '',
+                currency_id: currencyId?.toString() ?? '',
                 amount: value.amount ?? null,
-                status: value.status === 'ACTIVE'
+                status: status === 'ACTIVE'
             }
         },
         { immediate: true, deep: true }

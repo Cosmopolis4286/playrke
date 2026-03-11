@@ -2,7 +2,7 @@ import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
 
-import type { ExchangeRate } from '@/js/types/exchange-rate'
+import type { ExchangeRate, AdminExchangeRate } from '@/js/types/exchange-rate'
 
 /**
  * Contrato público del composable useExchangeRate
@@ -176,7 +176,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
 
             const response = await backendClient.get<{
                 success: boolean
-                data: ExchangeRate
+                data: ExchangeRate | AdminExchangeRate
             }>(`/exchange-rate/${id}`)
 
             if (!response.data?.data) {
@@ -189,7 +189,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
                 id: data.id,
                 currency_id: data.currency_id,
                 amount: Number(data.amount),
-                status: data.status,
+                status: 'status' in data ? data.status : 'ACTIVE',
                 token: tokenId || undefined
             }
 

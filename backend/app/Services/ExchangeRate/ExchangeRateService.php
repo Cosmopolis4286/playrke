@@ -5,6 +5,7 @@ namespace App\Services\ExchangeRate;
 use App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
+use App\Http\Resources\ExchangeRate\AdminExchangeRateResource;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
 use App\Services\Security\UserContextService;
@@ -82,7 +83,7 @@ final class ExchangeRateService
      *
      * @throws DomainException Si no se puede resolver el usuario o no existe la tasa
      */
-    public function show(string $exchangeRateId): ExchangeRateResource
+    public function show(string $exchangeRateId): ExchangeRateResource|AdminExchangeRateResource
     {
         $userId = $this->userContext->resolveUserId();
 

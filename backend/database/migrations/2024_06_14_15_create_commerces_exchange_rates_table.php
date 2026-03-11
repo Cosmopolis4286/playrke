@@ -28,6 +28,14 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->comment('Moneda asociada a la tasa');
 
+            // Usuario que realizó el último registro o actualización
+            $table->foreignSnowflake('user_id')
+                ->nullable()
+                ->constrained('users')
+                ->cascadeOnUpdate()
+                ->nullOnDelete()
+                ->comment('Usuario que realizó la última modificación');
+
             // Datos de la tasa
             $table->decimal('amount', 12, 4)
                 ->default(1)
