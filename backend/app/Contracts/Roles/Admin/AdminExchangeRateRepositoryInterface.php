@@ -40,9 +40,10 @@ interface AdminExchangeRateRepositoryInterface extends RoleExchangeRateRepositor
      *
      * @param mixed $currencyId ID de la moneda
      * @param float $value Valor de la tasa
+     * @param int|null $userId ID del usuario que realiza la acción (opcional)
      * @return bool
      */
-    public function updateOrCreateExchangeRate($currencyId, float $value): bool;
+    public function updateOrCreateExchangeRate($currencyId, float $value, ?int $userId = null): bool;
 
     /**
      * Obtiene la tasa más reciente por moneda

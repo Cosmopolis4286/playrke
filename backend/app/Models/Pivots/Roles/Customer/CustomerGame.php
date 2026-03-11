@@ -2,18 +2,29 @@
 
 namespace App\Models\Pivots\Roles\Customer;
 
+use App\Models\Pivots\BasePivot;
 use App\Models\Game;
 use App\Models\Roles\Customer;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Modelo para permisos de juegos de clientes
  */
-class CustomerGame extends Pivot
+class CustomerGame extends BasePivot
 {
+    /**
+     * El pivot no es autoincremental.
+     */
     public $incrementing = false;
-    protected $primaryKey = null;
+
+    /**
+     * El pivot usa clave primaria compuesta.
+     */
+    protected $primaryKey = ['customer_id', 'game_id'];
+
+    /**
+     * Indica que la clave primaria es compuesta.
+     */
     protected $keyType = 'string';
 
     protected $table = 'customers_games';
@@ -25,12 +36,13 @@ class CustomerGame extends Pivot
     ];
 
     protected $casts = [
+        'status' => 'string',
         'customer_id' => 'string',
         'game_id' => 'string',
     ];
 
     /**
-     * Relación con el comercio
+     * Relación con el cliente
      */
     public function customer(): BelongsTo
     {

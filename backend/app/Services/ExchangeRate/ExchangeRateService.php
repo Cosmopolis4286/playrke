@@ -33,6 +33,7 @@ final class ExchangeRateService
         private readonly ExchangeRateCrudService $crud,
         private readonly ExchangeRateUpdaterService $updater,
         private readonly ExchangeRateApiService $api,
+        private readonly AdminExchangeRateRepositoryInterface $adminExchangeRate,
         private readonly CommerceCurrencyRepositoryInterface $commerceCurrencyRepository,
     ) {}
 
@@ -151,8 +152,20 @@ final class ExchangeRateService
 
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        $commerceId = $this->roleEntityResolver
-            ->resolveEntityId($userId, $role);
+        // For admin users, also include existing database rates
+        if ($role === 'admin') {
+            $existingRates = $this->adminExchangeRate->getAvailableExchangeRates()
+                ->mapWithKeys(function ($rate, $currencyIso) {
+                    return [$currencyIso => $rate->amount];
+                })
+                ->toArray();
+
+            // Merge external rates with existing database rates, giving priority to existing rates
+            $mergedRates = array_merge($existingRates, $filteredRates);
+            
+            return $mergedRates;
+        }else if($role === 'commerce'){
+            $commerceId = $this->roleEntityResolver->resolveEntityId($userId, $role);
 
         $rates = $this->api->fetch();
 
@@ -163,7 +176,7 @@ final class ExchangeRateService
         $availableIsoCodes = $this->commerceCurrencyRepository
             ->getAvailableCurrenciesIsoCodes($commerceId);
 
-        return collect($rates)
+        $filteredRates = collect($rates)
             ->filter(
                 fn($value, $key) =>
                 $key !== 'Promedio'
@@ -171,6 +184,9 @@ final class ExchangeRateService
                     && in_array($key, $availableIsoCodes, true)
             )
             ->toArray();
+        }
+
+        return $filteredRates;
     }
 
     /**
@@ -188,7 +204,11 @@ final class ExchangeRateService
 
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        $commerceId = $this->roleEntityResolver
+        if($role === 'admin'){
+            
+            
+        }else if($role === 'commerce'){
+            $commerceId = $this->roleEntityResolver
             ->resolveEntityId($userId, $role);
 
         $availableIsoCodes = $this->commerceCurrencyRepository
@@ -202,6 +222,7 @@ final class ExchangeRateService
                     && in_array($key, $availableIsoCodes, true)
             )
             ->toArray();
+        }
 
         return $this->updater->updateRates($userId, $filteredRates);
     }

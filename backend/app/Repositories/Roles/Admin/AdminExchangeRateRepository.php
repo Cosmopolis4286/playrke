@@ -93,14 +93,25 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
      *
      * @param mixed $currencyId ID de la moneda
      * @param float $value Valor de la tasa
+     * @param int|null $userId ID del usuario que realiza la acción (opcional)
      * @return bool
      */
-    public function updateOrCreateExchangeRate($currencyId, float $value): bool
+    public function updateOrCreateExchangeRate($currencyId, float $value, ?int $userId = null): bool
     {
         try {
+            $data = [
+                'currency_id' => $currencyId,
+                'amount'      => $value,
+            ];
+
+            // Add user_id if provided
+            if ($userId !== null) {
+                $data['user_id'] = $userId;
+            }
+
             $this->model->updateOrCreate(
                 ['currency_id' => $currencyId],
-                ['amount' => $value]
+                $data
             );
 
             return true;

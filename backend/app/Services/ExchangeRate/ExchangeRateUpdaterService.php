@@ -52,7 +52,7 @@ final class ExchangeRateUpdaterService
     /**
      * Actualiza las tasas para una entidad específica según su rol.
      *
-     * @param string $role Rol de usuario ('commerce'|'customer')
+     * @param string $role Rol de usuario ('commerce'|'customer'|'admin')
      * @param int|string $entityId ID de la entidad (commerce_id o customer_id)
      * @param array $data Tasas a actualizar (iso_code => value)
      * @return void
@@ -67,7 +67,6 @@ final class ExchangeRateUpdaterService
             }
 
             $currencyId = $this->currencyRepository->getValueByISOCode($currencyIso, 'id');
-
             if (!$currencyId) {
                 continue;
             }
@@ -77,7 +76,12 @@ final class ExchangeRateUpdaterService
                 ? round((($newRate * 100) / $currentRate) - 100, 2)
                 : 0;
 
-            $repository->updateOrCreateExchangeRate($entityId, $currencyId, $newRate, $percentageChange);
+            // For admin role, update with user_id tracking
+            if ($role === 'admin') {
+                $repository->updateOrCreateExchangeRate($entityId, $currencyId, $newRate, $percentageChange, $entityId);
+            } else {
+                $repository->updateOrCreateExchangeRate($entityId, $currencyId, $newRate, $percentageChange);
+            }
         }
     }
 

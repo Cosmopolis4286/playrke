@@ -24,11 +24,6 @@ return new class extends Migration
     {
         Schema::create('customers_games', function (Blueprint $table) {
             // ============================================
-            // PRIMARY KEY
-            // ============================================
-            $table->snowflake('id')->primary()->comment('ID único de la relación (Snowflake)');
-
-            // ============================================
             // FOREIGN KEYS
             // ============================================
             $table->foreignSnowflake('customer_id')
@@ -43,10 +38,15 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Juego permitido');
 
-            // ============================================
-            // TIMESTAMPS
-            // ============================================
+            // Estado
+            $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
+                ->default('ACTIVE')
+                ->comment('Estado del registro');
+                
+            // Timestamps automáticos
             $table->timestamps();
+            // Soft deletes
+            $table->softDeletes();
 
             // ============================================
             // ÍNDICES Y CONSTRAINTS

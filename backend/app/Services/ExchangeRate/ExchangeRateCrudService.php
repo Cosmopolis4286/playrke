@@ -51,7 +51,7 @@ final class ExchangeRateCrudService
 
         // For admin role, save user_id for tracking
         if ($role === 'admin') {
-            return DB::transaction(function () use ($repo, $dto, $role) {
+            return DB::transaction(function () use ($repo, $dto, $role, $userId) {
                 $repo->create($dto->toArray() + ['user_id' => $userId]);
 
                 Log::info('ExchangeRate creado', [
@@ -131,7 +131,7 @@ final class ExchangeRateCrudService
         [$repo, $role] = $this->resolveContext($userId);
 
         if ($role === 'admin') {
-            return DB::transaction(function () use ($repo, $dto) {
+            return DB::transaction(function () use ($repo, $dto, $userId) {
                 $oldAmount = $repo->getValueById($dto->id, 'amount');
 
                 throw_if(
