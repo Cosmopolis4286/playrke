@@ -229,7 +229,7 @@ button:hover {
 .auth-form__input {
     width: 100%;
     height: var(--input-height);
-    padding: 0 42px 0 36px;
+    padding: 0 0 0 32px;
     font-size: 0.9em;
     font-weight: var(--light);
     color: var(--gray-1);
@@ -250,10 +250,9 @@ button:hover {
 /* Icons */
 .auth-form__icon {
     position: absolute;
-    left: 14px;
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    z-index: 999;
     font-size: 0.78em;
     color: var(--gray-3);
     pointer-events: none;

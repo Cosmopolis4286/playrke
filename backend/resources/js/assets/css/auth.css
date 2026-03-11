@@ -641,18 +641,6 @@
         @apply auth__form-item;
     }
 
-    .e_mc {
-        @apply auth__input-icon;
-    }
-
-    .eye_mc {
-        @apply auth__input-toggle;
-    }
-
-    .er_nw {
-        @apply auth__error;
-    }
-
     .auth-form__error {
         @apply auth__error;
     }
