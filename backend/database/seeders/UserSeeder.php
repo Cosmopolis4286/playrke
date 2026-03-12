@@ -123,12 +123,12 @@ class UserSeeder extends Seeder
                 // Asignar rol según corresponda
                 try {
                     $guardName = $data['role'] === 'customer' ? 'api' : 'web';
-                    
+
                     // Buscar el rol por nombre y guard
                     $role = \Spatie\Permission\Models\Role::where('name', $data['role'])
                         ->where('guard_name', $guardName)
                         ->first();
-                        
+
                     if ($role && !$user->hasRole($data['role'], $guardName)) {
                         $user->assignRole($role);
                         $this->command->info("  ✅ Rol {$data['role']} asignado");
@@ -142,7 +142,7 @@ class UserSeeder extends Seeder
             }
 
             // ================================
-            // Monedero VES para todos los usuarios (simplificado)
+            // Billetera VES para todos los usuarios (simplificado)
             // ================================
             $currency = Currency::where('iso_code', 'VES')->first();
 
@@ -159,7 +159,7 @@ class UserSeeder extends Seeder
                             'balance'     => 0,
                             'status'      => 'ACTIVE',
                         ]);
-                        $this->command->info("  → Monedero VES creado para {$user->email}.");
+                        $this->command->info("  → Billetera VES creada para {$user->email}.");
                     }
                 }
             }

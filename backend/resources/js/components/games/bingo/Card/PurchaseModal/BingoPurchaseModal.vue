@@ -8,82 +8,82 @@
  *
  * El jugador ya está autenticado — no se requieren sus datos.
  */
-import { computed } from 'vue'
-import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
+import { computed } from "vue";
+import type { BingoGameRoom } from "@/js/types/games/bingo/room/game-rooms/bingo-game-room";
 import type {
   BingoAvailableCountry,
   PurchaseModalStep,
-} from '@/js/types/games/bingo/card/purchase-modal/bingo-purchase-modal'
+} from "@/js/types/games/bingo/card/purchase-modal/bingo-purchase-modal";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Props
 // ─────────────────────────────────────────────────────────────────────────────
 
 const props = defineProps<{
-  isOpen:           boolean
-  step:             PurchaseModalStep
-  selectedRoom:     BingoGameRoom | null
-  countries:        BingoAvailableCountry[]
-  loadingCountries: boolean
-  selectedCountry:  BingoAvailableCountry | null
-  cardPrice:        number
-  currencySymbol:   string
-  loadingPrice:     boolean
-  numCtns:          number
-  totalAmount:      number
-  canAdvance:       boolean
-  purchasing:       boolean
-  exchangeRate:     number
-  isPlayer:         boolean | null
-}>()
+  isOpen: boolean;
+  step: PurchaseModalStep;
+  selectedRoom: BingoGameRoom | null;
+  countries: BingoAvailableCountry[];
+  loadingCountries: boolean;
+  selectedCountry: BingoAvailableCountry | null;
+  cardPrice: number;
+  currencySymbol: string;
+  loadingPrice: boolean;
+  numCtns: number;
+  totalAmount: number;
+  canAdvance: boolean;
+  purchasing: boolean;
+  exchangeRate: number;
+  isPlayer: boolean | null;
+}>();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Emits
 // ─────────────────────────────────────────────────────────────────────────────
 
 const emit = defineEmits<{
-  (e: 'close'): void
-  (e: 'select-country', country: BingoAvailableCountry): void
-  (e: 'next'): void
-  (e: 'prev'): void
-  (e: 'increment'): void
-  (e: 'decrement'): void
-  (e: 'set-ctns', value: number): void
-  (e: 'purchase'): void
-}>()
+  (e: "close"): void;
+  (e: "select-country", country: BingoAvailableCountry): void;
+  (e: "next"): void;
+  (e: "prev"): void;
+  (e: "increment"): void;
+  (e: "decrement"): void;
+  (e: "set-ctns", value: number): void;
+  (e: "purchase"): void;
+}>();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Computed
 // ─────────────────────────────────────────────────────────────────────────────
 
 const stepIndex = computed(() => {
-  if (props.isPlayer === null) return 0 // Loading state
-  if (props.isPlayer) return 0 // Players only have one step
-  return props.step === 'country' ? 0 : 1
-})
+  if (props.isPlayer === null) return 0; // Loading state
+  if (props.isPlayer) return 0; // Players only have one step
+  return props.step === "country" ? 0 : 1;
+});
 
 const stepperLabels = computed(() => {
-  if (props.isPlayer === null) return ['Cargando...'] // Loading state
-  if (props.isPlayer) return ['Confirmar'] // Players only see confirm step
-  return ['País', 'Confirmar'] // Other roles see both steps
-})
+  if (props.isPlayer === null) return ["Cargando..."]; // Loading state
+  if (props.isPlayer) return ["Confirmar"]; // Players only see confirm step
+  return ["País", "Confirmar"]; // Other roles see both steps
+});
 
 const prizeFormatted = computed(() => {
-  if (!props.selectedRoom) return '0.00'
-  return (props.selectedRoom.prize_pool * props.exchangeRate).toFixed(2)
-})
+  if (!props.selectedRoom) return "0.00";
+  return (props.selectedRoom.prize_pool * props.exchangeRate).toFixed(2);
+});
 
 const currentCtns = computed(() => {
-  return props.selectedRoom?.players_room?.[0]?.ctns ?? 0
-})
+  return props.selectedRoom?.players_room?.[0]?.ctns ?? 0;
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Handlers
 // ─────────────────────────────────────────────────────────────────────────────
 
 function onCtnsInput(e: Event) {
-  const val = parseInt((e.target as HTMLInputElement).value, 10)
-  if (!isNaN(val)) emit('set-ctns', val)
+  const val = parseInt((e.target as HTMLInputElement).value, 10);
+  if (!isNaN(val)) emit("set-ctns", val);
 }
 </script>
 
@@ -92,7 +92,6 @@ function onCtnsInput(e: Event) {
     <Transition name="modal-fade">
       <div v-if="isOpen" class="pm-backdrop" @click.self="emit('close')">
         <div class="pm-dialog" role="dialog" aria-modal="true">
-
           <!-- ── Glow decorativo ── -->
           <div class="pm-dialog__glow" />
 
@@ -104,18 +103,18 @@ function onCtnsInput(e: Event) {
             </div>
 
             <!-- Stepper dinámico -->
-            <div class="pm-stepper">
+            <div class="pm-stepper" v-if="step !== 'loading'">
               <div
                 v-for="(lbl, i) in stepperLabels"
                 :key="i"
                 class="pm-stepper__step"
                 :class="{
-                  'pm-stepper__step--done':   i < stepIndex,
+                  'pm-stepper__step--done': i < stepIndex,
                   'pm-stepper__step--active': i === stepIndex,
                 }"
               >
                 <div class="pm-stepper__dot">
-                  <i v-if="i < stepIndex" class="fas fa-check" style="font-size:8px;" />
+                  <i v-if="i < stepIndex" class="fas fa-check" style="font-size: 8px" />
                   <span v-else>{{ i + 1 }}</span>
                 </div>
                 <span class="pm-stepper__lbl">{{ lbl }}</span>
@@ -127,176 +126,210 @@ function onCtnsInput(e: Event) {
             </button>
           </div>
 
-          <!-- ── Banner sala ── -->
-          <div v-if="selectedRoom" class="pm-room-banner">
-            <img :src="`/img/games/bingo/estelar_fd.png`" alt="sala" class="pm-room-banner__img" />
-            <div class="pm-room-banner__info">
-              <span class="pm-room-banner__mode">
-                <i class="fas fa-gamepad mr-1" />Cartón Lleno
-              </span>
-              <div class="pm-room-banner__prize">
-                <span class="pm-room-banner__prize-num">{{ prizeFormatted }}</span>
-                <span class="pm-room-banner__prize-sym">
-                  {{ isPlayer ? currencySymbol : (selectedCountry?.currency_symbol ?? currencySymbol ?? 'USD') }}
+          <template v-if="step !== 'loading'">
+            <!-- ── Banner sala ── -->
+            <div v-if="selectedRoom" class="pm-room-banner">
+              <img
+                :src="`/img/games/bingo/estelar_fd.png`"
+                alt="sala"
+                class="pm-room-banner__img"
+              />
+              <div class="pm-room-banner__info">
+                <span class="pm-room-banner__mode">
+                  <i class="fas fa-gamepad mr-1" />Cartón Lleno
                 </span>
+                <div class="pm-room-banner__prize">
+                  <span class="pm-room-banner__prize-num">{{ prizeFormatted }}</span>
+                  <span class="pm-room-banner__prize-sym">
+                    {{
+                      isPlayer
+                        ? currencySymbol
+                        : selectedCountry?.currency_symbol ?? currencySymbol ?? "USD"
+                    }}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- ═══════════════════ BODY ═══════════════════ -->
-          <div class="pm-body">
+            <!-- ═══════════════════ BODY ═══════════════════ -->
+            <div class="pm-body">
+              <!-- ── STEP 1: País (solo para no-players) ── -->
+              <Transition name="step-slide" mode="out-in">
+                <div
+                  v-if="!isPlayer && isPlayer !== null && step === 'country'"
+                  key="country"
+                  class="pm-step"
+                >
+                  <p class="pm-step__label">Selecciona el país del jugador</p>
 
-            <!-- ── STEP 1: País (solo para no-players) ── -->
-            <Transition name="step-slide" mode="out-in">
-              <div v-if="!isPlayer && isPlayer !== null && step === 'country'" key="country" class="pm-step">
-                <p class="pm-step__label">Selecciona el país del jugador</p>
+                  <div v-if="loadingCountries" class="pm-loading">
+                    <span class="pm-spinner" />
+                    <span>Cargando países…</span>
+                  </div>
 
-                <div v-if="loadingCountries" class="pm-loading">
-                  <span class="pm-spinner" />
-                  <span>Cargando países…</span>
+                  <div v-else-if="countries.length === 0" class="pm-empty">
+                    <i class="fas fa-globe-americas" />
+                    <span>Sin países disponibles para esta sala</span>
+                  </div>
+
+                  <div v-else class="pm-country-grid">
+                    <button
+                      v-for="country in countries"
+                      :key="country.id"
+                      class="pm-country-btn"
+                      :class="{
+                        'pm-country-btn--selected': selectedCountry?.id === country.id,
+                      }"
+                      @click="emit('select-country', country)"
+                    >
+                      <span class="pm-country-btn__flag">{{ country.flag ?? "🌐" }}</span>
+                      <span class="pm-country-btn__name">{{ country.name }}</span>
+                      <span class="pm-country-btn__sym">{{
+                        country.currency_symbol
+                      }}</span>
+                      <i
+                        v-if="selectedCountry?.id === country.id"
+                        class="fas fa-check-circle pm-country-btn__check"
+                      />
+                    </button>
+                  </div>
+
+                  <!-- Precio obtenido -->
+                  <Transition name="fade">
+                    <div
+                      v-if="selectedCountry && !loadingPrice && cardPrice > 0"
+                      class="pm-price-pill"
+                    >
+                      <i class="fas fa-tag mr-1" />
+                      Cartón:
+                      <strong>{{ cardPrice.toFixed(2) }} {{ currencySymbol }}</strong>
+                    </div>
+                    <div
+                      v-else-if="loadingPrice"
+                      class="pm-price-pill pm-price-pill--loading"
+                    >
+                      <span class="pm-spinner pm-spinner--sm" />Obteniendo precio…
+                    </div>
+                  </Transition>
                 </div>
+              </Transition>
 
-                <div v-else-if="countries.length === 0" class="pm-empty">
-                  <i class="fas fa-globe-americas" />
-                  <span>Sin países disponibles para esta sala</span>
-                </div>
+              <!-- ── STEP 2: Confirmar ── -->
+              <Transition name="step-slide" mode="out-in">
+                <div v-if="step === 'confirm'" key="confirm" class="pm-step">
+                  <p class="pm-step__label">Cantidad de cartones</p>
 
-                <div v-else class="pm-country-grid">
-                  <button
-                    v-for="country in countries"
-                    :key="country.id"
-                    class="pm-country-btn"
-                    :class="{ 'pm-country-btn--selected': selectedCountry?.id === country.id }"
-                    @click="emit('select-country', country)"
-                  >
-                    <span class="pm-country-btn__flag">{{ country.flag ?? '🌐' }}</span>
-                    <span class="pm-country-btn__name">{{ country.name }}</span>
-                    <span class="pm-country-btn__sym">{{ country.currency_symbol }}</span>
-                    <i
-                      v-if="selectedCountry?.id === country.id"
-                      class="fas fa-check-circle pm-country-btn__check"
+                  <!-- Cartones actuales del usuario -->
+                  <div v-if="currentCtns > 0" class="pm-current-cards">
+                    <div class="pm-current-cards__info">
+                      <i class="fas fa-ticket-alt mr-2" />
+                      <span
+                        >Ya tienes <strong>{{ currentCtns }}</strong> cartone{{
+                          currentCtns === 1 ? "" : "s"
+                        }}
+                        en esta sala</span
+                      >
+                    </div>
+                  </div>
+
+                  <!-- Selector cantidad -->
+                  <div class="pm-qty-row">
+                    <button
+                      class="pm-qty-btn"
+                      :disabled="numCtns <= 1"
+                      @click="emit('decrement')"
+                    >
+                      <i class="fas fa-minus" />
+                    </button>
+                    <input
+                      type="number"
+                      class="pm-qty-input"
+                      :value="numCtns"
+                      min="1"
+                      max="40"
+                      step="1"
+                      @input="onCtnsInput"
                     />
-                  </button>
-                </div>
+                    <button
+                      class="pm-qty-btn"
+                      :disabled="numCtns >= 40"
+                      @click="emit('increment')"
+                    >
+                      <i class="fas fa-plus" />
+                    </button>
+                  </div>
 
-                <!-- Precio obtenido -->
-                <Transition name="fade">
-                  <div v-if="selectedCountry && !loadingPrice && cardPrice > 0" class="pm-price-pill">
-                    <i class="fas fa-tag mr-1" />
-                    Cartón: <strong>{{ cardPrice.toFixed(2) }} {{ currencySymbol }}</strong>
-                  </div>
-                  <div v-else-if="loadingPrice" class="pm-price-pill pm-price-pill--loading">
-                    <span class="pm-spinner pm-spinner--sm" />Obteniendo precio…
-                  </div>
-                </Transition>
-              </div>
-            </Transition>
-
-            <!-- ── STEP 2: Confirmar ── -->
-            <Transition name="step-slide" mode="out-in">
-              <div v-if="step === 'confirm'" key="confirm" class="pm-step">
-                <p class="pm-step__label">Cantidad de cartones</p>
-
-                <!-- Cartones actuales del usuario -->
-                <div v-if="currentCtns > 0" class="pm-current-cards">
-                  <div class="pm-current-cards__info">
-                    <i class="fas fa-ticket-alt mr-2" />
-                    <span>Ya tienes <strong>{{ currentCtns }}</strong> cartone{{ currentCtns === 1 ? '' : 's' }} en esta sala</span>
-                  </div>
-                </div>
-
-                <!-- Selector cantidad -->
-                <div class="pm-qty-row">
-                  <button
-                    class="pm-qty-btn"
-                    :disabled="numCtns <= 1"
-                    @click="emit('decrement')"
-                  >
-                    <i class="fas fa-minus" />
-                  </button>
-                  <input
-                    type="number"
-                    class="pm-qty-input"
-                    :value="numCtns"
-                    min="1"
-                    max="40"
-                    step="1"
-                    @input="onCtnsInput"
-                  />
-                  <button
-                    class="pm-qty-btn"
-                    :disabled="numCtns >= 40"
-                    @click="emit('increment')"
-                  >
-                    <i class="fas fa-plus" />
-                  </button>
-                </div>
-
-                <!-- Resumen -->
-                <div class="pm-summary">
-                  <div v-if="!isPlayer && isPlayer !== null" class="pm-summary__row">
-                    <span>País</span>
-                    <span>{{ selectedCountry?.name ?? '—' }}</span>
-                  </div>
-                  <div class="pm-summary__row">
-                    <span>Precio c/u</span>
-                    <span>{{ cardPrice.toFixed(2) }} {{ currencySymbol }}</span>
-                  </div>
-                  <div class="pm-summary__row">
-                    <span>Cartones</span>
-                    <span>× {{ numCtns }}</span>
-                  </div>
-                  <div v-if="currentCtns > 0" class="pm-summary__row pm-summary__row--highlight">
-                    <span>Total después de compra</span>
-                    <span><strong>{{ currentCtns + numCtns }}</strong> cartone{{ (currentCtns + numCtns) === 1 ? '' : 's' }}</span>
-                  </div>
-                  <div class="pm-summary__row pm-summary__row--total">
-                    <span>Total</span>
-                    <span class="pm-summary__total-amount">
-                      {{ totalAmount.toFixed(2) }}
-                      <small>{{ currencySymbol }}</small>
-                    </span>
+                  <!-- Resumen -->
+                  <div class="pm-summary">
+                    <div v-if="!isPlayer && isPlayer !== null" class="pm-summary__row">
+                      <span>País</span>
+                      <span>{{ selectedCountry?.name ?? "—" }}</span>
+                    </div>
+                    <div class="pm-summary__row">
+                      <span>Precio c/u</span>
+                      <span>{{ cardPrice.toFixed(2) }} {{ currencySymbol }}</span>
+                    </div>
+                    <div class="pm-summary__row">
+                      <span>Cartones</span>
+                      <span>× {{ numCtns }}</span>
+                    </div>
+                    <div
+                      v-if="currentCtns > 0"
+                      class="pm-summary__row pm-summary__row--highlight"
+                    >
+                      <span>Total después de compra</span>
+                      <span
+                        ><strong>{{ currentCtns + numCtns }}</strong> cartone{{
+                          currentCtns + numCtns === 1 ? "" : "s"
+                        }}</span
+                      >
+                    </div>
+                    <div class="pm-summary__row pm-summary__row--total">
+                      <span>Total</span>
+                      <span class="pm-summary__total-amount">
+                        {{ totalAmount.toFixed(2) }}
+                        <small>{{ currencySymbol }}</small>
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Transition>
+              </Transition>
+            </div>
 
-          </div>
+            <!-- ═══════════════════ FOOTER ═══════════════════ -->
+            <div class="pm-footer">
+              <button
+                v-if="!isPlayer && isPlayer !== null && step === 'confirm'"
+                class="pm-btn pm-btn--secondary"
+                :disabled="purchasing"
+                @click="emit('prev')"
+              >
+                <i class="fas fa-arrow-left mr-1" />Atrás
+              </button>
 
-          <!-- ═══════════════════ FOOTER ═══════════════════ -->
-          <div class="pm-footer">
-            <button
-              v-if="!isPlayer && isPlayer !== null && step === 'confirm'"
-              class="pm-btn pm-btn--secondary"
-              :disabled="purchasing"
-              @click="emit('prev')"
-            >
-              <i class="fas fa-arrow-left mr-1" />Atrás
-            </button>
+              <div class="pm-footer__spacer" />
 
-            <div class="pm-footer__spacer" />
+              <button
+                v-if="!isPlayer && isPlayer !== null && step === 'country'"
+                class="pm-btn pm-btn--primary"
+                :disabled="!canAdvance || loadingPrice"
+                @click="emit('next')"
+              >
+                Siguiente<i class="fas fa-arrow-right ml-1" />
+              </button>
 
-            <button
-              v-if="!isPlayer && isPlayer !== null && step === 'country'"
-              class="pm-btn pm-btn--primary"
-              :disabled="!canAdvance || loadingPrice"
-              @click="emit('next')"
-            >
-              Siguiente<i class="fas fa-arrow-right ml-1" />
-            </button>
-
-            <button
-              v-else
-              class="pm-btn pm-btn--buy"
-              :disabled="purchasing || isPlayer === null"
-              @click="emit('purchase')"
-            >
-              <span v-if="purchasing" class="pm-spinner pm-spinner--sm mr-1" />
-              <i v-else class="fas fa-lock mr-1" />
-              {{ purchasing ? 'Procesando…' : 'Confirmar Compra' }}
-            </button>
-          </div>
-
+              <button
+                v-else
+                class="pm-btn pm-btn--buy"
+                :disabled="purchasing || isPlayer === null"
+                @click="emit('purchase')"
+              >
+                <span v-if="purchasing" class="pm-spinner pm-spinner--sm mr-1" />
+                <i v-else class="fas fa-lock mr-1" />
+                {{ purchasing ? "Procesando…" : "Confirmar Compra" }}
+              </button>
+            </div>
+          </template>
         </div>
       </div>
     </Transition>
@@ -329,10 +362,8 @@ function onCtnsInput(e: Event) {
   border-radius: 22px;
   overflow: hidden;
   background: linear-gradient(160deg, #0d1633 0%, #080f26 100%);
-  border: 1px solid rgba(100, 140, 255, 0.20);
-  box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.75),
-    0 0 0 1px rgba(80, 120, 255, 0.08) inset;
+  border: 1px solid rgba(100, 140, 255, 0.2);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(80, 120, 255, 0.08) inset;
   display: flex;
   flex-direction: column;
   max-height: 90vh;
@@ -360,7 +391,7 @@ function onCtnsInput(e: Event) {
   align-items: center;
   gap: 12px;
   padding: 16px 20px 12px;
-  background: linear-gradient(90deg, rgba(0,74,255,0.15), rgba(0,158,253,0.10));
+  background: linear-gradient(90deg, rgba(0, 74, 255, 0.15), rgba(0, 158, 253, 0.1));
   border-bottom: 1px solid rgba(100, 140, 255, 0.12);
 }
 
@@ -370,7 +401,10 @@ function onCtnsInput(e: Event) {
   gap: 8px;
 }
 
-.pm-header__icon { color: #7c9dff; font-size: 15px; }
+.pm-header__icon {
+  color: #7c9dff;
+  font-size: 15px;
+}
 
 .pm-header__title {
   font-size: 14px;
@@ -382,7 +416,7 @@ function onCtnsInput(e: Event) {
 
 .pm-header__close {
   margin-left: auto;
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   border: none;
   color: #7c9dff;
   width: 28px;
@@ -396,7 +430,10 @@ function onCtnsInput(e: Event) {
   transition: background 0.2s, color 0.2s;
   flex-shrink: 0;
 }
-.pm-header__close:hover { background: rgba(255,255,255,0.14); color: #fff; }
+.pm-header__close:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
 
 /* ── Stepper ── */
 .pm-stepper {
@@ -414,8 +451,12 @@ function onCtnsInput(e: Event) {
   opacity: 0.35;
   transition: opacity 0.25s;
 }
-.pm-stepper__step--active { opacity: 1; }
-.pm-stepper__step--done   { opacity: 0.65; }
+.pm-stepper__step--active {
+  opacity: 1;
+}
+.pm-stepper__step--done {
+  opacity: 0.65;
+}
 
 .pm-stepper__dot {
   width: 22px;
@@ -432,7 +473,7 @@ function onCtnsInput(e: Event) {
   transition: background 0.25s, border-color 0.25s;
 }
 .pm-stepper__step--active .pm-stepper__dot {
-  background: rgba(42, 245, 152, 0.20);
+  background: rgba(42, 245, 152, 0.2);
   border-color: #2af598;
   color: #2af598;
 }
@@ -449,11 +490,13 @@ function onCtnsInput(e: Event) {
   letter-spacing: 0.4px;
   white-space: nowrap;
 }
-.pm-stepper__step--active .pm-stepper__lbl { color: #c8d8ff; }
+.pm-stepper__step--active .pm-stepper__lbl {
+  color: #c8d8ff;
+}
 
 /* Conector entre steps */
 .pm-stepper__step:not(:last-child)::after {
-  content: '';
+  content: "";
   display: block;
   width: 20px;
   height: 1px;
@@ -481,7 +524,11 @@ function onCtnsInput(e: Event) {
   opacity: 0.85;
 }
 
-.pm-room-banner__info { display: flex; flex-direction: column; gap: 2px; }
+.pm-room-banner__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
 .pm-room-banner__mode {
   font-size: 10px;
@@ -490,10 +537,14 @@ function onCtnsInput(e: Event) {
   letter-spacing: 0.6px;
 }
 
-.pm-room-banner__prize { display: flex; align-items: baseline; gap: 4px; }
+.pm-room-banner__prize {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
 
 .pm-room-banner__prize-num {
-  font-family: 'Anton', sans-serif;
+  font-family: "Anton", sans-serif;
   font-size: 20px;
   background: linear-gradient(135deg, #ffe566, #ffab00);
   -webkit-background-clip: text;
@@ -518,14 +569,22 @@ function onCtnsInput(e: Event) {
   scrollbar-width: thin;
   scrollbar-color: #7b4fff transparent;
 }
-.pm-body::-webkit-scrollbar       { width: 4px; }
-.pm-body::-webkit-scrollbar-track { background: transparent; }
+.pm-body::-webkit-scrollbar {
+  width: 4px;
+}
+.pm-body::-webkit-scrollbar-track {
+  background: transparent;
+}
 .pm-body::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #7b4fff, #009efd);
   border-radius: 10px;
 }
 
-.pm-step { display: flex; flex-direction: column; gap: 14px; }
+.pm-step {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
 .pm-step__label {
   font-size: 12px;
@@ -536,7 +595,8 @@ function onCtnsInput(e: Event) {
 }
 
 /* ── Loading / Empty ── */
-.pm-loading, .pm-empty {
+.pm-loading,
+.pm-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -545,7 +605,10 @@ function onCtnsInput(e: Event) {
   color: #3a5080;
   font-size: 13px;
 }
-.pm-empty i { font-size: 36px; opacity: 0.4; }
+.pm-empty i {
+  font-size: 36px;
+  opacity: 0.4;
+}
 
 /* ── Country grid ── */
 .pm-country-grid {
@@ -563,7 +626,7 @@ function onCtnsInput(e: Event) {
   padding: 10px 8px;
   border-radius: 12px;
   border: 1.5px solid rgba(100, 140, 255, 0.18);
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s, transform 0.15s;
   text-align: center;
@@ -577,9 +640,19 @@ function onCtnsInput(e: Event) {
   border-color: #2af598 !important;
   background: rgba(42, 245, 152, 0.08) !important;
 }
-.pm-country-btn__flag { font-size: 22px; line-height: 1; }
-.pm-country-btn__name { font-size: 11px; font-weight: 600; color: #c0d0f0; }
-.pm-country-btn__sym  { font-size: 10px; color: #5578bb; }
+.pm-country-btn__flag {
+  font-size: 22px;
+  line-height: 1;
+}
+.pm-country-btn__name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #c0d0f0;
+}
+.pm-country-btn__sym {
+  font-size: 10px;
+  color: #5578bb;
+}
 .pm-country-btn__check {
   position: absolute;
   top: 6px;
@@ -593,7 +666,7 @@ function onCtnsInput(e: Event) {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(42, 245, 152, 0.10);
+  background: rgba(42, 245, 152, 0.1);
   border: 1px solid rgba(42, 245, 152, 0.25);
   border-radius: 30px;
   padding: 6px 14px;
@@ -604,8 +677,8 @@ function onCtnsInput(e: Event) {
 }
 .pm-price-pill--loading {
   color: #5578bb;
-  border-color: rgba(100,140,255,0.2);
-  background: rgba(100,140,255,0.05);
+  border-color: rgba(100, 140, 255, 0.2);
+  background: rgba(100, 140, 255, 0.05);
 }
 
 /* ── Qty row ── */
@@ -620,8 +693,8 @@ function onCtnsInput(e: Event) {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1.5px solid rgba(100, 140, 255, 0.30);
-  background: rgba(255,255,255,0.04);
+  border: 1.5px solid rgba(100, 140, 255, 0.3);
+  background: rgba(255, 255, 255, 0.04);
   color: #7c9dff;
   cursor: pointer;
   display: flex;
@@ -635,16 +708,19 @@ function onCtnsInput(e: Event) {
   border-color: rgba(100, 140, 255, 0.6);
   color: #fff;
 }
-.pm-qty-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+.pm-qty-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
 
 .pm-qty-input {
   width: 70px;
-  background: rgba(255,255,255,0.05);
-  border: 1.5px solid rgba(100, 140, 255, 0.20);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(100, 140, 255, 0.2);
   border-radius: 12px;
   color: #e0e8ff;
   font-size: 28px;
-  font-family: 'Anton', sans-serif;
+  font-family: "Anton", sans-serif;
   text-align: center;
   padding: 4px 0;
   outline: none;
@@ -652,8 +728,13 @@ function onCtnsInput(e: Event) {
   appearance: none;
 }
 .pm-qty-input::-webkit-inner-spin-button,
-.pm-qty-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.pm-qty-input:focus { border-color: rgba(100, 140, 255, 0.55); }
+.pm-qty-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.pm-qty-input:focus {
+  border-color: rgba(100, 140, 255, 0.55);
+}
 
 /* ── Summary ── */
 .pm-summary {
@@ -672,17 +753,26 @@ function onCtnsInput(e: Event) {
   border-bottom: 1px solid rgba(100, 140, 255, 0.07);
   color: #8aa4d0;
 }
-.pm-summary__row:last-child { border-bottom: none; }
-.pm-summary__row span:last-child { color: #c0d0f0; font-weight: 600; }
+.pm-summary__row:last-child {
+  border-bottom: none;
+}
+.pm-summary__row span:last-child {
+  color: #c0d0f0;
+  font-weight: 600;
+}
 
 .pm-summary__row--total {
   background: rgba(0, 74, 255, 0.08);
   padding: 12px 14px;
 }
-.pm-summary__row--total span:first-child { color: #7c9dff; font-weight: 700; font-size: 13px; }
+.pm-summary__row--total span:first-child {
+  color: #7c9dff;
+  font-weight: 700;
+  font-size: 13px;
+}
 
 .pm-summary__total-amount {
-  font-family: 'Anton', sans-serif !important;
+  font-family: "Anton", sans-serif !important;
   font-size: 22px !important;
   color: #7affba !important;
   display: flex;
@@ -703,11 +793,13 @@ function onCtnsInput(e: Event) {
   align-items: center;
   gap: 10px;
   padding: 14px 20px;
-  border-top: 1px solid rgba(100, 140, 255, 0.10);
+  border-top: 1px solid rgba(100, 140, 255, 0.1);
   background: rgba(0, 5, 20, 0.4);
 }
 
-.pm-footer__spacer { flex: 1; }
+.pm-footer__spacer {
+  flex: 1;
+}
 
 .pm-btn {
   display: flex;
@@ -724,8 +816,15 @@ function onCtnsInput(e: Event) {
   transition: filter 0.2s, opacity 0.2s, transform 0.15s;
   white-space: nowrap;
 }
-.pm-btn:not(:disabled):hover { filter: brightness(1.12); transform: translateY(-1px); }
-.pm-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.pm-btn:not(:disabled):hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+.pm-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
 
 .pm-btn--secondary {
   background: rgba(100, 140, 255, 0.12);
@@ -780,30 +879,54 @@ function onCtnsInput(e: Event) {
   display: inline-block;
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(255,255,255,0.2);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-top-color: #2af598;
   border-radius: 50%;
   animation: pm-spin 0.7s linear infinite;
 }
-.pm-spinner--sm { width: 13px; height: 13px; }
+.pm-spinner--sm {
+  width: 13px;
+  height: 13px;
+}
 
-@keyframes pm-spin { to { transform: rotate(360deg); } }
+@keyframes pm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* ═══════════════════════════════════════════════════════
    TRANSICIONES
 ═══════════════════════════════════════════════════════ */
 .modal-fade-enter-active,
-.modal-fade-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
+.modal-fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
 .modal-fade-enter-from,
-.modal-fade-leave-to     { opacity: 0; transform: scale(0.96); }
+.modal-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
+}
 
 .step-slide-enter-active,
-.step-slide-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
-.step-slide-enter-from   { opacity: 0; transform: translateX(18px); }
-.step-slide-leave-to     { opacity: 0; transform: translateX(-18px); }
+.step-slide-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.step-slide-enter-from {
+  opacity: 0;
+  transform: translateX(18px);
+}
+.step-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-18px);
+}
 
 .fade-enter-active,
-.fade-leave-active { transition: opacity 0.2s ease; }
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
 .fade-enter-from,
-.fade-leave-to     { opacity: 0; }
+.fade-leave-to {
+  opacity: 0;
+}
 </style>

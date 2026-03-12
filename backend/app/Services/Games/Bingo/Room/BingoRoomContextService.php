@@ -23,6 +23,8 @@ final class BingoRoomContextService
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
         private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
+        private readonly \App\Contracts\UserRepositoryInterface $userRepository,
+        private readonly \App\Contracts\CurrencyRepositoryInterface $currencyRepository,
     ) {}
 
     /**
@@ -136,7 +138,7 @@ final class BingoRoomContextService
      *
      * Retorna salas activas del usuario con config (fecha, precio, unix_date)
      * para que el frontend construya los cards con countdown.
-     * Si el usuario tiene rol 'player', solo devuelve salas PUBLIC.
+     * Si el usuario tiene rol 'player', solo devuelve salas PUBLIC y aplica tasa de cambio.
      *
      * @param int $userId ID del usuario
      * @return BingoGameRoomsDTO
@@ -167,11 +169,37 @@ final class BingoRoomContextService
             ])->values()->all(),
         ];
 
+        // Configuración por defecto
+        $exchangeRate = 1.0;
+        $currencySym = 'USD';
+        $currency = null;
+
+        // Si es jugador, obtener tasa de cambio y moneda
+        if ($isPlayer) {
+            // Obtener el país del usuario usando el repositorio
+            $currentUserId = $this->userContext->resolveUserId();
+            $countryId = $this->userRepository->getValueById($currentUserId, 'country_id');
+            
+            if ($countryId) {
+                // Obtener la moneda del país del jugador usando el repositorio de monedas
+                $playerCurrencies = $this->currencyRepository->getByCountry($countryId, ['id', 'iso_code', 'symbol']);
+                $playerCurrency = $playerCurrencies->first();
+                
+                if ($playerCurrency) {
+                    $currency = $playerCurrency->iso_code;
+                    $currencySym = $playerCurrency->symbol;
+                    
+                    // Obtener tasa de cambio (USD a moneda del jugador)
+                    $exchangeRate = $this->getPlayerExchangeRate($playerCurrency->id);
+                }
+            }
+        }
+
         return new BingoGameRoomsDTO(
             rooms: $rooms,
-            exchangeRate: 1.0,
-            currencySym: 'USD',
-            currency: null,
+            exchangeRate: $exchangeRate,
+            currencySym: $currencySym,
+            currency: $currency,
             creator: null,
             player: null,
             userToken: null,
@@ -179,5 +207,22 @@ final class BingoRoomContextService
             creatorUser: null,
             dateTimeRooms: $dateTimeRooms,
         );
+    }
+
+    /**
+     * Obtener tasa de cambio para jugador (USD a moneda local)
+     *
+     * @param int $currencyId ID de la moneda del jugador
+     * @return float Tasa de cambio
+     */
+    private function getPlayerExchangeRate(int $currencyId): float
+    {
+        // Buscar tasa de cambio general para la moneda
+        $exchangeRate = \App\Models\ExchangeRate::where('currency_id', $currencyId)
+            ->where('status', 'ACTIVE')
+            ->orderBy('created_at', 'desc')
+            ->first();
+
+        return $exchangeRate ? (float) $exchangeRate->amount : 1.0;
     }
 }

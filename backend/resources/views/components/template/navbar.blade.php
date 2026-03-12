@@ -11,7 +11,7 @@
                 <i class="fas fa-bars"></i>
             </a>
         </li>
-        <li class="nav-item" title="Monedero">
+        <a class="nav-item" href="{{ route('wallet.index') }}" title="Billetera">
             @if ($wallet)
                 @if (isset($USDT))
                     <img src="{{ asset('imgSystem/tether.svg') }}" alt="PlayRKE" class="mb-1 brand-image"
@@ -30,11 +30,11 @@
                 @endif
             @else
                 <span class="info-box-number" style="color:#BCB9C6;">
-                    No hay datos de monedero
+                    No hay datos de billetera
                 </span>
             @endif
 
-        </li>
+        </a>
     </ul>
     <ul class="navbar-nav">
         <li class="nav-item dropdown" title="Opciones">

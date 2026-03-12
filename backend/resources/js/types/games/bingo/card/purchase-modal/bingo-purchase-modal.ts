@@ -62,4 +62,4 @@ export interface BingoCardPurchaseResponse {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Pasos del wizard del modal */
-export type PurchaseModalStep = 'country' | 'player' | 'confirm'
+export type PurchaseModalStep = 'loading' | 'country' | 'player' | 'confirm'
