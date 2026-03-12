@@ -1,7 +1,7 @@
 export type CustomerStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | 'DELETED'
 
 export interface Customer {
-    readonly id?: number | string,
+    readonly id: number | string,
     readonly name: string,
     readonly logo?: string,
     readonly api_route: string,

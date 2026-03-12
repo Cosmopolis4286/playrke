@@ -1,7 +1,7 @@
 export type CommerceStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | 'DELETED'
 
 export interface Commerce {
-    readonly id?: number | string,
+    readonly id: number | string,
     readonly name: string,
     readonly country_id: number,
     readonly time_zone_id: number,

@@ -1,7 +1,7 @@
 export type PlayerStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED'
 
 export interface Player {
-    readonly id?: number | string
+    readonly id: number | string
     readonly username: string
     readonly email: string
     readonly first_name: string

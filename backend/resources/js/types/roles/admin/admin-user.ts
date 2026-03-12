@@ -5,7 +5,7 @@ import type { Pagination } from '../../common/table/pagination'
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED' | 'SUSPENDED' | 'PENDING_VERIFICATION'
 
 export interface AdminUser {
-    readonly id?: string | number
+    readonly id: string | number
     readonly username: string
     readonly email: string
     readonly full_name: string

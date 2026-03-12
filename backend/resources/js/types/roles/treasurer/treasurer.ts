@@ -1,7 +1,7 @@
 export type TreasurerStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | 'DELETED'
 
 export interface Treasurer {
-    id?: number | string
+    id: number | string
     name: string
     country_id: number | null
     time_zone_id: number | null

@@ -1,11 +1,11 @@
 import { ref, computed, Ref } from 'vue'
-import type { Column } from '@/js/types/common/table/column-row'
+import type { Column, Row } from '@/js/types/common/table/column-row'
 import { useTableFiltering, TableFilterState } from './useTableFiltering'
 import { useFilterableSelection } from './useFilterableSelection'
 
 export function useTableController<T extends { id: string }>(options: {
     columns: Ref<Column[]>
-    rows: Ref<T[]>
+    rows: Ref<Row[]>
     pageSize?: number
     onSelectionChange?: (ids: string[]) => void
 }) {

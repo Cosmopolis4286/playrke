@@ -28,7 +28,7 @@
 
   import type { AdminUserPageProps } from '@js/types/roles/admin/admin-user'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
-  import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
+  import type { TableFilterInterface, TableFilterOption } from '@js/types/common/table/table-filter'
 
   // ==========================================================================
   // Props (Inertia)
@@ -95,7 +95,7 @@
     }))
   )
 
-  const filters = computed<readonly TableFilter[]>(() => [
+  const filters = computed<readonly TableFilterInterface[]>(() => [
     {
       key: 'role_name',
       label: 'Rol',

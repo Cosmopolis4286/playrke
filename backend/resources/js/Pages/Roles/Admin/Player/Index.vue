@@ -27,7 +27,7 @@
 
   import type { AdminPlayerPageProps } from '@js/types/roles/admin/admin-player'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
-  import type { TableFilter, TableFilterOption } from '@js/types/common/table/table-filter'
+  import type { TableFilterInterface, TableFilterOption } from '@js/types/common/table/table-filter'
 
   // ==========================================================================
   // Props (Inertia)
@@ -109,7 +109,7 @@
     }))
   )
 
-  const filters = computed<readonly TableFilter[]>(() => [
+  const filters = computed<readonly TableFilterInterface[]>(() => [
     {
       key: 'country_name',
       label: 'País',

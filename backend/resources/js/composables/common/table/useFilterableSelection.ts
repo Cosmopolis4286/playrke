@@ -1,10 +1,11 @@
 import { Ref } from 'vue'
 import type { TableFilterState } from './useTableFiltering'
+import { Row } from '@/js/types/common/table/column-row'
 
 export function useFilterableSelection<T extends { id: string }>(options: {
     currentFilters: Ref<TableFilterState>
     selectedIds: Ref<string[]>
-    filteredRows: Ref<T[]>
+    filteredRows: Ref<Row[]>
     onSelectionChange?: (ids: string[]) => void
 }) {
     const {

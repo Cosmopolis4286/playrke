@@ -12,6 +12,6 @@ export interface Column {
  * Tipado de una fila con id requerido
  */
 export interface Row {
-    readonly id: string
+    readonly id: string | number
     [key: string]: any
 }
