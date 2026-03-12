@@ -33,17 +33,17 @@ interface AdminExchangeRateRepositoryInterface extends RoleExchangeRateRepositor
      * @param string $field Campo a obtener
      * @return mixed
      */
-    public function getCurrencyValue($currencyId, string $field = 'value');
+    public function getCurrencyValue($currencyId, string $field = 'amount');
 
     /**
      * Crea o actualiza una tasa de cambio
      *
      * @param mixed $currencyId ID de la moneda
-     * @param float $value Valor de la tasa
-     * @param int|null $userId ID del usuario que realiza la acción (opcional)
+     * @param float $amount Valor de la tasa
+     * @param float $percentage Porcentaje
      * @return bool
      */
-    public function updateOrCreateExchangeRate($currencyId, float $value, ?int $userId = null): bool;
+    public function updateOrCreateExchangeRate($currencyId, float $amount, float $percentage): bool;
 
     /**
      * Obtiene la tasa más reciente por moneda

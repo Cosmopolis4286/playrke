@@ -3,10 +3,12 @@
 namespace App\Services\ExchangeRate;
 
 use App\Contracts\CurrencyRepositoryInterface;
+use App\Contracts\Roles\Admin\AdminExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Customer\CustomerExchangeRateRepositoryInterface;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
+use DomainException;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -17,7 +19,8 @@ final class ExchangeRateUpdaterService
 {
     public function __construct(
         protected readonly RoleUserService $roleUserService,
-        private readonly RoleEntityResolver $roleEntityResolver,
+        protected readonly RoleEntityResolver $roleEntityResolver,
+        protected readonly AdminExchangeRateRepositoryInterface $adminExchangeRateRepository,
         protected readonly CommerceExchangeRateRepositoryInterface $commerceExchangeRateRepository,
         protected readonly CustomerExchangeRateRepositoryInterface $customerExchangeRateRepository,
         protected readonly CurrencyRepositoryInterface $currencyRepository,
@@ -72,15 +75,15 @@ final class ExchangeRateUpdaterService
             }
 
             $currentRate = $this->getCurrentRate($repository, $role, $entityId, $currencyId);
+
             $percentageChange = $currentRate != 0
                 ? round((($newRate * 100) / $currentRate) - 100, 2)
                 : 0;
 
-            // For admin role, update with user_id tracking
             if ($role === 'admin') {
-                $repository->updateOrCreateExchangeRate($entityId, $currencyId, $newRate, $percentageChange, $entityId);
+                $repository->updateOrCreateExchangeRate($currencyId, $newRate, $percentageChange);
             } else {
-                $repository->updateOrCreateExchangeRate($entityId, $currencyId, $newRate, $percentageChange);
+                $repository->updateOrCreateExchangeRate($entityId, $currencyId, $newRate, $percentageChange, $entityId);
             }
         }
     }
@@ -88,23 +91,26 @@ final class ExchangeRateUpdaterService
     /**
      * Obtiene la tasa actual de una moneda para una entidad.
      *
-     * @param CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface $repository
+     * @param CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface $repository
      * @param string $role Rol de usuario
      * @param int|string $entityId ID de la entidad
      * @param string $currencyId ID de la moneda
      * @return float Tasa actual o 0 si no existe
      */
     protected function getCurrentRate(
-        CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface $repository,
+        CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface $repository,
         string $role,
         int|string $entityId,
         string $currencyId
     ): float {
-        if ($role === 'commerce') {
-            return (float) ($repository->getCommerceCurrencyValue($entityId, $currencyId, 'amount') ?? 0);
-        }
 
-        return (float) ($repository->getCustomerCurrencyValue($entityId, $currencyId, 'amount') ?? 0);
+        if ($role === 'admin') {
+            return (float) ($repository->getCurrencyValue($currencyId, 'amount') ?? 0);
+        } else if ($role === 'commerce') {
+            return (float) ($repository->getCommerceCurrencyValue($entityId, $currencyId, 'amount') ?? 0);
+        } else if ($role === 'customer') {
+            return (float) ($repository->getCustomerCurrencyValue($entityId, $currencyId, 'amount') ?? 0);
+        }
     }
 
     /**
@@ -113,10 +119,13 @@ final class ExchangeRateUpdaterService
      * @param string $role Rol ('commerce'|'customer')
      * @return CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface
      */
-    protected function getRepository(string $role): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface
+    protected function getRepository(string $role): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface
     {
-        return $role === 'commerce'
-            ? $this->commerceExchangeRateRepository
-            : $this->customerExchangeRateRepository;
+        return match ($role) {
+            'admin' => $this->adminExchangeRateRepository,
+            'commerce' => $this->commerceExchangeRateRepository,
+            'customer' => $this->customerExchangeRateRepository,
+            default => throw new DomainException("Rol inválido: {$role}"),
+        };
     }
 }

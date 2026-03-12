@@ -2,18 +2,21 @@
   import { computed, ref } from 'vue'
   import { vTooltip } from 'floating-vue'
   import TableWithFilter from './TableWithFilter.vue'
-  import type { Column } from '@/js/types/common/table/column-row'
-  import type { ExtraButton } from '@js/types/common/table/extra-buttons'
-  import { TableFilter } from '@/js/types/common/table/table-filter'
 
-  /** Props recibidas desde el componente padre */
+  import type { Column, Row } from '@/js/types/common/table/column-row'
+  import type { ExtraButton } from '@js/types/common/table/extra-buttons'
+  import type { TableFilterInterface } from '@/js/types/common/table/table-filter'
+
+  /**
+   * Props recibidas desde el componente padre.
+   */
   const props = defineProps<{
     tableId: string
     title: string
     subtitle?: string
     columns: Column[]
-    rows: Array<Record<string, any>> | string
-    filters?: readonly TableFilter[]
+    rows: Row[]
+    filters?: readonly TableFilterInterface[]
     searchPlaceholder?: string
     debounceDelay?: number
     emptyMessage?: string
@@ -25,51 +28,40 @@
     extraButtons?: ExtraButton[]
   }>()
 
+  /**
+   * Eventos emitidos al componente padre.
+   */
   const emit = defineEmits<{
     (e: 'selection-change', ids: string[]): void
   }>()
 
-  /** IDs seleccionados actualmente en la tabla */
+  /**
+   * IDs actualmente seleccionados en la tabla.
+   */
   const selectedIds = ref<string[]>([])
 
-  /** Parsear props que podrían venir como JSON strings */
-  const parsedColumns = computed(() =>
-    typeof props.columns === 'string' ? JSON.parse(props.columns) : props.columns
-  )
-  const parsedRows = computed(() =>
-    typeof props.rows === 'string' ? JSON.parse(props.rows) : props.rows
-  )
-  const parsedFilters = computed(() =>
-    typeof props.filters === 'string' ? JSON.parse(props.filters) : (props.filters ?? [])
-  )
-
   /**
-   * Verifica si debe mostrar el contador para ciertos botones
+   * Determina si un botón debe mostrar contador de selección.
    */
   const shouldShowCount = (btn: ExtraButton, selected: string[]) =>
     btn.action === 'toggleStatus' && selected.length > 1
 
   /**
-   * Obtiene la razón por la cual el botón está deshabilitado
+   * Obtiene el mensaje de deshabilitado de un botón.
    */
   function getDisabledReason(btn: ExtraButton, ids: string[]): string {
     if (!btn.disabledReason) return ''
     return typeof btn.disabledReason === 'function' ? btn.disabledReason(ids) : btn.disabledReason
   }
 
-  /** Requisitos para cantidad mínima de selección */
+  /**
+   * Requisitos de selección para acciones CRUD.
+   */
   type SelectionRequirement = 'any' | 'single' | 'multiple'
 
-  /** Opciones para acciones CRUD */
-  interface CrudActionOptions {
-    action: string
-    selectionRequirement?: SelectionRequirement
-    onBeforeEmit?: (ids: string[]) => boolean
-    logMessage?: string
-    ids?: string[]
-  }
-
-  /** Emite evento global con acción y IDs */
+  /**
+   * Emite evento global CRUD utilizado por el sistema.
+   */
   function emitTableCrudEvent(action: string, ids: string[] = selectedIds.value) {
     window.dispatchEvent(
       new CustomEvent('table:crud', {
@@ -79,110 +71,110 @@
   }
 
   /**
-   * Maneja acciones CRUD validando selección y emitiendo eventos
+   * Ejecuta una acción CRUD validando requisitos de selección.
    */
-  function handleCrudAction({
-    action,
-    selectionRequirement = 'any',
-    onBeforeEmit,
-    logMessage,
-    ids = selectedIds.value
-  }: CrudActionOptions) {
+  function runCrudAction(
+    action: string,
+    requirement: SelectionRequirement = 'any',
+    ids: string[] = selectedIds.value
+  ) {
     const count = ids.length
 
     if (
-      (selectionRequirement === 'single' && count !== 1) ||
-      (selectionRequirement === 'multiple' && count < 2) ||
-      (selectionRequirement === 'any' && count === 0 && action !== 'create')
+      (requirement === 'single' && count !== 1) ||
+      (requirement === 'multiple' && count < 2) ||
+      (requirement === 'any' && count === 0 && action !== 'create')
     ) {
-      console.warn(
-        `La acción '${action}' requiere selección ${selectionRequirement}, pero hay ${count} seleccionados.`
-      )
-      return
-    }
-
-    if (logMessage) console.log(logMessage, ids)
-    if (onBeforeEmit && !onBeforeEmit(ids)) {
-      console.log(`Acción '${action}' cancelada por onBeforeEmit.`)
+      console.warn(`Acción '${action}' inválida para ${count} elementos seleccionados.`)
       return
     }
 
     emitTableCrudEvent(action, ids)
   }
 
-  /** Handlers estándar para botones CRUD */
-  const handleCreate = () => emitTableCrudEvent('create')
-  const handleEdit = () => handleCrudAction({ action: 'edit', selectionRequirement: 'single' })
-  const handleDelete = () => handleCrudAction({ action: 'delete', selectionRequirement: 'any' })
-  const handleToggleStatus = () =>
-    handleCrudAction({ action: 'toggleStatus', logMessage: 'Cambio de estado para IDs:' })
-  const handleResetPassword = () =>
-    handleCrudAction({ action: 'resetPassword', logMessage: 'Reset contraseña para IDs:' })
-  const handleView = () => handleCrudAction({ action: 'view', selectionRequirement: 'single' })
+  /**
+   * Handlers estándar para acciones CRUD.
+   */
+  const actionHandlers: Record<string, () => void> = {
+    create: () => runCrudAction('create'),
+    edit: () => runCrudAction('edit', 'single'),
+    delete: () => runCrudAction('delete'),
+    view: () => runCrudAction('view', 'single'),
+    copy: () => runCrudAction('copy', 'single'),
+    toggleStatus: () => runCrudAction('toggleStatus'),
+    resetPassword: () => runCrudAction('resetPassword')
+  }
 
   /**
-   * Asigna onClick y disabled a botones extra basados en la acción
+   * Tipo interno para botones con handlers resueltos.
    */
-  const extraButtonsWithHandlers = computed(() =>
+  type ExtraButtonResolved = ExtraButton & {
+    onClick: () => void
+    disabled: (ids: string[]) => boolean
+  }
+
+  /**
+   * Botones extra con handlers y disabled resuelto.
+   */
+  const extraButtonsWithHandlers = computed<ExtraButtonResolved[]>(() =>
     (props.extraButtons ?? []).map(btn => ({
       ...btn,
+
+      /**
+       * Handler de click del botón.
+       */
       onClick: () => {
-        // ✅ Si el botón ya trae su propio handler, usarlo
         if (btn.onClick) {
           btn.onClick(selectedIds.value)
           return
         }
 
-        // Si no, usar sistema por action
-        switch (btn.action) {
-          case 'toggleStatus':
-            handleToggleStatus()
-            break
-          case 'resetPassword':
-            handleResetPassword()
-            break
-          case 'view':
-            handleView()
-            break
-          case 'copy':
-            handleCrudAction({ action: 'copy', selectionRequirement: 'single' })
-            break
-          default:
-            console.warn(`No handler para botón '${btn.label}' con acción '${btn.action}'`)
-        }
+        actionHandlers[btn.action]?.()
       },
-      disabled: (selectedIds: string[]) => (btn.disabled ? btn.disabled(selectedIds) : false)
+
+      /**
+       * Resolver estado disabled.
+       */
+      disabled: (ids: string[]) => btn.disabled?.(ids) ?? false
     }))
   )
 
-  /** Filtra botones extra visibles según la propiedad show */
+  /**
+   * Filtra los botones visibles según la propiedad `show`.
+   */
   const visibleExtraButtons = computed(() =>
     extraButtonsWithHandlers.value.filter(btn => {
-      if (!btn) return false
-      if (btn.show === undefined) return true
       if (typeof btn.show === 'function') return btn.show(selectedIds.value)
       if (btn.show === false) return selectedIds.value.length > 0
-      return !!btn.show
+      return btn.show ?? true
     })
   )
 
-  /** Actualiza IDs seleccionados y re-emite al padre para control externo */
-  const handleSelectionChange = (ids: string[]): void => {
+  /**
+   * Actualiza selección y la re-emite al padre.
+   */
+  function handleSelectionChange(ids: string[]) {
     selectedIds.value = [...ids]
     emit('selection-change', [...ids])
   }
 
-  const resolvedDisableDelete = computed((): boolean => {
-    if (!props.disableDelete) return false
-    if (typeof props.disableDelete === 'function') return props.disableDelete(selectedIds.value)
-    return props.disableDelete
-  })
+  /**
+   * Resolver estado de deshabilitado para botón delete.
+   */
+  const resolvedDisableDelete = computed(() =>
+    typeof props.disableDelete === 'function'
+      ? props.disableDelete(selectedIds.value)
+      : (props.disableDelete ?? false)
+  )
 
-  const resolvedDisableDeleteReason = computed((): string => {
-    if (!props.disableDeleteReason) return ''
-    if (typeof props.disableDeleteReason === 'function') return props.disableDeleteReason(selectedIds.value)
-    return props.disableDeleteReason
-  })
+  /**
+   * Resolver razón de deshabilitado para delete.
+   */
+  const resolvedDisableDeleteReason = computed(() =>
+    typeof props.disableDeleteReason === 'function'
+      ? props.disableDeleteReason(selectedIds.value)
+      : (props.disableDeleteReason ?? '')
+  )
 </script>
 
 <template>
@@ -190,9 +182,9 @@
     :table-id="props.tableId"
     :title="props.title"
     :subtitle="props.subtitle"
-    :columns="parsedColumns"
-    :rows="parsedRows"
-    :filters="parsedFilters"
+    :columns="props.columns"
+    :rows="props.rows"
+    :filters="props.filters ? [...props.filters] : undefined"
     :search-placeholder="props.searchPlaceholder"
     :debounce-delay="props.debounceDelay"
     :empty-message="props.emptyMessage"
@@ -201,33 +193,34 @@
     :show-delete-button="props.showDeleteButton"
     :disable-delete="resolvedDisableDelete"
     :disable-delete-reason="resolvedDisableDeleteReason"
-    @create="handleCreate"
-    @edit="handleEdit"
-    @delete="handleDelete"
+    @create="actionHandlers.create"
+    @edit="actionHandlers.edit"
+    @delete="actionHandlers.delete"
     @selection-change="handleSelectionChange"
   >
-    <!-- Reenvío de slots recibidos -->
+    <!-- Reenvío automático de slots -->
     <template v-for="(_, name) in $slots" #[name]="slotData" :key="name">
       <slot :name="name" v-bind="slotData" />
     </template>
 
-    <!-- Botones extra a la derecha -->
+    <!-- Botones extra -->
     <template #action-buttons="{ selectedIds }">
       <button
         v-for="(btn, i) in visibleExtraButtons"
         :key="i"
         v-tooltip="{
           content: getDisabledReason(btn, selectedIds),
-          disabled: !btn.disabled?.(selectedIds) || !getDisabledReason(btn, selectedIds)
+          disabled: !btn.disabled(selectedIds) || !getDisabledReason(btn, selectedIds)
         }"
         :class="['btn', 'btn-sm', btn.class || 'btn-secondary']"
         :title="btn.title"
-        :disabled="btn.disabled ? btn.disabled(selectedIds) : false"
-        @click="() => btn.onClick()"
+        :disabled="btn.disabled(selectedIds)"
+        @click="btn.onClick"
         type="button"
       >
         <i v-if="btn.icon" :class="btn.icon"></i>
         {{ btn.label }}
+
         <span v-if="shouldShowCount(btn, selectedIds)"> ({{ selectedIds.length }}) </span>
       </button>
     </template>

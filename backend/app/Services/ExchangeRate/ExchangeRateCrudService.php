@@ -215,11 +215,6 @@ final class ExchangeRateCrudService
     {
         [$repo, $role] = $this->resolveContext($userId);
 
-        if ($role === 'admin') {
-            // Admin exchange rates don't have status, but we return true for compatibility
-            return true;
-        }
-
         return $repo->toggleStatus(
             $repo->findOrFail($id)
         );

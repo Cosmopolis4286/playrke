@@ -1,6 +1,6 @@
 <script setup lang="ts" name="TableFilter">
   import { ref, reactive, computed, watch } from 'vue'
-  import type { TableFilter } from '@/js/types/common/table/table-filter'
+  import type { TableFilterInterface } from '@/js/types/common/table/table-filter'
 
   /**
    * Props del componente
@@ -10,7 +10,7 @@
     searchPlaceholder?: string
 
     /** Definición de filtros de tabla */
-    filters?: readonly TableFilter[]
+    filters?: readonly TableFilterInterface[]
 
     /** Delay del debounce en ms */
     debounceDelay?: number

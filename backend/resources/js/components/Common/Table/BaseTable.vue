@@ -1,13 +1,13 @@
 <script setup lang="ts" name="BaseTable">
   import { computed, watch } from 'vue'
-  import type { Column } from '@/js/types/common/table/column-row'
+  import type { Column, Row } from '@/js/types/common/table/column-row'
 
   /** Props recibidas */
   const props = withDefaults(
     defineProps<{
       tableId: string
       columns: Column[]
-      rows: Array<Record<string, any>>
+      rows: Row[]
       emptyMessage?: string
       selectable?: boolean
       selectedIds?: string[]

@@ -8,6 +8,7 @@ use App\Models\ExchangeRate;
 use App\Repositories\ExchangeRate\RoleExchangeRateRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Repository para manejar operaciones de tasas de cambio de administradores
@@ -92,22 +93,19 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
      * Crea o actualiza una tasa de cambio
      *
      * @param mixed $currencyId ID de la moneda
-     * @param float $value Valor de la tasa
-     * @param int|null $userId ID del usuario que realiza la acción (opcional)
+     * @param float $amount Valor de la tasa
+     * @param float $percentage Porcentaje
      * @return bool
      */
-    public function updateOrCreateExchangeRate($currencyId, float $value, ?int $userId = null): bool
+    public function updateOrCreateExchangeRate($currencyId, float $amount, $percentage): bool
     {
         try {
             $data = [
                 'currency_id' => $currencyId,
-                'amount'      => $value,
+                'amount'      => $amount,
+                'percentage'  => $percentage,
+                'user_id'     => Auth::id()
             ];
-
-            // Add user_id if provided
-            if ($userId !== null) {
-                $data['user_id'] = $userId;
-            }
 
             $this->model->updateOrCreate(
                 ['currency_id' => $currencyId],
