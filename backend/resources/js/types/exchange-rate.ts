@@ -14,29 +14,15 @@ export interface ExchangeRate {
     readonly updated_at?: string
 }
 
-export interface AdminExchangeRate {
-    readonly id?: number | string
-    readonly currency_id?: number | string
-    readonly currency_name?: string
-    readonly amount: number
-    readonly currency?: {
-        id: number | string
-        iso_code: string
-        name: string
-    }
-    readonly created_at?: string
-    readonly updated_at?: string
-}
-
 export interface ExchangeRatePageProps {
     currencies: Currency[]
-    exchangeRates: ExchangeRate[] | AdminExchangeRate[]
+    exchangeRates: ExchangeRate[]
     roleUser: string
     tokenId?: string
 }
 
 export interface ExchangeRateHistoricalPageProps {
-    exchangeRates: ExchangeRate[] | AdminExchangeRate[]
+    exchangeRates: ExchangeRate[]
     currencyId: string
     roleUser: string
     title: string
@@ -49,7 +35,7 @@ export interface UsedCurrency {
     iso_code: string
     type: string
     country?: {
-        id: number
+        id: number | string
         name: string
         iso_code: string
     } | null

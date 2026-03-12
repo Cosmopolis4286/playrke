@@ -3,8 +3,6 @@
 namespace App\Models;
 
 use App\Models\Currency;
-use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -13,10 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Representa los tipos de cambio entre diferentes monedas del sistema,
  * con valores precisos y relaciones con las monedas correspondientes.
  */
-class ExchangeRate extends Model
+class ExchangeRate extends BaseModel
 {
-    use SnowflakeId;
-
     /**
      * Nombre de la tabla asociada al modelo.
      *
@@ -43,8 +39,10 @@ class ExchangeRate extends Model
      */
     protected $casts = [
         'id' => 'string',
+        'currency_id' => 'string',
         'amount' => 'decimal:4',
         'percentage' => 'decimal:3',
+        'status' => 'string'
     ];
 
     /**

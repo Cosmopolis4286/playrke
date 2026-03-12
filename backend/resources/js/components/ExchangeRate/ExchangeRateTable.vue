@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import BaseTable from '@js/Components/Common/Table/BaseTable.vue'
-  import type { Column } from '@/js/types/common/table/column-row'
+  import type { Column, Row } from '@/js/types/common/table/column-row'
   import type { ExchangeRate, UsedCurrency } from '@js/types/exchange-rate'
 
   const props = defineProps<{
@@ -70,7 +70,7 @@
   <BaseTable
     table-id="exchange-rate-table"
     :columns="columns"
-    :rows="(exchangeRates as Record<string, any>[])"
+    :rows="exchangeRates as Row[]"
     :selected-ids="selectedIds"
     selectable
     empty-message="No hay tasas de cambio registradas"

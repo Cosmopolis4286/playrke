@@ -86,23 +86,7 @@ final class ExchangeRateCrudService
      */
     public function show(string $exchangeRateId, int $userId): ExchangeRateResource|AdminExchangeRateResource
     {
-        [$repo, $role] = $this->resolveContext($userId);
-
-        if ($role === 'admin') {
-            $exchangeRate = $repo->findWithRelations(
-                ['currency:id,iso_code,name'],
-                $exchangeRateId,
-                ['id', 'currency_id', 'amount', 'created_at', 'updated_at']
-            );
-
-            throw_if(
-                !$exchangeRate,
-                DomainException::class,
-                "Tasa de cambio no encontrada: {$exchangeRateId}"
-            );
-
-            return new AdminExchangeRateResource($exchangeRate);
-        }
+        [$repo] = $this->resolveContext($userId);
 
         $exchangeRate = $repo->findWithRelations(
             ['currency:id,iso_code'],

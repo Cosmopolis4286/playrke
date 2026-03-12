@@ -156,7 +156,7 @@ final class ExchangeRateService
         if ($role !== 'admin' && $role !== 'commerce') {
             return null;
         }
-        
+
         $rates = $this->api->fetch();
 
         if (empty($rates)) {
