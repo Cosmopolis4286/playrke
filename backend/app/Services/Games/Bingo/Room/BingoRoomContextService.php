@@ -173,23 +173,20 @@ final class BingoRoomContextService
         // Configuración por defecto
         $exchangeRate = 1.0;
         $currencySym = 'USD';
-        $currency = null;
 
         // Si es jugador, obtener tasa de cambio y moneda
         if ($isPlayer) {
             // Obtener el país del usuario usando el repositorio
             $currentUserId = $this->userContext->resolveUserId();
             $countryId = $this->userRepository->getValueById($currentUserId, 'country_id');
-            
+
             if ($countryId) {
                 // Obtener la moneda del país del jugador usando el repositorio de monedas
                 $playerCurrencies = $this->currencyRepository->getByCountry($countryId, ['id', 'iso_code', 'symbol']);
                 $playerCurrency = $playerCurrencies->first();
-                
+
                 if ($playerCurrency) {
-                    $currency = $playerCurrency->iso_code;
                     $currencySym = $playerCurrency->symbol;
-                    
                     // Obtener tasa de cambio (USD a moneda del jugador)
                     $exchangeRate = $this->getPlayerExchangeRate($playerCurrency->id);
                 }
@@ -200,12 +197,7 @@ final class BingoRoomContextService
             rooms: $rooms,
             exchangeRate: $exchangeRate,
             currencySym: $currencySym,
-            currency: $currency,
-            creator: null,
-            player: null,
             userToken: null,
-            customerId: null,
-            creatorUser: null,
             dateTimeRooms: $dateTimeRooms,
             cardPrices: $isPlayer ? $this->getPlayerCardPriceForContext($userId) : null,
         );
@@ -239,17 +231,17 @@ final class BingoRoomContextService
         try {
             // Obtener todas las salas activas para el jugador
             $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, now()->toDateString(), true);
-            
+
             if ($rooms->isEmpty()) {
                 return null;
             }
-            
+
             // Obtener precios para cada sala
             $roomPrices = [];
             foreach ($rooms as $room) {
                 $roomPrices[$room->id] = $this->generateService->getPlayerCardPrice($room->id, $userId);
             }
-            
+
             return $roomPrices;
         } catch (\Exception $e) {
             return null;

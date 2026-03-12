@@ -18,18 +18,8 @@ final class BingoGameRoomsDTO implements ContextDTO
         public readonly float $exchangeRate,
         /** Símbolo de moneda */
         public readonly string $currencySym,
-        /** Moneda activa */
-        public readonly ?string $currency,
-        /** Datos del creador de la sala */
-        public readonly ?array $creator,
-        /** Identificador del jugador */
-        public readonly ?string $player,
         /** Token del usuario */
         public readonly ?string $userToken,
-        /** ID encriptado del cliente */
-        public readonly ?string $customerId,
-        /** Usuario creador (para rutas de fecha/hora) */
-        public readonly ?string $creatorUser,
         /** Datos de fecha/hora del servidor + lista de salas para countdown */
         public readonly ?array $dateTimeRooms,
         /** Precios del cartón para jugadores (por sala) */
@@ -47,13 +37,13 @@ final class BingoGameRoomsDTO implements ContextDTO
                     'id'          => $room->getRouteKey(), // Usar ID hasheado para route binding
                 ],
             );
-            
+
             // Agregar precio del cartón si está disponible para esta sala
             if ($this->cardPrices && isset($this->cardPrices[$room->id])) {
                 $roomData['card_price'] = $this->cardPrices[$room->id]['card_price'];
                 $roomData['currency_symbol'] = $this->cardPrices[$room->id]['currency_symbol'];
             }
-            
+
             return $roomData;
         })->values()->all();
 
@@ -62,12 +52,7 @@ final class BingoGameRoomsDTO implements ContextDTO
             'rooms'         => $roomsWithPrices,
             'exchangeRate'  => $this->exchangeRate,
             'currencySym'   => $this->currencySym,
-            'currency'      => $this->currency,
-            'creator'       => $this->creator,
-            'player'        => $this->player,
             'userToken'     => $this->userToken,
-            'customerId'    => $this->customerId,
-            'creatorUser'   => $this->creatorUser,
             'dateTimeRooms' => $this->dateTimeRooms,
             'cardPrices'    => $this->cardPrices,
         ];
