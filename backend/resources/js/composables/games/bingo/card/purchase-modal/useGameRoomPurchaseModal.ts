@@ -29,7 +29,7 @@ import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo
  * Uso:
  * ```ts
  * const modal = useGameRoomPurchaseModal()
- * modal.open(room)
+ * modal.open(room, cardPriceFromContext)
  * ```
  */
 export function useGameRoomPurchaseModal() {
@@ -113,6 +113,7 @@ export function useGameRoomPurchaseModal() {
                 `/bingo-card/${roomId}/available-countries`,
             )
             countries.value = data.data ?? []
+            step.value = 'country'
         } catch {
             showToast('Error al cargar los países disponibles', 'error')
             countries.value = []
@@ -146,8 +147,10 @@ export function useGameRoomPurchaseModal() {
             const { data } = await backendClient.get<BingoCardPriceResponse>(
                 `/bingo-game-rooms/${roomId}/player-card-price`,
             )
+            // El precio ya viene convertido a la moneda del jugador
             cardPrice.value = data.card_price
             currencySymbol.value = data.currency_symbol
+            step.value = 'confirm'
         } catch (error) {
             console.error('Error fetching player card price:', error);
             showToast('Error al obtener el precio del cartón', 'error')
@@ -170,18 +173,19 @@ export function useGameRoomPurchaseModal() {
     async function open(room: BingoGameRoom): Promise<void> {
         selectedRoom.value = room
         selectedCountry.value = null
+        cardPrice.value = 0
+        numCtns.value = 1
+        step.value = 'loading'
         isOpen.value = true
 
         // Verificar el rol desde el backend
         const userIsPlayer = await checkUserRole();
 
         if (userIsPlayer) {
-            // Para jugadores: ir directamente al paso de confirmación
-            step.value = 'confirm'
+            // Para jugadores: siempre obtener precio fresco del backend
             await _fetchPlayerCardPrice(room.id)
         } else {
             // Para otros roles: cargar países y empezar con selección de país
-            step.value = 'country'
             await _fetchCountries(room.id)
         }
     }

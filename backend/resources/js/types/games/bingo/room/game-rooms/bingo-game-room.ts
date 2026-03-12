@@ -54,6 +54,10 @@ export interface BingoGameRoom {
   readonly status_code: string
   /** Encrypted ID para rutas legacy */
   readonly encrypted?: string | null
+  /** Precio del cartón para jugadores (si aplica) */
+  readonly card_price?: number
+  /** Símbolo de moneda del precio del cartón */
+  readonly currency_symbol?: string
 }
 
 /**
@@ -109,4 +113,6 @@ export interface BingoGameRoomsPageProps {
   readonly dateTimeRooms?: BingoGameRoomsDatetime | null
   /** Usuario creador (para rutas de fecha/hora) */
   readonly creatorUser?: string | null
+  /** Precios del cartón por sala (para jugadores) */
+  readonly cardPrices?: Record<string, { card_price: number; currency_symbol: string }> | null
 }

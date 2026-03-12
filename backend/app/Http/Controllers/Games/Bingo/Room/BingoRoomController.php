@@ -30,9 +30,10 @@ final class BingoRoomController extends Controller
      * @param BingoRoomService $service
      */
     public function __construct(
-        private readonly \App\Services\Games\Bingo\Room\BingoRoomService $service,
         private readonly \App\Services\Security\UserContextService $userContext,
+        private readonly \App\Services\Games\Bingo\Room\BingoRoomContextService $service,
         private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $generateService,
+        private readonly \App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface $bingoRooms,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
@@ -177,11 +178,44 @@ final class BingoRoomController extends Controller
             function () {
                 $userId = $this->userContext->resolveUserId();
                 $response = $this->service->context('game-rooms', $userId);
+                
+                // Agregar precio del cartón para jugadores
+                if ($this->userContext->userHasRole('player')) {
+                    $cardPrice = $this->getPlayerCardPriceForView($userId);
+                    // Convertir DTO a array para agregar cardPrice
+                    $responseArray = $response->toView();
+                    $responseArray = is_array($responseArray) ? $responseArray : (array) $responseArray;
+                    $responseArray['cardPrice'] = $cardPrice;
+                    $response = $responseArray;
+                }
 
                 return Inertia::render('Games/Bingo/Room/GameRooms', $response);
             },
             'No se pudo cargar la lista de salas de bingo.'
         );
+    }
+
+    /**
+     * Obtener precio del cartón para la vista
+     *
+     * @param int $userId ID del usuario
+     * @return array|null
+     */
+    private function getPlayerCardPriceForView(int $userId): ?array
+    {
+        try {
+            // Obtener la primera sala activa para el jugador
+            $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, now()->toDateString(), true);
+            
+            if ($rooms->isEmpty()) {
+                return null;
+            }
+            
+            $firstRoom = $rooms->first();
+            return $this->generateService->getPlayerCardPrice($firstRoom->id, $userId);
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     /**
@@ -250,14 +284,6 @@ final class BingoRoomController extends Controller
      */
     public function playerCardPrice(BingoRoom $room): JsonResponse
     {
-        // Debug log
-        \Log::info('playerCardPrice called', [
-            'room_id' => $room->id,
-            'room_exists' => $room->exists,
-            'room_status' => $room->status?->code,
-            'room_deleted_at' => $room->deleted_at,
-        ]);
-
         $userId = $this->userContext->resolveUserId();
 
         return $this->handleServiceJson(

@@ -25,6 +25,7 @@ final class BingoRoomContextService
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
         private readonly \App\Contracts\UserRepositoryInterface $userRepository,
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencyRepository,
+        private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $generateService,
     ) {}
 
     /**
@@ -206,6 +207,7 @@ final class BingoRoomContextService
             customerId: null,
             creatorUser: null,
             dateTimeRooms: $dateTimeRooms,
+            cardPrices: $isPlayer ? $this->getPlayerCardPriceForContext($userId) : null,
         );
     }
 
@@ -224,5 +226,33 @@ final class BingoRoomContextService
             ->first();
 
         return $exchangeRate ? (float) $exchangeRate->amount : 1.0;
+    }
+
+    /**
+     * Obtener precio del cartón para el contexto (para cada sala)
+     *
+     * @param int $userId ID del usuario
+     * @return array|null
+     */
+    private function getPlayerCardPriceForContext(int $userId): ?array
+    {
+        try {
+            // Obtener todas las salas activas para el jugador
+            $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, now()->toDateString(), true);
+            
+            if ($rooms->isEmpty()) {
+                return null;
+            }
+            
+            // Obtener precios para cada sala
+            $roomPrices = [];
+            foreach ($rooms as $room) {
+                $roomPrices[$room->id] = $this->generateService->getPlayerCardPrice($room->id, $userId);
+            }
+            
+            return $roomPrices;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 }

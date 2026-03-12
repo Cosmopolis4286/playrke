@@ -32,20 +32,34 @@ final class BingoGameRoomsDTO implements ContextDTO
         public readonly ?string $creatorUser,
         /** Datos de fecha/hora del servidor + lista de salas para countdown */
         public readonly ?array $dateTimeRooms,
+        /** Precios del cartón para jugadores (por sala) */
+        public readonly ?array $cardPrices,
     ) {}
 
     public function toView(): array
     {
-        return [
-            'title'         => 'Salas de Juego',
-            'rooms'         => $this->rooms->map(fn($room) => array_merge(
+        $roomsWithPrices = $this->rooms->map(function($room) {
+            $roomData = array_merge(
                 $room->toArray(),
                 [
                     'status_code' => $room->status?->code ?? 'ACTIVE',
                     'room_type'   => $room->config?->roomType?->code ?? 'PUBLIC',
                     'id'          => $room->getRouteKey(), // Usar ID hasheado para route binding
                 ],
-            ))->values()->all(),
+            );
+            
+            // Agregar precio del cartón si está disponible para esta sala
+            if ($this->cardPrices && isset($this->cardPrices[$room->id])) {
+                $roomData['card_price'] = $this->cardPrices[$room->id]['card_price'];
+                $roomData['currency_symbol'] = $this->cardPrices[$room->id]['currency_symbol'];
+            }
+            
+            return $roomData;
+        })->values()->all();
+
+        return [
+            'title'         => 'Salas de Juego',
+            'rooms'         => $roomsWithPrices,
             'exchangeRate'  => $this->exchangeRate,
             'currencySym'   => $this->currencySym,
             'currency'      => $this->currency,
@@ -55,6 +69,7 @@ final class BingoGameRoomsDTO implements ContextDTO
             'customerId'    => $this->customerId,
             'creatorUser'   => $this->creatorUser,
             'dateTimeRooms' => $this->dateTimeRooms,
+            'cardPrices'    => $this->cardPrices,
         ];
     }
 }

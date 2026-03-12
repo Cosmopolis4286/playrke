@@ -692,8 +692,8 @@ final class BingoCardGenerateService
         $cardPrice = $priceInfo['card_price'];
         $totalAmount = $cardPrice * $numCtns;
         
-        // Obtener billetera activa del jugador
-        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['currency_id']);
+        // Obtener billetera activa del jugador con saldo
+        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['id', 'currency_id', 'balance']);
         
         if ($activeWallets->isEmpty()) {
             throw new DomainException('El jugador no tiene billeteras activas configuradas');
@@ -701,6 +701,12 @@ final class BingoCardGenerateService
         
         $playerWallet = $activeWallets->first();
         $currencyId = $playerWallet->currency_id;
+        $currentBalance = (float) $playerWallet->balance;
+        
+        // Verificar que tenga saldo suficiente
+        if ($currentBalance < $totalAmount) {
+            throw new DomainException('Saldo insuficiente en la billetera. Saldo actual: ' . $currentBalance . ', Monto requerido: ' . $totalAmount);
+        }
         
         // Preparar array para cartonStore (versión simplificada para jugadores)
         $arrCtn = [
@@ -721,6 +727,10 @@ final class BingoCardGenerateService
         
         // Ejecutar transacción atómica para generar cartones
         $result = $this->cardGenerationService->generateInTransaction($arrCtn, $room, $totalAmount);
+        
+        // Descontar el monto de la billetera del jugador
+        $newBalance = $currentBalance - $totalAmount;
+        $this->walletRepository->updateBalance($playerWallet->id, $newBalance);
 
         return [
             'message' => 'Cartones generados exitosamente',
@@ -729,6 +739,7 @@ final class BingoCardGenerateService
             'prize_pool' => $room->prize_pool + $totalAmount,
             'currency' => $priceInfo['currency_symbol'],
             'room_user' => $result['roomUser'] ?? null,
+            'wallet_balance' => $newBalance,
         ];
     }
 
