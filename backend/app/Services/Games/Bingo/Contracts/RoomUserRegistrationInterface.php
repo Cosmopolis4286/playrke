@@ -15,9 +15,9 @@ interface RoomUserRegistrationInterface
      *
      * @param BingoRoom $room Sala de bingo
      * @param array $userData Datos del usuario incluyendo creator, room, numOfCtns, etc.
-     * @return string|null ID del usuario registrado o null si falla
+     * @return array{id: string, isNew: bool}|null Resultado con ID e indicador de nuevo usuario, o null si falla
      */
-    public function registerOrUpdateRoomUser(BingoRoom $room, array $userData): ?string;
+    public function registerOrUpdateRoomUser(BingoRoom $room, array $userData): ?array;
 
     /**
      * Validar los datos del usuario antes del registro

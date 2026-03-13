@@ -131,6 +131,17 @@ class BingoRoomCrudService
                 // Sincronizar rondas
                 $this->syncRounds($room->id, $dto->roundsConfig ?? []);
 
+                // Broadcast de actualización en tiempo real para clientes activos
+                $freshRoom = $room->fresh(['config']);
+                if ($freshRoom) {
+                    broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
+                        roomId:       (string) $freshRoom->id,
+                        prizePool:    (float)  $freshRoom->prize_pool,
+                        totalPlayers: (int)    $freshRoom->total_players,
+                        cardPriceUsd: (float) ($freshRoom->config?->card_price_usd ?? 0),
+                    ));
+                }
+
                 return true;
             } catch (\Exception $e) {
                 throw new BingoRoomException('Error al guardar la sala: ' . $e->getMessage());
@@ -316,7 +327,7 @@ class BingoRoomCrudService
      */
     private function resolveCreatorTimezone(int $userId): string
     {
-        $tzName = \App\Models\User::where('id', $userId)
+        $tzName = \App\Models\User::where('users.id', $userId)
             ->join('time_zones', 'users.time_zone_id', '=', 'time_zones.id')
             ->value('time_zones.name');
 

@@ -67,11 +67,20 @@ const prizePoolFormatted = computed(() =>
   (props.room.prize_pool * props.exchangeRate).toFixed(2),
 )
 
-/** Precio del cartón formateado con tasa de cambio */
+/** Precio del cartón formateado:
+ *  - Si la sala trae card_price ya convertido (players), úsalo directamente.
+ *  - Si no, aplica exchangeRate sobre card_price_usd de config.
+ */
 const cardPriceFormatted = computed(() => {
-  const price = props.room.config?.card_price ?? 0
+  if (props.room.card_price != null) return props.room.card_price.toFixed(2)
+  const price = props.room.config?.card_price_usd ?? 0
   return (price * props.exchangeRate).toFixed(2)
 })
+
+/** Símbolo de moneda efectivo para el precio del cartón */
+const effectiveCurrencySym = computed(() =>
+  props.room.currency_symbol ?? props.currencySym
+)
 
 /** Cartones del jugador en esta sala */
 const playerCtns = computed(() => props.room.players_room?.[0]?.ctns ?? 0)
@@ -174,7 +183,7 @@ function handleCtnsInput(event: Event): void {
         <div class="room-card__meta">
           <div class="room-card__meta-item">
             <i class="fas fa-ticket-alt" />
-            <span>{{ cardPriceFormatted }} {{ currencySym }}</span>
+            <span>{{ cardPriceFormatted }} {{ effectiveCurrencySym }}</span>
           </div>
           <div class="room-card__meta-item">
             <i class="fas fa-users" />

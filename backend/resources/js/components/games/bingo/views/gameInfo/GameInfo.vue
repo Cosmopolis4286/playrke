@@ -26,10 +26,10 @@
 import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 
 import axios from '@js/plugins/axios';
-import echo from "@/plugins/echo";
+import echo from "@js/plugins/echo";
 
-import BingoBoard from "@/components/games/bingo/views/gameInfo/BingoBoard.vue";
-import NumberCaller from "@/components/games/bingo/views/gameInfo/NumberCaller.vue";
+import BingoBoard from "@js/Components/Games/Bingo/views/gameInfo/BingoBoard.vue";
+import NumberCaller from "@js/Components/Games/Bingo/views/gameInfo/NumberCaller.vue";
 
 const props = defineProps({
   data: {

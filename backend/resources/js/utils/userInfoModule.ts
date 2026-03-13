@@ -5,7 +5,7 @@
  * @module userInfoModule
  */
 
-import axios from "@/plugins/axios";
+import axios from "@js/plugins/axios";
 
 /**
  * Inicializa los eventos para mostrar la información de un usuario en un modal.

@@ -15,7 +15,6 @@ import { visualizer } from 'rollup-plugin-visualizer'
 const cssFiles = [
   'resources/css/global/styles.css',
   'resources/css/global/loader.css',
-  'resources/css/global/auth-pages.css'
 ]
 
 // ---------------------------------------------

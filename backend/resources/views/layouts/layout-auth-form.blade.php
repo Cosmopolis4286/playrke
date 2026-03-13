@@ -13,7 +13,7 @@
     <link rel="icon" href="{{ asset('img/fav.ico') }}" sizes="192x192">
     <link rel="stylesheet" href="{{ asset('css/notyf.min.css') }}">
     <link rel="stylesheet" href="{{ asset('template/plugins/fontawesome/css/all.min.css') }}">
-    @vite(['resources/css/global/styles.css', 'resources/css/global/auth-pages.css'])
+    @vite(['resources/css/global/styles.css'])
     <title>PlayRKE - @yield('title')</title>
 </head>
 

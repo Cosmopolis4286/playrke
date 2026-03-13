@@ -1,5 +1,5 @@
 import type { CommerceRoutes, CommerceAdminRouteName } from './commerceRoutesType';
-import { commerceRoutes } from '../../commerceRoutes';
+import { commerceRoutes } from '../../../commerceRoutes';
 
 export const commercePublicRoutes: Pick<CommerceRoutes, CommerceAdminRouteName> = {
   prizes: commerceRoutes.prizes,

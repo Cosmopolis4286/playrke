@@ -60,7 +60,7 @@ export function useGameRoomEcho(rooms: Ref<BingoGameRoom[]>): void {
       total_players: payload.total_players,
       // Actualizar card_price_usd dentro de config si existe
       config: room.config
-        ? { ...room.config, card_price: payload.card_price_usd }
+        ? { ...room.config, card_price_usd: payload.card_price_usd }
         : room.config,
     }
   }

@@ -1,5 +1,5 @@
-import { useCrudForm } from '@/js/composables/form/useCrudForm'
-import { handleOtherCases } from '../services/crudOtherCasesService'
+import { useCrudForm } from '@js/composables/form/useCrudForm'
+import { handleOtherCases } from '@js/helpers/form/services/crudOtherCasesService'
 
 /**
  * Composable que provee la función para ejecutar acciones CRUD,

@@ -1,6 +1,6 @@
-import { formCrudState as crud } from '../state/formCrudState'
-import { resetForm } from '../formHelpers'
-import { getInfo } from '../services/getInfoService'
+import { formCrudState as crud } from '@js/helpers/form/state/formCrudState'
+import { resetForm } from '@js/helpers/form/formHelpers'
+import { getInfo } from '@js/helpers/form/services/getInfoService'
 import { buildRoute, buildParamsForSinglePlaceholder } from '@js/routes/helper'
 
 /**

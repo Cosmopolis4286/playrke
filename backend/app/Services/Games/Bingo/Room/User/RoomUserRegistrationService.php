@@ -17,9 +17,9 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
      *
      * @param BingoRoom $room Sala de bingo
      * @param array $userData Datos del usuario
-     * @return string|null ID del usuario registrado o null si falla
+     * @return array{id: string, isNew: bool}|null Resultado con ID e indicador de nuevo usuario, o null si falla
      */
-    public function registerOrUpdateRoomUser(BingoRoom $room, array $userData): ?string
+    public function registerOrUpdateRoomUser(BingoRoom $room, array $userData): ?array
     {
         try {
             // Validar datos del usuario
@@ -30,6 +30,7 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
 
             // Buscar usuario existente
             $roomUser = $this->findRoomUser($userData['roomUser'] ?? null);
+            $isNew = false;
 
             if (!$roomUser) {
                 // Crear nuevo usuario
@@ -37,6 +38,7 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
                 if (!$roomUser) {
                     return null;
                 }
+                $isNew = true;
             } else {
                 // Actualizar cartones del usuario existente
                 if (!$this->updateUserCards($roomUser, $userData['numOfCtns'])) {
@@ -44,7 +46,7 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
                 }
             }
 
-            return $roomUser->id;
+            return ['id' => $roomUser->id, 'isNew' => $isNew];
         } catch (\Throwable $e) {
             Log::error('Error al registrar o actualizar el usuario de sala: ' . $e->getMessage());
             Log::error('Datos userData:', $userData);

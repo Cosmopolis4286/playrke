@@ -19,20 +19,20 @@ import "@/css/games/bingo/bingo-game-rooms.css";
 // ==========================================================================
 // Services
 // ==========================================================================
-import { AuthService } from "@/js/Services/authService";
+import { AuthService } from "@js/Services/authService";
 
 // ==========================================================================
 // Componentes
 // ==========================================================================
-import BingoGameRoomCard from "@/js/Components/Games/Bingo/Room/GameRooms/BingoGameRoomCard.vue";
-import BingoPurchaseModal from "@/js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModal.vue";
+import BingoGameRoomCard from "@js/Components/Games/Bingo/Room/GameRooms/BingoGameRoomCard.vue";
+import BingoPurchaseModal from "@js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModal.vue";
 
 // ==========================================================================
 // Composables
 // ==========================================================================
-import { useGameRoomCountdown } from "@/js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
-import { useGameRoomEcho } from "@/js/composables/games/bingo/room/game-rooms/useGameRoomEcho";
-import { useGameRoomPurchaseModal } from "@/js/composables/games/bingo/card/purchase-modal/useGameRoomPurchaseModal";
+import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
+import { useGameRoomEcho } from "@js/composables/games/bingo/room/game-rooms/useGameRoomEcho";
+import { useGameRoomPurchaseModal } from "@js/composables/games/bingo/card/purchase-modal/useGameRoomPurchaseModal";
 
 // ==========================================================================
 // Types
@@ -40,7 +40,7 @@ import { useGameRoomPurchaseModal } from "@/js/composables/games/bingo/card/purc
 import type {
   BingoGameRoomsPageProps,
   BingoGameRoom,
-} from "@/js/types/games/bingo/room/game-rooms/bingo-game-room";
+} from "@js/types/games/bingo/room/game-rooms/bingo-game-room";
 
 // ==========================================================================
 // Props (Inertia)

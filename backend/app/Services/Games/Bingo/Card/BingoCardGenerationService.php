@@ -91,11 +91,14 @@ final class BingoCardGenerationService
             $saleAmount = round($numOfCtns * $arrCtn['cardPrice'], 2);
 
             // Registrar o actualizar el usuario en la sala
-            $roomUserId = $this->roomUserRegistration->registerOrUpdateRoomUser($room, $arrCtn);
+            $roomUserResult = $this->roomUserRegistration->registerOrUpdateRoomUser($room, $arrCtn);
 
-            if (!$roomUserId) {
+            if (!$roomUserResult) {
                 throw new \DomainException('Error al registrar usuario en la sala');
             }
+
+            $roomUserId = $roomUserResult['id'];
+            $isNewRoomUser = $roomUserResult['isNew'];
 
             // Anexar atributo al array
             $arrCtn['roomUser'] = $roomUserId;
@@ -112,6 +115,11 @@ final class BingoCardGenerationService
 
             if (!$updateRoomMetrics) {
                 throw new \DomainException('Error al actualizar los valores de la sala');
+            }
+
+            // Incrementar total_players solo si es un nuevo jugador en la sala
+            if ($isNewRoomUser) {
+                $this->roomMetrics->updatePlayerCount($room);
             }
 
             // Crear lote de cartones

@@ -2,20 +2,20 @@
 import { computed, ref, watch, nextTick } from "vue";
 
 // Components
-import FormInput from "@/js/Components/Common/Form/FormInput.vue";
-import FormSelect from "@/js/Components/Common/Form/FormSelect.vue";
-import FormSwitch from "@/js/Components/Common/Form/FormSwitch.vue";
+import FormInput from "@js/Components/Common/Form/FormInput.vue";
+import FormSelect from "@js/Components/Common/Form/FormSelect.vue";
+import FormSwitch from "@js/Components/Common/Form/FormSwitch.vue";
 
 // Composables
-import { useAdminCustomerForm } from "@/js/composables/roles/admin/customer/useAdminCustomerForm";
-import { usePhoneField } from "@/js/composables/form/usePhoneField";
+import { useAdminCustomerForm } from "@js/composables/roles/admin/customer/useAdminCustomerForm";
+import { usePhoneField } from "@js/composables/form/usePhoneField";
 
 // Types
-import type { Currency } from "@/js/types/currency";
-import type { Country } from "@/js/types/country";
-import type { TimeZone } from "@/js/types/time-zone";
-import type { Game } from "@/js/types/game";
-import type { Customer } from "@/js/types/roles/customer/customer";
+import type { Currency } from "@js/types/currency";
+import type { Country } from "@js/types/country";
+import type { TimeZone } from "@js/types/time-zone";
+import type { Game } from "@js/types/game";
+import type { Customer } from "@js/types/roles/customer/customer";
 
 /* ==========================================================================
  * Props
