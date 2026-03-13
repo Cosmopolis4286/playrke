@@ -47,7 +47,7 @@ final class WalletService
      */
     public function deposit(string $walletId, float $amount): Wallet
     {
-        return DB::transaction(function () use ($walletId, $amount) {
+        $wallet = DB::transaction(function () use ($walletId, $amount) {
             $wallet = $this->findOwnedWallet($walletId);
 
             if ($wallet->isBlocked()) {
@@ -69,10 +69,13 @@ final class WalletService
                 'description'    => 'Depósito manual',
             ]);
 
-            $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_DEPOSIT, $amount);
-
             return $wallet;
         });
+
+        // Broadcast FUERA de la transacción: garantiza que el commit ya ocurrió
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_DEPOSIT, $amount);
+
+        return $wallet;
     }
 
     /**
@@ -80,7 +83,7 @@ final class WalletService
      */
     public function withdraw(string $walletId, float $amount): Wallet
     {
-        return DB::transaction(function () use ($walletId, $amount) {
+        $wallet = DB::transaction(function () use ($walletId, $amount) {
             $wallet = $this->findOwnedWallet($walletId);
 
             if ($wallet->isBlocked()) {
@@ -106,10 +109,13 @@ final class WalletService
                 'description'    => 'Retiro manual',
             ]);
 
-            $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);
-
             return $wallet;
         });
+
+        // Broadcast FUERA de la transacción: garantiza que el commit ya ocurrió
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);
+
+        return $wallet;
     }
 
     /**

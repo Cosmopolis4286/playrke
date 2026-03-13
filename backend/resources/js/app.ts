@@ -1,5 +1,6 @@
 // js/app.ts
 import '@js/utils/loader/loaderApp'
+import './plugins/echo' // inicializa Echo y lo expone en window.Echo para el navbar
 import { loadModule } from '@js/helpers/module/loadModule'
 import { initFormCrud } from '@js/helpers/form/formCrudLoadModule'
 import { initAppData, getAppData, type AppData } from '@js/core/appData'

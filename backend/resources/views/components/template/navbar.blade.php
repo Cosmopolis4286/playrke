@@ -1,6 +1,4 @@
-{{-- $navWallet es inyectado por NavbarComposer vía AppServiceProvider --}}
-@php $user = auth()->user() @endphp
-
+{{-- $navWallet y $navUser son inyectados por NavbarComposer vía AppServiceProvider --}}
 <nav class="main-header navbar navbar-expand navbar-bg justify-content-between">
 
     {{-- ── Izquierda: toggle + billetera ──────────────────── --}}
@@ -77,9 +75,9 @@
                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                     aria-label="Opciones de usuario">
                 <img class="mr-1 user-img rounded-circle"
-                     src="{{ $user->foto ? asset('img/users/' . $user->foto) : asset('img/fav.ico') }}"
-                     alt="{{ $user->username }}">
-                <span class="user-text-navbar">{{ $user->username }}</span>
+                     src="{{ $navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico') }}"
+                     alt="{{ $navUser->username }}">
+                <span class="user-text-navbar">{{ $navUser->username }}</span>
             </button>
             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown" style="font-size:13px">
                 <button id="change-password" class="dropdown-item" type="button">
@@ -196,9 +194,19 @@
         }, 400);
     });
 
-    // ── Inicializar Echo y suscribirse al canal ───────────────
+    // ── Actualización directa desde Vue (sin WebSocket) ──────
+    // useWallet.ts emite este evento al completar deposit/withdraw
+    window.addEventListener('wallet:updated', function (e) {
+        var d = e.detail;
+        updateBalance({
+            balance:         d.balance,
+            currency_symbol: d.currency_symbol,
+        });
+    });
+
+    // ── WebSocket: Reverb / Echo ──────────────────────────────
+    // Complementario: también escucha el canal privado si Reverb corre.
     // echo.ts asigna window.Echo al cargar el bundle Vite (async).
-    // Reintentamos hasta que esté disponible.
     function boot() {
         if (!window.Echo) { setTimeout(boot, 250); return; }
 

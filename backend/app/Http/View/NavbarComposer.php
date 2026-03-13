@@ -11,7 +11,7 @@ class NavbarComposer
     public function compose(View $view): void
     {
         if (! Auth::check()) {
-            $view->with('navWallet', null);
+            $view->with(['navWallet' => null, 'navUser' => null]);
             return;
         }
 
@@ -20,6 +20,9 @@ class NavbarComposer
             ->where('status', 'ACTIVE')
             ->first();
 
-        $view->with('navWallet', $wallet);
+        $view->with([
+            'navWallet' => $wallet,
+            'navUser'   => Auth::user(),
+        ]);
     }
 }

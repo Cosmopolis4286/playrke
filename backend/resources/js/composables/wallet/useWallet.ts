@@ -133,6 +133,17 @@ export function useWallet(initialWallets: Wallet[]) {
           }
         }
 
+        // Notificar al navbar Blade directamente (no depende de WebSocket)
+        if (data.balance !== undefined && activeWallet.value) {
+          window.dispatchEvent(new CustomEvent('wallet:updated', {
+            detail: {
+              balance:         data.balance,
+              currency_symbol: activeWallet.value.currency.symbol,
+              decimal_places:  activeWallet.value.currency.decimal_places,
+            }
+          }))
+        }
+
         successMsg.value = data.message
         amount.value     = ''
 
