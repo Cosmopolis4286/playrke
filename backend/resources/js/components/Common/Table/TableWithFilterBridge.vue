@@ -23,6 +23,8 @@
     showCreateButton?: boolean
     showEditButton?: boolean
     showDeleteButton?: boolean
+    disableEdit?: boolean | ((selectedIds: string[]) => boolean)
+    disableEditReason?: string | ((selectedIds: string[]) => string)
     disableDelete?: boolean | ((selectedIds: string[]) => boolean)
     disableDeleteReason?: string | ((selectedIds: string[]) => string)
     extraButtons?: ExtraButton[]
@@ -158,6 +160,24 @@
     emit('selection-change', [...ids])
   }
 
+   /**
+   * Resolver estado de deshabilitado para botón edit.
+   */
+  const resolvedDisableEdit = computed(() =>
+    typeof props.disableEdit === 'function'
+      ? props.disableEdit(selectedIds.value)
+      : (props.disableEdit ?? false)
+  )
+
+  /**
+   * Resolver razón de deshabilitado para edit.
+   */
+  const resolvedDisableEditReason = computed(() =>
+    typeof props.disableEditReason === 'function'
+      ? props.disableEditReason(selectedIds.value)
+      : (props.disableEditReason ?? '')
+  )
+
   /**
    * Resolver estado de deshabilitado para botón delete.
    */
@@ -191,6 +211,8 @@
     :show-create-button="props.showCreateButton"
     :show-edit-button="props.showEditButton"
     :show-delete-button="props.showDeleteButton"
+    :disable-edit="resolvedDisableEdit"
+    :disable-edit-reason="resolvedDisableEditReason"
     :disable-delete="resolvedDisableDelete"
     :disable-delete-reason="resolvedDisableDeleteReason"
     @create="actionHandlers.create"

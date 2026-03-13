@@ -153,7 +153,7 @@ final class BingoRoomAutomaticController extends Controller
     }
 
     /**
-     * Copiar una sala automatica de bingo como nuevo borrador (status DRAFT).
+     * Copiar una sala automatica de bingo (status INACTIVE).
      *
      * @param BingoRoomAutomatic $room
      * @return JsonResponse

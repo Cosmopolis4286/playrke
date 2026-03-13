@@ -31,7 +31,7 @@ final class BingoRoomController extends Controller
      */
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
-        private readonly \App\Services\Games\Bingo\Room\BingoRoomContextService $service,
+        private readonly \App\Services\Games\Bingo\Room\BingoRoomService $service,
         private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $generateService,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
@@ -154,7 +154,7 @@ final class BingoRoomController extends Controller
     }
 
     /**
-     * Copiar una sala de bingo como nuevo borrador (status DRAFT).
+     * Copiar una sala de bingo (status INACTIVE).
      *
      * @param BingoRoom $room
      * @return JsonResponse
@@ -176,7 +176,7 @@ final class BingoRoomController extends Controller
         return $this->handleServiceInertia(
             function () {
                 $userId = $this->userContext->resolveUserId();
-                $response = $this->service->context('game-rooms', $userId)->toView();
+                $response = $this->service->context('game-rooms', $userId);
 
                 return Inertia::render('Games/Bingo/Room/GameRooms', $response);
             },

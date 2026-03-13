@@ -11,12 +11,11 @@ use Illuminate\Support\Collection;
 enum GameStatusEnum: string
 {
     // Valores genéricos temporales (para autocompletado)
-    case NONE    = 'NONE';
-    case DRAFT   = 'DRAFT';
-    case ACTIVE  = 'ACTIVE';
+    case INACTIVE = 'INACTIVE';
+    case ACTIVE = 'ACTIVE';
     case IN_PROGRESS = 'IN_PROGRESS';
     case FINISHED = 'FINISHED';
-    case CLOSED  = 'CLOSED';
+    case CLOSED = 'CLOSED';
 
     /**
      * Retorna una etiqueta legible para UI.
@@ -27,8 +26,7 @@ enum GameStatusEnum: string
     {
         $status = GameStatus::where('id', $this->id)->first();
         return $status->label ?? match ($this) {
-            self::NONE => 'N/D',
-            self::DRAFT => 'Borrador',
+            self::INACTIVE => 'Inactiva',
             self::ACTIVE => 'Activa',
             self::IN_PROGRESS => 'En Progreso',
             self::FINISHED => 'Finalizada',

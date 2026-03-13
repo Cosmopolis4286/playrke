@@ -72,7 +72,6 @@ const emptyFormData = (): BingoRoomAutomaticFormData => ({
     prizePoolType: null,
     allowedCurrencies: [],
     amountAddedPrizePool: null,
-    rkeCommission: null,
     roomCommn: 20,
     jackpotPct: null,
     timeChip: 5,
@@ -214,7 +213,6 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
                 prizePoolType: config.prize_pool_type_id ?? null,
                 allowedCurrencies: room.allowed_currencies ?? [],
                 amountAddedPrizePool: config.amount_added_prize_pool ?? null,
-                rkeCommission: config.rke_commission ?? null,
                 roomCommn: config.room_commission ?? 20,
                 jackpotPct: config.jackpot_pct ?? null,
                 timeChip: config.time_chip ?? 5,
@@ -282,7 +280,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
     }
 
     /**
-     * Copiar sala de bingo como nuevo borrador (status DRAFT)
+     * Copiar sala de bingo (status INACTIVE)
      */
     async function copyRoom(id: string | number): Promise<boolean> {
         const room = rooms.value.find(c => c.id === id)

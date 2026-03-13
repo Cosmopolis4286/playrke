@@ -38,7 +38,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
 
     private function seedGameStatuses(): void
     {
-        $statuses = ['NONE', 'DRAFT', 'ACTIVE', 'INACTIVE', 'DELETED', 'CLOSED', 'IN_PROGRESS', 'FINISHED', 'REFUND', 'OFFLINE'];
+        $statuses = ['ACTIVE', 'INACTIVE', 'DELETED', 'CLOSED', 'IN_PROGRESS', 'FINISHED', 'REFUND', 'OFFLINE'];
         foreach ($statuses as $code) {
             if (!GameStatus::where('code', $code)->exists()) {
                 GameStatus::create(['code' => $code, 'label' => $code]);
@@ -229,8 +229,8 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $this->assertEquals(1, BingoRoom::count());
 
         $room = BingoRoom::first();
-        $draftId = GameStatus::where('code', 'DRAFT')->value('id');
-        $this->assertEquals($draftId, $room->status_id);
+        $inactiveId = GameStatus::where('code', 'INACTIVE')->value('id');
+        $this->assertEquals($inactiveId, $room->status_id);
         $this->assertEquals($template->creator_user_id, $room->creator_user_id);
         $this->assertEquals((float) $template->rke_commission, (float) $room->rke_commission);
         $this->assertEquals((float) $template->room_commission, (float) $room->room_commission);

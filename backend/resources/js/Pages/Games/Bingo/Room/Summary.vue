@@ -2,7 +2,7 @@
   /**
    * Página Juego BINGO → GameRoom/Summary
    */
-  import { computed } from 'vue'
+  import { computed, ref, onMounted, onUnmounted } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -45,6 +45,13 @@
     removeBulk,
     submit
   } = useBingoRoom()
+
+  // Key forzar re-render de la tabla
+  const tableKey = ref(0)
+
+  const forceTableRefresh = () => {
+    tableKey.value++
+  }
 
   setInitialRooms(props.rooms.rows)
 
@@ -235,10 +242,20 @@
   ]
 
   const subtitle = `<a title="Ir a configuración del Bingo" href="/bingo/config" class="text-primary font-weight-bold">Ir a configuración</a>`
+
+// Escuchar actualizaciones de salas
+onMounted(() => {
+    window.addEventListener('bingo-room-updated', forceTableRefresh)
+})
+
+onUnmounted(() => {
+    window.removeEventListener('bingo-room-updated', forceTableRefresh)
+})
 </script>
 
 <template>
   <TableWithFilterBridge
+    :key="tableKey"
     tableId="bingo-room-table"
     :title="props.title"
     :subtitle="subtitle"
@@ -249,6 +266,8 @@
     showCreateButton
     showEditButton
     showDeleteButton
+    :disable-edit="hasPlayers"
+    disable-edit-reason="No se puede editar una sala con jugadores registrados"
     :disable-delete="hasPlayers"
     disable-delete-reason="No se puede eliminar una sala con jugadores registrados"
     :extra-buttons="extraButtons"

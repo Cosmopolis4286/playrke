@@ -112,7 +112,6 @@ export interface CreateRoomRequest {
   maxPlayers?: number;
   maxCards?: number;
   allSale?: boolean;
-  rkeCommission?: number;
   roomCommission?: number;
   sellerCommission?: number;
   fullHousePrize?: number;

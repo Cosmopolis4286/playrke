@@ -10,8 +10,6 @@ class GameStatusSeeder extends Seeder
     public function run(): void
     {
         $statuses = [
-            ['code' => 'NONE',        'label' => 'N/D'],
-            ['code' => 'DRAFT',       'label' => 'Borrador'],
             ['code' => 'ACTIVE',      'label' => 'Activa'],
             ['code' => 'INACTIVE',    'label' => 'Inactiva'],
             ['code' => 'DELETED',     'label' => 'Eliminada'],

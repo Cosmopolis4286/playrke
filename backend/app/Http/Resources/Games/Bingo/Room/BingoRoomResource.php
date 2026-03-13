@@ -8,7 +8,7 @@ class BingoRoomResource extends JsonResource
 {
     public function toArray($request): array
     {
-        $config  = $this->config->first();
+        $config  = $this->config;
 
         return [
             'id'                 => $this->hashed_id,

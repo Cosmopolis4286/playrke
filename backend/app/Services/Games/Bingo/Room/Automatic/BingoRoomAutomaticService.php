@@ -69,7 +69,7 @@ final class BingoRoomAutomaticService
     }
 
     /**
-     * Copiar una sala de bingo existente como nuevo borrador (status DRAFT).
+     * Copiar una sala de bingo existente (status INACTIVE).
      *
      * @param BingoRoomAutomatic $room Model
      * @return bool

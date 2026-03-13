@@ -27,6 +27,8 @@
     showCreateButton?: boolean
     showEditButton?: boolean
     showDeleteButton?: boolean
+    disableEdit?: boolean
+    disableEditReason?: string
     disableDelete?: boolean
     disableDeleteReason?: string
   }>()
@@ -97,6 +99,8 @@
         :show-create-button="showCreateButton"
         :show-edit-button="showEditButton"
         :show-delete-button="showDeleteButton"
+        :disable-edit="props.disableEdit ?? false"
+        :disable-edit-reason="props.disableEditReason ?? ''"
         :disable-delete="props.disableDelete ?? false"
         :disable-delete-reason="props.disableDeleteReason ?? ''"
         @create="$emit('create')"
@@ -152,3 +156,4 @@
     background-color: rgba(0, 123, 255, 0.1) !important;
   }
 </style>
+

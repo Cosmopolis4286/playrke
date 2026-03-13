@@ -69,7 +69,7 @@ final class BingoCardService
     }
 
     /**
-     * Copiar una sala de bingo existente como nuevo borrador (status DRAFT).
+     * Copiar una sala de bingo existente (status INACTIVE).
      *
      * @param BingoRoom $room Model
      * @return bool

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
  * Modelo para la gestión de estados de juegos.
  *
  * Representa los diferentes estados que puede tener un juego
- * (ej. DRAFT, ACTIVE, FINISHED, CANCELLED, etc.)
+ * (ej. INACTIVE, ACTIVE, FINISHED, CANCELLED, etc.)
  */
 class GameStatus extends Model
 {

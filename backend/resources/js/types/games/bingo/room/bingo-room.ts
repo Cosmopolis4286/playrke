@@ -119,7 +119,6 @@ export interface BingoRoomFormData {
     prizePoolType?: number | string | null
     allowedCurrencies?: (number | string)[]
     amountAddedPrizePool?: number | null
-    rkeCommission?: number | null
     roomCommn?: number | null
     jackpotPct?: number | null
     timeChip?: number | null

@@ -74,57 +74,121 @@ class BingoRoomCrudService
             $isCreate = $roomOrDto instanceof BingoRoomCreateDTO;
             $dto = $isCreate ? $roomOrDto : $updateDto;
 
-            // Sala base (crear o usar existente)
-            $room = $isCreate ? $this->createBaseRoom($userId, $dto) : $roomOrDto;
+            try {
+                // Sala base (crear o usar existente)
+                $room = $isCreate ? $this->createBaseRoom($userId, $dto) : $roomOrDto;
 
-            // Resolver configuración y prize pool
-            ['rkeCommission' => $rkeCommission, 'prizePool' => $prizePool] = $this->resolveGameConfig($dto->prizePoolType, $dto->amountAddedPrizePool);
+                // Debug: Log del DTO recibido
+                \Log::info('DTO recibido en saveRoom', [
+                    'is_create' => $isCreate,
+                    'dto_data' => $dto,
+                    'room_id' => $room->id,
+                    'user_id' => $userId
+                ]);
 
-            // Unix timestamp
-            $unixDate = Carbon::createFromFormat('Y-m-d H:i', "{$dto->date} {$dto->time}")->timestamp;
+                // Resolver configuración y prize pool
+                ['rkeCommission' => $rkeCommission, 'prizePool' => $prizePool] = $this->resolveGameConfig($dto->prizePoolType, $dto->amountAddedPrizePool);
 
-            // Actualizar sala
-            $this->bingoRooms->update($room->id, ['prize_pool' => $prizePool]);
+                // Unix timestamp con validación
+                $dateTime = "{$dto->date} {$dto->time}";
+                \Log::info('DateTime para conversión', ['dateTime' => $dateTime]);
+                $unixDate = Carbon::createFromFormat('Y-m-d H:i', $dateTime)->timestamp;
 
-            // Configuración (create/update)
-            BingoRoomConfig::updateOrCreate(
-                ['room_id' => $room->id],
-                $this->buildConfigData($dto, $userId, $rkeCommission, $unixDate, $room->id, $isCreate)
-            );
+                // Debug: Log antes de actualizar sala
+                \Log::info('Actualizando sala', [
+                    'room_id' => $room->id,
+                    'prize_pool' => $prizePool,
+                    'current_prize_pool' => $room->prize_pool
+                ]);
 
-            // Actualizar comisión del creador y estado si es update
-            if (!$isCreate) {
-                BingoCreator::where('room_id', $room->id)
-                    ->where('user_id', $room->creator_user_id)
-                    ->update(['creator_commn' => $dto->roomCommission]);
+                // Actualizar sala
+                $updated = $this->bingoRooms->update($room->id, ['prize_pool' => $prizePool]);
 
-                // Aplicar activateRoom si viene explícito
-                if ($dto->activateRoom !== null) {
-                    $room->loadMissing('status');
-                    $currentCode = $room->status?->code ?? '';
-                    $allowedCodes = ['ACTIVE', 'INACTIVE', 'DRAFT'];
-                    if (in_array($currentCode, $allowedCodes, true)) {
-                        $newCode = $dto->activateRoom ? 'ACTIVE' : 'INACTIVE';
-                        if ($currentCode !== $newCode) {
-                            $this->bingoRooms->changeGameStatus($room->id, $newCode);
+                // Verificar que la sala se actualizó
+                $room->refresh();
+                \Log::info('Sala actualizada verificada', [
+                    'room_id' => $room->id,
+                    'new_prize_pool' => $room->prize_pool,
+                    'update_result' => $updated
+                ]);
+
+                // Debug: Log antes de configuración
+                \Log::info('Creando/actualizando configuración');
+
+                $configData = $this->buildConfigData($dto, $userId, $rkeCommission, $unixDate, $room->id, $isCreate);
+                \Log::info('Datos de configuración construidos', ['config_data' => $configData]);
+
+                // Configuración (create/update)
+                $config = BingoRoomConfig::updateOrCreate(
+                    ['room_id' => $room->id],
+                    $configData
+                );
+
+                \Log::info('Configuración guardada exitosamente', ['config_id' => $config->id, 'room_id' => $config->room_id]);
+
+                // Verificar que se guardó correctamente
+                $savedConfig = BingoRoomConfig::where('room_id', $room->id)->first();
+                \Log::info('Configuración verificada en BD', ['saved_config' => $savedConfig ? $savedConfig->toArray() : null]);
+
+                // Actualizar comisión del creador y estado si es update
+                if (!$isCreate) {
+                    \Log::info('Actualizando comisión del creador', [
+                        'room_id' => $room->id,
+                        'creator_user_id' => $room->creator_user_id,
+                        'commission' => $dto->roomCommission
+                    ]);
+
+                    BingoCreator::where('room_id', $room->id)
+                        ->where('user_id', $room->creator_user_id)
+                        ->update(['creator_commn' => $dto->roomCommission]);
+
+                    \Log::info('Comisión del creador actualizada');
+
+                    // Aplicar activateRoom si viene explícito
+                    if ($dto->activateRoom !== null) {
+                        \Log::info('Verificando activateRoom', ['activateRoom' => $dto->activateRoom]);
+                        $room->loadMissing('status');
+                        $currentCode = $room->status?->code ?? '';
+                        $allowedCodes = ['ACTIVE', 'INACTIVE'];
+                        if (in_array($currentCode, $allowedCodes, true)) {
+                            $newCode = $dto->activateRoom ? 'ACTIVE' : 'INACTIVE';
+                            if ($currentCode !== $newCode) {
+                                \Log::info('Cambiando estado', ['from' => $currentCode, 'to' => $newCode]);
+                                $this->bingoRooms->changeGameStatus($room->id, $newCode);
+                            }
                         }
                     }
                 }
+
+                \Log::info('Iniciando sincronización de precios de cartones');
+
+                // Sincronizar precios de cartones
+                $this->syncCardPrices(
+                    $room->id,
+                    $dto->allowedCurrencies,
+                    $dto->cardPriceUsd ?? 0,
+                    $dto->cardPriceByCurrency ?? [],
+                    $userId,
+                );
+
+                \Log::info('Precios de cartones sincronizados');
+
+                // Sincronizar rondas
+                \Log::info('Iniciando sincronización de rondas');
+                $this->syncRounds($room->id, $dto->roundsConfig ?? []);
+                \Log::info('Rondas sincronizadas');
+
+                \Log::info('saveRoom completado exitosamente');
+                return true;
+            } catch (\Exception $e) {
+                \Log::error('Error en saveRoom: ' . $e->getMessage(), [
+                    'room_id' => $roomOrDto->id ?? 'new',
+                    'is_create' => $isCreate,
+                    'user_id' => $userId,
+                    'trace' => $e->getTraceAsString()
+                ]);
+                throw new BingoRoomException('Error al guardar la sala: ' . $e->getMessage());
             }
-
-            // Sincronizar precios de cartones
-            $this->syncCardPrices(
-                $room->id,
-                $dto->allowedCurrencies,
-                $dto->cardPriceUsd ?? 0,
-                $dto->cardPriceByCurrency ?? [],
-                $userId,
-            );
-
-            // Sincronizar rondas
-            $this->syncRounds($room->id, $dto->roundsConfig ?? []);
-
-            return true;
         });
     }
 
@@ -146,8 +210,8 @@ class BingoRoomCrudService
         do {
             $uuidCode = strtoupper(Str::uuid()->toString());
         } while (BingoRoom::where('uuid_code', $uuidCode)->exists());
-
-        $statusCode = $dto->isDraft ? 'DRAFT' : 'ACTIVE';
+dd();
+        $statusCode = $dto->isDraft ? 'INACTIVE' : 'ACTIVE';
         $statusId = GameStatus::where('code', $statusCode)->value('id');
 
         $room = BingoRoom::create([
@@ -439,7 +503,7 @@ class BingoRoomCrudService
     }
 
     /**
-     * Copia una sala de bingo existente como nuevo borrador (status DRAFT).
+     * Copia una sala de bingo existente (status INACTIVE).
      * Replica configuración, precios de cartones y rondas.
      *
      * @param BingoRoom $room Sala a copiar

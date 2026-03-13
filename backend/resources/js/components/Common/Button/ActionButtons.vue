@@ -27,6 +27,18 @@
       default: true
     },
 
+    /** Deshabilita el botón Editar */
+    disableEdit: {
+      type: Boolean,
+      default: false
+    },
+
+    /** Razón por la que el botón Editar está deshabilitado */
+    disableEditReason: {
+      type: String,
+      default: ''
+    },
+
     /** Deshabilita el botón Eliminar */
     disableDelete: {
       type: Boolean,
@@ -85,8 +97,10 @@
     <!-- Editar (solo con 1 seleccionado) -->
     <button
       v-if="hasSingleSelect() && showEdit"
+      v-tooltip="{ content: disableEditReason, disabled: !disableEdit || !disableEditReason }"
       :class="['btn', 'btn-primary', btnSize()]"
       :title="`Editar`"
+      :disabled="disableEdit"
       @click="emit('edit', selectedIds[0])"
     >
       <i class="fas fa-edit" />

@@ -10,6 +10,8 @@
     selectedIds:         { type: Array as PropType<string[]>, required: true },
     showCreateButton:    { type: Boolean, default: true },
     showEditButton:      { type: Boolean, default: true },
+    disableEdit:         { type: Boolean, default: false },
+    disableEditReason:   { type: String,  default: '' },
     showDeleteButton:    { type: Boolean, default: true },
     disableDelete:       { type: Boolean, default: false },
     disableDeleteReason: { type: String,  default: '' }
@@ -27,6 +29,8 @@
     :selected-ids="selectedIds"
     :show-create="showCreateButton"
     :show-edit="showEditButton"
+    :disable-edit="disableEdit"
+    :disable-edit-reason="disableEditReason"
     :show-delete="showDeleteButton"
     :disable-delete="disableDelete"
     :disable-delete-reason="disableDeleteReason"
