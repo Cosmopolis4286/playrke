@@ -170,20 +170,24 @@ final class BingoRoomContextService
             ])->values()->all(),
         ];
 
-        // Configuración por defecto
+        // Commerce/seller/admin ven en USD (manejan múltiples monedas).
+        // Solo players usan la moneda de su país (moneda única fija).
         $exchangeRate = 1.0;
         $currencySym = 'USD';
 
-        $currentUserId = $this->userContext->resolveUserId();
-        $countryId = $this->userRepository->getValueById($currentUserId, 'country_id');
+        if ($isPlayer) {
+            $currentUserId = $this->userContext->resolveUserId();
+            $countryId = $this->userRepository->getValueById($currentUserId, 'country_id');
 
-        if ($countryId) {
-            $currencies = $this->currencyRepository->getByCountry($countryId, ['id', 'iso_code', 'symbol']);
-            $currency = $currencies->first();
+            if ($countryId) {
+                $playerCurrency = $this->currencyRepository
+                    ->getByCountry($countryId, ['id', 'iso_code', 'symbol'])
+                    ->first();
 
-            if ($currency) {
-                $currencySym = $currency->symbol;
-                $exchangeRate = $this->getPlayerExchangeRate($currency->id);
+                if ($playerCurrency) {
+                    $currencySym = $playerCurrency->symbol;
+                    $exchangeRate = $this->getPlayerExchangeRate($playerCurrency->id);
+                }
             }
         }
 
