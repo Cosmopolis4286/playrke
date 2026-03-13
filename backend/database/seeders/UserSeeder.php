@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Country;
 use App\Models\Currency;
+use App\Models\TimeZone;
 use App\Repositories\UserRepository;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -24,6 +25,12 @@ class UserSeeder extends Seeder
             if (!$venezuela) {
                 $this->command->warn('País Venezuela no encontrado. Ejecute CountriesSeeder primero.');
                 return;
+            }
+
+            $caracasTz = TimeZone::where('name', 'America/Caracas')->first();
+
+            if (!$caracasTz) {
+                $this->command->warn('⚠ TimeZone America/Caracas no encontrada. Ejecute TimeZoneSeeder primero.');
             }
 
             $userRepo = app(UserRepository::class);
@@ -110,6 +117,7 @@ class UserSeeder extends Seeder
                         'first_name'         => $data['first_name'],
                         'last_name'          => $data['last_name'],
                         'country_id'         => $venezuela->id,
+                        'time_zone_id'       => $caracasTz?->id,
                         'email_verified_at'  => now(),
                         'password'           => Hash::make($data['password']),
                         'remember_token'     => Str::random(10),
@@ -161,6 +169,20 @@ class UserSeeder extends Seeder
                         ]);
                         $this->command->info("  → Billetera VES creada para {$user->email}.");
                     }
+                }
+            }
+
+            // ================================
+            // Asignar timezone a usuarios demo existentes sin timezone
+            // ================================
+            if ($caracasTz) {
+                $demoEmails = array_column($demoUsers, 'email');
+                $updated = User::whereIn('email', $demoEmails)
+                    ->whereNull('time_zone_id')
+                    ->update(['time_zone_id' => $caracasTz->id]);
+
+                if ($updated > 0) {
+                    $this->command->info("  → time_zone_id America/Caracas asignada a {$updated} usuario(s) existente(s).");
                 }
             }
 

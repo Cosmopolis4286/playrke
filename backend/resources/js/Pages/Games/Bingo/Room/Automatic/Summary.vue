@@ -28,7 +28,7 @@
 
   import type { BingoRoomAutomaticSummaryPageProps } from '@/js/types/games/bingo/room/automatic/summary/bingo-room-automatic-summary-page'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
-  import type { TableFilter } from '@js/types/common/table/table-filter'
+  import type { TableFilterInterface } from '@js/types/common/table/table-filter'
 
   // ==========================================================================
   // Props (Inertia)
@@ -166,7 +166,7 @@
   // Filtros
   // ==========================================================================
 
-  const filters = computed<readonly TableFilter[]>(() => [
+  const filters = computed<readonly TableFilterInterface[]>(() => [
     {
       key: 'room_type_description',
       label: 'tipo',

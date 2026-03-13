@@ -85,9 +85,10 @@ class BingoRoomCrudService
                 // Resolver configuración y prize pool
                 ['rkeCommission' => $rkeCommission, 'prizePool' => $prizePool] = $this->resolveGameConfig($dto->prizePoolType, $dto->amountAddedPrizePool);
 
-                // Unix timestamp con validación
+                // Unix timestamp respetando la timezone del creador
                 $dateTime = "{$dto->date} {$dto->time}";
-                $unixDate = Carbon::createFromFormat('Y-m-d H:i', $dateTime)->timestamp;
+                $creatorTz = $this->resolveCreatorTimezone($userId);
+                $unixDate = Carbon::createFromFormat('Y-m-d H:i', $dateTime, $creatorTz)->timestamp;
 
                 // Datos a actualizar
                 $dataToUpdate = ['prize_pool' => $prizePool];
@@ -307,6 +308,22 @@ class BingoRoomCrudService
 
 
     /**
+     * Resuelve la timezone del creador a partir de su time_zone_id.
+     * Si no tiene timezone asignada, retorna UTC como fallback.
+     *
+     * @param int $userId ID del usuario creador
+     * @return string Nombre de la timezone (ej: "America/Caracas")
+     */
+    private function resolveCreatorTimezone(int $userId): string
+    {
+        $tzName = \App\Models\User::where('id', $userId)
+            ->join('time_zones', 'users.time_zone_id', '=', 'time_zones.id')
+            ->value('time_zones.name');
+
+        return $tzName ?? 'UTC';
+    }
+
+    /**
      * Sincroniza las rondas de una sala en bingo_rounds.
      * Elimina las rondas previas y recrea según el roundsConfig del DTO.
      *
@@ -430,9 +447,9 @@ class BingoRoomCrudService
             throw BingoRoomException::invalidStatusChange();
         }
 
-        // Bloquear si la fecha+hora de la sala ya expiró
+        // Bloquear si la fecha+hora de la sala ya expiró (comparar en UTC)
         $room->loadMissing('config');
-        if ($room->config && $room->config->unix_date <= Carbon::now()->timestamp) {
+        if ($room->config && $room->config->unix_date <= Carbon::now('UTC')->timestamp) {
             throw BingoRoomException::expiredRoomStatusLocked();
         }
 
