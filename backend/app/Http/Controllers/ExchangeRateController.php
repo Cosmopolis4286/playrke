@@ -6,6 +6,7 @@ use App\Factories\ExchangeRate\ExchangeRateFactory;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
 use App\Http\Support\PublicTokenResolver;
 use App\Services\ExchangeRate\ExchangeRateService;
+use App\Models\UserPreference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -218,6 +219,89 @@ class ExchangeRateController extends Controller
                 'data' => $this->service->updateRates($rates, $this->resolveToken($request)),
             ],
             'No se pudo actualizar los valores de las tasas de cambio.'
+        );
+    }
+
+    /**
+     * Activar el cronjob de actualización automática.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function enableCronjob(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request) {
+                // Guardar preferencia en la base de datos
+                $userId = auth()->id(); // null para preferencia global
+                UserPreference::setPreference(
+                    $userId, 
+                    UserPreference::CATEGORY_EXCHANGE_RATE, 
+                    'auto_update_enabled', 
+                    true
+                );
+                
+                return [
+                    'message' => 'Cronjob de actualización automática activado.',
+                    'enabled' => true
+                ];
+            },
+            'No se pudo activar el cronjob de actualización automática.'
+        );
+    }
+
+    /**
+     * Desactivar el cronjob de actualización automática.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function disableCronjob(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request) {
+                // Guardar preferencia en la base de datos
+                $userId = auth()->id(); // null para preferencia global
+                UserPreference::setPreference(
+                    $userId, 
+                    UserPreference::CATEGORY_EXCHANGE_RATE, 
+                    'auto_update_enabled', 
+                    false
+                );
+                
+                return [
+                    'message' => 'Cronjob de actualización automática desactivado.',
+                    'enabled' => false
+                ];
+            },
+            'No se pudo desactivar el cronjob de actualización automática.'
+        );
+    }
+
+    /**
+     * Obtener el estado actual de actualización automática.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getAutoUpdateStatus(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request) {
+                // Obtener preferencia desde la base de datos
+                $userId = auth()->id(); // null para preferencia global
+                $enabled = UserPreference::getPreference(
+                    $userId, 
+                    UserPreference::CATEGORY_EXCHANGE_RATE, 
+                    'auto_update_enabled', 
+                    false // valor por defecto
+                );
+                
+                return [
+                    'enabled' => (bool) $enabled
+                ];
+            },
+            'No se pudo obtener el estado del cronjob de actualización automática.'
         );
     }
 }

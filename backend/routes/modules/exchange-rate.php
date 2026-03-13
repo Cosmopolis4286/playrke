@@ -22,6 +22,9 @@ route_group(
         'delete'       => ['method' => 'put', 'uri' => '{id}/delete'],
         'destroy'      => ['method' => 'delete', 'uri' => '{id}'],
         'toggleStatus' => ['method' => 'put', 'uri' => '{id}/status'],
+        'enableCronjob'  => ['method' => 'post', 'uri' => 'cronjob/enable'],
+        'disableCronjob' => ['method' => 'post', 'uri' => 'cronjob/disable'],
+        'getAutoUpdateStatus' => ['method' => 'get', 'uri' => 'cronjob/status'],
     ]
 );
 

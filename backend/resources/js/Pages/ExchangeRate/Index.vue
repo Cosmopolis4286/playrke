@@ -2,6 +2,7 @@
   import { ref, computed, watch } from 'vue'
 
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
+  import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
   import ExchangeRateTable from '@js/Components/ExchangeRate/ExchangeRateTable.vue'
   import ExchangeRateForm from '@/js/Components/ExchangeRate/ExchangeRateForm.vue'
   import TableActionButtons from '@/js/Components/Common/Table/TableActionButtons.vue'
@@ -45,11 +46,18 @@
     toggleStatus,
     remove,
     updateExchangeRates,
-    submit
+    submit,
+    toggleAutoUpdate,
+    getAutoUpdateStatus
   } = useExchangeRate(props.tokenId)
 
   // Inicializar exchangeRates con las props
   setInitialExchangeRates(props.exchangeRates)
+
+  // Inicializar el estado del switch desde la base de datos
+  getAutoUpdateStatus().then(enabled => {
+    autoUpdateEnabled.value = enabled
+  })
 
   /**
    * IDs seleccionados en la tabla
@@ -67,6 +75,11 @@
    * Vive en el padre porque aquí vive la operación async
    */
   const updatingExchangeRates = ref(false)
+
+  /**
+   * Estado para controlar actualización automática via cronjob
+   */
+  const autoUpdateEnabled = ref(false)
 
   /**
    * Genera las monedas usadas en las tasas para presentación
@@ -162,6 +175,17 @@
   }
 
   /**
+   * Maneja el cambio del switch de actualización automática
+   */
+  async function handleAutoUpdateToggle(enabled: boolean): Promise<void> {
+    const success = await toggleAutoUpdate(enabled)
+    if (!success) {
+      // Revertir el estado si hay error
+      autoUpdateEnabled.value = !enabled
+    }
+  }
+
+  /**
    * Navega a la vista histórica de la tasa seleccionada
    */
   function goHistorical(): void {
@@ -179,6 +203,19 @@
     <CardHeader title="Tasas de Cambio" subtitle="Valores en base a Un Dólar (1 USD)" />
 
     <div class="card-body">
+      <!-- Switch de actualización automática -->
+      <div class="row">
+        <FormSwitch
+          name="auto-update"
+          class="ml-1 col-12"
+          label="¿Actualización automática?"
+          v-model="autoUpdateEnabled"
+          @update:modelValue="handleAutoUpdateToggle"
+        />
+      </div>
+
+      <hr class="mt-n2" />
+
       <TableActionButtons
         :selected-ids="selectedIds"
         :show-create-button="canCreate"
@@ -210,15 +247,15 @@
             <i class="fa-solid fa-money-bill-trend-up"></i> Histórico
           </button>
 
-          <!-- Actualizar tasas -->
+          <!-- Consultar Valores -->
           <button
             class="btn btn-sm btn-secondary"
             type="button"
             :disabled="updatingExchangeRates"
-            title="Actualizar Tasas"
+            title="Consultar Valores"
             @click="handleUpdateExchangeRates"
           >
-            <i class="fa-solid fa-rotate"></i> Actualizar
+            <i class="fa-solid fa-search"></i> Consultar
             <span
               v-if="updatingExchangeRates"
               class="spinner-border spinner-border-sm ml-1"
