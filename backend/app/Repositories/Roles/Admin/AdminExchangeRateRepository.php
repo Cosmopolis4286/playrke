@@ -140,10 +140,15 @@ class AdminExchangeRateRepository extends RoleExchangeRateRepository implements 
     public function getHistoryByCurrency($currencyId): Collection
     {
         return $this->model
-            ->with('currency')
+            ->with(['currency', 'user:id,first_name,last_name'])
             ->where('currency_id', $currencyId)
             ->orderByDesc('updated_at')
-            ->get();
+            ->get()
+            ->map(function ($rate) {
+                $rate->currency_name = $rate->currency?->name ?? '-';
+                $rate->user_name = $rate->user ? trim("{$rate->user->first_name} {$rate->user->last_name}") : '-';
+                return $rate;
+            });
     }
 
     /**

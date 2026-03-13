@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Currency;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -27,6 +28,7 @@ class ExchangeRate extends BaseModel
      */
     protected $fillable = [
         'currency_id',  // ID de la moneda
+        'user_id',      // ID del usuario que registró/actualizó
         'amount',       // Valor del tipo de cambio
         'percentage',   // Porcentaje de subida/bajada
         'status',       // Estado de la tasa
@@ -40,6 +42,7 @@ class ExchangeRate extends BaseModel
     protected $casts = [
         'id' => 'string',
         'currency_id' => 'string',
+        'user_id' => 'string',
         'amount' => 'decimal:4',
         'percentage' => 'decimal:3',
         'status' => 'string'
@@ -53,6 +56,11 @@ class ExchangeRate extends BaseModel
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class, 'currency_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**

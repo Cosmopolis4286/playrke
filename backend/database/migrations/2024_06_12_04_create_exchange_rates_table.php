@@ -15,6 +15,10 @@ return new class extends Migration
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la tasa de cambio');
 
+            $table->foreignSnowflake('user_id')
+                ->constrained('users')
+                ->comment('Usuario que registró/actualizó la tasa');
+
             $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')
                 ->cascadeOnUpdate()

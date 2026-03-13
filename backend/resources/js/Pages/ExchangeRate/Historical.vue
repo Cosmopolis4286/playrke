@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import { computed } from 'vue'
   import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
   import BaseTable from '@js/Components/Common/Table/BaseTable.vue'
   import TableFooterInfo from '@/js/Components/Common/Table/TableFooterInfo.vue'
@@ -8,13 +9,21 @@
 
   const props = defineProps<ExchangeRateHistoricalPageProps>()
 
-  const columns: Column[] = [
-    { key: 'currency_name', label: 'Moneda' },
-    { key: 'amount', label: 'Cambio' },
-    { key: 'percentage', label: '%' },
-    { key: 'status', label: 'Status' },
-    { key: 'created_at', label: 'Fecha' }
-  ]
+  const isAdmin = computed(() => props.roleUser === 'admin')
+
+  const columns = computed<Column[]>(() => {
+    const base: Column[] = [
+      { key: 'currency_name', label: 'Moneda' },
+      { key: 'amount', label: 'Cambio' },
+      { key: 'percentage', label: '%' },
+      { key: 'status', label: 'Status' },
+      { key: 'created_at', label: 'Fecha' }
+    ]
+    if (isAdmin.value) {
+      base.push({ key: 'user_name', label: 'Registrado por' })
+    }
+    return base
+  })
 
   const statusMap: Record<string, { text: string; class: string }> = {
     ACTIVE: { text: 'Activa', class: 'badge-success' },
@@ -71,6 +80,10 @@
 
         <template #cell-created_at="{ row }">
           {{ formatDate(row.created_at) }}
+        </template>
+
+        <template v-if="isAdmin" #cell-user_name="{ row }">
+          {{ row.user_name ?? '-' }}
         </template>
       </BaseTable>
 
