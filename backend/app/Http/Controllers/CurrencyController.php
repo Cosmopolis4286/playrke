@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Country;
 use App\Models\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -21,12 +22,15 @@ class CurrencyController extends Controller
             ->orderBy('name')
             ->get();
 
+        $countries = Country::orderBy('name')->get(['id', 'name', 'iso_code_2', 'iso_code_3']);
+
         $roleUser = Auth::user()?->roles?->first()?->prefix ?? 'guest';
 
         return Inertia::render('Currencies/Index', [
             'currencies' => $currencies,
-            'roleUser' => $roleUser,
-            'tokenId' => $request->get('token'),
+            'countries'  => $countries,
+            'roleUser'   => $roleUser,
+            'tokenId'    => $request->get('token'),
         ]);
     }
 

@@ -21,6 +21,7 @@ export interface Currency {
 
 export interface CurrencyPageProps {
     currencies: Currency[]
+    countries: Country[]
     roleUser: string
     tokenId?: string
 }

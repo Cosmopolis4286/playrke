@@ -34,6 +34,9 @@ interface UseCurrencyReturn {
     /** Elimina una moneda */
     remove: (id: string | number) => Promise<boolean>
 
+    /** Alterna el status de una moneda (ACTIVE ↔ INACTIVE) */
+    toggleStatus: (id: string | number) => Promise<boolean>
+
     /** Obtiene y actualiza la lista de monedas desde backend */
     fetchCurrencies: () => Promise<boolean>
 }
@@ -205,6 +208,37 @@ export function useCurrency(tokenId: string = ''): UseCurrencyReturn {
     }
 
     /**
+     * Alterna el status de una moneda (ACTIVE ↔ INACTIVE)
+     *
+     * @param id Identificador de la moneda
+     */
+    async function toggleStatus(id: string | number): Promise<boolean> {
+        const currency = currencies.value.find(c => c.id === id)
+        const name = currency?.name ?? ''
+        const currentStatus = currency?.status === 'ACTIVE' ? 'activa' : 'inactiva'
+        const nextStatus = currency?.status === 'ACTIVE' ? 'inactiva' : 'activa'
+
+        const confirm = await showToastConfirmAction({
+            html: `La moneda <b>${name}</b> está actualmente <b>${currentStatus}</b>. ¿Deseas marcarla como <b>${nextStatus}</b>?`,
+            icon: 'question',
+            confirmButtonText: 'Sí, alternar'
+        })
+
+        if (!confirm) return false
+
+        try {
+            const { data } = await backendClient.put(`/currency/${id}/status`)
+            showToast(data.message, 'success')
+            await fetchCurrencies()
+            return true
+        } catch (error) {
+            console.error('Error alternando status:', error)
+            showToast('Error al actualizar el estado de la moneda', 'error')
+            return false
+        }
+    }
+
+    /**
      * Elimina una moneda (soft delete)
      *
      * @param id Identificador de la moneda
@@ -241,6 +275,7 @@ export function useCurrency(tokenId: string = ''): UseCurrencyReturn {
         create,
         edit,
         remove,
+        toggleStatus,
         fetchCurrencies
     }
 }

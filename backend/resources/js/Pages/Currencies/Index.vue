@@ -1,36 +1,45 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
+  import { computed } from 'vue'
 
-  import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
-  import CurrencyTable from '@js/Components/Currency/CurrencyTable.vue'
-  import CurrencyForm from '@/js/Components/Currency/CurrencyForm.vue'
-  import TableActionButtons from '@/js/Components/Common/Table/TableActionButtons.vue'
-  import TableFooterInfo from '@/js/Components/Common/Table/TableFooterInfo.vue'
+  // ==========================================================================
+  // Componentes
+  // ==========================================================================
+
+  import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
+  import CurrencyForm from '@/js/Components/Currency/CurrencyForm.vue'
 
-  import { useCurrency } from '@/js/composables/currency/useCurrency'
+  // ==========================================================================
+  // Composables
+  // ==========================================================================
+
+  import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
+  import { useCurrency } from '@/js/composables/currency/useCurrency'
+
+  // ==========================================================================
+  // Types
+  // ==========================================================================
 
   import type { CurrencyPageProps } from '@js/types/currency'
+  import type { Column } from '@js/types/common/table/column-row'
+  import type { TableFilterInterface, TableFilterOption } from '@js/types/common/table/table-filter'
+  import type { ExtraButton } from '@js/types/common/table/extra-buttons'
 
-  /**
-   * Props Inertia
-   */
+  // ==========================================================================
+  // Props (Inertia)
+  // ==========================================================================
+
   const props = defineProps<CurrencyPageProps>()
 
-  /**
-   * Determina si el usuario tiene privilegios para gestionar monedas
-   */
-  const hasPrivilegedRole = computed(() => ['company', 'customer', 'admin'].includes(props.roleUser))
+  // ==========================================================================
+  // Lógica de negocio
+  // ==========================================================================
 
-  /**
-   * Indica si es posible registrar una nueva moneda
-   */
-  const canCreate = computed(() => hasPrivilegedRole.value)
+  const hasPrivilegedRole = computed(() =>
+    ['company', 'customer', 'admin'].includes(props.roleUser)
+  )
 
-  /**
-   * Composable de negocio para manejo de monedas
-   */
   const {
     currencyData,
     currencies,
@@ -38,20 +47,16 @@
     create,
     edit,
     remove,
+    toggleStatus,
     submit
   } = useCurrency(props.tokenId)
 
-  // Inicializar currencies con las props
   setInitialCurrencies(props.currencies)
 
-  /**
-   * IDs seleccionados en la tabla
-   */
-  const selectedIds = ref<string[]>([])
+  // ==========================================================================
+  // Modal + Form handler
+  // ==========================================================================
 
-  /**
-   * Composable para el modal y formulario
-   */
   const {
     showModalForm,
     modalTitle,
@@ -61,65 +66,124 @@
     defaultTitle: 'Moneda'
   })
 
-  /**
-   * Abre el modal en modo creación, inicializando datos
-   */
-  function handleCreate(): void {
-    create()
-    showModalForm.value = true
-  }
+  // ==========================================================================
+  // CRUD global (eventos tabla)
+  // ==========================================================================
 
-  /**
-   * Abre el modal en modo edición cargando datos existentes
-   *
-   * @param id Identificador de la moneda a editar
-   */
-  async function handleEdit(id: string): Promise<void> {
-    await edit(id)
-    showModalForm.value = true
-  }
+  useCrudEventListener({
+    create: () => {
+      create()
+      showModalForm.value = true
+    },
 
-  /**
-   * Elimina las monedas seleccionadas
-   */
-  async function handleDelete(ids: string[]): Promise<void> {
-    for (const id of ids) {
-      await remove(id)
+    edit: async ids => {
+      if (!ids || ids.length !== 1) return
+      const ok = await edit(ids[0])
+      if (ok) showModalForm.value = true
+    },
+
+    delete: async ids => {
+      if (!ids) return
+      for (const id of ids) await remove(id)
+    },
+
+    toggleStatus: async ids => {
+      if (!ids) return
+      for (const id of ids) await toggleStatus(id)
     }
-    selectedIds.value = []
-  }
+  })
+
+  // ==========================================================================
+  // Columnas
+  // ==========================================================================
+
+  const columns: Column[] = [
+    { key: 'name',     label: 'Nombre' },
+    { key: 'iso_code', label: 'Código ISO' },
+    { key: 'symbol',   label: 'Símbolo' },
+    { key: 'type',     label: 'Tipo' },
+    { key: 'status',   label: 'Estado' },
+    { key: 'country',  label: 'País' }
+  ]
+
+  // ==========================================================================
+  // Filtros
+  // ==========================================================================
+
+  const filters = computed<readonly TableFilterInterface[]>(() => [
+    {
+      key: 'type',
+      label: 'Tipo',
+      placeholder: 'Filtrar por tipo',
+      options: [
+        { value: 'FIAT',   label: 'Fiat' },
+        { value: 'CRYPTO', label: 'Criptomoneda' },
+        { value: 'TOKEN',  label: 'Token' }
+      ] as TableFilterOption[]
+    },
+    {
+      key: 'status',
+      label: 'Estado',
+      placeholder: 'Filtrar por estado',
+      options: [
+        { value: 'ACTIVE',   label: 'Activa' },
+        { value: 'INACTIVE', label: 'Inactiva' }
+      ] as TableFilterOption[]
+    }
+  ])
+
+  // ==========================================================================
+  // Botones extra
+  // ==========================================================================
+
+  const extraButtons: ExtraButton[] = [
+    {
+      icon: 'fas fa-exchange-alt',
+      class: 'btn-secondary',
+      show: false,
+      action: 'toggleStatus'
+    }
+  ]
 </script>
+
 <template>
-  <div class="card">
-    <CardHeader title="Monedas" subtitle="Gestión de monedas del sistema" />
+  <TableWithFilterBridge
+    table-id="currency-table"
+    title="Monedas"
+    subtitle="Gestión de monedas del sistema"
+    :columns="columns"
+    :rows="currencies"
+    :filters="filters"
+    :extra-buttons="extraButtons"
+    search-placeholder="Buscar por nombre, código, símbolo..."
+    :show-create-button="hasPrivilegedRole"
+    show-edit-button
+    show-delete-button
+    empty-message="No hay monedas registradas"
+  >
+    <!-- Tipo -->
+    <template #cell-type="{ row }">
+      <span :class="['badge', {
+        'badge-primary': row.type === 'FIAT',
+        'badge-warning': row.type === 'CRYPTO',
+        'badge-info':    row.type === 'TOKEN'
+      }]">
+        {{ row.type === 'FIAT' ? 'Fiat' : row.type === 'CRYPTO' ? 'Cripto' : 'Token' }}
+      </span>
+    </template>
 
-    <div class="card-body">
-      <TableActionButtons
-        :selected-ids="selectedIds"
-        :show-create-button="canCreate"
-        show-edit-button
-        show-delete-button
-        @create="handleCreate"
-        @edit="handleEdit"
-        @delete="handleDelete"
-      />
+    <!-- Estado -->
+    <template #cell-status="{ row }">
+      <span :class="['badge', row.status === 'ACTIVE' ? 'badge-success' : 'badge-secondary']">
+        {{ row.status === 'ACTIVE' ? 'Activa' : 'Inactiva' }}
+      </span>
+    </template>
 
-      <CurrencyTable
-        :currencies="currencies"
-        :has-privileged-role="hasPrivilegedRole"
-        :selected-ids="selectedIds"
-        @selection-change="ids => (selectedIds = ids)"
-        @edit="handleEdit"
-        @delete="(id) => handleDelete([id])"
-      />
-
-      <TableFooterInfo
-        :filtered-count="currencies.length"
-        :total-count="currencies.length"
-        :selected-count="selectedIds.length"
-      />
-    </div>
-  </div>
+    <!-- País -->
+    <template #cell-country="{ row }">
+      {{ row.country?.name ?? '—' }}
+    </template>
+  </TableWithFilterBridge>
 
   <Modal
     v-model="showModalForm"
@@ -133,6 +197,7 @@
       ref="currencyFormRef"
       v-model="currencyData"
       :currencies="currencies"
+      :countries="props.countries"
     />
   </Modal>
 </template>
