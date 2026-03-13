@@ -222,8 +222,11 @@
       title: 'Alternar Estado',
       show: false,
       action: 'toggleStatus',
-      disabled: (ids: string[]) => isExpired(ids),
-      disabledReason: 'La sala ya expiró, no se puede cambiar el estado'
+      disabled: (ids: string[]) => isExpired(ids) || hasPlayers(ids),
+      disabledReason: (ids: string[]) =>
+        isExpired(ids)
+          ? 'La sala ya expiró, no se puede cambiar el estado'
+          : 'La sala tiene jugadores registrados, no se puede cambiar el estado'
     },
     {
       icon: 'fas fa-copy',
