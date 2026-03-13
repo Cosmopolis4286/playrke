@@ -29,15 +29,14 @@ class HandleExchangeRatesCommand extends Command
      */
     public function handle(): void
     {
-        // Verificar si el cronjob está habilitado usando UserPreference
-        $autoUpdateEnabled = UserPreference::getPreference(
-            null, // null para preferencia global
-            UserPreference::CATEGORY_EXCHANGE_RATE,
-            'auto_update_enabled',
-            false // valor por defecto
-        );
+        $hasAnyEnabled = UserPreference::query()
+            ->where('category', UserPreference::CATEGORY_EXCHANGE_RATE)
+            ->where('key', 'auto_update_enabled')
+            ->where('value', 'true')
+            ->whereNotNull('user_id')
+            ->exists();
 
-        if (!$autoUpdateEnabled) {
+        if (!$hasAnyEnabled) {
             $this->info('El cronjob de actualización automática está desactivado.');
             return;
         }

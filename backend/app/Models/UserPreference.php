@@ -133,7 +133,7 @@ class UserPreference extends BaseModel
     public function getTypedValue(): mixed
     {
         return match ($this->type) {
-            self::TYPE_BOOLEAN => $this->value === 'true' || $this->value === '1',
+            self::TYPE_BOOLEAN => $this->value === '1' || $this->value === 'true' || $this->value === true,
             self::TYPE_NUMBER => is_numeric($this->value) ? (float) $this->value : 0,
             self::TYPE_JSON => json_decode($this->value ?? '{}', true),
             self::TYPE_ARRAY => is_array($this->value) ? $this->value : explode(',', $this->value ?? ''),
@@ -147,7 +147,7 @@ class UserPreference extends BaseModel
     public function setTypedValue(mixed $value): void
     {
         $this->value = match ($this->type) {
-            self::TYPE_BOOLEAN => $value ? 'true' : 'false',
+            self::TYPE_BOOLEAN => $value ? '1' : '0', // Guardar como '1'/'0' para MySQL
             self::TYPE_JSON => json_encode($value),
             self::TYPE_ARRAY => is_array($value) ? implode(',', $value) : $value,
             default => (string) $value,

@@ -48,16 +48,10 @@
     updateExchangeRates,
     submit,
     toggleAutoUpdate,
-    getAutoUpdateStatus
   } = useExchangeRate(props.tokenId)
 
   // Inicializar exchangeRates con las props
   setInitialExchangeRates(props.exchangeRates)
-
-  // Inicializar el estado del switch desde la base de datos
-  getAutoUpdateStatus().then(enabled => {
-    autoUpdateEnabled.value = enabled
-  })
 
   /**
    * IDs seleccionados en la tabla
@@ -79,7 +73,7 @@
   /**
    * Estado para controlar actualización automática via cronjob
    */
-  const autoUpdateEnabled = ref(false)
+  const autoUpdateEnabled = ref(props.autoUpdateEnabled)
 
   /**
    * Genera las monedas usadas en las tasas para presentación

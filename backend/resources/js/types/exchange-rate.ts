@@ -20,6 +20,7 @@ export interface ExchangeRatePageProps {
     exchangeRates: ExchangeRate[]
     roleUser: string
     tokenId?: string
+    autoUpdateEnabled: boolean
 }
 
 export interface ExchangeRateHistoricalPageProps {

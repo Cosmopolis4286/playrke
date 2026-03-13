@@ -57,6 +57,7 @@ return new class extends Migration
 
             // Timestamps
             $table->timestamps();
+            $table->softDeletes();
 
             // Índice único compuesto
             $table->unique(['user_id', 'category', 'key']);

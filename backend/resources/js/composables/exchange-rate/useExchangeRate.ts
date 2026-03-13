@@ -45,9 +45,6 @@ interface UseExchangeRateReturn {
 
     /** Maneja el cambio del switch de actualización automática */
     toggleAutoUpdate: (enabled: boolean) => Promise<boolean>
-
-    /** Obtiene el estado actual de actualización automática */
-    getAutoUpdateStatus: () => Promise<boolean>
 }
 
 /**
@@ -333,28 +330,10 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
             const response = await backendClient.post(endpoint)
             
             showToast(response.data.message, 'success')
-            console.log(`Cronjob de actualización automática ${enabled ? 'activado' : 'desactivado'}`)
-            
             return true
         } catch (error: any) {
             console.error('Error al cambiar estado del cronjob:', error)
             showToast(error?.response?.data?.message || 'Error al cambiar estado del cronjob', 'error')
-            return false
-        }
-    }
-
-    /**
-     * Obtiene el estado actual de actualización automática desde la base de datos
-     *
-     * @returns {Promise<boolean>}
-     */
-    async function getAutoUpdateStatus(): Promise<boolean> {
-        try {
-            const response = await backendClient.get('/exchange-rate/cronjob/status')
-            
-            return response.data?.enabled || false
-        } catch (error) {
-            console.error('Error al obtener estado del cronjob:', error)
             return false
         }
     }
@@ -371,6 +350,5 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         updateExchangeRates,
         fetchExchangeRates,
         toggleAutoUpdate,
-        getAutoUpdateStatus
     }
 }

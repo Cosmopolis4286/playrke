@@ -232,13 +232,11 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($request) {
-                // Guardar preferencia en la base de datos
-                $userId = auth()->id(); // null para preferencia global
                 UserPreference::setPreference(
-                    $userId, 
-                    UserPreference::CATEGORY_EXCHANGE_RATE, 
-                    'auto_update_enabled', 
-                    true
+                    auth()->id(),
+                    UserPreference::CATEGORY_EXCHANGE_RATE,
+                    'auto_update_enabled',
+                    'true'
                 );
                 
                 return [
@@ -260,13 +258,11 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($request) {
-                // Guardar preferencia en la base de datos
-                $userId = auth()->id(); // null para preferencia global
                 UserPreference::setPreference(
-                    $userId, 
-                    UserPreference::CATEGORY_EXCHANGE_RATE, 
-                    'auto_update_enabled', 
-                    false
+                    auth()->id(),
+                    UserPreference::CATEGORY_EXCHANGE_RATE,
+                    'auto_update_enabled',
+                    'false'
                 );
                 
                 return [
@@ -288,13 +284,11 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($request) {
-                // Obtener preferencia desde la base de datos
-                $userId = auth()->id(); // null para preferencia global
                 $enabled = UserPreference::getPreference(
-                    $userId, 
-                    UserPreference::CATEGORY_EXCHANGE_RATE, 
-                    'auto_update_enabled', 
-                    false // valor por defecto
+                    auth()->id(),
+                    UserPreference::CATEGORY_EXCHANGE_RATE,
+                    'auto_update_enabled',
+                    false
                 );
                 
                 return [

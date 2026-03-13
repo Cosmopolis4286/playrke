@@ -5,6 +5,7 @@ namespace App\Services\ExchangeRate;
 use App\Contracts\Roles\Admin\AdminExchangeRateRepositoryInterface;
 use App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface;
 use App\DTOs\ExchangeRate\ExchangeRateContextDTO;
+use App\Models\UserPreference;
 use App\Services\Currency\CurrencyService;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
@@ -53,6 +54,13 @@ final class ExchangeRateContextService
 
         $userRolePrefix = $this->roleUserService->getActiveUserRolePrefix($userId);
 
+        $autoUpdateEnabled = (bool) UserPreference::getPreference(
+            $userId,
+            UserPreference::CATEGORY_EXCHANGE_RATE,
+            'auto_update_enabled',
+            false
+        );
+
         return new ExchangeRateContextDTO(
             currencies: $isLogged
                 ? $this->currency->getAvailableCurrencies($userId, true, true)
@@ -66,7 +74,9 @@ final class ExchangeRateContextService
             roleUser: $userRolePrefix,
 
             // En acceso público exponemos el userId resuelto como tokenId
-            tokenId: $isLogged ? '' : (string) $userId
+            tokenId: $isLogged ? '' : (string) $userId,
+
+            autoUpdateEnabled: $autoUpdateEnabled,
         );
     }
 

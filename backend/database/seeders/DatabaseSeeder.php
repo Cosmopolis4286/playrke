@@ -34,7 +34,6 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             UserSeeder::class,
             DemoRoleDataSeeder::class,
-            UserPreferenceSeeder::class,
         ]);
     }
 }
