@@ -174,22 +174,16 @@ final class BingoRoomContextService
         $exchangeRate = 1.0;
         $currencySym = 'USD';
 
-        // Si es jugador, obtener tasa de cambio y moneda
-        if ($isPlayer) {
-            // Obtener el país del usuario usando el repositorio
-            $currentUserId = $this->userContext->resolveUserId();
-            $countryId = $this->userRepository->getValueById($currentUserId, 'country_id');
+        $currentUserId = $this->userContext->resolveUserId();
+        $countryId = $this->userRepository->getValueById($currentUserId, 'country_id');
 
-            if ($countryId) {
-                // Obtener la moneda del país del jugador usando el repositorio de monedas
-                $playerCurrencies = $this->currencyRepository->getByCountry($countryId, ['id', 'iso_code', 'symbol']);
-                $playerCurrency = $playerCurrencies->first();
+        if ($countryId) {
+            $currencies = $this->currencyRepository->getByCountry($countryId, ['id', 'iso_code', 'symbol']);
+            $currency = $currencies->first();
 
-                if ($playerCurrency) {
-                    $currencySym = $playerCurrency->symbol;
-                    // Obtener tasa de cambio (USD a moneda del jugador)
-                    $exchangeRate = $this->getPlayerExchangeRate($playerCurrency->id);
-                }
+            if ($currency) {
+                $currencySym = $currency->symbol;
+                $exchangeRate = $this->getPlayerExchangeRate($currency->id);
             }
         }
 

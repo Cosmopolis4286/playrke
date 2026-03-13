@@ -4,8 +4,8 @@
  */
 export interface BingoGameRoomConfig {
   readonly room_id: string | number
-  /** Precio del cartón en moneda base */
-  readonly card_price: number
+  /** Precio del cartón en USD (moneda base del sistema) */
+  readonly card_price_usd: number
   /** Tipo de premio: 1 = bote acumulado, otro = premio fijo */
   readonly prize_pool_type: number
   /** Timestamp Unix de inicio de la sala */
