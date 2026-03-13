@@ -31,5 +31,8 @@ const echo = new Echo({
     disableStats: true,
 })
 
+// Exponer globalmente para scripts inline (navbar, blade pages)
+;(window as any).Echo = echo
+
 // Exportar para usar en todo el proyecto
 export default echo

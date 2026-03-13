@@ -83,6 +83,9 @@ class AppServiceProvider extends ServiceProvider
         // This can be enabled later if needed, but must be loaded after
         // all services are fully booted
         if ($this->app->has('view')) {
+            // Datos del navbar (billetera activa del usuario)
+            View::composer('components.template.navbar', \App\Http\View\NavbarComposer::class);
+
             View::composer('*', function ($view): void {
                 $prefix = null;
                 if (Auth::check()) {

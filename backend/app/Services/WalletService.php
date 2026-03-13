@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\WalletMovementRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
+use App\Events\Wallet\WalletUpdated;
 use App\Models\Wallet;
 use App\Models\WalletMovement;
 use Illuminate\Support\Facades\Auth;
@@ -68,6 +69,8 @@ final class WalletService
                 'description'    => 'Depósito manual',
             ]);
 
+            $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_DEPOSIT, $amount);
+
             return $wallet;
         });
     }
@@ -103,6 +106,8 @@ final class WalletService
                 'description'    => 'Retiro manual',
             ]);
 
+            $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);
+
             return $wallet;
         });
     }
@@ -115,6 +120,21 @@ final class WalletService
         $this->findOwnedWallet($walletId); // verifica propiedad
 
         return $this->movementRepository->getByWallet($walletId, $perPage);
+    }
+
+    /**
+     * Emite el evento WebSocket con el nuevo saldo.
+     */
+    private function broadcastWalletUpdated(Wallet $wallet, string $type, float $amount): void
+    {
+        broadcast(new WalletUpdated(
+            userId:         (string) $wallet->user_id,
+            walletId:       (string) $wallet->id,
+            balance:        (float)  $wallet->balance,
+            currencySymbol: $wallet->currency->symbol ?? '',
+            movementType:   $type,
+            amount:         $amount,
+        ));
     }
 
     /**
