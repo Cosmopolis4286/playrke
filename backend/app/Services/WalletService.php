@@ -2,15 +2,18 @@
 
 namespace App\Services;
 
+use App\Contracts\WalletMovementRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\Models\Wallet;
+use App\Models\WalletMovement;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 final class WalletService
 {
     public function __construct(
-        private readonly WalletRepositoryInterface $walletRepository,
+        private readonly WalletRepositoryInterface         $walletRepository,
+        private readonly WalletMovementRepositoryInterface $movementRepository,
     ) {}
 
     /**
@@ -40,8 +43,6 @@ final class WalletService
 
     /**
      * Registrar solicitud de depósito.
-     * Por ahora incrementa el balance directamente (mock).
-     * Adaptar cuando haya integración de pagos real.
      */
     public function deposit(string $walletId, float $amount): Wallet
     {
@@ -52,8 +53,20 @@ final class WalletService
                 throw new \DomainException('La billetera está bloqueada.');
             }
 
+            $balanceBefore = (float) $wallet->balance;
+
             $this->walletRepository->incrementBalance($walletId, $amount);
             $wallet->refresh();
+
+            $this->movementRepository->record([
+                'wallet_id'      => (string) $wallet->id,
+                'user_id'        => (string) $wallet->user_id,
+                'type'           => WalletMovement::TYPE_DEPOSIT,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => (float) $wallet->balance,
+                'description'    => 'Depósito manual',
+            ]);
 
             return $wallet;
         });
@@ -75,11 +88,33 @@ final class WalletService
                 throw new \DomainException('Saldo insuficiente para realizar el retiro.');
             }
 
+            $balanceBefore = (float) $wallet->balance;
+
             $this->walletRepository->decrementBalance($walletId, $amount);
             $wallet->refresh();
 
+            $this->movementRepository->record([
+                'wallet_id'      => (string) $wallet->id,
+                'user_id'        => (string) $wallet->user_id,
+                'type'           => WalletMovement::TYPE_WITHDRAWAL,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => (float) $wallet->balance,
+                'description'    => 'Retiro manual',
+            ]);
+
             return $wallet;
         });
+    }
+
+    /**
+     * Movimientos paginados de una billetera del usuario autenticado.
+     */
+    public function getMovements(string $walletId, int $perPage = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $this->findOwnedWallet($walletId); // verifica propiedad
+
+        return $this->movementRepository->getByWallet($walletId, $perPage);
     }
 
     /**

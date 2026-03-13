@@ -2,6 +2,9 @@ import { ref, computed } from 'vue'
 import backendClient, { getCsrfCookie } from '@js/plugins/axios'
 import type {
   Wallet,
+  WalletMovement,
+  WalletMovementsMeta,
+  WalletMovementsResponse,
   WalletOperation,
   WalletOperationPayload,
   WalletOperationResponse,
@@ -19,6 +22,11 @@ export function useWallet(initialWallets: Wallet[]) {
   const errorMsg     = ref<string | null>(null)
   const successMsg   = ref<string | null>(null)
 
+  // Historial persistido (cargado del backend)
+  const movements        = ref<WalletMovement[]>([])
+  const movementsMeta    = ref<WalletMovementsMeta | null>(null)
+  const movementsLoading = ref(false)
+
   const canWithdraw = computed(() =>
     activeWallet.value !== null &&
     activeWallet.value.balance > 0
@@ -34,21 +42,49 @@ export function useWallet(initialWallets: Wallet[]) {
   })
 
   function openModal(op: WalletOperation) {
-    operation.value = op
-    amount.value    = ''
-    errorMsg.value  = null
+    operation.value  = op
+    amount.value     = ''
+    errorMsg.value   = null
     successMsg.value = null
-    modalOpen.value = true
+    modalOpen.value  = true
   }
 
   function closeModal() {
     modalOpen.value = false
   }
 
-  function selectWallet(wallet: Wallet) {
+  async function selectWallet(wallet: Wallet) {
     activeWallet.value = wallet
     errorMsg.value     = null
     successMsg.value   = null
+    await loadMovements()
+  }
+
+  async function loadMovements(page = 1) {
+    if (! activeWallet.value) return
+
+    movementsLoading.value = true
+    try {
+      const { data } = await backendClient.get<WalletMovementsResponse>(
+        `wallet/${activeWallet.value.id}/movements`,
+        { params: { page, per_page: 20 } },
+      )
+
+      if (data.success) {
+        movements.value     = page === 1 ? data.data : [...movements.value, ...data.data]
+        movementsMeta.value = data.meta
+      }
+    } catch {
+      // historial no crítico, silencioso
+    } finally {
+      movementsLoading.value = false
+    }
+  }
+
+  async function loadMoreMovements() {
+    if (! movementsMeta.value) return
+    if (movementsMeta.value.current_page >= movementsMeta.value.last_page) return
+    await loadMovements(movementsMeta.value.current_page + 1)
   }
 
   async function submit() {
@@ -96,8 +132,12 @@ export function useWallet(initialWallets: Wallet[]) {
             activeWallet.value = wallets.value[idx]
           }
         }
+
         successMsg.value = data.message
-        amount.value = ''
+        amount.value     = ''
+
+        // Recargar historial desde el backend (página 1)
+        await loadMovements(1)
       } else {
         errorMsg.value = data.message
       }
@@ -113,9 +153,15 @@ export function useWallet(initialWallets: Wallet[]) {
     }
   }
 
+  // Cargar movimientos de la billetera inicial al montar
+  loadMovements()
+
   return {
     wallets,
     activeWallet,
+    movements,
+    movementsMeta,
+    movementsLoading,
     modalOpen,
     operation,
     amount,
@@ -127,6 +173,7 @@ export function useWallet(initialWallets: Wallet[]) {
     openModal,
     closeModal,
     selectWallet,
+    loadMoreMovements,
     submit,
   }
 }
