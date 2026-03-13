@@ -29,7 +29,7 @@ final class BingoRoomAutomaticCreateDTO
         public readonly ?float        $serialsPct        = null,
         public readonly ?int          $numSerials        = null,
         public readonly ?array        $roundsConfig      = null,
-        public readonly bool          $isDraft           = false,
+        public readonly bool          $activateRoom           = false,
         public readonly string        $inLive            = 'N',
     ) {}
 
@@ -65,7 +65,7 @@ final class BingoRoomAutomaticCreateDTO
             serialsPct: isset($data['serialsPct']) ? (float)  $data['serialsPct'] : null,
             numSerials: isset($data['numSerials']) ? (int)    $data['numSerials'] : null,
             roundsConfig: $data['roundsConfig'] ?? null,
-            isDraft: (bool) ($data['isDraft'] ?? false),
+            activateRoom: (bool) ($data['activateRoom'] ?? false),
             inLive: ($data['inLive'] ?? 'N') === 'Y' ? 'Y' : 'N',
         );
     }

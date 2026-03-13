@@ -114,7 +114,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
      */
     private function generateRoomFromTemplate(BingoRoomAutomatic $template): void
     {
-        // 1. Construir DTO mínimo para createBaseRoom (solo usa isDraft y roomCommission)
+        // 1. Construir DTO mínimo para createBaseRoom (solo usa activateRoom y roomCommission)
         $dto = $this->buildDtoFromTemplate($template);
 
         // 2. Crear BingoRoom + BingoCreator (reutiliza createBaseRoom del padre)
@@ -143,7 +143,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
 
     /**
      * Construye un BingoRoomCreateDTO mínimo desde la plantilla.
-     * createBaseRoom solo usa: isDraft y roomCommission.
+     * createBaseRoom solo usa: activateRoom y roomCommission.
      */
     private function buildDtoFromTemplate(BingoRoomAutomatic $template): BingoRoomCreateDTO
     {
@@ -159,7 +159,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             'timeChip'          => (int) $template->time_chip,
             'rounds'            => (int) ($template->rounds ?? 1),
             'useSerials'        => (bool) $template->use_serials,
-            'isDraft'           => true,
+            'activateRoom'      => true,
         ]);
     }
 

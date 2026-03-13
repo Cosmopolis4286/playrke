@@ -31,6 +31,7 @@ class BingoRoomRequest extends BaseRequest
     public function rules(): array
     {
         return [
+            'activateRoom'                => ['boolean'],
             'date'                        => ['required', 'date', 'after_or_equal:today'],
             'time'                        => ['required', 'date_format:H:i'],
             'roomType'                    => ['required', 'exists:room_types,id'],

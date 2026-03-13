@@ -32,7 +32,7 @@ final class BingoRoomCreateDTO
         public readonly ?float $cardPriceUsd,
         public readonly ?float $usdExchangeRoundStep,
         public readonly ?array $cardPriceByCurrency,
-        public readonly bool $isDraft = false,
+        public readonly bool $activateRoom = false,
     ) {}
 
     public static function fromArray(array $data): self
@@ -68,9 +68,7 @@ final class BingoRoomCreateDTO
             cardPriceUsd: isset($data['cardPriceUsd']) ? (float) $data['cardPriceUsd'] : null,
             usdExchangeRoundStep: isset($data['usdExchangeRoundStep']) ? (float) $data['usdExchangeRoundStep'] : null,
             cardPriceByCurrency: $cardPriceByCurrency,
-            isDraft: isset($data['isDraft'])
-                ? (bool) $data['isDraft']
-                : !(bool) ($data['activateRoom'] ?? true),
+            activateRoom: (bool) ($data['activateRoom'] ?? false),
         );
     }
 }

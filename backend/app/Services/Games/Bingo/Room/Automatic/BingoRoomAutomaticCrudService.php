@@ -73,7 +73,7 @@ final class BingoRoomAutomaticCrudService
                 'serials_pct'             => $dto->serialsPct ?? null,
                 'num_serials'             => $dto->numSerials ?? null,
                 'jackpot_pct'             => $dto->jackpotPct,
-                'status'                  => ($dto->isDraft ?? false) ? 'INACTIVE' : 'ACTIVE',
+                'status'                  => ($dto->activateRoom ?? false) ? 'INACTIVE' : 'ACTIVE',
             ];
 
             if ($isCreate) {
@@ -255,7 +255,7 @@ final class BingoRoomAutomaticCrudService
             'serialsPct'           => $room->serials_pct ? (float) $room->serials_pct : null,
             'numSerials'           => $room->num_serials ? (int) $room->num_serials : null,
             'roundsConfig'         => $roundsConfig,
-            'isDraft'              => true,
+            'activateRoom'              => true,
         ]);
 
         return $this->saveRoom($dto);

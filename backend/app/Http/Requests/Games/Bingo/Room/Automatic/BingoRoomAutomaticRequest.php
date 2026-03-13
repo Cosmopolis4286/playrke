@@ -31,6 +31,7 @@ class BingoRoomAutomaticRequest extends BaseRequest
     public function rules(): array
     {
         return [
+            'activateRoom'                => ['boolean'],
             'days'                        => ['required', 'array', 'min:1'],
             'days.*'                      => ['string', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
             'date'                        => ['nullable', 'date', 'after_or_equal:today'],
@@ -69,7 +70,6 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'rounds'                      => ['required', 'integer', 'min:1', 'max:15'],
             'roundsPct'                   => ['nullable', 'numeric', 'min:5', 'max:90'],
             'useSerials'                  => ['boolean'],
-            'isDraft'                     => ['boolean'],
             'serialsPct'                  => ['required_if:useSerials,true', 'nullable', 'numeric', 'min:2', 'max:35'],
             'numSerials'                  => ['required_if:useSerials,true', 'nullable', 'integer', 'min:1', 'max:30'],
 

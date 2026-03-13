@@ -81,7 +81,7 @@ const emptyFormData = (): BingoRoomFormData => ({
     usdExchangeRoundStep: null,
     cardPriceByCurrency: {},
     roundsConfig: [],
-    activateRoom: true
+    activateRoom: false
 })
 
 /**
