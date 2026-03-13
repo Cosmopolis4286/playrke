@@ -6,10 +6,10 @@ export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED' | 'SUSPENDED' | 'PEND
 
 export interface AdminUser {
     readonly id: string | number
+    readonly role_badge: string
+    readonly full_name: string
     readonly username: string
     readonly email: string
-    readonly full_name: string
-    readonly role_name: string
     readonly country_name: string
     readonly status: UserStatus
 }
