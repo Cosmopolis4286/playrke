@@ -29,12 +29,18 @@ final class BingoGameRoomsDTO implements ContextDTO
     public function toView(): array
     {
         $roomsWithPrices = $this->rooms->map(function($room) {
+            // Mapear relación players → players_room con campo ctns esperado por el frontend
+            $playersRoom = $room->relationLoaded('players')
+                ? $room->players->map(fn($p) => ['ctns' => (int) $p->cards_purchased])->values()->all()
+                : null;
+
             $roomData = array_merge(
                 $room->toArray(),
                 [
-                    'status_code' => $room->status?->code ?? 'ACTIVE',
-                    'room_type'   => $room->config?->roomType?->code ?? 'PUBLIC',
-                    'id'          => $room->getRouteKey(), // Usar ID hasheado para route binding
+                    'status_code'  => $room->status?->code ?? 'ACTIVE',
+                    'room_type'    => $room->config?->roomType?->code ?? 'PUBLIC',
+                    'id'           => $room->getRouteKey(), // Usar ID hasheado para route binding
+                    'players_room' => $playersRoom,
                 ],
             );
 

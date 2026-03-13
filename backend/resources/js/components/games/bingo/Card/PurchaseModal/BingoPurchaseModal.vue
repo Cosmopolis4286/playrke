@@ -219,19 +219,11 @@
               <!-- ── STEP 2: Confirmar ── -->
               <Transition name="step-slide" mode="out-in">
                 <div v-if="step === 'confirm'" key="confirm" class="pm-step">
-                  <p class="pm-step__label">Cantidad de cartones</p>
 
-                  <!-- Cartones actuales del usuario -->
-                  <div v-if="currentCtns > 0" class="pm-current-cards">
-                    <div class="pm-current-cards__info">
-                      <i class="fas fa-ticket-alt mr-2" />
-                      <span
-                        >Ya tienes <strong>{{ currentCtns }}</strong> cartone{{
-                          currentCtns === 1 ? '' : 's'
-                        }}
-                        en esta sala</span
-                      >
-                    </div>
+                  <!-- Badge cartones actuales -->
+                  <div v-if="currentCtns > 0" class="pm-ctns-badge">
+                    <i class="fas fa-ticket-alt" />
+                    <span>Ya tienes <strong>{{ currentCtns }}</strong> cartón{{ currentCtns === 1 ? '' : 'es' }} aquí</span>
                   </div>
 
                   <!-- Selector cantidad -->
@@ -267,13 +259,9 @@
                       <span>Cartones</span>
                       <span>× {{ numCtns }}</span>
                     </div>
-                    <div v-if="currentCtns > 0" class="pm-summary__row pm-summary__row--highlight">
-                      <span>Total después de compra</span>
-                      <span
-                        ><strong>{{ currentCtns + numCtns }}</strong> cartone{{
-                          currentCtns + numCtns === 1 ? '' : 's'
-                        }}</span
-                      >
+                    <div v-if="currentCtns > 0" class="pm-summary__row">
+                      <span>Total cartones</span>
+                      <span>{{ currentCtns + numCtns }}</span>
                     </div>
                     <div class="pm-summary__row pm-summary__row--total">
                       <span>Total</span>
@@ -507,17 +495,17 @@
   .pm-room-banner {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 20px;
+    gap: 10px;
+    padding: 8px 20px;
     background: rgba(0, 10, 40, 0.5);
     border-bottom: 1px solid rgba(100, 140, 255, 0.08);
   }
 
   .pm-room-banner__img {
-    width: 52px;
-    height: 36px;
+    width: 44px;
+    height: 30px;
     object-fit: cover;
-    border-radius: 8px;
+    border-radius: 6px;
     opacity: 0.85;
   }
 
@@ -562,7 +550,7 @@
   .pm-body {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 14px 20px;
     scrollbar-width: thin;
     scrollbar-color: #7b4fff transparent;
   }
@@ -580,11 +568,11 @@
   .pm-step {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
   }
 
   .pm-step__label {
-    font-size: 12px;
+    font-size: 11px;
     color: #5578bb;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -686,12 +674,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 14px;
+    gap: 10px;
   }
 
   .pm-qty-btn {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     border: 1.5px solid rgba(100, 140, 255, 0.3);
     background: rgba(255, 255, 255, 0.04);
@@ -700,7 +688,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
+    font-size: 12px;
     transition: all 0.2s;
   }
   .pm-qty-btn:not(:disabled):hover {
@@ -714,15 +702,15 @@
   }
 
   .pm-qty-input {
-    width: 70px;
+    width: 58px;
     background: rgba(255, 255, 255, 0.05);
     border: 1.5px solid rgba(100, 140, 255, 0.2);
-    border-radius: 12px;
+    border-radius: 10px;
     color: #e0e8ff;
-    font-size: 28px;
+    font-size: 22px;
     font-family: 'Anton', sans-serif;
     text-align: center;
-    padding: 4px 0;
+    padding: 3px 0;
     outline: none;
     -moz-appearance: textfield;
     appearance: none;
@@ -740,7 +728,7 @@
   .pm-summary {
     background: rgba(0, 10, 40, 0.5);
     border: 1px solid rgba(100, 140, 255, 0.12);
-    border-radius: 14px;
+    border-radius: 12px;
     overflow: hidden;
   }
 
@@ -748,8 +736,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 9px 14px;
-    font-size: 12px;
+    padding: 7px 12px;
+    font-size: 11px;
     border-bottom: 1px solid rgba(100, 140, 255, 0.07);
     color: #8aa4d0;
   }
@@ -763,17 +751,17 @@
 
   .pm-summary__row--total {
     background: rgba(0, 74, 255, 0.08);
-    padding: 12px 14px;
+    padding: 9px 12px;
   }
   .pm-summary__row--total span:first-child {
     color: #7c9dff;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .pm-summary__total-amount {
     font-family: 'Anton', sans-serif !important;
-    font-size: 22px !important;
+    font-size: 18px !important;
     color: #7affba !important;
     display: flex;
     align-items: baseline;
@@ -781,7 +769,7 @@
   }
   .pm-summary__total-amount small {
     font-family: inherit;
-    font-size: 12px !important;
+    font-size: 11px !important;
     color: #4ea87a;
   }
 
@@ -792,7 +780,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 14px 20px;
+    padding: 10px 16px;
     border-top: 1px solid rgba(100, 140, 255, 0.1);
     background: rgba(0, 5, 20, 0.4);
   }
@@ -806,7 +794,7 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 10px 20px;
+    padding: 9px 18px;
     border-radius: 30px;
     border: none;
     font-size: 13px;
@@ -847,30 +835,27 @@
   }
 
   /* ═══════════════════════════════════════════════════════
-   CURRENT CARDS
+   CTNS BADGE (cartones actuales)
 ═══════════════════════════════════════════════════════ */
-  .pm-current-cards {
-    margin-bottom: 16px;
-  }
-
-  .pm-current-cards__info {
-    display: flex;
+  .pm-ctns-badge {
+    display: inline-flex;
     align-items: center;
-    padding: 12px 16px;
+    gap: 6px;
+    align-self: center;
+    padding: 5px 12px;
     background: rgba(42, 245, 152, 0.08);
-    border: 1px solid rgba(42, 245, 152, 0.2);
-    border-radius: 12px;
-    color: #2af598;
-    font-size: 14px;
-    font-weight: 500;
+    border: 1px solid rgba(42, 245, 152, 0.22);
+    border-radius: 30px;
+    color: #7affba;
+    font-size: 12px;
   }
 
-  .pm-current-cards__info i {
-    color: #2af598;
-    opacity: 0.8;
+  .pm-ctns-badge i {
+    font-size: 10px;
+    opacity: 0.75;
   }
 
-  .pm-current-cards__info strong {
+  .pm-ctns-badge strong {
     color: #fff;
     font-weight: 700;
   }

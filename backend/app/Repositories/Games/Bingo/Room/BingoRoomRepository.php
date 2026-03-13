@@ -285,13 +285,20 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
      */
     public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer): Collection
     {
+        $with = [
+            'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id',
+            'config.prizePoolType:id,code,label',
+            'config.roomType:id,code,label',
+            'status:id,code',
+        ];
+
+        // Cargar cartones del jugador actual en cada sala
+        if ($isPlayer) {
+            $with['players'] = fn($q) => $q->where('user_id', $userId)->select(['room_id', 'user_id', 'cards_purchased']);
+        }
+
         $query = $this->model
-            ->with([
-                'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id',
-                'config.prizePoolType:id,code,label',
-                'config.roomType:id,code,label',
-                'status:id,code',
-            ])
+            ->with($with)
             ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
             ->whereHas('config', fn($q) => $q->whereDate('date', $today))
             ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'creator_user_id', 'status_id']);
