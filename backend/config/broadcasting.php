@@ -7,43 +7,42 @@ return [
     | Default Broadcaster
     |--------------------------------------------------------------------------
     |
-    | Aquí defines cuál conexión se usará por defecto para broadcasting.
-    | Normalmente usas "reverb" para tu caso, que es compatible con Soketi.
+    | This option controls the default broadcaster that will be used by the
+    | framework when an event needs to be broadcast. You may set this to
+    | any of the connections defined in the "connections" array below.
+    |
+    | Supported: "reverb", "pusher", "ably", "redis", "log", "null"
     |
     */
 
-    'default' => env('BROADCAST_DRIVER', 'null'),
+    'default' => env('BROADCAST_CONNECTION', 'null'),
 
     /*
     |--------------------------------------------------------------------------
     | Broadcast Connections
     |--------------------------------------------------------------------------
     |
-    | Configura todas las conexiones que usarás para emitir eventos broadcast.
-    | Reverb es la conexión para Soketi, compatible con Pusher.
+    | Here you may define all of the broadcast connections that will be used
+    | to broadcast events to other systems or over WebSockets. Samples of
+    | each available type of connection are provided inside this array.
     |
     */
 
     'connections' => [
 
         'reverb' => [
-            'driver' => 'reverb',  
+            'driver' => 'reverb',
             'key' => env('REVERB_APP_KEY'),
             'secret' => env('REVERB_APP_SECRET'),
             'app_id' => env('REVERB_APP_ID'),
             'options' => [
-                'host' => env('REVERB_HOST', '127.0.0.1'),
-                'port' => env('REVERB_PORT', 8080),
-                'scheme' => env('REVERB_SCHEME', 'http'),
-                'useTLS' => env('REVERB_SCHEME', 'http') === 'https',
-                'encrypted' => false,    // Soketi/Reverb no usa cifrado SSL por defecto
-                'curl_options' => [
-                    CURLOPT_SSL_VERIFYHOST => 0,
-                    CURLOPT_SSL_VERIFYPEER => 0,
-                ],
+                'host' => env('REVERB_HOST'),
+                'port' => env('REVERB_PORT', 443),
+                'scheme' => env('REVERB_SCHEME', 'https'),
+                'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
             ],
             'client_options' => [
-                // Opciones para Guzzle, si usas HTTP para emitir eventos
+                // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
             ],
         ],
 
@@ -53,12 +52,15 @@ return [
             'secret' => env('PUSHER_APP_SECRET'),
             'app_id' => env('PUSHER_APP_ID'),
             'options' => [
-                'cluster' => env('PUSHER_APP_CLUSTER', 'mt1'),
-                'useTLS' => true,
+                'cluster' => env('PUSHER_APP_CLUSTER'),
+                'host' => env('PUSHER_HOST') ?: 'api-'.env('PUSHER_APP_CLUSTER', 'mt1').'.pusher.com',
+                'port' => env('PUSHER_PORT', 443),
+                'scheme' => env('PUSHER_SCHEME', 'https'),
                 'encrypted' => true,
+                'useTLS' => env('PUSHER_SCHEME', 'https') === 'https',
             ],
             'client_options' => [
-                // Opciones para Guzzle
+                // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
             ],
         ],
 

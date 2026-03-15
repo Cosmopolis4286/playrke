@@ -30,43 +30,26 @@ let echoInstance: Echo<any> | null = null
 
 /**
  * Obtiene la instancia única de Echo.
- *
- * Si ya existe una instancia, la reutiliza.
- * Si no existe, crea una nueva conexión WebSocket
+ * Si ya existe, la reutiliza; si no, crea una nueva conexión
  * usando Laravel Reverb.
  *
  * @returns {Echo} Instancia única de Laravel Echo
  */
 const getEchoInstance = (): Echo<any> => {
-    if (echoInstance) {
-        return echoInstance
-    }
+    if (echoInstance) return echoInstance
 
     /**
      * Variables de entorno expuestas por Vite.
      */
-    const APP_KEY: string = import.meta.env.VITE_REVERB_APP_KEY
+    const APP_KEY = import.meta.env.VITE_REVERB_APP_KEY
+    const HOST = import.meta.env.VITE_REVERB_HOST ?? window.location.hostname
+    const PORT = Number(import.meta.env.VITE_REVERB_PORT) || 8080
+    const SCHEME = import.meta.env.VITE_REVERB_SCHEME ?? window.location.protocol.replace(':', '')
+    const IS_HTTPS = SCHEME === 'https'
 
-    const HOST: string =
-        import.meta.env.VITE_REVERB_HOST ??
-        window.location.hostname
-
-    const PORT: number =
-        Number(import.meta.env.VITE_REVERB_PORT) || 8080
-
-    const SCHEME: string =
-        import.meta.env.VITE_REVERB_SCHEME ??
-        window.location.protocol.replace(':', '')
-
-    const IS_HTTPS: boolean = SCHEME === 'https'
-
-    // Debug: Mostrar variables en consola
+    // Debug: mostrar variables en consola
     console.log('Echo Debug - Variables:', {
-        APP_KEY,
-        HOST,
-        PORT,
-        SCHEME,
-        IS_HTTPS,
+        APP_KEY, HOST, PORT, SCHEME, IS_HTTPS,
         VITE_REVERB_APP_KEY: import.meta.env.VITE_REVERB_APP_KEY,
         VITE_REVERB_HOST: import.meta.env.VITE_REVERB_HOST,
         VITE_REVERB_PORT: import.meta.env.VITE_REVERB_PORT,
@@ -78,50 +61,45 @@ const getEchoInstance = (): Echo<any> => {
      * conectado al servidor Reverb.
      */
     echoInstance = new Echo({
-        broadcaster: 'pusher',
+        broadcaster: 'reverb',
 
-        /**
-         * Clave pública de la aplicación Reverb.
-         */
+        // Clave pública de la aplicación Reverb
         key: APP_KEY,
-        cluster: 'mt1',
 
-        /**
-         * Configuración del servidor WebSocket.
-         */
+        // Configuración del servidor WebSocket
         wsHost: HOST,
         wsPort: PORT,
         wssPort: PORT,
 
-        /**
-         * Si la aplicación usa HTTPS,
-         * se fuerza el uso de WSS.
-         */
+        // Si la aplicación usa HTTPS, se fuerza WSS
         forceTLS: IS_HTTPS,
 
-        /**
-         * Transportes habilitados para la conexión.
-         */
+        // Transportes habilitados para la conexión
         enabledTransports: ['ws', 'wss'],
 
-        /**
-         * Deshabilitar estadísticas de Pusher.
-         * Reverb no las utiliza.
-         */
+        // Deshabilitar estadísticas de Pusher; Reverb no las utiliza
         disableStats: true,
 
-        /**
-         * Endpoint de autenticación para
-         * canales privados o presence.
-         */
+        // Endpoint de autenticación para canales privados o presence
         authEndpoint: '/broadcasting/auth',
     })
 
     /**
      * Exponer Echo globalmente.
-     * Útil para scripts inline o debugging.
+     * Útil para debugging o scripts inline
      */
     window.Echo = echoInstance
+
+    /**
+     * Bind de eventos de conexión
+     */
+    echoInstance.connector.pusher.connection.bind('connected', () => {
+        console.log('✅ WebSocket conectado correctamente')
+    })
+
+    echoInstance.connector.pusher.connection.bind('error', (err: any) => {
+        console.error('⚠️ Error en WebSocket:', err)
+    })
 
     return echoInstance
 }
