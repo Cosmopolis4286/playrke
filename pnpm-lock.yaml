@@ -112,8 +112,8 @@ importers:
         specifier: ^3.7.1
         version: 3.7.1
       laravel-echo:
-        specifier: ^2.3.0
-        version: 2.3.0(pusher-js@8.4.0)(socket.io-client@4.8.3)
+        specifier: ^2.3.1
+        version: 2.3.1(pusher-js@8.4.0)(socket.io-client@4.8.3)
       mitt:
         specifier: ^3.0.1
         version: 3.0.1
@@ -1921,8 +1921,8 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  laravel-echo@2.3.0:
-    resolution: {integrity: sha512-wgHPnnBvfHmu2I58xJ4asZH37Nu6P0472ku6zuoGRLc3zEWwIbpovDLYTiOshDH1SM7rA6AjZTKuu+jYoM1tpQ==}
+  laravel-echo@2.3.1:
+    resolution: {integrity: sha512-o6oD1oR+XklU9TO7OPGeLh/G9SjcZm+YrpSdGkOaAJf5HpXwZKt+wGgnULvKl5I8xUuUY/AAvqR24+y8suwZTA==}
     engines: {node: '>=20'}
     peerDependencies:
       pusher-js: '*'
@@ -4605,7 +4605,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  laravel-echo@2.3.0(pusher-js@8.4.0)(socket.io-client@4.8.3):
+  laravel-echo@2.3.1(pusher-js@8.4.0)(socket.io-client@4.8.3):
     dependencies:
       pusher-js: 8.4.0
       socket.io-client: 4.8.3

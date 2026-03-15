@@ -1,58 +1,135 @@
 // resources/js/plugins/echo.ts
+
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
 
-// Extender el tipo global Window para TS
+/**
+ * Extensión del objeto global Window para TypeScript.
+ * Permite acceder a Pusher y Echo desde scripts globales
+ * o componentes que utilicen window.Echo.
+ */
 declare global {
     interface Window {
         Pusher: typeof Pusher
+        Echo: Echo
     }
 }
 
-// Asignar Pusher al window
-(window as any).Pusher = Pusher // Forzamos el tipo para evitar errores TS
+/**
+ * Laravel Echo requiere que Pusher esté disponible
+ * en el objeto global window.
+ */
+window.Pusher = Pusher
 
-// Instancia singleton de Echo
-let echoInstance: any = null
+/**
+ * Instancia singleton de Echo.
+ * Garantiza que solo exista una conexión WebSocket
+ * en toda la aplicación.
+ */
+let echoInstance: Echo | null = null
 
-// Función para obtener la instancia única
-const getEchoInstance = (): any => {
+/**
+ * Obtiene la instancia única de Echo.
+ *
+ * Si ya existe una instancia, la reutiliza.
+ * Si no existe, crea una nueva conexión WebSocket
+ * usando Laravel Reverb.
+ *
+ * @returns {Echo} Instancia única de Laravel Echo
+ */
+const getEchoInstance = (): Echo => {
     if (echoInstance) {
         return echoInstance
     }
-    
-    // Variables de entorno
-    const APP_KEY = import.meta.env.VITE_REVERB_APP_KEY as string
-    const HOST = import.meta.env.VITE_REVERB_HOST ?? window.location.hostname
-    const PORT = Number(import.meta.env.VITE_REVERB_PORT) || 8080
-    const SCHEME = import.meta.env.VITE_REVERB_SCHEME ?? window.location.protocol.replace(':', '')
-    const IS_HTTPS = SCHEME === 'https'
 
-    // Crear instancia única
+    /**
+     * Variables de entorno expuestas por Vite.
+     */
+    const APP_KEY: string = import.meta.env.VITE_REVERB_APP_KEY
+
+    const HOST: string =
+        import.meta.env.VITE_REVERB_HOST ??
+        window.location.hostname
+
+    const PORT: number =
+        Number(import.meta.env.VITE_REVERB_PORT) || 8080
+
+    const SCHEME: string =
+        import.meta.env.VITE_REVERB_SCHEME ??
+        window.location.protocol.replace(':', '')
+
+    const IS_HTTPS: boolean = SCHEME === 'https'
+
+    // Debug: Mostrar variables en consola
+    console.log('Echo Debug - Variables:', {
+        APP_KEY,
+        HOST,
+        PORT,
+        SCHEME,
+        IS_HTTPS,
+        VITE_REVERB_APP_KEY: import.meta.env.VITE_REVERB_APP_KEY,
+        VITE_REVERB_HOST: import.meta.env.VITE_REVERB_HOST,
+        VITE_REVERB_PORT: import.meta.env.VITE_REVERB_PORT,
+        VITE_REVERB_SCHEME: import.meta.env.VITE_REVERB_SCHEME,
+    })
+
+    /**
+     * Creación de la instancia Echo usando Pusher
+     * conectado al servidor Reverb.
+     */
     echoInstance = new Echo({
         broadcaster: 'pusher',
+
+        /**
+         * Clave pública de la aplicación Reverb.
+         */
         key: APP_KEY,
+
+        /**
+         * Configuración del servidor WebSocket.
+         */
         wsHost: HOST,
         wsPort: PORT,
         wssPort: PORT,
+
+        /**
+         * Si la aplicación usa HTTPS,
+         * se fuerza el uso de WSS.
+         */
         forceTLS: IS_HTTPS,
-        enabledTransports: IS_HTTPS ? ['wss'] : ['ws', 'wss'],
+
+        /**
+         * Transportes habilitados para la conexión.
+         */
+        enabledTransports: ['ws', 'wss'],
+
+        /**
+         * Deshabilitar estadísticas de Pusher.
+         * Reverb no las utiliza.
+         */
         disableStats: true,
+
+        /**
+         * Endpoint de autenticación para
+         * canales privados o presence.
+         */
         authEndpoint: '/broadcasting/auth',
-        // Ignorar cluster para Reverb
-        cluster: null,
-        // Configuración específica para Reverb
-        wsPath: '/app',
     })
+
+    /**
+     * Exponer Echo globalmente.
+     * Útil para scripts inline o debugging.
+     */
+    window.Echo = echoInstance
 
     return echoInstance
 }
 
-// Obtener la instancia
+/**
+ * Instancia exportada por defecto.
+ * Puede importarse directamente en cualquier módulo.
+ */
 const echo = getEchoInstance()
 
-// Exponer globalmente para scripts inline (navbar, blade pages)
-;(window as any).Echo = echo
-
-// Exportar para usar en todo el proyecto
 export default echo
+export { getEchoInstance }
