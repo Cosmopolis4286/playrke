@@ -26,7 +26,7 @@ final class BingoGameService
         $this->checkExpired->handle();
         
         // Buscar la sala por UUID o ID
-        $bingoRoom = BingoRoom::where('uuidCode', $room)
+        $bingoRoom = BingoRoom::where('uuid_code', $room)
             ->orWhere('id', $room)
             ->with(['Config', 'creator'])
             ->firstOrFail();

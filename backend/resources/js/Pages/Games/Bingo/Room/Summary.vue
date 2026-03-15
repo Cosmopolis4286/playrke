@@ -43,7 +43,8 @@
     copyRoom,
     toggleStatusBulk,
     removeBulk,
-    submit
+    submit,
+    goToRoom
   } = useBingoRoom()
 
   // Key forzar re-render de la tabla
@@ -240,7 +241,7 @@
       class: 'btn-dark',
       title: 'Ir a Sala',
       show: (ids: string[]) => ids.length === 1,
-      action: 'goToRoom'
+      onClick: goToRoom
     }
   ]
 

@@ -49,6 +49,9 @@ interface UseBingoRoomReturn {
 
     /** Fetch desde backend */
     fetchRooms: () => Promise<boolean>
+
+    /** Ir a sala de juego */
+    goToRoom: (ids: string[]) => Promise<void>
 }
 
 /**
@@ -475,6 +478,34 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         }
     }
 
+    /**
+     * Ir a sala de juego
+     */
+    async function goToRoom(ids: string[]): Promise<void> {
+        if (!ids || ids.length !== 1) {
+            showToast('Seleccione una sala para continuar', 'error')
+            return
+        }
+
+        const roomId = ids[0]
+        const room = rooms.value.find(r => String(r.id) === String(roomId))
+        
+        if (!room) {
+            showToast('Sala no encontrada', 'error')
+            return
+        }
+
+        try {
+            // Redirigir directamente a la página de juego
+            const roomUrl = `/bingo-game/${roomId}/in-game`
+            console.log(`Redirigiendo a: ${roomUrl}`)
+            window.location.href = roomUrl
+        } catch (error) {
+            console.error('Error al redirigir a la sala:', error)
+            showToast('Error al acceder a la sala de juego', 'error')
+        }
+    }
+
     return {
         roomData,
         roomFormData,
@@ -489,6 +520,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         toggleStatusBulk,
         remove,
         removeBulk,
-        fetchRooms
+        fetchRooms,
+        goToRoom
     }
 }
