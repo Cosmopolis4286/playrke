@@ -1,8 +1,5 @@
 {
   "compilerOptions": {
-    // 🔕 Silencia advertencias deprecadas de TypeScript 6.x (útil en VS Code)
-    "ignoreDeprecations": "6.0",
-
     // Permitir analizar y validar archivos .js además de .ts
     "allowJs": true,
 
@@ -26,6 +23,9 @@
 
     // No verificar tipados internos de librerías externas para acelerar compilación
     "skipLibCheck": true,
+
+    // Omitir la comprobación de archivos de declaración de la biblioteca predeterminada
+    "skipDefaultLibCheck": true,
 
     // Desactivar chequeo estricto (poner true para máxima seguridad)
     "strict": false,
@@ -53,7 +53,11 @@
 
   // Carpetas que TypeScript debe ignorar
   "exclude": [
+    "node_modules/**/*",
     "node_modules",
-    "public"
+    "public",
+    "vendor",
+    "dist",
+    "build"
   ]
 }

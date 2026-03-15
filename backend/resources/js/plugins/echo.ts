@@ -11,7 +11,7 @@ import Pusher from 'pusher-js'
 declare global {
     interface Window {
         Pusher: typeof Pusher
-        Echo: Echo
+        Echo: Echo<any>
     }
 }
 
@@ -19,14 +19,14 @@ declare global {
  * Laravel Echo requiere que Pusher esté disponible
  * en el objeto global window.
  */
-window.Pusher = Pusher
+window.Pusher = Pusher as any
 
 /**
  * Instancia singleton de Echo.
  * Garantiza que solo exista una conexión WebSocket
  * en toda la aplicación.
  */
-let echoInstance: Echo | null = null
+let echoInstance: Echo<any> | null = null
 
 /**
  * Obtiene la instancia única de Echo.
@@ -37,7 +37,7 @@ let echoInstance: Echo | null = null
  *
  * @returns {Echo} Instancia única de Laravel Echo
  */
-const getEchoInstance = (): Echo => {
+const getEchoInstance = (): Echo<any> => {
     if (echoInstance) {
         return echoInstance
     }
@@ -84,6 +84,7 @@ const getEchoInstance = (): Echo => {
          * Clave pública de la aplicación Reverb.
          */
         key: APP_KEY,
+        cluster: 'mt1',
 
         /**
          * Configuración del servidor WebSocket.
