@@ -591,6 +591,38 @@ final class BingoCardGenerateService
                 'ctns'       => $arrCtn['numOfCtns'],
             ];
         });
+
+        // Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
+        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players')
+            ->with('config:id,room_id,card_price_usd')
+            ->find($room->id);
+
+        if ($fresh) {
+            $event = new \App\Events\Games\Bingo\BingoRoomUpdated(
+                roomId:       (string) $fresh->id,
+                prizePool:    (float)  $fresh->prize_pool,
+                totalPlayers: (int)    $fresh->total_players,
+                cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
+            );
+            
+            // Debug: Log antes de emitir
+            \Log::info('BingoRoomUpdated: Emitiendo evento desde buyFromGameRooms', [
+                'room_id' => $fresh->id,
+                'prize_pool' => $fresh->prize_pool,
+                'total_players' => $fresh->total_players,
+                'card_price_usd' => $fresh->config?->card_price_usd,
+                'channel' => "bingo.room.{$fresh->id}",
+                'event_name' => 'RoomUpdated'
+            ]);
+            
+            // Forzar transmisión inmediata usando el driver de Reverb directamente
+            \Broadcast::driver('reverb')->broadcast([$event->broadcastOn()], $event->broadcastAs(), $event->broadcastWith());
+            
+            // Debug: Log después de emitir
+            \Log::info('BingoRoomUpdated: Evento emitido correctamente desde buyFromGameRooms');
+        } else {
+            \Log::warning('BingoRoomUpdated: No se encontró la sala fresca en buyFromGameRooms', ['room_id' => $room->id]);
+        }
     }
 
     /**
@@ -731,6 +763,38 @@ final class BingoCardGenerateService
         // Descontar el monto de la billetera del jugador
         $newBalance = $currentBalance - $totalAmount;
         $this->walletRepository->updateBalance($playerWallet->id, $newBalance);
+
+        // Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
+        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players')
+            ->with('config:id,room_id,card_price_usd')
+            ->find($room->id);
+
+        if ($fresh) {
+            $event = new \App\Events\Games\Bingo\BingoRoomUpdated(
+                roomId:       (string) $fresh->id,
+                prizePool:    (float)  $fresh->prize_pool,
+                totalPlayers: (int)    $fresh->total_players,
+                cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
+            );
+            
+            // Debug: Log antes de emitir
+            \Log::info('BingoRoomUpdated: Emitiendo evento desde playerBuyFromGameRooms', [
+                'room_id' => $fresh->id,
+                'prize_pool' => $fresh->prize_pool,
+                'total_players' => $fresh->total_players,
+                'card_price_usd' => $fresh->config?->card_price_usd,
+                'channel' => "bingo.room.{$fresh->id}",
+                'event_name' => 'RoomUpdated'
+            ]);
+            
+            // Forzar transmisión inmediata usando el driver de Reverb directamente
+            \Broadcast::driver('reverb')->broadcast([$event->broadcastOn()], $event->broadcastAs(), $event->broadcastWith());
+            
+            // Debug: Log después de emitir
+            \Log::info('BingoRoomUpdated: Evento emitido correctamente desde playerBuyFromGameRooms');
+        } else {
+            \Log::warning('BingoRoomUpdated: No se encontró la sala fresca en playerBuyFromGameRooms', ['room_id' => $room->id]);
+        }
 
         return [
             'message' => 'Cartones generados exitosamente',

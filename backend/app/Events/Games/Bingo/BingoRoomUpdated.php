@@ -23,7 +23,7 @@ use Illuminate\Queue\SerializesModels;
  *   card_price_usd: float   — Precio base del cartón en USD
  * }
  */
-final class BingoRoomUpdated implements ShouldBroadcastNow
+final class BingoRoomUpdated implements ShouldBroadcast
 {
     use SerializesModels;
 
@@ -56,5 +56,13 @@ final class BingoRoomUpdated implements ShouldBroadcastNow
             'total_players' => $this->totalPlayers,
             'card_price_usd'=> $this->cardPriceUsd,
         ];
+    }
+    
+    /**
+     * Forzar transmisión inmediata sin cola
+     */
+    public function broadcastConnection()
+    {
+        return 'reverb';
     }
 }

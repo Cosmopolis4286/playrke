@@ -110,5 +110,10 @@ const getEchoInstance = (): Echo<any> => {
  */
 const echo = getEchoInstance()
 
+echo.channel('test-channel')
+    .listen('.TestEvent', (e) => {
+        console.log('🎉 Evento recibido:', e)
+    })
+
 export default echo
 export { getEchoInstance }

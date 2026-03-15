@@ -49,10 +49,16 @@ export function useGameRoomEcho(rooms: Ref<BingoGameRoom[]>): void {
    * Solo actualiza los campos que llegan en el payload para no perder otros datos locales.
    */
   function patchRoom(payload: RoomUpdatedPayload): void {
+    console.log(`🔄 Actualizando sala ${payload.room_id} con:`, payload)
+    
     const idx = rooms.value.findIndex(r => r.id === payload.room_id)
-    if (idx === -1) return
+    if (idx === -1) {
+      console.warn(`⚠️ No se encontró la sala ${payload.room_id} en la lista local`)
+      return
+    }
 
     const room = rooms.value[idx]
+    console.log(`📊 Sala antes de actualizar:`, room)
 
     rooms.value[idx] = {
       ...room,
@@ -63,15 +69,20 @@ export function useGameRoomEcho(rooms: Ref<BingoGameRoom[]>): void {
         ? { ...room.config, card_price_usd: payload.card_price_usd }
         : room.config,
     }
+    
+    console.log(`✅ Sala después de actualizar:`, rooms.value[idx])
   }
 
   // Suscribir a cada sala al montarse
   for (const room of rooms.value) {
     const channelName = `bingo.room.${room.id}`
 
+    console.log(`🔌 Suscribiendo al canal: ${channelName}`)
+
     echo
       .channel(channelName)
       .listen('.RoomUpdated', (payload: RoomUpdatedPayload) => {
+        console.log(`📨 Evento RoomUpdated recibido en canal ${channelName}:`, payload)
         patchRoom(payload)
       })
 
