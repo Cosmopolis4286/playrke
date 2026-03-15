@@ -2,13 +2,7 @@
 
 namespace App\Http\Controllers\Games\Bingo\Game;
 
-use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
-use App\DTOs\Games\Bingo\Room\BingoRoomPlayerBuyDTO;
-use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Games\Bingo\Room\BingoRoomPlayerBuyRequest;
-use App\Http\Requests\Games\Bingo\Room\BingoRoomRequest;
-use Illuminate\Http\Request;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
@@ -32,41 +26,45 @@ final class BingoGameController extends Controller
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly \App\Services\Games\Bingo\Game\BingoGameService $service,
-        private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $generateService,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
-
+    
     /**
-     * Resumen de salas de bingo (admin y commerce).
+     * Vista del juego de bingo (jugador en sala).
      *
+     * @param string $room
      * @return Response
      */
-    public function inGame($player, $room = '')
+    public function inGame(string $room): Response
     {
-        // Vista para el juego de la venta conjunta de todos los comercios
-        $player = ExternalPlayers::getByLink($player, ['room', 'creator_user_id', 'link', 'currency']);
+        return $this->handleServiceInertia(
+            function () use ($room) {
+                $userId = $this->userContext->resolveUserId();
+                $response = $this->service->getInGameData($room, $userId);
 
-        if (!$player) abort(404); // Retorna un error 404 Not Found
+                return Inertia::render('Games/Bingo/Room/InPlay/Index', $response);
+            },
+            'No se pudo cargar la sala de juego.'
+        );
+    }
 
-        $creatorUser = $player->creator_user;
-        $userCreator = User::getCreatorUser($creatorUser, false, true);
+    /**
+     * Vista legacy del juego de bingo (compatibilidad).
+     *
+     * @param string $player
+     * @param string $room
+     * @return Response
+     */
+    public function legacyInGame(string $player, string $room = ''): Response
+    {
+        return $this->handleServiceInertia(
+            function () use ($player, $room) {
+                $response = $this->service->getLegacyInGameData($player, $room);
 
-        if (!$player) abort(404); // Retorna un error 404 Not Found
-
-        $creator = [
-            'type' => $userCreator['type'],
-            'id' => $userCreator['id'],
-            'userId' => $creatorUser
-        ];
-
-        $viewData = self::getGameInfo($creator, [
-            'playerLink' => $player->link,
-            'room' => $player->room,
-            'currency' => $player->currency
-        ]);
-
-        // Retorna a vista con la informacion
-        return $this->handleViewData($viewData, $creator['type']);
+                return Inertia::render('Games/Bingo/Room/InPlay/Index', $response);
+            },
+            'No se pudo cargar la sala de juego.'
+        );
     }
 }

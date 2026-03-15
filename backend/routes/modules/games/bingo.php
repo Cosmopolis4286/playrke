@@ -108,6 +108,15 @@ route_group('bingo-game-rooms', 'bingo-game-rooms.', ['auth', 'role:admin,commer
 
 /**
  * ====================================
+ * JUEGO DE BINGO (IN-GAME)
+ * ====================================
+ */
+route_group('bingo-game', 'bingo-game.', ['auth', 'role:admin,commerce,seller,player'], BingoGameController::class, [
+    'in-game' => ['method' => 'get', 'uri' => '{room}/in-game', 'action' => 'inGame'],
+]);
+
+/**
+ * ====================================
  * TESTING Y DESARROLLO
  * ====================================
  */
