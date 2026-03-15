@@ -3,6 +3,7 @@
 namespace App\Services\Games\Bingo\Card\Generate;
 
 use App\DTOs\Games\Bingo\Card\Generate\{BingoCardGenerateContexDTO, BingoCardGenerateDTO};
+use App\Events\Wallet\WalletUpdated;
 use App\Models\Games\Bingo\Card\CardPrice\BingoCardPrice;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
@@ -13,6 +14,7 @@ use App\Models\ExternalPlayers;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Services\Games\Bingo\Card\BingoCardPriceCalculator;
 use App\Services\Games\Bingo\Card\BingoCardGenerationService;
+use App\Services\NotificationService;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +48,7 @@ final class BingoCardGenerateService
         private readonly BingoCardPriceCalculator $priceCalculator,
         private readonly \App\Contracts\WalletRepositoryInterface $walletRepository,
         private readonly \App\Services\Games\Bingo\Card\BingoCardGenerationService $cardGenerationService,
+        private readonly NotificationService $notificationService,
     ) {}
 
     /**
@@ -599,7 +602,7 @@ final class BingoCardGenerateService
 
         if ($fresh) {
             $event = new \App\Events\Games\Bingo\BingoRoomUpdated(
-                roomId:       (string) $fresh->id,
+                roomId:       (string) $fresh->uuid_code,
                 prizePool:    (float)  $fresh->prize_pool,
                 totalPlayers: (int)    $fresh->total_players,
                 cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
@@ -763,6 +766,25 @@ final class BingoCardGenerateService
         // Descontar el monto de la billetera del jugador
         $newBalance = $currentBalance - $totalAmount;
         $this->walletRepository->updateBalance($playerWallet->id, $newBalance);
+
+        // Emitir evento de actualización de billetera via WebSocket
+        broadcast(new WalletUpdated(
+            userId: (string) $userId,
+            walletId: (string) $playerWallet->id,
+            balance: (float) $newBalance,
+            currencySymbol: $priceInfo['currency_symbol'],
+            movementType: 'CARD_PURCHASE',
+            amount: $totalAmount,
+        ));
+
+        // Guardar notificación persistente
+        $this->notificationService->createWalletNotification(
+            userId: (string) $userId,
+            balance: (float) $newBalance,
+            currencySymbol: $priceInfo['currency_symbol'],
+            movementType: 'CARD_PURCHASE',
+            amount: $totalAmount
+        );
 
         // Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
         $fresh = BingoRoom::select('id', 'prize_pool', 'total_players')

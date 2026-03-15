@@ -198,21 +198,6 @@ final class BingoCardGenerationService
     {
         return DB::transaction(function () use ($arrCtn, $room, $totalAmount) {
             $roomUser = $this->generateCards($arrCtn);
-
-            // Emitir evento de actualización de sala
-            $fresh = BingoRoom::select('id', 'prize_pool', 'total_players')
-                ->with('config:id,room_id,card_price_usd')
-                ->find($room->id);
-
-            if ($fresh) {
-                broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
-                    roomId:       (string) $fresh->id,
-                    prizePool:    (float)  $fresh->prize_pool,
-                    totalPlayers: (int)    $fresh->total_players,
-                    cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
-                ));
-            }
-
             return $roomUser;
         });
     }

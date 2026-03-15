@@ -133,11 +133,11 @@ class BingoRoomCrudService
 
                 // Broadcast de actualización en tiempo real para clientes activos
                 $freshRoom = $room->fresh(['config']);
-                if ($freshRoom) {
+                if ($freshRoom && $statusCode === 'ACTIVE') {
                     broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
-                        roomId:       (string) $freshRoom->id,
-                        prizePool:    (float)  $freshRoom->prize_pool,
-                        totalPlayers: (int)    $freshRoom->total_players,
+                        roomId:       (string) $room->uuid_code,
+                        prizePool:    (float)  $room->prize_pool,
+                        totalPlayers: (int)    $room->total_players,
                         cardPriceUsd: (float) ($freshRoom->config?->card_price_usd ?? 0),
                     ));
                 }

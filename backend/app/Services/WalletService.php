@@ -7,6 +7,7 @@ use App\Contracts\WalletRepositoryInterface;
 use App\Events\Wallet\WalletUpdated;
 use App\Models\Wallet;
 use App\Models\WalletMovement;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -15,6 +16,7 @@ final class WalletService
     public function __construct(
         private readonly WalletRepositoryInterface         $walletRepository,
         private readonly WalletMovementRepositoryInterface $movementRepository,
+        private readonly NotificationService                $notificationService,
     ) {}
 
     /**
@@ -133,6 +135,7 @@ final class WalletService
      */
     private function broadcastWalletUpdated(Wallet $wallet, string $type, float $amount): void
     {
+        // Emitir evento WebSocket para actualización en tiempo real
         broadcast(new WalletUpdated(
             userId:         (string) $wallet->user_id,
             walletId:       (string) $wallet->id,
@@ -141,6 +144,15 @@ final class WalletService
             movementType:   $type,
             amount:         $amount,
         ));
+
+        // Guardar notificación persistente
+        $this->notificationService->createWalletNotification(
+            userId: (string) $wallet->user_id,
+            balance: (float) $wallet->balance,
+            currencySymbol: $wallet->currency->symbol ?? '',
+            movementType: $type,
+            amount: $amount
+        );
     }
 
     /**

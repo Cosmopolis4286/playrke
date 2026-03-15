@@ -75,16 +75,31 @@ export function useGameRoomEcho(rooms: Ref<BingoGameRoom[]>): void {
 
   // Suscribir a cada sala al montarse
   for (const room of rooms.value) {
-    const channelName = `bingo.room.${room.id}`
+    const channelName = `bingo.room.${room.uuid_code}`
 
     console.log(`🔌 Suscribiendo al canal: ${channelName}`)
 
-    echo
-      .channel(channelName)
-      .listen('.RoomUpdated', (payload: RoomUpdatedPayload) => {
-        console.log(`📨 Evento RoomUpdated recibido en canal ${channelName}:`, payload)
-        patchRoom(payload)
-      })
+    const channel = echo.channel(channelName)
+    
+    // Escuchar todos los eventos del canal para debug
+    channel.listen('*', (event: any, data: any) => {
+      console.log(`📨 CUALQUIER EVENTO recibido en ${channelName}:`, { event, data })
+    })
+    
+    // Escuchar específicamente el evento RoomUpdated
+    channel.listen('.RoomUpdated', (payload: RoomUpdatedPayload) => {
+      console.log(`📨 Evento RoomUpdated recibido en canal ${channelName}:`, payload)
+      patchRoom(payload)
+    })
+    
+    // También intentar con el nombre sin prefijo
+    channel.listen('RoomUpdated', (payload: RoomUpdatedPayload) => {
+      console.log(`📨 Evento RoomUpdated (sin prefijo) recibido en canal ${channelName}:`, payload)
+      patchRoom(payload)
+    })
+
+    // Debug: verificar estado del canal
+    console.log(`📡 Estado del canal ${channelName}:`, channel)
 
     subscribedChannels.push(channelName)
   }

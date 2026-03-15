@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BingoController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Auth\DemoCredentialsController;
+use App\Http\Controllers\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -114,6 +115,18 @@ Route::prefix('api')->group(function () {
 //         Route::post('withdraw', [WalletController::class, 'withdraw'])->name('api.wallet.withdraw');
 //         Route::get('transactions', [WalletController::class, 'getTransactions'])->name('api.wallet.transactions');
 //         Route::get('transactions/{id}', [WalletController::class, 'getTransaction'])->name('api.wallet.transaction');
+//     });
+
+//     //
+//     // NOTIFICATIONS
+//     //
+//     Route::prefix('notifications')->group(function () {
+//         Route::get('/', [NotificationController::class, 'index'])->name('api.notifications.index');
+//         Route::get('unread', [NotificationController::class, 'unread'])->name('api.notifications.unread');
+//         Route::get('unread-count', [NotificationController::class, 'unreadCount'])->name('api.notifications.unread-count');
+//         Route::patch('{id}/read', [NotificationController::class, 'markAsRead'])->name('api.notifications.mark-read');
+//         Route::patch('read-all', [NotificationController::class, 'markAllAsRead'])->name('api.notifications.mark-all-read');
+//         Route::delete('{id}', [NotificationController::class, 'destroy'])->name('api.notifications.delete');
 //     });
 
 //     //

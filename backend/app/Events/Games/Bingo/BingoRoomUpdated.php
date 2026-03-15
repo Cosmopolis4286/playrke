@@ -3,7 +3,7 @@
 namespace App\Events\Games\Bingo;
 
 use Illuminate\Broadcasting\Channel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Queue\SerializesModels;
 
 /**
@@ -17,7 +17,7 @@ use Illuminate\Queue\SerializesModels;
  *
  * Payload recibido en el cliente:
  * {
- *   room_id:       string   — ID real de la sala (Snowflake)
+ *   room_id:       string   — ID UUID de la sala (código hash)
  *   prize_pool:    float    — Bote acumulado actualizado
  *   total_players: int      — Total de jugadores en la sala
  *   card_price_usd: float   — Precio base del cartón en USD
@@ -28,7 +28,7 @@ final class BingoRoomUpdated implements ShouldBroadcast
     use SerializesModels;
 
     public function __construct(
-        /** ID real (Snowflake) de la sala */
+        /** ID UUID de la sala (código hash) */
         public readonly string $roomId,
         /** Bote acumulado actualizado */
         public readonly float  $prizePool,
