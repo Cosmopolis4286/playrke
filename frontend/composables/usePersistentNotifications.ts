@@ -30,14 +30,21 @@ export const usePersistentNotifications = () => {
       isLoading.value = true
       error.value = null
       
-      const response = await $fetch('/api/notifications/unread', {
+      const response = await $fetch('/notifications/unread', {
         headers: {
           'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
         }
       })
       
       notifications.value = response.data || []
       unreadCount.value = response.unread_count || 0
+      
+      console.log('Notifications loaded:', {
+        count: notifications.value.length,
+        unreadCount: unreadCount.value,
+        data: response
+      })
     } catch (err) {
       console.error('Error loading notifications:', err)
       error.value = 'Error al cargar notificaciones'
@@ -49,10 +56,11 @@ export const usePersistentNotifications = () => {
   // Marcar notificación como leída
   const markAsRead = async (notificationId: string) => {
     try {
-      await $fetch(`/api/notifications/${notificationId}/read`, {
+      await $fetch(`/notifications/${notificationId}/read`, {
         method: 'PATCH',
         headers: {
           'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
         }
       })
       
@@ -72,10 +80,11 @@ export const usePersistentNotifications = () => {
   // Marcar todas como leídas
   const markAllAsRead = async () => {
     try {
-      await $fetch('/api/notifications/read-all', {
+      await $fetch('/notifications/read-all', {
         method: 'PATCH',
         headers: {
           'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
         }
       })
       
@@ -94,10 +103,11 @@ export const usePersistentNotifications = () => {
   // Eliminar notificación
   const deleteNotification = async (notificationId: string) => {
     try {
-      await $fetch(`/api/notifications/${notificationId}`, {
+      await $fetch(`/notifications/${notificationId}`, {
         method: 'DELETE',
         headers: {
           'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
         }
       })
       
@@ -189,9 +199,10 @@ export const usePersistentNotifications = () => {
   // Recargar contador de notificaciones no leídas
   const refreshUnreadCount = async () => {
     try {
-      const response = await $fetch('/api/notifications/unread-count', {
+      const response = await $fetch('/notifications/unread-count', {
         headers: {
           'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
         }
       })
       

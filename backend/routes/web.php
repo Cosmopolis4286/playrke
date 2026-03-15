@@ -13,6 +13,7 @@
 // ====================================
 require __DIR__ . '/auth.php';                    // Autenticación (Laravel Breeze)
 require __DIR__ . '/modules/public.php';          // Landing, información pública
+require __DIR__ . '/modules/notifications.php';   // Notificaciones
 // require __DIR__ . '/modules/api-public.php';      // APIs públicas
 
 // ====================================
@@ -21,6 +22,7 @@ require __DIR__ . '/modules/public.php';          // Landing, información públ
 require __DIR__ . '/modules/dashboard.php';
 require __DIR__ . '/modules/user-profile.php';
 require __DIR__ . '/modules/content.php';
+require __DIR__ . '/modules/notifications.php';
 
 // ====================================
 // RUTAS POR ROLES DE USUARIO

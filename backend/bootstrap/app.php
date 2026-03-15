@@ -14,6 +14,9 @@ return Application::configure(
         channels: __DIR__ . '/../routes/channels.php',
         health: '/up', // Ruta health-check para monitoreo
     )
+    ->withProviders([
+        \App\Providers\NotificationServiceProvider::class,
+    ])
     ->withMiddleware(function (Middleware $middleware) {
         /**
          * Alias de middleware personalizados
@@ -44,6 +47,7 @@ return Application::configure(
         /** Habiltar Middleware de Inetia*/
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
+            \App\Http\Middleware\ShareNotifications::class,
         ]);
 
         /**

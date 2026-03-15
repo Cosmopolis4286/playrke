@@ -7,6 +7,7 @@
 
     <!-- Notificaciones globales -->
     <NotificationContainer />
+    <SimpleNotificationContainer />
 
     <!-- Modales globales -->
     <ModalContainer />

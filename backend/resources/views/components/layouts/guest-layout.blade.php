@@ -8,6 +8,7 @@
     @endif
 
     @include('sweetalert::alert')
+@include('includes.notifications')
 
     <main class="container-fluid">
         {{ $slot }}

@@ -101,6 +101,19 @@ final class NotificationService
     public function getUserNotifications(array $filters = [], int $limit = 20): Collection
     {
         $userId = (string) Auth::id();
+        
+        // Debug: Log para verificar que tenemos userId
+        \Log::info('NotificationService: getUserNotifications', [
+            'user_id' => $userId,
+            'filters' => $filters,
+            'limit' => $limit,
+        ]);
+        
+        if (empty($userId)) {
+            \Log::warning('NotificationService: No user ID found');
+            return collect([]);
+        }
+        
         return $this->notificationRepository->getByUser($userId, $filters, $limit);
     }
 
@@ -113,7 +126,27 @@ final class NotificationService
     public function getUnreadNotifications(int $limit = 20): Collection
     {
         $userId = (string) Auth::id();
-        return $this->notificationRepository->getUnreadByUser($userId, $limit);
+        
+        // Debug: Log para verificar que tenemos userId
+        \Log::info('NotificationService: getUnreadNotifications', [
+            'user_id' => $userId,
+            'limit' => $limit,
+        ]);
+        
+        if (empty($userId)) {
+            \Log::warning('NotificationService: No user ID found for unread notifications');
+            return collect([]);
+        }
+        
+        $notifications = $this->notificationRepository->getUnreadByUser($userId, $limit);
+        
+        // Debug: Log resultados
+        \Log::info('NotificationService: Unread notifications result', [
+            'count' => $notifications->count(),
+            'notifications' => $notifications->toArray(),
+        ]);
+        
+        return $notifications;
     }
 
     /**
@@ -124,7 +157,25 @@ final class NotificationService
     public function getUnreadCount(): int
     {
         $userId = (string) Auth::id();
-        return $this->notificationRepository->countUnreadByUser($userId);
+        
+        // Debug: Log para verificar que tenemos userId
+        \Log::info('NotificationService: getUnreadCount', [
+            'user_id' => $userId,
+        ]);
+        
+        if (empty($userId)) {
+            \Log::warning('NotificationService: No user ID found for unread count');
+            return 0;
+        }
+        
+        $count = $this->notificationRepository->countUnreadByUser($userId);
+        
+        // Debug: Log resultado
+        \Log::info('NotificationService: Unread count result', [
+            'count' => $count,
+        ]);
+        
+        return $count;
     }
 
     /**
