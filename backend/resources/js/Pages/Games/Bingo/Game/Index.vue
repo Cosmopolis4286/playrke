@@ -48,6 +48,7 @@ interface Props {
   prizePool?: number;
   prizePoolType?: string;
   round?: number;
+  rounds?: number; // Agregado: número total de rondas
   bingoPattern?: string;
   vanDraw?: number[];
   player?: Player;
@@ -112,7 +113,7 @@ let infoGame = ref(props.infoGame);
 // Estado para juego activo
 const prizePoolType = ref(props.prizePoolType);
 const roundNum = ref(props.round);
-const numRounds = ref(parseInt(props.room.Config.rounds?.toString() || "1"));
+const numRounds = ref(props.rounds || 1); // Usar rounds directamente desde props
 const startTime = ref(props.startTime);
 
 let loaderChip = ref(true);
@@ -197,7 +198,7 @@ onMounted(() => {
         </div>
         <div id="cont-bingo-info-extras">
           <div id="cont-game-mode-opcs">
-            <div v-if="room.Config.rounds" id="container-round">
+            <div v-if="rounds" id="container-round">
               Ronda<span id="num-round">#{{ round }}</span>
             </div>
             <div v-if="bingoPattern" id="text-game-mode">{{ bingoPattern }}</div>

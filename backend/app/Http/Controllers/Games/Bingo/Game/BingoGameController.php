@@ -33,17 +33,17 @@ final class BingoGameController extends Controller
     /**
      * Vista del juego de bingo (jugador en sala).
      *
-     * @param string $room
+     * @param BingoRoom $room
      * @return Response
      */
-    public function inGame(string $room): Response
+    public function inGame(BingoRoom $room): Response
     {
         return $this->handleServiceInertia(
             function () use ($room) {
                 $userId = $this->userContext->resolveUserId();
                 $response = $this->service->getInGameData($room, $userId);
 
-                return Inertia::render('Games/Bingo/Room/InPlay/Index', $response);
+                return Inertia::render('Games/Bingo/Game/Index', $response);
             },
             'No se pudo cargar la sala de juego.'
         );
@@ -62,7 +62,7 @@ final class BingoGameController extends Controller
             function () use ($player, $room) {
                 $response = $this->service->getLegacyInGameData($player, $room);
 
-                return Inertia::render('Games/Bingo/Room/InPlay/Index', $response);
+                return Inertia::render('Games/Bingo/Game/Index', $response);
             },
             'No se pudo cargar la sala de juego.'
         );

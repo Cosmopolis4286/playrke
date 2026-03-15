@@ -17,33 +17,56 @@ final class BingoGameService
     /**
      * Obtener datos para la vista del juego (in-game).
      *
-     * @param string $room
+     * @param BingoRoom $room
      * @param int|null $userId
      * @return array
      */
-    public function getInGameData(string $room, ?int $userId = null): array
+    public function getInGameData(BingoRoom $room, ?int $userId = null): array
     {
         $this->checkExpired->handle();
         
-        // Buscar la sala por UUID o ID
-        $bingoRoom = BingoRoom::where('uuid_code', $room)
-            ->orWhere('id', $room)
-            ->with(['Config', 'creator'])
-            ->firstOrFail();
+        // La sala ya viene del route binding, solo necesitamos cargar las relaciones
+        $bingoRoom = $room->load(['config', 'creator', 'cardPrices', 'rounds']);
+        
+        // Verificar si la sala está eliminada (soft delete)
+        if ($bingoRoom->trashed()) {
+            \Log::warning('BingoRoom found but is soft deleted', [
+                'room_id' => $bingoRoom->id,
+                'uuid_code' => $bingoRoom->uuid_code,
+                'deleted_at' => $bingoRoom->deleted_at
+            ]);
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException('BingoRoom has been deleted.');
+        }
 
         // Obtener cartones del jugador
         $cartons = $this->getUserCartons($bingoRoom->id, $userId);
 
+        // Obtener precio del cartón (USD por defecto)
+        $cardPrice = $this->getCardPrice($bingoRoom);
+
         // Preparar datos del juego
-        return [
+        $config = $bingoRoom->config;
+        $rounds = $bingoRoom->rounds;
+        
+        // Debug logging para verificar la configuración y rondas
+        \Log::info('BingoRoom data', [
+            'room_id' => $bingoRoom->id,
+            'config_exists' => !is_null($config),
+            'rounds_count' => $rounds->count(),
+            'rounds_data' => $rounds->toArray(),
+            'config_rounds' => $config?->rounds ?? 'NOT_FOUND'
+        ]);
+        
+        $gameData = [
             'title' => 'Juego de Bingo',
             'room' => $bingoRoom,
             'cartons' => $cartons,
             'customerLogo' => null, // Se puede configurar según necesidad
             'currencySym' => '$', // Configurable según moneda de la sala
-            'prizePool' => $bingoRoom->prizePool,
+            'prizePool' => (float) $bingoRoom->prize_pool,
             'prizePoolType' => 'Premio',
             'round' => 1, // Obtener de la configuración del juego
+            'rounds' => $rounds->count(), // Número de rondas desde la relación
             'bingoPattern' => '', // Obtener del patrón activo
             'vanDraw' => [], // Obtener números sorteados
             'player' => ['ctns' => count($cartons)],
@@ -54,12 +77,25 @@ final class BingoGameService
             'allChips' => [],
             'infoGame' => null,
             'creatorType' => 'admin', // Obtener del creador de la sala
-            'creatorId' => $bingoRoom->creator_id,
-            'currencyId' => 1, // Configurable
-            'cardPrice' => $bingoRoom->cardPrice,
-            'startTime' => $bingoRoom->publicationDate->timestamp,
+            'creatorId' => $bingoRoom->creator_user_id,
+            'currencyId' => (string) 1, // Configurable
+            'cardPrice' => (float) $cardPrice,
+            'startTime' => $bingoRoom->published_at?->timestamp ?? now()->timestamp,
             'closingRoute' => route('bingo-rooms.index'),
         ];
+        
+        // Forzar la serialización correcta para Inertia
+        $gameData['rounds'] = (int) $gameData['rounds'];
+        
+        // Debug final para verificar los datos que se envían
+        \Log::info('Final game data for Inertia', [
+            'data_keys' => array_keys($gameData),
+            'rounds_value' => $gameData['rounds'],
+            'rounds_type' => gettype($gameData['rounds']),
+            'rounds_forced' => (int) $gameData['rounds']
+        ]);
+        
+        return $gameData;
     }
 
     /**
@@ -137,5 +173,57 @@ final class BingoGameService
         // Por ahora retornamos un array vacío como ejemplo
         // TODO: Implementar lógica real de obtención de cartones
         return [];
+    }
+
+    /**
+     * Validar formato del identificador de sala
+     *
+     * @param string $identifier
+     * @return bool
+     */
+    private function isValidRoomIdentifier(string $identifier): bool
+    {
+        // Verificar si es un UUID válido (formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $identifier)) {
+            return true;
+        }
+        
+        // Verificar si es un ID Snowflake válido (número grande, generalmente 15+ dígitos)
+        if (preg_match('/^\d{15,}$/', $identifier)) {
+            return true;
+        }
+        
+        // Verificar si es un UUID sin guiones (formato alternativo)
+        if (preg_match('/^[0-9a-f]{32}$/i', $identifier)) {
+            return true;
+        }
+        
+        // Verificar si es un ID corto alfanumérico (como 4xZOjvaxq3G2d)
+        if (preg_match('/^[a-zA-Z0-9]{8,}$/', $identifier)) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Obtener el precio del cartón para una sala
+     *
+     * @param BingoRoom $room
+     * @return float
+     */
+    private function getCardPrice(BingoRoom $room): float
+    {
+        // Buscar precio en USD (moneda por defecto)
+        $cardPrice = $room->cardPrices
+            ->where('currency_id', 1) // Asumiendo que 1 es USD
+            ->first();
+
+        // Si no hay precio en USD, tomar el primero disponible
+        if (!$cardPrice && $room->cardPrices->isNotEmpty()) {
+            $cardPrice = $room->cardPrices->first();
+        }
+
+        return $cardPrice?->card_price ?? 0;
     }
 }

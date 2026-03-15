@@ -495,6 +495,14 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             return
         }
 
+        const confirm = await showToastConfirmAction({
+            html: `¿Quieres entrar a la sala de juego <b>${room.id}</b>?`,
+            icon: 'question',
+            confirmButtonText: 'Sí, entrar'
+        })
+
+        if (!confirm) return
+
         try {
             // Redirigir directamente a la página de juego
             const roomUrl = `/bingo-game/${roomId}/in-game`
