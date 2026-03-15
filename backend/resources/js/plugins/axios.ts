@@ -130,7 +130,7 @@ backendClient.interceptors.response.use(
             clearAuthTokens()
 
             // Redirección forzada a login
-            window.location.href = '/auth/login'
+            window.location.href = '/login'
         }
 
         return Promise.reject(error)

@@ -12,24 +12,44 @@ declare global {
 // Asignar Pusher al window
 (window as any).Pusher = Pusher // Forzamos el tipo para evitar errores TS
 
-// Variables de entorno
-const APP_KEY = import.meta.env.VITE_REVERB_APP_KEY as string
-const HOST = import.meta.env.VITE_REVERB_HOST ?? window.location.hostname
-const PORT = Number(import.meta.env.VITE_REVERB_PORT) || 8080
-const SCHEME = import.meta.env.VITE_REVERB_SCHEME ?? window.location.protocol.replace(':', '')
-const IS_HTTPS = SCHEME === 'https'
+// Instancia singleton de Echo
+let echoInstance: any = null
 
-// Instancia de Echo
-const echo = new Echo({
-    broadcaster: 'reverb', // o 'pusher' si usas Pusher oficial
-    key: APP_KEY,
-    wsHost: HOST,
-    wsPort: PORT,
-    wssPort: PORT,
-    forceTLS: IS_HTTPS,
-    enabledTransports: IS_HTTPS ? ['wss'] : ['ws', 'wss'],
-    disableStats: true,
-})
+// Función para obtener la instancia única
+const getEchoInstance = (): any => {
+    if (echoInstance) {
+        return echoInstance
+    }
+    
+    // Variables de entorno
+    const APP_KEY = import.meta.env.VITE_REVERB_APP_KEY as string
+    const HOST = import.meta.env.VITE_REVERB_HOST ?? window.location.hostname
+    const PORT = Number(import.meta.env.VITE_REVERB_PORT) || 8080
+    const SCHEME = import.meta.env.VITE_REVERB_SCHEME ?? window.location.protocol.replace(':', '')
+    const IS_HTTPS = SCHEME === 'https'
+
+    // Crear instancia única
+    echoInstance = new Echo({
+        broadcaster: 'pusher',
+        key: APP_KEY,
+        wsHost: HOST,
+        wsPort: PORT,
+        wssPort: PORT,
+        forceTLS: IS_HTTPS,
+        enabledTransports: IS_HTTPS ? ['wss'] : ['ws', 'wss'],
+        disableStats: true,
+        authEndpoint: '/broadcasting/auth',
+        // Ignorar cluster para Reverb
+        cluster: null,
+        // Configuración específica para Reverb
+        wsPath: '/app',
+    })
+
+    return echoInstance
+}
+
+// Obtener la instancia
+const echo = getEchoInstance()
 
 // Exponer globalmente para scripts inline (navbar, blade pages)
 ;(window as any).Echo = echo

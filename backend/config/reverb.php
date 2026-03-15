@@ -64,16 +64,16 @@ return [
 
     'apps' => [
         [
-            'id' => env('REVERB_APP_ID', '330541'),
+            'id' => env('REVERB_APP_ID'),
             'name' => env('APP_NAME'),
-            'key' => env('REVERB_APP_KEY', 'hiwfwth0zvo7py29p90gots55krklv27'),
-            'secret' => env('REVERB_APP_SECRET', 'nwmhg3jgo2al1ptjiw40kfl40k1svcby'),
+            'key' => env('REVERB_APP_KEY'),
+            'secret' => env('REVERB_APP_SECRET'),
             'path' => '/app',
             'options' => [
                 'host' => env('REVERB_HOST'),
-                'port' => env('REVERB_PORT', 443),
-                'scheme' => env('REVERB_SCHEME', 'https'),
-                'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
+                'port' => env('REVERB_PORT', 8080),
+                'scheme' => env('REVERB_SCHEME', 'http'),
+                'useTLS' => env('REVERB_SCHEME', 'http') === 'https',
             ],
             'allowed_origins' => ['*'],
             'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),

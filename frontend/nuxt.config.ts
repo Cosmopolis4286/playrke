@@ -39,16 +39,16 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8001',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000',
       reverbAppId: process.env.REVERB_APP_ID || '',
       reverbAppKey: process.env.REVERB_APP_KEY || '',
       reverbAppSecret: process.env.REVERB_APP_SECRET || '',
       reverbHost: process.env.REVERB_HOST || 'localhost',
-      reverbPort: Number(process.env.REVERB_PORT || 8082),
+      reverbPort: Number(process.env.REVERB_PORT || 8080),
       reverbTLS: process.env.REVERB_TLS === 'true' || false,
       pusherKey: process.env.NUXT_PUBLIC_PUSHER_KEY || 'local',
       pusherHost: process.env.NUXT_PUBLIC_PUSHER_HOST || 'localhost',
-      pusherPort: Number(process.env.NUXT_PUBLIC_PUSHER_PORT || 8082),
+      pusherPort: Number(process.env.NUXT_PUBLIC_PUSHER_PORT || 8080),
       pusherCluster: process.env.NUXT_PUBLIC_PUSHER_CLUSTER || 'mt1',
       pusherTLS: process.env.NUXT_PUBLIC_PUSHER_TLS === 'true' || false,
       appName: 'PlayRKE',
