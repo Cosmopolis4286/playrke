@@ -55,14 +55,15 @@ trait UserTrait
 
     public function getAvailableCountries($user)
     {
-        $creatorTypeID = User::getValueById($user, 'user_type');
-        $creatorType = RoleRepository::getValueById($creatorTypeID, 'prefix');
+        // Obtener el usuario con sus roles
+        $userModel = User::with('roles')->find($user);
+        $userRole = $userModel->roles->first()?->prefix ?? 'user';
 
         $countries = [];
 
-        switch ($creatorType) {
-            case 'user_id': // Jugador
-                $countries = [User::getValueById($user, 'country')];
+        switch ($userRole) {
+            case 'user': // Jugador
+                $countries = [User::getValueById($user, 'country_id')];
                 break;
             case 'admin': // Admin
                 # code...
@@ -88,16 +89,18 @@ trait UserTrait
 
     public function getAvailableCurrencies($user)
     {
-        $creatorType = RoleRepository::getValueById(User::getValueById($user, 'user_type'), 'prefix');
+        // Obtener el usuario con sus roles
+        $userModel = User::with('roles')->find($user);
+        $userRole = $userModel->roles->first()?->prefix ?? 'user';
 
-        switch ($creatorType) {
-            case 'user_id': // Jugador
-                $currencies = [User::getValueById($user, 'country')];
+        switch ($userRole) {
+            case 'user': // Jugador
+                $currencies = [User::getValueById($user, 'country_id')];
                 break;
             case 'admin': // Admin
                 # code...
                 break;
-            case 'commerce_id': // Comercio
+            case 'commerce': // Comercio
                 $commerce = Commerce::getValueByUserId($user, 'id');
                 $currencies = CommerceCurrency::getAvailableCurrencies($commerce);
                 break;
@@ -170,13 +173,18 @@ trait UserTrait
     public function getPaymentDetailsByUserId($user, $currency)
     {
         try {
-            $user = User::getById($user, ['id', 'user_type']);
+            // Obtener el usuario con sus roles
+            $userModel = User::with('roles')->find($user);
 
-            if (!$user) {
+            if (!$userModel) {
                 return response()->json(['error' => 'Usuario no encontrado.'], 404);
             }
 
-            if (!in_array($user->user_type, [2, 3, 5])) {
+            // Obtener el rol del usuario
+            $userRole = $userModel->roles->first()?->prefix ?? 'user';
+
+            // Verificar si el rol es válido para pagos
+            if (!in_array($userRole, ['commerce', 'seller', 'customer'])) {
                 return response()->json(['error' => 'Tipo de usuario no válido.'], 400);
             }
 
@@ -192,7 +200,7 @@ trait UserTrait
                 return response()->json(['error' => 'Código ISO del país no encontrado.'], 404);
             }
 
-            $user = $user->id;
+            $userId = $userModel->id;
             $error = false;
 
             $paymentMethod = [];
@@ -200,7 +208,7 @@ trait UserTrait
             switch ($isoCode) {
                 case 'VE':
                     // Bs (Venezuela) PagoMovil
-                    $pagomovil = PagoMovil::with(['Bank', 'DocumentType'])->where('user_id', $user)->first();
+                    $pagomovil = PagoMovil::with(['Bank', 'DocumentType'])->where('user_id', $userId)->first();
 
                     if (!$pagomovil) $error = true;
 
@@ -213,7 +221,7 @@ trait UserTrait
 
                 case 'BR':
                     // R$ (Brasil) Pix
-                    $pix = PixKey::where('user_id', $user)->first();
+                    $pix = PixKey::where('user_id', $userId)->first();
 
                     if (!$pix) $error = true;
 
@@ -303,10 +311,11 @@ trait UserTrait
 
     public function getUserData()
     {
-        $user = $this->user(['id', 'user_type']);
+        $user = $this->user(['id']);
         $userId = $user->id;
 
-        $userRole = RoleRepository::getValueById($user->user_type, 'prefix');
+        // Obtener el primer rol del usuario
+        $userRole = $user->roles->first()?->prefix ?? 'user';
 
         switch ($userRole) {
             case 'commerce':
@@ -322,7 +331,7 @@ trait UserTrait
                 $userRoleId = $seller->id;
                 break;
             default:
-                # code...
+                $userRoleId = $userId;
                 break;
         }
 

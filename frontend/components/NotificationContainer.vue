@@ -1,7 +1,7 @@
 <template>
-  <div class="fixed top-4 right-4 z-50 flex flex-col space-y-2">
+  <div class="fixed top-4 right-4 z-[9999] flex flex-col space-y-2">
     <!-- DEBUG: Elemento de prueba -->
-    <div class="bg-red-500 text-white p-2 rounded text-xs">
+    <div class="bg-red-500 text-white p-3 rounded text-sm font-bold shadow-lg">
       🔔 NotificationContainer ({{ notifications.length }} notificaciones)
     </div>
     

@@ -57,29 +57,29 @@ Route::prefix('api')->group(function () {
 //
 // PROTECTED ROUTES (auth:sanctum)
 //
-// Route::middleware(['web', 'auth:sanctum'])->group(function () {
-//     //
-//     // AUTH
-//     //
-//     Route::prefix('auth')->group(function () {
-//         Route::post('logout', [AuthController::class, 'logout'])->name('api.auth.logout');
-//         Route::get('user', [AuthController::class, 'user'])->name('api.auth.user');
-//         Route::get('me', [AuthController::class, 'me'])->name('api.auth.me');
-//     });
+Route::middleware(['web', 'auth:sanctum'])->group(function () {
+    //
+    // AUTH
+    //
+    Route::prefix('auth')->group(function () {
+        Route::post('logout', [AuthController::class, 'logout'])->name('api.auth.logout');
+        Route::get('user', [AuthController::class, 'user'])->name('api.auth.user');
+        Route::get('me', [AuthController::class, 'me'])->name('api.auth.me');
+    });
 
-//     //
-//     // USER PROFILE
-//     //
-//     Route::prefix('user')->group(function () {
-//         Route::get('profile', [UserController::class, 'profile'])->name('api.user.profile');
-//         Route::put('profile', [UserController::class, 'updateProfile'])->name('api.user.update-profile');
-//         Route::put('password', [UserController::class, 'updatePassword'])->name('api.user.update-password');
-//         Route::post('avatar', [UserController::class, 'uploadAvatar'])->name('api.user.upload-avatar');
-//         Route::delete('avatar', [UserController::class, 'deleteAvatar'])->name('api.user.delete-avatar');
-//         Route::get('preferences', [UserController::class, 'getPreferences'])->name('api.user.preferences');
-//         Route::put('preferences', [UserController::class, 'updatePreferences'])->name('api.user.update-preferences');
-//         Route::get('stats', [UserController::class, 'getStats'])->name('api.user.stats');
-//     });
+    //
+    // USER PROFILE
+    //
+    Route::prefix('user')->group(function () {
+        Route::get('profile', [UserController::class, 'profile'])->name('api.user.profile');
+        Route::put('profile', [UserController::class, 'updateProfile'])->name('api.user.update-profile');
+        Route::put('password', [UserController::class, 'updatePassword'])->name('api.user.update-password');
+        Route::post('avatar', [UserController::class, 'uploadAvatar'])->name('api.user.upload-avatar');
+        Route::delete('avatar', [UserController::class, 'deleteAvatar'])->name('api.user.delete-avatar');
+        Route::get('preferences', [UserController::class, 'getPreferences'])->name('api.user.preferences');
+        Route::put('preferences', [UserController::class, 'updatePreferences'])->name('api.user.update-preferences');
+        Route::get('stats', [UserController::class, 'getStats'])->name('api.user.stats');
+    });
 
 //     //
 //     // BINGO
@@ -196,3 +196,4 @@ Route::prefix('api')->group(function () {
 //         'service' => 'PlayRKE Bingo API'
 //     ]);
 // })->name('api.ping');
+});

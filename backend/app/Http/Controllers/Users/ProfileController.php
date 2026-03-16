@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Users;
 
 use App\Http\Controllers\Controller;
-use App\Models\DocumentType;
+use App\Models\Shared\DocumentType;
 use App\Models\User;
 use App\Services\ProfileService;
 use App\Traits\Users\UserTrait;
@@ -22,8 +22,8 @@ class ProfileController extends Controller
     public function index()
     {
         $title = 'Mi Perfil';
-        $user = User::select('user_type', 'username', 'country')->where('id', Auth::id())->first();
-        $document = DocumentType::getDocumentTypeByCountry($user->country);
+        $user = User::select('username', 'country_id', 'first_name', 'last_name', 'email', 'profile_photo_url', 'phone_number')->where('id', Auth::id())->first();
+        $document = $user->country_id ? \App\Models\Shared\DocumentType::where('country_id', $user->country_id)->where('status', true)->first() : null;
 
         return view('modules.all.profile.index', compact('title', 'user', 'document'));
     }

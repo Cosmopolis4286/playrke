@@ -74,21 +74,84 @@
                     type="button" id="userDropdown"
                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                     aria-label="Opciones de usuario">
-                <img class="mr-1 user-img rounded-circle"
+                <img class="mr-2 user-img rounded-circle border border-2 border-primary"
                      src="{{ $navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico') }}"
-                     alt="{{ $navUser->username }}">
-                <span class="user-text-navbar">{{ $navUser->username }}</span>
+                     alt="{{ $navUser->username }}"
+                     style="width:32px;height:32px;object-fit:cover;">
+                <div class="text-left">
+                    <div class="user-text-navbar font-weight-bold">{{ $navUser->username }}</div>
+                    <div class="text-muted" style="font-size:10px;line-height:1">Mi cuenta</div>
+                </div>
             </button>
-            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown" style="font-size:13px">
-                <button id="change-password" class="dropdown-item" type="button">
-                    <i class="mr-1 fa-solid fa-lock"></i> Contraseña
-                </button>
-                <button type="button" class="dropdown-item logout-btn"
-                        data-logout-url="{{ route('logout') }}"
-                        data-login-redirect-url="{{ route('login') }}"
-                        data-show-confirmation="false">
-                    <i class="mr-1 fas fa-sign-out-alt"></i> Cerrar sesión
-                </button>
+            
+            <div class="dropdown-menu dropdown-menu-right p-0 shadow-lg" 
+                 aria-labelledby="userDropdown" 
+                 style="font-size:13px;min-width:240px;border-radius:12px;border:none;overflow:hidden;">
+                
+                {{-- Header con info del usuario --}}
+                <div class="px-3 py-3 bg-gradient-to-r from-primary to-info text-white">
+                    <div class="d-flex align-items-center">
+                        <img class="rounded-circle border border-2 border-white mr-3"
+                             src="{{ $navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico') }}"
+                             alt="{{ $navUser->username }}"
+                             style="width:40px;height:40px;object-fit:cover;">
+                        <div class="flex-1">
+                            <div class="font-weight-bold">{{ $navUser->username }}</div>
+                            <div class="small opacity-75">{{ $navUser->email ?? 'usuario@playrke.com' }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                {{-- Opciones del menú --}}
+                <div class="py-2">
+                    <a href="{{ route('profile.index') }}" 
+                       class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-primary hover:text-white transition-all">
+                        <i class="fas fa-user-circle mr-3 text-primary" style="width:16px;"></i>
+                        <div class="flex-1">
+                            <div class="font-weight-medium">Mi Perfil</div>
+                            <small class="text-muted">Gestiona tu información</small>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </a>
+                    
+                    <a href="{{ route('wallet.index') }}" 
+                       class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-success hover:text-white transition-all">
+                        <i class="fas fa-wallet mr-3 text-success" style="width:16px;"></i>
+                        <div class="flex-1">
+                            <div class="font-weight-medium">Mi Billetera</div>
+                            <small class="text-muted">Gestiona tu saldo</small>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </a>
+                    
+                    <button id="change-password" 
+                            class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-warning hover:text-white transition-all w-100 text-left border-0 bg-transparent">
+                        <i class="fas fa-lock mr-3 text-warning" style="width:16px;"></i>
+                        <div class="flex-1">
+                            <div class="font-weight-medium">Contraseña</div>
+                            <small class="text-muted">Cambiar contraseña</small>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </button>
+                </div>
+                
+                {{-- Separador --}}
+                <div class="border-top border-light"></div>
+                
+                {{-- Cerrar sesión --}}
+                <div class="py-2">
+                    <button type="button" 
+                            class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-danger hover:text-white transition-all w-100 text-left border-0 bg-transparent text-danger"
+                            data-logout-url="{{ route('logout') }}"
+                            data-login-redirect-url="{{ route('login') }}"
+                            data-show-confirmation="false">
+                        <i class="fas fa-sign-out-alt mr-3" style="width:16px;"></i>
+                        <div class="flex-1">
+                            <div class="font-weight-medium">Cerrar Sesión</div>
+                            <small class="text-danger opacity-75">Salir de tu cuenta</small>
+                        </div>
+                    </button>
+                </div>
             </div>
         </li>
 

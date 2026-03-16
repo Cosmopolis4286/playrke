@@ -47,15 +47,6 @@ const getEchoInstance = (): Echo<any> => {
     const SCHEME = import.meta.env.VITE_REVERB_SCHEME ?? window.location.protocol.replace(':', '')
     const IS_HTTPS = SCHEME === 'https'
 
-    // Debug: mostrar variables en consola
-    console.log('Echo Debug - Variables:', {
-        APP_KEY, HOST, PORT, SCHEME, IS_HTTPS,
-        VITE_REVERB_APP_KEY: import.meta.env.VITE_REVERB_APP_KEY,
-        VITE_REVERB_HOST: import.meta.env.VITE_REVERB_HOST,
-        VITE_REVERB_PORT: import.meta.env.VITE_REVERB_PORT,
-        VITE_REVERB_SCHEME: import.meta.env.VITE_REVERB_SCHEME,
-    })
-
     /**
      * Creación de la instancia Echo usando Pusher
      * conectado al servidor Reverb.

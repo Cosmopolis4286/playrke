@@ -1,7 +1,7 @@
 <template>
-  <div class="fixed top-4 right-4 z-50 flex flex-col space-y-2">
+  <div class="fixed top-20 right-4 z-[9999] flex flex-col space-y-2">
     <!-- DEBUG: Elemento de prueba -->
-    <div class="bg-blue-500 text-white p-2 rounded text-xs">
+    <div class="bg-blue-500 text-white p-3 rounded text-sm font-bold shadow-lg">
       🔔 SimpleContainer ({{ notificationCount }} notificaciones)
     </div>
     
@@ -47,14 +47,17 @@ const notificationCount = computed(() => windowNotifications.value.length)
 
 const loadNotifications = () => {
   console.log('🔔 SimpleNotificationContainer: Cargando notificaciones')
+  console.log('🔍 Verificando window:', typeof window)
+  console.log('🔍 Verificando notificationsData:', (window as any).notificationsData)
   
-  if (process.client && (window as any).notificationsData) {
+  if (typeof window !== 'undefined' && (window as any).notificationsData) {
     const data = (window as any).notificationsData
     console.log('📦 Datos encontrados:', data)
     windowNotifications.value = data.notifications || []
     console.log('✅ Notificaciones cargadas:', windowNotifications.value.length)
   } else {
     console.log('❌ No hay datos globales')
+    console.log('🔍 window.notificationsData:', (window as any).notificationsData)
   }
 }
 
