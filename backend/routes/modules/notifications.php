@@ -23,10 +23,10 @@ Route::middleware(['auth', 'web'])->prefix('notifications')->group(function () {
     Route::get('unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
     
     // Marcar notificación como leída
-    Route::patch('{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('{id}/mark-read', [NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     
     // Marcar todas las notificaciones como leídas
-    Route::patch('read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    Route::post('mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     
     // Eliminar notificación
     Route::delete('{id}', [NotificationController::class, 'destroy'])->name('notifications.delete');

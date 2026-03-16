@@ -243,11 +243,76 @@
     // ── Limpiar panel ─────────────────────────────────────────
     document.getElementById('notif-clear').addEventListener('click', function (e) {
         e.stopPropagation();
-        $list.querySelectorAll('.notif-entry').forEach(function (el) { el.remove(); });
-        if ($empty) $empty.style.display = '';
-        notifCount = 0;
-        $badge.classList.add('d-none');
+        clearAllNotifications();
     });
+
+    // ── Marcar todas como leídas ─────────────────────────────
+    async function clearAllNotifications() {
+        try {
+            // Llamar a API para marcar todas como leídas
+            const response = await fetch('/notifications/mark-all-read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                }
+            });
+
+            if (response.ok) {
+                // Limpiar UI
+                $list.querySelectorAll('.notif-entry').forEach(function (el) { el.remove(); });
+                if ($empty) $empty.style.display = '';
+                notifCount = 0;
+                $badge.classList.add('d-none');
+                
+                // Actualizar datos globales
+                if (window.notificationsData) {
+                    window.notificationsData.unreadCount = 0;
+                    window.notificationsData.notifications = [];
+                }
+                
+                console.log('✅ Todas las notificaciones marcadas como leídas');
+            } else {
+                console.error('❌ Error al marcar notificaciones como leídas');
+            }
+        } catch (error) {
+            console.error('❌ Error en clearAllNotifications:', error);
+        }
+    }
+
+    // ── Marcar notificación individual como leída ─────────────
+    async function markNotificationAsRead(notificationId, element) {
+        try {
+            const response = await fetch(`/notifications/${notificationId}/mark-read`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                }
+            });
+
+            if (response.ok) {
+                // Reducir contador
+                notifCount = Math.max(0, notifCount - 1);
+                if (notifCount === 0) {
+                    $badge.classList.add('d-none');
+                } else {
+                    $badge.textContent = notifCount > 99 ? '99+' : notifCount;
+                }
+                
+                // Marcar como leída visualmente
+                element.classList.add('read');
+                
+                console.log(`✅ Notificación ${notificationId} marcada como leída`);
+            } else {
+                console.error(`❌ Error al marcar notificación ${notificationId} como leída`);
+            }
+        } catch (error) {
+            console.error(`❌ Error en markNotificationAsRead:`, error);
+        }
+    }
 
     // Resetear badge al abrir panel
     document.getElementById('notifToggle').addEventListener('click', function () {
@@ -267,6 +332,73 @@
         });
     });
 
+    // ── Cargar notificaciones persistentes ─────────────────────
+    function loadPersistentNotifications() {
+        if (window.notificationsData && window.notificationsData.notifications) {
+            console.log('🔔 Cargando notificaciones persistentes en navbar:', window.notificationsData.unreadCount);
+            
+            var notifications = window.notificationsData.notifications;
+            notifCount = window.notificationsData.unreadCount;
+            
+            // Actualizar badge
+            if (notifCount > 0) {
+                $badge.textContent = notifCount > 99 ? '99+' : notifCount;
+                $badge.classList.remove('d-none');
+            }
+            
+            // Agregar cada notificación persistente al navbar
+            notifications.forEach(function(notification) {
+                addPersistentNotification(notification);
+            });
+        }
+    }
+    
+    // ── Agregar notificación persistente al navbar ───────────────
+    function addPersistentNotification(notification) {
+        if ($empty) $empty.style.display = 'none';
+
+        var meta = TYPE_META[notification.data.movement_type] || { 
+            label: notification.title, 
+            icon: 'fa-exchange-alt', 
+            color: '#6c757d', 
+            sign: '' 
+        };
+        var time = new Date(notification.created_at).toLocaleTimeString('es-VE', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+
+        var li = document.createElement('li');
+        li.className = 'border-bottom notif-entry cursor-pointer';
+        li.setAttribute('data-notification-id', notification.id);
+        li.innerHTML =
+            '<div class="d-flex align-items-start px-3 py-2" style="gap:10px">' +
+                  '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1" ' +
+                       'style="width:32px;height:32px;background:' + meta.color + '22">' +
+                  '<i class="fas ' + meta.icon + '" style="font-size:12px;color:' + meta.color + '"></i>' +
+                  '</div>' +
+                  '<div style="flex:1;min-width:0">' +
+                    '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + meta.label + '</p>' +
+                    '<p class="mb-0" style="font-size:11px">' +
+                      notification.message +
+                      ' &middot; Saldo: ' + fmt(notification.data.currency_symbol, notification.data.balance) +
+                    '</p>' +
+                  '</div>' +
+                  '<small class="text-muted flex-shrink-0" style="font-size:10px">' + time + '</small>' +
+                '</div>';
+
+        // Agregar evento click para marcar como leída
+        li.addEventListener('click', function() {
+            markNotificationAsRead(notification.id, li);
+        });
+
+        $list.insertBefore(li, $list.firstChild);
+
+        // Máximo 20 entradas
+        var entries = $list.querySelectorAll('.notif-entry');
+        if (entries.length > 20) entries[entries.length - 1].remove();
+    }
+
     // ── WebSocket: Reverb / Echo ──────────────────────────────
     // Complementario: también escucha el canal privado si Reverb corre.
     // echo.ts asigna window.Echo al cargar el bundle Vite (async).
@@ -282,8 +414,12 @@
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', boot);
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPersistentNotifications();
+            boot();
+        });
     } else {
+        loadPersistentNotifications();
         boot();
     }
 
@@ -295,8 +431,17 @@
     from { opacity: 0; transform: translateY(-6px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-.notif-entry { animation: notifSlide .2s ease; }
+.notif-entry { 
+    animation: notifSlide .2s ease; 
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
 .notif-entry:hover > div { background: #f8f9fa; }
+.notif-entry.read {
+    opacity: 0.7;
+    border-left: 3px solid #28a745 !important;
+}
+.notif-entry.read:hover > div { background: #f0f9f0; }
 #notif-list::-webkit-scrollbar { width: 4px; }
 #notif-list::-webkit-scrollbar-thumb { background: #dee2e6; border-radius: 2px; }
 </style>

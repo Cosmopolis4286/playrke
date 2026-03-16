@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Users\{ProfileController, ReferralController};
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,16 +13,26 @@ use App\Http\Controllers\Users\{ProfileController, ReferralController};
 // ====================================
 // PERFIL PERSONAL DEL USUARIO
 // ====================================
-route_group('profile', 'profile.', ['auth'], ProfileController::class, [
-    'index' => ['method' => 'get', 'uri' => ''],
-    'update' => ['method' => 'put', 'uri' => '{id}'],
-    'changePassword' => ['method' => 'patch', 'uri' => 'password'],
-]);
+Route::middleware(['auth', 'web'])->prefix('profile')->group(function () {
+    Route::get('/', [ProfileController::class, 'index'])->name('profile.index');
+    Route::put('/{id}', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/password', [ProfileController::class, 'changePassword'])->name('profile.changePassword');
+    
+    // Rutas de API para el perfil (usadas por frontend)
+    Route::get('/user', [ProfileController::class, 'getProfileData'])->name('profile.api.user');
+    Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('profile.api.update');
+    Route::put('/password', [ProfileController::class, 'updatePassword'])->name('profile.api.update-password');
+    Route::post('/avatar', [ProfileController::class, 'uploadAvatar'])->name('profile.api.upload-avatar');
+    Route::delete('/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.api.delete-avatar');
+    Route::get('/preferences', [ProfileController::class, 'getPreferences'])->name('profile.api.preferences');
+    Route::put('/preferences', [ProfileController::class, 'updatePreferences'])->name('profile.api.update-preferences');
+    Route::get('/stats', [ProfileController::class, 'getStats'])->name('profile.api.stats');
+});
 
 // ====================================
 // SISTEMA DE REFERIDOS
 // ====================================
-route_group('referrals', 'referral.', ['auth'], ReferralController::class, [
-    'dashboard' => ['method' => 'get', 'uri' => '{referralCode}'],
-    'link' => ['method' => 'get', 'uri' => 'r/{referralCode}'],
-]);
+Route::middleware(['auth', 'web'])->prefix('referrals')->group(function () {
+    Route::get('/{referralCode}', [ReferralController::class, 'dashboard'])->name('referral.dashboard');
+    Route::get('/r/{referralCode}', [ReferralController::class, 'link'])->name('referral.link');
+});

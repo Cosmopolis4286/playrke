@@ -5,9 +5,7 @@
       <NuxtPage />
     </NuxtLayout>
 
-    <!-- Notificaciones globales -->
-    <NotificationContainer />
-    <SimpleNotificationContainer />
+    <!-- Notificaciones manejadas por el navbar -->
 
     <!-- Modales globales -->
     <ModalContainer />

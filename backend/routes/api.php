@@ -25,29 +25,29 @@ use App\Http\Controllers\NotificationController;
 |
 */
 
-//
-// PUBLIC ROUTES
-//
+// //
+// // PUBLIC ROUTES
+// //
 
-Route::middleware('web')->get('user', [AuthController::class, 'user'])->name('api.user');
+// Route::middleware('web')->get('user', [AuthController::class, 'user'])->name('api.user');
 
-Route::middleware('web')->prefix('auth')->group(function () {
-    Route::post('login', [AuthController::class, 'login'])->name('api.auth.login')->defaults('inertiaOnly', true);
-    Route::post('register', [AuthController::class, 'register'])->name('api.auth.register');
-    Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('api.auth.forgot-password');
-    Route::post('resetPassword', [AuthController::class, 'resetPassword'])->name('api.auth.resetPassword');
-});
+// Route::middleware('web')->prefix('auth')->group(function () {
+//     Route::post('login', [AuthController::class, 'login'])->name('api.auth.login')->defaults('inertiaOnly', true);
+//     Route::post('register', [AuthController::class, 'register'])->name('api.auth.register');
+//     Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->name('api.auth.forgot-password');
+//     Route::post('resetPassword', [AuthController::class, 'resetPassword'])->name('api.auth.resetPassword');
+// });
 
-Route::prefix('api')->group(function () {
-    // Auth (Login / Register / Reset)
-    Route::prefix('auth')->group(function () {
-        Route::post('login', [AuthController::class, 'login']);
-        Route::post('register', [AuthController::class, 'register']);
-        Route::post('logout', [AuthController::class, 'logout']);
-    });
+// Route::prefix('api')->group(function () {
+//     // Auth (Login / Register / Reset)
+//     Route::prefix('auth')->group(function () {
+//         Route::post('login', [AuthController::class, 'login']);
+//         Route::post('register', [AuthController::class, 'register']);
+//         Route::post('logout', [AuthController::class, 'logout']);
+//     });
 
-    Route::middleware('auth')->get('user', [AuthController::class, 'user']);
-});
+//     Route::middleware('auth')->get('user', [AuthController::class, 'user']);
+// });
 
 
 // Demo credentials (solo en local)
@@ -57,29 +57,29 @@ Route::prefix('api')->group(function () {
 //
 // PROTECTED ROUTES (auth:sanctum)
 //
-Route::middleware(['web', 'auth:sanctum'])->group(function () {
-    //
-    // AUTH
-    //
-    Route::prefix('auth')->group(function () {
-        Route::post('logout', [AuthController::class, 'logout'])->name('api.auth.logout');
-        Route::get('user', [AuthController::class, 'user'])->name('api.auth.user');
-        Route::get('me', [AuthController::class, 'me'])->name('api.auth.me');
-    });
+// Route::middleware(['web', 'auth:sanctum'])->group(function () {
+//     //
+//     // AUTH
+//     //
+//     Route::prefix('auth')->group(function () {
+//         Route::post('logout', [AuthController::class, 'logout'])->name('api.auth.logout');
+//         Route::get('user', [AuthController::class, 'user'])->name('api.auth.user');
+//         Route::get('me', [AuthController::class, 'me'])->name('api.auth.me');
+//     });
 
-    //
-    // USER PROFILE
-    //
-    Route::prefix('user')->group(function () {
-        Route::get('profile', [UserController::class, 'profile'])->name('api.user.profile');
-        Route::put('profile', [UserController::class, 'updateProfile'])->name('api.user.update-profile');
-        Route::put('password', [UserController::class, 'updatePassword'])->name('api.user.update-password');
-        Route::post('avatar', [UserController::class, 'uploadAvatar'])->name('api.user.upload-avatar');
-        Route::delete('avatar', [UserController::class, 'deleteAvatar'])->name('api.user.delete-avatar');
-        Route::get('preferences', [UserController::class, 'getPreferences'])->name('api.user.preferences');
-        Route::put('preferences', [UserController::class, 'updatePreferences'])->name('api.user.update-preferences');
-        Route::get('stats', [UserController::class, 'getStats'])->name('api.user.stats');
-    });
+//     //
+//     // USER PROFILE
+//     //
+//     Route::prefix('user')->group(function () {
+//         Route::get('profile', [UserController::class, 'profile'])->name('api.user.profile');
+//         Route::put('profile', [UserController::class, 'updateProfile'])->name('api.user.update-profile');
+//         Route::put('password', [UserController::class, 'updatePassword'])->name('api.user.update-password');
+//         Route::post('avatar', [UserController::class, 'uploadAvatar'])->name('api.user.upload-avatar');
+//         Route::delete('avatar', [UserController::class, 'deleteAvatar'])->name('api.user.delete-avatar');
+//         Route::get('preferences', [UserController::class, 'getPreferences'])->name('api.user.preferences');
+//         Route::put('preferences', [UserController::class, 'updatePreferences'])->name('api.user.update-preferences');
+//         Route::get('stats', [UserController::class, 'getStats'])->name('api.user.stats');
+//     });
 
 //     //
 //     // BINGO
@@ -196,4 +196,4 @@ Route::middleware(['web', 'auth:sanctum'])->group(function () {
 //         'service' => 'PlayRKE Bingo API'
 //     ]);
 // })->name('api.ping');
-});
+// });
