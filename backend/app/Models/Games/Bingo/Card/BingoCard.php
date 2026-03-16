@@ -314,6 +314,36 @@ class BingoCard extends Model
     }
 
     /**
+     * Transformar el cartón al formato esperado por el frontend Vue
+     *
+     * @return array
+     */
+    public function toFrontendFormat(): array
+    {
+        return [
+            'id' => $this->id,
+            'roomId' => $this->room_id,
+            'userId' => $this->roomUser?->user_id,
+            'serialNumber' => $this->serial_number,
+            'cardMatrix' => [
+                'B' => [$this->b1, $this->b2, $this->b3, $this->b4, $this->b5],
+                'I' => [$this->i1, $this->i2, $this->i3, $this->i4, $this->i5],
+                'N' => [$this->n1, $this->n2, null, $this->n4, $this->n5], // N3 es libre
+                'G' => [$this->g1, $this->g2, $this->g3, $this->g4, $this->g5],
+                'O' => [$this->o1, $this->o2, $this->o3, $this->o4, $this->o5]
+            ],
+            'isActive' => $this->status === 'active',
+            'purchaseDate' => $this->created_at,
+            'price' => 0, // TODO: Implementar lógica de precio
+            'currencyId' => $this->currency_id,
+            'lot' => $this->cardLot ? [
+                'id' => $this->cardLot->id,
+                'serial' => $this->cardLot->serial ?? ''
+            ] : null
+        ];
+    }
+
+    /**
      * Scope para obtener cartones validados
      *
      * @param \Illuminate\Database\Eloquent\Builder $query

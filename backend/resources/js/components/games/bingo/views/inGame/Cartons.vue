@@ -52,7 +52,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from "vue";
-import { BingoService, type BingoCard } from '@js/services/bingoService';
+import { BingoService, type BingoCard } from '@js/Services/bingoService';
 
 // Props
 interface Props {
@@ -64,6 +64,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   cartons: () => [],
   customerLogo: null,
+  roomId: '',
 });
 
 // Estado reactivo
@@ -104,7 +105,19 @@ async function loadMyCards() {
  * Cartones finales para mostrar
  */
 const displayCards = computed(() => {
-  return props.cartons.length > 0 ? props.cartons : myCards.value;
+  // Priorizar los cartones pasados como props sobre los cargados por API
+  const result = props.cartons.length > 0 ? props.cartons : myCards.value;
+  
+  console.log('Cartons Debug:', {
+    'props.cartons': props.cartons,
+    'myCards.value': myCards.value,
+    'props.cartons.length': props.cartons.length,
+    'myCards.value.length': myCards.value.length,
+    'final result': result,
+    'result length': result.length
+  });
+  
+  return result;
 });
 
 /**

@@ -39,7 +39,15 @@ final class BingoGameService
         }
 
         // Obtener cartones del jugador
-        $cartons = $this->getUserCartons($bingoRoom->id, $userId);
+        $cartons = $this->getUserCartons((int) $bingoRoom->id, $userId);
+        
+        // Debug logging para verificar los cartones obtenidos
+        \Log::info('User cartons loaded', [
+            'room_id' => $bingoRoom->id,
+            'user_id' => $userId,
+            'cartons_count' => count($cartons),
+            'cartons_data' => $cartons
+        ]);
 
         // Obtener precio del cartón (USD por defecto)
         $cardPrice = $this->getCardPrice($bingoRoom);
@@ -163,16 +171,73 @@ final class BingoGameService
      * @param int|null $userId
      * @return array
      */
-    private function getUserCartons(int $roomId, ?int $userId): array
+    public function getUserCartons(int $roomId, ?int $userId): array
     {
         if (!$userId) {
             return [];
         }
 
-        // Aquí se debería obtener los cartones del usuario
-        // Por ahora retornamos un array vacío como ejemplo
-        // TODO: Implementar lógica real de obtención de cartones
-        return [];
+        try {
+            // Obtener el room_user_id para este usuario en esta sala
+            $roomUser = \App\Models\Games\Bingo\Room\User\BingoRoomUser::where('room_id', $roomId)
+                ->where('user_id', $userId)
+                ->first();
+
+            \Log::info('Room user lookup', [
+                'room_id' => $roomId,
+                'user_id' => $userId,
+                'room_user_found' => $roomUser ? true : false,
+                'room_user_id' => $roomUser?->id
+            ]);
+
+            if (!$roomUser) {
+                // Si no hay room_user, intentar obtener cartones directamente por creator_room_user_id
+                \Log::info('Trying alternative method to get cartons');
+                $cards = \App\Models\Games\Bingo\Card\BingoCard::where('room_id', $roomId)
+                    ->where('creator_room_user_id', $userId)
+                    ->where('status', 'active')
+                    ->with(['currency', 'cardLot', 'roomUser'])
+                    ->orderBy('serial_number')
+                    ->get();
+
+                \Log::info('Alternative carton search result', [
+                    'cards_count' => $cards->count(),
+                    'cards_data' => $cards->toArray()
+                ]);
+            } else {
+                // Obtener los cartones del usuario usando el room_user_id
+                $cards = \App\Models\Games\Bingo\Card\BingoCard::where('room_user_id', $roomUser->id)
+                    ->where('status', 'active')
+                    ->with(['currency', 'cardLot', 'roomUser'])
+                    ->orderBy('serial_number')
+                    ->get();
+
+                \Log::info('Standard carton search result', [
+                    'room_user_id' => $roomUser->id,
+                    'cards_count' => $cards->count(),
+                    'cards_data' => $cards->toArray()
+                ]);
+            }
+
+            // Transformar los cartones al formato esperado por el frontend
+            $formattedCards = $cards->map(function ($card) {
+                return $card->toFrontendFormat();
+            })->toArray();
+
+            \Log::info('Final formatted cartons', [
+                'formatted_count' => count($formattedCards),
+                'formatted_data' => $formattedCards
+            ]);
+
+            return $formattedCards;
+        } catch (\Exception $e) {
+            \Log::error('Error getting user cartons', [
+                'room_id' => $roomId,
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
     }
 
     /**

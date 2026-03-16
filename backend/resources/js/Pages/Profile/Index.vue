@@ -3,47 +3,96 @@
     <!-- Header del Perfil -->
     <div class="row mb-4">
       <div class="col-12">
-        <div class="card border-0 shadow-sm">
-          <div class="card-body">
-            <div class="d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center">
-                    <div class="position-relative me-3">
-                        <img 
-                            :src="user.avatar || '/img/fav.ico'" 
-                            :alt="user.username"
-                            class="rounded-circle border border-3 border-primary"
-                            style="width: 80px; height: 80px; object-fit: cover;"
-                        >
-                        <button 
-                            @click="showAvatarUpload = true"
-                            class="btn btn-sm btn-primary position-absolute bottom-0 end-0 rounded-circle"
-                            style="width: 28px; height: 28px; padding: 0;"
-                            title="Cambiar avatar"
-                        >
-                            <i class="fas fa-camera fa-xs"></i>
-                        </button>
-                    </div>
-                    <div>
-                        <h4 class="mb-1">{{ user.name || user.username }}</h4>
-                        <p class="text-muted mb-0">@{{ user.username }}</p>
-                        <div class="d-flex align-items-center gap-2 mt-1">
-                            <span v-if="user.is_verified" class="badge bg-success">
-                                <i class="fas fa-check-circle me-1"></i>Verificado
-                            </span>
-                            <span class="badge bg-primary">{{ user.roles?.[0]?.name || 'Usuario' }}</span>
-                        </div>
-                    </div>
+        <div class="card border-0 shadow-lg bg-gradient-primary">
+          <div class="card-body p-4">
+            <div class="row align-items-center">
+              <!-- Avatar y Info Principal -->
+              <div class="col-md-3 text-center text-md-start">
+                <div class="position-relative d-inline-block">
+                  <img 
+                    :src="user.avatar || '/img/fav.ico'" 
+                    :alt="user.name"
+                    class="rounded-circle border-4 border-white shadow-lg"
+                    style="width: 120px; height: 120px; object-fit: cover;"
+                  >
+                  <button 
+                    @click="showAvatarUpload = true"
+                    class="btn btn-primary btn-sm position-absolute bottom-0 end-0 rounded-circle shadow-lg"
+                    style="width: 36px; height: 36px; padding: 0;"
+                    title="Cambiar Avatar"
+                  >
+                    <i class="fas fa-camera"></i>
+                  </button>
                 </div>
-                <div class="text-end">
-                    <button @click="editMode = !editMode" class="btn btn-outline-primary me-2">
-                        <i class="fas fa-edit me-1"></i>
-                        {{ editMode ? 'Cancelar' : 'Editar Perfil' }}
-                    </button>
-                    <button @click="showPasswordModal = true" class="btn btn-outline-warning">
-                        <i class="fas fa-lock me-1"></i>
-                        Cambiar Contraseña
-                    </button>
+                <div class="mt-3">
+                  <h4 class="text-white mb-1">{{ user.name }}</h4>
+                  <p class="text-white-50 mb-2">@{{ user.username }}</p>
+                  <div class="d-flex justify-content-center justify-content-md-start gap-2">
+                    <span v-if="user.is_verified" class="badge bg-success">
+                      <i class="fas fa-check-circle me-1"></i>Verificado
+                    </span>
+                    <span v-for="role in user.roles" :key="role.id" class="badge bg-info">
+                      <i class="fas fa-user-tag me-1"></i>{{ role.name }}
+                    </span>
+                  </div>
                 </div>
+              </div>
+              
+              <!-- Estadísticas Rápidas -->
+              <div class="col-md-6">
+                <div class="row g-3">
+                  <div class="col-6 col-md-3">
+                    <div class="text-center">
+                      <div class="text-white fs-2 fw-bold">{{ stats.games_played || 0 }}</div>
+                      <div class="text-white-50 small">Partidas</div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="text-center">
+                      <div class="text-white fs-2 fw-bold">{{ stats.games_won || 0 }}</div>
+                      <div class="text-white-50 small">Victorias</div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="text-center">
+                      <div class="text-white fs-2 fw-bold">{{ stats.level || 1 }}</div>
+                      <div class="text-white-50 small">Nivel</div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="text-center">
+                      <div class="text-white fs-2 fw-bold">{{ stats.achievements_count || 0 }}</div>
+                      <div class="text-white-50 small">Logros</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Acciones Rápidas -->
+              <div class="col-md-3 text-center text-md-end">
+                <div class="d-flex flex-column gap-2">
+                  <button 
+                    @click="editMode = !editMode"
+                    :class="['btn', editMode ? 'btn-success' : 'btn-light']"
+                  >
+                    <i :class="['fas', editMode ? 'fa-save' : 'fa-edit']"></i>
+                    {{ editMode ? 'Guardar Cambios' : 'Editar Perfil' }}
+                  </button>
+                  <button 
+                    @click="showPasswordModal = true"
+                    class="btn btn-outline-light"
+                  >
+                    <i class="fas fa-lock"></i>
+                    Cambiar Contraseña
+                  </button>
+                  <div v-if="user.wallet" class="text-white">
+                    <small class="d-block">Saldo Disponible</small>
+                    <div class="fs-4 fw-bold">
+                      {{ formatCurrency(user.wallet.balance, user.wallet.currency) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -53,51 +102,59 @@
     <!-- Tabs de Información -->
     <div class="row">
       <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-0">
-                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header bg-white border-0 p-0">
+                <ul class="nav nav-tabs card-header-tabs border-0" role="tablist">
                     <li class="nav-item">
                         <button 
-                            :class="['nav-link', { 'active': activeTab === 'personal-info' }]" 
+                            :class="['nav-link', 'rounded-0', 'border-0', { 'active': activeTab === 'personal-info' }]" 
                             @click="activeTab = 'personal-info'"
                             type="button"
                         >
-                            <i class="fas fa-user me-2"></i>Información Personal
+                            <i class="fas fa-user me-2"></i>
+                            <span class="d-none d-md-inline">Información Personal</span>
+                            <span class="d-md-none">Perfil</span>
                         </button>
                     </li>
                     <li class="nav-item">
                         <button 
-                            :class="['nav-link', { 'active': activeTab === 'game-stats' }]" 
+                            :class="['nav-link', 'rounded-0', 'border-0', { 'active': activeTab === 'game-stats' }]" 
                             @click="activeTab = 'game-stats'"
                             type="button"
                         >
-                            <i class="fas fa-chart-bar me-2"></i>Estadísticas
+                            <i class="fas fa-chart-bar me-2"></i>
+                            <span class="d-none d-md-inline">Estadísticas</span>
+                            <span class="d-md-none">Stats</span>
                         </button>
                     </li>
                     <li class="nav-item">
                         <button 
-                            :class="['nav-link', { 'active': activeTab === 'preferences' }]" 
+                            :class="['nav-link', 'rounded-0', 'border-0', { 'active': activeTab === 'preferences' }]" 
                             @click="activeTab = 'preferences'"
                             type="button"
                         >
-                            <i class="fas fa-cog me-2"></i>Preferencias
+                            <i class="fas fa-cog me-2"></i>
+                            <span class="d-none d-md-inline">Preferencias</span>
+                            <span class="d-md-none">Prefs</span>
                         </button>
                     </li>
                     <li class="nav-item">
                         <button 
-                            :class="['nav-link', { 'active': activeTab === 'security' }]" 
+                            :class="['nav-link', 'rounded-0', 'border-0', { 'active': activeTab === 'security' }]" 
                             @click="activeTab = 'security'"
                             type="button"
                         >
-                            <i class="fas fa-shield-alt me-2"></i>Seguridad
+                            <i class="fas fa-shield-alt me-2"></i>
+                            <span class="d-none d-md-inline">Seguridad</span>
+                            <span class="d-md-none">Seg</span>
                         </button>
                     </li>
                 </ul>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="tab-content">
                     <!-- Información Personal -->
-                    <div :class="['tab-pane', 'fade', { 'show active': activeTab === 'personal-info' }]">
+                    <div :class="['tab-pane', 'fade', { 'show active': activeTab === 'personal-info' }]" style="padding: 2rem;">
                         <PersonalInfoTab 
                             :user="user"
                             :edit-mode="editMode"
@@ -106,12 +163,12 @@
                     </div>
                     
                     <!-- Estadísticas -->
-                    <div :class="['tab-pane', 'fade', { 'show active': activeTab === 'game-stats' }]">
+                    <div :class="['tab-pane', 'fade', { 'show active': activeTab === 'game-stats' }]" style="padding: 2rem;">
                         <GameStatsTab :stats="stats" />
                     </div>
                     
                     <!-- Preferencias -->
-                    <div :class="['tab-pane', 'fade', { 'show active': activeTab === 'preferences' }]">
+                    <div :class="['tab-pane', 'fade', { 'show active': activeTab === 'preferences' }]" style="padding: 2rem;">
                         <PreferencesTab 
                             :preferences="preferences"
                             @update-preferences="updatePreferences"
@@ -119,7 +176,7 @@
                     </div>
                     
                     <!-- Seguridad -->
-                    <div :class="['tab-pane', 'fade', { 'show active': activeTab === 'security' }]">
+                    <div :class="['tab-pane', 'fade', { 'show active': activeTab === 'security' }]" style="padding: 2rem;">
                         <SecurityTab 
                             :user="user"
                             @show-password-modal="showPasswordModal = true"
@@ -206,8 +263,8 @@ const updateUser = async (userData) => {
     try {
         profileForm.put('/profile/api/profile', {
             onSuccess: () => {
-                editMode.value = false
                 showToast('Perfil actualizado exitosamente', 'success')
+                editMode.value = false
             },
             onError: (errors) => {
                 showToast('Error al actualizar el perfil', 'error')
@@ -222,14 +279,26 @@ const updateUser = async (userData) => {
 
 const updatePreferences = async (newPreferences) => {
     try {
-        preferencesForm.put('/profile/api/preferences', {
-            onSuccess: () => {
-                showToast('Preferencias actualizadas exitosamente', 'success')
+        await fetch('/profile/api/preferences', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            onError: (errors) => {
+            body: JSON.stringify(newPreferences)
+        })
+        .then(response => response.json())
+        .then(response => {
+            if (response.success) {
+                showToast('Preferencias actualizadas exitosamente', 'success')
+            } else {
                 showToast('Error al actualizar preferencias', 'error')
-                console.error('Preferences update errors:', errors)
             }
+        })
+        .catch(error => {
+            showToast('Error al actualizar preferencias', 'error')
+            console.error('Preferences update error:', error)
         })
     } catch (error) {
         showToast('Error al actualizar preferencias', 'error')
@@ -237,15 +306,31 @@ const updatePreferences = async (newPreferences) => {
     }
 }
 
-const handlePasswordChanged = () => {
-    showPasswordModal.value = false
-    showToast('Contraseña actualizada exitosamente', 'success')
+const handlePasswordChanged = (success) => {
+    if (success) {
+        showToast('Contraseña cambiada exitosamente', 'success')
+        showPasswordModal.value = false
+    }
 }
 
 const handleAvatarUpdated = (newAvatar) => {
-    showAvatarUpload.value = false
-    props.user.avatar = newAvatar
-    showToast('Avatar actualizado exitosamente', 'success')
+    if (newAvatar !== undefined) {
+        showToast('Avatar actualizado exitosamente', 'success')
+        props.user.avatar = newAvatar
+        showAvatarUpload.value = false
+    }
+}
+
+const formatCurrency = (amount, currency) => {
+    if (!amount) return '$0.00'
+    
+    // Asegurar que currency sea un string
+    const currencyCode = typeof currency === 'string' ? currency : 'USD'
+    
+    return new Intl.NumberFormat('es-VE', {
+        style: 'currency',
+        currency: currencyCode
+    }).format(amount)
 }
 
 // Ciclo de vida
@@ -261,45 +346,143 @@ onMounted(() => {
 
 .nav-tabs .nav-link {
     border: none;
+    background: #f8f9fa;
     color: #6c757d;
-    font-weight: 500;
-    padding: 12px 20px;
-}
-
-.nav-tabs .nav-link.active {
-    color: #0d6efd;
-    background-color: transparent;
-    border-bottom: 3px solid #0d6efd;
 }
 
 .nav-tabs .nav-link:hover {
-    color: #0d6efd;
-    background-color: rgba(13, 110, 253, 0.05);
+    background: #e9ecef;
+    color: #495057;
+    transform: translateY(-1px);
 }
 
+.nav-tabs .nav-link.active {
+    background: white;
+    color: #667eea;
+    border-bottom: 3px solid #667eea;
+    font-weight: 600;
+}
+
+/* Avatar mejorado */
+.rounded-circle {
+    transition: all 0.3s ease;
+}
+
+.rounded-circle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
+}
+
+/* Botones mejorados */
 .btn {
-    border-radius: 8px;
+    border-radius: 12px;
     font-weight: 500;
+    padding: 10px 20px;
+    transition: all 0.3s ease;
+    border: none;
 }
 
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.btn-outline-light:hover {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.5);
+}
+
+/* Estadísticas */
+.text-white.fs-2 {
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-weight: 700;
+}
+
+.text-white-50 {
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+/* Badges mejorados */
 .badge {
     font-size: 0.75rem;
     font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.position-relative {
+/* Animaciones */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tab-pane {
+    animation: fadeInUp 0.5s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .nav-tabs .nav-link {
+        padding: 8px 12px;
+        font-size: 0.875rem;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        font-size: 0.875rem;
+    }
+}
+
+/* Efectos hover para cards */
+.card-body {
     position: relative;
+    overflow: hidden;
 }
 
-.bottom-0 {
-    bottom: 0;
+.card-body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s;
 }
 
-.end-0 {
-    right: 0;
+.card:hover .card-body::before {
+    left: 100%;
 }
 
-.rounded-circle {
-    border-radius: 50%;
+/* Loading states */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.btn:disabled:hover {
+    transform: none !important;
+    box-shadow: none !important;
 }
 </style>

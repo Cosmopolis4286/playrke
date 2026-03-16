@@ -50,6 +50,29 @@ final class BingoGameController extends Controller
     }
 
     /**
+     * Obtener cartones del usuario en una sala (API).
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function getUserCards(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($room) {
+                $userId = $this->userContext->resolveUserId();
+                $cartons = $this->service->getUserCartons($room->id, $userId);
+
+                return [
+                    'success' => true,
+                    'data' => $cartons,
+                    'message' => 'Cartones obtenidos exitosamente'
+                ];
+            },
+            'No se pudieron obtener los cartones del usuario.'
+        );
+    }
+
+    /**
      * Vista legacy del juego de bingo (compatibilidad).
      *
      * @param string $player

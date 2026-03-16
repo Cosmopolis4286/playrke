@@ -114,6 +114,7 @@ route_group('bingo-game-rooms', 'bingo-game-rooms.', ['auth', 'role:admin,commer
  */
 route_group('bingo-game', 'bingo-game.', ['auth'], BingoGameController::class, [
     'in-game' => ['method' => 'get', 'uri' => '{room}/in-game', 'action' => 'inGame'],
+    'user-cards' => ['method' => 'get', 'uri' => '{room}/user-cards', 'action' => 'getUserCards'],
 ]);
 
 /**
