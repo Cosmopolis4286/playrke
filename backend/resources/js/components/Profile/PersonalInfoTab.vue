@@ -256,9 +256,13 @@ const formatDate = (dateString) => {
 
 const formatCurrency = (amount, currency) => {
     if (!amount) return '$0.00'
+    
+    // Asegurar que currency sea un string
+    const currencyCode = typeof currency === 'string' ? currency : 'USD'
+    
     return new Intl.NumberFormat('es-VE', {
         style: 'currency',
-        currency: currency || 'USD'
+        currency: currencyCode
     }).format(amount)
 }
 </script>

@@ -157,25 +157,25 @@ const props = defineProps({
 const emit = defineEmits(['close', 'avatar-updated'])
 
 // Estado local
-const fileInput = ref<HTMLInputElement | null>(null)
-const selectedFile = ref<File | null>(null)
-const previewUrl = ref<string>('')
-const imageDimensions = ref<string>('')
-const errors = ref<Record<string, string>>({})
-const uploading = ref<boolean>(false)
-const deleting = ref<boolean>(false)
-const autoResize = ref<boolean>(true)
-const compress = ref<boolean>(true)
+const fileInput = ref(null)
+const selectedFile = ref(null)
+const previewUrl = ref('')
+const imageDimensions = ref('')
+const errors = ref({})
+const uploading = ref(false)
+const deleting = ref(false)
+const autoResize = ref(true)
+const compress = ref(true)
 
 // Formulario
 const form = useForm({
-    avatar: null as File | null,
+    avatar: null,
     auto_resize: true,
     compress: true
 })
 
 // Computadas
-const isValidFile = computed((): boolean => {
+const isValidFile = computed(() => {
     if (!selectedFile.value) return false
     
     const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif']
@@ -186,8 +186,8 @@ const isValidFile = computed((): boolean => {
 })
 
 // Métodos
-const handleFileChange = (event: Event) => {
-    const target = event.target as HTMLInputElement
+const handleFileChange = (event) => {
+    const target = event.target
     const file = target.files?.[0]
     
     if (!file) {
@@ -308,7 +308,7 @@ const handleDeleteAvatar = () => {
     })
 }
 
-const formatFileSize = (bytes: number): string => {
+const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes'
     
     const k = 1024

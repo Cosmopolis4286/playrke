@@ -58,9 +58,8 @@
                 <ul class="nav nav-tabs card-header-tabs" role="tablist">
                     <li class="nav-item">
                         <button 
-                            class="nav-link active" 
-                            data-bs-toggle="tab" 
-                            data-bs-target="#personal-info"
+                            :class="['nav-link', { 'active': activeTab === 'personal-info' }]" 
+                            @click="activeTab = 'personal-info'"
                             type="button"
                         >
                             <i class="fas fa-user me-2"></i>Información Personal
@@ -68,9 +67,8 @@
                     </li>
                     <li class="nav-item">
                         <button 
-                            class="nav-link" 
-                            data-bs-toggle="tab" 
-                            data-bs-target="#game-stats"
+                            :class="['nav-link', { 'active': activeTab === 'game-stats' }]" 
+                            @click="activeTab = 'game-stats'"
                             type="button"
                         >
                             <i class="fas fa-chart-bar me-2"></i>Estadísticas
@@ -78,9 +76,8 @@
                     </li>
                     <li class="nav-item">
                         <button 
-                            class="nav-link" 
-                            data-bs-toggle="tab" 
-                            data-bs-target="#preferences"
+                            :class="['nav-link', { 'active': activeTab === 'preferences' }]" 
+                            @click="activeTab = 'preferences'"
                             type="button"
                         >
                             <i class="fas fa-cog me-2"></i>Preferencias
@@ -88,9 +85,8 @@
                     </li>
                     <li class="nav-item">
                         <button 
-                            class="nav-link" 
-                            data-bs-toggle="tab" 
-                            data-bs-target="#security"
+                            :class="['nav-link', { 'active': activeTab === 'security' }]" 
+                            @click="activeTab = 'security'"
                             type="button"
                         >
                             <i class="fas fa-shield-alt me-2"></i>Seguridad
@@ -101,7 +97,7 @@
             <div class="card-body">
                 <div class="tab-content">
                     <!-- Información Personal -->
-                    <div class="tab-pane fade show active" id="personal-info">
+                    <div :class="['tab-pane', 'fade', { 'show active': activeTab === 'personal-info' }]">
                         <PersonalInfoTab 
                             :user="user"
                             :edit-mode="editMode"
@@ -110,12 +106,12 @@
                     </div>
                     
                     <!-- Estadísticas -->
-                    <div class="tab-pane fade" id="game-stats">
+                    <div :class="['tab-pane', 'fade', { 'show active': activeTab === 'game-stats' }]">
                         <GameStatsTab :stats="stats" />
                     </div>
                     
                     <!-- Preferencias -->
-                    <div class="tab-pane fade" id="preferences">
+                    <div :class="['tab-pane', 'fade', { 'show active': activeTab === 'preferences' }]">
                         <PreferencesTab 
                             :preferences="preferences"
                             @update-preferences="updatePreferences"
@@ -123,7 +119,7 @@
                     </div>
                     
                     <!-- Seguridad -->
-                    <div class="tab-pane fade" id="security">
+                    <div :class="['tab-pane', 'fade', { 'show active': activeTab === 'security' }]">
                         <SecurityTab 
                             :user="user"
                             @show-password-modal="showPasswordModal = true"
@@ -183,6 +179,7 @@ const props = defineProps({
 const editMode = ref(false)
 const showPasswordModal = ref(false)
 const showAvatarUpload = ref(false)
+const activeTab = ref('personal-info')
 
 // Formulario para actualizar perfil
 const profileForm = useForm({
