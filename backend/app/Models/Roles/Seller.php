@@ -172,4 +172,12 @@ class Seller extends BaseModel
     {
         return static::where('user_id', $userId)->value($field);
     }
+
+    /**
+     * Obtener el valor de un campo específico por ID.
+     */
+    public static function getValueById(string|int $id, string $field): mixed
+    {
+        return static::where('id', $id)->value($field);
+    }
 }

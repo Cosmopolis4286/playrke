@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Roles;
+namespace App\Models\Pivots\Roles\Seller;
 
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Game;
@@ -22,13 +22,16 @@ class SellerRoomLimits extends Pivot
     protected $table = "sellers_room_limits";
 
     protected $fillable = [
-        'game',
-        'room',
-        'seller',
+        'game_id',
+        'room_id',
+        'seller_id',
         'commission'
     ];
 
     protected $casts = [
+        'game_id' => 'string',
+        'room_id' => 'string',
+        'seller_id' => 'string',
         'commission' => 'float'
     ];
 
@@ -37,7 +40,7 @@ class SellerRoomLimits extends Pivot
      */
     public function room(): BelongsTo
     {
-        return $this->belongsTo(BingoRoom::class, 'room');
+        return $this->belongsTo(BingoRoom::class, 'room_id');
     }
 
     /**
@@ -45,7 +48,7 @@ class SellerRoomLimits extends Pivot
      */
     public function seller(): BelongsTo
     {
-        return $this->belongsTo(Seller::class, 'seller');
+        return $this->belongsTo(Seller::class, 'seller_id');
     }
 
     /**
@@ -53,6 +56,23 @@ class SellerRoomLimits extends Pivot
      */
     public function game(): BelongsTo
     {
-        return $this->belongsTo(Game::class, 'game');
+        return $this->belongsTo(Game::class, 'game_id');
+    }
+
+    /**
+     * Obtener un valor específico de límite de sala por vendedor
+     *
+     * @param string $game Nombre del juego
+     * @param string $sellerId ID del vendedor
+     * @param string $roomId ID de la sala
+     * @param string $field Campo a obtener
+     * @return mixed
+     */
+    public static function getGameRoomValueBySeller(string $game, string $sellerId, string $roomId, string $field)
+    {
+        return static::where('game_id', $game)
+            ->where('seller_id', $sellerId)
+            ->where('room_id', $roomId)
+            ->value($field);
     }
 }

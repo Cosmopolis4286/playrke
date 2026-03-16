@@ -484,7 +484,7 @@ final class BingoCardGenerateService
 
             $arrCtn = $this->handleExternalPlayers($arrCtn);
 
-            $playerLink = $this->getGameLinkByPlayer($arrCtn['playerLink']);
+            $playerLink = $this->getGameLinkByPlayer($arrCtn['roomUser']['id'] ?? null);
 
             return [
                 'type'       => 'success',

@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Payment;
 
-use App\Models\Seller;
+use App\Models\Roles\Seller;
 use App\Models\Pivots\Roles\Seller\SellerRoomLimits;
 use App\Services\Games\Bingo\Contracts\CommissionCalculationInterface;
 use Illuminate\Support\Facades\Log;

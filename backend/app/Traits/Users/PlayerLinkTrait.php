@@ -58,20 +58,36 @@ trait PlayerLinkTrait
 
             $playerLink = $this->createExternalPlayers('BINGO');
 
+            // Get the authenticated user ID for seller_user_id
+            $sellerUserId = auth()->id();
+
+            // Debug: Log the values to understand what's causing the issue
+            \Log::info('PlayerLinkTrait Debug', [
+                'roomUser' => $roomUser,
+                'roomUser_type' => gettype($roomUser),
+                'creator' => $data['creator'] ?? 'missing',
+                'creator_type' => gettype($data['creator'] ?? 'missing'),
+                'seller' => $data['seller'] ?? 'missing',
+                'seller_type' => gettype($data['seller'] ?? 'missing'),
+                'seller_user_id' => $sellerUserId,
+                'currency' => $data['currency'] ?? 'missing',
+                'currency_type' => gettype($data['currency'] ?? 'missing'),
+            ]);
+
             $dataPlayer = [
-                'game_id' => Game::getValueByName('BINGO', 'id'),
-                'room_id' => $data['room'],
-                'creator_user_id' => $data['creator']['id'],
-                'room_user_id' => $roomUser,
-                'seller_user_id' => $data['seller'],
-                'country_id' => $country,
-                'currency_id' => $data['currency'],
-                'link' => $playerLink,
-                'first_name' => $playerName,
-                'last_name' => $playerLastName,
+                'game_id' => (string)Game::getValueByName('BINGO', 'id'),
+                'room_id' => (string)$data['room'],
+                'creator_user_id' => is_array($data['creator']) ? (string)($data['creator']['id'] ?? $data['creator']) : (string)$data['creator'],
+                'room_user_id' => is_array($roomUser) ? (string)($roomUser['room_user_id'] ?? $roomUser['id'] ?? $roomUser) : (string)$roomUser,
+                'seller_user_id' => (string)$sellerUserId,
+                'country_id' => (string)$country,
+                'currency_id' => is_array($data['currency']) ? (string)($data['currency']['id'] ?? $data['currency']) : (string)$data['currency'],
+                'link' => (string)$playerLink,
+                'first_name' => (string)$playerName,
+                'last_name' => (string)$playerLastName,
                 'identification' => null,
-                'phone' => $playerPhone,
-                'purchase_code_id' => $purchaseCode,
+                'phone' => (string)$playerPhone,
+                'purchase_code_id' => (string)$purchaseCode,
                 'expiration_date' => now()->addDays(7),
             ];
 
@@ -110,7 +126,55 @@ trait PlayerLinkTrait
 
     public function getGameLinkByPlayer($playerLink)
     {
-        $playerLink = is_int($playerLink) ? ExternalPlayer::getValueById($playerLink, 'link') : $playerLink;
-        return route('bingo.in-game', ['player' => $playerLink]);
+        // If playerLink is an integer, it's the external player ID, get the link
+        if (is_int($playerLink)) {
+            $playerLink = ExternalPlayer::getValueById($playerLink, 'link');
+        }
+        
+        // Debug: Log the player link and search
+        \Log::info('getGameLinkByPlayer Debug', [
+            'playerLink' => $playerLink,
+            'playerLink_type' => gettype($playerLink)
+        ]);
+        
+        // Get the external player record to get the room_id
+        $externalPlayer = ExternalPlayer::where('link', $playerLink)->first();
+        
+        if (!$externalPlayer) {
+            \Log::error('External player not found for link', ['playerLink' => $playerLink]);
+            
+            // Try to find by ID as fallback
+            if (is_numeric($playerLink)) {
+                $externalPlayer = ExternalPlayer::find($playerLink);
+                \Log::info('Trying to find by ID as fallback', [
+                    'playerLink' => $playerLink,
+                    'found' => $externalPlayer ? true : false
+                ]);
+            }
+            
+            if (!$externalPlayer) {
+                throw new \Exception('Jugador externo no encontrado');
+            }
+        }
+        
+        $roomId = $externalPlayer->room_id;
+        
+        if (!$roomId) {
+            \Log::error('Room ID is null for external player', [
+                'playerLink' => $playerLink,
+                'externalPlayer' => $externalPlayer->toArray()
+            ]);
+            throw new \Exception('ID de sala no encontrado para el jugador externo');
+        }
+        
+        \Log::info('Generating game link', [
+            'playerLink' => $playerLink,
+            'roomId' => $roomId,
+            'route' => 'bingo-game.in-game',
+            'externalPlayer_id' => $externalPlayer->id,
+            'externalPlayer_link' => $externalPlayer->link
+        ]);
+        
+        return route('bingo-game.in-game', ['room' => $roomId]);
     }
 }
