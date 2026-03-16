@@ -10,11 +10,12 @@ use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
 use App\Models\Currency;
-use App\Models\ExternalPlayers;
+use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Services\Games\Bingo\Card\BingoCardPriceCalculator;
 use App\Services\Games\Bingo\Card\BingoCardGenerationService;
 use App\Services\NotificationService;
+use App\Traits\Users\PlayerLinkTrait;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,7 @@ use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface;
  */
 final class BingoCardGenerateService
 {
+    use PlayerLinkTrait;
 
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
@@ -412,17 +414,20 @@ final class BingoCardGenerateService
         }
 
         // 3. Obtener moneda por país
-        $currency = Currency::getValueByCountry($dto->countryId, 'id');
+        $currency = $this->currencies->getValueByCountry($dto->countryId, 'id');
 
         if (!$currency) {
             throw new DomainException('Moneda no disponible para el país seleccionado.');
         }
 
         // 4. Calcular tasa de cambio
-        $exchangeRate = round(
-            CommerceExchangeRate::getCommerceCurrencyValue($commerce, $currency),
-            2
-        );
+        $exchangeRateValue = $this->exchangeRateRepository->getCommerceCurrencyValue($commerce, $currency);
+        
+        if (!$exchangeRateValue || $exchangeRateValue <= 0) {
+            throw new DomainException('No se encontró una tasa de cambio válida para el comercio y moneda seleccionados.');
+        }
+        
+        $exchangeRate = round($exchangeRateValue, 2);
 
         // 5. Calcular precio del cartón
         //    Busca precio personalizado en bingo_card_prices para la sala, moneda y commerce.
@@ -438,18 +443,18 @@ final class BingoCardGenerateService
             ? $this->priceCalculator->calculate($customPrice, true, $exchangeRate)
             : $this->priceCalculator->calculate($roomCtnPrice, false, $exchangeRate);
 
-        // 6. Buscar jugador existente en la sala
-        // $existingRoomUser = ExternalPlayers::select('id', 'link')
-        //     ->where('game', 1)
-        //     ->where('room', $room->id)
-        //     ->where('phone', $dto->playerPhone)
-        //     ->value('room_user');
+       // 6. Buscar jugador existente en la sala
+        $existingRoomUser = ExternalPlayer::select('id', 'link')
+            ->where('game_id', 1)
+            ->where('room_id', $room->id)
+            ->where('phone', $dto->playerPhone)
+            ->value('room_user_id');
 
         $arrInitials = $this->initialCharacters([$dto->playerName, $dto->playerLastName]);
 
         $arrCtn = [
             'room'          => $room->id,
-            'creator'       => $creatorUser,
+            'creator'       => ['id' => $creatorUser, 'type' => 'user_id'],
             'seller'        => $seller->id,
             'commerce'      => $commerce,
             'currency'      => $currency,
@@ -463,9 +468,9 @@ final class BingoCardGenerateService
             'exchangeRate'  => $exchangeRate,
         ];
 
-        // if ($existingRoomUser) {
-        //     $arrCtn['roomUser'] = $existingRoomUser;
-        // }
+        if ($existingRoomUser) {
+            $arrCtn['roomUser'] = $existingRoomUser;
+        }
 
         // 7. Ejecutar transacción atómica
         $result = DB::transaction(function () use ($arrCtn, $room) {
@@ -617,10 +622,7 @@ final class BingoCardGenerateService
                 'channel' => "bingo.room.{$fresh->id}",
                 'event_name' => 'RoomUpdated'
             ]);
-            
-            // Forzar transmisión inmediata usando el driver de Reverb directamente
-            \Broadcast::driver('reverb')->broadcast([$event->broadcastOn()], $event->broadcastAs(), $event->broadcastWith());
-            
+        
             // Debug: Log después de emitir
             \Log::info('BingoRoomUpdated: Evento emitido correctamente desde buyFromGameRooms');
         } else {

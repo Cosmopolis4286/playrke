@@ -192,8 +192,26 @@ class RoomMetricsService implements RoomMetricsInterface
     public function updateRoomMetricsWithCommissions(BingoRoom $room, array $saleData, float $saleAmount, float $sellerCommission = 0): bool
     {
         try {
+            // Debug: Log input parameters
+            Log::info('updateRoomMetricsWithCommissions called', [
+                'roomId' => $room->id,
+                'saleData_keys' => array_keys($saleData),
+                'saleAmount' => $saleAmount,
+                'sellerCommission' => $sellerCommission
+            ]);
+            
             // Recalcular venta y comisiones en base a USDT
             $exchangeRate = $saleData['exchangeRate'] ?? 1;
+            
+            // Prevent division by zero
+            if ($exchangeRate <= 0) {
+                Log::error('Exchange rate inválido', [
+                    'roomId' => $room->id,
+                    'exchangeRate' => $exchangeRate
+                ]);
+                return false;
+            }
+            
             $saleAmount = round($saleAmount / $exchangeRate, 3);
             $sellerCommission = round($sellerCommission / $exchangeRate, 3);
 
@@ -243,7 +261,8 @@ class RoomMetricsService implements RoomMetricsInterface
                 'roomId' => $room->id,
                 'saleData' => $saleData,
                 'saleAmount' => $saleAmount,
-                'sellerCommission' => $sellerCommission
+                'sellerCommission' => $sellerCommission,
+                'trace' => $e->getTraceAsString()
             ]);
             return false;
         }

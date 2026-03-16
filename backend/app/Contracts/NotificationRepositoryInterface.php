@@ -73,4 +73,12 @@ interface NotificationRepositoryInterface
      * @return bool
      */
     public function delete(string $notificationId): bool;
+
+    /**
+     * Encontrar una notificación por su ID
+     *
+     * @param string $notificationId
+     * @return Notification|null
+     */
+    public function findById(string $notificationId): ?Notification;
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Users\Player\External;
+namespace App\Models\Roles\Player\External;
 
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -15,21 +15,23 @@ class UserPurchaseCode extends Model
     protected $table = "user_purchase_codes";
 
     protected $fillable = [
-        'name',
-        'lastname',
-        'country',
+        'first_name',
+        'last_name',
+        'country_id',
         'phone',
-        'code',
-        'status'
+        'purchase_code',
+        'status',
+        'expiration_date'
     ];
 
     protected $casts = [
-        'status' => 'boolean'
+        'status' => 'string',
+        'expiration_date' => 'datetime'
     ];
-}
+
 
     public static function existsPurchaseCode($code)
     {
-        return self::where('code', $code)->exists();
+        return self::where('purchase_code', $code)->exists();
     }
 }

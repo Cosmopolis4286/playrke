@@ -111,4 +111,12 @@ class NotificationRepository implements NotificationRepositoryInterface
 
         return $notification->delete();
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function findById(string $notificationId): ?Notification
+    {
+        return Notification::find($notificationId);
+    }
 }

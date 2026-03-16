@@ -1,221 +1,259 @@
 {{-- $navWallet y $navUser son inyectados por NavbarComposer vía AppServiceProvider --}}
-<nav class="navbar navbar-expand-lg sticky-top" 
-     style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);box-shadow: 0 2px 20px rgba(0,0,0,0.1);backdrop-filter: blur(10px);">
-    
-    <div class="container-fluid px-4">
-        
-        {{-- ── Brand y Toggle ───────────────────────────────────── --}}
-        <a class="navbar-brand d-flex align-items-center text-white fw-bold" href="{{ route('dashboard') }}">
-            <img src="{{ asset('img/fav.ico') }}" alt="PlayRKE" 
-                 class="me-2" style="width:32px;height:32px;">
-            <span class="d-none d-md-inline">PlayRKE</span>
-        </a>
-        
-        <button class="navbar-toggler border-0 bg-transparent text-white" 
-                type="button" data-bs-toggle="collapse" 
-                data-bs-target="#navbarNav" aria-controls="navbarNav" 
-                aria-expanded="false" aria-label="Toggle navigation">
-            <i class="fas fa-bars fs-5"></i>
-        </button>
-        
-        {{-- ── Contenido Principal ───────────────────────────── --}}
-        <div class="collapse navbar-collapse" id="navbarNav">
+<nav class="main-header navbar navbar-expand navbar-bg justify-content-between">
+
+    {{-- ── Izquierda: toggle + billetera ──────────────────── --}}
+    <ul class="navbar-nav align-items-center">
+
+        <li class="nav-item ml-n2 mr-1">
+            <a class="nav-link" data-widget="pushmenu" href="#" role="button" aria-label="Menú">
+                <i class="fas fa-bars"></i>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" href="{{ route('wallet.index') }}" title="Mi billetera"
+               style="gap:6px">
+                <i class="fas fa-wallet text-success" style="font-size:13px"></i>
+                @if ($navWallet)
+                    <span id="navbar-balance" class="text-light" style="font-size:14px">
+                        <span class="text-success font-weight-bold">{{ $navWallet->currency->symbol }}</span>
+                        {{ number_format($navWallet->balance, $navWallet->currency->decimal_places ?? 2, ',', '.') }}
+                    </span>
+                @else
+                    <span class="text-muted" style="font-size:13px">Sin billetera</span>
+                @endif
+            </a>
+        </li>
+
+    </ul>
+
+    {{-- ── Derecha: notificaciones + usuario ───────────────── --}}
+    <ul class="navbar-nav align-items-center">
+
+        {{-- 🔔 Notificaciones --}}
+        <li class="nav-item dropdown">
+            <a class="nav-link position-relative px-3" href="#" id="notifToggle"
+               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+               title="Notificaciones">
+                <i class="fas fa-bell" style="font-size:16px"></i>
+                <span id="notif-badge"
+                      class="badge badge-danger badge-pill position-absolute d-none"
+                      style="top:4px;right:4px;font-size:9px;min-width:16px;padding:2px 4px">
+                    0
+                </span>
+            </a>
+
+            <div class="dropdown-menu dropdown-menu-right p-0 shadow"
+                 aria-labelledby="notifToggle"
+                 style="width:320px;max-height:420px;overflow:hidden;border-radius:10px">
+
+                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom"
+                     style="background:#f8f9fa">
+                    <span class="font-weight-semibold" style="font-size:13px">
+                        <i class="fas fa-bell text-primary mr-1"></i>Notificaciones
+                    </span>
+                    <button type="button" id="notif-clear"
+                            class="btn btn-link btn-sm text-muted p-0" style="font-size:11px">
+                        Limpiar todo
+                    </button>
+                </div>
+
+                <ul id="notif-list" class="list-unstyled mb-0"
+                    style="max-height:340px;overflow-y:auto">
+                    <li id="notif-empty" class="text-center text-muted py-5" style="font-size:13px">
+                        <i class="fas fa-check-circle text-success d-block mb-2" style="font-size:24px"></i>
+                        Sin notificaciones nuevas
+                    </li>
+                </ul>
+            </div>
+        </li>
+
+        {{-- 👤 Usuario --}}
+        <li class="nav-item dropdown">
+            <button class="btn btn-sm btn-outline-primary dropdown-toggle d-flex align-items-center"
+                    type="button" id="userDropdown"
+                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                    aria-label="Opciones de usuario">
+                <img class="mr-2 user-img rounded-circle border border-2 border-primary"
+                     src="{{ $navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico') }}"
+                     alt="{{ $navUser->username }}"
+                     style="width:32px;height:32px;object-fit:cover;">
+                <div class="text-left">
+                    <div class="user-text-navbar font-weight-bold">{{ $navUser->username }}</div>
+                    <div class="text-muted" style="font-size:10px;line-height:1">Mi cuenta</div>
+                </div>
+            </button>
             
-            {{-- ── Izquierda: Navegación Principal ───────────────── --}}
-            <ul class="navbar-nav me-auto">
+            <div class="dropdown-menu dropdown-menu-right p-0 shadow-lg border-0" 
+                 aria-labelledby="userDropdown" 
+                 style="font-size:13px;min-width:220px;border-radius:12px;overflow:hidden;">
                 
-                {{-- Dashboard --}}
-                <li class="nav-item">
-                    <a class="nav-link text-white d-flex align-items-center px-3 py-2 rounded-pill mx-1" 
-                       href="{{ route('dashboard') }}" 
-                       style="transition: all 0.3s ease;">
-                        <i class="fas fa-home me-2"></i>
-                        <span class="d-none d-md-inline">Inicio</span>
-                    </a>
-                </li>
-                
-                {{-- Juegos --}}
-                <li class="nav-item dropdown">
-                    <a class="nav-link text-white d-flex align-items-center px-3 py-2 rounded-pill mx-1 dropdown-toggle" 
-                       href="#" role="button" data-bs-toggle="dropdown" 
-                       aria-expanded="false" style="transition: all 0.3s ease;">
-                        <i class="fas fa-gamepad me-2"></i>
-                        <span class="d-none d-md-inline">Juegos</span>
-                        <i class="fas fa-chevron-down ms-2"></i>
-                    </a>
-                    <ul class="dropdown-menu border-0 shadow-lg" 
-                        style="border-radius:12px;min-width:200px;">
-                        <li><a class="dropdown-item" href="{{ route('bingo.index') }}">
-                            <i class="fas fa-dice me-2 text-primary"></i>Bingo
-                        </a></li>
-                        <li><a class="dropdown-item" href="#">
-                            <i class="fas fa-trophy me-2 text-warning"></i>Torneos
-                        </a></li>
-                        <li><a class="dropdown-item" href="#">
-                            <i class="fas fa-slot-machine me-2 text-success"></i>Tragamonedas
-                        </a></li>
-                    </ul>
-                </li>
-                
-                {{-- Tienda --}}
-                <li class="nav-item">
-                    <a class="nav-link text-white d-flex align-items-center px-3 py-2 rounded-pill mx-1" 
-                       href="#" style="transition: all 0.3s ease;">
-                        <i class="fas fa-shopping-cart me-2"></i>
-                        <span class="d-none d-md-inline">Tienda</span>
-                    </a>
-                </li>
-                
-                {{-- Soporte --}}
-                <li class="nav-item">
-                    <a class="nav-link text-white d-flex align-items-center px-3 py-2 rounded-pill mx-1" 
-                       href="#" style="transition: all 0.3s ease;">
-                        <i class="fas fa-headset me-2"></i>
-                        <span class="d-none d-md-inline">Soporte</span>
-                    </a>
-                </li>
-            </ul>
-            
-            {{-- ── Derecha: Wallet + Notificaciones + Usuario ───────────────── --}}
-            <ul class="navbar-nav align-items-center">
-                
-                {{-- � Billetera --}}
-                <li class="nav-item">
-                    <a class="nav-link text-white d-flex align-items-center px-3 py-2 rounded-pill mx-1" 
-                       href="{{ route('wallet.index') }}" 
-                       style="background: rgba(255,255,255,0.1);backdrop-filter: blur(5px);transition: all 0.3s ease;">
-                        <i class="fas fa-wallet me-2"></i>
-                        @if($navWallet)
-                            <div class="d-flex flex-column align-items-start">
-                                <span class="small opacity-75">Saldo</span>
-                                <span class="fw-bold">
-                                    {{ $navWallet->currency->symbol }}{{ number_format($navWallet->balance, $navWallet->currency->decimal_places ?? 2, ',', '.') }}
-                                </span>
-                            </div>
-                        @else
-                            <span class="small">Sin billetera</span>
-                        @endif
-                    </a>
-                </li>
-                
-                {{-- �🔔 Notificaciones --}}
-                <li class="nav-item dropdown">
-                    <a class="nav-link text-white position-relative px-3 py-2 rounded-pill mx-1 dropdown-toggle" 
-                       href="#" role="button" data-bs-toggle="dropdown" 
-                       aria-expanded="false" id="notifToggle"
-                       style="background: rgba(255,255,255,0.1);backdrop-filter: blur(5px);transition: all 0.3s ease;">
-                        <i class="fas fa-bell me-2"></i>
-                        <span id="notif-badge"
-                              class="badge bg-danger text-white rounded-pill position-absolute d-none"
-                              style="top:-2px;right:-2px;font-size:10px;min-width:18px;padding:1px 4px;">
-                            0
-                        </span>
-                    </a>
-                    
-                    <div class="dropdown-menu dropdown-menu-end p-0 shadow-lg border-0" 
-                         aria-labelledby="notifToggle"
-                         style="width:350px;max-height:450px;overflow:hidden;border-radius:12px;">
-                        
-                        {{-- Header de notificaciones --}}
-                        <div class="d-flex align-items-center justify-content-between px-3 py-3 border-bottom bg-light">
-                            <span class="fw-semibold text-dark">
-                                <i class="fas fa-bell text-primary me-2"></i>Notificaciones
-                            </span>
-                            <button type="button" id="notif-clear"
-                                    class="btn btn-sm btn-outline-secondary rounded-pill">
-                                <i class="fas fa-check-double me-1"></i>Limpiar
-                            </button>
-                        </div>
-                        
-                        {{-- Lista de notificaciones --}}
-                        <ul id="notif-list" class="list-unstyled mb-0"
-                            style="max-height:350px;overflow-y:auto;">
-                            <li id="notif-empty" class="text-center text-muted py-4">
-                                <i class="fas fa-bell-slash d-block mb-2" style="font-size:32px;opacity:0.5;"></i>
-                                <div class="small">No tienes notificaciones nuevas</div>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-                
-                {{-- 👤 Usuario --}}
-                <li class="nav-item dropdown">
-                    <button class="nav-link text-white d-flex align-items-center px-3 py-2 rounded-pill mx-1 dropdown-toggle" 
-                            type="button" id="userDropdown"
-                            data-bs-toggle="dropdown" aria-haspopup="true" 
-                            aria-expanded="false"
-                            style="background: rgba(255,255,255,0.1);backdrop-filter: blur(5px);transition: all 0.3s ease;">
+                {{-- Header compacto --}}
+                <div class="px-3 py-3 bg-light border-bottom">
+                    <div class="d-flex align-items-center">
                         <img class="rounded-circle border-2 border-white me-2"
                              src="{{ $navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico') }}"
                              alt="{{ $navUser->username }}"
-                             style="width:28px;height:28px;object-fit:cover;">
-                        <div class="d-none d-md-block text-start">
+                             style="width:36px;height:36px;object-fit:cover;">
+                        <div class="flex-1">
                             <div class="fw-medium">{{ $navUser->username }}</div>
-                            <div class="small opacity-75">Mi cuenta</div>
+                            <div class="text-muted small">{{ $navUser->email ?? 'usuario@playrke.com' }}</div>
                         </div>
-                        <i class="fas fa-chevron-down ms-2"></i>
-                    </button>
+                        @if($navUser->email_verified_at)
+                            <i class="fas fa-check-circle text-success ms-1" style="font-size:12px;"></i>
+                        @endif
+                    </div>
+                </div>
+                
+                {{-- Opciones simplificadas --}}
+                <div class="py-1">
+                    <a href="{{ route('profile.index') }}" 
+                       class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-gray-100 transition-all">
+                        <i class="fas fa-user me-3 text-muted" style="width:16px;"></i>
+                        Mi Perfil
+                    </a>
                     
-                    <div class="dropdown-menu dropdown-menu-end p-0 shadow-lg border-0" 
-                         aria-labelledby="userDropdown" 
-                         style="font-size:13px;min-width:240px;border-radius:12px;overflow:hidden;">
-                        
-                        {{-- Header compacto --}}
-                        <div class="px-3 py-3 bg-light border-bottom">
-                            <div class="d-flex align-items-center">
-                                <img class="rounded-circle border-2 border-white me-2"
-                                     src="{{ $navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico') }}"
-                                     alt="{{ $navUser->username }}"
-                                     style="width:36px;height:36px;object-fit:cover;">
-                                <div class="flex-1">
-                                    <div class="fw-medium">{{ $navUser->username }}</div>
-                                    <div class="text-muted small">{{ $navUser->email ?? 'usuario@playrke.com' }}</div>
-                                </div>
-                                @if($navUser->email_verified_at)
-                                    <i class="fas fa-check-circle text-success ms-1" style="font-size:12px;"></i>
-                                @endif
-                            </div>
+                    <a href="{{ route('wallet.index') }}" 
+                       class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-gray-100 transition-all">
+                        <i class="fas fa-wallet me-3 text-muted" style="width:16px;"></i>
+                        Mi Billetera
+                    </a>
+                    
+                    <button id="change-password" 
+                            class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-gray-100 transition-all w-100 text-left border-0 bg-transparent"
+                            data-bs-toggle="modal" data-bs-target="#passwordModal">
+                        <i class="fas fa-lock me-3 text-muted" style="width:16px;"></i>
+                        Contraseña
+                    </button>
+                </div>
+                
+                {{-- Separador --}}
+                <div class="border-top mx-3" style="border-color: #e9ecef;"></div>
+                <div class="border-top border-light"></div>
+                
+                {{-- Cerrar sesión --}}
+                <div class="py-2">
+                    <button type="button" 
+                            class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-danger hover:text-white transition-all w-100 text-left border-0 bg-transparent text-danger"
+                            data-logout-url="{{ route('logout') }}"
+                            data-login-redirect-url="{{ route('login') }}"
+                            data-show-confirmation="false">
+                        <i class="fas fa-sign-out-alt mr-3" style="width:16px;"></i>
+                        <div class="flex-1">
+                            <div class="font-weight-medium">Cerrar Sesión</div>
+                            <small class="text-danger opacity-75">Salir de tu cuenta</small>
                         </div>
-                        
-                        {{-- Opciones simplificadas --}}
-                        <div class="py-1">
-                            <a href="{{ route('profile.index') }}" 
-                               class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-gray-100 transition-all">
-                                <i class="fas fa-user me-3 text-muted" style="width:16px;"></i>
-                                Mi Perfil
-                            </a>
-                            
-                            <a href="{{ route('wallet.index') }}" 
-                               class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-gray-100 transition-all">
-                                <i class="fas fa-wallet me-3 text-muted" style="width:16px;"></i>
-                                Mi Billetera
-                            </a>
-                            
-                            <button id="change-password" 
-                                    class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-gray-100 transition-all w-100 text-left border-0 bg-transparent">
-                                <i class="fas fa-lock me-3 text-muted" style="width:16px;"></i>
-                                Contraseña
-                            </button>
-                        </div>
-                        
-                        {{-- Separador --}}
-                        <div class="border-top mx-3" style="border-color: #e9ecef;"></div>
-                        
-                        {{-- Cerrar sesión minimalista --}}
-                        <div class="py-1">
-                            <button type="button" 
-                                    class="logout-btn dropdown-item d-flex align-items-center px-3 py-2 hover:bg-danger hover:text-white transition-all w-100 text-left border-0 bg-transparent text-danger">
-                                <i class="fas fa-sign-out-alt me-3" style="width:16px;"></i>
-                                Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </li>
+
+    </ul>
+</nav>
+
+{{-- Modal de Cambiar Contraseña (Global) --}}
+<div id="passwordModal" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="fas fa-lock me-2"></i>Cambiar Contraseña
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            
+            <div class="modal-body">
+                <form id="change-password-form">
+                    <!-- Contraseña Actual -->
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">Contraseña Actual</label>
+                        <div class="input-group">
+                            <input 
+                                type="password"
+                                id="current_password"
+                                name="current_password"
+                                class="form-control"
+                                placeholder="Ingresa tu contraseña actual"
+                                required
+                            >
+                            <button 
+                                type="button" 
+                                class="btn btn-outline-secondary toggle-password"
+                                data-target="current_password"
+                            >
+                                <i class="fas fa-eye"></i>
                             </button>
                         </div>
                     </div>
-                </li>
-                
-            </ul>
+
+                    <!-- Nueva Contraseña -->
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">Nueva Contraseña</label>
+                        <div class="input-group">
+                            <input 
+                                type="password"
+                                id="new_password"
+                                name="new_password"
+                                class="form-control"
+                                placeholder="Ingresa tu nueva contraseña"
+                                required
+                            >
+                            <button 
+                                type="button" 
+                                class="btn btn-outline-secondary toggle-password"
+                                data-target="new_password"
+                            >
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Mínimo 8 caracteres, incluir mayúsculas y números</div>
+                    </div>
+
+                    <!-- Confirmar Nueva Contraseña -->
+                    <div class="mb-3">
+                        <label for="new_password_confirmation" class="form-label">Confirmar Nueva Contraseña</label>
+                        <div class="input-group">
+                            <input 
+                                type="password"
+                                id="new_password_confirmation"
+                                name="new_password_confirmation"
+                                class="form-control"
+                                placeholder="Confirma tu nueva contraseña"
+                                required
+                            >
+                            <button 
+                                type="button" 
+                                class="btn btn-outline-secondary toggle-password"
+                                data-target="new_password_confirmation"
+                            >
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Indicador de Fortaleza -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small class="text-muted">Fortaleza de la contraseña</small>
+                            <small id="password-strength-text" class="text-muted">Débil</small>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div id="password-strength-bar" class="progress-bar bg-danger" 
+                                 style="width: 0%; transition: all 0.3s ease;"></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="submit-change-password" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Cambiar Contraseña
+                </button>
+            </div>
         </div>
     </div>
-</nav>
+</div>
 
 {{-- ── WebSocket: billetera + notificaciones en tiempo real ── --}}
 @if ($navWallet)
@@ -483,6 +521,181 @@
     }
 
 })();
+</script>
+
+{{-- JavaScript para el Modal de Contraseña --}}
+<script>
+(function() {
+    'use strict';
+    
+    // ── Funcionalidad del Modal de Contraseña ─────────────────────
+    const passwordModal = document.getElementById('passwordModal');
+    const changePasswordForm = document.getElementById('change-password-form');
+    const submitButton = document.getElementById('submit-change-password');
+    const strengthBar = document.getElementById('password-strength-bar');
+    const strengthText = document.getElementById('password-strength-text');
+    
+    // ── Toggle de visibilidad de contraseña ─────────────────────
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.dataset.target;
+            const input = document.getElementById(targetId);
+            const icon = this.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    });
+    
+    // ── Validación de fortaleza de contraseña ────────────────────
+    function checkPasswordStrength(password) {
+        let strength = 0;
+        let feedback = '';
+        
+        if (password.length >= 8) strength++;
+        if (password.match(/[a-z]+/)) strength++;
+        if (password.match(/[A-Z]+/)) strength++;
+        if (password.match(/[0-9]+/)) strength++;
+        if (password.match(/[$@#&!]+/)) strength++;
+        
+        const strengthLevels = [
+            { width: '0%', class: 'bg-danger', text: 'Débil' },
+            { width: '20%', class: 'bg-danger', text: 'Débil' },
+            { width: '40%', class: 'bg-warning', text: 'Regular' },
+            { width: '60%', class: 'bg-warning', text: 'Regular' },
+            { width: '80%', class: 'bg-info', text: 'Fuerte' },
+            { width: '100%', class: 'bg-success', text: 'Muy fuerte' }
+        ];
+        
+        const level = strengthLevels[Math.min(strength, 5)];
+        
+        strengthBar.style.width = level.width;
+        strengthBar.className = `progress-bar ${level.class}`;
+        strengthText.textContent = level.text;
+        strengthText.className = level.class.replace('bg-', 'text-');
+        
+        return strength >= 3;
+    }
+    
+    // ── Event listener para el campo de nueva contraseña ─────────────
+    const newPasswordInput = document.getElementById('new_password');
+    if (newPasswordInput) {
+        newPasswordInput.addEventListener('input', function() {
+            checkPasswordStrength(this.value);
+        });
+    }
+    
+    // ── Envío del formulario ───────────────────────────────────
+    submitButton.addEventListener('click', async function() {
+        const formData = new FormData(changePasswordForm);
+        
+        // Validación básica
+        const currentPassword = formData.get('current_password');
+        const newPassword = formData.get('new_password');
+        const confirmPassword = formData.get('new_password_confirmation');
+        
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            showToast('Por favor completa todos los campos', 'error');
+            return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+            showToast('Las contraseñas no coinciden', 'error');
+            return;
+        }
+        
+        if (newPassword.length < 8) {
+            showToast('La contraseña debe tener al menos 8 caracteres', 'error');
+            return;
+        }
+        
+        if (!checkPasswordStrength(newPassword)) {
+            showToast('La contraseña no es lo suficientemente fuerte', 'error');
+            return;
+        }
+        
+        // Deshabilitar botón y mostrar loading
+        const originalText = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Cambiando...';
+        
+        try {
+            // Obtener token CSRF
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            
+            const response = await fetch('/profile/changePassword', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword,
+                    new_password_confirmation: confirmPassword
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                showToast('Contraseña cambiada exitosamente', 'success');
+                changePasswordForm.reset();
+                
+                // Resetear indicador de fortaleza
+                strengthBar.style.width = '0%';
+                strengthBar.className = 'progress-bar bg-danger';
+                strengthText.textContent = 'Débil';
+                strengthText.className = 'text-muted';
+                
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(passwordModal);
+                if (modal) {
+                    modal.hide();
+                }
+            } else {
+                showToast(data.message || 'Error al cambiar la contraseña', 'error');
+            }
+        } catch (error) {
+            console.error('Error cambiando contraseña:', error);
+            showToast('Error de conexión. Intenta nuevamente', 'error');
+        } finally {
+            // Restaurar botón
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
+    });
+    
+    // ── Resetear formulario al cerrar el modal ───────────────────
+    passwordModal.addEventListener('hidden.bs.modal', function() {
+        changePasswordForm.reset();
+        strengthBar.style.width = '0%';
+        strengthBar.className = 'progress-bar bg-danger';
+        strengthText.textContent = 'Débil';
+        strengthText.className = 'text-muted';
+        
+        // Resetear visibilidad de contraseñas
+        document.querySelectorAll('.toggle-password i').forEach(icon => {
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        });
+        document.querySelectorAll('input[type="text"]').forEach(input => {
+            if (input.id.includes('password')) {
+                input.type = 'password';
+            }
+        });
+    });
+    
+})();
+</script>
 </script>
 
 <style>

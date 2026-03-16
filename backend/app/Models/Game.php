@@ -173,4 +173,16 @@ class Game extends Model
     {
         return $query->where('status', 'ACTIVE');
     }
+
+    /**
+     * Obtener un valor específico de un juego por su nombre
+     *
+     * @param string $name Nombre del juego
+     * @param string $column Columna a obtener
+     * @return mixed
+     */
+    public static function getValueByName(string $name, string $column): mixed
+    {
+        return static::where('name', strtoupper($name))->value($column);
+    }
 }

@@ -24,7 +24,7 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('País asociado al usuario');
 
-            $table->string('phone', 14)->comment('Teléfono del usuario');
+            $table->string('phone', 20)->comment('Teléfono del usuario');
 
             // Código de compra
             $table->string('purchase_code', 12)->unique()->comment('Código de compra único');

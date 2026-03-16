@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models\Users\Player\External;
+namespace App\Models\Roles\Player\External;
 
 use App\Models\Currency;
 use App\Models\Country;
@@ -8,21 +8,19 @@ use App\Models\Game;
 use App\Models\Users\Player\External\UserPurchaseCode;
 use App\Models\Roles\Seller;
 use App\Models\User;
-use App\Traits\SnowflakeId;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\BaseModel;
 
-class ExternalPlayer extends Model
+class ExternalPlayer extends BaseModel
 {
-    use SnowflakeId;
-
     protected $fillable = [
         'game_id',
-        'room',
+        'room_id',
         'creator_user_id',
-        'seller_id',
-        'room_user',
+        'seller_user_id',
+        'room_user_id',
         'link',
+        'expiration_date',
         'country_id',
         'currency_id',
         'first_name',
@@ -31,6 +29,15 @@ class ExternalPlayer extends Model
         'phone',
         'purchase_code_id',
         'status'
+    ];
+
+    protected $casts = [
+        'room_id' => 'string',
+        'creator_user_id' => 'string',
+        'seller_user_id' => 'string',
+        'room_user_id' => 'string',
+        'status' => 'string',
+        'expiration_date' => 'datetime',
     ];
 
     public function game(): BelongsTo
@@ -53,13 +60,25 @@ class ExternalPlayer extends Model
         return $this->belongsTo(Currency::class, 'currency_id');
     }
 
-    public function seller(): BelongsTo
+    public function sellerUser(): BelongsTo
     {
-        return $this->belongsTo(Seller::class, 'seller_id');
+        return $this->belongsTo(User::class, 'seller_user_id');
     }
 
     public function purchaseCode(): BelongsTo
     {
         return $this->belongsTo(UserPurchaseCode::class, 'purchase_code_id');
+    }
+
+    /**
+     * Obtener un valor específico de un jugador externo por su ID
+     *
+     * @param int|string $playerId ID del jugador
+     * @param string $field Campo a obtener
+     * @return mixed
+     */
+    public static function getValueById($playerId, string $field)
+    {
+        return static::where('id', $playerId)->value($field);
     }
 }

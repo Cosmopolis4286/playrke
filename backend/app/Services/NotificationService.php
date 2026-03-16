@@ -4,17 +4,25 @@ namespace App\Services;
 
 use App\Contracts\NotificationRepositoryInterface;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 
 /**
- * Servicio para gestión de notificaciones de usuario
+ * Servicio optimizado para gestión de notificaciones de usuario
  *
- * Proporciona una capa de abstracción para manejar notificaciones
- * persistentes que no se pierden al refrescar la página.
+ * Proporciona una capa de abstracción robusta para manejar notificaciones
+ * persistentes con caching, validación y mejor rendimiento.
  */
 final class NotificationService
 {
+    private const CACHE_TTL = 300; // 5 minutos
+    private const MAX_LIMIT = 100;
+    private const DEFAULT_LIMIT = 20;
+
     public function __construct(
         private readonly NotificationRepositoryInterface $notificationRepository,
     ) {}
@@ -28,6 +36,7 @@ final class NotificationService
      * @param string $message Mensaje de la notificación
      * @param array $data Datos adicionales
      * @return Notification
+     * @throws InvalidArgumentException
      */
     public function create(
         string $userId,
@@ -36,7 +45,9 @@ final class NotificationService
         string $message,
         array $data = []
     ): Notification {
-        return $this->notificationRepository->create([
+        $this->validateNotificationData($userId, $type, $title, $message);
+
+        $notification = $this->notificationRepository->create([
             'user_id' => $userId,
             'type' => $type,
             'title' => $title,
@@ -44,6 +55,16 @@ final class NotificationService
             'data' => $data,
             'is_read' => false,
         ]);
+
+        $this->clearUserNotificationCache($userId);
+        
+        Log::info('Notification created', [
+            'notification_id' => $notification->id,
+            'user_id' => $userId,
+            'type' => $type,
+        ]);
+
+        return $notification;
     }
 
     /**
@@ -98,23 +119,19 @@ final class NotificationService
      * @param int $limit
      * @return Collection
      */
-    public function getUserNotifications(array $filters = [], int $limit = 20): Collection
+    public function getUserNotifications(array $filters = [], int $limit = self::DEFAULT_LIMIT): Collection
     {
-        $userId = (string) Auth::id();
-        
-        // Debug: Log para verificar que tenemos userId
-        \Log::info('NotificationService: getUserNotifications', [
-            'user_id' => $userId,
-            'filters' => $filters,
-            'limit' => $limit,
-        ]);
-        
-        if (empty($userId)) {
-            \Log::warning('NotificationService: No user ID found');
+        $userId = $this->getCurrentUserId();
+        if (!$userId) {
             return collect([]);
         }
-        
-        return $this->notificationRepository->getByUser($userId, $filters, $limit);
+
+        $limit = min($limit, self::MAX_LIMIT);
+        $cacheKey = "user_notifications_{$userId}_" . md5(serialize($filters) . $limit);
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId, $filters, $limit) {
+            return $this->notificationRepository->getByUser($userId, $filters, $limit);
+        });
     }
 
     /**
@@ -123,30 +140,19 @@ final class NotificationService
      * @param int $limit
      * @return Collection
      */
-    public function getUnreadNotifications(int $limit = 20): Collection
+    public function getUnreadNotifications(int $limit = self::DEFAULT_LIMIT): Collection
     {
-        $userId = (string) Auth::id();
-        
-        // Debug: Log para verificar que tenemos userId
-        \Log::info('NotificationService: getUnreadNotifications', [
-            'user_id' => $userId,
-            'limit' => $limit,
-        ]);
-        
-        if (empty($userId)) {
-            \Log::warning('NotificationService: No user ID found for unread notifications');
+        $userId = $this->getCurrentUserId();
+        if (!$userId) {
             return collect([]);
         }
-        
-        $notifications = $this->notificationRepository->getUnreadByUser($userId, $limit);
-        
-        // Debug: Log resultados
-        \Log::info('NotificationService: Unread notifications result', [
-            'count' => $notifications->count(),
-            'notifications' => $notifications->toArray(),
-        ]);
-        
-        return $notifications;
+
+        $limit = min($limit, self::MAX_LIMIT);
+        $cacheKey = "unread_notifications_{$userId}_{$limit}";
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId, $limit) {
+            return $this->notificationRepository->getUnreadByUser($userId, $limit);
+        });
     }
 
     /**
@@ -156,26 +162,16 @@ final class NotificationService
      */
     public function getUnreadCount(): int
     {
-        $userId = (string) Auth::id();
-        
-        // Debug: Log para verificar que tenemos userId
-        \Log::info('NotificationService: getUnreadCount', [
-            'user_id' => $userId,
-        ]);
-        
-        if (empty($userId)) {
-            \Log::warning('NotificationService: No user ID found for unread count');
+        $userId = $this->getCurrentUserId();
+        if (!$userId) {
             return 0;
         }
-        
-        $count = $this->notificationRepository->countUnreadByUser($userId);
-        
-        // Debug: Log resultado
-        \Log::info('NotificationService: Unread count result', [
-            'count' => $count,
-        ]);
-        
-        return $count;
+
+        $cacheKey = "unread_count_{$userId}";
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId) {
+            return $this->notificationRepository->countUnreadByUser($userId);
+        });
     }
 
     /**
@@ -186,14 +182,28 @@ final class NotificationService
      */
     public function markAsRead(string $notificationId): bool
     {
-        // Verificar que la notificación pertenezca al usuario autenticado
-        $notification = Notification::find($notificationId);
-        
-        if (!$notification || $notification->user_id !== Auth::id()) {
+        $userId = $this->getCurrentUserId();
+        if (!$userId) {
             return false;
         }
 
-        return $this->notificationRepository->markAsRead($notificationId);
+        $notification = $this->notificationRepository->findById($notificationId);
+        
+        if (!$notification || $notification->user_id !== $userId) {
+            Log::warning('Unauthorized notification access attempt', [
+                'notification_id' => $notificationId,
+                'user_id' => $userId,
+            ]);
+            return false;
+        }
+
+        $result = $this->notificationRepository->markAsRead($notificationId);
+        
+        if ($result) {
+            $this->clearUserNotificationCache($userId);
+        }
+
+        return $result;
     }
 
     /**
@@ -203,8 +213,18 @@ final class NotificationService
      */
     public function markAllAsRead(): int
     {
-        $userId = (string) Auth::id();
-        return $this->notificationRepository->markAllAsReadForUser($userId);
+        $userId = $this->getCurrentUserId();
+        if (!$userId) {
+            return 0;
+        }
+
+        $result = $this->notificationRepository->markAllAsReadForUser($userId);
+        
+        if ($result > 0) {
+            $this->clearUserNotificationCache($userId);
+        }
+
+        return $result;
     }
 
     /**
@@ -215,14 +235,28 @@ final class NotificationService
      */
     public function delete(string $notificationId): bool
     {
-        // Verificar que la notificación pertenezca al usuario autenticado
-        $notification = Notification::find($notificationId);
-        
-        if (!$notification || $notification->user_id !== Auth::id()) {
+        $userId = $this->getCurrentUserId();
+        if (!$userId) {
             return false;
         }
 
-        return $this->notificationRepository->delete($notificationId);
+        $notification = $this->notificationRepository->findById($notificationId);
+        
+        if (!$notification || $notification->user_id !== $userId) {
+            Log::warning('Unauthorized notification deletion attempt', [
+                'notification_id' => $notificationId,
+                'user_id' => $userId,
+            ]);
+            return false;
+        }
+
+        $result = $this->notificationRepository->delete($notificationId);
+        
+        if ($result) {
+            $this->clearUserNotificationCache($userId);
+        }
+
+        return $result;
     }
 
     /**
@@ -259,5 +293,107 @@ final class NotificationService
                 'type_icon' => $notification->getTypeIcon(),
             ];
         })->toArray();
+    }
+
+    /**
+     * Crear notificaciones masivas para múltiples usuarios
+     *
+     * @param array $userIds
+     * @param string $type
+     * @param string $title
+     * @param string $message
+     * @param array $data
+     * @return Collection
+     */
+    public function createBulk(
+        array $userIds,
+        string $type,
+        string $title,
+        string $message,
+        array $data = []
+    ): Collection {
+        $this->validateNotificationData('', $type, $title, $message);
+
+        $notifications = collect();
+        
+        foreach ($userIds as $userId) {
+            try {
+                $notification = $this->create($userId, $type, $title, $message, $data);
+                $notifications->push($notification);
+            } catch (\Exception $e) {
+                Log::error('Failed to create bulk notification', [
+                    'user_id' => $userId,
+                    'type' => $type,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $notifications;
+    }
+
+    /**
+     * Obtener el ID del usuario autenticado
+     *
+     * @return string|null
+     */
+    private function getCurrentUserId(): ?string
+    {
+        $userId = Auth::id();
+        return $userId ? (string) $userId : null;
+    }
+
+    /**
+     * Validar datos de notificación
+     *
+     * @param string $userId
+     * @param string $type
+     * @param string $title
+     * @param string $message
+     * @throws InvalidArgumentException
+     */
+    private function validateNotificationData(
+        string $userId,
+        string $type,
+        string $title,
+        string $message
+    ): void {
+        if (!empty($userId) && !is_string($userId)) {
+            throw new InvalidArgumentException('User ID must be a string');
+        }
+
+        if (empty($type) || !is_string($type)) {
+            throw new InvalidArgumentException('Type is required and must be a string');
+        }
+
+        if (empty($title) || !is_string($title)) {
+            throw new InvalidArgumentException('Title is required and must be a string');
+        }
+
+        if (empty($message) || !is_string($message)) {
+            throw new InvalidArgumentException('Message is required and must be a string');
+        }
+
+        if (!array_key_exists($type, Notification::TYPES)) {
+            Log::warning('Unknown notification type', ['type' => $type]);
+        }
+    }
+
+    /**
+     * Limpiar cache de notificaciones de usuario
+     *
+     * @param string $userId
+     */
+    private function clearUserNotificationCache(string $userId): void
+    {
+        $patterns = [
+            "user_notifications_{$userId}_",
+            "unread_notifications_{$userId}_",
+            "unread_count_{$userId}",
+        ];
+
+        foreach ($patterns as $pattern) {
+            Cache::forget($pattern);
+        }
     }
 }

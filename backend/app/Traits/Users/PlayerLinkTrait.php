@@ -3,15 +3,15 @@
 namespace App\Traits\Users;
 
 use App\Models\Game;
-use App\Models\Users\Player\External\ExternalPlayer;
-use App\Models\Users\Player\External\UserPurchaseCode;
+use App\Models\Roles\Player\External\ExternalPlayer;
+use App\Models\Roles\Player\External\UserPurchaseCode;
 use Illuminate\Support\Str;
 
 trait PlayerLinkTrait
 {
     public function createExternalPlayers($game, $room = '')
     {
-        $gameId = Game::getValueByName($game);
+        $gameId = Game::getValueByName($game, 'id');
         do {
             $code = Str::random(20);
         } while (ExternalPlayer::where('game_id', $gameId)->where('link', $code)->exists());
@@ -23,7 +23,7 @@ trait PlayerLinkTrait
         $roomUser = $data['roomUser'] ?? null;
         $playerPhone = $data['playerPhone'] ?? null;
 
-        $player = ExternalPlayer::where('game', 1)->where('room', $data['room'])
+        $player = ExternalPlayer::where('game_id', 1)->where('room_id', $data['room'])
             ->where(function ($query) use ($playerPhone, $roomUser) {
                 $query->where('phone', $playerPhone)
                     ->orWhere('id', $roomUser);
@@ -37,13 +37,19 @@ trait PlayerLinkTrait
             $country = $data['country'];
 
             // Crear código de compra
+            // Limpiar teléfono para que quepa en 14 caracteres (eliminar espacios y guiones)
+            $cleanPhone = preg_replace('/[\s\-]/', '', $playerPhone);
+            if (strlen($cleanPhone) > 14) {
+                $cleanPhone = substr($cleanPhone, 0, 14);
+            }
+            
             $purchaseCode = UserPurchaseCode::create([
-                'name' => $playerName,
-                'lastname' => $playerLastName,
-                'country' => $country,
-                'phone' => $playerPhone,
-                'code' => strtoupper(Str::random(8)),
-                'status' => 'Activo',
+                'first_name' => $playerName,
+                'last_name' => $playerLastName,
+                'country_id' => $country,
+                'phone' => $cleanPhone,
+                'purchase_code' => strtoupper(Str::random(8)),
+                'status' => 'ACTIVE',
             ])->id;
 
             if (!$purchaseCode) {
@@ -53,19 +59,20 @@ trait PlayerLinkTrait
             $playerLink = $this->createExternalPlayers('BINGO');
 
             $dataPlayer = [
-                'game' => Game::getValueByName('BINGO'),
-                'room' => $data['room'],
-                'creator_user_id' => $data['creator']['userId'],
-                'room_user' => $roomUser,
-                'seller' => $data['seller'],
-                'country' => $country,
-                'currency' => $data['currency'],
+                'game_id' => Game::getValueByName('BINGO', 'id'),
+                'room_id' => $data['room'],
+                'creator_user_id' => $data['creator']['id'],
+                'room_user_id' => $roomUser,
+                'seller_user_id' => $data['seller'],
+                'country_id' => $country,
+                'currency_id' => $data['currency'],
                 'link' => $playerLink,
-                'name' => $playerName,
-                'lastname' => $playerLastName,
+                'first_name' => $playerName,
+                'last_name' => $playerLastName,
                 'identification' => null,
                 'phone' => $playerPhone,
-                'purchase_code' => $purchaseCode
+                'purchase_code_id' => $purchaseCode,
+                'expiration_date' => now()->addDays(7),
             ];
 
             // Crear el nuevo registro

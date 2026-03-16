@@ -10,7 +10,7 @@ use App\Models\Games\Bingo\Creator\BingoCreator;
 use App\Models\Games\Bingo\Creator\BingoCreatorSale;
 use App\Models\Games\Bingo\Room\User\BingoRoomUser;
 use App\Models\Games\Common\Utils\GameStatus;
-use App\Models\Roles\SellerRoomLimits;
+use App\Models\Pivots\Roles\Seller\SellerRoomLimits;
 use App\Models\User;
 use App\Models\Games\Bingo\Round\BingoRound;
 use App\Models\Games\Common\Utils\GameExchangeRate;

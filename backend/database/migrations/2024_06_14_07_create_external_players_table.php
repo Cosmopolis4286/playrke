@@ -16,16 +16,21 @@ return new class extends Migration
             $table->snowflake('id')->primary()->comment('ID único del jugador externo');
 
             // Link único
-            $table->string('link', 25)->unique()->comment('Link único del jugador externo');
+            $table->string('link', 28)->unique()->comment('Link único del jugador externo');
+
+            // Fecha de expiración
+            $table->timestamp('expiration_date')->nullable()->comment('Fecha de expiración del código');
 
             // Relaciones principales
             $table->foreignSnowflake('game_id')
                 ->constrained('games')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
-                ->comment('Juego asociado');
+                ->comment('ID del juego asociado');
 
             $table->string('room_id')->comment('ID de la sala');
+
+            $table->string('room_user_id')->comment('ID de usuario dentro de la sala');
 
             $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
@@ -37,33 +42,30 @@ return new class extends Migration
                 ->constrained('countries')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete()
-                ->comment('País del jugador');
+                ->comment('ID del país del jugador');
 
             $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete()
-                ->comment('Moneda utilizada');
+                ->comment('ID de la moneda utilizada');
 
-            $table->foreignSnowflake('seller_id')
-                ->nullable()
-                ->constrained('sellers')
+            $table->foreignSnowflake('seller_user_id')
+                ->constrained('users')
                 ->cascadeOnUpdate()
-                ->nullOnDelete()
-                ->comment('Vendedor asociado');
+                ->comment('ID del usuario vendedor asociado');
 
             $table->foreignSnowflake('purchase_code_id')
                 ->constrained('user_purchase_codes')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete()
-                ->comment('Código de compra asociado');
+                ->comment('Id del código de compra asociado');
 
             // Datos del jugador
-            $table->foreignSnowflake('room_user')->comment('Número de usuario dentro de la sala');
             $table->string('first_name', 50)->comment('Nombre del jugador');
             $table->string('last_name', 50)->comment('Apellido del jugador');
-            $table->string('identification', 20)->nullable()->comment('Documento de identificación');
-            $table->string('phone', 14)->comment('Teléfono del jugador');
+            $table->string('phone', 20)->comment('Teléfono del jugador');
+            $table->string('identification', 30)->nullable()->comment('Documento de identificación');
 
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'BLOCKED'])
                 ->default('ACTIVE')
@@ -71,10 +73,14 @@ return new class extends Migration
 
             // Timestamps
             $table->timestamps();
+            $table->softDeletes();
 
             // Índices compuestos para consultas frecuentes
             $table->index(['game_id', 'room_id', 'creator_user_id'], 'idx_game_room_creator');
             $table->index(['country_id', 'currency_id'], 'idx_country_currency');
+            $table->index(['seller_user_id', 'purchase_code_id'], 'idx_seller_purchase');
+            $table->index('status', 'idx_status');
+            $table->index('link', 'idx_link');
         });
     }
 

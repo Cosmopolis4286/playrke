@@ -134,18 +134,18 @@ final class BingoCardGenerationService
 
             // Descuento de saldo según tipo de usuario
             if ($gameMode != 2) {
-                // Los players pagan con wallet
-                // Los sellers/comercios pagan con wallet según modo de juego
-                // Solo los customers no pagan con wallet (usan otros medios)
-                if ($creator['type'] === 'player' || $creator['type'] !== 'customer') {
+                // Solo los jugadores internos (creator type = 'player') pagan con wallet
+                // Los usuarios externos (con playerLink) y vendedores/comercios no pagan con wallet
+                if (($creator['type'] === 'player') && !isset($arrCtn['playerLink'])) {
+                    // Solo jugadores internos (players) sin playerLink pagan con wallet
                     // Determinar la columna de saldo en función de la moneda
                     $columnBalance = $currency == 1 ? 'usdt' : 'balance';
 
-                    // Descontar monto del saldo del usuario
-                    $walletUpdated = Wallet::where('user', $playerUser)->decrement($columnBalance, $saleAmount);
+                    // Descontar monto del saldo del usuario (solo para jugadores internos)
+                    $walletUpdated = Wallet::where('user_id', $playerUser)->decrement($columnBalance, $saleAmount);
 
                     if ($walletUpdated === 0) {
-                        throw new \DomainException('Error al descontar saldo del usuario');
+                        throw new DomainException('Error al descontar saldo del usuario');
                     }
                 }
             }
