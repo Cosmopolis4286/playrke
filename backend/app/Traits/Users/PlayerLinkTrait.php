@@ -32,7 +32,7 @@ trait PlayerLinkTrait
         // Verificar si el jugador no existe
         if (!$player) {
 
-            $playerName = $data['playerName'] ?? $player->name;
+            $playerName = $data['playerName'] ?? $player->first_name;
             $playerLastName = $data['playerLastName'] ?? $player->lastname;
             $country = $data['country'];
 
@@ -42,7 +42,7 @@ trait PlayerLinkTrait
             if (strlen($cleanPhone) > 14) {
                 $cleanPhone = substr($cleanPhone, 0, 14);
             }
-            
+
             $purchaseCode = UserPurchaseCode::create([
                 'first_name' => $playerName,
                 'last_name' => $playerLastName,
@@ -126,23 +126,29 @@ trait PlayerLinkTrait
 
     public function getGameLinkByPlayer($playerLink)
     {
+        // If playerLink is null, it's an internal player, return null
+        if ($playerLink === null) {
+            \Log::info('Internal player detected, no external player link needed');
+            return null;
+        }
+
         // If playerLink is an integer, it's the external player ID, get the link
         if (is_int($playerLink)) {
             $playerLink = ExternalPlayer::getValueById($playerLink, 'link');
         }
-        
+
         // Debug: Log the player link and search
         \Log::info('getGameLinkByPlayer Debug', [
             'playerLink' => $playerLink,
             'playerLink_type' => gettype($playerLink)
         ]);
-        
+
         // Get the external player record to get the room_id
         $externalPlayer = ExternalPlayer::where('link', $playerLink)->first();
-        
+
         if (!$externalPlayer) {
             \Log::error('External player not found for link', ['playerLink' => $playerLink]);
-            
+
             // Try to find by ID as fallback
             if (is_numeric($playerLink)) {
                 $externalPlayer = ExternalPlayer::find($playerLink);
@@ -151,14 +157,14 @@ trait PlayerLinkTrait
                     'found' => $externalPlayer ? true : false
                 ]);
             }
-            
+
             if (!$externalPlayer) {
                 throw new \Exception('Jugador externo no encontrado');
             }
         }
-        
+
         $roomId = $externalPlayer->room_id;
-        
+
         if (!$roomId) {
             \Log::error('Room ID is null for external player', [
                 'playerLink' => $playerLink,
@@ -166,7 +172,7 @@ trait PlayerLinkTrait
             ]);
             throw new \Exception('ID de sala no encontrado para el jugador externo');
         }
-        
+
         \Log::info('Generating game link', [
             'playerLink' => $playerLink,
             'roomId' => $roomId,
@@ -174,7 +180,7 @@ trait PlayerLinkTrait
             'externalPlayer_id' => $externalPlayer->id,
             'externalPlayer_link' => $externalPlayer->link
         ]);
-        
+
         return route('bingo-game.in-game', ['room' => $roomId]);
     }
 }

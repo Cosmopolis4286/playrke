@@ -77,7 +77,7 @@ class BingoCardManagementService
                     'room_id' => $roomId,
                     'creator_room_user_id' => $userId,
                     'room_user_id' => $roomUserId,
-                    'seller_user_id' => $cartonData['seller'] ?? null,
+                    'seller_user_id' => $cartonData['seller_user_id'] ?? null,
                     'currency_id' => $cartonData['currency'],
                     'serial_number' => $this->generateSerialNumber(),
                     'b1' => $cardData['numbers']['B'][0] ?? null,

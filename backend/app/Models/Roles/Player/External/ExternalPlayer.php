@@ -5,8 +5,6 @@ namespace App\Models\Roles\Player\External;
 use App\Models\Currency;
 use App\Models\Country;
 use App\Models\Game;
-use App\Models\Users\Player\External\UserPurchaseCode;
-use App\Models\Roles\Seller;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\BaseModel;
@@ -35,6 +33,7 @@ class ExternalPlayer extends BaseModel
         'room_id' => 'string',
         'creator_user_id' => 'string',
         'seller_user_id' => 'string',
+        'country_id' => 'string',
         'room_user_id' => 'string',
         'status' => 'string',
         'expiration_date' => 'datetime',

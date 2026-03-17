@@ -57,7 +57,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
     /** Datos del jugador que adquiere los cartones. */
     const player = reactive<Player>({
         phone: '',
-        name: '',
+        firstName: '',
         lastName: ''
     })
 
@@ -108,7 +108,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
             numCtns.value >= 1 &&
             numCtns.value <= 40 &&
             !!player.phone.trim() &&
-            !!player.name.trim() &&
+            !!player.firstName.trim() &&
             !!player.lastName.trim()
         )
     })
@@ -125,8 +125,20 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         countries.value = []
         cardPriceData.value = null
         player.phone = ''
-        player.name = ''
+        player.firstName = ''
         player.lastName = ''
+    }
+
+    /**
+     * Resetea solo los campos del jugador y cantidad después de una generación exitosa,
+     * pero mantiene el país seleccionado para facilitar generaciones consecutivas.
+     */
+    function resetAfterGeneration() {
+        numCtns.value = 1
+        player.phone = ''
+        player.firstName = ''
+        player.lastName = ''
+        // Mantiene selectedCountry.value y countries.value
     }
 
     /**
@@ -230,7 +242,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
             country_id: selectedCountry.value,
             player: {
                 phone: player.phone.trim(),
-                name: player.name.trim(),
+                first_name: player.firstName.trim(),
                 last_name: player.lastName.trim()
             }
         }
@@ -238,7 +250,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         try {
             const { data } = await backendClient.post(`/bingo-card/${roomHashedId}/generate`, payload)
             showToast(data.message, 'success')
-            resetState()
+            resetAfterGeneration()  // ← Cambiado de resetState() a resetAfterGeneration()
             return true
         }
         catch (error: any) {

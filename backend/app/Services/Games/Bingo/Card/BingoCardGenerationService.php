@@ -19,6 +19,7 @@ use App\Services\Games\Bingo\Payment\CommissionCalculationService;
 use App\Services\Games\Bingo\Room\Metrics\RoomMetricsService;
 use App\Services\Games\Bingo\Card\BingoCardManagementService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Servicio especializado en la generación de cartones de bingo.
@@ -69,6 +70,8 @@ final class BingoCardGenerationService
      */
     public function generateCards(array $arrCtn): array
     {
+        Log::info('generateCards started', ['arrCtn' => $arrCtn]);
+        
         // Validar cierre de sala
         $this->handleBingoRooms->checkRoomClosure();
 
@@ -76,6 +79,7 @@ final class BingoCardGenerationService
         $room = $this->roomValidation->getRoomDetails($roomId);
 
         if (!$room) {
+            Log::error('Room not available', ['roomId' => $roomId]);
             throw new \DomainException('Sala no disponible');
         }
 
@@ -90,10 +94,20 @@ final class BingoCardGenerationService
             // Formatear Monto de Venta
             $saleAmount = round($numOfCtns * $arrCtn['cardPrice'], 2);
 
+            Log::info('Variables initialized', [
+                'creator' => $creator,
+                'saleAmount' => $saleAmount,
+                'currency' => $currency,
+                'numOfCtns' => $numOfCtns
+            ]);
+
             // Registrar o actualizar el usuario en la sala
             $roomUserResult = $this->roomUserRegistration->registerOrUpdateRoomUser($room, $arrCtn);
 
+            Log::info('Room user registration result', ['roomUserResult' => $roomUserResult]);
+
             if (!$roomUserResult) {
+                Log::error('Failed to register user in room');
                 throw new \DomainException('Error al registrar usuario en la sala');
             }
 
@@ -113,7 +127,10 @@ final class BingoCardGenerationService
             // Actualizar acumulado y comisiones de la sala
             $updateRoomMetrics = $this->roomMetrics->updateRoomMetricsWithCommissions($room, $arrCtn, $saleAmount, $sellerSaleCommn ?? 0);
 
+            Log::info('Room metrics update result', ['updateRoomMetrics' => $updateRoomMetrics]);
+
             if (!$updateRoomMetrics) {
+                Log::error('Failed to update room metrics');
                 throw new \DomainException('Error al actualizar los valores de la sala');
             }
 
@@ -122,13 +139,30 @@ final class BingoCardGenerationService
                 $this->roomMetrics->updatePlayerCount($room);
             }
 
+            // Validar que el usuario autenticado exista en la tabla users
+            $authenticatedUserId = auth()->id();
+            $sellerExists = \DB::table('users')->where('id', $authenticatedUserId)->exists();
+            if (!$sellerExists) {
+                Log::error('Authenticated user ID does not exist in users table', ['authenticated_user_id' => $authenticatedUserId]);
+                throw new \DomainException('El usuario autenticado no existe en el sistema');
+            }
+            Log::info('Authenticated user ID validated', ['authenticated_user_id' => $authenticatedUserId]);
+
+            // Usar el usuario autenticado como seller_user_id
+            $arrCtn['seller_user_id'] = $authenticatedUserId;
+
             // Crear lote de cartones
             $lotID = $this->cardManagement->createCtnsLot($arrCtn, $saleAmount);
+
+            Log::info('Card lot created', ['lotID' => $lotID]);
 
             // Generar y almacenar los cartones de bingo
             $generateAndStoreCtns = $this->cardManagement->generateAndStoreCtns($arrCtn, $lotID);
 
+            Log::info('Cards generation result', ['generateAndStoreCtns' => $generateAndStoreCtns]);
+
             if (!$generateAndStoreCtns) {
+                Log::error('Failed to generate and store cards');
                 throw new \DomainException('Error al generar cartones');
             }
 
@@ -145,6 +179,7 @@ final class BingoCardGenerationService
                     $walletUpdated = Wallet::where('user_id', $playerUser)->decrement($columnBalance, $saleAmount);
 
                     if ($walletUpdated === 0) {
+                        Log::error('Failed to discount balance', ['playerUser' => $playerUser, 'amount' => $saleAmount]);
                         throw new DomainException('Error al descontar saldo del usuario');
                     }
                 }
@@ -178,9 +213,15 @@ final class BingoCardGenerationService
                 // }
             }
 
+            Log::info('generateCards completed successfully', ['room_user_id' => $roomUserId]);
+
             return ['room_user_id' => $roomUserId];
 
         } catch (\Exception $e) {
+            Log::error('Error in generateCards', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             throw new \DomainException('Error en generación de cartones: ' . $e->getMessage());
         }
     }

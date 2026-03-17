@@ -39,7 +39,7 @@ export interface FetchRoomResponse {
  */
 export interface Player {
     phone: string
-    name: string
+    firstName: string
     lastName: string
 }
 
@@ -52,7 +52,7 @@ export interface GenerateCardPayload {
     country_id: string | null
     player: {
         phone: string
-        name: string
+        first_name: string
         last_name: string
     }
 }

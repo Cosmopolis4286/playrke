@@ -44,7 +44,7 @@ function setPlayerField(field: keyof Player, value: string | number) {
 
 async function checkPhone(phone: string, countryId: string) {
   const response = await backendClient.get(
-    `/external-players/check?phone=${encodeURIComponent(phone)}&country_id=${countryId}&game_id=BINGO&room_id=${props.selectedRoom?.id}`
+    `/external-players/check?phone=${encodeURIComponent(phone)}&country_id=${countryId}&game_id=bingo&room_id=${props.selectedRoom?.id}`
   )
   return response.data
 }
@@ -66,7 +66,7 @@ const checkExternalPlayer = async () => {
 
       emit('update:player', {
         ...props.player,
-        name: data.player?.name ?? '',
+        firstName: data.player?.first_name ?? '',
         lastName: data.player?.last_name ?? ''
       })
 
@@ -170,26 +170,26 @@ const { phoneMask, phonePlaceholder, phoneHint, phoneError, isPhoneValid } = use
 
       <!-- Nombre -->
       <FormInput
-        v-if="!playerExists"
         label="Nombre"
-        name="name"
+        name="first_name"
         type="text"
-        readonly
+        required
         col="col-sm-6 col-md-3"
         placeholder="Nombre del jugador"
-        :modelValue="player.name"
-        @update:modelValue="value => setPlayerField('name', value)"
+        :readonly="playerExists"
+        :modelValue="player.first_name"
+        @update:modelValue="value => setPlayerField('first_name', value)"
       />
 
       <!-- Apellido -->
       <FormInput
-        v-if="!playerExists"
         label="Apellido"
         name="last_name"
         type="text"
-        readonly
+        required
         col="col-sm-6 col-md-3"
         placeholder="Apellido del jugador"
+        :readonly="playerExists"
         :modelValue="player.lastName"
         @update:modelValue="value => setPlayerField('lastName', value)"
       />
