@@ -1,193 +1,193 @@
 <script setup lang="ts" name="BingoCardGenerateFormPlayerSection">
-import { computed, ref } from 'vue'
-import FormInput from '@/js/Components/Common/Form/FormInput.vue'
-import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
-import backendClient from '@/js/plugins/axios'
-import { usePhoneField } from '@/js/composables/form/usePhoneField'
-import { showToast } from '@/js/utils/toastNotify'
+  import { computed, ref } from 'vue'
+  import FormInput from '@/js/Components/Common/Form/FormInput.vue'
+  import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+  import backendClient from '@/js/plugins/axios'
+  import { usePhoneField } from '@/js/composables/form/usePhoneField'
+  import { showToast } from '@/js/utils/toastNotify'
 
-import type { Country } from '@/js/types/country'
-import type { Player, Room } from '@/js/types/games/bingo/card/bingo-card-generate'
+  import type { Country } from '@/js/types/country'
+  import type { Player, Room } from '@/js/types/games/bingo/card/bingo-card-generate'
 
-/* ───────── Props ───────── */
+  /* ───────── Props ───────── */
 
-const props = defineProps<{
-  selectedRoom: Room | null
-  countries: Country[]
-  loadingCountries: boolean
-  selectedCountry: string | null
-  player: Player
-}>()
+  const props = defineProps<{
+    selectedRoom: Room | null
+    countries: Country[]
+    loadingCountries: boolean
+    selectedCountry: string | null
+    player: Player
+  }>()
 
-/* ───────── Emits ───────── */
+  /* ───────── Emits ───────── */
 
-const emit = defineEmits<{
-  (e: 'update:selectedCountry', value: string | null): void
-  (e: 'update:player', value: Player): void
-  (e: 'update:playerExists', value: boolean): void
-}>()
+  const emit = defineEmits<{
+    (e: 'update:selectedCountry', value: string | null): void
+    (e: 'update:player', value: Player): void
+    (e: 'update:playerExists', value: boolean): void
+  }>()
 
-/* ───────── State ───────── */
+  /* ───────── State ───────── */
 
-const playerExists = ref(false)
-const checkingPlayer = ref(false)
-const imagePreview = ref<string | null>(null)
-const uploadingProof = ref(false)
+  const checkingPlayer = ref(false)
+  const playerExists = ref(false)
+  const imagePreview = ref<string | null>(null)
+  const uploadingProof = ref(false)
 
-// Show proof of payment when all player fields have data
-const showProofOfPayment = computed(() => {
-  return !!(
-    props.player.firstName &&
-    props.player.lastName &&
-    props.player.phone &&
-    props.selectedCountry
-  )
-})
-
-/* ───────── Helpers ───────── */
-
-function setPlayerField(field: keyof Player, value: string | number) {
-  emit('update:player', {
-    ...props.player,
-    [field]: String(value)
+  // Show proof of payment when all player fields have data
+  const showProofOfPayment = computed(() => {
+    return !!(
+      props.player.firstName &&
+      props.player.lastName &&
+      props.player.phone &&
+      props.selectedCountry
+    )
   })
-}
 
-/* ───────── API ───────── */
+  /* ───────── Helpers ───────── */
 
-async function checkPhone(phone: string, countryId: string) {
-  const response = await backendClient.get(
-    `/external-players/check?phone=${encodeURIComponent(phone)}&country_id=${countryId}&game_id=bingo&room_id=${props.selectedRoom?.id}`
-  )
-  return response.data
-}
-
-/* ───────── Proof of Payment ───────── */
-
-function onImageChange(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-
-  if (!file) return
-
-  // Validar tamaño (2 MB)
-  if (file.size > 2 * 1024 * 1024) {
-    showToast('El archivo no debe superar los 2 MB', 'error')
-    return
+  function setPlayerField(field: keyof Player, value: string | number) {
+    emit('update:player', {
+      ...props.player,
+      [field]: String(value)
+    })
   }
 
-  // Validar tipo
-  if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
-    showToast('Solo se permiten archivos JPG o PNG', 'error')
-    return
+  /* ───────── API ───────── */
+
+  async function checkPhone(phone: string, countryId: string) {
+    const response = await backendClient.get(
+      `/external-players/check?phone=${encodeURIComponent(phone)}&country_id=${countryId}&game_id=bingo&room_id=${props.selectedRoom?.id}`
+    )
+    return response.data
   }
 
-  // Crear preview
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    imagePreview.value = e.target?.result as string
-  }
-  reader.readAsDataURL(file)
-}
+  /* ───────── Proof of Payment ───────── */
 
-function clearImage() {
-  imagePreview.value = null
-  // Limpiar el input file
-  const input = document.getElementById('image') as HTMLInputElement
-  if (input) input.value = ''
-}
+  function onImageChange(event: Event) {
+    const target = event.target as HTMLInputElement
+    const file = target.files?.[0]
 
-async function uploadProof() {
-  if (!imagePreview.value) {
-    showToast('Por favor selecciona un comprobante', 'error')
-    return
-  }
+    if (!file) return
 
-  uploadingProof.value = true
-
-  try {
-    // Aquí iría la lógica para subir el comprobante
-    // Por ahora solo mostramos un mensaje de éxito
-    showToast('Comprobante cargado correctamente', 'success')
-  } catch (error) {
-    showToast('Error al cargar el comprobante', 'error')
-  } finally {
-    uploadingProof.value = false
-  }
-}
-
-/* ───────── Check player ───────── */
-
-const checkExternalPlayer = async () => {
-  if (!props.player.phone || !props.selectedCountry || !isPhoneValid.value) {
-    return
-  }
-
-  checkingPlayer.value = true
-  let data: any
-
-  try {
-    data = await checkPhone(props.player.phone, props.selectedCountry)
-
-    if (data.exists) {
-      playerExists.value = true
-
-      emit('update:player', {
-        ...props.player,
-        firstName: data.player?.first_name ?? '',
-        lastName: data.player?.last_name ?? '',
-        cardCount: data.player?.card_count || 0
-      })
-
-      emit('update:playerExists', true)
-    } else {
-      playerExists.value = false
-      emit('update:playerExists', false)
+    // Validar tamaño (2 MB)
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('El archivo no debe superar los 2 MB', 'error')
+      return
     }
-  } catch (error) {
-    console.error('Error checking external player', error)
-  } finally {
-    checkingPlayer.value = false
+
+    // Validar tipo
+    if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
+      showToast('Solo se permiten archivos JPG o PNG', 'error')
+      return
+    }
+
+    // Crear preview
+    const reader = new FileReader()
+    reader.onload = e => {
+      imagePreview.value = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
   }
-}
 
-/* ───────── Phone field with IMask ───────── */
+  function clearImage() {
+    imagePreview.value = null
+    // Limpiar el input file
+    const input = document.getElementById('image') as HTMLInputElement
+    if (input) input.value = ''
+  }
 
-const selectedIso2 = computed<string | null>(() => {
-  if (!props.selectedCountry) return null
-  return props.countries.find(c => c.id === props.selectedCountry)?.iso_code_2 ?? null
-})
+  async function uploadProof() {
+    if (!imagePreview.value) {
+      showToast('Por favor selecciona un comprobante', 'error')
+      return
+    }
 
-const phoneValue = computed<string | undefined>({
-  get: () => props.player.phone || undefined,
-  set: val => setPlayerField('phone', val ?? '')
-})
+    uploadingProof.value = true
 
-const { phoneMask, phonePlaceholder, phoneHint, phoneError, isPhoneValid } = usePhoneField(
-  selectedIso2,
-  phoneValue,
-  val => setPlayerField('phone', val)
-)
+    try {
+      // Aquí iría la lógica para subir el comprobante
+      // Por ahora solo mostramos un mensaje de éxito
+      showToast('Comprobante cargado correctamente', 'success')
+    } catch (error) {
+      showToast('Error al cargar el comprobante', 'error')
+    } finally {
+      uploadingProof.value = false
+    }
+  }
 
-defineExpose({
-  onImageChange,
-  clearImage,
-  uploadProof
-})
+  /* ───────── Check player ───────── */
+
+  const checkExternalPlayer = async () => {
+    if (!props.player.phone || !props.selectedCountry || !isPhoneValid.value) {
+      return
+    }
+
+    checkingPlayer.value = true
+    let data: any
+
+    try {
+      data = await checkPhone(props.player.phone, props.selectedCountry)
+
+      if (data.exists) {
+        playerExists.value = true
+
+        emit('update:player', {
+          ...props.player,
+          firstName: data.player?.first_name ?? '',
+          lastName: data.player?.last_name ?? '',
+          cardCount: data.player?.card_count || 0
+        })
+
+        emit('update:playerExists', true)
+      } else {
+        playerExists.value = false
+        emit('update:playerExists', false)
+      }
+    } catch (error) {
+      console.error('Error checking external player', error)
+    } finally {
+      checkingPlayer.value = false
+    }
+  }
+
+  /* ───────── Phone field with IMask ───────── */
+
+  const selectedIso2 = computed<string | null>(() => {
+    if (!props.selectedCountry) return null
+    return props.countries.find(c => c.id === props.selectedCountry)?.iso_code_2 ?? null
+  })
+
+  const phoneValue = computed<string | undefined>({
+    get: () => props.player.phone || undefined,
+    set: val => setPlayerField('phone', val ?? '')
+  })
+
+  const { phoneMask, phonePlaceholder, phoneHint, phoneError, isPhoneValid } = usePhoneField(
+    selectedIso2,
+    phoneValue,
+    val => setPlayerField('phone', val)
+  )
+
+  defineExpose({
+    onImageChange,
+    clearImage,
+    uploadProof
+  })
 </script>
 
 <template>
   <div style="display: contents">
     <hr />
 
-    <div class="alert alert-info mb-3 pt-3 pb-1">
-      <h6>
-        Genera los cartones <strong>solo después de confirmar el pago</strong> del jugador.
-      </h6>
+    <div class="alert alert-info d-flex align-items-center">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      <div class="d-flex align-items-center mb-n1 pt-2">
+        <h6>Genera los cartones <strong>solo después de confirmar el pago</strong> del jugador.</h6>
+      </div>
     </div>
 
     <div class="row">
-
       <!-- País -->
       <FormSelect
         label="País"
@@ -226,7 +226,6 @@ defineExpose({
         :modelValue="player.phone"
         @update:modelValue="value => setPlayerField('phone', value)"
       >
-
         <!-- botón buscar -->
         <template #append>
           <button
@@ -240,7 +239,6 @@ defineExpose({
             <i v-else class="fas fa-spinner fa-spin"></i>
           </button>
         </template>
-
       </FormInput>
 
       <!-- Nombre -->
@@ -251,6 +249,7 @@ defineExpose({
         required
         col="col-sm-6 col-md-3"
         placeholder="Nombre del jugador"
+        :disabled="!checkingPlayer"
         :readonly="playerExists"
         :modelValue="player.firstName"
         @update:modelValue="value => setPlayerField('firstName', value)"
@@ -264,70 +263,80 @@ defineExpose({
         required
         col="col-sm-6 col-md-3"
         placeholder="Apellido del jugador"
+        :disabled="!checkingPlayer"
         :readonly="playerExists"
         :modelValue="player.lastName"
         @update:modelValue="value => setPlayerField('lastName', value)"
       />
 
-      <!-- aviso -->
-      <div v-if="playerExists" class="alert alert-warning mt-3">
-        <i class="fas fa-exclamation-triangle me-2"></i>
-        El jugador ya está registrado. Ya ha comprado {{ data.player?.card_count || 0 }} cartones.
-      </div>
-
-       <!-- ── Comprobante ────────────────────────────────────────────────────────── -->
-     <template v-if="showProofOfPayment">
-       <div class="col-12">
-        <small class="text-muted text-uppercase font-weight-bold" style="letter-spacing:.05em;">
-          <i class="fa-solid fa-image fa-fw mr-1"></i>Comprobante
-        </small>
-        <hr class="mt-1 mb-2" />
-      </div>
-
-      <div class="col-12">
-        <div class="form-group">
-          <label for="image">
-            Comprobante <small class="text-muted">(PNG o JPG, máx. 2 MB) <span class="text-danger">*</span></small>
-          </label>
-          <div class="d-flex align-items-start" style="gap:1rem;">
-            <!-- Preview / placeholder -->
-            <div
-              class="border rounded d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0"
-              style="width:80px;height:80px;background:#f8f9fa;"
-            >
-              <img
-                v-if="imagePreview"
-                :src="imagePreview"
-                alt="Preview image"
-                style="max-width:100%;max-height:100%;object-fit:contain;"
-              />
-              <i v-else class="fa-solid fa-image fa-2x text-muted" style="opacity:.35;"></i>
-            </div>
-            <!-- Input file + botón quitar -->
-            <div class="flex-grow-1">
-              <input
-                id="image"
-                name="image"
-                type="file"
-                class="form-control-file"
-                accept="image/png, image/jpeg"
-                required
-                @change="onImageChange"
-              />
-              <button
-                v-if="imagePreview"
-                type="button"
-                class="btn btn-sm btn-outline-danger mt-1"
-                @click.prevent="clearImage"
-              >
-                <i class="fa-solid fa-trash fa-fw"></i> Quitar imagen
-              </button>
-            </div>
+      <!-- Aviso de Jugador Registrado -->
+      <div v-if="playerExists" class="col-12">
+        <div class="alert alert-info d-flex align-items-center">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <div class="d-flex align-items-center mb-n1 pt-2">
+            <h6>
+              El jugador ya está registrado!
+              <strong>Ha comprado {{ player.cardCount || 0 }} cartones</strong>
+            </h6>
           </div>
         </div>
       </div>
-     </template>
 
+      <!-- ── Comprobante ────────────────────────────────────────────────────────── -->
+      <template v-if="showProofOfPayment">
+        <div class="col-12">
+          <small class="text-muted text-uppercase font-weight-bold" style="letter-spacing: 0.05em">
+            <i class="fa-solid fa-image fa-fw mr-1"></i>Comprobante
+          </small>
+          <hr class="mb-2 mt-1" />
+        </div>
+
+        <div class="col-12 col-md-6">
+          <div class="form-group">
+            <label for="image">
+              Comprobante
+              <small class="text-muted"
+                >(PNG o JPG, máx. 2 MB) <span class="text-danger">*</span></small
+              >
+            </label>
+            <div class="d-flex align-items-start" style="gap: 1rem">
+              <!-- Preview / placeholder -->
+              <div
+                class="d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden rounded border"
+                style="width: 80px; height: 80px; background: #f8f9fa"
+              >
+                <img
+                  v-if="imagePreview"
+                  :src="imagePreview"
+                  alt="Preview image"
+                  style="max-width: 100%; max-height: 100%; object-fit: contain"
+                />
+                <i v-else class="fa-solid fa-image fa-2x text-muted" style="opacity: 0.35"></i>
+              </div>
+              <!-- Input file + botón quitar -->
+              <div class="flex-grow-1">
+                <input
+                  id="image"
+                  name="image"
+                  type="file"
+                  class="form-control-file"
+                  accept="image/png, image/jpeg"
+                  required
+                  @change="onImageChange"
+                />
+                <button
+                  v-if="imagePreview"
+                  type="button"
+                  class="btn btn-sm btn-outline-danger mt-1"
+                  @click.prevent="clearImage"
+                >
+                  <i class="fa-solid fa-trash fa-fw"></i> Quitar imagen
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
