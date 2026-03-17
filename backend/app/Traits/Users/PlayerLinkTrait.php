@@ -9,21 +9,33 @@ use Illuminate\Support\Str;
 
 trait PlayerLinkTrait
 {
-    public function createExternalPlayers($game, $room = '')
+    /**
+     * Crear un enlace único para un jugador externo
+     * 
+     * @param string $gameId The game ID
+     * @param string $roomId The room ID
+     * @return string El enlace creado
+     */
+    public function createExternalPlayers(string $gameId, string $roomId = '')
     {
-        $gameId = Game::getValueByName($game, 'id');
         do {
-            $code = Str::random(20);
+            $code = Str::random(28);
         } while (ExternalPlayer::where('game_id', $gameId)->where('link', $code)->exists());
         return $code;
     }
 
+    /**
+     * Manejar jugadores externos
+     * 
+     * @param array $data Los datos a manejar
+     * @return void
+     */
     public function handleExternalPlayers($data)
     {
         $roomUser = $data['roomUser'] ?? null;
         $playerPhone = $data['playerPhone'] ?? null;
 
-        $player = ExternalPlayer::where('game_id', 1)->where('room_id', $data['room'])
+        $player = ExternalPlayer::where('game_id', $data['gameId'])->where('room_id', $data['roomId'])
             ->where(function ($query) use ($playerPhone, $roomUser) {
                 $query->where('phone', $playerPhone)
                     ->orWhere('id', $roomUser);
@@ -56,7 +68,7 @@ trait PlayerLinkTrait
                 throw new \Exception('Error al crear el código de compra');
             }
 
-            $playerLink = $this->createExternalPlayers('BINGO');
+            $playerLink = $this->createExternalPlayers($data['gameId'], $data['roomId']);
 
             // Get the authenticated user ID for seller_user_id
             $sellerUserId = auth()->id();
@@ -75,8 +87,8 @@ trait PlayerLinkTrait
             ]);
 
             $dataPlayer = [
-                'game_id' => (string)Game::getValueByName('BINGO', 'id'),
-                'room_id' => (string)$data['room'],
+                'game_id' => (string)$data['gameId'],
+                'room_id' => (string)$data['roomId'],
                 'creator_user_id' => is_array($data['creator']) ? (string)($data['creator']['id'] ?? $data['creator']) : (string)$data['creator'],
                 'room_user_id' => is_array($roomUser) ? (string)($roomUser['room_user_id'] ?? $roomUser['id'] ?? $roomUser) : (string)$roomUser,
                 'seller_user_id' => (string)$sellerUserId,

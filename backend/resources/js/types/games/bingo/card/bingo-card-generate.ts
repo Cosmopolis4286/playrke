@@ -41,6 +41,7 @@ export interface Player {
     phone: string
     firstName: string
     lastName: string
+    cardCount?: number
 }
 
 /**

@@ -20,6 +20,7 @@ use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface;
+use App\Models\Game;
 
 /**
  * Servicio para la generación de cartones de Bingo.
@@ -422,11 +423,11 @@ final class BingoCardGenerateService
 
         // 4. Calcular tasa de cambio
         $exchangeRateValue = $this->exchangeRateRepository->getCommerceCurrencyValue($commerce, $currency);
-        
+
         if (!$exchangeRateValue || $exchangeRateValue <= 0) {
             throw new DomainException('No se encontró una tasa de cambio válida para el comercio y moneda seleccionados.');
         }
-        
+
         $exchangeRate = round($exchangeRateValue, 2);
 
         // 5. Calcular precio del cartón
@@ -443,7 +444,7 @@ final class BingoCardGenerateService
             ? $this->priceCalculator->calculate($customPrice, true, $exchangeRate)
             : $this->priceCalculator->calculate($roomCtnPrice, false, $exchangeRate);
 
-       // 6. Buscar jugador existente en la sala
+        // 6. Buscar jugador existente en la sala
         $existingRoomUser = ExternalPlayer::select('id', 'link')
             ->where('game_id', 1)
             ->where('room_id', $room->id)
@@ -452,8 +453,13 @@ final class BingoCardGenerateService
 
         $arrInitials = $this->initialCharacters([$dto->playerName, $dto->playerLastName]);
 
+
+        // Definir ID del juego
+        $gameId = Game::getValueByName('BINGO', 'id');
+
         $arrCtn = [
-            'room'          => $room->id,
+            'gameId'        => $gameId,
+            'roomId'        => $room->id,
             'creator'       => ['id' => $creatorUser, 'type' => 'user_id'],
             'seller'        => $seller->id,
             'commerce'      => $commerce,
@@ -501,8 +507,8 @@ final class BingoCardGenerateService
 
         if ($fresh) {
             broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
-                roomId:       (string) $fresh->id,
-                prizePool:    (float)  $fresh->prize_pool,
+                roomId: (string) $fresh->id,
+                prizePool: (float)  $fresh->prize_pool,
                 totalPlayers: (int)    $fresh->total_players,
                 cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
             ));
@@ -607,12 +613,12 @@ final class BingoCardGenerateService
 
         if ($fresh) {
             $event = new \App\Events\Games\Bingo\BingoRoomUpdated(
-                roomId:       (string) $fresh->uuid_code,
-                prizePool:    (float)  $fresh->prize_pool,
+                roomId: (string) $fresh->uuid_code,
+                prizePool: (float)  $fresh->prize_pool,
                 totalPlayers: (int)    $fresh->total_players,
                 cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
             );
-            
+
             // Debug: Log antes de emitir
             \Log::info('BingoRoomUpdated: Emitiendo evento desde buyFromGameRooms', [
                 'room_id' => $fresh->id,
@@ -622,7 +628,7 @@ final class BingoCardGenerateService
                 'channel' => "bingo.room.{$fresh->id}",
                 'event_name' => 'RoomUpdated'
             ]);
-        
+
             // Debug: Log después de emitir
             \Log::info('BingoRoomUpdated: Evento emitido correctamente desde buyFromGameRooms');
         } else {
@@ -663,33 +669,33 @@ final class BingoCardGenerateService
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             throw new DomainException("Sala no encontrada con ID: {$roomId}");
         }
-        
+
         // Obtener la billetera activa del jugador
         $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['currency_id']);
-        
+
         if ($activeWallets->isEmpty()) {
             throw new DomainException('El jugador no tiene billeteras activas configuradas');
         }
-        
+
         // Usar la primera billetera activa (podría haber lógica para seleccionar una específica)
         $playerWallet = $activeWallets->first();
         $currencyId = $playerWallet->currency_id;
-        
+
         // Obtener información de la moneda
         $currency = $this->currencies->find($currencyId, ['symbol']);
         $currencySymbol = $currency?->symbol ?? 'USD';
-        
+
         // Obtener tasa de cambio por defecto (1.0 para la moneda del jugador)
         $exchangeRate = 1.0;
-        
+
         // Buscar precio personalizado en bingo_card_prices (room + currency)
         // Para jugadores, no filtramos por creator_user_id para permitir precios globales
         $customPrice = BingoCardPrice::byRoom($roomId)
             ->byCurrency($currencyId)
             ->value('card_price');
-        
+
         $isCustomPrice = $customPrice !== null;
-        
+
         if ($isCustomPrice) {
             $cardPrice = $this->priceCalculator->calculate($customPrice, true, $exchangeRate);
         } else {
@@ -697,7 +703,7 @@ final class BingoCardGenerateService
             $roomCtnPrice = $room?->config?->card_price_usd ?? 0.0;
             $cardPrice = $this->priceCalculator->calculate($roomCtnPrice, false, $exchangeRate);
         }
-        
+
         return [
             'card_price' => (float) $cardPrice,
             'currency_symbol' => (string) ($currencySymbol ?? 'USD'),
@@ -716,35 +722,35 @@ final class BingoCardGenerateService
     public function playerBuyFromGameRooms(string $roomId, int $numCtns): array
     {
         $userId = $this->userContext->resolveUserId();
-        
+
         // Validar que el usuario tenga rol 'player'
         if (!$this->userContext->userHasRole('player')) {
             throw new DomainException('Acceso no autorizado para esta operación');
         }
-        
+
         $room = BingoRoom::findOrFail($roomId);
-        
+
         // Obtener precio para jugador
         $priceInfo = $this->getPlayerCardPrice($roomId, $userId);
         $cardPrice = $priceInfo['card_price'];
         $totalAmount = $cardPrice * $numCtns;
-        
+
         // Obtener billetera activa del jugador con saldo
         $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['id', 'currency_id', 'balance']);
-        
+
         if ($activeWallets->isEmpty()) {
             throw new DomainException('El jugador no tiene billeteras activas configuradas');
         }
-        
+
         $playerWallet = $activeWallets->first();
         $currencyId = $playerWallet->currency_id;
         $currentBalance = (float) $playerWallet->balance;
-        
+
         // Verificar que tenga saldo suficiente
         if ($currentBalance < $totalAmount) {
             throw new DomainException('Saldo insuficiente en la billetera. Saldo actual: ' . $currentBalance . ', Monto requerido: ' . $totalAmount);
         }
-        
+
         // Preparar array para cartonStore (versión simplificada para jugadores)
         $arrCtn = [
             'room'          => $roomId,
@@ -756,15 +762,15 @@ final class BingoCardGenerateService
             'country'       => null, // No se usa país para jugadores
             'playerPhone'   => '', // No requerido para jugadores autenticados
             'playerName'    => 'Player', // Puede obtenerse del usuario si es necesario
-            'playerLastName'=> 'User',
+            'playerLastName' => 'User',
             'initials'      => 'PU',
             'exchangeRate'  => 1.0,
             'playerUser'    => $userId, // ID del jugador
         ];
-        
+
         // Ejecutar transacción atómica para generar cartones
         $result = $this->cardGenerationService->generateInTransaction($arrCtn, $room, $totalAmount);
-        
+
         // Descontar el monto de la billetera del jugador
         $newBalance = $currentBalance - $totalAmount;
         $this->walletRepository->updateBalance($playerWallet->id, $newBalance);
@@ -795,12 +801,12 @@ final class BingoCardGenerateService
 
         if ($fresh) {
             $event = new \App\Events\Games\Bingo\BingoRoomUpdated(
-                roomId:       (string) $fresh->id,
-                prizePool:    (float)  $fresh->prize_pool,
+                roomId: (string) $fresh->id,
+                prizePool: (float)  $fresh->prize_pool,
                 totalPlayers: (int)    $fresh->total_players,
                 cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
             );
-            
+
             // Debug: Log antes de emitir
             \Log::info('BingoRoomUpdated: Emitiendo evento desde playerBuyFromGameRooms', [
                 'room_id' => $fresh->id,
@@ -810,10 +816,10 @@ final class BingoCardGenerateService
                 'channel' => "bingo.room.{$fresh->id}",
                 'event_name' => 'RoomUpdated'
             ]);
-            
+
             // Forzar transmisión inmediata usando el driver de Reverb directamente
             \Broadcast::driver('reverb')->broadcast([$event->broadcastOn()], $event->broadcastAs(), $event->broadcastWith());
-            
+
             // Debug: Log después de emitir
             \Log::info('BingoRoomUpdated: Evento emitido correctamente desde playerBuyFromGameRooms');
         } else {

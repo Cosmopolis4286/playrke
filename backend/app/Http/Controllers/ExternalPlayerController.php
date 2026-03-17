@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Roles\Player\External\ExternalPlayer;
+use App\Models\Games\Bingo\Card\BingoCard;
 use App\Models\Game;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -64,6 +65,9 @@ class ExternalPlayerController extends Controller
                 ->first();
 
             if ($externalPlayer) {
+                // Obtener conteo de cartones del jugador externo
+                $cardCount = BingoCard::where('room_user_id', $externalPlayer->room_user_id)->count();
+                
                 return response()->json([
                     'success' => true,
                     'exists' => true,
@@ -71,6 +75,7 @@ class ExternalPlayerController extends Controller
                         'first_name' => $externalPlayer->first_name,
                         'last_name' => $externalPlayer->last_name,
                         'phone' => $externalPlayer->phone,
+                        'card_count' => $cardCount,
                     ],
                     'message' => 'Jugador encontrado'
                 ]);
