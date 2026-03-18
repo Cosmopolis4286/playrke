@@ -15,6 +15,8 @@ final class BingoCardGenerateDTO
         public readonly string $playerPhone,
         public readonly string $playerName,
         public readonly string $playerLastName,
+        public readonly string $receiptNumber,
+        public readonly ?\Illuminate\Http\UploadedFile $receiptImage,
     ) {}
 
     public static function fromArray(array $data): self
@@ -26,8 +28,10 @@ final class BingoCardGenerateDTO
             numCtns:        (int)    ($data['num_ctns'] ?? 1),
             countryId:      (string) ($data['country_id'] ?? ''),
             playerPhone:    (string) ($player['phone']     ?? ''),
-            playerName:     (string) ($player['name']      ?? ''),
+            playerName:     (string) ($player['first_name'] ?? ''),
             playerLastName: (string) ($player['last_name'] ?? ''),
+            receiptNumber:  (string) ($data['receipt_number'] ?? ''),
+            receiptImage:   $data['receipt_image'] ?? null,
         );
     }
 }

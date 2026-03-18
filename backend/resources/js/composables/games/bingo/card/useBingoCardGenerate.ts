@@ -58,7 +58,9 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
     const player = reactive<Player>({
         phone: '',
         firstName: '',
-        lastName: ''
+        lastName: '',
+        receiptNumber: '',
+        receiptImage: null
     })
 
     /**
@@ -98,7 +100,7 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
 
     /**
      * Indica si el formulario está listo para generar cartones.
-     * Requiere sala, país, precio cargado, cantidad válida y datos completos del jugador.
+     * Requiere sala, país, precio cargado, cantidad válida, datos completos del jugador y comprobante.
      */
     const isFormValid = computed(() => {
         if (!selectedRoom.value) return false
@@ -109,7 +111,9 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
             numCtns.value <= 40 &&
             !!player.phone.trim() &&
             !!player.firstName.trim() &&
-            !!player.lastName.trim()
+            !!player.lastName.trim() &&
+            !!player.receiptNumber?.trim() &&
+            !!player.receiptImage
         )
     })
 
@@ -127,6 +131,8 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         player.phone = ''
         player.firstName = ''
         player.lastName = ''
+        player.receiptNumber = ''
+        player.receiptImage = null
     }
 
     /**
@@ -138,6 +144,8 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         player.phone = ''
         player.firstName = ''
         player.lastName = ''
+        player.receiptNumber = ''
+        player.receiptImage = null
         // Mantiene selectedCountry.value y countries.value
     }
 
@@ -237,20 +245,28 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
         loading.value = true
 
         const roomHashedId = selectedRoom.value!.id
-        const payload: GenerateCardPayload = {
-            num_ctns: numCtns.value,
-            country_id: selectedCountry.value,
-            player: {
-                phone: player.phone.trim(),
-                first_name: player.firstName.trim(),
-                last_name: player.lastName.trim()
-            }
+        
+        // Crear FormData para enviar el archivo
+        const formData = new FormData()
+        formData.append('num_ctns', numCtns.value.toString())
+        formData.append('country_id', selectedCountry.value!)
+        formData.append('player[phone]', player.phone.trim())
+        formData.append('player[first_name]', player.firstName.trim())
+        formData.append('player[last_name]', player.lastName.trim())
+        formData.append('receipt_number', player.receiptNumber!.trim())
+        
+        if (player.receiptImage) {
+            formData.append('receipt_image', player.receiptImage)
         }
 
         try {
-            const { data } = await backendClient.post(`/bingo-card/${roomHashedId}/generate`, payload)
+            const { data } = await backendClient.post(`/bingo-card/${roomHashedId}/generate`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
             showToast(data.message, 'success')
-            resetAfterGeneration()  // ← Cambiado de resetState() a resetAfterGeneration()
+            resetAfterGeneration()
             return true
         }
         catch (error: any) {

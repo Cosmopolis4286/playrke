@@ -1,5 +1,5 @@
 <script setup lang="ts" name="BingoCardGenerateFormPlayerSection">
-  import { computed, ref } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   import backendClient from '@/js/plugins/axios'
@@ -25,6 +25,7 @@
     (e: 'update:selectedCountry', value: string | null): void
     (e: 'update:player', value: Player): void
     (e: 'update:playerExists', value: boolean): void
+    (e: 'update:receiptData', value: { receiptNumber: string; receiptImage: File | null }): void
   }>()
 
   /* ───────── State ───────── */
@@ -33,6 +34,9 @@
   const playerExists = ref(false)
   const imagePreview = ref<string | null>(null)
   const uploadingProof = ref(false)
+  const receiptNumber = ref('')
+  const validationAttempted = ref(false)
+  const selectedReceiptFile = ref<File | null>(null)
 
   // Show proof of payment when all player fields have data
   const showProofOfPayment = computed(() => {
@@ -42,6 +46,15 @@
       props.player.phone &&
       props.selectedCountry
     )
+  })
+
+  // Real-time validation
+  const imageError = computed(() => {
+    return showProofOfPayment.value && !imagePreview.value ? 'La imagen es requerida' : null
+  })
+
+  const receiptNumberError = computed(() => {
+    return showProofOfPayment.value && !receiptNumber.value ? 'El número de comprobante es requerido' : null
   })
 
   /* ───────── Helpers ───────── */
@@ -64,11 +77,12 @@
 
   /* ───────── Proof of Payment ───────── */
 
-  function onImageChange(event: Event) {
-    const target = event.target as HTMLInputElement
-    const file = target.files?.[0]
-
-    if (!file) return
+  function onImageChange(file: File | null) {
+    if (!file) {
+      selectedReceiptFile.value = null
+      imagePreview.value = null
+      return
+    }
 
     // Validar tamaño (2 MB)
     if (file.size > 2 * 1024 * 1024) {
@@ -82,9 +96,10 @@
       return
     }
 
+    selectedReceiptFile.value = file
     // Crear preview
     const reader = new FileReader()
-    reader.onload = e => {
+    reader.onload = (e) => {
       imagePreview.value = e.target?.result as string
     }
     reader.readAsDataURL(file)
@@ -92,9 +107,16 @@
 
   function clearImage() {
     imagePreview.value = null
-    // Limpiar el input file
+    selectedReceiptFile.value = null
+    // Limpiar el input file usando el ID
     const input = document.getElementById('image') as HTMLInputElement
-    if (input) input.value = ''
+    if (input) {
+      input.value = ''
+    }
+  }
+
+  function validateProof() {
+    validationAttempted.value = true
   }
 
   async function uploadProof() {
@@ -136,7 +158,8 @@
           ...props.player,
           firstName: data.player?.first_name ?? '',
           lastName: data.player?.last_name ?? '',
-          cardCount: data.player?.card_count || 0
+          cardCount: data.player?.card_count || 0,
+          receiptNumber: receiptNumber.value
         })
 
         emit('update:playerExists', true)
@@ -169,10 +192,23 @@
     val => setPlayerField('phone', val)
   )
 
+  /* ───────── Watchers ───────── */
+
+  // Emitir cambios en los datos del comprobante
+  watch([receiptNumber, selectedReceiptFile], ([newReceiptNumber, newReceiptFile]) => {
+    emit('update:receiptData', {
+      receiptNumber: newReceiptNumber,
+      receiptImage: newReceiptFile
+    })
+  })
+
   defineExpose({
     onImageChange,
     clearImage,
-    uploadProof
+    uploadProof,
+    validateProof,
+    receiptNumber,
+    selectedReceiptFile
   })
 </script>
 
@@ -249,7 +285,6 @@
         required
         col="col-sm-6 col-md-3"
         placeholder="Nombre del jugador"
-        :disabled="!checkingPlayer"
         :readonly="playerExists"
         :modelValue="player.firstName"
         @update:modelValue="value => setPlayerField('firstName', value)"
@@ -263,7 +298,6 @@
         required
         col="col-sm-6 col-md-3"
         placeholder="Apellido del jugador"
-        :disabled="!checkingPlayer"
         :readonly="playerExists"
         :modelValue="player.lastName"
         @update:modelValue="value => setPlayerField('lastName', value)"
@@ -291,48 +325,55 @@
           <hr class="mb-2 mt-1" />
         </div>
 
-        <div class="col-12 col-md-6">
-          <div class="form-group">
-            <label for="image">
-              Comprobante
-              <small class="text-muted"
-                >(PNG o JPG, máx. 2 MB) <span class="text-danger">*</span></small
-              >
-            </label>
-            <div class="d-flex align-items-start" style="gap: 1rem">
-              <!-- Preview / placeholder -->
+        <!-- Imagen del comprobante -->
+        <div class="col-12 col-md-8">
+          <div class="d-flex align-items-start" style="gap:1rem;">
+            <!-- Preview / placeholder + botón quitar -->
+            <div class="d-flex flex-column align-items-center" style="gap:0.5rem;">
               <div
-                class="d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden rounded border"
-                style="width: 80px; height: 80px; background: #f8f9fa"
+                class="border rounded d-flex align-items-center justify-content-center overflow-hidden flex-shrink-0"
+                style="width:80px;height:80px;background:#f8f9fa;"
               >
                 <img
                   v-if="imagePreview"
                   :src="imagePreview"
                   alt="Preview image"
-                  style="max-width: 100%; max-height: 100%; object-fit: contain"
+                  style="max-width:100%;max-height:100%;object-fit:contain;"
                 />
-                <i v-else class="fa-solid fa-image fa-2x text-muted" style="opacity: 0.35"></i>
+                <i v-else class="fa-solid fa-image fa-2x text-muted" style="opacity:.35;"></i>
               </div>
-              <!-- Input file + botón quitar -->
-              <div class="flex-grow-1">
-                <input
-                  id="image"
-                  name="image"
-                  type="file"
-                  class="form-control-file"
-                  accept="image/png, image/jpeg"
-                  required
-                  @change="onImageChange"
-                />
-                <button
-                  v-if="imagePreview"
-                  type="button"
-                  class="btn btn-sm btn-outline-danger mt-1"
-                  @click.prevent="clearImage"
-                >
-                  <i class="fa-solid fa-trash fa-fw"></i> Quitar imagen
-                </button>
-              </div>
+              <button
+                v-if="imagePreview"
+                type="button"
+                class="btn btn-sm btn-outline-danger"
+                @click.prevent="clearImage"
+              >
+                <i class="fa-solid fa-trash fa-fw"></i> Quitar
+              </button>
+            </div>
+            <!-- Input file -->
+            <div class="flex-grow-1 d-flex flex-column">
+              <FormInput
+                label="Comprobante"
+                id="image"
+                name="image"
+                type="file"
+                accept="image/png, image/jpeg"
+                required
+                @update:modelValue="onImageChange"
+                :error="imageError"
+              />
+              <!-- Número de comprobante -->
+              <FormInput
+                name="receiptNumber"
+                type="text"
+                placeholder="Ingrese el número de comprobante"
+                required
+                :modelValue="receiptNumber"
+                inputClass="form-control-sm"
+                :error="receiptNumberError"
+                @update:modelValue="receiptNumber = $event"
+              />
             </div>
           </div>
         </div>

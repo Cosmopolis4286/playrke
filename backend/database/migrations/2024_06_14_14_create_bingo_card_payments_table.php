@@ -16,10 +16,9 @@ return new class extends Migration
             $table->snowflake('id')->primary()->comment('ID único del pago');
 
             // Método de pago
-            $table->enum('payment_method', ['payment_system', 'seller_cash'])
-                ->comment('Método de pago: payment_system = Sistema de Pago, seller_cash = Efectivo del Vendedor');
+            $table->string('payment_method', 50)->comment('Método de pago');
 
-            $table->string('description', 255)
+            $table->string('description', 150)
                 ->nullable()
                 ->comment('Descripción opcional del pago');
 
@@ -30,18 +29,11 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Sala asociada');
 
-            $table->foreignSnowflake('creator_user_id')
+            $table->foreignSnowflake('seller_user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete()
-                ->comment('Usuario creador del pago');
-
-            $table->foreignSnowflake('seller_id')
-                ->nullable()
-                ->constrained('sellers')
-                ->cascadeOnUpdate()
                 ->nullOnDelete()
-                ->comment('Vendedor asociado si aplica');
+                ->comment('ID de usuario del vendedor/generador de cartones');
 
             $table->foreignSnowflake('user_id')
                 ->nullable()
@@ -70,17 +62,15 @@ return new class extends Migration
                 ->comment('Lote de cartones asociado');
 
             // Datos del pago
-            $table->decimal('payment_amount', 12, 2)
-                ->unsigned()
-                ->comment('Monto del pago');
+            $table->decimal('payment_amount', 12, 2)->comment('Monto del pago');
             
             $table->string('payment_proof', 500)
                 ->comment('Prueba o comprobante del pago');
 
             // Estado del pago
-            $table->enum('payment_status', ['pending', 'completed', 'failed', 'cancelled'])
-                ->default('pending')
-                ->comment('Estado del pago: pending = pendiente, completed = completado, failed = fallido, cancelled = cancelado');
+            $table->enum('payment_status', ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'])
+                ->default('PENDING')
+                ->comment('Estado del pago: PENDING = pendiente, APPROVED = aprobado, REJECTED = rechazado, CANCELLED = cancelado');
 
             // Campos de auditoría
             $table->timestamp('processed_at')
@@ -95,7 +85,7 @@ return new class extends Migration
             $table->softDeletes();
 
             // Índices para búsquedas frecuentes y rendimiento
-            $table->index(['room_id', 'seller_id'], 'idx_bingo_card_payments_room_seller');
+            $table->index(['room_id', 'seller_user_id'], 'idx_bingo_card_payments_room_seller');
             $table->index(['user_id', 'external_player_id'], 'idx_bingo_card_payments_user_external');
             $table->index(['payment_method', 'payment_status'], 'idx_bingo_card_payments_method_status');
             $table->index(['card_lot_id', 'payment_status'], 'idx_bingo_card_payments_lot_status');

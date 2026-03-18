@@ -472,6 +472,8 @@ final class BingoCardGenerateService
             'playerLastName' => $dto->playerLastName,
             'initials'      => $arrInitials[0] . $arrInitials[1],
             'exchangeRate'  => $exchangeRate,
+            'receiptNumber' => $dto->receiptNumber,
+            'receiptImage'  => $dto->receiptImage,
         ];
 
         if ($existingRoomUser) {

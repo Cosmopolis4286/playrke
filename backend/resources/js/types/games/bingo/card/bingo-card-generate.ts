@@ -42,6 +42,8 @@ export interface Player {
     firstName: string
     lastName: string
     cardCount?: number
+    receiptNumber?: string
+    receiptImage?: File | null
 }
 
 /**
@@ -56,6 +58,8 @@ export interface GenerateCardPayload {
         first_name: string
         last_name: string
     }
+    receipt_number?: string
+    receipt_image?: File
 }
 
 /**

@@ -3,6 +3,7 @@
 namespace App\Services\Games\Bingo\Card;
 
 use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Models\Games\Bingo\Card\CardPayment\BingoCardPayment;
 use App\Models\Currency;
 use App\Models\Games\Common\GameRoom\CurrencyGameRoom;
 use App\Models\Wallet;
@@ -75,7 +76,7 @@ final class BingoCardGenerationService
         // Validar cierre de sala
         $this->handleBingoRooms->checkRoomClosure();
 
-        $roomId = $arrCtn['room'];
+        $roomId = $arrCtn['roomId'];
         $room = $this->roomValidation->getRoomDetails($roomId);
 
         if (!$room) {
@@ -102,6 +103,11 @@ final class BingoCardGenerationService
             ]);
 
             // Registrar o actualizar el usuario en la sala
+            Log::info('Attempting to register room user', [
+                'room' => $room->toArray(),
+                'arrCtn' => $arrCtn
+            ]);
+            
             $roomUserResult = $this->roomUserRegistration->registerOrUpdateRoomUser($room, $arrCtn);
 
             Log::info('Room user registration result', ['roomUserResult' => $roomUserResult]);
@@ -164,6 +170,16 @@ final class BingoCardGenerationService
             if (!$generateAndStoreCtns) {
                 Log::error('Failed to generate and store cards');
                 throw new \DomainException('Error al generar cartones');
+            }
+
+            // Guardar comprobante de pago si se proporcionó
+            if (isset($arrCtn['receiptImage']) && $arrCtn['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {
+                $this->storeReceiptImage($arrCtn, $roomUserId, $lotID);
+            }
+
+            // Crear registro de pago para jugadores externos
+            if (isset($arrCtn['externalPlayerId']) && $arrCtn['externalPlayerId']) {
+                $this->createCardPayment($arrCtn, $roomUserId, $lotID);
             }
 
             // Descuento de saldo según tipo de usuario
@@ -241,5 +257,60 @@ final class BingoCardGenerationService
             $roomUser = $this->generateCards($arrCtn);
             return $roomUser;
         });
+    }
+
+    /**
+     * Crear registro de pago para cartones de jugadores externos.
+     *
+     * @param array $arrCtn Datos de generación de cartones
+     * @param int $roomUserId ID del usuario en la sala
+     * @param int $lotID ID del lote de cartones
+     * @return void
+     */
+    private function createCardPayment(array $arrCtn, int $roomUserId, int $lotID): void
+    {
+        try {
+            $paymentProof = null;
+            
+            // Si hay imagen de comprobante, guardarla y obtener la ruta
+            if (isset($arrCtn['receiptImage']) && $arrCtn['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {
+                $directory = 'receipts/bingo/' . date('Y/m');
+                $fileName = 'receipt_' . $roomUserId . '_' . $lotID . '_' . time() . '.' . $arrCtn['receiptImage']->getClientOriginalExtension();
+                $paymentProof = $arrCtn['receiptImage']->storeAs($directory, $fileName, 'public');
+            }
+
+            BingoCardPayment::create([
+                'payment_method' => 'seller_cash',
+                'description' => $arrCtn['receiptNumber'] ?? 'Pago por generación de cartones',
+                'room_id' => $arrCtn['roomId'],
+                'creator_user_id' => $arrCtn['creator']['id'] ?? null,
+                'seller_id' => $arrCtn['seller'] ?? null,
+                'user_id' => $arrCtn['seller_user_id'] ?? null,
+                'external_player_id' => $arrCtn['externalPlayerId'] ?? null,
+                'currency_id' => $arrCtn['currency'],
+                'card_lot_id' => $lotID,
+                'payment_amount' => $arrCtn['cardPrice'] * $arrCtn['numOfCtns'],
+                'payment_proof' => $paymentProof,
+                'payment_status' => 'COMPLETED',
+                'processed_at' => now(),
+                'transaction_reference' => $arrCtn['receiptNumber'] ?? null,
+            ]);
+
+            Log::info('Card payment created successfully', [
+                'room_user_id' => $roomUserId,
+                'lot_id' => $lotID,
+                'payment_amount' => $arrCtn['cardPrice'] * $arrCtn['numOfCtns'],
+                'receipt_number' => $arrCtn['receiptNumber'] ?? null,
+                'payment_proof' => $paymentProof,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error creating card payment', [
+                'error' => $e->getMessage(),
+                'room_user_id' => $roomUserId,
+                'lot_id' => $lotID
+            ]);
+            // No lanzamos excepción para no interrumpir la generación de cartones
+        }
     }
 }

@@ -13,7 +13,9 @@
     prizePoolTypeOptions: SelectOption[]
   }>()
 
-  /* ───────── Room Section ref ───────── */
+  /* ───────── Player Section ref ───────── */
+
+  const playerSectionRef = ref<InstanceType<typeof BingoCardGenerateFormPlayerSection> | null>(null)
 
   const roomSectionRef = ref<InstanceType<typeof BingoCardGenerateFormRoomSection> | null>(null)
 
@@ -46,6 +48,16 @@
    */
   function onUpdatePlayer(updated: Player) {
     Object.assign(player, updated)
+  }
+
+  /**
+   * Actualiza los datos del comprobante en el composable.
+   *
+   * @param receiptData - Datos del comprobante emitidos por BingoCardGenerateFormPlayerSection.
+   */
+  function onUpdateReceiptData(receiptData: { receiptNumber: string; receiptImage: File | null }) {
+    player.receiptNumber = receiptData.receiptNumber
+    player.receiptImage = receiptData.receiptImage
   }
 
   async function handleSubmit() {
@@ -108,6 +120,7 @@
 
     <BingoCardGenerateFormPlayerSection
       v-if="roomSectionRef?.selectedRoom"
+      ref="playerSectionRef"
       class="mt-4"
       :selected-room="roomSectionRef.selectedRoom"
       :countries="countries"
@@ -115,6 +128,7 @@
       v-model:selectedCountry="selectedCountry"
       :player="player"
       @update:player="onUpdatePlayer"
+      @update:receiptData="onUpdateReceiptData"
     />
 
     <!-- ───────────── Botón ───────────── -->

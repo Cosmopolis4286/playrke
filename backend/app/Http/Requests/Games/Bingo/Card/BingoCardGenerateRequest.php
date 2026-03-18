@@ -35,8 +35,10 @@ class BingoCardGenerateRequest extends BaseRequest
             'num_ctns'         => ['required', 'integer', 'min:1', 'max:40'],
             'country_id'       => ['required', 'string', 'exists:countries,id'],
             'player.phone'     => ['required', 'string', 'max:20'],
-            'player.name'      => ['required', 'string', 'max:100'],
+            'player.first_name' => ['required', 'string', 'max:100'],
             'player.last_name' => ['required', 'string', 'max:100'],
+            'receipt_number'   => ['required', 'string', 'max:100'],
+            'receipt_image'    => ['required', 'file', 'image', 'mimes:jpeg,jpg,png', 'max:2048'],
         ];
     }
 
@@ -51,8 +53,14 @@ class BingoCardGenerateRequest extends BaseRequest
             'country_id.required'       => 'Debe seleccionar un país.',
             'country_id.exists'         => 'El país seleccionado no es válido.',
             'player.phone.required'     => 'El teléfono del jugador es obligatorio.',
-            'player.name.required'      => 'El nombre del jugador es obligatorio.',
+            'player.first_name.required' => 'El nombre del jugador es obligatorio.',
             'player.last_name.required' => 'El apellido del jugador es obligatorio.',
+            'receipt_number.required'   => 'El número de comprobante es obligatorio.',
+            'receipt_number.max'       => 'El número de comprobante no puede superar los 100 caracteres.',
+            'receipt_image.required'    => 'La imagen del comprobante es obligatoria.',
+            'receipt_image.image'       => 'El archivo debe ser una imagen.',
+            'receipt_image.mimes'       => 'La imagen debe estar en formato JPG o PNG.',
+            'receipt_image.max'         => 'La imagen no puede superar los 2 MB.',
         ];
     }
 }
