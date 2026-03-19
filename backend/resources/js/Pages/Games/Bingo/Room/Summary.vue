@@ -167,6 +167,18 @@
       options: roomTypeOptions.value
     },
     {
+      key: 'game_mode_description',
+      label: 'modo',
+      placeholder: 'Filtrar por modo',
+      options: gameModeOptions.value
+    },
+    {
+      key: 'prize_pool_type_description',
+      label: 'tipo bote',
+      placeholder: 'Filtrar por tipo bote',
+      options: prizePoolTypeOptions.value
+    },
+    {
       key: 'status',
       label: 'Estado',
       placeholder: 'Filtrar por estado',
@@ -266,7 +278,7 @@ onUnmounted(() => {
     :columns="props.rooms.columns"
     :rows="rooms"
     :filters="filters"
-    search-placeholder="Buscar por código, tipo..."
+    search-placeholder="Buscar por código, tipo, modo, tipo bote..."
     showCreateButton
     showEditButton
     showDeleteButton

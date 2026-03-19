@@ -56,8 +56,8 @@ final class BingoRoomContextService
      */
     private function resolveSummaryGameRooms(?int $userId): array
     {
-        $labels  = ['Código', 'Tipo', 'Jugadores', 'Premio', 'Creación', 'Estado'];
-        $rowKeys = ['id', 'config.roomType.label', 'total_players', 'prize_pool', 'created_at', 'status_badge'];
+        $labels  = ['Código', 'Tipo', 'Modo', 'Tipo Bote', 'Jugadores', 'Premio', 'Creación', 'Estado'];
+        $rowKeys = ['id', 'config.roomType.label', 'config.gameMode.label', 'config.prizePoolType.label', 'total_players', 'prize_pool', 'created_at', 'status_badge'];
 
         $conditions = $userId
             ? ['creator_user_id' => $userId]
@@ -66,7 +66,7 @@ final class BingoRoomContextService
         $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
-            relations: ['config:room_id,room_type_id,unix_date'],
+            relations: ['config', 'config.roomType', 'config.gameMode', 'config.prizePoolType'],
             conditions: $conditions,
             fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
         );
