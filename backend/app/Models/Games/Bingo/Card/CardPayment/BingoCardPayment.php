@@ -2,6 +2,7 @@
 
 namespace App\Models\Games\Bingo\Card\CardPayment;
 
+use App\Models\BaseModel;
 use App\Models\Games\Bingo\Card\CardLot\BingoCardLot;
 use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Currency;
@@ -9,7 +10,6 @@ use App\Models\Roles\Seller;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
@@ -19,10 +19,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * Registra los pagos realizados por vendedores/comercios
  * cuando generan cartones para jugadores externos.
  */
-final class BingoCardPayment extends Model
+final class BingoCardPayment extends BaseModel
 {
-    use HasFactory, SoftDeletes;
-
     protected $table = 'bingo_card_payments';
 
     protected $fillable = [

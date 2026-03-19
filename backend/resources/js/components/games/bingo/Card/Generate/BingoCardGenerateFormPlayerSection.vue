@@ -156,10 +156,31 @@
 
   /* ───────── Check player ───────── */
 
+  const clearReceiptFields = () => {
+    // Limpiar imagen del comprobante
+    imagePreview.value = null
+    selectedReceiptFile.value = null
+    
+    // Limpiar número de comprobante
+    receiptNumber.value = ''
+    
+    // Limpiar el input file
+    const input = document.getElementById('image') as HTMLInputElement
+    if (input) {
+      input.value = ''
+    }
+    
+    // Resetear validación
+    validationAttempted.value = false
+  }
+
   const checkExternalPlayer = async () => {
     if (!props.player.phone || !props.selectedCountry || !isPhoneValid.value) {
       return
     }
+
+    // Limpiar campos de comprobante al verificar nuevo teléfono
+    clearReceiptFields()
 
     checkingPlayer.value = true
     let data: any
@@ -221,6 +242,9 @@
     phoneChecked.value = false
     playerExists.value = false
     emit('update:playerExists', false)
+    
+    // Limpiar campos de comprobante cuando cambia el teléfono
+    clearReceiptFields()
   })
 
   // Emitir cambios en los datos del comprobante
