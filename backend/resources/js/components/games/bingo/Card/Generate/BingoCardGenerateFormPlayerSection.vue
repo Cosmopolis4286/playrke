@@ -37,15 +37,31 @@
   const receiptNumber = ref('')
   const validationAttempted = ref(false)
   const selectedReceiptFile = ref<File | null>(null)
+  const phoneChecked = ref(false)
 
-  // Show proof of payment when all player fields have data
+  // Show proof of payment when all player fields have data and phone has been checked
   const showProofOfPayment = computed(() => {
     return !!(
       props.player.firstName &&
       props.player.lastName &&
       props.player.phone &&
-      props.selectedCountry
+      props.selectedCountry &&
+      phoneChecked.value
     )
+  })
+
+  // Show name fields only after phone check
+  const showNameFields = computed(() => {
+    return phoneChecked.value
+  })
+
+  // Show popover ONLY when phone has value AND is valid AND not checked AND not empty
+  const shouldShowPhonePopover = computed(() => {
+    return !!props.player.phone && 
+           props.player.phone.trim() !== '' && 
+           isPhoneValid.value && 
+           !phoneChecked.value && 
+           !checkingPlayer.value
   })
 
   // Real-time validation
@@ -171,6 +187,7 @@
       console.error('Error checking external player', error)
     } finally {
       checkingPlayer.value = false
+      phoneChecked.value = true
     }
   }
 
@@ -193,6 +210,18 @@
   )
 
   /* ───────── Watchers ───────── */
+
+  // Watch phone changes to show popover when valid but not checked
+  watch([() => props.player.phone, isPhoneValid], ([newPhone, phoneValid]) => {
+    // El popover se controlará automáticamente por shouldShowPhonePopover
+  })
+
+  // Reset phone checked when phone changes
+  watch(() => props.player.phone, () => {
+    phoneChecked.value = false
+    playerExists.value = false
+    emit('update:playerExists', false)
+  })
 
   // Emitir cambios en los datos del comprobante
   watch([receiptNumber, selectedReceiptFile], ([newReceiptNumber, newReceiptFile]) => {
@@ -264,21 +293,47 @@
       >
         <!-- botón buscar -->
         <template #append>
-          <button
-            type="button"
-            class="btn btn-outline-secondary"
-            :disabled="!player.phone || !selectedCountry || checkingPlayer"
-            title="Buscar jugador externo"
-            @click="checkExternalPlayer"
+          <VDropdown
+            :shown="shouldShowPhonePopover"
+            :triggers="[]"
+            placement="top-start"
+            :autoHide="false"
+            container="body"
           >
-            <i v-if="!checkingPlayer" class="fas fa-search"></i>
-            <i v-else class="fas fa-spinner fa-spin"></i>
-          </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              :disabled="!player.phone || !selectedCountry || checkingPlayer"
+              :class="{ 'btn-warning': shouldShowPhonePopover }"
+              @click="checkExternalPlayer"
+            >
+              <i v-if="!checkingPlayer" class="fas fa-search"></i>
+              <i v-else class="fas fa-spinner fa-spin"></i>
+            </button>
+            
+            <template #popper>
+              <div
+                class="bg-white border border-gray-200 rounded shadow-md"
+                style="min-width: 180px;"
+              >
+                <div class="p-2">
+                  <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-info-circle text-primary me-2"></i>
+                    <span class="fw-semibold text-gray-800">Verificar teléfono</span>
+                  </div>
+                  <div class="text-gray-600 mb-2" style="font-size: 0.75rem;">
+                    Verifica el número para continuar
+                  </div>
+                </div>
+              </div>
+            </template>
+          </VDropdown>
         </template>
       </FormInput>
 
       <!-- Nombre -->
       <FormInput
+        v-if="showNameFields"
         label="Nombre"
         name="first_name"
         type="text"
@@ -292,6 +347,7 @@
 
       <!-- Apellido -->
       <FormInput
+        v-if="showNameFields"
         label="Apellido"
         name="last_name"
         type="text"

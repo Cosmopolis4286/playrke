@@ -108,6 +108,9 @@ final class BingoCardGenerationService
                 'arrCtn' => $arrCtn
             ]);
             
+            // Agregar solo el ID de la sala al array para el método registerOrUpdateRoomUser
+            $arrCtn['room'] = $room->id;
+            
             $roomUserResult = $this->roomUserRegistration->registerOrUpdateRoomUser($room, $arrCtn);
 
             Log::info('Room user registration result', ['roomUserResult' => $roomUserResult]);
@@ -177,8 +180,12 @@ final class BingoCardGenerationService
                 $this->storeReceiptImage($arrCtn, $roomUserId, $lotID);
             }
 
-            // Crear registro de pago para jugadores externos
+            // Crear registro de pago para jugadores externos o internos con comprobante
             if (isset($arrCtn['externalPlayerId']) && $arrCtn['externalPlayerId']) {
+                // Jugador externo
+                $this->createCardPayment($arrCtn, $roomUserId, $lotID);
+            } elseif (isset($arrCtn['receiptNumber']) && $arrCtn['receiptNumber'] && isset($arrCtn['receiptImage'])) {
+                // Jugador interno con comprobante de pago
                 $this->createCardPayment($arrCtn, $roomUserId, $lotID);
             }
 
@@ -306,6 +313,47 @@ final class BingoCardGenerationService
 
         } catch (\Exception $e) {
             Log::error('Error creating card payment', [
+                'error' => $e->getMessage(),
+                'room_user_id' => $roomUserId,
+                'lot_id' => $lotID
+            ]);
+            // No lanzamos excepción para no interrumpir la generación de cartones
+        }
+    }
+
+    /**
+     * Almacena la imagen del comprobante de pago
+     *
+     * @param array $arrCtn Datos de generación de cartones
+     * @param int $roomUserId ID del usuario en la sala
+     * @param int $lotID ID del lote de cartones
+     * @return void
+     */
+    private function storeReceiptImage(array $arrCtn, int $roomUserId, int $lotID): void
+    {
+        try {
+            $receiptImage = $arrCtn['receiptImage'];
+            $receiptNumber = $arrCtn['receiptNumber'] ?? null;
+            
+            // Crear directorio si no existe
+            $directory = 'receipts/bingo/' . date('Y/m');
+            $fileName = 'receipt_' . $roomUserId . '_' . $lotID . '_' . time() . '.' . $receiptImage->getClientOriginalExtension();
+            
+            // Guardar archivo
+            $path = $receiptImage->storeAs($directory, $fileName, 'public');
+            
+            // Guardar información en log para demostración
+            Log::info('Receipt stored', [
+                'room_user_id' => $roomUserId,
+                'lot_id' => $lotID,
+                'receipt_number' => $receiptNumber,
+                'file_path' => $path,
+                'original_name' => $receiptImage->getClientOriginalName(),
+                'file_size' => $receiptImage->getSize(),
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error storing receipt image', [
                 'error' => $e->getMessage(),
                 'room_user_id' => $roomUserId,
                 'lot_id' => $lotID
