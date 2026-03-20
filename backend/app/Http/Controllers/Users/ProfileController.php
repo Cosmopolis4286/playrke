@@ -189,36 +189,69 @@ class ProfileController extends Controller
      */
     public function uploadAvatar(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
 
-        if ($validator->fails()) {
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $user = Auth::user();
+            $avatar = $request->file('avatar');
+
+            // Eliminar avatar anterior si existe
+            if ($user->profile_photo_url) {
+                $oldPath = str_replace('/storage/', '', $user->profile_photo_url);
+                Storage::disk('public')->delete($oldPath);
+            }
+
+            // Procesar y guardar la imagen
+            $filename = time() . '_' . uniqid() . '.' . $avatar->getClientOriginalExtension();
+            
+            // Crear directorio si no existe
+            $directory = 'avatars';
+            if (!Storage::disk('public')->exists($directory)) {
+                Storage::disk('public')->makeDirectory($directory);
+            }
+
+            // Guardar la imagen original
+            $path = $avatar->storeAs($directory, $filename, 'public');
+            
+            // Opcional: Redimensionar la imagen si se solicita
+            if ($request->has('resize') && $request->get('resize')) {
+                try {
+                    // Aquí podrías usar Intervention Image para redimensionar
+                    // Por ahora, guardamos la imagen original
+                } catch (\Exception $e) {
+                    // Si falla el redimensionamiento, continuamos con la original
+                }
+            }
+            
+            // Actualizar el perfil del usuario
+            $user->update(['profile_photo_url' => '/storage/' . $path]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Avatar uploaded successfully',
+                'data' => [
+                    'avatar' => '/storage/' . $path,
+                    'filename' => $filename
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Avatar upload error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => 'Error uploading avatar: ' . $e->getMessage()
+            ], 500);
         }
-
-        $user = Auth::user();
-
-        // Eliminar avatar anterior si existe
-        if ($user->profile_photo_url) {
-            Storage::disk('public')->delete($user->profile_photo_url);
-        }
-
-        $path = $request->file('avatar')->store('avatars', 'public');
-        
-        $user->update(['profile_photo_url' => $path]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Avatar uploaded successfully',
-            'data' => [
-                'avatar' => Storage::url($path)
-            ]
-        ]);
     }
 
     /**
@@ -226,17 +259,26 @@ class ProfileController extends Controller
      */
     public function deleteAvatar(): JsonResponse
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        if ($user->profile_photo_url) {
-            Storage::disk('public')->delete($user->profile_photo_url);
-            $user->update(['profile_photo_url' => null]);
+            if ($user->profile_photo_url) {
+                $oldPath = str_replace('/storage/', '', $user->profile_photo_url);
+                Storage::disk('public')->delete($oldPath);
+                $user->update(['profile_photo_url' => null]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Avatar deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Avatar delete error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting avatar: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Avatar deleted successfully'
-        ]);
     }
 
     /**
