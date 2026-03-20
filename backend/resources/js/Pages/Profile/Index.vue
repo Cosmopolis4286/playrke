@@ -103,8 +103,9 @@
     <div class="row">
       <div class="col-12">
         <div class="card border-0 shadow-lg">
-            <div class="card-header bg-white border-0 p-0">
-                <ul class="nav nav-tabs card-header-tabs border-0" role="tablist">
+            <div class="card-header bg-white border-0 p-0 overflow-hidden">
+                <div class="nav-tabs-container">
+                    <ul class="nav nav-tabs card-header-tabs border-0 flex-nowrap" role="tablist">
                     <li class="nav-item">
                         <button 
                             :class="['nav-link', 'rounded-0', 'border-0', { 'active': activeTab === 'personal-info' }]" 
@@ -150,6 +151,7 @@
                         </button>
                     </li>
                 </ul>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="tab-content">
@@ -244,7 +246,7 @@ const profileForm = useForm({
     username: props.user.username,
     email: props.user.email,
     phone: props.user.phone,
-    birth_date: props.user.birth_date,
+    birth_date: props.user.birth_date ? new Date(props.user.birth_date).toISOString().split('T')[0] : '',
     country: props.user.country
 })
 

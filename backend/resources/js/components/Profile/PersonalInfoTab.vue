@@ -4,123 +4,88 @@
       <form @submit.prevent="handleSubmit">
         <div class="row">
           <!-- Nombre -->
-          <div class="col-md-6 mb-3">
-            <label for="name" class="form-label">Nombre Completo</label>
-            <input 
-              type="text" 
-              id="name"
-              v-model="form.name"
-              class="form-control"
-              :class="{ 'is-invalid': form.errors.name }"
-              :disabled="!editMode"
-              placeholder="Tu nombre completo"
-            >
-            <div v-if="form.errors.name" class="invalid-feedback">
-              {{ form.errors.name }}
-            </div>
-          </div>
+          <FormInput
+            id="name"
+            name="name"
+            label="Nombre Completo"
+            v-model="form.name"
+            :error="form.errors.name"
+            :disabled="!editMode"
+            placeholder="Tu nombre completo"
+            col="col-md-6"
+          />
 
           <!-- Username -->
-          <div class="col-md-6 mb-3">
-            <label for="username" class="form-label">Nombre de Usuario</label>
-            <div class="input-group">
+          <FormInput
+            id="username"
+            name="username"
+            label="Nombre de Usuario"
+            v-model="form.username"
+            :error="form.errors.username"
+            :disabled="!editMode"
+            placeholder="username"
+            input-group="true"
+            col="col-md-6"
+          >
+            <template #prepend>
               <span class="input-group-text">@</span>
-              <input 
-                type="text" 
-                id="username"
-                v-model="form.username"
-                class="form-control"
-                :class="{ 'is-invalid': form.errors.username }"
-                :disabled="!editMode"
-                placeholder="username"
-              >
-            </div>
-            <div v-if="form.errors.username" class="invalid-feedback">
-              {{ form.errors.username }}
-            </div>
-          </div>
+            </template>
+          </FormInput>
         </div>
 
         <div class="row">
           <!-- Email -->
-          <div class="col-md-6 mb-3">
-            <label for="email" class="form-label">Correo Electrónico</label>
-            <input 
-              type="email" 
-              id="email"
-              v-model="form.email"
-              class="form-control"
-              :class="{ 'is-invalid': form.errors.email }"
-              :disabled="!editMode"
-              placeholder="correo@ejemplo.com"
-            >
-            <div v-if="form.errors.email" class="invalid-feedback">
-              {{ form.errors.email }}
-            </div>
-          </div>
+          <FormInput
+            id="email"
+            name="email"
+            label="Correo Electrónico"
+            type="email"
+            v-model="form.email"
+            :error="form.errors.email"
+            :disabled="!editMode"
+            placeholder="correo@ejemplo.com"
+            col="col-md-6"
+          />
 
           <!-- Teléfono -->
-          <div class="col-md-6 mb-3">
-            <label for="phone" class="form-label">Teléfono</label>
-            <input 
-              type="tel" 
-              id="phone"
-              v-model="form.phone"
-              class="form-control"
-              :class="{ 'is-invalid': form.errors.phone }"
-              :disabled="!editMode"
-              placeholder="+58 412 1234567"
-            >
-            <div v-if="form.errors.phone" class="invalid-feedback">
-              {{ form.errors.phone }}
-            </div>
-          </div>
+          <FormInput
+            id="phone"
+            name="phone"
+            label="Teléfono"
+            type="tel"
+            v-model="form.phone"
+            :error="form.errors.phone"
+            :disabled="!editMode"
+            placeholder="+58 412 1234567"
+            col="col-md-6"
+          />
         </div>
 
         <div class="row">
           <!-- Fecha de Nacimiento -->
-          <div class="col-md-6 mb-3">
-            <label for="birth_date" class="form-label">Fecha de Nacimiento</label>
-            <input 
-              type="date" 
-              id="birth_date"
-              v-model="form.birth_date"
-              class="form-control"
-              :class="{ 'is-invalid': form.errors.birth_date }"
-              :disabled="!editMode"
-            >
-            <div v-if="form.errors.birth_date" class="invalid-feedback">
-              {{ form.errors.birth_date }}
-            </div>
-          </div>
+          <FormInput
+            id="birth_date"
+            name="birth_date"
+            label="Fecha de Nacimiento"
+            type="date"
+            v-model="form.birth_date"
+            :error="form.errors.birth_date"
+            :disabled="!editMode"
+            col="col-md-6"
+          />
 
           <!-- País -->
-          <div class="col-md-6 mb-3">
-            <label for="country" class="form-label">País</label>
-            <select 
-              id="country"
-              v-model="form.country"
-              class="form-select"
-              :class="{ 'is-invalid': form.errors.country }"
-              :disabled="!editMode"
-            >
-              <option value="">Selecciona tu país</option>
-              <option value="VE">Venezuela</option>
-              <option value="CO">Colombia</option>
-              <option value="BR">Brasil</option>
-              <option value="AR">Argentina</option>
-              <option value="MX">México</option>
-              <option value="PE">Perú</option>
-              <option value="CL">Chile</option>
-              <option value="EC">Ecuador</option>
-              <option value="BO">Bolivia</option>
-              <option value="PY">Paraguay</option>
-              <option value="UY">Uruguay</option>
-            </select>
-            <div v-if="form.errors.country" class="invalid-feedback">
-              {{ form.errors.country }}
-            </div>
-          </div>
+          <FormSelect
+            id="country"
+            name="country"
+            label="País"
+            v-model="form.country"
+            :options="countryOptions"
+            :error="form.errors.country"
+            :disabled="!editMode"
+            placeholder="Selecciona tu país"
+            col="col-md-6"
+          />
         </div>
 
 
@@ -201,6 +166,8 @@
 
 <script setup>
 import { useForm } from '@inertiajs/vue3'
+import FormInput from '../Common/Form/FormInput.vue'
+import FormSelect from '../Common/Form/FormSelect.vue'
 
 const props = defineProps({
     user: {
@@ -215,12 +182,27 @@ const props = defineProps({
 
 const emit = defineEmits(['update-user', 'cancel'])
 
+// Opciones de países para el FormSelect
+const countryOptions = [
+    { value: 'VE', label: 'Venezuela' },
+    { value: 'CO', label: 'Colombia' },
+    { value: 'BR', label: 'Brasil' },
+    { value: 'AR', label: 'Argentina' },
+    { value: 'MX', label: 'México' },
+    { value: 'PE', label: 'Perú' },
+    { value: 'CL', label: 'Chile' },
+    { value: 'EC', label: 'Ecuador' },
+    { value: 'BO', label: 'Bolivia' },
+    { value: 'PY', label: 'Paraguay' },
+    { value: 'UY', label: 'Uruguay' }
+]
+
 const form = useForm({
     name: props.user.name,
     username: props.user.username,
     email: props.user.email,
     phone: props.user.phone,
-    birth_date: props.user.birth_date,
+    birth_date: props.user.birth_date ? new Date(props.user.birth_date).toISOString().split('T')[0] : '',
     country: props.user.country || 'VE'
 })
 
