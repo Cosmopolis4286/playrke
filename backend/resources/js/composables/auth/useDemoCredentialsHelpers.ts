@@ -1,6 +1,6 @@
 import type { DemoRole } from '@js/types/demo-credentials'
 
-export const ROLE_COLORS: Record<DemoRole, string> = {
+export const ROLE_COLORS: Record<string, string> = {
   admin:    'from-blue-500 to-blue-700',
   commerce: 'from-orange-400 to-amber-500',
   seller:   'from-teal-500 to-cyan-600',
@@ -8,7 +8,7 @@ export const ROLE_COLORS: Record<DemoRole, string> = {
   player:   'from-gray-400 to-gray-600',
 }
 
-export const ROLE_BADGE: Record<DemoRole, string> = {
+export const ROLE_BADGE: Record<string, string> = {
   admin:    'bg-blue-100 text-blue-700',
   commerce: 'bg-orange-100 text-orange-700',
   seller:   'bg-teal-100 text-teal-700',
@@ -16,7 +16,7 @@ export const ROLE_BADGE: Record<DemoRole, string> = {
   player:   'bg-gray-100 text-gray-600',
 }
 
-export const ROLE_LABELS: Record<DemoRole, string> = {
+export const ROLE_LABELS: Record<string, string> = {
   admin:    'Admin',
   commerce: 'Comercio',
   seller:   'Vendedor',

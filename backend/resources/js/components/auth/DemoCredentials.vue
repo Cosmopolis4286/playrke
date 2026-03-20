@@ -100,8 +100,8 @@
                       <!-- Izquierda: icono + info -->
                       <div class="flex items-center gap-3 min-w-0">
                         <div
-                          class="w-9 h-9 bg-gradient-to-br rounded-xl flex items-center justify-center shadow flex-shrink-0"
-                          :class="ROLE_COLORS[cred.role]"
+                          class="w-9 h-9 rounded-xl flex items-center justify-center shadow flex-shrink-0"
+                          :style="getGradientStyle(cred.role)"
                         >
                           <i class="fa-solid fa-user text-white text-sm" />
                         </div>
@@ -110,9 +110,9 @@
                             <span class="font-semibold text-sm text-gray-900">{{ cred.label }}</span>
                             <span
                               class="text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
-                              :class="ROLE_BADGE[cred.role]"
+                              :style="getBadgeStyle(cred.role)"
                             >
-                              {{ ROLE_LABELS[cred.role] ?? cred.role }}
+                              {{ ROLE_LABELS[cred.role?.toLowerCase()] ?? cred.role }}
                             </span>
                           </div>
                           <div class="text-xs text-gray-500 truncate">{{ cred.email }}</div>
@@ -215,6 +215,34 @@ const handleKeydown = (e: KeyboardEvent) => {
   if (e.ctrlKey && e.key.toLowerCase() === 'd') {
     e.preventDefault()
     toggleModal()
+  }
+}
+
+const getGradientStyle = (role: string) => {
+  const gradients: Record<string, string> = {
+    admin: 'linear-gradient(to bottom right, #3b82f6, #1d4ed8)',
+    commerce: 'linear-gradient(to bottom right, #fb923c, #f59e0b)',
+    seller: 'linear-gradient(to bottom right, #14b8a6, #06b6d4)',
+    customer: 'linear-gradient(to bottom right, #8b5cf6, #7c3aed)',
+    player: 'linear-gradient(to bottom right, #9ca3af, #4b5563)',
+  }
+  return {
+    background: gradients[role?.toLowerCase()] || gradients.player
+  }
+}
+
+const getBadgeStyle = (role: string) => {
+  const badges: Record<string, { bg: string; color: string }> = {
+    admin: { bg: '#dbeafe', color: '#1d4ed8' },
+    commerce: { bg: '#fed7aa', color: '#ea580c' },
+    seller: { bg: '#ccfbf1', color: '#0d9488' },
+    customer: { bg: '#ede9fe', color: '#6d28d9' },
+    player: { bg: '#f3f4f6', color: '#4b5563' },
+  }
+  const badge = badges[role?.toLowerCase()] || badges.player
+  return {
+    backgroundColor: badge.bg,
+    color: badge.color
   }
 }
 
