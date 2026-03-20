@@ -12,6 +12,7 @@ use App\Models\Roles\Seller;
 use App\Models\Roles\Treasurer;
 use App\Models\UserLevel;
 use App\Models\Wallet;
+use App\Models\Achievement;
 use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -557,5 +558,71 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getLevelProgress(): float
     {
         return $this->userLevel?->progress_percentage ?? 0.0;
+    }
+
+    /**
+     * Logros del usuario
+     *
+     * @return BelongsToMany<Achievement>
+     */
+    public function achievements(): BelongsToMany
+    {
+        return $this->belongsToMany(Achievement::class, 'user_achievements')
+            ->withPivot(['unlocked_at', 'progress_data', 'is_seen'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Logros desbloqueados del usuario
+     *
+     * @return BelongsToMany<Achievement>
+     */
+    public function unlockedAchievements(): BelongsToMany
+    {
+        return $this->achievements();
+    }
+
+    /**
+     * Verifica si el usuario ha desbloqueado un logro específico
+     *
+     * @param string $achievementCode
+     * @return bool
+     */
+    public function hasAchievement(string $achievementCode): bool
+    {
+        return $this->achievements()->where('code', $achievementCode)->exists();
+    }
+
+    /**
+     * Obtiene el número total de logros desbloqueados
+     *
+     * @return int
+     */
+    public function getAchievementsCount(): int
+    {
+        return $this->achievements()->count();
+    }
+
+    /**
+     * Obtiene los logros no vistos
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getUnseenAchievements()
+    {
+        return $this->achievements()->wherePivot('is_seen', false)->get();
+    }
+
+    /**
+     * Marcar todos los logros como vistos
+     *
+     * @return int
+     */
+    public function markAllAchievementsAsSeen(): int
+    {
+        return $this->achievements()->newPivotStatement()
+            ->where('user_id', $this->id)
+            ->where('is_seen', false)
+            ->update(['is_seen' => true]);
     }
 }

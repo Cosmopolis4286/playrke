@@ -123,22 +123,6 @@
           </div>
         </div>
 
-        <!-- Biografía -->
-        <div class="mb-3">
-          <label for="bio" class="form-label">Biografía</label>
-          <textarea 
-            id="bio"
-            v-model="form.bio"
-            class="form-control"
-            :class="{ 'is-invalid': form.errors.bio }"
-            :disabled="!editMode"
-            rows="4"
-            placeholder="Cuéntanos sobre ti..."
-          ></textarea>
-          <div v-if="form.errors.bio" class="invalid-feedback">
-            {{ form.errors.bio }}
-          </div>
-        </div>
 
         <!-- Botones de acción -->
         <div v-if="editMode" class="d-flex gap-2">
@@ -237,8 +221,7 @@ const form = useForm({
     email: props.user.email,
     phone: props.user.phone,
     birth_date: props.user.birth_date,
-    country: props.user.country,
-    bio: props.user.bio
+    country: props.user.country || 'VE'
 })
 
 const handleSubmit = () => {

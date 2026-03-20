@@ -245,8 +245,7 @@ const profileForm = useForm({
     email: props.user.email,
     phone: props.user.phone,
     birth_date: props.user.birth_date,
-    country: props.user.country,
-    bio: props.user.bio
+    country: props.user.country
 })
 
 // Formulario para preferencias
