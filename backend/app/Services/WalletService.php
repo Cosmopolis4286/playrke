@@ -121,6 +121,48 @@ final class WalletService
     }
 
     /**
+     * Registrar una compra de cartones en la billetera.
+     *
+     * @param string $walletId ID de la billetera
+     * @param float $amount Monto de la compra
+     * @param string $description Descripción de la compra (opcional)
+     * @return Wallet
+     * @throws \DomainException Si no hay saldo suficiente
+     */
+    public function recordCardPurchase(string $walletId, float $amount, string $description = 'Compra de cartones'): Wallet
+    {
+        $wallet = DB::transaction(function () use ($walletId, $amount, $description) {
+            $wallet = $this->findOwnedWallet($walletId);
+
+            if (! $wallet->hasSufficientBalance($amount)) {
+                throw new \DomainException('Saldo insuficiente para realizar la compra de cartones.');
+            }
+
+            $balanceBefore = (float) $wallet->balance;
+
+            $this->walletRepository->decrementBalance($walletId, $amount);
+            $wallet->refresh();
+
+            $this->movementRepository->record([
+                'wallet_id'      => (string) $wallet->id,
+                'user_id'        => (string) $wallet->user_id,
+                'type'           => WalletMovement::TYPE_PURCHASE,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => (float) $wallet->balance,
+                'description'    => $description,
+            ]);
+
+            return $wallet;
+        });
+
+        // Broadcast FUERA de la transacción: garantiza que el commit ya ocurrió
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PURCHASE, $amount);
+
+        return $wallet;
+    }
+
+    /**
      * Movimientos paginados de una billetera del usuario autenticado.
      */
     public function getMovements(string $walletId, int $perPage = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator

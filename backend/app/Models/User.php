@@ -10,6 +10,7 @@ use App\Models\Roles\Commerce;
 use App\Models\Roles\Customer;
 use App\Models\Roles\Seller;
 use App\Models\Roles\Treasurer;
+use App\Models\UserLevel;
 use App\Models\Wallet;
 use App\Traits\Auditable;
 use App\Traits\SnowflakeId;
@@ -182,6 +183,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public function wallets(): HasMany
     {
         return $this->hasMany(Wallet::class, 'user_id');
+    }
+
+    /**
+     * Nivel y experiencia del usuario
+     *
+     * @return HasOne<UserLevel>
+     */
+    public function userLevel(): HasOne
+    {
+        return $this->hasOne(UserLevel::class);
     }
 
     /**
@@ -490,5 +501,61 @@ class User extends Authenticatable implements MustVerifyEmail
                 ->orWhere('first_name', 'like', "%{$search}%")
                 ->orWhere('last_name', 'like', "%{$search}%");
         });
+    }
+
+    /**
+     * Obtiene o crea el nivel del usuario
+     *
+     * @return UserLevel
+     */
+    public function getOrCreateLevel(): UserLevel
+    {
+        return $this->userLevel ?? $this->userLevel()->create([
+            'current_level' => 1,
+            'current_xp' => 0,
+            'total_xp' => 0,
+            'xp_to_next_level' => 1000,
+        ]);
+    }
+
+    /**
+     * Añade experiencia al usuario
+     *
+     * @param int $amount
+     * @return bool
+     */
+    public function addXp(int $amount): bool
+    {
+        return $this->getOrCreateLevel()->addXp($amount);
+    }
+
+    /**
+     * Obtiene el nivel actual del usuario
+     *
+     * @return int
+     */
+    public function getCurrentLevel(): int
+    {
+        return $this->userLevel?->current_level ?? 1;
+    }
+
+    /**
+     * Obtiene el XP actual del usuario
+     *
+     * @return int
+     */
+    public function getCurrentXp(): int
+    {
+        return $this->userLevel?->current_xp ?? 0;
+    }
+
+    /**
+     * Obtiene el progreso del nivel en porcentaje
+     *
+     * @return float
+     */
+    public function getLevelProgress(): float
+    {
+        return $this->userLevel?->progress_percentage ?? 0.0;
     }
 }

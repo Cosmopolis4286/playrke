@@ -15,11 +15,10 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
     /**
      * Registrar un nuevo usuario en la sala o actualizar uno existente
      *
-     * @param BingoRoom $room Sala de bingo
      * @param array $userData Datos del usuario
      * @return array{id: string, isNew: bool}|null Resultado con ID e indicador de nuevo usuario, o null si falla
      */
-    public function registerOrUpdateRoomUser(BingoRoom $room, array $userData): ?array
+    public function registerOrUpdateRoomUser(array $userData): ?array
     {
         try {
             // Validar datos del usuario
@@ -63,7 +62,7 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
     public function validateUserData(array $userData): bool
     {
         // Validar campos requeridos
-        $requiredFields = ['room', 'creator', 'numOfCtns'];
+        $requiredFields = ['roomId', 'creator', 'numOfCtns'];
         
         foreach ($requiredFields as $field) {
             if (!isset($userData[$field])) {
@@ -112,7 +111,7 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
     {
         try {
             $roomUserData = [
-                'room_id' => $userData['room'],
+                'room_id' => $userData['roomId'],
                 'user_id' => $userData['creator']['id'],
                 'cards_purchased' => $userData['numOfCtns'],
                 'automarker' => 1,

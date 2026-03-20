@@ -23,7 +23,7 @@ class BingoCardManagementService
     {
         try {
             $lotData = [
-                'room_id' => $cartonData['room'],
+                'room_id' => $cartonData['roomId'],
                 'user_id' => $cartonData['creator']['id'],
                 'room_user_id' => $cartonData['roomUser'],
                 'currency_id' => $cartonData['currency'],
@@ -57,7 +57,7 @@ class BingoCardManagementService
         try {
             $cards = [];
             $numOfCtns = $cartonData['numOfCtns'];
-            $roomId = $cartonData['room'];
+            $roomId = $cartonData['roomId'];
             $roomUserId = $cartonData['roomUser'];
             $userId = $cartonData['creator']['id'];
 

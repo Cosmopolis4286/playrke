@@ -317,6 +317,7 @@
  * Gestión de billeteras, depósitos, retiros y
  * historial de transacciones.
  */
+import { formatRelativeTime } from '#shared/utils/formatters'
 
 definePageMeta({
   middleware: ['auth'],
@@ -465,13 +466,7 @@ const formatNumber = (num: number) => {
 }
 
 const formatDate = (date: string) => {
-  return new Date(date).toLocaleString('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  return formatRelativeTime(date)
 }
 
 const getTransactionIcon = (type: string) => {

@@ -15,6 +15,7 @@ use App\Models\Games\Bingo\Room\BingoRoomConfig;
 use App\Services\Games\Bingo\Card\BingoCardPriceCalculator;
 use App\Services\Games\Bingo\Card\BingoCardGenerationService;
 use App\Services\NotificationService;
+use App\Services\WalletService;
 use App\Traits\Users\PlayerLinkTrait;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
@@ -25,8 +26,6 @@ use App\Models\Game;
 /**
  * Servicio para la generación de cartones de Bingo.
  *
- * Encapsula el flujo "seller" del legacy BingoController::generateCard()
- * adaptado a la arquitectura de servicios del proyecto.
  */
 final class BingoCardGenerateService
 {
@@ -50,6 +49,7 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
         private readonly BingoCardPriceCalculator $priceCalculator,
         private readonly \App\Contracts\WalletRepositoryInterface $walletRepository,
+        private readonly WalletService $walletService,
         private readonly \App\Services\Games\Bingo\Card\BingoCardGenerationService $cardGenerationService,
         private readonly NotificationService $notificationService,
     ) {}
@@ -755,7 +755,7 @@ final class BingoCardGenerateService
 
         // Preparar array para cartonStore (versión simplificada para jugadores)
         $arrCtn = [
-            'room'          => $roomId,
+            'roomId'       => $roomId,
             'creator'       => ['id' => $userId, 'type' => 'customer'], // Player actúa como customer
             'seller'        => null, // No hay seller para jugadores
             'currency'      => $currencyId,
@@ -773,28 +773,9 @@ final class BingoCardGenerateService
         // Ejecutar transacción atómica para generar cartones
         $result = $this->cardGenerationService->generateInTransaction($arrCtn, $room, $totalAmount);
 
-        // Descontar el monto de la billetera del jugador
-        $newBalance = $currentBalance - $totalAmount;
-        $this->walletRepository->updateBalance($playerWallet->id, $newBalance);
-
-        // Emitir evento de actualización de billetera via WebSocket
-        broadcast(new WalletUpdated(
-            userId: (string) $userId,
-            walletId: (string) $playerWallet->id,
-            balance: (float) $newBalance,
-            currencySymbol: $priceInfo['currency_symbol'],
-            movementType: 'CARD_PURCHASE',
-            amount: $totalAmount,
-        ));
-
-        // Guardar notificación persistente
-        $this->notificationService->createWalletNotification(
-            userId: (string) $userId,
-            balance: (float) $newBalance,
-            currencySymbol: $priceInfo['currency_symbol'],
-            movementType: 'CARD_PURCHASE',
-            amount: $totalAmount
-        );
+        // Registrar el movimiento de compra en la billetera
+        $description = "Compra de {$numCtns} carton(es) - Sala {$room->id}";
+        $this->walletService->recordCardPurchase($playerWallet->id, $totalAmount, $description);
 
         // Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
         $fresh = BingoRoom::select('id', 'prize_pool', 'total_players')

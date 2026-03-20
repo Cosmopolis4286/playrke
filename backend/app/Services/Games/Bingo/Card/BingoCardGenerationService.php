@@ -108,10 +108,7 @@ final class BingoCardGenerationService
                 'arrCtn' => $arrCtn
             ]);
             
-            // Agregar solo el ID de la sala al array para el método registerOrUpdateRoomUser
-            $arrCtn['room'] = $room->id;
-            
-            $roomUserResult = $this->roomUserRegistration->registerOrUpdateRoomUser($room, $arrCtn);
+            $roomUserResult = $this->roomUserRegistration->registerOrUpdateRoomUser($arrCtn);
 
             Log::info('Room user registration result', ['roomUserResult' => $roomUserResult]);
 

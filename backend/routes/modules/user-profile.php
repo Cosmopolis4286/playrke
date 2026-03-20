@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Users\{ProfileController, ReferralController};
+use App\Http\Controllers\Api\UserLevelController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,6 +28,12 @@ Route::middleware(['auth', 'web'])->prefix('profile')->group(function () {
     Route::get('/preferences', [ProfileController::class, 'getPreferences'])->name('profile.api.preferences');
     Route::put('/preferences', [ProfileController::class, 'updatePreferences'])->name('profile.api.update-preferences');
     Route::get('/stats', [ProfileController::class, 'getStats'])->name('profile.api.stats');
+    
+    // Rutas de Sistema de Niveles
+    Route::get('/level', [UserLevelController::class, 'getUserLevel'])->name('profile.api.level');
+    Route::post('/level/add-xp', [UserLevelController::class, 'addXp'])->name('profile.api.level.add-xp');
+    Route::post('/level/remove-xp', [UserLevelController::class, 'removeXp'])->name('profile.api.level.remove-xp');
+    Route::post('/level/reset', [UserLevelController::class, 'resetLevel'])->name('profile.api.level.reset');
 });
 
 // ====================================

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BingoController;
 use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Auth\DemoCredentialsController;
+use App\Http\Controllers\Api\UserLevelController;
 use App\Http\Controllers\NotificationController;
 
 /*
@@ -197,3 +198,18 @@ use App\Http\Controllers\NotificationController;
 //     ]);
 // })->name('api.ping');
 // });
+
+//
+// USER LEVEL ROUTES
+//
+Route::middleware('auth:sanctum')->prefix('user-level')->group(function () {
+    Route::get('/', [UserLevelController::class, 'getUserLevel'])->name('api.user-level.get');
+    Route::post('/add-xp', [UserLevelController::class, 'addXp'])->name('api.user-level.add-xp');
+    Route::post('/remove-xp', [UserLevelController::class, 'removeXp'])->name('api.user-level.remove-xp');
+    Route::post('/reset', [UserLevelController::class, 'resetLevel'])->name('api.user-level.reset');
+});
+
+Route::prefix('user-level')->group(function () {
+    Route::get('/leaderboard', [UserLevelController::class, 'getLeaderboard'])->name('api.user-level.leaderboard');
+    Route::post('/calculate-reward', [UserLevelController::class, 'calculateXpReward'])->name('api.user-level.calculate-reward');
+});
