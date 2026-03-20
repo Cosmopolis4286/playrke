@@ -1,11 +1,5 @@
 <template>
   <div class="row">
-    <div v-if="loading" class="col-12 text-center">
-      <div class="spinner-border text-primary" role="status">
-        <span class="sr-only">Cargando cartones...</span>
-      </div>
-    </div>
-
     <div
       v-for="(card, index) in displayCards"
       :key="card.id || index"
@@ -32,7 +26,7 @@
               </div>
               <div v-else class="number-box" :data-pos="`${letter}${i}`">
                 <span class="number-box-number">
-                  {{ getCardNumber(card, letter, i) }}
+                  {{ getCardNumber(card, letter, i) ?? '--' }}
                 </span>
               </div>
             </div>
@@ -44,15 +38,15 @@
       </div>
     </div>
 
-    <div v-if="!loading && displayCards.length === 0" class="col-12 text-center">
+    <div v-if="displayCards.length === 0" class="col-12 text-center">
       <p class="text-muted">No hay cartones disponibles</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from "vue";
-import { BingoService, type BingoCard } from '@js/Services/bingoService';
+import { computed } from "vue";
+import { type BingoCard } from '@js/Services/bingoService';
 
 // Props
 interface Props {
@@ -67,10 +61,6 @@ const props = withDefaults(defineProps<Props>(), {
   roomId: '',
 });
 
-// Estado reactivo
-const myCards = ref<BingoCard[]>([]);
-const loading = ref(false);
-
 // Constantes
 const defaultLogo = "/img/rke.png";
 
@@ -83,41 +73,11 @@ const letterMap = {
 };
 
 /**
- * Cargar mis cartones si se proporciona roomId
- */
-async function loadMyCards() {
-  if (!props.roomId) return;
-
-  loading.value = true;
-  try {
-    const response = await BingoService.getMyCardsInRoom(props.roomId);
-    if (response.success && response.data) {
-      myCards.value = response.data;
-    }
-  } catch (error) {
-    console.error('Error cargando cartones:', error);
-  } finally {
-    loading.value = false;
-  }
-}
-
-/**
  * Cartones finales para mostrar
  */
 const displayCards = computed(() => {
-  // Priorizar los cartones pasados como props sobre los cargados por API
-  const result = props.cartons.length > 0 ? props.cartons : myCards.value;
-  
-  console.log('Cartons Debug:', {
-    'props.cartons': props.cartons,
-    'myCards.value': myCards.value,
-    'props.cartons.length': props.cartons.length,
-    'myCards.value.length': myCards.value.length,
-    'final result': result,
-    'result length': result.length
-  });
-  
-  return result;
+  // Los cartones vienen directamente desde el backend via props
+  return props.cartons;
 });
 
 /**
@@ -131,12 +91,7 @@ function getCardNumber(card: BingoCard, letter: string, position: number): numbe
   return columnNumbers[position - 1] || null;
 }
 
-// Cargar datos al montar si se proporciona roomId
-onMounted(() => {
-  if (props.roomId) {
-    loadMyCards();
-  }
-});
+// No se necesita onMounted ya que los cartones vienen del backend
 </script>
 
 <style scoped>

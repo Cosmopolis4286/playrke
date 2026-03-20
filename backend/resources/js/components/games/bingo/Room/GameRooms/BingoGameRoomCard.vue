@@ -58,9 +58,40 @@ const emit = defineEmits<{
 const isAvailable = computed(() => props.room.status_code === 'ACTIVE')
 
 /** Etiqueta de estado visible */
-const statusLabel = computed(() =>
-  isAvailable.value ? 'Comprar Cartones' : 'En Juego',
-)
+const statusLabel = computed(() => {
+  console.log('🔍 Debug - isAvailable:', isAvailable.value)
+  console.log('🔍 Debug - room.status_code:', props.room.status_code)
+  console.log('🔍 Debug - playerCtns:', playerCtns.value)
+  
+  if (isAvailable.value) {
+    return 'Comprar Cartones'
+  }
+  
+  // Si la sala está IN_PROGRESS y el jugador tiene cartones, mostrar "Entrar a Sala"
+  if (props.room.status_code === 'IN_PROGRESS' && playerCtns.value > 0) {
+    console.log('✅ Mostrando "Entrar a Sala"')
+    return 'Entrar a Sala'
+  }
+  
+  // Para cualquier otro caso (IN_PROGRESS sin cartones, etc.)
+  console.log('❌ Mostrando "En Juego"')
+  return 'En Juego'
+})
+
+/** Ícono dinámico basado en el estado */
+const statusIcon = computed(() => {
+  if (isAvailable.value) {
+    return 'fas fa-shopping-cart'
+  }
+  
+  // Si la sala está IN_PROGRESS y el jugador tiene cartones, mostrar ícono de entrada
+  if (props.room.status_code === 'IN_PROGRESS' && playerCtns.value > 0) {
+    return 'fas fa-sign-in-alt'
+  }
+  
+  // Para cualquier otro caso, mostrar ícono de play
+  return 'fas fa-play-circle'
+})
 
 /** Premio formateado con tasa de cambio */
 const prizePoolFormatted = computed(() =>
@@ -83,7 +114,12 @@ const effectiveCurrencySym = computed(() =>
 )
 
 /** Cartones del jugador en esta sala */
-const playerCtns = computed(() => props.room.players_room?.[0]?.ctns ?? 0)
+const playerCtns = computed(() => {
+  console.log('🔍 Debug - room data:', props.room)
+  console.log('🔍 Debug - players_room:', props.room.players_room)
+  console.log('🔍 Debug - playerCtns:', props.room.players_room?.[0]?.ctns)
+  return props.room.players_room?.[0]?.ctns ?? 0
+})
 
 /** Si el countdown todavía no expiró */
 const hasTime = computed(() => props.countdown && !props.countdown.expired)
@@ -93,8 +129,32 @@ const hasTime = computed(() => props.countdown && !props.countdown.expired)
 // ---------------------------------------------------------------------------
 
 function handleCardClick(): void {
-  if (!isAvailable.value || props.loading) return
-  emit('select', props.room.id)
+  console.log('🖱️ handleCardClick called')
+  console.log('🔍 Debug - loading:', props.loading)
+  console.log('🔍 Debug - isAvailable:', isAvailable.value)
+  console.log('🔍 Debug - room.status_code:', props.room.status_code)
+  console.log('🔍 Debug - playerCtns:', playerCtns.value)
+  
+  if (props.loading) return
+  
+  // Si la sala está disponible, permitir compra
+  if (isAvailable.value) {
+    console.log('🛒 Emitting select event')
+    emit('select', props.room.id)
+    return
+  }
+  
+  // Si la sala está IN_PROGRESS y el jugador tiene cartones, redirigir al juego
+  if (props.room.status_code === 'IN_PROGRESS' && playerCtns.value > 0) {
+    console.log('🎮 Redirecting to game')
+    const roomUrl = `/bingo-game/${props.room.id}/in-game`
+    console.log(`Redirigiendo a: ${roomUrl}`)
+    window.location.href = roomUrl
+    return
+  }
+  
+  // Para otros casos (IN_PROGRESS sin cartones), no hacer nada o mostrar mensaje
+  console.log('❌ No se puede entrar a la sala: el jugador no tiene cartones')
 }
 
 function handleCtnsInput(event: Event): void {
@@ -112,6 +172,7 @@ function handleCtnsInput(event: Event): void {
       :class="{
         'room-card--available': isAvailable,
         'room-card--unavailable': !isAvailable,
+        'room-card--enter-game': !isAvailable && props.room.status_code === 'IN_PROGRESS' && playerCtns > 0
       }"
       @click="handleCardClick"
     >
@@ -194,9 +255,13 @@ function handleCtnsInput(event: Event): void {
         <!-- CTA / estado -->
         <div
           class="room-card__cta"
-          :class="isAvailable ? 'room-card__cta--buy' : 'room-card__cta--live'"
+          :class="{
+            'room-card__cta--buy': isAvailable,
+            'room-card__cta--live': !isAvailable,
+            'room-card__cta--enter': !isAvailable && props.room.status_code === 'IN_PROGRESS' && playerCtns > 0
+          }"
         >
-          <i :class="isAvailable ? 'fas fa-shopping-cart' : 'fas fa-play-circle'" class="mr-1" />
+          <i :class="statusIcon" class="mr-1" />
           {{ statusLabel }}
         </div>
 
@@ -326,6 +391,45 @@ function handleCtnsInput(event: Event): void {
   opacity: 0.72;
   cursor: default;
   filter: saturate(0.6);
+}
+
+.room-card--enter-game {
+  animation: cardPulse 2s infinite !important;
+  border: 2px solid #00ff88 !important;
+  box-shadow: 
+    0 8px 32px rgba(0, 255, 136, 0.4),
+    0 0 20px rgba(0, 255, 136, 0.3),
+    0 0 0 2px rgba(0, 255, 136, 0.2) !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  filter: saturate(1.2) !important;
+  transform: scale(1) !important;
+}
+
+.room-card--enter-game:hover {
+  animation-play-state: paused !important;
+  transform: translateY(-4px) scale(1.02) !important;
+  box-shadow: 
+    0 16px 48px rgba(0, 255, 136, 0.6),
+    0 0 30px rgba(0, 255, 136, 0.4),
+    0 0 0 3px rgba(0, 255, 136, 0.3) !important;
+}
+
+@keyframes cardPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 
+      0 8px 32px rgba(0, 255, 136, 0.4),
+      0 0 20px rgba(0, 255, 136, 0.3),
+      0 0 0 2px rgba(0, 255, 136, 0.2);
+  }
+  50% {
+    transform: scale(1.015);
+    box-shadow: 
+      0 12px 40px rgba(0, 255, 136, 0.6),
+      0 0 30px rgba(0, 255, 136, 0.5),
+      0 0 0 3px rgba(0, 255, 136, 0.4);
+  }
 }
 
 /* ── Glow animado ── */
@@ -545,6 +649,49 @@ function handleCtnsInput(event: Event): void {
 .room-card__cta--live {
   background: linear-gradient(90deg, #ff416c, #ff4b2b);
   color: #fff;
+}
+
+.room-card__cta--enter {
+  background: linear-gradient(90deg, #00ff88, #00d2ff, #3a7bd5, #00d2ff, #00ff88) !important;
+  background-size: 300% 100% !important;
+  color: #000 !important;
+  cursor: pointer !important;
+  animation: gradientShift 2s ease-in-out infinite !important;
+  box-shadow: 0 2px 10px rgba(0, 255, 136, 0.3) !important;
+  transition: all 0.3s ease !important;
+  opacity: 1 !important;
+  font-weight: 900 !important;
+  border: 2px solid #00ff88 !important;
+}
+
+.room-card__cta--enter:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 30px rgba(0, 255, 136, 0.8) !important;
+  animation-play-state: paused !important;
+  border-color: #00ff88 !important;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────

@@ -1,9 +1,9 @@
 @extends($layout)
 @section('styles')
     <style>
-        body {
+        /* body {
             background-image: url("{{ asset('img/body/space.png') }}") !important;
-        }
+        } */
     </style>
     @vite('resources/css/games/bingo/bingo-in-game.css')
 @endsection

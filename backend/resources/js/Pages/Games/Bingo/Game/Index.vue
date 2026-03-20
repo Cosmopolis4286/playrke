@@ -105,15 +105,6 @@ const player = ref(props.player);
 const encrypt = ref(props.encrypt);
 const restChips = ref(props.chipsRest);
 
-// Debug logging para verificar los props recibidos
-console.log('Index.vue Props Debug:', {
-  'props.cartons': props.cartons,
-  'props.cartons.length': props.cartons?.length,
-  'props.room': props.room,
-  'props.player': props.player,
-  'all props': props
-});
-
 let arrDraw = ref(props.draw);
 let timeServ = ref(props.timeServ);
 let allChips = ref(props.allChips);
@@ -261,11 +252,11 @@ onMounted(() => {
 
 <style>
 /* ═══════════════════════════════════════════════════════════════
-   FONDO ESPACIAL — heredado del blade original
+   FONDO ESPACIAL — eliminado, ahora usa el fondo del CSS principal
 ═══════════════════════════════════════════════════════════════ */
-body {
+/* body {
   background-image: url("/img/body/space.png") !important;
-}
+} */
 
 /* Eliminar content-header y padding para ocupar todo el espacio */
 .content-header {

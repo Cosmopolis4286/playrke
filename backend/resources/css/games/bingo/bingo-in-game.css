@@ -426,7 +426,6 @@ body {
 
 .container-carton {
     width: auto;
-    visibility: hidden;
     position: relative;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
