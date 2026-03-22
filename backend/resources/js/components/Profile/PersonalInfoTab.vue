@@ -24,13 +24,8 @@
             :error="form.errors.username"
             :disabled="!editMode"
             placeholder="username"
-            input-group="true"
             col="col-md-6"
-          >
-            <template #prepend>
-              <span class="input-group-text">@</span>
-            </template>
-          </FormInput>
+          />
         </div>
 
         <div class="row">

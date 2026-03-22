@@ -40,7 +40,7 @@ export const bingoRoutes = {
   salesByRoom: "/bingo/sales-report-by-room/{room}/{currency}",
   winnersByRoom: "/bingo/sales-report-by-room-winners/{room}/{currency}",
   winners: "/bingo/winners/{type}/{dateFilter}/{currency?}",
-  cartonsSold: "/bingo/cartons-sold/{currency?}/{dateFilter?}",
+  cartonsSold: "/bingo/cards-sold/{currency?}/{dateFilter?}",
   viewCarton: "/bingo/view-ctn/{ctnId}",
   roomSummary: "/bingo/{roomType}/{creatorType}/{creatorId?}/{currency?}",
   sessionKey: "/bingo/k3yg4m3/play-rke",

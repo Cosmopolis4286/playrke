@@ -45,8 +45,8 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('bingo.cartons-sold') }}" title="Cartones Vendidos"
-                    class="nav-link {{ !Route::is('bingo.cartons-sold') ?: 'active' }}">
+                <a href="{{ route('bingo.cards-sold') }}" title="Cartones Vendidos"
+                    class="nav-link {{ !Route::is('bingo.cards-sold') ?: 'active' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Cartones</p>
                 </a>

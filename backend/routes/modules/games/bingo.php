@@ -155,16 +155,13 @@ route_group('bingo', 'bingo.', [], BingoReportController::class, [
     'sales-by-room'    => ['method' => 'get', 'uri' => 'sales-report-by-room/{room}/{currency}'],
     'winners-by-room'  => ['method' => 'get', 'uri' => 'sales-report-by-room-winners/{room}/{currency}'],
     'winners'          => ['method' => 'get', 'uri' => 'winners/{type}/{dateFilter}/{currency?}'],
-    'cartons-sold'     => ['method' => 'get', 'uri' => 'cartons-sold/{currency?}/{dateFilter?}'],
+    'cards-sold'       => ['method' => 'get', 'uri' => 'cards-sold/{currency?}/{dateFilter?}'],
 ]);
 
  // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
     // 'encrypted-info'     => ['method' => 'get', 'uri' => 'info-encrypted/{id}/{creatorUser}/{currency}'],
     // 'public-room-info'   => ['method' => 'get', 'uri' => 'public-room-info'],
     // 'pending-payments'   => ['method' => 'get', 'uri' => 'public-room-pending-payments'],
-    // 'rounds-config'      => ['method' => 'get', 'uri' => 'rounds-config/{room}/{type}'],
-    // 'datetime-rooms'     => ['method' => 'get', 'uri' => 'datetime-rooms/{creatorUser}/{player}'],
-    // 'price-currency'     => ['method' => 'get', 'uri' => 'price-currency/{creation}/{creatorType}/{creatorId}/{room?}'],
 
 /**
  * ====================================

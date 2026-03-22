@@ -3340,7 +3340,7 @@ class BingoController extends Controller
 
         if (isset($verifyCurrency['return'])) {
             return redirect()->route(
-                'bingo.cartons-sold',
+                'bingo.cards-sold',
                 ['currency' => $verifyCurrency['currency'], 'dateFilter' => 'all']
             );
         }
@@ -3349,7 +3349,7 @@ class BingoController extends Controller
         $moduleId = 'notify-payment-ctns-off';
 
         $routeWithCurrency = [
-            'route' => 'bingo.cartons-sold',
+            'route' => 'bingo.cards-sold',
             'parameters' => ['currency' => $currency, 'dateFilter' => $dateFilter]
         ];
 

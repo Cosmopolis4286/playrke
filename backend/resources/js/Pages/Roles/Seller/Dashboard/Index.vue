@@ -101,7 +101,7 @@
       label: 'Cartones',
       description: 'Cartones vendidos',
       icon: 'fas fa-layer-group',
-      href: '/bingo/cartons-sold',
+      href: '/bingo/cards-sold',
       variant: 'info',
     },
     {
