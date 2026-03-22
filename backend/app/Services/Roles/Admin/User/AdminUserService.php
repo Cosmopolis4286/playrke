@@ -93,4 +93,30 @@ final class AdminUserService
         
         return "Saldo cargado exitosamente: $${amount}";
     }
+
+    /**
+     * Obtener balance de wallet del usuario.
+     */
+    public function getWalletBalance(User $user): array
+    {
+        $wallet = $user->wallets()
+            ->with('currency:id,iso_code,symbol,name')
+            ->first();
+        
+        if (!$wallet) {
+            return [
+                'balance' => 0,
+                'currency' => null
+            ];
+        }
+
+        return [
+            'balance' => (float) $wallet->balance,
+            'currency' => $wallet->currency ? [
+                'iso_code' => $wallet->currency->iso_code,
+                'symbol' => $wallet->currency->symbol,
+                'name' => $wallet->currency->name,
+            ] : null
+        ];
+    }
 }

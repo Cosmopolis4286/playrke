@@ -67,10 +67,11 @@ async function loadBalance() {
           </button>
         </div>
         <div class="modal-body">
+          <!-- Información del usuario -->
           <div class="bg-gray-50 rounded-lg p-4 mb-4">
-            <div class="flex items-center justify-between mb-3">
-              <div>
-                <label class="form-label text-gray-700">Usuario:</label>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex-1">
+                <label class="form-label text-gray-700 mb-2">Usuario:</label>
                 <div class="flex items-center gap-2">
                   <input 
                     type="text" 
@@ -83,17 +84,31 @@ async function loadBalance() {
                   </span>
                 </div>
               </div>
-              <div v-if="userBalance !== undefined">
-                <label class="form-label text-gray-700">Saldo actual:</label>
-                <div class="flex items-center gap-2">
-                  <span class="text-lg font-bold text-gray-900">
-                    {{ userCurrencySymbol }}{{ userBalance?.toFixed(2) }}
-                  </span>
+            </div>
+            
+            <!-- Saldo actual - siempre visible -->
+            <div class="bg-white rounded-lg p-3 border border-gray-200">
+              <div class="flex items-center justify-between">
+                <div>
+                  <label class="form-label text-gray-700 mb-1">Saldo actual:</label>
+                  <div class="flex items-center gap-2">
+                    <span class="text-2xl font-bold text-gray-900">
+                      {{ userCurrencySymbol || '$' }}{{ 
+                        userBalance !== null && userBalance !== undefined 
+                          ? userBalance.toFixed(2) 
+                          : '0.00' 
+                      }}
+                    </span>
+                  </div>
+                </div>
+                <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                  <i class="fas fa-wallet text-indigo-600"></i>
                 </div>
               </div>
             </div>
             
-            <div class="mb-4">
+            <!-- Monto a cargar -->
+            <div class="mt-4">
               <label for="amount" class="form-label text-gray-700">Monto a cargar:</label>
               <div class="relative">
                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold select-none">
@@ -112,7 +127,8 @@ async function loadBalance() {
               </div>
             </div>
             
-            <div class="mb-4">
+            <!-- Montos rápidos -->
+            <div class="mt-4">
               <label class="form-label text-gray-700 mb-3">Montos rápidos:</label>
               <div class="grid grid-cols-3 gap-2">
                 <button

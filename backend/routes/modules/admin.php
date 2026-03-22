@@ -139,6 +139,7 @@ Route::middleware('auth')->group(function () {
         'destroy'       => ['method' => 'delete', 'uri' => '{user}',              'action' => 'destroy'],
         'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password','action' => 'resetPassword'],
         'loadWalletBalance' => ['method' => 'put', 'uri' => '{user}/load-wallet-balance','action' => 'loadWalletBalance'],
+        'getWalletBalance' => ['method' => 'get', 'uri' => '{user}/wallet-balance','action' => 'getWalletBalance'],
     ];
     role_protected_routes(['role:admin'], 'admin/user', AdminUserController::class, $userRoutes, 'user');
 

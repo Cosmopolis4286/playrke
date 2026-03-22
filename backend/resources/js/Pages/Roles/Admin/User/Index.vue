@@ -50,6 +50,7 @@
     resetPassword,
     removeBulk,
     loadWalletBalance,
+    getWalletBalance,
   } = useAdminUser()
 
   setInitialUsers(props.users.rows)
@@ -58,11 +59,25 @@
   const showWalletModal = ref(false)
   const selectedUserId = ref<string | number>('')
   const selectedUserName = ref('')
+  const selectedUserBalance = ref<number | null>(null)
+  const selectedUserCurrency = ref<any>(null)
 
-  function openWalletModal(userId: string | number, userName: string) {
-    const user = users.value.find(u => u.id === userId)
+  async function openWalletModal(userId: string | number, userName: string) {
     selectedUserId.value = userId
     selectedUserName.value = userName
+    
+    // Obtener balance del usuario
+    const walletData = await getWalletBalance(userId)
+    if (walletData) {
+      selectedUserBalance.value = typeof walletData.balance === 'string' 
+        ? parseFloat(walletData.balance) 
+        : walletData.balance
+      selectedUserCurrency.value = walletData.currency
+    } else {
+      selectedUserBalance.value = 0
+      selectedUserCurrency.value = null
+    }
+    
     showWalletModal.value = true
   }
 
@@ -70,6 +85,8 @@
     showWalletModal.value = false
     selectedUserId.value = ''
     selectedUserName.value = ''
+    selectedUserBalance.value = null
+    selectedUserCurrency.value = null
   }
 
   function onWalletLoadSuccess() {
@@ -229,9 +246,9 @@
       :show="showWalletModal"
       :user-name="selectedUserName"
       :user-id="selectedUserId"
-      :user-balance="selectedUser?.balance"
-      :user-currency="selectedUser?.currency?.iso_code"
-      :user-currency-symbol="selectedUser?.currency?.symbol"
+      :user-balance="selectedUserBalance"
+      :user-currency="selectedUserCurrency?.iso_code"
+      :user-currency-symbol="selectedUserCurrency?.symbol"
       @close="closeWalletModal"
       @success="onWalletLoadSuccess"
     />

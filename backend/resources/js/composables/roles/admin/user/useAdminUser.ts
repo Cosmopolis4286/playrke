@@ -17,6 +17,7 @@ interface UseAdminUserReturn {
     removeBulk: (ids: (string | number)[]) => Promise<boolean>
     resetPassword: (id: string | number) => Promise<boolean>
     loadWalletBalance: (id: string | number) => Promise<boolean>
+    getWalletBalance: (id: string | number) => Promise<{ balance: number, currency: any } | null>
 }
 
 /**
@@ -256,6 +257,17 @@ export function useAdminUser(): UseAdminUserReturn {
         }
     }
 
+    async function getWalletBalance(id: string | number): Promise<{ balance: number, currency: any } | null> {
+        try {
+            const { data } = await backendClient.get(`/admin/user/${id}/wallet-balance`)
+            return data
+        } catch (error) {
+            console.error(error)
+            showToast('Error al obtener el balance', 'error')
+            return null
+        }
+    }
+
     return {
         users,
         setInitialUsers,
@@ -267,6 +279,7 @@ export function useAdminUser(): UseAdminUserReturn {
         removeBulk,
         resetPassword,
         loadWalletBalance,
+        getWalletBalance,
     }
 }
 

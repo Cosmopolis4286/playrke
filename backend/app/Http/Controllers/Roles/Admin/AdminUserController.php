@@ -82,4 +82,14 @@ final class AdminUserController extends Controller
             ]
         );
     }
+
+    /**
+     * Obtener balance de wallet del usuario.
+     */
+    public function getWalletBalance(User $user): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->getWalletBalance($user)
+        );
+    }
 }
