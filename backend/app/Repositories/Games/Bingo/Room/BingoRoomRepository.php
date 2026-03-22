@@ -365,4 +365,54 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
 
         return $query->orderBy('created_at', 'desc')->get();
     }
+
+    /**
+     * Override paginateWithRelations to add ordering by creation date
+     *
+     * @param int $perPage
+     * @param int $page
+     * @param array $relations
+     * @param array $conditions
+     * @param array $fields
+     * @return LengthAwarePaginator
+     */
+    public function paginateWithRelations(
+        int $perPage = 15,
+        int $page = 1,
+        array $relations = [],
+        array $conditions = [],
+        array $fields = ['*']
+    ): LengthAwarePaginator {
+        $query = $this->model->newQuery();
+
+        // Seleccionar columnas específicas
+        $query->select($fields);
+
+        // Cargar relaciones
+        if (!empty($relations)) {
+            $query->with($relations);
+        }
+
+        // Aplicar condiciones where (AND)
+        foreach ($conditions as $field => $value) {
+            if (is_array($value)) {
+                // Por ejemplo ['field' => ['operator', 'value']]
+                [$operator, $val] = $value;
+                $query->where($field, $operator, $val);
+            } else {
+                $query->where($field, $value);
+            }
+        }
+
+        // Ordenar por fecha de creación (más recientes primero)
+        $query->orderBy('created_at', 'desc');
+
+        // Retornar paginación
+        return $query->paginate(
+            $perPage,
+            ['*'],
+            'page',
+            $page
+        );
+    }
 }

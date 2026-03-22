@@ -44,7 +44,8 @@
     toggleStatusBulk,
     removeBulk,
     submit,
-    goToRoom
+    goToRoom,
+    cancelRoom
   } = useBingoRoom()
 
   // Key forzar re-render de la tabla
@@ -210,6 +211,16 @@
       return room != null && (room.total_players ?? 0) > 0
     })
 
+  const hasActiveStatus = (ids: string[]): boolean =>
+    ids.some(id => {
+      const room = rooms.value.find(r => String(r.id) === String(id))
+      return room != null && room.status === 'ACTIVE'
+    })
+
+  const canCancelRoom = (ids: string[]): boolean => {
+    return ids.length === 1 && hasPlayers(ids) && hasActiveStatus(ids)
+  }
+
   const extraButtons: ExtraButton[] = [
     {
       label: 'Salas Automáticas',
@@ -243,7 +254,7 @@
     },
     {
       icon: 'fas fa-copy',
-      class: 'btn-info text-white',
+      class: 'btn-primary text-white',
       title: 'Copiar Sala',
       show: (ids: string[]) => ids.length === 1,
       action: 'copy'
@@ -254,6 +265,17 @@
       title: 'Ir a Sala',
       show: (ids: string[]) => ids.length === 1,
       onClick: goToRoom
+    },
+    {
+      icon: 'fas fa-times',
+      class: 'btn-danger',
+      title: 'Cancelar Sala',
+      show: (ids: string[]) => canCancelRoom(ids),
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          cancelRoom(ids[0])
+        }
+      }
     }
   ]
 

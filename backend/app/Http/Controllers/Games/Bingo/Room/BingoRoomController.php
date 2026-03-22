@@ -154,6 +154,20 @@ final class BingoRoomController extends Controller
     }
 
     /**
+     * Cancelar una sala de bingo (cambiar estado a CANCELLED).
+     * Solo se puede cancelar si la sala está ACTIVE y tiene jugadores.
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function cancel(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->cancel($room)
+        );
+    }
+
+    /**
      * Copiar una sala de bingo (status INACTIVE).
      *
      * @param BingoRoom $room
