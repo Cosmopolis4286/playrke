@@ -46,8 +46,8 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('bingo.winners', ['type' => 'private', 'dateFilter' => 'today']) }}"
-                    class="nav-link {{ Route::is('bingo.winners') ? 'active' : '' }}">
+                <a href="{{ route('bingo.winners') }}"
+                    class="nav-link {{ Route::is('bingo.winners', 'bingo.winners-room') ? 'active' : '' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Ganadores</p>
                 </a>
@@ -61,7 +61,7 @@
             </li>
             <li class="nav-item">
                 <a href="{{ route('bingo.sales-report') }}"
-                    class="nav-link {{ Route::is('bingo.sales-report', 'bingo.reportSalesByRoom') ? 'active' : '' }}">
+                    class="nav-link {{ Route::is('bingo.sales-report', 'bingo.sales-report-room') ? 'active' : '' }}">
                     <i class="fa-solid fa-caret-right nav-icon"></i>
                     <p>Reporte de Ventas</p>
                 </a>

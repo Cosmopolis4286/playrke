@@ -133,10 +133,10 @@ route_group('bingo-test', 'bingo-test.', ['auth', 'role:admin'], BingoTestingCon
  */
 route_group('bingo', 'bingo.', [], BingoReportController::class, [
     'cards-sold'        => ['method' => 'get', 'uri' => 'cards-sold', 'action' => 'cardsSold'],
-    'sales-report'      => ['method' => 'get', 'uri' => 'sales-report'],
-    'sales-report/room' => ['method' => 'get', 'uri' => 'sales-report/room/{room}'],
+    'sales-report'      => ['method' => 'get', 'uri' => 'sales-report', 'action' => 'salesReport'],
+    'sales-report-room' => ['method' => 'get', 'uri' => 'sales-report/room/{room}', 'action' => 'salesReportByRoom'],
     'winners'           => ['method' => 'get', 'uri' => 'winners', 'action' => 'winners'],
-    'winners/room'      => ['method' => 'get', 'uri' => 'winners/room/{room}'],
+    'winners-room'      => ['method' => 'get', 'uri' => 'winners/room/{room}'],
 ]);
 
  // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],

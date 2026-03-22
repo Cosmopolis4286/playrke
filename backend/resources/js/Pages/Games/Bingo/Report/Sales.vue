@@ -1,51 +1,30 @@
 <script setup lang="ts">
   /**
-   * Página Juego BINGO → GameRoom/Summary
+   * Página Reporte de Ventas del Bingo
    */
-  import { computed, ref, onMounted, onUnmounted } from 'vue'
+  import { computed, ref } from 'vue'
 
   // ==========================================================================
   // Componentes
   // ==========================================================================
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
-  import Modal from '@/js/Components/Common/Modal/Modal.vue'
-  import BingoRoomForm from '@/js/Components/Games/Bingo/Room/Form/BingoRoomForm.vue'
-
-  // ==========================================================================
-  // Composables
-  // ==========================================================================
-  import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
-  import { useModalForm } from '@/js/composables/common/useModalForm'
-  import { useBingoRoom } from '@/js/composables/games/bingo/room/default/useBingoRoom'
 
   // ==========================================================================
   // Types
   // ==========================================================================
-  import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/summary/bingo-room-summary-page'
-  import type { ExtraButton } from '@js/types/common/table/extra-buttons'
+  import type { SalesPageProps } from '@/js/types/games/bingo/report/sales-report'
   import type { TableFilterInterface } from '@js/types/common/table/table-filter'
 
   // ==========================================================================
   // Props (Inertia)
   // ==========================================================================
-  const props = defineProps<BingoRoomSummaryPageProps>()
+  const props = defineProps<SalesPageProps>()
 
   // ==========================================================================
-  // Lógica de negocio
+  // Datos de la tabla
   // ==========================================================================
-  const {
-    roomData,
-    roomFormData,
-    rooms,
-    setInitialRooms,
-    create,
-    edit,
-    copyRoom,
-    toggleStatusBulk,
-    removeBulk,
-    submit,
-    goToRoom
-  } = useBingoRoom()
+  const salesData = ref(props.sales.rows)
+  const summaryData = computed(() => props.sales.summary)
 
   // Key forzar re-render de la tabla
   const tableKey = ref(0)
@@ -54,91 +33,10 @@
     tableKey.value++
   }
 
-  setInitialRooms(props.rooms.rows)
-
-  // ==========================================================================
-  // Modal + Form handler
-  // ==========================================================================
-
-  const {
-    showModalForm,
-    modalTitle,
-    formRef: gameBingoRoomFormRef,
-    handleSubmit
-  } = useModalForm(roomData, submit, {
-    defaultTitle: 'Sala de Bingo'
-  })
-
-  // ==========================================================================
-  // CRUD global (eventos tabla)
-  // ==========================================================================
-
-  useCrudEventListener({
-    create: () => {
-      create()
-      showModalForm.value = true
-    },
-
-    edit: async ids => {
-      if (!ids || ids.length !== 1) return
-
-      const ok = await edit(ids[0])
-      if (ok) {
-        showModalForm.value = true
-      }
-    },
-
-    delete: async ids => {
-      if (!ids) return
-      await removeBulk(ids)
-    },
-
-    toggleStatus: async ids => {
-      if (!ids) return
-      await toggleStatusBulk(ids)
-    },
-
-    copy: async ids => {
-      if (!ids || ids.length !== 1) return
-      await copyRoom(ids[0])
-    }
-  })
-
   /**
-   * Opciones para tipos de sala.
+   * Opciones de monedas para filtrado.
    */
-  const roomTypeOptions = computed(() => {
-    return (props.roomTypes ?? []).map(r => ({
-      value: String(r.id),
-      label: r.label
-    }))
-  })
-
-  /**
-   * Opciones para modos de juego.
-   */
-  const gameModeOptions = computed(() => {
-    return (props.gameModes ?? []).map(g => ({
-      value: String(g.id),
-      label: g.label
-    }))
-  })
-
-  /**
-   * Opciones para tipos de prize pool.
-   */
-  const prizePoolTypeOptions = computed(() => {
-    return (props.prizePoolTypes ?? []).map(p => ({
-      value: String(p.id),
-      code: p.code,
-      label: p.label
-    }))
-  })
-
-  /**
-   * Opciones de monedas permitidas.
-   */
-  const allowedCurrenciesOptions = computed(() => {
+  const currencyOptions = computed(() => {
     return (props.currencies ?? []).map(c => ({
       value: String(c.id),
       label: c.iso_code
@@ -146,12 +44,12 @@
   })
 
   /**
-   * Opciones de patrones de bingo.
+   * Opciones de tipos de sala para filtrado.
    */
-  const bingoPatternOptions = computed(() => {
-    return (props.bingoPatterns ?? []).map(p => ({
-      value: String(p.id),
-      label: p.name
+  const roomTypeOptions = computed(() => {
+    return (props.roomTypes ?? []).map(r => ({
+      value: r.value,
+      label: r.label
     }))
   })
 
@@ -161,172 +59,108 @@
 
   const filters = computed<readonly TableFilterInterface[]>(() => [
     {
-      key: 'room_type_description',
-      label: 'tipo',
-      placeholder: 'Filtrar por tipo',
+      key: 'currency',
+      label: 'Moneda',
+      placeholder: 'Filtrar por moneda',
+      options: currencyOptions.value
+    },
+    {
+      key: 'room_type',
+      label: 'Tipo de Sala',
+      placeholder: 'Filtrar por tipo de sala',
       options: roomTypeOptions.value
-    },
-    {
-      key: 'game_mode_description',
-      label: 'modo',
-      placeholder: 'Filtrar por modo',
-      options: gameModeOptions.value
-    },
-    {
-      key: 'prize_pool_type_description',
-      label: 'tipo bote',
-      placeholder: 'Filtrar por tipo bote',
-      options: prizePoolTypeOptions.value
     },
     {
       key: 'status',
       label: 'Estado',
       placeholder: 'Filtrar por estado',
       options: [
-        { value: 'ACTIVE', label: 'Disponible' },
-        { value: 'IN_PROGRESS', label: 'En Juego' },
-        { value: 'FINISHED', label: 'Finalizada' },
-        { value: 'REFUND', label: 'Reembolso' },
-        { value: 'OFFLINE', label: 'Fuera de Línea' }
+        { value: 'Completed', label: 'Completado' },
+        { value: 'Processing', label: 'Procesando' },
+        { value: 'Pending', label: 'Pendiente' },
+        { value: 'Cancelled', label: 'Cancelado' }
       ]
     }
   ])
 
   // ==========================================================================
-  // Botones extra
+  // Botones extra para navegación a detalles de sala
   // ==========================================================================
-
-  const nowUnix = (): number => Math.floor(Date.now() / 1000)
-
-  const isExpired = (ids: string[]): boolean =>
-    ids.some(id => {
-      const room = rooms.value.find(r => String(r.id) === String(id))
-      return room != null && room.unix_date != null && Number(room.unix_date) <= nowUnix()
-    })
-
-  const hasPlayers = (ids: string[]): boolean =>
-    ids.some(id => {
-      const room = rooms.value.find(r => String(r.id) === String(id))
-      return room != null && (room.total_players ?? 0) > 0
-    })
-
-  const extraButtons: ExtraButton[] = [
+  const extraButtons: any[] = [
     {
-      label: 'Salas Automáticas',
-      class: 'btn-secondary',
-      show: (ids: string[]) => !ids.length,
-      onClick: (ids: string[]) => {
-        if (ids.length) return
-        window.location.href = `/bingo-automatic-rooms`
-      }
-    },
-    {
-      label: 'Ver Salas',
-      class: 'btn-primary',
-      show: (ids: string[]) => !ids.length,
-      onClick: (ids: string[]) => {
-        if (ids.length) return
-        window.location.href = `/bingo-game-rooms`
-      }
-    },
-    {
-      icon: 'fas fa-exchange-alt',
-      class: 'btn-secondary',
-      title: 'Alternar Estado',
-      show: false,
-      action: 'toggleStatus',
-      disabled: (ids: string[]) => isExpired(ids) || hasPlayers(ids),
-      disabledReason: (ids: string[]) =>
-        isExpired(ids)
-          ? 'La sala ya expiró, no se puede cambiar el estado'
-          : 'La sala tiene jugadores registrados, no se puede cambiar el estado'
-    },
-    {
-      icon: 'fas fa-copy',
+      icon: 'fas fa-eye',
       class: 'btn-info text-white',
-      title: 'Copiar Sala',
+      title: 'Ver Detalles de Sala',
       show: (ids: string[]) => ids.length === 1,
-      action: 'copy'
-    },
-    {
-      icon: 'fas fa-sign-out-alt',
-      class: 'btn-dark',
-      title: 'Ir a Sala',
-      show: (ids: string[]) => ids.length === 1,
-      onClick: goToRoom
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          const row = salesData.value.find(r => String(r.id) === String(ids[0]))
+          if (row) {
+            window.location.href = `/bingo/sales-report/room/${row.id}`
+          }
+        }
+      }
     }
   ]
 
-  const subtitle = `<a title="Ir a configuración del Bingo" href="/bingo/config" class="text-primary font-weight-bold">Ir a configuración</a>`
-
-// Escuchar actualizaciones de salas
-onMounted(() => {
-    window.addEventListener('bingo-room-updated', forceTableRefresh)
-})
-
-onUnmounted(() => {
-    window.removeEventListener('bingo-room-updated', forceTableRefresh)
-})
+  const subtitle = `<a title="Ir a cartones vendidos" href="/bingo/cards-sold" class="text-primary font-weight-bold">Ir a Cartones Vendidos</a>`
 </script>
 
 <template>
-  <TableWithFilterBridge
-    :key="tableKey"
-    tableId="bingo-room-table"
-    :title="props.title"
-    :subtitle="subtitle"
-    :columns="props.rooms.columns"
-    :rows="rooms"
-    :filters="filters"
-    search-placeholder="Buscar por código, tipo, modo, tipo bote..."
-    showCreateButton
-    showEditButton
-    showDeleteButton
-    :disable-edit="hasPlayers"
-    disable-edit-reason="No se puede editar una sala con jugadores registrados"
-    :disable-delete="hasPlayers"
-    disable-delete-reason="No se puede eliminar una sala con jugadores registrados"
-    :extra-buttons="extraButtons"
-  />
-
-  <Modal
-    v-model="showModalForm"
-    :title="modalTitle"
-    size="lg"
-    static
-    show-confirm
-    :on-submit="handleSubmit"
-    :confirm-disabled="!(gameBingoRoomFormRef?.isValid ?? false)"
-  >
-    <BingoRoomForm
-      ref="gameBingoRoomFormRef"
-      v-model="roomFormData"
-      :room-type-options="roomTypeOptions"
-      :game-mode-options="gameModeOptions"
-      :prize-pool-type-options="prizePoolTypeOptions"
-      :allowed-currencies-options="allowedCurrenciesOptions"
-      :bingo-pattern-options="bingoPatternOptions"
-    />
-
-    <template #footer>
-      <div class="custom-control custom-switch mr-auto">
-        <input
-          type="checkbox"
-          class="custom-control-input"
-          id="activateRoom"
-          :checked="roomFormData.activateRoom ?? false"
-          @change="roomFormData.activateRoom = ($event.target as HTMLInputElement).checked"
-        />
-        <label class="custom-control-label" for="activateRoom">¿Activar sala?</label>
+  <div>
+    <!-- Resumen de Ventas -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Resumen de Ventas</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-3">
+                <div class="text-center">
+                  <h4 class="text-primary">{{ summaryData.total_rooms }}</h4>
+                  <p class="mb-0">Total Salas</p>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="text-center">
+                  <h4 class="text-success">{{ summaryData.total_cards_sold }}</h4>
+                  <p class="mb-0">Cartones Vendidos</p>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="text-center">
+                  <h4 class="text-info">${{ summaryData.total_amount_usd.toFixed(2) }}</h4>
+                  <p class="mb-0">Total USD</p>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="text-center">
+                  <h4 class="text-warning">${{ summaryData.total_commission.toFixed(2) }}</h4>
+                  <p class="mb-0">Total Comisión</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <button class="btn btn-sm btn-secondary" @click="showModalForm = false">Cerrar</button>
-      <button
-        class="btn btn-sm btn-primary"
-        :disabled="!(gameBingoRoomFormRef?.isValid ?? false)"
-        @click="handleSubmit"
-      >
-        Guardar
-      </button>
-    </template>
-  </Modal>
+    </div>
+
+    <!-- Tabla de Ventas -->
+    <TableWithFilterBridge
+      :key="tableKey"
+      tableId="bingo-sales-table"
+      :title="props.title"
+      :subtitle="subtitle"
+      :columns="props.sales.columns"
+      :rows="salesData"
+      :filters="filters"
+      search-placeholder="Buscar por sala, tipo de sala..."
+      :showCreateButton="false"
+      :showEditButton="false"
+      :showDeleteButton="false"
+      :extra-buttons="extraButtons"
+    />
+  </div>
 </template>
