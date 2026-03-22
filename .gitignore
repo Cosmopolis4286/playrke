@@ -142,7 +142,7 @@ build-stats.html
 
 # Docker volumes y datos persistentes
 docker-compose.override.yml
-.dockerignore
+!.dockerignore
 
 # Documentación auto-generada
 README-GENERATE-SECRETS.md
