@@ -77,6 +77,11 @@
     fetchUsers() // Refrescar la lista de usuarios
   }
 
+  // Variable para almacenar el usuario seleccionado
+  const selectedUser = computed(() => {
+    return users.value.find(u => u.id === selectedUserId.value)
+  })
+
   // ==========================================================================
   // CRUD global (eventos tabla)
   // ==========================================================================

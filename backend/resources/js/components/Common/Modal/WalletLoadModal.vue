@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
 
@@ -67,7 +67,6 @@ async function loadBalance() {
           </button>
         </div>
         <div class="modal-body">
-          <!-- Información del usuario -->
           <div class="bg-gray-50 rounded-lg p-4 mb-4">
             <div class="flex items-center justify-between mb-3">
               <div>
@@ -94,42 +93,41 @@ async function loadBalance() {
               </div>
             </div>
             
-          <!-- Monto a cargar -->
-          <div class="mb-4">
-            <label for="amount" class="form-label text-gray-700">Monto a cargar:</label>
-            <div class="relative">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold select-none">
-                {{ userCurrencySymbol || '$' }}
-              </span>
-              <input 
-                id="amount" 
-                type="number" 
-                class="form-control pl-12 pr-4" 
-                v-model="amount"
-                placeholder="0.00"
-                step="0.01"
-                min="0.01"
-                autofocus
-              />
+            <div class="mb-4">
+              <label for="amount" class="form-label text-gray-700">Monto a cargar:</label>
+              <div class="relative">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold select-none">
+                  {{ userCurrencySymbol || '$' }}
+                </span>
+                <input 
+                  id="amount" 
+                  type="number" 
+                  class="form-control pl-12 pr-4" 
+                  v-model="amount"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0.01"
+                  autofocus
+                />
+              </div>
             </div>
-          </div>
-          
-          <!-- Montos rápidos -->
-          <div class="mb-4">
-            <label class="form-label text-gray-700 mb-3">Montos rápidos:</label>
-            <div class="grid grid-cols-3 gap-2">
-              <button
-                v-for="quickAmount in quickAmounts"
-                :key="quickAmount"
-                type="button"
-                class="px-3 py-2 text-sm font-medium border rounded-lg transition-all transform hover:scale-105"
-                :class="amount === quickAmount.toString()
-                  ? 'bg-indigo-500 text-white border-indigo-500 shadow-md'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50'"
-                @click="selectQuickAmount(quickAmount)"
-              >
-                {{ userCurrencySymbol || '$' }}{{ quickAmount }}
-              </button>
+            
+            <div class="mb-4">
+              <label class="form-label text-gray-700 mb-3">Montos rápidos:</label>
+              <div class="grid grid-cols-3 gap-2">
+                <button
+                  v-for="quickAmount in quickAmounts"
+                  :key="quickAmount"
+                  type="button"
+                  class="px-3 py-2 text-sm font-medium border rounded-lg transition-all transform hover:scale-105"
+                  :class="amount === quickAmount.toString()
+                    ? 'bg-indigo-500 text-white border-indigo-500 shadow-md'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50'"
+                  @click="selectQuickAmount(quickAmount)"
+                >
+                  {{ userCurrencySymbol || '$' }}{{ quickAmount }}
+                </button>
+              </div>
             </div>
           </div>
         </div>

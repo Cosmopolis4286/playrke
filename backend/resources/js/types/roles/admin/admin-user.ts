@@ -12,6 +12,12 @@ export interface AdminUser {
     readonly email: string
     readonly country_name: string
     readonly status: UserStatus
+    readonly balance?: number
+    readonly currency?: {
+        iso_code: string
+        symbol: string
+        name: string
+    }
 }
 
 export interface AdminRole {
