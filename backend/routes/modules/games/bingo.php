@@ -128,34 +128,15 @@ route_group('bingo-test', 'bingo-test.', ['auth', 'role:admin'], BingoTestingCon
 
 /**
  * ====================================
- * RUTAS ADMIN Y COMMERCE (MULTI-MIDDLEWARE)
- * ====================================
- */
-// multi_middleware_routes('bingo', 'bingo.', [
-//     [
-//         'middleware' => ['auth', 'commerce'],
-//         'controller' => BingoReportController::class,
-//         'routes' => [
-//             'prizes'                      => ['method' => 'get', 'uri' => 'prizes'],
-//             'sellers'                      => ['method' => 'get', 'uri' => 'sellers'],
-//             'getCurrencyByCountry'         => ['method' => 'get', 'uri' => 'seller/getCurrencyByCountry/{country}/{seller}'],
-//             'getSellerInfoByCtn'           => ['method' => 'get', 'uri' => 'seller/getSellerInfoByCtn/{ctnId}'],
-//             'ctnsLotPayment'               => ['method' => 'put', 'uri' => 'bingo/carton-lot/payment'],
-//         ]
-//     ]
-// ]);
-
-/**
- * ====================================
  * REPORTES Y ESTADÍSTICAS
  * ====================================
  */
 route_group('bingo', 'bingo.', [], BingoReportController::class, [
-    'sales-report'     => ['method' => 'get', 'uri' => 'sales-report/{currency?}/{dateFilter?}'],
-    'sales-by-room'    => ['method' => 'get', 'uri' => 'sales-report-by-room/{room}/{currency}'],
-    'winners-by-room'  => ['method' => 'get', 'uri' => 'sales-report-by-room-winners/{room}/{currency}'],
-    'winners'          => ['method' => 'get', 'uri' => 'winners/{type}/{dateFilter}/{currency?}'],
-    'cards-sold'       => ['method' => 'get', 'uri' => 'cards-sold/{currency?}/{dateFilter?}'],
+    'cards-sold'        => ['method' => 'get', 'uri' => 'cards-sold', 'action' => 'cardsSold'],
+    'sales-report'      => ['method' => 'get', 'uri' => 'sales-report'],
+    'sales-report/room' => ['method' => 'get', 'uri' => 'sales-report/room/{room}'],
+    'winners'           => ['method' => 'get', 'uri' => 'winners', 'action' => 'winners'],
+    'winners/room'      => ['method' => 'get', 'uri' => 'winners/room/{room}'],
 ]);
 
  // 'game-info'          => ['method' => 'get', 'uri' => 'show-game-info', 'action' => 'showGameInfo'],
