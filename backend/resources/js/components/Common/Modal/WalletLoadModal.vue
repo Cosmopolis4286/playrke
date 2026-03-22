@@ -1,0 +1,333 @@
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import backendClient from '@/js/plugins/axios'
+import { showToast } from '@/js/utils/toastNotify'
+
+interface Props {
+  show: boolean
+  userName: string
+  userId: string | number
+  userBalance?: number
+  userCurrency?: string
+  userCurrencySymbol?: string
+}
+
+interface Emits {
+  close: []
+  success: []
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
+
+const amount = ref('')
+const quickAmounts = [10, 25, 50, 100, 200, 500]
+
+function closeModal() {
+  emit('close')
+  amount.value = ''
+}
+
+function selectQuickAmount(value: number) {
+  amount.value = value.toString()
+}
+
+async function loadBalance() {
+  if (!amount.value || parseFloat(amount.value) <= 0) {
+    showToast('Debe ingresar un monto válido mayor a 0', 'error')
+    return
+  }
+
+  try {
+    const { data } = await backendClient.put(`/admin/user/${props.userId}/load-wallet-balance`, {
+      amount: parseFloat(amount.value)
+    })
+    
+    showToast(data.message ?? `Saldo cargado: $${amount.value}`, 'success')
+    emit('success')
+    closeModal()
+  } catch (error) {
+    console.error(error)
+    showToast('Error al cargar el saldo', 'error')
+  }
+}
+</script>
+
+<template>
+  <div v-if="show" class="modal fade show" tabindex="-1" style="display: block; background-color: rgba(0,0,0,.5);">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+          <h5 class="modal-title mb-0">
+            <i class="fas fa-wallet mr-2"></i>
+            Cargar Saldo
+          </h5>
+          <button type="button" class="btn-close text-white" @click="closeModal">
+            <span>&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- Información del usuario -->
+          <div class="bg-gray-50 rounded-lg p-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <label class="form-label text-gray-700">Usuario:</label>
+                <div class="flex items-center gap-2">
+                  <input 
+                    type="text" 
+                    class="form-control bg-white" 
+                    :value="userName" 
+                    readonly 
+                  />
+                  <span v-if="userCurrency" class="text-sm text-gray-600 font-medium">
+                    ({{ userCurrency }})
+                  </span>
+                </div>
+              </div>
+              <div v-if="userBalance !== undefined">
+                <label class="form-label text-gray-700">Saldo actual:</label>
+                <div class="flex items-center gap-2">
+                  <span class="text-lg font-bold text-gray-900">
+                    {{ userCurrencySymbol }}{{ userBalance?.toFixed(2) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+          <!-- Monto a cargar -->
+          <div class="mb-4">
+            <label for="amount" class="form-label text-gray-700">Monto a cargar:</label>
+            <div class="relative">
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold select-none">
+                {{ userCurrencySymbol || '$' }}
+              </span>
+              <input 
+                id="amount" 
+                type="number" 
+                class="form-control pl-12 pr-4" 
+                v-model="amount"
+                placeholder="0.00"
+                step="0.01"
+                min="0.01"
+                autofocus
+              />
+            </div>
+          </div>
+          
+          <!-- Montos rápidos -->
+          <div class="mb-4">
+            <label class="form-label text-gray-700 mb-3">Montos rápidos:</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button
+                v-for="quickAmount in quickAmounts"
+                :key="quickAmount"
+                type="button"
+                class="px-3 py-2 text-sm font-medium border rounded-lg transition-all transform hover:scale-105"
+                :class="amount === quickAmount.toString()
+                  ? 'bg-indigo-500 text-white border-indigo-500 shadow-md'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50'"
+                @click="selectQuickAmount(quickAmount)"
+              >
+                {{ userCurrencySymbol || '$' }}{{ quickAmount }}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-gray-50">
+          <button type="button" class="btn btn-secondary mr-2" @click="closeModal">
+            <i class="fas fa-times mr-2"></i>
+            Cancelar
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-success" 
+            @click="loadBalance"
+            :disabled="!amount || parseFloat(amount) <= 0"
+          >
+            <i class="fas fa-wallet mr-2"></i>
+            Cargar Saldo
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1050;
+}
+
+.modal-dialog {
+  position: relative;
+  width: auto;
+  max-width: 500px;
+  margin: 1.75rem auto;
+}
+
+.modal-content {
+  position: relative;
+  background-color: #fefefe;
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: white;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.btn-close:hover {
+  opacity: 1;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+  color: white;
+}
+
+.btn-success:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.bg-gray-50 {
+  background-color: #f9fafb;
+}
+
+.rounded-lg {
+  border-radius: 0.5rem;
+}
+
+.text-gray-700 {
+  color: #374151;
+}
+
+.text-gray-600 {
+  color: #4b5563;
+}
+
+.text-gray-900 {
+  color: #111827;
+}
+
+.text-indigo-500 {
+  color: #6366f1;
+}
+
+.bg-indigo-500 {
+  background-color: #6366f1;
+}
+
+.bg-white {
+  background-color: white;
+}
+
+.border-gray-200 {
+  border-color: #e5e7eb;
+}
+
+.hover\:border-indigo-300:hover {
+  border-color: #a5b4fc;
+}
+
+.hover\:bg-indigo-50:hover {
+  background-color: #eef2ff;
+}
+
+.shadow-md {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.grid-cols-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+</style>
