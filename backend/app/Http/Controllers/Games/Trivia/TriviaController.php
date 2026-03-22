@@ -1613,4 +1613,419 @@ class TriviaController extends Controller
         DB::table('triv_multi_user')->where('room', $id)
             ->where('user', auth()->user()->id)->update(['fin_qt' => $fin_int]);
     }
+
+    // ====================================
+    // MÉTODOS PRINCIPALES DE TRIVIA (ADMIN)
+    // ====================================
+
+    public function index()
+    {
+        $viewData = [
+            'title' => 'Panel de Trivia',
+            'stats' => [
+                'total_rooms' => TriviaMulti::count(),
+                'active_rooms' => TriviaMulti::whereIn('status', [2, 3])->count(),
+                'total_players' => DB::table('triv_multi_user')->count(),
+                'total_winners' => DB::table('triv_multi_user')->where('lose_win', 1)->count()
+            ]
+        ];
+
+        return view('modules.admin.trivia.index')->with($viewData);
+    }
+
+    public function winners()
+    {
+        $winners = DB::table('triv_multi_user')
+            ->join('users', 'users.id', 'triv_multi_user.user')
+            ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
+            ->join('coins', 'coins.id', 'triv_multi.coin')
+            ->where('triv_multi_user.lose_win', 1)
+            ->select('users.name', 'users.email', 'triv_multi.name as room_name', 
+                    'coins.name as coin_name', 'triv_multi_user.created_at', 
+                    'triv_multi.prize', 'triv_multi_user.finished_at')
+            ->orderBy('triv_multi_user.created_at', 'desc')
+            ->paginate(50);
+
+        return view('modules.admin.trivia.winners', [
+            'title' => 'Ganadores de Trivia',
+            'winners' => $winners
+        ]);
+    }
+
+    public function winnersRoom($coin)
+    {
+        $coinModel = Coin::where('name', $coin)->firstOrFail();
+        
+        $winners = DB::table('triv_multi_user')
+            ->join('users', 'users.id', 'triv_multi_user.user')
+            ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
+            ->where('triv_multi_user.lose_win', 1)
+            ->where('triv_multi.coin', $coinModel->id)
+            ->select('users.name', 'users.email', 'triv_multi.name as room_name', 
+                    'triv_multi_user.created_at', 'triv_multi.prize', 
+                    'triv_multi_user.finished_at')
+            ->orderBy('triv_multi_user.created_at', 'desc')
+            ->paginate(50);
+
+        return view('modules.admin.trivia.winners-room', [
+            'title' => "Ganadores de Trivia - {$coin}",
+            'coin' => $coin,
+            'winners' => $winners
+        ]);
+    }
+
+    public function cardsSold()
+    {
+        $cardsSold = DB::table('triv_multi_user')
+            ->join('users', 'users.id', 'triv_multi_user.user')
+            ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
+            ->join('coins', 'coins.id', 'triv_multi.coin')
+            ->select('users.name', 'users.email', 'triv_multi.name as room_name', 
+                    'coins.name as coin_name', 'triv_multi_user.created_at', 
+                    'triv_multi.prize')
+            ->orderBy('triv_multi_user.created_at', 'desc')
+            ->paginate(50);
+
+        return view('modules.admin.trivia.cards-sold', [
+            'title' => 'Cartones Vendidos',
+            'cardsSold' => $cardsSold
+        ]);
+    }
+
+    public function salesReport()
+    {
+        $salesData = DB::table('triv_multi_user')
+            ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
+            ->join('coins', 'coins.id', 'triv_multi.coin')
+            ->selectRaw('coins.name as coin_name, COUNT(*) as total_cards, SUM(triv_multi.prize) as total_sales')
+            ->groupBy('coins.id', 'coins.name')
+            ->orderBy('total_sales', 'desc')
+            ->get();
+
+        $dailySales = DB::table('triv_multi_user')
+            ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
+            ->selectRaw('DATE(triv_multi_user.created_at) as date, COUNT(*) as total_cards, SUM(triv_multi.prize) as total_sales')
+            ->groupBy('date')
+            ->orderBy('date', 'desc')
+            ->limit(30)
+            ->get();
+
+        return view('modules.admin.trivia.sales-report', [
+            'title' => 'Reporte de Ventas',
+            'salesData' => $salesData,
+            'dailySales' => $dailySales
+        ]);
+    }
+
+    public function salesReportRoom($coin)
+    {
+        $coinModel = Coin::where('name', $coin)->firstOrFail();
+
+        $salesData = DB::table('triv_multi_user')
+            ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
+            ->join('coins', 'coins.id', 'triv_multi.coin')
+            ->where('triv_multi.coin', $coinModel->id)
+            ->selectRaw('coins.name as coin_name, COUNT(*) as total_cards, SUM(triv_multi.prize) as total_sales')
+            ->groupBy('coins.id', 'coins.name')
+            ->first();
+
+        $dailySales = DB::table('triv_multi_user')
+            ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
+            ->where('triv_multi.coin', $coinModel->id)
+            ->selectRaw('DATE(triv_multi_user.created_at) as date, COUNT(*) as total_cards, SUM(triv_multi.prize) as total_sales')
+            ->groupBy('date')
+            ->orderBy('date', 'desc')
+            ->limit(30)
+            ->get();
+
+        $roomSales = DB::table('triv_multi_user')
+            ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
+            ->join('users', 'users.id', 'triv_multi_user.user')
+            ->where('triv_multi.coin', $coinModel->id)
+            ->select('users.name', 'triv_multi.name as room_name', 
+                    'triv_multi_user.created_at', 'triv_multi.prize')
+            ->orderBy('triv_multi_user.created_at', 'desc')
+            ->paginate(50);
+
+        return view('modules.admin.trivia.sales-report-room', [
+            'title' => "Reporte de Ventas - {$coin}",
+            'coin' => $coin,
+            'salesData' => $salesData,
+            'dailySales' => $dailySales,
+            'roomSales' => $roomSales
+        ]);
+    }
+
+    // ====================================
+    // MÉTODOS PARA TRIVIA ROOMS (ADMIN)
+    // ====================================
+
+    public function roomsIndex()
+    {
+        $viewData = [
+            'title' => 'Salas de Trivia',
+            'rooms' => TriviaMulti::all()
+        ];
+
+        return view('modules.admin.trivia.rooms-index')->with($viewData);
+    }
+
+    public function roomsCreate()
+    {
+        return view('modules.admin.trivia.rooms-create', ['title' => 'Crear Sala de Trivia']);
+    }
+
+    public function roomsStore(Request $request)
+    {
+        // Validar los datos antes de continuar
+        $validated = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'coin' => 'required|exists:coins,name',
+            'players' => 'required|integer|min:2|max:100',
+            'prize' => 'required|numeric|min:0',
+            'questions_count' => 'required|integer|min:1|max:50',
+            'time_per_question' => 'required|integer|min:10|max:300',
+        ]);
+
+        if ($validated->fails()) {
+            return redirect()->back()
+                ->withErrors($validated)
+                ->withInput();
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $coin = Coin::where('name', $request->coin)->first();
+
+            // Crear la sala de trivia
+            $room = TriviaMulti::create([
+                'name' => $request->name,
+                'coin' => $coin->id,
+                'players' => $request->players,
+                'prize' => $request->prize,
+                'questions_count' => $request->questions_count,
+                'time_per_question' => $request->time_per_question,
+                'status' => 1, // Activa
+                'fecha' => now()->format('Y-m-d'),
+                'hora' => now()->format('H:i:s'),
+                'created_by' => auth()->user()->id,
+            ]);
+
+            DB::commit();
+
+            Session::flash('message', 'Sala de trivia creada correctamente.');
+            Session::flash('type', 'success');
+            return redirect()->route('trivia-rooms.index');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Error al crear sala de trivia.', [
+                'error' => $e->getMessage(),
+                'usuario' => Auth::id() ?? 'Invitado',
+            ]);
+
+            Session::flash('error', 'Hubo un error al crear la sala de trivia. Inténtelo de nuevo.');
+            return redirect()->back()->withInput();
+        }
+    }
+
+    public function roomsEdit($id)
+    {
+        $room = TriviaMulti::findOrFail($id);
+        
+        return view('modules.admin.trivia.rooms-edit', [
+            'title' => 'Editar Sala de Trivia',
+            'room' => $room
+        ]);
+    }
+
+    public function roomsUpdate(Request $request, $id)
+    {
+        $room = TriviaMulti::findOrFail($id);
+
+        // Validar los datos antes de continuar
+        $validated = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'players' => 'required|integer|min:2|max:100',
+            'prize' => 'required|numeric|min:0',
+            'questions_count' => 'required|integer|min:1|max:50',
+            'time_per_question' => 'required|integer|min:10|max:300',
+        ]);
+
+        if ($validated->fails()) {
+            return redirect()->back()
+                ->withErrors($validated)
+                ->withInput();
+        }
+
+        try {
+            $room->update([
+                'name' => $request->name,
+                'players' => $request->players,
+                'prize' => $request->prize,
+                'questions_count' => $request->questions_count,
+                'time_per_question' => $request->time_per_question,
+            ]);
+
+            Session::flash('message', 'Sala de trivia actualizada correctamente.');
+            Session::flash('type', 'success');
+            return redirect()->route('trivia-rooms.index');
+
+        } catch (\Exception $e) {
+            Log::error('Error al actualizar sala de trivia.', [
+                'error' => $e->getMessage(),
+                'usuario' => Auth::id() ?? 'Invitado',
+            ]);
+
+            Session::flash('error', 'Hubo un error al actualizar la sala de trivia. Inténtelo de nuevo.');
+            return redirect()->back()->withInput();
+        }
+    }
+
+    public function roomsDestroy($id)
+    {
+        $room = TriviaMulti::findOrFail($id);
+
+        try {
+            // Verificar que no haya jugadores activos en la sala
+            $activePlayers = DB::table('triv_multi_user')
+                ->where('room', $id)
+                ->whereIn('lose_win', [0, 1])
+                ->count();
+
+            if ($activePlayers > 0) {
+                Session::flash('error', 'No se puede eliminar la sala porque tiene jugadores activos.');
+                return redirect()->back();
+            }
+
+            $room->delete();
+
+            Session::flash('message', 'Sala de trivia eliminada correctamente.');
+            Session::flash('type', 'success');
+            return redirect()->route('trivia-rooms.index');
+
+        } catch (\Exception $e) {
+            Log::error('Error al eliminar sala de trivia.', [
+                'error' => $e->getMessage(),
+                'usuario' => Auth::id() ?? 'Invitado',
+            ]);
+
+            Session::flash('error', 'Hubo un error al eliminar la sala de trivia. Inténtelo de nuevo.');
+            return redirect()->back();
+        }
+    }
+
+    public function roomsShow($id)
+    {
+        $room = TriviaMulti::with(['Coin', 'Questions'])
+            ->findOrFail($id);
+
+        $players = DB::table('triv_multi_user')
+            ->join('users', 'users.id', 'triv_multi_user.user')
+            ->where('triv_multi_user.room', $id)
+            ->select('users.name', 'users.email', 'triv_multi_user.*')
+            ->get();
+
+        return view('modules.admin.trivia.rooms-show', [
+            'title' => 'Detalles de Sala de Trivia',
+            'room' => $room,
+            'players' => $players
+        ]);
+    }
+
+    // ====================================
+    // MÉTODOS ADICIONALES PARA USUARIOS
+    // ====================================
+
+    public function room($id)
+    {
+        $user = $this->user(['id']);
+        $room = TriviaMulti::findOrFail($id);
+        
+        // Verificar si el usuario ya está en la sala
+        $userInRoom = DB::table('triv_multi_user')
+            ->where('room', $id)
+            ->where('user', $user->id)
+            ->first();
+
+        if (!$userInRoom) {
+            // Unir al usuario a la sala
+            DB::table('triv_multi_user')->insert([
+                'room' => $id,
+                'user' => $user->id,
+                'joined_at' => now(),
+                'lose_win' => 0, // En progreso
+            ]);
+        }
+
+        return redirect()->route('trivia.rm-multi', $id);
+    }
+
+    public function rmMulti($id)
+    {
+        $user = $this->user(['id']);
+        $wallet = $this->wallet($user->id);
+        $game = Games::find(2);
+        
+        $room = TriviaMulti::findOrFail($id);
+        $cupsQuest = TriviaMultiCups::where('room', $id)->get();
+        $extrasUser = ExtrasUser::where('user', $user->id)->get();
+        
+        $infoGame = [
+            'game' => $game,
+            'room' => $room,
+            'user_in_room' => DB::table('triv_multi_user')
+                ->where('room', $id)
+                ->where('user', $user->id)
+                ->first()
+        ];
+
+        $sounds = GameSounds::whereIn('id_game', [2, 0])->get();
+
+        return view(
+            'modules.user.trivia.rm_multi',
+            compact('wallet', 'game', 'cupsQuest', 'extrasUser', 'infoGame')
+        );
+    }
+
+    public function individual($id)
+    {
+        $user = $this->user(['id']);
+        $wallet = $this->wallet($user->id);
+        
+        $cdin = DB::table('triv_indv_cdin')->where('id_user', $user)
+            ->orderBy('id', 'desc')->first();
+            
+        if ($cdin == null || $cdin->start == 2) {
+            return redirect()->route('trivia.index');
+        }
+        
+        $quest = $this->rand_quest($cdin->id);
+        if ($cdin->start == 0) {
+            DB::table('triv_indv_cdin')->where('id', $cdin->id)->update(['start' => 1]);
+        }
+
+        return view('modules.user.trivia.individual', compact('wallet', 'cdin', 'quest'));
+    }
+
+    public function checkIndividual(Request $request)
+    {
+        $user = auth()->user()->id;
+        $answer = $request->input('answer');
+        $questionId = $request->input('question_id');
+        
+        // Lógica para verificar la respuesta
+        $correctAnswer = DB::table('triv_indv_quest')
+            ->where('id', $questionId)
+            ->value('answer');
+            
+        $isCorrect = strtolower($answer) === strtolower($correctAnswer);
+        
+        return response()->json([
+            'correct' => $isCorrect,
+            'message' => $isCorrect ? '¡Correcto!' : 'Incorrecto, intenta de nuevo.'
+        ]);
+    }
 }
