@@ -66,4 +66,33 @@
             <p>Monedas</p>
         </a>
     </li>
+    <li class="nav-item has-treeview">
+        <a href="#" class="nav-link {{ Route::is('trivia-rooms.*') ? 'active' : '' }}">
+            <i class="nav-icon fa-solid fa-hat-wizard"></i>
+            <p>Trivia <i class="right fas fa-angle-left"></i></p>
+        </a>
+        <ul class="nav nav-treeview">
+            <li class="nav-item">
+                <a href="{{ route('trivia-rooms.index') }}"
+                    class="nav-link {{ Route::is('trivia-rooms.index') ? 'active' : '' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Salas</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('trivia.winners') }}"
+                    class="nav-link {{ Route::is('trivia.winners', 'trivia.winners-room') ? 'active' : '' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Ganadores</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('trivia.sales-report') }}"
+                    class="nav-link {{ Route::is('trivia.sales-report', 'trivia.sales-report-room') ? 'active' : '' }}">
+                    <i class="fa-solid fa-caret-right nav-icon"></i>
+                    <p>Reporte de Ventas</p>
+                </a>
+            </li>
+        </ul>
+    </li>
 </x-template.sidebar>
