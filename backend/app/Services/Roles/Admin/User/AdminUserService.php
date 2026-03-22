@@ -82,16 +82,41 @@ final class AdminUserService
             throw AdminUserException::invalidWalletAmount();
         }
 
-        // TODO: Implementar lógica real de carga de wallet
-        // Por ahora, solo retornamos mensaje de éxito
-        
-        // Aquí iría la lógica para:
-        // 1. Verificar si el usuario tiene wallet
-        // 2. Crear transacción de carga
-        // 3. Actualizar balance
-        // 4. Registrar movimiento
-        
-        return "Saldo cargado exitosamente: $${amount}";
+        // Implementar lógica real de carga de wallet
+        try {
+            // 1. Obtener o crear la wallet principal del usuario
+            $wallet = $user->wallets()->with('currency')->first();
+            
+            if (!$wallet) {
+                // Si no tiene wallet, crear una con la moneda por defecto (USD)
+                $currency = \App\Models\Currency::where('iso_code', 'USD')->first();
+                if (!$currency) {
+                    throw new \Exception('No se encontró moneda por defecto (USD)');
+                }
+                
+                $wallet = $user->wallets()->create([
+                    'currency_id' => $currency->id,
+                    'balance' => 0,
+                    'is_active' => true,
+                ]);
+                
+                $wallet->load('currency');
+            }
+
+            // 2. Actualizar el balance
+            $oldBalance = $wallet->balance;
+            $newBalance = $oldBalance + $amount;
+            
+            $wallet->update(['balance' => $newBalance]);
+
+            // 3. Registrar el movimiento (opcional, si hay tabla de movimientos)
+            // $this->recordWalletMovement($wallet, $amount, 'admin_load', $oldBalance, $newBalance);
+
+            return "Saldo cargado exitosamente: {$wallet->currency->symbol}{$amount}. Nuevo saldo: {$wallet->currency->symbol}{$newBalance}";
+            
+        } catch (\Exception $e) {
+            throw new \Exception('Error al cargar el saldo: ' . $e->getMessage());
+        }
     }
 
     /**

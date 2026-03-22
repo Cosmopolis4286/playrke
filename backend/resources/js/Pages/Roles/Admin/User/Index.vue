@@ -90,8 +90,24 @@
   }
 
   function onWalletLoadSuccess() {
-    closeWalletModal()
+    // Refrescar el balance del usuario actual
+    refreshUserBalance()
+    // No cerrar el modal para que el usuario vea el balance actualizado
+    // closeWalletModal()
     fetchUsers() // Refrescar la lista de usuarios
+  }
+
+  async function refreshUserBalance() {
+    if (!selectedUserId.value) return
+    
+    // Obtener balance actualizado del usuario
+    const walletData = await getWalletBalance(selectedUserId.value)
+    if (walletData) {
+      selectedUserBalance.value = typeof walletData.balance === 'string' 
+        ? parseFloat(walletData.balance) 
+        : walletData.balance
+      selectedUserCurrency.value = walletData.currency
+    }
   }
 
   // Variable para almacenar el usuario seleccionado

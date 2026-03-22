@@ -44,8 +44,14 @@ async function loadBalance() {
     })
     
     showToast(data.message ?? `Saldo cargado: $${amount.value}`, 'success')
+    
+    // Limpiar el input después de la carga exitosa
+    amount.value = ''
+    
+    // Emitir éxito para que el padre refresque los datos
     emit('success')
-    closeModal()
+    
+    // No cerrar el modal automáticamente para que el usuario vea el balance actualizado
   } catch (error) {
     console.error(error)
     showToast('Error al cargar el saldo', 'error')
@@ -150,7 +156,7 @@ async function loadBalance() {
         <div class="modal-footer bg-gray-50">
           <button type="button" class="btn btn-secondary mr-2" @click="closeModal">
             <i class="fas fa-times mr-2"></i>
-            Cancelar
+            Cerrar
           </button>
           <button 
             type="button" 
