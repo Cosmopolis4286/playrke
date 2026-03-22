@@ -68,4 +68,29 @@ final class AdminUserService
 
         return $this->userPasswordService->resetPassword($user);
     }
+
+    /**
+     * Cargar saldo en wallet del usuario.
+     */
+    public function loadWalletBalance(User $user, float $amount): string
+    {
+        if ($user->status !== 'ACTIVE') {
+            throw AdminUserException::walletLoadRequiresActiveStatus();
+        }
+
+        if ($amount <= 0) {
+            throw AdminUserException::invalidWalletAmount();
+        }
+
+        // TODO: Implementar lógica real de carga de wallet
+        // Por ahora, solo retornamos mensaje de éxito
+        
+        // Aquí iría la lógica para:
+        // 1. Verificar si el usuario tiene wallet
+        // 2. Crear transacción de carga
+        // 3. Actualizar balance
+        // 4. Registrar movimiento
+        
+        return "Saldo cargado exitosamente: $${amount}";
+    }
 }

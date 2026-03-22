@@ -16,6 +16,7 @@ interface UseAdminUserReturn {
     remove: (id: string | number) => Promise<boolean>
     removeBulk: (ids: (string | number)[]) => Promise<boolean>
     resetPassword: (id: string | number) => Promise<boolean>
+    loadWalletBalance: (id: string | number) => Promise<boolean>
 }
 
 /**
@@ -223,6 +224,38 @@ export function useAdminUser(): UseAdminUserReturn {
         }
     }
 
+    async function loadWalletBalance(id: string | number): Promise<boolean> {
+        const user = users.value.find(u => u.id === id)
+        const name = user?.full_name || user?.username || 'este usuario'
+
+        const { value: amount, isConfirmed } = await Swal.fire({
+            title: 'Cargar Saldo',
+            text: `Ingrese el monto a cargar para <b>${name}</b>:`,
+            input: 'number',
+            inputPlaceholder: '0.00',
+            showCancelButton: true,
+            confirmButtonText: 'Cargar Saldo',
+            inputValidator: value => {
+                if (!value || parseFloat(value) <= 0) return 'Debe ingresar un monto válido mayor a 0'
+            }
+        })
+
+        if (!isConfirmed || !amount) return false
+
+        try {
+            const { data } = await backendClient.put(`/admin/user/${id}/load-wallet-balance`, {
+                amount: parseFloat(amount)
+            })
+            showToast(data.message ?? `Saldo cargado: $${amount}`, 'success')
+            await fetchUsers()
+            return true
+        } catch (error) {
+            console.error(error)
+            showToast('Error al cargar el saldo', 'error')
+            return false
+        }
+    }
+
     return {
         users,
         setInitialUsers,
@@ -233,6 +266,7 @@ export function useAdminUser(): UseAdminUserReturn {
         remove,
         removeBulk,
         resetPassword,
+        loadWalletBalance,
     }
 }
 

@@ -47,6 +47,7 @@
     toggleStatusBulk,
     resetPassword,
     removeBulk,
+    loadWalletBalance,
   } = useAdminUser()
 
   setInitialUsers(props.users.rows)
@@ -143,6 +144,10 @@
     return ''
   }
 
+  function isLoadWalletBalanceVisible(selectedIds: string[]): boolean {
+    return selectedIds.length === 1
+  }
+
   const extraButtons: ExtraButton[] = [
     {
       icon: 'fas fa-exchange-alt',
@@ -157,6 +162,13 @@
       action: 'resetPassword',
       disabled: isResetPasswordDisabled,
       disabledReason: getResetPasswordDisabledReason
+    },
+    {
+      icon: 'fas fa-wallet',
+      class: 'btn-success text-white',
+      title: 'Cargar Saldo',
+      show: isLoadWalletBalanceVisible,
+      action: 'loadWalletBalance'
     }
   ]
 </script>
