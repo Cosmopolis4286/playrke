@@ -1,0 +1,102 @@
+parameters:
+    level: 8
+    paths:
+        - app
+        - config
+        - database
+        - routes
+        - tests
+    
+    excludePaths:
+        - app/Console/Kernel.php
+        - app/Exceptions/Handler.php
+        - app/Http/Kernel.php
+        - bootstrap
+        - storage
+        - vendor
+        - node_modules
+    
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    checkMissingVarAnnotation: true
+    checkFunctionNameCase: true
+    checkInternalClassCaseSensitivity: true
+    checkUninitializedProperties: true
+    reportUnmatchedIgnoredErrors: false
+    
+    ignoreErrors:
+        # Laravel magic methods
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder#'
+        - '#Call to an undefined method Illuminate\\Database\\Query\\Builder#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\Relation#'
+        - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model#'
+        
+        # Inertia.js responses
+        - '#Method Inertia\\Inertia::render\(\) invoked with 2 parameters, 1 required#'
+        
+        # Test helpers
+        - '#Call to an undefined method Tests\\.*#'
+        
+        # Laravel facades
+        - '#Call to an undefined static method Illuminate\\Support\\Facades\\.*#'
+        
+        # Route model binding
+        - '#Parameter \#\d+ \$\w+ of method .*::__invoke\(\) expects .*#'
+        
+        # Livewire components
+        - '#Call to an undefined method Livewire\\Component::#'
+        
+        # Queue jobs
+        - '#Method .*::handle\(\) has no return type specified#'
+        
+        # Resource collections
+        - '#Method .*::toArray\(\) should return array<array-key, mixed> but returns array#'
+        
+        # Enum casting
+        - '#Cannot access property .* on mixed#'
+    
+    bootstrapFiles:
+        - vendor/autoload.php
+    
+    strictRules:
+        allRules: false
+        noImplicitWildcard: true
+        strictCalls: true
+        noMixedVariableName: true
+        noVariableVariables: true
+        noVariableMethodCalls: true
+        noVariableProperties: true
+        noDynamicProperties: true
+        noMissingCallableSignature: true
+        noMissingReturnType: true
+        noVoidReturnType: false
+        noImplicitWildcard: true
+        strictCalls: true
+    
+    typeAliases:
+        UserId: 'int'
+        RoomId: 'int'
+        GameId: 'int'
+        Currency: 'string'
+        Money: 'float'
+        Timestamp: 'int'
+        DateString: 'string'
+        JsonArray: 'array<string, mixed>'
+    
+    # Custom rules for Bingo game
+    services:
+        -
+            class: PHPStan\Rules\Classes\RequireImplementsRule
+            tags:
+                - phpstan.rules.rule
+            arguments:
+                - App\Contracts\BingoGameInterface
+                - App\Models\BingoRoom
+        
+        -
+            class: PHPStan\Rules\Methods\ReturnTypeRule
+            tags:
+                - phpstan.rules.rule
+            arguments:
+                - App\Http\Controllers\Games\Bingo\*
+                - 'Illuminate\Http\Response'
