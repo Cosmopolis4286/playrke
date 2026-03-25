@@ -10,7 +10,7 @@ use App\Models\ExtrasUser;
 use App\Models\Games;
 use App\Models\GameSounds;
 use App\Models\Wallet;
-use App\Traits\UserVal;
+use App\Traits\Users\UserTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +29,7 @@ use Inertia\Response;
  */
 final class TriviaGameController extends Controller
 {
-    use UserVal;
+    use UserTrait;
 
     /**
      * Display available trivia rooms for players.
