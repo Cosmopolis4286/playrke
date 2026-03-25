@@ -19,8 +19,9 @@ return new class extends Migration
             $table->string('question', 60);
             $table->string('answer', 30);
             $table->string('option_1', 30);
-            $table->string('option_1', 30);
-            $table->string('question', 30);
+            $table->string('option_2', 30);
+            $table->string('option_3', 30);
+            $table->string('option_4', 30);
             $table->timestamps();
         });
     }
