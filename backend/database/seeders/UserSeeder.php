@@ -39,6 +39,16 @@ class UserSeeder extends Seeder
             // Usuarios demo por rol
             // ================================
             $demoUsers = [
+                // SuperAdmin
+                [
+                    'email'       => 'superadmin@playrke.com',
+                    'username'    => 'superadmin',
+                    'first_name'  => 'Super',
+                    'last_name'   => 'Admin',
+                    'password'    => 'password123',
+                    'role'        => 'superadmin',
+                    'description' => 'Super Administrador del sistema',
+                ],
                 // Admin
                 [
                     'email'       => 'admin@playrke.com',
@@ -150,7 +160,7 @@ class UserSeeder extends Seeder
             }
 
             // ================================
-            // Billetera VES para todos los usuarios (simplificado)
+            // Billetera VES para usuarios no administrativos (simplificado)
             // ================================
             $currency = Currency::where('iso_code', 'VES')->first();
 
@@ -158,7 +168,11 @@ class UserSeeder extends Seeder
                 $this->command->warn('Moneda VES no encontrada. Ejecute CurrenciesSeeder primero.');
             } else {
                 $demoEmails = array_column($demoUsers, 'email');
-                $users = User::whereIn('email', $demoEmails)->get();
+                // Excluir admin y superadmin de la creación de billeteras
+                $adminEmails = ['admin@playrke.com', 'superadmin@playrke.com'];
+                $nonAdminEmails = array_diff($demoEmails, $adminEmails);
+                
+                $users = User::whereIn('email', $nonAdminEmails)->get();
 
                 foreach ($users as $user) {
                     if (!$user->wallets()->where('currency_id', $currency->id)->exists()) {
