@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('user_levels', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('user_id')->unique();
+            $table->snowflake('id')->primary();
+            $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade')->unique();
             $table->integer('current_level')->default(1);
             $table->integer('current_xp')->default(0);
             $table->integer('total_xp')->default(0);
@@ -21,7 +21,6 @@ return new class extends Migration
             $table->timestamp('leveled_up_at')->nullable();
             $table->timestamps();
 
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->index(['current_level', 'total_xp']);
         });
     }

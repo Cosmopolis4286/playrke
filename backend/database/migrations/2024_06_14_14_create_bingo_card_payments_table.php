@@ -32,7 +32,6 @@ return new class extends Migration
             $table->foreignSnowflake('seller_user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
-                ->nullOnDelete()
                 ->comment('ID de usuario del vendedor/generador de cartones');
 
             $table->foreignSnowflake('user_id')
