@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Crypto\BinanceController;
+use App\Http\Controllers\Directories\Crypto\BinanceController;
 use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
