@@ -7,6 +7,7 @@ use App\Repositories\BaseRepository;
 use App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface;
 use App\Models\Games\Common\Utils\GameStatus;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
 
 /**
