@@ -70,4 +70,26 @@ final class AdminUserController extends Controller
             ]
         );
     }
+
+    /**
+     * Cargar saldo en wallet del usuario.
+     */
+    public function loadWalletBalance(User $user): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => [
+                'message' => $this->service->loadWalletBalance($user, request('amount'))
+            ]
+        );
+    }
+
+    /**
+     * Obtener balance de wallet del usuario.
+     */
+    public function getWalletBalance(User $user): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->getWalletBalance($user)
+        );
+    }
 }

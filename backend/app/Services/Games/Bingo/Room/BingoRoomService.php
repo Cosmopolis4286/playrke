@@ -110,6 +110,20 @@ final class BingoRoomService
     }
 
     /**
+     * Cancelar una sala de bingo (cambiar estado a CANCELLED).
+     * Solo se puede cancelar si la sala está ACTIVE y tiene jugadores.
+     *
+     * @param BingoRoom $room Model
+     * @return bool
+     *
+     * @throws BingoRoomException Si falla la cancelación
+     */
+    public function cancel(BingoRoom $room): bool
+    {
+        return $this->crudService->cancel($room);
+    }
+
+    /**
      * Eliminar una sala de bingo permanentemente (hard delete).
      */
     public function destroy(BingoRoom $room): bool

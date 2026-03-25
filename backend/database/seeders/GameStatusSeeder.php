@@ -18,6 +18,7 @@ class GameStatusSeeder extends Seeder
             ['code' => 'FINISHED',    'label' => 'Finalizada'],
             ['code' => 'REFUND',      'label' => 'Reembolso'],
             ['code' => 'OFFLINE',     'label' => 'Fuera de Línea'],
+            ['code' => 'CANCELLED',   'label' => 'Cancelada'],
         ];
 
         // Insertar o actualizar cada status de forma idempotente

@@ -32,6 +32,8 @@ class DatabaseSeeder extends Seeder
             BingoPatternSeeder::class,
             SettingSeeder::class,
             RoleSeeder::class,
+            PermissionSeeder::class,
+            RolePermissionSeeder::class,
             UserSeeder::class,
             DemoRoleDataSeeder::class,
         ]);

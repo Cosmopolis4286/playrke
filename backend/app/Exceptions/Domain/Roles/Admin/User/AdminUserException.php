@@ -26,6 +26,16 @@ final class AdminUserException extends DomainException
         return new self('ADMIN_USER_PASSWORD_RESET_REQUIRES_ACTIVE_STATUS');
     }
 
+    public static function walletLoadRequiresActiveStatus(): self
+    {
+        return new self('ADMIN_USER_WALLET_LOAD_REQUIRES_ACTIVE_STATUS');
+    }
+
+    public static function invalidWalletAmount(): self
+    {
+        return new self('ADMIN_USER_INVALID_WALLET_AMOUNT');
+    }
+
     public static function deleteFailed(): self
     {
         return new self('ADMIN_USER_DELETE_FAILED');

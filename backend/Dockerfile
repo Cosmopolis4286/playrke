@@ -43,7 +43,6 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     opcache \
     pdo_sqlite \
     xsl \
-    tokenizer \
     xml \
     xmlwriter \
     simplexml

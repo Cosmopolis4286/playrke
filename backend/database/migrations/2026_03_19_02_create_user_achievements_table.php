@@ -13,15 +13,13 @@ return new class extends Migration
     {
         Schema::create('user_achievements', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('user_id');
-            $table->uuid('achievement_id');
+            $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignUuid('achievement_id')->constrained('achievements')->onDelete('cascade');
             $table->timestamp('unlocked_at'); // Fecha de desbloqueo
             $table->json('progress_data')->nullable(); // Datos de progreso
             $table->boolean('is_seen')->default(false); // Si el usuario ha visto el logro
             $table->timestamps();
 
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('achievement_id')->references('id')->on('achievements')->onDelete('cascade');
             $table->unique(['user_id', 'achievement_id']);
             $table->index(['user_id', 'unlocked_at']);
             $table->index(['achievement_id', 'unlocked_at']);

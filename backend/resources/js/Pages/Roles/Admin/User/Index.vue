@@ -7,13 +7,14 @@
    * para seleccionar el rol y redirige a la vista específica de ese rol.
    */
 
-  import { computed } from 'vue'
+  import { computed, ref } from 'vue'
 
   // ==========================================================================
   // Componentes
   // ==========================================================================
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
+  import WalletLoadModal from '@js/Components/Common/Modal/WalletLoadModal.vue'
 
   // ==========================================================================
   // Composables
@@ -43,13 +44,76 @@
   const {
     users,
     setInitialUsers,
+    fetchUsers,
     selectRoleAndRedirect,
     toggleStatusBulk,
     resetPassword,
     removeBulk,
+    loadWalletBalance,
+    getWalletBalance,
   } = useAdminUser()
 
   setInitialUsers(props.users.rows)
+
+  // Estado del modal de carga de saldo
+  const showWalletModal = ref(false)
+  const selectedUserId = ref<string | number>('')
+  const selectedUserName = ref('')
+  const selectedUserBalance = ref<number | null>(null)
+  const selectedUserCurrency = ref<any>(null)
+
+  async function openWalletModal(userId: string | number, userName: string) {
+    selectedUserId.value = userId
+    selectedUserName.value = userName
+    
+    // Obtener balance del usuario
+    const walletData = await getWalletBalance(userId)
+    if (walletData) {
+      selectedUserBalance.value = typeof walletData.balance === 'string' 
+        ? parseFloat(walletData.balance) 
+        : walletData.balance
+      selectedUserCurrency.value = walletData.currency
+    } else {
+      selectedUserBalance.value = 0
+      selectedUserCurrency.value = null
+    }
+    
+    showWalletModal.value = true
+  }
+
+  function closeWalletModal() {
+    showWalletModal.value = false
+    selectedUserId.value = ''
+    selectedUserName.value = ''
+    selectedUserBalance.value = null
+    selectedUserCurrency.value = null
+  }
+
+  function onWalletLoadSuccess() {
+    // Refrescar el balance del usuario actual
+    refreshUserBalance()
+    // No cerrar el modal para que el usuario vea el balance actualizado
+    // closeWalletModal()
+    fetchUsers() // Refrescar la lista de usuarios
+  }
+
+  async function refreshUserBalance() {
+    if (!selectedUserId.value) return
+    
+    // Obtener balance actualizado del usuario
+    const walletData = await getWalletBalance(selectedUserId.value)
+    if (walletData) {
+      selectedUserBalance.value = typeof walletData.balance === 'string' 
+        ? parseFloat(walletData.balance) 
+        : walletData.balance
+      selectedUserCurrency.value = walletData.currency
+    }
+  }
+
+  // Variable para almacenar el usuario seleccionado
+  const selectedUser = computed(() => {
+    return users.value.find(u => u.id === selectedUserId.value)
+  })
 
   // ==========================================================================
   // CRUD global (eventos tabla)
@@ -157,20 +221,52 @@
       action: 'resetPassword',
       disabled: isResetPasswordDisabled,
       disabledReason: getResetPasswordDisabledReason
+    },
+    {
+      icon: 'fas fa-wallet',
+      class: 'btn-success text-white',
+      title: 'Cargar Saldo',
+      show: isLoadWalletBalanceVisible,
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          const user = users.value.find(u => u.id === ids[0])
+          if (user) {
+            openWalletModal(user.id, user.full_name || user.username)
+          }
+        }
+      }
     }
   ]
+
+  function isLoadWalletBalanceVisible(selectedIds: string[]): boolean {
+    return selectedIds.length === 1
+  }
 </script>
 
 <template>
-  <TableWithFilterBridge
-    tableId="user-table"
-    title="Usuarios"
-    :columns="props.users.columns"
-    :rows="users"
-    :filters="filters"
-    search-placeholder="Buscar por nombre, username, email..."
-    showCreateButton
-    showDeleteButton
-    :extra-buttons="extraButtons"
-  />
+  <div>
+    <TableWithFilterBridge
+      tableId="user-table"
+      title="Usuarios"
+      :columns="props.users.columns"
+      :rows="users"
+      :filters="filters"
+      search-placeholder="Buscar por nombre, username, email..."
+      showCreateButton
+      showDeleteButton
+      :extra-buttons="extraButtons"
+    />
+    
+    <!-- Modal para carga de saldo -->
+    <WalletLoadModal
+      :show="showWalletModal"
+      :user-name="selectedUserName"
+      :user-id="selectedUserId"
+      :user-balance="selectedUserBalance"
+      :user-currency="selectedUserCurrency?.iso_code"
+      :user-currency-symbol="selectedUserCurrency?.symbol"
+      @close="closeWalletModal"
+      @success="onWalletLoadSuccess"
+    />
+  </div>
 </template>

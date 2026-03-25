@@ -132,11 +132,14 @@ Route::middleware('auth')->group(function () {
 
     // Rutas de usuarios (sin store/show/update — la creación se delega al flujo del rol)
     $userRoutes = [
-        'fetchList'     => ['method' => 'get',    'uri' => 'fetch-list',          'action' => 'fetchList'],
-        'toggleStatus'  => ['method' => 'put',    'uri' => '{user}/status',       'action' => 'toggleStatus'],
-        'delete'        => ['method' => 'put',    'uri' => '{user}/delete',       'action' => 'delete'],
+        'index'         => ['method' => 'get',    'uri' => '',              'action' => 'index'],
+        'fetch-list'    => ['method' => 'get',    'uri' => 'fetch-list',     'action' => 'fetchList'],
+        'toggleStatus'  => ['method' => 'put',    'uri' => '{user}/status',  'action' => 'toggleStatus'],
+        'delete'        => ['method' => 'put',    'uri' => '{user}/delete',  'action' => 'delete'],
         'destroy'       => ['method' => 'delete', 'uri' => '{user}',              'action' => 'destroy'],
         'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password','action' => 'resetPassword'],
+        'loadWalletBalance' => ['method' => 'put', 'uri' => '{user}/load-wallet-balance','action' => 'loadWalletBalance'],
+        'getWalletBalance' => ['method' => 'get', 'uri' => '{user}/wallet-balance','action' => 'getWalletBalance'],
     ];
     role_protected_routes(['role:admin'], 'admin/user', AdminUserController::class, $userRoutes, 'user');
 

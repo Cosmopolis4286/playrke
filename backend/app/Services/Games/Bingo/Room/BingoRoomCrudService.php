@@ -473,6 +473,42 @@ class BingoRoomCrudService
     }
 
     /**
+     * Cancelar una sala de bingo (cambiar estado a CANCELLED).
+     * Solo se puede cancelar si la sala está ACTIVE y tiene jugadores.
+     *
+     * @param BingoRoom $room
+     * @return bool True si la cancelación fue exitosa
+     *
+     * @throws BingoRoomException Si la sala no cumple las condiciones para cancelación
+     */
+    public function cancel(BingoRoom $room): bool
+    {
+        // Validar que la sala no esté eliminada
+        if ($room->status?->code === 'DELETED') {
+            throw BingoRoomException::invalidStatusChange();
+        }
+
+        // Validar que la sala esté ACTIVE
+        if ($room->status?->code !== 'ACTIVE') {
+            throw new BingoRoomException('Solo se pueden cancelar salas con estado ACTIVE');
+        }
+
+        // Validar que la sala tenga jugadores
+        if (($room->total_players ?? 0) === 0) {
+            throw new BingoRoomException('Solo se pueden cancelar salas que tengan jugadores registrados');
+        }
+
+        // Bloquear si la fecha+hora de la sala ya expiró (comparar en UTC)
+        $room->loadMissing('config');
+        if ($room->config && $room->config->unix_date <= Carbon::now('UTC')->timestamp) {
+            throw BingoRoomException::expiredRoomStatusLocked();
+        }
+
+        // Cambiar estado a CANCELLED
+        return $this->bingoRooms->changeGameStatus($room->id, 'CANCELLED');
+    }
+
+    /**
      * Copia una sala de bingo existente (status INACTIVE).
      * Replica configuración, precios de cartones y rondas.
      *

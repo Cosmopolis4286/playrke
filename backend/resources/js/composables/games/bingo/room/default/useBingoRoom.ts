@@ -52,6 +52,9 @@ interface UseBingoRoomReturn {
 
     /** Ir a sala de juego */
     goToRoom: (ids: string[]) => Promise<void>
+
+    /** Cancelar sala */
+    cancelRoom: (id: string | number) => Promise<boolean>
 }
 
 /**
@@ -514,6 +517,36 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         }
     }
 
+    /**
+     * Cancelar sala
+     */
+    async function cancelRoom(id: string | number): Promise<boolean> {
+        const room = rooms.value.find(c => c.id === id)
+        const roomCode = room?.uuid_code ?? ''
+
+        const confirm = await showToastConfirmAction({
+            html: `¿Está seguro de que desea cancelar la sala "<b>${roomCode}</b>"? Esta acción no se puede deshacer.`,
+            icon: 'warning',
+            confirmButtonText: 'Sí, cancelar'
+        })
+
+        if (!confirm) return false
+
+        try {
+            await backendClient.patch(`/bingo-rooms/${id}/cancel`)
+            showToast('Sala cancelada exitosamente', 'success')
+            await fetchRooms()
+            return true
+        } catch (error: any) {
+            console.error('Error al cancelar sala:', error)
+            showToast(
+                error?.response?.data?.message ?? 'Error al cancelar la sala',
+                'error'
+            )
+            return false
+        }
+    }
+
     return {
         roomData,
         roomFormData,
@@ -529,6 +562,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         remove,
         removeBulk,
         fetchRooms,
-        goToRoom
+        goToRoom,
+        cancelRoom
     }
 }

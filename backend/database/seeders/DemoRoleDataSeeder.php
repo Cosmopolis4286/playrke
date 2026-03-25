@@ -55,7 +55,41 @@ class DemoRoleDataSeeder extends Seeder
 
         DB::transaction(function () use ($venezuela, $ves, $firstGame) {
             // ──────────────────────────────────────────────────────────
-            // 0. ADMIN
+            // 0. SUPERADMIN
+            // ──────────────────────────────────────────────────────────
+            $superadminUser = User::where('email', 'superadmin@playrke.com')->first();
+
+            if ($superadminUser && ! \App\Models\Roles\Admin::where('user_id', $superadminUser->id)->exists()) {
+                $uniqueCode = $this->userService->createUniqueCode((string) $superadminUser->id);
+
+                $superadmin = \App\Models\Roles\Admin::create([
+                    'user_id' => $superadminUser->id,
+                    'country_id' => $venezuela->id,
+                    'currency_id' => $ves->id,
+                    'unique_code_id' => $uniqueCode->id,
+                    'status' => 'ACTIVE',
+                    'permissions' => json_encode([
+                        'superadmin.access',
+                        'users.view', 'users.create', 'users.edit', 'users.delete', 'users.manage',
+                        'roles.view', 'roles.create', 'roles.edit', 'roles.delete', 'roles.assign',
+                        'commerces.view', 'commerces.create', 'commerces.edit', 'commerces.delete', 'commerces.approve',
+                        'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
+                        'customers.view', 'customers.create', 'customers.edit', 'customers.delete',
+                        'treasury.view', 'treasury.manage', 'treasury.approve.transactions', 'treasury.reports',
+                        'exchange.view', 'exchange.manage', 'exchange.update',
+                        'games.view', 'games.create', 'games.edit', 'games.delete', 'games.manage',
+                        'reports.view', 'reports.generate', 'reports.export', 'reports.financial', 'reports.gaming',
+                        'system.settings', 'system.maintenance', 'system.logs', 'system.backup',
+                        'audit.view', 'audit.export',
+                    ]),
+                    'last_login_at' => null,
+                ]);
+
+                $this->command->info("✔ SuperAdmin entity creada para {$superadminUser->email}");
+            }
+
+            // ──────────────────────────────────────────────────────────
+            // 1. ADMIN
             // ──────────────────────────────────────────────────────────
             $adminUser = User::where('email', 'admin@playrke.com')->first();
 
