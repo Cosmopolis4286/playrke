@@ -327,7 +327,7 @@ onUnmounted(() => {
       :game-mode-options="gameModeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
       :allowed-currencies-options="allowedCurrenciesOptions"
-      :bingo-pattern-options="bingoPatternOptions"
+      :bingo-patterns-options="bingoPatternOptions"
     />
 
     <template #footer>

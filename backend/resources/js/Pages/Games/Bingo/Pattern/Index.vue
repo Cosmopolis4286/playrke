@@ -13,7 +13,7 @@
   import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useBingoPattern } from '@/js/composables/games/bingo/pattern/useBingoPattern'
 
-  import type { BingoPatternPageProps } from '@/js/types/games/bingo/pattern/bingo-pattern-page'
+  import type { BingoPatternPageProps } from '@/js/types/games/bingo/pattern/bingo-patterns-page'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilter } from '@js/types/common/table/table-filter'
 

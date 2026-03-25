@@ -6,7 +6,7 @@
   import FormSwitch        from '@/js/Components/Common/Form/FormSwitch.vue'
   import BingoCardSelector from '@/js/Components/Games/Bingo/Pattern/BingoCardSelector.vue'
 
-  import type { BingoPattern } from '@/js/types/games/bingo/pattern/bingo-pattern'
+  import type { BingoPattern } from '@/js/types/games/bingo/pattern/bingo-patterns'
 
   /* ==========================================================================
    * Props / Emits
@@ -107,7 +107,7 @@
 </script>
 
 <template>
-  <form id="bingo-pattern-form" novalidate @submit.prevent="submit">
+  <form id="bingo-patterns-form" novalidate @submit.prevent="submit">
     <div class="row">
 
       <FormInput
