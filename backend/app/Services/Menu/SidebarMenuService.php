@@ -86,11 +86,6 @@ class SidebarMenuService
                     'route' => 'manager-seller.index',
                     'permission' => 'sellers.view',
                 ],
-                'customers' => [
-                    'title' => 'Clientes',
-                    'route' => 'customer.index',
-                    'permission' => 'customers.view',
-                ],
             ],
         ],
         'games' => [
@@ -110,11 +105,12 @@ class SidebarMenuService
                 ],
                 'game_configs' => [
                     'title' => 'Configuración de Juegos',
-                    'route' => 'game-configs.index',
+                    'route' => 'bingo.config.index',
                     'permission' => 'games.manage',
                 ],
             ],
         ],
+        /*
         'treasury' => [
             'title' => 'Tesorería',
             'icon' => 'fas fa-coins',
@@ -137,11 +133,23 @@ class SidebarMenuService
                 ],
             ],
         ],
+        */
         'reports' => [
             'title' => 'Reportes',
             'icon' => 'fas fa-chart-bar',
             'permission' => 'reports.view',
             'submenu' => [
+                'index' => [
+                    'title' => 'Todos los Reportes',
+                    'route' => 'reports.index',
+                    'permission' => 'reports.view',
+                ],
+                'export' => [
+                    'title' => 'Exportar Reportes',
+                    'route' => 'reports.export',
+                    'permission' => 'reports.export',
+                ],
+                /*
                 'financial' => [
                     'title' => 'Reportes Financieros',
                     'route' => 'reports.financial',
@@ -152,11 +160,7 @@ class SidebarMenuService
                     'route' => 'reports.gaming',
                     'permission' => 'reports.gaming',
                 ],
-                'export' => [
-                    'title' => 'Exportar',
-                    'route' => 'reports.export',
-                    'permission' => 'reports.export',
-                ],
+                */
             ],
         ],
         'system' => [
