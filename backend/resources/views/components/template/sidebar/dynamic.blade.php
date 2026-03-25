@@ -61,7 +61,7 @@
                 {{-- Sección de información (siempre visible) --}}
                 @php
                     $infoRoutes = ['info.terms', 'info.about', 'info.privacy'];
-                    $isInfoActive = request()->route()->is($infoRoutes);
+                    $isInfoActive = request()->routeIs($infoRoutes);
                 @endphp
 
                 <li class="nav-item has-treeview {{ $isInfoActive ? 'menu-open' : '' }}">
@@ -72,7 +72,7 @@
                     <ul class="nav nav-treeview">
                         <li class="nav-item">
                             <a href="{{ route('info.about') }}"
-                                class="{{ request()->route()->is('info.about') ? 'nav-link active' : 'nav-link' }}">
+                                class="{{ request()->routeIs('info.about') ? 'nav-link active' : 'nav-link' }}">
                                 <i class="fa-solid fa-caret-right nav-icon"></i>
                                 <p>Acerca de PlayRKE</p>
                             </a>
@@ -80,7 +80,7 @@
                         @if(auth()->user()?->hasRole('player'))
                             <li class="nav-item">
                                 <a href="{{ route('info.power-of-knowledge') }}"
-                                    class="{{ request()->route()->is('info.pds') ? 'nav-link active' : 'nav-link' }}">
+                                    class="{{ request()->routeIs('info.power-of-knowledge') ? 'nav-link active' : 'nav-link' }}">
                                     <i class="fa-solid fa-caret-right nav-icon"></i>
                                     <p>El Poder del Saber</p>
                                 </a>
@@ -88,14 +88,14 @@
                         @endif
                         <li class="nav-item">
                             <a href="{{ route('info.terms') }}"
-                                class="{{ request()->route()->is('info.terms') ? 'nav-link active' : 'nav-link' }}">
+                                class="{{ request()->routeIs('info.terms') ? 'nav-link active' : 'nav-link' }}">
                                 <i class="fa-solid fa-caret-right nav-icon"></i>
                                 <p>Términos y Condiciones</p>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="{{ route('info.privacy') }}"
-                                class="{{ request()->route()->is('info.privacy') ? 'nav-link active' : 'nav-link' }}">
+                                class="{{ request()->routeIs('info.privacy') ? 'nav-link active' : 'nav-link' }}">
                                 <i class="fa-solid fa-caret-right nav-icon"></i>
                                 <p>Política de Privacidad</p>
                             </a>
