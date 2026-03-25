@@ -134,6 +134,7 @@ class SidebarMenuService
             ],
         ],
         */
+        /*
         'reports' => [
             'title' => 'Reportes',
             'icon' => 'fas fa-chart-bar',
@@ -149,20 +150,10 @@ class SidebarMenuService
                     'route' => 'reports.export',
                     'permission' => 'reports.export',
                 ],
-                /*
-                'financial' => [
-                    'title' => 'Reportes Financieros',
-                    'route' => 'reports.financial',
-                    'permission' => 'reports.financial',
-                ],
-                'gaming' => [
-                    'title' => 'Reportes de Juegos',
-                    'route' => 'reports.gaming',
-                    'permission' => 'reports.gaming',
-                ],
-                */
             ],
         ],
+        */
+        /*
         'system' => [
             'title' => 'Sistema',
             'icon' => 'fas fa-cogs',
@@ -195,6 +186,7 @@ class SidebarMenuService
                 ],
             ],
         ],
+        */
     ];
 
     /**
