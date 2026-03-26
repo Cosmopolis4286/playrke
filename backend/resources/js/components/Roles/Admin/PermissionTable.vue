@@ -4,7 +4,7 @@
     <TableWithFilterBridge
       :columns="tableColumns"
       :data="permissions.rows"
-      :pagination="permissions.pagination"
+      :pagination="permissions.pagination || { current_page: 1, per_page: 15, total: permissions.rows?.length || 0, last_page: 1, from: 1, to: permissions.rows?.length || 0 }"
       :loading="loading"
       :extra-buttons="extraButtons"
       :show-select="true"
