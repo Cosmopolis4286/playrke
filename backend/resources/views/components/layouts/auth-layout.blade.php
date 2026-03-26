@@ -21,7 +21,7 @@
         <x-template.navbar />
 
         {{-- Sidebar dinámico --}}
-        <x-template.sidebar.dynamic />
+        <x-template.sidebar-dynamic />
 
         {{-- Alertas SweetAlert --}}
         @include('sweetalert::alert')
