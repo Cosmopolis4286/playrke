@@ -20,10 +20,11 @@ class RolePermissionSeeder extends Seeder
         $customer = Role::where('name', 'customer')->where('guard_name', 'api')->first();
         $player = Role::where('name', 'player')->where('guard_name', 'web')->first();
 
-        // SuperAdmin: Todos los permisos
+        // SuperAdmin: Todos los permisos (solo web guard)
         if ($superadmin) {
-            $allPermissions = Permission::all();
-            $superadmin->givePermissionTo($allPermissions);
+            // Solo asignar permisos con guard 'web' al rol SuperAdmin
+            $webPermissions = Permission::where('guard_name', 'web')->get();
+            $superadmin->givePermissionTo($webPermissions);
             $this->command->info('✅ Permisos asignados a SuperAdmin');
         }
 
@@ -91,18 +92,26 @@ class RolePermissionSeeder extends Seeder
         // Provider: Acceso API limitado
         if ($provider) {
             $providerPermissions = [
-                'customers.api.access',
+                'customers.api.access', // Este permiso usa guard 'api'
             ];
-            $provider->givePermissionTo($providerPermissions);
+            // Obtener permisos con guard 'api' para el rol provider
+            $apiPermissions = Permission::where('guard_name', 'api')
+                ->whereIn('name', $providerPermissions)
+                ->get();
+            $provider->givePermissionTo($apiPermissions);
             $this->command->info('✅ Permisos asignados a Provider');
         }
 
-        // Customer: Acceso API básico
+        // Customer: Acceso API limitado
         if ($customer) {
             $customerPermissions = [
-                'customers.api.access',
+                'customers.api.access', // Este permiso usa guard 'api'
             ];
-            $customer->givePermissionTo($customerPermissions);
+            // Obtener permisos con guard 'api' para el rol customer
+            $apiPermissions = Permission::where('guard_name', 'api')
+                ->whereIn('name', $customerPermissions)
+                ->get();
+            $customer->givePermissionTo($apiPermissions);
             $this->command->info('✅ Permisos asignados a Customer');
         }
 
