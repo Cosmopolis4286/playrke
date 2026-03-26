@@ -24,7 +24,7 @@ class SidebarMenuService
             'submenu' => [
                 'administrators' => [
                     'title' => 'Administradores',
-                    'route' => 'admin.administrators',
+                    'route' => 'admin.administrators.index',
                     'permission' => 'superadmin.access',
                 ],
                 'customers' => [
