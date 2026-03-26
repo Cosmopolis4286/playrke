@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Roles;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\Roles\Admin\AdministratorService;
+use App\Services\Roles\Admin\adminservice;
 use App\Services\Roles\Admin\AdministratorContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +19,7 @@ use Inertia\Response;
 final class AdministratorController extends Controller
 {
     public function __construct(
-        protected readonly AdministratorService $service,
+        protected readonly adminservice $service,
         protected readonly AdministratorContextService $contextService
     ) {}
 
@@ -31,8 +31,8 @@ final class AdministratorController extends Controller
         $context = $this->contextService->administratorContext();
         
         return Inertia::render('Roles/Admin/Administrator/Index', [
-            'administrators' => [
-                'rows' => $context->administrators['rows'] ?? [],
+            'admins' => [
+                'rows' => $context->admins['rows'] ?? [],
                 'pagination' => $context->pagination,
             ],
         ]);

@@ -17,17 +17,17 @@ final class AdministratorContextService
 
     public function administratorContext(): AdministratorContextDTO
     {
-        $data = $this->resolveAdministrators();
+        $data = $this->resolveadmins();
 
         return new AdministratorContextDTO(
-            administrators: $data['administrators'],
+            admins: $data['admins'],
             pagination:     $data['pagination'],
-            countries:      $this->countries->getActive(['id', 'name', 'iso_code_2']),
-            roles:          Role::whereIn('name', ['admin', 'superadmin'])->orderBy('name')->get(['id', 'name', 'prefix']),
+            countries:      $this->countries->getActive(['id', 'name', 'iso_code_2'])->toArray(),
+            roles:          Role::whereIn('name', ['admin', 'superadmin'])->orderBy('name')->get(['id', 'name', 'prefix'])->toArray(),
         );
     }
 
-    public function resolveAdministrators(): array
+    public function resolveadmins(): array
     {
         $labels  = ['Rol', 'Nombre', 'Username', 'Email', 'País', 'Status'];
         $rowKeys = ['role_badge', 'full_name', 'username', 'email', 'country_name', 'status_badge'];
@@ -60,9 +60,9 @@ final class AdministratorContextService
             'to'           => $source->lastItem(),
         ];
 
-        $administrators = $this->processCollectionTableData($collection, $labels, $rowKeys);
+        $admins = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
-        return ['administrators' => $administrators, 'pagination' => $pagination];
+        return ['admins' => $admins, 'pagination' => $pagination];
     }
 
     private function administratorRoleBadge(string $role): string

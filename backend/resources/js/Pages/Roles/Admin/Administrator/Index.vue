@@ -19,7 +19,7 @@
   // Lógica de negocio
   // =========================================================================
   const {
-    fetchAdministrators,
+    fetchadmins,
     toggleStatus,
     resetPassword,
     remove,
@@ -36,7 +36,7 @@
   const handleTableCrudEvent = (event: CustomEvent) => {
     const { action, encryptIds, tableId } = event.detail
 
-    if (tableId !== 'administrators-table') return
+    if (tableId !== 'admins-table') return
 
     switch (action) {
       case 'toggleStatus':
@@ -83,7 +83,7 @@
     <section class="content">
       <div class="container-fluid">
         <AdministratorTable 
-          :administrators="props.administrators"
+          :admins="props.admins"
         />
       </div>
     </section>

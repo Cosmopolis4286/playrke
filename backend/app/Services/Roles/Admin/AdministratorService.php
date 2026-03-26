@@ -7,7 +7,7 @@ use App\Models\User;
 use App\Services\User\UserPasswordService;
 use Illuminate\Support\Facades\DB;
 
-final class AdministratorService
+final class adminservice
 {
     public function __construct(
         private readonly AdministratorContextService $context,
@@ -16,7 +16,7 @@ final class AdministratorService
 
     public function fetchList(): array
     {
-        return $this->context->resolveAdministrators()['administrators']['rows'] ?? [];
+        return $this->context->resolveadmins()['admins']['rows'] ?? [];
     }
 
     /**

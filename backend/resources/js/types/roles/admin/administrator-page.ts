@@ -1,5 +1,5 @@
 export interface AdminAdministratorPageProps {
-    administrators: {
+    admins: {
         rows: Administrator[]
         pagination: {
             total: number

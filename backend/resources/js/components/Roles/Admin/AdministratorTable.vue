@@ -20,12 +20,12 @@
   // Lógica de negocio
   // =========================================================================
   const {
-    administrators,
+    admins,
     loading,
     selectedIds,
     hasSelected,
     allSelected,
-    fetchAdministrators,
+    fetchadmins,
     toggleStatus,
     resetPassword,
     remove,
@@ -35,7 +35,7 @@
   } = useAdminAdministrator()
 
   // Inicializar datos desde props
-  administrators.value = props.administrators.rows
+  admins.value = props.admins.rows
 
   // =========================================================================
   // Configuración de tabla
@@ -84,10 +84,10 @@
 
 <template>
   <TableWithFilterBridge
-    table-id="administrators-table"
+    table-id="admins-table"
     title="Administradores"
     :columns="tableConfig.columns"
-    :rows="administrators"
+    :rows="admins"
     :extra-buttons="tableConfig.extraButtons"
     :loading="loading"
     @selection-change="ids => selectedIds = ids"
