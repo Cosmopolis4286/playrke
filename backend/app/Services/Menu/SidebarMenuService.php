@@ -22,6 +22,11 @@ class SidebarMenuService
             'icon' => 'fa-solid fa-users-gear',
             'permission' => 'users.view',
             'submenu' => [
+                'administrators' => [
+                    'title' => 'Administradores',
+                    'route' => 'admin.administrators',
+                    'permission' => 'superadmin.access',
+                ],
                 'customers' => [
                     'title' => 'Clientes',
                     'route' => 'admin.customers',

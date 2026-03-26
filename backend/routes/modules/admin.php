@@ -7,6 +7,7 @@ use App\Http\Controllers\Roles\Admin\AdminCustomerController;
 use App\Http\Controllers\Roles\Admin\AdminPlayerController;
 use App\Http\Controllers\Roles\Admin\AdminTreasurerController;
 use App\Http\Controllers\Roles\Admin\AdminUserController;
+use App\Http\Controllers\Roles\Admin\AdministratorController;
 use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
 
 /*
@@ -142,6 +143,20 @@ Route::middleware('auth')->group(function () {
         'getWalletBalance' => ['method' => 'get', 'uri' => '{user}/wallet-balance','action' => 'getWalletBalance'],
     ];
     role_protected_routes(['role:admin'], 'admin/user', AdminUserController::class, $userRoutes, 'user');
+
+    /**
+     * =========================================================
+     * GESTIÓN DE ADMINISTRADORES (SOLO SUPERADMIN)
+     * =========================================================
+     */
+    role_protected_routes(['role:superadmin'], 'admin/administrators', AdminAdministratorController::class, [
+        'index'         => ['method' => 'get',    'uri' => '',                    'action' => 'index'],
+        'fetchList'     => ['method' => 'get',    'uri' => 'fetch-list',          'action' => 'fetchList'],
+        'toggleStatus'  => ['method' => 'patch', 'uri' => '{user}/toggle-status',  'action' => 'toggleStatus'],
+        'delete'        => ['method' => 'delete', 'uri' => '{user}',               'action' => 'delete'],
+        'destroy'       => ['method' => 'delete', 'uri' => '{user}/force-delete',     'action' => 'destroy'],
+        'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password', 'action' => 'resetPassword'],
+    ], 'user');
 
     // Generación de llave de conexión para Customer
     Route::middleware('role:admin')
