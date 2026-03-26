@@ -7,12 +7,7 @@
             <h1 class="m-0">Gestión de Permisos</h1>
           </div>
           <div class="col-sm-6">
-            <ol class="breadcrumb float-sm-right">
-              <li class="breadcrumb-item">
-                <a href="{{ route('dashboard') }}">Dashboard</a>
-              </li>
-              <li class="breadcrumb-item active">Permisos</li>
-            </ol>
+            <Breadcrumb :items="breadcrumbItems" />
           </div>
         </div>
       </div>
@@ -44,10 +39,9 @@
                   :current-role="currentRole"
                   @update:selected-ids="selectedIds = $event"
                   @refresh="loadPermissions"
-                  @page-changed="handlePageChange"
                   @assign-permissions="handleAssignPermissions"
                   @revoke-permissions="handleRevokePermissions"
-                  @load-role-permissions="handleLoadRolePermissions"
+                  @create-permission="handleCreatePermission"
                 />
               </div>
             </div>
@@ -61,12 +55,19 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import PermissionTable from '@/js/Components/Roles/Admin/PermissionTable.vue'
+import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
 import { usePermissions } from '@/js/composables/roles/admin/permission/usePermissions'
 import Swal from 'sweetalert2'
 import type { PermissionPageProps } from '@/js/types/roles/admin/permission-page'
 
 // Props
 const props = defineProps<PermissionPageProps>()
+
+// Breadcrumb items
+const breadcrumbItems = [
+  { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+  { label: 'Permisos' }
+]
 
 // Composable
 const {
@@ -78,9 +79,9 @@ const {
   selectedCount,
   fetchPermissions,
   fetchRolesWithPermissions,
-  fetchRolePermissions,
   assignPermissions,
   revokePermissions,
+  createPermission,
   reset,
 } = usePermissions()
 
@@ -122,6 +123,7 @@ const handlePageChange = async (page: number) => {
 const handleAssignPermissions = async (roleId: string, permissionIds: string[]) => {
   try {
     await assignPermissions(roleId, permissionIds)
+    await loadRoles() // Recargar roles para actualizar permisos
     Swal.fire({
       icon: 'success',
       title: 'Éxito',
@@ -144,6 +146,7 @@ const handleAssignPermissions = async (roleId: string, permissionIds: string[]) 
 const handleRevokePermissions = async (roleId: string, permissionIds: string[]) => {
   try {
     await revokePermissions(roleId, permissionIds)
+    await loadRoles() // Recargar roles para actualizar permisos
     Swal.fire({
       icon: 'success',
       title: 'Éxito',
@@ -163,33 +166,34 @@ const handleRevokePermissions = async (roleId: string, permissionIds: string[]) 
   }
 }
 
-const handleLoadRolePermissions = async (roleId: string) => {
+const handleCreatePermission = async (data: { name: string, guard_name: string, description?: string }) => {
   try {
-    await fetchRolePermissions(roleId)
+    await createPermission(data)
+    await loadPermissions() // Recargar permisos
+    Swal.fire({
+      icon: 'success',
+      title: 'Éxito',
+      text: 'Permiso creado correctamente',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+    })
   } catch (error) {
-    console.error('Error loading role permissions:', error)
+    console.error('Error creating permission:', error)
     Swal.fire({
       icon: 'error',
       title: 'Error',
-      text: 'No se pudieron cargar los permisos del rol',
+      text: 'No se pudo crear el permiso',
     })
   }
 }
 
 // Inicialización
 onMounted(async () => {
-  // Inicializar datos desde los props
-  if (props.permissions?.rows) {
-    // Los datos ya vienen del backend, no necesitamos cargarlos nuevamente
-  } else {
-    await loadPermissions()
-  }
-  
-  if (props.roles?.length) {
-    // Los roles ya vienen del backend
-  } else {
-    await loadRoles()
-  }
+  // Cargar datos iniciales
+  await loadPermissions()
+  await loadRoles()
 })
 </script>
 
@@ -211,10 +215,5 @@ onMounted(async () => {
   font-size: 1.1rem;
   font-weight: 600;
   color: #495057;
-}
-
-.badge-info {
-  background-color: #17a2b8;
-  color: #fff;
 }
 </style>
