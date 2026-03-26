@@ -6,6 +6,7 @@ export interface Permission {
   status: boolean
   created_at?: string
   updated_at?: string
+  selected?: boolean // Para checkboxes en el modal
 }
 
 export interface RolePermission {

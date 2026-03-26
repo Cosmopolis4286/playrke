@@ -2,9 +2,11 @@
   <div class="permission-table">
     <!-- Tabla de Permisos -->
     <TableWithFilterBridge
+      table-id="permissions-table"
+      title="Permisos del Sistema"
       :columns="tableColumns"
-      :data="permissions.rows"
-      :pagination="permissions.pagination || { current_page: 1, per_page: 15, total: permissions.rows?.length || 0, last_page: 1, from: 1, to: permissions.rows?.length || 0 }"
+      :rows="tableRows"
+      :pagination="tablePagination"
       :loading="loading"
       :extra-buttons="extraButtons"
       :show-select="true"
@@ -17,9 +19,7 @@
 
     <!-- Modal de Asignación de Permisos por Rol -->
     <Modal
-      v-if="showRoleModal"
-      :show="showRoleModal"
-      @close="closeRoleModal"
+      v-model="showRoleModal"
       title="Gestionar Permisos por Rol"
       size="lg"
     >
@@ -117,8 +117,29 @@ interface Emits {
   (e: 'loadRolePermissions', roleId: string): void
 }
 
-const props = defineProps<Props>()
+// Props con valores por defecto
+const props = withDefaults(defineProps<Props>(), {
+  permissions: () => ({
+    rows: [],
+    pagination: { current_page: 1, per_page: 15, total: 0, last_page: 1, from: 1, to: 0 }
+  }),
+  roles: () => [],
+  loading: false,
+  selectedIds: () => [],
+  currentRole: null
+})
 const emit = defineEmits<Emits>()
+
+// Propiedades computadas para seguridad
+const tableRows = computed(() => props.permissions?.rows || [])
+const tablePagination = computed(() => props.permissions?.pagination || { 
+  current_page: 1, 
+  per_page: 15, 
+  total: props.permissions?.rows?.length || 0, 
+  last_page: 1, 
+  from: 1, 
+  to: props.permissions?.rows?.length || 0 
+})
 
 // Estado local
 const showRoleModal = ref(false)
@@ -245,10 +266,6 @@ watch(() => props.currentRole, (newRole) => {
 </script>
 
 <style scoped>
-.permission-table {
-  /* Estilos específicos para la tabla de permisos */
-}
-
 .role-permission-manager {
   max-height: 500px;
   overflow-y: auto;
