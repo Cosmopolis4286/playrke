@@ -8,6 +8,7 @@ use App\Http\Controllers\Roles\Admin\AdminPlayerController;
 use App\Http\Controllers\Roles\Admin\AdminTreasurerController;
 use App\Http\Controllers\Roles\Admin\AdminUserController;
 use App\Http\Controllers\Roles\AdministratorController;
+use App\Http\Controllers\Roles\PermissionController;
 use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
 
 /*
@@ -157,6 +158,23 @@ Route::middleware('auth')->group(function () {
         'destroy'       => ['method' => 'delete', 'uri' => '{user}/force-delete',     'action' => 'destroy'],
         'resetPassword' => ['method' => 'put',    'uri' => '{user}/reset-password', 'action' => 'resetPassword'],
     ], 'user');
+
+    /**
+     * =========================================================
+     * PERMISOS (Solo SuperAdmin)
+     * =========================================================
+     */
+    role_protected_routes(['role:superadmin'], 'permissions', PermissionController::class, [
+        'index'                => ['method' => 'get',    'uri' => '',                          'action' => 'index'],
+        'fetchList'            => ['method' => 'get',    'uri' => 'fetch-list',                'action' => 'fetchList'],
+        'getRolePermissions'   => ['method' => 'get',    'uri' => 'roles/{role}/permissions',  'action' => 'getRolePermissions'],
+        'assignPermissions'    => ['method' => 'post',   'uri' => 'roles/{role}/assign',       'action' => 'assignPermissions'],
+        'revokePermissions'    => ['method' => 'post',   'uri' => 'roles/{role}/revoke',       'action' => 'revokePermissions'],
+        'store'                => ['method' => 'post',   'uri' => '',                          'action' => 'store'],
+        'update'               => ['method' => 'patch',  'uri' => '{permission}',             'action' => 'update'],
+        'delete'               => ['method' => 'delete', 'uri' => '{permission}',             'action' => 'delete'],
+        'getRolesWithPermissions' => ['method' => 'get', 'uri' => 'roles-permissions',       'action' => 'getRolesWithPermissions'],
+    ], 'permission');
 
     // Generación de llave de conexión para Customer
     Route::middleware('role:admin')

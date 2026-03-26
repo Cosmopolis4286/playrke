@@ -27,6 +27,11 @@ class SidebarMenuService
                     'route' => 'admins.index',
                     'permission' => 'superadmin.access',
                 ],
+                'permissions' => [
+                    'title' => 'Permisos',
+                    'route' => 'permissions.index',
+                    'permission' => 'superadmin.access',
+                ],
                 'customers' => [
                     'title' => 'Clientes',
                     'route' => 'admin.customers',
