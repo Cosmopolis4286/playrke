@@ -64,26 +64,29 @@ class SidebarMenuService
                 ],
             ],
         ],
+        'directory' => [
+            'title' => 'Directorio',
+            'icon' => 'fas fa-address-book',
+            'permission' => null, // Accesible para todos
+            'route' => 'directory.index',
+        ],
+        'exchange_rates' => [
+            'title' => 'Tasa de Cambio',
+            'icon' => 'fas fa-exchange-alt',
+            'permission' => '!player,!seller', // Accesible para todos excepto player y seller
+            'route' => 'exchange-rate.index',
+        ],
+        'prizes' => [
+            'title' => 'Premios',
+            'icon' => 'fas fa-trophy',
+            'permission' => '!player,!seller', // Accesible para todos excepto player y seller
+            'route' => 'prizes.index',
+        ],
         'commerces_management' => [
             'title' => 'Gestión de Comercios',
             'icon' => 'fas fa-store',
             'permission' => 'commerces.view',
             'submenu' => [
-                'directory' => [
-                    'title' => 'Directorio',
-                    'route' => 'directory.index',
-                    'permission' => 'commerces.view',
-                ],
-                'exchange_rates' => [
-                    'title' => 'Tasa de Cambio',
-                    'route' => 'exchange-rate.index',
-                    'permission' => 'exchange.view',
-                ],
-                'prizes' => [
-                    'title' => 'Premios',
-                    'route' => 'prizes.index',
-                    'permission' => 'games.view',
-                ],
             ],
         ],
         'seller_management' => [

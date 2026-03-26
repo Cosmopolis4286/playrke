@@ -84,6 +84,16 @@ class PermissionSeeder extends Seeder
             ['name' => 'audit.view', 'guard_name' => 'web', 'description' => 'Ver auditoría'],
             ['name' => 'audit.export', 'guard_name' => 'web', 'description' => 'Exportar auditoría'],
 
+            // Opciones independientes del menú
+            ['name' => 'directory.view', 'guard_name' => 'web', 'description' => 'Ver directorio de comercios'],
+            ['name' => 'directory.search', 'guard_name' => 'web', 'description' => 'Buscar en directorio'],
+            
+            ['name' => 'prizes.view', 'guard_name' => 'web', 'description' => 'Ver premios'],
+            ['name' => 'prizes.create', 'guard_name' => 'web', 'description' => 'Crear premios'],
+            ['name' => 'prizes.edit', 'guard_name' => 'web', 'description' => 'Editar premios'],
+            ['name' => 'prizes.delete', 'guard_name' => 'web', 'description' => 'Eliminar premios'],
+            ['name' => 'prizes.assign', 'guard_name' => 'web', 'description' => 'Asignar premios'],
+
             // Permisos de SuperAdmin (acceso total)
             ['name' => 'superadmin.access', 'guard_name' => 'web', 'description' => 'Acceso total al sistema'],
         ];

@@ -40,6 +40,9 @@ class RolePermissionSeeder extends Seeder
                 'games.view', 'games.manage',
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial', 'reports.gaming',
                 'audit.view',
+                // Opciones independientes
+                'directory.view', 'directory.search',
+                'prizes.view', 'prizes.create', 'prizes.edit', 'prizes.delete', 'prizes.assign',
             ];
             $admin->givePermissionTo($adminPermissions);
             $this->command->info('✅ Permisos asignados a Admin');
@@ -52,6 +55,9 @@ class RolePermissionSeeder extends Seeder
                 'customers.view', 'customers.create', 'customers.edit',
                 'games.view',
                 'reports.view', 'reports.generate', 'reports.gaming',
+                // Opciones independientes
+                'directory.view', 'directory.search',
+                'prizes.view', 'prizes.create', 'prizes.edit',
             ];
             $commerce->givePermissionTo($commercePermissions);
             $this->command->info('✅ Permisos asignados a Commerce');
@@ -74,6 +80,9 @@ class RolePermissionSeeder extends Seeder
                 'treasury.view', 'treasury.manage', 'treasury.approve.transactions', 'treasury.reports',
                 'exchange.view', 'exchange.update',
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial',
+                // Opciones independientes
+                'directory.view', 'directory.search',
+                'prizes.view',
             ];
             $treasurer->givePermissionTo($treasurerPermissions);
             $this->command->info('✅ Permisos asignados a Treasurer');
