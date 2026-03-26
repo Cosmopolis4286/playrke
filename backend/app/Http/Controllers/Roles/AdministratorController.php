@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Roles\Admin;
+namespace App\Http\Controllers\Roles;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -16,7 +16,7 @@ use Inertia\Response;
  *
  * Solo accesible por SuperAdmin para gestionar otros administradores.
  */
-final class AdminAdministratorController extends Controller
+final class AdministratorController extends Controller
 {
     public function __construct(
         protected readonly AdministratorService $service,
