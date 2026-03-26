@@ -15,8 +15,8 @@ return new class extends Migration
             // Campo para permisos específicos del usuario (sobreescribe permisos de rol)
             $table->json('specific_permissions')->nullable()->comment('Permisos específicos del usuario');
             
-            // Índice para búsqueda rápida
-            $table->index('specific_permissions', 'idx_specific_permissions');
+            // No crear índice directo en JSON (MySQL no lo permite)
+            // Se puede agregar índice virtual si se necesita más adelante
         });
     }
 
@@ -26,7 +26,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropIndex('idx_specific_permissions');
+            // Eliminar campo de permisos específicos
             $table->dropColumn('specific_permissions');
         });
     }
