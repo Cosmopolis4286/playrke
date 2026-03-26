@@ -23,7 +23,7 @@ class BingoRoomAutomaticPolicy extends BaseRolePolicy
      */
     protected function requiredRole(): string|array
     {
-        return ['admin', 'commerce', 'customer'];
+        return ['superadmin', 'admin', 'commerce', 'customer'];
     }
 
     /**

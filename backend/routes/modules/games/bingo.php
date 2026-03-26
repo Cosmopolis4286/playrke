@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Route;
  * INFORMACIÓN DE SALAS DE JUEGO Y CONFIGURACIÓN
  * ====================================
  */
-route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'role:admin,superadmin,commerce'], BingoRoomController::class, [
+route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'multiRole:admin,superadmin,commerce'], BingoRoomController::class, [
     'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
@@ -68,7 +68,7 @@ route_group('bingo/patterns', 'bingo-patterns.', ['auth', 'role:admin,superadmin
  * SALAS AUTOMÁTICAS
  * ====================================
  */
-route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'role:admin,superadmin,commerce'], BingoRoomAutomaticController::class, [
+route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'multiRole:admin,superadmin,commerce'], BingoRoomAutomaticController::class, [
     'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
