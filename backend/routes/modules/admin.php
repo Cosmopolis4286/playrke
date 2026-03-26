@@ -7,7 +7,7 @@ use App\Http\Controllers\Roles\Admin\AdminCustomerController;
 use App\Http\Controllers\Roles\Admin\AdminPlayerController;
 use App\Http\Controllers\Roles\Admin\AdminTreasurerController;
 use App\Http\Controllers\Roles\Admin\AdminUserController;
-use App\Http\Controllers\Roles\Admin\AdministratorController;
+use App\Http\Controllers\Roles\AdministratorController;
 use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
 
 /*
@@ -149,7 +149,7 @@ Route::middleware('auth')->group(function () {
      * GESTIÓN DE ADMINISTRADORES (SOLO SUPERADMIN)
      * =========================================================
      */
-    role_protected_routes(['role:superadmin'], 'admin/administrators', AdminAdministratorController::class, [
+    role_protected_routes(['role:superadmin'], 'admin/administrators', AdministratorController::class, [
         'index'         => ['method' => 'get',    'uri' => '',                    'action' => 'index'],
         'fetchList'     => ['method' => 'get',    'uri' => 'fetch-list',          'action' => 'fetchList'],
         'toggleStatus'  => ['method' => 'patch', 'uri' => '{user}/toggle-status',  'action' => 'toggleStatus'],
