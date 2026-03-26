@@ -20,10 +20,10 @@ class RolePermissionSeeder extends Seeder
         $customer = Role::where('name', 'customer')->where('guard_name', 'api')->first();
         $player = Role::where('name', 'player')->where('guard_name', 'web')->first();
 
-        // SuperAdmin: Todos los permisos web (su guard)
+        // SuperAdmin: Todos los permisos
         if ($superadmin) {
-            $allWebPermissions = Permission::where('guard_name', 'web')->get();
-            $superadmin->givePermissionTo($allWebPermissions);
+            $allPermissions = Permission::all();
+            $superadmin->givePermissionTo($allPermissions);
             $this->command->info('✅ Permisos asignados a SuperAdmin');
         }
 

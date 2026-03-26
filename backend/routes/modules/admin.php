@@ -25,7 +25,7 @@ Route::middleware('auth')->group(function () {
      * =========================================================
      */
     role_protected_routes(
-        ['role:admin'],
+        ['role:admin,superadmin'],
         'admin',
         AdminController::class,
         [

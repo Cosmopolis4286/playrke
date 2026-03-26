@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 // ====================================
 // RUTAS DE REPORTES Y ESTADÍSTICAS (ADMIN)
 // ====================================
-Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:admin'])->group(function () {
+Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:admin,superadmin'])->group(function () {
     Route::get('/', [TriviaReportController::class, 'index'])->name('index');
     Route::get('/winners', [TriviaReportController::class, 'winners'])->name('winners');
     Route::get('/winners-room/{coin}', [TriviaReportController::class, 'winnersRoom'])->name('winners-room');
@@ -29,7 +29,7 @@ Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:admin'])->gr
 // ====================================
 // RUTAS DE SALAS MULTIUSUARIO (ADMIN)
 // ====================================
-Route::prefix('trivia-rooms')->name('trivia-rooms.')->middleware(['auth', 'role:admin'])->group(function () {
+Route::prefix('trivia-rooms')->name('trivia-rooms.')->middleware(['auth', 'role:admin,superadmin'])->group(function () {
     Route::get('/', [TriviaRoomController::class, 'index'])->name('index');
     Route::get('/create', [TriviaRoomController::class, 'create'])->name('create');
     Route::post('/', [TriviaRoomController::class, 'store'])->name('store');
@@ -43,7 +43,7 @@ Route::prefix('trivia-rooms')->name('trivia-rooms.')->middleware(['auth', 'role:
 // ====================================
 // RUTAS DE PREGUNTAS (ADMIN)
 // ====================================
-Route::prefix('trivia-questions')->name('trivia-questions.')->middleware(['auth', 'role:admin'])->group(function () {
+Route::prefix('trivia-questions')->name('trivia-questions.')->middleware(['auth', 'role:admin,superadmin'])->group(function () {
     Route::get('/room/{roomId}', [TriviaQuestionController::class, 'index'])->name('index');
     Route::get('/room/{roomId}/create', [TriviaQuestionController::class, 'create'])->name('create');
     Route::post('/room/{roomId}', [TriviaQuestionController::class, 'store'])->name('store');

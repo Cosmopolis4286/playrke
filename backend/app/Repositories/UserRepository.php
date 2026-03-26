@@ -59,6 +59,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function getDemoUsersForFrontend(): SupportCollection
     {
         $roleDescriptions = [
+            'superadmin' => 'Super Administrador del sistema',
             'admin'    => 'Administrador del sistema',
             'commerce' => 'Comercio de prueba',
             'seller'   => 'Vendedor asociado al comercio demo',
