@@ -20,8 +20,8 @@
         {{-- Barra de navegación --}}
         <x-template.navbar />
 
-        {{-- Sidebar selector --}}
-        <x-template.sidebar.sidebar-selector />
+        {{-- Sidebar dinámico --}}
+        <x-template.sidebar.dynamic />
 
         {{-- Alertas SweetAlert --}}
         @include('sweetalert::alert')
