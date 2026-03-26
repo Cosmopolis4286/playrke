@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Roles;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\Roles\Administrator\AdministratorService;
-use App\Services\Roles\Administrator\AdministratorContextService;
+use App\Services\Roles\Admin\AdministratorService;
+use App\Services\Roles\Admin\AdministratorContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;

@@ -149,7 +149,7 @@ Route::middleware('auth')->group(function () {
      * GESTIÓN DE ADMINISTRADORES (SOLO SUPERADMIN)
      * =========================================================
      */
-    role_protected_routes(['role:superadmin'], 'admin/administrators', AdministratorController::class, [
+    role_protected_routes(['role:superadmin'], 'admins', AdministratorController::class, [
         'index'         => ['method' => 'get',    'uri' => '',                    'action' => 'index'],
         'fetchList'     => ['method' => 'get',    'uri' => 'fetch-list',          'action' => 'fetchList'],
         'toggleStatus'  => ['method' => 'patch', 'uri' => '{user}/toggle-status',  'action' => 'toggleStatus'],
