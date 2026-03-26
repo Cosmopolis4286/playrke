@@ -82,22 +82,27 @@ class SidebarMenuService
             'permission' => '!player,!seller', // Accesible para todos excepto player y seller
             'route' => 'prizes.index',
         ],
-        'commerces_management' => [
-            'title' => 'Gestión de Comercios',
-            'icon' => 'fas fa-store',
-            'permission' => 'commerces.view',
-            'submenu' => [
-            ],
-        ],
         'seller_management' => [
             'title' => 'Gestión de Ventas',
             'icon' => 'fa-solid fa-comments-dollar',
-            'permission' => 'sellers.view',
+            'permission' => 'sellers.view,customers.view', // Accesible para commerce, customer, seller
             'submenu' => [
                 'my_sellers' => [
                     'title' => 'Mis Vendedores',
                     'route' => 'manager-seller.index',
                     'permission' => 'sellers.view',
+                ],
+            ],
+        ],
+        'game_bingo' => [
+            'title' => 'Bingo',
+            'icon' => 'fas fa-gamepad',
+            'permission' => 'game.bingo', // Acceso específico a juegos de bingo
+            'submenu' => [
+                'bingo_rooms' => [
+                    'title' => 'Salas de Bingo',
+                    'route' => 'bingo-rooms.index',
+                    'permission' => 'game.bingo', // Acceso específico a juegos de bingo
                 ],
             ],
         ],
@@ -110,16 +115,6 @@ class SidebarMenuService
                     'title' => 'Salas de Bingo',
                     'route' => 'bingo-rooms.index',
                     'permission' => 'games.view',
-                ],
-                'bingo_patterns' => [
-                    'title' => 'Patrones de Bingo',
-                    'route' => 'bingo-patterns.index',
-                    'permission' => 'games.edit',
-                ],
-                'game_configs' => [
-                    'title' => 'Configuración de Juegos',
-                    'route' => 'bingo.config.index',
-                    'permission' => 'games.manage',
                 ],
             ],
         ],

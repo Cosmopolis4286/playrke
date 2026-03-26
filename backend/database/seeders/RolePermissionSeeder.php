@@ -54,7 +54,7 @@ class RolePermissionSeeder extends Seeder
             $commercePermissions = [
                 'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
                 'customers.view', 'customers.create', 'customers.edit',
-                'games.view',
+                'game.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.generate', 'reports.gaming',
                 // Opciones independientes
                 'directory.view', 'directory.search',
@@ -68,7 +68,7 @@ class RolePermissionSeeder extends Seeder
         if ($seller) {
             $sellerPermissions = [
                 'customers.view', 'customers.create', 'customers.edit',
-                'games.view',
+                'game.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.gaming',
             ];
             $seller->givePermissionTo($sellerPermissions);
@@ -115,10 +115,10 @@ class RolePermissionSeeder extends Seeder
             $this->command->info('✅ Permisos asignados a Customer');
         }
 
-        // Player: Solo visualización de juegos
+        // Player: Solo acceso a juegos de bingo
         if ($player) {
             $playerPermissions = [
-                'games.view',
+                'game.bingo', // Acceso a juegos de bingo
             ];
             $player->givePermissionTo($playerPermissions);
             $this->command->info('✅ Permisos asignados a Player');

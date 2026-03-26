@@ -66,6 +66,9 @@ class PermissionSeeder extends Seeder
             ['name' => 'games.edit', 'guard_name' => 'web', 'description' => 'Editar juegos'],
             ['name' => 'games.delete', 'guard_name' => 'web', 'description' => 'Eliminar juegos'],
             ['name' => 'games.manage', 'guard_name' => 'web', 'description' => 'Gestionar juegos'],
+            
+            // Juegos específicos
+            ['name' => 'game.bingo', 'guard_name' => 'web', 'description' => 'Acceso a juegos de bingo'],
 
             // Reportes
             ['name' => 'reports.view', 'guard_name' => 'web', 'description' => 'Ver reportes'],
