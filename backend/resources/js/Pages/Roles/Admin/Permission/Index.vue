@@ -66,6 +66,7 @@ const props = defineProps<PermissionPageProps>()
 // Breadcrumb items
 const breadcrumbItems = [
   { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
+  { label: 'Usuarios', route: '/admins', icon: 'fas fa-users' },
   { label: 'Permisos' }
 ]
 

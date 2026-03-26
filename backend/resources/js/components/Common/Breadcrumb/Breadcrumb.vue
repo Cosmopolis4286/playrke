@@ -1,11 +1,5 @@
 <template>
   <ol class="breadcrumb float-sm-right">
-    <li class="breadcrumb-item">
-      <a href="{{ route('dashboard') }}">
-        <i class="fas fa-home mr-1"></i>
-        Dashboard
-      </a>
-    </li>
     <li
       v-for="(item, index) in items"
       :key="index"
