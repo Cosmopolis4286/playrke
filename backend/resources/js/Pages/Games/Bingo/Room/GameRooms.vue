@@ -206,6 +206,14 @@ onMounted(() => {
    FONDO ESTELAR — cubre body + AdminLTE wrappers
 ═══════════════════════════════════════════════════════════════ */
 
+html,
+body {
+  height: auto !important;
+  min-height: 100%;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
 body,
 body.hold-transition,
 #app-wrapper,
@@ -241,11 +249,24 @@ body.hold-transition,
   flex: 1;
   display: flex;
   flex-direction: column;
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
 }
 
 /* El scroll lo gestiona .game-rooms-page (scoped), no el wrapper */
 .content-wrapper > .content {
-  overflow: hidden !important;
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 100vh;
+}
+
+/* Wrapper principal - permitir scroll */
+.wrapper,
+.content-wrapper {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
 }
 </style>
 
@@ -255,7 +276,7 @@ body.hold-transition,
 ═══════════════════════════════════════════════════════════════ */
 .game-rooms-page {
   flex: 1;
-  min-height: 100%;
+  min-height: 100vh;
   padding: 32px 16px 60px;
   position: relative;
   isolation: isolate;

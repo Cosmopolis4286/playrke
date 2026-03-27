@@ -580,7 +580,7 @@ class BingoRoomCrudService
             'serialsPct'            => $config->serials_pct ? (float) $config->serials_pct : null,
             'numSerials'            => $config->num_serials ? (int) $config->num_serials : null,
             'roundsConfig'          => $roundsConfig,
-            'activateRoom'               => true,
+            'activateRoom'          => false,
         ]);
 
         return $this->saveRoom($dto);

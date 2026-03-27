@@ -253,7 +253,7 @@
       :game-mode-options="gameModeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
       :allowed-currencies-options="allowedCurrenciesOptions"
-      :bingo-patterns-options="bingoPatternOptions"
+      :bingo-pattern-options="bingoPatternOptions"
     />
 
     <template #footer>
