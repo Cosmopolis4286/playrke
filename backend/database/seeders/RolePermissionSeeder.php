@@ -39,6 +39,7 @@ class RolePermissionSeeder extends Seeder
                 'treasury.view', 'treasury.reports',
                 'exchange.view', 'exchange.manage',
                 'games.view', 'games.manage',
+                'game.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial', 'reports.gaming',
                 'audit.view',
                 // Opciones independientes
@@ -102,16 +103,13 @@ class RolePermissionSeeder extends Seeder
             $this->command->info('✅ Permisos asignados a Provider');
         }
 
-        // Customer: Acceso API limitado
+        // Customer: Acceso web limitado
         if ($customer) {
             $customerPermissions = [
-                'customers.api.access', // Este permiso usa guard 'api'
+                'game.bingo', // Acceso a juegos de bingo (guard 'web')
+                'directory.view', 'directory.search', // Acceso al directorio
             ];
-            // Obtener permisos con guard 'api' para el rol customer
-            $apiPermissions = Permission::where('guard_name', 'api')
-                ->whereIn('name', $customerPermissions)
-                ->get();
-            $customer->givePermissionTo($apiPermissions);
+            $customer->givePermissionTo($customerPermissions);
             $this->command->info('✅ Permisos asignados a Customer');
         }
 

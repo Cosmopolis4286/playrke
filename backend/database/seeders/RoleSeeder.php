@@ -24,7 +24,7 @@ class RoleSeeder extends Seeder
             ['name' => 'Sucursal',  'prefix' => 'subsidiary', 'description' => 'Sucursal de un comercio', 'status' => true, 'type' => 'web'],
             ['name' => 'Vendedor',  'prefix' => 'seller',     'description' => 'Vendedor asociado', 'status' => true, 'type' => 'web'],
             ['name' => 'Proveedor', 'prefix' => 'provider',   'description' => 'Proveedor del sistema', 'status' => true, 'type' => 'api'],      // API guard
-            ['name' => 'Cliente',   'prefix' => 'customer',   'description' => 'Cliente que usa nuestos servicios',               'status' => true, 'type' => 'api'],      // API guard
+            ['name' => 'Cliente',   'prefix' => 'customer',   'description' => 'Cliente que usa nuestos servicios',               'status' => true, 'type' => 'web'],      // Cambiado a 'web' para acceso al menú
             ['name' => 'Tesorero',  'prefix' => 'treasurer',  'description' => 'Responsable financiero', 'status' => true, 'type' => 'web'],
         ];
 

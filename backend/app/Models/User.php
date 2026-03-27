@@ -131,11 +131,11 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Roles del usuario
      *
-     * @return BelongsToMany<Role>
+     * @return BelongsToMany<\Spatie\Permission\Models\Role>
      */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'role_user')->withTimestamps();
+        return $this->belongsToMany(\Spatie\Permission\Models\Role::class, 'role_user')->withTimestamps();
     }
 
     /**
