@@ -14,6 +14,7 @@
 // Imports
 // ==========================================================================
 import { ref, onMounted, computed } from "vue";
+import { usePage } from "@inertiajs/vue3";
 import "@/css/games/bingo/bingo-game-rooms.css";
 
 // ==========================================================================
@@ -48,6 +49,19 @@ import type {
 const props = defineProps<BingoGameRoomsPageProps>();
 
 // ==========================================================================
+// Auth desde Inertia (más seguro que localStorage)
+// ==========================================================================
+const page = usePage();
+
+/** Verifica si el usuario es admin o superadmin usando props de Inertia */
+const isAdmin = computed(() => {
+  const userRoles = page.props.auth?.user?.userRoles || [];
+  return userRoles.some((ur: any) => 
+    ur.role?.prefix === 'admin' || ur.role?.prefix === 'superadmin'
+  );
+});
+
+// ==========================================================================
 // Estado local de salas (mutable para actualizar prize_pool y ctns)
 // ==========================================================================
 const rooms = ref<BingoGameRoom[]>(props.rooms.map((r) => ({ ...r })));
@@ -57,7 +71,10 @@ const rooms = ref<BingoGameRoom[]>(props.rooms.map((r) => ({ ...r })));
 // ==========================================================================
 const filteredRooms = computed(() => {
   // Si el usuario tiene rol 'player', mostrar solo salas PUBLIC
-  if (AuthService.hasRole("player")) {
+  const userRoles = page.props.auth?.user?.userRoles || [];
+  const isPlayer = userRoles.some((ur: any) => ur.role?.prefix === 'player');
+  
+  if (isPlayer) {
     return rooms.value.filter((room) => room.room_type === "PUBLIC");
   }
   // Para otros roles, mostrar todas las salas
@@ -91,6 +108,11 @@ const modal = useGameRoomPurchaseModal();
 
 /** Abre el modal para la sala con el ID dado. */
 function openModal(roomId: string): void {
+  // Bloquear admins/superadmins
+  if (isAdmin.value) {
+    console.log('🚫 Admin no puede abrir modal de compra - BLOQUEADO');
+    return;
+  }
   const room = filteredRooms.value.find((r) => r.id === roomId);
   if (room) modal.open(room);
 }
@@ -175,6 +197,7 @@ onMounted(() => {
 
   <!-- ══ Modal de compra ══ -->
   <BingoPurchaseModal
+    v-if="modal.isOpen.value && !isAdmin"
     :is-open="modal.isOpen.value"
     :step="modal.step.value"
     :selected-room="modal.selectedRoom.value"

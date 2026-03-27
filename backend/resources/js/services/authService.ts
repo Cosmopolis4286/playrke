@@ -171,18 +171,45 @@ export class AuthService {
   }
 
   /**
-   * Obtener datos del usuario desde localStorage
+   * Obtener datos del usuario desde Inertia
    */
   static getUser(): any | null {
-    const userData = localStorage.getItem('user_data');
-    if (userData) {
-      try {
-        return JSON.parse(userData);
-      } catch {
-        return null;
-      }
+    // Obtener de Inertia global
+    const inertiaPage = this.getInertiaPage();
+    if (inertiaPage?.props?.auth?.user) {
+      return inertiaPage.props.auth.user;
     }
     return null;
+  }
+  
+  /**
+   * Obtener la página de Inertia desde el objeto global
+   */
+  private static getInertiaPage(): any | null {
+    try {
+      // Inertia expone los datos en window después de hydration
+      const w = window as any;
+      
+      // Intentar obtener de diferentes fuentes posibles
+      if (w.Inertia?.page) {
+        return w.Inertia.page;
+      }
+      
+      // El componente raíz de Vue con Inertia
+      if (w.__inertia?.page) {
+        return w.__inertia.page;
+      }
+      
+      // Datos iniciales inyectados en el HTML
+      const el = document.getElementById('app');
+      if (el?.dataset?.page) {
+        return JSON.parse(el.dataset.page);
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -201,10 +228,40 @@ export class AuthService {
   }
 
   /**
+   * Verificar si el usuario tiene un rol con el prefijo especificado
+   */
+  static hasRolePrefix(prefix: string): boolean {
+    const user = this.getUser();
+    console.log('🔍 AuthService.hasRolePrefix - user:', user)
+    console.log('🔍 AuthService.hasRolePrefix - user?.userRoles:', user?.userRoles)
+    
+    const hasPrefix = user?.userRoles?.some((userRole: any) => {
+      console.log('🔍 Checking userRole:', userRole)
+      console.log('🔍 userRole.role:', userRole.role)
+      console.log('🔍 userRole.role?.prefix:', userRole.role?.prefix)
+      console.log('🔍 userRole.role_prefix:', userRole.role_prefix)
+      
+      return userRole.role?.prefix?.toLowerCase() === prefix.toLowerCase() || 
+        userRole.role_prefix?.toLowerCase() === prefix.toLowerCase() ||
+        userRole.prefix?.toLowerCase() === prefix.toLowerCase()
+    }) || false;
+    
+    console.log('🔍 AuthService.hasRolePrefix - result for', prefix, ':', hasPrefix)
+    return hasPrefix;
+  }
+
+  /**
    * Verificar si el usuario tiene alguno de los roles especificados
    */
   static hasAnyRole(roles: string[]): boolean {
     return roles.some(role => this.hasRole(role));
+  }
+
+  /**
+   * Verificar si el usuario tiene alguno de los prefijos de rol especificados
+   */
+  static hasAnyRolePrefix(prefixes: string[]): boolean {
+    return prefixes.some(prefix => this.hasRolePrefix(prefix));
   }
 
   /**

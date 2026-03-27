@@ -5,6 +5,7 @@
  * Tarjeta premium individual de sala de juego de bingo.
  * Diseño glassmorphism oscuro con gradientes y animaciones sutiles.
  */
+import { usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
 import type { RoomCountdown } from '@/js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
@@ -53,6 +54,19 @@ const emit = defineEmits<{
 // ---------------------------------------------------------------------------
 // Computed
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Auth desde Inertia
+// ---------------------------------------------------------------------------
+const page = usePage()
+
+/** Si el usuario es admin o superadmin (no pueden comprar) */
+const isAdmin = computed(() => {
+  const userRoles = page.props.auth?.user?.userRoles || []
+  return userRoles.some((ur: any) => 
+    ur.role?.prefix === 'admin' || ur.role?.prefix === 'superadmin'
+  )
+})
 
 /** Si la sala está activa (ACTIVE = disponible para comprar) */
 const isAvailable = computed(() => props.room.status_code === 'ACTIVE')
@@ -134,8 +148,15 @@ function handleCardClick(): void {
   console.log('🔍 Debug - isAvailable:', isAvailable.value)
   console.log('🔍 Debug - room.status_code:', props.room.status_code)
   console.log('🔍 Debug - playerCtns:', playerCtns.value)
+  console.log('🔍 Debug - isAdmin:', isAdmin.value)
   
   if (props.loading) return
+
+  // Si es admin/superadmin, no permitir compra ni abrir modal
+  if (isAdmin.value) {
+    console.log('🚫 Admin no puede comprar cartones')
+    return
+  }
   
   // Si la sala está disponible, permitir compra
   if (isAvailable.value) {

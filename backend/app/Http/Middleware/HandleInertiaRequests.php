@@ -77,12 +77,25 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        
         return [
             ...parent::share($request),
 
             'app' => [
                 'env'   => app()->environment(),
                 'debug' => config('app.debug'),
+            ],
+            
+            'auth' => [
+                'user' => $user ? [
+                    'name'       => $user->name,
+                    'userRoles'  => $user->userRoles->map(fn($ur) => [
+                        'role' => [
+                            'name'   => $ur->role->name,
+                        ],
+                    ]),
+                ] : null,
             ],
         ];
     }
