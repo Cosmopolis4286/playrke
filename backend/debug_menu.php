@@ -31,16 +31,21 @@ foreach ($user->roles as $role) {
 echo "\n🔐 Permisos del usuario (vía getAllPermissions):\n";
 $permissions = $user->getAllPermissions();
 foreach ($permissions as $permission) {
-    echo "  - {$permission}\n";
+    echo "  - {$permission->name} (guard: {$permission->guard_name})\n";
 }
 
 echo "\n🎯 Verificación de permiso 'game.bingo':\n";
 echo "  - can('game.bingo'): " . ($user->can('game.bingo') ? '✅ SÍ' : '❌ NO') . "\n";
+echo "  - hasPermissionTo('game.bingo'): " . ($user->hasPermissionTo('game.bingo') ? '✅ SÍ' : '❌ NO') . "\n";
+echo "  - hasPermissionTo('game.bingo', 'web'): " . ($user->hasPermissionTo('game.bingo', 'web') ? '✅ SÍ' : '❌ NO') . "\n";
 
 // Verificar directamente en los permisos
 $permissions = $user->getAllPermissions();
 $hasGameBingo = collect($permissions)->contains('name', 'game.bingo');
 echo "  - game.bingo en lista de permisos: " . ($hasGameBingo ? '✅ SÍ' : '❌ NO') . "\n";
+
+// Verificar guard actual
+echo "  - Guard actual del usuario: " . auth()->getDefaultDriver() . "\n";
 
 // Verificar si el rol admin tiene el permiso asignado
 echo "\n🔍 Verificación del rol 'admin':\n";

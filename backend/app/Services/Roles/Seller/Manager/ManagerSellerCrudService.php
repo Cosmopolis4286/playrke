@@ -7,6 +7,8 @@ use App\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Seller\Manager\ManagerSellerDTO;
 use App\Exceptions\Domain\Roles\Seller\Manager\ManagerSellerException;
 use App\Http\Resources\Roles\Seller\Manager\ManagerSellerResource;
+use App\Models\Game;
+use App\Models\User;
 use App\Models\Pivots\Roles\Seller\SellerCurrency;
 use App\Models\Pivots\Roles\Seller\SellerGame;
 use App\Models\Roles\Seller;
@@ -195,7 +197,7 @@ final class ManagerSellerCrudService
     }
 
     /**
-     * Sincroniza juegos permitidos.
+     * Sincroniza juegos permitidos y actualiza permisos específicos del usuario.
      */
     protected function syncGames(
         Seller $seller,
@@ -206,6 +208,32 @@ final class ManagerSellerCrudService
             ->unique()
             ->values()
             ->all();
+
+        // Obtener nombres de juegos para crear permisos
+        $gamePermissions = [];
+        if (!empty($activeGameIds)) {
+            $games = Game::whereIn('id', $activeGameIds)->get(['id', 'name']);
+            $gamePermissions = $games->map(fn($game) => 'game.' . strtolower($game->name))
+                ->values()
+                ->all();
+        }
+
+        // Actualizar permisos específicos del usuario del seller
+        $user = User::find($seller->user_id);
+        if ($user) {
+            $currentPermissions = $user->specific_permissions ?? [];
+
+            // Filtrar permisos que no son de juegos
+            $nonGamePermissions = array_filter(
+                $currentPermissions,
+                fn($perm) => !str_starts_with($perm, 'game.')
+            );
+
+            // Combinar permisos no-juego + nuevos permisos de juegos
+            $newPermissions = array_values(array_unique(array_merge($nonGamePermissions, $gamePermissions)));
+
+            $user->update(['specific_permissions' => $newPermissions]);
+        }
 
         SellerGame::where('seller_id', $seller->id)
             ->whereNotIn('game_id', $activeGameIds)

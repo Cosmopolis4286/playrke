@@ -7,6 +7,8 @@ use App\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Customer\AdminCustomerDTO;
 use App\Exceptions\Domain\Roles\Admin\Customer\AdminCustomerException;
 use App\Http\Resources\Roles\Admin\Customer\AdminCustomerResource;
+use App\Models\Game;
+use App\Models\User;
 use App\Models\Pivots\Roles\Customer\CustomerCurrency;
 use App\Models\Pivots\Roles\Customer\CustomerGame;
 use App\Models\Roles\Customer;
@@ -200,7 +202,7 @@ final class AdminCustomerCrudService
     }
 
     /**
-     * Sincroniza juegos permitidos.
+     * Sincroniza juegos permitidos y actualiza permisos específicos del usuario.
      */
     protected function syncGames(
         Customer $customer,
@@ -211,6 +213,32 @@ final class AdminCustomerCrudService
             ->unique()
             ->values()
             ->all();
+
+        // Obtener nombres de juegos para crear permisos
+        $gamePermissions = [];
+        if (!empty($activeGameIds)) {
+            $games = Game::whereIn('id', $activeGameIds)->get(['id', 'name']);
+            $gamePermissions = $games->map(fn($game) => 'game.' . strtolower($game->name))
+                ->values()
+                ->all();
+        }
+
+        // Actualizar permisos específicos del usuario del customer
+        $user = User::find($customer->user_id);
+        if ($user) {
+            $currentPermissions = $user->specific_permissions ?? [];
+
+            // Filtrar permisos que no son de juegos
+            $nonGamePermissions = array_filter(
+                $currentPermissions,
+                fn($perm) => !str_starts_with($perm, 'game.')
+            );
+
+            // Combinar permisos no-juego + nuevos permisos de juegos
+            $newPermissions = array_values(array_unique(array_merge($nonGamePermissions, $gamePermissions)));
+
+            $user->update(['specific_permissions' => $newPermissions]);
+        }
 
         CustomerGame::where('customer_id', $customer->id)
             ->whereNotIn('game_id', $activeGameIds)

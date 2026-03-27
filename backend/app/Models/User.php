@@ -629,17 +629,13 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Obtener todos los permisos del usuario (rol + específicos)
+     * Obtener todos los permisos del usuario como array de nombres
      *
      * @return array
      */
-    public function getAllPermissions(): array
+    public function getAllPermissionNames(): array
     {
-        $rolePermissions = $this->getPermissionsViaRoles()->pluck('name')->toArray();
-        $specificPermissions = $this->specific_permissions ?? [];
-        
-        // Los permisos específicos sobreescriben los del rol
-        return array_unique(array_merge($rolePermissions, $specificPermissions));
+        return $this->getAllPermissions()->pluck('name')->toArray();
     }
 
     /**

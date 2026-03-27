@@ -10,7 +10,7 @@ class SidebarMenuService
     /**
      * Estructura completa del menú con permisos requeridos
      */
-    private array $menuStructure = [
+    public array $menuStructure = [
         'dashboard' => [
             'title' => 'Tablero',
             'icon' => 'fas fa-tachometer-alt',
