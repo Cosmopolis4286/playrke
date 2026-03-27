@@ -79,6 +79,11 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         
+        // Cargar relaciones si el usuario está autenticado
+        if ($user) {
+            $user->load(['roles']);
+        }
+        
         return [
             ...parent::share($request),
 
@@ -89,12 +94,15 @@ class HandleInertiaRequests extends Middleware
             
             'auth' => [
                 'user' => $user ? [
+                    'id'         => $user->id,
                     'name'       => $user->name,
-                    'userRoles'  => $user->userRoles->map(fn($ur) => [
+                    'email'      => $user->email,
+                    'userRoles'  => $user->roles ? $user->roles->map(fn($role) => [
                         'role' => [
-                            'name'   => $ur->role->name,
+                            'name'   => $role->name,
+                            'prefix' => $role->prefix,
                         ],
-                    ]),
+                    ]) : [],
                 ] : null,
             ],
         ];

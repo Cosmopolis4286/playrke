@@ -62,9 +62,9 @@ const page = usePage()
 
 /** Si el usuario es admin o superadmin (no pueden comprar) */
 const isAdmin = computed(() => {
-  const userRoles = page.props.auth?.user?.userRoles || []
-  return userRoles.some((ur: any) => 
-    ur.role?.prefix === 'admin' || ur.role?.prefix === 'superadmin'
+  const roles = page.props.auth?.user?.userRoles || []
+  return roles.some((r: any) => 
+    r.role?.prefix === 'admin' || r.role?.prefix === 'superadmin'
   )
 })
 
@@ -73,22 +73,16 @@ const isAvailable = computed(() => props.room.status_code === 'ACTIVE')
 
 /** Etiqueta de estado visible */
 const statusLabel = computed(() => {
-  console.log('🔍 Debug - isAvailable:', isAvailable.value)
-  console.log('🔍 Debug - room.status_code:', props.room.status_code)
-  console.log('🔍 Debug - playerCtns:', playerCtns.value)
-  
   if (isAvailable.value) {
     return 'Comprar Cartones'
   }
   
   // Si la sala está IN_PROGRESS y el jugador tiene cartones, mostrar "Entrar a Sala"
   if (props.room.status_code === 'IN_PROGRESS' && playerCtns.value > 0) {
-    console.log('✅ Mostrando "Entrar a Sala"')
     return 'Entrar a Sala'
   }
   
   // Para cualquier otro caso (IN_PROGRESS sin cartones, etc.)
-  console.log('❌ Mostrando "En Juego"')
   return 'En Juego'
 })
 
@@ -143,13 +137,6 @@ const hasTime = computed(() => props.countdown && !props.countdown.expired)
 // ---------------------------------------------------------------------------
 
 function handleCardClick(): void {
-  console.log('🖱️ handleCardClick called')
-  console.log('🔍 Debug - loading:', props.loading)
-  console.log('🔍 Debug - isAvailable:', isAvailable.value)
-  console.log('🔍 Debug - room.status_code:', props.room.status_code)
-  console.log('🔍 Debug - playerCtns:', playerCtns.value)
-  console.log('🔍 Debug - isAdmin:', isAdmin.value)
-  
   if (props.loading) return
 
   // Si es admin/superadmin, no permitir compra ni abrir modal
@@ -160,22 +147,16 @@ function handleCardClick(): void {
   
   // Si la sala está disponible, permitir compra
   if (isAvailable.value) {
-    console.log('🛒 Emitting select event')
     emit('select', props.room.id)
     return
   }
   
   // Si la sala está IN_PROGRESS y el jugador tiene cartones, redirigir al juego
   if (props.room.status_code === 'IN_PROGRESS' && playerCtns.value > 0) {
-    console.log('🎮 Redirecting to game')
     const roomUrl = `/bingo-game/${props.room.id}/in-game`
-    console.log(`Redirigiendo a: ${roomUrl}`)
     window.location.href = roomUrl
     return
   }
-  
-  // Para otros casos (IN_PROGRESS sin cartones), no hacer nada o mostrar mensaje
-  console.log('❌ No se puede entrar a la sala: el jugador no tiene cartones')
 }
 
 function handleCtnsInput(event: Event): void {
