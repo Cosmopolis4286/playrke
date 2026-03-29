@@ -17,5 +17,5 @@ route_group('info', 'info.', ['auth'], InformationController::class, [
     'privacy' => ['method' => 'get', 'uri' => 'privacy'],
     'about' => ['method' => 'get', 'uri' => 'about'],
     'helpCenter' => ['method' => 'get', 'uri' => 'help-center'],
-    'powerOfKnowledge' => ['method' => 'get', 'uri' => 'power-of-knowledge'],
+    'power-of-knowledge' => ['method' => 'get', 'uri' => 'power-of-knowledge', 'action' => 'powerOfKnowledge'],
 ]);
