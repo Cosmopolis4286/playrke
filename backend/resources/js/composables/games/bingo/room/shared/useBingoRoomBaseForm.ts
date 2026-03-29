@@ -66,7 +66,8 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
             e.time = 'La hora es requerida.'
         } else if (!automaticRoom() && form.value.date) {
             const now = new Date()
-            const todayStr = now.toISOString().split('T')[0]
+            // Use local date string instead of UTC to avoid timezone issues
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
             const minDateTime = new Date(now.getTime() + 15 * 60 * 1000)
             const selectedDateTime = new Date(`${form.value.date}T${form.value.time}:00`)
 
