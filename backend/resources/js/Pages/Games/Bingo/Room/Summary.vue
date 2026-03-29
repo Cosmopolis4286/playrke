@@ -10,6 +10,7 @@
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import BingoRoomForm from '@/js/Components/Games/Bingo/Room/Form/BingoRoomForm.vue'
+  import BingoRoomDetails from '@/js/Components/Games/Bingo/Room/BingoRoomDetails.vue'
 
   // ==========================================================================
   // Composables
@@ -24,6 +25,7 @@
   import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/summary/bingo-room-summary-page'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilterInterface } from '@js/types/common/table/table-filter'
+  import type { BingoRoom } from '@/js/types/games/bingo/room/bingo-room'
 
   // ==========================================================================
   // Props (Inertia)
@@ -45,7 +47,8 @@
     removeBulk,
     submit,
     goToRoom,
-    cancelRoom
+    cancelRoom,
+    fetchRoomDetails
   } = useBingoRoom()
 
   // Key forzar re-render de la tabla
@@ -56,6 +59,36 @@
   }
 
   setInitialRooms(props.rooms.rows)
+
+  // ==========================================================================
+  // Modal de Detalles
+  // ==========================================================================
+  const showDetailsModal = ref(false)
+  const selectedRoomDetails = ref<BingoRoom | null>(null)
+  const loadingDetails = ref(false)
+
+  const openRoomDetails = async (ids: string[]) => {
+    if (!ids || ids.length !== 1) return
+
+    const roomId = ids[0]
+    loadingDetails.value = true
+    showDetailsModal.value = true
+
+    const roomDetails = await fetchRoomDetails(roomId)
+
+    if (roomDetails) {
+      selectedRoomDetails.value = roomDetails
+    } else {
+      showDetailsModal.value = false
+    }
+
+    loadingDetails.value = false
+  }
+
+  const closeDetailsModal = () => {
+    showDetailsModal.value = false
+    selectedRoomDetails.value = null
+  }
 
   // ==========================================================================
   // Modal + Form handler
@@ -241,6 +274,13 @@
       }
     },
     {
+      icon: 'fas fa-info-circle',
+      class: 'btn-info text-white',
+      title: 'Ver Detalles',
+      show: (ids: string[]) => ids.length === 1 && hasPlayers(ids),
+      onClick: openRoomDetails
+    },
+    {
       icon: 'fas fa-exchange-alt',
       class: 'btn-secondary',
       title: 'Alternar Estado',
@@ -349,6 +389,26 @@ onUnmounted(() => {
       >
         Guardar
       </button>
+    </template>
+  </Modal>
+
+  <!-- Modal de Detalles de Sala -->
+  <Modal
+    v-model="showDetailsModal"
+    title="Detalles de Sala"
+    size="lg"
+  >
+    <BingoRoomDetails
+      v-if="selectedRoomDetails"
+      :room="selectedRoomDetails"
+      :room-type-options="roomTypeOptions"
+      :game-mode-options="gameModeOptions"
+      :prize-pool-type-options="prizePoolTypeOptions"
+      :allowed-currencies-options="allowedCurrenciesOptions"
+    />
+
+    <template #footer>
+      <button class="btn btn-sm btn-secondary" @click="closeDetailsModal">Cerrar</button>
     </template>
   </Modal>
 </template>

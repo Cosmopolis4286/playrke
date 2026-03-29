@@ -50,6 +50,9 @@ interface UseBingoRoomReturn {
     /** Fetch desde backend */
     fetchRooms: () => Promise<boolean>
 
+    /** Obtener detalles de una sala */
+    fetchRoomDetails: (id: string | number) => Promise<BingoRoom | null>
+
     /** Ir a sala de juego */
     goToRoom: (ids: string[]) => Promise<void>
 
@@ -482,6 +485,22 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
     }
 
     /**
+     * Obtener detalles completos de una sala
+     */
+    async function fetchRoomDetails(id: string | number): Promise<BingoRoom | null> {
+        try {
+            const response = await backendClient.get<{ data: BingoRoom }>(
+                `/bingo-rooms/${id}/show`
+            )
+            return response.data?.data ?? null
+        } catch (error) {
+            console.error('Error al cargar detalles de sala:', error)
+            showToast('Error al cargar los detalles de la sala', 'error')
+            return null
+        }
+    }
+
+    /**
      * Ir a sala de juego
      */
     async function goToRoom(ids: string[]): Promise<void> {
@@ -562,6 +581,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         remove,
         removeBulk,
         fetchRooms,
+        fetchRoomDetails,
         goToRoom,
         cancelRoom
     }
