@@ -34,6 +34,9 @@ class MultiRoleMiddleware
             return redirect()->route('login')->with('error', 'Usuario inválido o sin roles asignados.');
         }
 
+        // Cargar la relación role para obtener los prefijos
+        $activeAssignments->load('role');
+
         // Extraer prefijos de roles activos
         $userRolesPrefixes = $activeAssignments->map(function ($assignment) {
             return $assignment->role->prefix ?? null;
