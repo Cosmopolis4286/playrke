@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 // ====================================
 // BILLETERA DEL JUGADOR
 // ====================================
-Route::middleware(['auth', 'role:player'])->group(function () {
+Route::middleware(['auth', 'multiPermission:wallet.view,wallet.deposit,wallet.withdraw,wallet.movements'])->group(function () {
     Route::get('wallet',                              [WalletController::class, 'index'])     ->name('wallet.index');
     Route::post('wallet/deposit',                     [WalletController::class, 'deposit'])   ->name('wallet.deposit');
     Route::post('wallet/withdraw',                    [WalletController::class, 'withdraw'])  ->name('wallet.withdraw');

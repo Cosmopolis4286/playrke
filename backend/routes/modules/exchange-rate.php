@@ -8,7 +8,7 @@ use App\Http\Controllers\ExchangeRateController;
 route_group(
     'exchange-rate',
     'exchange-rate.',
-    ['auth'],
+    ['auth', 'multiPermission:exchange.view,exchange.manage'],
     ExchangeRateController::class,
     [
         'index'        => ['method' => 'get', 'uri' => '', 'defaults' => ['inertiaOnly' => false]],

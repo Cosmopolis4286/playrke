@@ -24,6 +24,7 @@ return Application::configure(
          */
         $middleware->alias([
             'multiRole' => App\Http\Middleware\MultiRoleMiddleware::class,
+            'multiPermission' => App\Http\Middleware\MultiPermissionMiddleware::class,
             'role' => App\Http\Middleware\RoleMiddleware::class,
             'publicToken' => App\Http\Middleware\PublicTokenMiddleware::class,
             'validate.token' => \App\Http\Middleware\ValidateToken::class,
