@@ -106,6 +106,12 @@ class SidebarMenuService
                 ],
             ],
         ],
+        'wallet' => [
+            'title' => 'Billetera',
+            'icon' => 'fas fa-wallet',
+            'permission' => 'wallet.view',
+            'route' => 'wallet.index',
+        ],
         'games' => [
             'title' => 'Juegos',
             'icon' => 'fas fa-gamepad',
@@ -213,19 +219,22 @@ class SidebarMenuService
             return collect($this->menuStructure);
         }
 
+        // Obtener permisos del usuario una sola vez
+        $userPermissions = $user->getAllPermissions()->pluck('name')->toArray();
+
         // Filtrar menú basado en permisos
-        return collect($this->menuStructure)->filter(function ($item) use ($user) {
+        return collect($this->menuStructure)->filter(function ($item) use ($user, $userPermissions) {
             // Si no requiere permiso, mostrar siempre
             if (empty($item['permission'])) {
                 return true;
             }
 
-            // Verificar si tiene el permiso
-            if ($user->can($item['permission'])) {
+            // Verificar si tiene el permiso (usando array en lugar de can())
+            if (in_array($item['permission'], $userPermissions)) {
                 // Filtrar submenú si existe
                 if (isset($item['submenu'])) {
-                    $item['submenu'] = collect($item['submenu'])->filter(function ($subitem) use ($user) {
-                        return empty($subitem['permission']) || $user->can($subitem['permission']);
+                    $item['submenu'] = collect($item['submenu'])->filter(function ($subitem) use ($userPermissions) {
+                        return empty($subitem['permission']) || in_array($subitem['permission'], $userPermissions);
                     })->toArray();
                     
                     // Mostrar solo si hay submenús visibles
