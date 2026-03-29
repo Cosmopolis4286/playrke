@@ -48,12 +48,12 @@ final class PlayerDashboardContextService
         $activeRooms = BingoRoom::active()->count();
 
         // Cartones del jugador este mes
-        $cardsThisMonth = BingoCard::where('creator_user_id', $userId)
+        $cardsThisMonth = BingoCard::where('creator_room_user_id', $userId)
             ->where('created_at', '>=', $startOfMonth)
             ->count();
 
         // Total cartones del jugador
-        $totalCards = BingoCard::where('creator_user_id', $userId)->count();
+        $totalCards = BingoCard::where('creator_room_user_id', $userId)->count();
 
         return [
             'walletBalance' => [
@@ -87,7 +87,7 @@ final class PlayerDashboardContextService
     {
         $userId = (string) $user?->getKey();
 
-        return BingoCard::where('creator_user_id', $userId)
+        return BingoCard::where('creator_room_user_id', $userId)
             ->with('room.config')
             ->latest()
             ->limit(8)
