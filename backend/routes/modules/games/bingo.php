@@ -100,7 +100,7 @@ route_group('bingo-card', 'bingo-card.', ['auth', 'role:admin,superadmin,commerc
  * ====================================
  */
 route_group('bingo-game-rooms', 'bingo-game-rooms.', ['auth', 'role:admin,superadmin,commerce,seller,player'], BingoRoomController::class, [
-    'view-game-rooms' => ['method' => 'get',  'uri' => '',           'action' => 'viewGameRooms'],
+    'index' => ['method' => 'get',  'uri' => '',           'action' => 'viewGameRooms'],
     'buy-from-rooms'  => ['method' => 'post', 'uri' => '{room}/buy', 'action' => 'buyFromGameRooms'],
     'player-buy'       => ['method' => 'post', 'uri' => '{room}/player-buy', 'action' => 'playerBuyFromGameRooms'],
     'check-user-role'  => ['method' => 'get',  'uri' => 'check-user-role', 'action' => 'checkUserRole'],

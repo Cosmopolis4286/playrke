@@ -70,6 +70,12 @@ class SidebarMenuService
             'permission' => null, // Accesible para todos
             'route' => 'directory.index',
         ],
+        'wallet' => [
+            'title' => 'Billetera',
+            'icon' => 'fas fa-wallet',
+            'permission' => 'wallet.view',
+            'route' => 'wallet.index',
+        ],
         'exchange_rates' => [
             'title' => 'Tasa de Cambio',
             'icon' => 'fas fa-exchange-alt',
@@ -94,23 +100,23 @@ class SidebarMenuService
                 ],
             ],
         ],
-        'game_bingo' => [
-            'title' => 'Bingo',
-            'icon' => 'fas fa-gamepad',
-            'permission' => 'game.bingo', // Acceso específico a juegos de bingo
-            'submenu' => [
-                'bingo_rooms' => [
-                    'title' => 'Salas de Bingo',
-                    'route' => 'bingo-rooms.index',
-                    'permission' => 'game.bingo', // Acceso específico a juegos de bingo
-                ],
-            ],
-        ],
         'wallet' => [
             'title' => 'Billetera',
             'icon' => 'fas fa-wallet',
             'permission' => 'wallet.view',
             'route' => 'wallet.index',
+        ],
+        'game_bingo' => [
+            'title' => 'Bingo',
+            'icon' => 'fas fa-gamepad',
+            'permission' => 'game.bingo', // Acceso específico a juegos de bingo
+            'submenu' => [
+                'game_rooms' => [
+                    'title' => 'Salas de Bingo',
+                    'route' => 'bingo-game-rooms.index',
+                    'permission' => 'game.bingo.game_rooms', // Acceso específico a juegos de bingo
+                ],
+            ],
         ],
         'games' => [
             'title' => 'Juegos',

@@ -117,6 +117,7 @@ class RolePermissionSeeder extends Seeder
         if ($player) {
             $playerPermissions = [
                 'game.bingo', // Acceso a juegos de bingo
+                'game.bingo.game_rooms', // Acceso a salas de bingo
                 'wallet.view', // Acceso a ver billetera
             ];
             $player->givePermissionTo($playerPermissions);
