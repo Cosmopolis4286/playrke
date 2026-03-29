@@ -88,13 +88,18 @@ final class PlayerDashboardContextService
         $userId = (string) $user?->getKey();
 
         return BingoCard::where('creator_room_user_id', $userId)
-            ->with(['room.config', 'currency'])
+            ->with(['room.config', 'room.cardPrices.currency', 'currency'])
             ->latest()
             ->limit(8)
-            ->get(['id', 'room_id', 'serial_number', 'status', 'price', 'currency_id', 'created_at'])
+            ->get(['id', 'room_id', 'serial_number', 'status', 'currency_id', 'created_at'])
             ->map(function (BingoCard $card) {
                 $roomDate = $card->room?->config?->date?->format('d/m/Y') ?? 'N/D';
                 $roomTime = $card->room?->config?->start_time?->format('H:i') ?? '';
+                
+                // Obtener precio desde la sala (card_prices)
+                $cardPrice = $card->room?->cardPrices?->first();
+                $price = $cardPrice?->card_price;
+                $priceCurrency = $cardPrice?->currency?->iso_code ?? $card->currency?->iso_code ?? '';
 
                 return [
                     'id'          => (string) $card->getKey(),
@@ -105,8 +110,8 @@ final class PlayerDashboardContextService
                     'actor'       => $card->serial_number,
                     'meta'        => [
                         'status'   => $card->status,
-                        'price'    => $card->price ? number_format($card->price, 2) : null,
-                        'currency' => $card->currency?->iso_code ?? '',
+                        'price'    => $price ? number_format($price, 2) : null,
+                        'currency' => $priceCurrency,
                     ],
                 ];
             })
