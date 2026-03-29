@@ -108,10 +108,10 @@
       <!-- Actividad reciente -->
       <DashboardSection
         title="Mis cartones recientes"
-        icon="fas fa-ticket-alt"
+        icon="fas fa-th"
         subtitle="Últimos cartones adquiridos"
       >
-        <DashboardActivityFeed :items="sortedActivity" :maxItems="8" />
+        <DashboardActivityFeed :items="sortedActivity" :maxItems="8" :columns="2" />
       </DashboardSection>
 
     </div>
