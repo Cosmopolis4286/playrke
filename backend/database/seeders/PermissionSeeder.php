@@ -97,6 +97,12 @@ class PermissionSeeder extends Seeder
             ['name' => 'prizes.delete', 'guard_name' => 'web', 'description' => 'Eliminar premios'],
             ['name' => 'prizes.assign', 'guard_name' => 'web', 'description' => 'Asignar premios'],
 
+            // Billetera/Wallet
+            ['name' => 'wallet.view', 'guard_name' => 'web', 'description' => 'Ver billetera'],
+            ['name' => 'wallet.deposit', 'guard_name' => 'web', 'description' => 'Depositar en billetera'],
+            ['name' => 'wallet.withdraw', 'guard_name' => 'web', 'description' => 'Retirar de billetera'],
+            ['name' => 'wallet.movements', 'guard_name' => 'web', 'description' => 'Ver movimientos de billetera'],
+
             // Permisos de SuperAdmin (acceso total)
             ['name' => 'superadmin.access', 'guard_name' => 'web', 'description' => 'Acceso total al sistema'],
         ];

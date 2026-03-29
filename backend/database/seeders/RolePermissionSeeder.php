@@ -117,6 +117,7 @@ class RolePermissionSeeder extends Seeder
         if ($player) {
             $playerPermissions = [
                 'game.bingo', // Acceso a juegos de bingo
+                'wallet.view', // Acceso a ver billetera
             ];
             $player->givePermissionTo($playerPermissions);
             $this->command->info('✅ Permisos asignados a Player');
