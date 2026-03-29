@@ -509,7 +509,7 @@ body.hold-transition,
 ═══════════════════════════════════════════════════════════════ */
 .game-rooms-page__header {
   text-align: center;
-  margin-bottom: 44px;
+  margin-bottom: 4px;
   position: relative;
 }
 
