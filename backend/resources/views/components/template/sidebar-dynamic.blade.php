@@ -24,8 +24,11 @@
                 @foreach($menuItems as $key => $item)
                     @if(isset($item['submenu']))
                         {{-- Menú con submenús --}}
-                        <li class="nav-item has-treeview {{ $menuService->isActive($item['route'] ?? $key) ? 'menu-open' : '' }}">
-                            <a href="#" class="nav-link {{ $menuService->isActive($item['route'] ?? $key) ? 'active' : '' }}">
+                        @php
+                            $isSubmenuActive = $menuService->hasActiveSubmenu($item['submenu']);
+                        @endphp
+                        <li class="nav-item has-treeview {{ $isSubmenuActive ? 'menu-open' : '' }}">
+                            <a href="#" class="nav-link {{ $isSubmenuActive ? 'active' : '' }}">
                                 <i class="nav-icon {{ $item['icon'] }}"></i>
                                 <p>
                                     {{ $item['title'] }}

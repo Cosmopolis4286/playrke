@@ -45,9 +45,10 @@ class SidebarMenuService
                     'title' => 'Permisos',
                     'route' => 'permissions.index',
                     'permission' => 'superadmin.access',
+                    'exclude_roles' => ['!superadmin'],
                 ],
                 'all_users' => [
-                    'title' => 'Gestión de Usuarios',
+                    'title' => 'Listado',
                     'route' => 'admin.users',
                     'permission' => 'users.manage',
                 ],
@@ -64,7 +65,7 @@ class SidebarMenuService
             'title' => 'Bingo',
             'icon' => 'fas fa-gamepad',
             'permission' => 'game.bingo', // Acceso específico a juegos de bingo
-            'exclude_roles' => ['superadmin'], // Superadmin no ve este menú
+            'exclude_roles' => ['superadmin', 'admin'], // Superadmin no ve este menú
             'submenu' => [
                 'game_rooms' => [
                     'title' => 'Salas de Bingo',
@@ -260,6 +261,22 @@ class SidebarMenuService
             return str_starts_with($currentRoute, $prefix . '.');
         }
 
+        return false;
+    }
+
+    /**
+     * Verifica si un menú padre tiene algún submenu activo.
+     *
+     * @param array $submenu Array de submenús
+     * @return bool
+     */
+    public function hasActiveSubmenu(array $submenu): bool
+    {
+        foreach ($submenu as $subitem) {
+            if (!empty($subitem['route']) && $this->isActive($subitem['route'])) {
+                return true;
+            }
+        }
         return false;
     }
 
