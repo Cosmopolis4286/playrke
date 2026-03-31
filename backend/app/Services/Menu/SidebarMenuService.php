@@ -17,6 +17,25 @@ class SidebarMenuService
             'route' => 'dashboard',
             'permission' => null, // Accesible para todos
         ],
+        'directory' => [
+            'title' => 'Directorio',
+            'icon' => 'fas fa-address-book',
+            'permission' => null, // Accesible para todos
+            'route' => 'directory.index',
+        ],
+        'wallet' => [
+            'title' => 'Billetera',
+            'icon' => 'fas fa-wallet',
+            'permission' => 'wallet.view',
+            'route' => 'wallet.index',
+        ], 
+        'exchange_rates' => [
+            'title' => 'Tasa de Cambio',
+            'icon' => 'fas fa-exchange-alt',
+            'permission' => 'exchange.view',
+            'exclude_roles' => ['player', 'seller'],
+            'route' => 'exchange-rate.index',
+        ],
         'users' => [
             'title' => 'Usuarios',
             'icon' => 'fa-solid fa-users-gear',
@@ -33,25 +52,6 @@ class SidebarMenuService
                     'permission' => 'users.manage',
                 ],
             ],
-        ],
-        'directory' => [
-            'title' => 'Directorio',
-            'icon' => 'fas fa-address-book',
-            'permission' => null, // Accesible para todos
-            'route' => 'directory.index',
-        ],
-        'wallet' => [
-            'title' => 'Billetera',
-            'icon' => 'fas fa-wallet',
-            'permission' => 'wallet.view',
-            'route' => 'wallet.index',
-        ],
-        'exchange_rates' => [
-            'title' => 'Tasa de Cambio',
-            'icon' => 'fas fa-exchange-alt',
-            'permission' => 'exchange.view',
-            'exclude_roles' => ['player', 'seller'],
-            'route' => 'exchange-rate.index',
         ],
         'prizes' => [
             'title' => 'Gestión de Premios',
