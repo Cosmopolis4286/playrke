@@ -28,7 +28,12 @@ class DashboardController extends Controller
 
         return $this->handleServiceInertia(
             function () use ($rolePrefix) {
-                $view = "Roles/" . ucfirst($rolePrefix) . "/Dashboard/Index";
+                // Mapeo de prefijos a nombres de carpetas (casos especiales)
+                $viewFolder = match ($rolePrefix) {
+                    'superadmin' => 'SuperAdmin',
+                    default => ucfirst($rolePrefix),
+                };
+                $view = "Roles/{$viewFolder}/Dashboard/Index";
 
                 try {
                     $context = $this->service->resolve($rolePrefix . '_dashboard')->toView();

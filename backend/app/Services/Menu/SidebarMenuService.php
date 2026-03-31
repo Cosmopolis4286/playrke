@@ -22,43 +22,13 @@ class SidebarMenuService
             'icon' => 'fa-solid fa-users-gear',
             'permission' => 'users.view',
             'submenu' => [
-                'admins' => [
-                    'title' => 'Administradores',
-                    'route' => 'admins.index',
-                    'permission' => 'superadmin.access',
-                ],
                 'permissions' => [
                     'title' => 'Permisos',
                     'route' => 'permissions.index',
                     'permission' => 'superadmin.access',
                 ],
-                'customers' => [
-                    'title' => 'Clientes',
-                    'route' => 'admin.customers',
-                    'permission' => 'customers.view',
-                ],
-                'commerces' => [
-                    'title' => 'Comercios',
-                    'route' => 'admin.commerces',
-                    'permission' => 'commerces.view',
-                ],
-                'treasurers' => [
-                    'title' => 'Tesoreros',
-                    'route' => 'admin.treasurers',
-                    'permission' => 'treasury.view',
-                ],
-                'sellers' => [
-                    'title' => 'Vendedores',
-                    'route' => 'admin.sellers',
-                    'permission' => 'sellers.view',
-                ],
-                'players' => [
-                    'title' => 'Jugadores',
-                    'route' => 'admin.players',
-                    'permission' => 'users.view',
-                ],
                 'all_users' => [
-                    'title' => 'Todos',
+                    'title' => 'Gestión de Usuarios',
                     'route' => 'admin.users',
                     'permission' => 'users.manage',
                 ],
