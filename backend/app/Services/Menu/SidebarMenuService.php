@@ -49,37 +49,22 @@ class SidebarMenuService
         'exchange_rates' => [
             'title' => 'Tasa de Cambio',
             'icon' => 'fas fa-exchange-alt',
-            'permission' => '!player,!seller', // Accesible para todos excepto player y seller
+            'permission' => 'exchange.view',
+            'exclude_roles' => ['player', 'seller'],
             'route' => 'exchange-rate.index',
         ],
         'prizes' => [
-            'title' => 'Premios',
+            'title' => 'Gestión de Premios',
             'icon' => 'fas fa-trophy',
-            'permission' => '!player,!seller', // Accesible para todos excepto player y seller
+            'permission' => 'prizes.view',
+            'exclude_roles' => ['player', 'seller'],
             'route' => 'prizes.index',
-        ],
-        'seller_management' => [
-            'title' => 'Gestión de Ventas',
-            'icon' => 'fa-solid fa-comments-dollar',
-            'permission' => 'sellers.view,customers.view', // Accesible para commerce, customer, seller
-            'submenu' => [
-                'my_sellers' => [
-                    'title' => 'Mis Vendedores',
-                    'route' => 'manager-seller.index',
-                    'permission' => 'sellers.view',
-                ],
-            ],
-        ],
-        'wallet' => [
-            'title' => 'Billetera',
-            'icon' => 'fas fa-wallet',
-            'permission' => 'wallet.view',
-            'route' => 'wallet.index',
         ],
         'game_bingo' => [
             'title' => 'Bingo',
             'icon' => 'fas fa-gamepad',
             'permission' => 'game.bingo', // Acceso específico a juegos de bingo
+            'exclude_roles' => ['superadmin'], // Superadmin no ve este menú
             'submenu' => [
                 'game_rooms' => [
                     'title' => 'Salas de Bingo',
@@ -89,7 +74,7 @@ class SidebarMenuService
             ],
         ],
         'games' => [
-            'title' => 'Juegos',
+            'title' => 'Gestión de Juegos',
             'icon' => 'fas fa-gamepad',
             'permission' => 'games.view',
             'submenu' => [
@@ -97,6 +82,18 @@ class SidebarMenuService
                     'title' => 'Salas de Bingo',
                     'route' => 'bingo-rooms.index',
                     'permission' => 'games.view',
+                ],
+            ],
+        ],
+        'sales_management' => [
+            'title' => 'Gestión de Ventas',
+            'icon' => 'fa-solid fa-comments-dollar',
+            'permission' => 'sellers.view,customers.view', // Accesible para commerce, customer, seller
+            'submenu' => [
+                'my_sellers' => [
+                    'title' => 'Mis Vendedores',
+                    'route' => 'manager-seller.index',
+                    'permission' => 'sellers.view',
                 ],
             ],
         ],
@@ -190,9 +187,22 @@ class SidebarMenuService
             return collect([]);
         }
 
-        // Si es superadmin, mostrar todo
+        // Obtener roles del usuario
+        $userRoles = $user->getRoleNames()->toArray();
+
+        // Si es superadmin, mostrar todo excepto menús excluidos explícitamente
         if ($user->hasRole('superadmin')) {
-            return collect($this->menuStructure);
+            return collect($this->menuStructure)->filter(function ($item) use ($userRoles) {
+                // Verificar si el menú tiene roles excluidos
+                if (!empty($item['exclude_roles'])) {
+                    $excludedRoles = $item['exclude_roles'];
+                    // Si el usuario tiene algún rol excluido, no mostrar el menú
+                    if (array_intersect($userRoles, $excludedRoles)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
         }
 
         // Obtener permisos del usuario una sola vez
@@ -200,6 +210,15 @@ class SidebarMenuService
 
         // Filtrar menú basado en permisos
         return collect($this->menuStructure)->filter(function ($item) use ($user, $userPermissions) {
+            // Verificar si el menú tiene roles excluidos
+            if (!empty($item['exclude_roles'])) {
+                $userRoles = $user->getRoleNames()->toArray();
+                $excludedRoles = $item['exclude_roles'];
+                if (array_intersect($userRoles, $excludedRoles)) {
+                    return false;
+                }
+            }
+
             // Si no requiere permiso, mostrar siempre
             if (empty($item['permission'])) {
                 return true;
