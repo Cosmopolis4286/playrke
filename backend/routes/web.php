@@ -26,6 +26,7 @@ require __DIR__ . '/modules/notifications.php';
 // ====================================
 // RUTAS POR ROLES DE USUARIO
 // ====================================
+require __DIR__ . '/modules/superadmin.php';
 require __DIR__ . '/modules/admin.php';          
 // require __DIR__ . '/modules/customer.php';      
 require __DIR__ . '/modules/commerce.php';       
