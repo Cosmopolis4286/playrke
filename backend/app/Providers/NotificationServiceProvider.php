@@ -38,14 +38,6 @@ class NotificationServiceProvider extends ServiceProvider
                     $view->with('unreadCount', $unreadCount);
                     $view->with('formattedNotifications', $formattedNotifications);
 
-                    // Debug
-                    \Log::info('NotificationServiceProvider: Compartiendo notificaciones', [
-                        'view' => $view->getName(),
-                        'unread_count' => $unreadCount,
-                        'notifications_count' => $unreadNotifications->count(),
-                        'user_id' => auth()->id(),
-                    ]);
-
                 } catch (\Exception $e) {
                     \Log::error('NotificationServiceProvider: Error al cargar notificaciones', [
                         'view' => $view->getName(),
