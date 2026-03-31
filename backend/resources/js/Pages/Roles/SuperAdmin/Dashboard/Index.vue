@@ -50,14 +50,14 @@
       label:       'Administradores',
       description: 'Gestionar administradores del sistema',
       icon:        'fas fa-user-shield',
-      href:        '/superadmin/admins',
+      href:        '/admins',
       variant:     'danger',
     },
     {
       label:       'Permisos',
       description: 'Configurar permisos de roles',
       icon:        'fas fa-key',
-      href:        '/superadmin/permissions',
+      href:        '/permissions',
       variant:     'warning',
     },
     {
@@ -115,8 +115,8 @@
         roleName="Super Administrador"
         :message="props.period ? `Período: ${props.period}` : undefined"
         :actions="[
-          { label: 'Ver administradores', icon: 'fas fa-user-shield', href: '/superadmin/admins', variant: 'danger' },
-          { label: 'Ver permisos', icon: 'fas fa-key', href: '/superadmin/permissions', variant: 'warning' },
+          { label: 'Ver administradores', icon: 'fas fa-user-shield', href: '/admins', variant: 'danger' },
+          { label: 'Ver permisos', icon: 'fas fa-key', href: '/permissions', variant: 'warning' },
         ]"
       />
 

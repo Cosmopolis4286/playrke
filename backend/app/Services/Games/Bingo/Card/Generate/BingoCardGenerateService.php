@@ -816,7 +816,7 @@ final class BingoCardGenerateService
             'prize_pool' => $room->prize_pool + $totalAmount,
             'currency' => $priceInfo['currency_symbol'],
             'room_user' => $result['roomUser'] ?? null,
-            'wallet_balance' => $newBalance,
+            'wallet_balance' => $currentBalance - $totalAmount,
         ];
     }
 

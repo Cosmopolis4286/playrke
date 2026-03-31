@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Directories\Crypto\BinanceController;
+use App\Http\Controllers\Wallet\WalletMovementController;
 use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,15 @@ Route::middleware(['auth', 'multiPermission:wallet.view,wallet.deposit,wallet.wi
     Route::post('wallet/deposit',                     [WalletController::class, 'deposit'])   ->name('wallet.deposit');
     Route::post('wallet/withdraw',                    [WalletController::class, 'withdraw'])  ->name('wallet.withdraw');
     Route::get('wallet/{walletId}/movements',         [WalletController::class, 'movements']) ->name('wallet.movements');
+});
+
+// ====================================
+// GESTIÓN DE MOVIMIENTOS (ADMIN/SUPERADMIN)
+// ====================================
+Route::middleware(['auth', 'multiPermission:wallet.movements.view,wallet.movements.manage'])->group(function () {
+    Route::get('wallet-movements',              [WalletMovementController::class, 'index'])     ->name('wallet-movements.index');
+    Route::get('wallet-movements/fetch',        [WalletMovementController::class, 'fetchList']) ->name('wallet-movements.fetch');
+    Route::get('wallet-movements/{movement}',   [WalletMovementController::class, 'show'])     ->name('wallet-movements.show');
 });
 
 // ====================================

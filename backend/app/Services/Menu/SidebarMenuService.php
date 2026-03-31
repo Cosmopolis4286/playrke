@@ -27,7 +27,18 @@ class SidebarMenuService
             'title' => 'Billetera',
             'icon' => 'fas fa-wallet',
             'permission' => 'wallet.view',
-            'route' => 'wallet.index',
+            'submenu' => [
+                'my_wallet' => [
+                    'title' => 'Mi Billetera',
+                    'route' => 'wallet.index',
+                    'permission' => 'wallet.view',
+                ],
+                'movements' => [
+                    'title' => 'Movimientos',
+                    'route' => 'wallet-movements.index',
+                    'permission' => 'wallet.movements.view',
+                ],
+            ],
         ], 
         'exchange_rates' => [
             'title' => 'Tasa de Cambio',

@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $wallet_id
  * @property string $user_id
  * @property string $type           DEPOSIT | WITHDRAWAL | PURCHASE | PRIZE
+ * @property string $status         PENDING | COMPLETED | CANCELLED | REJECTED
  * @property float  $amount
  * @property float  $balance_before
  * @property float  $balance_after
@@ -39,6 +40,11 @@ class WalletMovement extends Model
     public const TYPE_WITHDRAWAL = 'WITHDRAWAL';
     public const TYPE_PURCHASE   = 'PURCHASE';
     public const TYPE_PRIZE      = 'PRIZE';
+
+    public const STATUS_PENDING    = 'PENDING';
+    public const STATUS_COMPLETED  = 'COMPLETED';
+    public const STATUS_CANCELLED  = 'CANCELLED';
+    public const STATUS_REJECTED   = 'REJECTED';
 
     public const TYPES = [
         self::TYPE_DEPOSIT    => 'Depósito',

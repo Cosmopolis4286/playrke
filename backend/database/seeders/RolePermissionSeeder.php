@@ -45,6 +45,7 @@ class RolePermissionSeeder extends Seeder
                 // Opciones independientes
                 'directory.view', 'directory.search',
                 'prizes.view', 'prizes.create', 'prizes.edit', 'prizes.delete', 'prizes.assign',
+                'wallet.movements.view', 'wallet.movements.manage', // Gestión de movimientos de billetera
             ];
             $admin->givePermissionTo($adminPermissions);
             $this->command->info('✅ Permisos asignados a Admin');
