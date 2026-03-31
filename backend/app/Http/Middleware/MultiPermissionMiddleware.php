@@ -28,22 +28,50 @@ class MultiPermissionMiddleware
 
         Log::debug('MultiPermissionMiddleware: Checking user ' . $user->id . ' for permissions: ' . implode(', ', $permissions));
         Log::debug('MultiPermissionMiddleware: User roles: ' . $user->getRoleNames()->implode(', '));
-        Log::debug('MultiPermissionMiddleware: User permissions: ' . $user->getPermissionNames()->implode(', '));
+        
+        // Obtener TODOS los permisos incluyendo los heredados de roles
+        $allPermissions = $user->getAllPermissions()->pluck('name')->toArray();
+        Log::debug('MultiPermissionMiddleware: User all permissions (via roles): ' . implode(', ', $allPermissions));
+        
+        // Debug: verificar roles con guard específico
+        $rolesWithGuard = $user->roles()->get()->map(function($role) {
+            return $role->name . ' (' . $role->guard_name . ')';
+        })->implode(', ');
+        Log::debug('MultiPermissionMiddleware: User roles with guard: ' . $rolesWithGuard);
+        
+        // Debug: verificar si el usuario tiene el rol admin con guard web
+        $hasAdminRole = $user->hasRole('admin');
+        Log::debug('MultiPermissionMiddleware: User hasRole(admin): ' . ($hasAdminRole ? 'YES' : 'NO'));
+        
+        // Debug: cargar permisos directamente desde la BD
+        $directPermissions = \DB::table('model_has_permissions')
+            ->join('permissions', 'model_has_permissions.permission_id', '=', 'permissions.id')
+            ->where('model_has_permissions.model_id', $user->id)
+            ->where('permissions.guard_name', 'web')
+            ->pluck('permissions.name')
+            ->toArray();
+        Log::debug('MultiPermissionMiddleware: Direct user permissions from DB: ' . implode(', ', $directPermissions));
+        
+        // Debug: permisos vía roles
+        $roleIds = $user->roles()->pluck('roles.id')->toArray();
+        Log::debug('MultiPermissionMiddleware: User role IDs: ' . implode(', ', $roleIds));
+        
+        if (!empty($roleIds)) {
+            $rolePermissions = \DB::table('role_has_permissions')
+                ->join('permissions', 'role_has_permissions.permission_id', '=', 'permissions.id')
+                ->whereIn('role_has_permissions.role_id', $roleIds)
+                ->where('permissions.guard_name', 'web')
+                ->pluck('permissions.name')
+                ->unique()
+                ->toArray();
+            Log::debug('MultiPermissionMiddleware: Role permissions from DB: ' . implode(', ', $rolePermissions));
+        }
 
         // Verificar si el usuario tiene alguno de los permisos requeridos
         foreach ($permissions as $permission) {
-            try {
-                // Usar checkPermissionTo que no lanza excepción
-                if ($user->checkPermissionTo($permission, 'web')) {
-                    Log::debug('MultiPermissionMiddleware: User has permission ' . $permission . ' - ACCESS GRANTED');
-                    return $next($request);
-                }
-            } catch (PermissionDoesNotExist $e) {
-                Log::warning('MultiPermissionMiddleware: Permission ' . $permission . ' does not exist in database');
-                continue;
-            } catch (\Exception $e) {
-                Log::error('MultiPermissionMiddleware: Error checking permission ' . $permission . ': ' . $e->getMessage());
-                continue;
+            if (in_array($permission, $allPermissions)) {
+                Log::debug('MultiPermissionMiddleware: User has permission ' . $permission . ' - ACCESS GRANTED');
+                return $next($request);
             }
         }
 
