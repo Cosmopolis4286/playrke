@@ -7,7 +7,6 @@ use App\Models\Games\Bingo\Room\BingoRoom;
 use App\Models\Roles\Admin;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Customer;
-use App\Models\Roles\Player;
 use App\Models\Roles\Seller;
 use App\Models\Roles\Treasurer;
 use App\Models\User;
@@ -79,12 +78,14 @@ final class SuperAdminDashboardContextService
 
     private function buildEntityCounts(): array
     {
+        $playersCount = User::role('player')->count();
+
         return [
             ['label' => 'Administradores', 'value' => Admin::count(),     'icon' => 'fas fa-user-shield',   'variant' => 'danger'],
             ['label' => 'Comercios',       'value' => Commerce::count(),  'icon' => 'fas fa-building',      'variant' => 'primary'],
             ['label' => 'Vendedores',      'value' => Seller::count(),    'icon' => 'fas fa-user-tie',      'variant' => 'success'],
             ['label' => 'Clientes',        'value' => Customer::count(),  'icon' => 'fas fa-handshake',     'variant' => 'info'],
-            ['label' => 'Jugadores',       'value' => Player::count(),    'icon' => 'fas fa-gamepad',       'variant' => 'secondary'],
+            ['label' => 'Jugadores',       'value' => $playersCount,      'icon' => 'fas fa-gamepad',       'variant' => 'secondary'],
             ['label' => 'Tesoreros',       'value' => Treasurer::count(), 'icon' => 'fas fa-piggy-bank',    'variant' => 'warning'],
         ];
     }

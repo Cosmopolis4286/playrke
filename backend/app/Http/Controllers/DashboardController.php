@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,7 +37,12 @@ class DashboardController extends Controller
 
                 try {
                     $context = $this->service->resolve($rolePrefix . '_dashboard')->toView();
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    Log::error('Error cargando dashboard', [
+                        'role' => $rolePrefix,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
                     $context = [];
                 }
 

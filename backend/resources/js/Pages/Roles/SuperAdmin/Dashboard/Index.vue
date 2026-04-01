@@ -149,8 +149,9 @@
             title="Actividad reciente"
             icon="fas fa-history"
             subtitle="Últimos usuarios registrados"
+            class="ds-scroll-section"
           >
-            <DashboardActivityFeed :items="sortedActivity" :maxItems="10" />
+            <DashboardActivityFeed :items="sortedActivity" :maxItems="10" class="ds-activity-compact" />
           </DashboardSection>
         </div>
 
@@ -160,6 +161,7 @@
             title="Entidades por rol"
             icon="fas fa-layer-group"
             subtitle="Totales registrados"
+            class="ds-scroll-section"
           >
             <div v-if="entityCounts.length" class="ds-entity-list">
               <div
@@ -255,4 +257,45 @@
   text-align: center;
 }
 .ds-empty i { font-size: 2rem; }
+
+/* Altura igual con scroll solo en el contenido (card-body) */
+.ds-scroll-section :deep(.card-body) {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* Items de actividad más compactos y minimalistas */
+.ds-activity-compact :deep(.activity-feed__item) {
+  padding: 0.5rem 0.75rem;
+  gap: 0.75rem;
+  border: none;
+  border-bottom: 1px solid #f0f0f0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.ds-activity-compact :deep(.activity-feed__item:last-child) {
+  border-bottom: none;
+}
+
+.ds-activity-compact :deep(.activity-feed__item:hover) {
+  background: #f8f9fa;
+  box-shadow: none;
+  transform: none;
+}
+
+.ds-activity-compact :deep(.activity-feed__icon) {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 0.75rem;
+}
+
+.ds-activity-compact :deep(.activity-feed__item p) {
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.ds-activity-compact :deep(.activity-feed__item .small) {
+  font-size: 0.75rem;
+}
 </style>
