@@ -1,10 +1,13 @@
 <template>
-  <div class="content-wrapper">
     <div class="content-header">
       <div class="container-fluid">
-        <div class="row mb-2">
+        <div class="row">
           <div class="col-sm-6">
-            <h1 class="m-0">Gestión de Permisos</h1>
+            <h1 class="m-0 font-weight-bold">Matriz de Permisos</h1>
+            <p class="text-muted mb-0 mt-1">
+              <i class="fas fa-lock text-danger mr-1"></i>
+              Configura qué acciones puede realizar cada rol. Los permisos con candado son del sistema y no pueden modificarse.
+            </p>
           </div>
           <div class="col-sm-6">
             <Breadcrumb :items="breadcrumbItems" />
@@ -17,39 +20,22 @@
       <div class="container-fluid">
         <div class="row">
           <div class="col-12">
-            <div class="card">
-              <div class="card-header">
-                <h3 class="card-title">
-                  <i class="fas fa-key mr-2"></i>
-                  Permisos del Sistema
-                </h3>
-                <div class="card-tools">
-                  <span v-if="selectedCount > 0" class="badge badge-info mr-2">
-                    {{ selectedCount }} seleccionados
-                  </span>
-                </div>
-              </div>
-              
-              <div class="card-body">
-                <PermissionTable
-                  :permissions="permissions"
-                  :roles="roles"
-                  :loading="loading"
-                  :selected-ids="selectedIds"
-                  :current-role="currentRole"
-                  @update:selected-ids="selectedIds = $event"
-                  @refresh="loadPermissions"
-                  @assign-permissions="handleAssignPermissions"
-                  @revoke-permissions="handleRevokePermissions"
-                  @create-permission="handleCreatePermission"
-                />
-              </div>
-            </div>
+            <PermissionTable
+              :permissions="permissions"
+              :roles="roles"
+              :loading="loading"
+              :selected-ids="selectedIds"
+              :current-role="currentRole"
+              @update:selected-ids="selectedIds = $event"
+              @refresh="loadPermissionsAndRoles"
+              @assign-permissions="handleAssignPermissions"
+              @revoke-permissions="handleRevokePermissions"
+              @create-permission="handleCreatePermission"
+            />
           </div>
         </div>
       </div>
     </section>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -77,7 +63,6 @@ const {
   loading,
   selectedIds,
   currentRole,
-  selectedCount,
   fetchPermissions,
   fetchRolesWithPermissions,
   assignPermissions,
@@ -87,53 +72,23 @@ const {
 } = usePermissions()
 
 // Métodos
-const loadPermissions = async () => {
+const loadPermissionsAndRoles = async () => {
   try {
-    await fetchPermissions()
+    await Promise.all([fetchPermissions(), fetchRolesWithPermissions()])
   } catch (error) {
-    console.error('Error loading permissions:', error)
+    console.error('Error loading data:', error)
     Swal.fire({
       icon: 'error',
       title: 'Error',
-      text: 'No se pudieron cargar los permisos',
+      text: 'No se pudieron cargar los datos',
     })
-  }
-}
-
-const loadRoles = async () => {
-  try {
-    await fetchRolesWithPermissions()
-  } catch (error) {
-    console.error('Error loading roles:', error)
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'No se pudieron cargar los roles',
-    })
-  }
-}
-
-const handlePageChange = async (page: number) => {
-  try {
-    await fetchPermissions(15) // TODO: Usar el per_page actual
-  } catch (error) {
-    console.error('Error changing page:', error)
   }
 }
 
 const handleAssignPermissions = async (roleId: string, permissionIds: string[]) => {
   try {
     await assignPermissions(roleId, permissionIds)
-    await loadRoles() // Recargar roles para actualizar permisos
-    Swal.fire({
-      icon: 'success',
-      title: 'Éxito',
-      text: 'Permisos asignados correctamente',
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 3000,
-    })
+    await fetchRolesWithPermissions()
   } catch (error) {
     console.error('Error assigning permissions:', error)
     Swal.fire({
@@ -147,16 +102,7 @@ const handleAssignPermissions = async (roleId: string, permissionIds: string[]) 
 const handleRevokePermissions = async (roleId: string, permissionIds: string[]) => {
   try {
     await revokePermissions(roleId, permissionIds)
-    await loadRoles() // Recargar roles para actualizar permisos
-    Swal.fire({
-      icon: 'success',
-      title: 'Éxito',
-      text: 'Permisos revocados correctamente',
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 3000,
-    })
+    await fetchRolesWithPermissions()
   } catch (error) {
     console.error('Error revoking permissions:', error)
     Swal.fire({
@@ -170,16 +116,7 @@ const handleRevokePermissions = async (roleId: string, permissionIds: string[]) 
 const handleCreatePermission = async (data: { name: string, guard_name: string, description?: string }) => {
   try {
     await createPermission(data)
-    await loadPermissions() // Recargar permisos
-    Swal.fire({
-      icon: 'success',
-      title: 'Éxito',
-      text: 'Permiso creado correctamente',
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 3000,
-    })
+    await loadPermissionsAndRoles()
   } catch (error) {
     console.error('Error creating permission:', error)
     Swal.fire({
@@ -192,9 +129,7 @@ const handleCreatePermission = async (data: { name: string, guard_name: string, 
 
 // Inicialización
 onMounted(async () => {
-  // Cargar datos iniciales
-  await loadPermissions()
-  await loadRoles()
+  await loadPermissionsAndRoles()
 })
 </script>
 

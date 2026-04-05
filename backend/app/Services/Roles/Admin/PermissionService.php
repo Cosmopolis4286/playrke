@@ -6,6 +6,7 @@ use App\DTOs\Roles\Admin\Permission\PermissionDTO;
 use App\DTOs\Roles\Admin\Permission\RolePermissionDTO;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
 
 final class PermissionService
@@ -68,10 +69,35 @@ final class PermissionService
      */
     public function assignPermissionsToRole(string $roleId, array $permissionIds): void
     {
-        $role = Role::findOrFail($roleId);
-        $permissions = Permission::whereIn('id', $permissionIds)->get();
-        
-        $role->syncPermissions($permissions);
+        // Los IDs se mantienen como strings para compatibilidad con Snowflake
+        $roleIdStr = (string) $roleId;
+        $permissionIdsStr = array_map(fn($id) => (string) $id, $permissionIds);
+
+        // Verificar que el rol existe
+        $roleExists = DB::table('roles')->where('id', $roleIdStr)->exists();
+        if (!$roleExists) {
+            throw new \Exception("Rol no encontrado con ID: {$roleId}");
+        }
+
+        // Verificar que los permisos existen
+        $existingPermissions = Permission::whereIn('id', $permissionIdsStr)->pluck('id')->toArray();
+
+        foreach ($permissionIdsStr as $permId) {
+            if (!in_array($permId, $existingPermissions)) {
+                continue;
+            }
+
+            // Insertar en la tabla pivote (ignora si ya existe)
+            DB::table('role_has_permissions')->insertOrIgnore([
+                'permission_id' => $permId,
+                'role_id' => $roleIdStr,
+            ]);
+        }
+
+        // Clear permission cache
+        app('cache')
+            ->store(config('permission.cache.store') != 'default' ? config('permission.cache.store') : null)
+            ->forget(config('permission.cache.key'));
     }
 
     /**
@@ -79,12 +105,18 @@ final class PermissionService
      */
     public function revokePermissionsFromRole(string $roleId, array $permissionIds): void
     {
-        $role = Role::findOrFail($roleId);
-        $permissions = Permission::whereIn('id', $permissionIds)->get();
-        
-        foreach ($permissions as $permission) {
-            $role->revokePermissionTo($permission);
-        }
+        $roleIdStr = (string) $roleId;
+        $permissionIdsStr = array_map(fn($id) => (string) $id, $permissionIds);
+
+        DB::table('role_has_permissions')
+            ->where('role_id', $roleIdStr)
+            ->whereIn('permission_id', $permissionIdsStr)
+            ->delete();
+
+        // Clear permission cache
+        app('cache')
+            ->store(config('permission.cache.store') != 'default' ? config('permission.cache.store') : null)
+            ->forget(config('permission.cache.key'));
     }
 
     /**
@@ -147,15 +179,29 @@ final class PermissionService
      */
     public function getRolesWithPermissions(): array
     {
-        return Role::with('permissions')
+        // Obtener roles directamente de la tabla para asegurar que existen
+        $roles = DB::table('roles')
+            ->select('id', 'name', 'prefix')
+            ->where('status', 'ACTIVE')
             ->orderBy('name')
-            ->get()
-            ->map(fn($role) => [
-                'id' => $role->id,
+            ->get();
+
+        $rolesData = [];
+        foreach ($roles as $role) {
+            // Obtener permisos asignados a este rol desde la tabla pivote
+            $permissionIds = DB::table('role_has_permissions')
+                ->where('role_id', $role->id)
+                ->pluck('permission_id')
+                ->toArray();
+
+            $rolesData[] = [
+                'id' => (string) $role->id,
                 'name' => $role->name,
-                'prefix' => $role->prefix,
-                'permissions' => $role->permissions->pluck('id')->toArray(),
-            ])
-            ->toArray();
+                'prefix' => $role->prefix ?? $role->name,
+                'permissions' => $permissionIds,
+            ];
+        }
+
+        return $rolesData;
     }
 }

@@ -46,18 +46,30 @@ final class PermissionContextService
 
     private function getRolesWithPermissions(): array
     {
-        return \Spatie\Permission\Models\Role::with('permissions')
+        // Obtener roles directamente de la tabla para asegurar consistencia
+        $roles = \DB::table('roles')
+            ->select('id', 'name', 'prefix')
+            ->where('status', 'ACTIVE')
             ->orderBy('name')
-            ->get()
-            ->map(function ($role) {
-                return [
-                    'id' => $role->id,
-                    'name' => $role->name,
-                    'prefix' => $role->prefix ?? $role->name, // Fallback si no hay prefix
-                    'permissions' => $role->permissions->pluck('id')->toArray(),
-                ];
-            })
-            ->toArray();
+            ->get();
+
+        $rolesData = [];
+        foreach ($roles as $role) {
+            // Obtener permisos asignados a este rol desde la tabla pivote
+            $permissionIds = \DB::table('role_has_permissions')
+                ->where('role_id', $role->id)
+                ->pluck('permission_id')
+                ->toArray();
+
+            $rolesData[] = [
+                'id' => (string) $role->id,
+                'name' => $role->name,
+                'prefix' => $role->prefix ?? $role->name,
+                'permissions' => $permissionIds,
+            ];
+        }
+
+        return $rolesData;
     }
 
     private function generateRolesBadge($roles): string

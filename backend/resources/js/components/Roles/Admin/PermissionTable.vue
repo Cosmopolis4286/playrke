@@ -1,164 +1,123 @@
 <template>
-  <div class="permission-manager">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h4>
-        <i class="fas fa-key mr-2"></i>
-        Gestión de Permisos por Rol
-      </h4>
-      <button
-        class="btn btn-primary"
-        @click="showCreateModal = true"
-      >
-        <i class="fas fa-plus mr-2"></i>
-        Nuevo Permiso
-      </button>
-    </div>
-
-    <!-- Roles Cards -->
-    <div class="row">
-      <div
-        v-for="role in roles"
-        :key="role.id"
-        class="col-lg-4 col-md-6 mb-4"
-      >
-        <div class="card role-card">
-          <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">
-              <i class="fas fa-user-tag mr-2"></i>
-              {{ role.name }}
-              <small class="badge badge-light ml-2">{{ role.prefix }}</small>
-            </h5>
-          </div>
-          <div class="card-body">
-            <div class="role-info mb-3">
-              <span class="text-muted">
-                {{ role.permissions?.length || 0 }} permisos asignados
-              </span>
-            </div>
-            
-            <!-- Permission Categories -->
-            <div class="permission-categories">
-              <div
-                v-for="category in getPermissionCategories(role.permissions)"
-                :key="category.name"
-                class="category-section mb-3"
-              >
-                <h6 class="category-title">
-                  <i :class="category.icon" class="mr-2"></i>
-                  {{ category.name }}
-                  <small class="text-muted">({{ category.permissions.length }})</small>
-                </h6>
-                
-                <div class="permission-list">
-                  <div
-                    v-for="permission in category.permissions"
-                    :key="permission.id"
-                    class="permission-item d-flex justify-content-between align-items-center"
-                  >
-                    <div class="permission-info">
-                      <span class="permission-name">{{ permission.name }}</span>
-                      <small class="text-muted d-block">{{ permission.description }}</small>
-                    </div>
-                    <div class="permission-actions">
-                      <button
-                        class="btn btn-sm btn-outline-danger"
-                        @click="removePermission(role.id, permission.id)"
-                        title="Quitar permiso"
-                      >
-                        <i class="fas fa-times"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="card-footer bg-transparent">
-              <button
-                class="btn btn-sm btn-outline-primary w-100"
-                @click="openRolePermissions(role)"
-              >
-                <i class="fas fa-edit mr-2"></i>
-                Gestionar Permisos
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Role Permission Management Modal -->
-    <Modal
-      v-model="showRoleModal"
-      :title="`Gestionar Permisos - ${currentRole?.name || ''}`"
-      size="xl"
-    >
-      <div v-if="currentRole" class="role-permission-manager">
-        <!-- Permission Categories with Checkboxes -->
-        <div class="row">
-          <div
-            v-for="category in allPermissionCategories"
-            :key="category.name"
-            class="col-md-6 col-lg-4 mb-4"
-          >
-            <div class="category-card">
-              <div class="card-header">
-                <h6 class="mb-0">
-                  <i :class="category.icon" class="mr-2"></i>
-                  {{ category.name }}
-                </h6>
-              </div>
-              <div class="card-body p-2">
-                <div class="permission-checkboxes">
-                  <div
-                    v-for="permission in category.permissions"
-                    :key="permission.id"
-                    class="form-check mb-2"
-                  >
-                    <input
-                      :id="`perm-${permission.id}`"
-                      v-model="permission.selected"
-                      class="form-check-input"
-                      type="checkbox"
-                      @change="togglePermission(permission.id)"
-                    >
-                    <label
-                      :for="`perm-${permission.id}`"
-                      class="form-check-label"
-                    >
-                      <div class="permission-label">
-                        <span class="permission-name">{{ permission.name }}</span>
-                        <small class="text-muted d-block">{{ permission.description }}</small>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
+  <div class="permission-matrix">
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-start mb-3">
+      <div class="d-flex gap-2">
         <button
-          type="button"
-          class="btn btn-secondary"
-          @click="closeRoleModal"
+          class="btn btn-primary"
+          @click="showCreateModal = true"
         >
-          Cerrar
+          <i class="fas fa-plus mr-2"></i>
+          Nuevo permiso
         </button>
         <button
-          type="button"
-          class="btn btn-primary"
-          @click="saveRolePermissions"
+          class="btn btn-outline-primary"
+          @click="$emit('refresh')"
+        >
+          <i class="fas fa-sync-alt mr-2"></i>
+          Recargar
+        </button>
+        <button
+          class="btn btn-success"
+          @click="saveChanges"
+          :disabled="!hasChanges || saving"
         >
           <i class="fas fa-save mr-2"></i>
-          Guardar Cambios
+          {{ saving ? 'Guardando...' : 'Guardar cambios' }}
         </button>
-      </template>
-    </Modal>
+      </div>
+    </div>
+
+    <!-- Permission Matrix Table -->
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover permission-table mb-0">
+            <thead>
+              <tr>
+                <th class="permission-col">Permiso</th>
+                <th class="module-col">Módulo</th>
+                <th
+                  v-for="role in displayRoles"
+                  :key="role.id"
+                  class="role-col text-center"
+                >
+                  <span
+                    class="badge"
+                    :class="getRoleBadgeClass(role.name)"
+                  >
+                    {{ formatRoleName(role.name) }}
+                  </span>
+                </th>
+                <th class="actions-col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-for="category in permissionCategories" :key="category.name">
+                <!-- Category Header Row -->
+                <tr class="category-header">
+                  <td colspan="100%">
+                    <div class="d-flex align-items-center">
+                      <i class="fas fa-circle text-danger mr-2" style="font-size: 8px;"></i>
+                      <span class="font-weight-bold text-uppercase">{{ category.name }}</span>
+                      <span class="text-muted ml-2">({{ category.permissions.length }})</span>
+                      <span v-if="category.plan" class="text-muted ml-2 font-italic">{{ category.plan }}</span>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Permission Rows -->
+                <tr
+                  v-for="permission in category.permissions"
+                  :key="permission.id"
+                  class="permission-row"
+                >
+                  <td class="permission-col">
+                    <div class="d-flex align-items-center">
+                      <span class="font-weight-medium">{{ permission.displayName || formatPermissionName(permission.name) }}</span>
+                      <i
+                        v-if="permission.isSystem"
+                        class="fas fa-lock text-danger ml-2"
+                        title="Permiso del sistema - No puede modificarse"
+                      ></i>
+                    </div>
+                    <small class="text-muted d-block permission-key">{{ permission.name }}</small>
+                  </td>
+                  <td class="module-col">
+                    <span class="text-muted">{{ category.moduleName }}</span>
+                  </td>
+                  <td
+                    v-for="role in displayRoles"
+                    :key="role.id"
+                    class="role-col text-center"
+                  >
+                    <div class="custom-checkbox-wrapper">
+                      <input
+                        type="checkbox"
+                        class="custom-checkbox"
+                        :checked="hasPermission(role.id, permission.id)"
+                        :disabled="permission.isSystem || saving"
+                        @change="togglePermission(role.id, permission.id)"
+                      />
+                    </div>
+                  </td>
+                  <td class="actions-col text-center">
+                    <button
+                      v-if="!permission.isSystem"
+                      class="btn btn-sm btn-link text-danger"
+                      @click="deletePermission(permission.id)"
+                      title="Eliminar permiso"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
     <!-- Create Permission Modal -->
     <Modal
@@ -173,11 +132,35 @@
             v-model="newPermission.name"
             type="text"
             class="form-control"
-            placeholder="ej: users.manage"
+            placeholder="ej: users.create"
             required
           >
+          <small class="form-text text-muted">Use el formato: modulo.accion (ej: users.create)</small>
         </div>
-        
+
+        <div class="form-group">
+          <label for="permission-display">Nombre a Mostrar</label>
+          <input
+            id="permission-display"
+            v-model="newPermission.displayName"
+            type="text"
+            class="form-control"
+            placeholder="ej: Crear Usuarios"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="permission-module">Módulo</label>
+          <select
+            id="permission-module"
+            v-model="newPermission.module"
+            class="form-control"
+          >
+            <option value="">Seleccione un módulo</option>
+            <option v-for="mod in availableModules" :key="mod" :value="mod">{{ mod }}</option>
+          </select>
+        </div>
+
         <div class="form-group">
           <label for="permission-guard">Guard</label>
           <select
@@ -189,7 +172,7 @@
             <option value="api">API</option>
           </select>
         </div>
-        
+
         <div class="form-group">
           <label for="permission-description">Descripción</label>
           <textarea
@@ -224,9 +207,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import type { Permission, RoleWithPermissions } from '@/js/types/roles/admin/permission'
+import axios from 'axios'
+import Swal from 'sweetalert2'
 
 interface Props {
   permissions: {
@@ -239,15 +224,6 @@ interface Props {
   currentRole?: any
 }
 
-interface Emits {
-  (e: 'update:selectedIds', ids: string[]): void
-  (e: 'refresh'): void
-  (e: 'assignPermissions', roleId: string, permissionIds: string[]): void
-  (e: 'revokePermissions', roleId: string, permissionIds: string[]): void
-  (e: 'createPermission', data: any): void
-}
-
-// Props con valores por defecto
 const props = withDefaults(defineProps<Props>(), {
   permissions: () => ({
     rows: [],
@@ -258,219 +234,477 @@ const props = withDefaults(defineProps<Props>(), {
   selectedIds: () => [],
   currentRole: null
 })
-const emit = defineEmits<Emits>()
 
-// Estado local
-const showRoleModal = ref(false)
+const emit = defineEmits<{
+  (e: 'refresh'): void
+  (e: 'update:selectedIds', ids: string[]): void
+  (e: 'assignPermissions', roleId: string, permissionIds: string[]): void
+  (e: 'revokePermissions', roleId: string, permissionIds: string[]): void
+  (e: 'createPermission', data: any): void
+}>()
+
+// State
 const showCreateModal = ref(false)
-const currentRole = ref<RoleWithPermissions | null>(null)
-const allPermissions = ref<Permission[]>([])
+const saving = ref(false)
+const pendingChanges = ref<Map<string, Set<string>>>(new Map()) // roleId -> Set of permissionIds to toggle
+
 const newPermission = ref({
   name: '',
+  displayName: '',
+  module: '',
   guard_name: 'web',
   description: ''
 })
 
-// Categorías de permisos
-const allPermissionCategories = computed(() => {
-  const categories = new Map()
-  
-  allPermissions.value.forEach(permission => {
-    const category = categorizePermission(permission.name)
-    if (!categories.has(category.name)) {
-      categories.set(category.name, {
-        name: category.name,
-        icon: category.icon,
-        permissions: []
-      })
-    }
-    categories.get(category.name).permissions.push({
-      ...permission,
-      selected: currentRole.value?.permissions.includes(permission.id) || false
+// Filter to show only relevant roles in the matrix
+const displayRoles = computed(() => {
+  const roleOrder = ['superadmin', 'admin', 'commerce', 'seller', 'treasurer', 'player']
+  return props.roles
+    .filter(role => roleOrder.includes(role.name.toLowerCase()))
+    .sort((a, b) => {
+      const indexA = roleOrder.indexOf(a.name.toLowerCase())
+      const indexB = roleOrder.indexOf(b.name.toLowerCase())
+      return indexA - indexB
     })
-  })
-  
-  return Array.from(categories.values())
 })
 
-// Métodos
-const categorizePermission = (permissionName: string) => {
-  if (permissionName.includes('user') || permissionName.includes('admin')) {
-    return { name: 'Usuarios', icon: 'fas fa-users' }
-  } else if (permissionName.includes('commerce') || permissionName.includes('business')) {
-    return { name: 'Comercios', icon: 'fas fa-store' }
-  } else if (permissionName.includes('game') || permissionName.includes('bingo')) {
-    return { name: 'Juegos', icon: 'fas fa-gamepad' }
-  } else if (permissionName.includes('report') || permissionName.includes('analytics')) {
-    return { name: 'Reportes', icon: 'fas fa-chart-bar' }
-  } else if (permissionName.includes('system') || permissionName.includes('config')) {
-    return { name: 'Sistema', icon: 'fas fa-cog' }
-  } else {
-    return { name: 'General', icon: 'fas fa-shield-alt' }
-  }
-}
+// Available modules for new permission
+const availableModules = computed(() => {
+  const modules = new Set<string>()
+  props.permissions.rows?.forEach(p => {
+    const module = getModuleFromPermission(p.name)
+    modules.add(module)
+  })
+  return Array.from(modules).sort()
+})
 
-const getPermissionCategories = (rolePermissions: string[]) => {
-  const rolePerms = allPermissions.value.filter(p => rolePermissions.includes(p.id))
-  const categories = new Map()
-  
-  rolePerms.forEach(permission => {
+// Group permissions by category
+const permissionCategories = computed(() => {
+  const categories = new Map<string, {
+    name: string
+    moduleName: string
+    plan?: string
+    permissions: (Permission & { displayName: string; isSystem: boolean })[]
+  }>()
+
+  props.permissions.rows?.forEach(permission => {
     const category = categorizePermission(permission.name)
-    if (!categories.has(category.name)) {
-      categories.set(category.name, {
+    const categoryKey = category.name
+
+    if (!categories.has(categoryKey)) {
+      categories.set(categoryKey, {
         name: category.name,
-        icon: category.icon,
+        moduleName: category.module,
+        plan: category.plan,
         permissions: []
       })
     }
-    categories.get(category.name).permissions.push(permission)
+
+    categories.get(categoryKey)!.permissions.push({
+      ...permission,
+      displayName: formatPermissionName(permission.name),
+      isSystem: isSystemPermission(permission.name)
+    })
   })
-  
-  return Array.from(categories.values())
+
+  // Sort categories by name
+  return Array.from(categories.values()).sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const hasChanges = computed(() => {
+  return pendingChanges.value.size > 0
+})
+
+// Methods
+function getModuleFromPermission(name: string): string {
+  const parts = name.split('.')
+  return parts[0]?.charAt(0).toUpperCase() + parts[0]?.slice(1) || 'General'
 }
 
-const openRolePermissions = (role: RoleWithPermissions) => {
-  currentRole.value = role
-  showRoleModal.value = true
+function categorizePermission(name: string): { name: string; module: string; plan?: string } {
+  const module = getModuleFromPermission(name)
+
+  if (name.includes('analytics') || name.includes('report') || name.includes('stats')) {
+    return { name: 'ANALYTICS', module, plan: 'Sin plan' }
+  } else if (name.includes('schedule') || name.includes('booking') || name.includes('agend')) {
+    return { name: 'AGENDAMIENTOS', module, plan: 'Sin plan' }
+  } else if (name.includes('user') || name.includes('admin')) {
+    return { name: 'USUARIOS', module }
+  } else if (name.includes('commerce') || name.includes('business') || name.includes('store')) {
+    return { name: 'COMERCIOS', module }
+  } else if (name.includes('game') || name.includes('bingo') || name.includes('play')) {
+    return { name: 'JUEGOS', module }
+  } else if (name.includes('finance') || name.includes('payment') || name.includes('transaction')) {
+    return { name: 'FINANZAS', module }
+  } else if (name.includes('system') || name.includes('config') || name.includes('setting')) {
+    return { name: 'SISTEMA', module }
+  } else if (name.includes('support') || name.includes('ticket') || name.includes('help')) {
+    return { name: 'SOPORTE', module }
+  }
+
+  return { name: module.toUpperCase(), module }
 }
 
-const closeRoleModal = () => {
-  showRoleModal.value = false
-  currentRole.value = null
+function formatPermissionName(name: string): string {
+  const parts = name.split('.')
+  const action = parts[parts.length - 1]
+  const actionMap: Record<string, string> = {
+    'view': 'Ver',
+    'create': 'Crear',
+    'edit': 'Editar',
+    'delete': 'Eliminar',
+    'manage': 'Gestionar',
+    'list': 'Listar',
+    'show': 'Ver detalles',
+    'update': 'Actualizar',
+    'store': 'Guardar',
+    'destroy': 'Eliminar',
+    'index': 'Listar',
+    'config': 'Configurar',
+    'assign': 'Asignar',
+    'revoke': 'Revocar',
+    'toggle': 'Cambiar estado',
+    'reset': 'Restablecer',
+    'generate': 'Generar',
+    'export': 'Exportar',
+    'import': 'Importar'
+  }
+
+  const actionText = actionMap[action] || action.charAt(0).toUpperCase() + action.slice(1)
+  const moduleText = parts[0]?.charAt(0).toUpperCase() + parts[0]?.slice(1) || ''
+
+  if (parts.length === 2) {
+    return `${actionText} ${moduleText}`
+  }
+
+  return actionText
 }
 
-const togglePermission = (permissionId: string) => {
-  if (!currentRole.value) return
-  
-  const permission = allPermissions.value.find(p => p.id === permissionId)
-  if (!permission) return
-  
-  const hasPermission = currentRole.value.permissions.includes(permissionId)
-  
-  if (hasPermission && !permission.selected) {
-    // Quitar permiso
-    emit('revokePermissions', currentRole.value.id, [permissionId])
-  } else if (!hasPermission && permission.selected) {
-    // Agregar permiso
-    emit('assignPermissions', currentRole.value.id, [permissionId])
+function isSystemPermission(name: string): boolean {
+  const systemPatterns = [
+    'superadmin',
+    'roles.manage',
+    'permissions.manage',
+    'system.config',
+    'admin.users'
+  ]
+  return systemPatterns.some(pattern => name.includes(pattern))
+}
+
+function formatRoleName(name: string): string {
+  const roleMap: Record<string, string> = {
+    'superadmin': 'SuperAdmin',
+    'admin': 'Admin',
+    'commerce': 'Comercio',
+    'seller': 'Freelancer',
+    'treasurer': 'Tesorero',
+    'player': 'Normal'
+  }
+  return roleMap[name.toLowerCase()] || name
+}
+
+function getRoleBadgeClass(name: string): string {
+  const classMap: Record<string, string> = {
+    'superadmin': 'badge-purple',
+    'admin': 'badge-blue',
+    'commerce': 'badge-green',
+    'seller': 'badge-yellow',
+    'treasurer': 'badge-info',
+    'player': 'badge-secondary'
+  }
+  return classMap[name.toLowerCase()] || 'badge-secondary'
+}
+
+function hasPermission(roleId: string, permissionId: string): boolean {
+  // Check pending changes first
+  const roleChanges = pendingChanges.value.get(roleId)
+  if (roleChanges) {
+    if (roleChanges.has(permissionId)) {
+      // Toggle the current state
+      const role = props.roles.find(r => r.id === roleId)
+      return !role?.permissions.includes(permissionId)
+    }
+  }
+
+  const role = props.roles.find(r => r.id === roleId)
+  return role?.permissions.includes(permissionId) || false
+}
+
+function togglePermission(roleId: string, permissionId: string) {
+  if (!pendingChanges.value.has(roleId)) {
+    pendingChanges.value.set(roleId, new Set())
+  }
+
+  const roleChanges = pendingChanges.value.get(roleId)!
+
+  if (roleChanges.has(permissionId)) {
+    roleChanges.delete(permissionId)
+    if (roleChanges.size === 0) {
+      pendingChanges.value.delete(roleId)
+    }
+  } else {
+    roleChanges.add(permissionId)
   }
 }
 
-const removePermission = (roleId: string, permissionId: string) => {
-  emit('revokePermissions', roleId, [permissionId])
+async function saveChanges() {
+  saving.value = true
+  try {
+    const promises: Promise<any>[] = []
+
+    pendingChanges.value.forEach((permissionIds, roleId) => {
+      const role = props.roles.find(r => r.id === roleId)
+      if (!role) return
+
+      const toAssign: string[] = []
+      const toRevoke: string[] = []
+
+      permissionIds.forEach(permId => {
+        const currentlyHas = role.permissions.includes(permId)
+        if (currentlyHas) {
+          toRevoke.push(String(permId))
+        } else {
+          toAssign.push(String(permId))
+        }
+      })
+
+      if (toAssign.length > 0) {
+        promises.push(axios.post(`/permissions/roles/${roleId}/assign`, {
+          permission_ids: toAssign
+        }))
+      }
+      if (toRevoke.length > 0) {
+        promises.push(axios.post(`/permissions/roles/${roleId}/revoke`, {
+          permission_ids: toRevoke
+        }))
+      }
+    })
+
+    await Promise.all(promises)
+
+    pendingChanges.value.clear()
+    emit('refresh')
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Éxito',
+      text: 'Cambios guardados correctamente',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000
+    })
+  } catch (error: any) {
+    console.error('Error saving changes:', error)
+    const errorMsg = error.response?.data?.message || error.response?.data?.error || 'No se pudieron guardar los cambios'
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: errorMsg
+    })
+  } finally {
+    saving.value = false
+  }
 }
 
-const saveRolePermissions = () => {
-  if (!currentRole.value) return
-  
-  const selectedPermissions = allPermissions.value
-    .filter(p => p.selected)
-    .map(p => p.id)
-  
-  emit('assignPermissions', currentRole.value.id, selectedPermissions)
-  closeRoleModal()
+async function deletePermission(permissionId: string) {
+  const result = await Swal.fire({
+    title: 'Confirmar Eliminación',
+    text: '¿Está seguro de que desea eliminar este permiso? Esta acción no se puede deshacer.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#dc3545',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: '<i class="fas fa-trash mr-2"></i>Eliminar',
+    cancelButtonText: 'Cancelar',
+    reverseButtons: true
+  })
+
+  if (!result.isConfirmed) return
+
+  try {
+    await axios.delete(`/permissions/${permissionId}`)
+    emit('refresh')
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Éxito',
+      text: 'Permiso eliminado correctamente',
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000
+    })
+  } catch (error) {
+    console.error('Error deleting permission:', error)
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se pudo eliminar el permiso'
+    })
+  }
 }
 
-const createPermission = () => {
-  emit('createPermission', { ...newPermission.value })
-  newPermission.value = { name: '', guard_name: 'web', description: '' }
+function createPermission() {
+  if (!newPermission.value.name) return
+
+  emit('createPermission', {
+    name: newPermission.value.name,
+    guard_name: newPermission.value.guard_name,
+    description: newPermission.value.description
+  })
+
+  newPermission.value = {
+    name: '',
+    displayName: '',
+    module: '',
+    guard_name: 'web',
+    description: ''
+  }
   showCreateModal.value = false
 }
 
-// Cargar todos los permisos
-onMounted(() => {
-  allPermissions.value = props.permissions.rows.map(p => ({
-    id: p.id,
-    name: p.name,
-    guard_name: p.guard_name,
-    description: p.description,
-    status: p.status,
-    created_at: p.created_at,
-    selected: false
-  }))
-})
+// Watch for permission changes and reset pending changes
+watch(() => props.permissions.rows, () => {
+  pendingChanges.value.clear()
+}, { deep: true })
 </script>
 
 <style scoped>
-.permission-manager {
-  padding: 1rem 0;
+.permission-matrix {
+  width: 100%;
 }
 
-.role-card {
-  height: 100%;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.role-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.category-title {
+.permission-table {
   font-size: 0.9rem;
+  width: 100%;
+  min-width: 900px;
+}
+
+.permission-table thead th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
   font-weight: 600;
   color: #495057;
-  margin-bottom: 0.75rem;
+  white-space: nowrap;
+  padding: 1rem 0.75rem;
 }
 
-.permission-item {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #f0f0f0;
+.permission-col {
+  min-width: 200px;
+  padding: 0.75rem;
 }
 
-.permission-item:last-child {
-  border-bottom: none;
+.module-col {
+  min-width: 100px;
+  color: #6c757d;
+  padding: 0.75rem;
 }
 
-.permission-name {
-  font-weight: 500;
-  font-size: 0.85rem;
+.role-col {
+  min-width: 90px;
+  padding: 0.75rem;
 }
 
-.permission-actions .btn {
-  padding: 0.25rem 0.5rem;
+.actions-col {
+  width: 50px;
+  padding: 0.75rem;
+}
+
+.permission-key {
+  font-family: monospace;
   font-size: 0.75rem;
 }
 
-.category-card {
-  border: 1px solid #dee2e6;
-  border-radius: 0.5rem;
-  height: 100%;
-}
-
-.category-card .card-header {
+.category-header {
   background-color: #f8f9fa;
+}
+
+.category-header td {
+  padding: 0.75rem;
+  border-top: 1px solid #dee2e6;
   border-bottom: 1px solid #dee2e6;
-  padding: 0.75rem 1rem;
 }
 
-.permission-checkboxes {
-  max-height: 300px;
-  overflow-y: auto;
+.permission-row:hover {
+  background-color: #f8f9fa;
 }
 
-.permission-label {
-  margin-left: 0.5rem;
+.permission-row td {
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+/* Custom Checkbox */
+.custom-checkbox-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.custom-checkbox {
+  width: 18px;
+  height: 18px;
   cursor: pointer;
+  accent-color: #007bff;
 }
 
-.permission-label .permission-name {
+.custom-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Role Badges */
+.badge-purple {
+  background-color: #e9d5ff;
+  color: #7c3aed;
+}
+
+.badge-blue {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+.badge-green {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.badge-yellow {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.badge-info {
+  background-color: #cff4fc;
+  color: #055160;
+}
+
+.badge-secondary {
+  background-color: #e9ecef;
+  color: #6c757d;
+}
+
+.font-weight-medium {
   font-weight: 500;
-  font-size: 0.85rem;
 }
 
-.role-permission-manager {
-  max-height: 60vh;
-  overflow-y: auto;
+.gap-2 {
+  gap: 0.5rem;
 }
 
-@media (max-width: 768px) {
-  .role-card {
-    margin-bottom: 1rem;
+@media (max-width: 1200px) {
+  .permission-table {
+    font-size: 0.85rem;
+    min-width: 800px;
   }
-  
-  .category-card {
-    margin-bottom: 1rem;
+
+  .permission-col {
+    min-width: 180px;
+  }
+
+  .role-col {
+    min-width: 75px;
   }
 }
 </style>

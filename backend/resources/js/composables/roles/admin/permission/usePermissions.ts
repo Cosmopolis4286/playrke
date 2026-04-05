@@ -15,7 +15,13 @@ export function usePermissions() {
     // Estado reactivo
     // =======================
     
-    const permissions = ref<Permission[]>([])
+    const permissions = ref<{
+        rows: Permission[]
+        pagination: any
+    }>({
+        rows: [],
+        pagination: { current_page: 1, per_page: 15, total: 0, last_page: 1, from: 1, to: 0 }
+    })
     const roles = ref<RoleWithPermissions[]>([])
     const loading = ref(false)
     const selectedIds = ref<string[]>([])
@@ -38,7 +44,10 @@ export function usePermissions() {
             const response = await axios.get('/permissions/fetch-list', {
                 params: { per_page: perPage }
             })
-            permissions.value = response.data.permissions.rows
+            permissions.value = {
+                rows: response.data.permissions.rows,
+                pagination: response.data.permissions.pagination
+            }
             return response.data.permissions
         } catch (error) {
             console.error('Error fetching permissions:', error)
@@ -161,7 +170,7 @@ export function usePermissions() {
     }
 
     const selectAll = () => {
-        selectedIds.value = permissions.value.map(p => p.id)
+        selectedIds.value = permissions.value.rows.map(p => p.id)
     }
 
     const clearSelection = () => {
@@ -193,7 +202,10 @@ export function usePermissions() {
     }
 
     const reset = () => {
-        permissions.value = []
+        permissions.value = {
+            rows: [],
+            pagination: { current_page: 1, per_page: 15, total: 0, last_page: 1, from: 1, to: 0 }
+        }
         roles.value = []
         selectedIds.value = []
         currentRole.value = null
