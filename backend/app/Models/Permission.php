@@ -2,33 +2,52 @@
 
 namespace App\Models;
 
-use App\Traits\SnowflakeId;
 use Spatie\Permission\Models\Permission as SpatiePermission;
 
 /**
- * Modelo Permission personalizado con soporte para Snowflake IDs como strings.
+ * Modelo Permission personalizado con soporte para IDs como strings.
  *
  * Extiende el modelo de Spatie para mantener compatibilidad con laravel-permission,
  * mientras se asegura que los IDs se serialicen como strings en JSON.
  */
 class Permission extends SpatiePermission
 {
-    use SnowflakeId;
+    /**
+     * El tipo de dato de la llave primaria.
+     * 'string' asegura que los IDs se serialicen como strings en JSON,
+     * previniendo pérdida de precisión en JavaScript con números grandes.
+     */
+    protected $keyType = 'string';
 
     /**
-     * Deshabilitar auto-incremento ya que usamos Snowflake IDs.
+     * Indica si las llaves primarias son auto-incrementales.
      */
-    public function getIncrementing(): bool
+    public $incrementing = false;
+
+    /**
+     * Los atributos que deben ser convertidos.
+     */
+    protected $casts = [
+        'id' => 'string',
+    ];
+
+    /**
+     * Constructor para inicializar casts.
+     */
+    public function __construct(array $attributes = [])
     {
-        return false;
+        parent::__construct($attributes);
+        // Asegurar que el ID siempre se trate como string
+        $this->mergeCasts([
+            $this->getKeyName() => 'string',
+        ]);
     }
 
     /**
-     * Especificar que el tipo de llave es string para serialización JSON.
-     * Esto previene la pérdida de precisión en JavaScript con números grandes.
+     * Accessor para asegurar que el ID se retorne como string.
      */
-    public function getKeyType(): string
+    public function getIdAttribute($value): string
     {
-        return 'string';
+        return (string) $value;
     }
 }

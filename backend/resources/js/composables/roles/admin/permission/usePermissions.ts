@@ -42,7 +42,7 @@ export function usePermissions() {
         loading.value = true
         try {
             const response = await axios.get('/permissions/fetch-list', {
-                params: { per_page: perPage }
+                params: { per_page: perPage, _t: Date.now() } // Timestamp para evitar caché
             })
             permissions.value = {
                 rows: response.data.permissions.rows,
