@@ -4,6 +4,16 @@ namespace App\Traits;
 
 use BradieTilley\Snowflake\Snowflake;
 
+/**
+ * Trait para modelos que usan IDs de Snowflake.
+ * 
+ * NOTA: Los modelos que usen este trait deben definir:
+ * - protected $keyType = 'string';
+ * - public $incrementing = false;
+ * 
+ * Esto asegura que los IDs se serialicen como strings en JSON,
+ * previniendo pérdida de precisión en JavaScript con números grandes.
+ */
 trait SnowflakeId
 {
     protected static function bootSnowflakeId()
@@ -15,18 +25,8 @@ trait SnowflakeId
         });
     }
 
-    public function getIncrementing()
-    {
-        return false;
-    }
-
-    public function getKeyType()
-    {
-        return 'string';
-    }
-
     /**
-     * Genera un ID único usando Snowflake (API real de tu paquete).
+     * Genera un ID único usando Snowflake.
      */
     public static function generateSnowflakeId(): string
     {

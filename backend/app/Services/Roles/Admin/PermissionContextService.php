@@ -75,7 +75,13 @@ final class PermissionContextService
             $permissionIds = \DB::table('role_has_permissions')
                 ->where('role_id', $role->id)
                 ->pluck('permission_id')
+                ->map(fn($id) => (string) $id)
                 ->toArray();
+
+            \Log::debug("Role {$role->name} permissions", [
+                'role_id' => $role->id,
+                'permission_ids' => $permissionIds,
+            ]);
 
             $rolesData[] = [
                 'id' => (string) $role->id,

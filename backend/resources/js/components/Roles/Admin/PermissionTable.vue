@@ -427,7 +427,20 @@ function hasPermission(roleId: string, permissionId: string): boolean {
   }
 
   const role = props.roles.find(r => r.id === roleId)
-  return role?.permissions.includes(permissionId) || false
+  const has = role?.permissions.includes(permissionId) || false
+  
+  // Debug: mostrar si el rol tiene el permiso
+  if (permissionId === '1333266808362590473') {
+    console.log('hasPermission debug:', {
+      roleId,
+      permissionId,
+      roleFound: !!role,
+      rolePermissions: role?.permissions?.slice(0, 3),
+      has
+    })
+  }
+  
+  return has
 }
 
 function togglePermission(roleId: string, permissionId: string) {
