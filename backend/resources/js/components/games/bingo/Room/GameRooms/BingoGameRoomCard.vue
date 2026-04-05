@@ -5,6 +5,7 @@
  * Tarjeta premium individual de sala de juego de bingo.
  * Diseño glassmorphism oscuro con gradientes y animaciones sutiles.
  */
+import { usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
 import type { RoomCountdown } from '@/js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
@@ -54,27 +55,34 @@ const emit = defineEmits<{
 // Computed
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Auth desde Inertia
+// ---------------------------------------------------------------------------
+const page = usePage()
+
+/** Si el usuario es admin o superadmin (no pueden comprar) */
+const isAdmin = computed(() => {
+  const roles = page.props.auth?.user?.userRoles || []
+  return roles.some((r: any) => 
+    r.role?.prefix === 'admin' || r.role?.prefix === 'superadmin'
+  )
+})
+
 /** Si la sala está activa (ACTIVE = disponible para comprar) */
 const isAvailable = computed(() => props.room.status_code === 'ACTIVE')
 
 /** Etiqueta de estado visible */
 const statusLabel = computed(() => {
-  console.log('🔍 Debug - isAvailable:', isAvailable.value)
-  console.log('🔍 Debug - room.status_code:', props.room.status_code)
-  console.log('🔍 Debug - playerCtns:', playerCtns.value)
-  
   if (isAvailable.value) {
     return 'Comprar Cartones'
   }
   
   // Si la sala está IN_PROGRESS y el jugador tiene cartones, mostrar "Entrar a Sala"
   if (props.room.status_code === 'IN_PROGRESS' && playerCtns.value > 0) {
-    console.log('✅ Mostrando "Entrar a Sala"')
     return 'Entrar a Sala'
   }
   
   // Para cualquier otro caso (IN_PROGRESS sin cartones, etc.)
-  console.log('❌ Mostrando "En Juego"')
   return 'En Juego'
 })
 
@@ -129,32 +137,26 @@ const hasTime = computed(() => props.countdown && !props.countdown.expired)
 // ---------------------------------------------------------------------------
 
 function handleCardClick(): void {
-  console.log('🖱️ handleCardClick called')
-  console.log('🔍 Debug - loading:', props.loading)
-  console.log('🔍 Debug - isAvailable:', isAvailable.value)
-  console.log('🔍 Debug - room.status_code:', props.room.status_code)
-  console.log('🔍 Debug - playerCtns:', playerCtns.value)
-  
   if (props.loading) return
+
+  // Si es admin/superadmin, no permitir compra ni abrir modal
+  if (isAdmin.value) {
+    console.log('🚫 Admin no puede comprar cartones')
+    return
+  }
   
   // Si la sala está disponible, permitir compra
   if (isAvailable.value) {
-    console.log('🛒 Emitting select event')
     emit('select', props.room.id)
     return
   }
   
   // Si la sala está IN_PROGRESS y el jugador tiene cartones, redirigir al juego
   if (props.room.status_code === 'IN_PROGRESS' && playerCtns.value > 0) {
-    console.log('🎮 Redirecting to game')
     const roomUrl = `/bingo-game/${props.room.id}/in-game`
-    console.log(`Redirigiendo a: ${roomUrl}`)
     window.location.href = roomUrl
     return
   }
-  
-  // Para otros casos (IN_PROGRESS sin cartones), no hacer nada o mostrar mensaje
-  console.log('❌ No se puede entrar a la sala: el jugador no tiene cartones')
 }
 
 function handleCtnsInput(event: Event): void {

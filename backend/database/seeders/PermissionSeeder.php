@@ -66,6 +66,10 @@ class PermissionSeeder extends Seeder
             ['name' => 'games.edit', 'guard_name' => 'web', 'description' => 'Editar juegos'],
             ['name' => 'games.delete', 'guard_name' => 'web', 'description' => 'Eliminar juegos'],
             ['name' => 'games.manage', 'guard_name' => 'web', 'description' => 'Gestionar juegos'],
+            
+            // Juegos específicos
+            ['name' => 'game.bingo', 'guard_name' => 'web', 'description' => 'Acceso a juegos de bingo'],
+            ['name' => 'game.bingo.game_rooms', 'guard_name' => 'web', 'description' => 'Acceso a salas de bingo'],
 
             // Reportes
             ['name' => 'reports.view', 'guard_name' => 'web', 'description' => 'Ver reportes'],
@@ -83,6 +87,24 @@ class PermissionSeeder extends Seeder
             // Auditoría
             ['name' => 'audit.view', 'guard_name' => 'web', 'description' => 'Ver auditoría'],
             ['name' => 'audit.export', 'guard_name' => 'web', 'description' => 'Exportar auditoría'],
+
+            // Opciones independientes del menú
+            ['name' => 'directory.view', 'guard_name' => 'web', 'description' => 'Ver directorio de comercios'],
+            ['name' => 'directory.search', 'guard_name' => 'web', 'description' => 'Buscar en directorio'],
+            
+            ['name' => 'prizes.view', 'guard_name' => 'web', 'description' => 'Ver premios'],
+            ['name' => 'prizes.create', 'guard_name' => 'web', 'description' => 'Crear premios'],
+            ['name' => 'prizes.edit', 'guard_name' => 'web', 'description' => 'Editar premios'],
+            ['name' => 'prizes.delete', 'guard_name' => 'web', 'description' => 'Eliminar premios'],
+            ['name' => 'prizes.assign', 'guard_name' => 'web', 'description' => 'Asignar premios'],
+
+            // Billetera/Wallet
+            ['name' => 'wallet.view', 'guard_name' => 'web', 'description' => 'Ver billetera'],
+            ['name' => 'wallet.deposit', 'guard_name' => 'web', 'description' => 'Depositar en billetera'],
+            ['name' => 'wallet.withdraw', 'guard_name' => 'web', 'description' => 'Retirar de billetera'],
+            ['name' => 'wallet.movements', 'guard_name' => 'web', 'description' => 'Ver movimientos de billetera'],
+            ['name' => 'wallet.movements.view', 'guard_name' => 'web', 'description' => 'Ver todos los movimientos de billetera (admin)'],
+            ['name' => 'wallet.movements.manage', 'guard_name' => 'web', 'description' => 'Gestionar movimientos de billetera (admin)'],
 
             // Permisos de SuperAdmin (acceso total)
             ['name' => 'superadmin.access', 'guard_name' => 'web', 'description' => 'Acceso total al sistema'],

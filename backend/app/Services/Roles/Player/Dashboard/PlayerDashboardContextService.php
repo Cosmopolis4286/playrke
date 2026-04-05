@@ -48,12 +48,12 @@ final class PlayerDashboardContextService
         $activeRooms = BingoRoom::active()->count();
 
         // Cartones del jugador este mes
-        $cardsThisMonth = BingoCard::where('creator_user_id', $userId)
+        $cardsThisMonth = BingoCard::where('creator_room_user_id', $userId)
             ->where('created_at', '>=', $startOfMonth)
             ->count();
 
         // Total cartones del jugador
-        $totalCards = BingoCard::where('creator_user_id', $userId)->count();
+        $totalCards = BingoCard::where('creator_room_user_id', $userId)->count();
 
         return [
             'walletBalance' => [
@@ -87,25 +87,32 @@ final class PlayerDashboardContextService
     {
         $userId = (string) $user?->getKey();
 
-        return BingoCard::where('creator_user_id', $userId)
-            ->with('room.config')
+        return BingoCard::where('creator_room_user_id', $userId)
+            ->with(['room.config', 'room.cardPrices.currency', 'currency'])
             ->latest()
             ->limit(8)
-            ->get(['id', 'room_id', 'serial_number', 'status', 'created_at'])
+            ->get(['id', 'room_id', 'serial_number', 'status', 'currency_id', 'created_at'])
             ->map(function (BingoCard $card) {
                 $roomDate = $card->room?->config?->date?->format('d/m/Y') ?? 'N/D';
+                $roomTime = $card->room?->config?->start_time?->format('H:i') ?? '';
+                
+                // Obtener precio desde la sala (card_prices)
+                $cardPrice = $card->room?->cardPrices?->first();
+                $price = $cardPrice?->card_price;
+                $priceCurrency = $cardPrice?->currency?->iso_code ?? $card->currency?->iso_code ?? '';
 
                 return [
                     'id'          => (string) $card->getKey(),
-                    'type'        => match ($card->status) {
-                        'winner'    => 'success',
-                        'cancelled' => 'danger',
-                        default     => 'info',
-                    },
+                    'type'        => 'bingo',
                     'title'       => "Cartón #{$card->serial_number}",
-                    'description' => "Sala del {$roomDate}",
+                    'description' => "Sala del {$roomDate}" . ($roomTime ? " a las {$roomTime}" : ''),
                     'timestamp'   => $card->created_at->toIso8601String(),
                     'actor'       => $card->serial_number,
+                    'meta'        => [
+                        'status'   => $card->status,
+                        'price'    => $price ? number_format($price, 2) : null,
+                        'currency' => $priceCurrency,
+                    ],
                 ];
             })
             ->all();

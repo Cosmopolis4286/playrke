@@ -7,6 +7,7 @@ use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
+use Spatie\Permission\Traits\HasPermissions;
 
 /**
  * Modelo para la gestión de roles de usuario.
@@ -16,7 +17,7 @@ use Illuminate\Support\Str;
  */
 class Role extends Model
 {
-    use SnowflakeId;
+    use SnowflakeId, HasPermissions;
 
     /**
      * Nombre de la tabla asociada al modelo.

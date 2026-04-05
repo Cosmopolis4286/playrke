@@ -166,7 +166,11 @@ final class BingoRoomContextService
                     'unix_date' => $room->config?->unix_date,
                     'room_type' => $room->config?->roomType?->code ?? 'PUBLIC'
                 ],
-                'players_room' => null,
+                'players_room' => $room->players
+                    ->where('user_id', $userId)
+                    ->map(fn($ru) => ['ctns' => $ru->cards_purchased])
+                    ->values()
+                    ->all(),
             ])->values()->all(),
         ];
 

@@ -7,8 +7,8 @@ use App\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
 use App\Exceptions\Domain\Roles\Admin\Commerce\AdminCommerceException;
 use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
-use App\Models\Pivots\Roles\Commerce\CommerceCurrency;
-use App\Models\Pivots\Roles\Commerce\CommerceGame;
+use App\Models\Game;
+use App\Models\User;
 use App\Models\Roles\Commerce;
 use App\Services\UserService;
 use Illuminate\Support\Facades\DB;
@@ -197,7 +197,7 @@ final class AdminCommerceCrudService
     }
 
     /**
-     * Sincroniza juegos permitidos.
+     * Sincroniza juegos permitidos y actualiza permisos específicos del usuario.
      */
     protected function syncGames(
         Commerce $commerce,
@@ -208,6 +208,32 @@ final class AdminCommerceCrudService
             ->unique()
             ->values()
             ->all();
+
+        // Obtener nombres de juegos para crear permisos
+        $gamePermissions = [];
+        if (!empty($activeGameIds)) {
+            $games = Game::whereIn('id', $activeGameIds)->get(['id', 'name']);
+            $gamePermissions = $games->map(fn($game) => 'game.' . strtolower($game->name))
+                ->values()
+                ->all();
+        }
+
+        // Actualizar permisos específicos del usuario del comercio
+        $user = User::find($commerce->user_id);
+        if ($user) {
+            $currentPermissions = $user->specific_permissions ?? [];
+
+            // Filtrar permisos que no son de juegos
+            $nonGamePermissions = array_filter(
+                $currentPermissions,
+                fn($perm) => !str_starts_with($perm, 'game.')
+            );
+
+            // Combinar permisos no-juego + nuevos permisos de juegos
+            $newPermissions = array_values(array_unique(array_merge($nonGamePermissions, $gamePermissions)));
+
+            $user->update(['specific_permissions' => $newPermissions]);
+        }
 
         CommerceGame::where('commerce_id', $commerce->id)
             ->whereNotIn('game_id', $activeGameIds)

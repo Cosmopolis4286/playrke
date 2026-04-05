@@ -15,7 +15,7 @@
  * - Efecto “bounce” idéntico a Bootstrap 4 cuando static es true
  */
 
-import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, watch, onMounted, onUnmounted, nextTick, computed } from "vue";
 
 defineOptions({ name: "Modal" });
 
@@ -44,6 +44,14 @@ const emit = defineEmits<{
 
 const modalRef = ref<HTMLElement | null>(null);
 const submitting = ref(false);
+
+const buttonText = computed(() => {
+  if (submitting.value) {
+    return "Guardando...";
+  }
+  return props.confirmText ?? "Guardar";
+});
+
 let lastFocused: Element | null = null;
 
 const isBouncing = ref(false);
@@ -192,6 +200,14 @@ onUnmounted(() => {
       >
         <div class="modal-dialog" :class="size ? `modal-${size}` : ''" role="document">
           <div class="modal-content">
+            <!-- Loading Overlay -->
+            <div v-if="submitting" class="modal-loading-overlay">
+              <div class="modal-loading-spinner">
+                <span class="spinner-border" role="status" aria-hidden="true"></span>
+                <span class="sr-only">Procesando...</span>
+              </div>
+            </div>
+
             <div class="modal-header">
               <h5 class="modal-title" :id="id ? `${id}-label` : undefined">
                 {{ title }}
@@ -217,7 +233,7 @@ onUnmounted(() => {
                   :disabled="submitting || confirmDisabled"
                   @click="confirm"
                 >
-                  {{ submitting ? "Guardando..." : confirmText ?? "Guardar" }}
+                  {{ buttonText }}
                 </button>
               </slot>
             </div>
@@ -348,5 +364,47 @@ onUnmounted(() => {
 .modal-static {
   animation: static-bounce 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: center;
+}
+
+/* Loading Overlay - Bloqueante */
+.modal-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  border-radius: 0.25rem;
+}
+
+.modal-loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.modal-loading-spinner .spinner-border {
+  width: 3rem;
+  height: 3rem;
+  border: 0.3rem solid rgba(0, 123, 255, 0.2);
+  border-top-color: #007bff;
+  border-radius: 50%;
+  animation: spinner-rotate 0.75s linear infinite;
+}
+
+.modal-loading-spinner .sr-only {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

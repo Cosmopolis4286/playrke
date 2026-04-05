@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,11 +28,21 @@ class DashboardController extends Controller
 
         return $this->handleServiceInertia(
             function () use ($rolePrefix) {
-                $view = "Roles/" . ucfirst($rolePrefix) . "/Dashboard/Index";
+                // Mapeo de prefijos a nombres de carpetas (casos especiales)
+                $viewFolder = match ($rolePrefix) {
+                    'superadmin' => 'SuperAdmin',
+                    default => ucfirst($rolePrefix),
+                };
+                $view = "Roles/{$viewFolder}/Dashboard/Index";
 
                 try {
                     $context = $this->service->resolve($rolePrefix . '_dashboard')->toView();
-                } catch (\Throwable) {
+                } catch (\Throwable $e) {
+                    Log::error('Error cargando dashboard', [
+                        'role' => $rolePrefix,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
                     $context = [];
                 }
 

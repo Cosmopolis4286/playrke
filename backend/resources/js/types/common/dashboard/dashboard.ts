@@ -37,7 +37,7 @@ export interface StatCardData {
 // Activity Feed
 // --------------------------------------------------------------------------
 
-export type ActivityType = 'sale' | 'refund' | 'login' | 'update' | 'alert' | 'info' | 'success' | 'danger'
+export type ActivityType = 'sale' | 'refund' | 'login' | 'update' | 'alert' | 'info' | 'success' | 'danger' | 'bingo'
 
 export interface ActivityItem {
     id: string | number

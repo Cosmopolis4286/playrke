@@ -40,7 +40,8 @@ class CurrencyService
                 $currenciesIds = $this->handlePlayerCurrencies($userId);
                 break;
             case 'admin':
-                // Admin users can see all active currencies from currencies_table via repository
+            case 'superadmin':
+                // Admin/superadmin users can see all active currencies from currencies_table via repository
                 if ($withCurrency && $withCountry) {
                     return $this->currencyRepository->getActive()->load('country');
                 } else if ($withCurrency) {

@@ -28,8 +28,20 @@ class RoomUserRegistrationService implements RoomUserRegistrationInterface
             }
 
             // Buscar usuario existente
-            $roomUser = $this->findRoomUser($userData['roomUser'] ?? null);
+            $roomUser = null;
             $isNew = false;
+            
+            // Si se proporciona roomUser ID, buscar por ID
+            if (isset($userData['roomUser']) && $userData['roomUser']) {
+                $roomUser = $this->findRoomUser($userData['roomUser']);
+            }
+            
+            // Si no se encontró por ID, buscar por room_id + user_id
+            if (!$roomUser && isset($userData['roomId']) && isset($userData['creator']['id'])) {
+                $roomUser = BingoRoomUser::where('room_id', $userData['roomId'])
+                    ->where('user_id', $userData['creator']['id'])
+                    ->first();
+            }
 
             if (!$roomUser) {
                 // Crear nuevo usuario

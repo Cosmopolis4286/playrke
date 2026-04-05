@@ -1,7 +1,7 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
-import type { BingoPattern } from '@/js/types/games/bingo/pattern/bingo-pattern'
+import type { BingoPattern } from '@/js/types/games/bingo/pattern/bingo-patterns'
 
 interface UseBingoPatternReturn {
     bingoPatternData: Ref<Partial<BingoPattern>>

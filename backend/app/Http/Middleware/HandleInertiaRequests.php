@@ -77,12 +77,33 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        
+        // Cargar relaciones si el usuario está autenticado
+        if ($user) {
+            $user->load(['roles']);
+        }
+        
         return [
             ...parent::share($request),
 
             'app' => [
                 'env'   => app()->environment(),
                 'debug' => config('app.debug'),
+            ],
+            
+            'auth' => [
+                'user' => $user ? [
+                    'id'         => $user->id,
+                    'name'       => $user->name,
+                    'email'      => $user->email,
+                    'userRoles'  => $user->roles ? $user->roles->map(fn($role) => [
+                        'role' => [
+                            'name'   => $role->name,
+                            'prefix' => $role->prefix,
+                        ],
+                    ]) : [],
+                ] : null,
             ],
         ];
     }

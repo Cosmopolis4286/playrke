@@ -10,91 +10,83 @@ class SidebarMenuService
     /**
      * Estructura completa del menú con permisos requeridos
      */
-    private array $menuStructure = [
+    public array $menuStructure = [
         'dashboard' => [
             'title' => 'Tablero',
             'icon' => 'fas fa-tachometer-alt',
             'route' => 'dashboard',
             'permission' => null, // Accesible para todos
         ],
+        'directory' => [
+            'title' => 'Directorio',
+            'icon' => 'fas fa-address-book',
+            'permission' => null, // Accesible para todos
+            'route' => 'directory.index',
+        ],
+        'wallet' => [
+            'title' => 'Billetera',
+            'icon' => 'fas fa-wallet',
+            'permission' => 'wallet.view',
+            'submenu' => [
+                'my_wallet' => [
+                    'title' => 'Mi Billetera',
+                    'route' => 'wallet.index',
+                    'permission' => 'wallet.view',
+                ],
+                'movements' => [
+                    'title' => 'Movimientos',
+                    'route' => 'wallet-movements.index',
+                    'permission' => 'wallet.movements.view',
+                ],
+            ],
+        ], 
+        'exchange_rates' => [
+            'title' => 'Tasa de Cambio',
+            'icon' => 'fas fa-exchange-alt',
+            'permission' => 'exchange.view',
+            'exclude_roles' => ['player', 'seller'],
+            'route' => 'exchange-rate.index',
+        ],
         'users' => [
             'title' => 'Usuarios',
             'icon' => 'fa-solid fa-users-gear',
             'permission' => 'users.view',
             'submenu' => [
-                'customers' => [
-                    'title' => 'Clientes',
-                    'route' => 'admin.customers',
-                    'permission' => 'customers.view',
-                ],
-                'commerces' => [
-                    'title' => 'Comercios',
-                    'route' => 'admin.commerces',
-                    'permission' => 'commerces.view',
-                ],
-                'treasurers' => [
-                    'title' => 'Tesoreros',
-                    'route' => 'admin.treasurers',
-                    'permission' => 'treasury.view',
-                ],
-                'sellers' => [
-                    'title' => 'Vendedores',
-                    'route' => 'admin.sellers',
-                    'permission' => 'sellers.view',
-                ],
-                'players' => [
-                    'title' => 'Jugadores',
-                    'route' => 'admin.players',
-                    'permission' => 'users.view',
+                'permissions' => [
+                    'title' => 'Permisos',
+                    'route' => 'permissions.index',
+                    'permission' => 'superadmin.access',
+                    'exclude_roles' => ['!superadmin'],
                 ],
                 'all_users' => [
-                    'title' => 'Todos',
+                    'title' => 'Listado',
                     'route' => 'admin.users',
                     'permission' => 'users.manage',
                 ],
             ],
         ],
-        'commerces_management' => [
-            'title' => 'Gestión de Comercios',
-            'icon' => 'fas fa-store',
-            'permission' => 'commerces.view',
-            'submenu' => [
-                'directory' => [
-                    'title' => 'Directorio',
-                    'route' => 'directory.index',
-                    'permission' => 'commerces.view',
-                ],
-                'exchange_rates' => [
-                    'title' => 'Tasa de Cambio',
-                    'route' => 'exchange-rate.index',
-                    'permission' => 'exchange.view',
-                ],
-                'prizes' => [
-                    'title' => 'Premios',
-                    'route' => 'prizes.index',
-                    'permission' => 'games.view',
-                ],
-            ],
+        'prizes' => [
+            'title' => 'Gestión de Premios',
+            'icon' => 'fas fa-trophy',
+            'permission' => 'prizes.view',
+            'exclude_roles' => ['player', 'seller'],
+            'route' => 'prizes.index',
         ],
-        'seller_management' => [
-            'title' => 'Gestión de Ventas',
-            'icon' => 'fa-solid fa-comments-dollar',
-            'permission' => 'sellers.view',
+        'game_bingo' => [
+            'title' => 'Bingo',
+            'icon' => 'fas fa-gamepad',
+            'permission' => 'game.bingo', // Acceso específico a juegos de bingo
+            'exclude_roles' => ['superadmin', 'admin'], // Superadmin no ve este menú
             'submenu' => [
-                'my_sellers' => [
-                    'title' => 'Mis Vendedores',
-                    'route' => 'manager-seller.index',
-                    'permission' => 'sellers.view',
-                ],
-                'customers' => [
-                    'title' => 'Clientes',
-                    'route' => 'customer.index',
-                    'permission' => 'customers.view',
+                'game_rooms' => [
+                    'title' => 'Salas de Bingo',
+                    'route' => 'bingo-game-rooms.index',
+                    'permission' => 'game.bingo.game_rooms', // Acceso específico a juegos de bingo
                 ],
             ],
         ],
         'games' => [
-            'title' => 'Juegos',
+            'title' => 'Gestión de Juegos',
             'icon' => 'fas fa-gamepad',
             'permission' => 'games.view',
             'submenu' => [
@@ -103,18 +95,21 @@ class SidebarMenuService
                     'route' => 'bingo-rooms.index',
                     'permission' => 'games.view',
                 ],
-                'bingo_patterns' => [
-                    'title' => 'Patrones de Bingo',
-                    'route' => 'bingo-patterns.index',
-                    'permission' => 'games.edit',
-                ],
-                'game_configs' => [
-                    'title' => 'Configuración de Juegos',
-                    'route' => 'game-configs.index',
-                    'permission' => 'games.manage',
+            ],
+        ],
+        'sales_management' => [
+            'title' => 'Gestión de Ventas',
+            'icon' => 'fa-solid fa-comments-dollar',
+            'permission' => 'sellers.view,customers.view', // Accesible para commerce, customer, seller
+            'submenu' => [
+                'my_sellers' => [
+                    'title' => 'Mis Vendedores',
+                    'route' => 'manager-seller.index',
+                    'permission' => 'sellers.view',
                 ],
             ],
         ],
+        /*
         'treasury' => [
             'title' => 'Tesorería',
             'icon' => 'fas fa-coins',
@@ -137,28 +132,27 @@ class SidebarMenuService
                 ],
             ],
         ],
+        */
+        /*
         'reports' => [
             'title' => 'Reportes',
             'icon' => 'fas fa-chart-bar',
             'permission' => 'reports.view',
             'submenu' => [
-                'financial' => [
-                    'title' => 'Reportes Financieros',
-                    'route' => 'reports.financial',
-                    'permission' => 'reports.financial',
-                ],
-                'gaming' => [
-                    'title' => 'Reportes de Juegos',
-                    'route' => 'reports.gaming',
-                    'permission' => 'reports.gaming',
+                'index' => [
+                    'title' => 'Todos los Reportes',
+                    'route' => 'reports.index',
+                    'permission' => 'reports.view',
                 ],
                 'export' => [
-                    'title' => 'Exportar',
+                    'title' => 'Exportar Reportes',
                     'route' => 'reports.export',
                     'permission' => 'reports.export',
                 ],
             ],
         ],
+        */
+        /*
         'system' => [
             'title' => 'Sistema',
             'icon' => 'fas fa-cogs',
@@ -191,6 +185,7 @@ class SidebarMenuService
                 ],
             ],
         ],
+        */
     ];
 
     /**
@@ -204,24 +199,49 @@ class SidebarMenuService
             return collect([]);
         }
 
-        // Si es superadmin, mostrar todo
+        // Obtener roles del usuario
+        $userRoles = $user->getRoleNames()->toArray();
+
+        // Si es superadmin, mostrar todo excepto menús excluidos explícitamente
         if ($user->hasRole('superadmin')) {
-            return collect($this->menuStructure);
+            return collect($this->menuStructure)->filter(function ($item) use ($userRoles) {
+                // Verificar si el menú tiene roles excluidos
+                if (!empty($item['exclude_roles'])) {
+                    $excludedRoles = $item['exclude_roles'];
+                    // Si el usuario tiene algún rol excluido, no mostrar el menú
+                    if (array_intersect($userRoles, $excludedRoles)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
         }
 
+        // Obtener permisos del usuario una sola vez
+        $userPermissions = $user->getAllPermissions()->pluck('name')->toArray();
+
         // Filtrar menú basado en permisos
-        return collect($this->menuStructure)->filter(function ($item) use ($user) {
+        return collect($this->menuStructure)->filter(function ($item) use ($user, $userPermissions) {
+            // Verificar si el menú tiene roles excluidos
+            if (!empty($item['exclude_roles'])) {
+                $userRoles = $user->getRoleNames()->toArray();
+                $excludedRoles = $item['exclude_roles'];
+                if (array_intersect($userRoles, $excludedRoles)) {
+                    return false;
+                }
+            }
+
             // Si no requiere permiso, mostrar siempre
             if (empty($item['permission'])) {
                 return true;
             }
 
-            // Verificar si tiene el permiso
-            if ($user->can($item['permission'])) {
+            // Verificar si tiene el permiso (usando array en lugar de can())
+            if (in_array($item['permission'], $userPermissions)) {
                 // Filtrar submenú si existe
                 if (isset($item['submenu'])) {
-                    $item['submenu'] = collect($item['submenu'])->filter(function ($subitem) use ($user) {
-                        return empty($subitem['permission']) || $user->can($subitem['permission']);
+                    $item['submenu'] = collect($item['submenu'])->filter(function ($subitem) use ($userPermissions) {
+                        return empty($subitem['permission']) || in_array($subitem['permission'], $userPermissions);
                     })->toArray();
                     
                     // Mostrar solo si hay submenús visibles
@@ -252,6 +272,22 @@ class SidebarMenuService
             return str_starts_with($currentRoute, $prefix . '.');
         }
 
+        return false;
+    }
+
+    /**
+     * Verifica si un menú padre tiene algún submenu activo.
+     *
+     * @param array $submenu Array de submenús
+     * @return bool
+     */
+    public function hasActiveSubmenu(array $submenu): bool
+    {
+        foreach ($submenu as $subitem) {
+            if (!empty($subitem['route']) && $this->isActive($subitem['route'])) {
+                return true;
+            }
+        }
         return false;
     }
 

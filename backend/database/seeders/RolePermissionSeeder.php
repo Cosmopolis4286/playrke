@@ -20,10 +20,11 @@ class RolePermissionSeeder extends Seeder
         $customer = Role::where('name', 'customer')->where('guard_name', 'api')->first();
         $player = Role::where('name', 'player')->where('guard_name', 'web')->first();
 
-        // SuperAdmin: Todos los permisos
+        // SuperAdmin: Todos los permisos (solo web guard)
         if ($superadmin) {
-            $allPermissions = Permission::all();
-            $superadmin->givePermissionTo($allPermissions);
+            // Solo asignar permisos con guard 'web' al rol SuperAdmin
+            $webPermissions = Permission::where('guard_name', 'web')->get();
+            $superadmin->givePermissionTo($webPermissions);
             $this->command->info('✅ Permisos asignados a SuperAdmin');
         }
 
@@ -31,15 +32,20 @@ class RolePermissionSeeder extends Seeder
         if ($admin) {
             $adminPermissions = [
                 'users.view', 'users.create', 'users.edit', 'users.manage',
-                'roles.view', 'roles.assign',
+                // 'roles.view', 'roles.assign', // Solo superadmin gestiona roles
                 'commerces.view', 'commerces.create', 'commerces.edit', 'commerces.approve',
                 'sellers.view', 'sellers.create', 'sellers.edit',
                 'customers.view', 'customers.create', 'customers.edit',
                 'treasury.view', 'treasury.reports',
                 'exchange.view', 'exchange.manage',
                 'games.view', 'games.manage',
+                'game.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial', 'reports.gaming',
                 'audit.view',
+                // Opciones independientes
+                'directory.view', 'directory.search',
+                'prizes.view', 'prizes.create', 'prizes.edit', 'prizes.delete', 'prizes.assign',
+                'wallet.movements.view', 'wallet.movements.manage', // Gestión de movimientos de billetera
             ];
             $admin->givePermissionTo($adminPermissions);
             $this->command->info('✅ Permisos asignados a Admin');
@@ -50,8 +56,11 @@ class RolePermissionSeeder extends Seeder
             $commercePermissions = [
                 'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
                 'customers.view', 'customers.create', 'customers.edit',
-                'games.view',
+                'game.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.generate', 'reports.gaming',
+                // Opciones independientes
+                'directory.view', 'directory.search',
+                'prizes.view', 'prizes.create', 'prizes.edit',
             ];
             $commerce->givePermissionTo($commercePermissions);
             $this->command->info('✅ Permisos asignados a Commerce');
@@ -61,7 +70,7 @@ class RolePermissionSeeder extends Seeder
         if ($seller) {
             $sellerPermissions = [
                 'customers.view', 'customers.create', 'customers.edit',
-                'games.view',
+                'game.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.gaming',
             ];
             $seller->givePermissionTo($sellerPermissions);
@@ -74,6 +83,9 @@ class RolePermissionSeeder extends Seeder
                 'treasury.view', 'treasury.manage', 'treasury.approve.transactions', 'treasury.reports',
                 'exchange.view', 'exchange.update',
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial',
+                // Opciones independientes
+                'directory.view', 'directory.search',
+                'prizes.view',
             ];
             $treasurer->givePermissionTo($treasurerPermissions);
             $this->command->info('✅ Permisos asignados a Treasurer');
@@ -82,25 +94,32 @@ class RolePermissionSeeder extends Seeder
         // Provider: Acceso API limitado
         if ($provider) {
             $providerPermissions = [
-                'customers.api.access',
+                'customers.api.access', // Este permiso usa guard 'api'
             ];
-            $provider->givePermissionTo($providerPermissions);
+            // Obtener permisos con guard 'api' para el rol provider
+            $apiPermissions = Permission::where('guard_name', 'api')
+                ->whereIn('name', $providerPermissions)
+                ->get();
+            $provider->givePermissionTo($apiPermissions);
             $this->command->info('✅ Permisos asignados a Provider');
         }
 
-        // Customer: Acceso API básico
+        // Customer: Acceso web limitado
         if ($customer) {
             $customerPermissions = [
-                'customers.api.access',
+                'game.bingo', // Acceso a juegos de bingo (guard 'web')
+                'directory.view', 'directory.search', // Acceso al directorio
             ];
             $customer->givePermissionTo($customerPermissions);
             $this->command->info('✅ Permisos asignados a Customer');
         }
 
-        // Player: Solo visualización de juegos
+        // Player: Solo acceso a juegos de bingo
         if ($player) {
             $playerPermissions = [
-                'games.view',
+                'game.bingo', // Acceso a juegos de bingo
+                'game.bingo.game_rooms', // Acceso a salas de bingo
+                'wallet.view', // Acceso a ver billetera
             ];
             $player->givePermissionTo($playerPermissions);
             $this->command->info('✅ Permisos asignados a Player');

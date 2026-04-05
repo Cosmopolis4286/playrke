@@ -33,6 +33,10 @@ return new class extends Migration
             $table->enum('type', ['DEPOSIT', 'WITHDRAWAL', 'PURCHASE', 'PRIZE'])
                 ->comment('Tipo de movimiento');
 
+            $table->enum('status', ['PENDING', 'COMPLETED', 'CANCELLED', 'REJECTED'])
+                ->default('PENDING')
+                ->comment('Estado del movimiento: PENDIENTE, COMPLETADO, CANCELADO, RECHAZADO');
+
             // Montos
             $table->decimal('amount', 15, 2)->comment('Monto del movimiento (siempre positivo)');
             $table->decimal('balance_before', 15, 2)->comment('Saldo antes del movimiento');

@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\DB;
  * Crea los registros de entidad para los usuarios demo
  * de roles admin, commerce, seller y customer.
  *
- * Depende de: RoleSeeder, UserSeeder, CountrySeeder, CurrencySeeder, GameSeeder
+ * Depende de: RoleSeeder, TestUserSeeder, CountrySeeder, CurrencySeeder, GameSeeder
  */
 class DemoRoleDataSeeder extends Seeder
 {

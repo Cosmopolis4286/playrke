@@ -93,6 +93,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_email_notifications_enabled',
         'is_two_factor_enabled',
         'user_preferences',
+        'specific_permissions', // Permisos específicos del usuario
     ];
 
     /**
@@ -115,6 +116,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_email_notifications_enabled' => 'boolean',
         'is_two_factor_enabled' => 'boolean',
         'user_preferences' => 'array',
+        'specific_permissions' => 'array', // Permisos específicos como array
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -129,11 +131,11 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Roles del usuario
      *
-     * @return BelongsToMany<Role>
+     * @return BelongsToMany<\Spatie\Permission\Models\Role>
      */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(Role::class, 'role_user')->withTimestamps();
+        return $this->belongsToMany(\Spatie\Permission\Models\Role::class, 'role_user')->withTimestamps();
     }
 
     /**
@@ -624,5 +626,74 @@ class User extends Authenticatable implements MustVerifyEmail
             ->where('user_id', $this->id)
             ->where('is_seen', false)
             ->update(['is_seen' => true]);
+    }
+
+    /**
+     * Obtener todos los permisos del usuario como array de nombres
+     *
+     * @return array
+     */
+    public function getAllPermissionNames(): array
+    {
+        return $this->getAllPermissions()->pluck('name')->toArray();
+    }
+
+    /**
+     * Verificar si el usuario tiene un permiso específico
+     *
+     * @param string $permission
+     * @return bool
+     */
+    public function hasSpecificPermission(string $permission): bool
+    {
+        return in_array($permission, $this->specific_permissions ?? []);
+    }
+
+    /**
+     * Agregar un permiso específico al usuario
+     *
+     * @param string|array $permissions
+     * @return void
+     */
+    public function giveSpecificPermission($permissions): void
+    {
+        $currentPermissions = $this->specific_permissions ?? [];
+        
+        if (is_array($permissions)) {
+            $newPermissions = array_unique(array_merge($currentPermissions, $permissions));
+        } else {
+            $newPermissions = array_unique(array_merge($currentPermissions, [$permissions]));
+        }
+        
+        $this->update(['specific_permissions' => $newPermissions]);
+    }
+
+    /**
+     * Quitar un permiso específico al usuario
+     *
+     * @param string|array $permissions
+     * @return void
+     */
+    public function revokeSpecificPermission($permissions): void
+    {
+        $currentPermissions = $this->specific_permissions ?? [];
+        
+        if (is_array($permissions)) {
+            $newPermissions = array_diff($currentPermissions, $permissions);
+        } else {
+            $newPermissions = array_diff($currentPermissions, [$permissions]);
+        }
+        
+        $this->update(['specific_permissions' => array_values($newPermissions)]);
+    }
+
+    /**
+     * Limpiar todos los permisos específicos del usuario
+     *
+     * @return void
+     */
+    public function clearSpecificPermissions(): void
+    {
+        $this->update(['specific_permissions' => []]);
     }
 }

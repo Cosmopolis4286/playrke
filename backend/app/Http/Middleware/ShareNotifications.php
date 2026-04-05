@@ -36,13 +36,6 @@ class ShareNotifications
                 View::share('unreadCount', $unreadCount);
                 View::share('formattedNotifications', $this->notificationService->formatNotifications($unreadNotifications));
 
-                // Debug
-                \Log::info('ShareNotifications: Compartiendo notificaciones globalmente', [
-                    'unread_count' => $unreadCount,
-                    'notifications_count' => $unreadNotifications->count(),
-                    'user_id' => auth()->id(),
-                ]);
-
             } catch (\Exception $e) {
                 \Log::error('ShareNotifications: Error al cargar notificaciones', [
                     'error' => $e->getMessage(),

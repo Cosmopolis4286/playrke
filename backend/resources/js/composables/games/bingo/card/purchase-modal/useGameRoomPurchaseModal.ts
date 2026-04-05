@@ -1,7 +1,6 @@
 import { ref, computed } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
-import { AuthService } from '@/js/Services/authService'
 import type {
     BingoAvailableCountry,
     BingoCardPriceResponse,

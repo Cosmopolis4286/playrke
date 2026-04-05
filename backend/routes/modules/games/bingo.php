@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Route;
  * INFORMACIÓN DE SALAS DE JUEGO Y CONFIGURACIÓN
  * ====================================
  */
-route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'role:admin,commerce'], BingoRoomController::class, [
+route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'multiPermission:games.manage,game.bingo'], BingoRoomController::class, [
     'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
@@ -41,7 +41,7 @@ route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'role:admin,commerce'], Bing
  * CONFIGURACIÓN
  * ====================================
  */
-route_group('bingo/config', 'bingo.config.', ['auth', 'role:admin,commerce'], BingoConfigController::class, [
+route_group('bingo/config', 'bingo.config.', ['auth', 'multiPermission:games.manage,game.bingo'], BingoConfigController::class, [
     'index'      => ['method' => 'get',  'uri' => '',           'action' => 'index'],
     'save-rules' => ['method' => 'post', 'uri' => 'save-rules', 'action' => 'saveRules'],
     'save-image' => ['method' => 'post', 'uri' => 'save-image', 'action' => 'saveImage'],
@@ -52,7 +52,7 @@ route_group('bingo/config', 'bingo.config.', ['auth', 'role:admin,commerce'], Bi
  * PATRONES DE BINGO (CANTOS)
  * ====================================
  */
-route_group('bingo/patterns', 'bingo-pattern.', ['auth', 'role:admin,commerce'], BingoPatternController::class, [
+route_group('bingo/patterns', 'bingo-patterns.', ['auth', 'multiPermission:games.manage,game.bingo'], BingoPatternController::class, [
     'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
@@ -68,7 +68,7 @@ route_group('bingo/patterns', 'bingo-pattern.', ['auth', 'role:admin,commerce'],
  * SALAS AUTOMÁTICAS
  * ====================================
  */
-route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'role:admin,commerce'], BingoRoomAutomaticController::class, [
+route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'multiPermission:games.manage,game.bingo'], BingoRoomAutomaticController::class, [
     'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
@@ -86,7 +86,7 @@ route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'role:ad
  * OPERACIONES CARTONES (PARA JUGADORES)
  * ====================================
  */
-route_group('bingo-card', 'bingo-card.', ['auth', 'role:admin,commerce,seller,player'], BingoCardController::class, [
+route_group('bingo-card', 'bingo-card.', ['auth', 'multiPermission:game.bingo,game.bingo.game_rooms'], BingoCardController::class, [
     'view-generate-card' => ['method' => 'get', 'uri' => 'generate', 'action' => 'viewGenerateCard'],
     'generate-card-store' => ['method' => 'post', 'uri' => '{room}/generate', 'action' => 'generateCardStore'],
     'fetch-room' => ['method' => 'get', 'uri' => 'fetch-room', 'action' => 'fetchRoom'],
@@ -96,11 +96,11 @@ route_group('bingo-card', 'bingo-card.', ['auth', 'role:admin,commerce,seller,pl
 
 /**
  * ====================================
- * SALAS DE JUEGO
+ * SALAS DE JUEGO (Para jugadores)
  * ====================================
  */
-route_group('bingo-game-rooms', 'bingo-game-rooms.', ['auth', 'role:admin,commerce,seller,player'], BingoRoomController::class, [
-    'view-game-rooms' => ['method' => 'get',  'uri' => '',           'action' => 'viewGameRooms'],
+route_group('bingo-game-rooms', 'bingo-game-rooms.', ['auth', 'multiPermission:game.bingo,game.bingo.game_rooms'], BingoRoomController::class, [
+    'index' => ['method' => 'get',  'uri' => '',           'action' => 'viewGameRooms'],
     'buy-from-rooms'  => ['method' => 'post', 'uri' => '{room}/buy', 'action' => 'buyFromGameRooms'],
     'player-buy'       => ['method' => 'post', 'uri' => '{room}/player-buy', 'action' => 'playerBuyFromGameRooms'],
     'check-user-role'  => ['method' => 'get',  'uri' => 'check-user-role', 'action' => 'checkUserRole'],
@@ -122,7 +122,7 @@ route_group('bingo-game', 'bingo-game.', ['auth'], BingoGameController::class, [
  * TESTING Y DESARROLLO
  * ====================================
  */
-route_group('bingo-test', 'bingo-test.', ['auth', 'role:admin'], BingoTestingController::class, [
+route_group('bingo-test', 'bingo-test.', ['auth', 'multiPermission:superadmin.access'], BingoTestingController::class, [
     'generate-draw' => ['method' => 'get', 'uri' => 'generate-draw', 'action' => 'generateDraw']
 ]);
 

@@ -133,7 +133,7 @@ use App\Http\Controllers\NotificationController;
 //     //
 //     // ADMIN ROUTES
 //     //
-//     Route::middleware('role:admin')->prefix('admin')->group(function () {
+//     Route::middleware('role:admin,superadmin')->prefix('admin')->group(function () {
 
 //         // Dashboard
 //         Route::get('dashboard', [AdminController::class, 'dashboard'])->name('api.admin.dashboard');

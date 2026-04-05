@@ -36,7 +36,7 @@ class SellerSeeder extends Seeder
             $sellerUser = User::where('email', 'seller@playrke.com')->first();
 
             if (!$sellerUser) {
-                $this->command->warn('Usuario seller@playrke.com no encontrado. Ejecute UserSeeder primero.');
+                $this->command->warn('Usuario seller@playrke.com no encontrado. Ejecute TestUserSeeder primero.');
                 return;
             }
 

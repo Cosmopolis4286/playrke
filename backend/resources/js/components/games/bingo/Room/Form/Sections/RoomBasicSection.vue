@@ -41,7 +41,10 @@ import { SelectOption } from '@/js/types/common/form/form'
    * Computed
    * ========================================================================== */
 
-  const minDate = computed(() => new Date().toISOString().split('T')[0])
+  const minDate = computed(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  })
 
   const minTime = computed(() => {
     if (props.automaticRoom) return undefined

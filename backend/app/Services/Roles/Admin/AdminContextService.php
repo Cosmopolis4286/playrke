@@ -12,6 +12,7 @@ final class AdminContextService
 
     public function __construct(
         private readonly \App\Services\Roles\Admin\Dashboard\AdminDashboardContextService     $dashboardContextService,
+        private readonly \App\Services\Roles\SuperAdmin\Dashboard\SuperAdminDashboardContextService $superAdminDashboardContextService,
         private readonly \App\Services\Roles\Admin\Commerce\AdminCommerceContextService       $commerceContextService,
         private readonly \App\Services\Roles\Admin\Customer\AdminCustomerContextService       $customerContextService,
         private readonly \App\Services\Roles\Admin\Player\AdminPlayerContextService           $playerContextService,
@@ -33,7 +34,8 @@ final class AdminContextService
     {
         return match ($context) {
             'dashboard', 'admin_dashboard' => $this->dashboardContextService->dashboardContext(),
-            'player_dashboard'             => $this->playerDashboardContextService->dashboardContext(),
+            'superadmin_dashboard'           => $this->superAdminDashboardContextService->dashboardContext(),
+            'player_dashboard'               => $this->playerDashboardContextService->dashboardContext(),
             'commerces'  => $this->commerceContextService->commerceContext(),
             'customers'  => $this->customerContextService->customerContext(),
             'players'    => $this->playerContextService->playerContext(),
