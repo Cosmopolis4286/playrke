@@ -74,10 +74,10 @@
                     type="button" id="userDropdown"
                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                     aria-label="Opciones de usuario">
-                <img class="mr-2 user-img rounded-circle border border-2 border-primary"
-                     src="{{ $navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico') }}"
+                <img class="mr-2 user-img"
+                     src="{{ $navUser->profile_photo_url ?? ($navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico')) }}"
                      alt="{{ $navUser->username }}"
-                     style="width:32px;height:32px;object-fit:cover;">
+                     style="width:32px;height:32px;object-fit:cover;border-radius:50%;border:2px solid #667eea;">
                 <div class="text-left">
                     <div class="user-text-navbar font-weight-bold">{{ $navUser->username }}</div>
                     <div class="text-muted" style="font-size:10px;line-height:1">Mi cuenta</div>
@@ -91,10 +91,10 @@
                 {{-- Header compacto --}}
                 <div class="px-3 py-3 bg-light border-bottom">
                     <div class="d-flex align-items-center">
-                        <img class="rounded-circle border-2 border-white me-2"
-                             src="{{ $navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico') }}"
+                        <img class="user-img"
+                             src="{{ $navUser->profile_photo_url ?? ($navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico')) }}"
                              alt="{{ $navUser->username }}"
-                             style="width:36px;height:36px;object-fit:cover;">
+                             style="width:36px;height:36px;object-fit:cover;border-radius:50%;border:2px solid #fff;margin-right:10px;flex-shrink:0;">
                         <div class="flex-1">
                             <div class="fw-medium">{{ $navUser->username }}</div>
                             <div class="text-muted small">{{ $navUser->email ?? 'usuario@playrke.com' }}</div>

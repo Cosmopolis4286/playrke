@@ -142,6 +142,10 @@ export function useProfile(
         if (newAvatar !== undefined) {
             user.value.avatar = newAvatar
             showToast('Avatar actualizado', 'success')
+            // Update Blade navbar images (rendered server-side, outside Vue root)
+            document.querySelectorAll<HTMLImageElement>('.user-img').forEach(img => {
+                img.src = newAvatar
+            })
         }
         showAvatar.value = false
     }

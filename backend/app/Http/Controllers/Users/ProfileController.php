@@ -224,15 +224,9 @@ class ProfileController extends Controller
             $user = Auth::user();
             $file = $request->file('avatar');
 
-            // Leer el contenido binario antes de que PHP limpie el temporal
-            $binaryContent = file_get_contents($file->getRealPath());
-
-            if ($binaryContent === false || strlen($binaryContent) === 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se pudo leer el archivo subido',
-                ], 422);
-            }
+            // getContent() es el método seguro de Symfony UploadedFile —
+            // funciona aunque getRealPath() falle en Windows con archivos temporales
+            $binaryContent = $file->getContent();
 
             // Procesar imagen con Intervention Image v3 (driver GD)
             $manager = new ImageManager(new Driver());

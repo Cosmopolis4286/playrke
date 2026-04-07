@@ -131,7 +131,8 @@ body::-webkit-scrollbar-thumb {
 }
 
 .user-img {
-  max-width: 25px;
+  border-radius: 50% !important;
+  object-fit: cover !important;
 }
 
 .user-text-navbar {
