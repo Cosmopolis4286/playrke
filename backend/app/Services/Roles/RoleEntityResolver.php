@@ -51,11 +51,11 @@ final class RoleEntityResolver
         }
 
         return match ($role) {
-            'admin'    => $this->adminRepository->getValueByUserId($userId, 'id'),
-            'commerce' => $this->commerceRepository->getValueByUserId($userId, 'id'),
-            'customer' => $this->customerRepository->getValueByUserId($userId, 'id'),
-            'seller'   => $this->sellerRepository->getValueByUserId($userId, 'id'),
-            default    => throw new DomainException("Rol inválido: {$role}"),
+            'admin', 'superadmin' => $this->adminRepository->getValueByUserId($userId, 'id'),
+            'commerce'            => $this->commerceRepository->getValueByUserId($userId, 'id'),
+            'customer'            => $this->customerRepository->getValueByUserId($userId, 'id'),
+            'seller'              => $this->sellerRepository->getValueByUserId($userId, 'id'),
+            default               => throw new DomainException("Rol inválido: {$role}"),
         };
     }
 }
