@@ -1,744 +1,1654 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useWallet } from '@js/composables/wallet/useWallet'
+import Modal from '@js/Components/Common/Modal/Modal.vue'
 import type { WalletPageProps, WalletMovementType } from '@js/types/wallet'
 
 const props = defineProps<WalletPageProps>()
 
 const {
-  wallets,
-  activeWallet,
-  movements,
-  movementsMeta,
-  movementsLoading,
-  modalOpen,
-  operation,
-  amount,
-  loading,
-  errorMsg,
-  successMsg,
-  canWithdraw,
-  formattedBalance,
-  openModal,
-  closeModal,
-  selectWallet,
-  loadMoreMovements,
+  wallets, activeWallet,
+  movements, movementsMeta, movementsLoading,
+  modalOpen, operation, step,
+  amount, selectedQuickAmount,
+  receipt, reference, notes,
+  directories, directoriesLoading, selectedDirectory,
+  loading, errorMsg, successMsg,
+  canWithdraw, formattedBalance, parsedAmount,
+  canGoToStep2, canSubmitDeposit, canSubmitWithdraw,
+  openModal, closeModal,
+  goToStep1, goToStep2,
+  selectWallet, loadMoreMovements,
   submit,
 } = useWallet(props.wallets)
 
-// Estado para animaciones y microinteracciones
-const isAnimating = ref(false)
 const quickAmounts = [10, 25, 50, 100, 200, 500]
-const selectedQuickAmount = ref<number | null>(null)
 
-// ─── helpers visuales mejorados para movimientos ───────────────────────────────
-const movementMeta: Record<WalletMovementType, { 
-  icon: string; 
-  label: string; 
-  colorClass: string; 
-  bgClass: string; 
-  sign: '+' | '-';
-  gradient: string;
-  description: string;
+// ─── helpers visuales para movimientos ─────────────────────────────────────
+const movementMeta: Record<WalletMovementType, {
+  icon: string; label: string; colorClass: string; sign: '+' | '-'; description: string
 }> = {
-  DEPOSIT:   { 
-    icon: 'fas fa-arrow-down',  
-    label: 'Depósito',         
-    colorClass: 'text-emerald-600', 
-    bgClass: 'bg-emerald-50', 
-    sign: '+',
-    gradient: 'from-emerald-400 to-green-500',
-    description: 'Fondos añadidos a tu cuenta'
-  },
-  PRIZE:     { 
-    icon: 'fas fa-trophy',      
-    label: 'Premio ganado',     
-    colorClass: 'text-amber-600',   
-    bgClass: 'bg-amber-50',   
-    sign: '+',
-    gradient: 'from-amber-400 to-yellow-500',
-    description: 'Premio por juego ganado'
-  },
-  PURCHASE:  { 
-    icon: 'fas fa-ticket-alt',  
-    label: 'Compra de cartón',  
-    colorClass: 'text-rose-600',    
-    bgClass: 'bg-rose-50',    
-    sign: '-',
-    gradient: 'from-rose-400 to-pink-500',
-    description: 'Cartón de bingo adquirido'
-  },
-  WITHDRAWAL:{ 
-    icon: 'fas fa-arrow-up',    
-    label: 'Retiro',            
-    colorClass: 'text-blue-600',    
-    bgClass: 'bg-blue-50',    
-    sign: '-',
-    gradient: 'from-blue-400 to-indigo-500',
-    description: 'Fondos retirados de tu cuenta'
-  },
+  DEPOSIT:    { icon: 'fas fa-arrow-down',  label: 'Depósito',        colorClass: 'meta--deposit',    sign: '+', description: 'Fondos añadidos a tu cuenta' },
+  PRIZE:      { icon: 'fas fa-trophy',      label: 'Premio ganado',    colorClass: 'meta--prize',      sign: '+', description: 'Premio por juego ganado' },
+  PURCHASE:   { icon: 'fas fa-ticket-alt',  label: 'Compra de cartón', colorClass: 'meta--purchase',   sign: '-', description: 'Cartón de bingo adquirido' },
+  WITHDRAWAL: { icon: 'fas fa-arrow-up',    label: 'Retiro',           colorClass: 'meta--withdrawal', sign: '-', description: 'Fondos retirados de tu cuenta' },
 }
 
-// Formato de fecha mejorado
 function formatDate(iso: string): string {
   const date = new Date(iso)
-  const now = new Date()
-  const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-  
-  if (diffInHours < 1) {
-    return 'Hace unos minutos'
-  } else if (diffInHours < 24) {
-    return `Hoy, ${date.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`
-  } else if (diffInHours < 48) {
-    return `Ayer, ${date.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`
-  } else {
-    return new Intl.DateTimeFormat('es-VE', { 
-      day: '2-digit', 
-      month: 'short', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    }).format(date)
-  }
+  const now  = new Date()
+  const diffH = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+  if (diffH < 1)  return 'Hace unos minutos'
+  if (diffH < 24) return `Hoy, ${date.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`
+  if (diffH < 48) return `Ayer, ${date.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`
+  return new Intl.DateTimeFormat('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date)
+}
+
+function formatAmount(value: number) {
+  return new Intl.NumberFormat('es-VE', {
+    minimumFractionDigits: activeWallet.value?.currency.decimal_places ?? 2,
+    maximumFractionDigits: activeWallet.value?.currency.decimal_places ?? 2,
+  }).format(value)
 }
 
 const hasMoreMovements = () =>
   movementsMeta.value !== null &&
   movementsMeta.value.current_page < movementsMeta.value.last_page
 
-// Estadísticas calculadas
-const totalDeposits = computed(() => 
-  movements.value
-    .filter(m => m.type === 'DEPOSIT')
-    .reduce((sum, m) => sum + m.amount, 0)
+const totalDeposits = computed(() =>
+  movements.value.filter(m => m.type === 'DEPOSIT').reduce((s, m) => s + m.amount, 0)
+)
+const totalPrizes = computed(() =>
+  movements.value.filter(m => m.type === 'PRIZE').reduce((s, m) => s + m.amount, 0)
+)
+const totalWithdrawals = computed(() =>
+  movements.value.filter(m => m.type === 'WITHDRAWAL').reduce((s, m) => s + m.amount, 0)
 )
 
-const totalWithdrawals = computed(() => 
-  movements.value
-    .filter(m => m.type === 'WITHDRAWAL')
-    .reduce((sum, m) => sum + m.amount, 0)
-)
-
-const totalPrizes = computed(() => 
-  movements.value
-    .filter(m => m.type === 'PRIZE')
-    .reduce((sum, m) => sum + m.amount, 0)
-)
-
-// Manejo de montos rápidos
 function selectQuickAmount(value: number) {
   selectedQuickAmount.value = value
   amount.value = value.toString()
-  isAnimating.value = true
-  setTimeout(() => isAnimating.value = false, 300)
 }
 
 function clearQuickAmount() {
   selectedQuickAmount.value = null
 }
+
+function onReceiptChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0] ?? null
+  receipt.value = file
+}
+
+// Título dinámico del modal por paso
+const modalTitle = computed(() => {
+  if (step.value === 3) return operation.value === 'deposit' ? 'Solicitud enviada' : 'Solicitud enviada'
+  if (step.value === 2) return operation.value === 'deposit' ? 'Comprobante de pago' : 'Seleccionar destino'
+  return operation.value === 'deposit' ? 'Depositar fondos' : 'Retirar fondos'
+})
+
+const modalIcon = computed(() => {
+  if (step.value === 3) return 'fa-check-circle'
+  return operation.value === 'deposit' ? 'fa-arrow-down' : 'fa-arrow-up'
+})
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-    <div class="mx-auto px-4 py-6" style="max-width: 1200px">
+  <div class="wallet-page">
+    <div class="wallet-body">
 
-      <!-- ── Encabezado mejorado ─────────────────────────────────────────── -->
-      <header class="mb-8">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-3">
-            <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <i class="fas fa-wallet text-white text-lg"></i>
+      <!-- ── Header ─────────────────────────────────────────────────── -->
+      <header class="wallet-header">
+        <div class="wallet-header__inner">
+          <!-- Icono + título -->
+          <div class="wallet-header__identity">
+            <div class="wallet-header__icon">
+              <i class="fas fa-wallet"></i>
             </div>
             <div>
-              <h1 class="text-3xl font-bold text-gray-900 mb-1">Mi Billetera</h1>
-              <p class="text-gray-600">Gestiona tus fondos y revisa tu actividad</p>
+              <h1 class="wallet-header__title">Mi Billetera</h1>
+              <p class="wallet-header__subtitle">Gestiona tus fondos y revisa tu actividad</p>
             </div>
           </div>
-          <div class="text-right">
-            <p class="text-xs text-gray-500 uppercase tracking-wide">Última actualización</p>
-            <p class="text-sm font-medium text-gray-700">{{ formatDate(new Date().toISOString()) }}</p>
+
+          <!-- Saldo destacado -->
+          <div v-if="activeWallet" class="wallet-header__balance">
+            <span class="wallet-header__balance-label">Saldo disponible</span>
+            <span class="wallet-header__balance-amount">
+              {{ activeWallet.currency.symbol }}&nbsp;{{ formattedBalance }}
+            </span>
+            <span
+              class="wallet-header__status-badge"
+              :class="{
+                'badge--active':   activeWallet.status === 'ACTIVE',
+                'badge--inactive': activeWallet.status === 'INACTIVE',
+                'badge--blocked':  activeWallet.status === 'BLOCKED',
+              }"
+            >
+              <span class="badge-dot"></span>
+              {{ activeWallet.status === 'ACTIVE' ? 'Activa' :
+                 activeWallet.status === 'INACTIVE' ? 'Inactiva' : 'Bloqueada' }}
+            </span>
           </div>
+
+          <!-- Acciones -->
+          <div v-if="activeWallet" class="wallet-header__actions">
+            <button class="action-btn action-btn--deposit" @click="openModal('deposit')">
+              <i class="fas fa-arrow-down"></i> Depositar
+            </button>
+            <button
+              class="action-btn action-btn--withdraw"
+              :class="{ 'action-btn--disabled': !canWithdraw }"
+              :disabled="!canWithdraw"
+              @click="openModal('withdraw')"
+            >
+              <i class="fas fa-arrow-up"></i>
+              {{ canWithdraw ? 'Retirar' : 'Sin saldo' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Selector de billetera (si hay varias) -->
+        <div v-if="wallets.length > 1" class="wallet-selector">
+          <button
+            v-for="wallet in wallets"
+            :key="wallet.id"
+            type="button"
+            class="wallet-selector__btn"
+            :class="{ 'wallet-selector__btn--active': activeWallet?.id === wallet.id }"
+            @click="selectWallet(wallet)"
+          >
+            <i class="fas fa-coins"></i>
+            {{ wallet.currency.symbol }} {{ wallet.currency.iso_code }}
+          </button>
         </div>
       </header>
 
-      <!-- ── Sin billeteras ─────────────────────────────────────── -->
-      <div v-if="!wallets.length" class="flex items-center justify-center min-h-[400px]">
-        <div class="bg-white rounded-3xl shadow-xl border border-gray-100 py-20 px-8 text-center max-w-md">
-          <div class="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
-            <i class="fas fa-wallet text-3xl text-gray-400"></i>
-          </div>
-          <h2 class="text-xl font-bold text-gray-800 mb-3">Sin billeteras activas</h2>
-          <p class="text-gray-600 mb-6">Contacta al soporte para activar tu billetera y comenzar a gestionar tus fondos.</p>
-          <button class="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105">
-            <i class="fas fa-headset mr-2"></i>
-            Contactar soporte
-          </button>
-        </div>
+      <!-- ── Sin billeteras ──────────────────────────────────────────── -->
+      <div v-if="!wallets.length" class="wallet-empty">
+        <div class="wallet-empty__icon"><i class="fas fa-wallet"></i></div>
+        <h2 class="wallet-empty__title">Sin billeteras activas</h2>
+        <p class="wallet-empty__text">Contacta al soporte para activar tu billetera y comenzar a gestionar tus fondos.</p>
+        <button class="action-btn action-btn--deposit">
+          <i class="fas fa-headset"></i> Contactar soporte
+        </button>
       </div>
 
       <template v-else>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Columna izquierda: Tarjeta principal y acciones -->
-          <div class="lg:col-span-2 space-y-6">
-            <!-- ── Selector de billetera (si hay varias) ──────────── -->
-            <div v-if="wallets.length > 1" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Selecciona tu billetera</p>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  v-for="wallet in wallets"
-                  :key="wallet.id"
-                  type="button"
-                  class="px-4 py-2 rounded-xl text-sm font-medium border transition-all transform hover:scale-105"
-                  :class="activeWallet?.id === wallet.id
-                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-transparent shadow-lg'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:shadow-md'"
-                  @click="selectWallet(wallet)"
-                >
-                  <i class="fas fa-coins mr-2"></i>
-                  {{ wallet.currency.symbol }} {{ wallet.currency.iso_code }}
-                </button>
+        <div class="wallet-grid">
+
+          <!-- ── Resumen de actividad ──────────────────────────────── -->
+          <div class="wallet-card">
+            <h3 class="wallet-card__title">
+              <i class="fas fa-chart-line"></i> Resumen de actividad
+            </h3>
+            <div class="summary-list">
+              <div class="summary-item summary-item--deposit">
+                <div class="summary-item__icon"><i class="fas fa-arrow-down"></i></div>
+                <div class="summary-item__info">
+                  <p class="summary-item__label">Depósitos</p>
+                  <p class="summary-item__sublabel">Total recibido</p>
+                </div>
+                <p class="summary-item__amount summary-item__amount--deposit">
+                  {{ activeWallet?.currency.symbol }} {{ formatAmount(totalDeposits) }}
+                </p>
               </div>
-            </div>
 
-            <!-- ── Tarjeta de saldo mejorada ───────────────────────────────── -->
-            <div
-              class="rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden"
-              style="background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)"
-            >
-              <!-- Decoración de fondo animada -->
-              <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-20 bg-white animate-pulse"></div>
-              <div class="absolute -bottom-16 -left-8 w-64 h-64 rounded-full opacity-20 bg-white animate-pulse" style="animation-delay: 1s"></div>
-              <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full opacity-10 bg-white animate-ping" style="animation-duration: 3s"></div>
-
-              <div class="relative z-10">
-                <div class="flex items-start justify-between mb-6">
-                  <div class="flex-1">
-                    <p class="text-sm font-medium opacity-80 mb-2 uppercase tracking-wider">Saldo disponible</p>
-                    <p class="text-5xl font-black mb-2">
-                      {{ activeWallet?.currency.symbol }}&nbsp;{{ formattedBalance }}
-                    </p>
-                    <p class="text-lg opacity-90 font-medium">{{ activeWallet?.currency.name }}</p>
-                  </div>
-                  <div class="w-16 h-16 rounded-2xl bg-white/25 backdrop-blur-sm flex items-center justify-center shadow-lg border border-white/20">
-                    <i class="fas fa-coins text-2xl"></i>
-                  </div>
+              <div class="summary-item summary-item--prize">
+                <div class="summary-item__icon"><i class="fas fa-trophy"></i></div>
+                <div class="summary-item__info">
+                  <p class="summary-item__label">Premios</p>
+                  <p class="summary-item__sublabel">Ganancias</p>
                 </div>
-
-                <!-- Status badge mejorado -->
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-3">
-                    <span
-                      class="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-full backdrop-blur-sm"
-                      :class="{
-                        'bg-emerald-400/30 text-emerald-100 border border-emerald-400/50': activeWallet?.status === 'ACTIVE',
-                        'bg-yellow-400/30 text-yellow-100 border border-yellow-400/50':   activeWallet?.status === 'INACTIVE',
-                        'bg-red-400/30 text-red-100 border border-red-400/50':         activeWallet?.status === 'BLOCKED',
-                      }"
-                    >
-                      <span
-                        class="w-2 h-2 rounded-full animate-pulse"
-                        :class="{
-                          'bg-emerald-300': activeWallet?.status === 'ACTIVE',
-                          'bg-yellow-300':  activeWallet?.status === 'INACTIVE',
-                          'bg-red-300':     activeWallet?.status === 'BLOCKED',
-                        }"
-                      ></span>
-                      {{ activeWallet?.status === 'ACTIVE' ? 'Activa' :
-                         activeWallet?.status === 'INACTIVE' ? 'Inactiva' : 'Bloqueada' }}
-                    </span>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-xs opacity-70">ID: {{ activeWallet?.id.slice(-8) }}</p>
-                  </div>
-                </div>
+                <p class="summary-item__amount summary-item__amount--prize">
+                  {{ activeWallet?.currency.symbol }} {{ formatAmount(totalPrizes) }}
+                </p>
               </div>
-            </div>
 
-            <!-- ── Acciones mejoradas ───────────────────────────────────────── -->
-            <div class="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                class="group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-2xl p-6 font-bold shadow-lg transition-all transform hover:scale-105 hover:shadow-2xl"
-                @click="openModal('deposit')"
-              >
-                <div class="absolute inset-0 bg-gradient-to-r from-emerald-600 to-green-700 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <div class="relative z-10 flex flex-col items-center gap-3">
-                  <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                    <i class="fas fa-arrow-down text-xl"></i>
-                  </div>
-                  <span class="text-lg">Depositar</span>
-                  <span class="text-xs opacity-80">Añadir fondos</span>
+              <div class="summary-item summary-item--withdrawal">
+                <div class="summary-item__icon"><i class="fas fa-arrow-up"></i></div>
+                <div class="summary-item__info">
+                  <p class="summary-item__label">Retiros</p>
+                  <p class="summary-item__sublabel">Total retirado</p>
                 </div>
-              </button>
-              <button
-                type="button"
-                class="group relative overflow-hidden rounded-2xl p-6 font-bold shadow-lg transition-all transform hover:scale-105 hover:shadow-2xl"
-                :class="canWithdraw
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'"
-                :disabled="!canWithdraw"
-                @click="openModal('withdraw')"
-              >
-                <div 
-                  v-if="canWithdraw"
-                  class="absolute inset-0 bg-gradient-to-r from-amber-600 to-orange-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                ></div>
-                <div class="relative z-10 flex flex-col items-center gap-3">
-                  <div class="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm" :class="canWithdraw ? 'bg-white/20' : 'bg-gray-200'">
-                    <i class="fas fa-arrow-up text-xl"></i>
-                  </div>
-                  <span class="text-lg">Retirar</span>
-                  <span class="text-xs" :class="canWithdraw ? 'opacity-80' : 'opacity-50'">
-                    {{ canWithdraw ? 'Retirar fondos' : 'Sin saldo' }}
-                  </span>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          <!-- Columna derecha: Estadísticas y resumen -->
-          <div class="space-y-6">
-            <!-- ── Estadísticas rápidas ───────────────────────────────── -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <i class="fas fa-chart-line text-indigo-500"></i>
-                Resumen de actividad
-              </h3>
-              <div class="space-y-4">
-                <div class="flex items-center justify-between p-3 bg-emerald-50 rounded-xl">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-                      <i class="fas fa-arrow-down text-white"></i>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-gray-800">Depósitos</p>
-                      <p class="text-xs text-gray-500">Total recibido</p>
-                    </div>
-                  </div>
-                  <p class="text-lg font-bold text-emerald-600">
-                    {{ activeWallet?.currency.symbol }} {{ 
-                      new Intl.NumberFormat('es-VE', {
-                        minimumFractionDigits: activeWallet?.currency.decimal_places ?? 2,
-                        maximumFractionDigits: activeWallet?.currency.decimal_places ?? 2,
-                      }).format(totalDeposits)
-                    }}
-                  </p>
-                </div>
-                
-                <div class="flex items-center justify-between p-3 bg-amber-50 rounded-xl">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
-                      <i class="fas fa-trophy text-white"></i>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-gray-800">Premios</p>
-                      <p class="text-xs text-gray-500">Ganancias</p>
-                    </div>
-                  </div>
-                  <p class="text-lg font-bold text-amber-600">
-                    {{ activeWallet?.currency.symbol }} {{ 
-                      new Intl.NumberFormat('es-VE', {
-                        minimumFractionDigits: activeWallet?.currency.decimal_places ?? 2,
-                        maximumFractionDigits: activeWallet?.currency.decimal_places ?? 2,
-                      }).format(totalPrizes)
-                    }}
-                  </p>
-                </div>
-                
-                <div class="flex items-center justify-between p-3 bg-blue-50 rounded-xl">
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                      <i class="fas fa-arrow-up text-white"></i>
-                    </div>
-                    <div>
-                      <p class="text-sm font-semibold text-gray-800">Retiros</p>
-                      <p class="text-xs text-gray-500">Total retirado</p>
-                    </div>
-                  </div>
-                  <p class="text-lg font-bold text-blue-600">
-                    {{ activeWallet?.currency.symbol }} {{ 
-                      new Intl.NumberFormat('es-VE', {
-                        minimumFractionDigits: activeWallet?.currency.decimal_places ?? 2,
-                        maximumFractionDigits: activeWallet?.currency.decimal_places ?? 2,
-                      }).format(totalWithdrawals)
-                    }}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <!-- ── Tipos de movimiento mejorados ─────────────────────── -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <i class="fas fa-info-circle text-indigo-500"></i>
-                Tipos de movimiento
-              </h3>
-              <div class="space-y-3">
-                <div
-                  v-for="(meta, key) in movementMeta"
-                  :key="key"
-                  class="flex items-center gap-4 p-3 rounded-xl transition-all hover:shadow-md"
-                  :class="meta.bgClass"
-                >
-                  <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-white shadow-sm">
-                    <i :class="[meta.icon, meta.colorClass, 'text-lg']"></i>
-                  </div>
-                  <div class="flex-1">
-                    <p class="text-sm font-bold text-gray-800">{{ meta.label }}</p>
-                    <p class="text-xs text-gray-600">{{ meta.description }}</p>
-                  </div>
-                  <div class="text-right">
-                    <span 
-                      class="inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold"
-                      :class="meta.sign === '+' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'"
-                    >
-                      {{ meta.sign }}
-                    </span>
-                  </div>
-                </div>
+                <p class="summary-item__amount summary-item__amount--withdrawal">
+                  {{ activeWallet?.currency.symbol }} {{ formatAmount(totalWithdrawals) }}
+                </p>
               </div>
             </div>
           </div>
-        </div>
-        <!-- ── Historial de movimientos mejorado ───────────────────────── -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div class="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-blue-50">
-            <div class="flex items-center justify-between">
-              <h3 class="text-xl font-bold text-gray-800 flex items-center gap-3">
-                <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-                  <i class="fas fa-history text-indigo-600"></i>
+
+          <!-- ── Tipos de movimiento ────────────────────────────────── -->
+          <div class="wallet-card">
+            <h3 class="wallet-card__title">
+              <i class="fas fa-info-circle"></i> Tipos de movimiento
+            </h3>
+            <div class="movement-types">
+              <div
+                v-for="(meta, key) in movementMeta"
+                :key="key"
+                class="movement-type-item"
+                :class="meta.colorClass"
+              >
+                <div class="movement-type-item__icon">
+                  <i :class="meta.icon"></i>
                 </div>
-                Movimientos recientes
-              </h3>
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200">
-                  {{ movements.length }} movimientos
+                <div class="movement-type-item__info">
+                  <p class="movement-type-item__label">{{ meta.label }}</p>
+                  <p class="movement-type-item__desc">{{ meta.description }}</p>
+                </div>
+                <span class="movement-type-item__sign" :class="meta.sign === '+' ? 'sign--positive' : 'sign--negative'">
+                  {{ meta.sign }}
                 </span>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Estado de carga mejorado -->
-          <div v-if="movementsLoading && !movements.length" class="py-16 flex flex-col items-center justify-center">
-            <div class="relative">
-              <div class="w-16 h-16 border-4 border-indigo-200 rounded-full animate-spin border-t-indigo-600"></div>
-              <div class="absolute inset-0 flex items-center justify-center">
-                <i class="fas fa-coins text-indigo-600 text-lg"></i>
-              </div>
-            </div>
-            <p class="mt-4 text-gray-600 font-medium">Cargando movimientos...</p>
+        <!-- ── Historial de movimientos ──────────────────────────────── -->
+        <div class="wallet-card movements-card">
+          <div class="movements-header">
+            <h3 class="wallet-card__title">
+              <i class="fas fa-history"></i> Movimientos recientes
+            </h3>
+            <span class="movements-count">{{ movements.length }} movimientos</span>
           </div>
 
-          <!-- Sin movimientos mejorado -->
-          <div v-else-if="!movements.length" class="py-16 text-center">
-            <div class="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
-              <i class="fas fa-receipt text-gray-400 text-2xl"></i>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Sin movimientos</h3>
-            <p class="text-gray-500 mb-1">Aún no hay movimientos registrados en esta billetera.</p>
-            <p class="text-sm text-gray-400">Los depósitos, retiros, premios y compras aparecerán aquí.</p>
+          <!-- Cargando -->
+          <div v-if="movementsLoading && !movements.length" class="movements-loading">
+            <div class="spinner"></div>
+            <p>Cargando movimientos...</p>
           </div>
 
-          <!-- Lista de movimientos mejorada -->
+          <!-- Sin movimientos -->
+          <div v-else-if="!movements.length" class="movements-empty">
+            <div class="movements-empty__icon"><i class="fas fa-receipt"></i></div>
+            <h3>Sin movimientos</h3>
+            <p>Aún no hay movimientos registrados en esta billetera.</p>
+            <p class="movements-empty__hint">Los depósitos, retiros, premios y compras aparecerán aquí.</p>
+          </div>
+
+          <!-- Lista -->
           <template v-else>
-            <ul class="divide-y divide-gray-100">
+            <ul class="movements-list">
               <li
                 v-for="(mov, index) in movements"
                 :key="mov.id"
-                class="group flex items-center gap-4 px-6 py-4 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 transition-all duration-200"
-                :class="{ 'border-l-4 border-indigo-500': index === 0 }"
+                class="movement-row"
+                :class="{ 'movement-row--first': index === 0 }"
               >
-                <!-- Icono mejorado -->
                 <div
-                  class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border border-white/50"
-                  :class="movementMeta[mov.type].bgClass"
+                  class="movement-row__icon"
+                  :class="movementMeta[mov.type].colorClass"
                 >
-                  <i :class="[movementMeta[mov.type].icon, movementMeta[mov.type].colorClass, 'text-lg']"></i>
+                  <i :class="movementMeta[mov.type].icon"></i>
                 </div>
 
-                <!-- Descripción mejorada -->
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <p class="text-sm font-bold text-gray-800 truncate">{{ movementMeta[mov.type].label }}</p>
-                    <span 
-                      v-if="index === 0"
-                      class="text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-semibold"
-                    >
-                      Más reciente
-                    </span>
+                <div class="movement-row__info">
+                  <div class="movement-row__title-row">
+                    <p class="movement-row__label">{{ movementMeta[mov.type].label }}</p>
+                    <span v-if="index === 0" class="badge-recent">Más reciente</span>
                   </div>
-                  <p class="text-xs text-gray-500">
-                    {{ mov.description ?? movementMeta[mov.type].description }}
-                  </p>
-                  <p class="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                  <p class="movement-row__desc">{{ mov.description ?? movementMeta[mov.type].description }}</p>
+                  <p class="movement-row__date">
                     <i class="fas fa-clock"></i>
                     {{ formatDate(mov.created_at) }}
                   </p>
                 </div>
 
-                <!-- Monto mejorado -->
-                <div class="text-right flex-shrink-0">
+                <div class="movement-row__amounts">
                   <p
-                    class="text-lg font-bold"
-                    :class="movementMeta[mov.type].sign === '+' ? 'text-emerald-600' : 'text-rose-500'"
+                    class="movement-row__amount"
+                    :class="movementMeta[mov.type].sign === '+' ? 'amount--positive' : 'amount--negative'"
                   >
-                    {{ movementMeta[mov.type].sign }}{{ activeWallet?.currency.symbol }}&nbsp;{{
-                      new Intl.NumberFormat('es-VE', {
-                        minimumFractionDigits: activeWallet?.currency.decimal_places ?? 2,
-                        maximumFractionDigits: activeWallet?.currency.decimal_places ?? 2,
-                      }).format(mov.amount)
-                    }}
+                    {{ movementMeta[mov.type].sign }}{{ activeWallet?.currency.symbol }}&nbsp;{{ formatAmount(mov.amount) }}
                   </p>
-                  <p class="text-xs text-gray-400 mt-1">
-                    Saldo: {{ activeWallet?.currency.symbol }}&nbsp;{{
-                      new Intl.NumberFormat('es-VE', {
-                        minimumFractionDigits: activeWallet?.currency.decimal_places ?? 2,
-                        maximumFractionDigits: activeWallet?.currency.decimal_places ?? 2,
-                      }).format(mov.balance_after)
-                    }}
+                  <p class="movement-row__balance">
+                    Saldo: {{ activeWallet?.currency.symbol }}&nbsp;{{ formatAmount(mov.balance_after) }}
                   </p>
                 </div>
               </li>
             </ul>
 
-            <!-- Cargar más mejorado -->
-            <div v-if="hasMoreMovements() || movementsLoading" class="px-6 py-5 border-t border-gray-100 text-center bg-gradient-to-r from-gray-50 to-blue-50">
+            <div v-if="hasMoreMovements() || movementsLoading" class="movements-load-more">
               <button
                 type="button"
-                class="group inline-flex items-center gap-2 px-6 py-3 bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md"
+                class="load-more-btn"
                 :disabled="movementsLoading"
                 @click="loadMoreMovements"
               >
                 <span v-if="movementsLoading" class="flex items-center gap-2">
-                  <div class="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                  <span class="spinner spinner--sm"></span>
                   Cargando más movimientos...
                 </span>
-                <span v-else class="flex items-center gap-2">
-                  Ver más movimientos
-                  <i class="fas fa-arrow-down group-hover:translate-y-0.5 transition-transform"></i>
+                <span v-else>
+                  <i class="fas fa-arrow-down"></i> Ver más movimientos
                 </span>
               </button>
             </div>
           </template>
         </div>
-
       </template>
-    </div>
+    </div><!-- /wallet-body -->
 
-    <!-- ══════════════════════════════════════════════════════════
-         MODAL DEPÓSITO / RETIRO MEJORADO
-         ══════════════════════════════════════════════════════════ -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="duration-300 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="duration-200 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="modalOpen"
-          class="fixed inset-0 z-[200] flex items-center justify-center p-4"
-          @click.self="closeModal"
-        >
-          <div class="absolute inset-0 bg-black/60 backdrop-blur-md" @click="closeModal" />
+    <!-- ══ MODAL MULTI-STEP ══════════════════════════════════════════════ -->
+    <Modal
+      v-model="modalOpen"
+      :title="modalTitle"
+      :icon="modalIcon"
+      size="sm"
+    >
 
-          <Transition
-            enter-active-class="duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95 translate-y-4"
-            enter-to-class="opacity-100 scale-100 translate-y-0"
-            leave-active-class="duration-200 ease-in"
-            leave-from-class="opacity-100 scale-100 translate-y-0"
-            leave-to-class="opacity-0 scale-95 translate-y-4"
+      <!-- ── Indicador de pasos (solo pasos 1 y 2) ────────────────────── -->
+      <div v-if="step < 3" class="op-steps">
+        <div class="op-steps__track">
+          <div
+            class="op-steps__item"
+            :class="{ 'op-steps__item--active': step >= 1, 'op-steps__item--done': step > 1 }"
           >
-            <div
-              v-if="modalOpen"
-              class="relative bg-white rounded-3xl shadow-2xl w-full overflow-hidden border border-gray-100"
-              style="max-width: 480px"
-              @click.stop
-            >
-              <!-- Header mejorado -->
-              <div
-                class="relative px-6 py-6"
-                :class="operation === 'deposit'
-                  ? 'bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-100 border-b border-emerald-200'
-                  : 'bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 border-b border-amber-200'"
-              >
-                <!-- Decoración de fondo -->
-                <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-20" 
-                  :class="operation === 'deposit' ? 'bg-emerald-400' : 'bg-amber-400'">
-                </div>
-                
-                <div class="relative z-10 flex items-center justify-between">
-                  <div class="flex items-center gap-4">
-                    <div
-                      class="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
-                      :class="operation === 'deposit' ? 'bg-gradient-to-br from-emerald-500 to-green-600' : 'bg-gradient-to-br from-amber-500 to-orange-600'"
-                    >
-                      <i
-                        class="text-white text-xl"
-                        :class="operation === 'deposit' ? 'fas fa-arrow-down' : 'fas fa-arrow-up'"
-                      />
-                    </div>
-                    <div>
-                      <h2 class="text-xl font-bold text-gray-900 mb-1">
-                        {{ operation === 'deposit' ? 'Depositar fondos' : 'Retirar fondos' }}
-                      </h2>
-                      <p class="text-sm text-gray-600">Billetera {{ activeWallet?.currency.iso_code }}</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    class="w-10 h-10 flex items-center justify-center hover:bg-white/70 rounded-xl transition-all text-gray-400 hover:text-gray-600 hover:scale-110"
-                    @click="closeModal"
-                  >
-                    <i class="fas fa-times text-lg" />
-                  </button>
-                </div>
-              </div>
-
-              <!-- Body mejorado -->
-              <div class="p-6 space-y-5">
-
-                <!-- Saldo actual mejorado -->
-                <div class="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl px-5 py-4 border border-gray-200">
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <p class="text-sm text-gray-600 mb-1">Saldo actual</p>
-                      <p class="text-2xl font-bold text-gray-900">
-                        {{ activeWallet?.currency.symbol }} {{ formattedBalance }}
-                      </p>
-                    </div>
-                    <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-                      <i class="fas fa-wallet text-indigo-600"></i>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Monto con montos rápidos -->
-                <div>
-                  <label class="block text-sm font-bold text-gray-700 mb-3">
-                    Monto a {{ operation === 'deposit' ? 'depositar' : 'retirar' }}
-                  </label>
-                  <div class="relative">
-                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-lg select-none">
-                      {{ activeWallet?.currency.symbol }}
-                    </span>
-                    <input
-                      v-model="amount"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      placeholder="0.00"
-                      class="w-full border-2 border-gray-200 rounded-2xl pl-12 pr-4 py-4 text-lg font-semibold focus:outline-none focus:ring-2 focus:border-transparent transition-all"
-                      :class="operation === 'deposit' ? 'focus:ring-emerald-300 focus:border-emerald-400' : 'focus:ring-amber-300 focus:border-amber-400'"
-                      :disabled="loading"
-                      @keyup.enter="submit"
-                      @input="clearQuickAmount"
-                    />
-                  </div>
-                  
-                  <!-- Montos rápidos -->
-                  <div class="mt-4">
-                    <p class="text-xs text-gray-500 mb-2 font-medium">Montos rápidos:</p>
-                    <div class="grid grid-cols-3 gap-2">
-                      <button
-                        v-for="quickAmount in quickAmounts"
-                        :key="quickAmount"
-                        type="button"
-                        class="px-3 py-2 text-sm font-medium rounded-xl border transition-all transform hover:scale-105"
-                        :class="selectedQuickAmount === quickAmount
-                          ? 'bg-indigo-500 text-white border-indigo-500 shadow-md'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50'"
-                        @click="selectQuickAmount(quickAmount)"
-                      >
-                        {{ activeWallet?.currency.symbol }} {{ quickAmount }}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Mensajes mejorados -->
-                <Transition
-                  enter-active-class="duration-300 ease-out"
-                  enter-from-class="opacity-0 -translate-y-2"
-                  enter-to-class="opacity-100 translate-y-0"
-                  leave-active-class="duration-200 ease-in"
-                  leave-from-class="opacity-100 translate-y-0"
-                  leave-to-class="opacity-0 -translate-y-2"
-                >
-                  <div
-                    v-if="errorMsg"
-                    class="flex items-start gap-3 bg-red-50 border-2 border-red-200 rounded-2xl px-4 py-4 text-sm text-red-700"
-                  >
-                    <div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <i class="fas fa-exclamation-triangle text-red-600"></i>
-                    </div>
-                    <div class="flex-1">
-                      <p class="font-semibold">Error</p>
-                      <p class="text-red-600">{{ errorMsg }}</p>
-                    </div>
-                  </div>
-                </Transition>
-
-                <Transition
-                  enter-active-class="duration-300 ease-out"
-                  enter-from-class="opacity-0 -translate-y-2"
-                  enter-to-class="opacity-100 translate-y-0"
-                  leave-active-class="duration-200 ease-in"
-                  leave-from-class="opacity-100 translate-y-0"
-                  leave-to-class="opacity-0 -translate-y-2"
-                >
-                  <div
-                    v-if="successMsg"
-                    class="flex items-start gap-3 bg-emerald-50 border-2 border-emerald-200 rounded-2xl px-4 py-4 text-sm text-emerald-700"
-                  >
-                    <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <i class="fas fa-check-circle text-emerald-600"></i>
-                    </div>
-                    <div class="flex-1">
-                      <p class="font-semibold">Éxito</p>
-                      <p class="text-emerald-600">{{ successMsg }}</p>
-                    </div>
-                  </div>
-                </Transition>
-
-              </div>
-
-              <!-- Footer mejorado -->
-              <div class="px-6 pb-6 flex gap-3">
-                <button
-                  type="button"
-                  class="flex-1 py-3.5 border-2 border-gray-200 rounded-2xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all hover:border-gray-300 hover:shadow-md"
-                  :disabled="loading"
-                  @click="closeModal"
-                >
-                  <i class="fas fa-times mr-2"></i>
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  class="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg active:scale-95"
-                  :class="operation === 'deposit' ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700' : 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700'"
-                  :disabled="loading"
-                  @click="submit"
-                >
-                  <span v-if="loading" class="flex items-center justify-center gap-2">
-                    <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Procesando...
-                  </span>
-                  <span v-else class="flex items-center justify-center gap-2">
-                    <i :class="operation === 'deposit' ? 'fas fa-check' : 'fas fa-arrow-up'"></i>
-                    {{ operation === 'deposit' ? 'Confirmar depósito' : 'Confirmar retiro' }}
-                  </span>
-                </button>
-              </div>
-
+            <div class="op-steps__circle">
+              <i v-if="step > 1" class="fas fa-check"></i>
+              <span v-else>1</span>
             </div>
-          </Transition>
+            <span class="op-steps__label">Monto</span>
+          </div>
+          <div class="op-steps__line" :class="{ 'op-steps__line--done': step > 1 }"></div>
+          <div
+            class="op-steps__item"
+            :class="{ 'op-steps__item--active': step >= 2 }"
+          >
+            <div class="op-steps__circle">
+              <span>2</span>
+            </div>
+            <span class="op-steps__label">
+              {{ operation === 'deposit' ? 'Comprobante' : 'Destino' }}
+            </span>
+          </div>
         </div>
-      </Transition>
-    </Teleport>
+      </div>
 
+      <!-- ════════════════════════════════════════════════════════════════
+           PASO 1 — Monto
+           ════════════════════════════════════════════════════════════════ -->
+      <template v-if="step === 1">
+        <!-- Saldo actual -->
+        <div class="op-balance">
+          <div>
+            <p class="op-balance__label">Saldo disponible</p>
+            <p class="op-balance__amount">{{ activeWallet?.currency.symbol }} {{ formattedBalance }}</p>
+          </div>
+          <div class="op-balance__icon"><i class="fas fa-wallet"></i></div>
+        </div>
+
+        <!-- Input de monto -->
+        <div class="op-field">
+          <label class="op-field__label">
+            Monto a {{ operation === 'deposit' ? 'depositar' : 'retirar' }}
+          </label>
+          <div class="op-field__input-wrap">
+            <span class="op-field__symbol">{{ activeWallet?.currency.symbol }}</span>
+            <input
+              v-model="amount"
+              type="number"
+              min="0.01"
+              step="0.01"
+              placeholder="0.00"
+              class="op-field__input"
+              :class="operation === 'deposit' ? 'op-input--deposit' : 'op-input--withdraw'"
+              @input="clearQuickAmount"
+            />
+          </div>
+
+          <!-- Montos rápidos -->
+          <div class="op-quick">
+            <p class="op-quick__label">Montos rápidos:</p>
+            <div class="op-quick__grid">
+              <button
+                v-for="qa in quickAmounts"
+                :key="qa"
+                type="button"
+                class="op-quick__btn"
+                :class="{ 'op-quick__btn--active': selectedQuickAmount === qa }"
+                @click="selectQuickAmount(qa)"
+              >
+                {{ activeWallet?.currency.symbol }} {{ qa }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error paso 1 -->
+        <Transition name="msg-fade">
+          <div v-if="errorMsg" class="op-msg op-msg--error">
+            <div class="op-msg__icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div><p class="op-msg__title">Atención</p><p>{{ errorMsg }}</p></div>
+          </div>
+        </Transition>
+      </template>
+
+      <!-- ════════════════════════════════════════════════════════════════
+           PASO 2A — Depósito: comprobante
+           ════════════════════════════════════════════════════════════════ -->
+      <template v-else-if="step === 2 && operation === 'deposit'">
+        <!-- Resumen del monto -->
+        <div class="op-summary">
+          <i class="fas fa-arrow-down op-summary__icon op-summary__icon--deposit"></i>
+          <div>
+            <p class="op-summary__label">Depositando</p>
+            <p class="op-summary__amount">{{ activeWallet?.currency.symbol }} {{ formatAmount(parsedAmount) }}</p>
+          </div>
+        </div>
+
+        <div class="op-field">
+          <label class="op-field__label">
+            Comprobante de pago <span class="op-required">*</span>
+          </label>
+          <label class="op-file-drop" :class="{ 'op-file-drop--selected': receipt }">
+            <input type="file" accept="image/jpeg,image/png,application/pdf" class="op-file-input" @change="onReceiptChange" />
+            <template v-if="receipt">
+              <i class="fas fa-file-check op-file-drop__icon op-file-drop__icon--ok"></i>
+              <p class="op-file-drop__name">{{ receipt.name }}</p>
+              <p class="op-file-drop__hint">Haz clic para cambiar</p>
+            </template>
+            <template v-else>
+              <i class="fas fa-cloud-upload-alt op-file-drop__icon"></i>
+              <p class="op-file-drop__name">Selecciona o arrastra el comprobante</p>
+              <p class="op-file-drop__hint">JPG, PNG o PDF · máx. 5 MB</p>
+            </template>
+          </label>
+        </div>
+
+        <div class="op-field">
+          <label class="op-field__label">Número de referencia <span class="op-optional">(opcional)</span></label>
+          <input v-model="reference" type="text" class="op-field__input op-input--deposit" placeholder="Ej: 00123456" maxlength="100" />
+        </div>
+
+        <div class="op-field">
+          <label class="op-field__label">Notas <span class="op-optional">(opcional)</span></label>
+          <textarea v-model="notes" class="op-field__textarea" rows="2" placeholder="Información adicional para el administrador..." maxlength="500"></textarea>
+        </div>
+
+        <Transition name="msg-fade">
+          <div v-if="errorMsg" class="op-msg op-msg--error">
+            <div class="op-msg__icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div><p class="op-msg__title">Error</p><p>{{ errorMsg }}</p></div>
+          </div>
+        </Transition>
+      </template>
+
+      <!-- ════════════════════════════════════════════════════════════════
+           PASO 2B — Retiro: seleccionar directorio
+           ════════════════════════════════════════════════════════════════ -->
+      <template v-else-if="step === 2 && operation === 'withdraw'">
+        <!-- Resumen del monto -->
+        <div class="op-summary">
+          <i class="fas fa-arrow-up op-summary__icon op-summary__icon--withdraw"></i>
+          <div>
+            <p class="op-summary__label">Retirando</p>
+            <p class="op-summary__amount">{{ activeWallet?.currency.symbol }} {{ formatAmount(parsedAmount) }}</p>
+          </div>
+        </div>
+
+        <!-- Lista de directorios -->
+        <div class="op-field">
+          <label class="op-field__label">¿A dónde enviamos el dinero?</label>
+
+          <div v-if="directoriesLoading" class="op-dirs-loading">
+            <span class="op-spinner op-spinner--indigo"></span>
+            Cargando tus cuentas...
+          </div>
+
+          <div v-else-if="directories.length === 0" class="op-dirs-empty">
+            <i class="fas fa-exclamation-circle"></i>
+            No tienes cuentas registradas para esta moneda.
+            Ve a <strong>Directorio</strong> y agrega una.
+          </div>
+
+          <div v-else class="op-dirs-list">
+            <label
+              v-for="dir in directories"
+              :key="dir.id"
+              class="op-dir-card"
+              :class="{ 'op-dir-card--selected': selectedDirectory?.id === dir.id }"
+            >
+              <input
+                type="radio"
+                :value="dir"
+                v-model="selectedDirectory"
+                class="op-dir-card__radio"
+              />
+              <div class="op-dir-card__icon">
+                <i :class="dir.type === 'pago_movil' ? 'fas fa-mobile-alt' : dir.type === 'pix' ? 'fas fa-barcode' : 'fab fa-bitcoin'"></i>
+              </div>
+              <div class="op-dir-card__info">
+                <p class="op-dir-card__label">{{ dir.label }}</p>
+                <p class="op-dir-card__detail">{{ dir.detail }}</p>
+                <p v-if="dir.holder" class="op-dir-card__holder">{{ dir.holder }}</p>
+              </div>
+              <i v-if="selectedDirectory?.id === dir.id" class="fas fa-check-circle op-dir-card__check"></i>
+            </label>
+          </div>
+        </div>
+
+        <div class="op-field">
+          <label class="op-field__label">Notas <span class="op-optional">(opcional)</span></label>
+          <textarea v-model="notes" class="op-field__textarea" rows="2" placeholder="Información adicional..." maxlength="500"></textarea>
+        </div>
+
+        <Transition name="msg-fade">
+          <div v-if="errorMsg" class="op-msg op-msg--error">
+            <div class="op-msg__icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div><p class="op-msg__title">Error</p><p>{{ errorMsg }}</p></div>
+          </div>
+        </Transition>
+      </template>
+
+      <!-- ════════════════════════════════════════════════════════════════
+           PASO 3 — Confirmación
+           ════════════════════════════════════════════════════════════════ -->
+      <template v-else-if="step === 3">
+        <div class="op-done">
+          <div class="op-done__icon">
+            <i class="fas fa-check"></i>
+          </div>
+          <h3 class="op-done__title">¡Solicitud enviada!</h3>
+          <p class="op-done__text">{{ successMsg }}</p>
+          <div class="op-done__detail">
+            <i class="fas fa-info-circle"></i>
+            {{ operation === 'deposit'
+              ? 'Un administrador revisará tu comprobante y acreditará el monto a tu billetera.'
+              : 'Un administrador procesará la transferencia a tu cuenta registrada.' }}
+          </div>
+        </div>
+      </template>
+
+      <!-- ── Footer dinámico ──────────────────────────────────────────── -->
+      <template #footer>
+        <!-- Paso 3: solo cerrar -->
+        <template v-if="step === 3">
+          <button type="button" class="op-btn op-btn--deposit" style="flex:1" @click="closeModal">
+            <i class="fas fa-check"></i> Entendido
+          </button>
+        </template>
+
+        <!-- Paso 2: volver + confirmar -->
+        <template v-else-if="step === 2">
+          <button type="button" class="op-btn op-btn--cancel" :disabled="loading" @click="goToStep1">
+            <i class="fas fa-arrow-left"></i> Volver
+          </button>
+          <button
+            type="button"
+            class="op-btn"
+            :class="operation === 'deposit' ? 'op-btn--deposit' : 'op-btn--withdraw'"
+            :disabled="loading || (operation === 'deposit' ? !canSubmitDeposit : !canSubmitWithdraw)"
+            @click="submit"
+          >
+            <span v-if="loading" class="op-btn__loading">
+              <span class="op-spinner op-spinner--white"></span> Enviando...
+            </span>
+            <span v-else>
+              <i class="fas fa-paper-plane"></i>
+              {{ operation === 'deposit' ? 'Enviar solicitud' : 'Confirmar retiro' }}
+            </span>
+          </button>
+        </template>
+
+        <!-- Paso 1: cancelar + siguiente -->
+        <template v-else>
+          <button type="button" class="op-btn op-btn--cancel" @click="closeModal">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+          <button
+            type="button"
+            class="op-btn"
+            :class="operation === 'deposit' ? 'op-btn--deposit' : 'op-btn--withdraw'"
+            :disabled="!canGoToStep2"
+            @click="goToStep2"
+          >
+            Siguiente <i class="fas fa-arrow-right"></i>
+          </button>
+        </template>
+      </template>
+    </Modal>
   </div>
 </template>
+
+<style scoped>
+/* ── Página ── */
+.wallet-page {
+  min-height: 100vh;
+  background: #f0f2f7;
+}
+
+.wallet-body {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 3rem;
+}
+
+/* ── Header ── */
+.wallet-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px 16px 0 0;
+  padding: 2rem 1.5rem 1.25rem;
+  margin-bottom: 0;
+}
+
+.wallet-header__inner {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.wallet-header__identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 0 0 auto;
+}
+
+.wallet-header__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.wallet-header__title {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 2px;
+  letter-spacing: -0.02em;
+}
+
+.wallet-header__subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.wallet-header__balance {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.wallet-header__balance-label {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.wallet-header__balance-amount {
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.wallet-header__status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.badge--active   { background: rgba(40, 167, 69, 0.85); color: #fff; }
+.badge--inactive { background: rgba(255, 193, 7, 0.85); color: #fff; }
+.badge--blocked  { background: rgba(220, 53, 69, 0.85); color: #fff; }
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.9;
+}
+
+.wallet-header__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* ── Selector de billetera ── */
+.wallet-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.wallet-selector__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 0.15s ease;
+}
+
+.wallet-selector__btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.wallet-selector__btn--active {
+  background: rgba(255, 255, 255, 0.95);
+  color: #667eea;
+  border-color: transparent;
+}
+
+/* ── Botones de acción ── */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 18px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.action-btn--deposit {
+  background: rgba(255, 255, 255, 0.95);
+  color: #28a745;
+}
+.action-btn--deposit:hover { background: #fff; transform: translateY(-1px); }
+
+.action-btn--withdraw {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.action-btn--withdraw:hover { background: rgba(255, 255, 255, 0.25); }
+
+.action-btn--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.action-btn--disabled:hover { transform: none; }
+
+/* ── Empty state ── */
+.wallet-empty {
+  background: #fff;
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 4px 24px rgba(102, 126, 234, 0.10);
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.wallet-empty__icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #f0f2f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  color: #8892a4;
+  margin: 0 auto 1.5rem;
+}
+
+.wallet-empty__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0 0 0.5rem;
+}
+
+.wallet-empty__text {
+  color: #718096;
+  margin: 0 0 1.5rem;
+}
+
+/* ── Grid principal ── */
+.wallet-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1px;
+  background: #fff;
+  border-bottom: 1px solid #eaecf0;
+}
+
+/* ── Cards ── */
+.wallet-card {
+  background: #fff;
+  padding: 1.5rem;
+}
+
+.movements-card {
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 4px 24px rgba(102, 126, 234, 0.10);
+  padding: 0;
+  overflow: hidden;
+}
+
+.wallet-card__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wallet-card__title i { color: #667eea; }
+
+/* ── Resumen ── */
+.summary-list { display: flex; flex-direction: column; gap: 10px; }
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.summary-item--deposit    { background: #f0fdf4; }
+.summary-item--prize      { background: #fffbeb; }
+.summary-item--withdrawal { background: #eff6ff; }
+
+.summary-item__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.summary-item--deposit    .summary-item__icon { background: #22c55e; }
+.summary-item--prize      .summary-item__icon { background: #f59e0b; }
+.summary-item--withdrawal .summary-item__icon { background: #3b82f6; }
+
+.summary-item__info { flex: 1; min-width: 0; }
+
+.summary-item__label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+}
+
+.summary-item__sublabel {
+  font-size: 0.72rem;
+  color: #718096;
+  margin: 0;
+}
+
+.summary-item__amount {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.summary-item__amount--deposit    { color: #16a34a; }
+.summary-item__amount--prize      { color: #d97706; }
+.summary-item__amount--withdrawal { color: #2563eb; }
+
+/* ── Tipos de movimiento ── */
+.movement-types { display: flex; flex-direction: column; gap: 8px; }
+
+.movement-type-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  transition: box-shadow 0.15s;
+}
+.movement-type-item:hover { box-shadow: 0 2px 8px rgba(102, 126, 234, 0.12); }
+
+.movement-type-item__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.meta--deposit    .movement-type-item__icon { color: #16a34a; }
+.meta--prize      .movement-type-item__icon { color: #d97706; }
+.meta--purchase   .movement-type-item__icon { color: #e11d48; }
+.meta--withdrawal .movement-type-item__icon { color: #2563eb; }
+
+.movement-type-item__info { flex: 1; min-width: 0; }
+
+.movement-type-item__label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0;
+}
+
+.movement-type-item__desc {
+  font-size: 0.72rem;
+  color: #718096;
+  margin: 0;
+}
+
+.movement-type-item__sign {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sign--positive { background: #dcfce7; color: #16a34a; }
+.sign--negative { background: #ffe4e6; color: #e11d48; }
+
+/* ── Movimientos ── */
+.movements-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #eaecf0;
+  background: #fafbff;
+}
+
+.movements-header .wallet-card__title { margin: 0; }
+
+.movements-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #667eea;
+  background: #eff0ff;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.movements-loading,
+.movements-empty {
+  padding: 4rem 2rem;
+  text-align: center;
+  color: #718096;
+}
+
+.movements-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.movements-empty__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #f0f2f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #8892a4;
+  margin: 0 auto 1rem;
+}
+
+.movements-empty h3 { font-weight: 700; color: #2d3748; margin: 0 0 0.25rem; }
+.movements-empty p  { margin: 0; font-size: 0.875rem; }
+.movements-empty__hint { font-size: 0.78rem !important; color: #a0aec0; margin-top: 0.25rem !important; }
+
+.movements-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.movement-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #f0f2f7;
+  transition: background 0.15s;
+}
+.movement-row:hover { background: #fafbff; }
+.movement-row:last-child { border-bottom: none; }
+
+.movement-row--first {
+  border-left: 3px solid #667eea;
+}
+
+.movement-row__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.movement-row__icon.meta--deposit    { background: #f0fdf4; color: #16a34a; }
+.movement-row__icon.meta--prize      { background: #fffbeb; color: #d97706; }
+.movement-row__icon.meta--purchase   { background: #fff1f2; color: #e11d48; }
+.movement-row__icon.meta--withdrawal { background: #eff6ff; color: #2563eb; }
+
+.movement-row__info { flex: 1; min-width: 0; }
+
+.movement-row__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.movement-row__label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.movement-row__desc {
+  font-size: 0.78rem;
+  color: #718096;
+  margin: 0 0 2px;
+}
+
+.movement-row__date {
+  font-size: 0.72rem;
+  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+
+.badge-recent {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #667eea;
+  background: #eff0ff;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.movement-row__amounts { text-align: right; flex-shrink: 0; }
+
+.movement-row__amount {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 2px;
+}
+
+.amount--positive { color: #16a34a; }
+.amount--negative { color: #e11d48; }
+
+.movement-row__balance {
+  font-size: 0.72rem;
+  color: #a0aec0;
+  margin: 0;
+}
+
+/* ── Cargar más ── */
+.movements-load-more {
+  padding: 1.25rem 1.5rem;
+  text-align: center;
+  border-top: 1px solid #eaecf0;
+  background: #fafbff;
+}
+
+.load-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  border: 1px solid #c7d2fe;
+  background: #fff;
+  color: #667eea;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.load-more-btn:hover:not(:disabled) { background: #f6f7ff; border-color: #667eea; }
+.load-more-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Spinner ── */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #c7d2fe;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner--sm {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.spinner--white {
+  border-color: rgba(255,255,255,0.3);
+  border-top-color: #fff;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Indicador de pasos ── */
+.op-steps {
+  margin-bottom: 1.25rem;
+}
+
+.op-steps__track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.op-steps__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.op-steps__circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+  background: #fff;
+  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.op-steps__item--active .op-steps__circle {
+  border-color: #667eea;
+  background: #667eea;
+  color: #fff;
+}
+
+.op-steps__item--done .op-steps__circle {
+  border-color: #22c55e;
+  background: #22c55e;
+  color: #fff;
+}
+
+.op-steps__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #a0aec0;
+}
+
+.op-steps__item--active .op-steps__label,
+.op-steps__item--done .op-steps__label {
+  color: #4a5568;
+}
+
+.op-steps__line {
+  flex: 1;
+  height: 2px;
+  background: #e2e8f0;
+  margin: 0 8px;
+  margin-bottom: 18px;
+  transition: background 0.2s;
+}
+
+.op-steps__line--done { background: #22c55e; }
+
+/* ── Resumen de monto (paso 2) ── */
+.op-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #eaecf0;
+  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.op-summary__icon {
+  font-size: 1.25rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.op-summary__icon--deposit  { background: #f0fdf4; color: #16a34a; }
+.op-summary__icon--withdraw { background: #fffbeb; color: #d97706; }
+
+.op-summary__label  { font-size: 0.72rem; color: #718096; margin: 0; }
+.op-summary__amount { font-size: 1.2rem; font-weight: 800; color: #1a202c; margin: 0; }
+
+/* ── File drop ── */
+.op-file-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 2px dashed #c7d2fe;
+  border-radius: 12px;
+  padding: 1.5rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: #fafbff;
+  text-align: center;
+}
+
+.op-file-drop:hover       { border-color: #667eea; background: #f6f7ff; }
+.op-file-drop--selected   { border-color: #22c55e; border-style: solid; background: #f0fdf4; }
+
+.op-file-input { display: none; }
+
+.op-file-drop__icon {
+  font-size: 1.75rem;
+  color: #a5b4fc;
+}
+
+.op-file-drop__icon--ok { color: #22c55e; }
+
+.op-file-drop__name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin: 0;
+  word-break: break-all;
+}
+
+.op-file-drop__hint {
+  font-size: 0.72rem;
+  color: #a0aec0;
+  margin: 0;
+}
+
+/* ── Textarea ── */
+.op-field__textarea {
+  width: 100%;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  color: #1a202c;
+  outline: none;
+  transition: border-color 0.15s;
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.op-field__textarea:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.12); }
+
+/* ── Labels auxiliares ── */
+.op-required { color: #e11d48; font-weight: 700; }
+.op-optional { color: #a0aec0; font-weight: 400; font-size: 0.75em; }
+
+/* ── Directorios ── */
+.op-dirs-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #718096;
+  font-size: 0.85rem;
+  padding: 1rem 0;
+}
+
+.op-dirs-empty {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 1rem;
+  color: #92400e;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.op-dirs-empty i { margin-top: 2px; flex-shrink: 0; }
+
+.op-dirs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.op-dir-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #fff;
+}
+
+.op-dir-card:hover            { border-color: #a5b4fc; background: #fafbff; }
+.op-dir-card--selected        { border-color: #667eea; background: #f6f7ff; }
+
+.op-dir-card__radio { display: none; }
+
+.op-dir-card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #eff0ff;
+  color: #667eea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.op-dir-card--selected .op-dir-card__icon { background: #667eea; color: #fff; }
+
+.op-dir-card__info  { flex: 1; min-width: 0; }
+.op-dir-card__label { font-size: 0.85rem; font-weight: 700; color: #2d3748; margin: 0; }
+.op-dir-card__detail { font-size: 0.75rem; color: #718096; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.op-dir-card__holder { font-size: 0.72rem; color: #a0aec0; margin: 0; }
+
+.op-dir-card__check { color: #667eea; font-size: 1.1rem; flex-shrink: 0; }
+
+/* ── Confirmación (paso 3) ── */
+.op-done {
+  text-align: center;
+  padding: 1rem 0 0.5rem;
+}
+
+.op-done__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  margin: 0 auto 1rem;
+  box-shadow: 0 4px 16px rgba(34,197,94,0.3);
+}
+
+.op-done__title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #1a202c;
+  margin: 0 0 0.5rem;
+}
+
+.op-done__text {
+  color: #718096;
+  font-size: 0.875rem;
+  margin: 0 0 1rem;
+}
+
+.op-done__detail {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 0.875rem 1rem;
+  font-size: 0.78rem;
+  color: #0369a1;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+}
+
+.op-done__detail i { margin-top: 2px; flex-shrink: 0; }
+
+/* ── Spinner variants ── */
+.op-spinner--indigo {
+  border-color: rgba(102,126,234,0.25);
+  border-top-color: #667eea;
+}
+
+/* ── Contenido del modal (op-* para evitar colisión con Modal.vue) ── */
+.op-balance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px solid #eaecf0;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.op-balance__label  { font-size: 0.78rem; color: #718096; margin: 0 0 2px; }
+.op-balance__amount { font-size: 1.35rem; font-weight: 800; color: #1a202c; margin: 0; }
+
+.op-balance__icon {
+  width: 36px;
+  height: 36px;
+  background: #eff0ff;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #667eea;
+  font-size: 0.9rem;
+}
+
+.op-field { margin-bottom: 1.25rem; }
+
+.op-field__label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 8px;
+}
+
+.op-field__input-wrap { position: relative; }
+
+.op-field__symbol {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 700;
+  font-size: 1rem;
+  color: #718096;
+  pointer-events: none;
+}
+
+.op-field__input {
+  width: 100%;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px 12px 44px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a202c;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.op-input--deposit:focus  { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.15); }
+.op-input--withdraw:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
+
+/* ── Quick amounts ── */
+.op-quick { margin-top: 10px; }
+
+.op-quick__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #a0aec0;
+  margin: 0 0 8px;
+}
+
+.op-quick__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.op-quick__btn {
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #4a5568;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.op-quick__btn:hover          { border-color: #667eea; color: #667eea; background: #f6f7ff; }
+.op-quick__btn--active        { background: #667eea; color: #fff; border-color: #667eea; }
+
+/* ── Mensajes ── */
+.op-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  margin-bottom: 0.75rem;
+}
+
+.op-msg--error   { background: #fff1f2; border: 1px solid #fecdd3; color: #be123c; }
+.op-msg--success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+
+.op-msg__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.op-msg--error   .op-msg__icon { background: #ffe4e6; }
+.op-msg--success .op-msg__icon { background: #dcfce7; }
+
+.op-msg__title { font-weight: 700; margin: 0 0 2px; }
+
+/* ── Footer del modal ── */
+.op-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+.op-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.op-btn--cancel {
+  background: #fff;
+  color: #718096;
+  border: 1.5px solid #e2e8f0;
+}
+.op-btn--cancel:hover:not(:disabled) { background: #f8fafc; }
+
+.op-btn--deposit {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+}
+.op-btn--deposit:hover:not(:disabled)  { opacity: 0.9; transform: translateY(-1px); }
+
+.op-btn--withdraw {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+}
+.op-btn--withdraw:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+
+.op-btn__loading { display: flex; align-items: center; gap: 8px; }
+
+.op-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ── Transición mensajes ── */
+.msg-fade-enter-active, .msg-fade-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.msg-fade-enter-from,   .msg-fade-leave-to     { opacity: 0; transform: translateY(-4px); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .wallet-header__inner { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
+  .wallet-header__balance { align-items: flex-start; }
+  .wallet-header__actions { flex-direction: row; flex-wrap: wrap; }
+  .wallet-grid { grid-template-columns: 1fr; }
+}
+</style>

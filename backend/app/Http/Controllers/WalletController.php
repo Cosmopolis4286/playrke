@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\WalletOperationRequest;
+use App\Http\Requests\WalletDepositRequest;
+use App\Http\Requests\WalletWithdrawRequest;
+use App\Models\Directories\Crypto\Binance\BinanceAccounts;
+use App\Models\Directories\Fiat\Brazil\PixKey;
+use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Services\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,19 +31,40 @@ class WalletController extends Controller
     }
 
     /**
-     * Depositar en una billetera.
+     * Directorios del usuario agrupados por tipo, filtrados por moneda de la billetera.
+     * GET /wallet/{walletId}/directories
      */
-    public function deposit(WalletOperationRequest $request): JsonResponse
+    public function userDirectories(string $walletId): JsonResponse
     {
         try {
-            $wallet = $this->walletService->deposit(
-                $request->input('wallet_id'),
-                (float) $request->input('amount'),
+            $userId = (string) Auth::id();
+            $directories = $this->walletService->getUserDirectories($userId, $walletId);
+
+            return response()->json(['success' => true, 'data' => $directories]);
+        } catch (\DomainException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * Solicitar depósito con comprobante (queda en PENDING hasta que admin confirme).
+     */
+    public function deposit(WalletDepositRequest $request): JsonResponse
+    {
+        try {
+            $receiptPath = $request->file('receipt')->store('wallet/receipts', 'public');
+
+            $wallet = $this->walletService->requestDeposit(
+                walletId:  $request->input('wallet_id'),
+                amount:    (float) $request->input('amount'),
+                receipt:   $receiptPath,
+                reference: $request->input('reference'),
+                notes:     $request->input('notes'),
             );
 
             return response()->json([
                 'success' => true,
-                'message' => 'Depósito registrado correctamente.',
+                'message' => 'Solicitud de depósito enviada. Un administrador la revisará pronto.',
                 'balance' => (float) $wallet->balance,
             ]);
         } catch (\DomainException $e) {
@@ -47,19 +73,22 @@ class WalletController extends Controller
     }
 
     /**
-     * Retirar de una billetera.
+     * Solicitar retiro indicando el directorio destino (queda en PENDING hasta que admin confirme).
      */
-    public function withdraw(WalletOperationRequest $request): JsonResponse
+    public function withdraw(WalletWithdrawRequest $request): JsonResponse
     {
         try {
-            $wallet = $this->walletService->withdraw(
-                $request->input('wallet_id'),
-                (float) $request->input('amount'),
+            $wallet = $this->walletService->requestWithdraw(
+                walletId:      $request->input('wallet_id'),
+                amount:        (float) $request->input('amount'),
+                directoryId:   $request->input('directory_id'),
+                directoryType: $request->input('directory_type'),
+                notes:         $request->input('notes'),
             );
 
             return response()->json([
                 'success' => true,
-                'message' => 'Retiro registrado correctamente.',
+                'message' => 'Solicitud de retiro enviada. Un administrador procesará la transferencia.',
                 'balance' => (float) $wallet->balance,
             ]);
         } catch (\DomainException $e) {

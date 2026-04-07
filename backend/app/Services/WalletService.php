@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Contracts\WalletMovementRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\Events\Wallet\WalletUpdated;
+use App\Models\Directories\Crypto\Binance\BinanceAccounts;
+use App\Models\Directories\Fiat\Brazil\PixKey;
+use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Wallet;
 use App\Models\WalletMovement;
 use App\Services\NotificationService;
@@ -45,7 +48,144 @@ final class WalletService
     }
 
     /**
+     * Directorios de pago del usuario filtrados según la moneda de la billetera.
+     * VES → PagoMovil | BRL → PIX | USDT → Binance
+     */
+    public function getUserDirectories(string $userId, string $walletId): array
+    {
+        $wallet = Wallet::with('currency')->findOrFail($walletId);
+
+        if ((string) $wallet->user_id !== $userId) {
+            throw new \DomainException('No autorizado.');
+        }
+
+        $iso = strtoupper($wallet->currency->iso_code);
+
+        return match (true) {
+            in_array($iso, ['VES', 'VED', 'BSS']) => $this->getPagoMovilDirectories($userId),
+            $iso === 'BRL'                         => $this->getPixDirectories($userId),
+            in_array($iso, ['USDT', 'BTC', 'ETH']) => $this->getBinanceDirectories($userId),
+            default                                => [],
+        };
+    }
+
+    private function getPagoMovilDirectories(string $userId): array
+    {
+        return PagoMovil::where('user_id', $userId)
+            ->where('status', 'ACTIVE')
+            ->with(['bank', 'documentType'])
+            ->get()
+            ->map(fn($pm) => [
+                'id'      => (string) $pm->id,
+                'type'    => 'pago_movil',
+                'label'   => $pm->bank->name ?? 'Banco',
+                'detail'  => ($pm->documentType->code ?? 'CI') . '-' . $pm->document_number . ' | ' . $pm->phone,
+                'holder'  => $pm->holder_name,
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    private function getPixDirectories(string $userId): array
+    {
+        return PixKey::where('user_id', $userId)
+            ->where('status', 'ACTIVE')
+            ->with('bank')
+            ->get()
+            ->map(fn($pix) => [
+                'id'      => (string) $pix->id,
+                'type'    => 'pix',
+                'label'   => $pix->bank->name ?? 'Banco',
+                'detail'  => "{$pix->getTypeDisplayName()}: {$pix->formatted_key}",
+                'holder'  => $pix->holder_name,
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    private function getBinanceDirectories(string $userId): array
+    {
+        return BinanceAccounts::where('user_id', $userId)
+            ->where('status', 'ACTIVE')
+            ->get()
+            ->map(fn($b) => [
+                'id'      => (string) $b->id,
+                'type'    => 'binance',
+                'label'   => $b->account_type_description,
+                'detail'  => $b->data_value,
+                'holder'  => null,
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Registrar solicitud de depósito con comprobante (STATUS_PENDING, sin tocar el saldo).
+     */
+    public function requestDeposit(
+        string $walletId,
+        float  $amount,
+        string $receipt,
+        ?string $reference = null,
+        ?string $notes = null,
+    ): Wallet {
+        $wallet = $this->findOwnedWallet($walletId);
+
+        if ($wallet->isBlocked()) {
+            throw new \DomainException('La billetera está bloqueada.');
+        }
+
+        $this->movementRepository->record([
+            'wallet_id'      => (string) $wallet->id,
+            'user_id'        => (string) $wallet->user_id,
+            'type'           => WalletMovement::TYPE_DEPOSIT,
+            'amount'         => $amount,
+            'balance_before' => (float) $wallet->balance,
+            'balance_after'  => (float) $wallet->balance,
+            'description'    => $notes ?? 'Depósito pendiente de confirmación',
+            'reference_id'   => $reference ?? $receipt, // guardamos el path del comprobante como referencia
+        ]);
+
+        return $wallet;
+    }
+
+    /**
+     * Registrar solicitud de retiro indicando directorio destino (STATUS_PENDING, sin tocar el saldo).
+     */
+    public function requestWithdraw(
+        string $walletId,
+        float  $amount,
+        string $directoryId,
+        string $directoryType,
+        ?string $notes = null,
+    ): Wallet {
+        $wallet = $this->findOwnedWallet($walletId);
+
+        if ($wallet->isBlocked()) {
+            throw new \DomainException('La billetera está bloqueada.');
+        }
+
+        if (! $wallet->hasSufficientBalance($amount)) {
+            throw new \DomainException('Saldo insuficiente para realizar el retiro.');
+        }
+
+        $this->movementRepository->record([
+            'wallet_id'      => (string) $wallet->id,
+            'user_id'        => (string) $wallet->user_id,
+            'type'           => WalletMovement::TYPE_WITHDRAWAL,
+            'amount'         => $amount,
+            'balance_before' => (float) $wallet->balance,
+            'balance_after'  => (float) $wallet->balance,
+            'description'    => $notes ?? 'Retiro pendiente de procesamiento',
+            'reference_id'   => "{$directoryType}:{$directoryId}",
+        ]);
+
+        return $wallet;
+    }
+
+    /**
      * Registrar solicitud de depósito.
+     * @deprecated Usar requestDeposit()
      */
     public function deposit(string $walletId, float $amount): Wallet
     {
