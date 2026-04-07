@@ -7,30 +7,21 @@ use App\DTOs\Roles\Admin\Permission\RolePermissionDTO;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Permission;
+use App\Models\Permission;
 
 final class PermissionService
 {
     /**
      * Obtener todos los permisos con paginación.
      */
-    public function getPermissionsWithPagination(int $perPage = 15): array
+    /**
+     * Todos los permisos para la matriz de roles (sin paginación).
+     * toArray() aplica los casts del modelo — 'id' => 'string' garantiza
+     * que el Snowflake ID no pierda precisión en JavaScript.
+     */
+    public function getAllForMatrix(): array
     {
-        $permissions = Permission::with('roles')
-            ->orderBy('name')
-            ->paginate($perPage);
-
-        return [
-            'permissions' => $permissions->items(),
-            'pagination' => [
-                'current_page' => $permissions->currentPage(),
-                'per_page' => $permissions->perPage(),
-                'total' => $permissions->total(),
-                'last_page' => $permissions->lastPage(),
-                'from' => $permissions->firstItem(),
-                'to' => $permissions->lastItem(),
-            ],
-        ];
+        return Permission::orderBy('name')->get()->toArray();
     }
 
     /**

@@ -1,23 +1,11 @@
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import type { Permission, RolePermission, RoleWithPermissions } from '@/js/types/roles/admin/permission'
 import axios from 'axios'
 
-/**
- * Composable para gestión de Permisos.
- *
- * Responsabilidades:
- * - Estado de la tabla
- * - Operaciones CRUD
- * - Gestión de permisos por rol
- */
 export function usePermissions(initialData?: {
     permissions?: { rows: Permission[]; pagination: any }
     roles?: RoleWithPermissions[]
 }) {
-    // =======================
-    // Estado reactivo
-    // =======================
-
     const permissions = ref<{ rows: Permission[]; pagination: any }>(
         initialData?.permissions ?? {
             rows: [],
@@ -26,190 +14,107 @@ export function usePermissions(initialData?: {
     )
     const roles = ref<RoleWithPermissions[]>(initialData?.roles ?? [])
     const loading = ref(false)
-    const selectedIds = ref<string[]>([])
-    const currentRole = ref<RolePermission | null>(null)
 
-    // =======================
-    // Computed
-    // =======================
+    // pendingChanges: Record<roleId, Record<permId, boolean>>
+    // boolean = estado deseado (true=asignar, false=revocar)
+    const pendingChanges = reactive<Record<string, Record<string, boolean>>>({})
 
-    const hasSelected = computed(() => selectedIds.value.length > 0)
-    const selectedCount = computed(() => selectedIds.value.length)
+    const hasChanges = computed(() => Object.keys(pendingChanges).length > 0)
 
-    // =======================
-    // Métodos de API
-    // =======================
+    // ── Helpers de pendingChanges ──────────────────────────────────────────
 
-    const fetchPermissions = async (perPage = 15) => {
+    function clearPending() {
+        for (const k of Object.keys(pendingChanges)) {
+            delete pendingChanges[k]
+        }
+    }
+
+    function hasPermission(roleId: string, permissionId: string): boolean {
+        if (pendingChanges[roleId]?.[permissionId] !== undefined) {
+            return pendingChanges[roleId][permissionId]
+        }
+        return roles.value.find(r => r.id === roleId)?.permissions.includes(permissionId) ?? false
+    }
+
+    function togglePermission(roleId: string, permissionId: string) {
+        const serverHas = roles.value.find(r => r.id === roleId)?.permissions.includes(permissionId) ?? false
+
+        if (pendingChanges[roleId]?.[permissionId] !== undefined) {
+            delete pendingChanges[roleId][permissionId]
+            if (Object.keys(pendingChanges[roleId]).length === 0) {
+                delete pendingChanges[roleId]
+            }
+        } else {
+            if (!pendingChanges[roleId]) pendingChanges[roleId] = {}
+            pendingChanges[roleId][permissionId] = !serverHas
+        }
+    }
+
+    // ── API ───────────────────────────────────────────────────────────────
+
+    const fetchPermissions = async () => {
         loading.value = true
         try {
-            const response = await axios.get('/permissions/fetch-list', {
-                params: { per_page: perPage },
-            })
-            permissions.value = {
-                rows: response.data.permissions.rows,
-                pagination: response.data.permissions.pagination,
-            }
-            return response.data.permissions
-        } catch (error) {
-            console.error('Error fetching permissions:', error)
-            throw error
+            const { data } = await axios.get('/permissions/fetch-list')
+            permissions.value = { rows: data.permissions.rows, pagination: null }
         } finally {
             loading.value = false
         }
     }
 
-    const fetchRolesWithPermissions = async () => {
-        try {
-            const response = await axios.get('/permissions/roles-permissions')
-            roles.value = response.data.roles
-            return response.data.roles
-        } catch (error) {
-            console.error('Error fetching roles:', error)
-            throw error
-        }
+    const fetchRoles = async () => {
+        const { data } = await axios.get('/permissions/roles-permissions')
+        roles.value = data.roles
     }
 
-    const fetchRolePermissions = async (roleId: string) => {
-        try {
-            const response = await axios.get(`/permissions/roles/${roleId}/permissions`)
-            currentRole.value = response.data.role
-            return response.data.role
-        } catch (error) {
-            console.error('Error fetching role permissions:', error)
-            throw error
-        }
+    // Refresco completo: descarta pendientes y trae datos frescos del servidor
+    const reload = async () => {
+        clearPending()
+        await Promise.all([fetchPermissions(), fetchRoles()])
     }
 
-    const assignPermissions = async (roleId: string, permissionIds: string[]) => {
-        try {
-            const response = await axios.post(`/permissions/roles/${roleId}/assign`, {
-                permission_ids: permissionIds,
-            })
-            if (currentRole.value?.roleId === roleId) {
-                await fetchRolePermissions(roleId)
+    const saveChanges = async () => {
+        const promises: Promise<any>[] = []
+
+        for (const [roleId, permMap] of Object.entries(pendingChanges)) {
+            const toAssign = Object.entries(permMap).filter(([, v]) => v).map(([k]) => k)
+            const toRevoke = Object.entries(permMap).filter(([, v]) => !v).map(([k]) => k)
+
+            if (toAssign.length) {
+                promises.push(axios.post(`/permissions/roles/${roleId}/assign`, { permission_ids: toAssign }))
             }
-            return response.data
-        } catch (error) {
-            console.error('Error assigning permissions:', error)
-            throw error
-        }
-    }
-
-    const revokePermissions = async (roleId: string, permissionIds: string[]) => {
-        try {
-            const response = await axios.post(`/permissions/roles/${roleId}/revoke`, {
-                permission_ids: permissionIds,
-            })
-            if (currentRole.value?.roleId === roleId) {
-                await fetchRolePermissions(roleId)
+            if (toRevoke.length) {
+                promises.push(axios.post(`/permissions/roles/${roleId}/revoke`, { permission_ids: toRevoke }))
             }
-            return response.data
-        } catch (error) {
-            console.error('Error revoking permissions:', error)
-            throw error
         }
+
+        await Promise.all(promises)
+        clearPending()
+        await fetchRoles() // actualizar checkboxes con estado real del servidor
     }
 
-    const createPermission = async (data: {
-        name: string
-        guard_name?: string
-        description?: string
-    }) => {
-        try {
-            const response = await axios.post('/permissions', data)
-            await fetchPermissions()
-            return response.data.permission
-        } catch (error) {
-            console.error('Error creating permission:', error)
-            throw error
-        }
-    }
-
-    const updatePermission = async (permissionId: string, data: {
-        name?: string
-        guard_name?: string
-        description?: string
-    }) => {
-        try {
-            const response = await axios.patch(`/permissions/${permissionId}`, data)
-            await fetchPermissions()
-            return response.data.permission
-        } catch (error) {
-            console.error('Error updating permission:', error)
-            throw error
-        }
+    const createPermission = async (data: { name: string; guard_name?: string; description?: string }) => {
+        const response = await axios.post('/permissions', data)
+        await Promise.all([fetchPermissions(), fetchRoles()])
+        return response.data.permission
     }
 
     const deletePermission = async (permissionId: string) => {
-        try {
-            const response = await axios.delete(`/permissions/${permissionId}`)
-            await fetchPermissions()
-            return response.data
-        } catch (error) {
-            console.error('Error deleting permission:', error)
-            throw error
-        }
-    }
-
-    // =======================
-    // Métodos de selección
-    // =======================
-
-    const toggleSelection = (id: string) => {
-        const index = selectedIds.value.indexOf(id)
-        if (index > -1) {
-            selectedIds.value.splice(index, 1)
-        } else {
-            selectedIds.value.push(id)
-        }
-    }
-
-    const selectAll = () => {
-        selectedIds.value = permissions.value.rows.map(p => p.id)
-    }
-
-    const clearSelection = () => {
-        selectedIds.value = []
-    }
-
-    const reset = () => {
-        permissions.value = {
-            rows: [],
-            pagination: { current_page: 1, per_page: 15, total: 0, last_page: 1, from: 1, to: 0 },
-        }
-        roles.value = []
-        selectedIds.value = []
-        currentRole.value = null
-        loading.value = false
+        await axios.delete(`/permissions/${permissionId}`)
+        await fetchPermissions()
     }
 
     return {
-        // Estado — refs directos para permitir mutación externa
         permissions,
         roles,
         loading,
-        selectedIds,
-        currentRole,
-        hasSelected,
-        selectedCount,
-
-        // Métodos
-        fetchPermissions,
-        fetchRolesWithPermissions,
-        fetchRolePermissions,
-        assignPermissions,
-        revokePermissions,
+        pendingChanges,
+        hasChanges,
+        hasPermission,
+        togglePermission,
+        reload,
+        saveChanges,
         createPermission,
-        updatePermission,
         deletePermission,
-
-        // Selección
-        toggleSelection,
-        selectAll,
-        clearSelection,
-
-        // Utilidades
-        reset,
     }
 }

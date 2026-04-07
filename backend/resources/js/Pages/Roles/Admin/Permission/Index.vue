@@ -24,14 +24,13 @@
               :permissions="permissions"
               :roles="roles"
               :loading="loading"
-              :selected-ids="selectedIds"
-              :current-role="currentRole"
-              @update:selected-ids="selectedIds = $event"
-              @refresh="loadPermissionsAndRoles"
-              @saved="fetchRolesWithPermissions"
-              @assign-permissions="handleAssignPermissions"
-              @revoke-permissions="handleRevokePermissions"
-              @create-permission="handleCreatePermission"
+              :has-changes="hasChanges"
+              :has-permission="hasPermission"
+              @toggle-permission="togglePermission"
+              @reload="reload"
+              @save="handleSave"
+              @create-permission="handleCreate"
+              @delete-permission="handleDelete"
             />
           </div>
         </div>
@@ -46,7 +45,6 @@ import { usePermissions } from '@/js/composables/roles/admin/permission/usePermi
 import Swal from 'sweetalert2'
 import type { PermissionPageProps } from '@/js/types/roles/admin/permission-page'
 
-// Props desde Inertia (carga inicial SSR — sin doble petición AJAX)
 const props = defineProps<PermissionPageProps>()
 
 const breadcrumbItems = [
@@ -55,54 +53,43 @@ const breadcrumbItems = [
   { label: 'Permisos' },
 ]
 
-// Composable inicializado con datos de Inertia para evitar doble carga
 const {
   permissions,
   roles,
   loading,
-  selectedIds,
-  currentRole,
-  fetchPermissions,
-  fetchRolesWithPermissions,
-  assignPermissions,
-  revokePermissions,
+  hasChanges,
+  hasPermission,
+  togglePermission,
+  reload,
+  saveChanges,
   createPermission,
+  deletePermission,
 } = usePermissions({ permissions: props.permissions, roles: props.roles })
 
-// Recarga completa — descarta cambios pendientes y refleja estado real del servidor
-const loadPermissionsAndRoles = async () => {
+async function handleSave() {
   try {
-    await Promise.all([fetchPermissions(), fetchRolesWithPermissions()])
+    await saveChanges()
+    Swal.fire({ icon: 'success', title: 'Éxito', text: 'Cambios guardados correctamente', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 })
   } catch {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron cargar los datos' })
+    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron guardar los cambios' })
   }
 }
 
-const handleAssignPermissions = async (roleId: string, permissionIds: string[]) => {
-  try {
-    await assignPermissions(roleId, permissionIds)
-    await fetchRolesWithPermissions()
-  } catch {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron asignar los permisos' })
-  }
-}
-
-const handleRevokePermissions = async (roleId: string, permissionIds: string[]) => {
-  try {
-    await revokePermissions(roleId, permissionIds)
-    await fetchRolesWithPermissions()
-  } catch {
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron revocar los permisos' })
-  }
-}
-
-const handleCreatePermission = async (data: { name: string; guard_name: string; description?: string }) => {
+async function handleCreate(data: { name: string; guard_name?: string; description?: string }) {
   try {
     await createPermission(data)
-    // Recargar ambos: la lista de permisos (nuevo ítem) y roles (sin pendingChanges activos aquí)
-    await Promise.all([fetchPermissions(), fetchRolesWithPermissions()])
+    Swal.fire({ icon: 'success', title: 'Éxito', text: 'Permiso creado correctamente', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 })
   } catch {
     Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo crear el permiso' })
+  }
+}
+
+async function handleDelete(permissionId: string) {
+  try {
+    await deletePermission(permissionId)
+    Swal.fire({ icon: 'success', title: 'Éxito', text: 'Permiso eliminado correctamente', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 })
+  } catch {
+    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo eliminar el permiso' })
   }
 }
 </script>

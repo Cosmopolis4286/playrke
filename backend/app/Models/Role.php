@@ -51,7 +51,6 @@ class Role extends Model implements RoleContract
      * @var array<string, string>
      */
     protected $casts = [
-        'id'     => 'string',
         'status' => 'boolean',
     ];
 

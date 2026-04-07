@@ -5,38 +5,40 @@ namespace App\Traits;
 use BradieTilley\Snowflake\Snowflake;
 
 /**
- * Trait para modelos que usan IDs de Snowflake.
- * 
- * Este trait configura automáticamente:
- * - protected $keyType = 'string';
- * - public $incrementing = false;
- * 
- * Esto asegura que los IDs se serialicen como strings en JSON,
- * previniendo pérdida de precisión en JavaScript con números grandes.
+ * Trait para modelos que usan IDs Snowflake.
+ *
+ * Configura automáticamente:
+ * - $keyType = 'string'
+ * - $incrementing = false
+ * - cast 'id' => 'string' (via método casts() de Laravel 11)
+ *
+ * El cast garantiza que el ID se serialice como string en toArray(),
+ * toJson() y JsonResponse, evitando pérdida de precisión en JS (>MAX_SAFE_INTEGER).
  */
 trait SnowflakeId
 {
     public function initializeSnowflakeId(): void
     {
-        $this->keyType = 'string';
+        $this->keyType    = 'string';
         $this->incrementing = false;
     }
 
-    protected static function bootSnowflakeId()
+    /**
+     * Fuerza 'id' => 'string' en todos los modelos que usen este trait.
+     * getCasts() es el método que Eloquent llama internamente para aplicar
+     * casts en toArray(), toJson() y JsonResponse.
+     */
+    public function getCasts(): array
+    {
+        return array_merge(parent::getCasts(), ['id' => 'string']);
+    }
+
+    protected static function bootSnowflakeId(): void
     {
         static::creating(function ($model) {
             if (empty($model->{$model->getKeyName()})) {
-                $model->{$model->getKeyName()} = self::generateSnowflakeId();
+                $model->{$model->getKeyName()} = (string) (new Snowflake())->id();
             }
         });
-    }
-
-    /**
-     * Genera un ID único usando Snowflake.
-     */
-    public static function generateSnowflakeId(): string
-    {
-        $snowflake = new Snowflake();
-        return (string) $snowflake->id();
     }
 }
