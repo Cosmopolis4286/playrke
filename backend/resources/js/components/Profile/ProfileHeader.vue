@@ -87,14 +87,13 @@ const quickStats = computed(() => [
 /* ── Shell ── */
 .profile-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 2rem 0;
+    padding: 2rem 1.5rem;
     position: relative;
+    border-radius: 16px 16px 0 0;
+    margin-bottom: 0;
 }
 
 .header-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 0 1.5rem;
     display: flex;
     align-items: center;
     gap: 2rem;

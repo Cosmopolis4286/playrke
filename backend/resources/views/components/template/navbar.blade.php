@@ -1,26 +1,26 @@
 {{-- $navWallet y $navUser son inyectados por NavbarComposer vía AppServiceProvider --}}
-<nav class="main-header navbar navbar-expand navbar-bg justify-content-between">
+<nav class="main-header navbar navbar-expand navbar-bg justify-content-between" style="height:56px;padding:0 1rem;">
 
     {{-- ── Izquierda: toggle + billetera ──────────────────── --}}
-    <ul class="navbar-nav align-items-center">
+    <ul class="navbar-nav align-items-center" style="gap:.25rem;">
 
-        <li class="nav-item ml-n2 mr-1">
-            <a class="nav-link" data-widget="pushmenu" href="#" role="button" aria-label="Menú">
+        {{-- Toggle sidebar --}}
+        <li class="nav-item">
+            <a class="nb-icon-btn" data-widget="pushmenu" href="#" role="button" aria-label="Menú">
                 <i class="fas fa-bars"></i>
             </a>
         </li>
 
+        {{-- Billetera --}}
         <li class="nav-item">
-            <a class="nav-link d-flex align-items-center" href="{{ route('wallet.index') }}" title="Mi billetera"
-               style="gap:6px">
-                <i class="fas fa-wallet text-success" style="font-size:13px"></i>
+            <a class="nb-wallet-pill" href="{{ route('wallet.index') }}" title="Mi billetera">
+                <span class="nb-wallet-icon"><i class="fas fa-wallet"></i></span>
                 @if ($navWallet)
-                    <span id="navbar-balance" class="text-light" style="font-size:14px">
-                        <span class="text-success font-weight-bold">{{ $navWallet->currency->symbol }}</span>
-                        {{ number_format($navWallet->balance, $navWallet->currency->decimal_places ?? 2, ',', '.') }}
+                    <span id="navbar-balance" class="nb-wallet-balance">
+                        <span class="nb-wallet-symbol">{{ $navWallet->currency->symbol }}</span>{{ number_format($navWallet->balance, $navWallet->currency->decimal_places ?? 2, ',', '.') }}
                     </span>
                 @else
-                    <span class="text-muted" style="font-size:13px">Sin billetera</span>
+                    <span class="nb-wallet-empty">Sin billetera</span>
                 @endif
             </a>
         </li>
@@ -28,41 +28,29 @@
     </ul>
 
     {{-- ── Derecha: notificaciones + usuario ───────────────── --}}
-    <ul class="navbar-nav align-items-center">
+    <ul class="navbar-nav align-items-center" style="gap:.5rem;">
 
         {{-- 🔔 Notificaciones --}}
         <li class="nav-item dropdown">
-            <a class="nav-link position-relative px-3" href="#" id="notifToggle"
+            <a class="nb-icon-btn position-relative" href="#" id="notifToggle"
                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                title="Notificaciones">
-                <i class="fas fa-bell" style="font-size:16px"></i>
-                <span id="notif-badge"
-                      class="badge badge-danger badge-pill position-absolute d-none"
-                      style="top:4px;right:4px;font-size:9px;min-width:16px;padding:2px 4px">
-                    0
-                </span>
+                <i class="fas fa-bell"></i>
+                <span id="notif-badge" class="nb-badge d-none">0</span>
             </a>
 
-            <div class="dropdown-menu dropdown-menu-right p-0 shadow"
-                 aria-labelledby="notifToggle"
-                 style="width:320px;max-height:420px;overflow:hidden;border-radius:10px">
+            <div class="dropdown-menu dropdown-menu-right p-0 nb-notif-menu"
+                 aria-labelledby="notifToggle">
 
-                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom"
-                     style="background:#f8f9fa">
-                    <span class="font-weight-semibold" style="font-size:13px">
-                        <i class="fas fa-bell text-primary mr-1"></i>Notificaciones
-                    </span>
-                    <button type="button" id="notif-clear"
-                            class="btn btn-link btn-sm text-muted p-0" style="font-size:11px">
-                        Limpiar todo
-                    </button>
+                <div class="nb-notif-header">
+                    <span><i class="fas fa-bell mr-1"></i>Notificaciones</span>
+                    <button type="button" id="notif-clear" class="nb-notif-clear">Limpiar todo</button>
                 </div>
 
-                <ul id="notif-list" class="list-unstyled mb-0"
-                    style="max-height:340px;overflow-y:auto">
-                    <li id="notif-empty" class="text-center text-muted py-5" style="font-size:13px">
-                        <i class="fas fa-check-circle text-success d-block mb-2" style="font-size:24px"></i>
-                        Sin notificaciones nuevas
+                <ul id="notif-list" class="list-unstyled mb-0 nb-notif-list">
+                    <li id="notif-empty" class="nb-notif-empty">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Sin notificaciones nuevas</span>
                     </li>
                 </ul>
             </div>
@@ -70,72 +58,60 @@
 
         {{-- 👤 Usuario --}}
         <li class="nav-item dropdown">
-            <button class="btn btn-sm btn-outline-primary dropdown-toggle d-flex align-items-center"
+            <button class="nb-user-btn"
                     type="button" id="userDropdown"
                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                     aria-label="Opciones de usuario">
-                <img class="mr-2 user-img"
-                     src="{{ $navUser->profile_photo_url ?? ($navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico')) }}"
-                     alt="{{ $navUser->username }}"
-                     style="width:32px;height:32px;object-fit:cover;border-radius:50%;border:2px solid #667eea;">
-                <div class="text-left">
-                    <div class="user-text-navbar font-weight-bold">{{ $navUser->username }}</div>
-                    <div class="text-muted" style="font-size:10px;line-height:1">Mi cuenta</div>
-                </div>
+                <span class="nb-avatar-wrap">
+                    <img class="user-img nb-avatar"
+                         src="{{ $navUser->profile_photo_url ?? ($navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico')) }}"
+                         alt="{{ $navUser->username }}">
+                    <span class="nb-avatar-online"></span>
+                </span>
+                <i class="fas fa-chevron-down nb-chevron"></i>
             </button>
-            
-            <div class="dropdown-menu dropdown-menu-right p-0 shadow-lg border-0" 
-                 aria-labelledby="userDropdown" 
-                 style="font-size:13px;min-width:220px;border-radius:12px;overflow:hidden;">
-                
-                {{-- Header compacto --}}
-                <div class="px-3 py-3 bg-light border-bottom">
-                    <div class="d-flex align-items-center">
-                        <img class="user-img"
-                             src="{{ $navUser->profile_photo_url ?? ($navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico')) }}"
-                             alt="{{ $navUser->username }}"
-                             style="width:36px;height:36px;object-fit:cover;border-radius:50%;border:2px solid #fff;margin-right:10px;flex-shrink:0;">
-                        <div class="flex-1">
-                            <div class="fw-medium">{{ $navUser->username }}</div>
-                            <div class="text-muted small">{{ $navUser->email ?? 'usuario@playrke.com' }}</div>
+
+            <div class="dropdown-menu dropdown-menu-right p-0 nb-user-menu"
+                 aria-labelledby="userDropdown">
+
+                {{-- Header con gradiente --}}
+                <div class="nb-user-header">
+                    <img class="user-img nb-user-header-avatar"
+                         src="{{ $navUser->profile_photo_url ?? ($navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico')) }}"
+                         alt="{{ $navUser->username }}">
+                    <div class="nb-user-header-info">
+                        <div class="nb-user-header-name">
+                            {{ $navUser->username }}
+                            @if($navUser->email_verified_at)
+                                <i class="fas fa-check-circle nb-verified-icon" title="Verificado"></i>
+                            @endif
                         </div>
-                        @if($navUser->email_verified_at)
-                            <i class="fas fa-check-circle text-success ms-1" style="font-size:12px;"></i>
-                        @endif
+                        <div class="nb-user-header-email">{{ $navUser->email ?? '' }}</div>
                     </div>
                 </div>
-                
-                {{-- Opciones simplificadas --}}
-                <div class="py-1">
-                    <a href="{{ route('profile.index') }}" 
-                       class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-gray-100 transition-all">
-                        <i class="fas fa-user me-3 text-muted" style="width:16px;"></i>
-                        Mi Perfil
+
+                {{-- Opciones --}}
+                <div class="nb-user-menu-body">
+                    <a href="{{ route('profile.index') }}" class="nb-menu-item">
+                        <span class="nb-menu-icon nb-icon-profile"><i class="fas fa-user"></i></span>
+                        <span>Mi Perfil</span>
                     </a>
-                    
-                    <a href="{{ route('wallet.index') }}" 
-                       class="dropdown-item d-flex align-items-center px-3 py-2 hover:bg-gray-100 transition-all">
-                        <i class="fas fa-wallet me-3 text-muted" style="width:16px;"></i>
-                        Mi Billetera
+                    <a href="{{ route('wallet.index') }}" class="nb-menu-item">
+                        <span class="nb-menu-icon nb-icon-wallet"><i class="fas fa-wallet"></i></span>
+                        <span>Mi Billetera</span>
                     </a>
                 </div>
-                
-                {{-- Separador --}}
-                <div class="border-top mx-3" style="border-color: #e9ecef;"></div>
-                <div class="border-top border-light"></div>
-                
-                {{-- Cerrar sesión --}}
-                <div class="py-2">
-                    <button type="button" 
-                            class="logout-btn dropdown-item d-flex align-items-center px-3 py-2 hover:bg-danger hover:text-white transition-all w-100 text-left border-0 bg-transparent text-danger"
+
+                <div class="nb-menu-divider"></div>
+
+                <div class="nb-user-menu-footer">
+                    <button type="button"
+                            class="logout-btn nb-logout-btn"
                             data-logout-url="{{ route('logout') }}"
                             data-login-redirect-url="{{ route('login') }}"
                             data-show-confirmation="false">
-                        <i class="fas fa-sign-out-alt mr-3" style="width:16px;"></i>
-                        <div class="flex-1">
-                            <div class="font-weight-medium">Cerrar Sesión</div>
-                            <small class="text-danger opacity-75">Salir de tu cuenta</small>
-                        </div>
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Cerrar Sesión</span>
                     </button>
                 </div>
             </div>
@@ -411,25 +387,4 @@
 
 })();
 </script>
-</script>
-
-<style>
-@keyframes notifSlide {
-    from { opacity: 0; transform: translateY(-6px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-.notif-entry { 
-    animation: notifSlide .2s ease; 
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-.notif-entry:hover > div { background: #f8f9fa; }
-.notif-entry.read {
-    opacity: 0.7;
-    border-left: 3px solid #28a745 !important;
-}
-.notif-entry.read:hover > div { background: #f0f9f0; }
-#notif-list::-webkit-scrollbar { width: 4px; }
-#notif-list::-webkit-scrollbar-thumb { background: #dee2e6; border-radius: 2px; }
-</style>
 @endif

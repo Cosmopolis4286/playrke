@@ -1,5 +1,6 @@
 <template>
   <div class="profile-page">
+    <div class="profile-body">
     <ProfileHeader
       :user="user"
       :stats="stats"
@@ -10,7 +11,6 @@
       @open-avatar="showAvatar = true"
     />
 
-    <div class="profile-body">
       <div class="profile-card">
         <ProfileTabs v-model="activeTab" />
 
@@ -51,7 +51,7 @@
         </Transition>
         </div>
       </div>
-    </div>
+    </div><!-- /profile-body -->
 
     <PasswordModal
       v-if="showPassword"
@@ -109,7 +109,7 @@ const {
 
 .profile-card {
     background: #fff;
-    border-radius: 16px;
+    border-radius: 0 0 16px 16px;
     box-shadow: 0 4px 24px rgba(102, 126, 234, 0.10);
     overflow: hidden;
 }
