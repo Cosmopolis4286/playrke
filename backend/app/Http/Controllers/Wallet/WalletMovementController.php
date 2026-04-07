@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Wallet;
 
 use App\Http\Controllers\Controller;
-use App\Models\Wallet\WalletMovement;
+use App\Models\WalletMovement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;

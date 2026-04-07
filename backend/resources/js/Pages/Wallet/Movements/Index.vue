@@ -116,37 +116,29 @@ onMounted(() => {
     <div class="card">
       <div class="card-body">
         <BaseTable
+          table-id="wallet-movements"
           :columns="columns"
-          :data="movements"
-          :loading="loading"
+          :rows="movements"
           empty-message="No hay movimientos registrados"
         >
-          <template #cell(type)="{ row }">
-            <span :class="getTypeClass(row.type)">
-              {{ getTypeLabel(row.type) }}
-            </span>
+          <template #cell-type="{ row }">
+            <span :class="getTypeClass(row.type)">{{ getTypeLabel(row.type) }}</span>
           </template>
 
-          <template #cell(amount)="{ row }">
+          <template #cell-amount="{ row }">
             <span :class="row.type === 'DEPOSIT' ? 'text-success' : 'text-danger'">
               {{ row.type === 'DEPOSIT' ? '+' : '-' }}{{ row.amount }}
             </span>
           </template>
 
-          <template #cell(status)="{ row }">
-            <span :class="getStatusClass(row.status)">
-              {{ getStatusLabel(row.status) }}
-            </span>
+          <template #cell-status="{ row }">
+            <span :class="getStatusClass(row.status)">{{ getStatusLabel(row.status) }}</span>
           </template>
 
-          <template #cell(created_at)="{ row }">
-            {{ new Date(row.created_at).toLocaleString() }}
-          </template>
-
-          <template #cell(actions)="{ row }">
-            <button class="btn btn-sm btn-info" @click="$inertia.visit(`/wallet-movements/${row.id}`)">
+          <template #cell-actions="{ row }">
+            <a :href="`/wallet-movements/${row.id}`" class="btn btn-sm btn-info">
               <i class="fas fa-eye"></i>
-            </button>
+            </a>
           </template>
         </BaseTable>
       </div>
