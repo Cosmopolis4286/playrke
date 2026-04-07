@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Users;
 
 use App\Http\Controllers\Controller;
+use App\Models\Country;
 use App\Models\Shared\DocumentType;
 use App\Models\User;
 use App\Services\ProfileService;
@@ -30,10 +31,13 @@ class ProfileController extends Controller
      */
     public function index(): \Inertia\Response
     {
-        $user = Auth::user()->load(['roles', 'wallets']);
-        
+        $user = Auth::user()->load(['roles', 'wallets', 'country']);
+
         // Obtener el primer wallet del usuario si existe
         $wallet = $user->wallets->first();
+
+        // Cargar países para el select
+        $countries = Country::orderBy('name')->get(['id', 'name', 'iso_code_2']);
         
         // Obtener estadísticas del usuario
         $stats = [
@@ -79,8 +83,9 @@ class ProfileController extends Controller
                 'email' => $user->email,
                 'avatar' => $user->profile_photo_url,
                 'phone' => $user->phone_number,
-                'birth_date' => $user->birth_date,
-                'country' => $user->country_id,
+                'birth_date' => $user->birth_date?->format('Y-m-d'),
+                'country_id' => (string) $user->country_id,
+                'country_iso' => $user->country?->iso_code_2,
                 'bio' => $user->bio,
                 'is_verified' => !is_null($user->email_verified_at),
                 'created_at' => $user->created_at,
@@ -90,6 +95,11 @@ class ProfileController extends Controller
                     'currency' => $wallet->currency,
                 ] : null,
             ],
+            'countries' => $countries->map(fn($c) => [
+                'value' => (string) $c->id,
+                'label' => $c->name,
+                'iso'   => $c->iso_code_2,
+            ]),
             'stats' => $stats,
             'preferences' => $preferences,
         ]);
@@ -156,13 +166,13 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users,username,' . $user->id,
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-            'phone' => 'nullable|string|max:20',
+            'name'       => 'required|string|max:255',
+            'username'   => 'required|string|max:255|unique:users,username,' . $user->id,
+            'email'      => 'required|email|max:255|unique:users,email,' . $user->id,
+            'phone'      => 'nullable|string|max:20',
             'birth_date' => 'nullable|date|before:today',
-            'country' => 'nullable|string|max:100',
-            'bio' => 'nullable|string|max:500',
+            'country_id' => 'nullable|string|exists:countries,id',
+            'bio'        => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -173,9 +183,17 @@ class ProfileController extends Controller
             ], 422);
         }
 
-        $user->update($request->only([
-            'first_name', 'last_name', 'username', 'email', 'phone_number', 'birth_date', 'country_id', 'bio'
-        ]));
+        // Separar name en first_name / last_name
+        $nameParts = explode(' ', trim($request->name), 2);
+        $user->update([
+            'first_name'   => $nameParts[0],
+            'last_name'    => $nameParts[1] ?? null,
+            'username'     => $request->username,
+            'email'        => $request->email,
+            'phone_number' => $request->phone,
+            'birth_date'   => $request->birth_date,
+            'country_id'   => $request->country_id,
+        ]);
 
         return response()->json([
             'success' => true,

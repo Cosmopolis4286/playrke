@@ -80,6 +80,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'profile_photo_url',
         'email',
         'phone_number',
+        'birth_date',
         'country_id',
         'time_zone_id',
         'referral_code',
@@ -110,6 +111,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'country_id' => 'string',
         'time_zone_id' => 'string',
+        'birth_date' => 'date',
         'is_demo_user' => 'boolean',
         'email_verified_at' => 'datetime',
         'last_login_at' => 'datetime',
