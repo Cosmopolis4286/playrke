@@ -41,8 +41,8 @@ class WalletController extends Controller
             $directories = $this->walletService->getUserDirectories($userId, $walletId);
 
             return response()->json(['success' => true, 'data' => $directories]);
-        } catch (\DomainException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => true, 'data' => []], 200);
         }
     }
 

@@ -126,14 +126,14 @@ export function useWallet(initialWallets: Wallet[]) {
   async function loadDirectories() {
     if (!activeWallet.value) return
     directoriesLoading.value = true
+    directories.value = []
     try {
       const { data } = await backendClient.get<DirectoriesResponse>(
         `wallet/${activeWallet.value.id}/directories`
       )
-      if (data.success) {
-        directories.value = data.data
-      }
-    } catch {
+      directories.value = data.success ? data.data : []
+    } catch (err) {
+      console.error('[wallet] Error cargando directorios:', err)
       directories.value = []
     } finally {
       directoriesLoading.value = false
@@ -206,7 +206,6 @@ export function useWallet(initialWallets: Wallet[]) {
         successMsg.value = data.message
         step.value = 3
 
-        // Notificar navbar si el backend devuelve balance actualizado
         if (data.balance !== undefined) {
           _updateLocalBalance(data.balance)
         }

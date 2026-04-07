@@ -152,6 +152,10 @@ final class WalletService
     /**
      * Registrar solicitud de retiro indicando directorio destino (STATUS_PENDING, sin tocar el saldo).
      */
+    /**
+     * Solicitud de retiro: descuenta el saldo inmediatamente (PENDING).
+     * Si admin rechaza/cancela, debe devolverse el monto manualmente.
+     */
     public function requestWithdraw(
         string $walletId,
         float  $amount,
@@ -159,26 +163,38 @@ final class WalletService
         string $directoryType,
         ?string $notes = null,
     ): Wallet {
-        $wallet = $this->findOwnedWallet($walletId);
+        $wallet = DB::transaction(function () use ($walletId, $amount, $directoryId, $directoryType, $notes) {
+            $wallet = $this->findOwnedWallet($walletId);
 
-        if ($wallet->isBlocked()) {
-            throw new \DomainException('La billetera está bloqueada.');
-        }
+            if ($wallet->isBlocked()) {
+                throw new \DomainException('La billetera está bloqueada.');
+            }
 
-        if (! $wallet->hasSufficientBalance($amount)) {
-            throw new \DomainException('Saldo insuficiente para realizar el retiro.');
-        }
+            if (! $wallet->hasSufficientBalance($amount)) {
+                throw new \DomainException('Saldo insuficiente para realizar el retiro.');
+            }
 
-        $this->movementRepository->record([
-            'wallet_id'      => (string) $wallet->id,
-            'user_id'        => (string) $wallet->user_id,
-            'type'           => WalletMovement::TYPE_WITHDRAWAL,
-            'amount'         => $amount,
-            'balance_before' => (float) $wallet->balance,
-            'balance_after'  => (float) $wallet->balance,
-            'description'    => $notes ?? 'Retiro pendiente de procesamiento',
-            'reference_id'   => "{$directoryType}:{$directoryId}",
-        ]);
+            $balanceBefore = (float) $wallet->balance;
+
+            // Descontar el saldo de inmediato
+            $this->walletRepository->decrementBalance($walletId, $amount);
+            $wallet->refresh();
+
+            $this->movementRepository->record([
+                'wallet_id'      => (string) $wallet->id,
+                'user_id'        => (string) $wallet->user_id,
+                'type'           => WalletMovement::TYPE_WITHDRAWAL,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => (float) $wallet->balance,
+                'description'    => $notes ?? 'Retiro pendiente de procesamiento',
+                'reference_id'   => "{$directoryType}:{$directoryId}",
+            ]);
+
+            return $wallet;
+        });
+
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);
 
         return $wallet;
     }

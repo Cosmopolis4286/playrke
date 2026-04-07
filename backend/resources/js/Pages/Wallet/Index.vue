@@ -498,9 +498,13 @@ const modalIcon = computed(() => {
           </div>
 
           <div v-else-if="directories.length === 0" class="op-dirs-empty">
-            <i class="fas fa-exclamation-circle"></i>
-            No tienes cuentas registradas para esta moneda.
-            Ve a <strong>Directorio</strong> y agrega una.
+            <i class="fas fa-exclamation-circle op-dirs-empty__icon"></i>
+            <div>
+              <p class="op-dirs-empty__text">No tienes cuentas registradas para esta moneda.</p>
+              <a :href="window.route('directory.index')" class="op-dirs-empty__link">
+                <i class="fas fa-plus-circle"></i> Ir a Directorio y agregar una
+              </a>
+            </div>
           </div>
 
           <div v-else class="op-dirs-list">
@@ -1355,15 +1359,32 @@ const modalIcon = computed(() => {
   background: #fffbeb;
   border: 1px solid #fde68a;
   border-radius: 12px;
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   color: #92400e;
   font-size: 0.82rem;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
 }
 
-.op-dirs-empty i { margin-top: 2px; flex-shrink: 0; }
+.op-dirs-empty__icon { margin-top: 2px; flex-shrink: 0; font-size: 1rem; }
+
+.op-dirs-empty__text { margin: 0 0 6px; line-height: 1.4; }
+
+.op-dirs-empty__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #667eea;
+  text-decoration: none;
+  background: #eff0ff;
+  padding: 4px 10px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.op-dirs-empty__link:hover { background: #e0e2ff; }
 
 .op-dirs-list {
   display: flex;
