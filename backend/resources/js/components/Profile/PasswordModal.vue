@@ -1,300 +1,360 @@
 <template>
-  <div class="modal-backdrop" @click="$emit('close')">
-    <div class="modal-dialog modal-dialog-centered" @click.stop>
-      <div class="modal-content">
-        <div class="modal-header border-0">
-          <h5 class="modal-title">
-            <i class="fas fa-lock me-2"></i>Cambiar Contraseña
-          </h5>
-          <button type="button" class="btn-close" @click="$emit('close')"></button>
+  <Modal
+    v-model="open"
+    title="Cambiar Contraseña"
+    icon="fa-lock"
+    size="md"
+    :static="true"
+    :show-confirm="false"
+    @update:model-value="v => !v && $emit('close')"
+  >
+    <!-- Ícono de cabecera en slot implícito del título — usamos el body -->
+    <form id="password-form" @submit.prevent="handleSubmit" autocomplete="off">
+
+      <!-- ── Campo: contraseña actual ── -->
+      <div class="field-group">
+        <label class="field-label" for="current_password">Contraseña actual</label>
+        <div class="password-input-wrap">
+          <input
+            id="current_password"
+            :type="show.current ? 'text' : 'password'"
+            v-model="form.current_password"
+            class="field-input"
+            :class="{ 'field-input--error': form.errors.current_password }"
+            placeholder="Tu contraseña actual"
+            autocomplete="current-password"
+          />
+          <button type="button" class="eye-btn" @click="show.current = !show.current" tabindex="-1">
+            <i :class="['fas', show.current ? 'fa-eye-slash' : 'fa-eye']"></i>
+          </button>
         </div>
-        
-        <div class="modal-body">
-          <form @submit.prevent="handleSubmit">
-            <!-- Contraseña Actual -->
-            <div class="mb-3">
-              <label for="current_password" class="form-label">Contraseña Actual</label>
-              <div class="input-group">
-                <input 
-                  :type="showCurrentPassword ? 'text' : 'password'"
-                  id="current_password"
-                  v-model="form.current_password"
-                  class="form-control"
-                  :class="{ 'is-invalid': form.errors.current_password }"
-                  placeholder="Ingresa tu contraseña actual"
-                  required
-                >
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  @click="showCurrentPassword = !showCurrentPassword"
-                >
-                  <i :class="showCurrentPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-                </button>
-              </div>
-              <div v-if="form.errors.current_password" class="invalid-feedback">
-                {{ form.errors.current_password }}
-              </div>
-            </div>
+        <p v-if="form.errors.current_password" class="field-error">{{ form.errors.current_password }}</p>
+      </div>
 
-            <!-- Nueva Contraseña -->
-            <div class="mb-3">
-              <label for="new_password" class="form-label">Nueva Contraseña</label>
-              <div class="input-group">
-                <input 
-                  :type="showNewPassword ? 'text' : 'password'"
-                  id="new_password"
-                  v-model="form.new_password"
-                  class="form-control"
-                  :class="{ 'is-invalid': form.errors.new_password }"
-                  placeholder="Ingresa tu nueva contraseña"
-                  required
-                >
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  @click="showNewPassword = !showNewPassword"
-                >
-                  <i :class="showNewPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-                </button>
-              </div>
-              <div v-if="form.errors.new_password" class="invalid-feedback">
-                {{ form.errors.new_password }}
-              </div>
-              
-              <!-- Indicador de fuerza -->
-              <div class="mt-2">
-                <div class="progress" style="height: 5px;">
-                  <div 
-                    class="progress-bar" 
-                    :class="passwordStrengthClass"
-                    :style="{ width: passwordStrength + '%' }"
-                  ></div>
-                </div>
-                <small class="text-muted">{{ passwordStrengthText }}</small>
-              </div>
-            </div>
+      <!-- ── Campo: nueva contraseña + fuerza ── -->
+      <div class="field-group">
+        <label class="field-label" for="new_password">Nueva contraseña</label>
+        <div class="password-input-wrap">
+          <input
+            id="new_password"
+            :type="show.new ? 'text' : 'password'"
+            v-model="form.new_password"
+            class="field-input"
+            :class="{ 'field-input--error': form.errors.new_password }"
+            placeholder="Mínimo 8 caracteres"
+            autocomplete="new-password"
+          />
+          <button type="button" class="eye-btn" @click="show.new = !show.new" tabindex="-1">
+            <i :class="['fas', show.new ? 'fa-eye-slash' : 'fa-eye']"></i>
+          </button>
+        </div>
+        <p v-if="form.errors.new_password" class="field-error">{{ form.errors.new_password }}</p>
 
-            <!-- Confirmar Nueva Contraseña -->
-            <div class="mb-3">
-              <label for="new_password_confirmation" class="form-label">Confirmar Nueva Contraseña</label>
-              <div class="input-group">
-                <input 
-                  :type="showConfirmPassword ? 'text' : 'password'"
-                  id="new_password_confirmation"
-                  v-model="form.new_password_confirmation"
-                  class="form-control"
-                  :class="{ 'is-invalid': form.errors.new_password_confirmation }"
-                  placeholder="Confirma tu nueva contraseña"
-                  required
-                >
-                <button 
-                  type="button" 
-                  class="btn btn-outline-secondary"
-                  @click="showConfirmPassword = !showConfirmPassword"
-                >
-                  <i :class="showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
-                </button>
-              </div>
-              <div v-if="form.errors.new_password_confirmation" class="invalid-feedback">
-                {{ form.errors.new_password_confirmation }}
-              </div>
-            </div>
-
-            <!-- Requisitos de contraseña -->
-            <div class="alert alert-info">
-              <h6 class="alert-heading">
-                <i class="fas fa-info-circle me-2"></i>Requisitos de Contraseña:
-              </h6>
-              <ul class="mb-0 small">
-                <li :class="{ 'text-success': hasMinLength, 'text-muted': !hasMinLength }">
-                  <i :class="hasMinLength ? 'fas fa-check' : 'fas fa-times'"></i>
-                  Mínimo 8 caracteres
-                </li>
-                <li :class="{ 'text-success': hasUppercase, 'text-muted': !hasUppercase }">
-                  <i :class="hasUppercase ? 'fas fa-check' : 'fas fa-times'"></i>
-                  Al menos una letra mayúscula
-                </li>
-                <li :class="{ 'text-success': hasLowercase, 'text-muted': !hasLowercase }">
-                  <i :class="hasLowercase ? 'fas fa-check' : 'fas fa-times'"></i>
-                  Al menos una letra minúscula
-                </li>
-                <li :class="{ 'text-success': hasNumber, 'text-muted': !hasNumber }">
-                  <i :class="hasNumber ? 'fas fa-check' : 'fas fa-times'"></i>
-                  Al menos un número
-                </li>
-                <li :class="{ 'text-success': hasSpecialChar, 'text-muted': !hasSpecialChar }">
-                  <i :class="hasSpecialChar ? 'fas fa-check' : 'fas fa-times'"></i>
-                  Al menos un carácter especial
-                </li>
-              </ul>
-            </div>
-
-            <!-- Botones -->
-            <div class="d-flex justify-content-end gap-2">
-              <button type="button" class="btn btn-secondary" @click="$emit('close')">
-                <i class="fas fa-times me-2"></i>Cancelar
-              </button>
-              <button 
-                type="submit" 
-                class="btn btn-primary" 
-                :disabled="form.processing || !isPasswordValid"
-              >
-                <i class="fas fa-save me-2"></i>
-                {{ form.processing ? 'Cambiando...' : 'Cambiar Contraseña' }}
-              </button>
-            </div>
-          </form>
+        <!-- Barra de fuerza -->
+        <div v-if="form.new_password" class="strength-wrap">
+          <div class="strength-bar">
+            <div
+              class="strength-fill"
+              :style="{ width: strength.pct + '%' }"
+              :class="'strength-fill--' + strength.level"
+            />
+          </div>
+          <span class="strength-label" :class="'strength-label--' + strength.level">
+            {{ strength.text }}
+          </span>
         </div>
       </div>
-    </div>
-  </div>
+
+      <!-- ── Campo: confirmar contraseña ── -->
+      <div class="field-group">
+        <label class="field-label" for="confirm_password">Confirmar contraseña</label>
+        <div class="password-input-wrap">
+          <input
+            id="confirm_password"
+            :type="show.confirm ? 'text' : 'password'"
+            v-model="form.new_password_confirmation"
+            class="field-input"
+            :class="{
+              'field-input--error': form.errors.new_password_confirmation,
+              'field-input--match': form.new_password && form.new_password_confirmation && form.new_password === form.new_password_confirmation,
+            }"
+            placeholder="Repite la nueva contraseña"
+            autocomplete="new-password"
+          />
+          <button type="button" class="eye-btn" @click="show.confirm = !show.confirm" tabindex="-1">
+            <i :class="['fas', show.confirm ? 'fa-eye-slash' : 'fa-eye']"></i>
+          </button>
+        </div>
+        <p v-if="form.errors.new_password_confirmation" class="field-error">
+          {{ form.errors.new_password_confirmation }}
+        </p>
+        <p
+          v-else-if="form.new_password_confirmation && form.new_password !== form.new_password_confirmation"
+          class="field-error"
+        >
+          Las contraseñas no coinciden
+        </p>
+      </div>
+
+      <!-- ── Requisitos ── -->
+      <div class="requirements">
+        <p class="requirements-title"><i class="fas fa-shield-alt me-1"></i>Requisitos</p>
+        <ul class="requirements-list">
+          <li v-for="req in requirements" :key="req.label" :class="['req-item', req.met ? 'req-item--ok' : 'req-item--no']">
+            <i :class="['fas req-icon', req.met ? 'fa-check-circle' : 'fa-circle']"></i>
+            {{ req.label }}
+          </li>
+        </ul>
+      </div>
+
+    </form>
+
+    <template #footer>
+      <button type="button" class="action-btn action-btn--ghost" @click="$emit('close')">
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="action-btn action-btn--primary"
+        :disabled="!isValid || form.processing"
+        @click="handleSubmit"
+      >
+        <i class="fas fa-lock me-1"></i>
+        {{ form.processing ? 'Guardando...' : 'Cambiar contraseña' }}
+      </button>
+    </template>
+  </Modal>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useForm } from '@inertiajs/vue3'
 import { showToast } from '@js/utils/toastNotify'
+import Modal from '@js/Components/Common/Modal/Modal.vue'
 
-const emit = defineEmits(['close', 'password-changed'])
+const emit = defineEmits<{ close: []; 'password-changed': [success: boolean] }>()
 
-// Estado local
-const showCurrentPassword = ref(false)
-const showNewPassword = ref(false)
-const showConfirmPassword = ref(false)
+const open = ref(true)
 
-// Formulario
+const show = ref({ current: false, new: false, confirm: false })
+
 const form = useForm({
     current_password: '',
     new_password: '',
-    new_password_confirmation: ''
+    new_password_confirmation: '',
 })
 
-// Computadas para validación de contraseña
-const hasMinLength = computed(() => form.new_password.length >= 8)
-const hasUppercase = computed(() => /[A-Z]/.test(form.new_password))
-const hasLowercase = computed(() => /[a-z]/.test(form.new_password))
-const hasNumber = computed(() => /\d/.test(form.new_password))
-const hasSpecialChar = computed(() => /[!@#$%^&*(),.?":{}|<>]/.test(form.new_password))
+// ── Rules ──────────────────────────────────────────────────────────────────
+const rules = computed(() => ({
+    length:   form.new_password.length >= 8,
+    upper:    /[A-Z]/.test(form.new_password),
+    lower:    /[a-z]/.test(form.new_password),
+    number:   /\d/.test(form.new_password),
+    special:  /[!@#$%^&*(),.?":{}|<>]/.test(form.new_password),
+}))
 
-const isPasswordValid = computed(() => {
-    return hasMinLength.value && 
-           hasUppercase.value && 
-           hasLowercase.value && 
-           hasNumber.value && 
-           hasSpecialChar.value &&
-           form.new_password === form.new_password_confirmation
+const requirements = computed(() => [
+    { label: 'Mínimo 8 caracteres',        met: rules.value.length  },
+    { label: 'Una letra mayúscula',         met: rules.value.upper   },
+    { label: 'Una letra minúscula',         met: rules.value.lower   },
+    { label: 'Un número',                   met: rules.value.number  },
+    { label: 'Un carácter especial',        met: rules.value.special },
+])
+
+const metCount = computed(() => Object.values(rules.value).filter(Boolean).length)
+
+const strength = computed(() => {
+    const n = metCount.value
+    const map = [
+        { pct: 0,   level: 'none',   text: '' },
+        { pct: 20,  level: 'weak',   text: 'Muy débil'  },
+        { pct: 40,  level: 'weak',   text: 'Débil'      },
+        { pct: 60,  level: 'fair',   text: 'Regular'    },
+        { pct: 80,  level: 'strong', text: 'Fuerte'     },
+        { pct: 100, level: 'great',  text: 'Excelente'  },
+    ]
+    return map[n]
 })
 
-const passwordStrength = computed(() => {
-    let strength = 0
-    if (hasMinLength.value) strength += 20
-    if (hasUppercase.value) strength += 20
-    if (hasLowercase.value) strength += 20
-    if (hasNumber.value) strength += 20
-    if (hasSpecialChar.value) strength += 20
-    return strength
-})
+const isValid = computed(() =>
+    metCount.value === 5 &&
+    form.new_password === form.new_password_confirmation &&
+    form.current_password.length > 0
+)
 
-const passwordStrengthClass = computed(() => {
-    const strength = passwordStrength.value
-    if (strength <= 20) return 'bg-danger'
-    if (strength <= 40) return 'bg-warning'
-    if (strength <= 60) return 'bg-info'
-    if (strength <= 80) return 'bg-primary'
-    return 'bg-success'
-})
-
-const passwordStrengthText = computed(() => {
-    const strength = passwordStrength.value
-    if (strength <= 20) return 'Muy débil'
-    if (strength <= 40) return 'Débil'
-    if (strength <= 60) return 'Regular'
-    if (strength <= 80) return 'Fuerte'
-    return 'Muy fuerte'
-})
-
-// Métodos
-const handleSubmit = () => {
+// ── Submit ─────────────────────────────────────────────────────────────────
+function handleSubmit() {
     form.post('/profile/api/password', {
         onSuccess: () => {
-            showToast('Contraseña actualizada exitosamente', 'success')
-            emit('password-changed')
+            showToast('Contraseña actualizada', 'success')
+            emit('password-changed', true)
             emit('close')
         },
-        onError: (errors) => {
+        onError: () => {
             showToast('Error al cambiar la contraseña', 'error')
-            console.error('Password change errors:', errors)
-        }
+        },
     })
 }
 </script>
 
 <style scoped>
-.modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+/* ── Fields ── */
+.field-group { margin-bottom: 1.1rem; }
+
+.field-label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 5px;
+}
+
+.password-input-wrap {
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
-    z-index: 1050;
 }
 
-.modal-dialog {
-    max-width: 500px;
-    margin: 0;
-}
-
-.modal-content {
-    border-radius: 12px;
-    border: none;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.modal-header {
-    border-radius: 12px 12px 0 0;
-}
-
-.form-control, .btn {
-    border-radius: 8px;
-}
-
-.form-control:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-}
-
-.progress {
+.field-input {
+    width: 100%;
+    padding: 0.5rem 2.5rem 0.5rem 0.85rem;
+    border: 1.5px solid #d1d9e6;
     border-radius: 10px;
+    font-size: 0.875rem;
+    color: #2d3a52;
+    background: #f9fafc;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.field-input:focus {
+    border-color: #667eea;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+}
+.field-input--error { border-color: #ef4444; }
+.field-input--error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.12); }
+.field-input--match { border-color: #10b981; }
+.field-input--match:focus { box-shadow: 0 0 0 3px rgba(16,185,129,0.12); }
+
+.eye-btn {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0;
+    font-size: 0.8rem;
+    line-height: 1;
+    transition: color 0.15s;
+}
+.eye-btn:hover { color: #667eea; }
+
+.field-error {
+    font-size: 0.72rem;
+    color: #ef4444;
+    margin: 4px 0 0;
+}
+
+/* ── Strength bar ── */
+.strength-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+.strength-bar {
+    flex: 1;
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 4px;
     overflow: hidden;
 }
-
-.progress-bar {
-    transition: width 0.3s ease;
+.strength-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease, background 0.3s ease;
 }
+.strength-fill--weak   { background: #ef4444; }
+.strength-fill--fair   { background: #f59e0b; }
+.strength-fill--strong { background: #3b82f6; }
+.strength-fill--great  { background: #10b981; }
 
-.alert {
-    border-radius: 8px;
+.strength-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.strength-label--weak   { color: #ef4444; }
+.strength-label--fair   { color: #f59e0b; }
+.strength-label--strong { color: #3b82f6; }
+.strength-label--great  { color: #10b981; }
+
+/* ── Requirements ── */
+.requirements {
+    background: #f8f9fc;
+    border: 1px solid #eaecf0;
+    border-radius: 10px;
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 1.25rem;
+}
+.requirements-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+.requirements-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+}
+.req-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    transition: color 0.2s;
+}
+.req-item--ok  { color: #10b981; }
+.req-item--no  { color: #94a3b8; }
+.req-icon { font-size: 0.65rem; }
+
+/* ── Actions ── */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 0.25rem;
+}
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 9px 22px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
     border: none;
+    transition: all 0.15s;
+    line-height: 1.4;
 }
-
-.text-success {
-    color: #28a745 !important;
+.action-btn--ghost {
+    background: transparent;
+    color: #64748b;
+    border: 1.5px solid #d1d9e6;
 }
-
-.text-muted {
-    color: #6c757d !important;
+.action-btn--ghost:hover { background: #f1f5f9; }
+.action-btn--primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(102,126,234,0.3);
 }
-
-ul {
-    padding-left: 1.2rem;
-}
-
-li {
-    margin-bottom: 0.25rem;
-}
+.action-btn--primary:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+.action-btn--primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 </style>
