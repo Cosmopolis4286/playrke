@@ -7,7 +7,7 @@ use BradieTilley\Snowflake\Snowflake;
 /**
  * Trait para modelos que usan IDs de Snowflake.
  * 
- * NOTA: Los modelos que usen este trait deben definir:
+ * Este trait configura automáticamente:
  * - protected $keyType = 'string';
  * - public $incrementing = false;
  * 
@@ -16,6 +16,12 @@ use BradieTilley\Snowflake\Snowflake;
  */
 trait SnowflakeId
 {
+    public function initializeSnowflakeId(): void
+    {
+        $this->keyType = 'string';
+        $this->incrementing = false;
+    }
+
     protected static function bootSnowflakeId()
     {
         static::creating(function ($model) {
