@@ -69,7 +69,7 @@
                     <button
                       v-if="!permission.isSystem"
                       class="btn btn-sm btn-link text-danger"
-                      @click="handleDelete(permission.id)"
+                      @click="handleDelete(permission.id, permission.name)"
                       title="Eliminar permiso"
                     >
                       <i class="fas fa-trash"></i>
@@ -234,15 +234,19 @@ async function handleSave() {
   }
 }
 
-async function handleDelete(permissionId: string) {
+async function handleDelete(permissionId: string, permissionName: string) {
   const result = await Swal.fire({
     title: 'Confirmar eliminación',
-    text: '¿Eliminar este permiso? Esta acción no se puede deshacer.',
+    html: `
+      <p class="mb-2">Estás a punto de eliminar el permiso:</p>
+      <code class="d-block px-3 py-2 bg-light rounded text-danger fw-bold">${permissionName}</code>
+      <p class="mt-2 mb-0 text-muted small">Esta acción eliminará el permiso de todos los roles asignados y no se puede deshacer.</p>
+    `,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#dc3545',
     cancelButtonColor: '#6c757d',
-    confirmButtonText: 'Eliminar',
+    confirmButtonText: '<i class="fas fa-trash mr-1"></i> Sí, eliminar',
     cancelButtonText: 'Cancelar',
     reverseButtons: true,
   })
