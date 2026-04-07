@@ -47,7 +47,7 @@
           <span class="dropzone-link">Haz clic para seleccionar</span>
           &nbsp;o arrastra la imagen aquí
         </p>
-        <p class="dropzone-hint">JPG, PNG, GIF · Máx. 2 MB</p>
+        <p class="dropzone-hint">JPG, PNG, GIF · Máx. 5 MB · Se comprime automáticamente</p>
       </div>
     </div>
 
@@ -121,7 +121,7 @@ const deleting      = ref(false)
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const VALID_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif']
-const MAX_SIZE    = 2 * 1024 * 1024
+const MAX_SIZE    = 5 * 1024 * 1024  // 5 MB — el backend comprime antes de guardar
 
 function formatSize(bytes: number) {
     if (bytes < 1024) return bytes + ' B'
@@ -174,7 +174,7 @@ async function handleUpload() {
     const body = new FormData()
     body.append('avatar', selectedFile.value)
     try {
-        const res  = await fetch('/profile/api/avatar', {
+        const res  = await fetch('/profile/avatar', {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': csrf(), 'X-Requested-With': 'XMLHttpRequest' },
             body,
@@ -199,7 +199,7 @@ async function handleDelete() {
     if (!confirm('¿Eliminar tu avatar actual?')) return
     deleting.value = true
     try {
-        const res  = await fetch('/profile/api/avatar', {
+        const res  = await fetch('/profile/avatar', {
             method: 'DELETE',
             headers: { 'X-CSRF-TOKEN': csrf(), 'X-Requested-With': 'XMLHttpRequest' },
         })

@@ -18,7 +18,7 @@
 
 import { ref, watch, onMounted, onUnmounted, nextTick, computed } from "vue";
 
-defineOptions({ name: "Modal" });
+defineOptions({ name: "Modal", inheritAttrs: false });
 
 const props = defineProps<{
   modelValue: boolean;

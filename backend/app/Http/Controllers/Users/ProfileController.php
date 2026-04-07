@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -203,71 +205,72 @@ class ProfileController extends Controller
     }
 
     /**
-     * Subir avatar del usuario
+     * Subir y procesar el avatar del usuario.
+     *
+     * Pipeline:
+     *  1. Validación: jpeg/png/gif, máx 5 MB en upload
+     *  2. Redimensiona a 400×400 px (cover, sin deformar)
+     *  3. Convierte siempre a JPEG y comprime al 80 %
+     *  4. Elimina el avatar anterior del disco
+     *  5. Guarda en storage/app/public/avatars/
      */
     public function uploadAvatar(Request $request): JsonResponse
     {
-        try {
-            $validator = Validator::make($request->all(), [
-                'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            ]);
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // 5 MB
+        ]);
 
-            if ($validator->fails()) {
+        try {
+            $user = Auth::user();
+            $file = $request->file('avatar');
+
+            // Leer el contenido binario antes de que PHP limpie el temporal
+            $binaryContent = file_get_contents($file->getRealPath());
+
+            if ($binaryContent === false || strlen($binaryContent) === 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'message' => 'No se pudo leer el archivo subido',
                 ], 422);
             }
 
-            $user = Auth::user();
-            $avatar = $request->file('avatar');
+            // Procesar imagen con Intervention Image v3 (driver GD)
+            $manager = new ImageManager(new Driver());
+            $image   = $manager->read($binaryContent);
 
-            // Eliminar avatar anterior si existe
-            if ($user->profile_photo_url) {
-                $oldPath = str_replace('/storage/', '', $user->profile_photo_url);
-                Storage::disk('public')->delete($oldPath);
-            }
+            // Redimensionar a 400×400 recortando al centro (cover)
+            $image->cover(400, 400);
 
-            // Procesar y guardar la imagen
-            $filename = time() . '_' . uniqid() . '.' . $avatar->getClientOriginalExtension();
-            
-            // Crear directorio si no existe
+            // Codificar como JPEG al 80 % de calidad
+            $encoded  = $image->toJpeg(80);
+            $filename = time() . '_' . uniqid() . '.jpg';
             $directory = 'avatars';
-            if (!Storage::disk('public')->exists($directory)) {
-                Storage::disk('public')->makeDirectory($directory);
+
+            // Guardar en disco public
+            Storage::disk('public')->makeDirectory($directory);
+            Storage::disk('public')->put("{$directory}/{$filename}", $encoded);
+
+            $publicPath = "/storage/{$directory}/{$filename}";
+
+            // Eliminar avatar anterior
+            if ($user->profile_photo_url) {
+                $old = ltrim(str_replace('/storage/', '', $user->profile_photo_url), '/');
+                Storage::disk('public')->delete($old);
             }
 
-            // Guardar la imagen original
-            $path = $avatar->storeAs($directory, $filename, 'public');
-            
-            // Opcional: Redimensionar la imagen si se solicita
-            if ($request->has('resize') && $request->get('resize')) {
-                try {
-                    // Aquí podrías usar Intervention Image para redimensionar
-                    // Por ahora, guardamos la imagen original
-                } catch (\Exception $e) {
-                    // Si falla el redimensionamiento, continuamos con la original
-                }
-            }
-            
-            // Actualizar el perfil del usuario
-            $user->update(['profile_photo_url' => '/storage/' . $path]);
+            $user->update(['profile_photo_url' => $publicPath]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Avatar uploaded successfully',
-                'data' => [
-                    'avatar' => '/storage/' . $path,
-                    'filename' => $filename
-                ]
+                'message' => 'Avatar actualizado correctamente',
+                'data'    => ['avatar' => $publicPath],
             ]);
 
         } catch (\Exception $e) {
             \Log::error('Avatar upload error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error uploading avatar: ' . $e->getMessage()
+                'message' => 'Error al procesar el avatar',
             ], 500);
         }
     }
