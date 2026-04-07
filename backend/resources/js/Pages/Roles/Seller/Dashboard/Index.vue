@@ -11,12 +11,13 @@
   // Componentes
   // ==========================================================================
 
-  import DashboardWelcomeBanner  from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
-  import DashboardStatCard       from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
-  import DashboardSection        from '@/js/Components/Common/Dashboard/DashboardSection.vue'
-  import DashboardActivityFeed   from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
-  import DashboardQuickLinks     from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
-  import type { QuickLink }      from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+  import DashboardWelcomeBanner    from '@/js/Components/Common/Dashboard/DashboardWelcomeBanner.vue'
+  import DashboardStatCard         from '@/js/Components/Common/Dashboard/DashboardStatCard.vue'
+  import DashboardSection          from '@/js/Components/Common/Dashboard/DashboardSection.vue'
+  import DashboardActivityFeed     from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
+  import DashboardQuickLinks       from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+  import DashboardCommissionPanel  from '@/js/Components/Common/Dashboard/DashboardCommissionPanel.vue'
+  import type { QuickLink }        from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
   // Composables
@@ -183,20 +184,7 @@
             icon="fas fa-percentage"
             subtitle="Información de tu tasa"
           >
-            <div v-if="commission" class="ds-commission">
-              <div class="ds-commission__rate">
-                <span class="ds-commission__value">{{ commission }}<small>%</small></span>
-                <span class="ds-commission__label">Tasa de comisión configurada</span>
-              </div>
-              <p class="ds-commission__hint">
-                <i class="fas fa-info-circle me-1"></i>
-                Tu comisión se calcula sobre el total de cartones vendidos cada período.
-              </p>
-            </div>
-            <div v-else class="ds-empty">
-              <i class="fas fa-percentage"></i>
-              <p class="mb-0">Información de comisión no disponible.</p>
-            </div>
+            <DashboardCommissionPanel :commission="commission" />
           </DashboardSection>
         </div>
 
@@ -221,66 +209,4 @@
   flex-direction: column;
   gap: 1rem;
 }
-
-/* Panel comisión */
-.ds-commission {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.ds-commission__rate {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 1.25rem 1rem;
-  background: linear-gradient(135deg, #e7f0ff 0%, #f0fff4 100%);
-  border-radius: 10px;
-  gap: 0.25rem;
-}
-
-.ds-commission__value {
-  font-size: 2.8rem;
-  font-weight: 800;
-  color: #0d6efd;
-  line-height: 1;
-}
-
-.ds-commission__value small {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #198754;
-  margin-left: 2px;
-}
-
-.ds-commission__label {
-  font-size: 0.75rem;
-  color: #6c757d;
-  font-weight: 500;
-  text-align: center;
-}
-
-.ds-commission__hint {
-  font-size: 0.76rem;
-  color: #8a9bb0;
-  margin: 0;
-  padding: 0.5rem 0.75rem;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border-left: 3px solid #0dcaf0;
-}
-
-/* Empty state */
-.ds-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 2.5rem 1rem;
-  color: #adb5bd;
-  font-size: 0.85rem;
-  text-align: center;
-}
-.ds-empty i { font-size: 2rem; }
 </style>

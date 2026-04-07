@@ -71,8 +71,8 @@
 </script>
 
 <template>
-  <div class="dp-page">
-    <div class="dp-inner">
+  <div class="ds-page">
+    <div class="ds-inner">
 
       <!-- Bienvenida -->
       <DashboardWelcomeBanner
@@ -119,7 +119,7 @@
 </template>
 
 <style scoped>
-.dp-page {
+.ds-page {
   width: 100%;
   min-height: 100%;
   overflow-x: hidden;
@@ -127,7 +127,7 @@
   box-sizing: border-box;
 }
 
-.dp-inner {
+.ds-inner {
   max-width: 1400px;
   margin: 0 auto;
   display: flex;

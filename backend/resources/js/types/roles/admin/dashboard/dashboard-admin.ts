@@ -1,4 +1,4 @@
-import type { StatCardData, ActivityItem } from '@/js/types/common/dashboard/dashboard'
+import type { StatCardData, ActivityItem, StatCardVariant } from '@/js/types/common/dashboard/dashboard'
 
 // --------------------------------------------------------------------------
 // Stats específicos del Admin
@@ -19,7 +19,7 @@ export interface EntityCount {
     label:   string
     value:   number
     icon:    string
-    variant: string
+    variant: StatCardVariant
 }
 
 // --------------------------------------------------------------------------
