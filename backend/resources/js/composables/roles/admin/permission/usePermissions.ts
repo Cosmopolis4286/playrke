@@ -3,26 +3,28 @@ import type { Permission, RolePermission, RoleWithPermissions } from '@/js/types
 import axios from 'axios'
 
 /**
- * Composable para gestión de Permisos
+ * Composable para gestión de Permisos.
  *
  * Responsabilidades:
  * - Estado de la tabla
  * - Operaciones CRUD
  * - Gestión de permisos por rol
  */
-export function usePermissions() {
+export function usePermissions(initialData?: {
+    permissions?: { rows: Permission[]; pagination: any }
+    roles?: RoleWithPermissions[]
+}) {
     // =======================
     // Estado reactivo
     // =======================
-    
-    const permissions = ref<{
-        rows: Permission[]
-        pagination: any
-    }>({
-        rows: [],
-        pagination: { current_page: 1, per_page: 15, total: 0, last_page: 1, from: 1, to: 0 }
-    })
-    const roles = ref<RoleWithPermissions[]>([])
+
+    const permissions = ref<{ rows: Permission[]; pagination: any }>(
+        initialData?.permissions ?? {
+            rows: [],
+            pagination: { current_page: 1, per_page: 15, total: 0, last_page: 1, from: 1, to: 0 },
+        }
+    )
+    const roles = ref<RoleWithPermissions[]>(initialData?.roles ?? [])
     const loading = ref(false)
     const selectedIds = ref<string[]>([])
     const currentRole = ref<RolePermission | null>(null)
@@ -30,23 +32,23 @@ export function usePermissions() {
     // =======================
     // Computed
     // =======================
-    
+
     const hasSelected = computed(() => selectedIds.value.length > 0)
     const selectedCount = computed(() => selectedIds.value.length)
 
     // =======================
     // Métodos de API
     // =======================
-    
+
     const fetchPermissions = async (perPage = 15) => {
         loading.value = true
         try {
             const response = await axios.get('/permissions/fetch-list', {
-                params: { per_page: perPage, _t: Date.now() } // Timestamp para evitar caché
+                params: { per_page: perPage },
             })
             permissions.value = {
                 rows: response.data.permissions.rows,
-                pagination: response.data.permissions.pagination
+                pagination: response.data.permissions.pagination,
             }
             return response.data.permissions
         } catch (error) {
@@ -82,14 +84,11 @@ export function usePermissions() {
     const assignPermissions = async (roleId: string, permissionIds: string[]) => {
         try {
             const response = await axios.post(`/permissions/roles/${roleId}/assign`, {
-                permission_ids: permissionIds
+                permission_ids: permissionIds,
             })
-            
-            // Actualizar el rol actual si es el mismo
             if (currentRole.value?.roleId === roleId) {
                 await fetchRolePermissions(roleId)
             }
-            
             return response.data
         } catch (error) {
             console.error('Error assigning permissions:', error)
@@ -100,14 +99,11 @@ export function usePermissions() {
     const revokePermissions = async (roleId: string, permissionIds: string[]) => {
         try {
             const response = await axios.post(`/permissions/roles/${roleId}/revoke`, {
-                permission_ids: permissionIds
+                permission_ids: permissionIds,
             })
-            
-            // Actualizar el rol actual si es el mismo
             if (currentRole.value?.roleId === roleId) {
                 await fetchRolePermissions(roleId)
             }
-            
             return response.data
         } catch (error) {
             console.error('Error revoking permissions:', error)
@@ -159,7 +155,7 @@ export function usePermissions() {
     // =======================
     // Métodos de selección
     // =======================
-    
+
     const toggleSelection = (id: string) => {
         const index = selectedIds.value.indexOf(id)
         if (index > -1) {
@@ -177,34 +173,10 @@ export function usePermissions() {
         selectedIds.value = []
     }
 
-    const togglePermissionSelection = (permissionId: string) => {
-        if (!currentRole.value) return
-        
-        const permissions = currentRole.value.permissions
-        const index = permissions.findIndex(p => p.id === permissionId)
-        
-        if (index > -1) {
-            // Quitar permiso
-            revokePermissions(currentRole.value.roleId, [permissionId])
-        } else {
-            // Agregar permiso
-            assignPermissions(currentRole.value.roleId, [permissionId])
-        }
-    }
-
-    // =======================
-    // Utilidades
-    // =======================
-    
-    const hasPermission = (permissionId: string): boolean => {
-        if (!currentRole.value) return false
-        return currentRole.value.permissions.some(p => p.id === permissionId)
-    }
-
     const reset = () => {
         permissions.value = {
             rows: [],
-            pagination: { current_page: 1, per_page: 15, total: 0, last_page: 1, from: 1, to: 0 }
+            pagination: { current_page: 1, per_page: 15, total: 0, last_page: 1, from: 1, to: 0 },
         }
         roles.value = []
         selectedIds.value = []
@@ -213,15 +185,15 @@ export function usePermissions() {
     }
 
     return {
-        // Estado
-        permissions: computed(() => permissions.value),
-        roles: computed(() => roles.value),
-        loading: computed(() => loading.value),
-        selectedIds: computed(() => selectedIds.value),
-        currentRole: computed(() => currentRole.value),
+        // Estado — refs directos para permitir mutación externa
+        permissions,
+        roles,
+        loading,
+        selectedIds,
+        currentRole,
         hasSelected,
         selectedCount,
-        
+
         // Métodos
         fetchPermissions,
         fetchRolesWithPermissions,
@@ -231,14 +203,12 @@ export function usePermissions() {
         createPermission,
         updatePermission,
         deletePermission,
-        
+
         // Selección
         toggleSelection,
         selectAll,
         clearSelection,
-        togglePermissionSelection,
-        hasPermission,
-        
+
         // Utilidades
         reset,
     }

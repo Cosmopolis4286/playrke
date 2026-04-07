@@ -23,10 +23,6 @@ class Permission extends Model implements PermissionContract
 
     protected $guarded = [];
 
-    protected $keyType = 'string';
-
-    public $incrementing = false;
-
     protected $casts = [
         'id' => 'string',
     ];

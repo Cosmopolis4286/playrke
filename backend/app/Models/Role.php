@@ -55,8 +55,6 @@ class Role extends Model implements RoleContract
         'status' => 'boolean',
     ];
 
-    public $incrementing = false;
-    protected $keyType = 'string';
 
     // =========================================================================
     // Implementación del contrato Spatie\Permission\Contracts\Role
