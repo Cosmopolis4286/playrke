@@ -62,7 +62,7 @@ final class ExchangeRateUpdaterService
      * @param array $data Tasas a actualizar (iso_code => value)
      * @return void
      */
-    public function updateForRole(string $role, int|string $entityId, array $data): void
+    public function updateForRole(string $role, int|string|null $entityId, array $data): void
     {
         $repository = $this->getRepository($role);
 
@@ -102,7 +102,7 @@ final class ExchangeRateUpdaterService
     protected function getCurrentRate(
         CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface $repository,
         string $role,
-        int|string $entityId,
+        int|string|null $entityId,
         string $currencyId
     ): float {
 
