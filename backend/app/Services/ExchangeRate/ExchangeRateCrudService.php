@@ -49,8 +49,8 @@ final class ExchangeRateCrudService
     {
         [$repo, $role, $entityId] = $this->resolveContext($userId);
 
-        // For admin role, save user_id for tracking
-        if ($role === 'admin') {
+        // For admin/superadmin role, save user_id for tracking
+        if (in_array($role, ['admin', 'superadmin'])) {
             return DB::transaction(function () use ($repo, $dto, $role, $userId) {
                 $repo->create($dto->toArray() + ['user_id' => $userId]);
 
@@ -114,7 +114,7 @@ final class ExchangeRateCrudService
 
         [$repo, $role] = $this->resolveContext($userId);
 
-        if ($role === 'admin') {
+        if (in_array($role, ['admin', 'superadmin'])) {
             return DB::transaction(function () use ($repo, $dto, $userId) {
                 $oldAmount = $repo->getValueById($dto->id, 'amount');
 
@@ -225,13 +225,17 @@ final class ExchangeRateCrudService
             "No se pudo resolver el rol del usuario {$userId}"
         );
 
-        $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
+        $entityId = null;
 
-        throw_if(
-            !$entityId,
-            DomainException::class,
-            "No se encontró entidad asociada al rol '{$role}'"
-        );
+        if (!in_array($role, ['admin', 'superadmin'])) {
+            $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
+
+            throw_if(
+                !$entityId,
+                DomainException::class,
+                "No se encontró entidad asociada al rol '{$role}'"
+            );
+        }
 
         return [$this->repo($role), $role, $entityId];
     }
@@ -245,10 +249,10 @@ final class ExchangeRateCrudService
         string $role
     ): CommerceExchangeRateRepositoryInterface|CustomerExchangeRateRepositoryInterface|AdminExchangeRateRepositoryInterface {
         return match ($role) {
-            'commerce' => $this->commerce,
-            'customer' => $this->customer,
-            'admin' => $this->admin,
-            default    => throw new DomainException("Rol inválido: {$role}"),
+            'commerce'            => $this->commerce,
+            'customer'            => $this->customer,
+            'admin', 'superadmin' => $this->admin,
+            default               => throw new DomainException("Rol inválido: {$role}"),
         };
     }
 }
