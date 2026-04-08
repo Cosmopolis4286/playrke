@@ -39,7 +39,8 @@ class InformationController extends Controller
     public function helpCenter(): Response
     {
         return Inertia::render('Utils/Info/HelpCenter', [
-            'title' => 'Centro de Ayuda',
+            'title'     => 'Centro de Ayuda',
+            'countryId' => auth()->user()?->country ?? 0,
         ]);
     }
 

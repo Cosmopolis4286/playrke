@@ -61,7 +61,16 @@
                     @endif
                 @endforeach
 
-{{-- Cerrar sesión --}}
+                {{-- Centro de Ayuda --}}
+                <li class="nav-item">
+                    <a href="{{ route('info.helpCenter') }}"
+                       class="{{ request()->routeIs('info.helpCenter') ? 'nav-link active' : 'nav-link' }}">
+                        <i class="nav-icon fas fa-circle-question"></i>
+                        <p>Centro de Ayuda</p>
+                    </a>
+                </li>
+
+                {{-- Cerrar sesión --}}
                 <li class="nav-item">
                     <button type="button"
                             class="nav-link logout-btn w-100 text-left border-0 bg-transparent"
