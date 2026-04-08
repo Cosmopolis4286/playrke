@@ -38,7 +38,7 @@ final class WalletMovementController extends Controller
             $query = WalletMovement::with([
                 'wallet:id,currency_id',
                 'wallet.currency:id,iso_code,symbol,decimal_places',
-                'user:id,name,email,username',
+                'user:id,first_name,last_name,email,username',
             ])
             ->orderByDesc('created_at');
 
@@ -46,7 +46,8 @@ final class WalletMovementController extends Controller
             if ($status) $query->where('status', strtoupper($status));
             if ($search) {
                 $query->whereHas('user', fn($q) =>
-                    $q->where('name', 'like', "%{$search}%")
+                    $q->where('first_name', 'like', "%{$search}%")
+                      ->orWhere('last_name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%")
                 );
             }
@@ -70,10 +71,11 @@ final class WalletMovementController extends Controller
                         'decimal_places' => $m->wallet->currency->decimal_places,
                     ] : null,
                     'user' => $m->user ? [
-                        'id'       => (string) $m->user->id,
-                        'name'     => $m->user->name,
-                        'email'    => $m->user->email,
-                        'username' => $m->user->username ?? null,
+                        'id'         => (string) $m->user->id,
+                        'first_name' => $m->user->first_name,
+                        'last_name'  => $m->user->last_name,
+                        'email'      => $m->user->email,
+                        'username'   => $m->user->username ?? null,
                     ] : null,
                 ]),
                 'meta' => [

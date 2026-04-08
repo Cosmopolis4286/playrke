@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { Head } from '@inertiajs/vue3'
-import CardHeader from '@js/Components/Common/Card/CardHeader.vue'
-import BaseTable from '@js/Components/Common/Table/BaseTable.vue'
-import backendClient from '@js/plugins/axios'
+import CardHeader      from '@js/Components/Common/Card/CardHeader.vue'
+import BaseTable       from '@js/Components/Common/Table/BaseTable.vue'
+import TableFilter     from '@js/Components/Common/Table/TableFilter.vue'
+import TableFooterInfo from '@js/Components/Common/Table/TableFooterInfo.vue'
+import backendClient   from '@js/plugins/axios'
+import type { TableFilterInterface } from '@js/types/common/table/table-filter'
 
-interface Props {
-  title: string
-}
+interface Props { title: string }
 defineProps<Props>()
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
@@ -22,7 +23,7 @@ interface Movement {
   reference_id: string | null
   created_at: string
   currency: { iso_code: string; symbol: string; decimal_places: number } | null
-  user: { id: string; name: string; email: string; username: string | null } | null
+  user: { id: string; first_name: string | null; last_name: string | null; email: string; username: string | null } | null
 }
 
 interface Meta {
@@ -33,14 +34,11 @@ interface Meta {
 }
 
 // ── Estado ─────────────────────────────────────────────────────────────────
-const movements = ref<Movement[]>([])
-const meta      = ref<Meta | null>(null)
-const loading   = ref(false)
-
-// Filtros
-const filterType   = ref('')
-const filterStatus = ref('')
-const filterSearch = ref('')
+const movements  = ref<Movement[]>([])
+const meta       = ref<Meta | null>(null)
+const loading    = ref(false)
+const lastSearch = ref('')
+const lastFilters = ref<Record<string, string>>({})
 
 // ── Columnas ───────────────────────────────────────────────────────────────
 const columns = [
@@ -53,7 +51,33 @@ const columns = [
   { key: 'actions',    label: 'Acciones', sortable: false },
 ]
 
-// ── Fetch ──────────────────────────────────────────────────────────────────
+// ── Definición de filtros para TableFilter ─────────────────────────────────
+const tableFilters: TableFilterInterface[] = [
+  {
+    key: 'type',
+    label: 'Tipo',
+    placeholder: 'Todos los tipos',
+    options: [
+      { value: 'DEPOSIT',    label: 'Depósito'  },
+      { value: 'WITHDRAWAL', label: 'Retiro'    },
+      { value: 'PURCHASE',   label: 'Compra'    },
+      { value: 'PRIZE',      label: 'Premio'    },
+    ],
+  },
+  {
+    key: 'status',
+    label: 'Estado',
+    placeholder: 'Todos los estados',
+    options: [
+      { value: 'PENDING',   label: 'Pendiente'  },
+      { value: 'COMPLETED', label: 'Completado' },
+      { value: 'CANCELLED', label: 'Cancelado'  },
+      { value: 'REJECTED',  label: 'Rechazado'  },
+    ],
+  },
+]
+
+// ── Fetch server-side ──────────────────────────────────────────────────────
 async function fetchMovements(page = 1) {
   loading.value = true
   try {
@@ -61,13 +85,13 @@ async function fetchMovements(page = 1) {
       params: {
         page,
         per_page: 20,
-        type:   filterType.value   || undefined,
-        status: filterStatus.value || undefined,
-        search: filterSearch.value || undefined,
+        type:     lastFilters.value.type   || undefined,
+        status:   lastFilters.value.status || undefined,
+        search:   lastSearch.value         || undefined,
       },
     })
-    movements.value = data.data  ?? []
-    meta.value      = data.meta  ?? null
+    movements.value = data.data ?? []
+    meta.value      = data.meta ?? null
   } catch (e) {
     console.error('[movements] Error cargando movimientos:', e)
     movements.value = []
@@ -76,27 +100,32 @@ async function fetchMovements(page = 1) {
   }
 }
 
-function applyFilters() { fetchMovements(1) }
-function resetFilters()  {
-  filterType.value   = ''
-  filterStatus.value = ''
-  filterSearch.value = ''
+// Recibe el evento @filter de TableFilter (ya incluye debounce)
+function onFilter(payload: { search: string; filters: Record<string, string> }) {
+  lastSearch.value  = payload.search
+  lastFilters.value = payload.filters
   fetchMovements(1)
 }
 
 // ── Helpers visuales ───────────────────────────────────────────────────────
 const typeConfig: Record<string, { label: string; cls: string; icon: string }> = {
-  DEPOSIT:    { label: 'Depósito',    cls: 'mv-badge mv-badge--deposit',    icon: 'fas fa-arrow-down' },
-  WITHDRAWAL: { label: 'Retiro',      cls: 'mv-badge mv-badge--withdrawal', icon: 'fas fa-arrow-up' },
-  PURCHASE:   { label: 'Compra',      cls: 'mv-badge mv-badge--purchase',   icon: 'fas fa-ticket-alt' },
-  PRIZE:      { label: 'Premio',      cls: 'mv-badge mv-badge--prize',      icon: 'fas fa-trophy' },
+  DEPOSIT:    { label: 'Depósito', cls: 'mv-badge mv-badge--deposit',    icon: 'fas fa-arrow-down'  },
+  WITHDRAWAL: { label: 'Retiro',   cls: 'mv-badge mv-badge--withdrawal', icon: 'fas fa-arrow-up'    },
+  PURCHASE:   { label: 'Compra',   cls: 'mv-badge mv-badge--purchase',   icon: 'fas fa-ticket-alt'  },
+  PRIZE:      { label: 'Premio',   cls: 'mv-badge mv-badge--prize',      icon: 'fas fa-trophy'      },
 }
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
-  PENDING:   { label: 'Pendiente',  cls: 'mv-status mv-status--pending' },
+  PENDING:   { label: 'Pendiente',  cls: 'mv-status mv-status--pending'   },
   COMPLETED: { label: 'Completado', cls: 'mv-status mv-status--completed' },
   CANCELLED: { label: 'Cancelado',  cls: 'mv-status mv-status--cancelled' },
-  REJECTED:  { label: 'Rechazado',  cls: 'mv-status mv-status--rejected' },
+  REJECTED:  { label: 'Rechazado',  cls: 'mv-status mv-status--rejected'  },
+}
+
+function userName(mov: Movement): string {
+  if (!mov.user) return '—'
+  const full = [mov.user.first_name, mov.user.last_name].filter(Boolean).join(' ')
+  return full || mov.user.username || '—'
 }
 
 function formatAmount(mov: Movement): string {
@@ -117,7 +146,7 @@ function formatDate(iso: string): string {
   }).format(new Date(iso))
 }
 
-const totalPages = computed(() => meta.value?.last_page ?? 1)
+const totalPages  = computed(() => meta.value?.last_page    ?? 1)
 const currentPage = computed(() => meta.value?.current_page ?? 1)
 
 onMounted(() => fetchMovements())
@@ -127,93 +156,50 @@ onMounted(() => fetchMovements())
   <Head :title="title" />
 
   <div class="container-fluid">
-    <CardHeader title="Movimientos de Billetera" icon="fas fa-exchange-alt">
-      <template #actions>
-        <button class="btn btn-sm btn-outline-secondary" :disabled="loading" @click="fetchMovements(currentPage)">
-          <i class="fas fa-sync" :class="{ 'fa-spin': loading }"></i>
-          Actualizar
-        </button>
-      </template>
-    </CardHeader>
 
-    <!-- Filtros -->
-    <div class="card mb-3">
-      <div class="card-body py-3">
-        <div class="row g-2 align-items-end">
-          <div class="col-12 col-md-3">
-            <label class="form-label form-label-sm">Tipo</label>
-            <select v-model="filterType" class="form-select form-select-sm">
-              <option value="">Todos</option>
-              <option value="DEPOSIT">Depósito</option>
-              <option value="WITHDRAWAL">Retiro</option>
-              <option value="PURCHASE">Compra</option>
-              <option value="PRIZE">Premio</option>
-            </select>
-          </div>
-          <div class="col-12 col-md-3">
-            <label class="form-label form-label-sm">Estado</label>
-            <select v-model="filterStatus" class="form-select form-select-sm">
-              <option value="">Todos</option>
-              <option value="PENDING">Pendiente</option>
-              <option value="COMPLETED">Completado</option>
-              <option value="CANCELLED">Cancelado</option>
-              <option value="REJECTED">Rechazado</option>
-            </select>
-          </div>
-          <div class="col-12 col-md-4">
-            <label class="form-label form-label-sm">Buscar usuario</label>
-            <input
-              v-model="filterSearch"
-              type="text"
-              class="form-control form-control-sm"
-              placeholder="Nombre o email..."
-              @keyup.enter="applyFilters"
-            />
-          </div>
-          <div class="col-12 col-md-2 d-flex gap-2">
-            <button class="btn btn-sm btn-primary flex-grow-1" :disabled="loading" @click="applyFilters">
-              <i class="fas fa-search"></i> Filtrar
-            </button>
-            <button class="btn btn-sm btn-outline-secondary" :disabled="loading" @click="resetFilters">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabla -->
+    <!-- Card principal -->
     <div class="card">
-      <div class="card-body p-0">
+      <CardHeader title="Movimientos de Billetera" subtitle="Historial de depósitos, retiros y compras" />
 
-        <!-- Loading skeleton -->
+      <div class="card-body">
+
+        <!-- Filtros — usa TableFilter del sistema (debounce + pills incluidos) -->
+        <TableFilter
+          search-placeholder="Buscar por nombre, apellido o email..."
+          :filters="tableFilters"
+          :debounce-delay="400"
+          @filter="onFilter"
+        />
+
+        <!-- Loading -->
         <div v-if="loading" class="mv-loading">
           <div class="spinner-border spinner-border-sm text-primary me-2"></div>
           Cargando movimientos...
         </div>
 
-        <!-- Tabla con datos -->
+        <!-- Tabla -->
         <BaseTable
           v-else
           table-id="wallet-movements"
           :columns="columns"
           :rows="movements"
           empty-message="No hay movimientos registrados"
+          class="mt-3"
         >
           <!-- Usuario -->
           <template #cell-user="{ row }">
-            <div v-if="row.user" class="mv-user">
-              <span class="mv-user__name">{{ row.user.name }}</span>
-              <span class="mv-user__email">{{ row.user.email }}</span>
+            <div v-if="(row as Movement).user" class="mv-user">
+              <span class="mv-user__name">{{ userName(row as Movement) }}</span>
+              <span class="mv-user__email">{{ (row as Movement).user!.email }}</span>
             </div>
             <span v-else class="text-muted">—</span>
           </template>
 
           <!-- Tipo -->
           <template #cell-type="{ row }">
-            <span :class="typeConfig[row.type]?.cls ?? 'mv-badge'">
-              <i :class="typeConfig[row.type]?.icon"></i>
-              {{ typeConfig[row.type]?.label ?? row.type }}
+            <span :class="typeConfig[(row as Movement).type]?.cls ?? 'mv-badge'">
+              <i :class="typeConfig[(row as Movement).type]?.icon"></i>
+              {{ typeConfig[(row as Movement).type]?.label ?? (row as Movement).type }}
             </span>
           </template>
 
@@ -221,9 +207,9 @@ onMounted(() => fetchMovements())
           <template #cell-amount="{ row }">
             <span
               class="mv-amount"
-              :class="['DEPOSIT','PRIZE'].includes(row.type) ? 'mv-amount--positive' : 'mv-amount--negative'"
+              :class="['DEPOSIT','PRIZE'].includes((row as Movement).type) ? 'mv-amount--positive' : 'mv-amount--negative'"
             >
-              {{ formatAmount(row) }}
+              {{ formatAmount(row as Movement) }}
             </span>
           </template>
 
@@ -249,16 +235,27 @@ onMounted(() => fetchMovements())
 
           <!-- Acciones -->
           <template #cell-actions="{ row }">
-            <a :href="`/wallet-movements/${row.id}`" class="btn btn-sm btn-outline-info" title="Ver detalle">
+            <a
+              :href="`/wallet-movements/${row.id}`"
+              class="btn btn-sm btn-outline-info"
+              title="Ver detalle"
+            >
               <i class="fas fa-eye"></i>
             </a>
           </template>
         </BaseTable>
 
+        <!-- Footer info -->
+        <TableFooterInfo
+          :filtered-count="movements.length"
+          :total-count="meta?.total ?? 0"
+        />
+
         <!-- Paginación -->
         <div v-if="meta && totalPages > 1" class="mv-pagination">
           <span class="mv-pagination__info">
-            Página {{ currentPage }} de {{ totalPages }} · {{ meta.total }} movimientos
+            Página {{ currentPage }} de {{ totalPages }}
+            <span class="text-muted">· {{ meta.total }} movimientos</span>
           </span>
           <div class="mv-pagination__btns">
             <button
@@ -267,6 +264,16 @@ onMounted(() => fetchMovements())
               @click="fetchMovements(currentPage - 1)"
             >
               <i class="fas fa-chevron-left"></i>
+            </button>
+            <button
+              v-for="p in totalPages"
+              :key="p"
+              class="btn btn-sm"
+              :class="p === currentPage ? 'btn-primary' : 'btn-outline-secondary'"
+              :disabled="loading"
+              @click="fetchMovements(p)"
+            >
+              {{ p }}
             </button>
             <button
               class="btn btn-sm btn-outline-secondary"
@@ -280,6 +287,7 @@ onMounted(() => fetchMovements())
 
       </div>
     </div>
+
   </div>
 </template>
 
@@ -294,19 +302,20 @@ onMounted(() => fetchMovements())
 }
 
 /* Usuario */
-.mv-user { display: flex; flex-direction: column; }
+.mv-user        { display: flex; flex-direction: column; gap: 1px; }
 .mv-user__name  { font-size: 0.85rem; font-weight: 600; color: #1e293b; }
-.mv-user__email { font-size: 0.75rem; color: #94a3b8; }
+.mv-user__email { font-size: 0.72rem; color: #94a3b8; }
 
 /* Tipo badge */
 .mv-badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
   padding: 3px 9px;
   border-radius: 20px;
+  white-space: nowrap;
 }
 .mv-badge--deposit    { background: #dcfce7; color: #16a34a; }
 .mv-badge--withdrawal { background: #fef3c7; color: #d97706; }
@@ -314,7 +323,7 @@ onMounted(() => fetchMovements())
 .mv-badge--prize      { background: #fef9c3; color: #ca8a04; }
 
 /* Monto */
-.mv-amount { font-size: 0.875rem; font-weight: 700; }
+.mv-amount           { font-size: 0.875rem; font-weight: 700; white-space: nowrap; }
 .mv-amount--positive { color: #16a34a; }
 .mv-amount--negative { color: #dc2626; }
 
@@ -325,10 +334,11 @@ onMounted(() => fetchMovements())
 .mv-status {
   display: inline-flex;
   align-items: center;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  padding: 3px 9px;
+  padding: 3px 10px;
   border-radius: 20px;
+  white-space: nowrap;
 }
 .mv-status--pending   { background: #fef3c7; color: #d97706; }
 .mv-status--completed { background: #dcfce7; color: #16a34a; }
@@ -336,16 +346,20 @@ onMounted(() => fetchMovements())
 .mv-status--rejected  { background: #ffe4e6; color: #e11d48; }
 
 /* Fecha */
-.mv-date { font-size: 0.78rem; color: #64748b; }
+.mv-date { font-size: 0.78rem; color: #64748b; white-space: nowrap; }
 
 /* Paginación */
 .mv-pagination {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.875rem 1.25rem;
+  padding: 0.75rem 0;
   border-top: 1px solid #f1f5f9;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
-.mv-pagination__info { font-size: 0.78rem; color: #94a3b8; }
-.mv-pagination__btns { display: flex; gap: 6px; }
+.mv-pagination__info { font-size: 0.78rem; color: #64748b; }
+.mv-pagination__btns { display: flex; align-items: center; gap: 3px; }
+.mv-pagination__btns .btn { min-width: 32px; }
 </style>
