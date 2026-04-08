@@ -296,6 +296,70 @@ final class NotificationService
     }
 
     /**
+     * Notificación al usuario cuando su depósito es aprobado o rechazado.
+     */
+    public function createDepositResultNotification(
+        string $userId,
+        string $status,       // COMPLETED | REJECTED
+        float  $amount,
+        string $currencySymbol,
+        ?string $adminNotes = null,
+    ): Notification {
+        $approved = $status === 'COMPLETED';
+
+        $title   = $approved ? '✅ Depósito Aprobado'   : '❌ Depósito Rechazado';
+        $message = $approved
+            ? "Tu depósito de {$currencySymbol}{$amount} ha sido acreditado a tu billetera."
+            : "Tu depósito de {$currencySymbol}{$amount} fue rechazado." . ($adminNotes ? " Motivo: {$adminNotes}" : '');
+
+        return $this->create(
+            userId:  $userId,
+            type:    'WALLET_UPDATED',
+            title:   $title,
+            message: $message,
+            data:    [
+                'movement_type'   => 'DEPOSIT',
+                'movement_status' => $status,
+                'amount'          => $amount,
+                'currency_symbol' => $currencySymbol,
+                'admin_notes'     => $adminNotes,
+            ]
+        );
+    }
+
+    /**
+     * Notificación al usuario cuando su retiro es aprobado o rechazado.
+     */
+    public function createWithdrawalResultNotification(
+        string $userId,
+        string $status,       // COMPLETED | REJECTED
+        float  $amount,
+        string $currencySymbol,
+        ?string $adminNotes = null,
+    ): Notification {
+        $approved = $status === 'COMPLETED';
+
+        $title   = $approved ? '✅ Retiro Aprobado'   : '↩️ Retiro Rechazado — Saldo Reintegrado';
+        $message = $approved
+            ? "Tu retiro de {$currencySymbol}{$amount} fue procesado exitosamente."
+            : "Tu retiro de {$currencySymbol}{$amount} fue rechazado y el saldo fue devuelto a tu billetera." . ($adminNotes ? " Motivo: {$adminNotes}" : '');
+
+        return $this->create(
+            userId:  $userId,
+            type:    'WALLET_UPDATED',
+            title:   $title,
+            message: $message,
+            data:    [
+                'movement_type'   => 'WITHDRAWAL',
+                'movement_status' => $status,
+                'amount'          => $amount,
+                'currency_symbol' => $currencySymbol,
+                'admin_notes'     => $adminNotes,
+            ]
+        );
+    }
+
+    /**
      * Crear notificaciones masivas para múltiples usuarios
      *
      * @param array $userIds

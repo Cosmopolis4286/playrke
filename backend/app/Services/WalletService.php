@@ -369,7 +369,7 @@ final class WalletService
             throw new \DomainException('Solo se pueden aprobar movimientos en estado PENDING.');
         }
 
-        return DB::transaction(function () use ($movement, $adminNotes) {
+        $updated = DB::transaction(function () use ($movement, $adminNotes) {
             $this->walletRepository->incrementBalance((string) $movement->wallet_id, (float) $movement->amount);
             $movement->wallet->refresh();
 
@@ -381,8 +381,12 @@ final class WalletService
                 'processed_at'  => now(),
             ]);
 
-            return $movement->fresh();
+            return $movement->fresh(['wallet', 'wallet.currency']);
         });
+
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, $adminNotes);
+
+        return $updated;
     }
 
     /**
@@ -404,7 +408,11 @@ final class WalletService
             'processed_at' => now(),
         ]);
 
-        return $movement->fresh();
+        $updated = $movement->fresh(['wallet', 'wallet.currency']);
+
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
+
+        return $updated;
     }
 
     /**
@@ -426,7 +434,11 @@ final class WalletService
             'processed_at' => now(),
         ]);
 
-        return $movement->fresh();
+        $updated = $movement->fresh(['wallet', 'wallet.currency']);
+
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, $adminNotes);
+
+        return $updated;
     }
 
     /**
@@ -441,8 +453,7 @@ final class WalletService
             throw new \DomainException('Solo se pueden rechazar movimientos en estado PENDING.');
         }
 
-        return DB::transaction(function () use ($movement, $adminNotes) {
-            // Devolver el saldo al usuario
+        $updated = DB::transaction(function () use ($movement, $adminNotes) {
             $this->walletRepository->incrementBalance((string) $movement->wallet_id, (float) $movement->amount);
             $movement->wallet->refresh();
 
@@ -453,8 +464,54 @@ final class WalletService
                 'processed_at' => now(),
             ]);
 
-            return $movement->fresh();
+            return $movement->fresh(['wallet', 'wallet.currency']);
         });
+
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
+
+        return $updated;
+    }
+
+    /**
+     * Broadcast WebSocket + notificación persistente al usuario tras aprobar/rechazar.
+     */
+    private function broadcastAndNotifyResult(WalletMovement $movement, string $status, ?string $adminNotes): void
+    {
+        $wallet        = $movement->wallet;
+        $currencySymbol = $wallet?->currency?->symbol ?? '';
+        $userId        = (string) $movement->user_id;
+        $amount        = (float) $movement->amount;
+
+        // WebSocket: notifica al canal privado del usuario
+        broadcast(new WalletUpdated(
+            userId:         $userId,
+            walletId:       (string) $movement->wallet_id,
+            balance:        (float) ($wallet?->balance ?? 0),
+            currencySymbol: $currencySymbol,
+            movementType:   $movement->type,
+            amount:         $amount,
+            movementStatus: $status,
+            movementId:     (string) $movement->id,
+        ));
+
+        // Notificación persistente en tabla notifications
+        if ($movement->type === WalletMovement::TYPE_DEPOSIT) {
+            $this->notificationService->createDepositResultNotification(
+                userId:         $userId,
+                status:         $status,
+                amount:         $amount,
+                currencySymbol: $currencySymbol,
+                adminNotes:     $adminNotes,
+            );
+        } else {
+            $this->notificationService->createWithdrawalResultNotification(
+                userId:         $userId,
+                status:         $status,
+                amount:         $amount,
+                currencySymbol: $currencySymbol,
+                adminNotes:     $adminNotes,
+            );
+        }
     }
 
     /**

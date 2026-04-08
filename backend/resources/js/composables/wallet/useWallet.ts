@@ -1,5 +1,6 @@
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import backendClient, { getCsrfCookie } from '@js/plugins/axios'
+import echo from '@js/plugins/echo'
 import type {
   Wallet,
   WalletMovement,
@@ -18,7 +19,18 @@ import type {
 // withdraw: 1=monto → 2=directorio  → 3=confirmado
 export type WalletStep = 1 | 2 | 3
 
-export function useWallet(initialWallets: Wallet[]) {
+// Payload del evento wallet.updated (incluyendo campos nuevos)
+export interface WalletUpdatedPayload {
+  wallet_id:       string
+  balance:         number
+  currency_symbol: string
+  movement_type:   string
+  amount:          number
+  movement_status: string | null   // COMPLETED | REJECTED | null
+  movement_id:     string | null
+}
+
+export function useWallet(initialWallets: Wallet[], userId?: string) {
   const wallets      = ref<Wallet[]>(initialWallets)
   const activeWallet = ref<Wallet | null>(wallets.value[0] ?? null)
 
@@ -49,6 +61,15 @@ export function useWallet(initialWallets: Wallet[]) {
   const loading    = ref(false)
   const errorMsg   = ref<string | null>(null)
   const successMsg = ref<string | null>(null)
+
+  // Feedback en tiempo real del resultado de aprobación/rechazo
+  const resultToast = ref<{
+    type: 'approved' | 'rejected'
+    movementType: 'DEPOSIT' | 'WITHDRAWAL'
+    amount: number
+    currencySymbol: string
+  } | null>(null)
+  let resultToastTimer: ReturnType<typeof setTimeout> | null = null
 
   // Historial
   const movements        = ref<WalletMovement[]>([])
@@ -314,6 +335,64 @@ export function useWallet(initialWallets: Wallet[]) {
     }))
   }
 
+  // ── Tiempo real: resultado de aprobación/rechazo ──────────────────────
+  function _handleWalletUpdated(payload: WalletUpdatedPayload) {
+    // Actualizar saldo local si viene balance
+    if (payload.balance !== undefined) {
+      const idx = wallets.value.findIndex(w => w.id === payload.wallet_id)
+      if (idx !== -1) {
+        wallets.value[idx] = { ...wallets.value[idx], balance: payload.balance }
+        if (activeWallet.value?.id === payload.wallet_id) {
+          activeWallet.value = wallets.value[idx]
+        }
+      }
+      window.dispatchEvent(new CustomEvent('wallet:updated', {
+        detail: {
+          balance:         payload.balance,
+          currency_symbol: payload.currency_symbol,
+        }
+      }))
+    }
+
+    // Mostrar toast solo cuando hay un resultado de procesamiento (COMPLETED o REJECTED)
+    if (payload.movement_status === 'COMPLETED' || payload.movement_status === 'REJECTED') {
+      if (resultToastTimer) clearTimeout(resultToastTimer)
+      resultToast.value = {
+        type:           payload.movement_status === 'COMPLETED' ? 'approved' : 'rejected',
+        movementType:   payload.movement_type as 'DEPOSIT' | 'WITHDRAWAL',
+        amount:         payload.amount,
+        currencySymbol: payload.currency_symbol,
+      }
+      // Si el modal está abierto mostrando la operación pendiente, refrescarla
+      if (modalOpen.value && pendingOperation.value) {
+        checkPendingOperation()
+        loadMovements(1)
+      } else {
+        loadMovements(1)
+      }
+      // Auto-cerrar toast después de 8 segundos
+      resultToastTimer = setTimeout(() => { resultToast.value = null }, 8000)
+    }
+  }
+
+  function dismissResultToast() {
+    resultToast.value = null
+    if (resultToastTimer) clearTimeout(resultToastTimer)
+  }
+
+  // Suscribir al canal privado del usuario si se provee userId
+  onMounted(() => {
+    if (!userId) return
+    echo.private(`App.Models.User.${userId}`)
+        .listen('.wallet.updated', _handleWalletUpdated)
+  })
+
+  onBeforeUnmount(() => {
+    if (!userId) return
+    echo.leave(`App.Models.User.${userId}`)
+    if (resultToastTimer) clearTimeout(resultToastTimer)
+  })
+
   // Cargar historial al montar
   loadMovements()
 
@@ -327,6 +406,7 @@ export function useWallet(initialWallets: Wallet[]) {
     directories, directoriesLoading, selectedDirectory,
     pendingOperation, pendingLoading,
     loading, errorMsg, successMsg,
+    resultToast,
     // computed
     canWithdraw, formattedBalance, parsedAmount,
     canGoToStep2, canSubmitDeposit, canSubmitWithdraw,
@@ -334,6 +414,6 @@ export function useWallet(initialWallets: Wallet[]) {
     openModal, closeModal,
     goToStep1, goToStep2,
     selectWallet, loadMoreMovements,
-    submit,
+    submit, dismissResultToast,
   }
 }
