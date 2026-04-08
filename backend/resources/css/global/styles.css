@@ -130,6 +130,12 @@ body::-webkit-scrollbar-thumb {
   background: linear-gradient(90deg, #060324 0%, #0a0535 50%, #060324 100%);
   border-bottom: 1px solid rgba(102,126,234,.18) !important;
   box-shadow: 0 2px 16px rgba(0,0,0,.4);
+  min-height: 54px !important;
+}
+
+/* Compensar la altura del navbar custom (54px) sobre el valor por defecto de AdminLTE (57px) */
+.layout-fixed .wrapper .content-wrapper {
+  margin-top: 54px !important;
 }
 
 .user-img {

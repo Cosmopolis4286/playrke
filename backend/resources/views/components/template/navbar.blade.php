@@ -1,5 +1,5 @@
 {{-- $navWallet y $navUser son inyectados por NavbarComposer vía AppServiceProvider --}}
-<nav class="main-header navbar navbar-expand navbar-bg justify-content-between" style="height:56px;padding:0 1rem;">
+<nav class="main-header navbar navbar-expand navbar-bg justify-content-between">
 
     {{-- ── Izquierda: toggle + billetera ──────────────────── --}}
     <ul class="navbar-nav align-items-center" style="gap:.25rem;">
@@ -227,13 +227,13 @@
                 if ($empty) $empty.style.display = '';
                 notifCount = 0;
                 $badge.classList.add('d-none');
-                
+
                 // Actualizar datos globales
                 if (window.notificationsData) {
                     window.notificationsData.unreadCount = 0;
                     window.notificationsData.notifications = [];
                 }
-                
+
                 console.log('✅ Todas las notificaciones marcadas como leídas');
             } else {
                 console.error('❌ Error al marcar notificaciones como leídas');
@@ -263,10 +263,10 @@
                 } else {
                     $badge.textContent = notifCount > 99 ? '99+' : notifCount;
                 }
-                
+
                 // Marcar como leída visualmente
                 element.classList.add('read');
-                
+
                 console.log(`✅ Notificación ${notificationId} marcada como leída`);
             } else {
                 console.error(`❌ Error al marcar notificación ${notificationId} como leída`);
@@ -298,36 +298,36 @@
     function loadPersistentNotifications() {
         if (window.notificationsData && window.notificationsData.notifications) {
             console.log('🔔 Cargando notificaciones persistentes en navbar:', window.notificationsData.unreadCount);
-            
+
             var notifications = window.notificationsData.notifications;
             notifCount = window.notificationsData.unreadCount;
-            
+
             // Actualizar badge
             if (notifCount > 0) {
                 $badge.textContent = notifCount > 99 ? '99+' : notifCount;
                 $badge.classList.remove('d-none');
             }
-            
+
             // Agregar cada notificación persistente al navbar
             notifications.forEach(function(notification) {
                 addPersistentNotification(notification);
             });
         }
     }
-    
+
     // ── Agregar notificación persistente al navbar ───────────────
     function addPersistentNotification(notification) {
         if ($empty) $empty.style.display = 'none';
 
-        var meta = TYPE_META[notification.data.movement_type] || { 
-            label: notification.title, 
-            icon: 'fa-exchange-alt', 
-            color: '#6c757d', 
-            sign: '' 
+        var meta = TYPE_META[notification.data.movement_type] || {
+            label: notification.title,
+            icon: 'fa-exchange-alt',
+            color: '#6c757d',
+            sign: ''
         };
-        var time = new Date(notification.created_at).toLocaleTimeString('es-VE', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
+        var time = new Date(notification.created_at).toLocaleTimeString('es-VE', {
+            hour: '2-digit',
+            minute: '2-digit'
         });
 
         var li = document.createElement('li');
