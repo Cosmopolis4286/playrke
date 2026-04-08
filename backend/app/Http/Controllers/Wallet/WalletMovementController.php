@@ -9,75 +9,87 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/**
- * Controlador de administración de Movimientos de Billetera.
- *
- * Responsabilidades:
- * - Orquestar requests HTTP para gestión de movimientos
- * - Delegar lógica de negocio al servicio
- * - Unificar respuestas JSON
- *
- * NO contiene lógica de dominio ni mensajes de error.
- */
 final class WalletMovementController extends Controller
 {
-    /**
-     * Constructor del controlador.
-     */
-    public function __construct(
-        //private readonly WalletMovementService $service
-    ) {
+    public function __construct()
+    {
         $this->authorizeResource(WalletMovement::class, 'movement');
     }
 
-    /**
-     * Vista principal de movimientos de billetera.
-     *
-     * @return Response
-     */
     public function index(): Response
     {
-        return $this->handleServiceInertia(
-            function () {
-                // $response = $this->service->context();
-                // $response['title'] = 'Movimientos de Billetera';
-
-                return Inertia::render('Wallet/Movements/Index', [
-                    'title' => 'Movimientos de Billetera',
-                    'movements' => [], // Placeholder para datos
-                ]);
-            },
-            'No se pudo cargar la lista de movimientos.'
-        );
+        return Inertia::render('Wallet/Movements/Index', [
+            'title' => 'Movimientos de Billetera',
+        ]);
     }
 
     /**
-     * Obtener lista paginada de movimientos.
-     *
-     * @param Request $request
-     * @return JsonResponse
+     * Lista paginada de movimientos con relaciones user y wallet.currency
+     * GET /wallet-movements/fetch?page=1&per_page=20&type=&status=&search=
      */
     public function fetchList(Request $request): JsonResponse
     {
-        return $this->handleServiceJson(
-            fn() => [
-                'data' => [], // Placeholder
-            ]
-        );
+        return $this->handleServiceJson(function () use ($request) {
+            $perPage = (int) $request->query('per_page', 20);
+            $type    = $request->query('type');
+            $status  = $request->query('status');
+            $search  = $request->query('search');
+
+            $query = WalletMovement::with([
+                'wallet:id,currency_id',
+                'wallet.currency:id,iso_code,symbol,decimal_places',
+                'user:id,name,email,username',
+            ])
+            ->orderByDesc('created_at');
+
+            if ($type)   $query->where('type', strtoupper($type));
+            if ($status) $query->where('status', strtoupper($status));
+            if ($search) {
+                $query->whereHas('user', fn($q) =>
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                );
+            }
+
+            $paginator = $query->paginate($perPage);
+
+            return [
+                'data' => collect($paginator->items())->map(fn(WalletMovement $m) => [
+                    'id'             => (string) $m->id,
+                    'type'           => $m->type,
+                    'status'         => $m->status,
+                    'amount'         => (float) $m->amount,
+                    'balance_before' => (float) $m->balance_before,
+                    'balance_after'  => (float) $m->balance_after,
+                    'description'    => $m->description,
+                    'reference_id'   => $m->reference_id,
+                    'created_at'     => $m->created_at,
+                    'currency'       => $m->wallet?->currency ? [
+                        'iso_code'       => $m->wallet->currency->iso_code,
+                        'symbol'         => $m->wallet->currency->symbol,
+                        'decimal_places' => $m->wallet->currency->decimal_places,
+                    ] : null,
+                    'user' => $m->user ? [
+                        'id'       => (string) $m->user->id,
+                        'name'     => $m->user->name,
+                        'email'    => $m->user->email,
+                        'username' => $m->user->username ?? null,
+                    ] : null,
+                ]),
+                'meta' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page'    => $paginator->lastPage(),
+                    'per_page'     => $paginator->perPage(),
+                    'total'        => $paginator->total(),
+                ],
+            ];
+        });
     }
 
-    /**
-     * Ver detalle de un movimiento específico.
-     *
-     * @param WalletMovement $movement
-     * @return JsonResponse
-     */
     public function show(WalletMovement $movement): JsonResponse
     {
-        return $this->handleServiceJson(
-            fn() => [
-                'data' => $movement,
-            ]
-        );
+        return $this->handleServiceJson(fn() => [
+            'data' => $movement->load(['wallet.currency', 'user']),
+        ]);
     }
 }
