@@ -11,6 +11,7 @@ use App\Services\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -83,7 +84,25 @@ class WalletController extends Controller
     public function deposit(WalletDepositRequest $request): JsonResponse
     {
         try {
-            $receiptPath = $request->file('receipt')->store('wallet/receipts', 'public');
+            $file = $request->file('receipt');
+
+            if (! $file || ! $file->isValid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El archivo de comprobante no se recibió correctamente. Intenta de nuevo.',
+                ], 422);
+            }
+
+            // Generar nombre único y mover el archivo al storage público
+            $filename    = Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $destination = storage_path('app/public/wallet/receipts');
+
+            if (! is_dir($destination)) {
+                mkdir($destination, 0755, true);
+            }
+
+            $file->move($destination, $filename);
+            $receiptPath = 'wallet/receipts/' . $filename;
 
             $wallet = $this->walletService->requestDeposit(
                 walletId:  $request->input('wallet_id'),
@@ -98,7 +117,7 @@ class WalletController extends Controller
                 'message' => 'Solicitud de depósito enviada. Un administrador la revisará pronto.',
                 'balance' => (float) $wallet->balance,
             ]);
-        } catch (\DomainException $e) {
+        } catch (\DomainException|\RuntimeException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
