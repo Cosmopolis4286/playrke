@@ -70,7 +70,8 @@ class PermissionSeeder extends Seeder
             // Juegos específicos
             ['name' => 'game.bingo', 'guard_name' => 'web', 'description' => 'Acceso a juegos de bingo'],
             ['name' => 'game.bingo.game_rooms', 'guard_name' => 'web', 'description' => 'Acceso a salas de bingo'],
-
+            ['name' => 'game.bingo.cards_sold', 'guard_name' => 'web', 'description' => 'Acceso a cartones vendidos'],
+            
             // Reportes
             ['name' => 'reports.view', 'guard_name' => 'web', 'description' => 'Ver reportes'],
             ['name' => 'reports.generate', 'guard_name' => 'web', 'description' => 'Generar reportes'],
