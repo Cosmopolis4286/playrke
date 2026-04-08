@@ -1,9 +1,13 @@
 @php
     use App\Services\Menu\SidebarMenuService;
-    
+
     $menuService = app(SidebarMenuService::class);
     $menuItems = $menuService->generateMenu();
     $userRoleDisplay = $menuService->getUserRoleDisplay();
+    $authUser     = auth()->user();
+    $sidebarPhoto = $authUser?->profile_photo_url
+        ?? ($authUser?->foto ? asset('img/users/' . $authUser->foto) : null);
+    $sidebarName  = $authUser?->username ?? $authUser?->name ?? 'Usuario';
 @endphp
 
 <aside class="main-sidebar sidebar-dark-primary elevation-3" role="complementary" aria-label="Sidebar principal">
@@ -70,19 +74,32 @@
                     </a>
                 </li>
 
-                {{-- Cerrar sesión --}}
-                <li class="nav-item">
-                    <button type="button"
-                            class="nav-link logout-btn w-100 text-left border-0 bg-transparent"
-                            data-logout-url="{{ route('logout') }}"
-                            data-login-redirect-url="{{ route('login') }}"
-                            data-show-confirmation="false"
-                            style="background: none !important;">
-                        <i class="nav-icon fas fa-sign-out-alt"></i>
-                        <p>Cerrar sesión</p>
-                    </button>
-                </li>
             </ul>
         </nav>
     </section>
+
+    {{-- Pie del sidebar: info del usuario + cerrar sesión --}}
+    <div class="sidebar-user-footer">
+        <div class="sidebar-user-footer__info">
+            <div class="sidebar-user-footer__avatar">
+                @if($sidebarPhoto)
+                    <img src="{{ $sidebarPhoto }}" alt="{{ $sidebarName }}" class="sidebar-user-footer__photo">
+                @else
+                    <i class="fas fa-user-circle"></i>
+                @endif
+            </div>
+            <div class="sidebar-user-footer__details">
+                <span class="sidebar-user-footer__name">{{ $sidebarName }}</span>
+                <span class="sidebar-user-footer__role">{{ $userRoleDisplay }}</span>
+            </div>
+        </div>
+        <button type="button"
+                class="sidebar-user-footer__logout logout-btn"
+                data-logout-url="{{ route('logout') }}"
+                data-login-redirect-url="{{ route('login') }}"
+                data-show-confirmation="false"
+                title="Cerrar sesión">
+            <i class="fas fa-sign-out-alt"></i>
+        </button>
+    </div>
 </aside>

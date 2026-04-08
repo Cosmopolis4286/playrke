@@ -445,6 +445,15 @@ body::-webkit-scrollbar-thumb {
 
 aside.main-sidebar {
   background-image: radial-gradient(circle at 50% -20.71%, #352e72 0, #181b50 25%, #02002f 50%, #000011 75%, #000000 100%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+aside.main-sidebar .sidebar {
+  flex: 1;
+  height: auto !important;
+  overflow-y: auto;
 }
 
 .menu-image-play.cold .brand-image {
@@ -475,6 +484,111 @@ body.sidebar-mini.sidebar-collapse .container-role-user {
 /* Volver a mostrar en hover: .container-role-user es hijo directo de .main-sidebar */
 body.sidebar-mini.sidebar-collapse .main-sidebar:not(.sidebar-no-expand):hover .container-role-user {
   display: flex !important;
+}
+
+/* ── Sidebar User Footer ── */
+.sidebar-user-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+}
+
+.sidebar-user-footer__info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.sidebar-user-footer__avatar {
+  font-size: 2rem;
+  color: rgba(255, 255, 255, 0.7);
+  flex-shrink: 0;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-user-footer__photo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-user-footer__details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.sidebar-user-footer__name {
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-footer__role {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-user-footer__logout {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.35rem 0.4rem;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+
+.sidebar-user-footer__logout:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Colapsado: ocultar texto, mostrar solo avatar e ícono logout */
+body.sidebar-mini.sidebar-collapse .sidebar-user-footer {
+  justify-content: center;
+  padding: 0.75rem 0.5rem;
+}
+
+body.sidebar-mini.sidebar-collapse .sidebar-user-footer__details,
+body.sidebar-mini.sidebar-collapse .sidebar-user-footer__logout {
+  display: none;
+}
+
+/* Al hacer hover en sidebar colapsado, volver a mostrar */
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(.sidebar-no-expand):hover .sidebar-user-footer {
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+}
+
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(.sidebar-no-expand):hover .sidebar-user-footer__details,
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(.sidebar-no-expand):hover .sidebar-user-footer__logout {
+  display: flex;
 }
 
 /*!
