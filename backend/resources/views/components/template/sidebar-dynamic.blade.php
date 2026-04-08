@@ -61,52 +61,7 @@
                     @endif
                 @endforeach
 
-                {{-- Sección de información (siempre visible) --}}
-                @php
-                    $infoRoutes = ['info.terms', 'info.about', 'info.privacy'];
-                    $isInfoActive = request()->routeIs($infoRoutes);
-                @endphp
-
-                <li class="nav-item has-treeview {{ $isInfoActive ? 'menu-open' : '' }}">
-                    <a href="#" class="{{ $isInfoActive ? 'nav-link active' : 'nav-link' }}">
-                        <i class="nav-icon fas fa-book"></i>
-                        <p>Información <i class="right fas fa-angle-left"></i></p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ route('info.about') }}"
-                                class="{{ request()->routeIs('info.about') ? 'nav-link active' : 'nav-link' }}">
-                                <i class="fa-solid fa-caret-right nav-icon"></i>
-                                <p>Acerca de PlayRKE</p>
-                            </a>
-                        </li>
-                        @if(auth()->user()?->hasRole('player'))
-                            <li class="nav-item">
-                                <a href="{{ route('info.power-of-knowledge') }}"
-                                    class="{{ request()->routeIs('info.power-of-knowledge') ? 'nav-link active' : 'nav-link' }}">
-                                    <i class="fa-solid fa-caret-right nav-icon"></i>
-                                    <p>El Poder del Saber</p>
-                                </a>
-                            </li>
-                        @endif
-                        <li class="nav-item">
-                            <a href="{{ route('info.terms') }}"
-                                class="{{ request()->routeIs('info.terms') ? 'nav-link active' : 'nav-link' }}">
-                                <i class="fa-solid fa-caret-right nav-icon"></i>
-                                <p>Términos y Condiciones</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('info.privacy') }}"
-                                class="{{ request()->routeIs('info.privacy') ? 'nav-link active' : 'nav-link' }}">
-                                <i class="fa-solid fa-caret-right nav-icon"></i>
-                                <p>Política de Privacidad</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-                {{-- Cerrar sesión --}}
+{{-- Cerrar sesión --}}
                 <li class="nav-item">
                     <button type="button"
                             class="nav-link logout-btn w-100 text-left border-0 bg-transparent"

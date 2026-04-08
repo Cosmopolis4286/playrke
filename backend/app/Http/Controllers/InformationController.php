@@ -45,8 +45,9 @@ class InformationController extends Controller
 
     public function powerOfKnowledge(): Response
     {
-        return Inertia::render('Utils/Info/games/PowerOfKnowledge', [
-            'title' => 'El Poder del Saber',
+        return Inertia::render('Utils/Info/Games/Trivia', [
+            'title'    => 'El Poder del Saber',
+            'imageUrl' => asset('img/pds.png'),
         ]);
     }
 }
