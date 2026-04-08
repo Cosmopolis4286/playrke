@@ -161,7 +161,8 @@ final class WalletService
             'balance_before' => (float) $wallet->balance,
             'balance_after'  => (float) $wallet->balance,
             'description'    => $notes ?? 'Depósito pendiente de confirmación',
-            'reference_id'   => $reference ?? $receipt,
+            'reference_id'   => $reference,
+            'receipt_path'   => $receipt,
         ]);
 
         return $wallet;
@@ -210,7 +211,10 @@ final class WalletService
                 'balance_before' => $balanceBefore,
                 'balance_after'  => (float) $wallet->balance,
                 'description'    => $notes ?? 'Retiro pendiente de procesamiento',
-                'reference_id'   => "{$directoryType}:{$directoryId}",
+                'metadata'       => [
+                    'directory_id'   => $directoryId,
+                    'directory_type' => $directoryType,
+                ],
             ]);
 
             return $wallet;
@@ -351,6 +355,106 @@ final class WalletService
         $this->findOwnedWallet($walletId); // verifica propiedad
 
         return $this->movementRepository->getByWallet($walletId, $perPage);
+    }
+
+    /**
+     * Aprobar un depósito PENDING: acredita el monto al saldo y marca COMPLETED.
+     */
+    public function approveDeposit(WalletMovement $movement, ?string $adminNotes = null): WalletMovement
+    {
+        if ($movement->type !== WalletMovement::TYPE_DEPOSIT) {
+            throw new \DomainException('El movimiento no es un depósito.');
+        }
+        if ($movement->status !== WalletMovement::STATUS_PENDING) {
+            throw new \DomainException('Solo se pueden aprobar movimientos en estado PENDING.');
+        }
+
+        return DB::transaction(function () use ($movement, $adminNotes) {
+            $this->walletRepository->incrementBalance((string) $movement->wallet_id, (float) $movement->amount);
+            $movement->wallet->refresh();
+
+            $movement->update([
+                'status'        => WalletMovement::STATUS_COMPLETED,
+                'balance_after' => (float) $movement->wallet->balance,
+                'admin_notes'   => $adminNotes,
+                'processed_by'  => (string) Auth::id(),
+                'processed_at'  => now(),
+            ]);
+
+            return $movement->fresh();
+        });
+    }
+
+    /**
+     * Rechazar un depósito PENDING: no toca el saldo, marca REJECTED.
+     */
+    public function rejectDeposit(WalletMovement $movement, ?string $adminNotes = null): WalletMovement
+    {
+        if ($movement->type !== WalletMovement::TYPE_DEPOSIT) {
+            throw new \DomainException('El movimiento no es un depósito.');
+        }
+        if ($movement->status !== WalletMovement::STATUS_PENDING) {
+            throw new \DomainException('Solo se pueden rechazar movimientos en estado PENDING.');
+        }
+
+        $movement->update([
+            'status'       => WalletMovement::STATUS_REJECTED,
+            'admin_notes'  => $adminNotes,
+            'processed_by' => (string) Auth::id(),
+            'processed_at' => now(),
+        ]);
+
+        return $movement->fresh();
+    }
+
+    /**
+     * Aprobar un retiro PENDING: el saldo ya fue descontado, solo marca COMPLETED.
+     */
+    public function approveWithdrawal(WalletMovement $movement, ?string $adminNotes = null): WalletMovement
+    {
+        if ($movement->type !== WalletMovement::TYPE_WITHDRAWAL) {
+            throw new \DomainException('El movimiento no es un retiro.');
+        }
+        if ($movement->status !== WalletMovement::STATUS_PENDING) {
+            throw new \DomainException('Solo se pueden aprobar movimientos en estado PENDING.');
+        }
+
+        $movement->update([
+            'status'       => WalletMovement::STATUS_COMPLETED,
+            'admin_notes'  => $adminNotes,
+            'processed_by' => (string) Auth::id(),
+            'processed_at' => now(),
+        ]);
+
+        return $movement->fresh();
+    }
+
+    /**
+     * Rechazar un retiro PENDING: devuelve el monto al saldo y marca REJECTED.
+     */
+    public function rejectWithdrawal(WalletMovement $movement, ?string $adminNotes = null): WalletMovement
+    {
+        if ($movement->type !== WalletMovement::TYPE_WITHDRAWAL) {
+            throw new \DomainException('El movimiento no es un retiro.');
+        }
+        if ($movement->status !== WalletMovement::STATUS_PENDING) {
+            throw new \DomainException('Solo se pueden rechazar movimientos en estado PENDING.');
+        }
+
+        return DB::transaction(function () use ($movement, $adminNotes) {
+            // Devolver el saldo al usuario
+            $this->walletRepository->incrementBalance((string) $movement->wallet_id, (float) $movement->amount);
+            $movement->wallet->refresh();
+
+            $movement->update([
+                'status'       => WalletMovement::STATUS_REJECTED,
+                'admin_notes'  => $adminNotes,
+                'processed_by' => (string) Auth::id(),
+                'processed_at' => now(),
+            ]);
+
+            return $movement->fresh();
+        });
     }
 
     /**

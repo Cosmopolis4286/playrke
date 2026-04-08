@@ -28,9 +28,11 @@ Route::middleware(['auth', 'multiPermission:wallet.view,wallet.deposit,wallet.wi
 // GESTIÓN DE MOVIMIENTOS (ADMIN/SUPERADMIN)
 // ====================================
 Route::middleware(['auth', 'multiPermission:wallet.movements.view,wallet.movements.manage'])->group(function () {
-    Route::get('wallet-movements',              [WalletMovementController::class, 'index'])     ->name('wallet-movements.index');
-    Route::get('wallet-movements/fetch',        [WalletMovementController::class, 'fetchList']) ->name('wallet-movements.fetch');
-    Route::get('wallet-movements/{movement}',   [WalletMovementController::class, 'show'])     ->name('wallet-movements.show');
+    Route::get('wallet-movements',                          [WalletMovementController::class, 'index'])     ->name('wallet-movements.index');
+    Route::get('wallet-movements/fetch',                    [WalletMovementController::class, 'fetchList']) ->name('wallet-movements.fetch');
+    Route::get('wallet-movements/{movement}',               [WalletMovementController::class, 'show'])      ->name('wallet-movements.show');
+    Route::post('wallet-movements/{movement}/approve',      [WalletMovementController::class, 'approve'])   ->name('wallet-movements.approve');
+    Route::post('wallet-movements/{movement}/reject',       [WalletMovementController::class, 'reject'])    ->name('wallet-movements.reject');
 });
 
 // ====================================
