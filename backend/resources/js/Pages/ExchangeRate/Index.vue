@@ -198,8 +198,8 @@
     <CardHeader title="Tasas de Cambio" subtitle="Valores en base a Un Dólar (1 USD)" />
 
     <div class="card-body">
-      <!-- Switch de actualización automática -->
-      <div class="row">
+      <!-- Switch de actualización automática: solo visible si hay tasas registradas -->
+      <div v-if="exchangeRates.length > 0" class="row">
         <FormSwitch
           name="auto-update"
           class="ml-1 col-12"
