@@ -21,6 +21,7 @@ Route::middleware(['auth', 'multiPermission:wallet.view,wallet.deposit,wallet.wi
     Route::post('wallet/withdraw',                    [WalletController::class, 'withdraw'])         ->name('wallet.withdraw');
     Route::get('wallet/{walletId}/movements',         [WalletController::class, 'movements'])        ->name('wallet.movements');
     Route::get('wallet/{walletId}/directories',       [WalletController::class, 'userDirectories'])  ->name('wallet.directories');
+    Route::get('wallet/{walletId}/pending-operation', [WalletController::class, 'pendingOperation']) ->name('wallet.pending-operation');
 });
 
 // ====================================

@@ -57,6 +57,22 @@ export interface WalletOperationResponse {
   balance?: number
 }
 
+export type WalletMovementStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED' | 'REJECTED'
+
+export interface PendingOperation {
+  id: string
+  type: 'DEPOSIT' | 'WITHDRAWAL'
+  status: WalletMovementStatus
+  amount: number
+  description: string | null
+  created_at: string
+}
+
+export interface PendingOperationResponse {
+  success: boolean
+  pending: PendingOperation | null
+}
+
 export type WalletOperation = 'deposit' | 'withdraw'
 
 // ─── Movimientos ───────────────────────────────────────────────────────────

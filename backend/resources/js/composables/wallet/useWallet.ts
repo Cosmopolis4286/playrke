@@ -9,6 +9,8 @@ import type {
   WalletOperationResponse,
   UserDirectory,
   DirectoriesResponse,
+  PendingOperation,
+  PendingOperationResponse,
 } from '@js/types/wallet'
 
 // Pasos del flujo
@@ -38,6 +40,10 @@ export function useWallet(initialWallets: Wallet[]) {
   const directories        = ref<UserDirectory[]>([])
   const directoriesLoading = ref(false)
   const selectedDirectory  = ref<UserDirectory | null>(null)
+
+  // Solicitud pendiente
+  const pendingOperation = ref<PendingOperation | null>(null)
+  const pendingLoading   = ref(false)
 
   // Estado general
   const loading    = ref(false)
@@ -76,23 +82,45 @@ export function useWallet(initialWallets: Wallet[]) {
   const canSubmitWithdraw = computed(() => selectedDirectory.value !== null && parsedAmount.value > 0)
 
   // ── Abrir / cerrar modal ───────────────────────────────────────────────
-  function openModal(op: WalletOperation) {
-    operation.value         = op
-    step.value              = 1
-    amount.value            = ''
+  async function openModal(op: WalletOperation) {
+    operation.value           = op
+    step.value                = 1
+    amount.value              = ''
     selectedQuickAmount.value = null
-    receipt.value           = null
-    reference.value         = ''
-    notes.value             = ''
-    selectedDirectory.value = null
-    directories.value       = []
-    errorMsg.value          = null
-    successMsg.value        = null
-    modalOpen.value         = true
+    receipt.value             = null
+    reference.value           = ''
+    notes.value               = ''
+    selectedDirectory.value   = null
+    directories.value         = []
+    errorMsg.value            = null
+    successMsg.value          = null
+    pendingOperation.value    = null
+    modalOpen.value           = true
+
+    // Consultar si hay operación pendiente
+    await checkPendingOperation()
   }
 
   function closeModal() {
     modalOpen.value = false
+  }
+
+  // ── Verificar operación pendiente ──────────────────────────────────────
+  async function checkPendingOperation() {
+    if (!activeWallet.value) return
+    pendingLoading.value = true
+    try {
+      const type = operation.value === 'deposit' ? 'DEPOSIT' : 'WITHDRAWAL'
+      const { data } = await backendClient.get<PendingOperationResponse>(
+        `wallet/${activeWallet.value.id}/pending-operation`,
+        { params: { type } }
+      )
+      pendingOperation.value = data.success ? data.pending : null
+    } catch {
+      pendingOperation.value = null
+    } finally {
+      pendingLoading.value = false
+    }
   }
 
   // ── Navegación de pasos ────────────────────────────────────────────────
@@ -297,6 +325,7 @@ export function useWallet(initialWallets: Wallet[]) {
     amount, selectedQuickAmount,
     receipt, reference, notes,
     directories, directoriesLoading, selectedDirectory,
+    pendingOperation, pendingLoading,
     loading, errorMsg, successMsg,
     // computed
     canWithdraw, formattedBalance, parsedAmount,

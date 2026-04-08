@@ -48,6 +48,19 @@ final class WalletService
     }
 
     /**
+     * Verifica si la billetera tiene una solicitud de depósito o retiro en cola (PENDING).
+     * Retorna el movimiento pendiente o null.
+     */
+    public function getPendingOperation(string $walletId, string $type): ?WalletMovement
+    {
+        return WalletMovement::where('wallet_id', $walletId)
+            ->where('type', $type)
+            ->where('status', WalletMovement::STATUS_PENDING)
+            ->latest()
+            ->first();
+    }
+
+    /**
      * Directorios de pago del usuario filtrados según la moneda de la billetera.
      * VES → PagoMovil | BRL → PIX | USDT → Binance
      */
@@ -135,15 +148,20 @@ final class WalletService
             throw new \DomainException('La billetera está bloqueada.');
         }
 
+        if ($this->getPendingOperation($walletId, WalletMovement::TYPE_DEPOSIT)) {
+            throw new \DomainException('Ya tienes un depósito pendiente de confirmación. Espera a que sea procesado antes de hacer otro.');
+        }
+
         $this->movementRepository->record([
             'wallet_id'      => (string) $wallet->id,
             'user_id'        => (string) $wallet->user_id,
             'type'           => WalletMovement::TYPE_DEPOSIT,
+            'status'         => WalletMovement::STATUS_PENDING,
             'amount'         => $amount,
             'balance_before' => (float) $wallet->balance,
             'balance_after'  => (float) $wallet->balance,
             'description'    => $notes ?? 'Depósito pendiente de confirmación',
-            'reference_id'   => $reference ?? $receipt, // guardamos el path del comprobante como referencia
+            'reference_id'   => $reference ?? $receipt,
         ]);
 
         return $wallet;
@@ -170,13 +188,16 @@ final class WalletService
                 throw new \DomainException('La billetera está bloqueada.');
             }
 
+            if ($this->getPendingOperation($walletId, WalletMovement::TYPE_WITHDRAWAL)) {
+                throw new \DomainException('Ya tienes un retiro pendiente de procesamiento. Espera a que sea procesado antes de solicitar otro.');
+            }
+
             if (! $wallet->hasSufficientBalance($amount)) {
                 throw new \DomainException('Saldo insuficiente para realizar el retiro.');
             }
 
             $balanceBefore = (float) $wallet->balance;
 
-            // Descontar el saldo de inmediato
             $this->walletRepository->decrementBalance($walletId, $amount);
             $wallet->refresh();
 
@@ -184,6 +205,7 @@ final class WalletService
                 'wallet_id'      => (string) $wallet->id,
                 'user_id'        => (string) $wallet->user_id,
                 'type'           => WalletMovement::TYPE_WITHDRAWAL,
+                'status'         => WalletMovement::STATUS_PENDING,
                 'amount'         => $amount,
                 'balance_before' => $balanceBefore,
                 'balance_after'  => (float) $wallet->balance,

@@ -31,6 +31,37 @@ class WalletController extends Controller
     }
 
     /**
+     * Retorna la solicitud pendiente (DEPOSIT o WITHDRAWAL en PENDING) de una billetera.
+     * GET /wallet/{walletId}/pending-operation
+     */
+    public function pendingOperation(Request $request, string $walletId): JsonResponse
+    {
+        try {
+            $type = strtoupper($request->query('type', ''));
+
+            if (! in_array($type, ['DEPOSIT', 'WITHDRAWAL'])) {
+                return response()->json(['success' => true, 'pending' => null]);
+            }
+
+            $pending = $this->walletService->getPendingOperation($walletId, $type);
+
+            return response()->json([
+                'success' => true,
+                'pending' => $pending ? [
+                    'id'          => (string) $pending->id,
+                    'type'        => $pending->type,
+                    'status'      => $pending->status,
+                    'amount'      => (float) $pending->amount,
+                    'description' => $pending->description,
+                    'created_at'  => $pending->created_at,
+                ] : null,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => true, 'pending' => null]);
+        }
+    }
+
+    /**
      * Directorios del usuario agrupados por tipo, filtrados por moneda de la billetera.
      * GET /wallet/{walletId}/directories
      */

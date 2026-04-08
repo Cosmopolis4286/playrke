@@ -57,6 +57,7 @@ class WalletMovement extends Model
         'wallet_id',
         'user_id',
         'type',
+        'status',
         'amount',
         'balance_before',
         'balance_after',

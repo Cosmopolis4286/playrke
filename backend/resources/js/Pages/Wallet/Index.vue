@@ -13,6 +13,7 @@ const {
   amount, selectedQuickAmount,
   receipt, reference, notes,
   directories, directoriesLoading, selectedDirectory,
+  pendingOperation, pendingLoading,
   loading, errorMsg, successMsg,
   canWithdraw, formattedBalance, parsedAmount,
   canGoToStep2, canSubmitDeposit, canSubmitWithdraw,
@@ -370,59 +371,114 @@ const modalIcon = computed(() => {
            PASO 1 — Monto
            ════════════════════════════════════════════════════════════════ -->
       <template v-if="step === 1">
-        <!-- Saldo actual -->
-        <div class="op-balance">
-          <div>
-            <p class="op-balance__label">Saldo disponible</p>
-            <p class="op-balance__amount">{{ activeWallet?.currency.symbol }} {{ formattedBalance }}</p>
-          </div>
-          <div class="op-balance__icon"><i class="fas fa-wallet"></i></div>
+
+        <!-- Verificando pendiente -->
+        <div v-if="pendingLoading" class="op-pending-checking">
+          <span class="op-spinner op-spinner--indigo"></span>
+          Verificando solicitudes activas...
         </div>
 
-        <!-- Input de monto -->
-        <div class="op-field">
-          <label class="op-field__label">
-            Monto a {{ operation === 'deposit' ? 'depositar' : 'retirar' }}
-          </label>
-          <div class="op-field__input-wrap">
-            <span class="op-field__symbol">{{ activeWallet?.currency.symbol }}</span>
-            <input
-              v-model="amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              placeholder="0.00"
-              class="op-field__input"
-              :class="operation === 'deposit' ? 'op-input--deposit' : 'op-input--withdraw'"
-              @input="clearQuickAmount"
-            />
-          </div>
-
-          <!-- Montos rápidos -->
-          <div class="op-quick">
-            <p class="op-quick__label">Montos rápidos:</p>
-            <div class="op-quick__grid">
-              <button
-                v-for="qa in quickAmounts"
-                :key="qa"
-                type="button"
-                class="op-quick__btn"
-                :class="{ 'op-quick__btn--active': selectedQuickAmount === qa }"
-                @click="selectQuickAmount(qa)"
-              >
-                {{ activeWallet?.currency.symbol }} {{ qa }}
-              </button>
+        <!-- BLOQUEADO: ya tiene pendiente -->
+        <template v-else-if="pendingOperation">
+          <div class="op-pending-block">
+            <div class="op-pending-block__icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="op-pending-block__body">
+              <p class="op-pending-block__title">Solicitud en cola</p>
+              <p class="op-pending-block__text">
+                Tienes {{ pendingOperation.type === 'DEPOSIT' ? 'un depósito' : 'un retiro' }} de
+                <strong>{{ activeWallet?.currency.symbol }} {{ formatAmount(pendingOperation.amount) }}</strong>
+                pendiente de confirmación.
+              </p>
+              <p class="op-pending-block__hint">
+                No puedes hacer otra solicitud hasta que un administrador la procese.
+              </p>
             </div>
           </div>
-        </div>
 
-        <!-- Error paso 1 -->
-        <Transition name="msg-fade">
-          <div v-if="errorMsg" class="op-msg op-msg--error">
-            <div class="op-msg__icon"><i class="fas fa-exclamation-triangle"></i></div>
-            <div><p class="op-msg__title">Atención</p><p>{{ errorMsg }}</p></div>
+          <!-- Detalle del movimiento pendiente -->
+          <div class="op-pending-detail">
+            <div class="op-pending-detail__row">
+              <span>Tipo</span>
+              <span :class="pendingOperation.type === 'DEPOSIT' ? 'text--deposit' : 'text--withdraw'">
+                <i :class="pendingOperation.type === 'DEPOSIT' ? 'fas fa-arrow-down' : 'fas fa-arrow-up'"></i>
+                {{ pendingOperation.type === 'DEPOSIT' ? 'Depósito' : 'Retiro' }}
+              </span>
+            </div>
+            <div class="op-pending-detail__row">
+              <span>Monto</span>
+              <strong>{{ activeWallet?.currency.symbol }} {{ formatAmount(pendingOperation.amount) }}</strong>
+            </div>
+            <div class="op-pending-detail__row">
+              <span>Estado</span>
+              <span class="op-pending-detail__badge">
+                <span class="op-pending-detail__dot"></span> En revisión
+              </span>
+            </div>
+            <div class="op-pending-detail__row">
+              <span>Solicitado</span>
+              <span>{{ formatDate(pendingOperation.created_at) }}</span>
+            </div>
           </div>
-        </Transition>
+        </template>
+
+        <!-- LIBRE: puede solicitar -->
+        <template v-else>
+          <!-- Saldo actual -->
+          <div class="op-balance">
+            <div>
+              <p class="op-balance__label">Saldo disponible</p>
+              <p class="op-balance__amount">{{ activeWallet?.currency.symbol }} {{ formattedBalance }}</p>
+            </div>
+            <div class="op-balance__icon"><i class="fas fa-wallet"></i></div>
+          </div>
+
+          <!-- Input de monto -->
+          <div class="op-field">
+            <label class="op-field__label">
+              Monto a {{ operation === 'deposit' ? 'depositar' : 'retirar' }}
+            </label>
+            <div class="op-field__input-wrap">
+              <span class="op-field__symbol">{{ activeWallet?.currency.symbol }}</span>
+              <input
+                v-model="amount"
+                type="number"
+                min="0.01"
+                step="0.01"
+                placeholder="0.00"
+                class="op-field__input"
+                :class="operation === 'deposit' ? 'op-input--deposit' : 'op-input--withdraw'"
+                @input="clearQuickAmount"
+              />
+            </div>
+
+            <!-- Montos rápidos -->
+            <div class="op-quick">
+              <p class="op-quick__label">Montos rápidos:</p>
+              <div class="op-quick__grid">
+                <button
+                  v-for="qa in quickAmounts"
+                  :key="qa"
+                  type="button"
+                  class="op-quick__btn"
+                  :class="{ 'op-quick__btn--active': selectedQuickAmount === qa }"
+                  @click="selectQuickAmount(qa)"
+                >
+                  {{ activeWallet?.currency.symbol }} {{ qa }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error paso 1 -->
+          <Transition name="msg-fade">
+            <div v-if="errorMsg" class="op-msg op-msg--error">
+              <div class="op-msg__icon"><i class="fas fa-exclamation-triangle"></i></div>
+              <div><p class="op-msg__title">Atención</p><p>{{ errorMsg }}</p></div>
+            </div>
+          </Transition>
+        </template>
       </template>
 
       <!-- ════════════════════════════════════════════════════════════════
@@ -599,9 +655,10 @@ const modalIcon = computed(() => {
         <!-- Paso 1: cancelar + siguiente -->
         <template v-else>
           <button type="button" class="op-btn op-btn--cancel" @click="closeModal">
-            <i class="fas fa-times"></i> Cancelar
+            <i class="fas fa-times"></i> Cerrar
           </button>
           <button
+            v-if="!pendingOperation && !pendingLoading"
             type="button"
             class="op-btn"
             :class="operation === 'deposit' ? 'op-btn--deposit' : 'op-btn--withdraw'"
@@ -1184,6 +1241,111 @@ const modalIcon = computed(() => {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Verificando pendiente ── */
+.op-pending-checking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #718096;
+  font-size: 0.85rem;
+  padding: 1.5rem 0;
+  justify-content: center;
+}
+
+/* ── Bloqueo por pendiente ── */
+.op-pending-block {
+  display: flex;
+  gap: 14px;
+  background: #fffbeb;
+  border: 1.5px solid #fcd34d;
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.op-pending-block__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fef3c7;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.op-pending-block__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 4px;
+}
+
+.op-pending-block__text {
+  font-size: 0.82rem;
+  color: #78350f;
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+
+.op-pending-block__hint {
+  font-size: 0.75rem;
+  color: #a16207;
+  margin: 0;
+}
+
+/* ── Detalle del movimiento pendiente ── */
+.op-pending-detail {
+  background: #f8fafc;
+  border: 1px solid #eaecf0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 0.25rem;
+}
+
+.op-pending-detail__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  font-size: 0.82rem;
+  color: #4a5568;
+  border-bottom: 1px solid #f0f2f7;
+}
+.op-pending-detail__row:last-child { border-bottom: none; }
+.op-pending-detail__row span:first-child { color: #a0aec0; }
+.op-pending-detail__row strong { color: #1a202c; }
+
+.op-pending-detail__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #fef3c7;
+  color: #d97706;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+
+.op-pending-detail__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+.text--deposit  { color: #16a34a; font-weight: 600; }
+.text--withdraw { color: #d97706; font-weight: 600; }
 
 /* ── Indicador de pasos ── */
 .op-steps {
