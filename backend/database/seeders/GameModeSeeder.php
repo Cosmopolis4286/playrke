@@ -13,7 +13,6 @@ class GameModeSeeder extends Seeder
             ['code' => 'ONLINE', 'label' => 'Online'],
             ['code' => 'OFFLINE', 'label' => 'Offline'],
             ['code' => 'MIXED', 'label' => 'Mixto'],
-            ['code' => 'DEMO', 'label' => 'Demo'],
         ];
 
         // Insertar o actualizar cada modo de forma idempotente
