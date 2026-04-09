@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Domain\Common\Status\StatusChanger;
 use App\Repositories\BaseRepository;
 use App\Services\Route\RouteService;
+use App\Support\EnvValidator;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
@@ -69,6 +70,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // -------------------------------------------
+        // Validar variables de entorno críticas al startup
+        // -------------------------------------------
+        // Falla rápido y claro si falta o es inválida alguna variable.
+        // Solo se ejecuta fuera de tests para no interferir con phpunit.
+        if (!$this->app->runningUnitTests()) {
+            EnvValidator::validate();
+        }
+
         // -------------------------------------------
         // Forzar HTTPS en producción
         // -------------------------------------------

@@ -16,19 +16,23 @@ use Illuminate\Support\Facades\Route;
 // BILLETERA DEL JUGADOR
 // ====================================
 Route::middleware(['auth', 'multiPermission:wallet.view,wallet.deposit,wallet.withdraw,wallet.movements'])->group(function () {
-    Route::get('wallet',                              [WalletController::class, 'index'])     ->name('wallet.index');
-    Route::post('wallet/deposit',                     [WalletController::class, 'deposit'])   ->name('wallet.deposit');
-    Route::post('wallet/withdraw',                    [WalletController::class, 'withdraw'])  ->name('wallet.withdraw');
-    Route::get('wallet/{walletId}/movements',         [WalletController::class, 'movements']) ->name('wallet.movements');
+    Route::get('wallet',                              [WalletController::class, 'index'])            ->name('wallet.index');
+    Route::post('wallet/deposit',                     [WalletController::class, 'deposit'])          ->name('wallet.deposit');
+    Route::post('wallet/withdraw',                    [WalletController::class, 'withdraw'])         ->name('wallet.withdraw');
+    Route::get('wallet/{walletId}/movements',         [WalletController::class, 'movements'])        ->name('wallet.movements');
+    Route::get('wallet/{walletId}/directories',       [WalletController::class, 'userDirectories'])  ->name('wallet.directories');
+    Route::get('wallet/{walletId}/pending-operation', [WalletController::class, 'pendingOperation']) ->name('wallet.pending-operation');
 });
 
 // ====================================
 // GESTIÓN DE MOVIMIENTOS (ADMIN/SUPERADMIN)
 // ====================================
 Route::middleware(['auth', 'multiPermission:wallet.movements.view,wallet.movements.manage'])->group(function () {
-    Route::get('wallet-movements',              [WalletMovementController::class, 'index'])     ->name('wallet-movements.index');
-    Route::get('wallet-movements/fetch',        [WalletMovementController::class, 'fetchList']) ->name('wallet-movements.fetch');
-    Route::get('wallet-movements/{movement}',   [WalletMovementController::class, 'show'])     ->name('wallet-movements.show');
+    Route::get('wallet-movements',                          [WalletMovementController::class, 'index'])     ->name('wallet-movements.index');
+    Route::get('wallet-movements/fetch',                    [WalletMovementController::class, 'fetchList']) ->name('wallet-movements.fetch');
+    Route::get('wallet-movements/{movement}',               [WalletMovementController::class, 'show'])      ->name('wallet-movements.show');
+    Route::post('wallet-movements/{movement}/approve',      [WalletMovementController::class, 'approve'])   ->name('wallet-movements.approve');
+    Route::post('wallet-movements/{movement}/reject',       [WalletMovementController::class, 'reject'])    ->name('wallet-movements.reject');
 });
 
 // ====================================

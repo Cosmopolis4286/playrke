@@ -7,17 +7,24 @@ use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
+use Spatie\Permission\Contracts\Role as RoleContract;
+use Spatie\Permission\Contracts\Permission as PermissionContract;
+use Spatie\Permission\Exceptions\RoleAlreadyExists;
+use Spatie\Permission\Exceptions\RoleDoesNotExist;
+use Spatie\Permission\Guard;
 use Spatie\Permission\Traits\HasPermissions;
+use Spatie\Permission\Traits\RefreshesPermissionCache;
 
 /**
  * Modelo para la gestión de roles de usuario.
  *
  * Representa los diferentes roles que pueden tener los usuarios en el sistema,
  * con información de nombre, prefijo, descripción y estado.
+ * Implementa el contrato de Spatie para compatibilidad con laravel-permission.
  */
-class Role extends Model
+class Role extends Model implements RoleContract
 {
-    use SnowflakeId, HasPermissions;
+    use SnowflakeId, HasPermissions, RefreshesPermissionCache;
 
     /**
      * Nombre de la tabla asociada al modelo.
@@ -46,6 +53,98 @@ class Role extends Model
     protected $casts = [
         'status' => 'boolean',
     ];
+
+
+    // =========================================================================
+    // Implementación del contrato Spatie\Permission\Contracts\Role
+    // =========================================================================
+
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            config('permission.models.permission', Permission::class),
+            config('permission.table_names.role_has_permissions'),
+            'role_id',
+            'permission_id'
+        );
+    }
+
+    public static function create(array $attributes = [])
+    {
+        $attributes['guard_name'] = $attributes['guard_name'] ?? Guard::getDefaultName(static::class);
+
+        $role = static::where('name', $attributes['name'])
+            ->where('guard_name', $attributes['guard_name'])
+            ->first();
+
+        if ($role) {
+            throw RoleAlreadyExists::create($attributes['name'], $attributes['guard_name']);
+        }
+
+        return static::query()->create($attributes);
+    }
+
+    public static function findByName(string $name, ?string $guardName = null): RoleContract
+    {
+        $guardName = $guardName ?? Guard::getDefaultName(static::class);
+
+        $role = static::where('name', $name)
+            ->where('guard_name', $guardName)
+            ->first();
+
+        if (! $role) {
+            throw RoleDoesNotExist::named($name);
+        }
+
+        return $role;
+    }
+
+    public static function findById(int|string $id, ?string $guardName = null): RoleContract
+    {
+        $guardName = $guardName ?? Guard::getDefaultName(static::class);
+
+        $role = static::where((new static)->getKeyName(), (string) $id)
+            ->where('guard_name', $guardName)
+            ->first();
+
+        if (! $role) {
+            throw RoleDoesNotExist::withId($id);
+        }
+
+        return $role;
+    }
+
+    public static function findOrCreate(string $name, ?string $guardName = null): RoleContract
+    {
+        $guardName = $guardName ?? Guard::getDefaultName(static::class);
+
+        $role = static::where('name', $name)
+            ->where('guard_name', $guardName)
+            ->first();
+
+        if (! $role) {
+            return static::query()->create(['name' => $name, 'guard_name' => $guardName]);
+        }
+
+        return $role;
+    }
+
+    public function hasPermissionTo($permission, ?string $guardName = null): bool
+    {
+        if (is_string($permission)) {
+            $permission = app(PermissionContract::class)->findByName($permission, $guardName ?? $this->attributes['guard_name'] ?? Guard::getDefaultName(static::class));
+        }
+
+        if (is_int($permission) || is_numeric($permission)) {
+            $permission = app(PermissionContract::class)->findById($permission, $guardName ?? $this->attributes['guard_name'] ?? Guard::getDefaultName(static::class));
+        }
+
+        return $this->permissions->contains($permission);
+    }
+
+    // =========================================================================
+    // Relaciones con usuarios
+    // =========================================================================
 
     /**
      * Relación con los usuarios que tienen este rol.

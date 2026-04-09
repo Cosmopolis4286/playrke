@@ -57,17 +57,25 @@ class WalletMovement extends Model
         'wallet_id',
         'user_id',
         'type',
+        'status',
         'amount',
         'balance_before',
         'balance_after',
         'description',
         'reference_id',
+        'receipt_path',
+        'metadata',
+        'admin_notes',
+        'processed_by',
+        'processed_at',
     ];
 
     protected $casts = [
         'amount'         => 'decimal:2',
         'balance_before' => 'decimal:2',
         'balance_after'  => 'decimal:2',
+        'metadata'       => 'array',
+        'processed_at'   => 'datetime',
         'created_at'     => 'datetime',
         'updated_at'     => 'datetime',
     ];
@@ -82,6 +90,11 @@ class WalletMovement extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function processedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'processed_by');
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

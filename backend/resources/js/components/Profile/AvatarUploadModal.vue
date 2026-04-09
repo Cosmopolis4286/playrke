@@ -1,402 +1,391 @@
 <template>
-  <div class="modal-backdrop" @click="$emit('close')">
-    <div class="modal-dialog modal-dialog-centered" @click.stop>
-      <div class="modal-content">
-        <div class="modal-header border-0">
-          <h5 class="modal-title">
-            <i class="fas fa-camera me-2"></i>Actualizar Avatar
-          </h5>
-          <button type="button" class="btn-close" @click="$emit('close')"></button>
-        </div>
-        
-        <div class="modal-body">
-          <!-- Preview del Avatar -->
-          <div class="text-center mb-4">
-            <div class="avatar-preview">
-              <img 
-                :src="previewUrl || currentAvatar || '/img/fav.ico'" 
-                alt="Avatar Preview"
-                class="rounded-circle"
-                :class="{ 'avatar-uploaded': selectedFile }"
-              >
-              <div v-if="selectedFile" class="avatar-upload-indicator">
-                <i class="fas fa-check"></i>
-              </div>
-            </div>
-            <h6 class="mt-3 mb-1">
-              {{ selectedFile ? 'Nuevo Avatar' : 'Avatar Actual' }}
-            </h6>
-            <small class="text-muted">
-              {{ selectedFile ? selectedFile.name : 'Sin cambios' }}
-            </small>
-          </div>
-
-          <!-- Formulario de Subida -->
-          <form @submit.prevent="handleSubmit">
-            <!-- Input de Archivo -->
-            <div class="mb-3">
-              <label for="avatar" class="form-label">Seleccionar Imagen</label>
-              <input 
-                type="file" 
-                id="avatar"
-                ref="fileInput"
-                @change="handleFileChange"
-                class="form-control"
-                :class="{ 'is-invalid': errors.file }"
-                accept="image/jpeg,image/png,image/jpg,image/gif"
-                required
-              >
-              <div v-if="errors.file" class="invalid-feedback">
-                {{ errors.file }}
-              </div>
-              <small class="form-text text-muted">
-                Formatos permitidos: JPG, PNG, GIF. Tamaño máximo: 2MB
-              </small>
-            </div>
-
-            <!-- Información del archivo -->
-            <div v-if="selectedFile" class="alert alert-info">
-              <h6 class="alert-heading">
-                <i class="fas fa-info-circle me-2"></i>Información del Archivo:
-              </h6>
-              <div class="row small">
-                <div class="col-6">
-                  <strong>Nombre:</strong> {{ selectedFile.name }}
-                </div>
-                <div class="col-6">
-                  <strong>Tamaño:</strong> {{ formatFileSize(selectedFile.size) }}
-                </div>
-                <div class="col-6">
-                  <strong>Tipo:</strong> {{ selectedFile.type }}
-                </div>
-                <div class="col-6">
-                  <strong>Dimensiones:</strong> {{ imageDimensions || 'No disponible' }}
-                </div>
-              </div>
-            </div>
-
-            <!-- Opciones de Edición -->
-            <div v-if="selectedFile && imageDimensions" class="mb-3">
-              <label class="form-label">Opciones de Edición</label>
-              <div class="row">
-                <div class="col-md-6 mb-2">
-                  <div class="form-check">
-                    <input 
-                      class="form-check-input" 
-                      type="checkbox" 
-                      id="auto_resize"
-                      v-model="autoResize"
-                    >
-                    <label class="form-check-label" for="auto_resize">
-                      Redimensionar automáticamente (400x400px)
-                    </label>
-                  </div>
-                </div>
-                <div class="col-md-6 mb-2">
-                  <div class="form-check">
-                    <input 
-                      class="form-check-input" 
-                      type="checkbox" 
-                      id="compress"
-                      v-model="compress"
-                    >
-                    <label class="form-check-label" for="compress">
-                      Comprimir imagen
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Botones de Acción -->
-            <div class="d-flex justify-content-between">
-              <button 
-                v-if="currentAvatar" 
-                type="button" 
-                class="btn btn-outline-danger"
-                @click="handleDeleteAvatar"
-                :disabled="deleting"
-              >
-                <i class="fas fa-trash me-2"></i>
-                {{ deleting ? 'Eliminando...' : 'Eliminar Avatar' }}
-              </button>
-              
-              <div class="d-flex gap-2 ms-auto">
-                <button type="button" class="btn btn-secondary" @click="$emit('close')">
-                  <i class="fas fa-times me-2"></i>Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  class="btn btn-primary" 
-                  :disabled="!selectedFile || uploading"
-                >
-                  <i class="fas fa-upload me-2"></i>
-                  {{ uploading ? 'Subiendo...' : 'Subir Avatar' }}
-                </button>
-              </div>
-            </div>
-          </form>
+  <Modal
+    v-model="open"
+    title="Actualizar Avatar"
+    icon="fa-camera"
+    size="md"
+    :static="true"
+    :show-confirm="false"
+    @update:model-value="v => !v && $emit('close')"
+  >
+    <!-- ── Preview ── -->
+    <div class="avatar-preview-wrap">
+      <div class="avatar-ring" :class="{ 'avatar-ring--ready': !!selectedFile }">
+        <img
+          :src="previewUrl || currentAvatar || '/img/fav.ico'"
+          alt="Avatar"
+          class="avatar-preview-img"
+        />
+        <div v-if="selectedFile" class="avatar-check">
+          <i class="fas fa-check"></i>
         </div>
       </div>
+      <p class="avatar-status">
+        {{ selectedFile ? selectedFile.name : (currentAvatar ? 'Avatar actual' : 'Sin avatar') }}
+      </p>
     </div>
-  </div>
+
+    <!-- ── Drop zone ── -->
+    <div
+      class="dropzone"
+      :class="{ 'dropzone--over': isDragging, 'dropzone--error': fileError }"
+      @dragover.prevent="isDragging = true"
+      @dragleave.prevent="isDragging = false"
+      @drop.prevent="onDrop"
+      @click="fileInputRef?.click()"
+    >
+      <input
+        ref="fileInputRef"
+        type="file"
+        class="sr-only"
+        accept="image/jpeg,image/png,image/jpg,image/gif"
+        @change="onFileChange"
+      />
+      <div class="dropzone-inner">
+        <i class="fas fa-cloud-upload-alt dropzone-icon"></i>
+        <p class="dropzone-text">
+          <span class="dropzone-link">Haz clic para seleccionar</span>
+          &nbsp;o arrastra la imagen aquí
+        </p>
+        <p class="dropzone-hint">JPG, PNG, GIF · Máx. 5 MB · Se comprime automáticamente</p>
+      </div>
+    </div>
+
+    <!-- ── Error ── -->
+    <p v-if="fileError" class="upload-error">
+      <i class="fas fa-exclamation-circle me-1"></i>{{ fileError }}
+    </p>
+
+    <!-- ── File info ── -->
+    <div v-if="selectedFile && !fileError" class="file-info">
+      <div class="file-info-row">
+        <span class="file-info-key">Archivo</span>
+        <span class="file-info-val">{{ selectedFile.name }}</span>
+      </div>
+      <div class="file-info-row">
+        <span class="file-info-key">Tamaño</span>
+        <span class="file-info-val">{{ formatSize(selectedFile.size) }}</span>
+      </div>
+      <div v-if="imageDimensions" class="file-info-row">
+        <span class="file-info-key">Dimensiones</span>
+        <span class="file-info-val">{{ imageDimensions }}</span>
+      </div>
+    </div>
+
+    <template #footer>
+      <button
+        v-if="currentAvatar"
+        type="button"
+        class="action-btn action-btn--danger me-auto"
+        :disabled="deleting"
+        @click="handleDelete"
+      >
+        <i class="fas fa-trash me-1"></i>
+        {{ deleting ? 'Eliminando...' : 'Eliminar' }}
+      </button>
+
+      <button type="button" class="action-btn action-btn--ghost" @click="$emit('close')">
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="action-btn action-btn--primary"
+        :disabled="!selectedFile || !!fileError || uploading"
+        @click="handleUpload"
+      >
+        <i class="fas fa-upload me-1"></i>
+        {{ uploading ? 'Subiendo...' : 'Subir avatar' }}
+      </button>
+    </template>
+
+  </Modal>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
-import { useForm } from '@inertiajs/vue3'
+<script setup lang="ts">
+import { ref } from 'vue'
 import { showToast } from '@js/utils/toastNotify'
+import Modal from '@js/Components/Common/Modal/Modal.vue'
 
-const props = defineProps({
-    currentAvatar: {
-        type: String,
-        default: null
-    }
-})
+const props = defineProps<{ currentAvatar?: string | null }>()
+const emit  = defineEmits<{ close: []; 'avatar-updated': [avatar: string | null] }>()
 
-const emit = defineEmits(['close', 'avatar-updated'])
-
-// Estado local
-const fileInput = ref(null)
-const selectedFile = ref(null)
-const previewUrl = ref('')
+const open          = ref(true)
+const fileInputRef  = ref<HTMLInputElement | null>(null)
+const selectedFile  = ref<File | null>(null)
+const previewUrl    = ref('')
 const imageDimensions = ref('')
-const errors = ref({})
-const uploading = ref(false)
-const deleting = ref(false)
-const autoResize = ref(true)
-const compress = ref(true)
+const fileError     = ref('')
+const isDragging    = ref(false)
+const uploading     = ref(false)
+const deleting      = ref(false)
 
-// Formulario
-const form = useForm({
-    avatar: null,
-    auto_resize: true,
-    compress: true
-})
+// ── Helpers ────────────────────────────────────────────────────────────────
+const VALID_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif']
+const MAX_SIZE    = 5 * 1024 * 1024  // 5 MB — el backend comprime antes de guardar
 
-// Computadas
-const isValidFile = computed(() => {
-    if (!selectedFile.value) return false
-    
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif']
-    const maxSize = 2 * 1024 * 1024 // 2MB
-    
-    return validTypes.includes(selectedFile.value.type) && 
-           selectedFile.value.size <= maxSize
-})
+function formatSize(bytes: number) {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+}
 
-// Métodos
-const handleFileChange = (event) => {
-    const target = event.target
-    const file = target.files?.[0]
-    
-    if (!file) {
-        selectedFile.value = null
-        previewUrl.value = ''
-        imageDimensions.value = ''
+function csrf() {
+    return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? ''
+}
+
+function validateAndSet(file: File) {
+    fileError.value = ''
+    if (!VALID_TYPES.includes(file.type)) {
+        fileError.value = 'Formato no válido. Usa JPG, PNG o GIF.'
         return
     }
-    
-    // Validar archivo
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif']
-    const maxSize = 2 * 1024 * 1024 // 2MB
-    
-    if (!validTypes.includes(file.type)) {
-        errors.value.file = 'Formato de archivo no válido. Usa JPG, PNG o GIF.'
+    if (file.size > MAX_SIZE) {
+        fileError.value = 'El archivo supera el límite de 2 MB.'
         return
     }
-    
-    if (file.size > maxSize) {
-        errors.value.file = 'El archivo es demasiado grande. Máximo 2MB.'
-        return
-    }
-    
-    // Limpiar errores
-    errors.value = {}
-    
     selectedFile.value = file
-    
-    // Crear preview
+
     const reader = new FileReader()
-    reader.onload = (e) => {
-        const result = e.target?.result
-        if (typeof result === 'string') {
-            previewUrl.value = result
-            
-            // Obtener dimensiones de la imagen
-            const img = new Image()
-            img.onload = () => {
-                imageDimensions.value = `${img.width}x${img.height}px`
-            }
-            img.src = result
-        }
+    reader.onload = e => {
+        const src = e.target?.result as string
+        previewUrl.value = src
+        const img = new Image()
+        img.onload = () => { imageDimensions.value = `${img.width} × ${img.height} px` }
+        img.src = src
     }
     reader.readAsDataURL(file)
 }
 
-const handleSubmit = () => {
-    if (!selectedFile.value || !isValidFile.value) {
-        showToast('Por favor selecciona un archivo válido', 'error')
-        return
-    }
-    
-    uploading.value = true
-    
-    const formData = new FormData()
-    formData.append('avatar', selectedFile.value)
-    formData.append('auto_resize', autoResize.value.toString())
-    formData.append('compress', compress.value.toString())
-    
-    // Usar fetch para subir
-    fetch('/profile/api/avatar', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(response => {
-        if (response.success) {
-            showToast('Avatar actualizado exitosamente', 'success')
-            emit('avatar-updated', response.data.avatar)
-            emit('close')
-        } else {
-            showToast('Error al actualizar el avatar', 'error')
-        }
-    })
-    .catch(error => {
-        console.error('Avatar upload error:', error)
-        showToast('Error al subir el avatar', 'error')
-    })
-    .finally(() => {
-        uploading.value = false
-    })
+function onFileChange(e: Event) {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (file) validateAndSet(file)
 }
 
-const handleDeleteAvatar = () => {
-    if (!confirm('¿Estás seguro de que deseas eliminar tu avatar actual?')) {
-        return
-    }
-    
-    deleting.value = true
-    
-    fetch('/profile/api/avatar', {
-        method: 'DELETE',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'X-Requested-With': 'XMLHttpRequest'
+function onDrop(e: DragEvent) {
+    isDragging.value = false
+    const file = e.dataTransfer?.files?.[0]
+    if (file) validateAndSet(file)
+}
+
+// ── Upload ─────────────────────────────────────────────────────────────────
+async function handleUpload() {
+    if (!selectedFile.value || fileError.value) return
+    uploading.value = true
+    const body = new FormData()
+    body.append('avatar', selectedFile.value)
+    try {
+        const res  = await fetch('/profile/avatar', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrf(), 'X-Requested-With': 'XMLHttpRequest' },
+            body,
+        })
+        const data = await res.json()
+        if (data.success) {
+            showToast('Avatar actualizado', 'success')
+            emit('avatar-updated', data.data.avatar)
+            emit('close')
+        } else {
+            showToast('Error al subir el avatar', 'error')
         }
-    })
-    .then(response => response.json())
-    .then(response => {
-        if (response.success) {
-            showToast('Avatar eliminado exitosamente', 'success')
+    } catch {
+        showToast('Error de conexión', 'error')
+    } finally {
+        uploading.value = false
+    }
+}
+
+// ── Delete ─────────────────────────────────────────────────────────────────
+async function handleDelete() {
+    if (!confirm('¿Eliminar tu avatar actual?')) return
+    deleting.value = true
+    try {
+        const res  = await fetch('/profile/avatar', {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': csrf(), 'X-Requested-With': 'XMLHttpRequest' },
+        })
+        const data = await res.json()
+        if (data.success) {
+            showToast('Avatar eliminado', 'success')
             emit('avatar-updated', null)
             emit('close')
         } else {
             showToast('Error al eliminar el avatar', 'error')
         }
-    })
-    .catch(error => {
-        console.error('Avatar delete error:', error)
-        showToast('Error al eliminar el avatar', 'error')
-    })
-    .finally(() => {
+    } catch {
+        showToast('Error de conexión', 'error')
+    } finally {
         deleting.value = false
-    })
-}
-
-const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes'
-    
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    }
 }
 </script>
 
 <style scoped>
-.modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+/* ── Preview ── */
+.avatar-preview-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+.avatar-ring {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    padding: 3px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    transition: background 0.3s;
+}
+.avatar-ring--ready {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+.avatar-preview-img {
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #fff;
+    display: block;
+}
+.avatar-check {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #10b981;
+    border: 2px solid #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1050;
+    font-size: 0.6rem;
+    color: #fff;
+}
+.avatar-status {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: #64748b;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
 }
 
-.modal-dialog {
-    max-width: 600px;
+/* ── Dropzone ── */
+.dropzone {
+    border: 2px dashed #d1d9e6;
+    border-radius: 12px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: #fafbff;
+    margin-bottom: 0.75rem;
+}
+.dropzone:hover,
+.dropzone--over {
+    border-color: #667eea;
+    background: #f0f2ff;
+}
+.dropzone--error {
+    border-color: #ef4444;
+    background: #fff5f5;
+}
+.dropzone-inner { pointer-events: none; }
+.dropzone-icon {
+    font-size: 1.75rem;
+    color: #667eea;
+    margin-bottom: 8px;
+    display: block;
+}
+.dropzone-text {
+    font-size: 0.82rem;
+    color: #4a5568;
+    margin: 0 0 4px;
+}
+.dropzone-link {
+    color: #667eea;
+    font-weight: 600;
+    text-decoration: underline;
+}
+.dropzone-hint {
+    font-size: 0.72rem;
+    color: #94a3b8;
     margin: 0;
 }
 
-.modal-content {
-    border-radius: 12px;
-    border: none;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+/* ── Error ── */
+.upload-error {
+    font-size: 0.75rem;
+    color: #ef4444;
+    margin: 0 0 0.75rem;
 }
 
-.modal-header {
-    border-radius: 12px 12px 0 0;
+/* ── File info ── */
+.file-info {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 10px;
+    padding: 0.65rem 0.9rem;
+    margin-bottom: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
-
-.avatar-preview {
-    position: relative;
-    display: inline-block;
+.file-info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.75rem;
 }
+.file-info-key { color: #64748b; font-weight: 600; }
+.file-info-val { color: #2d3a52; word-break: break-all; text-align: right; }
 
-.avatar-preview img {
-    width: 120px;
-    height: 120px;
-    object-fit: cover;
-    border: 4px solid #0d6efd;
-    transition: all 0.3s ease;
-}
-
-.avatar-preview img.avatar-uploaded {
-    border-color: #28a745;
-    transform: scale(1.05);
-}
-
-.avatar-upload-indicator {
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
-    width: 30px;
-    height: 30px;
-    background-color: #28a745;
-    border-radius: 50%;
+/* ── Actions ── */
+.modal-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: white;
-    border: 3px solid white;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
 }
+.actions-right { display: flex; gap: 8px; margin-left: auto; }
 
-.form-control, .btn {
-    border-radius: 8px;
-}
-
-.form-control:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
-}
-
-.alert {
-    border-radius: 8px;
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 9px 22px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
     border: none;
+    transition: all 0.15s;
+    line-height: 1.4;
+    white-space: nowrap;
 }
-
-.form-check-input:checked {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
+.action-btn--ghost {
+    background: transparent;
+    color: #64748b;
+    border: 1.5px solid #d1d9e6;
 }
+.action-btn--ghost:hover { background: #f1f5f9; }
+.action-btn--primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(102,126,234,0.28);
+}
+.action-btn--primary:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+.action-btn--primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+.action-btn--danger {
+    background: #fff5f5;
+    color: #ef4444;
+    border: 1.5px solid #fca5a5;
+}
+.action-btn--danger:hover:not(:disabled) { background: #ef4444; color: #fff; }
+.action-btn--danger:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

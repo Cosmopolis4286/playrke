@@ -5,7 +5,7 @@ export type { RoundConfig, RoundPrizeType }
 /**
  * Tipos de sala de bingo
  */
-export type BingoRoomAutomaticType = 'PRIVATE' | 'PUBLIC' | 'VIP' | 'MIXED'
+export type BingoRoomAutomaticType = 'PRIVATE' | 'PUBLIC' | 'VIP' | 'DEMO'
 
 /**
  * Indica si los premios fueron pagados

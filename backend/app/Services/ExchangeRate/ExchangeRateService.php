@@ -153,7 +153,7 @@ final class ExchangeRateService
 
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if ($role !== 'admin' && $role !== 'commerce') {
+        if (!in_array($role, ['admin', 'superadmin', 'commerce'])) {
             return null;
         }
 
@@ -163,7 +163,7 @@ final class ExchangeRateService
             return null;
         }
 
-        if ($role === 'admin') {
+        if (in_array($role, ['admin', 'superadmin'])) {
             // For admin users, get all available currency ISO codes from database
             $availableIsoCodes = $this->adminExchangeRate->getAvailableCurrenciesIsoCodes();
 
@@ -215,8 +215,8 @@ final class ExchangeRateService
 
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
-        if ($role === 'admin') {
-            // For admin users, update all provided rates without filtering
+        if (in_array($role, ['admin', 'superadmin'])) {
+            // Para admin/superadmin, actualizar todas las tasas sin filtrar por comercio
             $filteredRates = collect($rates)
                 ->filter(fn($value, $key) => $key !== 'Promedio' && $value != 0)
                 ->toArray();

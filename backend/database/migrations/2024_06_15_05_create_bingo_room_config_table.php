@@ -25,6 +25,9 @@ return new class extends Migration
             $table->enum('creation', ['M', 'A'])->default('M')
                 ->comment('Modo de creación: M = manual, A = automático');
 
+            $table->enum('from_house', ['Y', 'N'])->default('N')
+                ->comment('Sala propia de la app: Y = sí, N = no');
+
             // Tipo de sala
             $table->foreignSnowflake('room_type_id')
                 ->constrained('room_types')

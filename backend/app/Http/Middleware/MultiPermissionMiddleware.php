@@ -26,6 +26,11 @@ class MultiPermissionMiddleware
             return redirect()->route('login')->with('error', 'Por favor, inicie sesión para continuar.');
         }
 
+        // El superadmin tiene acceso total, sin necesidad de permisos explícitos
+        if ($user->hasRole('superadmin')) {
+            return $next($request);
+        }
+
         Log::debug('MultiPermissionMiddleware: Checking user ' . $user->id . ' for permissions: ' . implode(', ', $permissions));
         Log::debug('MultiPermissionMiddleware: User roles: ' . $user->getRoleNames()->implode(', '));
         

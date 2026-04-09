@@ -15,6 +15,7 @@
   import DashboardSection       from '@/js/Components/Common/Dashboard/DashboardSection.vue'
   import DashboardActivityFeed  from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
   import DashboardQuickLinks    from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+  import DashboardEntityList    from '@/js/Components/Common/Dashboard/DashboardEntityList.vue'
   import type { QuickLink }     from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
@@ -146,25 +147,7 @@
             icon="fas fa-layer-group"
             subtitle="Totales registrados"
           >
-            <div v-if="entityCounts.length" class="ds-entity-list">
-              <div
-                v-for="(entity, i) in entityCounts"
-                :key="i"
-                class="ds-entity-item"
-              >
-                <span class="ds-entity-icon" :class="`text-${entity.variant}`">
-                  <i :class="entity.icon"></i>
-                </span>
-                <span class="ds-entity-label">{{ entity.label }}</span>
-                <span class="ds-entity-value badge" :class="`bg-${entity.variant}`">
-                  {{ entity.value }}
-                </span>
-              </div>
-            </div>
-            <div v-else class="ds-empty">
-              <i class="fas fa-layer-group"></i>
-              <p class="mb-0">Sin datos disponibles.</p>
-            </div>
+            <DashboardEntityList :items="entityCounts" />
           </DashboardSection>
         </div>
 
@@ -189,55 +172,4 @@
   flex-direction: column;
   gap: 1rem;
 }
-
-/* Lista de entidades */
-.ds-entity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.ds-entity-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.ds-entity-icon {
-  font-size: 1.1rem;
-  width: 1.5rem;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.ds-entity-label {
-  flex: 1;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #495057;
-}
-
-.ds-entity-value {
-  font-size: 0.8rem;
-  font-weight: 600;
-  min-width: 2rem;
-  text-align: center;
-}
-
-/* Empty state */
-.ds-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 2.5rem 1rem;
-  color: #adb5bd;
-  font-size: 0.85rem;
-  text-align: center;
-}
-.ds-empty i { font-size: 2rem; }
 </style>

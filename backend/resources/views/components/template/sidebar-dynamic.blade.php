@@ -1,9 +1,13 @@
 @php
     use App\Services\Menu\SidebarMenuService;
-    
+
     $menuService = app(SidebarMenuService::class);
     $menuItems = $menuService->generateMenu();
     $userRoleDisplay = $menuService->getUserRoleDisplay();
+    $authUser     = auth()->user();
+    $sidebarPhoto = $authUser?->profile_photo_url
+        ?? ($authUser?->foto ? asset('img/users/' . $authUser->foto) : null);
+    $sidebarName  = $authUser?->username ?? $authUser?->name ?? 'Usuario';
 @endphp
 
 <aside class="main-sidebar sidebar-dark-primary elevation-3" role="complementary" aria-label="Sidebar principal">
@@ -61,64 +65,41 @@
                     @endif
                 @endforeach
 
-                {{-- Sección de información (siempre visible) --}}
-                @php
-                    $infoRoutes = ['info.terms', 'info.about', 'info.privacy'];
-                    $isInfoActive = request()->routeIs($infoRoutes);
-                @endphp
-
-                <li class="nav-item has-treeview {{ $isInfoActive ? 'menu-open' : '' }}">
-                    <a href="#" class="{{ $isInfoActive ? 'nav-link active' : 'nav-link' }}">
-                        <i class="nav-icon fas fa-book"></i>
-                        <p>Información <i class="right fas fa-angle-left"></i></p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="{{ route('info.about') }}"
-                                class="{{ request()->routeIs('info.about') ? 'nav-link active' : 'nav-link' }}">
-                                <i class="fa-solid fa-caret-right nav-icon"></i>
-                                <p>Acerca de PlayRKE</p>
-                            </a>
-                        </li>
-                        @if(auth()->user()?->hasRole('player'))
-                            <li class="nav-item">
-                                <a href="{{ route('info.power-of-knowledge') }}"
-                                    class="{{ request()->routeIs('info.power-of-knowledge') ? 'nav-link active' : 'nav-link' }}">
-                                    <i class="fa-solid fa-caret-right nav-icon"></i>
-                                    <p>El Poder del Saber</p>
-                                </a>
-                            </li>
-                        @endif
-                        <li class="nav-item">
-                            <a href="{{ route('info.terms') }}"
-                                class="{{ request()->routeIs('info.terms') ? 'nav-link active' : 'nav-link' }}">
-                                <i class="fa-solid fa-caret-right nav-icon"></i>
-                                <p>Términos y Condiciones</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('info.privacy') }}"
-                                class="{{ request()->routeIs('info.privacy') ? 'nav-link active' : 'nav-link' }}">
-                                <i class="fa-solid fa-caret-right nav-icon"></i>
-                                <p>Política de Privacidad</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-                {{-- Cerrar sesión --}}
+                {{-- Centro de Ayuda --}}
                 <li class="nav-item">
-                    <button type="button"
-                            class="nav-link logout-btn w-100 text-left border-0 bg-transparent"
-                            data-logout-url="{{ route('logout') }}"
-                            data-login-redirect-url="{{ route('login') }}"
-                            data-show-confirmation="false"
-                            style="background: none !important;">
-                        <i class="nav-icon fas fa-sign-out-alt"></i>
-                        <p>Cerrar sesión</p>
-                    </button>
+                    <a href="{{ route('info.helpCenter') }}"
+                       class="{{ request()->routeIs('info.helpCenter') ? 'nav-link active' : 'nav-link' }}">
+                        <i class="nav-icon fas fa-circle-question"></i>
+                        <p>Centro de Ayuda</p>
+                    </a>
                 </li>
+
             </ul>
         </nav>
     </section>
+
+    {{-- Pie del sidebar: info del usuario + cerrar sesión --}}
+    <div class="sidebar-user-footer">
+        <div class="sidebar-user-footer__info">
+            <div class="sidebar-user-footer__avatar">
+                @if($sidebarPhoto)
+                    <img src="{{ $sidebarPhoto }}" alt="{{ $sidebarName }}" class="sidebar-user-footer__photo">
+                @else
+                    <i class="fas fa-user-circle"></i>
+                @endif
+            </div>
+            <div class="sidebar-user-footer__details">
+                <span class="sidebar-user-footer__name">{{ $sidebarName }}</span>
+                <span class="sidebar-user-footer__role">{{ $userRoleDisplay }}</span>
+            </div>
+        </div>
+        <button type="button"
+                class="sidebar-user-footer__logout logout-btn"
+                data-logout-url="{{ route('logout') }}"
+                data-login-redirect-url="{{ route('login') }}"
+                data-show-confirmation="false"
+                title="Cerrar sesión">
+            <i class="fas fa-sign-out-alt"></i>
+        </button>
+    </div>
 </aside>

@@ -141,12 +141,14 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
     /**
      * Obtener salas activas de un usuario para la vista de juego (game-rooms) con filtrado por rol.
      * Si el usuario tiene rol 'player', solo devuelve salas PUBLIC.
+     * Para roles commerce/customer, filtra por from_house = N.
      * Para otros roles, devuelve todas las salas activas.
      *
      * @param int    $userId ID del usuario creador
      * @param string $today  Fecha en formato YYYY-MM-DD
      * @param bool   $isPlayer Si el usuario tiene rol 'player'
+     * @param bool   $isCommerceCustomer Si el usuario tiene rol 'commerce' o 'customer'
      * @return Collection<BingoRoom>
      */
-    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer): Collection;
+    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false): Collection;
 }

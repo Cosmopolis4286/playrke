@@ -6,6 +6,7 @@ use App\Factories\ExchangeRate\ExchangeRateFactory;
 use App\Http\Requests\ExchangeRate\ExchangeRateRequest;
 use App\Http\Support\PublicTokenResolver;
 use App\Services\ExchangeRate\ExchangeRateService;
+use App\Models\ExchangeRate;
 use App\Models\UserPreference;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -232,13 +233,19 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($request) {
+                if (!ExchangeRate::exists()) {
+                    return response()->json([
+                        'message' => 'Debe registrar al menos una tasa de cambio para activar la actualización automática.',
+                    ], 422);
+                }
+
                 UserPreference::setPreference(
                     auth()->id(),
                     UserPreference::CATEGORY_EXCHANGE_RATE,
                     'auto_update_enabled',
                     'true'
                 );
-                
+
                 return [
                     'message' => 'Cronjob de actualización automática activado.',
                     'enabled' => true
@@ -258,13 +265,19 @@ class ExchangeRateController extends Controller
     {
         return $this->handleServiceJson(
             function () use ($request) {
+                if (!ExchangeRate::exists()) {
+                    return response()->json([
+                        'message' => 'No hay tasas de cambio registradas.',
+                    ], 422);
+                }
+
                 UserPreference::setPreference(
                     auth()->id(),
                     UserPreference::CATEGORY_EXCHANGE_RATE,
                     'auto_update_enabled',
                     'false'
                 );
-                
+
                 return [
                     'message' => 'Cronjob de actualización automática desactivado.',
                     'enabled' => false

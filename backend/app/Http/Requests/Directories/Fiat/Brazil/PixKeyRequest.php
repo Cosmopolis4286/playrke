@@ -27,7 +27,7 @@ final class PixKeyRequest extends BaseRequest
 {
     public function authorize(): bool
     {
-        return PermissionService::checkPrefix(['admin', 'commerce', 'customer', 'seller']);
+        return PermissionService::checkPrefix(['admin', 'commerce', 'customer', 'seller', 'player']);
     }
 
     protected function prepareForValidation(): void

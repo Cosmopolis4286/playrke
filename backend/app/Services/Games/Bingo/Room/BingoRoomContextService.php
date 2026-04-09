@@ -150,11 +150,12 @@ final class BingoRoomContextService
     {
         $today = now()->toDateString();
 
-        // Verificar si el usuario tiene rol 'player'
+        // Verificar roles del usuario
         $isPlayer = $this->userContext->userHasRole('player');
+        $isCommerceCustomer = $this->userContext->userHasRole('commerce') || $this->userContext->userHasRole('customer');
 
         // Usar el nuevo método con filtrado por rol
-        $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, $today, $isPlayer);
+        $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, $today, $isPlayer, $isCommerceCustomer);
 
         $timestamp = now()->valueOf(); // ms
 
@@ -231,8 +232,11 @@ final class BingoRoomContextService
     private function getPlayerCardPriceForContext(int $userId): ?array
     {
         try {
+            // Verificar roles del usuario
+            $isCommerceCustomer = $this->userContext->userHasRole('commerce') || $this->userContext->userHasRole('customer');
+            
             // Obtener todas las salas activas para el jugador
-            $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, now()->toDateString(), true);
+            $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, now()->toDateString(), true, $isCommerceCustomer);
 
             if ($rooms->isEmpty()) {
                 return null;

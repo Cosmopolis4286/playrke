@@ -25,6 +25,7 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\Prize::class => \App\Policies\Prizes\PrizePolicy::class,
         \App\Models\Games\Bingo\Room\BingoRoom::class => \App\Policies\Games\Bingo\Room\BingoRoomPolicy::class,
         \App\Models\Games\Bingo\Room\BingoRoomAutomatic::class => \App\Policies\Games\Bingo\Room\BingoRoomAutomaticPolicy::class,
+        \App\Models\WalletMovement::class                     => \App\Policies\Wallet\WalletMovementPolicy::class,
     ];
 
     /**

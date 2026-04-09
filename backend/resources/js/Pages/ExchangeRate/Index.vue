@@ -191,14 +191,15 @@
     const params = props.tokenId ? `?tokenId=${props.tokenId}` : ''
     window.location.href = `/exchange-rate/historical/${selected.currency_id}${params}`
   }
+
 </script>
 <template>
   <div class="card">
     <CardHeader title="Tasas de Cambio" subtitle="Valores en base a Un Dólar (1 USD)" />
 
     <div class="card-body">
-      <!-- Switch de actualización automática -->
-      <div class="row">
+      <!-- Switch de actualización automática: solo visible si hay tasas registradas -->
+      <div v-if="exchangeRates.length > 0" class="row">
         <FormSwitch
           name="auto-update"
           class="ml-1 col-12"
@@ -242,20 +243,31 @@
           </button>
 
           <!-- Consultar Valores -->
-          <button
-            class="btn btn-sm btn-secondary"
-            type="button"
-            :disabled="updatingExchangeRates"
-            title="Consultar Valores"
-            @click="handleUpdateExchangeRates"
+          <VDropdown
+            :shown="exchangeRates.length === 0 ? undefined : false"
+            :triggers="exchangeRates.length === 0 ? ['hover', 'focus'] : []"
+            placement="top"
+            :autoHide="true"
           >
-            <i class="fa-solid fa-search"></i> Consultar
-            <span
-              v-if="updatingExchangeRates"
-              class="spinner-border spinner-border-sm ml-1"
-              aria-hidden="true"
-            ></span>
-          </button>
+            <button
+              class="btn btn-sm btn-secondary"
+              type="button"
+              :disabled="updatingExchangeRates || exchangeRates.length === 0"
+              @click="handleUpdateExchangeRates"
+            >
+              <i class="fa-solid fa-search"></i> Consultar
+              <span
+                v-if="updatingExchangeRates"
+                class="spinner-border spinner-border-sm ml-1"
+                aria-hidden="true"
+              ></span>
+            </button>
+            <template #popper>
+              <div style="padding: 4px 8px; max-width: 220px; font-size: 0.8rem;">
+                Registra al menos una tasa de cambio para poder consultar valores.
+              </div>
+            </template>
+          </VDropdown>
         </template>
       </TableActionButtons>
 

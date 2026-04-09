@@ -9,7 +9,7 @@
 
   const props = defineProps<ExchangeRateHistoricalPageProps>()
 
-  const isAdmin = computed(() => props.roleUser === 'admin')
+  const isAdmin = computed(() => ['admin', 'superadmin'].includes(props.roleUser))
 
   const columns = computed<Column[]>(() => {
     const base: Column[] = [

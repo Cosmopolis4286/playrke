@@ -104,6 +104,12 @@ backendClient.interceptors.request.use(
             config.headers['X-XSRF-TOKEN'] = xsrfToken
         }
 
+        // Si el body es FormData, eliminar Content-Type para que el browser
+        // genere el boundary multipart correcto automáticamente.
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type']
+        }
+
         return config
     },
     (error: AxiosError) => Promise.reject(error)

@@ -1,414 +1,456 @@
 <template>
-  <div class="row">
-    <!-- Configuración General -->
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header bg-light">
-          <h6 class="mb-0">
-            <i class="fas fa-cog me-2"></i>Configuración General
-          </h6>
-        </div>
-        <div class="card-body">
-          <form @submit.prevent="handleGeneralSubmit">
-            <!-- Idioma -->
-            <div class="mb-3">
-              <label for="language" class="form-label">Idioma</label>
-              <select 
-                id="language"
-                v-model="form.language"
-                class="form-select"
-                :class="{ 'is-invalid': form.errors.language }"
-              >
-                <option value="es">Español</option>
-                <option value="en">English</option>
-                <option value="pt">Português</option>
-                <option value="fr">Français</option>
-              </select>
-              <div v-if="form.errors.language" class="invalid-feedback">
-                {{ form.errors.language }}
-              </div>
-            </div>
+  <div class="prefs-tab">
 
-            <!-- Zona Horaria -->
-            <div class="mb-3">
-              <label for="timezone" class="form-label">Zona Horaria</label>
-              <select 
-                id="timezone"
-                v-model="form.timezone"
-                class="form-select"
-                :class="{ 'is-invalid': form.errors.timezone }"
-              >
+    <!-- Row 1: General + Notificaciones -->
+    <div class="prefs-grid">
+
+      <!-- General -->
+      <div class="prefs-card">
+        <div class="prefs-card-head">
+          <span class="prefs-card-icon-wrap prefs-card-icon-wrap--blue">
+            <i class="fas fa-sliders-h"></i>
+          </span>
+          <span class="prefs-card-title">General</span>
+        </div>
+        <div class="prefs-card-body">
+          <div class="field-group">
+            <label class="field-label">Idioma</label>
+            <div class="field-select-wrap">
+              <select v-model="prefsForm.language" class="field-select">
+                <option value="es">🇻🇪  Español</option>
+                <option value="en">🇺🇸  English</option>
+                <option value="pt">🇧🇷  Português</option>
+                <option value="fr">🇫🇷  Français</option>
+              </select>
+              <i class="fas fa-chevron-down field-select-arrow"></i>
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Zona Horaria</label>
+            <div class="field-select-wrap">
+              <select v-model="prefsForm.timezone" class="field-select">
                 <option value="America/Caracas">Caracas (GMT-4)</option>
                 <option value="America/Bogota">Bogotá (GMT-5)</option>
                 <option value="America/Sao_Paulo">São Paulo (GMT-3)</option>
                 <option value="America/Buenos_Aires">Buenos Aires (GMT-3)</option>
                 <option value="America/Mexico_City">Ciudad de México (GMT-6)</option>
                 <option value="America/New_York">Nueva York (GMT-5)</option>
-                <option value="America/Los_Angeles">Los Ángeles (GMT-8)</option>
                 <option value="Europe/Madrid">Madrid (GMT+1)</option>
-                <option value="Europe/Paris">París (GMT+1)</option>
                 <option value="Europe/London">Londres (GMT+0)</option>
               </select>
-              <div v-if="form.errors.timezone" class="invalid-feedback">
-                {{ form.errors.timezone }}
-              </div>
+              <i class="fas fa-chevron-down field-select-arrow"></i>
             </div>
-
-            <button type="submit" class="btn btn-primary" :disabled="form.processing">
-              <i class="fas fa-save me-2"></i>
-              {{ form.processing ? 'Guardando...' : 'Guardar Configuración' }}
-            </button>
-          </form>
+          </div>
+        </div>
+        <div class="prefs-card-footer">
+          <button class="save-btn" @click="$emit('save', { language: prefsForm.language, timezone: prefsForm.timezone })">
+            <i class="fas fa-check me-1"></i>Guardar
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Notificaciones -->
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header bg-light">
-          <h6 class="mb-0">
-            <i class="fas fa-bell me-2"></i>Notificaciones
-          </h6>
+      <!-- Notificaciones -->
+      <div class="prefs-card">
+        <div class="prefs-card-head">
+          <span class="prefs-card-icon-wrap prefs-card-icon-wrap--amber">
+            <i class="fas fa-bell"></i>
+          </span>
+          <span class="prefs-card-title">Notificaciones</span>
         </div>
-        <div class="card-body">
-          <form @submit.prevent="handleNotificationsSubmit">
-            <!-- Email -->
-            <div class="mb-3">
-              <div class="form-check form-switch">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  id="email_notifications"
-                  v-model="form.notifications.email"
-                >
-                <label class="form-check-label" for="email_notifications">
-                  <i class="fas fa-envelope me-2"></i>Notificaciones por Email
-                </label>
-                <small class="form-text text-muted d-block">
-                  Recibe actualizaciones importantes en tu correo
-                </small>
+        <div class="prefs-card-body">
+          <div class="toggle-row" @click="prefsForm.notifications.email = !prefsForm.notifications.email">
+            <div class="toggle-left">
+              <span class="toggle-icon-wrap toggle-icon-wrap--blue"><i class="fas fa-envelope"></i></span>
+              <div class="toggle-text">
+                <span class="toggle-label">Correo electrónico</span>
+                <span class="toggle-hint">Actualizaciones importantes en tu correo</span>
               </div>
             </div>
-
-            <!-- Push -->
-            <div class="mb-3">
-              <div class="form-check form-switch">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  id="push_notifications"
-                  v-model="form.notifications.push"
-                >
-                <label class="form-check-label" for="push_notifications">
-                  <i class="fas fa-mobile-alt me-2"></i>Notificaciones Push
-                </label>
-                <small class="form-text text-muted d-block">
-                  Notificaciones en tiempo real en tu dispositivo
-                </small>
+            <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.notifications.email }]">
+              <div class="toggle-knob" />
+            </div>
+          </div>
+          <div class="toggle-row" @click="prefsForm.notifications.push = !prefsForm.notifications.push">
+            <div class="toggle-left">
+              <span class="toggle-icon-wrap toggle-icon-wrap--purple"><i class="fas fa-mobile-alt"></i></span>
+              <div class="toggle-text">
+                <span class="toggle-label">Notificaciones Push</span>
+                <span class="toggle-hint">Alertas en tiempo real en tu dispositivo</span>
               </div>
             </div>
-
-            <!-- SMS -->
-            <div class="mb-3">
-              <div class="form-check form-switch">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  id="sms_notifications"
-                  v-model="form.notifications.sms"
-                >
-                <label class="form-check-label" for="sms_notifications">
-                  <i class="fas fa-sms me-2"></i>Notificaciones SMS
-                </label>
-                <small class="form-text text-muted d-block">
-                  Alertas importantes por mensaje de texto
-                </small>
+            <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.notifications.push }]">
+              <div class="toggle-knob" />
+            </div>
+          </div>
+          <div class="toggle-row" @click="prefsForm.notifications.sms = !prefsForm.notifications.sms">
+            <div class="toggle-left">
+              <span class="toggle-icon-wrap toggle-icon-wrap--green"><i class="fas fa-sms"></i></span>
+              <div class="toggle-text">
+                <span class="toggle-label">SMS</span>
+                <span class="toggle-hint">Alertas críticas por mensaje de texto</span>
               </div>
             </div>
-
-            <button type="submit" class="btn btn-primary" :disabled="form.processing">
-              <i class="fas fa-save me-2"></i>
-              {{ form.processing ? 'Guardando...' : 'Guardar Preferencias' }}
-            </button>
-          </form>
+            <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.notifications.sms }]">
+              <div class="toggle-knob" />
+            </div>
+          </div>
+        </div>
+        <div class="prefs-card-footer">
+          <button class="save-btn" @click="$emit('save', { notifications: prefsForm.notifications })">
+            <i class="fas fa-check me-1"></i>Guardar
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Privacidad -->
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header bg-light">
-          <h6 class="mb-0">
-            <i class="fas fa-shield-alt me-2"></i>Privacidad
-          </h6>
+      <!-- Privacidad -->
+      <div class="prefs-card">
+        <div class="prefs-card-head">
+          <span class="prefs-card-icon-wrap prefs-card-icon-wrap--red">
+            <i class="fas fa-user-shield"></i>
+          </span>
+          <span class="prefs-card-title">Privacidad</span>
         </div>
-        <div class="card-body">
-          <form @submit.prevent="handlePrivacySubmit">
-            <!-- Perfil Visible -->
-            <div class="mb-3">
-              <div class="form-check form-switch">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  id="profile_visible"
-                  v-model="form.privacy.profile_visible"
-                >
-                <label class="form-check-label" for="profile_visible">
-                  <i class="fas fa-eye me-2"></i>Perfil Público
-                </label>
-                <small class="form-text text-muted d-block">
-                  Permite que otros usuarios vean tu perfil
-                </small>
+        <div class="prefs-card-body">
+          <div class="toggle-row" @click="prefsForm.privacy.profile_visible = !prefsForm.privacy.profile_visible">
+            <div class="toggle-left">
+              <span class="toggle-icon-wrap toggle-icon-wrap--blue"><i class="fas fa-eye"></i></span>
+              <div class="toggle-text">
+                <span class="toggle-label">Perfil público</span>
+                <span class="toggle-hint">Otros usuarios pueden ver tu perfil</span>
               </div>
             </div>
-
-            <!-- Mostrar Email -->
-            <div class="mb-3">
-              <div class="form-check form-switch">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  id="show_email"
-                  v-model="form.privacy.show_email"
-                >
-                <label class="form-check-label" for="show_email">
-                  <i class="fas fa-envelope-open me-2"></i>Mostrar Email
-                </label>
-                <small class="form-text text-muted d-block">
-                  Muestra tu correo en tu perfil público
-                </small>
+            <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.privacy.profile_visible }]">
+              <div class="toggle-knob" />
+            </div>
+          </div>
+          <div class="toggle-row" @click="prefsForm.privacy.show_email = !prefsForm.privacy.show_email">
+            <div class="toggle-left">
+              <span class="toggle-icon-wrap toggle-icon-wrap--amber"><i class="fas fa-envelope-open"></i></span>
+              <div class="toggle-text">
+                <span class="toggle-label">Mostrar email</span>
+                <span class="toggle-hint">Tu correo aparece en tu perfil público</span>
               </div>
             </div>
-
-            <!-- Mostrar Teléfono -->
-            <div class="mb-3">
-              <div class="form-check form-switch">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  id="show_phone"
-                  v-model="form.privacy.show_phone"
-                >
-                <label class="form-check-label" for="show_phone">
-                  <i class="fas fa-phone me-2"></i>Mostrar Teléfono
-                </label>
-                <small class="form-text text-muted d-block">
-                  Muestra tu número de teléfono en tu perfil
-                </small>
+            <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.privacy.show_email }]">
+              <div class="toggle-knob" />
+            </div>
+          </div>
+          <div class="toggle-row" @click="prefsForm.privacy.show_phone = !prefsForm.privacy.show_phone">
+            <div class="toggle-left">
+              <span class="toggle-icon-wrap toggle-icon-wrap--green"><i class="fas fa-phone"></i></span>
+              <div class="toggle-text">
+                <span class="toggle-label">Mostrar teléfono</span>
+                <span class="toggle-hint">Tu número aparece en tu perfil público</span>
               </div>
             </div>
-
-            <button type="submit" class="btn btn-primary" :disabled="form.processing">
-              <i class="fas fa-save me-2"></i>
-              {{ form.processing ? 'Guardando...' : 'Guardar Privacidad' }}
-            </button>
-          </form>
+            <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.privacy.show_phone }]">
+              <div class="toggle-knob" />
+            </div>
+          </div>
+        </div>
+        <div class="prefs-card-footer">
+          <button class="save-btn" @click="$emit('save', { privacy: prefsForm.privacy })">
+            <i class="fas fa-check me-1"></i>Guardar
+          </button>
         </div>
       </div>
-    </div>
 
-    <!-- Configuración de Juego -->
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header bg-light">
-          <h6 class="mb-0">
-            <i class="fas fa-gamepad me-2"></i>Configuración de Juego
-          </h6>
+      <!-- Juego -->
+      <div class="prefs-card">
+        <div class="prefs-card-head">
+          <span class="prefs-card-icon-wrap prefs-card-icon-wrap--purple">
+            <i class="fas fa-gamepad"></i>
+          </span>
+          <span class="prefs-card-title">Configuración de Juego</span>
         </div>
-        <div class="card-body">
-          <form @submit.prevent="handleGameSettingsSubmit">
-            <!-- Sonido -->
-            <div class="mb-3">
-              <div class="form-check form-switch">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  id="sound_enabled"
-                  v-model="form.game_settings.sound_enabled"
-                >
-                <label class="form-check-label" for="sound_enabled">
-                  <i class="fas fa-volume-up me-2"></i>Activar Sonido
-                </label>
-                <small class="form-text text-muted d-block">
-                  Efectos de sonido durante el juego
-                </small>
+        <div class="prefs-card-body">
+          <div class="toggle-row" @click="prefsForm.game_settings.sound_enabled = !prefsForm.game_settings.sound_enabled">
+            <div class="toggle-left">
+              <span class="toggle-icon-wrap toggle-icon-wrap--amber"><i class="fas fa-volume-up"></i></span>
+              <div class="toggle-text">
+                <span class="toggle-label">Sonido</span>
+                <span class="toggle-hint">Efectos de sonido durante el juego</span>
               </div>
             </div>
-
-            <!-- Música -->
-            <div class="mb-3">
-              <div class="form-check form-switch">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  id="music_enabled"
-                  v-model="form.game_settings.music_enabled"
-                >
-                <label class="form-check-label" for="music_enabled">
-                  <i class="fas fa-music me-2"></i>Activar Música
-                </label>
-                <small class="form-text text-muted d-block">
-                  Música de fondo durante el juego
-                </small>
+            <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.game_settings.sound_enabled }]">
+              <div class="toggle-knob" />
+            </div>
+          </div>
+          <div class="toggle-row" @click="prefsForm.game_settings.music_enabled = !prefsForm.game_settings.music_enabled">
+            <div class="toggle-left">
+              <span class="toggle-icon-wrap toggle-icon-wrap--purple"><i class="fas fa-music"></i></span>
+              <div class="toggle-text">
+                <span class="toggle-label">Música</span>
+                <span class="toggle-hint">Música de fondo durante el juego</span>
               </div>
             </div>
-
-            <!-- Auto Dauber -->
-            <div class="mb-3">
-              <div class="form-check form-switch">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  id="auto_dauber"
-                  v-model="form.game_settings.auto_dauber"
-                >
-                <label class="form-check-label" for="auto_dauber">
-                  <i class="fas fa-magic me-2"></i>Auto Dauber
-                </label>
-                <small class="form-text text-muted d-block">
-                  Marca automáticamente los números en tus cartones
-                </small>
+            <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.game_settings.music_enabled }]">
+              <div class="toggle-knob" />
+            </div>
+          </div>
+          <div class="toggle-row" @click="prefsForm.game_settings.auto_dauber = !prefsForm.game_settings.auto_dauber">
+            <div class="toggle-left">
+              <span class="toggle-icon-wrap toggle-icon-wrap--blue"><i class="fas fa-magic"></i></span>
+              <div class="toggle-text">
+                <span class="toggle-label">Auto Dauber</span>
+                <span class="toggle-hint">Marca automáticamente los números en tus cartones</span>
               </div>
             </div>
-
-            <!-- Animaciones -->
-            <div class="mb-3">
-              <div class="form-check form-switch">
-                <input 
-                  class="form-check-input" 
-                  type="checkbox" 
-                  id="card_animation"
-                  v-model="form.game_settings.card_animation"
-                >
-                <label class="form-check-label" for="card_animation">
-                  <i class="fas fa-film me-2"></i>Animaciones de Cartón
-                </label>
-                <small class="form-text text-muted d-block">
-                  Efectos visuales en los cartones de bingo
-                </small>
+            <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.game_settings.auto_dauber }]">
+              <div class="toggle-knob" />
+            </div>
+          </div>
+          <div class="toggle-row" @click="prefsForm.game_settings.card_animation = !prefsForm.game_settings.card_animation">
+            <div class="toggle-left">
+              <span class="toggle-icon-wrap toggle-icon-wrap--green"><i class="fas fa-film"></i></span>
+              <div class="toggle-text">
+                <span class="toggle-label">Animaciones</span>
+                <span class="toggle-hint">Efectos visuales en los cartones de bingo</span>
               </div>
             </div>
-
-            <button type="submit" class="btn btn-primary" :disabled="form.processing">
-              <i class="fas fa-save me-2"></i>
-              {{ form.processing ? 'Guardando...' : 'Guardar Configuración' }}
-            </button>
-          </form>
+            <div :class="['toggle-switch', { 'toggle-switch--on': prefsForm.game_settings.card_animation }]">
+              <div class="toggle-knob" />
+            </div>
+          </div>
+        </div>
+        <div class="prefs-card-footer">
+          <button class="save-btn" @click="$emit('save', { game_settings: prefsForm.game_settings })">
+            <i class="fas fa-check me-1"></i>Guardar
+          </button>
         </div>
       </div>
+
     </div>
   </div>
 </template>
 
-<script setup>
-import { useForm } from '@inertiajs/vue3'
-import { computed } from 'vue'
-
-const props = defineProps({
-    preferences: {
-        type: Object,
-        default: () => ({})
-    }
-})
-
-const emit = defineEmits(['update-preferences'])
-
-const form = useForm({
-    language: props.preferences.language || 'es',
-    timezone: props.preferences.timezone || 'America/Caracas',
-    notifications: {
-        email: props.preferences.notifications?.email ?? true,
-        push: props.preferences.notifications?.push ?? true,
-        sms: props.preferences.notifications?.sms ?? false,
-    },
-    privacy: {
-        profile_visible: props.preferences.privacy?.profile_visible ?? true,
-        show_email: props.preferences.privacy?.show_email ?? false,
-        show_phone: props.preferences.privacy?.show_phone ?? false,
-    },
-    game_settings: {
-        sound_enabled: props.preferences.game_settings?.sound_enabled ?? true,
-        music_enabled: props.preferences.game_settings?.music_enabled ?? true,
-        auto_dauber: props.preferences.game_settings?.auto_dauber ?? false,
-        card_animation: props.preferences.game_settings?.card_animation ?? true,
-    }
-})
-
-const handleGeneralSubmit = () => {
-    emit('update-preferences', {
-        language: form.language,
-        timezone: form.timezone
-    })
-}
-
-const handleNotificationsSubmit = () => {
-    emit('update-preferences', {
-        notifications: form.notifications
-    })
-}
-
-const handlePrivacySubmit = () => {
-    emit('update-preferences', {
-        privacy: form.privacy
-    })
-}
-
-const handleGameSettingsSubmit = () => {
-    emit('update-preferences', {
-        game_settings: form.game_settings
-    })
-}
+<script setup lang="ts">
+defineProps<{ prefsForm: any }>()
+defineEmits<{ save: [patch: Record<string, any>] }>()
 </script>
 
 <style scoped>
-.card {
-    border-radius: 12px;
+/* ── Grid 2×2 ── */
+.prefs-tab  { }
+.prefs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+/* ── Card ── */
+.prefs-card {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #eaecf0;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    transition: box-shadow 0.2s;
+}
+.prefs-card:hover {
+    box-shadow: 0 4px 16px rgba(102,126,234,0.10);
+}
+
+/* ── Card head ── */
+.prefs-card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.9rem 1.1rem;
+    background: #fafbff;
+    border-bottom: 1px solid #eaecf0;
+}
+.prefs-card-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #2d3a52;
+    letter-spacing: 0.01em;
+}
+
+/* ── Icon wrap variants ── */
+.prefs-card-icon-wrap {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+.prefs-card-icon-wrap--blue   { background: #e8eaff; color: #667eea; }
+.prefs-card-icon-wrap--amber  { background: #fff8e1; color: #f59e0b; }
+.prefs-card-icon-wrap--red    { background: #fee2e2; color: #ef4444; }
+.prefs-card-icon-wrap--purple { background: #f3e8ff; color: #8b5cf6; }
+
+/* ── Card body ── */
+.prefs-card-body {
+    flex: 1;
+    padding: 0.85rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* ── Card footer ── */
+.prefs-card-footer {
+    padding: 0.75rem 1.1rem;
+    border-top: 1px solid #f0f2f7;
+    background: #fafbff;
+}
+
+/* ── Save button ── */
+.save-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
     border: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    cursor: pointer;
+    transition: filter 0.15s, transform 0.15s;
+    box-shadow: 0 2px 6px rgba(102,126,234,0.25);
+}
+.save-btn:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
 }
 
-.card-header {
-    border-radius: 12px 12px 0 0;
-    border-bottom: 1px solid #dee2e6;
+/* ── Select fields ── */
+.field-group { margin-bottom: 0.9rem; }
+.field-group:last-child { margin-bottom: 0; }
+.field-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 5px;
 }
-
-.form-control, .form-select {
+.field-select-wrap {
+    position: relative;
+}
+.field-select {
+    width: 100%;
+    padding: 0.45rem 2rem 0.45rem 0.75rem;
+    border: 1px solid #d1d9e6;
     border-radius: 8px;
-    border: 1px solid #dee2e6;
+    font-size: 0.85rem;
+    color: #2d3a52;
+    background: #fff;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+}
+.field-select-arrow {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.65rem;
+    color: #8892a4;
+    pointer-events: none;
 }
 
-.form-control:focus, .form-select:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+/* ── Toggle rows ── */
+.toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f2f7;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s;
+    border-radius: 6px;
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-row:hover { background: #f8f9fc; padding-left: 4px; padding-right: 4px; }
+
+.toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
 }
 
-.form-check-input:checked {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
+/* ── Toggle icon variants ── */
+.toggle-icon-wrap {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    flex-shrink: 0;
+}
+.toggle-icon-wrap--blue   { background: #e8eaff; color: #667eea; }
+.toggle-icon-wrap--purple { background: #f3e8ff; color: #8b5cf6; }
+.toggle-icon-wrap--green  { background: #d1fae5; color: #059669; }
+.toggle-icon-wrap--amber  { background: #fff8e1; color: #f59e0b; }
+.toggle-icon-wrap--red    { background: #fee2e2; color: #ef4444; }
+
+.toggle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+.toggle-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #2d3a52;
+    line-height: 1.2;
+}
+.toggle-hint {
+    font-size: 0.7rem;
+    color: #8892a4;
+    line-height: 1.3;
 }
 
-.form-check-input:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+/* ── Toggle switch ── */
+.toggle-switch {
+    width: 38px;
+    height: 21px;
+    border-radius: 21px;
+    background: #d1d9e6;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.22s ease;
+}
+.toggle-switch--on {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+.toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    transition: transform 0.22s ease;
+}
+.toggle-switch--on .toggle-knob {
+    transform: translateX(17px);
 }
 
-.btn {
-    border-radius: 8px;
-    font-weight: 500;
-}
-
-.form-text {
-    font-size: 0.875rem;
-}
-
-.form-check {
-    padding-left: 2.5rem;
-}
-
-.form-check-label {
-    font-weight: 500;
-    margin-bottom: 0.25rem;
+/* ── Responsive ── */
+@media (max-width: 720px) {
+    .prefs-grid { grid-template-columns: 1fr; }
 }
 </style>

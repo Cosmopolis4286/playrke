@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Contracts\WalletMovementRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\Events\Wallet\WalletUpdated;
+use App\Models\Directories\Crypto\Binance\BinanceAccounts;
+use App\Models\Directories\Fiat\Brazil\PixKey;
+use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Wallet;
 use App\Models\WalletMovement;
 use App\Services\NotificationService;
@@ -45,7 +48,186 @@ final class WalletService
     }
 
     /**
+     * Verifica si la billetera tiene una solicitud de depósito o retiro en cola (PENDING).
+     * Retorna el movimiento pendiente o null.
+     */
+    public function getPendingOperation(string $walletId, string $type): ?WalletMovement
+    {
+        return WalletMovement::where('wallet_id', $walletId)
+            ->where('type', $type)
+            ->where('status', WalletMovement::STATUS_PENDING)
+            ->latest()
+            ->first();
+    }
+
+    /**
+     * Directorios de pago del usuario filtrados según la moneda de la billetera.
+     * VES → PagoMovil | BRL → PIX | USDT → Binance
+     */
+    public function getUserDirectories(string $userId, string $walletId): array
+    {
+        $wallet = Wallet::with('currency')->findOrFail($walletId);
+
+        if ((string) $wallet->user_id !== $userId) {
+            throw new \DomainException('No autorizado.');
+        }
+
+        $iso = strtoupper($wallet->currency->iso_code);
+
+        return match (true) {
+            in_array($iso, ['VES', 'VED', 'BSS']) => $this->getPagoMovilDirectories($userId),
+            $iso === 'BRL'                         => $this->getPixDirectories($userId),
+            in_array($iso, ['USDT', 'BTC', 'ETH']) => $this->getBinanceDirectories($userId),
+            default                                => [],
+        };
+    }
+
+    private function getPagoMovilDirectories(string $userId): array
+    {
+        return PagoMovil::where('user_id', $userId)
+            ->where('status', 'ACTIVE')
+            ->with(['bank', 'documentType'])
+            ->get()
+            ->map(fn($pm) => [
+                'id'      => (string) $pm->id,
+                'type'    => 'pago_movil',
+                'label'   => $pm->bank->name ?? 'Banco',
+                'detail'  => ($pm->documentType->code ?? 'CI') . '-' . $pm->document_number . ' | ' . $pm->phone,
+                'holder'  => $pm->holder_name,
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    private function getPixDirectories(string $userId): array
+    {
+        return PixKey::where('user_id', $userId)
+            ->where('status', 'ACTIVE')
+            ->with('bank')
+            ->get()
+            ->map(fn($pix) => [
+                'id'      => (string) $pix->id,
+                'type'    => 'pix',
+                'label'   => $pix->bank->name ?? 'Banco',
+                'detail'  => "{$pix->getTypeDisplayName()}: {$pix->formatted_key}",
+                'holder'  => $pix->holder_name,
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    private function getBinanceDirectories(string $userId): array
+    {
+        return BinanceAccounts::where('user_id', $userId)
+            ->where('status', 'ACTIVE')
+            ->get()
+            ->map(fn($b) => [
+                'id'      => (string) $b->id,
+                'type'    => 'binance',
+                'label'   => $b->account_type_description,
+                'detail'  => $b->data_value,
+                'holder'  => null,
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Registrar solicitud de depósito con comprobante (STATUS_PENDING, sin tocar el saldo).
+     */
+    public function requestDeposit(
+        string $walletId,
+        float  $amount,
+        string $receipt,
+        ?string $reference = null,
+        ?string $notes = null,
+    ): Wallet {
+        $wallet = $this->findOwnedWallet($walletId);
+
+        if ($wallet->isBlocked()) {
+            throw new \DomainException('La billetera está bloqueada.');
+        }
+
+        if ($this->getPendingOperation($walletId, WalletMovement::TYPE_DEPOSIT)) {
+            throw new \DomainException('Ya tienes un depósito pendiente de confirmación. Espera a que sea procesado antes de hacer otro.');
+        }
+
+        $this->movementRepository->record([
+            'wallet_id'      => (string) $wallet->id,
+            'user_id'        => (string) $wallet->user_id,
+            'type'           => WalletMovement::TYPE_DEPOSIT,
+            'status'         => WalletMovement::STATUS_PENDING,
+            'amount'         => $amount,
+            'balance_before' => (float) $wallet->balance,
+            'balance_after'  => (float) $wallet->balance,
+            'description'    => $notes ?? 'Depósito pendiente de confirmación',
+            'reference_id'   => $reference,
+            'receipt_path'   => $receipt,
+        ]);
+
+        return $wallet;
+    }
+
+    /**
+     * Registrar solicitud de retiro indicando directorio destino (STATUS_PENDING, sin tocar el saldo).
+     */
+    /**
+     * Solicitud de retiro: descuenta el saldo inmediatamente (PENDING).
+     * Si admin rechaza/cancela, debe devolverse el monto manualmente.
+     */
+    public function requestWithdraw(
+        string $walletId,
+        float  $amount,
+        string $directoryId,
+        string $directoryType,
+        ?string $notes = null,
+    ): Wallet {
+        $wallet = DB::transaction(function () use ($walletId, $amount, $directoryId, $directoryType, $notes) {
+            $wallet = $this->findOwnedWallet($walletId);
+
+            if ($wallet->isBlocked()) {
+                throw new \DomainException('La billetera está bloqueada.');
+            }
+
+            if ($this->getPendingOperation($walletId, WalletMovement::TYPE_WITHDRAWAL)) {
+                throw new \DomainException('Ya tienes un retiro pendiente de procesamiento. Espera a que sea procesado antes de solicitar otro.');
+            }
+
+            if (! $wallet->hasSufficientBalance($amount)) {
+                throw new \DomainException('Saldo insuficiente para realizar el retiro.');
+            }
+
+            $balanceBefore = (float) $wallet->balance;
+
+            $this->walletRepository->decrementBalance($walletId, $amount);
+            $wallet->refresh();
+
+            $this->movementRepository->record([
+                'wallet_id'      => (string) $wallet->id,
+                'user_id'        => (string) $wallet->user_id,
+                'type'           => WalletMovement::TYPE_WITHDRAWAL,
+                'status'         => WalletMovement::STATUS_PENDING,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => (float) $wallet->balance,
+                'description'    => $notes ?? 'Retiro pendiente de procesamiento',
+                'metadata'       => [
+                    'directory_id'   => $directoryId,
+                    'directory_type' => $directoryType,
+                ],
+            ]);
+
+            return $wallet;
+        });
+
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);
+
+        return $wallet;
+    }
+
+    /**
      * Registrar solicitud de depósito.
+     * @deprecated Usar requestDeposit()
      */
     public function deposit(string $walletId, float $amount): Wallet
     {
@@ -173,6 +355,163 @@ final class WalletService
         $this->findOwnedWallet($walletId); // verifica propiedad
 
         return $this->movementRepository->getByWallet($walletId, $perPage);
+    }
+
+    /**
+     * Aprobar un depósito PENDING: acredita el monto al saldo y marca COMPLETED.
+     */
+    public function approveDeposit(WalletMovement $movement, ?string $adminNotes = null): WalletMovement
+    {
+        if ($movement->type !== WalletMovement::TYPE_DEPOSIT) {
+            throw new \DomainException('El movimiento no es un depósito.');
+        }
+        if ($movement->status !== WalletMovement::STATUS_PENDING) {
+            throw new \DomainException('Solo se pueden aprobar movimientos en estado PENDING.');
+        }
+
+        $updated = DB::transaction(function () use ($movement, $adminNotes) {
+            $this->walletRepository->incrementBalance((string) $movement->wallet_id, (float) $movement->amount);
+            $movement->wallet->refresh();
+
+            $movement->update([
+                'status'        => WalletMovement::STATUS_COMPLETED,
+                'balance_after' => (float) $movement->wallet->balance,
+                'admin_notes'   => $adminNotes,
+                'processed_by'  => (string) Auth::id(),
+                'processed_at'  => now(),
+            ]);
+
+            return $movement->fresh(['wallet', 'wallet.currency']);
+        });
+
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, $adminNotes);
+
+        return $updated;
+    }
+
+    /**
+     * Rechazar un depósito PENDING: no toca el saldo, marca REJECTED.
+     */
+    public function rejectDeposit(WalletMovement $movement, ?string $adminNotes = null): WalletMovement
+    {
+        if ($movement->type !== WalletMovement::TYPE_DEPOSIT) {
+            throw new \DomainException('El movimiento no es un depósito.');
+        }
+        if ($movement->status !== WalletMovement::STATUS_PENDING) {
+            throw new \DomainException('Solo se pueden rechazar movimientos en estado PENDING.');
+        }
+
+        $movement->update([
+            'status'       => WalletMovement::STATUS_REJECTED,
+            'admin_notes'  => $adminNotes,
+            'processed_by' => (string) Auth::id(),
+            'processed_at' => now(),
+        ]);
+
+        $updated = $movement->fresh(['wallet', 'wallet.currency']);
+
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
+
+        return $updated;
+    }
+
+    /**
+     * Aprobar un retiro PENDING: el saldo ya fue descontado, solo marca COMPLETED.
+     */
+    public function approveWithdrawal(WalletMovement $movement, ?string $adminNotes = null): WalletMovement
+    {
+        if ($movement->type !== WalletMovement::TYPE_WITHDRAWAL) {
+            throw new \DomainException('El movimiento no es un retiro.');
+        }
+        if ($movement->status !== WalletMovement::STATUS_PENDING) {
+            throw new \DomainException('Solo se pueden aprobar movimientos en estado PENDING.');
+        }
+
+        $movement->update([
+            'status'       => WalletMovement::STATUS_COMPLETED,
+            'admin_notes'  => $adminNotes,
+            'processed_by' => (string) Auth::id(),
+            'processed_at' => now(),
+        ]);
+
+        $updated = $movement->fresh(['wallet', 'wallet.currency']);
+
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, $adminNotes);
+
+        return $updated;
+    }
+
+    /**
+     * Rechazar un retiro PENDING: devuelve el monto al saldo y marca REJECTED.
+     */
+    public function rejectWithdrawal(WalletMovement $movement, ?string $adminNotes = null): WalletMovement
+    {
+        if ($movement->type !== WalletMovement::TYPE_WITHDRAWAL) {
+            throw new \DomainException('El movimiento no es un retiro.');
+        }
+        if ($movement->status !== WalletMovement::STATUS_PENDING) {
+            throw new \DomainException('Solo se pueden rechazar movimientos en estado PENDING.');
+        }
+
+        $updated = DB::transaction(function () use ($movement, $adminNotes) {
+            $this->walletRepository->incrementBalance((string) $movement->wallet_id, (float) $movement->amount);
+            $movement->wallet->refresh();
+
+            $movement->update([
+                'status'       => WalletMovement::STATUS_REJECTED,
+                'admin_notes'  => $adminNotes,
+                'processed_by' => (string) Auth::id(),
+                'processed_at' => now(),
+            ]);
+
+            return $movement->fresh(['wallet', 'wallet.currency']);
+        });
+
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
+
+        return $updated;
+    }
+
+    /**
+     * Broadcast WebSocket + notificación persistente al usuario tras aprobar/rechazar.
+     */
+    private function broadcastAndNotifyResult(WalletMovement $movement, string $status, ?string $adminNotes): void
+    {
+        $wallet        = $movement->wallet;
+        $currencySymbol = $wallet?->currency?->symbol ?? '';
+        $userId        = (string) $movement->user_id;
+        $amount        = (float) $movement->amount;
+
+        // WebSocket: notifica al canal privado del usuario
+        broadcast(new WalletUpdated(
+            userId:         $userId,
+            walletId:       (string) $movement->wallet_id,
+            balance:        (float) ($wallet?->balance ?? 0),
+            currencySymbol: $currencySymbol,
+            movementType:   $movement->type,
+            amount:         $amount,
+            movementStatus: $status,
+            movementId:     (string) $movement->id,
+        ));
+
+        // Notificación persistente en tabla notifications
+        if ($movement->type === WalletMovement::TYPE_DEPOSIT) {
+            $this->notificationService->createDepositResultNotification(
+                userId:         $userId,
+                status:         $status,
+                amount:         $amount,
+                currencySymbol: $currencySymbol,
+                adminNotes:     $adminNotes,
+            );
+        } else {
+            $this->notificationService->createWithdrawalResultNotification(
+                userId:         $userId,
+                status:         $status,
+                amount:         $amount,
+                currencySymbol: $currencySymbol,
+                adminNotes:     $adminNotes,
+            );
+        }
     }
 
     /**

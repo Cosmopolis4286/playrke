@@ -24,13 +24,13 @@
               :permissions="permissions"
               :roles="roles"
               :loading="loading"
-              :selected-ids="selectedIds"
-              :current-role="currentRole"
-              @update:selected-ids="selectedIds = $event"
-              @refresh="loadPermissionsAndRoles"
-              @assign-permissions="handleAssignPermissions"
-              @revoke-permissions="handleRevokePermissions"
-              @create-permission="handleCreatePermission"
+              :has-changes="hasChanges"
+              :has-permission="hasPermission"
+              @toggle-permission="togglePermission"
+              @reload="reload"
+              @save="handleSave"
+              @create-permission="handleCreate"
+              @delete-permission="handleDelete"
             />
           </div>
         </div>
@@ -39,117 +39,57 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
 import PermissionTable from '@/js/Components/Roles/Admin/PermissionTable.vue'
 import Breadcrumb from '@/js/Components/Common/Breadcrumb/Breadcrumb.vue'
 import { usePermissions } from '@/js/composables/roles/admin/permission/usePermissions'
 import Swal from 'sweetalert2'
 import type { PermissionPageProps } from '@/js/types/roles/admin/permission-page'
 
-// Props
 const props = defineProps<PermissionPageProps>()
 
-// Breadcrumb items
 const breadcrumbItems = [
   { label: 'Dashboard', route: '/dashboard', icon: 'fas fa-home' },
   { label: 'Usuarios', route: '/admins', icon: 'fas fa-users' },
-  { label: 'Permisos' }
+  { label: 'Permisos' },
 ]
 
-// Composable
 const {
   permissions,
   roles,
   loading,
-  selectedIds,
-  currentRole,
-  fetchPermissions,
-  fetchRolesWithPermissions,
-  assignPermissions,
-  revokePermissions,
+  hasChanges,
+  hasPermission,
+  togglePermission,
+  reload,
+  saveChanges,
   createPermission,
-  reset,
-} = usePermissions()
+  deletePermission,
+} = usePermissions({ permissions: props.permissions, roles: props.roles })
 
-// Métodos
-const loadPermissionsAndRoles = async () => {
+async function handleSave() {
   try {
-    await Promise.all([fetchPermissions(), fetchRolesWithPermissions()])
-  } catch (error) {
-    console.error('Error loading data:', error)
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'No se pudieron cargar los datos',
-    })
+    await saveChanges()
+    Swal.fire({ icon: 'success', title: 'Éxito', text: 'Cambios guardados correctamente', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 })
+  } catch {
+    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudieron guardar los cambios' })
   }
 }
 
-const handleAssignPermissions = async (roleId: string, permissionIds: string[]) => {
-  try {
-    await assignPermissions(roleId, permissionIds)
-    await fetchRolesWithPermissions()
-  } catch (error) {
-    console.error('Error assigning permissions:', error)
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'No se pudieron asignar los permisos',
-    })
-  }
-}
-
-const handleRevokePermissions = async (roleId: string, permissionIds: string[]) => {
-  try {
-    await revokePermissions(roleId, permissionIds)
-    await fetchRolesWithPermissions()
-  } catch (error) {
-    console.error('Error revoking permissions:', error)
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'No se pudieron revocar los permisos',
-    })
-  }
-}
-
-const handleCreatePermission = async (data: { name: string, guard_name: string, description?: string }) => {
+async function handleCreate(data: { name: string; guard_name?: string; description?: string }) {
   try {
     await createPermission(data)
-    await loadPermissionsAndRoles()
-  } catch (error) {
-    console.error('Error creating permission:', error)
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'No se pudo crear el permiso',
-    })
+    Swal.fire({ icon: 'success', title: 'Éxito', text: 'Permiso creado correctamente', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 })
+  } catch {
+    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo crear el permiso' })
   }
 }
 
-// Inicialización
-onMounted(async () => {
-  await loadPermissionsAndRoles()
-})
+async function handleDelete(permissionId: string) {
+  try {
+    await deletePermission(permissionId)
+    Swal.fire({ icon: 'success', title: 'Éxito', text: 'Permiso eliminado correctamente', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 })
+  } catch {
+    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo eliminar el permiso' })
+  }
+}
 </script>
-
-<style scoped>
-.content-wrapper {
-  min-height: calc(100vh - 57px);
-}
-
-.card {
-  box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
-}
-
-.card-header {
-  background-color: #fff;
-  border-bottom: 1px solid rgba(0,0,0,.125);
-}
-
-.card-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #495057;
-}
-</style>

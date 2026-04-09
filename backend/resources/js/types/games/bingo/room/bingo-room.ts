@@ -1,7 +1,7 @@
 /**
  * Tipos de sala de bingo
  */
-export type BingoRoomType = 'PRIVATE' | 'PUBLIC' | 'VIP' | 'MIXED'
+export type BingoRoomType = 'PRIVATE' | 'PUBLIC' | 'VIP' | 'DEMO'
 
 /**
  * Indica si los premios fueron pagados

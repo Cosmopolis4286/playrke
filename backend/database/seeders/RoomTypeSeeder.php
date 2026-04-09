@@ -13,7 +13,7 @@ class RoomTypeSeeder extends Seeder
             ['code' => 'PRIVATE', 'label' => 'Privada'],
             ['code' => 'PUBLIC', 'label' => 'Pública'],
             ['code' => 'VIP', 'label' => 'VIP'],
-            ['code' => 'MIXED', 'label' => 'Mixta'],
+            ['code' => 'DEMO', 'label' => 'DEMO'],
         ];
 
         foreach ($types as $type) {

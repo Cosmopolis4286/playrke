@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Users;
 
 use App\Http\Controllers\Controller;
+use App\Models\Country;
 use App\Models\Shared\DocumentType;
 use App\Models\User;
 use App\Services\ProfileService;
@@ -12,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,10 +33,13 @@ class ProfileController extends Controller
      */
     public function index(): \Inertia\Response
     {
-        $user = Auth::user()->load(['roles', 'wallets']);
-        
+        $user = Auth::user()->load(['roles', 'wallets', 'country']);
+
         // Obtener el primer wallet del usuario si existe
         $wallet = $user->wallets->first();
+
+        // Cargar países para el select
+        $countries = Country::orderBy('name')->get(['id', 'name', 'iso_code_2']);
         
         // Obtener estadísticas del usuario
         $stats = [
@@ -79,8 +85,9 @@ class ProfileController extends Controller
                 'email' => $user->email,
                 'avatar' => $user->profile_photo_url,
                 'phone' => $user->phone_number,
-                'birth_date' => $user->birth_date,
-                'country' => $user->country_id,
+                'birth_date' => $user->birth_date?->format('Y-m-d'),
+                'country_id' => (string) $user->country_id,
+                'country_iso' => $user->country?->iso_code_2,
                 'bio' => $user->bio,
                 'is_verified' => !is_null($user->email_verified_at),
                 'created_at' => $user->created_at,
@@ -90,6 +97,11 @@ class ProfileController extends Controller
                     'currency' => $wallet->currency,
                 ] : null,
             ],
+            'countries' => $countries->map(fn($c) => [
+                'value' => (string) $c->id,
+                'label' => $c->name,
+                'iso'   => $c->iso_code_2,
+            ]),
             'stats' => $stats,
             'preferences' => $preferences,
         ]);
@@ -156,13 +168,13 @@ class ProfileController extends Controller
         $user = Auth::user();
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users,username,' . $user->id,
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-            'phone' => 'nullable|string|max:20',
+            'name'       => 'required|string|max:255',
+            'username'   => 'required|string|max:255|unique:users,username,' . $user->id,
+            'email'      => 'required|email|max:255|unique:users,email,' . $user->id,
+            'phone'      => 'nullable|string|max:20',
             'birth_date' => 'nullable|date|before:today',
-            'country' => 'nullable|string|max:100',
-            'bio' => 'nullable|string|max:500',
+            'country_id' => 'nullable|string|exists:countries,id',
+            'bio'        => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -173,9 +185,17 @@ class ProfileController extends Controller
             ], 422);
         }
 
-        $user->update($request->only([
-            'first_name', 'last_name', 'username', 'email', 'phone_number', 'birth_date', 'country_id', 'bio'
-        ]));
+        // Separar name en first_name / last_name
+        $nameParts = explode(' ', trim($request->name), 2);
+        $user->update([
+            'first_name'   => $nameParts[0],
+            'last_name'    => $nameParts[1] ?? null,
+            'username'     => $request->username,
+            'email'        => $request->email,
+            'phone_number' => $request->phone,
+            'birth_date'   => $request->birth_date,
+            'country_id'   => $request->country_id,
+        ]);
 
         return response()->json([
             'success' => true,
@@ -185,71 +205,66 @@ class ProfileController extends Controller
     }
 
     /**
-     * Subir avatar del usuario
+     * Subir y procesar el avatar del usuario.
+     *
+     * Pipeline:
+     *  1. Validación: jpeg/png/gif, máx 5 MB en upload
+     *  2. Redimensiona a 400×400 px (cover, sin deformar)
+     *  3. Convierte siempre a JPEG y comprime al 80 %
+     *  4. Elimina el avatar anterior del disco
+     *  5. Guarda en storage/app/public/avatars/
      */
     public function uploadAvatar(Request $request): JsonResponse
     {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // 5 MB
+        ]);
+
         try {
-            $validator = Validator::make($request->all(), [
-                'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
             $user = Auth::user();
-            $avatar = $request->file('avatar');
+            $file = $request->file('avatar');
 
-            // Eliminar avatar anterior si existe
-            if ($user->profile_photo_url) {
-                $oldPath = str_replace('/storage/', '', $user->profile_photo_url);
-                Storage::disk('public')->delete($oldPath);
-            }
+            // getContent() es el método seguro de Symfony UploadedFile —
+            // funciona aunque getRealPath() falle en Windows con archivos temporales
+            $binaryContent = $file->getContent();
 
-            // Procesar y guardar la imagen
-            $filename = time() . '_' . uniqid() . '.' . $avatar->getClientOriginalExtension();
-            
-            // Crear directorio si no existe
+            // Procesar imagen con Intervention Image v3 (driver GD)
+            $manager = new ImageManager(new Driver());
+            $image   = $manager->read($binaryContent);
+
+            // Redimensionar a 400×400 recortando al centro (cover)
+            $image->cover(400, 400);
+
+            // Codificar como JPEG al 80 % de calidad
+            $encoded  = $image->toJpeg(80);
+            $filename = time() . '_' . uniqid() . '.jpg';
             $directory = 'avatars';
-            if (!Storage::disk('public')->exists($directory)) {
-                Storage::disk('public')->makeDirectory($directory);
+
+            // Guardar en disco public
+            Storage::disk('public')->makeDirectory($directory);
+            Storage::disk('public')->put("{$directory}/{$filename}", $encoded);
+
+            $publicPath = "/storage/{$directory}/{$filename}";
+
+            // Eliminar avatar anterior
+            if ($user->profile_photo_url) {
+                $old = ltrim(str_replace('/storage/', '', $user->profile_photo_url), '/');
+                Storage::disk('public')->delete($old);
             }
 
-            // Guardar la imagen original
-            $path = $avatar->storeAs($directory, $filename, 'public');
-            
-            // Opcional: Redimensionar la imagen si se solicita
-            if ($request->has('resize') && $request->get('resize')) {
-                try {
-                    // Aquí podrías usar Intervention Image para redimensionar
-                    // Por ahora, guardamos la imagen original
-                } catch (\Exception $e) {
-                    // Si falla el redimensionamiento, continuamos con la original
-                }
-            }
-            
-            // Actualizar el perfil del usuario
-            $user->update(['profile_photo_url' => '/storage/' . $path]);
+            $user->update(['profile_photo_url' => $publicPath]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Avatar uploaded successfully',
-                'data' => [
-                    'avatar' => '/storage/' . $path,
-                    'filename' => $filename
-                ]
+                'message' => 'Avatar actualizado correctamente',
+                'data'    => ['avatar' => $publicPath],
             ]);
 
         } catch (\Exception $e) {
             \Log::error('Avatar upload error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error uploading avatar: ' . $e->getMessage()
+                'message' => 'Error al procesar el avatar',
             ], 500);
         }
     }

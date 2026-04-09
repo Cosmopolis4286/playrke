@@ -17,9 +17,38 @@ export interface WalletPageProps {
   wallets: Wallet[]
 }
 
-export interface WalletOperationPayload {
+// ─── Directorio de retiro ──────────────────────────────────────────────────
+export type DirectoryType = 'pago_movil' | 'pix' | 'binance'
+
+export interface UserDirectory {
+  id: string
+  type: DirectoryType
+  label: string   // Nombre del banco / tipo de cuenta
+  detail: string  // Detalle: número, clave PIX, email, etc.
+  holder: string | null
+}
+
+export interface DirectoriesResponse {
+  success: boolean
+  data: UserDirectory[]
+}
+
+// ─── Depósito con comprobante ──────────────────────────────────────────────
+export interface DepositPayload {
   wallet_id: string
   amount: number
+  receipt: File
+  reference?: string
+  notes?: string
+}
+
+// ─── Retiro con directorio ─────────────────────────────────────────────────
+export interface WithdrawPayload {
+  wallet_id: string
+  amount: number
+  directory_id: string
+  directory_type: DirectoryType
+  notes?: string
 }
 
 export interface WalletOperationResponse {
@@ -28,9 +57,25 @@ export interface WalletOperationResponse {
   balance?: number
 }
 
+export type WalletMovementStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED' | 'REJECTED'
+
+export interface PendingOperation {
+  id: string
+  type: 'DEPOSIT' | 'WITHDRAWAL'
+  status: WalletMovementStatus
+  amount: number
+  description: string | null
+  created_at: string
+}
+
+export interface PendingOperationResponse {
+  success: boolean
+  pending: PendingOperation | null
+}
+
 export type WalletOperation = 'deposit' | 'withdraw'
 
-// Tipos del backend (snake_case, tal como llegan del API)
+// ─── Movimientos ───────────────────────────────────────────────────────────
 export type WalletMovementType = 'DEPOSIT' | 'WITHDRAWAL' | 'PURCHASE' | 'PRIZE'
 
 export interface WalletMovement {

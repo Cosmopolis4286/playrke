@@ -1,330 +1,586 @@
 <template>
-  <div class="row">
-    <!-- Estadísticas Principales -->
-    <div class="col-md-8">
-      <div class="row">
-        <!-- Juegos Jugados -->
-        <div class="col-md-4 mb-3">
-          <div class="card bg-primary text-white">
-            <div class="card-body text-center">
-              <i class="fas fa-gamepad fa-2x mb-2"></i>
-              <h3 class="mb-1">{{ stats.games_played || 0 }}</h3>
-              <p class="mb-0">Juegos Jugados</p>
-            </div>
-          </div>
-        </div>
+  <div class="stats-layout">
 
-        <!-- Juegos Ganados -->
-        <div class="col-md-4 mb-3">
-          <div class="card bg-success text-white">
-            <div class="card-body text-center">
-              <i class="fas fa-trophy fa-2x mb-2"></i>
-              <h3 class="mb-1">{{ stats.games_won || 0 }}</h3>
-              <p class="mb-0">Juegos Ganados</p>
-            </div>
-          </div>
-        </div>
+    <!-- ── Fila superior: 5 KPIs ─────────────────────────────────────── -->
+    <div class="kpi-grid">
 
-        <!-- Total Ganado -->
-        <div class="col-md-4 mb-3">
-          <div class="card bg-warning text-white">
-            <div class="card-body text-center">
-              <i class="fas fa-coins fa-2x mb-2"></i>
-              <h3 class="mb-1">{{ formatCurrency(stats.total_winnings) }}</h3>
-              <p class="mb-0">Total Ganado</p>
-            </div>
-          </div>
+      <div class="kpi-card kpi-games">
+        <div class="kpi-icon"><i class="fas fa-gamepad"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ stats.games_played || 0 }}</span>
+          <span class="kpi-label">Partidas</span>
         </div>
       </div>
 
-      <!-- Racha y Nivel -->
-      <div class="row">
-        <!-- Racha Actual -->
-        <div class="col-md-6 mb-3">
-          <div class="card bg-info text-white">
-            <div class="card-body text-center">
-              <i class="fas fa-fire fa-2x mb-2"></i>
-              <h3 class="mb-1">{{ stats.current_streak || 0 }}</h3>
-              <p class="mb-0">Racha Actual</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Mejor Racha -->
-        <div class="col-md-6 mb-3">
-          <div class="card bg-danger text-white">
-            <div class="card-body text-center">
-              <i class="fas fa-medal fa-2x mb-2"></i>
-              <h3 class="mb-1">{{ stats.best_streak || 0 }}</h3>
-              <p class="mb-0">Mejor Racha</p>
-            </div>
-          </div>
+      <div class="kpi-card kpi-wins">
+        <div class="kpi-icon"><i class="fas fa-trophy"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ stats.games_won || 0 }}</span>
+          <span class="kpi-label">Victorias</span>
         </div>
       </div>
 
-      <!-- Progreso de Nivel -->
-      <div class="card mb-3">
-        <div class="card-header bg-light">
-          <h6 class="mb-0">
-            <i class="fas fa-level-up-alt me-2"></i>Progreso de Nivel
-          </h6>
-        </div>
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="fw-bold">Nivel {{ stats.level || 1 }}</span>
-            <span class="text-muted">{{ stats.experience_points || 0 }} XP</span>
-          </div>
-          <div class="progress" style="height: 25px;">
-            <div 
-              class="progress-bar bg-success" 
-              role="progressbar" 
-              :style="{ width: levelProgress + '%' }"
-            >
-              {{ Math.round(levelProgress) }}%
-            </div>
-          </div>
-          <small class="text-muted">
-            {{ experienceToNextLevel }} XP para el siguiente nivel
-          </small>
+      <div class="kpi-card kpi-winrate">
+        <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ Math.round(winRate) }}%</span>
+          <span class="kpi-label">Win rate</span>
         </div>
       </div>
 
-      <!-- Logros -->
-      <div class="card">
-        <div class="card-header bg-light">
-          <h6 class="mb-0">
-            <i class="fas fa-award me-2"></i>Logros Desbloqueados
-          </h6>
-        </div>
-        <div class="card-body">
-          <div v-if="stats.achievements_count > 0" class="row">
-            <div class="col-md-2 col-sm-4 col-6 text-center mb-3" v-for="i in Math.min(stats.achievements_count, 6)" :key="i">
-              <div class="achievement-badge">
-                <i class="fas fa-star fa-2x text-warning mb-2"></i>
-                <p class="mb-0 small">Logro {{ i }}</p>
-              </div>
-            </div>
-            <div v-if="stats.achievements_count > 6" class="col-12 text-center">
-              <small class="text-muted">+{{ stats.achievements_count - 6 }} logros más</small>
-            </div>
-          </div>
-          <div v-else class="text-center text-muted">
-            <i class="fas fa-lock fa-3x mb-3"></i>
-            <p>No tienes logros desbloqueados aún</p>
-            <small>Sigue jugando para desbloquear logros</small>
-          </div>
+      <div class="kpi-card kpi-streak">
+        <div class="kpi-icon"><i class="fas fa-fire"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ stats.current_streak || 0 }}</span>
+          <span class="kpi-label">Racha actual</span>
         </div>
       </div>
+
+      <div class="kpi-card kpi-earnings">
+        <div class="kpi-icon"><i class="fas fa-coins"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ formatCurrency(stats.total_winnings) }}</span>
+          <span class="kpi-label">Total ganado</span>
+        </div>
+      </div>
+
     </div>
 
-    <!-- Información Adicional -->
-    <div class="col-md-4">
-      <!-- Estadísticas de Tiempo -->
-      <div class="card bg-light mb-3">
-        <div class="card-body">
-          <h6 class="card-title mb-3">
-            <i class="fas fa-clock me-2"></i>Tiempo de Juego
-          </h6>
-          
-          <div class="mb-2">
-            <small class="text-muted">Fecha de Registro:</small>
-            <div>{{ formatDate(stats.join_date) }}</div>
-          </div>
-          
-          <div class="mb-2">
-            <small class="text-muted">Última Actividad:</small>
-            <div>{{ formatDate(stats.last_active) }}</div>
-          </div>
-          
-          <div class="mb-2">
-            <small class="text-muted">Días Activo:</small>
-            <div>{{ activeDays }} días</div>
-          </div>
-        </div>
-      </div>
+    <!-- ── Cuerpo: columna principal + aside ────────────────────────── -->
+    <div class="stats-body">
 
-      <!-- Tasa de Victoria -->
-      <div class="card bg-light mb-3">
-        <div class="card-body">
-          <h6 class="card-title mb-3">
-            <i class="fas fa-percentage me-2"></i>Tasa de Victoria
-          </h6>
-          
-          <div class="text-center mb-3">
-            <div class="circular-progress" :style="{ '--progress': winRate + '%' }">
-              <span class="progress-text">{{ Math.round(winRate) }}%</span>
+      <!-- Columna principal -->
+      <div class="stats-main">
+
+        <!-- Progreso de nivel -->
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-icon level-icon"><i class="fas fa-level-up-alt"></i></span>
+            <h6>Progreso de Nivel</h6>
+          </div>
+          <div class="level-row">
+            <div class="level-badge">
+              <span class="level-num">{{ stats.level || 1 }}</span>
+              <span class="level-lbl">Nivel</span>
+            </div>
+            <div class="level-progress-wrap">
+              <div class="level-labels">
+                <span>{{ stats.experience_points || 0 }} XP</span>
+                <span class="text-muted">{{ experienceToNextLevel }} XP para nivel {{ (stats.level || 1) + 1 }}</span>
+              </div>
+              <div class="xp-bar">
+                <div class="xp-fill" :style="{ width: Math.min(levelProgress, 100) + '%' }">
+                  <span v-if="levelProgress > 12">{{ Math.round(levelProgress) }}%</span>
+                </div>
+              </div>
             </div>
           </div>
-          
-          <div class="d-flex justify-content-between text-sm">
-            <span>Victorias: {{ stats.games_won || 0 }}</span>
-            <span>Derrotas: {{ (stats.games_played || 0) - (stats.games_won || 0) }}</span>
+        </div>
+
+        <!-- Rachas -->
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-icon streak-icon"><i class="fas fa-fire"></i></span>
+            <h6>Rachas</h6>
+          </div>
+          <div class="streak-grid">
+            <div class="streak-item">
+              <i class="fas fa-fire streak-active-icon"></i>
+              <div>
+                <div class="streak-val">{{ stats.current_streak || 0 }}</div>
+                <div class="streak-lbl">Racha actual</div>
+              </div>
+            </div>
+            <div class="streak-divider"></div>
+            <div class="streak-item">
+              <i class="fas fa-medal streak-best-icon"></i>
+              <div>
+                <div class="streak-val">{{ stats.best_streak || 0 }}</div>
+                <div class="streak-lbl">Mejor racha</div>
+              </div>
+            </div>
           </div>
         </div>
+
+        <!-- Logros -->
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-icon award-icon"><i class="fas fa-award"></i></span>
+            <h6>Logros <span class="badge-count">{{ stats.achievements_count || 0 }}</span></h6>
+          </div>
+
+          <div v-if="stats.achievements_count > 0" class="achievements-grid">
+            <div
+              v-for="i in Math.min(stats.achievements_count, 9)"
+              :key="i"
+              class="achievement-item"
+              :title="`Logro ${i}`"
+            >
+              <div class="achievement-icon">
+                <i class="fas fa-star"></i>
+              </div>
+              <span>Logro {{ i }}</span>
+            </div>
+            <div v-if="stats.achievements_count > 9" class="achievement-more">
+              +{{ stats.achievements_count - 9 }} más
+            </div>
+          </div>
+
+          <div v-else class="empty-state">
+            <div class="empty-icon"><i class="fas fa-lock"></i></div>
+            <p>Sin logros desbloqueados aún</p>
+            <small>Sigue jugando para ganar insignias</small>
+          </div>
+        </div>
+
       </div>
 
-      <!-- Promedios -->
-      <div class="card bg-light">
-        <div class="card-body">
-          <h6 class="card-title mb-3">
-            <i class="fas fa-chart-line me-2"></i>Promedios
-          </h6>
-          
-          <div class="mb-2">
-            <small class="text-muted">Promedio por Juego:</small>
-            <div>{{ formatCurrency(averagePerGame) }}</div>
+      <!-- Aside -->
+      <aside class="stats-aside">
+
+        <!-- Win rate circular -->
+        <div class="section-card aside-card">
+          <div class="section-header">
+            <span class="section-icon wr-icon"><i class="fas fa-chart-pie"></i></span>
+            <h6>Tasa de victoria</h6>
           </div>
-          
-          <div class="mb-2">
-            <small class="text-muted">Promedio Diario:</small>
-            <div>{{ formatCurrency(averagePerDay) }}</div>
-          </div>
-          
-          <div class="mb-2">
-            <small class="text-muted">Juegos por Día:</small>
-            <div>{{ gamesPerDay.toFixed(1) }}</div>
+          <div class="wr-wrap">
+            <div class="wr-ring" :style="{ '--wr': winRate }">
+              <span class="wr-text">{{ Math.round(winRate) }}%</span>
+            </div>
+            <div class="wr-legend">
+              <div class="wr-row wr-won">
+                <span class="wr-dot"></span>
+                <span>Victorias</span>
+                <strong>{{ stats.games_won || 0 }}</strong>
+              </div>
+              <div class="wr-row wr-lost">
+                <span class="wr-dot"></span>
+                <span>Derrotas</span>
+                <strong>{{ (stats.games_played || 0) - (stats.games_won || 0) }}</strong>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+
+        <!-- Tiempo -->
+        <div class="section-card aside-card">
+          <div class="section-header">
+            <span class="section-icon time-icon"><i class="fas fa-calendar-alt"></i></span>
+            <h6>Actividad</h6>
+          </div>
+          <ul class="info-list">
+            <li>
+              <span class="info-lbl">Miembro desde</span>
+              <span class="info-val">{{ formatDate(stats.join_date) }}</span>
+            </li>
+            <li>
+              <span class="info-lbl">Última actividad</span>
+              <span class="info-val">{{ formatDate(stats.last_active) }}</span>
+            </li>
+            <li>
+              <span class="info-lbl">Días activo</span>
+              <span class="info-val">{{ activeDays }} días</span>
+            </li>
+            <li>
+              <span class="info-lbl">Partidas por día</span>
+              <span class="info-val">{{ gamesPerDay.toFixed(1) }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Promedios -->
+        <div class="section-card aside-card">
+          <div class="section-header">
+            <span class="section-icon avg-icon"><i class="fas fa-chart-line"></i></span>
+            <h6>Promedios</h6>
+          </div>
+          <ul class="info-list">
+            <li>
+              <span class="info-lbl">Por partida</span>
+              <span class="info-val accent">{{ formatCurrency(averagePerGame) }}</span>
+            </li>
+            <li>
+              <span class="info-lbl">Por día</span>
+              <span class="info-val accent">{{ formatCurrency(averagePerDay) }}</span>
+            </li>
+          </ul>
+        </div>
+
+      </aside>
     </div>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 
-const props = defineProps({
-    stats: {
-        type: Object,
-        default: () => ({})
-    }
-})
+interface GameStats {
+    games_played?: number
+    games_won?: number
+    total_winnings?: number
+    current_streak?: number
+    best_streak?: number
+    level?: number
+    experience_points?: number
+    achievements_count?: number
+    join_date?: string
+    last_active?: string
+}
 
-// Computadas
+const props = defineProps<{ stats: GameStats }>()
+
+// ── Computed ────────────────────────────────────────────────────────────────
+
 const winRate = computed(() => {
-    if (!props.stats.games_played || props.stats.games_played === 0) return 0
+    if (!props.stats.games_played) return 0
     return ((props.stats.games_won || 0) / props.stats.games_played) * 100
 })
 
 const levelProgress = computed(() => {
-    // Simulación: cada nivel necesita 1000 XP
-    const currentLevel = props.stats.level || 1
-    const experienceNeeded = currentLevel * 1000
-    const experienceForCurrentLevel = (currentLevel - 1) * 1000
-    const currentXP = props.stats.experience_points || 0
-    
-    return ((currentXP - experienceForCurrentLevel) / (experienceNeeded - experienceForCurrentLevel)) * 100
+    const lvl = props.stats.level || 1
+    const xp  = props.stats.experience_points || 0
+    const base = (lvl - 1) * 1000
+    const next = lvl * 1000
+    return ((xp - base) / (next - base)) * 100
 })
 
 const experienceToNextLevel = computed(() => {
-    const currentLevel = props.stats.level || 1
-    const experienceNeeded = currentLevel * 1000
-    const currentXP = props.stats.experience_points || 0
-    
-    return Math.max(0, experienceNeeded - currentXP)
-})
-
-const averagePerGame = computed(() => {
-    if (!props.stats.games_played || props.stats.games_played === 0) return 0
-    return (props.stats.total_winnings || 0) / props.stats.games_played
-})
-
-const averagePerDay = computed(() => {
-    if (!activeDays.value || activeDays.value === 0) return 0
-    return (props.stats.total_winnings || 0) / activeDays.value
-})
-
-const gamesPerDay = computed(() => {
-    if (!activeDays.value || activeDays.value === 0) return 0
-    return (props.stats.games_played || 0) / activeDays.value
+    const lvl = props.stats.level || 1
+    return Math.max(0, lvl * 1000 - (props.stats.experience_points || 0))
 })
 
 const activeDays = computed(() => {
     if (!props.stats.join_date) return 0
-    const joinDate = new Date(props.stats.join_date)
-    const today = new Date()
-    const diffTime = Math.abs(today.getTime() - joinDate.getTime())
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const diff = Date.now() - new Date(props.stats.join_date).getTime()
+    return Math.max(1, Math.ceil(diff / 86_400_000))
 })
 
-// Métodos
-const formatCurrency = (amount) => {
+const averagePerGame = computed(() => {
+    if (!props.stats.games_played) return 0
+    return (props.stats.total_winnings || 0) / props.stats.games_played
+})
+
+const averagePerDay = computed(() => {
+    if (!activeDays.value) return 0
+    return (props.stats.total_winnings || 0) / activeDays.value
+})
+
+const gamesPerDay = computed(() => {
+    if (!activeDays.value) return 0
+    return (props.stats.games_played || 0) / activeDays.value
+})
+
+// ── Formatters ───────────────────────────────────────────────────────────────
+
+function formatCurrency(amount: number | undefined): string {
     if (!amount) return '$0.00'
-    return new Intl.NumberFormat('es-VE', {
-        style: 'currency',
-        currency: 'USD'
-    }).format(amount)
+    return new Intl.NumberFormat('es-VE', { style: 'currency', currency: 'USD' }).format(amount)
 }
 
-const formatDate = (dateString) => {
+function formatDate(dateString: string | undefined): string {
     if (!dateString) return 'No disponible'
-    return new Date(dateString).toLocaleDateString('es-VE', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    })
+    return new Date(dateString).toLocaleDateString('es-VE', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 </script>
 
 <style scoped>
-.card {
-    border-radius: 12px;
-    border: none;
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.stats-layout { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.stats-body {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 1.25rem;
 }
 
-.card.bg-primary, .card.bg-success, .card.bg-warning, .card.bg-info, .card.bg-danger {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+/* ── KPI grid ────────────────────────────────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: .875rem;
 }
 
-.circular-progress {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: conic-gradient(#28a745 var(--progress), #e9ecef var(--progress));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    position: relative;
+.kpi-card {
+  border-radius: 14px;
+  padding: 1rem 1rem .875rem;
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0,0,0,.12);
 }
 
-.circular-progress::before {
-    content: '';
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: white;
+.kpi-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
-.progress-text {
-    position: relative;
-    font-weight: bold;
-    color: #28a745;
+.kpi-body { display: flex; flex-direction: column; min-width: 0; }
+.kpi-value { font-size: 1.35rem; font-weight: 700; line-height: 1.1; }
+.kpi-label { font-size: .72rem; opacity: .85; margin-top: 2px; white-space: nowrap; }
+
+.kpi-games   { background: linear-gradient(135deg, #667eea, #764ba2); }
+.kpi-wins    { background: linear-gradient(135deg, #11998e, #38ef7d); }
+.kpi-winrate { background: linear-gradient(135deg, #f093fb, #f5576c); }
+.kpi-streak  { background: linear-gradient(135deg, #f7971e, #ffd200); }
+.kpi-earnings{ background: linear-gradient(135deg, #4facfe, #00f2fe); }
+
+/* ── Section cards ───────────────────────────────────────────────────────── */
+.section-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #eaecf0;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+.section-card:last-child { margin-bottom: 0; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-bottom: 1rem;
+}
+.section-header h6 {
+  margin: 0;
+  font-size: .88rem;
+  font-weight: 600;
+  color: #1a1d23;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
 }
 
-.achievement-badge {
-    padding: 10px;
-    border-radius: 8px;
-    background: rgba(255, 193, 7, 0.1);
-    transition: transform 0.2s;
+.section-icon {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem;
+  flex-shrink: 0;
+}
+.level-icon  { background: #eef2ff; color: #667eea; }
+.streak-icon { background: #fff4e5; color: #f7971e; }
+.award-icon  { background: #fffbe6; color: #f5a623; }
+.wr-icon     { background: #fce4ec; color: #f5576c; }
+.time-icon   { background: #e3f2fd; color: #4facfe; }
+.avg-icon    { background: #e8f5e9; color: #11998e; }
+
+/* ── Level ───────────────────────────────────────────────────────────────── */
+.level-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.achievement-badge:hover {
-    transform: translateY(-2px);
+.level-badge {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(102,126,234,.35);
+}
+.level-num { font-size: 1.3rem; font-weight: 700; line-height: 1; }
+.level-lbl { font-size: .6rem; opacity: .85; }
+
+.level-progress-wrap { flex: 1; }
+.level-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: .76rem;
+  margin-bottom: .4rem;
+  color: #4b5563;
 }
 
-.progress {
-    border-radius: 10px;
-    overflow: hidden;
+.xp-bar {
+  height: 10px;
+  background: #eaecf0;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.xp-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  transition: width .6s ease;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 6px;
+  font-size: .6rem; color: #fff; font-weight: 600;
+  min-width: 0;
 }
 
-.progress-bar {
-    border-radius: 10px;
-    transition: width 0.3s ease;
+/* ── Streaks ─────────────────────────────────────────────────────────────── */
+.streak-grid {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.streak-divider {
+  width: 1px; height: 48px;
+  background: #eaecf0;
+}
+.streak-item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex: 1;
+}
+.streak-active-icon { font-size: 1.8rem; color: #f7971e; }
+.streak-best-icon   { font-size: 1.8rem; color: #f5a623; }
+.streak-val { font-size: 1.5rem; font-weight: 700; color: #1a1d23; line-height: 1; }
+.streak-lbl { font-size: .76rem; color: #6b7280; margin-top: 2px; }
+
+/* ── Achievements ────────────────────────────────────────────────────────── */
+.badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #667eea;
+  color: #fff;
+  font-size: .65rem;
+  font-weight: 600;
+  border-radius: 99px;
+  padding: 1px 7px;
+  margin-left: 4px;
 }
 
-.text-sm {
-    font-size: 0.875rem;
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: .6rem;
+}
+.achievement-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .3rem;
+  font-size: .7rem;
+  color: #6b7280;
+  cursor: default;
+}
+.achievement-icon {
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff8e1, #fffde7);
+  border: 1.5px solid #fcd34d;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; color: #f59e0b;
+  transition: transform .2s, box-shadow .2s;
+}
+.achievement-item:hover .achievement-icon {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(245,158,11,.25);
+}
+.achievement-more {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: .78rem;
+  color: #667eea;
+  font-weight: 500;
+  padding-top: .25rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 1.5rem 0;
+  color: #9ca3af;
+}
+.empty-icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  margin: 0 auto .75rem;
+}
+.empty-state p { font-size: .88rem; margin: 0 0 .2rem; color: #6b7280; }
+.empty-state small { font-size: .76rem; }
+
+/* ── Win rate ring ───────────────────────────────────────────────────────── */
+.wr-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.wr-ring {
+  width: 76px; height: 76px;
+  border-radius: 50%;
+  background: conic-gradient(
+    #f5576c calc(var(--wr) * 1%),
+    #eaecf0 calc(var(--wr) * 1%)
+  );
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+.wr-ring::before {
+  content: '';
+  position: absolute;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: #fff;
+}
+.wr-text {
+  position: relative;
+  font-size: .85rem;
+  font-weight: 700;
+  color: #f5576c;
+}
+.wr-legend { display: flex; flex-direction: column; gap: .4rem; flex: 1; }
+.wr-row {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .78rem;
+  color: #4b5563;
+}
+.wr-row strong { margin-left: auto; font-weight: 600; color: #1a1d23; }
+.wr-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.wr-won .wr-dot  { background: #f5576c; }
+.wr-lost .wr-dot { background: #eaecf0; border: 1px solid #d1d5db; }
+
+/* ── Info list ───────────────────────────────────────────────────────────── */
+.info-list {
+  list-style: none;
+  padding: 0; margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+}
+.info-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: .8rem;
+}
+.info-lbl { color: #6b7280; }
+.info-val  { font-weight: 600; color: #1a1d23; }
+.info-val.accent { color: #11998e; }
+
+/* ── Aside ───────────────────────────────────────────────────────────────── */
+.aside-card { margin-bottom: .875rem; }
+.aside-card:last-child { margin-bottom: 0; }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  .stats-body { grid-template-columns: 1fr; }
+  .stats-aside { display: grid; grid-template-columns: repeat(2, 1fr); gap: .875rem; }
+  .aside-card { margin-bottom: 0; }
+}
+@media (max-width: 560px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-aside { grid-template-columns: 1fr; }
 }
 </style>

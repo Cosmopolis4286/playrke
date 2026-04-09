@@ -39,17 +39,13 @@ final class PermissionController extends Controller
     }
 
     /**
-     * Obtener lista de permisos para la tabla.
+     * Obtener todos los permisos para la matriz (sin paginación).
      */
-    public function fetchList(Request $request): JsonResponse
+    public function fetchList(): JsonResponse
     {
-        $perPage = $request->get('per_page', 15);
-        $data = $this->service->getPermissionsWithPagination($perPage);
-
         return response()->json([
             'permissions' => [
-                'rows' => $data['permissions'],
-                'pagination' => $data['pagination'],
+                'rows' => $this->service->getAllForMatrix(),
             ],
         ]);
     }

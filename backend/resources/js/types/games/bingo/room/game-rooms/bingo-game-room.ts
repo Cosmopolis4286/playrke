@@ -42,7 +42,7 @@ export interface BingoGameRoom {
   /** ID del usuario creador */
   readonly creator_user_id: string | number
   /** Tipo de sala */
-  readonly room_type: 'PRIVATE' | 'PUBLIC' | 'VIP' | 'MIXED'
+  readonly room_type: 'PRIVATE' | 'PUBLIC' | 'VIP' | 'DEMO'
   /** Configuración de la sala */
   readonly config?: BingoGameRoomConfig | null
   /** Cartones del jugador actual en esta sala */

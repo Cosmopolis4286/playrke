@@ -66,10 +66,9 @@ class RolePermissionSeeder extends Seeder
             $this->command->info('✅ Permisos asignados a Commerce');
         }
 
-        // Seller: Gestión de ventas y clientes
+        // Seller: Gestión de ventas
         if ($seller) {
             $sellerPermissions = [
-                'customers.view', 'customers.create', 'customers.edit',
                 'game.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.gaming',
             ];
