@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class TriviaQuestion extends BaseModel
 {
+    protected $connection = 'pgsql_trivia';
+
     protected $table = 'trivia_questions';
 
     protected $fillable = [

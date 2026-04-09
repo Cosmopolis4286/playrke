@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('trivia_rooms', function (Blueprint $table) {
+        Schema::connection('pgsql_trivia')->create('trivia_rooms', function (Blueprint $table) {
             $table->id();
             $table->string('code', 10)->unique(); // Código para unirse
             $table->string('title', 100);
@@ -33,6 +33,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('trivia_rooms');
+        Schema::connection('pgsql_trivia')->dropIfExists('trivia_rooms');
     }
 };

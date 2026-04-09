@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class TriviaGame extends BaseModel
 {
+    protected $connection = 'pgsql_trivia';
+
     protected $table = 'trivia_games';
 
     protected $fillable = [

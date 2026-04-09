@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('trivia_scores', function (Blueprint $table) {
+        Schema::connection('pgsql_trivia')->create('trivia_scores', function (Blueprint $table) {
             $table->id();
             $table->foreignId('game_id')->constrained('trivia_games')->onDelete('cascade');
             $table->string('player_id'); // Referencia externa, no FK
@@ -30,6 +30,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('trivia_scores');
+        Schema::connection('pgsql_trivia')->dropIfExists('trivia_scores');
     }
 };

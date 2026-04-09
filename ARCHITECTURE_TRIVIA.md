@@ -279,6 +279,77 @@ php artisan test tests/Unit/Domains/Trivia
 
 ---
 
+## Arquitectura Multi-Base de Datos
+
+### Separación por Dominio
+
+| Componente | Base de Datos | Motor |
+|------------|---------------|-------|
+| Core (users, wallets, apuestas) | `playrke` | MySQL |
+| Trivia (rooms, games, scores) | `trivia` | PostgreSQL |
+
+### Configuración
+
+```php
+// config/database.php
+'connections' => [
+    'mysql' => [/* Core DB */],
+    'pgsql_trivia' => [
+        'driver' => 'pgsql',
+        'host' => env('DB_TRIVIA_HOST', '127.0.0.1'),
+        'port' => env('DB_TRIVIA_PORT', '5432'),
+        'database' => env('DB_TRIVIA_DATABASE', 'trivia'),
+        'username' => env('DB_TRIVIA_USERNAME', 'postgres'),
+        'password' => env('DB_TRIVIA_PASSWORD', ''),
+    ],
+]
+```
+
+### Variables de Entorno
+
+```env
+# MySQL - Core
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_DATABASE=playrke
+
+# PostgreSQL - Trivia
+DB_TRIVIA_HOST=127.0.0.1
+DB_TRIVIA_PORT=5432
+DB_TRIVIA_DATABASE=trivia
+DB_TRIVIA_USERNAME=postgres
+DB_TRIVIA_PASSWORD=
+```
+
+### Uso en Modelos
+
+```php
+class TriviaRoom extends Model
+{
+    protected $connection = 'pgsql_trivia';
+    protected $table = 'trivia_rooms';
+}
+```
+
+### Migraciones PostgreSQL
+
+```bash
+# Crear base de datos trivia
+createdb trivia
+
+# Ejecutar migraciones en PostgreSQL
+php artisan migrate --path=database/migrations/2026_04_09* --database=pgsql_trivia
+```
+
+### Ventajas
+
+- ✅ **Desacoplamiento total**: No hay joins entre MySQL y PostgreSQL
+- ✅ **Preparado para microservicio**: La DB ya está separada
+- ✅ **Mejor performance**: PostgreSQL optimizado para queries complejas de trivia
+- ✅ **Escalabilidad independiente**: Cada DB puede escalar por separado
+
+---
+
 ## Checklist Migración a Microservicio
 
 - [ ] Extraer `app/Domains/Trivia/` a repo separado
