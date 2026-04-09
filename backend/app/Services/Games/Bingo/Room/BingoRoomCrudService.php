@@ -243,6 +243,7 @@ class BingoRoomCrudService
             'serials_pct'             => $dto->serialsPct ?? null,
             'num_serials'             => $dto->numSerials ?? null,
             'jackpot_pct'             => $dto->jackpotPct ?? null,
+            'from_house'              => $dto->fromHouse ?? 'N',
         ];
 
         if ($isCreate) {
@@ -581,6 +582,7 @@ class BingoRoomCrudService
             'numSerials'            => $config->num_serials ? (int) $config->num_serials : null,
             'roundsConfig'          => $roundsConfig,
             'activateRoom'          => false,
+            'fromHouse'             => $config->from_house,
         ]);
 
         return $this->saveRoom($dto);

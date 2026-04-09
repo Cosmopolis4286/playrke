@@ -33,6 +33,7 @@ final class BingoRoomUpdateDTO
         public readonly ?float $usdExchangeRoundStep,
         public readonly ?array $cardPriceByCurrency,
         public readonly ?bool $activateRoom,
+        public readonly ?string $fromHouse = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -77,6 +78,7 @@ final class BingoRoomUpdateDTO
             usdExchangeRoundStep: isset($data['usdExchangeRoundStep']) ? (float) $data['usdExchangeRoundStep'] : null,
             cardPriceByCurrency: $cardPriceByCurrency,
             activateRoom: isset($data['activateRoom']) ? (bool) $data['activateRoom'] : null,
+            fromHouse: isset($data['fromHouse']) ? (string) $data['fromHouse'] : null,
         );
     }
 }
