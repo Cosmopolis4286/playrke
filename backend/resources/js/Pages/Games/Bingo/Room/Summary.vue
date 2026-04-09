@@ -18,6 +18,7 @@
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useBingoRoom } from '@/js/composables/games/bingo/room/default/useBingoRoom'
+  import { usePage } from '@inertiajs/vue3'
 
   // ==========================================================================
   // Types
@@ -31,6 +32,19 @@
   // Props (Inertia)
   // ==========================================================================
   const props = defineProps<BingoRoomSummaryPageProps>()
+
+  // ==========================================================================
+  // Role checking
+  // ==========================================================================
+  const page = usePage()
+
+  /** Verifica si el usuario es admin o superadmin usando props de Inertia */
+  const isAdmin = computed(() => {
+    const userRoles = page.props.auth?.user?.userRoles || [];
+    return userRoles.some((ur: any) => 
+      ur.role?.prefix === 'admin' || ur.role?.prefix === 'superadmin'
+    );
+  });
 
   // ==========================================================================
   // Lógica de negocio
@@ -193,7 +207,8 @@
   // Filtros
   // ==========================================================================
 
-  const filters = computed<readonly TableFilterInterface[]>(() => [
+  const filters = computed<readonly TableFilterInterface[]>(() => {
+  const baseFilters = [
     {
       key: 'room_type_description',
       label: 'tipo',
@@ -224,7 +239,23 @@
         { value: 'OFFLINE', label: 'Fuera de Línea' }
       ]
     }
-  ])
+  ];
+
+  // Agregar filtro from_house solo para admin/superadmin
+  if (isAdmin.value) {
+    baseFilters.push({
+      key: 'from_house',
+      label: 'Origen',
+      placeholder: 'Filtrar por origen',
+      options: [
+        { value: 'Y', label: 'Salas propias de la app' },
+        { value: 'N', label: 'Salas de usuarios' }
+      ]
+    });
+  }
+
+  return baseFilters;
+})
 
   // ==========================================================================
   // Botones extra
