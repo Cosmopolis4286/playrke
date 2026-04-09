@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
  * Middleware: auth:sanctum (ajustar según necesidad)
  */
 
-Route::prefix('trivia')->group(function () {
+Route::middleware(['auth:sanctum'])->prefix('trivia')->group(function () {
     
     // Salas
     Route::prefix('rooms')->group(function () {

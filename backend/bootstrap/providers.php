@@ -6,4 +6,5 @@ return [
     App\Providers\FortifyServiceProvider::class,
     App\Providers\RepositoryServiceProvider::class,
     App\Providers\SettingsConfigServiceProvider::class,
+    App\Providers\TriviaServiceProvider::class,
 ];
