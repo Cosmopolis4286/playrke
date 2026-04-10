@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Domain\Common\Status;
+namespace App\Domains\Common\Status;
 
 use InvalidArgumentException;
 

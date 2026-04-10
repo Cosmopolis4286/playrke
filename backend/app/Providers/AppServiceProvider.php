@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Domain\Common\Status\StatusChanger;
+use App\Domains\Common\Status\StatusChanger;
 use App\Repositories\BaseRepository;
 use App\Services\Route\RouteService;
 use App\Support\EnvValidator;
