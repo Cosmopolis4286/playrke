@@ -39,7 +39,7 @@ class RolePermissionSeeder extends Seeder
                 'treasury.view', 'treasury.reports',
                 'exchange.view', 'exchange.manage',
                 'games.view', 'games.manage',
-                'game.bingo', // Acceso a juegos de bingo
+                'games.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial', 'reports.gaming',
                 'audit.view',
                 // Opciones independientes
@@ -62,7 +62,7 @@ class RolePermissionSeeder extends Seeder
             $commercePermissions = [
                 'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
                 'customers.view', 'customers.create', 'customers.edit',
-                'game.bingo', // Acceso a juegos de bingo
+                'games.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.generate', 'reports.gaming',
                 // Opciones independientes
                 'directory.view', 'directory.search',
@@ -79,7 +79,7 @@ class RolePermissionSeeder extends Seeder
         // Seller: Gestión de ventas
         if ($seller) {
             $sellerPermissions = [
-                'game.bingo', // Acceso a juegos de bingo
+                'games.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.gaming',
                 // Trivia - Solo ver partidas y leaderboard (no jugar - es un rol de gestión)
                 'game.trivia.view',
@@ -124,7 +124,7 @@ class RolePermissionSeeder extends Seeder
         // Customer: Acceso web limitado
         if ($customer) {
             $customerPermissions = [
-                'game.bingo', // Acceso a juegos de bingo (guard 'web')
+                'games.bingo', // Acceso a juegos de bingo (guard 'web')
                 'directory.view', 'directory.search', // Acceso al directorio
                 // Trivia - Puede jugar y ver leaderboard
                 'game.trivia.view', 'game.trivia.play', 'game.trivia.leaderboard.view',
@@ -136,8 +136,8 @@ class RolePermissionSeeder extends Seeder
         // Player: Solo acceso a juegos de bingo
         if ($player) {
             $playerPermissions = [
-                'game.bingo', // Acceso a juegos de bingo
-                'game.bingo.game_rooms', // Acceso a salas de bingo
+                'games.bingo', // Acceso a juegos de bingo
+                'games.bingo.game_rooms', // Acceso a salas de bingo
                 'wallet.view', // Acceso a ver billetera
                 // Trivia - Principal rol para jugar
                 'game.trivia.view', 'game.trivia.play', 'game.trivia.leaderboard.view',

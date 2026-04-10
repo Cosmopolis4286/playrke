@@ -57,7 +57,7 @@ Route::prefix('trivia-questions')->name('trivia-questions.')->middleware(['auth'
 // ====================================
 // RUTAS DE JUEGO (USUARIOS)
 // ====================================
-Route::prefix('trivia-game')->name('trivia-game.')->middleware(['auth'])->group(function () {
+Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth'])->group(function () {
     // Salas de trivia para usuarios
     Route::get('/rooms/{coin}', [TriviaGameController::class, 'rooms'])->name('rooms');
     Route::post('/room/{id}/join', [TriviaGameController::class, 'room'])->name('join');
@@ -106,22 +106,22 @@ Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function (
 Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function () {
     // Redirecciones para mantener compatibilidad con rutas antiguas
     Route::get('/rooms/{coin}', function ($coin) {
-        return redirect()->route('trivia-game.rooms', $coin);
+        return redirect()->route('trivia-games.rooms', $coin);
     });
     
     Route::get('/room/{id}', function ($id) {
-        return redirect()->route('trivia-game.in-game', $id);
+        return redirect()->route('trivia-games.in-game', $id);
     });
     
     Route::get('/timer/{id}', function ($id) {
-        return redirect()->route('trivia-game.timer', $id);
+        return redirect()->route('trivia-games.timer', $id);
     });
     
     Route::get('/rm-multi/{id}', function ($id) {
-        return redirect()->route('trivia-game.in-game', $id);
+        return redirect()->route('trivia-games.in-game', $id);
     });
     
     Route::get('/individual/{id}', function ($id) {
-        return redirect()->route('trivia-game.individual', $id);
+        return redirect()->route('trivia-games.individual', $id);
     });
 });

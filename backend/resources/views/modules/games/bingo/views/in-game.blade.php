@@ -5,7 +5,7 @@
             background-image: url("{{ asset('img/body/space.png') }}") !important;
         } */
     </style>
-    @vite('resources/css/games/bingo/bingo-in-game.css')
+    @vite('resources/css/games/bingo/bingo-in-games.css')
 @endsection
 @section('title', $title)
 
@@ -19,7 +19,7 @@
         @endif
 
         <div class="container mt-1">
-            <x-games.bingo.in-game.cartons :cartons="$cartons ?? []" :customerLogo="$customerLogo ?? null" />
+            <x-games.bingo.in-games.cartons :cartons="$cartons ?? []" :customerLogo="$customerLogo ?? null" />
         </div>
 
         @if ($room->status == 2)
@@ -89,7 +89,7 @@
             soundNext.muted = true;
             soundWin.muted = true;
         </script>
-        @vite(['resources/js/helpers/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-game.js'])
+        @vite(['resources/js/helpers/rke-crypt.js', 'resources/js/games/bingo/includes/auto-marked.js', 'resources/js/games/bingo/in-games.js'])
         @if ($room->Config->bingo_patterns)
             @vite('resources/js/games/bingo/includes/handle-bingo-patterns.js')
         @endif

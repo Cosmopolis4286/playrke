@@ -2,7 +2,7 @@
 /**
  * Página: Juego de Bingo (in-game)
  *
- * Vista equivalente al blade `in-game.blade.php`,
+ * Vista equivalente al blade `in-games.blade.php`,
  * migrada a Vue 3 + Inertia.
  *
  * Responsabilidades:
@@ -15,7 +15,7 @@
 // Imports
 // ==========================================================================
 import { ref, onMounted, computed } from "vue";
-import "@/css/games/bingo/bingo-in-game.css";
+import "@/css/games/bingo/bingo-in-games.css";
 
 // ==========================================================================
 // Componentes

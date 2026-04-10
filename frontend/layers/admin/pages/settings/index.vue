@@ -111,7 +111,7 @@
               Tiempo entre números (segundos)
             </label>
             <input
-              v-model.number="settings.game.number_interval"
+              v-model.number="settings.games.number_interval"
               type="number"
               min="1"
               max="60"
@@ -124,7 +124,7 @@
               Máximo de cartones por jugador
             </label>
             <input
-              v-model.number="settings.game.max_cards_per_player"
+              v-model.number="settings.games.max_cards_per_player"
               type="number"
               min="1"
               max="20"
@@ -137,7 +137,7 @@
               Tiempo de espera antes de iniciar (segundos)
             </label>
             <input
-              v-model.number="settings.game.waiting_time"
+              v-model.number="settings.games.waiting_time"
               type="number"
               min="10"
               max="300"
@@ -147,7 +147,7 @@
 
           <div class="flex items-center gap-3">
             <input
-              v-model="settings.game.auto_mark_enabled"
+              v-model="settings.games.auto_mark_enabled"
               type="checkbox"
               id="auto-mark"
               class="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500"
@@ -159,7 +159,7 @@
 
           <div class="flex items-center gap-3">
             <input
-              v-model="settings.game.sound_enabled"
+              v-model="settings.games.sound_enabled"
               type="checkbox"
               id="sound"
               class="w-4 h-4 text-blue-600 bg-slate-100 border-slate-300 rounded focus:ring-blue-500"

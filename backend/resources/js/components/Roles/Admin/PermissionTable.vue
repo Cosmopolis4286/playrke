@@ -37,22 +37,28 @@
                 <tr class="category-header">
                   <td colspan="100%">
                     <div class="d-flex align-items-center">
-                      <i class="fas fa-circle text-danger mr-2" style="font-size: 8px;"></i>
-                      <span class="font-weight-bold text-uppercase">{{ category.name }}</span>
+                      <i class="fas fa-folder text-primary mr-2"></i>
+                      <span v-if="category.subModule" class="font-weight-bold">
+                        {{ category.moduleName }}
+                        <i class="fas fa-angle-right text-muted mx-1"></i>
+                        <span class="text-primary">{{ category.subModule }}</span>
+                      </span>
+                      <span v-else class="font-weight-bold">{{ category.moduleName }}</span>
                       <span class="text-muted ml-2">({{ category.permissions.length }})</span>
                     </div>
                   </td>
                 </tr>
                 <tr v-for="permission in category.permissions" :key="permission.id" class="permission-row">
                   <td class="permission-col">
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex align-items-center ml-4">
+                      <i class="fas fa-key text-muted mr-2" style="font-size: 10px;"></i>
                       <span class="font-weight-medium">{{ formatPermissionName(permission.name) }}</span>
                       <i v-if="permission.isSystem" class="fas fa-lock text-danger ml-2" title="Permiso del sistema"></i>
                     </div>
-                    <small class="text-muted d-block permission-key">{{ permission.name }}</small>
+                    <small class="text-muted d-block permission-key ml-4">{{ permission.name }}</small>
                   </td>
                   <td class="module-col">
-                    <span class="text-muted">{{ category.moduleName }}</span>
+                    <span class="badge badge-light text-muted">{{ category.subModule || category.moduleName }}</span>
                   </td>
                   <td v-for="role in displayRoles" :key="role.id" class="role-col text-center">
                     <div class="custom-checkbox-wrapper">
@@ -161,33 +167,52 @@ const displayRoles = computed(() =>
 )
 
 const permissionCategories = computed(() => {
-  const map = new Map<string, { name: string; moduleName: string; permissions: (Permission & { isSystem: boolean })[] }>()
+  const map = new Map<string, { name: string; moduleName: string; subModule: string | null; permissions: (Permission & { isSystem: boolean })[] }>()
 
   for (const p of props.permissions.rows ?? []) {
     const cat = categorize(p.name)
-    if (!map.has(cat.key)) {
-      map.set(cat.key, { name: cat.key, moduleName: cat.module, permissions: [] })
+    const key = cat.subModule ? `${cat.module} › ${cat.subModule}` : cat.module
+    if (!map.has(key)) {
+      map.set(key, { name: key, moduleName: cat.module, subModule: cat.subModule, permissions: [] })
     }
-    map.get(cat.key)!.permissions.push({ ...p, isSystem: isSystem(p.name) })
+    map.get(key)!.permissions.push({ ...p, isSystem: isSystem(p.name) })
   }
 
-  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
+  // Sort by module name, then by submodule name
+  const sorted = [...map.values()].sort((a, b) => {
+    if (a.moduleName !== b.moduleName) {
+      return a.moduleName.localeCompare(b.moduleName)
+    }
+    if (a.subModule && b.subModule) {
+      return a.subModule.localeCompare(b.subModule)
+    }
+    return a.subModule ? 1 : -1
+  })
+  
+  // Sort permissions within each category alphabetically by permission name
+  for (const cat of sorted) {
+    cat.permissions.sort((a, b) => a.name.localeCompare(b.name))
+  }
+  
+  return sorted
 })
 
-function categorize(name: string): { key: string; module: string } {
-  const module = name.split('.')[0]
-  const mod = module.charAt(0).toUpperCase() + module.slice(1)
-
-  if (/user|admin/.test(name))                            return { key: 'USUARIOS',      module: mod }
-  if (/commerce|business|store/.test(name))               return { key: 'COMERCIOS',     module: mod }
-  if (/game|bingo|play/.test(name))                       return { key: 'JUEGOS',        module: mod }
-  if (/wallet|finance|payment|transaction/.test(name))    return { key: 'FINANZAS',      module: mod }
-  if (/role|permission/.test(name))                       return { key: 'ROLES',         module: mod }
-  if (/audit/.test(name))                                 return { key: 'AUDIT',         module: mod }
-  if (/system|config|setting/.test(name))                 return { key: 'SISTEMA',       module: mod }
-  if (/support|ticket|help/.test(name))                   return { key: 'SOPORTE',       module: mod }
-  if (/analytics|report|stats/.test(name))                return { key: 'ANALYTICS',     module: mod }
-  return { key: mod.toUpperCase(), module: mod }
+function categorize(name: string): { module: string; subModule: string | null } {
+  const parts = name.split('.')
+  const mainModule = parts[0]
+  
+  // Capitalize first letter
+  const module = mainModule.charAt(0).toUpperCase() + mainModule.slice(1)
+  
+  // If there's a second part and it's not an action, treat it as submodule
+  const actions = ['view', 'create', 'edit', 'delete', 'manage', 'list', 'show', 'update', 'store', 'destroy', 'index', 'config', 'assign', 'revoke', 'toggle', 'export', 'import', 'approve', 'reject', 'play', 'access']
+  
+  let subModule: string | null = null
+  if (parts.length >= 2 && !actions.includes(parts[1])) {
+    subModule = parts[1].charAt(0).toUpperCase() + parts[1].slice(1)
+  }
+  
+  return { module, subModule }
 }
 
 function isSystem(name: string): boolean {
