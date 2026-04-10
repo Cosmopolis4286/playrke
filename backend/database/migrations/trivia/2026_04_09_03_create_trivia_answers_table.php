@@ -15,17 +15,18 @@ return new class extends Migration
             $table->string('player_id'); // Referencia externa, no FK
             $table->ulid('question_id');
             $table->foreign('question_id')->references('id')->on('trivia_questions');
-            $table->string('submitted_answer', 255);
+            $table->unsignedTinyInteger('selected_option_index'); // Índice de la opción seleccionada
             $table->boolean('is_correct');
-            $table->integer('points_earned')->default(0);
-            $table->float('response_time_ms');
-            $table->timestamp('answered_at');
+            $table->unsignedInteger('points_earned')->default(0);
+            $table->unsignedInteger('response_time_ms'); // Tiempo exacto, no float
+            $table->boolean('is_late')->default(false); // Respuesta fuera de tiempo
+            $table->string('client_id')->nullable(); // Anti-cheat / debugging
             $table->timestamps();
 
-            $table->index(['game_id', 'player_id']);
+            // Índices optimizados (unique ya cubre game_id + player_id)
+            $table->unique(['game_id', 'player_id', 'question_id'], 'unique_answer');
             $table->index(['game_id', 'question_id']);
             $table->index('player_id');
-            $table->unique(['game_id', 'player_id', 'question_id'], 'unique_answer');
         });
     }
 

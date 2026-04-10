@@ -13,18 +13,20 @@ return new class extends Migration
             $table->ulid('room_id');
             $table->foreign('room_id')->references('id')->on('trivia_rooms')->onDelete('cascade');
             $table->string('game_code', 10)->unique();
-            $table->string('status', 20)->default('active'); // active, paused, finished, cancelled
-            $table->integer('current_question_index')->default(0);
-            $table->integer('total_questions')->default(0);
-            $table->integer('player_count')->default(0);
+            $table->string('status', 20)->default('playing'); // waiting, playing, paused, finished, cancelled
+            $table->unsignedInteger('current_question_index')->default(0);
+            $table->unsignedInteger('total_questions')->default(0);
+            $table->unsignedInteger('player_count')->default(0);
+            $table->unsignedInteger('time_per_question'); // Snapshot desde room
+            $table->ulid('winner_user_id')->nullable(); // Ganador final
             $table->timestamp('started_at')->nullable();
             $table->timestamp('ended_at')->nullable();
             $table->jsonb('metadata')->nullable(); // Datos adicionales (jsonb para PostgreSQL)
             $table->timestamps();
 
             $table->index('status');
-            $table->index('game_code');
             $table->index(['room_id', 'status']);
+            $table->index(['room_id', 'created_at']); // Historial de partidas por sala
         });
     }
 

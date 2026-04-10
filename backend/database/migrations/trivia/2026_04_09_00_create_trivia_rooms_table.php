@@ -11,19 +11,18 @@ return new class extends Migration
         Schema::connection('pgsql_trivia')->create('trivia_rooms', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->string('code', 10)->unique();
-            $table->ulid('host_id');
+            $table->ulid('host_id')->index(); // External reference (Laravel), bien indexado
             $table->string('title', 100);
             $table->text('description')->nullable();
-            $table->enum('status', ['waiting', 'playing', 'finished', 'cancelled'])->default('waiting');
-            $table->integer('max_players')->default(10);
-            $table->integer('question_count')->default(10);
-            $table->integer('time_per_question')->default(15);
+            $table->string('status', 20)->default('waiting'); // Flexible: waiting, playing, finished, cancelled
+            $table->unsignedInteger('max_players')->default(10);
+            $table->unsignedInteger('question_count')->default(10);
+            $table->unsignedInteger('time_per_question')->default(15);
             $table->jsonb('config')->nullable(); // Configuración personalizada (jsonb para PostgreSQL)
             $table->jsonb('metadata')->nullable(); // Datos adicionales (jsonb para PostgreSQL)
+            $table->unsignedInteger('current_players')->default(0); // Evita contar en runtime
             $table->timestamp('scheduled_at')->nullable();
             $table->timestamps();
-            $table->softDeletes();
-            $table->index('code');
             $table->index('status');
             $table->index('host_id');
             $table->index(['status', 'scheduled_at']);

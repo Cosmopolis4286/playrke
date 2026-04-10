@@ -12,7 +12,9 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->ulid('game_id');
             $table->ulid('question_id');
-            $table->integer('order_index'); // Orden en este juego específico
+            $table->unsignedInteger('order_index'); // Orden en este juego específico (sin negativos)
+            $table->integer('time_limit_seconds'); // Snapshot del tiempo límite
+            $table->boolean('is_closed')->default(false); // Cerrada por tiempo
             $table->timestamp('sent_at')->nullable(); // Cuándo se envió
             $table->timestamp('answered_at')->nullable(); // Cuándo respondieron todos
             $table->timestamps();
@@ -22,8 +24,8 @@ return new class extends Migration
             
             // Índices críticos para performance
             $table->index(['game_id', 'order_index']);
-            $table->index(['game_id', 'question_id']);
-            $table->unique(['game_id', 'question_id'], 'unique_game_question');
+            $table->unique(['game_id', 'order_index']); // Garantiza orden único, sin duplicados
+            $table->index('question_id'); // Para buscar en qué juegos se usó una pregunta
         });
     }
 

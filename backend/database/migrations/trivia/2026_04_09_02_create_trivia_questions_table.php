@@ -15,8 +15,10 @@ return new class extends Migration
             $table->string('image_url', 500)->nullable();
             $table->unsignedTinyInteger('correct_option_index'); // Índice 0-255, sin negativos
             $table->jsonb('options'); // ["A", "B", "C", "D"] - Flexible con JSONB
-            $table->integer('time_limit_seconds')->default(15);
-            $table->integer('points')->default(100);
+            $table->unsignedInteger('time_limit_seconds')->default(15);
+            $table->unsignedInteger('points')->default(100);
+            $table->boolean('is_active')->default(true); // Para moderación, A/B testing
+            $table->unsignedInteger('times_used')->default(0); // Analytics: balanceo de preguntas
             $table->text('explanation')->nullable(); // Explicación de la respuesta
             $table->string('category', 50)->nullable();
             $table->string('difficulty', 10)->default('medium'); // easy, medium, hard
@@ -24,7 +26,9 @@ return new class extends Migration
 
             // Índices críticos para performance
             $table->index(['category', 'difficulty']); // Cubre: category, category+difficulty
+            $table->index('category'); // Para queries simples y ORDER BY RANDOM()
             $table->index('created_at'); // Útil para selección aleatoria y últimas preguntas
+            $table->index('is_active'); // Filtrado frecuente de preguntas activas
         });
     }
 
