@@ -238,4 +238,29 @@ final class TriviaGameController extends Controller
 
         return $question;
     }
+
+    /**
+     * Display the trivia lobby for players.
+     * This is the entry point from the sidebar menu.
+     */
+    public function lobby(): Response
+    {
+        $user = $this->user(['id']);
+        $wallet = $this->wallet($user->id);
+
+        // Obtener monedas disponibles para trivia
+        $coins = DB::table('coins')
+            ->where('status', 1)
+            ->whereIn('id', function ($query) {
+                $query->select('coin')
+                    ->from('trivia_multi')
+                    ->whereIn('status', [1, 2, 3]);
+            })
+            ->get();
+
+        return Inertia::render('Trivia/Lobby', [
+            'coins' => $coins,
+            'wallet' => $wallet,
+        ]);
+    }
 }

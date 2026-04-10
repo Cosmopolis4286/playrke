@@ -1,0 +1,51 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\Trivia\Contracts;
+
+use App\Domains\Trivia\DTOs\GameStateDTO;
+
+/**
+ * Repositorio para estado temporal de juegos (Redis).
+ * 
+ * Esta interfaz permite cambiar fácilmente la implementación
+ * de almacenamiento sin afectar la lógica de negocio.
+ */
+interface GameStateRepositoryInterface
+{
+    /**
+     * Guardar estado del juego.
+     */
+    public function saveState(string $gameId, GameStateDTO $state, ?int $ttl = null): void;
+
+    /**
+     * Obtener estado del juego.
+     */
+    public function getState(string $gameId): ?GameStateDTO;
+
+    /**
+     * Verificar si existe estado.
+     */
+    public function exists(string $gameId): bool;
+
+    /**
+     * Eliminar estado del juego.
+     */
+    public function deleteState(string $gameId): void;
+
+    /**
+     * Extender tiempo de vida del estado.
+     */
+    public function extendTtl(string $gameId, int $ttl): void;
+
+    /**
+     * Actualizar campo específico del estado.
+     */
+    public function updateField(string $gameId, string $field, mixed $value): void;
+
+    /**
+     * Obtener campo específico del estado.
+     */
+    public function getField(string $gameId, string $field): mixed;
+}

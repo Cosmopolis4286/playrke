@@ -289,4 +289,72 @@ final class TriviaReportController extends Controller
             'filters' => $request->only(['date_from', 'date_to'])
         ]);
     }
+
+    /**
+     * Display the global leaderboard.
+     * Accessible from sidebar menu.
+     */
+    public function leaderboard(): Response
+    {
+        $topPlayers = DB::table('triv_multi_user')
+            ->select(
+                'users.id',
+                'users.name',
+                'users.email',
+                DB::raw('COUNT(*) as games_played'),
+                DB::raw('SUM(CASE WHEN lose_win = 1 THEN 1 ELSE 0 END) as wins'),
+                DB::raw('SUM(triv_multi.prize) as total_prizes')
+            )
+            ->join('users', 'users.id', 'triv_multi_user.user')
+            ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
+            ->groupBy('users.id', 'users.name', 'users.email')
+            ->orderByDesc('wins')
+            ->orderByDesc('total_prizes')
+            ->limit(100)
+            ->get();
+
+        return Inertia::render('Trivia/Leaderboard', [
+            'title' => 'Clasificación de Trivia',
+            'topPlayers' => $topPlayers,
+        ]);
+    }
+
+    /**
+     * Display detailed statistics.
+     * Accessible from sidebar menu.
+     */
+    public function stats(): Response
+    {
+        $stats = [
+            'total_rooms' => TriviaMulti::count(),
+            'active_rooms' => TriviaMulti::whereIn('status', [2, 3])->count(),
+            'finished_rooms' => TriviaMulti::where('status', 4)->count(),
+            'total_players' => DB::table('triv_multi_user')->count(),
+            'unique_players' => DB::table('triv_multi_user')->distinct('user')->count('user'),
+            'total_winners' => DB::table('triv_multi_user')->where('lose_win', 1)->count(),
+            'total_prizes_distributed' => DB::table('triv_multi_user')
+                ->where('lose_win', 1)
+                ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
+                ->sum('triv_multi.prize'),
+            'games_by_coin' => DB::table('triv_multi')
+                ->select('coins.name as coin', DB::raw('COUNT(*) as total'))
+                ->join('coins', 'coins.id', 'triv_multi.coin')
+                ->groupBy('coins.name')
+                ->get(),
+            'monthly_activity' => DB::table('triv_multi_user')
+                ->select(
+                    DB::raw('DATE_FORMAT(triv_multi_user.created_at, "%Y-%m") as month'),
+                    DB::raw('COUNT(*) as participants')
+                )
+                ->groupBy('month')
+                ->orderByDesc('month')
+                ->limit(12)
+                ->get(),
+        ];
+
+        return Inertia::render('Modules/Admin/Trivia/Stats', [
+            'title' => 'Estadísticas de Trivia',
+            'stats' => $stats,
+        ]);
+    }
 }

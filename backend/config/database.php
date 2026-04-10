@@ -97,6 +97,20 @@ return [
             'sslmode' => 'prefer',
         ],
 
+        'pgsql_trivia' => [
+            'driver' => 'pgsql',
+            'host' => env('DB_TRIVIA_HOST', '127.0.0.1'),
+            'port' => env('DB_TRIVIA_PORT', '5432'),
+            'database' => env('DB_TRIVIA_DATABASE', 'trivia'),
+            'username' => env('DB_TRIVIA_USERNAME', 'postgres'),
+            'password' => env('DB_TRIVIA_PASSWORD', ''),
+            'charset' => env('DB_TRIVIA_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => env('DB_TRIVIA_SCHEMA', 'public'),
+            'sslmode' => env('DB_TRIVIA_SSLMODE', 'prefer'),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),
