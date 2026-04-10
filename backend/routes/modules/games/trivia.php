@@ -72,6 +72,35 @@ Route::prefix('trivia-game')->name('trivia-game.')->middleware(['auth'])->group(
 });
 
 // ====================================
+// RUTAS PARA SIDEBAR MENÚ (NUEVAS)
+// ====================================
+Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function () {
+    // Lobby - Sala de espera para jugar
+    Route::get('/lobby', [TriviaGameController::class, 'lobby'])->name('lobby');
+    
+    // Alias para rooms (compatibility con sidebar)
+    Route::get('/rooms', function () {
+        return redirect()->route('trivia-rooms.index');
+    })->name('rooms.index');
+    
+    // Alias para questions (compatibility con sidebar)
+    Route::get('/questions', function () {
+        return redirect()->route('trivia-questions.index', ['roomId' => 'all']);
+    })->name('questions.index');
+    
+    // Alias para games/partidas (compatibility con sidebar)
+    Route::get('/games', function () {
+        return redirect()->route('trivia.index');
+    })->name('games.index');
+    
+    // Leaderboard / Clasificación
+    Route::get('/leaderboard', [TriviaReportController::class, 'leaderboard'])->name('leaderboard');
+    
+    // Estadísticas
+    Route::get('/stats', [TriviaReportController::class, 'stats'])->name('stats');
+});
+
+// ====================================
 // RUTAS LEGACY (MANTENER COMPATIBILIDAD)
 // ====================================
 Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function () {
