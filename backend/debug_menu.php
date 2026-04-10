@@ -34,15 +34,15 @@ foreach ($permissions as $permission) {
     echo "  - {$permission->name} (guard: {$permission->guard_name})\n";
 }
 
-echo "\n🎯 Verificación de permiso 'game.bingo':\n";
-echo "  - can('game.bingo'): " . ($user->can('game.bingo') ? '✅ SÍ' : '❌ NO') . "\n";
-echo "  - hasPermissionTo('game.bingo'): " . ($user->hasPermissionTo('game.bingo') ? '✅ SÍ' : '❌ NO') . "\n";
-echo "  - hasPermissionTo('game.bingo', 'web'): " . ($user->hasPermissionTo('game.bingo', 'web') ? '✅ SÍ' : '❌ NO') . "\n";
+echo "\n🎯 Verificación de permiso 'games.bingo':\n";
+echo "  - can('games.bingo'): " . ($user->can('games.bingo') ? '✅ SÍ' : '❌ NO') . "\n";
+echo "  - hasPermissionTo('games.bingo'): " . ($user->hasPermissionTo('games.bingo') ? '✅ SÍ' : '❌ NO') . "\n";
+echo "  - hasPermissionTo('games.bingo', 'web'): " . ($user->hasPermissionTo('games.bingo', 'web') ? '✅ SÍ' : '❌ NO') . "\n";
 
 // Verificar directamente en los permisos
 $permissions = $user->getAllPermissions();
-$hasGameBingo = collect($permissions)->contains('name', 'game.bingo');
-echo "  - game.bingo en lista de permisos: " . ($hasGameBingo ? '✅ SÍ' : '❌ NO') . "\n";
+$hasGameBingo = collect($permissions)->contains('name', 'games.bingo');
+echo "  - games.bingo en lista de permisos: " . ($hasGameBingo ? '✅ SÍ' : '❌ NO') . "\n";
 
 // Verificar guard actual
 echo "  - Guard actual del usuario: " . auth()->getDefaultDriver() . "\n";
@@ -57,8 +57,8 @@ if ($adminRole) {
     foreach ($adminPermissions as $permission) {
         echo "    - {$permission->name}\n";
     }
-    $hasGameBingo = $adminRole->hasPermissionTo('game.bingo');
-    echo "  - Rol admin tiene 'game.bingo': " . ($hasGameBingo ? '✅ SÍ' : '❌ NO') . "\n";
+    $hasGameBingo = $adminRole->hasPermissionTo('games.bingo');
+    echo "  - Rol admin tiene 'games.bingo': " . ($hasGameBingo ? '✅ SÍ' : '❌ NO') . "\n";
 } else {
     echo "  - ❌ Rol admin NO encontrado\n";
 }

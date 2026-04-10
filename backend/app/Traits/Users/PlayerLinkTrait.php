@@ -188,11 +188,11 @@ trait PlayerLinkTrait
         \Log::info('Generating game link', [
             'playerLink' => $playerLink,
             'roomId' => $roomId,
-            'route' => 'bingo-game.in-game',
+            'route' => 'bingo-games.in-game',
             'externalPlayer_id' => $externalPlayer->id,
             'externalPlayer_link' => $externalPlayer->link
         ]);
 
-        return route('bingo-game.in-game', ['room' => $roomId]);
+        return route('bingo-games.in-game', ['room' => $roomId]);
     }
 }

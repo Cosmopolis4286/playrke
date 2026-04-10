@@ -85,7 +85,7 @@ final class TriviaGameController extends Controller
             ]);
         }
 
-        return redirect()->route('trivia-game.in-game', $id);
+        return redirect()->route('trivia-games.in-game', $id);
     }
 
     /**
@@ -132,7 +132,7 @@ final class TriviaGameController extends Controller
     }
 
     /**
-     * Display individual trivia game.
+     * Display individual trivia games.
      */
     public function individual($id): Response
     {
@@ -215,7 +215,7 @@ final class TriviaGameController extends Controller
                 'finished_at' => now()
             ]);
 
-        return redirect()->route('trivia-game.rooms', ['coin' => 'rke']);
+        return redirect()->route('trivia-games.rooms', ['coin' => 'rke']);
     }
 
     /**

@@ -243,7 +243,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
         // Retorna ruta y datos
-        return ['route' => 'modules.game.bingo-rooms.index', 'data' => $viewData];
+        return ['route' => 'modules.games.bingo-rooms.index', 'data' => $viewData];
     }
 
     public function gamesRoomsCommerce($roomType = 'private', $currency = '')
@@ -591,7 +591,7 @@ class BingoController extends Controller
     {
         $rules = GameRule::getValueByGame('BINGO', $creatorUser);
 
-        return $rules ?: view("includes.info.game.bingo");
+        return $rules ?: view("includes.info.games.bingo");
     }
 
     private function getGameInfo($creator, $data = [])
@@ -821,7 +821,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.in-game', 'data' => $viewData];
+        return ['route' => 'modules.games.bingo.in-game', 'data' => $viewData];
     }
 
     public function inGame($player, $room = '')
@@ -1168,7 +1168,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.summary.index', 'data' => $viewData];
+        return ['route' => 'modules.games.bingo.summary.index', 'data' => $viewData];
     }
 
     /**
@@ -1817,7 +1817,7 @@ class BingoController extends Controller
             'bingoRules' => $this->getBingoRules($user),
         ];
 
-        $viewData = ['route' => 'modules.game.bingo.configuration.index', 'data' => $viewData];
+        $viewData = ['route' => 'modules.games.bingo.configuration.index', 'data' => $viewData];
 
         return $this->handleViewData($viewData, $userRole);
     }
@@ -2211,7 +2211,7 @@ class BingoController extends Controller
             'bingoPatterns' => $bingoPatterns
         ];
 
-        $viewData = ['route' => 'modules.game.bingo.configuration.handle-patterns', 'data' => $viewData];
+        $viewData = ['route' => 'modules.games.bingo.configuration.handle-patterns', 'data' => $viewData];
 
         return $this->handleViewData($viewData, $userRole);
     }
@@ -2613,7 +2613,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.automatic-room.index', 'data' => $viewData];
+        return ['route' => 'modules.games.bingo.automatic-room.index', 'data' => $viewData];
     }
 
     private function allAutomaticRooms($creatorType, $creatorId)
@@ -2721,7 +2721,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.game.bingo.form.other-public-rooms', 'data' => $viewData];
+        return ['route' => 'modules.games.bingo.form.other-public-rooms', 'data' => $viewData];
     }
 
     private function allOtherPublicRooms($creatorType, $creatorId, $currency = '')
@@ -3852,7 +3852,7 @@ class BingoController extends Controller
             'round' => 5,
             'numbers' => [12, 23, 34, 45, 56],
         ];
-        return view('modules.game.bingo.game-info', compact('data'));
+        return view('modules.games.bingo.game-info', compact('data'));
     }
 
     public function callNumber(Request $request, int $roomId)
@@ -3897,6 +3897,6 @@ class BingoController extends Controller
             'numbers' => [12, 23, 34, 45, 56],
         ];
 
-        return view('modules.game.bingo.form.index', compact('data'));
+        return view('modules.games.bingo.form.index', compact('data'));
     }
 }

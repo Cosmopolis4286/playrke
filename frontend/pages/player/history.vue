@@ -132,36 +132,36 @@
             <tbody class="divide-y divide-slate-700/50">
               <tr
                 v-for="game in paginatedGames"
-                :key="game.id"
+                :key="games.id"
                 class="hover:bg-white/5 transition-colors"
               >
                 <td class="px-6 py-4 text-sm text-slate-300">
-                  {{ formatDate(game.played_at) }}
+                  {{ formatDate(games.played_at) }}
                 </td>
                 <td class="px-6 py-4">
                   <div>
-                    <p class="text-white font-medium">{{ game.room_name }}</p>
-                    <p class="text-sm text-slate-400">{{ game.room_type }}</p>
+                    <p class="text-white font-medium">{{ games.room_name }}</p>
+                    <p class="text-sm text-slate-400">{{ games.room_type }}</p>
                   </div>
                 </td>
                 <td class="px-6 py-4 text-sm text-slate-300">
-                  {{ game.cards_count }}
+                  {{ games.cards_count }}
                 </td>
                 <td class="px-6 py-4 text-sm text-slate-300">
-                  {{ formatCurrency(game.total_invested) }}
+                  {{ formatCurrency(games.total_invested) }}
                 </td>
                 <td class="px-6 py-4">
                   <span
-                    v-if="game.prize_won > 0"
+                    v-if="games.prize_won > 0"
                     class="text-green-400 font-semibold"
                   >
-                    +{{ formatCurrency(game.prize_won) }}
+                    +{{ formatCurrency(games.prize_won) }}
                   </span>
                   <span v-else class="text-slate-500">-</span>
                 </td>
                 <td class="px-6 py-4">
                   <span
-                    v-if="game.status === 'winner'"
+                    v-if="games.status === 'winner'"
                     class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30"
                   >
                     <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -181,7 +181,7 @@
                 </td>
                 <td class="px-6 py-4">
                   <button
-                    @click="viewGameDetails(game.id)"
+                    @click="viewGameDetails(games.id)"
                     class="text-purple-400 hover:text-purple-300 font-medium text-sm"
                   >
                     Ver Detalles

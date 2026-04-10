@@ -218,7 +218,7 @@ final class AdminCustomerCrudService
         $gamePermissions = [];
         if (!empty($activeGameIds)) {
             $games = Game::whereIn('id', $activeGameIds)->get(['id', 'name']);
-            $gamePermissions = $games->map(fn($game) => 'game.' . strtolower($game->name))
+            $gamePermissions = $games->map(fn($game) => 'games.' . strtolower($game->name))
                 ->values()
                 ->all();
         }
@@ -231,7 +231,7 @@ final class AdminCustomerCrudService
             // Filtrar permisos que no son de juegos
             $nonGamePermissions = array_filter(
                 $currentPermissions,
-                fn($perm) => !str_starts_with($perm, 'game.')
+                fn($perm) => !str_starts_with($perm, 'games.')
             );
 
             // Combinar permisos no-juego + nuevos permisos de juegos
