@@ -2,7 +2,7 @@
 
 namespace App\Models\Games\Bingo\Room;
 
-use App\Domains\Games\Bingo\Models\BingoRoom as DomainBingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom as DomainBingoRoom;
 
 /**
  * Modelo BingoRoom - Capa de compatibilidad
@@ -10,7 +10,7 @@ use App\Domains\Games\Bingo\Models\BingoRoom as DomainBingoRoom;
  * Este modelo extiende el modelo del dominio para mantener
  * compatibilidad con código existente durante la migración.
  *
- * @deprecated Usar App\Domains\Games\Bingo\Models\BingoRoom en nuevo código
+ * @deprecated Usar App\Domains\Games\Bingo\Models\Room\BingoRoom en nuevo código
  */
 class BingoRoom extends DomainBingoRoom
 {
