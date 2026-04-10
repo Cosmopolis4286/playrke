@@ -11,19 +11,21 @@ return new class extends Migration
         Schema::connection('pgsql_trivia')->create('trivia_game_events', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('game_id');
-            $table->string('type', 50); // question_sent, answer_received, game_started, etc.
+            $table->string('type', 30); // question_sent, answer_received, game_started, etc.
             $table->string('player_id')->nullable(); // Quién disparó el evento (opcional)
+            $table->ulid('game_question_id')->nullable(); // Contexto de la pregunta específica
+            $table->string('source', 20)->default('server'); // server, client, system
             $table->jsonb('payload'); // Datos del evento en JSONB
-            $table->timestamp('occurred_at'); // Timestamp del evento
+            $table->timestamp('occurred_at')->useCurrent(); // Timestamp del evento
+            $table->unsignedBigInteger('sequence')->nullable(); // Orden determinista para replay
             $table->timestamps();
 
             $table->foreign('game_id')->references('id')->on('trivia_games')->onDelete('cascade');
             
-            // Índices para análisis y replay
-            $table->index(['game_id', 'type']);
-            $table->index(['game_id', 'occurred_at']);
-            $table->index('type');
-            $table->index('occurred_at');
+            // Índices optimizados para análisis y replay
+            $table->index(['game_id', 'occurred_at']); // Queries por tiempo
+            $table->index(['game_id', 'type']); // Queries por tipo de evento
+            $table->index(['game_id', 'sequence']); // Replay determinista
         });
     }
 
