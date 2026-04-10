@@ -72,7 +72,31 @@ class SidebarMenuService
             'exclude_roles' => ['player', 'seller'],
             'route' => 'prizes.index',
         ],
-        'bingo' => [
+        'sales_management' => [
+            'title' => 'Gestión de Ventas',
+            'icon' => 'fa-solid fa-comments-dollar',
+            'permission' => 'sellers.view,customers.view', // Accesible para commerce, customer, seller
+            'submenu' => [
+                'my_sellers' => [
+                    'title' => 'Mis Vendedores',
+                    'route' => 'manager-seller.index',
+                    'permission' => 'sellers.view',
+                ],
+            ],
+        ],
+        'games' => [
+            'title' => 'Gestión de Juegos',
+            'icon' => 'fas fa-gamepad',
+            'permission' => 'games.view',
+            'submenu' => [
+                'bingo_rooms' => [
+                    'title' => 'Salas de Bingo',
+                    'route' => 'bingo-rooms.index',
+                    'permission' => 'games.view',
+                ],
+            ],
+        ],
+        'games_bingo' => [
             'title' => 'Bingo',
             'icon' => 'fas fa-gamepad',
             'permission' => 'game.bingo', // Acceso específico a juegos de bingo
@@ -100,27 +124,44 @@ class SidebarMenuService
                 ],
             ],
         ],
-        'games' => [
-            'title' => 'Gestión de Juegos',
-            'icon' => 'fas fa-gamepad',
-            'permission' => 'games.view',
+        'games_trivia' => [
+            'title' => 'Trivia',
+            'icon' => 'fas fa-brain',
+            'permission' => 'game.trivia.view', // Acceso básico a trivia
             'submenu' => [
-                'bingo_rooms' => [
-                    'title' => 'Salas de Bingo',
-                    'route' => 'bingo-rooms.index',
-                    'permission' => 'games.view',
+                'play' => [
+                    'title' => 'Jugar Trivia',
+                    'route' => 'trivia.lobby',
+                    'permission' => 'game.trivia.play', // Solo jugadores pueden jugar
                 ],
-            ],
-        ],
-        'sales_management' => [
-            'title' => 'Gestión de Ventas',
-            'icon' => 'fa-solid fa-comments-dollar',
-            'permission' => 'sellers.view,customers.view', // Accesible para commerce, customer, seller
-            'submenu' => [
-                'my_sellers' => [
-                    'title' => 'Mis Vendedores',
-                    'route' => 'manager-seller.index',
-                    'permission' => 'sellers.view',
+                'rooms' => [
+                    'title' => 'Gestionar Salas',
+                    'route' => 'trivia.rooms.index',
+                    'permission' => 'game.trivia.rooms.manage',
+                    'exclude_roles' => ['player', 'seller', 'customer'], // Solo admin+
+                ],
+                'questions' => [
+                    'title' => 'Banco de Preguntas',
+                    'route' => 'trivia.questions.index',
+                    'permission' => 'game.trivia.questions.manage',
+                    'exclude_roles' => ['player', 'seller', 'customer'], // Solo admin+
+                ],
+                'games' => [
+                    'title' => 'Partidas',
+                    'route' => 'trivia.games.index',
+                    'permission' => 'game.trivia.games.view',
+                    'exclude_roles' => ['player'], // Admin, seller, commerce pueden ver
+                ],
+                'leaderboard' => [
+                    'title' => 'Clasificación',
+                    'route' => 'trivia.leaderboard',
+                    'permission' => 'game.trivia.leaderboard.view',
+                ],
+                'stats' => [
+                    'title' => 'Estadísticas',
+                    'route' => 'trivia.stats',
+                    'permission' => 'game.trivia.stats.view',
+                    'exclude_roles' => ['player', 'seller', 'customer'], // Solo admin+
                 ],
             ],
         ],
@@ -201,47 +242,6 @@ class SidebarMenuService
             ],
         ],
         */
-        'trivia' => [
-            'title' => 'Trivia',
-            'icon' => 'fas fa-brain',
-            'permission' => 'game.trivia.view', // Acceso básico a trivia
-            'submenu' => [
-                'play' => [
-                    'title' => 'Jugar Trivia',
-                    'route' => 'trivia.lobby',
-                    'permission' => 'game.trivia.play', // Solo jugadores pueden jugar
-                ],
-                'rooms' => [
-                    'title' => 'Gestionar Salas',
-                    'route' => 'trivia.rooms.index',
-                    'permission' => 'game.trivia.rooms.manage',
-                    'exclude_roles' => ['player', 'seller', 'customer'], // Solo admin+
-                ],
-                'questions' => [
-                    'title' => 'Banco de Preguntas',
-                    'route' => 'trivia.questions.index',
-                    'permission' => 'game.trivia.questions.manage',
-                    'exclude_roles' => ['player', 'seller', 'customer'], // Solo admin+
-                ],
-                'games' => [
-                    'title' => 'Partidas',
-                    'route' => 'trivia.games.index',
-                    'permission' => 'game.trivia.games.view',
-                    'exclude_roles' => ['player'], // Admin, seller, commerce pueden ver
-                ],
-                'leaderboard' => [
-                    'title' => 'Clasificación',
-                    'route' => 'trivia.leaderboard',
-                    'permission' => 'game.trivia.leaderboard.view',
-                ],
-                'stats' => [
-                    'title' => 'Estadísticas',
-                    'route' => 'trivia.stats',
-                    'permission' => 'game.trivia.stats.view',
-                    'exclude_roles' => ['player', 'seller', 'customer'], // Solo admin+
-                ],
-            ],
-        ],
     ];
 
     /**
