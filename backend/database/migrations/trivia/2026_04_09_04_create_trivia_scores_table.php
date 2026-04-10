@@ -13,19 +13,22 @@ return new class extends Migration
             $table->ulid('game_id');
             $table->foreign('game_id')->references('id')->on('trivia_games')->onDelete('cascade');
             $table->string('player_id'); // Referencia externa, no FK
-            $table->integer('final_score')->default(0);
-            $table->integer('correct_answers')->default(0);
-            $table->integer('wrong_answers')->default(0);
-            $table->float('average_response_time_ms')->default(0);
-            $table->integer('position')->default(0); // Posición final
-            $table->integer('max_streak')->default(0);
+            $table->unsignedInteger('final_score')->default(0);
+            $table->unsignedInteger('correct_answers')->default(0);
+            $table->unsignedInteger('wrong_answers')->default(0);
+            $table->unsignedInteger('average_response_time_ms')->default(0); // Exacto, no float
+            $table->unsignedInteger('position')->nullable(); // Null durante juego, valor al finalizar
+            $table->unsignedInteger('max_streak')->default(0);
+            $table->boolean('is_winner')->default(false); // Acceso rápido al ganador
+            $table->unsignedInteger('total_questions')->default(0); // Contexto del score
+            $table->unsignedInteger('total_response_time_ms')->default(0); // Para recalcular promedio
             $table->jsonb('metadata')->nullable(); // Historial detallado (jsonb para PostgreSQL)
             $table->timestamps();
 
+            // Índices optimizados
+            $table->unique(['game_id', 'player_id']); // Ya cubre búsqueda por game_id + player_id
             $table->index(['game_id', 'position']);
-            $table->index(['game_id', 'player_id']);
             $table->index('player_id');
-            $table->unique(['game_id', 'player_id'], 'unique_score');
         });
     }
 
