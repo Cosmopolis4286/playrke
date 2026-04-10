@@ -13,10 +13,12 @@ return new class extends Migration
             $table->ulid('game_id');
             $table->ulid('question_id');
             $table->unsignedInteger('order_index'); // Orden en este juego específico (sin negativos)
-            $table->integer('time_limit_seconds'); // Snapshot del tiempo límite
-            $table->boolean('is_closed')->default(false); // Cerrada por tiempo
+            $table->unsignedInteger('time_limit_seconds'); // Snapshot desde questions
+            $table->unsignedInteger('points')->default(100); // Snapshot desde questions
+            $table->boolean('is_closed')->default(false); // Cerrada por tiempo o lógica
             $table->timestamp('sent_at')->nullable(); // Cuándo se envió
-            $table->timestamp('answered_at')->nullable(); // Cuándo respondieron todos
+            $table->timestamp('answered_at')->nullable(); // Momento de cierre (respuestas o timeout)
+            $table->unsignedInteger('question_duration_ms')->nullable(); // Duración real para analytics
             $table->timestamps();
 
             $table->foreign('game_id')->references('id')->on('trivia_games')->onDelete('cascade');
@@ -25,6 +27,7 @@ return new class extends Migration
             // Índices críticos para performance
             $table->index(['game_id', 'order_index']);
             $table->unique(['game_id', 'order_index']); // Garantiza orden único, sin duplicados
+            $table->index(['game_id', 'question_id']); // Útil para debugging y replay
             $table->index('question_id'); // Para buscar en qué juegos se usó una pregunta
         });
     }
