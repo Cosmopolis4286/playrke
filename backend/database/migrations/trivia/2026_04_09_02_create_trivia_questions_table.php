@@ -10,26 +10,21 @@ return new class extends Migration
     {
         Schema::connection('pgsql_trivia')->create('trivia_questions', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->ulid('room_id');
-            $table->foreign('room_id')->references('id')->on('trivia_rooms')->onDelete('cascade');
-            $table->integer('question_number'); // Orden de la pregunta
+            // Nota: el orden de preguntas en un juego va en game_questions.order_index
             $table->text('question_text');
             $table->string('image_url', 500)->nullable();
-            $table->string('correct_answer', 255);
-            $table->string('option_1', 255);
-            $table->string('option_2', 255);
-            $table->string('option_3', 255);
-            $table->string('option_4', 255)->nullable(); // Opcional
+            $table->unsignedTinyInteger('correct_option_index'); // Índice 0-255, sin negativos
+            $table->jsonb('options'); // ["A", "B", "C", "D"] - Flexible con JSONB
             $table->integer('time_limit_seconds')->default(15);
             $table->integer('points')->default(100);
             $table->text('explanation')->nullable(); // Explicación de la respuesta
             $table->string('category', 50)->nullable();
-            $table->string('difficulty', 20)->nullable(); // easy, medium, hard
+            $table->string('difficulty', 10)->default('medium'); // easy, medium, hard
             $table->timestamps();
 
-            $table->index(['room_id', 'question_number']);
-            $table->index('category');
-            $table->index('difficulty');
+            // Índices críticos para performance
+            $table->index(['category', 'difficulty']); // Cubre: category, category+difficulty
+            $table->index('created_at'); // Útil para selección aleatoria y últimas preguntas
         });
     }
 
