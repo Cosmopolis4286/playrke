@@ -99,13 +99,13 @@ class SidebarMenuService
         'games_bingo' => [
             'title' => 'Bingo',
             'icon' => 'fas fa-gamepad',
-            'permission' => 'game.bingo', // Acceso específico a juegos de bingo
+            'permission' => 'games.bingo', // Acceso específico a juegos de bingo
             'exclude_roles' => ['superadmin', 'admin'], // Superadmin no ve este menú
             'submenu' => [
                 'game_rooms' => [
                     'title' => 'Salas de Bingo',
                     'route' => 'bingo-game-rooms.index',
-                    'permission' => 'game.bingo.game_rooms', // Acceso específico a juegos de bingo
+                    'permission' => 'games.bingo.game_rooms', // Acceso específico a juegos de bingo
                 ],
                 'bingo_cards_sold' => [
                     'title' => 'Cartones',
@@ -115,52 +115,52 @@ class SidebarMenuService
                 'bingo_winners' => [
                     'title' => 'Ganadores',
                     'route' => 'bingo.winners',
-                    'permission' => 'game.bingo.winners', 
+                    'permission' => 'games.bingo.winners', 
                 ],
                 'bingo_sales_report' => [
                     'title' => 'Reporte de Ventas',
                     'route' => 'bingo.sales-report',
-                    'permission' => 'game.bingo.sales_report', 
+                    'permission' => 'games.bingo.sales_report', 
                 ],
             ],
         ],
         'games_trivia' => [
             'title' => 'Trivia',
             'icon' => 'fas fa-brain',
-            'permission' => 'game.trivia.view', // Acceso básico a trivia
+            'permission' => 'games.trivia.view', // Acceso básico a trivia
             'submenu' => [
                 'play' => [
                     'title' => 'Jugar Trivia',
                     'route' => 'trivia.lobby',
-                    'permission' => 'game.trivia.play', // Solo jugadores pueden jugar
+                    'permission' => 'games.trivia.play', // Solo jugadores pueden jugar
                 ],
                 'rooms' => [
                     'title' => 'Gestionar Salas',
                     'route' => 'trivia.rooms.index',
-                    'permission' => 'game.trivia.rooms.manage',
+                    'permission' => 'games.trivia.rooms.manage',
                     'exclude_roles' => ['player', 'seller', 'customer'], // Solo admin+
                 ],
                 'questions' => [
                     'title' => 'Banco de Preguntas',
                     'route' => 'trivia.questions.index',
-                    'permission' => 'game.trivia.questions.manage',
+                    'permission' => 'games.trivia.questions.manage',
                     'exclude_roles' => ['player', 'seller', 'customer'], // Solo admin+
                 ],
                 'games' => [
                     'title' => 'Partidas',
                     'route' => 'trivia.games.index',
-                    'permission' => 'game.trivia.games.view',
+                    'permission' => 'games.trivia.games.view',
                     'exclude_roles' => ['player'], // Admin, seller, commerce pueden ver
                 ],
                 'leaderboard' => [
                     'title' => 'Clasificación',
                     'route' => 'trivia.leaderboard',
-                    'permission' => 'game.trivia.leaderboard.view',
+                    'permission' => 'games.trivia.leaderboard.view',
                 ],
                 'stats' => [
                     'title' => 'Estadísticas',
                     'route' => 'trivia.stats',
-                    'permission' => 'game.trivia.stats.view',
+                    'permission' => 'games.trivia.stats.view',
                     'exclude_roles' => ['player', 'seller', 'customer'], // Solo admin+
                 ],
             ],
