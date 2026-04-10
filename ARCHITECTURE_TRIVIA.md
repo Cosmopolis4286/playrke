@@ -243,7 +243,183 @@ GET    /api/trivia/games/{gameId}/leaderboard
 
 ---
 
-## Cliente Frontend (Ejemplo)
+## Frontend Vue 3 + Inertia
+
+### Estructura de Componentes (Responsabilidad del Juego)
+
+```
+resources/js/Pages/Trivia/
+├── Lobby.vue       ← Sala de espera (unirse/ver jugadores)
+├── Game.vue        ← Core del juego (preguntas/respuestas)
+└── Results.vue     ← Resultados finales y estadísticas
+
+resources/js/Components/Trivia/
+├── Room/
+│   ├── RoomHeader.vue      ← Título, código copiable, info
+│   ├── PlayerList.vue      ← Lista en tiempo real (WebSocket)
+│   └── JoinForm.vue        ← Formulario nombre + validación
+├── Game/
+│   ├── GameHeader.vue      ← Progreso (3/10) + barra
+│   ├── QuestionCard.vue    ← Pregunta + imagen + metadata
+│   ├── AnswerOptions.vue   ← Botones A/B/C/D interactivos
+│   ├── TimerBar.vue        ← Barra animada + countdown
+│   └── GameStatus.vue      ← Estados: esperando/respondiendo/tiempo
+├── Score/
+│   ├── Leaderboard.vue     ← Ranking en vivo con medallas
+│   └── PlayerScore.vue     ← Stats del jugador (correctas/tiempo)
+└── Shared/
+    ├── ConnectionStatus.vue ← Conectado/desconectado/reconectando
+    └── LoadingOverlay.vue  ← Bloqueo UI en transiciones
+```
+
+### Flujo de Datos (WebSocket → Props)
+
+```
+┌─────────────┐      ┌─────────────┐      ┌─────────────┐
+│  WebSocket  │ ──►  │  Game.vue   │ ──►  │ Componentes │
+│   Server    │      │  (Controller)│      │   (Props)   │
+└─────────────┘      └─────────────┘      └─────────────┘
+       │                      │
+       ├─ question.sent  ─────┼─► QuestionCard
+       ├─ answer.received ──┼─► AnswerOptions (bloquea)
+       ├─ question.closed ────┼─► GameStatus
+       ├─ leaderboard.updated ┼─► Leaderboard
+       └─ game.finished  ─────┼─► redirect Results.vue
+```
+
+### Principio Clave
+
+> **"El frontend muestra el juego, pero el backend controla la verdad"**
+
+- ❌ NO: Estado global complejo en frontend
+- ✅ SÍ: Props + emits, mínimo estado local
+- ✅ SÍ: Backend (PostgreSQL + Redis) = fuente de verdad
+- ✅ SÍ: WebSocket = broadcast de eventos
+
+### Ejemplo de Integración (Game.vue)
+
+```typescript
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import QuestionCard from '@/Components/Trivia/Game/QuestionCard.vue'
+import AnswerOptions from '@/Components/Trivia/Game/AnswerOptions.vue'
+
+const question = ref<Question | null>(null)
+const selected = ref<number | null>(null)
+
+// WebSocket connection
+let ws: WebSocket
+
+onMounted(() => {
+    ws = new WebSocket(`${WS_URL}/trivia/game/${gameId}`)
+    
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        
+        switch (data.type) {
+            case 'question.sent':
+                question.value = data.question
+                selected.value = null
+                break
+            case 'question.closed':
+                // Tiempo terminado
+                break
+        }
+    }
+})
+
+function selectAnswer(index: number) {
+    if (selected.value !== null) return
+    
+    selected.value = index
+    
+    axios.post(`/api/trivia/games/${gameId}/answer`, {
+        answer: index,
+        responseTime: totalTime - timeLeft
+    })
+}
+</script>
+```
+
+### Tipos TypeScript (trivia.ts)
+
+```typescript
+export interface Room {
+    id: string
+    code: string
+    title: string
+    hostId: string
+    status: 'waiting' | 'playing' | 'paused' | 'finished' | 'cancelled'
+    maxPlayers: number
+    questionCount: number
+    timePerQuestion: number
+    currentPlayers: number
+}
+
+export interface Question {
+    id: string
+    questionText: string
+    imageUrl?: string
+    options: string[]
+    correctOptionIndex: number
+    timeLimit: number
+    points: number
+    category?: string
+    difficulty: 'easy' | 'medium' | 'hard'
+}
+
+export interface Player {
+    id: string
+    name: string
+    score?: number
+    correctAnswers?: number
+    position?: number
+}
+
+export type GameState = 'waiting' | 'answering' | 'closed' | 'finished'
+```
+
+### Eventos WebSocket (Frontend)
+
+```javascript
+// Entrada (Server → Client)
+{
+    type: 'question.sent',
+    question: { id, questionText, options, timeLimit }
+}
+
+{
+    type: 'leaderboard.updated',
+    leaderboard: [{ id, name, score }, ...]
+}
+
+{
+    type: 'game.finished',
+    redirect: '/trivia/results/{gameId}'
+}
+
+// Salida (Client → Server)
+{
+    type: 'answer.submit',
+    gameId: 'ulid',
+    questionId: 'ulid',
+    answer: 0,
+    responseTimeMs: 2300
+}
+```
+
+### Escalabilidad Frontend
+
+Esta estructura permite:
+- ✅ Migración a SPA (Vue Router)
+- ✅ Migración a Flutter/React Native
+- ✅ Web/Mobile/Desktop con misma lógica
+- ✅ Testing unitario por componente
+- ✅ Storybook para desarrollo aislado
+
+---
+
+## Cliente Frontend (Ejemplo JS Simple)
 
 ```javascript
 import { useTrivia } from './echo-trivia.js';
