@@ -59,12 +59,12 @@ class TriviaServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Cargar rutas si existen
-        $this->loadRoutesFrom(__DIR__ . '/../routes/trivia.php');
+        // Cargar rutas de trivia
+        $this->loadRoutesFrom(base_path('routes/trivia.php'));
 
         // Cargar configuración
         $this->mergeConfigFrom(
-            __DIR__ . '/../../config/trivia.php',
+            config_path('trivia.php'),
             'trivia'
         );
     }
