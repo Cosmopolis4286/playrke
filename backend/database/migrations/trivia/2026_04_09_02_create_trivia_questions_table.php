@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::connection('pgsql_trivia')->create('trivia_questions', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('room_id');
+            $table->ulid('id')->primary();
+            $table->ulid('room_id');
             $table->foreign('room_id')->references('id')->on('trivia_rooms')->onDelete('cascade');
             $table->integer('question_number'); // Orden de la pregunta
             $table->text('question_text');

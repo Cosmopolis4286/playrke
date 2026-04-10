@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::connection('pgsql_trivia')->create('trivia_answers', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->uuid('game_id');
+            $table->ulid('id')->primary();
+            $table->ulid('game_id');
             $table->foreign('game_id')->references('id')->on('trivia_games')->onDelete('cascade');
             $table->string('player_id'); // Referencia externa, no FK
-            $table->uuid('question_id');
+            $table->ulid('question_id');
             $table->foreign('question_id')->references('id')->on('trivia_questions');
             $table->string('submitted_answer', 255);
             $table->boolean('is_correct');

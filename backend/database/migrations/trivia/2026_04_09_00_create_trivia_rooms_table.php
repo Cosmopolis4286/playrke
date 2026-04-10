@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::connection('pgsql_trivia')->create('trivia_rooms', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->ulid('id')->primary();
             $table->string('code', 10)->unique();
-            $table->uuid('host_id');
+            $table->ulid('host_id');
             $table->string('title', 100);
             $table->text('description')->nullable();
             $table->enum('status', ['waiting', 'playing', 'finished', 'cancelled'])->default('waiting');
