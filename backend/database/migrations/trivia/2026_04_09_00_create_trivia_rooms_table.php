@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::connection('pgsql_trivia')->create('trivia_rooms', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->string('code', 10)->unique();
-            $table->ulid('host_id')->index(); // External reference (Laravel), bien indexado
+            $table->ulid('host_id'); // External reference (Laravel), indexado abajo
             $table->string('title', 100);
             $table->text('description')->nullable();
             $table->string('status', 20)->default('waiting'); // Flexible: waiting, playing, finished, cancelled
