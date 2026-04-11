@@ -22,7 +22,9 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./backend/database/init:/docker-entrypoint-initdb.d
-    command: --default-authentication-plugin=mysql_native_password
+    command:
+      - --authentication_policy=caching_sha2_password
+      - --host_cache_size=0
     networks:
       - playrke-network
     healthcheck:
@@ -112,6 +114,11 @@ services:
       DB_DATABASE: ${DB_DATABASE:-playrke}
       DB_USERNAME: ${DB_USERNAME:-playrke}
       DB_PASSWORD: ${DB_PASSWORD:-playrke}
+      DB_TRIVIA_HOST: postgres
+      DB_TRIVIA_PORT: 5432
+      DB_TRIVIA_DATABASE: trivia
+      DB_TRIVIA_USERNAME: trivia
+      DB_TRIVIA_PASSWORD: trivia
       REDIS_HOST: redis
       REDIS_PORT: 6379
       CACHE_DRIVER: redis

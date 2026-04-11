@@ -22,8 +22,10 @@ RUN apk add --no-cache \
     # Dependencias de imágenes
     libpng-dev libzip-dev oniguruma-dev icu-dev \
     freetype-dev libjpeg-turbo-dev libwebp-dev libxpm-dev \
+    # PostgreSQL dependencies
+    postgresql-dev postgresql-libs \
     # Dependencias adicionales
-    mysql-client nodejs npm supervisor \
+    mysql-client postgresql-client nodejs npm supervisor \
     # Herramientas del sistema
     bash htop nano \
     # Librerías para mejor rendimiento
@@ -33,6 +35,7 @@ RUN apk add --no-cache \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
  && docker-php-ext-install \
     pdo_mysql \
+    pdo_pgsql \
     mbstring \
     exif \
     pcntl \
