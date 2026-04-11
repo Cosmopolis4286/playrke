@@ -22,11 +22,37 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./backend/database/init:/docker-entrypoint-initdb.d
-    command: --default-authentication-plugin=mysql_native_password
+    command:
+      - --authentication_policy=caching_sha2_password
+      - --host_cache_size=0
     networks:
       - playrke-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ==========================================
+  # PostgreSQL Database (for trivia domain)
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: playrke-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-trivia}
+      POSTGRES_USER: ${POSTGRES_USER:-trivia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trivia}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - playrke-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -88,6 +114,11 @@ services:
       DB_DATABASE: ${DB_DATABASE:-playrke}
       DB_USERNAME: ${DB_USERNAME:-playrke}
       DB_PASSWORD: ${DB_PASSWORD:-playrke}
+      DB_TRIVIA_HOST: postgres
+      DB_TRIVIA_PORT: 5432
+      DB_TRIVIA_DATABASE: trivia
+      DB_TRIVIA_USERNAME: trivia
+      DB_TRIVIA_PASSWORD: trivia
       REDIS_HOST: redis
       REDIS_PORT: 6379
       CACHE_DRIVER: redis
@@ -198,6 +229,27 @@ services:
       "
 
   # ==========================================
+  # pgAdmin (PostgreSQL management)
+  # ==========================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: playrke-pgadmin
+    restart: unless-stopped
+    ports:
+      - "${PGADMIN_PORT:-8084}:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@trivia.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - playrke-network
+
+  # ==========================================
   # PhpMyAdmin
   # ==========================================
   phpmyadmin:
@@ -258,6 +310,8 @@ services:
 # ==========================================
 volumes:
   mysql_data:
+  postgres_data:
+  pgadmin_data:
   redis_data:
   backend_vendor:
   frontend_node_modules:
