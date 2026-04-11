@@ -120,7 +120,8 @@ FROM base AS development
 
 # Instalar dependencias de desarrollo
 COPY --from=dependencies /var/www/vendor ./vendor
-COPY --from=dependencies /var/www/node_modules ./node_modules
+RUN mkdir -p node_modules
+COPY --from=dependencies /var/www/node_modules* ./node_modules/
 
 # Copiar archivos de la aplicación
 COPY . .
@@ -152,7 +153,8 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Copiar dependencias primero para mejor cache
 COPY --from=dependencies /var/www/vendor ./vendor
-COPY --from=dependencies /var/www/node_modules ./node_modules
+RUN mkdir -p node_modules
+COPY --from=dependencies /var/www/node_modules* ./node_modules/
 
 # Copiar proyecto excluyendo archivos innecesarios
 COPY --chown=www-data:www-data . .

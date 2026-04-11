@@ -33,6 +33,30 @@ services:
       start_period: 30s
 
   # ==========================================
+  # PostgreSQL Database (for trivia domain)
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: playrke-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-trivia}
+      POSTGRES_USER: ${POSTGRES_USER:-trivia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trivia}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - playrke-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ==========================================
   # Redis Cache & Queue
   # ==========================================
   redis:
@@ -198,6 +222,27 @@ services:
       "
 
   # ==========================================
+  # pgAdmin (PostgreSQL management)
+  # ==========================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: playrke-pgadmin
+    restart: unless-stopped
+    ports:
+      - "${PGADMIN_PORT:-8084}:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@trivia.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - playrke-network
+
+  # ==========================================
   # PhpMyAdmin
   # ==========================================
   phpmyadmin:
@@ -258,6 +303,8 @@ services:
 # ==========================================
 volumes:
   mysql_data:
+  postgres_data:
+  pgadmin_data:
   redis_data:
   backend_vendor:
   frontend_node_modules:
