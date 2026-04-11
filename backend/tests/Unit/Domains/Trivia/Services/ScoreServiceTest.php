@@ -2,8 +2,8 @@
 
 namespace Tests\Unit\Domains\Trivia\Services;
 
-use App\Domains\Trivia\DTOs\ScoreDTO;
-use App\Domains\Trivia\Services\ScoreService;
+use App\Domains\Games\Trivia\DTOs\ScoreDTO;
+use App\Domains\Games\Trivia\Services\ScoreService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Redis;
 use Tests\TestCase;

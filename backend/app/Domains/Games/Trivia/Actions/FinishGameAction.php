@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Trivia\Actions;
+namespace App\Domains\Games\Trivia\Actions;
 
-use App\Domains\Trivia\Contracts\GameEngineInterface;
-use App\Domains\Trivia\Contracts\RoomServiceInterface;
-use App\Domains\Trivia\DTOs\GameStateDTO;
-use App\Domains\Trivia\DTOs\LeaderboardDTO;
+use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
+use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
+use App\Domains\Games\Trivia\DTOs\GameStateDTO;
+use App\Domains\Games\Trivia\DTOs\LeaderboardDTO;
 use RuntimeException;
 
 /**
