@@ -3,7 +3,7 @@
 namespace App\Repositories;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Domain\Common\Status\StatusChanger;
+use App\Domains\Common\Status\StatusChanger;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Collection;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Domain\ExchangeRate\Status;
+namespace App\Domains\ExchangeRate\Status;
 
 use InvalidArgumentException;
 

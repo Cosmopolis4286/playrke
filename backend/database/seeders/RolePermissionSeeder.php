@@ -47,11 +47,11 @@ class RolePermissionSeeder extends Seeder
                 'prizes.view', 'prizes.create', 'prizes.edit', 'prizes.delete', 'prizes.assign',
                 'wallet.movements.view', 'wallet.movements.manage', // Gestión de movimientos de billetera
                 // Trivia - Gestión completa
-                'game.trivia.view', 'game.trivia.play',
-                'game.trivia.rooms.view', 'game.trivia.rooms.create', 'game.trivia.rooms.edit', 'game.trivia.rooms.delete', 'game.trivia.rooms.manage',
-                'game.trivia.questions.view', 'game.trivia.questions.create', 'game.trivia.questions.edit', 'game.trivia.questions.delete', 'game.trivia.questions.manage',
-                'game.trivia.games.view', 'game.trivia.games.manage',
-                'game.trivia.leaderboard.view', 'game.trivia.stats.view', 'game.trivia.stats.export',
+                'games.trivia.view', 'games.trivia.play',
+                'games.trivia.rooms.view', 'games.trivia.rooms.create', 'games.trivia.rooms.edit', 'games.trivia.rooms.delete', 'games.trivia.rooms.manage',
+                'games.trivia.questions.view', 'games.trivia.questions.create', 'games.trivia.questions.edit', 'games.trivia.questions.delete', 'games.trivia.questions.manage',
+                'games.trivia.games.view', 'games.trivia.games.manage',
+                'games.trivia.leaderboard.view', 'games.trivia.stats.view', 'games.trivia.stats.export',
             ];
             $admin->givePermissionTo($adminPermissions);
             $this->command->info('✅ Permisos asignados a Admin');
@@ -68,9 +68,9 @@ class RolePermissionSeeder extends Seeder
                 'directory.view', 'directory.search',
                 'prizes.view', 'prizes.create', 'prizes.edit',
                 // Trivia - Solo ver partidas y leaderboard (no jugar - es un rol de gestión)
-                'game.trivia.view',
-                'game.trivia.games.view',
-                'game.trivia.leaderboard.view',
+                'games.trivia.view',
+                'games.trivia.games.view',
+                'games.trivia.leaderboard.view',
             ];
             $commerce->givePermissionTo($commercePermissions);
             $this->command->info('✅ Permisos asignados a Commerce');
@@ -82,9 +82,9 @@ class RolePermissionSeeder extends Seeder
                 'games.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.gaming',
                 // Trivia - Solo ver partidas y leaderboard (no jugar - es un rol de gestión)
-                'game.trivia.view',
-                'game.trivia.games.view',
-                'game.trivia.leaderboard.view',
+                'games.trivia.view',
+                'games.trivia.games.view',
+                'games.trivia.leaderboard.view',
             ];
             $seller->givePermissionTo($sellerPermissions);
             $this->command->info('✅ Permisos asignados a Seller');
@@ -100,9 +100,9 @@ class RolePermissionSeeder extends Seeder
                 'directory.view', 'directory.search',
                 'prizes.view',
                 // Trivia - Ver estadísticas y leaderboard (rol financiero)
-                'game.trivia.view',
-                'game.trivia.leaderboard.view',
-                'game.trivia.stats.view', 'game.trivia.stats.export',
+                'games.trivia.view',
+                'games.trivia.leaderboard.view',
+                'games.trivia.stats.view', 'games.trivia.stats.export',
             ];
             $treasurer->givePermissionTo($treasurerPermissions);
             $this->command->info('✅ Permisos asignados a Treasurer');
@@ -127,7 +127,7 @@ class RolePermissionSeeder extends Seeder
                 'games.bingo', // Acceso a juegos de bingo (guard 'web')
                 'directory.view', 'directory.search', // Acceso al directorio
                 // Trivia - Puede jugar y ver leaderboard
-                'game.trivia.view', 'game.trivia.play', 'game.trivia.leaderboard.view',
+                'games.trivia.view', 'games.trivia.play', 'games.trivia.leaderboard.view',
             ];
             $customer->givePermissionTo($customerPermissions);
             $this->command->info('✅ Permisos asignados a Customer');
@@ -140,7 +140,7 @@ class RolePermissionSeeder extends Seeder
                 'games.bingo.game_rooms', // Acceso a salas de bingo
                 'wallet.view', // Acceso a ver billetera
                 // Trivia - Principal rol para jugar
-                'game.trivia.view', 'game.trivia.play', 'game.trivia.leaderboard.view',
+                'games.trivia.view', 'games.trivia.play', 'games.trivia.leaderboard.view',
             ];
             $player->givePermissionTo($playerPermissions);
             $this->command->info('✅ Permisos asignados a Player');

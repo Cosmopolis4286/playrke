@@ -68,10 +68,39 @@ class PermissionSeeder extends Seeder
             ['name' => 'games.manage', 'guard_name' => 'web', 'description' => 'Gestionar juegos'],
             
             // Juegos específicos
+            // Bingo - Per
             ['name' => 'games.bingo', 'guard_name' => 'web', 'description' => 'Acceso a juegos de bingo'],
-            ['name' => 'games.bingo.game-rooms', 'guard_name' => 'web', 'description' => 'Acceso a salas de bingo'],
-            ['name' => 'games.bingo.cards-sold', 'guard_name' => 'web', 'description' => 'Acceso a cartones vendidos'],
+            ['name' => 'games.bingo.game_rooms', 'guard_name' => 'web', 'description' => 'Acceso a salas de bingo'],
+            ['name' => 'games.bingo.cards_sold', 'guard_name' => 'web', 'description' => 'Acceso a cartones vendidos'],
+            ['name' => 'games.bingo.manage', 'guard_name' => 'web', 'description' => 'Gestionar juegos de bingo'],
             
+            // Trivia - Permisos generales
+            ['name' => 'games.trivia.view', 'guard_name' => 'web', 'description' => 'Ver sección de trivia'],
+            ['name' => 'games.trivia.play', 'guard_name' => 'web', 'description' => 'Jugar trivia (único para jugadores)'],
+
+            // Trivia - Gestión de salas
+            ['name' => 'games.trivia.rooms.view', 'guard_name' => 'web', 'description' => 'Ver salas de trivia'],
+            ['name' => 'games.trivia.rooms.create', 'guard_name' => 'web', 'description' => 'Crear salas de trivia'],
+            ['name' => 'games.trivia.rooms.edit', 'guard_name' => 'web', 'description' => 'Editar salas de trivia'],
+            ['name' => 'games.trivia.rooms.delete', 'guard_name' => 'web', 'description' => 'Eliminar salas de trivia'],
+            ['name' => 'games.trivia.rooms.manage', 'guard_name' => 'web', 'description' => 'Gestionar salas de trivia (CRUD completo)'],
+
+            // Trivia - Gestión de preguntas
+            ['name' => 'games.trivia.questions.view', 'guard_name' => 'web', 'description' => 'Ver banco de preguntas'],
+            ['name' => 'games.trivia.questions.create', 'guard_name' => 'web', 'description' => 'Crear preguntas'],
+            ['name' => 'games.trivia.questions.edit', 'guard_name' => 'web', 'description' => 'Editar preguntas'],
+            ['name' => 'games.trivia.questions.delete', 'guard_name' => 'web', 'description' => 'Eliminar preguntas'],
+            ['name' => 'games.trivia.questions.manage', 'guard_name' => 'web', 'description' => 'Gestionar banco de preguntas (CRUD completo)'],
+
+            // Trivia - Gestión de partidas
+            ['name' => 'games.trivia.games.view', 'guard_name' => 'web', 'description' => 'Ver partidas de trivia'],
+            ['name' => 'games.trivia.games.manage', 'guard_name' => 'web', 'description' => 'Gestionar partidas (iniciar/detener)'],
+
+            // Trivia - Clasificación y estadísticas
+            ['name' => 'games.trivia.leaderboard.view', 'guard_name' => 'web', 'description' => 'Ver clasificación de trivia'],
+            ['name' => 'games.trivia.stats.view', 'guard_name' => 'web', 'description' => 'Ver estadísticas de trivia'],
+            ['name' => 'games.trivia.stats.export', 'guard_name' => 'web', 'description' => 'Exportar estadísticas de trivia'],
+
             // Reportes
             ['name' => 'reports.view', 'guard_name' => 'web', 'description' => 'Ver reportes'],
             ['name' => 'reports.generate', 'guard_name' => 'web', 'description' => 'Generar reportes'],
@@ -106,33 +135,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'wallet.movements', 'guard_name' => 'web', 'description' => 'Ver movimientos de billetera'],
             ['name' => 'wallet.movements.view', 'guard_name' => 'web', 'description' => 'Ver todos los movimientos de billetera (admin)'],
             ['name' => 'wallet.movements.manage', 'guard_name' => 'web', 'description' => 'Gestionar movimientos de billetera (admin)'],
-
-            // Trivia - Permisos generales
-            ['name' => 'game.trivia.view', 'guard_name' => 'web', 'description' => 'Ver sección de trivia'],
-            ['name' => 'game.trivia.play', 'guard_name' => 'web', 'description' => 'Jugar trivia (único para jugadores)'],
-
-            // Trivia - Gestión de salas
-            ['name' => 'game.trivia.rooms.view', 'guard_name' => 'web', 'description' => 'Ver salas de trivia'],
-            ['name' => 'game.trivia.rooms.create', 'guard_name' => 'web', 'description' => 'Crear salas de trivia'],
-            ['name' => 'game.trivia.rooms.edit', 'guard_name' => 'web', 'description' => 'Editar salas de trivia'],
-            ['name' => 'game.trivia.rooms.delete', 'guard_name' => 'web', 'description' => 'Eliminar salas de trivia'],
-            ['name' => 'game.trivia.rooms.manage', 'guard_name' => 'web', 'description' => 'Gestionar salas de trivia (CRUD completo)'],
-
-            // Trivia - Gestión de preguntas
-            ['name' => 'game.trivia.questions.view', 'guard_name' => 'web', 'description' => 'Ver banco de preguntas'],
-            ['name' => 'game.trivia.questions.create', 'guard_name' => 'web', 'description' => 'Crear preguntas'],
-            ['name' => 'game.trivia.questions.edit', 'guard_name' => 'web', 'description' => 'Editar preguntas'],
-            ['name' => 'game.trivia.questions.delete', 'guard_name' => 'web', 'description' => 'Eliminar preguntas'],
-            ['name' => 'game.trivia.questions.manage', 'guard_name' => 'web', 'description' => 'Gestionar banco de preguntas (CRUD completo)'],
-
-            // Trivia - Gestión de partidas
-            ['name' => 'game.trivia.games.view', 'guard_name' => 'web', 'description' => 'Ver partidas de trivia'],
-            ['name' => 'game.trivia.games.manage', 'guard_name' => 'web', 'description' => 'Gestionar partidas (iniciar/detener)'],
-
-            // Trivia - Clasificación y estadísticas
-            ['name' => 'game.trivia.leaderboard.view', 'guard_name' => 'web', 'description' => 'Ver clasificación de trivia'],
-            ['name' => 'game.trivia.stats.view', 'guard_name' => 'web', 'description' => 'Ver estadísticas de trivia'],
-            ['name' => 'game.trivia.stats.export', 'guard_name' => 'web', 'description' => 'Exportar estadísticas de trivia'],
+            ['name' => 'games.trivia.stats.export', 'guard_name' => 'web', 'description' => 'Exportar estadísticas de trivia'],
 
             // Permisos de SuperAdmin (acceso total)
             ['name' => 'superadmin.access', 'guard_name' => 'web', 'description' => 'Acceso total al sistema'],
