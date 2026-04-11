@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Trivia\Services;
+namespace App\Domains\Games\Trivia\Services;
 
-use App\Domains\Trivia\Contracts\ScoreServiceInterface;
-use App\Domains\Trivia\DTOs\LeaderboardDTO;
-use App\Domains\Trivia\DTOs\ScoreDTO;
+use App\Domains\Games\Trivia\Contracts\ScoreServiceInterface;
+use App\Domains\Games\Trivia\DTOs\LeaderboardDTO;
+use App\Domains\Games\Trivia\DTOs\ScoreDTO;
 use Illuminate\Support\Facades\Redis;
 
 /**

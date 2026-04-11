@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Trivia\Events;
+namespace App\Domains\Games\Trivia\Events;
 
-use App\Domains\Trivia\DTOs\PlayerDTO;
+use App\Domains\Games\Trivia\DTOs\PlayerDTO;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;

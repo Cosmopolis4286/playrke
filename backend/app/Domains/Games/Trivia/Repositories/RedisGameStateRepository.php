@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Trivia\Repositories;
+namespace App\Domains\Games\Trivia\Repositories;
 
-use App\Domains\Trivia\Contracts\GameStateRepositoryInterface;
-use App\Domains\Trivia\DTOs\GameStateDTO;
+use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
+use App\Domains\Games\Trivia\DTOs\GameStateDTO;
 use Illuminate\Support\Facades\Redis;
 
 /**

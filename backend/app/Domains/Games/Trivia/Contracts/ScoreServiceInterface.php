@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Trivia\Contracts;
+namespace App\Domains\Games\Trivia\Contracts;
 
-use App\Domains\Trivia\DTOs\ScoreDTO;
-use App\Domains\Trivia\DTOs\LeaderboardDTO;
+use App\Domains\Games\Trivia\DTOs\ScoreDTO;
+use App\Domains\Games\Trivia\DTOs\LeaderboardDTO;
 
 /**
  * Interfaz para gestión de puntuaciones.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Trivia\DTOs;
+namespace App\Domains\Games\Trivia\DTOs;
 
 /**
  * Data Transfer Object para estado del juego.

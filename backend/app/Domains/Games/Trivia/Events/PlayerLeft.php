@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Trivia\Events;
+namespace App\Domains\Games\Trivia\Events;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;

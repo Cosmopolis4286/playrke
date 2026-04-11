@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Trivia\Contracts;
+namespace App\Domains\Games\Trivia\Contracts;
 
-use App\Domains\Trivia\DTOs\RoomDTO;
-use App\Domains\Trivia\DTOs\PlayerDTO;
+use App\Domains\Games\Trivia\DTOs\RoomDTO;
+use App\Domains\Games\Trivia\DTOs\PlayerDTO;
 
 /**
  * Interfaz para gestión de salas de trivia.

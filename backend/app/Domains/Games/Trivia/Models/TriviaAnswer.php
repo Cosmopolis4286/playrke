@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Trivia\Models;
+namespace App\Domains\Games\Trivia\Models;
 
 use App\Models\BaseModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

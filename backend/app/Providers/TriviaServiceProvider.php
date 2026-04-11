@@ -2,14 +2,14 @@
 
 namespace App\Providers;
 
-use App\Domains\Trivia\Contracts\GameEngineInterface;
-use App\Domains\Trivia\Contracts\GameStateRepositoryInterface;
-use App\Domains\Trivia\Contracts\RoomServiceInterface;
-use App\Domains\Trivia\Contracts\ScoreServiceInterface;
-use App\Domains\Trivia\Repositories\RedisGameStateRepository;
-use App\Domains\Trivia\Services\GameEngineService;
-use App\Domains\Trivia\Services\RoomService;
-use App\Domains\Trivia\Services\ScoreService;
+use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
+use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
+use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
+use App\Domains\Games\Trivia\Contracts\ScoreServiceInterface;
+use App\Domains\Games\Trivia\Repositories\RedisGameStateRepository;
+use App\Domains\Games\Trivia\Services\GameEngineService;
+use App\Domains\Games\Trivia\Services\RoomService;
+use App\Domains\Games\Trivia\Services\ScoreService;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -48,10 +48,10 @@ class TriviaServiceProvider extends ServiceProvider
         );
 
         // Actions (transient - nueva instancia cada vez)
-        $this->app->bind(\App\Domains\Trivia\Actions\StartGameAction::class);
-        $this->app->bind(\App\Domains\Trivia\Actions\SubmitAnswerAction::class);
-        $this->app->bind(\App\Domains\Trivia\Actions\FinishGameAction::class);
-        $this->app->bind(\App\Domains\Trivia\Actions\JoinRoomAction::class);
+        $this->app->bind(\App\Domains\Games\Trivia\Actions\StartGameAction::class);
+        $this->app->bind(\App\Domains\Games\Trivia\Actions\SubmitAnswerAction::class);
+        $this->app->bind(\App\Domains\Games\Trivia\Actions\FinishGameAction::class);
+        $this->app->bind(\App\Domains\Games\Trivia\Actions\JoinRoomAction::class);
     }
 
     /**

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Trivia\Contracts;
+namespace App\Domains\Games\Trivia\Contracts;
 
-use App\Domains\Trivia\DTOs\GameStateDTO;
-use App\Domains\Trivia\DTOs\QuestionDTO;
-use App\Domains\Trivia\DTOs\AnswerResultDTO;
+use App\Domains\Games\Trivia\DTOs\GameStateDTO;
+use App\Domains\Games\Trivia\DTOs\QuestionDTO;
+use App\Domains\Games\Trivia\DTOs\AnswerResultDTO;
 
 /**
  * Interfaz del motor de juego de trivia.

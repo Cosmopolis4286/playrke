@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace App\Domains\Trivia\Services;
+namespace App\Domains\Games\Trivia\Services;
 
-use App\Domains\Trivia\Contracts\GameEngineInterface;
-use App\Domains\Trivia\Contracts\GameStateRepositoryInterface;
-use App\Domains\Trivia\DTOs\AnswerResultDTO;
-use App\Domains\Trivia\DTOs\GameStateDTO;
-use App\Domains\Trivia\DTOs\QuestionDTO;
-use App\Domains\Trivia\Events\GameFinished;
-use App\Domains\Trivia\Events\GameStarted;
-use App\Domains\Trivia\Events\QuestionSent;
-use App\Domains\Trivia\Events\ScoreUpdated;
-use App\Domains\Trivia\Models\TriviaGame;
-use App\Domains\Trivia\Models\TriviaQuestion;
-use App\Domains\Trivia\Models\TriviaRoom;
+use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
+use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
+use App\Domains\Games\Trivia\DTOs\AnswerResultDTO;
+use App\Domains\Games\Trivia\DTOs\GameStateDTO;
+use App\Domains\Games\Trivia\DTOs\QuestionDTO;
+use App\Domains\Games\Trivia\Events\GameFinished;
+use App\Domains\Games\Trivia\Events\GameStarted;
+use App\Domains\Games\Trivia\Events\QuestionSent;
+use App\Domains\Games\Trivia\Events\ScoreUpdated;
+use App\Domains\Games\Trivia\Models\TriviaGame;
+use App\Domains\Games\Trivia\Models\TriviaQuestion;
+use App\Domains\Games\Trivia\Models\TriviaRoom;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -217,7 +217,7 @@ class GameEngineService implements GameEngineInterface
 
         // Persistir respuesta en DB
         // (Se puede hacer async vía Job para no bloquear)
-        \App\Domains\Trivia\Models\TriviaAnswer::create([
+        \App\Domains\Games\Trivia\Models\TriviaAnswer::create([
             'game_id' => $gameId,
             'player_id' => $playerId,
             'question_id' => $questionDto->questionId,
@@ -229,7 +229,7 @@ class GameEngineService implements GameEngineInterface
         ]);
 
         // Emitir eventos
-        event(new \App\Domains\Trivia\Events\AnswerSubmitted($result));
+        event(new \App\Domains\Games\Trivia\Events\AnswerSubmitted($result));
 
         // Actualizar leaderboard
         $leaderboard = $this->scoreService->getLeaderboard($gameId);
@@ -266,7 +266,7 @@ class GameEngineService implements GameEngineInterface
 
         // Guardar scores finales en DB
         foreach ($leaderboard->scores as $scoreDto) {
-            \App\Domains\Trivia\Models\TriviaScore::create([
+            \App\Domains\Games\Trivia\Models\TriviaScore::create([
                 'game_id' => $gameId,
                 'player_id' => $scoreDto->playerId,
                 'final_score' => $scoreDto->totalScore,
