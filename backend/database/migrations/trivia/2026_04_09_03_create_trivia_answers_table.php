@@ -22,6 +22,7 @@ return new class extends Migration
             $table->boolean('is_late')->default(false); // Respuesta fuera de tiempo
             $table->string('client_id')->nullable(); // Anti-cheat / debugging
             $table->timestamps();
+            $table->softDeletes();
 
             // Índices optimizados (unique ya cubre game_id + player_id)
             $table->unique(['game_id', 'player_id', 'question_id'], 'unique_answer');

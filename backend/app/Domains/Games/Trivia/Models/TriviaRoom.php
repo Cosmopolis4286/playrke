@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Modelo: Sala de Trivia (trivia_rooms).
- * 
+ *
  * Representa una sala/sesión de juego en la base de datos.
  * El estado en tiempo real se maneja en Redis, no aquí.
  */

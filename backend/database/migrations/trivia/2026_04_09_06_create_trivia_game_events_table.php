@@ -19,6 +19,7 @@ return new class extends Migration
             $table->timestamp('occurred_at')->useCurrent(); // Timestamp del evento
             $table->unsignedBigInteger('sequence')->nullable(); // Orden determinista para replay
             $table->timestamps();
+            $table->softDeletes();
 
             $table->foreign('game_id')->references('id')->on('trivia_games')->onDelete('cascade');
             

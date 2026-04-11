@@ -23,6 +23,7 @@ return new class extends Migration
             $table->unsignedInteger('current_players')->default(0); // Evita contar en runtime
             $table->timestamp('scheduled_at')->nullable();
             $table->timestamps();
+            $table->softDeletes();
             $table->index('status');
             $table->index('host_id');
             $table->index(['status', 'scheduled_at']);
