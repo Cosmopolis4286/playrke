@@ -1,6 +1,7 @@
 <script setup>
 import { Head, useForm, Link } from '@inertiajs/vue3'
 import { computed } from 'vue'
+import { getRoute } from '@js/routes/triviaRoutes'
 
 const props = defineProps({
   defaultSettings: Object,
@@ -28,7 +29,7 @@ const estimatedTime = computed(() => {
 })
 
 const submit = () => {
-  form.post(route('trivia-rooms-admin.store'), {
+  form.post(getRoute('roomsStore'), {
     onSuccess: () => form.reset(),
   })
 }
@@ -42,7 +43,7 @@ const submit = () => {
       <!-- Header -->
       <div class="mb-6">
         <Link
-          :href="route('trivia-rooms-admin.index')"
+          :href="getRoute('roomsIndex')"
           class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline mb-2 inline-flex items-center"
         >
           ← Volver al listado
