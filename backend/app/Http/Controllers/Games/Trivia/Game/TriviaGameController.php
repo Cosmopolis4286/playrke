@@ -249,17 +249,19 @@ final class TriviaGameController extends Controller
         $wallet = $this->wallet($user->id);
 
         // Obtener monedas disponibles para trivia
-        $coins = DB::table('coins')
+        $coins = DB::connection('pgsql_trivia')->table('trivia_rooms')
+            ->whereIn('status', ['waiting', 'playing'])
+            ->whereNotNull('entry_currency_id')
+            ->distinct()
+            ->pluck('entry_currency_id');
+
+        $currencies = DB::table('currencies')
             ->where('status', 1)
-            ->whereIn('id', function ($query) {
-                $query->select('coin')
-                    ->from('trivia_multi')
-                    ->whereIn('status', [1, 2, 3]);
-            })
+            ->whereIn('id', $coins)
             ->get();
 
         return Inertia::render('Trivia/Lobby', [
-            'coins' => $coins,
+            'coins' => $currencies,
             'wallet' => $wallet,
         ]);
     }

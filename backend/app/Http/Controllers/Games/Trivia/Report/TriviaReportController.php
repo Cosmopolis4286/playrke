@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Games\Trivia\Report;
 
 use App\Http\Controllers\Controller;
-use App\Models\Games\Trivia\TriviaMulti;
-use App\Models\Coin;
+use App\Models\Games\Trivia\TriviaRoom;
+use App\Models\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -28,18 +28,16 @@ final class TriviaReportController extends Controller
     public function index(): Response
     {
         $stats = [
-            'total_rooms' => TriviaMulti::count(),
-            'active_rooms' => TriviaMulti::whereIn('status', [2, 3])->count(),
-            'total_players' => DB::table('triv_multi_user')->count(),
-            'total_winners' => DB::table('triv_multi_user')->where('lose_win', 1)->count(),
-            'total_prizes' => DB::table('triv_multi_user')
-                ->where('lose_win', 1)
-                ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
-                ->sum('triv_multi.prize')
+            'total_rooms' => TriviaRoom::count(),
+            'active_rooms' => TriviaRoom::whereIn('status', ['waiting', 'playing'])->count(),
+            'total_players' => DB::connection('pgsql_trivia')->table('trivia_participants')->count(),
+            'total_winners' => DB::connection('pgsql_trivia')->table('trivia_participants')->where('status', 'winner')->count(),
+            'total_prizes' => DB::connection('pgsql_trivia')->table('trivia_participants')
+                ->where('status', 'winner')
+                ->sum('prize_won')
         ];
 
-        $recentRooms = TriviaMulti::with(['Coin'])
-            ->orderBy('created_at', 'desc')
+        $recentRooms = TriviaRoom::orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
 
@@ -55,35 +53,31 @@ final class TriviaReportController extends Controller
      */
     public function winners(Request $request): Response
     {
-        $query = DB::table('triv_multi_user')
-            ->join('users', 'users.id', 'triv_multi_user.user')
-            ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
-            ->join('coins', 'coins.id', 'triv_multi.coin')
-            ->where('triv_multi_user.lose_win', 1)
-            ->select('users.name', 'users.email', 'triv_multi.name as room_name', 
-                    'coins.name as coin_name', 'triv_multi_user.created_at', 
-                    'triv_multi.prize', 'triv_multi_user.finished_at');
+        $query = DB::connection('pgsql_trivia')->table('trivia_participants')
+            ->join('users', 'users.id', 'trivia_participants.user_id')
+            ->join('trivia_rooms', 'trivia_rooms.id', 'trivia_participants.room_id')
+            ->where('trivia_participants.status', 'winner')
+            ->select('users.name', 'users.email', 'trivia_rooms.title as room_name',
+                    'trivia_participants.created_at',
+                    'trivia_participants.prize_won', 'trivia_participants.ended_at as finished_at');
 
         // Filtros
-        if ($request->coin) {
-            $coin = Coin::where('name', $request->coin)->first();
-            if ($coin) {
-                $query->where('triv_multi.coin', $coin->id);
-            }
+        if ($request->currency_id) {
+            $query->where('trivia_rooms.entry_currency_id', $request->currency_id);
         }
 
         if ($request->date_from) {
-            $query->whereDate('triv_multi_user.created_at', '>=', $request->date_from);
+            $query->whereDate('trivia_participants.created_at', '>=', $request->date_from);
         }
 
         if ($request->date_to) {
-            $query->whereDate('triv_multi_user.created_at', '<=', $request->date_to);
+            $query->whereDate('trivia_participants.created_at', '<=', $request->date_to);
         }
 
-        $winners = $query->orderBy('triv_multi_user.created_at', 'desc')
+        $winners = $query->orderBy('trivia_participants.created_at', 'desc')
             ->paginate(50);
 
-        $coins = Coin::where('status', 1)->get();
+        $currencies = Currency::where('status', 1)->get();
 
         return Inertia::render('Modules/Admin/Trivia/Winners', [
             'title' => 'Ganadores de Trivia',

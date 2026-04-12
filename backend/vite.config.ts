@@ -122,6 +122,15 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, 'resources'), // alias para resources
         '@js': path.resolve(__dirname, 'resources/js'), // alias para resources/js
+        '@/Components': path.resolve(__dirname, 'resources/js/Components'), // alias para Components
+        '@js/Components': path.resolve(__dirname, 'resources/js/Components'), // alias para Components
+        '@js/components': path.resolve(__dirname, 'resources/js/Components'), // fix case sensitivity
+        '@/types': path.resolve(__dirname, 'resources/js/types'), // alias para types
+        '@js/components/shared': path.resolve(__dirname, 'resources/js/Components/shared'), // fix shared components
+        '@js/components/template': path.resolve(__dirname, 'resources/js/Components/template'), // fix template components
+        '@js/components/utils': path.resolve(__dirname, 'resources/js/Components/utils'), // fix utils components
+        '@js/components/sweetalert': path.resolve(__dirname, 'resources/js/Components/sweetalert'), // fix sweetalert
+        '@js/components/games': path.resolve(__dirname, 'resources/js/Components/games'), // fix games components
         vue: 'vue/dist/vue.esm-bundler.js' // Si usas Vue 3, esta versión está bien
       }
     },

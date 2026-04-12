@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3'
 import { ref, computed } from 'vue'
 import debounce from 'lodash/debounce'
+import { getRoute } from '@js/routes/triviaRoutes'
 
 const props = defineProps({
   rooms: Object,
@@ -23,7 +24,7 @@ const statsCards = computed(() => [
 
 // Buscar con debounce
 const searchRooms = debounce(() => {
-  router.get(route('trivia-rooms-admin.index'), {
+  router.get(getRoute('roomsIndex'), {
     search: search.value,
     status: status.value,
   }, {
@@ -74,7 +75,7 @@ const getStatusLabel = (status) => {
 // Confirmar eliminar
 const confirmDelete = (room) => {
   if (confirm(`¿Estás seguro de cerrar la sala "${room.title}"?\n\nEsta acción no se puede deshacer.`)) {
-    router.delete(route('trivia-rooms-admin.destroy', room.id))
+    router.delete(getRoute('roomsDestroy', { id: room.id }))
   }
 }
 </script>
@@ -95,7 +96,7 @@ const confirmDelete = (room) => {
           </p>
         </div>
         <Link
-          :href="route('trivia-rooms-admin.create')"
+          :href="getRoute('roomsCreate')"
           class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150"
         >
           <span class="mr-2">+</span> Nueva Sala
@@ -229,14 +230,14 @@ const confirmDelete = (room) => {
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <Link
-                  :href="route('trivia-rooms-admin.show', room.id)"
+                  :href="getRoute('roomsShow', { id: room.id })"
                   class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-3"
                 >
                   Ver
                 </Link>
                 <Link
                   v-if="room.status === 'waiting'"
-                  :href="route('trivia-rooms-admin.edit', room.id)"
+                  :href="getRoute('roomsEdit', { id: room.id })"
                   class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 mr-3"
                 >
                   Editar
@@ -255,7 +256,7 @@ const confirmDelete = (room) => {
                 <div class="text-4xl mb-2">🎮</div>
                 <p>No se encontraron salas</p>
                 <Link
-                  :href="route('trivia-rooms-admin.create')"
+                  :href="getRoute('roomsCreate')"
                   class="text-indigo-600 dark:text-indigo-400 hover:underline mt-2 inline-block"
                 >
                   Crear primera sala
@@ -272,19 +273,29 @@ const confirmDelete = (room) => {
               Mostrando {{ rooms.from }} - {{ rooms.to }} de {{ rooms.total }} resultados
             </div>
             <div class="flex gap-2">
-              <Link
-                v-for="link in rooms.links"
-                :key="link.label"
-                :href="link.url"
-                :class="[
-                  'px-3 py-1 rounded-md text-sm',
-                  link.active
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700',
-                  !link.url && 'opacity-50 cursor-not-allowed'
-                ]"
-                v-html="link.label"
-              />
+              <template v-for="link in rooms.links" :key="link.label">
+                <Link
+                  v-if="link.url"
+                  :href="link.url"
+                  :class="[
+                    'px-3 py-1 rounded-md text-sm',
+                    link.active
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ]"
+                  v-html="link.label"
+                />
+                <span
+                  v-else
+                  :class="[
+                    'px-3 py-1 rounded-md text-sm',
+                    link.active
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 opacity-50 cursor-not-allowed'
+                  ]"
+                  v-html="link.label"
+                />
+              </template>
             </div>
           </div>
         </div>
