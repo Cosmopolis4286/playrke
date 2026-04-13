@@ -31,17 +31,21 @@ class TriviaRoom extends BaseModel
         'scheduled_at',
         'started_at',
         'ended_at',
-        'settings', // JSON
+        'settings',   // jsonb (ex config)
+        'metadata',   // jsonb
+        'current_players',
     ];
 
     protected $casts = [
-        'settings' => 'array',
-        'scheduled_at' => 'datetime',
-        'started_at' => 'datetime',
-        'ended_at' => 'datetime',
-        'max_players' => 'integer',
-        'question_count' => 'integer',
-        'time_per_question' => 'integer',
+        'settings'           => 'array',
+        'metadata'           => 'array',
+        'scheduled_at'       => 'datetime',
+        'started_at'         => 'datetime',
+        'ended_at'           => 'datetime',
+        'max_players'        => 'integer',
+        'question_count'     => 'integer',
+        'time_per_question'  => 'integer',
+        'current_players'    => 'integer',
     ];
 
     /**

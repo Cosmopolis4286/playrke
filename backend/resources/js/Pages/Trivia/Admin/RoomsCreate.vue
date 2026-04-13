@@ -205,7 +205,7 @@ const submit = () => {
         <!-- Footer -->
         <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700 flex items-center justify-end gap-3">
           <Link
-            :href="route('trivia-rooms-admin.index')"
+            :href="getRoute('roomsIndex')"
             class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
           >
             Cancelar

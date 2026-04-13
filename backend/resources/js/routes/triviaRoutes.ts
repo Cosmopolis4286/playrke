@@ -5,13 +5,13 @@
 
 export const triviaRoutes = {
     // Admin routes
-    roomsIndex: "/trivia/rooms",
-    roomsCreate: "/trivia/rooms/create",
-    roomsStore: "/trivia/rooms",
-    roomsShow: "/trivia/rooms/{id}",
-    roomsEdit: "/trivia/rooms/{id}/edit",
-    roomsUpdate: "/trivia/rooms/{id}",
-    roomsDestroy: "/trivia/rooms/{id}",
+    roomsIndex: "/trivia-rooms",
+    roomsCreate: "/trivia-rooms/create",
+    roomsStore: "/trivia-rooms",
+    roomsShow: "/trivia-rooms/{id}",
+    roomsEdit: "/trivia-rooms/{id}/edit",
+    roomsUpdate: "/trivia-rooms/{id}",
+    roomsDestroy: "/trivia-rooms/{id}",
 
     // API routes (para referencia)
     apiRoomsIndex: "/api/trivia/rooms",

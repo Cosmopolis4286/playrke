@@ -1,5 +1,6 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3'
+import { getRoute } from '@js/routes/triviaRoutes'
 import { ref, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
@@ -36,7 +37,7 @@ const getStatusColor = (status) => {
 // Confirmar cerrar sala
 const confirmClose = () => {
   if (confirm('¿Estás seguro de cerrar esta sala? Los jugadores serán desconectados.')) {
-    router.delete(route('trivia-rooms-admin.destroy', props.room.id))
+    router.delete(getRoute('roomsDestroy', { id: props.room.id }))
   }
 }
 
@@ -56,7 +57,7 @@ const formatTime = (timestamp) => {
       <div class="flex items-start justify-between mb-6">
         <div>
           <Link
-            :href="route('trivia-rooms-admin.index')"
+            :href="getRoute('roomsIndex')"
             class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline mb-2 inline-flex items-center"
           >
             ← Volver al listado
@@ -80,7 +81,7 @@ const formatTime = (timestamp) => {
         <div class="flex gap-2">
           <Link
             v-if="room.status === 'waiting'"
-            :href="route('trivia-rooms-admin.edit', room.id)"
+            :href="getRoute('roomsEdit', { id: room.id })"
             class="px-4 py-2 bg-yellow-600 text-white rounded-md text-sm font-medium hover:bg-yellow-700"
           >
             Editar

@@ -37,16 +37,17 @@ class RoomService implements RoomServiceInterface
     {
         // Crear en base de datos
         $room = TriviaRoom::create([
-            'code' => $config['code'] ?? $this->generateRoomCode(),
-            'title' => $config['title'] ?? 'Sala de Trivia',
-            'description' => $config['description'] ?? null,
-            'host_id' => $config['host_id'] ?? null,
-            'status' => 'waiting',
-            'max_players' => $config['max_players'] ?? 100,
-            'question_count' => $config['question_count'] ?? 10,
-            'time_per_question' => $config['time_per_question'] ?? 15,
-            'scheduled_at' => $config['scheduled_at'] ?? null,
-            'settings' => $config['settings'] ?? [],
+            'code'               => $config['code'] ?? $this->generateRoomCode(),
+            'title'              => $config['title'] ?? 'Sala de Trivia',
+            'description'        => $config['description'] ?? null,
+            'host_id'            => $config['host_id'] ?? null,
+            'status'             => 'waiting',
+            'max_players'        => $config['max_players'] ?? 100,
+            'question_count'     => $config['question_count'] ?? 10,
+            'time_per_question'  => $config['time_per_question'] ?? 15,
+            'scheduled_at'       => $config['scheduled_at'] ?? null,
+            'settings'           => $config['settings'] ?? [],
+            'current_players'    => 0,
         ]);
 
         // Crear DTO
@@ -243,6 +244,9 @@ class RoomService implements RoomServiceInterface
         $updateData = [];
         if (isset($config['title'])) {
             $updateData['title'] = $config['title'];
+        }
+        if (isset($config['description'])) {
+            $updateData['description'] = $config['description'];
         }
         if (isset($config['max_players'])) {
             $updateData['max_players'] = $config['max_players'];

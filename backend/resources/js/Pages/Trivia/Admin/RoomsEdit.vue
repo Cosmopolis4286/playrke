@@ -1,5 +1,6 @@
 <script setup>
 import { Head, useForm, Link } from '@inertiajs/vue3'
+import { getRoute } from '@js/routes/triviaRoutes'
 
 const props = defineProps({
   room: Object,
@@ -14,7 +15,7 @@ const form = useForm({
 })
 
 const submit = () => {
-  form.put(route('trivia-rooms-admin.update', props.room.id))
+  form.put(getRoute('roomsUpdate', { id: props.room.id }))
 }
 </script>
 
@@ -26,7 +27,7 @@ const submit = () => {
       <!-- Header -->
       <div class="mb-6">
         <Link
-          :href="route('trivia-rooms-admin.index')"
+          :href="getRoute('roomsIndex')"
           class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline mb-2 inline-flex items-center"
         >
           ← Volver al listado
@@ -122,7 +123,7 @@ const submit = () => {
         <!-- Footer -->
         <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700 flex items-center justify-end gap-3">
           <Link
-            :href="route('trivia-rooms-admin.index')"
+            :href="getRoute('roomsIndex')"
             class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
           >
             Cancelar
