@@ -11,6 +11,7 @@ use App\Models\Games;
 use App\Models\GameSounds;
 use App\Models\Wallet;
 use App\Traits\Users\UserTrait;
+use App\Domains\Games\Trivia\Services\RoomService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -237,6 +238,43 @@ final class TriviaGameController extends Controller
             ->first();
 
         return $question;
+    }
+
+    /**
+     * Sala de espera de una sala específica (WaitingRoom).
+     * Ruta: GET /trivia/room/{code}/wait
+     */
+    public function waitingRoom(string $code): Response
+    {
+        $roomService = app(RoomService::class);
+
+        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::where('code', $code)
+            ->whereIn('status', ['waiting', 'playing'])
+            ->firstOrFail();
+
+        $roomDto  = $roomService->getRoom((string) $room->id);
+        $players  = $roomService->listPlayers((string) $room->id);
+
+        return Inertia::render('Trivia/WaitingRoom', [
+            'room' => [
+                'id'               => (string) $roomDto->roomId,
+                'code'             => $roomDto->code,
+                'title'            => $roomDto->title,
+                'hostId'           => $roomDto->hostId,
+                'status'           => $roomDto->status,
+                'maxPlayers'       => $roomDto->maxPlayers,
+                'currentPlayers'   => $roomDto->currentPlayers,
+                'questionCount'    => $room->question_count,
+                'timePerQuestion'  => $room->time_per_question,
+                'createdAt'        => $room->created_at->toISOString(),
+                'updatedAt'        => $room->updated_at->toISOString(),
+            ],
+            'initialPlayers' => array_map(fn($p) => [
+                'id'       => $p->playerId,
+                'name'     => $p->nickname,
+                'roomCode' => $roomDto->code,
+            ], $players),
+        ]);
     }
 
     /**

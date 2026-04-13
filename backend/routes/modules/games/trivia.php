@@ -76,8 +76,11 @@ Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth'])->group
 // RUTAS PARA SIDEBAR MENÚ (NUEVAS)
 // ====================================
 Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function () {
-    // Lobby - Sala de espera para jugar
+    // Lobby - Selección de salas disponibles
     Route::get('/lobby', [TriviaGameController::class, 'lobby'])->name('lobby');
+
+    // Sala de espera de una sala concreta
+    Route::get('/room/{code}/wait', [TriviaGameController::class, 'waitingRoom'])->name('room.wait');
     
     // Alias para rooms (compatibility con sidebar) - apunta al nuevo sistema
     Route::get('/rooms', function () {
