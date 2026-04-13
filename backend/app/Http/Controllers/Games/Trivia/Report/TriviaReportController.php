@@ -285,31 +285,119 @@ final class TriviaReportController extends Controller
     }
 
     /**
-     * Display the global leaderboard.
-     * Accessible from sidebar menu.
+     * Clasificación global de Trivia (nuevo sistema DDD).
+     * Ruta: GET /trivia/leaderboard
+     *
+     * Fuente de verdad: trivia_scores (pgsql_trivia) + users (MySQL).
+     * trivia_scores.player_id = users.id (referencia externa, sin FK).
      */
-    public function leaderboard(): Response
+    public function leaderboard(Request $request): Response
     {
-        $topPlayers = DB::table('triv_multi_user')
-            ->select(
-                'users.id',
-                'users.name',
-                'users.email',
-                DB::raw('COUNT(*) as games_played'),
-                DB::raw('SUM(CASE WHEN lose_win = 1 THEN 1 ELSE 0 END) as wins'),
-                DB::raw('SUM(triv_multi.prize) as total_prizes')
-            )
-            ->join('users', 'users.id', 'triv_multi_user.user')
-            ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
-            ->groupBy('users.id', 'users.name', 'users.email')
-            ->orderByDesc('wins')
-            ->orderByDesc('total_prizes')
+        $pgsql = DB::connection('pgsql_trivia');
+
+        $period = $request->get('period', 'all'); // all | month | week
+
+        // ── Agrupación de scores por jugador ─────────────────────────────────
+        $scoresQuery = $pgsql->table('trivia_scores')
+            ->whereNull('trivia_scores.deleted_at')
+            ->selectRaw(implode(', ', [
+                'player_id',
+                'COUNT(*)                                    AS games_played',
+                'SUM(final_score)                            AS total_score',
+                'SUM(correct_answers)                        AS total_correct',
+                'SUM(wrong_answers)                          AS total_wrong',
+                'SUM(CASE WHEN is_winner THEN 1 ELSE 0 END) AS wins',
+                'MAX(final_score)                            AS best_score',
+                'MAX(max_streak)                             AS best_streak',
+                'ROUND(AVG(average_response_time_ms))        AS avg_response_ms',
+            ]));
+
+        if ($period === 'week') {
+            $scoresQuery->where('trivia_scores.created_at', '>=', now()->subWeek());
+        } elseif ($period === 'month') {
+            $scoresQuery->where('trivia_scores.created_at', '>=', now()->subMonth());
+        }
+
+        $scores = $scoresQuery
+            ->groupBy('player_id')
+            ->orderByDesc('total_score')
             ->limit(100)
             ->get();
 
+        if ($scores->isEmpty()) {
+            return Inertia::render('Trivia/Leaderboard', [
+                'players' => [],
+                'period'  => $period,
+            ]);
+        }
+
+        // ── Obtener datos de usuarios desde MySQL ─────────────────────────────
+        $playerIds = $scores->pluck('player_id')->all();
+
+        $users = DB::table('users')
+            ->whereIn('id', $playerIds)
+            ->select('id', 'name', 'email')
+            ->get()
+            ->keyBy('id');
+
+        // ── Obtener premios desde trivia_participants ──────────────────────────
+        $prizes = $pgsql->table('trivia_participants')
+            ->whereNull('deleted_at')
+            ->whereIn('user_id', $playerIds)
+            ->selectRaw('user_id, SUM(prize_won) AS total_prizes, COUNT(*) AS rooms_entered')
+            ->groupBy('user_id')
+            ->get()
+            ->keyBy('user_id');
+
+        // ── Combinar y calcular métricas derivadas ────────────────────────────
+        $players = $scores->values()->map(function ($row, $index) use ($users, $prizes) {
+            $user   = $users->get($row->player_id);
+            $prize  = $prizes->get($row->player_id);
+
+            $totalAnswers = (int)$row->total_correct + (int)$row->total_wrong;
+            $accuracy     = $totalAnswers > 0
+                ? round(($row->total_correct / $totalAnswers) * 100, 1)
+                : 0.0;
+
+            $winRate = (int)$row->games_played > 0
+                ? round(((int)$row->wins / (int)$row->games_played) * 100, 1)
+                : 0.0;
+
+            return [
+                'rank'            => $index + 1,
+                'player_id'       => $row->player_id,
+                'name'            => $user?->name ?? 'Jugador #' . substr($row->player_id, 0, 6),
+                'email'           => $user?->email ?? null,
+                'games_played'    => (int)$row->games_played,
+                'total_score'     => (int)$row->total_score,
+                'total_correct'   => (int)$row->total_correct,
+                'total_wrong'     => (int)$row->total_wrong,
+                'wins'            => (int)$row->wins,
+                'best_score'      => (int)$row->best_score,
+                'best_streak'     => (int)$row->best_streak,
+                'avg_response_ms' => (int)$row->avg_response_ms,
+                'total_prizes'    => (float)($prize?->total_prizes ?? 0),
+                'rooms_entered'   => (int)($prize?->rooms_entered ?? 0),
+                'accuracy'        => $accuracy,
+                'win_rate'        => $winRate,
+            ];
+        })->all();
+
+        // ── Métricas globales del período ─────────────────────────────────────
+        $globalStats = [
+            'total_games'   => $pgsql->table('trivia_games')->whereNull('deleted_at')
+                ->when($period === 'week',  fn($q) => $q->where('started_at', '>=', now()->subWeek()))
+                ->when($period === 'month', fn($q) => $q->where('started_at', '>=', now()->subMonth()))
+                ->where('status', 'finished')->count(),
+            'total_players' => count($players),
+            'top_score'     => $players[0]['total_score'] ?? 0,
+            'top_name'      => $players[0]['name']        ?? '-',
+        ];
+
         return Inertia::render('Trivia/Leaderboard', [
-            'title' => 'Clasificación de Trivia',
-            'topPlayers' => $topPlayers,
+            'players'     => $players,
+            'period'      => $period,
+            'globalStats' => $globalStats,
         ]);
     }
 
