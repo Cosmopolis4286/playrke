@@ -1,149 +1,83 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { Head } from '@inertiajs/vue3'
-import RoomHeader from '@/Components/Trivia/Room/RoomHeader.vue'
-import PlayerList from '@/Components/Trivia/Room/PlayerList.vue'
-import JoinForm from '@/Components/Trivia/Room/JoinForm.vue'
-import ConnectionStatus from '@/Components/Trivia/Shared/ConnectionStatus.vue'
-import LoadingOverlay from '@/Components/Trivia/Shared/LoadingOverlay.vue'
-import type { Room, Player } from '@/types/trivia'
+import { ref, computed } from 'vue'
+import { Head, router } from '@inertiajs/vue3'
+
+interface Currency {
+  id: string | number
+  name: string
+  symbol: string
+}
 
 interface Props {
-  room: Room
-  initialPlayers: Player[]
+  coins: Currency[]
+  wallet: Record<string, any>
 }
 
 const props = defineProps<Props>()
 
-const players = ref<Player[]>(props.initialPlayers)
-const hasJoined = ref(false)
-const currentPlayer = ref<Player | null>(null)
-const isLoading = ref(false)
-const connectionStatus = ref<'connected' | 'disconnected' | 'reconnecting'>('connected')
+const search = ref('')
+const isLoading = ref<string | null>(null)
 
-// WebSocket connection
-let ws: WebSocket | null = null
+const filteredCoins = computed(() =>
+  props.coins.filter(c =>
+    c.name.toLowerCase().includes(search.value.toLowerCase()) ||
+    c.symbol.toLowerCase().includes(search.value.toLowerCase())
+  )
+)
 
-function connectWebSocket() {
-  const wsUrl = `${import.meta.env.VITE_WEBSOCKET_URL}/trivia/room/${props.room.code}`
-  ws = new WebSocket(wsUrl)
-
-  ws.onopen = () => {
-    connectionStatus.value = 'connected'
-  }
-
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data)
-    handleWebSocketMessage(data)
-  }
-
-  ws.onclose = () => {
-    connectionStatus.value = 'disconnected'
-    // Attempt reconnect
-    setTimeout(connectWebSocket, 3000)
-  }
-
-  ws.onerror = () => {
-    connectionStatus.value = 'reconnecting'
-  }
-}
-
-function handleWebSocketMessage(data: any) {
-  switch (data.type) {
-    case 'player.joined':
-      players.value.push(data.player)
-      break
-    case 'player.left':
-      players.value = players.value.filter(p => p.id !== data.playerId)
-      break
-    case 'game.started':
-      // Redirect to game page
-      window.location.href = `/trivia/game/${props.room.code}`
-      break
-    case 'room.updated':
-      // Update room data if needed
-      break
-  }
-}
-
-function handleJoin(playerName: string) {
-  isLoading.value = true
-
-  axios.post(`/api/trivia/rooms/${props.room.code}/join`, {
-    name: playerName
+function enterRoom(coin: Currency) {
+  isLoading.value = String(coin.id)
+  router.get(`/trivia-game/rooms/${coin.symbol}`, {}, {
+    onFinish: () => { isLoading.value = null }
   })
-    .then(response => {
-      currentPlayer.value = response.data.player
-      hasJoined.value = true
-      players.value.push(response.data.player)
-    })
-    .catch(error => {
-      alert(error.response?.data?.message || 'Error al unirse')
-    })
-    .finally(() => {
-      isLoading.value = false
-    })
 }
-
-onMounted(() => {
-  connectWebSocket()
-})
-
-onUnmounted(() => {
-  ws?.close()
-})
 </script>
 
 <template>
-  <Head :title="`Sala ${room.code} - Trivia`" />
+  <Head title="Trivia - Salas disponibles" />
 
   <div class="min-h-screen bg-gray-100">
-    <ConnectionStatus :status="connectionStatus" />
-    
-    <LoadingOverlay v-if="isLoading" message="Uniéndose a la sala..." />
-
     <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <RoomHeader
-        :room="room"
-        :player-count="players.length"
-        :max-players="room.maxPlayers"
-      />
 
-      <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Player List -->
-        <div class="lg:col-span-2">
-          <PlayerList
-            :players="players"
-            :host-id="room.hostId"
-            :current-player-id="currentPlayer?.id"
-          />
-        </div>
-
-        <!-- Join Form or Status -->
-        <div class="lg:col-span-1">
-          <JoinForm
-            v-if="!hasJoined"
-            @join="handleJoin"
-          />
-          
-          <div
-            v-else
-            class="bg-white rounded-lg shadow-md p-6 text-center"
-          >
-            <div class="text-green-500 mb-2">
-              <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 class="text-lg font-medium text-gray-900">
-              ¡Te has unido!
-            </h3>
-            <p class="text-sm text-gray-500 mt-1">
-              Esperando que el anfitrión inicie el juego...
-            </p>
-          </div>
-        </div>
+      <!-- Cabecera -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Trivia Multijugador</h1>
+        <p class="mt-1 text-sm text-gray-500">Selecciona una moneda para ver las salas disponibles</p>
       </div>
+
+      <!-- Buscador -->
+      <div class="mb-6">
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Buscar moneda..."
+          class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        />
+      </div>
+
+      <!-- Sin salas -->
+      <div v-if="filteredCoins.length === 0" class="rounded-lg bg-white p-10 text-center shadow-sm">
+        <p class="text-gray-500">No hay salas disponibles en este momento.</p>
+      </div>
+
+      <!-- Grid de monedas/salas -->
+      <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <button
+          v-for="coin in filteredCoins"
+          :key="coin.id"
+          :disabled="isLoading === String(coin.id)"
+          class="flex flex-col items-center rounded-xl bg-white p-6 shadow-sm transition hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:opacity-60"
+          @click="enterRoom(coin)"
+        >
+          <div class="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-indigo-100 text-xl font-bold text-indigo-700">
+            {{ coin.symbol.slice(0, 3).toUpperCase() }}
+          </div>
+          <span class="text-base font-semibold text-gray-800">{{ coin.name }}</span>
+          <span class="text-xs text-gray-400">{{ coin.symbol }}</span>
+          <span v-if="isLoading === String(coin.id)" class="mt-2 text-xs text-indigo-500">Cargando...</span>
+        </button>
+      </div>
+
     </div>
   </div>
 </template>
