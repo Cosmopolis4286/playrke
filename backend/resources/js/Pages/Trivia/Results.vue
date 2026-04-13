@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
-import Leaderboard from '@/Components/Trivia/Score/Leaderboard.vue'
-import PlayerScore from '@/Components/Trivia/Score/PlayerScore.vue'
-import LoadingOverlay from '@/Components/Trivia/Shared/LoadingOverlay.vue'
-import type { Player, GameStats } from '@/types/trivia'
+import Leaderboard from '@js/Components/Trivia/Score/Leaderboard.vue'
+import PlayerScore from '@js/Components/Trivia/Score/PlayerScore.vue'
+import LoadingOverlay from '@js/Components/Trivia/Shared/LoadingOverlay.vue'
+import type { Player, GameStats } from '@js/types/trivia'
 
 interface Props {
   gameId: string

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Head } from '@inertiajs/vue3'
-import GameHeader from '@/Components/Trivia/Game/GameHeader.vue'
-import QuestionCard from '@/Components/Trivia/Game/QuestionCard.vue'
-import AnswerOptions from '@/Components/Trivia/Game/AnswerOptions.vue'
-import TimerBar from '@/Components/Trivia/Game/TimerBar.vue'
-import GameStatus from '@/Components/Trivia/Game/GameStatus.vue'
-import Leaderboard from '@/Components/Trivia/Score/Leaderboard.vue'
-import ConnectionStatus from '@/Components/Trivia/Shared/ConnectionStatus.vue'
-import type { Question, Player, GameState } from '@/types/trivia'
+import GameHeader from '@js/Components/Trivia/Game/GameHeader.vue'
+import QuestionCard from '@js/Components/Trivia/Game/QuestionCard.vue'
+import AnswerOptions from '@js/Components/Trivia/Game/AnswerOptions.vue'
+import TimerBar from '@js/Components/Trivia/Game/TimerBar.vue'
+import GameStatus from '@js/Components/Trivia/Game/GameStatus.vue'
+import Leaderboard from '@js/Components/Trivia/Score/Leaderboard.vue'
+import ConnectionStatus from '@js/Components/Trivia/Shared/ConnectionStatus.vue'
+import type { Question, Player, GameState } from '@js/types/trivia'
 
 interface Props {
   roomCode: string
