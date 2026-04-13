@@ -42,17 +42,19 @@ Route::prefix('trivia-rooms')->name('trivia-rooms-admin.')->middleware(['auth', 
 });
 
 // ====================================
-// RUTAS DE PREGUNTAS (ADMIN)
+// RUTAS DE PREGUNTAS - BANCO GLOBAL (ADMIN)
+// roomId="all" → banco completo; roomId={id} → filtro futuro por sala
 // ====================================
 Route::prefix('trivia-questions')->name('trivia-questions.')->middleware(['auth', 'role:admin,superadmin'])->group(function () {
-    Route::get('/room/{roomId}', [TriviaQuestionController::class, 'index'])->name('index');
-    Route::get('/room/{roomId}/create', [TriviaQuestionController::class, 'create'])->name('create');
-    Route::post('/room/{roomId}', [TriviaQuestionController::class, 'store'])->name('store');
-    Route::get('/room/{roomId}/{questionId}/show', [TriviaQuestionController::class, 'show'])->name('show');
-    Route::get('/room/{roomId}/{questionId}/edit', [TriviaQuestionController::class, 'edit'])->name('edit');
-    Route::put('/room/{roomId}/{questionId}', [TriviaQuestionController::class, 'update'])->name('update');
-    Route::delete('/room/{roomId}/{questionId}', [TriviaQuestionController::class, 'destroy'])->name('destroy');
-    Route::post('/room/{roomId}/import', [TriviaQuestionController::class, 'import'])->name('import');
+    Route::get('/room/{roomId}',                          [TriviaQuestionController::class, 'index'])->name('index');
+    Route::get('/room/{roomId}/create',                   [TriviaQuestionController::class, 'create'])->name('create');
+    Route::post('/room/{roomId}',                         [TriviaQuestionController::class, 'store'])->name('store');
+    Route::get('/room/{roomId}/{questionId}/show',        [TriviaQuestionController::class, 'show'])->name('show');
+    Route::get('/room/{roomId}/{questionId}/edit',        [TriviaQuestionController::class, 'edit'])->name('edit');
+    Route::put('/room/{roomId}/{questionId}',             [TriviaQuestionController::class, 'update'])->name('update');
+    Route::delete('/room/{roomId}/{questionId}',          [TriviaQuestionController::class, 'destroy'])->name('destroy');
+    Route::post('/room/{roomId}/import',                  [TriviaQuestionController::class, 'import'])->name('import');
+    Route::patch('/room/{roomId}/{questionId}/toggle-active', [TriviaQuestionController::class, 'toggleActive'])->name('toggle-active');
 });
 
 // ====================================

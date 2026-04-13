@@ -5,12 +5,27 @@ declare(strict_types=1);
 namespace App\Domains\Games\Trivia\Models;
 
 use App\Models\BaseModel;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Modelo: Pregunta de Trivia (trivia_questions).
- * 
- * Las preguntas pertenecen a una sala específica.
+ * Modelo: Pregunta del Banco de Trivia (trivia_questions).
+ *
+ * Banco global de preguntas — NO pertenece a una sala específica.
+ * El vínculo sala↔pregunta se gestiona en trivia_game_questions.
+ *
+ * Columnas reales (ver migración 2026_04_09_02):
+ *   id                  ulid PK
+ *   question_text       text
+ *   image_url           string nullable
+ *   correct_option_index tinyint (0-based, índice de options[])
+ *   options             jsonb  ["opción A","opción B","opción C","opción D"]
+ *   time_limit_seconds  uint   default 15
+ *   points              uint   default 100
+ *   is_active           bool   default true
+ *   times_used          uint   default 0
+ *   explanation         text nullable
+ *   category            string nullable
+ *   difficulty          string default 'medium'  (easy|medium|hard)
+ *   created_at / updated_at / deleted_at
  */
 class TriviaQuestion extends BaseModel
 {
@@ -19,56 +34,68 @@ class TriviaQuestion extends BaseModel
     protected $table = 'trivia_questions';
 
     protected $fillable = [
-        'room_id',
-        'question_number',
         'question_text',
         'image_url',
-        'correct_answer',
-        'option_1',
-        'option_2',
-        'option_3',
-        'option_4',
+        'correct_option_index',
+        'options',
         'time_limit_seconds',
         'points',
+        'is_active',
         'explanation',
         'category',
         'difficulty',
     ];
 
     protected $casts = [
-        'question_number' => 'integer',
-        'time_limit_seconds' => 'integer',
-        'points' => 'integer',
+        'options'              => 'array',
+        'correct_option_index' => 'integer',
+        'time_limit_seconds'   => 'integer',
+        'points'               => 'integer',
+        'times_used'           => 'integer',
+        'is_active'            => 'boolean',
     ];
 
     protected $hidden = [
-        'correct_answer', // Ocultar en serialización JSON
+        'correct_option_index', // no se expone al jugador durante el juego
     ];
 
-    public function room(): BelongsTo
+    /**
+     * Verificar si el índice de opción enviado es correcto.
+     */
+    public function isCorrect(int $optionIndex): bool
     {
-        return $this->belongsTo(TriviaRoom::class, 'room_id');
+        return $optionIndex === $this->correct_option_index;
     }
 
     /**
-     * Obtener todas las opciones como array.
-     * @return array<string>
+     * Obtener la opción correcta como texto.
      */
-    public function getOptions(): array
+    public function correctOptionText(): ?string
     {
-        return array_values(array_filter([
-            $this->option_1,
-            $this->option_2,
-            $this->option_3,
-            $this->option_4,
-        ]));
+        return $this->options[$this->correct_option_index] ?? null;
     }
 
     /**
-     * Verificar si una respuesta es correcta.
+     * Scope: Solo preguntas activas.
      */
-    public function isCorrect(string $answer): bool
+    public function scopeActive($query)
     {
-        return strtoupper(trim($answer)) === strtoupper(trim($this->correct_answer));
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope: Filtrar por categoría.
+     */
+    public function scopeByCategory($query, string $category)
+    {
+        return $query->where('category', $category);
+    }
+
+    /**
+     * Scope: Filtrar por dificultad.
+     */
+    public function scopeByDifficulty($query, string $difficulty)
+    {
+        return $query->where('difficulty', $difficulty);
     }
 }
