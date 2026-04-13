@@ -24,6 +24,11 @@ export const triviaRoutes = {
     questionsImport:       '/trivia-questions/room/{roomId}/import',
     questionsToggleActive: '/trivia-questions/room/{roomId}/{questionId}/toggle-active',
 
+    // ── Usuario: páginas de juego ────────────────────────
+    lobby:       '/trivia/lobby',
+    stats:       '/trivia/stats',
+    leaderboard: '/trivia/leaderboard',
+
     // ── API (referencia interna) ─────────────────────────
     apiRoomsIndex:    '/api/trivia/rooms',
     apiRoomsStore:    '/api/trivia/rooms',

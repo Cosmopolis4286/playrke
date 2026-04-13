@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Games\Trivia\Report;
 
 use App\Http\Controllers\Controller;
-use App\Models\Games\Trivia\TriviaRoom;
-use App\Models\Currency;
+use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Domains\Games\Trivia\Models\TriviaQuestion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -314,41 +314,94 @@ final class TriviaReportController extends Controller
     }
 
     /**
-     * Display detailed statistics.
-     * Accessible from sidebar menu.
+     * Estadísticas globales del sistema de Trivia (nuevo sistema DDD).
+     * Ruta: GET /trivia/stats
      */
     public function stats(): Response
     {
-        $stats = [
-            'total_rooms' => TriviaMulti::count(),
-            'active_rooms' => TriviaMulti::whereIn('status', [2, 3])->count(),
-            'finished_rooms' => TriviaMulti::where('status', 4)->count(),
-            'total_players' => DB::table('triv_multi_user')->count(),
-            'unique_players' => DB::table('triv_multi_user')->distinct('user')->count('user'),
-            'total_winners' => DB::table('triv_multi_user')->where('lose_win', 1)->count(),
-            'total_prizes_distributed' => DB::table('triv_multi_user')
-                ->where('lose_win', 1)
-                ->join('triv_multi', 'triv_multi.id', 'triv_multi_user.room')
-                ->sum('triv_multi.prize'),
-            'games_by_coin' => DB::table('triv_multi')
-                ->select('coins.name as coin', DB::raw('COUNT(*) as total'))
-                ->join('coins', 'coins.id', 'triv_multi.coin')
-                ->groupBy('coins.name')
-                ->get(),
-            'monthly_activity' => DB::table('triv_multi_user')
-                ->select(
-                    DB::raw('DATE_FORMAT(triv_multi_user.created_at, "%Y-%m") as month'),
-                    DB::raw('COUNT(*) as participants')
-                )
-                ->groupBy('month')
-                ->orderByDesc('month')
-                ->limit(12)
+        $pgsql = DB::connection('pgsql_trivia');
+
+        // ── Salas ────────────────────────────────────────────────────────────
+        $roomStats = [
+            'total'     => TriviaRoom::count(),
+            'waiting'   => TriviaRoom::where('status', 'waiting')->count(),
+            'playing'   => TriviaRoom::where('status', 'playing')->count(),
+            'finished'  => TriviaRoom::where('status', 'closed')->count(),
+            'cancelled' => TriviaRoom::where('status', 'cancelled')->count(),
+        ];
+
+        // ── Juegos ───────────────────────────────────────────────────────────
+        $gameStats = [
+            'total'    => $pgsql->table('trivia_games')->whereNull('deleted_at')->count(),
+            'finished' => $pgsql->table('trivia_games')->where('status', 'finished')->whereNull('deleted_at')->count(),
+            'playing'  => $pgsql->table('trivia_games')->where('status', 'playing')->whereNull('deleted_at')->count(),
+        ];
+
+        // ── Preguntas ────────────────────────────────────────────────────────
+        $questionStats = [
+            'total'  => TriviaQuestion::count(),
+            'active' => TriviaQuestion::where('is_active', true)->count(),
+            'by_difficulty' => TriviaQuestion::selectRaw('difficulty, COUNT(*) as total')
+                ->groupBy('difficulty')
+                ->pluck('total', 'difficulty'),
+            'categories' => TriviaQuestion::selectRaw('category, COUNT(*) as total')
+                ->whereNotNull('category')
+                ->groupBy('category')
+                ->orderByDesc('total')
+                ->limit(10)
                 ->get(),
         ];
 
-        return Inertia::render('Modules/Admin/Trivia/Stats', [
-            'title' => 'Estadísticas de Trivia',
-            'stats' => $stats,
+        // ── Participantes ────────────────────────────────────────────────────
+        $participantStats = [
+            'total'         => $pgsql->table('trivia_participants')->whereNull('deleted_at')->count(),
+            'unique_users'  => $pgsql->table('trivia_participants')->whereNull('deleted_at')->distinct()->count('user_id'),
+            'winners'       => $pgsql->table('trivia_participants')->where('status', 'winner')->whereNull('deleted_at')->count(),
+            'abandoned'     => $pgsql->table('trivia_participants')->where('status', 'abandoned')->whereNull('deleted_at')->count(),
+            'total_prizes'  => (float) $pgsql->table('trivia_participants')->whereNull('deleted_at')->sum('prize_won'),
+        ];
+
+        // ── Scores (top 10 jugadores por puntuación total) ───────────────────
+        $topPlayers = $pgsql->table('trivia_scores')
+            ->whereNull('trivia_scores.deleted_at')
+            ->selectRaw('player_id, SUM(final_score) as total_score, SUM(correct_answers) as correct, COUNT(*) as games_played, SUM(CASE WHEN is_winner THEN 1 ELSE 0 END) as wins')
+            ->groupBy('player_id')
+            ->orderByDesc('total_score')
+            ->limit(10)
+            ->get();
+
+        // ── Actividad mensual (últimos 6 meses, formato ISO para PostgreSQL) ──
+        $monthlyActivity = $pgsql->table('trivia_games')
+            ->whereNull('deleted_at')
+            ->whereNotNull('started_at')
+            ->selectRaw("TO_CHAR(started_at, 'YYYY-MM') as month, COUNT(*) as games, SUM(player_count) as players")
+            ->groupByRaw("TO_CHAR(started_at, 'YYYY-MM')")
+            ->orderByDesc('month')
+            ->limit(6)
+            ->get();
+
+        // ── Tiempo promedio de respuesta (desde trivia_scores) ───────────────
+        $avgResponseMs = (int) $pgsql->table('trivia_scores')
+            ->whereNull('deleted_at')
+            ->where('average_response_time_ms', '>', 0)
+            ->avg('average_response_time_ms');
+
+        // ── Tasa de aciertos global ──────────────────────────────────────────
+        $totalCorrect = (int) $pgsql->table('trivia_scores')->whereNull('deleted_at')->sum('correct_answers');
+        $totalAnswers = (int) $pgsql->table('trivia_scores')->whereNull('deleted_at')
+            ->selectRaw('SUM(correct_answers + wrong_answers) as t')
+            ->value('t');
+        $accuracyRate = $totalAnswers > 0 ? round(($totalCorrect / $totalAnswers) * 100, 1) : 0;
+
+        return Inertia::render('Trivia/Stats', [
+            'roomStats'        => $roomStats,
+            'gameStats'        => $gameStats,
+            'questionStats'    => $questionStats,
+            'participantStats' => $participantStats,
+            'topPlayers'       => $topPlayers,
+            'monthlyActivity'  => $monthlyActivity,
+            'avgResponseMs'    => $avgResponseMs,
+            'accuracyRate'     => $accuracyRate,
         ]);
     }
 }
