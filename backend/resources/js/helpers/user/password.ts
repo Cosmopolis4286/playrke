@@ -1,34 +1,6 @@
 // resources/js/helpers/user/password.ts
-import { submitForm } from '../form/services/formSubmitService'
 import Swal from 'sweetalert2'
 import { showToast } from '@js/utils/toastNotify'
-import { initPasswordToggle } from '../form/ui/passwordToggle'
-
-/**
- * Inicializa el módulo de cambio de contraseña:
- * - Abre modal
- * - Confirma cambio de contraseña
- */
-export async function initChangePassw(): Promise<void> {
-  initPasswordToggle()
-
-  const modalChangePassw = document.getElementById('modal-change-password')
-
-  document.addEventListener('click', event => {
-    const target = event.target as HTMLElement
-
-    // Abrir modal de cambio de contraseña
-    if (target?.id === 'change-password' && modalChangePassw) {
-      $(modalChangePassw).modal('show')
-      return
-    }
-    // Confirmar cambio de contraseña desde el modal
-    if (target?.id === 'btn-change-password') {
-      submitForm('change-password-form')
-      return
-    }
-  })
-}
 
 /**
  * Modal para mostrar contraseña generada con botón copiar

@@ -1,7 +1,6 @@
 // js/global/global.ts
 
 import { showToast } from './toastNotify'
-import { initChangePassw } from '../helpers/user/password'
 import { initLogout } from '../helpers/user/logout'
 import { initModalFocus } from '@js/helpers/modal/modals'
 
@@ -50,12 +49,6 @@ export async function initGlobal(): Promise<void> {
 
     // 🔹 Inicializar modales accesibles
     await initModalFocus()
-
-    // 🔹 Cambio de contraseña
-    await initChangePassw()
-    if (import.meta.env.DEV) {
-      console.log('✅ initChangePassw ejecutado')
-    }
 
     // 🔹 Mostrar mensajes flash de sesión
     if (window.Session?.message?.trim()) {

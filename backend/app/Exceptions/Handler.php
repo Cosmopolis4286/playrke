@@ -6,6 +6,7 @@ use App\Exceptions\Domain\DomainException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -35,6 +36,17 @@ class Handler extends ExceptionHandler
                 'success' => false,
                 'message' => $exception->getMessage() ?: 'Error interno del servidor.',
             ], $this->getStatusCode($exception));
+        }
+
+        // Renderizar errores HTTP via Inertia para requests de navegación
+        $status = $this->getStatusCode($exception);
+
+        if (in_array($status, [403, 404, 500, 503], strict: true)) {
+            return Inertia::render('Errors/Error', [
+                'status'  => $status,
+                'message' => $exception->getMessage() ?: null,
+                'url'     => $request->fullUrl(),
+            ])->toResponse($request)->setStatusCode($status);
         }
 
         return parent::render($request, $exception);
