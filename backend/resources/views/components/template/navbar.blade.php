@@ -319,40 +319,58 @@
     function addPersistentNotification(notification) {
         if ($empty) $empty.style.display = 'none';
 
-        var meta = TYPE_META[notification.data.movement_type] || {
-            label: notification.title,
-            icon: 'fa-exchange-alt',
-            color: '#6c757d',
-            sign: ''
-        };
+        var isAdminAlert = notification.type === 'WALLET_ADMIN_ALERT';
+        var notifUrl = notification.data && notification.data.url ? notification.data.url : null;
+
+        var meta;
+        if (isAdminAlert) {
+            var mvType = notification.data && notification.data.movement_type;
+            meta = mvType === 'DEPOSIT'
+                ? { label: '💰 Depósito pendiente', icon: 'fa-arrow-down', color: '#28a745', sign: '+' }
+                : { label: '💸 Retiro pendiente',   icon: 'fa-arrow-up',   color: '#ffc107', sign: '-' };
+        } else {
+            meta = TYPE_META[notification.data && notification.data.movement_type] || {
+                label: notification.title,
+                icon:  'fa-exchange-alt',
+                color: '#6c757d',
+                sign:  ''
+            };
+        }
+
         var time = new Date(notification.created_at).toLocaleTimeString('es-VE', {
             hour: '2-digit',
             minute: '2-digit'
         });
 
+        var innerContent =
+            '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1" ' +
+                 'style="width:32px;height:32px;background:' + meta.color + '22">' +
+              '<i class="fas ' + meta.icon + '" style="font-size:12px;color:' + meta.color + '"></i>' +
+            '</div>' +
+            '<div style="flex:1;min-width:0">' +
+              '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + (isAdminAlert ? meta.label : notification.title) + '</p>' +
+              '<p class="mb-0 text-muted" style="font-size:11px">' + notification.message + '</p>' +
+            '</div>' +
+            '<small class="text-muted flex-shrink-0" style="font-size:10px">' + time + '</small>';
+
         var li = document.createElement('li');
         li.className = 'border-bottom notif-entry cursor-pointer';
         li.setAttribute('data-notification-id', notification.id);
-        li.innerHTML =
-            '<div class="d-flex align-items-start px-3 py-2" style="gap:10px">' +
-                  '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1" ' +
-                       'style="width:32px;height:32px;background:' + meta.color + '22">' +
-                  '<i class="fas ' + meta.icon + '" style="font-size:12px;color:' + meta.color + '"></i>' +
-                  '</div>' +
-                  '<div style="flex:1;min-width:0">' +
-                    '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + meta.label + '</p>' +
-                    '<p class="mb-0" style="font-size:11px">' +
-                      notification.message +
-                      ' &middot; Saldo: ' + fmt(notification.data.currency_symbol, notification.data.balance) +
-                    '</p>' +
-                  '</div>' +
-                  '<small class="text-muted flex-shrink-0" style="font-size:10px">' + time + '</small>' +
-                '</div>';
 
-        // Agregar evento click para marcar como leída
-        li.addEventListener('click', function() {
-            markNotificationAsRead(notification.id, li);
-        });
+        if (notifUrl) {
+            // Notificación con link (admin)
+            li.innerHTML = '<a href="' + notifUrl + '" class="d-flex align-items-start px-3 py-2 text-decoration-none text-dark" style="gap:10px">' +
+                innerContent + '</a>';
+            li.addEventListener('click', function() {
+                markNotificationAsRead(notification.id, li);
+            });
+        } else {
+            // Notificación sin link (usuario)
+            li.innerHTML = '<div class="d-flex align-items-start px-3 py-2" style="gap:10px">' + innerContent + '</div>';
+            li.addEventListener('click', function() {
+                markNotificationAsRead(notification.id, li);
+            });
+        }
 
         $list.insertBefore(li, $list.firstChild);
 
@@ -383,6 +401,110 @@
     } else {
         loadPersistentNotifications();
         boot();
+    }
+
+})();
+</script>
+@endif
+
+{{-- ── Notificaciones de movimientos pendientes para Admins/Superadmins ── --}}
+@if(auth()->check() && auth()->user()->hasRole(['admin', 'superadmin']))
+<script>
+(function () {
+    'use strict';
+
+    var $badge  = document.getElementById('notif-badge');
+    var $list   = document.getElementById('notif-list');
+    var $empty  = document.getElementById('notif-empty');
+
+    // ── Metadatos por tipo ──────────────────────────────────────
+    var ADMIN_META = {
+        DEPOSIT:    { label: 'Depósito pendiente',  icon: 'fa-arrow-down',  color: '#28a745', sign: '+' },
+        WITHDRAWAL: { label: 'Retiro pendiente',     icon: 'fa-arrow-up',    color: '#ffc107', sign: '-' },
+    };
+
+    // ── Formateador ─────────────────────────────────────────────
+    function fmt(symbol, n) {
+        return symbol + '\u00a0' + parseFloat(n).toLocaleString('es-VE', {
+            minimumFractionDigits: 2, maximumFractionDigits: 2
+        });
+    }
+
+    // ── Agregar notificación de movimiento al panel ─────────────
+    function addAdminMovementNotification(data) {
+        var meta  = ADMIN_META[data.movement_type] || { label: 'Movimiento', icon: 'fa-exchange-alt', color: '#6c757d', sign: '' };
+        var time  = new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+        var label = data.movement_type === 'DEPOSIT' ? 'depósito' : 'retiro';
+
+        if ($empty) $empty.style.display = 'none';
+
+        var li = document.createElement('li');
+        li.className = 'border-bottom notif-entry notif-admin-wallet cursor-pointer';
+        li.setAttribute('data-url', data.url || '/wallet-movements');
+
+        li.innerHTML =
+            '<a href="' + (data.url || '/wallet-movements') + '" class="d-flex align-items-start px-3 py-2 text-decoration-none text-dark" style="gap:10px">' +
+              '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1" ' +
+                   'style="width:32px;height:32px;background:' + meta.color + '22">' +
+                '<i class="fas ' + meta.icon + '" style="font-size:12px;color:' + meta.color + '"></i>' +
+              '</div>' +
+              '<div style="flex:1;min-width:0">' +
+                '<p class="mb-0 font-weight-semibold text-dark" style="font-size:12px;line-height:1.4">' +
+                  meta.label +
+                '</p>' +
+                '<p class="mb-0 text-muted" style="font-size:11px">' +
+                  '<strong>' + (data.user_name || 'Usuario') + '</strong>' +
+                  ' solicita un ' + label + ' de ' +
+                  '<span style="color:' + meta.color + ';font-weight:600">' +
+                    meta.sign + fmt(data.currency_symbol, data.amount) +
+                  '</span>' +
+                '</p>' +
+              '</div>' +
+              '<small class="text-muted flex-shrink-0" style="font-size:10px">' + time + '</small>' +
+            '</a>';
+
+        $list.insertBefore(li, $list.firstChild);
+
+        // Máximo 20 entradas
+        var entries = $list.querySelectorAll('.notif-entry');
+        if (entries.length > 20) entries[entries.length - 1].remove();
+
+        // Badge
+        var currentCount = parseInt($badge.textContent || '0', 10);
+        if ($badge.classList.contains('d-none')) currentCount = 0;
+        currentCount++;
+        $badge.textContent = currentCount > 99 ? '99+' : currentCount;
+        $badge.classList.remove('d-none');
+
+        // Sonido de notificación (sutil)
+        try {
+            var ctx = new (window.AudioContext || window.webkitAudioContext)();
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = 880;
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.3);
+        } catch(e) {}
+    }
+
+    // ── WebSocket: escucha canal de admins ──────────────────────
+    function bootAdmin() {
+        if (!window.Echo) { setTimeout(bootAdmin, 250); return; }
+
+        window.Echo.private('admins.wallet-movements')
+            .listen('.wallet.movement.requested', function (data) {
+                addAdminMovementNotification(data);
+            });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootAdmin);
+    } else {
+        bootAdmin();
     }
 
 })();

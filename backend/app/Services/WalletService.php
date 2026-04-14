@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\WalletMovementRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\Events\Wallet\WalletUpdated;
+use App\Events\Wallet\WalletMovementRequested;
 use App\Models\Directories\Crypto\Binance\BinanceAccounts;
 use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
@@ -152,7 +153,7 @@ final class WalletService
             throw new \DomainException('Ya tienes un depósito pendiente de confirmación. Espera a que sea procesado antes de hacer otro.');
         }
 
-        $this->movementRepository->record([
+        $movement = $this->movementRepository->record([
             'wallet_id'      => (string) $wallet->id,
             'user_id'        => (string) $wallet->user_id,
             'type'           => WalletMovement::TYPE_DEPOSIT,
@@ -164,6 +165,8 @@ final class WalletService
             'reference_id'   => $reference,
             'receipt_path'   => $receipt,
         ]);
+
+        $this->broadcastAdminWalletMovement($movement, $wallet, WalletMovement::TYPE_DEPOSIT, $amount);
 
         return $wallet;
     }
@@ -182,7 +185,9 @@ final class WalletService
         string $directoryType,
         ?string $notes = null,
     ): Wallet {
-        $wallet = DB::transaction(function () use ($walletId, $amount, $directoryId, $directoryType, $notes) {
+        $withdrawalMovement = null;
+
+        $wallet = DB::transaction(function () use ($walletId, $amount, $directoryId, $directoryType, $notes, &$withdrawalMovement) {
             $wallet = $this->findOwnedWallet($walletId);
 
             if ($wallet->isBlocked()) {
@@ -202,7 +207,7 @@ final class WalletService
             $this->walletRepository->decrementBalance($walletId, $amount);
             $wallet->refresh();
 
-            $this->movementRepository->record([
+            $withdrawalMovement = $this->movementRepository->record([
                 'wallet_id'      => (string) $wallet->id,
                 'user_id'        => (string) $wallet->user_id,
                 'type'           => WalletMovement::TYPE_WITHDRAWAL,
@@ -221,6 +226,7 @@ final class WalletService
         });
 
         $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);
+        $this->broadcastAdminWalletMovement($withdrawalMovement, $wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);
 
         return $wallet;
     }
@@ -540,11 +546,64 @@ final class WalletService
     }
 
     /**
+     * Notifica a admins/superadmins vía WebSocket + DB cuando llega un movimiento pendiente.
+     */
+    private function broadcastAdminWalletMovement(?WalletMovement $movement, Wallet $wallet, string $type, float $amount): void
+    {
+        $user     = $wallet->user ?? \App\Models\User::find($wallet->user_id);
+        $currency = $wallet->currency;
+
+        $movementId = $movement ? (string) $movement->id : '';
+        $userName   = $user
+            ? trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? $user->email)
+            : 'Usuario';
+
+        // 1. Broadcast WebSocket al canal de admins
+        broadcast(new WalletMovementRequested(
+            movementId:     $movementId,
+            userId:         (string) $wallet->user_id,
+            userName:       $userName,
+            movementType:   $type,
+            amount:         $amount,
+            currencySymbol: $currency?->symbol ?? '',
+            currencyIso:    $currency?->iso_code ?? '',
+        ));
+
+        // 2. Notificación persistente en DB para cada admin/superadmin
+        $admins = \App\Models\User::withRole('admin')
+            ->orWhereHas('roles', fn($q) => $q->where('name', 'superadmin'))
+            ->get();
+
+        $typeLabel = $type === WalletMovement::TYPE_DEPOSIT ? 'depósito' : 'retiro';
+        $symbol    = $currency?->symbol ?? '';
+
+        foreach ($admins as $admin) {
+            $this->notificationService->create(
+                userId:  (string) $admin->id,
+                type:    'WALLET_ADMIN_ALERT',
+                title:   $type === WalletMovement::TYPE_DEPOSIT
+                            ? '💰 Nuevo depósito pendiente'
+                            : '💸 Nuevo retiro pendiente',
+                message: "{$userName} solicitó un {$typeLabel} de {$symbol}{$amount}. Requiere tu aprobación.",
+                data:    [
+                    'movement_id'   => $movementId,
+                    'movement_type' => $type,
+                    'amount'        => $amount,
+                    'currency_symbol' => $symbol,
+                    'user_id'       => (string) $wallet->user_id,
+                    'user_name'     => $userName,
+                    'url'           => '/wallet-movements',
+                ],
+            );
+        }
+    }
+
+    /**
      * Obtiene una wallet del usuario autenticado o lanza 403.
      */
     private function findOwnedWallet(string $walletId): Wallet
     {
-        $wallet = Wallet::with('currency')->findOrFail($walletId);
+        $wallet = Wallet::with(['currency', 'user'])->findOrFail($walletId);
 
         if ((string) $wallet->user_id !== (string) Auth::id()) {
             abort(403, 'No autorizado.');

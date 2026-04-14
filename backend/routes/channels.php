@@ -28,6 +28,11 @@ Broadcast::channel('bingo.player.{userId}', function ($user, $userId) {
     return (int) $user->id === (int) $userId;
 });
 
+// Canal privado para admins/superadmins: movimientos de billetera pendientes
+Broadcast::channel('admins.wallet-movements', function ($user) {
+    return $user->hasRole(['admin', 'superadmin']);
+});
+
 // Presence Channel for Bingo Room (shows who's online)
 Broadcast::channel('bingo.room.{roomId}.presence', function ($user, $roomId) {
     // Return user info if they can join this room
