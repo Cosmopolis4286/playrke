@@ -40,7 +40,7 @@
             @endisset
 
             {{-- Contenido de la página --}}
-            <section @class([
+            <section id="content-scrollable" @class([
                 'content flex-grow-1 overflow-auto',
                 'mt-2' => !$contentHeader,
             ])>
