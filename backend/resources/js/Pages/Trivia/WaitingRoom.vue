@@ -19,6 +19,7 @@ const players    = ref<Player[]>(props.initialPlayers)
 const hasJoined  = ref(false)
 const currentPlayer = ref<Player | null>(null)
 const isLoading  = ref(false)
+const joinError  = ref<string | null>(null)
 const connectionStatus = ref<'connected' | 'disconnected' | 'reconnecting'>('disconnected')
 
 // ── WebSocket (best-effort — no disponible en local sin Redis/Reverb) ─────────
@@ -135,15 +136,18 @@ async function handleJoin(playerName: string) {
     if (res.ok) {
       currentPlayer.value = data.player ?? { id: 'me', name: playerName, roomCode: props.room.code }
       hasJoined.value = true
-      // Añadir al listado local si no está ya
       if (currentPlayer.value && !players.value.find(p => p.id === currentPlayer.value!.id)) {
         players.value.push(currentPlayer.value)
       }
+    } else if (res.status === 403) {
+      joinError.value = 'No tienes permiso para unirte a salas de trivia. Se requiere el rol de jugador.'
+    } else if (res.status === 422) {
+      joinError.value = data.message ?? 'La sala no está disponible.'
     } else {
-      alert(data.message ?? 'Error al unirse a la sala')
+      joinError.value = data.message ?? 'Error al unirse a la sala.'
     }
   } catch {
-    alert('Error de conexión. Intenta de nuevo.')
+    joinError.value = 'Error de conexión. Intenta de nuevo.'
   } finally {
     isLoading.value = false
   }
@@ -186,8 +190,22 @@ onUnmounted(() => {
         </div>
 
         <div class="lg:col-span-1">
+          <!-- Error de acceso / join -->
+          <div
+            v-if="joinError"
+            class="mb-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 p-4"
+          >
+            <div class="flex items-start gap-3">
+              <span class="text-red-500 text-lg flex-shrink-0">⛔</span>
+              <div>
+                <p class="text-sm font-medium text-red-800 dark:text-red-300">Acceso denegado</p>
+                <p class="text-xs text-red-600 dark:text-red-400 mt-0.5">{{ joinError }}</p>
+              </div>
+            </div>
+          </div>
+
           <JoinForm
-            v-if="!hasJoined"
+            v-if="!hasJoined && !joinError"
             @join="handleJoin"
           />
 

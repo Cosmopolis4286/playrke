@@ -59,17 +59,19 @@ Route::prefix('trivia-questions')->name('trivia-questions.')->middleware(['auth'
 });
 
 // ====================================
-// RUTAS DE JUEGO (USUARIOS)
+// RUTAS DE JUEGO (USUARIOS — solo rol player)
 // ====================================
-Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth'])->group(function () {
-    // Salas de trivia para usuarios
+Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth', 'role:player'])->group(function () {
+    // Salas de trivia para usuarios (legacy)
     Route::get('/rooms/{coin}', [TriviaGameController::class, 'rooms'])->name('rooms');
-    Route::post('/room/{id}/join', [TriviaGameController::class, 'room'])->name('join');
     Route::get('/room/{id}/in-game', [TriviaGameController::class, 'inGame'])->name('in-game');
     Route::get('/room/{id}/timer', [TriviaGameController::class, 'timer'])->name('timer');
     Route::get('/room/{id}/info', [TriviaGameController::class, 'roomInfo'])->name('room-info');
     Route::post('/room/{id}/leave', [TriviaGameController::class, 'leaveRoom'])->name('leave-room');
-    
+
+    // Unirse a sala (nuevo sistema — solo players)
+    Route::post('/room/{id}/join', [TriviaGameController::class, 'room'])->name('join');
+
     // Trivia individual
     Route::get('/individual/{id}', [TriviaGameController::class, 'individual'])->name('individual');
     Route::post('/individual/check', [TriviaGameController::class, 'checkIndividual'])->name('individual.check');
@@ -78,33 +80,33 @@ Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth'])->group
 // ====================================
 // RUTAS PARA SIDEBAR MENÚ (NUEVAS)
 // ====================================
-Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function () {
-    // Lobby - Selección de salas disponibles
+
+// ── Solo rol player: lobby y sala de espera ───────────────────────────────────
+Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:player'])->group(function () {
     Route::get('/lobby', [TriviaGameController::class, 'lobby'])->name('lobby');
-
-    // Sala de espera de una sala concreta
     Route::get('/room/{code}/wait', [TriviaGameController::class, 'waitingRoom'])->name('room.wait');
-
-    // Estado de sala para polling (JSON, fallback sin WebSocket)
     Route::get('/room/{code}/state', [TriviaGameController::class, 'roomState'])->name('room.state');
-    
-    // Alias para rooms (compatibility con sidebar) - apunta al nuevo sistema
+});
+
+// ── Todos los usuarios autenticados: estadísticas, partidas, leaderboard ──────
+Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function () {
+    // Alias para rooms (compatibility con sidebar)
     Route::get('/rooms', function () {
         return redirect()->route('trivia-rooms-admin.index');
     })->name('rooms.index');
-    
+
     // Alias para questions (compatibility con sidebar)
     Route::get('/questions', function () {
         return redirect()->route('trivia-questions.index', ['roomId' => 'all']);
     })->name('questions.index');
-    
+
     // Partidas — historial y detalle
     Route::get('/games',      [TriviaGamesController::class, 'index'])->name('games.index');
     Route::get('/games/{id}', [TriviaGamesController::class, 'show'])->name('games.show');
-    
+
     // Leaderboard / Clasificación
     Route::get('/leaderboard', [TriviaReportController::class, 'leaderboard'])->name('leaderboard');
-    
+
     // Estadísticas
     Route::get('/stats', [TriviaReportController::class, 'stats'])->name('stats');
 });
