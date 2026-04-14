@@ -323,6 +323,7 @@ final class NotificationService
                 'amount'          => $amount,
                 'currency_symbol' => $currencySymbol,
                 'admin_notes'     => $adminNotes,
+                'url'             => '/wallet',
             ]
         );
     }
@@ -355,6 +356,7 @@ final class NotificationService
                 'amount'          => $amount,
                 'currency_symbol' => $currencySymbol,
                 'admin_notes'     => $adminNotes,
+                'url'             => '/wallet',
             ]
         );
     }

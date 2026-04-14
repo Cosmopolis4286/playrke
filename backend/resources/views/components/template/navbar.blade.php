@@ -129,13 +129,29 @@
     var USER_ID   = @json((string) Auth::id());
     var WALLET_ID = @json((string) $navWallet->id);
 
-    // ── Metadatos por tipo de movimiento ─────────────────────
+    // ── Metadatos por tipo de movimiento (sin status) ────────
     var TYPE_META = {
-        DEPOSIT:    { label: 'Depósito recibido',   icon: 'fa-arrow-down',  color: '#28a745', sign: '+' },
-        WITHDRAWAL: { label: 'Retiro procesado',     icon: 'fa-arrow-up',    color: '#ffc107', sign: '-' },
-        PURCHASE:   { label: 'Compra de cartón',     icon: 'fa-ticket-alt',  color: '#dc3545', sign: '-' },
-        PRIZE:      { label: '¡Premio ganado! 🎉',    icon: 'fa-trophy',      color: '#fd7e14', sign: '+' },
+        DEPOSIT:    { label: 'Depósito',      icon: 'fa-arrow-down',  color: '#28a745', sign: '+' },
+        WITHDRAWAL: { label: 'Retiro',         icon: 'fa-arrow-up',    color: '#ffc107', sign: '-' },
+        PURCHASE:   { label: 'Compra cartón',  icon: 'fa-ticket-alt',  color: '#dc3545', sign: '-' },
+        PRIZE:      { label: '¡Premio! 🎉',    icon: 'fa-trophy',      color: '#fd7e14', sign: '+' },
     };
+
+    // ── Metadatos según tipo + estado (aprobado/rechazado) ───
+    function resolveResultMeta(type, status) {
+        var approved = status === 'COMPLETED';
+        if (type === 'DEPOSIT') {
+            return approved
+                ? { label: '✅ Depósito aprobado',          icon: 'fa-check-circle', color: '#28a745', sign: '+', url: '/wallet' }
+                : { label: '❌ Depósito rechazado',          icon: 'fa-times-circle', color: '#dc3545', sign: '',  url: '/wallet' };
+        }
+        if (type === 'WITHDRAWAL') {
+            return approved
+                ? { label: '✅ Retiro procesado',            icon: 'fa-check-circle', color: '#28a745', sign: '-', url: '/wallet' }
+                : { label: '↩️ Retiro rechazado — saldo devuelto', icon: 'fa-undo',  color: '#ffc107', sign: '',  url: '/wallet' };
+        }
+        return { label: 'Movimiento actualizado', icon: 'fa-exchange-alt', color: '#6c757d', sign: '', url: '/wallet' };
+    }
 
     // ── DOM refs ──────────────────────────────────────────────
     var $badge     = document.getElementById('notif-badge');
@@ -167,36 +183,49 @@
 
     // ── Agregar notificación al panel ─────────────────────────
     function addNotification(data) {
-        var meta = TYPE_META[data.movement_type] || { label: 'Movimiento', icon: 'fa-exchange-alt', color: '#6c757d', sign: '' };
-        var time = new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+        // Si viene movement_status (COMPLETED/REJECTED) → feedback de aprobación/rechazo
+        var isResult = data.movement_status === 'COMPLETED' || data.movement_status === 'REJECTED';
+        var meta = isResult
+            ? resolveResultMeta(data.movement_type, data.movement_status)
+            : (TYPE_META[data.movement_type] || { label: 'Movimiento', icon: 'fa-exchange-alt', color: '#6c757d', sign: '', url: null });
 
+        var time = new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
         if ($empty) $empty.style.display = 'none';
 
+        // Línea de detalle
+        var detail = isResult
+            ? (meta.sign
+                ? '<span style="color:' + meta.color + ';font-weight:600">' + meta.sign + fmt(data.currency_symbol, data.amount) + '</span>'
+                  + ' &middot; Saldo: ' + fmt(data.currency_symbol, data.balance)
+                : 'El monto será devuelto a tu saldo disponible')
+            : ('<span style="color:' + meta.color + ';font-weight:600">' + meta.sign + fmt(data.currency_symbol, data.amount) + '</span>'
+               + ' &middot; Saldo: ' + fmt(data.currency_symbol, data.balance));
+
+        var inner =
+            '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1" ' +
+                 'style="width:32px;height:32px;background:' + meta.color + '22">' +
+              '<i class="fas ' + meta.icon + '" style="font-size:12px;color:' + meta.color + '"></i>' +
+            '</div>' +
+            '<div style="flex:1;min-width:0">' +
+              '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + meta.label + '</p>' +
+              '<p class="mb-0 text-muted" style="font-size:11px">' + detail + '</p>' +
+            '</div>' +
+            '<small class="text-muted flex-shrink-0" style="font-size:10px">' + time + '</small>';
+
         var li = document.createElement('li');
-        li.className = 'border-bottom notif-entry';
-        li.innerHTML =
-            '<div class="d-flex align-items-start px-3 py-2" style="gap:10px">' +
-              '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1" ' +
-                   'style="width:32px;height:32px;background:' + meta.color + '22">' +
-                '<i class="fas ' + meta.icon + '" style="font-size:12px;color:' + meta.color + '"></i>' +
-              '</div>' +
-              '<div style="flex:1;min-width:0">' +
-                '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + meta.label + '</p>' +
-                '<p class="mb-0" style="font-size:11px">' +
-                  '<span style="color:' + meta.color + ';font-weight:600">' + meta.sign + fmt(data.currency_symbol, data.amount) + '</span>' +
-                  ' &middot; Saldo: ' + fmt(data.currency_symbol, data.balance) +
-                '</p>' +
-              '</div>' +
-              '<small class="text-muted flex-shrink-0" style="font-size:10px">' + time + '</small>' +
-            '</div>';
+        li.className = 'border-bottom notif-entry' + (isResult ? ' notif-result' : '');
+
+        if (isResult && meta.url) {
+            li.innerHTML = '<a href="' + meta.url + '" class="d-flex align-items-start px-3 py-2 text-decoration-none text-dark" style="gap:10px">' + inner + '</a>';
+        } else {
+            li.innerHTML = '<div class="d-flex align-items-start px-3 py-2" style="gap:10px">' + inner + '</div>';
+        }
 
         $list.insertBefore(li, $list.firstChild);
 
-        // Máximo 20 entradas
         var entries = $list.querySelectorAll('.notif-entry');
         if (entries.length > 20) entries[entries.length - 1].remove();
 
-        // Actualizar badge
         notifCount++;
         $badge.textContent = notifCount > 99 ? '99+' : notifCount;
         $badge.classList.remove('d-none');
@@ -320,26 +349,28 @@
         if ($empty) $empty.style.display = 'none';
 
         var isAdminAlert = notification.type === 'WALLET_ADMIN_ALERT';
-        var notifUrl = notification.data && notification.data.url ? notification.data.url : null;
+        var mvType   = notification.data && notification.data.movement_type;
+        var mvStatus = notification.data && notification.data.movement_status;
+        var isResult = mvStatus === 'COMPLETED' || mvStatus === 'REJECTED';
+
+        // Determinar URL: admin → /wallet-movements, user resultado → /wallet, resto → null
+        var notifUrl = notification.data && notification.data.url
+            ? notification.data.url
+            : (isResult ? '/wallet' : null);
 
         var meta;
         if (isAdminAlert) {
-            var mvType = notification.data && notification.data.movement_type;
             meta = mvType === 'DEPOSIT'
-                ? { label: '💰 Depósito pendiente', icon: 'fa-arrow-down', color: '#28a745', sign: '+' }
-                : { label: '💸 Retiro pendiente',   icon: 'fa-arrow-up',   color: '#ffc107', sign: '-' };
+                ? { label: '💰 Depósito pendiente', icon: 'fa-arrow-down', color: '#28a745' }
+                : { label: '💸 Retiro pendiente',   icon: 'fa-arrow-up',   color: '#ffc107' };
+        } else if (isResult) {
+            meta = resolveResultMeta(mvType, mvStatus);
         } else {
-            meta = TYPE_META[notification.data && notification.data.movement_type] || {
-                label: notification.title,
-                icon:  'fa-exchange-alt',
-                color: '#6c757d',
-                sign:  ''
-            };
+            meta = TYPE_META[mvType] || { label: notification.title, icon: 'fa-exchange-alt', color: '#6c757d' };
         }
 
         var time = new Date(notification.created_at).toLocaleTimeString('es-VE', {
-            hour: '2-digit',
-            minute: '2-digit'
+            hour: '2-digit', minute: '2-digit'
         });
 
         var innerContent =
@@ -348,7 +379,7 @@
               '<i class="fas ' + meta.icon + '" style="font-size:12px;color:' + meta.color + '"></i>' +
             '</div>' +
             '<div style="flex:1;min-width:0">' +
-              '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + (isAdminAlert ? meta.label : notification.title) + '</p>' +
+              '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + meta.label + '</p>' +
               '<p class="mb-0 text-muted" style="font-size:11px">' + notification.message + '</p>' +
             '</div>' +
             '<small class="text-muted flex-shrink-0" style="font-size:10px">' + time + '</small>';
@@ -358,14 +389,12 @@
         li.setAttribute('data-notification-id', notification.id);
 
         if (notifUrl) {
-            // Notificación con link (admin)
             li.innerHTML = '<a href="' + notifUrl + '" class="d-flex align-items-start px-3 py-2 text-decoration-none text-dark" style="gap:10px">' +
                 innerContent + '</a>';
             li.addEventListener('click', function() {
                 markNotificationAsRead(notification.id, li);
             });
         } else {
-            // Notificación sin link (usuario)
             li.innerHTML = '<div class="d-flex align-items-start px-3 py-2" style="gap:10px">' + innerContent + '</div>';
             li.addEventListener('click', function() {
                 markNotificationAsRead(notification.id, li);
