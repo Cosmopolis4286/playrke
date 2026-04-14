@@ -115,6 +115,22 @@ final class NotificationController extends Controller
     }
 
     /**
+     * Eliminar todas las notificaciones del usuario
+     *
+     * @return JsonResponse
+     */
+    public function clearAll(): JsonResponse
+    {
+        $deletedCount = $this->notificationService->clearAll();
+
+        return response()->json([
+            'message'       => 'Notificaciones eliminadas',
+            'deleted_count' => $deletedCount,
+            'unread_count'  => 0,
+        ]);
+    }
+
+    /**
      * Obtener contador de notificaciones no leídas
      *
      * @return JsonResponse

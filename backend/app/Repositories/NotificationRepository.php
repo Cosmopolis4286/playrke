@@ -115,6 +115,14 @@ class NotificationRepository implements NotificationRepositoryInterface
     /**
      * {@inheritdoc}
      */
+    public function deleteAllForUser(string $userId): int
+    {
+        return Notification::where('user_id', $userId)->delete();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function findById(string $notificationId): ?Notification
     {
         return Notification::find($notificationId);
