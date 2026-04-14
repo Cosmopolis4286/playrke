@@ -86,6 +86,64 @@ function onReceiptChange(e: Event) {
   receipt.value = file
 }
 
+// ─── Modal de detalle de movimiento ────────────────────────────────────────
+const detailMovement = ref<import('@js/types/wallet').WalletMovement | null>(null)
+const detailOpen     = ref(false)
+
+function openMovementDetail(mov: import('@js/types/wallet').WalletMovement) {
+  detailMovement.value = mov
+  detailOpen.value     = true
+}
+
+const detailMeta = computed(() => {
+  if (!detailMovement.value) return null
+  return movementMeta[detailMovement.value.type]
+})
+
+const detailSteps = computed(() => {
+  const mov = detailMovement.value
+  if (!mov) return []
+  const isDep  = mov.type === 'DEPOSIT'
+  const isWith = mov.type === 'WITHDRAWAL'
+
+  if (isDep || isWith) {
+    const done      = mov.status === 'COMPLETED'
+    const rejected  = mov.status === 'REJECTED'
+    const pending   = mov.status === 'PENDING'
+    return [
+      {
+        label:  'Solicitud recibida',
+        done:   true,
+        active: false,
+        icon:   'fa-check',
+        date:   mov.created_at,
+      },
+      {
+        label:  pending ? 'En revisión por el equipo' : (done ? 'Revisión completada' : 'Revisión fallida'),
+        done:   done || rejected,
+        active: pending,
+        icon:   pending ? 'fa-hourglass-half' : (done ? 'fa-check' : 'fa-times'),
+        date:   null,
+      },
+      {
+        label:  done
+          ? (isDep ? 'Fondos acreditados' : 'Retiro procesado')
+          : (rejected ? (isDep ? 'Depósito rechazado' : 'Retiro rechazado') : (isDep ? 'Acreditación pendiente' : 'Procesamiento pendiente')),
+        done,
+        active: false,
+        rejected,
+        icon:   done ? 'fa-check-circle' : (rejected ? 'fa-times-circle' : 'fa-circle'),
+        date:   null,
+      },
+    ]
+  }
+
+  // PURCHASE / PRIZE: solo 1 paso, siempre completado
+  return [
+    { label: 'Procesado automáticamente', done: true, active: false, icon: 'fa-check-circle', date: mov.created_at },
+  ]
+})
+
 // Título dinámico del modal por paso
 const modalTitle = computed(() => {
   if (step.value === 3) return operation.value === 'deposit' ? 'Solicitud enviada' : 'Solicitud enviada'
@@ -310,8 +368,9 @@ const modalIcon = computed(() => {
               <li
                 v-for="(mov, index) in movements"
                 :key="mov.id"
-                class="movement-row"
+                class="movement-row movement-row--clickable"
                 :class="{ 'movement-row--first': index === 0 }"
+                @click="openMovementDetail(mov)"
               >
                 <div
                   class="movement-row__icon"
@@ -724,6 +783,153 @@ const modalIcon = computed(() => {
         </template>
       </template>
     </Modal>
+
+    <!-- ══ MODAL DETALLE DE MOVIMIENTO ══════════════════════════════════ -->
+    <Modal
+      v-model="detailOpen"
+      title="Detalle del movimiento"
+      icon="fa-receipt"
+      size="sm"
+    >
+      <template v-if="detailMovement && detailMeta">
+
+        <!-- Encabezado: ícono + tipo + monto -->
+        <div class="mv-detail__header">
+          <div class="mv-detail__icon" :class="detailMeta.colorClass">
+            <i :class="detailMeta.icon + ' fa-lg'"></i>
+          </div>
+          <div class="mv-detail__header-info">
+            <p class="mv-detail__type">{{ detailMeta.label }}</p>
+            <p
+              class="mv-detail__amount"
+              :class="detailMeta.sign === '+' ? 'amount--positive' : 'amount--negative'"
+            >
+              {{ detailMeta.sign }}{{ activeWallet?.currency.symbol }}&nbsp;{{ formatAmount(detailMovement.amount) }}
+            </p>
+          </div>
+          <span
+            class="badge-status mv-detail__badge"
+            :class="{
+              'badge-status--pending':   detailMovement.status === 'PENDING',
+              'badge-status--completed': detailMovement.status === 'COMPLETED',
+              'badge-status--rejected':  detailMovement.status === 'REJECTED',
+              'badge-status--cancelled': detailMovement.status === 'CANCELLED',
+            }"
+          >
+            <i :class="{
+              'fas fa-clock':  detailMovement.status === 'PENDING',
+              'fas fa-check':  detailMovement.status === 'COMPLETED',
+              'fas fa-times':  detailMovement.status === 'REJECTED',
+              'fas fa-ban':    detailMovement.status === 'CANCELLED',
+            }"></i>
+            {{
+              detailMovement.status === 'PENDING'   ? 'Pendiente'  :
+              detailMovement.status === 'COMPLETED' ? 'Completado' :
+              detailMovement.status === 'REJECTED'  ? 'Rechazado'  : 'Cancelado'
+            }}
+          </span>
+        </div>
+
+        <!-- Info financiera -->
+        <div class="mv-detail__grid">
+          <div class="mv-detail__cell">
+            <span class="mv-detail__cell-label">Saldo anterior</span>
+            <span class="mv-detail__cell-value">
+              {{ activeWallet?.currency.symbol }}&nbsp;{{ formatAmount(detailMovement.balance_before) }}
+            </span>
+          </div>
+          <div class="mv-detail__cell">
+            <span class="mv-detail__cell-label">Saldo posterior</span>
+            <span class="mv-detail__cell-value mv-detail__cell-value--highlight">
+              {{ activeWallet?.currency.symbol }}&nbsp;{{ formatAmount(detailMovement.balance_after) }}
+            </span>
+          </div>
+          <div class="mv-detail__cell">
+            <span class="mv-detail__cell-label">Fecha</span>
+            <span class="mv-detail__cell-value">{{ formatDate(detailMovement.created_at) }}</span>
+          </div>
+          <div v-if="detailMovement.description" class="mv-detail__cell mv-detail__cell--full">
+            <span class="mv-detail__cell-label">Descripción</span>
+            <span class="mv-detail__cell-value">{{ detailMovement.description }}</span>
+          </div>
+        </div>
+
+        <!-- Timeline de progreso -->
+        <div class="mv-detail__timeline">
+          <p class="mv-detail__timeline-title">Progreso</p>
+          <ul class="mv-timeline">
+            <li
+              v-for="(step, i) in detailSteps"
+              :key="i"
+              class="mv-timeline__item"
+              :class="{
+                'mv-timeline__item--done':     step.done && !step.rejected,
+                'mv-timeline__item--active':   step.active,
+                'mv-timeline__item--rejected': step.rejected,
+              }"
+            >
+              <div class="mv-timeline__dot">
+                <i :class="'fas ' + step.icon"></i>
+              </div>
+              <div class="mv-timeline__body">
+                <p class="mv-timeline__label">{{ step.label }}</p>
+                <p v-if="step.date" class="mv-timeline__date">{{ formatDate(step.date) }}</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Feedback contextual -->
+        <div
+          class="mv-detail__feedback"
+          :class="{
+            'mv-detail__feedback--pending':   detailMovement.status === 'PENDING',
+            'mv-detail__feedback--completed': detailMovement.status === 'COMPLETED',
+            'mv-detail__feedback--rejected':  detailMovement.status === 'REJECTED',
+          }"
+        >
+          <i :class="{
+            'fas fa-hourglass-half': detailMovement.status === 'PENDING',
+            'fas fa-check-circle':  detailMovement.status === 'COMPLETED',
+            'fas fa-times-circle':  detailMovement.status === 'REJECTED',
+            'fas fa-ban':           detailMovement.status === 'CANCELLED',
+          }"></i>
+          <span>
+            <template v-if="detailMovement.status === 'PENDING'">
+              Tu solicitud está siendo revisada por nuestro equipo. Recibirás una notificación cuando sea procesada.
+            </template>
+            <template v-else-if="detailMovement.status === 'COMPLETED'">
+              {{
+                detailMovement.type === 'DEPOSIT'
+                  ? 'Los fondos han sido acreditados exitosamente a tu billetera.'
+                  : detailMovement.type === 'WITHDRAWAL'
+                  ? 'Tu retiro fue procesado exitosamente.'
+                  : 'Transacción completada exitosamente.'
+              }}
+            </template>
+            <template v-else-if="detailMovement.status === 'REJECTED'">
+              {{
+                detailMovement.type === 'DEPOSIT'
+                  ? 'Tu depósito fue rechazado. El monto no fue acreditado.'
+                  : 'Tu retiro fue rechazado. El monto ha sido reintegrado a tu saldo.'
+              }}
+            </template>
+            <template v-else>
+              Esta transacción fue cancelada.
+            </template>
+          </span>
+        </div>
+
+      </template>
+
+      <!-- Footer: solo cerrar -->
+      <template #footer>
+        <button type="button" class="op-btn op-btn--cancel" @click="detailOpen = false">
+          <i class="fas fa-times"></i> Cerrar
+        </button>
+      </template>
+    </Modal>
+
   </div>
 </template>
 
@@ -1965,6 +2171,146 @@ const modalIcon = computed(() => {
   transition: background 0.15s;
 }
 .wt-toast__close:hover { background: rgba(255,255,255,0.4); }
+
+/* ── movement-row clickable ── */
+.movement-row--clickable {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.movement-row--clickable:hover { background: #f7f8fc; }
+
+/* ══ Modal de detalle de movimiento ══ */
+.mv-detail__header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: #f7f8fc;
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+.mv-detail__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.mv-detail__header-info { flex: 1; min-width: 0; }
+.mv-detail__type {
+  font-size: 0.78rem;
+  color: #718096;
+  margin: 0 0 0.15rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.mv-detail__amount {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+.mv-detail__badge { margin-left: auto; flex-shrink: 0; align-self: flex-start; }
+
+/* Info grid */
+.mv-detail__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 1rem;
+  margin-bottom: 1.2rem;
+}
+.mv-detail__cell { display: flex; flex-direction: column; gap: 0.15rem; }
+.mv-detail__cell--full { grid-column: 1 / -1; }
+.mv-detail__cell-label {
+  font-size: 0.72rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 500;
+}
+.mv-detail__cell-value { font-size: 0.9rem; color: #2d3748; font-weight: 600; }
+.mv-detail__cell-value--highlight { color: #667eea; }
+
+/* Timeline */
+.mv-detail__timeline { margin-bottom: 1rem; }
+.mv-detail__timeline-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #a0aec0;
+  margin: 0 0 0.75rem;
+}
+.mv-timeline { list-style: none; padding: 0; margin: 0; position: relative; }
+.mv-timeline::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: #eaecf0;
+}
+.mv-timeline__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0 0 0.85rem 0;
+  position: relative;
+}
+.mv-timeline__item:last-child { padding-bottom: 0; }
+.mv-timeline__dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #eaecf0;
+  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  border: 2px solid #fff;
+}
+.mv-timeline__item--done .mv-timeline__dot {
+  background: #38a169;
+  color: #fff;
+}
+.mv-timeline__item--active .mv-timeline__dot {
+  background: #667eea;
+  color: #fff;
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+.mv-timeline__item--rejected .mv-timeline__dot {
+  background: #e53e3e;
+  color: #fff;
+}
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(102,126,234,0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(102,126,234,0); }
+}
+.mv-timeline__body { padding-top: 3px; }
+.mv-timeline__label { font-size: 0.85rem; font-weight: 600; color: #2d3748; margin: 0 0 0.1rem; }
+.mv-timeline__date  { font-size: 0.75rem; color: #a0aec0; margin: 0; }
+
+/* Feedback contextual */
+.mv-detail__feedback {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+.mv-detail__feedback i { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+.mv-detail__feedback--pending   { background: #fffbeb; color: #92400e; }
+.mv-detail__feedback--completed { background: #f0fff4; color: #276749; }
+.mv-detail__feedback--rejected  { background: #fff5f5; color: #c53030; }
 
 /* Transición del toast */
 .wt-toast-enter-active { animation: wt-slide-in 0.35s cubic-bezier(0.34,1.56,0.64,1); }
