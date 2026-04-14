@@ -61,7 +61,8 @@ final class TriviaGameController extends Controller
      */
     public function room(Request $request, $id)
     {
-        $user = Auth::user();
+        $user     = Auth::user();
+        $roomService = app(RoomService::class);
 
         $room = \App\Domains\Games\Trivia\Models\TriviaRoom::findOrFail($id);
 
@@ -72,32 +73,58 @@ final class TriviaGameController extends Controller
             return back()->with('error', 'La sala ya no está disponible.');
         }
 
-        // Registrar participante si no existe
+        $roomId  = (string) $room->id;
+        $userId  = (string) $user->id;
+        $displayName = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador');
+
+        // Verificar si ya está registrado
         $exists = DB::connection('pgsql_trivia')
             ->table('trivia_participants')
-            ->where('room_id', $room->id)
-            ->where('user_id', (string) $user->id)
+            ->where('room_id', $roomId)
+            ->where('user_id', $userId)
             ->whereNull('deleted_at')
             ->exists();
 
-        if (!$exists) {
-            DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
-                'id'            => (string) \Illuminate\Support\Str::ulid(),
-                'room_id'       => (string) $room->id,
-                'user_id'       => (string) $user->id,
-                'status'        => 'registered',
-                'registered_at' => now(),
-                'created_at'    => now(),
-                'updated_at'    => now(),
-            ]);
+        if ($exists) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success'      => true,
+                    'already_joined' => true,
+                    'player'       => [
+                        'id'       => $userId,
+                        'name'     => $displayName,
+                        'roomCode' => $room->code,
+                    ],
+                ]);
+            }
+            return redirect()->route('trivia.room.wait', ['code' => $room->code]);
+        }
+
+        // Insertar en trivia_participants
+        DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
+            'id'            => (string) \Illuminate\Support\Str::ulid(),
+            'room_id'       => $roomId,
+            'user_id'       => $userId,
+            'status'        => 'registered',
+            'registered_at' => now(),
+            'created_at'    => now(),
+            'updated_at'    => now(),
+        ]);
+
+        // Disparar evento PlayerJoined vía RoomService (best-effort — requiere Redis)
+        try {
+            $roomService->joinRoom($roomId, $userId, ['nickname' => $displayName]);
+        } catch (\Throwable) {
+            // Redis no disponible — el participante quedó en DB de todas formas
         }
 
         if ($request->expectsJson()) {
             return response()->json([
-                'success' => true,
-                'player'  => [
-                    'id'       => (string) $user->id,
-                    'name'     => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador'),
+                'success'        => true,
+                'already_joined' => false,
+                'player'         => [
+                    'id'       => $userId,
+                    'name'     => $displayName,
                     'roomCode' => $room->code,
                 ],
             ]);
@@ -304,13 +331,23 @@ final class TriviaGameController extends Controller
     public function waitingRoom(string $code): Response
     {
         $roomService = app(RoomService::class);
+        $user        = Auth::user();
 
         $room = \App\Domains\Games\Trivia\Models\TriviaRoom::where('code', $code)
             ->whereIn('status', ['waiting', 'playing'])
             ->firstOrFail();
 
-        $roomDto  = $roomService->getRoom((string) $room->id);
-        $players  = $roomService->listPlayers((string) $room->id);
+        $roomId  = (string) $room->id;
+        $roomDto = $roomService->getRoom($roomId);
+        $players = $roomService->listPlayers($roomId);
+
+        // Detectar si el usuario ya está inscrito en esta sala
+        $alreadyJoined = DB::connection('pgsql_trivia')
+            ->table('trivia_participants')
+            ->where('room_id', $roomId)
+            ->where('user_id', (string) $user->id)
+            ->whereNull('deleted_at')
+            ->exists();
 
         return Inertia::render('Trivia/WaitingRoom', [
             'room' => [
@@ -331,6 +368,8 @@ final class TriviaGameController extends Controller
                 'name'     => $p->nickname,
                 'roomCode' => $roomDto->code,
             ], $players),
+            'alreadyJoined'  => $alreadyJoined,
+            'currentUserId'  => (string) $user->id,
         ]);
     }
 
