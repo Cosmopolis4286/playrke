@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Player } from '@/types/trivia'
+import type { Player } from '@js/types/trivia'
 
 interface Props {
   players: Player[]
@@ -58,7 +58,7 @@ function isCurrentPlayer(playerId: string): boolean {
               isCurrentPlayer(player.id) ? 'ring-2 ring-blue-500' : ''
             ]"
           >
-            {{ player.name.charAt(0).toUpperCase() }}
+            {{ (player.name ?? '?').charAt(0).toUpperCase() }}
           </div>
         </div>
 
@@ -66,7 +66,7 @@ function isCurrentPlayer(playerId: string): boolean {
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2">
             <span class="text-sm font-medium text-gray-900 truncate">
-              {{ player.name }}
+              {{ player.name ?? 'Jugador' }}
             </span>
             
             <!-- Host Badge -->
