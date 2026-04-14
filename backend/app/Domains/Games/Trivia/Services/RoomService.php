@@ -40,6 +40,7 @@ class RoomService implements RoomServiceInterface
             'code'               => $config['code'] ?? $this->generateRoomCode(),
             'title'              => $config['title'] ?? 'Sala de Trivia',
             'description'        => $config['description'] ?? null,
+            'category'           => $config['category'] ?? null,
             'host_id'            => $config['host_id'] ?? null,
             'status'             => 'waiting',
             'max_players'        => $config['max_players'] ?? 100,
@@ -247,6 +248,9 @@ class RoomService implements RoomServiceInterface
         }
         if (isset($config['description'])) {
             $updateData['description'] = $config['description'];
+        }
+        if (array_key_exists('category', $config)) {
+            $updateData['category'] = $config['category'];
         }
         if (isset($config['max_players'])) {
             $updateData['max_players'] = $config['max_players'];

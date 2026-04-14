@@ -5,12 +5,14 @@ import { getRoute } from '@js/routes/triviaRoutes'
 
 const props = defineProps({
   defaultSettings: Object,
+  categories: Array as () => string[],
   errors: Object,
 })
 
 const form = useForm({
   title: '',
   description: '',
+  category: '',
   max_players: props.defaultSettings?.max_players || 100,
   question_count: props.defaultSettings?.question_count || 10,
   time_per_question: props.defaultSettings?.time_per_question || 15,
@@ -90,6 +92,26 @@ const submit = () => {
               placeholder="Describe el tema o reglas de la sala..."
             />
             <p class="mt-1 text-xs text-gray-500">Máximo 1000 caracteres</p>
+          </div>
+
+          <!-- Categoría -->
+          <div>
+            <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Categoría
+            </label>
+            <input
+              id="category"
+              v-model="form.category"
+              type="text"
+              list="category-list"
+              maxlength="50"
+              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              placeholder="Ej: Ciencias, Historia, Deportes..."
+            />
+            <datalist id="category-list">
+              <option v-for="cat in categories" :key="cat" :value="cat" />
+            </datalist>
+            <p class="mt-1 text-xs text-gray-500">Opcional. Escribe o elige una categoría existente.</p>
           </div>
 
           <!-- Configuración del Juego -->

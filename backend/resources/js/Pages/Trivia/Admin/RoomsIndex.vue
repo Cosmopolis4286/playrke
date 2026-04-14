@@ -193,8 +193,13 @@ const confirmDelete = (room) => {
                     <div class="text-sm font-medium text-gray-900 dark:text-white">
                       {{ room.title }}
                     </div>
-                    <div class="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
-                      {{ room.description || 'Sin descripción' }}
+                    <div class="flex items-center gap-2 mt-0.5">
+                      <span v-if="room.category" class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+                        {{ room.category }}
+                      </span>
+                      <span class="text-xs text-gray-400 truncate max-w-xs">
+                        {{ room.description || 'Sin descripción' }}
+                      </span>
                     </div>
                   </div>
                 </div>

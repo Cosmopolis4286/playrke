@@ -4,12 +4,14 @@ import { getRoute } from '@js/routes/triviaRoutes'
 
 const props = defineProps({
   room: Object,
+  categories: Array as () => string[],
   errors: Object,
 })
 
 const form = useForm({
   title: props.room.title,
   description: props.room.description || '',
+  category: props.room.category || '',
   max_players: props.room.max_players,
   settings: props.room.settings || {},
 })
@@ -76,6 +78,25 @@ const submit = () => {
               :disabled="room.status !== 'waiting'"
               class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
             />
+          </div>
+
+          <!-- Categoría -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Categoría
+            </label>
+            <input
+              v-model="form.category"
+              type="text"
+              list="category-list-edit"
+              maxlength="50"
+              :disabled="room.status !== 'waiting'"
+              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
+              placeholder="Ej: Ciencias, Historia, Deportes..."
+            />
+            <datalist id="category-list-edit">
+              <option v-for="cat in categories" :key="cat" :value="cat" />
+            </datalist>
           </div>
 
           <!-- Max Players -->

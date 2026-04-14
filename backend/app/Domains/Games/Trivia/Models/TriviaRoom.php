@@ -23,6 +23,7 @@ class TriviaRoom extends BaseModel
         'code',
         'title',
         'description',
+        'category',
         'host_id',
         'status', // 'waiting', 'playing', 'closed', 'cancelled'
         'max_players',

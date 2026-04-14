@@ -26,6 +26,7 @@ export const triviaRoutes = {
 
     // ── Usuario: páginas de juego ────────────────────────
     lobby:       '/trivia/lobby',
+    roomWait:    '/trivia/room/{code}/wait',
     stats:       '/trivia/stats',
     leaderboard: '/trivia/leaderboard',
     gamesIndex:  '/trivia/games',

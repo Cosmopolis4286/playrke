@@ -71,6 +71,25 @@ final class TriviaRoomAdminController extends Controller
     }
 
     /**
+     * Categorías disponibles (unión de rooms + questions para sugerencias).
+     */
+    private function availableCategories(): array
+    {
+        $fromRooms = TriviaRoom::whereNotNull('category')
+            ->distinct()
+            ->pluck('category');
+
+        $fromQuestions = \Illuminate\Support\Facades\DB::connection('pgsql_trivia')
+            ->table('trivia_questions')
+            ->whereNull('deleted_at')
+            ->whereNotNull('category')
+            ->distinct()
+            ->pluck('category');
+
+        return $fromRooms->merge($fromQuestions)->unique()->sort()->values()->all();
+    }
+
+    /**
      * Formulario para crear sala.
      */
     public function create(): Response
@@ -81,6 +100,7 @@ final class TriviaRoomAdminController extends Controller
                 'question_count' => 10,
                 'time_per_question' => 15,
             ],
+            'categories' => $this->availableCategories(),
         ]);
     }
 
@@ -92,6 +112,7 @@ final class TriviaRoomAdminController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
+            'category' => 'nullable|string|max:50',
             'max_players' => 'required|integer|min:2|max:500',
             'question_count' => 'required|integer|min:1|max:100',
             'time_per_question' => 'required|integer|min:5|max:300',
@@ -103,6 +124,7 @@ final class TriviaRoomAdminController extends Controller
                 'host_id' => (string) auth()->id(),
                 'title' => $validated['title'],
                 'description' => $validated['description'] ?? null,
+                'category' => $validated['category'] ?? null,
                 'max_players' => $validated['max_players'],
                 'question_count' => $validated['question_count'],
                 'time_per_question' => $validated['time_per_question'],
@@ -159,6 +181,7 @@ final class TriviaRoomAdminController extends Controller
 
         return Inertia::render('Trivia/Admin/RoomsEdit', [
             'room' => $room,
+            'categories' => $this->availableCategories(),
         ]);
     }
 
@@ -170,6 +193,7 @@ final class TriviaRoomAdminController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
+            'category' => 'nullable|string|max:50',
             'max_players' => 'required|integer|min:2|max:500',
             'settings' => 'nullable|array',
         ]);
@@ -178,6 +202,7 @@ final class TriviaRoomAdminController extends Controller
             $this->roomService->updateRoomConfig($id, [
                 'title' => $validated['title'],
                 'description' => $validated['description'] ?? null,
+                'category' => $validated['category'] ?? null,
                 'max_players' => $validated['max_players'],
                 'settings' => $validated['settings'] ?? [],
             ]);

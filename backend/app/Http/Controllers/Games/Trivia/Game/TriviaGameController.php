@@ -279,28 +279,64 @@ final class TriviaGameController extends Controller
 
     /**
      * Display the trivia lobby for players.
-     * This is the entry point from the sidebar menu.
+     * Muestra todas las salas en espera/jugando, agrupadas por categoría.
+     * GET /trivia/lobby
      */
-    public function lobby(): Response
+    public function lobby(Request $request): Response
     {
-        $user = $this->user(['id']);
-        $wallet = $this->wallet($user->id);
+        $pgsql = DB::connection('pgsql_trivia');
 
-        // Obtener monedas disponibles para trivia
-        $coins = DB::connection('pgsql_trivia')->table('trivia_rooms')
+        $search   = $request->get('search', '');
+        $category = $request->get('category', '');
+
+        // ── Salas activas ─────────────────────────────────────────────────────
+        $query = $pgsql->table('trivia_rooms')
+            ->whereNull('deleted_at')
             ->whereIn('status', ['waiting', 'playing'])
-            ->whereNotNull('entry_currency_id')
-            ->distinct()
-            ->pluck('entry_currency_id');
+            ->orderByRaw("CASE WHEN status = 'waiting' THEN 0 ELSE 1 END")
+            ->orderBy('created_at', 'desc');
 
-        $currencies = DB::table('currencies')
-            ->where('status', 1)
-            ->whereIn('id', $coins)
-            ->get();
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'ilike', "%{$search}%")
+                  ->orWhere('code', 'ilike', "%{$search}%")
+                  ->orWhere('category', 'ilike', "%{$search}%");
+            });
+        }
+
+        if ($category !== '') {
+            $query->where('category', $category);
+        }
+
+        $rooms = $query->select(
+            'id', 'code', 'title', 'description', 'category',
+            'status', 'max_players', 'current_players',
+            'question_count', 'time_per_question', 'created_at',
+            'entry_fee', 'prize_amount', 'prize_type'
+        )->get();
+
+        // ── Categorías disponibles para filtro ────────────────────────────────
+        $categories = $pgsql->table('trivia_rooms')
+            ->whereNull('deleted_at')
+            ->whereIn('status', ['waiting', 'playing'])
+            ->whereNotNull('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category')
+            ->all();
+
+        // ── Stats rápidas ─────────────────────────────────────────────────────
+        $stats = [
+            'waiting' => $pgsql->table('trivia_rooms')->whereNull('deleted_at')->where('status', 'waiting')->count(),
+            'playing' => $pgsql->table('trivia_rooms')->whereNull('deleted_at')->where('status', 'playing')->count(),
+            'total'   => $pgsql->table('trivia_rooms')->whereNull('deleted_at')->whereIn('status', ['waiting', 'playing'])->count(),
+        ];
 
         return Inertia::render('Trivia/Lobby', [
-            'coins' => $currencies,
-            'wallet' => $wallet,
+            'rooms'      => $rooms,
+            'categories' => $categories,
+            'stats'      => $stats,
+            'filters'    => compact('search', 'category'),
         ]);
     }
 }
