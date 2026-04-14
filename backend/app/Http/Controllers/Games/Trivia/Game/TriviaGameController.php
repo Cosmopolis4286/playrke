@@ -241,6 +241,44 @@ final class TriviaGameController extends Controller
     }
 
     /**
+     * Estado de sala en JSON para polling desde WaitingRoom.
+     * Ruta: GET /trivia/room/{code}/state
+     */
+    public function roomState(string $code): \Illuminate\Http\JsonResponse
+    {
+        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::where('code', $code)
+            ->whereIn('status', ['waiting', 'playing', 'closed'])
+            ->firstOrFail();
+
+        // Participantes desde trivia_participants + nombre desde MySQL users
+        $participants = DB::connection('pgsql_trivia')
+            ->table('trivia_participants')
+            ->where('room_id', $room->id)
+            ->whereNull('deleted_at')
+            ->whereNotIn('status', ['abandoned'])
+            ->select('user_id', 'status')
+            ->get();
+
+        $userIds = $participants->pluck('user_id')->all();
+        $names   = $userIds
+            ? DB::table('users')->whereIn('id', $userIds)->pluck('name', 'id')->all()
+            : [];
+
+        $players = $participants->map(function ($p) use ($names, $room) {
+            return [
+                'id'       => $p->user_id,
+                'name'     => $names[$p->user_id] ?? 'Jugador',
+                'roomCode' => $room->code,
+            ];
+        })->values()->all();
+
+        return response()->json([
+            'status'  => $room->status,
+            'players' => $players,
+        ]);
+    }
+
+    /**
      * Sala de espera de una sala específica (WaitingRoom).
      * Ruta: GET /trivia/room/{code}/wait
      */

@@ -84,6 +84,9 @@ Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function (
 
     // Sala de espera de una sala concreta
     Route::get('/room/{code}/wait', [TriviaGameController::class, 'waitingRoom'])->name('room.wait');
+
+    // Estado de sala para polling (JSON, fallback sin WebSocket)
+    Route::get('/room/{code}/state', [TriviaGameController::class, 'roomState'])->name('room.state');
     
     // Alias para rooms (compatibility con sidebar) - apunta al nuevo sistema
     Route::get('/rooms', function () {

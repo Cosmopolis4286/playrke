@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Head } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import RoomHeader from '@js/Components/Trivia/Room/RoomHeader.vue'
 import PlayerList from '@js/Components/Trivia/Room/PlayerList.vue'
 import JoinForm from '@js/Components/Trivia/Room/JoinForm.vue'
@@ -15,41 +15,63 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const players = ref<Player[]>(props.initialPlayers)
-const hasJoined = ref(false)
+const players    = ref<Player[]>(props.initialPlayers)
+const hasJoined  = ref(false)
 const currentPlayer = ref<Player | null>(null)
-const isLoading = ref(false)
-const connectionStatus = ref<'connected' | 'disconnected' | 'reconnecting'>('connected')
+const isLoading  = ref(false)
+const connectionStatus = ref<'connected' | 'disconnected' | 'reconnecting'>('disconnected')
+
+// ── WebSocket (best-effort — no disponible en local sin Redis/Reverb) ─────────
 
 let ws: WebSocket | null = null
+let pollInterval: ReturnType<typeof setInterval> | null = null
 
 function connectWebSocket() {
-  const wsUrl = `${import.meta.env.VITE_WEBSOCKET_URL}/trivia/room/${props.room.code}`
-  ws = new WebSocket(wsUrl)
-
-  ws.onopen = () => {
-    connectionStatus.value = 'connected'
+  const wsBase = import.meta.env.VITE_WEBSOCKET_URL
+  if (!wsBase) {
+    // Sin WebSocket configurado → usar polling como fallback
+    startPolling()
+    return
   }
 
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data)
-    handleWebSocketMessage(data)
-  }
+  try {
+    const wsUrl = `${wsBase}/trivia/room/${props.room.code}`
+    ws = new WebSocket(wsUrl)
 
-  ws.onclose = () => {
-    connectionStatus.value = 'disconnected'
-    setTimeout(connectWebSocket, 3000)
-  }
+    ws.onopen = () => {
+      connectionStatus.value = 'connected'
+      stopPolling()
+    }
 
-  ws.onerror = () => {
-    connectionStatus.value = 'reconnecting'
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      handleWebSocketMessage(data)
+    }
+
+    ws.onclose = () => {
+      connectionStatus.value = 'reconnecting'
+      // Reintentar después de 5s, con fallback a polling
+      setTimeout(() => {
+        if (!ws || ws.readyState === WebSocket.CLOSED) {
+          startPolling()
+        }
+      }, 5000)
+    }
+
+    ws.onerror = () => {
+      connectionStatus.value = 'reconnecting'
+    }
+  } catch {
+    startPolling()
   }
 }
 
 function handleWebSocketMessage(data: any) {
   switch (data.type) {
     case 'player.joined':
-      players.value.push(data.player)
+      if (!players.value.find(p => p.id === data.player?.id)) {
+        players.value.push(data.player)
+      }
       break
     case 'player.left':
       players.value = players.value.filter(p => p.id !== data.playerId)
@@ -57,27 +79,77 @@ function handleWebSocketMessage(data: any) {
     case 'game.started':
       window.location.href = `/trivia/game/${props.room.code}`
       break
-    case 'room.updated':
-      break
   }
 }
 
-function handleJoin(playerName: string) {
-  isLoading.value = true
+// ── Polling fallback ──────────────────────────────────────────────────────────
 
-  axios.post(`/api/trivia/rooms/${props.room.code}/join`, { name: playerName })
-    .then(response => {
-      currentPlayer.value = response.data.player
-      hasJoined.value = true
-      players.value.push(response.data.player)
-    })
-    .catch(error => {
-      alert(error.response?.data?.message || 'Error al unirse')
-    })
-    .finally(() => {
-      isLoading.value = false
-    })
+function startPolling() {
+  if (pollInterval) return
+  connectionStatus.value = 'connected' // DB está disponible
+  pollInterval = setInterval(fetchRoomState, 5000)
 }
+
+function stopPolling() {
+  if (pollInterval) {
+    clearInterval(pollInterval)
+    pollInterval = null
+  }
+}
+
+async function fetchRoomState() {
+  try {
+    const res = await fetch(`/trivia/room/${props.room.code}/state`, {
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    if (!res.ok) return
+    const data = await res.json()
+    if (data.players) players.value = data.players
+    if (data.status === 'playing') {
+      window.location.href = `/trivia/game/${props.room.code}`
+    }
+  } catch {
+    // silencioso
+  }
+}
+
+// ── Join ──────────────────────────────────────────────────────────────────────
+
+async function handleJoin(playerName: string) {
+  isLoading.value = true
+  try {
+    const csrfToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? ''
+    const res = await fetch(`/trivia-game/room/${props.room.id}/join`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': csrfToken,
+      },
+      body: JSON.stringify({ name: playerName }),
+    })
+
+    const data = await res.json().catch(() => ({}))
+
+    if (res.ok) {
+      currentPlayer.value = data.player ?? { id: 'me', name: playerName, roomCode: props.room.code }
+      hasJoined.value = true
+      // Añadir al listado local si no está ya
+      if (currentPlayer.value && !players.value.find(p => p.id === currentPlayer.value!.id)) {
+        players.value.push(currentPlayer.value)
+      }
+    } else {
+      alert(data.message ?? 'Error al unirse a la sala')
+    }
+  } catch {
+    alert('Error de conexión. Intenta de nuevo.')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 onMounted(() => {
   connectWebSocket()
@@ -85,13 +157,14 @@ onMounted(() => {
 
 onUnmounted(() => {
   ws?.close()
+  stopPolling()
 })
 </script>
 
 <template>
   <Head :title="`Sala ${room.code} - Trivia`" />
 
-  <div class="min-h-screen bg-gray-100">
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
     <ConnectionStatus :status="connectionStatus" />
 
     <LoadingOverlay v-if="isLoading" message="Uniéndose a la sala..." />
@@ -120,15 +193,15 @@ onUnmounted(() => {
 
           <div
             v-else
-            class="bg-white rounded-lg shadow-md p-6 text-center"
+            class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center"
           >
             <div class="text-green-500 mb-2">
               <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 class="text-lg font-medium text-gray-900">¡Te has unido!</h3>
-            <p class="text-sm text-gray-500 mt-1">Esperando que el anfitrión inicie el juego...</p>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white">¡Te has unido!</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Esperando que el anfitrión inicie el juego...</p>
           </div>
         </div>
       </div>
