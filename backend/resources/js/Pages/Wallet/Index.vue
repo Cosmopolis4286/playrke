@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { useWallet } from '@js/composables/wallet/useWallet'
 import Modal from '@js/Components/Common/Modal/Modal.vue'
