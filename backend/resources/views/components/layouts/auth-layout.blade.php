@@ -28,7 +28,6 @@
 
         {{-- Notificaciones globales --}}
         @include('includes.notifications')
-        @include('includes.notifications-debug')
 
         {{-- Contenido principal --}}
         <main class="content-wrapper flex-grow-1 d-flex flex-column">
