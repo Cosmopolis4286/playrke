@@ -29,11 +29,15 @@ interface GlobalStats {
   top_name: string
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   players: Player[]
   period: 'all' | 'week' | 'month'
-  globalStats: GlobalStats
-}>()
+  globalStats?: GlobalStats
+}>(), {
+  players:     () => [],
+  period:      'all',
+  globalStats: () => ({ total_games: 0, total_players: 0, top_score: 0, top_name: '-' }),
+})
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

@@ -324,10 +324,21 @@ final class TriviaReportController extends Controller
             ->limit(100)
             ->get();
 
+        $globalStats = [
+            'total_games'   => $pgsql->table('trivia_games')->whereNull('deleted_at')
+                ->when($period === 'week',  fn($q) => $q->where('started_at', '>=', now()->subWeek()))
+                ->when($period === 'month', fn($q) => $q->where('started_at', '>=', now()->subMonth()))
+                ->where('status', 'finished')->count(),
+            'total_players' => 0,
+            'top_score'     => 0,
+            'top_name'      => '-',
+        ];
+
         if ($scores->isEmpty()) {
             return Inertia::render('Trivia/Leaderboard', [
-                'players' => [],
-                'period'  => $period,
+                'players'     => [],
+                'period'      => $period,
+                'globalStats' => $globalStats,
             ]);
         }
 
@@ -383,16 +394,10 @@ final class TriviaReportController extends Controller
             ];
         })->all();
 
-        // ── Métricas globales del período ─────────────────────────────────────
-        $globalStats = [
-            'total_games'   => $pgsql->table('trivia_games')->whereNull('deleted_at')
-                ->when($period === 'week',  fn($q) => $q->where('started_at', '>=', now()->subWeek()))
-                ->when($period === 'month', fn($q) => $q->where('started_at', '>=', now()->subMonth()))
-                ->where('status', 'finished')->count(),
-            'total_players' => count($players),
-            'top_score'     => $players[0]['total_score'] ?? 0,
-            'top_name'      => $players[0]['name']        ?? '-',
-        ];
+        // Completar stats con datos ya calculados
+        $globalStats['total_players'] = count($players);
+        $globalStats['top_score']     = $players[0]['total_score'] ?? 0;
+        $globalStats['top_name']      = $players[0]['name']        ?? '-';
 
         return Inertia::render('Trivia/Leaderboard', [
             'players'     => $players,
