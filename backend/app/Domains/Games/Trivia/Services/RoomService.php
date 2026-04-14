@@ -112,8 +112,12 @@ class RoomService implements RoomServiceInterface
         // Guardar jugador en Redis
         $this->savePlayerToRedis($player);
 
-        // Emitir evento
-        event(new PlayerJoined($player, $roomId, $updatedRoom->currentPlayers));
+        // Emitir evento (best-effort — puede fallar si broadcasting usa Redis)
+        try {
+            event(new PlayerJoined($player, $roomId, $updatedRoom->currentPlayers));
+        } catch (\Throwable) {
+            // Redis/broadcasting no disponible — ignorar
+        }
 
         return $player;
     }
@@ -136,28 +140,37 @@ class RoomService implements RoomServiceInterface
         // Eliminar jugador de Redis
         $this->deletePlayerFromRedis($playerId, $roomId);
 
-        // Emitir evento
-        event(new PlayerLeft(
-            playerId: $playerId,
-            roomId: $roomId,
-            currentPlayerCount: $updatedRoom->currentPlayers,
-            reason: 'left'
-        ));
+        // Emitir evento (best-effort)
+        try {
+            event(new PlayerLeft(
+                playerId: $playerId,
+                roomId: $roomId,
+                currentPlayerCount: $updatedRoom->currentPlayers,
+                reason: 'left'
+            ));
+        } catch (\Throwable) {
+            // Redis/broadcasting no disponible — ignorar
+        }
     }
 
     /**
      * Obtener información de sala.
+     * Redis es opcional — si no está disponible cae a base de datos.
      */
     public function getRoom(string $roomId): RoomDTO
     {
         // Intentar desde Redis primero
-        $redisData = Redis::hget(self::KEY_PREFIX . $roomId, 'data');
-        
-        if ($redisData) {
-            $data = json_decode($redisData, true);
-            if ($data) {
-                return RoomDTO::fromArray($data);
+        try {
+            $redisData = Redis::hget(self::KEY_PREFIX . $roomId, 'data');
+
+            if ($redisData) {
+                $data = json_decode($redisData, true);
+                if ($data) {
+                    return RoomDTO::fromArray($data);
+                }
             }
+        } catch (\Throwable) {
+            // Redis no disponible — continuar con fallback a DB
         }
 
         // Fallback a base de datos
@@ -169,7 +182,7 @@ class RoomService implements RoomServiceInterface
             title: $room->title,
             status: $room->status,
             maxPlayers: $room->max_players,
-            currentPlayers: 0, // No tracking en DB
+            currentPlayers: $room->current_players ?? 0,
             hostId: $room->host_id,
             playerIds: [],
             settings: $room->settings ?? [],
@@ -181,6 +194,7 @@ class RoomService implements RoomServiceInterface
 
     /**
      * Listar jugadores en sala.
+     * Devuelve array vacío si Redis no está disponible.
      */
     public function listPlayers(string $roomId): array
     {
@@ -188,12 +202,16 @@ class RoomService implements RoomServiceInterface
 
         $players = [];
         foreach ($roomDto->playerIds as $playerId) {
-            $playerData = Redis::hget(
-                self::KEY_PREFIX . "player:{$roomId}:{$playerId}",
-                'data'
-            );
-            if ($playerData) {
-                $players[] = PlayerDTO::fromArray(json_decode($playerData, true));
+            try {
+                $playerData = Redis::hget(
+                    self::KEY_PREFIX . "player:{$roomId}:{$playerId}",
+                    'data'
+                );
+                if ($playerData) {
+                    $players[] = PlayerDTO::fromArray(json_decode($playerData, true));
+                }
+            } catch (\Throwable) {
+                // Redis no disponible — saltar jugador
             }
         }
 
@@ -216,9 +234,13 @@ class RoomService implements RoomServiceInterface
         $room = TriviaRoom::findOrFail($roomId);
         $room->update(['status' => 'closed', 'ended_at' => now()]);
 
-        // Limpiar Redis
-        Redis::del(self::KEY_PREFIX . $roomId);
-        Redis::del(self::KEY_PREFIX . "players:{$roomId}");
+        // Limpiar Redis (opcional — no falla si Redis no está disponible)
+        try {
+            Redis::del(self::KEY_PREFIX . $roomId);
+            Redis::del(self::KEY_PREFIX . "players:{$roomId}");
+        } catch (\Throwable) {
+            // Redis no disponible — ignorar limpieza
+        }
     }
 
     /**
@@ -281,30 +303,42 @@ class RoomService implements RoomServiceInterface
     }
 
     /**
-     * Guardar sala en Redis.
+     * Guardar sala en Redis (best-effort).
      */
     private function saveRoomToRedis(RoomDTO $roomDto): void
     {
-        $key = self::KEY_PREFIX . $roomDto->roomId;
-        Redis::hset($key, 'data', json_encode($roomDto->toArray()));
-        Redis::expire($key, self::TTL);
+        try {
+            $key = self::KEY_PREFIX . $roomDto->roomId;
+            Redis::hset($key, 'data', json_encode($roomDto->toArray()));
+            Redis::expire($key, self::TTL);
+        } catch (\Throwable) {
+            // Redis no disponible — ignorar
+        }
     }
 
     /**
-     * Guardar jugador en Redis.
+     * Guardar jugador en Redis (best-effort).
      */
     private function savePlayerToRedis(PlayerDTO $player): void
     {
-        $key = self::KEY_PREFIX . "player:{$player->roomId}:{$player->playerId}";
-        Redis::hset($key, 'data', json_encode($player->toArray()));
-        Redis::expire($key, self::TTL);
+        try {
+            $key = self::KEY_PREFIX . "player:{$player->roomId}:{$player->playerId}";
+            Redis::hset($key, 'data', json_encode($player->toArray()));
+            Redis::expire($key, self::TTL);
+        } catch (\Throwable) {
+            // Redis no disponible — ignorar
+        }
     }
 
     /**
-     * Eliminar jugador de Redis.
+     * Eliminar jugador de Redis (best-effort).
      */
     private function deletePlayerFromRedis(string $playerId, string $roomId): void
     {
-        Redis::del(self::KEY_PREFIX . "player:{$roomId}:{$playerId}");
+        try {
+            Redis::del(self::KEY_PREFIX . "player:{$roomId}:{$playerId}");
+        } catch (\Throwable) {
+            // Redis no disponible — ignorar
+        }
     }
 }
