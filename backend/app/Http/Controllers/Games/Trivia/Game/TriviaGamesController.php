@@ -89,8 +89,8 @@ final class TriviaGamesController extends Controller
         if (!empty($winnerIds)) {
             $winners = DB::table('users')
                 ->whereIn('id', $winnerIds)
-                ->pluck('name', 'id')
-                ->all();
+                ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
+                ->get()->pluck('display_name', 'id')->all();
         }
 
         // ── Enriquecer con top score por partida ──────────────────────────────
@@ -169,8 +169,8 @@ final class TriviaGamesController extends Controller
         $playerIds = $scores->pluck('player_id')->unique()->all();
         $users = DB::table('users')
             ->whereIn('id', $playerIds)
-            ->pluck('name', 'id')
-            ->all();
+            ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
+            ->get()->pluck('display_name', 'id')->all();
 
         $scoreboard = $scores->map(function ($s) use ($users) {
             return [
@@ -221,7 +221,9 @@ final class TriviaGamesController extends Controller
         $winnerName = null;
         if ($game->winner_user_id) {
             $winnerName = $users[$game->winner_user_id]
-                ?? DB::table('users')->where('id', $game->winner_user_id)->value('name')
+                ?? DB::table('users')->where('id', $game->winner_user_id)
+                    ->selectRaw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name")
+                    ->value('display_name')
                 ?? 'Usuario #' . substr($game->winner_user_id, 0, 6);
         }
 

@@ -347,7 +347,7 @@ final class TriviaReportController extends Controller
 
         $users = DB::table('users')
             ->whereIn('id', $playerIds)
-            ->select('id', 'name', 'email')
+            ->select('id', 'email', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
             ->get()
             ->keyBy('id');
 
@@ -377,7 +377,7 @@ final class TriviaReportController extends Controller
             return [
                 'rank'            => $index + 1,
                 'player_id'       => $row->player_id,
-                'name'            => $user?->name ?? 'Jugador #' . substr($row->player_id, 0, 6),
+                'name'            => ($user?->display_name ?: null) ?? 'Jugador #' . substr($row->player_id, 0, 6),
                 'email'           => $user?->email ?? null,
                 'games_played'    => (int)$row->games_played,
                 'total_score'     => (int)$row->total_score,

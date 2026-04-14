@@ -97,7 +97,7 @@ final class TriviaGameController extends Controller
                 'success' => true,
                 'player'  => [
                     'id'       => (string) $user->id,
-                    'name'     => $user->name,
+                    'name'     => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador'),
                     'roomCode' => $room->code,
                 ],
             ]);
@@ -278,7 +278,9 @@ final class TriviaGameController extends Controller
 
         $userIds = $participants->pluck('user_id')->all();
         $names   = $userIds
-            ? DB::table('users')->whereIn('id', $userIds)->pluck('name', 'id')->all()
+            ? DB::table('users')->whereIn('id', $userIds)
+                ->select('id', DB::raw("TRIM(CONCAT(first_name, ' ', COALESCE(last_name, ''))) as display_name"))
+                ->get()->pluck('display_name', 'id')->all()
             : [];
 
         $players = $participants->map(function ($p) use ($names, $room) {
