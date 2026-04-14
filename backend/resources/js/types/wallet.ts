@@ -83,6 +83,7 @@ export interface WalletMovement {
   wallet_id: string
   user_id: string
   type: WalletMovementType
+  status: WalletMovementStatus
   amount: number
   balance_before: number
   balance_after: number

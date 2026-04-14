@@ -4,6 +4,7 @@ import echo from '@js/plugins/echo'
 import type {
   Wallet,
   WalletMovement,
+  WalletMovementStatus,
   WalletMovementsMeta,
   WalletMovementsResponse,
   WalletOperation,
@@ -363,13 +364,30 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
         amount:         payload.amount,
         currencySymbol: payload.currency_symbol,
       }
-      // Si el modal está abierto mostrando la operación pendiente, refrescarla
+
+      // Actualizar el movimiento específico en la lista de forma reactiva sin esperar el reload
+      if (payload.movement_id) {
+        const idx = movements.value.findIndex(m => m.id === payload.movement_id)
+        if (idx !== -1) {
+          const statusDescriptions: Record<string, Record<string, string>> = {
+            DEPOSIT:    { COMPLETED: 'Depósito acreditado', REJECTED: 'Depósito rechazado' },
+            WITHDRAWAL: { COMPLETED: 'Retiro procesado',    REJECTED: 'Retiro rechazado — saldo reintegrado' },
+          }
+          const desc = statusDescriptions[payload.movement_type]?.[payload.movement_status]
+          movements.value[idx] = {
+            ...movements.value[idx],
+            status: payload.movement_status as WalletMovementStatus,
+            description: desc ?? movements.value[idx].description,
+          }
+        }
+      }
+
+      // Recargar lista completa para asegurar datos frescos del servidor
       if (modalOpen.value && pendingOperation.value) {
         checkPendingOperation()
-        loadMovements(1)
-      } else {
-        loadMovements(1)
       }
+      loadMovements(1)
+
       // Auto-cerrar toast después de 8 segundos
       resultToastTimer = setTimeout(() => { resultToast.value = null }, 8000)
     }

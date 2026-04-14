@@ -324,6 +324,24 @@ const modalIcon = computed(() => {
                   <div class="movement-row__title-row">
                     <p class="movement-row__label">{{ movementMeta[mov.type].label }}</p>
                     <span v-if="index === 0" class="badge-recent">Más reciente</span>
+                    <span
+                      v-if="mov.status"
+                      class="badge-status"
+                      :class="{
+                        'badge-status--pending':   mov.status === 'PENDING',
+                        'badge-status--completed': mov.status === 'COMPLETED',
+                        'badge-status--rejected':  mov.status === 'REJECTED',
+                        'badge-status--cancelled': mov.status === 'CANCELLED',
+                      }"
+                    >
+                      <i :class="{
+                        'fas fa-clock':      mov.status === 'PENDING',
+                        'fas fa-check':      mov.status === 'COMPLETED',
+                        'fas fa-times':      mov.status === 'REJECTED',
+                        'fas fa-ban':        mov.status === 'CANCELLED',
+                      }"></i>
+                      {{ mov.status === 'PENDING' ? 'Pendiente' : mov.status === 'COMPLETED' ? 'Completado' : mov.status === 'REJECTED' ? 'Rechazado' : 'Cancelado' }}
+                    </span>
                   </div>
                   <p class="movement-row__desc">{{ mov.description ?? movementMeta[mov.type].description }}</p>
                   <p class="movement-row__date">
@@ -1174,7 +1192,8 @@ const modalIcon = computed(() => {
 .movement-row__title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
   margin-bottom: 2px;
 }
 
@@ -1212,6 +1231,21 @@ const modalIcon = computed(() => {
   border-radius: 20px;
   white-space: nowrap;
 }
+
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.badge-status--pending   { color: #92400e; background: #fef3c7; }
+.badge-status--completed { color: #166534; background: #dcfce7; }
+.badge-status--rejected  { color: #991b1b; background: #fee2e2; }
+.badge-status--cancelled { color: #374151; background: #f3f4f6; }
 
 .movement-row__amounts { text-align: right; flex-shrink: 0; }
 
