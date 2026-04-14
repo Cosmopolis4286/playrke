@@ -71,9 +71,9 @@ class WalletMovement extends Model
     ];
 
     protected $casts = [
-        'amount'         => 'decimal:2',
-        'balance_before' => 'decimal:2',
-        'balance_after'  => 'decimal:2',
+        'amount'         => 'float',
+        'balance_before' => 'float',
+        'balance_after'  => 'float',
         'metadata'       => 'array',
         'processed_at'   => 'datetime',
         'created_at'     => 'datetime',

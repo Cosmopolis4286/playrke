@@ -76,7 +76,7 @@ class Wallet extends Model
      * Campos que deben ser convertidos a tipos específicos
      */
     protected $casts = [
-        'balance' => 'decimal:2',
+        'balance' => 'float',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
