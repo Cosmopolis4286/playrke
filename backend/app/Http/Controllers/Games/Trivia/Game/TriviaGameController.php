@@ -315,6 +315,7 @@ final class TriviaGameController extends Controller
                 'id'       => $p->user_id,
                 'name'     => $names[$p->user_id] ?? 'Jugador',
                 'roomCode' => $room->code,
+                'joinedAt' => $p->registered_at ?? null,
             ];
         })->values()->all();
 
@@ -339,15 +340,35 @@ final class TriviaGameController extends Controller
 
         $roomId  = (string) $room->id;
         $roomDto = $roomService->getRoom($roomId);
-        $players = $roomService->listPlayers($roomId);
 
-        // Detectar si el usuario ya está inscrito en esta sala
-        $alreadyJoined = DB::connection('pgsql_trivia')
+        // ── Jugadores desde trivia_participants (fuente de verdad — no Redis) ──
+        $participants = DB::connection('pgsql_trivia')
             ->table('trivia_participants')
             ->where('room_id', $roomId)
-            ->where('user_id', (string) $user->id)
             ->whereNull('deleted_at')
-            ->exists();
+            ->whereNotIn('status', ['abandoned'])
+            ->orderBy('registered_at')
+            ->select('user_id', 'status', 'registered_at')
+            ->get();
+
+        $userIds = $participants->pluck('user_id')->all();
+        $names   = $userIds
+            ? DB::table('users')
+                ->whereIn('id', $userIds)
+                ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
+                ->get()->pluck('display_name', 'id')->all()
+            : [];
+
+        $initialPlayers = $participants->map(fn($p) => [
+            'id'           => $p->user_id,
+            'name'         => $names[$p->user_id] ?? 'Jugador',
+            'roomCode'     => $roomDto->code,
+            'joinedAt'     => $p->registered_at, // ISO string para el frontend
+        ])->values()->all();
+
+        // ── Detectar si el usuario ya está inscrito ───────────────────────────
+        $alreadyJoined = collect($initialPlayers)
+            ->contains('id', (string) $user->id);
 
         return Inertia::render('Trivia/WaitingRoom', [
             'room' => [
@@ -357,17 +378,13 @@ final class TriviaGameController extends Controller
                 'hostId'           => $roomDto->hostId,
                 'status'           => $roomDto->status,
                 'maxPlayers'       => $roomDto->maxPlayers,
-                'currentPlayers'   => $roomDto->currentPlayers,
+                'currentPlayers'   => count($initialPlayers),
                 'questionCount'    => $room->question_count,
                 'timePerQuestion'  => $room->time_per_question,
                 'createdAt'        => $room->created_at->toISOString(),
                 'updatedAt'        => $room->updated_at->toISOString(),
             ],
-            'initialPlayers' => array_map(fn($p) => [
-                'id'       => $p->playerId,
-                'name'     => $p->nickname,
-                'roomCode' => $roomDto->code,
-            ], $players),
+            'initialPlayers' => $initialPlayers,
             'alreadyJoined'  => $alreadyJoined,
             'currentUserId'  => (string) $user->id,
         ]);
