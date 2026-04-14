@@ -252,64 +252,77 @@ class SidebarMenuService
     public function generateMenu(): Collection
     {
         $user = auth()->user();
-        
+
         if (!$user) {
             return collect([]);
         }
 
-        // Obtener roles del usuario
-        $userRoles = $user->getRoleNames()->toArray();
+        $userRoles       = $user->getRoleNames()->toArray();
+        $userPermissions = $user->hasRole('superadmin')
+            ? null // superadmin no necesita verificar permisos
+            : $user->getAllPermissions()->pluck('name')->toArray();
 
-        // Si es superadmin, mostrar todo excepto menús excluidos explícitamente
-        if ($user->hasRole('superadmin')) {
-            return collect($this->menuStructure)->filter(function ($item) use ($userRoles) {
-                // Verificar si el menú tiene roles excluidos
+        return collect($this->menuStructure)
+            ->map(function ($item) use ($userRoles, $userPermissions) {
+                // Filtrar submenús antes de decidir si mostrar el padre
+                if (isset($item['submenu'])) {
+                    $item['submenu'] = collect($item['submenu'])
+                        ->filter(function ($subitem) use ($userRoles, $userPermissions) {
+                            // exclude_roles en subitem
+                            if (!empty($subitem['exclude_roles'])) {
+                                if (array_intersect($userRoles, $subitem['exclude_roles'])) {
+                                    return false;
+                                }
+                            }
+                            // superadmin ve todo
+                            if ($userPermissions === null) {
+                                return true;
+                            }
+                            return empty($subitem['permission'])
+                                || in_array($subitem['permission'], $userPermissions);
+                        })
+                        ->values()
+                        ->toArray();
+                }
+                return $item;
+            })
+            ->filter(function ($item) use ($userRoles, $userPermissions) {
+                // exclude_roles en item padre
                 if (!empty($item['exclude_roles'])) {
-                    $excludedRoles = $item['exclude_roles'];
-                    // Si el usuario tiene algún rol excluido, no mostrar el menú
-                    if (array_intersect($userRoles, $excludedRoles)) {
+                    if (array_intersect($userRoles, $item['exclude_roles'])) {
                         return false;
                     }
                 }
-                return true;
-            });
-        }
 
-        // Obtener permisos del usuario una sola vez
-        $userPermissions = $user->getAllPermissions()->pluck('name')->toArray();
+                // superadmin ve todo lo no excluido
+                if ($userPermissions === null) {
+                    // Ocultar si el submenú quedó vacío tras filtrar
+                    if (isset($item['submenu'])) {
+                        return !empty($item['submenu']);
+                    }
+                    return true;
+                }
 
-        // Filtrar menú basado en permisos
-        return collect($this->menuStructure)->filter(function ($item) use ($user, $userPermissions) {
-            // Verificar si el menú tiene roles excluidos
-            if (!empty($item['exclude_roles'])) {
-                $userRoles = $user->getRoleNames()->toArray();
-                $excludedRoles = $item['exclude_roles'];
-                if (array_intersect($userRoles, $excludedRoles)) {
+                // Sin permiso requerido → visible siempre
+                if (empty($item['permission'])) {
+                    if (isset($item['submenu'])) {
+                        return !empty($item['submenu']);
+                    }
+                    return true;
+                }
+
+                // Verificar permiso del padre
+                if (!in_array($item['permission'], $userPermissions)) {
                     return false;
                 }
-            }
 
-            // Si no requiere permiso, mostrar siempre
-            if (empty($item['permission'])) {
-                return true;
-            }
-
-            // Verificar si tiene el permiso (usando array en lugar de can())
-            if (in_array($item['permission'], $userPermissions)) {
-                // Filtrar submenú si existe
+                // Si tiene submenú, mostrar solo si quedó al menos un ítem visible
                 if (isset($item['submenu'])) {
-                    $item['submenu'] = collect($item['submenu'])->filter(function ($subitem) use ($userPermissions) {
-                        return empty($subitem['permission']) || in_array($subitem['permission'], $userPermissions);
-                    })->toArray();
-                    
-                    // Mostrar solo si hay submenús visibles
                     return !empty($item['submenu']);
                 }
-                return true;
-            }
 
-            return false;
-        });
+                return true;
+            });
     }
 
     /**
