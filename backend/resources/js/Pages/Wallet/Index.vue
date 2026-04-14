@@ -611,7 +611,7 @@ const modalIcon = computed(() => {
             <i class="fas fa-exclamation-circle op-dirs-empty__icon"></i>
             <div>
               <p class="op-dirs-empty__text">No tienes cuentas registradas para esta moneda.</p>
-              <a :href="window.route('directory.index')" class="op-dirs-empty__link">
+              <a href="/directory" class="op-dirs-empty__link">
                 <i class="fas fa-plus-circle"></i> Ir a Directorio y agregar una
               </a>
             </div>
