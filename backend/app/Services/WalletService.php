@@ -381,6 +381,7 @@ final class WalletService
 
             $movement->update([
                 'status'        => WalletMovement::STATUS_COMPLETED,
+                'description'   => 'Depósito acreditado',
                 'balance_after' => (float) $movement->wallet->balance,
                 'admin_notes'   => $adminNotes,
                 'processed_by'  => (string) Auth::id(),
@@ -409,6 +410,7 @@ final class WalletService
 
         $movement->update([
             'status'       => WalletMovement::STATUS_REJECTED,
+            'description'  => 'Depósito rechazado',
             'admin_notes'  => $adminNotes,
             'processed_by' => (string) Auth::id(),
             'processed_at' => now(),
@@ -435,6 +437,7 @@ final class WalletService
 
         $movement->update([
             'status'       => WalletMovement::STATUS_COMPLETED,
+            'description'  => 'Retiro procesado',
             'admin_notes'  => $adminNotes,
             'processed_by' => (string) Auth::id(),
             'processed_at' => now(),
@@ -465,6 +468,7 @@ final class WalletService
 
             $movement->update([
                 'status'       => WalletMovement::STATUS_REJECTED,
+                'description'  => 'Retiro rechazado — saldo reintegrado',
                 'admin_notes'  => $adminNotes,
                 'processed_by' => (string) Auth::id(),
                 'processed_at' => now(),
