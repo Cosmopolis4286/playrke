@@ -66,7 +66,7 @@
 
   defineExpose({
     submit,
-    isValid,
+    get isValid() { return isValid.value },
     reset
   })
 </script>
