@@ -32,9 +32,18 @@ class TriviaRoom extends BaseModel
         'scheduled_at',
         'started_at',
         'ended_at',
-        'settings',   // jsonb (ex config)
-        'metadata',   // jsonb
+        'settings',           // jsonb (ex config)
+        'metadata',           // jsonb
         'current_players',
+        'entry_fee',
+        'entry_currency_type',
+        'entry_currency_id',
+        'local_currency_id',
+        'entry_fee_usd',
+        'prize_type',
+        'prize_amount',
+        'prize_currency_id',
+        'commission_percent',
     ];
 
     protected $casts = [

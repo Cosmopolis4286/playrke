@@ -369,8 +369,35 @@ final class TriviaGameController extends Controller
             'id', 'code', 'title', 'description', 'category',
             'status', 'max_players', 'current_players',
             'question_count', 'time_per_question', 'created_at',
-            'entry_fee', 'prize_amount', 'prize_type'
+            'entry_fee', 'entry_currency_id',
+            'prize_amount', 'prize_type', 'prize_currency_id'
         )->get();
+
+        // ── Resolver símbolos de moneda (MySQL currencies) ────────────────────
+        $currencyIds = collect($rooms)
+            ->flatMap(fn($r) => array_filter([$r->entry_currency_id, $r->prize_currency_id]))
+            ->unique()
+            ->values()
+            ->all();
+
+        $currencySymbols = [];
+        if (!empty($currencyIds)) {
+            $currencySymbols = DB::table('currencies')
+                ->whereIn('id', $currencyIds)
+                ->pluck('symbol', 'id')
+                ->all();
+        }
+
+        $rooms = $rooms->map(function ($room) use ($currencySymbols) {
+            return array_merge((array) $room, [
+                'entry_currency_symbol' => $room->entry_currency_id
+                    ? ($currencySymbols[$room->entry_currency_id] ?? null)
+                    : null,
+                'prize_currency_symbol' => $room->prize_currency_id
+                    ? ($currencySymbols[$room->prize_currency_id] ?? null)
+                    : null,
+            ]);
+        });
 
         // ── Categorías disponibles para filtro ────────────────────────────────
         $categories = $pgsql->table('trivia_rooms')

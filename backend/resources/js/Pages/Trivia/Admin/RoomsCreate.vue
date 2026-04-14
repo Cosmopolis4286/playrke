@@ -3,9 +3,12 @@ import { Head, useForm, Link } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import { getRoute } from '@js/routes/triviaRoutes'
 
+interface Currency { id: string; symbol: string; name: string; iso_code: string }
+
 const props = defineProps({
   defaultSettings: Object,
   categories: Array as () => string[],
+  currencies: { type: Array as () => Currency[], default: () => [] },
   errors: Object,
 })
 
@@ -16,6 +19,11 @@ const form = useForm({
   max_players: props.defaultSettings?.max_players || 100,
   question_count: props.defaultSettings?.question_count || 10,
   time_per_question: props.defaultSettings?.time_per_question || 15,
+  entry_fee: 0,
+  entry_currency_id: '' as string,
+  prize_type: 'accumulated' as 'accumulated' | 'fixed',
+  prize_amount: 0,
+  prize_currency_id: '' as string,
   settings: {
     allow_late_join: false,
     show_leaderboard: true,
@@ -178,6 +186,77 @@ const submit = () => {
               <p class="text-sm text-blue-800 dark:text-blue-300">
                 ⏱️ Tiempo estimado del juego: <strong>{{ estimatedTime }} minutos</strong>
               </p>
+            </div>
+          </div>
+
+          <!-- Entrada y Premio -->
+          <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              💳 Entrada y Premio
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <!-- Fee -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Precio de entrada
+                </label>
+                <div class="mt-1 flex gap-2">
+                  <input
+                    v-model.number="form.entry_fee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="block w-28 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    placeholder="0"
+                  />
+                  <select
+                    v-model="form.entry_currency_id"
+                    class="block flex-1 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  >
+                    <option value="">— Sin moneda (Gratis) —</option>
+                    <option v-for="c in currencies" :key="c.id" :value="c.id">
+                      {{ c.symbol }} — {{ c.name }}
+                    </option>
+                  </select>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Deja en 0 para sala gratuita.</p>
+              </div>
+
+              <!-- Prize -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Premio
+                </label>
+                <div class="mt-1 flex gap-2">
+                  <input
+                    v-model.number="form.prize_amount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    class="block w-28 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    placeholder="0"
+                  />
+                  <select
+                    v-model="form.prize_currency_id"
+                    class="block flex-1 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  >
+                    <option value="">— Sin moneda —</option>
+                    <option v-for="c in currencies" :key="c.id" :value="c.id">
+                      {{ c.symbol }} — {{ c.name }}
+                    </option>
+                  </select>
+                </div>
+                <div class="mt-2 flex gap-4 text-sm">
+                  <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input v-model="form.prize_type" type="radio" value="accumulated" class="text-indigo-600" />
+                    <span class="text-gray-700 dark:text-gray-300">Acumulado</span>
+                  </label>
+                  <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input v-model="form.prize_type" type="radio" value="fixed" class="text-indigo-600" />
+                    <span class="text-gray-700 dark:text-gray-300">Fijo</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 

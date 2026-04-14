@@ -2,9 +2,12 @@
 import { Head, useForm, Link } from '@inertiajs/vue3'
 import { getRoute } from '@js/routes/triviaRoutes'
 
+interface Currency { id: string; symbol: string; name: string; iso_code: string }
+
 const props = defineProps({
   room: Object,
   categories: Array as () => string[],
+  currencies: { type: Array as () => Currency[], default: () => [] },
   errors: Object,
 })
 
@@ -13,6 +16,11 @@ const form = useForm({
   description: props.room.description || '',
   category: props.room.category || '',
   max_players: props.room.max_players,
+  entry_fee: Number(props.room.entry_fee ?? 0),
+  entry_currency_id: props.room.entry_currency_id ?? '',
+  prize_type: (props.room.prize_type ?? 'accumulated') as 'accumulated' | 'fixed',
+  prize_amount: Number(props.room.prize_amount ?? 0),
+  prize_currency_id: props.room.prize_currency_id ?? '',
   settings: props.room.settings || {},
 })
 
@@ -113,6 +121,80 @@ const submit = () => {
               :disabled="room.status !== 'waiting'"
               class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
             />
+          </div>
+
+          <!-- Entrada y Premio -->
+          <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              💳 Entrada y Premio
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <!-- Fee -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Precio de entrada
+                </label>
+                <div class="mt-1 flex gap-2">
+                  <input
+                    v-model.number="form.entry_fee"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    :disabled="room.status !== 'waiting'"
+                    class="block w-28 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
+                    placeholder="0"
+                  />
+                  <select
+                    v-model="form.entry_currency_id"
+                    :disabled="room.status !== 'waiting'"
+                    class="block flex-1 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
+                  >
+                    <option value="">— Sin moneda (Gratis) —</option>
+                    <option v-for="c in currencies" :key="c.id" :value="c.id">
+                      {{ c.symbol }} — {{ c.name }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Prize -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Premio
+                </label>
+                <div class="mt-1 flex gap-2">
+                  <input
+                    v-model.number="form.prize_amount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    :disabled="room.status !== 'waiting'"
+                    class="block w-28 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
+                    placeholder="0"
+                  />
+                  <select
+                    v-model="form.prize_currency_id"
+                    :disabled="room.status !== 'waiting'"
+                    class="block flex-1 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
+                  >
+                    <option value="">— Sin moneda —</option>
+                    <option v-for="c in currencies" :key="c.id" :value="c.id">
+                      {{ c.symbol }} — {{ c.name }}
+                    </option>
+                  </select>
+                </div>
+                <div class="mt-2 flex gap-4 text-sm">
+                  <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input v-model="form.prize_type" type="radio" value="accumulated" :disabled="room.status !== 'waiting'" class="text-indigo-600" />
+                    <span class="text-gray-700 dark:text-gray-300">Acumulado</span>
+                  </label>
+                  <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input v-model="form.prize_type" type="radio" value="fixed" :disabled="room.status !== 'waiting'" class="text-indigo-600" />
+                    <span class="text-gray-700 dark:text-gray-300">Fijo</span>
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Info de sólo lectura -->

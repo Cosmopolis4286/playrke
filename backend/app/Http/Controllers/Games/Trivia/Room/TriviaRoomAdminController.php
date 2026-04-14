@@ -8,6 +8,7 @@ use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -71,6 +72,26 @@ final class TriviaRoomAdminController extends Controller
     }
 
     /**
+     * Monedas activas disponibles para seleccionar como fee/prize.
+     */
+    private function availableCurrencies(): array
+    {
+        return DB::table('currencies')
+            ->where('status', 'ACTIVE')
+            ->orderBy('name')
+            ->select('id', 'symbol', 'name', 'iso_code')
+            ->get()
+            ->map(fn($c) => [
+                'id'      => (string) $c->id,
+                'symbol'  => $c->symbol,
+                'name'    => $c->name,
+                'iso_code'=> $c->iso_code,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * Categorías disponibles (unión de rooms + questions para sugerencias).
      */
     private function availableCategories(): array
@@ -100,7 +121,8 @@ final class TriviaRoomAdminController extends Controller
                 'question_count' => 10,
                 'time_per_question' => 15,
             ],
-            'categories' => $this->availableCategories(),
+            'categories'  => $this->availableCategories(),
+            'currencies'  => $this->availableCurrencies(),
         ]);
     }
 
@@ -110,25 +132,35 @@ final class TriviaRoomAdminController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'category' => 'nullable|string|max:50',
-            'max_players' => 'required|integer|min:2|max:500',
-            'question_count' => 'required|integer|min:1|max:100',
-            'time_per_question' => 'required|integer|min:5|max:300',
-            'settings' => 'nullable|array',
+            'title'              => 'required|string|max:255',
+            'description'        => 'nullable|string|max:1000',
+            'category'           => 'nullable|string|max:50',
+            'max_players'        => 'required|integer|min:2|max:500',
+            'question_count'     => 'required|integer|min:1|max:100',
+            'time_per_question'  => 'required|integer|min:5|max:300',
+            'entry_fee'          => 'nullable|numeric|min:0',
+            'entry_currency_id'  => 'nullable|string',
+            'prize_type'         => 'nullable|in:fixed,accumulated',
+            'prize_amount'       => 'nullable|numeric|min:0',
+            'prize_currency_id'  => 'nullable|string',
+            'settings'           => 'nullable|array',
         ]);
 
         try {
             $roomDto = $this->roomService->createRoom([
-                'host_id' => (string) auth()->id(),
-                'title' => $validated['title'],
-                'description' => $validated['description'] ?? null,
-                'category' => $validated['category'] ?? null,
-                'max_players' => $validated['max_players'],
-                'question_count' => $validated['question_count'],
+                'host_id'           => (string) auth()->id(),
+                'title'             => $validated['title'],
+                'description'       => $validated['description'] ?? null,
+                'category'          => $validated['category'] ?? null,
+                'max_players'       => $validated['max_players'],
+                'question_count'    => $validated['question_count'],
                 'time_per_question' => $validated['time_per_question'],
-                'settings' => $validated['settings'] ?? [],
+                'entry_fee'         => $validated['entry_fee'] ?? 0,
+                'entry_currency_id' => $validated['entry_currency_id'] ?? null,
+                'prize_type'        => $validated['prize_type'] ?? 'accumulated',
+                'prize_amount'      => $validated['prize_amount'] ?? 0,
+                'prize_currency_id' => $validated['prize_currency_id'] ?? null,
+                'settings'          => $validated['settings'] ?? [],
             ]);
 
             return redirect()
@@ -180,8 +212,9 @@ final class TriviaRoomAdminController extends Controller
         }
 
         return Inertia::render('Trivia/Admin/RoomsEdit', [
-            'room' => $room,
+            'room'       => $room,
             'categories' => $this->availableCategories(),
+            'currencies' => $this->availableCurrencies(),
         ]);
     }
 
@@ -191,20 +224,30 @@ final class TriviaRoomAdminController extends Controller
     public function update(Request $request, string $id)
     {
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'category' => 'nullable|string|max:50',
-            'max_players' => 'required|integer|min:2|max:500',
-            'settings' => 'nullable|array',
+            'title'             => 'required|string|max:255',
+            'description'       => 'nullable|string|max:1000',
+            'category'          => 'nullable|string|max:50',
+            'max_players'       => 'required|integer|min:2|max:500',
+            'entry_fee'         => 'nullable|numeric|min:0',
+            'entry_currency_id' => 'nullable|string',
+            'prize_type'        => 'nullable|in:fixed,accumulated',
+            'prize_amount'      => 'nullable|numeric|min:0',
+            'prize_currency_id' => 'nullable|string',
+            'settings'          => 'nullable|array',
         ]);
 
         try {
             $this->roomService->updateRoomConfig($id, [
-                'title' => $validated['title'],
-                'description' => $validated['description'] ?? null,
-                'category' => $validated['category'] ?? null,
-                'max_players' => $validated['max_players'],
-                'settings' => $validated['settings'] ?? [],
+                'title'             => $validated['title'],
+                'description'       => $validated['description'] ?? null,
+                'category'          => $validated['category'] ?? null,
+                'max_players'       => $validated['max_players'],
+                'entry_fee'         => $validated['entry_fee'] ?? 0,
+                'entry_currency_id' => $validated['entry_currency_id'] ?? null,
+                'prize_type'        => $validated['prize_type'] ?? 'accumulated',
+                'prize_amount'      => $validated['prize_amount'] ?? 0,
+                'prize_currency_id' => $validated['prize_currency_id'] ?? null,
+                'settings'          => $validated['settings'] ?? [],
             ]);
 
             return redirect()

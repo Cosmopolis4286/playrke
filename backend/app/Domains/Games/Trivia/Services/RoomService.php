@@ -46,6 +46,11 @@ class RoomService implements RoomServiceInterface
             'max_players'        => $config['max_players'] ?? 100,
             'question_count'     => $config['question_count'] ?? 10,
             'time_per_question'  => $config['time_per_question'] ?? 15,
+            'entry_fee'          => $config['entry_fee'] ?? 0,
+            'entry_currency_id'  => $config['entry_currency_id'] ?? null,
+            'prize_type'         => $config['prize_type'] ?? 'accumulated',
+            'prize_amount'       => $config['prize_amount'] ?? 0,
+            'prize_currency_id'  => $config['prize_currency_id'] ?? null,
             'scheduled_at'       => $config['scheduled_at'] ?? null,
             'settings'           => $config['settings'] ?? [],
             'current_players'    => 0,
@@ -276,6 +281,21 @@ class RoomService implements RoomServiceInterface
         }
         if (isset($config['max_players'])) {
             $updateData['max_players'] = $config['max_players'];
+        }
+        if (array_key_exists('entry_fee', $config)) {
+            $updateData['entry_fee'] = $config['entry_fee'];
+        }
+        if (array_key_exists('entry_currency_id', $config)) {
+            $updateData['entry_currency_id'] = $config['entry_currency_id'];
+        }
+        if (array_key_exists('prize_type', $config)) {
+            $updateData['prize_type'] = $config['prize_type'];
+        }
+        if (array_key_exists('prize_amount', $config)) {
+            $updateData['prize_amount'] = $config['prize_amount'];
+        }
+        if (array_key_exists('prize_currency_id', $config)) {
+            $updateData['prize_currency_id'] = $config['prize_currency_id'];
         }
         if (isset($config['settings'])) {
             $updateData['settings'] = array_merge($room->settings ?? [], $config['settings']);

@@ -17,8 +17,12 @@ interface Room {
   time_per_question: number
   created_at: string
   entry_fee: string | number
+  entry_currency_id: string | null
+  entry_currency_symbol: string | null
   prize_amount: string | number
   prize_type: string | null
+  prize_currency_id: string | null
+  prize_currency_symbol: string | null
 }
 
 interface Stats {
@@ -103,6 +107,21 @@ function hasFee(room: Room): boolean {
 
 function hasPrize(room: Room): boolean {
   return Number(room.prize_amount) > 0
+}
+
+function feeLabel(room: Room): string {
+  const amount = Number(room.entry_fee)
+  if (amount <= 0) return 'Gratis'
+  const sym = room.entry_currency_symbol ?? ''
+  return `${sym} ${amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)}`
+}
+
+function prizeLabel(room: Room): string {
+  const amount = Number(room.prize_amount)
+  if (amount <= 0) return room.prize_type === 'accumulated' ? 'Premio acumulado' : ''
+  const sym = room.prize_currency_symbol ?? ''
+  const base = `${sym} ${amount % 1 === 0 ? amount.toFixed(0) : amount.toFixed(2)}`
+  return room.prize_type === 'accumulated' ? `${base} (acumulado)` : base
 }
 
 // Agrupar por categoría para el grid
@@ -241,6 +260,12 @@ function joinRoom(room: Room) {
                   <span>❓ {{ room.question_count }} preguntas</span>
                   <span>⏱️ {{ room.time_per_question }}s / pregunta</span>
                   <span v-if="room.category" class="text-indigo-600 dark:text-indigo-400">{{ categoryIcon(room.category) }} {{ room.category }}</span>
+                  <span v-if="hasPrize(room)" class="text-yellow-600 dark:text-yellow-400 font-medium">🏆 {{ prizeLabel(room) }}</span>
+                  <span
+                    v-if="hasFee(room)"
+                    class="font-semibold text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 px-2 py-0.5 rounded-full"
+                  >💳 {{ feeLabel(room) }}</span>
+                  <span v-else class="text-emerald-700 dark:text-emerald-400 font-medium">✅ Gratis</span>
                 </div>
                 <div class="space-y-1">
                   <div class="flex items-center justify-between text-xs">
@@ -311,10 +336,19 @@ function joinRoom(room: Room) {
                     <span class="flex items-center gap-1">❓ {{ room.question_count }} preguntas</span>
                     <span class="flex items-center gap-1">⏱️ {{ room.time_per_question }}s / pregunta</span>
                     <span v-if="hasPrize(room)" class="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 font-medium">
-                      🏆 Premio {{ room.prize_type === 'accumulated' ? 'acumulado' : 'fijo' }}
+                      🏆 {{ prizeLabel(room) }}
                     </span>
-                    <span v-if="hasFee(room)" class="flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
-                      💰 Entrada requerida
+                    <span
+                      v-if="hasFee(room)"
+                      class="flex items-center gap-1 font-semibold text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/20 px-2 py-0.5 rounded-full"
+                    >
+                      💳 {{ feeLabel(room) }}
+                    </span>
+                    <span
+                      v-else
+                      class="flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-medium"
+                    >
+                      ✅ Gratis
                     </span>
                   </div>
 
