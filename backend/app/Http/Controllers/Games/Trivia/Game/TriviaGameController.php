@@ -3,13 +3,6 @@
 namespace App\Http\Controllers\Games\Trivia\Game;
 
 use App\Http\Controllers\Controller;
-use App\Models\Games\Trivia\TriviaMulti;
-use App\Models\Games\Trivia\TriviaMultiCups;
-use App\Models\Games\Trivia\TriviaIndv;
-use App\Models\ExtrasUser;
-use App\Models\Games;
-use App\Models\GameSounds;
-use App\Models\Wallet;
 use App\Traits\Users\UserTrait;
 use App\Domains\Games\Trivia\Services\RoomService;
 use Illuminate\Http\Request;
@@ -63,45 +56,69 @@ final class TriviaGameController extends Controller
     }
 
     /**
-     * Join a trivia room and display the game interface.
+     * Unirse a una sala de trivia (nuevo sistema).
+     * POST /trivia-game/room/{id}/join
      */
-    public function room($id): Response
+    public function room(Request $request, $id)
     {
-        $user = $this->user(['id']);
-        $room = TriviaMulti::findOrFail($id);
-        
-        // Verificar si el usuario ya está en la sala
-        $userInRoom = DB::table('triv_multi_user')
-            ->where('room', $id)
-            ->where('user', $user->id)
-            ->first();
+        $user = Auth::user();
 
-        if (!$userInRoom) {
-            // Unir al usuario a la sala
-            DB::table('triv_multi_user')->insert([
-                'room' => $id,
-                'user' => $user->id,
-                'joined_at' => now(),
-                'lose_win' => 0, // En progreso
+        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::findOrFail($id);
+
+        if (!in_array($room->status, ['waiting', 'playing'])) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'La sala ya no está disponible'], 422);
+            }
+            return back()->with('error', 'La sala ya no está disponible.');
+        }
+
+        // Registrar participante si no existe
+        $exists = DB::connection('pgsql_trivia')
+            ->table('trivia_participants')
+            ->where('room_id', $room->id)
+            ->where('user_id', (string) $user->id)
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if (!$exists) {
+            DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
+                'id'            => (string) \Illuminate\Support\Str::ulid(),
+                'room_id'       => (string) $room->id,
+                'user_id'       => (string) $user->id,
+                'status'        => 'registered',
+                'registered_at' => now(),
+                'created_at'    => now(),
+                'updated_at'    => now(),
             ]);
         }
 
-        return redirect()->route('trivia-games.in-game', $id);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'player'  => [
+                    'id'       => (string) $user->id,
+                    'name'     => $user->name,
+                    'roomCode' => $room->code,
+                ],
+            ]);
+        }
+
+        return redirect()->route('trivia.room.wait', ['code' => $room->code]);
     }
 
     /**
-     * Display the in-game interface.
+     * Display the in-game interface. (Legacy — sistema deprecated)
      */
     public function inGame($id): Response
     {
         $user = $this->user(['id']);
         $wallet = $this->wallet($user->id);
-        $game = Games::find(2);
-        
-        $room = TriviaMulti::findOrFail($id);
-        $cupsQuest = TriviaMultiCups::where('room', $id)->get();
-        $extrasUser = ExtrasUser::where('user', $user->id)->get();
-        
+        $game = \App\Models\Games::find(2);
+
+        $room = \App\Models\Games\Trivia\TriviaMulti::findOrFail($id);
+        $cupsQuest = \App\Models\Games\Trivia\TriviaMultiCups::where('room', $id)->get();
+        $extrasUser = \App\Models\ExtrasUser::where('user', $user->id)->get();
+
         $infoGame = [
             'game' => $game,
             'room' => $room,
@@ -111,7 +128,7 @@ final class TriviaGameController extends Controller
                 ->first()
         ];
 
-        $sounds = GameSounds::whereIn('id_game', [2, 0])->get();
+        $sounds = \App\Models\GameSounds::whereIn('id_game', [2, 0])->get();
 
         return Inertia::render('Modules/User/Trivia/RmMulti', [
             'wallet' => $wallet,
@@ -124,11 +141,11 @@ final class TriviaGameController extends Controller
     }
 
     /**
-     * Get timer information for a room.
+     * Get timer information for a room. (Legacy — sistema deprecated)
      */
     public function timer($id)
     {
-        return TriviaMulti::select('id', 'status', 'fecha', 'hora')
+        return \App\Models\Games\Trivia\TriviaMulti::select('id', 'status', 'fecha', 'hora')
             ->where('id', $id)->whereIn('status', [2, 3])->get();
     }
 
@@ -182,11 +199,11 @@ final class TriviaGameController extends Controller
     }
 
     /**
-     * Get room information for AJAX requests.
+     * Get room information for AJAX requests. (Legacy — sistema deprecated)
      */
     public function roomInfo($id)
     {
-        $room = TriviaMulti::with(['Coin', 'Questions'])
+        $room = \App\Models\Games\Trivia\TriviaMulti::with(['Coin', 'Questions'])
             ->findOrFail($id);
 
         $players = DB::table('triv_multi_user')
