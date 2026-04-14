@@ -107,40 +107,44 @@ const detailSteps = computed(() => {
   const isWith = mov.type === 'WITHDRAWAL'
 
   if (isDep || isWith) {
-    const done      = mov.status === 'COMPLETED'
-    const rejected  = mov.status === 'REJECTED'
-    const pending   = mov.status === 'PENDING'
+    const done     = mov.status === 'COMPLETED'
+    const rejected = mov.status === 'REJECTED'
+    const pending  = mov.status === 'PENDING'
     return [
       {
-        label:  'Solicitud recibida',
-        done:   true,
-        active: false,
-        icon:   'fa-check',
-        date:   mov.created_at,
+        label:    'Solicitud recibida',
+        done:     true,
+        active:   false,
+        rejected: false,
+        icon:     'fa-check',
+        date:     mov.created_at,
       },
       {
-        label:  pending ? 'En revisión por el equipo' : (done ? 'Revisión completada' : 'Revisión fallida'),
-        done:   done || rejected,
-        active: pending,
-        icon:   pending ? 'fa-hourglass-half' : (done ? 'fa-check' : 'fa-times'),
-        date:   null,
+        label:    pending ? 'En revisión por el equipo' : (done ? 'Revisión completada' : 'Revisión fallida'),
+        done:     done || rejected,
+        active:   pending,
+        rejected: false,
+        icon:     pending ? 'fa-hourglass-half' : (done ? 'fa-check' : 'fa-times'),
+        date:     (!pending && mov.processed_at) ? mov.processed_at : null,
       },
       {
-        label:  done
+        label:    done
           ? (isDep ? 'Fondos acreditados' : 'Retiro procesado')
-          : (rejected ? (isDep ? 'Depósito rechazado' : 'Retiro rechazado') : (isDep ? 'Acreditación pendiente' : 'Procesamiento pendiente')),
+          : (rejected
+              ? (isDep ? 'Depósito rechazado' : 'Retiro rechazado — saldo reintegrado')
+              : (isDep ? 'Acreditación pendiente' : 'Procesamiento pendiente')),
         done,
-        active: false,
+        active:   false,
         rejected,
-        icon:   done ? 'fa-check-circle' : (rejected ? 'fa-times-circle' : 'fa-circle'),
-        date:   null,
+        icon:     done ? 'fa-check-circle' : (rejected ? 'fa-times-circle' : 'fa-circle'),
+        date:     (done || rejected) && mov.processed_at ? mov.processed_at : null,
       },
     ]
   }
 
-  // PURCHASE / PRIZE: solo 1 paso, siempre completado
+  // PURCHASE / PRIZE: 1 paso, siempre completado
   return [
-    { label: 'Procesado automáticamente', done: true, active: false, icon: 'fa-check-circle', date: mov.created_at },
+    { label: 'Procesado automáticamente', done: true, active: false, rejected: false, icon: 'fa-check-circle', date: mov.created_at },
   ]
 })
 
@@ -851,6 +855,10 @@ const modalIcon = computed(() => {
           <div v-if="detailMovement.description" class="mv-detail__cell mv-detail__cell--full">
             <span class="mv-detail__cell-label">Descripción</span>
             <span class="mv-detail__cell-value">{{ detailMovement.description }}</span>
+          </div>
+          <div v-if="detailMovement.admin_notes" class="mv-detail__cell mv-detail__cell--full">
+            <span class="mv-detail__cell-label">Nota del equipo</span>
+            <span class="mv-detail__cell-value">{{ detailMovement.admin_notes }}</span>
           </div>
         </div>
 
