@@ -11,6 +11,7 @@
 use App\Http\Controllers\Games\Trivia\Room\TriviaRoomAdminController;
 use App\Http\Controllers\Games\Trivia\Report\TriviaReportController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaGameController;
+use App\Http\Controllers\Games\Trivia\Game\TriviaGamesController;
 use App\Http\Controllers\Games\Trivia\Question\TriviaQuestionController;
 use Illuminate\Support\Facades\Route;
 
@@ -94,10 +95,9 @@ Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function (
         return redirect()->route('trivia-questions.index', ['roomId' => 'all']);
     })->name('questions.index');
     
-    // Alias para games/partidas (compatibility con sidebar)
-    Route::get('/games', function () {
-        return redirect()->route('trivia.index');
-    })->name('games.index');
+    // Partidas — historial y detalle
+    Route::get('/games',      [TriviaGamesController::class, 'index'])->name('games.index');
+    Route::get('/games/{id}', [TriviaGamesController::class, 'show'])->name('games.show');
     
     // Leaderboard / Clasificación
     Route::get('/leaderboard', [TriviaReportController::class, 'leaderboard'])->name('leaderboard');
