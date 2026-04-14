@@ -46,8 +46,8 @@ class RolePermissionSeeder extends Seeder
                 'directory.view', 'directory.search',
                 'prizes.view', 'prizes.create', 'prizes.edit', 'prizes.delete', 'prizes.assign',
                 'wallet.movements.view', 'wallet.movements.manage', // Gestión de movimientos de billetera
-                // Trivia - Gestión completa
-                'games.trivia.view', 'games.trivia.play',
+                // Trivia - Gestión completa (admin gestiona salas/preguntas pero NO juega como player)
+                'games.trivia.view',
                 'games.trivia.rooms.view', 'games.trivia.rooms.create', 'games.trivia.rooms.edit', 'games.trivia.rooms.delete', 'games.trivia.rooms.manage',
                 'games.trivia.questions.view', 'games.trivia.questions.create', 'games.trivia.questions.edit', 'games.trivia.questions.delete', 'games.trivia.questions.manage',
                 'games.trivia.games.view', 'games.trivia.games.manage',
@@ -133,14 +133,18 @@ class RolePermissionSeeder extends Seeder
             $this->command->info('✅ Permisos asignados a Customer');
         }
 
-        // Player: Solo acceso a juegos de bingo
+        // Player: Rol de jugador — acceso a juegos
         if ($player) {
             $playerPermissions = [
                 'games.bingo', // Acceso a juegos de bingo
                 'games.bingo.game_rooms', // Acceso a salas de bingo
                 'wallet.view', // Acceso a ver billetera
                 // Trivia - Principal rol para jugar
-                'games.trivia.view', 'games.trivia.play', 'games.trivia.leaderboard.view',
+                'games.trivia.view',
+                'games.trivia.play',          // Lobby + unirse a salas (role:player en backend)
+                'games.trivia.leaderboard.view',
+                'games.trivia.games.view',    // Ver historial de partidas propias
+                'games.trivia.stats.view',    // Ver estadísticas propias
             ];
             $player->givePermissionTo($playerPermissions);
             $this->command->info('✅ Permisos asignados a Player');

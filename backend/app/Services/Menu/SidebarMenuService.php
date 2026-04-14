@@ -129,39 +129,41 @@ class SidebarMenuService
             'icon' => 'fas fa-brain',
             'permission' => 'games.trivia.view', // Acceso básico a trivia
             'submenu' => [
+                // Lobby: solo para rol player (puede unirse a salas)
                 'play' => [
-                    'title' => 'Jugar Trivia',
+                    'title' => 'Jugar',
                     'route' => 'trivia.lobby',
-                    'permission' => 'games.trivia.play', // Solo jugadores pueden jugar
+                    'permission' => 'games.trivia.play',
                 ],
+                // Gestión de salas: solo admin/superadmin
                 'rooms' => [
                     'title' => 'Gestionar Salas',
-                    'route' => 'trivia.rooms.index',
+                    'route' => 'trivia-rooms-admin.index',
                     'permission' => 'games.trivia.rooms.manage',
-                    'exclude_roles' => ['player', 'seller', 'customer'], // Solo admin+
                 ],
+                // Banco de preguntas: solo admin/superadmin
                 'questions' => [
                     'title' => 'Banco de Preguntas',
                     'route' => 'trivia.questions.index',
                     'permission' => 'games.trivia.questions.manage',
-                    'exclude_roles' => ['player', 'seller', 'customer'], // Solo admin+
                 ],
+                // Partidas: todos los que tengan games.trivia.games.view (player, admin, commerce, seller)
                 'games' => [
                     'title' => 'Partidas',
                     'route' => 'trivia.games.index',
                     'permission' => 'games.trivia.games.view',
-                    'exclude_roles' => ['player'], // Admin, seller, commerce pueden ver
                 ],
+                // Clasificación: todos con leaderboard.view
                 'leaderboard' => [
                     'title' => 'Clasificación',
                     'route' => 'trivia.leaderboard',
                     'permission' => 'games.trivia.leaderboard.view',
                 ],
+                // Estadísticas: admin, superadmin, treasurer
                 'stats' => [
                     'title' => 'Estadísticas',
                     'route' => 'trivia.stats',
                     'permission' => 'games.trivia.stats.view',
-                    'exclude_roles' => ['player', 'seller', 'customer'], // Solo admin+
                 ],
             ],
         ],
