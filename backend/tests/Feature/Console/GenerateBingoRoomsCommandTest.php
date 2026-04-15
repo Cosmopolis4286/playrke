@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Console;
 
-use App\Models\Games\Bingo\Card\CardPrice\BingoCardPrice;
-use App\Models\Games\Bingo\Creator\BingoCreator;
-use App\Models\Games\Bingo\Room\BingoRoom;
-use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
-use App\Models\Games\Bingo\Room\BingoRoomConfig;
-use App\Models\Games\Bingo\Round\BingoRound;
-use App\Models\Games\Bingo\Round\BingoRoundPrize;
+use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
+use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
+use App\Domains\Games\Bingo\Models\Round\BingoRound;
+use App\Domains\Games\Bingo\Models\Round\BingoRoundPrize;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Services\Games\Bingo\Room\Automatic\AutoGenerateBingoRoomsService;
 use Carbon\Carbon;
