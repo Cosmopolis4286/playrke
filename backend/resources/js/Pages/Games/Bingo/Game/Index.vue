@@ -15,7 +15,7 @@
 // Imports
 // ==========================================================================
 import { ref, onMounted, computed } from "vue";
-import "@/css/games/bingo/bingo-in-games.css";
+import "@/css/games/bingo/bingo-in-game.css";
 
 // ==========================================================================
 // Componentes

@@ -40,9 +40,11 @@ export function useTableFiltering<T extends Record<string, any>>(
         // 🎯 filtros por columna
         for (const [key, val] of Object.entries(filters.value.filters)) {
             if (val) {
-                result = result.filter(
-                    row => String(getNestedValue(row, key)) === val
-                )
+                result = result.filter(row => {
+                    const rowVal = getNestedValue(row, key)
+                    // Comparación case-insensitive para campos string
+                    return String(rowVal).toLowerCase() === String(val).toLowerCase()
+                })
             }
         }
 

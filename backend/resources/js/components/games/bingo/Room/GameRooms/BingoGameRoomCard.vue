@@ -71,6 +71,16 @@ const isAdmin = computed(() => {
 /** Si la sala está activa (ACTIVE = disponible para comprar) */
 const isAvailable = computed(() => props.room.status_code === 'ACTIVE')
 
+/** Etiqueta legible del modo de juego */
+const gameModeLabel = computed(() => {
+  const map: Record<string, string> = {
+    ONLINE: 'Online',
+    OFFLINE: 'Presencial',
+    MIXED: 'Mixto',
+  }
+  return map[props.room.game_mode ?? ''] ?? props.room.game_mode ?? 'Online'
+})
+
 /** Etiqueta de estado visible */
 const statusLabel = computed(() => {
   if (isAvailable.value) {
@@ -223,7 +233,7 @@ function handleCtnsInput(event: Event): void {
 
         <!-- Modo de juego sobre la imagen -->
         <span class="room-card__mode-badge">
-          <i class="fas fa-gamepad mr-1" />Cartón Lleno
+          <i class="fas fa-gamepad mr-1" />{{ gameModeLabel }}
         </span>
       </div>
 
