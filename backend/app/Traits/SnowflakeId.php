@@ -41,4 +41,9 @@ trait SnowflakeId
             }
         });
     }
+
+    public static function generateSnowflakeId(): string
+    {
+        return (string) (new Snowflake())->id();
+    }
 }
