@@ -1,9 +1,10 @@
 // js/global/global.ts
 
+import { createApp } from 'vue'
 import { showToast } from './toastNotify'
-import { initChangePassw } from '../helpers/user/password'
 import { initLogout } from '../helpers/user/logout'
 import { initModalFocus } from '@js/helpers/modal/modals'
+import ScrollToTop from '@js/Components/ui/ScrollToTop.vue'
 
 /**
  * Inicializa el bloqueo de arrastre de imágenes
@@ -38,6 +39,20 @@ async function showLaravelMessages(errors: string[] = []): Promise<void> {
 }
 
 /**
+ * Monta el botón ScrollToTop en un div dedicado al final del body.
+ * Se omite si el elemento ya existe (protección ante doble llamada).
+ */
+function mountScrollToTop(): void {
+  const existingId = 'scroll-to-top-app'
+  if (document.getElementById(existingId)) return
+
+  const el = document.createElement('div')
+  el.id = existingId
+  document.body.appendChild(el)
+  createApp(ScrollToTop).mount(el)
+}
+
+/**
  * Inicializa la aplicación globalmente
  */
 export async function initGlobal(): Promise<void> {
@@ -51,11 +66,8 @@ export async function initGlobal(): Promise<void> {
     // 🔹 Inicializar modales accesibles
     await initModalFocus()
 
-    // 🔹 Cambio de contraseña
-    await initChangePassw()
-    if (import.meta.env.DEV) {
-      console.log('✅ initChangePassw ejecutado')
-    }
+    // 🔹 Botón volver al inicio
+    mountScrollToTop()
 
     // 🔹 Mostrar mensajes flash de sesión
     if (window.Session?.message?.trim()) {

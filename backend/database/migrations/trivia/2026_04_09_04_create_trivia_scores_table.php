@@ -24,6 +24,7 @@ return new class extends Migration
             $table->unsignedInteger('total_response_time_ms')->default(0); // Para recalcular promedio
             $table->jsonb('metadata')->nullable(); // Historial detallado (jsonb para PostgreSQL)
             $table->timestamps();
+            $table->softDeletes();
 
             // Índices optimizados
             $table->unique(['game_id', 'player_id']); // Ya cubre búsqueda por game_id + player_id

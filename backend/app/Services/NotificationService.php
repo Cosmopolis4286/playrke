@@ -127,7 +127,8 @@ final class NotificationService
         }
 
         $limit = min($limit, self::MAX_LIMIT);
-        $cacheKey = "user_notifications_{$userId}_" . md5(serialize($filters) . $limit);
+        // Cache key fija (sin hash de parámetros) para poder invalidarla correctamente
+        $cacheKey = "user_notifications_{$userId}";
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId, $filters, $limit) {
             return $this->notificationRepository->getByUser($userId, $filters, $limit);
@@ -148,7 +149,8 @@ final class NotificationService
         }
 
         $limit = min($limit, self::MAX_LIMIT);
-        $cacheKey = "unread_notifications_{$userId}_{$limit}";
+        // Cache key fija para poder invalidarla correctamente
+        $cacheKey = "unread_notifications_{$userId}";
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($userId, $limit) {
             return $this->notificationRepository->getUnreadByUser($userId, $limit);
@@ -260,6 +262,24 @@ final class NotificationService
     }
 
     /**
+     * Eliminar todas las notificaciones del usuario autenticado
+     *
+     * @return int Número de notificaciones eliminadas
+     */
+    public function clearAll(): int
+    {
+        $userId = $this->getCurrentUserId();
+        if (!$userId) {
+            return 0;
+        }
+
+        $result = $this->notificationRepository->deleteAllForUser($userId);
+        $this->clearUserNotificationCache($userId);
+
+        return $result;
+    }
+
+    /**
      * Limpiar notificaciones antiguas del sistema
      *
      * @param int $days Número de días para conservar
@@ -323,6 +343,7 @@ final class NotificationService
                 'amount'          => $amount,
                 'currency_symbol' => $currencySymbol,
                 'admin_notes'     => $adminNotes,
+                'url'             => '/wallet',
             ]
         );
     }
@@ -355,6 +376,7 @@ final class NotificationService
                 'amount'          => $amount,
                 'currency_symbol' => $currencySymbol,
                 'admin_notes'     => $adminNotes,
+                'url'             => '/wallet',
             ]
         );
     }
@@ -450,14 +472,8 @@ final class NotificationService
      */
     private function clearUserNotificationCache(string $userId): void
     {
-        $patterns = [
-            "user_notifications_{$userId}_",
-            "unread_notifications_{$userId}_",
-            "unread_count_{$userId}",
-        ];
-
-        foreach ($patterns as $pattern) {
-            Cache::forget($pattern);
-        }
+        Cache::forget("user_notifications_{$userId}");
+        Cache::forget("unread_notifications_{$userId}");
+        Cache::forget("unread_count_{$userId}");
     }
 }

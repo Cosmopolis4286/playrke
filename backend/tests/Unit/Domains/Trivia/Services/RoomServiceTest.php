@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domains\Trivia\Services;
 
-use App\Domains\Trivia\DTOs\PlayerDTO;
-use App\Domains\Trivia\DTOs\RoomDTO;
-use App\Domains\Trivia\Events\PlayerJoined;
-use App\Domains\Trivia\Events\PlayerLeft;
-use App\Domains\Trivia\Models\TriviaRoom;
-use App\Domains\Trivia\Services\RoomService;
+use App\Domains\Games\Trivia\DTOs\PlayerDTO;
+use App\Domains\Games\Trivia\DTOs\RoomDTO;
+use App\Domains\Games\Trivia\Events\PlayerJoined;
+use App\Domains\Games\Trivia\Events\PlayerLeft;
+use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Domains\Games\Trivia\Services\RoomService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Redis;

@@ -66,7 +66,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted, nextTick } from 'vue'
-import { useIcons } from '../../composables/useIcons'
+import { useIcons } from '@js/composables/utils/useIcons'
 
 const { getToastIcon, getIcon } = useIcons()
 

@@ -3,14 +3,8 @@
 namespace App\Http\Controllers\Games\Trivia\Game;
 
 use App\Http\Controllers\Controller;
-use App\Models\Games\Trivia\TriviaMulti;
-use App\Models\Games\Trivia\TriviaMultiCups;
-use App\Models\Games\Trivia\TriviaIndv;
-use App\Models\ExtrasUser;
-use App\Models\Games;
-use App\Models\GameSounds;
-use App\Models\Wallet;
 use App\Traits\Users\UserTrait;
+use App\Domains\Games\Trivia\Services\RoomService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -62,45 +56,96 @@ final class TriviaGameController extends Controller
     }
 
     /**
-     * Join a trivia room and display the game interface.
+     * Unirse a una sala de trivia (nuevo sistema).
+     * POST /trivia-game/room/{id}/join
      */
-    public function room($id): Response
+    public function room(Request $request, $id)
     {
-        $user = $this->user(['id']);
-        $room = TriviaMulti::findOrFail($id);
-        
-        // Verificar si el usuario ya está en la sala
-        $userInRoom = DB::table('triv_multi_user')
-            ->where('room', $id)
-            ->where('user', $user->id)
-            ->first();
+        $user     = Auth::user();
+        $roomService = app(RoomService::class);
 
-        if (!$userInRoom) {
-            // Unir al usuario a la sala
-            DB::table('triv_multi_user')->insert([
-                'room' => $id,
-                'user' => $user->id,
-                'joined_at' => now(),
-                'lose_win' => 0, // En progreso
+        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::findOrFail($id);
+
+        if (!in_array($room->status, ['waiting', 'playing'])) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'La sala ya no está disponible'], 422);
+            }
+            return back()->with('error', 'La sala ya no está disponible.');
+        }
+
+        $roomId  = (string) $room->id;
+        $userId  = (string) $user->id;
+        $displayName = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador');
+
+        // Verificar si ya está registrado
+        $exists = DB::connection('pgsql_trivia')
+            ->table('trivia_participants')
+            ->where('room_id', $roomId)
+            ->where('user_id', $userId)
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if ($exists) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success'      => true,
+                    'already_joined' => true,
+                    'player'       => [
+                        'id'       => $userId,
+                        'name'     => $displayName,
+                        'roomCode' => $room->code,
+                    ],
+                ]);
+            }
+            return redirect()->route('trivia.room.wait', ['code' => $room->code]);
+        }
+
+        // Insertar en trivia_participants
+        DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
+            'id'            => (string) \Illuminate\Support\Str::ulid(),
+            'room_id'       => $roomId,
+            'user_id'       => $userId,
+            'status'        => 'registered',
+            'registered_at' => now(),
+            'created_at'    => now(),
+            'updated_at'    => now(),
+        ]);
+
+        // Disparar evento PlayerJoined vía RoomService (best-effort — requiere Redis)
+        try {
+            $roomService->joinRoom($roomId, $userId, ['nickname' => $displayName]);
+        } catch (\Throwable) {
+            // Redis no disponible — el participante quedó en DB de todas formas
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success'        => true,
+                'already_joined' => false,
+                'player'         => [
+                    'id'       => $userId,
+                    'name'     => $displayName,
+                    'roomCode' => $room->code,
+                ],
             ]);
         }
 
-        return redirect()->route('trivia-games.in-game', $id);
+        return redirect()->route('trivia.room.wait', ['code' => $room->code]);
     }
 
     /**
-     * Display the in-game interface.
+     * Display the in-game interface. (Legacy — sistema deprecated)
      */
     public function inGame($id): Response
     {
         $user = $this->user(['id']);
         $wallet = $this->wallet($user->id);
-        $game = Games::find(2);
-        
-        $room = TriviaMulti::findOrFail($id);
-        $cupsQuest = TriviaMultiCups::where('room', $id)->get();
-        $extrasUser = ExtrasUser::where('user', $user->id)->get();
-        
+        $game = \App\Models\Games::find(2);
+
+        $room = \App\Models\Games\Trivia\TriviaMulti::findOrFail($id);
+        $cupsQuest = \App\Models\Games\Trivia\TriviaMultiCups::where('room', $id)->get();
+        $extrasUser = \App\Models\ExtrasUser::where('user', $user->id)->get();
+
         $infoGame = [
             'game' => $game,
             'room' => $room,
@@ -110,7 +155,7 @@ final class TriviaGameController extends Controller
                 ->first()
         ];
 
-        $sounds = GameSounds::whereIn('id_game', [2, 0])->get();
+        $sounds = \App\Models\GameSounds::whereIn('id_game', [2, 0])->get();
 
         return Inertia::render('Modules/User/Trivia/RmMulti', [
             'wallet' => $wallet,
@@ -123,11 +168,11 @@ final class TriviaGameController extends Controller
     }
 
     /**
-     * Get timer information for a room.
+     * Get timer information for a room. (Legacy — sistema deprecated)
      */
     public function timer($id)
     {
-        return TriviaMulti::select('id', 'status', 'fecha', 'hora')
+        return \App\Models\Games\Trivia\TriviaMulti::select('id', 'status', 'fecha', 'hora')
             ->where('id', $id)->whereIn('status', [2, 3])->get();
     }
 
@@ -181,11 +226,11 @@ final class TriviaGameController extends Controller
     }
 
     /**
-     * Get room information for AJAX requests.
+     * Get room information for AJAX requests. (Legacy — sistema deprecated)
      */
     public function roomInfo($id)
     {
-        $room = TriviaMulti::with(['Coin', 'Questions'])
+        $room = \App\Models\Games\Trivia\TriviaMulti::with(['Coin', 'Questions'])
             ->findOrFail($id);
 
         $players = DB::table('triv_multi_user')
@@ -240,27 +285,198 @@ final class TriviaGameController extends Controller
     }
 
     /**
-     * Display the trivia lobby for players.
-     * This is the entry point from the sidebar menu.
+     * Estado de sala en JSON para polling desde WaitingRoom.
+     * Ruta: GET /trivia/room/{code}/state
      */
-    public function lobby(): Response
+    public function roomState(string $code): \Illuminate\Http\JsonResponse
     {
-        $user = $this->user(['id']);
-        $wallet = $this->wallet($user->id);
+        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::where('code', $code)
+            ->whereIn('status', ['waiting', 'playing', 'closed'])
+            ->firstOrFail();
 
-        // Obtener monedas disponibles para trivia
-        $coins = DB::table('coins')
-            ->where('status', 1)
-            ->whereIn('id', function ($query) {
-                $query->select('coin')
-                    ->from('trivia_multi')
-                    ->whereIn('status', [1, 2, 3]);
-            })
+        // Participantes desde trivia_participants + nombre desde MySQL users
+        $participants = DB::connection('pgsql_trivia')
+            ->table('trivia_participants')
+            ->where('room_id', $room->id)
+            ->whereNull('deleted_at')
+            ->whereNotIn('status', ['abandoned'])
+            ->select('user_id', 'status')
             ->get();
 
+        $userIds = $participants->pluck('user_id')->all();
+        $names   = $userIds
+            ? DB::table('users')->whereIn('id', $userIds)
+                ->select('id', DB::raw("TRIM(CONCAT(first_name, ' ', COALESCE(last_name, ''))) as display_name"))
+                ->get()->pluck('display_name', 'id')->all()
+            : [];
+
+        $players = $participants->map(function ($p) use ($names, $room) {
+            return [
+                'id'       => $p->user_id,
+                'name'     => $names[$p->user_id] ?? 'Jugador',
+                'roomCode' => $room->code,
+                'joinedAt' => $p->registered_at ?? null,
+            ];
+        })->values()->all();
+
+        return response()->json([
+            'status'  => $room->status,
+            'players' => $players,
+        ]);
+    }
+
+    /**
+     * Sala de espera de una sala específica (WaitingRoom).
+     * Ruta: GET /trivia/room/{code}/wait
+     */
+    public function waitingRoom(string $code): Response
+    {
+        $roomService = app(RoomService::class);
+        $user        = Auth::user();
+
+        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::where('code', $code)
+            ->whereIn('status', ['waiting', 'playing'])
+            ->firstOrFail();
+
+        $roomId  = (string) $room->id;
+        $roomDto = $roomService->getRoom($roomId);
+
+        // ── Jugadores desde trivia_participants (fuente de verdad — no Redis) ──
+        $participants = DB::connection('pgsql_trivia')
+            ->table('trivia_participants')
+            ->where('room_id', $roomId)
+            ->whereNull('deleted_at')
+            ->whereNotIn('status', ['abandoned'])
+            ->orderBy('registered_at')
+            ->select('user_id', 'status', 'registered_at')
+            ->get();
+
+        $userIds = $participants->pluck('user_id')->all();
+        $names   = $userIds
+            ? DB::table('users')
+                ->whereIn('id', $userIds)
+                ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
+                ->get()->pluck('display_name', 'id')->all()
+            : [];
+
+        $initialPlayers = $participants->map(fn($p) => [
+            'id'           => $p->user_id,
+            'name'         => $names[$p->user_id] ?? 'Jugador',
+            'roomCode'     => $roomDto->code,
+            'joinedAt'     => $p->registered_at, // ISO string para el frontend
+        ])->values()->all();
+
+        // ── Detectar si el usuario ya está inscrito ───────────────────────────
+        $alreadyJoined = collect($initialPlayers)
+            ->contains('id', (string) $user->id);
+
+        return Inertia::render('Trivia/WaitingRoom', [
+            'room' => [
+                'id'               => (string) $roomDto->roomId,
+                'code'             => $roomDto->code,
+                'title'            => $roomDto->title,
+                'hostId'           => $roomDto->hostId,
+                'status'           => $roomDto->status,
+                'maxPlayers'       => $roomDto->maxPlayers,
+                'currentPlayers'   => count($initialPlayers),
+                'questionCount'    => $room->question_count,
+                'timePerQuestion'  => $room->time_per_question,
+                'createdAt'        => $room->created_at->toISOString(),
+                'updatedAt'        => $room->updated_at->toISOString(),
+            ],
+            'initialPlayers' => $initialPlayers,
+            'alreadyJoined'  => $alreadyJoined,
+            'currentUserId'  => (string) $user->id,
+        ]);
+    }
+
+    /**
+     * Display the trivia lobby for players.
+     * Muestra todas las salas en espera/jugando, agrupadas por categoría.
+     * GET /trivia/lobby
+     */
+    public function lobby(Request $request): Response
+    {
+        $pgsql = DB::connection('pgsql_trivia');
+
+        $search   = $request->get('search', '');
+        $category = $request->get('category', '');
+
+        // ── Salas activas ─────────────────────────────────────────────────────
+        $query = $pgsql->table('trivia_rooms')
+            ->whereNull('deleted_at')
+            ->whereIn('status', ['waiting', 'playing'])
+            ->orderByRaw("CASE WHEN status = 'waiting' THEN 0 ELSE 1 END")
+            ->orderBy('created_at', 'desc');
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'ilike', "%{$search}%")
+                  ->orWhere('code', 'ilike', "%{$search}%")
+                  ->orWhere('category', 'ilike', "%{$search}%");
+            });
+        }
+
+        if ($category !== '') {
+            $query->where('category', $category);
+        }
+
+        $rooms = $query->select(
+            'id', 'code', 'title', 'description', 'category',
+            'status', 'max_players', 'current_players',
+            'question_count', 'time_per_question', 'created_at',
+            'entry_fee', 'entry_currency_id',
+            'prize_amount', 'prize_type', 'prize_currency_id'
+        )->get();
+
+        // ── Resolver símbolos de moneda (MySQL currencies) ────────────────────
+        $currencyIds = collect($rooms)
+            ->flatMap(fn($r) => array_filter([$r->entry_currency_id, $r->prize_currency_id]))
+            ->unique()
+            ->values()
+            ->all();
+
+        $currencySymbols = [];
+        if (!empty($currencyIds)) {
+            $currencySymbols = DB::table('currencies')
+                ->whereIn('id', $currencyIds)
+                ->pluck('symbol', 'id')
+                ->all();
+        }
+
+        $rooms = $rooms->map(function ($room) use ($currencySymbols) {
+            return array_merge((array) $room, [
+                'entry_currency_symbol' => $room->entry_currency_id
+                    ? ($currencySymbols[$room->entry_currency_id] ?? null)
+                    : null,
+                'prize_currency_symbol' => $room->prize_currency_id
+                    ? ($currencySymbols[$room->prize_currency_id] ?? null)
+                    : null,
+            ]);
+        });
+
+        // ── Categorías disponibles para filtro ────────────────────────────────
+        $categories = $pgsql->table('trivia_rooms')
+            ->whereNull('deleted_at')
+            ->whereIn('status', ['waiting', 'playing'])
+            ->whereNotNull('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category')
+            ->all();
+
+        // ── Stats rápidas ─────────────────────────────────────────────────────
+        $stats = [
+            'waiting' => $pgsql->table('trivia_rooms')->whereNull('deleted_at')->where('status', 'waiting')->count(),
+            'playing' => $pgsql->table('trivia_rooms')->whereNull('deleted_at')->where('status', 'playing')->count(),
+            'total'   => $pgsql->table('trivia_rooms')->whereNull('deleted_at')->whereIn('status', ['waiting', 'playing'])->count(),
+        ];
+
         return Inertia::render('Trivia/Lobby', [
-            'coins' => $coins,
-            'wallet' => $wallet,
+            'rooms'      => $rooms,
+            'categories' => $categories,
+            'stats'      => $stats,
+            'filters'    => compact('search', 'category'),
         ]);
     }
 }

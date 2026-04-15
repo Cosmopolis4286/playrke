@@ -66,7 +66,7 @@
 
   defineExpose({
     submit,
-    isValid,
+    get isValid() { return isValid.value },
     reset
   })
 </script>
@@ -104,10 +104,11 @@
           required
           input-group
           col="col-12 col-md-6"
+          :error="errors.document_number || errors.document_type_id"
         >
           <template #prepend>
             <select
-              class="custom-select"
+              :class="['custom-select', { 'is-invalid': !!errors.document_type_id }]"
               v-model="form.document_type_id"
               required
             >

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Games\Trivia\Room;
 
 use App\Http\Controllers\Controller;
-use App\Models\Games\Trivia\TriviaMulti;
-use App\Models\Coin;
+use App\Models\Games\Trivia\TriviaRoom;
+use App\Models\Currency;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -31,7 +31,7 @@ final class TriviaRoomController extends Controller
      */
     public function index(): Response
     {
-        $rooms = TriviaMulti::with(['Coin', 'Creator'])
+        $rooms = TriviaRoom::with(['participants'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -46,11 +46,11 @@ final class TriviaRoomController extends Controller
      */
     public function create(): Response
     {
-        $coins = Coin::where('status', 1)->get();
+        $currencies = Currency::where('status', 1)->get();
 
         return Inertia::render('Modules/Admin/Trivia/RoomsCreate', [
             'title' => 'Crear Sala de Trivia',
-            'coins' => $coins
+            'currencies' => $currencies
         ]);
     }
 
@@ -61,7 +61,7 @@ final class TriviaRoomController extends Controller
     {
         $validated = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'coin' => 'required|exists:coins,name',
+            'currency_id' => 'required|exists:currencies,id',
             'players' => 'required|integer|min:2|max:100',
             'prize' => 'required|numeric|min:0',
             'questions_count' => 'required|integer|min:1|max:50',
@@ -77,20 +77,25 @@ final class TriviaRoomController extends Controller
         try {
             DB::beginTransaction();
 
-            $coin = Coin::where('name', $request->coin)->first();
+            $currency = Currency::findOrFail($request->currency_id);
 
             // Crear la sala de trivia
-            $room = TriviaMulti::create([
-                'name' => $request->name,
-                'coin' => $coin->id,
-                'players' => $request->players,
-                'prize' => $request->prize,
-                'questions_count' => $request->questions_count,
+            $room = TriviaRoom::create([
+                'code' => strtoupper(substr(uniqid(), -6)),
+                'host_id' => auth()->user()->id,
+                'title' => $request->name,
+                'description' => $request->description ?? null,
+                'status' => 'waiting',
+                'max_players' => $request->players,
+                'question_count' => $request->questions_count,
                 'time_per_question' => $request->time_per_question,
-                'status' => 1, // Activa
-                'fecha' => now()->format('Y-m-d'),
-                'hora' => now()->format('H:i:s'),
-                'created_by' => auth()->user()->id,
+                'entry_currency_type' => 'fixed',
+                'entry_currency_id' => $currency->id,
+                'entry_fee' => $request->entry_fee ?? 0,
+                'prize_type' => 'fixed',
+                'prize_amount' => $request->prize,
+                'prize_currency_id' => $currency->id,
+                'scheduled_at' => $request->scheduled_at ?? now()->addMinutes(30),
             ]);
 
             DB::commit();
@@ -117,13 +122,11 @@ final class TriviaRoomController extends Controller
      */
     public function show($id): Response
     {
-        $room = TriviaMulti::with(['Coin', 'Creator', 'Questions'])
-            ->findOrFail($id);
+        $room = TriviaRoom::with(['participants'])->findOrFail($id);
 
-        $players = DB::table('triv_multi_user')
-            ->join('users', 'users.id', 'triv_multi_user.user')
-            ->where('triv_multi_user.room', $id)
-            ->select('users.name', 'users.email', 'triv_multi_user.*')
+        $players = DB::connection('pgsql_trivia')->table('trivia_participants')
+            ->where('room_id', $id)
+            ->whereNotNull('user_id')
             ->get();
 
         return Inertia::render('Modules/Admin/Trivia/RoomsShow', [
@@ -138,13 +141,13 @@ final class TriviaRoomController extends Controller
      */
     public function edit($id): Response
     {
-        $room = TriviaMulti::with(['Coin'])->findOrFail($id);
-        $coins = Coin::where('status', 1)->get();
+        $room = TriviaRoom::findOrFail($id);
+        $currencies = Currency::where('status', 1)->get();
         
         return Inertia::render('Modules/Admin/Trivia/RoomsEdit', [
             'title' => 'Editar Sala de Trivia',
             'room' => $room,
-            'coins' => $coins
+            'currencies' => $currencies
         ]);
     }
 
@@ -153,7 +156,7 @@ final class TriviaRoomController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $room = TriviaMulti::findOrFail($id);
+        $room = TriviaRoom::findOrFail($id);
 
         $validated = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -198,13 +201,13 @@ final class TriviaRoomController extends Controller
      */
     public function destroy($id)
     {
-        $room = TriviaMulti::findOrFail($id);
+        $room = TriviaRoom::findOrFail($id);
 
         try {
             // Verificar que no haya jugadores activos en la sala
-            $activePlayers = DB::table('triv_multi_user')
-                ->where('room', $id)
-                ->whereIn('lose_win', [0, 1])
+            $activePlayers = DB::connection('pgsql_trivia')->table('trivia_participants')
+                ->where('room_id', $id)
+                ->whereIn('status', ['registered', 'confirmed', 'playing'])
                 ->count();
 
             if ($activePlayers > 0) {
@@ -234,10 +237,10 @@ final class TriviaRoomController extends Controller
      */
     public function toggleStatus($id)
     {
-        $room = TriviaMulti::findOrFail($id);
+        $room = TriviaRoom::findOrFail($id);
 
         try {
-            $newStatus = $room->status == 1 ? 0 : 1;
+            $newStatus = $room->status === 'waiting' ? 'cancelled' : 'waiting';
             $room->update(['status' => $newStatus]);
 
             Session::flash('message', 'Estado de la sala actualizado correctamente.');

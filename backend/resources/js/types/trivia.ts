@@ -20,6 +20,7 @@ export interface Player {
   id: string
   name: string
   roomCode: string
+  joinedAt?: string | null   // ISO timestamp de inscripción
   score?: number
   correctAnswers?: number
   wrongAnswers?: number

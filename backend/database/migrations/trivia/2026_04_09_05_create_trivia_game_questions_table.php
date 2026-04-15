@@ -20,6 +20,7 @@ return new class extends Migration
             $table->timestamp('answered_at')->nullable(); // Momento de cierre (respuestas o timeout)
             $table->unsignedInteger('question_duration_ms')->nullable(); // Duración real para analytics
             $table->timestamps();
+            $table->softDeletes();
 
             $table->foreign('game_id')->references('id')->on('trivia_games')->onDelete('cascade');
             $table->foreign('question_id')->references('id')->on('trivia_questions')->onDelete('cascade');

@@ -75,6 +75,14 @@ interface NotificationRepositoryInterface
     public function delete(string $notificationId): bool;
 
     /**
+     * Eliminar todas las notificaciones de un usuario
+     *
+     * @param string $userId
+     * @return int Número de notificaciones eliminadas
+     */
+    public function deleteAllForUser(string $userId): int;
+
+    /**
      * Encontrar una notificación por su ID
      *
      * @param string $notificationId

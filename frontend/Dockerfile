@@ -19,8 +19,9 @@ ENV NODE_ENV=development
 # ============================================
 FROM base AS dependencies
 
-# Copiar package.json y lockfile para instalación determinista
-COPY package.json pnpm-lock.yaml ./
+# Copiar package.json y lockfile si existe
+COPY package.json ./
+COPY pnpm-lock.yaml* ./
 
 # Instalar dependencias sin frozen-lockfile (monorepo)
 RUN pnpm install

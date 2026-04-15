@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('category', 50)->nullable();
             $table->string('difficulty', 10)->default('medium'); // easy, medium, hard
             $table->timestamps();
+            $table->softDeletes();
 
             // Índices críticos para performance
             $table->index(['category', 'difficulty']); // Cubre: category, category+difficulty

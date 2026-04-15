@@ -8,9 +8,10 @@
 | Organizadas por responsabilidades siguiendo el patrón de Bingo
 */
 
-use App\Http\Controllers\Games\Trivia\Room\TriviaRoomController;
+use App\Http\Controllers\Games\Trivia\Room\TriviaRoomAdminController;
 use App\Http\Controllers\Games\Trivia\Report\TriviaReportController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaGameController;
+use App\Http\Controllers\Games\Trivia\Game\TriviaGamesController;
 use App\Http\Controllers\Games\Trivia\Question\TriviaQuestionController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,43 +30,48 @@ Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:admin,supera
 // ====================================
 // RUTAS DE SALAS MULTIUSUARIO (ADMIN)
 // ====================================
-Route::prefix('trivia-rooms')->name('trivia-rooms.')->middleware(['auth', 'role:admin,superadmin'])->group(function () {
-    Route::get('/', [TriviaRoomController::class, 'index'])->name('index');
-    Route::get('/create', [TriviaRoomController::class, 'create'])->name('create');
-    Route::post('/', [TriviaRoomController::class, 'store'])->name('store');
-    Route::get('/{id}/edit', [TriviaRoomController::class, 'edit'])->name('edit');
-    Route::put('/{id}', [TriviaRoomController::class, 'update'])->name('update');
-    Route::delete('/{id}', [TriviaRoomController::class, 'destroy'])->name('destroy');
-    Route::get('/{id}/show', [TriviaRoomController::class, 'show'])->name('show');
-    Route::patch('/{id}/status', [TriviaRoomController::class, 'toggleStatus'])->name('toggle-status');
+// Nuevo sistema Domain-Driven (TriviaRoom en PostgreSQL + Redis)
+Route::prefix('trivia-rooms')->name('trivia-rooms-admin.')->middleware(['auth', 'role:admin,superadmin'])->group(function () {
+    Route::get('/', [TriviaRoomAdminController::class, 'index'])->name('index');
+    Route::get('/create', [TriviaRoomAdminController::class, 'create'])->name('create');
+    Route::post('/', [TriviaRoomAdminController::class, 'store'])->name('store');
+    Route::get('/{id}', [TriviaRoomAdminController::class, 'show'])->name('show');
+    Route::get('/{id}/edit', [TriviaRoomAdminController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [TriviaRoomAdminController::class, 'update'])->name('update');
+    Route::delete('/{id}', [TriviaRoomAdminController::class, 'destroy'])->name('destroy');
+    Route::post('/{id}/force-close', [TriviaRoomAdminController::class, 'forceClose'])->name('force-close');
 });
 
 // ====================================
-// RUTAS DE PREGUNTAS (ADMIN)
+// RUTAS DE PREGUNTAS - BANCO GLOBAL (ADMIN)
+// roomId="all" → banco completo; roomId={id} → filtro futuro por sala
 // ====================================
 Route::prefix('trivia-questions')->name('trivia-questions.')->middleware(['auth', 'role:admin,superadmin'])->group(function () {
-    Route::get('/room/{roomId}', [TriviaQuestionController::class, 'index'])->name('index');
-    Route::get('/room/{roomId}/create', [TriviaQuestionController::class, 'create'])->name('create');
-    Route::post('/room/{roomId}', [TriviaQuestionController::class, 'store'])->name('store');
-    Route::get('/room/{roomId}/{questionId}/show', [TriviaQuestionController::class, 'show'])->name('show');
-    Route::get('/room/{roomId}/{questionId}/edit', [TriviaQuestionController::class, 'edit'])->name('edit');
-    Route::put('/room/{roomId}/{questionId}', [TriviaQuestionController::class, 'update'])->name('update');
-    Route::delete('/room/{roomId}/{questionId}', [TriviaQuestionController::class, 'destroy'])->name('destroy');
-    Route::post('/room/{roomId}/import', [TriviaQuestionController::class, 'import'])->name('import');
+    Route::get('/room/{roomId}',                          [TriviaQuestionController::class, 'index'])->name('index');
+    Route::get('/room/{roomId}/create',                   [TriviaQuestionController::class, 'create'])->name('create');
+    Route::post('/room/{roomId}',                         [TriviaQuestionController::class, 'store'])->name('store');
+    Route::get('/room/{roomId}/{questionId}/show',        [TriviaQuestionController::class, 'show'])->name('show');
+    Route::get('/room/{roomId}/{questionId}/edit',        [TriviaQuestionController::class, 'edit'])->name('edit');
+    Route::put('/room/{roomId}/{questionId}',             [TriviaQuestionController::class, 'update'])->name('update');
+    Route::delete('/room/{roomId}/{questionId}',          [TriviaQuestionController::class, 'destroy'])->name('destroy');
+    Route::post('/room/{roomId}/import',                  [TriviaQuestionController::class, 'import'])->name('import');
+    Route::patch('/room/{roomId}/{questionId}/toggle-active', [TriviaQuestionController::class, 'toggleActive'])->name('toggle-active');
 });
 
 // ====================================
-// RUTAS DE JUEGO (USUARIOS)
+// RUTAS DE JUEGO (USUARIOS — solo rol player)
 // ====================================
-Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth'])->group(function () {
-    // Salas de trivia para usuarios
+Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth', 'role:player'])->group(function () {
+    // Salas de trivia para usuarios (legacy)
     Route::get('/rooms/{coin}', [TriviaGameController::class, 'rooms'])->name('rooms');
-    Route::post('/room/{id}/join', [TriviaGameController::class, 'room'])->name('join');
     Route::get('/room/{id}/in-game', [TriviaGameController::class, 'inGame'])->name('in-game');
     Route::get('/room/{id}/timer', [TriviaGameController::class, 'timer'])->name('timer');
     Route::get('/room/{id}/info', [TriviaGameController::class, 'roomInfo'])->name('room-info');
     Route::post('/room/{id}/leave', [TriviaGameController::class, 'leaveRoom'])->name('leave-room');
-    
+
+    // Unirse a sala (nuevo sistema — solo players)
+    Route::post('/room/{id}/join', [TriviaGameController::class, 'room'])->name('join');
+
     // Trivia individual
     Route::get('/individual/{id}', [TriviaGameController::class, 'individual'])->name('individual');
     Route::post('/individual/check', [TriviaGameController::class, 'checkIndividual'])->name('individual.check');
@@ -74,28 +80,33 @@ Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth'])->group
 // ====================================
 // RUTAS PARA SIDEBAR MENÚ (NUEVAS)
 // ====================================
-Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function () {
-    // Lobby - Sala de espera para jugar
+
+// ── Solo rol player: lobby y sala de espera ───────────────────────────────────
+Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:player'])->group(function () {
     Route::get('/lobby', [TriviaGameController::class, 'lobby'])->name('lobby');
-    
+    Route::get('/room/{code}/wait', [TriviaGameController::class, 'waitingRoom'])->name('room.wait');
+    Route::get('/room/{code}/state', [TriviaGameController::class, 'roomState'])->name('room.state');
+});
+
+// ── Todos los usuarios autenticados: estadísticas, partidas, leaderboard ──────
+Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function () {
     // Alias para rooms (compatibility con sidebar)
     Route::get('/rooms', function () {
-        return redirect()->route('trivia-rooms.index');
+        return redirect()->route('trivia-rooms-admin.index');
     })->name('rooms.index');
-    
+
     // Alias para questions (compatibility con sidebar)
     Route::get('/questions', function () {
         return redirect()->route('trivia-questions.index', ['roomId' => 'all']);
     })->name('questions.index');
-    
-    // Alias para games/partidas (compatibility con sidebar)
-    Route::get('/games', function () {
-        return redirect()->route('trivia.index');
-    })->name('games.index');
-    
+
+    // Partidas — historial y detalle
+    Route::get('/games',      [TriviaGamesController::class, 'index'])->name('games.index');
+    Route::get('/games/{id}', [TriviaGamesController::class, 'show'])->name('games.show');
+
     // Leaderboard / Clasificación
     Route::get('/leaderboard', [TriviaReportController::class, 'leaderboard'])->name('leaderboard');
-    
+
     // Estadísticas
     Route::get('/stats', [TriviaReportController::class, 'stats'])->name('stats');
 });

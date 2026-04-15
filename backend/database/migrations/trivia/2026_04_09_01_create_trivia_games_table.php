@@ -23,6 +23,7 @@ return new class extends Migration
             $table->timestamp('ended_at')->nullable();
             $table->jsonb('metadata')->nullable(); // Datos adicionales (jsonb para PostgreSQL)
             $table->timestamps();
+            $table->softDeletes();
 
             $table->index('status');
             $table->index(['room_id', 'status']);

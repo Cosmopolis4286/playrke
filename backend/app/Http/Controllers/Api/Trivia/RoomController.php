@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Trivia;
 
-use App\Domains\Trivia\Actions\JoinRoomAction;
-use App\Domains\Trivia\Contracts\RoomServiceInterface;
-use App\Domains\Trivia\DTOs\RoomDTO;
+use App\Domains\Games\Trivia\Actions\JoinRoomAction;
+use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
+use App\Domains\Games\Trivia\DTOs\RoomDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Trivia\CreateRoomRequest;
 use App\Http\Requests\Trivia\JoinRoomRequest;

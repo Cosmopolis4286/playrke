@@ -27,7 +27,16 @@ class MultiPermissionMiddleware
         }
 
         // El superadmin tiene acceso total, sin necesidad de permisos explícitos
-        if ($user->hasRole('superadmin')) {
+        // Verificar en ambas tablas: role_user (relación personalizada) y model_has_roles (Spatie)
+        $isSuperadmin = $user->hasRole('superadmin')
+            || \DB::table('model_has_roles')
+                ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+                ->where('model_has_roles.model_id', $user->id)
+                ->where('model_has_roles.model_type', 'App\Models\User')
+                ->where('roles.name', 'superadmin')
+                ->exists();
+
+        if ($isSuperadmin) {
             return $next($request);
         }
 

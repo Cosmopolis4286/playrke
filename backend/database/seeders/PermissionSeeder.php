@@ -135,7 +135,6 @@ class PermissionSeeder extends Seeder
             ['name' => 'wallet.movements', 'guard_name' => 'web', 'description' => 'Ver movimientos de billetera'],
             ['name' => 'wallet.movements.view', 'guard_name' => 'web', 'description' => 'Ver todos los movimientos de billetera (admin)'],
             ['name' => 'wallet.movements.manage', 'guard_name' => 'web', 'description' => 'Gestionar movimientos de billetera (admin)'],
-            ['name' => 'games.trivia.stats.export', 'guard_name' => 'web', 'description' => 'Exportar estadísticas de trivia'],
 
             // Permisos de SuperAdmin (acceso total)
             ['name' => 'superadmin.access', 'guard_name' => 'web', 'description' => 'Acceso total al sistema'],

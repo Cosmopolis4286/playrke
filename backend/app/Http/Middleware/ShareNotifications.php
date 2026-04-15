@@ -24,34 +24,17 @@ class ShareNotifications
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Solo para usuarios autenticados
+        // Las notificaciones se cargan desde la API en el navbar (datos siempre frescos).
+        // Solo compartimos el unread_count para el badge inicial antes de que cargue JS.
         if (auth()->check()) {
             try {
-                // Obtener notificaciones no leídas
-                $unreadNotifications = $this->notificationService->getUnreadNotifications(10);
                 $unreadCount = $this->notificationService->getUnreadCount();
-
-                // Compartir con todas las vistas
-                View::share('unreadNotifications', $unreadNotifications);
                 View::share('unreadCount', $unreadCount);
-                View::share('formattedNotifications', $this->notificationService->formatNotifications($unreadNotifications));
-
             } catch (\Exception $e) {
-                \Log::error('ShareNotifications: Error al cargar notificaciones', [
-                    'error' => $e->getMessage(),
-                    'user_id' => auth()->id(),
-                ]);
-
-                // Compartir valores vacíos en caso de error
-                View::share('unreadNotifications', collect([]));
                 View::share('unreadCount', 0);
-                View::share('formattedNotifications', []);
             }
         } else {
-            // Usuario no autenticado
-            View::share('unreadNotifications', collect([]));
             View::share('unreadCount', 0);
-            View::share('formattedNotifications', []);
         }
 
         return $next($request);

@@ -56,10 +56,11 @@ class Notification extends Model
      * Tipos de notificación disponibles
      */
     public const TYPES = [
-        'WALLET_UPDATED' => 'Actualización de Billetera',
-        'GAME_ALERT' => 'Alerta de Juego',
-        'SYSTEM' => 'Sistema',
-        'PROMOTION' => 'Promoción',
+        'WALLET_UPDATED'      => 'Actualización de Billetera',
+        'WALLET_ADMIN_ALERT'  => 'Movimiento Pendiente (Admin)',
+        'GAME_ALERT'          => 'Alerta de Juego',
+        'SYSTEM'              => 'Sistema',
+        'PROMOTION'           => 'Promoción',
     ];
 
     /**

@@ -27,7 +27,10 @@ Route::middleware(['auth', 'web'])->prefix('notifications')->group(function () {
     
     // Marcar todas las notificaciones como leídas
     Route::post('mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
-    
+
+    // Eliminar todas las notificaciones del usuario
+    Route::delete('/', [NotificationController::class, 'clearAll'])->name('notifications.clear-all');
+
     // Eliminar notificación
     Route::delete('{id}', [NotificationController::class, 'destroy'])->name('notifications.delete');
 });

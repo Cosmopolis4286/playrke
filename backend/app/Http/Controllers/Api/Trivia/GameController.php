@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Trivia;
 
-use App\Domains\Trivia\Actions\FinishGameAction;
-use App\Domains\Trivia\Actions\StartGameAction;
-use App\Domains\Trivia\Contracts\GameEngineInterface;
-use App\Domains\Trivia\Contracts\RoomServiceInterface;
-use App\Domains\Trivia\Contracts\ScoreServiceInterface;
+use App\Domains\Games\Trivia\Actions\FinishGameAction;
+use App\Domains\Games\Trivia\Actions\StartGameAction;
+use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
+use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
+use App\Domains\Games\Trivia\Contracts\ScoreServiceInterface;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Trivia\StartGameRequest;
 use App\Http\Requests\Trivia\SubmitAnswerRequest;
@@ -104,7 +104,7 @@ class GameController extends Controller
         $user = $request->user();
 
         try {
-            $result = \App\Domains\Trivia\Actions\SubmitAnswerAction::execute(
+            $result = \App\Domains\Games\Trivia\Actions\SubmitAnswerAction::execute(
                 // Nota: En producción, inyectar via constructor
                 gameId: $gameId,
                 playerId: (string) $user->id,

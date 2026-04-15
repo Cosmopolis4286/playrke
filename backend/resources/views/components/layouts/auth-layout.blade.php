@@ -28,7 +28,6 @@
 
         {{-- Notificaciones globales --}}
         @include('includes.notifications')
-        @include('includes.notifications-debug')
 
         {{-- Contenido principal --}}
         <main class="content-wrapper flex-grow-1 d-flex flex-column">
@@ -41,7 +40,7 @@
             @endisset
 
             {{-- Contenido de la página --}}
-            <section @class([
+            <section id="content-scrollable" @class([
                 'content flex-grow-1 overflow-auto',
                 'mt-2' => !$contentHeader,
             ])>

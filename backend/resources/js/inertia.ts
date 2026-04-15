@@ -27,9 +27,9 @@ createInertiaApp({
         const pageImport = pages[path]
 
         if (!pageImport) {
-            const notFound = pages['/resources/js/Pages/Errors/404.vue']
-            if (!notFound) throw new Error('[Inertia] Falta Pages/Errors/404.vue')
-            return (await notFound()).default
+            const errorPage = pages['/resources/js/Pages/Errors/Error.vue']
+            if (!errorPage) throw new Error('[Inertia] Falta Pages/Errors/Error.vue')
+            return (await errorPage()).default
         }
 
         const module = await pageImport()

@@ -2,13 +2,13 @@
 
 namespace Tests\Unit\Domains\Trivia\Services;
 
-use App\Domains\Trivia\DTOs\GameStateDTO;
-use App\Domains\Trivia\Services\GameEngineService;
-use App\Domains\Trivia\Services\RoomService;
-use App\Domains\Trivia\Services\ScoreService;
-use App\Domains\Trivia\Repositories\RedisGameStateRepository;
-use App\Domains\Trivia\Models\TriviaRoom;
-use App\Domains\Trivia\Models\TriviaQuestion;
+use App\Domains\Games\Trivia\DTOs\GameStateDTO;
+use App\Domains\Games\Trivia\Services\GameEngineService;
+use App\Domains\Games\Trivia\Services\RoomService;
+use App\Domains\Games\Trivia\Services\ScoreService;
+use App\Domains\Games\Trivia\Repositories\RedisGameStateRepository;
+use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Domains\Games\Trivia\Models\TriviaQuestion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Redis;
 use Tests\TestCase;

@@ -1,5 +1,5 @@
 import { ref, computed, readonly } from 'vue'
-import { backendClient as axios } from '../../plugins/axios'
+import { backendClient as axios } from '../plugins/axios'
 
 export interface Achievement {
   id: string
