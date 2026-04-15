@@ -72,6 +72,7 @@ final class BingoGameService
             'customerLogo' => null, // Se puede configurar según necesidad
             'currencySym' => '$', // Configurable según moneda de la sala
             'prizePool' => (float) $bingoRoom->prize_pool,
+            'totalPlayers' => (int) $bingoRoom->total_players,
             'prizePoolType' => 'Premio',
             'round' => 1, // Obtener de la configuración del juego
             'rounds' => $rounds->count(), // Número de rondas desde la relación
