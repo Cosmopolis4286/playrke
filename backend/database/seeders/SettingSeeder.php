@@ -3,32 +3,105 @@
 namespace Database\Seeders;
 
 use App\Models\Setting;
-use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
 
 class SettingSeeder extends Seeder
 {
     public function run(): void
     {
-        $snowflake = new Snowflake();
-        $timestamp = now();
+        $settings = [
 
-        $entries = [
-            ['param' => 'LOGIN', 'status' => 'ACTIVE', 'created_at' => $timestamp, 'updated_at' => $timestamp],
-            ['param' => 'REGISTER', 'status' => 'ACTIVE', 'created_at' => $timestamp, 'updated_at' => $timestamp],
+            // ─────────────────────────────────────────────
+            // AUTENTICACIÓN
+            // ─────────────────────────────────────────────
+            // Habilita/deshabilita el formulario de registro público.
+            // Consumido por: AuthenticatedSessionController, RegisteredUserController, PublicController
+            ['param' => 'register',          'value' => 'ACTIVE',            'status' => 'ACTIVE'],
+
+            // Habilita/deshabilita el acceso al login.
+            ['param' => 'login',             'value' => 'ACTIVE',            'status' => 'ACTIVE'],
+
+            // ─────────────────────────────────────────────
+            // APLICACIÓN
+            // ─────────────────────────────────────────────
+            // Nombre visible de la plataforma (usado en emails, UI).
+            ['param' => 'app_name',          'value' => 'PlayRKE',           'status' => 'ACTIVE'],
+
+            // Versión actual de la plataforma.
+            // Consumido por: VersionManagerService vía config('app.version')
+            ['param' => 'app_version',       'value' => '1.0.0',             'status' => 'ACTIVE'],
+
+            // Zona horaria por defecto de la plataforma.
+            // Consumido por: BingoController, GameTrait, RoomClosureService vía config('app.timezone')
+            ['param' => 'timezone',          'value' => 'America/Caracas',   'status' => 'ACTIVE'],
+
+            // Modo de mantenimiento global. ACTIVE = en mantenimiento.
+            ['param' => 'maintenance_mode',  'value' => 'INACTIVE',          'status' => 'ACTIVE'],
+
+            // ─────────────────────────────────────────────
+            // REGISTRO DE USUARIOS
+            // ─────────────────────────────────────────────
+            // Requiere verificación de email tras el registro.
+            ['param' => 'email_verification', 'value' => 'INACTIVE',         'status' => 'ACTIVE'],
+
+            // Número máximo de intentos de login antes de bloqueo temporal.
+            ['param' => 'max_login_attempts', 'value' => '5',                'status' => 'ACTIVE'],
+
+            // ─────────────────────────────────────────────
+            // COMISIONES GLOBALES
+            // ─────────────────────────────────────────────
+            // Comisión base de la plataforma (%) sobre ventas de cartones.
+            // Usado como valor por defecto en salas sin comisión personalizada.
+            ['param' => 'rke_commission_pct', 'value' => '5.00',             'status' => 'ACTIVE'],
+
+            // Comisión máxima permitida que puede configurar un commerce (%).
+            ['param' => 'max_room_commission_pct', 'value' => '30.00',       'status' => 'ACTIVE'],
+
+            // ─────────────────────────────────────────────
+            // BINGO – LÍMITES DE CARTONES
+            // ─────────────────────────────────────────────
+            // Mínimo de cartones por compra.
+            ['param' => 'bingo_min_cards_per_purchase', 'value' => '1',      'status' => 'ACTIVE'],
+
+            // Máximo de cartones por compra.
+            ['param' => 'bingo_max_cards_per_purchase', 'value' => '10',     'status' => 'ACTIVE'],
+
+            // Máximo de cartones totales por jugador por sala.
+            ['param' => 'bingo_max_cards_per_player',   'value' => '20',     'status' => 'ACTIVE'],
+
+            // ─────────────────────────────────────────────
+            // BINGO – JUEGO
+            // ─────────────────────────────────────────────
+            // Tiempo (segundos) entre cada bolilla sorteada.
+            ['param' => 'bingo_chip_interval_sec',  'value' => '5',          'status' => 'ACTIVE'],
+
+            // Tiempo (segundos) de espera tras declarar un ganador antes de cerrar la ronda.
+            ['param' => 'bingo_winner_wait_sec',    'value' => '30',         'status' => 'ACTIVE'],
+
+            // ─────────────────────────────────────────────
+            // BILLETERA
+            // ─────────────────────────────────────────────
+            // Monto mínimo permitido en una recarga de billetera.
+            ['param' => 'wallet_min_recharge',  'value' => '1.00',           'status' => 'ACTIVE'],
+
+            // Monto máximo permitido en una recarga de billetera.
+            ['param' => 'wallet_max_recharge',  'value' => '10000.00',       'status' => 'ACTIVE'],
+
+            // ─────────────────────────────────────────────
+            // SOPORTE / CONTACTO
+            // ─────────────────────────────────────────────
+            ['param' => 'support_email',     'value' => 'soporte@playrke.com', 'status' => 'ACTIVE'],
+            ['param' => 'support_whatsapp',  'value' => '',                    'status' => 'INACTIVE'],
+
         ];
 
-        foreach ($entries as &$entry) {
-            // Agregar ID Snowflake
-            $entry['id'] = $snowflake->id();
-        }
-
-        // Inserción usando upsert para evitar duplicados
-        foreach ($entries as $entry) {
+        foreach ($settings as $data) {
             Setting::updateOrCreate(
-                ['param' => $entry['param']], // Condición única
-                $entry
+                ['param' => $data['param']],
+                ['value' => $data['value'], 'status' => $data['status']]
             );
         }
+
+        $this->command->info('✔ SettingSeeder: ' . count($settings) . ' parámetros procesados.');
     }
 }
