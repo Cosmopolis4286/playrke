@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Games\Bingo\Card;
 use App\DTOs\Games\Bingo\Card\Generate\BingoCardGenerateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;

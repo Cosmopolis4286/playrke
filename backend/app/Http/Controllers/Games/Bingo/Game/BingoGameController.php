@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Games\Bingo\Game;
 
 use App\Http\Controllers\Controller;
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;

@@ -8,8 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Events\Games\Bingo\BingoNumberCalled;
 
 // Models
-use App\Models\Games\Bingo\Card\CardPrice\BingoCardPrice;
-use App\Models\Games\Bingo\Card\CardPrice\BingoCardPriceAutomatic;
+use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
+use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPriceAutomatic;
 use App\Models\BingoCtns;
 use App\Models\BingoCtnsLot;
 use App\Models\BingoDraw;

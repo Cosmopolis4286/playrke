@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Games\Bingo\Room;
 
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Repositories\BaseRepository;
 use App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface;
 use App\Models\Games\Common\Utils\GameStatus;
@@ -267,7 +267,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             ->where('bingo_rooms.creator_user_id', $userId)
             ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'creator_user_id', 'status_id'])
             ->orderBy(
-                \App\Models\Games\Bingo\Room\BingoRoomConfig::select('time')
+                \App\Domains\Games\Bingo\Models\Room\BingoRoomConfig::select('time')
                     ->whereColumn('room_id', 'bingo_rooms.id')
                     ->limit(1)
             )
@@ -289,9 +289,10 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
     public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false): Collection
     {
         $with = [
-            'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id',
+            'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id,game_mode_id',
             'config.prizePoolType:id,code,label',
             'config.roomType:id,code,label',
+            'config.gameMode:id,code,label',
             'status:id,code',
         ];
 
@@ -318,7 +319,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
         }
 
         return $query->orderBy(
-            \App\Models\Games\Bingo\Room\BingoRoomConfig::select('time')
+            \App\Domains\Games\Bingo\Models\Room\BingoRoomConfig::select('time')
                 ->whereColumn('room_id', 'bingo_rooms.id')
                 ->limit(1)
         )->get();

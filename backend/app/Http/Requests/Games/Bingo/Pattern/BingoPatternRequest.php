@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Games\Bingo\Pattern;
 
 use App\Http\Requests\BaseRequest;
-use App\Models\Games\Bingo\Pattern\BingoPattern;
+use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Services\Auth\PermissionService;
 
 /**

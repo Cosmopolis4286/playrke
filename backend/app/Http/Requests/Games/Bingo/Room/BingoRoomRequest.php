@@ -20,7 +20,7 @@ class BingoRoomRequest extends BaseRequest
      */
     public function authorize(): bool
     {
-        return PermissionService::checkPrefix(['admin', 'commerce', 'customer']);
+        return PermissionService::checkPrefix(['superadmin', 'admin', 'commerce', 'customer']);
     }
 
     /**

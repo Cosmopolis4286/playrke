@@ -67,7 +67,8 @@ class RoleUserRepository extends BaseRepository implements RoleUserRepositoryInt
      */
     public function getActiveByUser(string $userId): Collection
     {
-        return $this->model->where('user_id', $userId)
+        return $this->model->with('role')
+            ->where('user_id', $userId)
             ->where(function ($query) {
                 $query->whereNull('expires_at')
                     ->orWhere('expires_at', '>', Carbon::now());

@@ -23,7 +23,7 @@ class BingoCardGenerateRequest extends BaseRequest
     {
         $room = $this->route('room');
 
-        if ($room instanceof \App\Models\Games\Bingo\Room\BingoRoom) {
+        if ($room instanceof \App\Domains\Games\Bingo\Models\Room\BingoRoom) {
             $this->merge(['room_id' => (string) $room->id]);
         }
     }

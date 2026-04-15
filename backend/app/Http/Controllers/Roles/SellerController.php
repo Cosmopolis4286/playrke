@@ -13,7 +13,7 @@ use App\Traits\Helpers\EncryptTrait;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\BingoCreator;
-use App\Models\Games\Bingo\Card\CardPrice\BingoCardPrice;
+use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
 use App\Models\BingoCtnsPayment;
 use App\Models\BingoPrizeCtns;
 use App\Models\Currency;

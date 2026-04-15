@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Roles\Player\External\ExternalPlayer;
-use App\Models\Games\Bingo\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Models\Game;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
