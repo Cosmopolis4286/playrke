@@ -38,6 +38,7 @@ interface Props {
   startTime?: number;
   closingRoute?: string;
   isLocal?: boolean;
+  roomId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -65,6 +66,7 @@ const props = withDefaults(defineProps<Props>(), {
   startTime: 0,
   closingRoute: "",
   isLocal: false,
+  roomId: "",
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -107,7 +109,7 @@ const prizeFormatted = computed(() => {
 
 const cardCount = computed(() => props.cartons?.length ?? 0);
 
-const roomId = computed(() => props.room?.id?.toString() ?? "");
+const roomId = computed(() => props.roomId || props.room?.id?.toString() || "");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WebSocket
