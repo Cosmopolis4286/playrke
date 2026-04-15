@@ -9,6 +9,7 @@
    * El jugador ya está autenticado — no se requieren sus datos.
    */
   import { computed } from 'vue'
+  import { router } from '@inertiajs/vue3'
   import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
   import type {
     BingoAvailableCountry,
@@ -84,6 +85,12 @@
   function onCtnsInput(e: Event) {
     const val = parseInt((e.target as HTMLInputElement).value, 10)
     if (!isNaN(val)) emit('set-ctns', val)
+  }
+
+  function goToUserCards() {
+    if (!props.selectedRoom) return
+    emit('close')
+    router.visit(`/bingo-game/${props.selectedRoom.id}/in-game`)
   }
 </script>
 
@@ -284,6 +291,14 @@
                 @click="emit('prev')"
               >
                 <i class="fas fa-arrow-left mr-1" />Atrás
+              </button>
+
+              <button
+                v-if="step === 'confirm' && currentCtns > 0"
+                class="pm-btn pm-btn--cards"
+                @click="goToUserCards"
+              >
+                <i class="fas fa-th mr-1" />Ver mis cartones
               </button>
 
               <div class="pm-footer__spacer" />
@@ -832,6 +847,17 @@
     background: linear-gradient(90deg, #2af598 0%, #009efd 100%);
     color: #051830;
     min-width: 160px;
+  }
+
+  .pm-btn--cards {
+    background: rgba(124, 157, 255, 0.12);
+    color: #7c9dff;
+    border: 1px solid rgba(124, 157, 255, 0.3);
+  }
+  .pm-btn--cards:hover {
+    background: rgba(124, 157, 255, 0.22);
+    border-color: rgba(124, 157, 255, 0.55);
+    color: #c8d8ff;
   }
 
   /* ═══════════════════════════════════════════════════════
