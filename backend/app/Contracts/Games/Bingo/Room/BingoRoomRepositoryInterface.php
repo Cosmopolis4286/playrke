@@ -150,5 +150,5 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
      * @param bool   $isCommerceCustomer Si el usuario tiene rol 'commerce' o 'customer'
      * @return Collection<BingoRoom>
      */
-    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false): Collection;
+    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false): Collection;
 }

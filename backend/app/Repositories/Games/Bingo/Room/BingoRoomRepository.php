@@ -286,7 +286,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
      * @param bool   $isCommerceCustomer Si el usuario tiene rol 'commerce' o 'customer'
      * @return Collection<BingoRoom>
      */
-    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false): Collection
+    public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false): Collection
     {
         $with = [
             'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id,game_mode_id',
@@ -307,14 +307,16 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             ->whereHas('config', fn($q) => $q->whereDate('date', $today))
             ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'creator_user_id', 'status_id']);
 
-        // Si el usuario es player, aplicar filtro de room_type PUBLIC
         if ($isPlayer) {
+            // Players: solo salas públicas
             $query->whereHas('config.roomType', fn($q) => $q->where('code', 'PUBLIC'));
         } elseif ($isCommerceCustomer) {
-            // Para roles commerce/customer, filtrar por from_house = N
+            // Commerce/customer: solo salas de usuarios (from_house = N)
             $query->whereHas('config', fn($q) => $q->where('from_house', 'N'));
+        } elseif ($isAdmin) {
+            // Admin/superadmin: todas las salas sin filtro adicional
         } else {
-            // Para otros roles, filtrar por creador (comportamiento original)
+            // Fallback: solo las salas propias
             $query->where('bingo_rooms.creator_user_id', $userId);
         }
 

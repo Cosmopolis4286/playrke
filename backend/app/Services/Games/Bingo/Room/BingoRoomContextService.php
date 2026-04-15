@@ -157,11 +157,12 @@ final class BingoRoomContextService
         $today = now()->toDateString();
 
         // Verificar roles del usuario
-        $isPlayer = $this->userContext->userHasRole('player');
+        $isPlayer          = $this->userContext->userHasRole('player');
         $isCommerceCustomer = $this->userContext->userHasRole('commerce') || $this->userContext->userHasRole('customer');
+        $isAdmin           = $this->userContext->userHasRole('admin') || $this->userContext->userHasRole('superadmin');
 
         // Usar el nuevo método con filtrado por rol
-        $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, $today, $isPlayer, $isCommerceCustomer);
+        $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, $today, $isPlayer, $isCommerceCustomer, $isAdmin);
 
         $timestamp = now()->valueOf(); // ms
 
