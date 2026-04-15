@@ -1,16 +1,18 @@
 <script setup lang="ts">
+  import { ref, onMounted, onUnmounted } from 'vue'
   import { useHead } from '@vueuse/head'
   import '@/css/layout/guest-layout.css'
   import '@fortawesome/fontawesome-free/css/all.min.css'
+  import InfoModal from '@js/Components/Auth/InfoModal.vue'
 
-  // Definir las props con sus tipos explícitos
+  type ModalKey = 'terms' | 'about' | 'privacy'
+
   const props = defineProps<{
     title?: string
     bgImg?: string
     logo?: string
   }>()
 
-  // Usamos useHead para manejar el título y los metadatos
   useHead({
     title: props.title ? `PlayRKE - ${props.title}` : 'PlayRKE',
     meta: [
@@ -24,76 +26,129 @@
       }
     ],
     link: [
-      {
-        rel: 'icon',
-        type: 'image/x-icon',
-        href: '/img/fav.ico'
-      },
-      {
-        rel: 'shortcut icon',
-        type: 'image/x-icon',
-        href: '/img/fav.ico'
-      }
+      { rel: 'icon', type: 'image/x-icon', href: '/img/fav.ico' },
+      { rel: 'shortcut icon', type: 'image/x-icon', href: '/img/fav.ico' }
     ]
   })
+
+  const slides = [
+    {
+      icon: 'fa-solid fa-trophy',
+      title: '¡Compite y gana!',
+      desc: 'Participa en torneos de bingo y lleva tus ganancias al siguiente nivel.'
+    },
+    {
+      icon: 'fa-solid fa-bolt',
+      title: 'Juegos en tiempo real',
+      desc: 'Salas en vivo con miles de jugadores conectados alrededor del mundo.'
+    },
+    {
+      icon: 'fa-solid fa-coins',
+      title: 'Premios reales',
+      desc: 'Convierte tus habilidades en recompensas reales. Retiros rápidos y seguros.'
+    },
+    {
+      icon: 'fa-solid fa-shield-halved',
+      title: 'Seguro y confiable',
+      desc: 'Plataforma verificada con cifrado de extremo a extremo y soporte 24/7.'
+    }
+  ]
+
+  const current = ref(0)
+  let timer: ReturnType<typeof setInterval> | null = null
+
+  const next = () => { current.value = (current.value + 1) % slides.length }
+  const goTo = (i: number) => { current.value = i; resetTimer() }
+  const resetTimer = () => {
+    if (timer) clearInterval(timer)
+    timer = setInterval(next, 4000)
+  }
+
+  onMounted(() => { timer = setInterval(next, 4000) })
+  onUnmounted(() => { if (timer) clearInterval(timer) })
+
+  const activeModal = ref<ModalKey | null>(null)
+  const openModal = (key: ModalKey) => { activeModal.value = key }
 </script>
 
 <template>
   <main class="guest-layout">
-    <section class="guest-layout__card">
-      <!-- Header / Logo -->
-      <header class="guest-layout__header">
-        <div class="guest-layout__logo">
-          <img class="guest-layout__logo-image" :src="'./img/logo.png'" alt="PlayRKE" />
+    <!-- ── CARD SPLIT ─────────────────────────────── -->
+    <div class="guest-layout__card">
+
+      <!-- ── PANEL IZQUIERDO: carrusel ────────────── -->
+      <aside class="guest-layout__panel guest-layout__panel--left">
+        <!-- Branding -->
+        <div class="gl-panel__brand">
+          <img class="gl-panel__logo" :src="'/img/logo.png'" alt="PlayRKE" />
         </div>
-        <p class="guest-layout__tagline">
-          <slot name="tagline">Tu plataforma de juegos premium</slot>
-        </p>
-        <div class="guest-layout__header-text">
-          <slot name="header-text" />
+
+        <!-- Slides -->
+        <div class="gl-carousel">
+          <transition name="carousel-fade" mode="out-in">
+            <div :key="current" class="gl-carousel__slide">
+              <div class="gl-carousel__icon-wrap">
+                <i :class="['gl-carousel__icon', slides[current].icon]" aria-hidden="true"></i>
+              </div>
+              <h2 class="gl-carousel__title">{{ slides[current].title }}</h2>
+              <p  class="gl-carousel__desc">{{ slides[current].desc }}</p>
+            </div>
+          </transition>
         </div>
-      </header>
-      <!-- Form -->
-      <section class="guest-layout__form">
-        <slot name="form-content" />
-      </section>
-      <!-- Footer -->
-      <footer class="guest-layout__footer">
-        <aside class="guest-layout__footer-content">
-          <slot name="footer-content" />
-        </aside>
-        <section class="guest-layout__footer-socials">
-          <span class="guest-layout__copyright">PlayRKE © {{ new Date().getFullYear() }}</span>
-          <nav class="guest-layout__socials" aria-label="Social media">
-            <a
-              class="guest-layout__social-icon fab fa-facebook"
-              title="Facebook"
-              href="https://www.facebook.com/my.play.rke"
-              target="_blank"
-              aria-label="Facebook"
-            />
-            <a
-              class="guest-layout__social-icon fab fa-instagram"
-              title="Instagram"
-              href="https://www.instagram.com/my.play.rke"
-              target="_blank"
-              aria-label="Instagram"
-            />
-            <a
-              class="guest-layout__social-icon fab fa-telegram"
-              title="Telegram"
-              href="https://t.me/+rV3KWBuuKOtjYzkx"
-              target="_blank"
-              aria-label="Telegram"
-            />
-          </nav>
-        </section>
-        <nav class="guest-layout__legal">
-          <a class="guest-layout__legal-link" href="#" data-val="terms"> Terms and Conditions </a>
-          <a class="guest-layout__legal-link" href="#" data-val="about"> About Us </a>
-          <a class="guest-layout__legal-link" href="#" data-val="privacy"> Privacy </a>
+
+        <!-- Dots -->
+        <nav class="gl-carousel__dots" aria-label="Carrusel de características">
+          <button
+            v-for="(_, i) in slides"
+            :key="i"
+            class="gl-carousel__dot"
+            :class="{ 'gl-carousel__dot--active': i === current }"
+            :aria-label="`Ir a diapositiva ${i + 1}`"
+            @click="goTo(i)"
+          />
         </nav>
-      </footer>
-    </section>
+
+        <!-- Redes sociales -->
+        <nav class="gl-panel__socials" aria-label="Social media">
+          <a class="gl-panel__social-icon fab fa-facebook"  href="https://www.facebook.com/my.play.rke"  target="_blank" aria-label="Facebook" />
+          <a class="gl-panel__social-icon fab fa-instagram" href="https://www.instagram.com/my.play.rke" target="_blank" aria-label="Instagram" />
+          <a class="gl-panel__social-icon fab fa-telegram"  href="https://t.me/+rV3KWBuuKOtjYzkx"         target="_blank" aria-label="Telegram" />
+        </nav>
+      </aside>
+
+      <!-- ── PANEL DERECHO: formulario ────────────── -->
+      <section class="guest-layout__panel guest-layout__panel--right">
+        <!-- Header -->
+        <header class="guest-layout__header">
+          <p class="guest-layout__tagline">
+            <slot name="tagline">Tu plataforma de juegos premium</slot>
+          </p>
+          <div class="guest-layout__header-text">
+            <slot name="header-text" />
+          </div>
+        </header>
+
+        <!-- Form -->
+        <section class="guest-layout__form">
+          <slot name="form-content" />
+        </section>
+
+        <!-- Footer -->
+        <footer class="guest-layout__footer">
+          <aside class="guest-layout__footer-content">
+            <slot name="footer-content" />
+          </aside>
+          <nav class="guest-layout__legal">
+            <button class="guest-layout__legal-link" @click="openModal('terms')">Terms</button>
+            <button class="guest-layout__legal-link" @click="openModal('about')">About</button>
+            <button class="guest-layout__legal-link" @click="openModal('privacy')">Privacy</button>
+          </nav>
+          <span class="guest-layout__copyright">PlayRKE © {{ new Date().getFullYear() }}</span>
+        </footer>
+      </section>
+
+    </div>
+
+    <InfoModal v-model="activeModal" />
   </main>
 </template>
