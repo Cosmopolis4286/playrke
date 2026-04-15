@@ -7,31 +7,13 @@
 
   type ModalKey = 'terms' | 'about' | 'privacy'
 
-  const props = defineProps<{
-    title?: string
-    bgImg?: string
-    logo?: string
-  }>()
+  export interface CarouselSlide {
+    icon: string
+    title: string
+    desc: string
+  }
 
-  useHead({
-    title: props.title ? `PlayRKE - ${props.title}` : 'PlayRKE',
-    meta: [
-      { property: 'og:type', content: 'website' },
-      { property: 'og:url', content: 'https://www.playrke.com/' },
-      { property: 'og:site_name', content: 'PlayRKE' },
-      {
-        name: 'description',
-        content:
-          'Únete ahora. Transforma tu conocimiento, habilidad, tiempo y esfuerzo en dinero mientras juegas online.'
-      }
-    ],
-    link: [
-      { rel: 'icon', type: 'image/x-icon', href: '/img/fav.ico' },
-      { rel: 'shortcut icon', type: 'image/x-icon', href: '/img/fav.ico' }
-    ]
-  })
-
-  const slides = [
+  const DEFAULT_SLIDES: CarouselSlide[] = [
     {
       icon: 'fa-solid fa-trophy',
       title: '¡Compite y gana!',
@@ -54,10 +36,37 @@
     }
   ]
 
+  const props = defineProps<{
+    title?: string
+    bgImg?: string
+    logo?: string
+    slides?: CarouselSlide[]
+  }>()
+
+  useHead({
+    title: props.title ? `PlayRKE - ${props.title}` : 'PlayRKE',
+    meta: [
+      { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: 'https://www.playrke.com/' },
+      { property: 'og:site_name', content: 'PlayRKE' },
+      {
+        name: 'description',
+        content:
+          'Únete ahora. Transforma tu conocimiento, habilidad, tiempo y esfuerzo en dinero mientras juegas online.'
+      }
+    ],
+    link: [
+      { rel: 'icon', type: 'image/x-icon', href: '/img/fav.ico' },
+      { rel: 'shortcut icon', type: 'image/x-icon', href: '/img/fav.ico' }
+    ]
+  })
+
+  const activeSlides = props.slides?.length ? props.slides : DEFAULT_SLIDES
+
   const current = ref(0)
   let timer: ReturnType<typeof setInterval> | null = null
 
-  const next = () => { current.value = (current.value + 1) % slides.length }
+  const next = () => { current.value = (current.value + 1) % activeSlides.length }
   const goTo = (i: number) => { current.value = i; resetTimer() }
   const resetTimer = () => {
     if (timer) clearInterval(timer)
@@ -88,10 +97,10 @@
           <transition name="carousel-fade" mode="out-in">
             <div :key="current" class="gl-carousel__slide">
               <div class="gl-carousel__icon-wrap">
-                <i :class="['gl-carousel__icon', slides[current].icon]" aria-hidden="true"></i>
+                <i :class="['gl-carousel__icon', activeSlides[current].icon]" aria-hidden="true"></i>
               </div>
-              <h2 class="gl-carousel__title">{{ slides[current].title }}</h2>
-              <p  class="gl-carousel__desc">{{ slides[current].desc }}</p>
+              <h2 class="gl-carousel__title">{{ activeSlides[current].title }}</h2>
+              <p  class="gl-carousel__desc">{{ activeSlides[current].desc }}</p>
             </div>
           </transition>
         </div>
@@ -99,7 +108,7 @@
         <!-- Dots -->
         <nav class="gl-carousel__dots" aria-label="Carrusel de características">
           <button
-            v-for="(_, i) in slides"
+            v-for="(_, i) in activeSlides"
             :key="i"
             class="gl-carousel__dot"
             :class="{ 'gl-carousel__dot--active': i === current }"
