@@ -68,7 +68,8 @@ final class BingoGameService
         $gameData = [
             'title' => 'Juego de Bingo',
             'room' => $bingoRoom,
-            'roomId' => (string) $bingoRoom->id,
+            'roomId'       => (string) $bingoRoom->id,
+            'roomRouteKey' => $bingoRoom->getRouteKey(),
             'cartons' => $cartons,
             'customerLogo' => null, // Se puede configurar según necesidad
             'currencySym' => '$', // Configurable según moneda de la sala

@@ -39,6 +39,7 @@ interface Props {
   closingRoute?: string;
   isLocal?: boolean;
   roomId?: string;
+  roomRouteKey?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -67,6 +68,7 @@ const props = withDefaults(defineProps<Props>(), {
   closingRoute: "",
   isLocal: false,
   roomId: "",
+  roomRouteKey: "",
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -168,7 +170,8 @@ async function devResetTime() {
   if (devResetting.value) return;
   devResetting.value = true;
   try {
-    const res = await fetch(`/bingo-game/${roomId.value}/dev-reset-time`, {
+    const routeKey = props.roomRouteKey || roomId.value;
+    const res = await fetch(`/bingo-game/${routeKey}/dev-reset-time`, {
       method: 'POST',
       headers: {
         'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
