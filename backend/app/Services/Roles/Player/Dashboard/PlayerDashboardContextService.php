@@ -3,8 +3,8 @@
 namespace App\Services\Roles\Player\Dashboard;
 
 use App\DTOs\Roles\Player\Dashboard\PlayerDashboardContextDTO;
-use App\Models\Games\Bingo\Card\BingoCard;
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Wallet;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;

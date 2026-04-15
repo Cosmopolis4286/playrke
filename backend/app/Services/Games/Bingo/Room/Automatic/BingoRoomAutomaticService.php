@@ -5,7 +5,7 @@ namespace App\Services\Games\Bingo\Room\Automatic;
 use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticCreateDTO;
 use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticUpdateDTO;
 use App\Http\Resources\Games\Bingo\Room\Automatic\BingoRoomAutomaticResource;
-use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
 
 final class BingoRoomAutomaticService
 {

@@ -4,7 +4,7 @@ namespace App\Models\Games\Common\GameRoom;
 
 use App\Models\Game;
 use App\Models\Games\Common\GameMode\GameModes;
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Currency;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;

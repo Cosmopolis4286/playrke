@@ -59,14 +59,18 @@ final class BingoRoomContextService
         $labels  = ['Código', 'Tipo', 'Modo', 'Tipo Bote', 'Jugadores', 'Premio', 'Creación', 'Estado'];
         $rowKeys = ['id', 'config.roomType.label', 'config.gameMode.label', 'config.prizePoolType.label', 'total_players', 'prize_pool', 'created_at', 'status_badge'];
 
-        $conditions = $userId
+        // Superadmin y admin ven todas las salas; commerce/customer solo las suyas
+        $isGlobalAdmin = $this->userContext->userHasRole('superadmin')
+            || $this->userContext->userHasRole('admin');
+
+        $conditions = (!$isGlobalAdmin && $userId)
             ? ['creator_user_id' => $userId]
             : [];
 
         $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
-            relations: ['config', 'config.roomType', 'config.gameMode', 'config.prizePoolType'],
+            relations: ['config', 'config.roomType', 'config.gameMode', 'config.prizePoolType', 'status'],
             conditions: $conditions,
             fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
         );
@@ -88,10 +92,12 @@ final class BingoRoomContextService
 
         $rooms = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
-        // Enriquecer cada row con unix_date (campo meta, no visible como columna)
-        $unixDates = $collection->pluck('config.unix_date')->values()->all();
+        // Enriquecer cada row con campos meta para filtros client-side
         foreach ($rooms['rows'] as $i => &$row) {
-            $row['unix_date'] = $unixDates[$i] ?? null;
+            $model = $collection->values()->get($i);
+            $row['unix_date'] = $model?->config?->unix_date ?? null;
+            $row['from_house'] = $model?->config?->from_house ?? 'N';
+            $row['status']     = $model?->status?->code ?? null;
         }
         unset($row);
 

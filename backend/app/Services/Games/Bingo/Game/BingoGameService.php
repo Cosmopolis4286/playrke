@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Game;
 
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Games\Bingo\ExternalPlayers;
 use App\Models\User;
 use App\Services\Games\Bingo\Room\Utils\CheckExpiredBingoRoomsService;
@@ -179,7 +179,7 @@ final class BingoGameService
 
         try {
             // Obtener el room_user_id para este usuario en esta sala
-            $roomUser = \App\Models\Games\Bingo\Room\User\BingoRoomUser::where('room_id', $roomId)
+            $roomUser = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $roomId)
                 ->where('user_id', $userId)
                 ->first();
 
@@ -193,7 +193,7 @@ final class BingoGameService
             if (!$roomUser) {
                 // Si no hay room_user, intentar obtener cartones directamente por creator_room_user_id
                 \Log::info('Trying alternative method to get cartons');
-                $cards = \App\Models\Games\Bingo\Card\BingoCard::where('room_id', $roomId)
+                $cards = \App\Domains\Games\Bingo\Models\Card\BingoCard::where('room_id', $roomId)
                     ->where('creator_room_user_id', $userId)
                     ->where('status', 'active')
                     ->with(['currency', 'cardLot', 'roomUser'])
@@ -206,7 +206,7 @@ final class BingoGameService
                 ]);
             } else {
                 // Obtener los cartones del usuario usando el room_user_id
-                $cards = \App\Models\Games\Bingo\Card\BingoCard::where('room_user_id', $roomUser->id)
+                $cards = \App\Domains\Games\Bingo\Models\Card\BingoCard::where('room_user_id', $roomUser->id)
                     ->where('status', 'active')
                     ->with(['currency', 'cardLot', 'roomUser'])
                     ->orderBy('serial_number')

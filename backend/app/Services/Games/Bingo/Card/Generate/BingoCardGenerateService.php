@@ -4,14 +4,14 @@ namespace App\Services\Games\Bingo\Card\Generate;
 
 use App\DTOs\Games\Bingo\Card\Generate\{BingoCardGenerateContexDTO, BingoCardGenerateDTO};
 use App\Events\Wallet\WalletUpdated;
-use App\Models\Games\Bingo\Card\CardPrice\BingoCardPrice;
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
 use App\Models\Currency;
 use App\Models\Roles\Player\External\ExternalPlayer;
-use App\Models\Games\Bingo\Room\BingoRoomConfig;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Services\Games\Bingo\Card\BingoCardPriceCalculator;
 use App\Services\Games\Bingo\Card\BingoCardGenerationService;
 use App\Services\NotificationService;

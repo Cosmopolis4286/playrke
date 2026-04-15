@@ -5,7 +5,7 @@ namespace App\Services\Games\Bingo\Pattern;
 use App\DTOs\Games\Bingo\Pattern\BingoPatternCreateDTO;
 use App\DTOs\Games\Bingo\Pattern\BingoPatternUpdateDTO;
 use App\Http\Resources\Games\Bingo\Pattern\BingoPatternResource;
-use App\Models\Games\Bingo\Pattern\BingoPattern;
+use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 
 final class BingoPatternService
 {

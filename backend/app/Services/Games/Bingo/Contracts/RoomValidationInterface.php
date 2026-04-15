@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Contracts;
 
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 
 /**
  * Interfaz para el servicio de validación de salas de bingo

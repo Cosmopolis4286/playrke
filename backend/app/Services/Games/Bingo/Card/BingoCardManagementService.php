@@ -2,9 +2,9 @@
 
 namespace App\Services\Games\Bingo\Card;
 
-use App\Models\Games\Bingo\Card\BingoCard;
-use App\Models\Games\Bingo\Card\BingoCardLot;
-use App\Models\Games\Bingo\Card\BingoCardPayment;
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Models\Card\BingoCardPayment;
 use Illuminate\Support\Facades\Log;
 
 /**

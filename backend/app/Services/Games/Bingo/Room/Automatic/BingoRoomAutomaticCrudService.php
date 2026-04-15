@@ -6,9 +6,9 @@ use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticCreateDTO;
 use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticUpdateDTO;
 use App\Exceptions\Domain\Games\Bingo\Room\Automatic\BingoRoomAutomaticException;
 use App\Http\Resources\Games\Bingo\Room\Automatic\BingoRoomAutomaticResource;
-use App\Models\Games\Bingo\Card\CardPrice\BingoCardPriceAutomatic;
-use App\Models\Games\Bingo\Room\BingoRoomAutomatic;
-use App\Models\Games\Bingo\Round\BingoRoundAutomatic;
+use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPriceAutomatic;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
+use App\Domains\Games\Bingo\Models\Round\BingoRoundAutomatic;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 

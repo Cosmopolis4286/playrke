@@ -7,7 +7,7 @@ use App\DTOs\Games\Bingo\Pattern\BingoPatternCreateDTO;
 use App\DTOs\Games\Bingo\Pattern\BingoPatternUpdateDTO;
 use App\Exceptions\Domain\Games\Bingo\Pattern\BingoPatternException;
 use App\Http\Resources\Games\Bingo\Pattern\BingoPatternResource;
-use App\Models\Games\Bingo\Pattern\BingoPattern;
+use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use Illuminate\Support\Facades\Auth;
 
 /**

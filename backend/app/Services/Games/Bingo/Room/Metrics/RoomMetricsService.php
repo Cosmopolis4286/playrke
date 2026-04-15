@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Room\Metrics;
 
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Services\Games\Bingo\Contracts\RoomMetricsInterface;
 use Illuminate\Support\Facades\Log;
 
@@ -216,7 +216,7 @@ class RoomMetricsService implements RoomMetricsInterface
             $sellerCommission = round($sellerCommission / $exchangeRate, 3);
 
             // Obtener configuración de la sala
-            $bingoConfig = \App\Models\Games\Bingo\Room\BingoRoomConfig::where('room_id', $room->id)
+            $bingoConfig = \App\Domains\Games\Bingo\Models\Room\BingoRoomConfig::where('room_id', $room->id)
                 ->select(['rke_commission', 'room_commission', 'prize_pool_type_id'])
                 ->first();
             

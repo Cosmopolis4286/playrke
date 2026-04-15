@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Room\Utils;
 
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Games\Common\Utils\GameStatus;
 use Carbon\Carbon;
 

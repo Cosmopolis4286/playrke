@@ -2,8 +2,8 @@
 
 namespace App\Services\Games\Bingo\Room\User;
 
-use App\Models\Games\Bingo\Room\BingoRoom;
-use App\Models\Games\Bingo\Room\User\BingoRoomUser;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Services\Games\Bingo\Contracts\RoomUserRegistrationInterface;
 use Illuminate\Support\Facades\Log;
 

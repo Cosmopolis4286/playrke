@@ -2,8 +2,8 @@
 
 namespace App\Services\Games\Bingo\Card;
 
-use App\Models\Games\Bingo\Room\BingoRoom;
-use App\Models\Games\Bingo\Card\CardPayment\BingoCardPayment;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Models\Currency;
 use App\Models\Games\Common\GameRoom\CurrencyGameRoom;
 use App\Models\Wallet;

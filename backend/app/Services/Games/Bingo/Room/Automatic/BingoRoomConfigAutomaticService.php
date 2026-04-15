@@ -2,9 +2,9 @@
 
 namespace App\Services\Games\Bingo\Room\Automatic;
 
-use App\Models\Games\Bingo\Creator\BingoCreator;
-use App\Models\Games\Bingo\Room\BingoRoom;
-use App\Models\Games\Bingo\Room\BingoRoomConfig;
+use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Models\Games\Common\Utils\GameConfig;
 use App\Traits\Helpers\EncryptTrait;
 use Carbon\Carbon;

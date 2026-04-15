@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Room\Validation;
 
-use App\Models\Games\Bingo\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Services\Games\Bingo\Contracts\RoomValidationInterface;
 use Illuminate\Support\Facades\Log;
 
