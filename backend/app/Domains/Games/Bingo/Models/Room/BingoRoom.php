@@ -3,16 +3,16 @@
 namespace App\Domains\Games\Bingo\Models\Room;
 
 use App\Models\BaseModel;
-use App\Domains\Games\Bingo\Models\Card\BingoCard;
-use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
-use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
-use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
-use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
-use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
+use App\Models\Games\Bingo\Card\BingoCard;
+use App\Models\Games\Bingo\Card\BingoCardLot;
+use App\Models\Games\Bingo\Card\CardPrice\BingoCardPrice;
+use App\Models\Games\Bingo\Creator\BingoCreator;
+use App\Models\Games\Bingo\Creator\BingoCreatorSale;
+use App\Models\Games\Bingo\Room\User\BingoRoomUser;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\Pivots\Roles\Seller\SellerRoomLimits;
 use App\Models\User;
-use App\Domains\Games\Bingo\Models\Round\BingoRound;
+use App\Models\Games\Bingo\Round\BingoRound;
 use App\Models\Games\Common\Utils\GameExchangeRate;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
