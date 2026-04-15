@@ -67,10 +67,14 @@ class Setting extends Model
         'status',
     ];
 
+    public $incrementing = false;
+    protected $keyType   = 'string';
+
     /**
      * Campos que deben ser convertidos a tipos específicos
      */
     protected $casts = [
+        'id'         => 'string',
         'status'     => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
