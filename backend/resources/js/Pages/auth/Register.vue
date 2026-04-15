@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
+  import type { CarouselSlide } from '@js/Layouts/GuestLayout.vue'
   import { Link } from '@inertiajs/vue3'
   import AuthDropdown from '@js/Components/Auth/AuthDropdown.vue'
   import { useRegisterForm } from '@js/composables/auth/useRegister'
@@ -10,10 +11,33 @@
 
   const { form, errors, loading, isBusy, submit, touched, submitted, markTouched } = useRegisterForm()
   const { showPassword, togglePassword } = usePasswordToggle()
+
+  const registerSlides: CarouselSlide[] = [
+    {
+      icon: 'fa-solid fa-user-plus',
+      title: 'Crea tu cuenta gratis',
+      desc: 'Regístrate en segundos y accede a cientos de salas de juego en tiempo real.'
+    },
+    {
+      icon: 'fa-solid fa-gift',
+      title: 'Bono de bienvenida',
+      desc: 'Nuevos jugadores reciben créditos exclusivos para comenzar a ganar desde el primer día.'
+    },
+    {
+      icon: 'fa-solid fa-earth-americas',
+      title: 'Comunidad global',
+      desc: 'Juega con personas de todo el mundo y compite en tablas de clasificación internacionales.'
+    },
+    {
+      icon: 'fa-solid fa-lock',
+      title: 'Tus datos, protegidos',
+      desc: 'Registro seguro con verificación de identidad y cifrado de extremo a extremo.'
+    }
+  ]
 </script>
 
 <template>
-  <GuestLayout title="Registrarse">
+  <GuestLayout title="Registrarse" :slides="registerSlides">
     <template #tagline>Únete a la élite</template>
 
     <template #form-content>
@@ -28,6 +52,7 @@
             class="auth-form__input"
             placeholder="Correo electrónico"
             aria-label="Correo electrónico"
+            maxlength="80"
             required
             :disabled="isBusy"
             @input="markTouched('email')"
@@ -46,6 +71,7 @@
             class="auth-form__input"
             placeholder="Nombre de usuario"
             aria-label="Nombre de usuario"
+            maxlength="30"
             required
             :disabled="isBusy"
             @input="markTouched('username')"
@@ -125,18 +151,19 @@
         <!-- Términos -->
         <div class="auth-form__checkbox">
           <input
+            id="politics"
             type="checkbox"
             v-model="form.politics"
             required
             :disabled="isBusy"
             @change="markTouched('politics')"
           />
-          <span class="auth-form__checkbox-text">
+          <label for="politics" class="auth-form__checkbox-text">
             Acepto los
-            <a href="#" class="auth-form__link">Términos y Condiciones</a>
+            <a href="/info/terms" target="_blank" class="auth-form__link">Términos y Condiciones</a>
             y la
-            <a href="#" class="auth-form__link">Política de Privacidad</a>
-          </span>
+            <a href="/info/privacy" target="_blank" class="auth-form__link">Política de Privacidad</a>
+          </label>
         </div>
         <p v-if="errors.politics && (submitted || touched.politics)" class="auth-form__error">
           {{ errors.politics }}
