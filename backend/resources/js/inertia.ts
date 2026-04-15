@@ -5,9 +5,11 @@ import { createHead } from '@vueuse/head'
 import { InertiaProgress } from '@inertiajs/progress'
 import VueImaskPlugin from './plugins/vue-imask-plugin'
 import FloatingVue from 'floating-vue'
+import Toast, { type PluginOptions, POSITION } from 'vue-toastification'
 
 import '@vueform/multiselect/themes/default.css'
 import 'floating-vue/dist/style.css'
+import 'vue-toastification/dist/index.css'
 
 /**
  * Inertia Progress (navegación interna)
@@ -43,10 +45,24 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         const app = createApp({ render: () => h(App, props) })
 
+        const toastOptions: PluginOptions = {
+            position: POSITION.BOTTOM_RIGHT,
+            timeout: 4000,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            hideProgressBar: false,
+            closeButton: 'button',
+            icon: true,
+            maxToasts: 5,
+            transition: 'Vue-Toastification__bounce',
+        }
+
         app.use(plugin)
         app.use(createHead())
         app.use(VueImaskPlugin)
         app.use(FloatingVue)
+        app.use(Toast, toastOptions)
 
         app.mount(el)
     },

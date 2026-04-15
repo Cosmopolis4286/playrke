@@ -46,6 +46,9 @@
         <div class="guest-layout__logo">
           <img class="guest-layout__logo-image" :src="'./img/logo.png'" alt="PlayRKE" />
         </div>
+        <p class="guest-layout__tagline">
+          <slot name="tagline">Tu plataforma de juegos premium</slot>
+        </p>
         <div class="guest-layout__header-text">
           <slot name="header-text" />
         </div>

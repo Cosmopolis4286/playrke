@@ -45,19 +45,7 @@
     <script>
         $("#change_pass").click(function(e) {
             if ($("#email").val() == '' || $("#password").val() == '' || $("#password-confirm").val() == '') {
-                if ($(".notyf__toast").html() == null || $(".notyf__toast").html() == '') {
-                    var notyf = new Notyf();
-                    notyf.error({
-                        message: '<span style="font-size: 0.91em;">' +
-                            'Toda la información es requerida</span>',
-                        duration: 3450,
-                        ripple: true,
-                        position: {
-                            x: 'center',
-                            y: 'bottom',
-                        }
-                    })
-                }
+                alert('Toda la información es requerida');
             } else {
                 $('#pass_chg').submit();
             }

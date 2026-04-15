@@ -2,27 +2,23 @@
   import GuestLayout from '@js/Layouts/GuestLayout.vue'
   import { Link } from '@inertiajs/vue3'
   import AuthDropdown from '@js/Components/Auth/AuthDropdown.vue'
-  import { useRegisterForm } from '@/js/composables/auth/useRegister'
+  import { useRegisterForm } from '@js/composables/auth/useRegister'
   import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
 
-  interface Country {
-    id: number
-    name: string
-  }
-
-  // Props con lista de países
+  interface Country { id: number; name: string }
   const props = defineProps<{ countries: Country[] }>()
 
-  // Usar composable que maneja formulario, loading, submit y validación
-  const { form, errors, loading, isBusy, submit, touched, submitted, markTouched } =
-    useRegisterForm()
+  const { form, errors, loading, isBusy, submit, touched, submitted, markTouched } = useRegisterForm()
   const { showPassword, togglePassword } = usePasswordToggle()
 </script>
 
 <template>
   <GuestLayout title="Registrarse">
+    <template #tagline>Únete a la élite</template>
+
     <template #form-content>
       <form novalidate @submit.prevent="submit" class="auth-form">
+
         <!-- Email -->
         <fieldset class="auth-form__field">
           <i class="auth-form__icon fa-solid fa-envelope" aria-hidden="true"></i>
@@ -30,8 +26,8 @@
             v-model.trim="form.email"
             type="email"
             class="auth-form__input"
-            placeholder="E-mail"
-            aria-label="E-mail"
+            placeholder="Correo electrónico"
+            aria-label="Correo electrónico"
             required
             :disabled="isBusy"
             @input="markTouched('email')"
@@ -59,13 +55,13 @@
           {{ errors.username }}
         </p>
 
-        <!-- Country dropdown -->
+        <!-- País -->
         <fieldset class="auth-form__field">
           <i class="auth-form__icon fa-solid fa-earth-americas" aria-hidden="true"></i>
           <AuthDropdown
             v-model="form.country"
             :options="countries.map(c => ({ value: c.id, label: c.name }))"
-            placeholder="Seleccione su país"
+            placeholder="Selecciona tu país"
             :disabled="isBusy"
             @change="markTouched('country')"
           />
@@ -74,9 +70,9 @@
           {{ errors.country }}
         </p>
 
-        <!-- Password -->
+        <!-- Contraseña -->
         <fieldset class="auth-form__field">
-          <i class="auth-form__icon fa-solid fa-lock z-50" aria-hidden="true"></i>
+          <i class="auth-form__icon fa-solid fa-lock" aria-hidden="true"></i>
           <input
             v-model="form.password"
             :type="showPassword ? 'text' : 'password'"
@@ -90,7 +86,7 @@
           <button
             type="button"
             class="auth-form__toggle-password"
-            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+            :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
             @click="togglePassword"
           >
             <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
@@ -100,7 +96,7 @@
           {{ errors.password }}
         </p>
 
-        <!-- Password confirmation -->
+        <!-- Confirmar contraseña -->
         <fieldset class="auth-form__field">
           <i class="auth-form__icon fa-solid fa-unlock" aria-hidden="true"></i>
           <input
@@ -116,20 +112,17 @@
           <button
             type="button"
             class="auth-form__toggle-password"
-            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+            :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
             @click="togglePassword"
           >
             <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
           </button>
         </fieldset>
-        <p
-          v-if="errors.password_confirmation && (submitted || touched.password_confirmation)"
-          class="auth-form__error"
-        >
+        <p v-if="errors.password_confirmation && (submitted || touched.password_confirmation)" class="auth-form__error">
           {{ errors.password_confirmation }}
         </p>
 
-        <!-- Terms -->
+        <!-- Términos -->
         <div class="auth-form__checkbox">
           <input
             type="checkbox"
@@ -149,11 +142,11 @@
           {{ errors.politics }}
         </p>
 
-        <!-- Submit -->
         <button type="submit" class="auth-form__submit" :disabled="isBusy">
-          Registrarse
+          <span class="auth-form__submit-text">Registrarse</span>
           <span v-if="loading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
         </button>
+
       </form>
     </template>
 

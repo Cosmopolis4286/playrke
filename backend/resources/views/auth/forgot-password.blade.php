@@ -36,19 +36,7 @@
     <script>
         $(document).on("click", "#btn-forgot-passw", function() {
             if (!$("#email").val()) {
-                if (!$(".notyf__toast").html() || !$(".notyf__toast").html()) {
-                    var notyf = new Notyf();
-                    notyf.error({
-                        message: '<span style="font-size: 0.91em;">' +
-                            'Ingresa tu correo asociado</span>',
-                        duration: 3450,
-                        ripple: true,
-                        position: {
-                            x: 'center',
-                            y: 'bottom',
-                        }
-                    })
-                }
+                alert('Ingresa tu correo asociado');
             } else {
                 $("#loader-btn").show();
                 $('#form-forgot-passw').submit();
