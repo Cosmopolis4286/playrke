@@ -89,6 +89,11 @@ class SidebarMenuService
             'icon' => 'fas fa-gamepad',
             'permission' => 'games.view',
             'submenu' => [
+                'games_catalog' => [
+                    'title' => 'Catálogo de Juegos',
+                    'route' => 'games.index',
+                    'permission' => 'games.manage',
+                ],
                 'bingo_rooms' => [
                     'title' => 'Salas de Bingo',
                     'route' => 'bingo-rooms.index',

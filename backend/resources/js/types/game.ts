@@ -1,8 +1,17 @@
 /**
- * Información básica de un juego
+ * Información de un juego del catálogo
  */
 export interface Game {
-  readonly id: number // Identificador único del juego (ej: 1 para Bingo)
-  readonly name: string // Nombre descriptivo del juego (ej: "Brasília Time")
-  readonly status: string // Estado actual del juego (ej: 'ACTIVE', 'INACTIVE')
+    readonly id: string                                    // Snowflake ID
+    readonly name: string                                  // Nombre en mayúsculas (BINGO, TRIVIA...)
+    readonly status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE'
+    readonly status_text?: string                          // Accessor backend: 'Activo', 'Inactivo', 'Mantenimiento'
+    readonly is_active?: boolean
+    readonly created_at?: string
+    readonly updated_at?: string
+}
+
+export interface GamePageProps {
+    games: Game[]
+    roleUser: string
 }

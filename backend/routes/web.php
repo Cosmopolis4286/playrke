@@ -37,8 +37,9 @@ require __DIR__ . '/modules/seller.php';
 // RUTAS DE NEGOCIO ESPECÍFICAS
 // ====================================
 require __DIR__ . '/modules/external-players.php';
-require __DIR__ . '/modules/games/bingo.php';   
-require __DIR__ . '/modules/games/trivia.php';  
+require __DIR__ . '/modules/games.php';
+require __DIR__ . '/modules/games/bingo.php';
+require __DIR__ . '/modules/games/trivia.php';
 require __DIR__ . '/modules/exchange-rate.php';
 require __DIR__ . '/modules/currency.php';
 require __DIR__ . '/modules/payments.php';        
