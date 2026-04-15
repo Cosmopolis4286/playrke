@@ -89,7 +89,7 @@ final class BingoGameService
             'creatorId' => $bingoRoom->creator_user_id,
             'currencyId' => (string) 1, // Configurable
             'cardPrice' => (float) $cardPrice,
-            'startTime' => $bingoRoom->published_at?->timestamp ?? now()->timestamp,
+            'startTime' => (int) ($config?->unix_date ?? $bingoRoom->published_at?->timestamp ?? now()->timestamp),
             'closingRoute' => route('bingo-rooms.index'),
         ];
         

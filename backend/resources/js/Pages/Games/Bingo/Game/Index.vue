@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import "@/css/games/bingo/bingo-in-game.css";
 import { getEchoInstance } from "@js/plugins/echo";
+import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
 import BingoCartons from "@js/Components/Games/Bingo/views/inGame/Cartons.vue";
 import type { BingoRoom, BingoCard } from "@js/Services/bingoService";
 
@@ -74,31 +75,23 @@ const prizeFlash  = ref(false);
 const playersFlash = ref(false);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Countdown
+// Countdown — mismo composable que GameRooms
 // ─────────────────────────────────────────────────────────────────────────────
-// startTime is unix seconds from server (from room config unix_date or published_at)
-const countdown = ref({ h: 0, m: 0, s: 0, total: 0 });
 const gameStarted = ref(false);
-let countdownInterval: ReturnType<typeof setInterval> | null = null;
 
-function updateCountdown() {
-  const target = (props.startTime ?? 0) * 1000; // ms
-  const now = Date.now();
-  const diff = target - now;
+// Fake single-room list so we can reuse useGameRoomCountdown as-is
+const fakeRoom = computed(() => ({
+  id: props.room?.id?.toString() ?? "0",
+  config: { unix_date: props.startTime ?? 0 },
+}));
 
-  if (diff <= 0) {
-    countdown.value = { h: 0, m: 0, s: 0, total: 0 };
-    gameStarted.value = true;
-    if (countdownInterval) clearInterval(countdownInterval);
-    return;
-  }
+const { init: initCountdown, getCountdown, stop: stopCountdown } = useGameRoomCountdown(
+  Date.now(),
+  () => { gameStarted.value = true; },
+);
 
-  const total = Math.floor(diff / 1000);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  countdown.value = { h, m, s, total };
-}
+const cd = computed(() => getCountdown(fakeRoom.value.id));
+const hasTime = computed(() => cd.value && !cd.value.expired);
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 
@@ -174,15 +167,12 @@ const revealed = ref(false);
 
 onMounted(() => {
   setTimeout(() => { revealed.value = true; }, 80);
-  updateCountdown();
-  if (!gameStarted.value) {
-    countdownInterval = setInterval(updateCountdown, 1000);
-  }
+  initCountdown([fakeRoom.value as any]);
   subscribeToRoom();
 });
 
 onUnmounted(() => {
-  if (countdownInterval) clearInterval(countdownInterval);
+  stopCountdown();
   if (channel && roomId.value) {
     const echo = getEchoInstance();
     echo.leaveChannel(`bingo.room.${roomId.value}`);
@@ -214,36 +204,43 @@ onUnmounted(() => {
         <div class="ig-panel__divider" />
 
         <!-- Countdown -->
-        <div class="ig-countdown" v-if="!gameStarted && countdown.total > 0">
+        <div class="ig-countdown" v-if="hasTime && cd">
           <span class="ig-countdown__label">
             <i class="fas fa-clock" /> Inicia en
           </span>
-          <div class="ig-countdown__display">
-            <div class="ig-cd-unit">
-              <span class="ig-cd-unit__num">{{ pad(countdown.h) }}</span>
-              <span class="ig-cd-unit__lbl">h</span>
+          <div class="ig-timer">
+            <template v-if="cd.time.days > 0">
+              <div class="timer__unit">
+                <span class="timer__num">{{ cd.time.days }}</span>
+                <span class="timer__lbl">D</span>
+              </div>
+              <span class="timer__sep">:</span>
+            </template>
+            <template v-if="cd.time.hours > 0">
+              <div class="timer__unit">
+                <span class="timer__num">{{ cd.time.hours }}</span>
+                <span class="timer__lbl">H</span>
+              </div>
+              <span class="timer__sep">:</span>
+            </template>
+            <div class="timer__unit">
+              <span class="timer__num">{{ pad(cd.time.minutes) }}</span>
+              <span class="timer__lbl">M</span>
             </div>
-            <span class="ig-cd-sep">:</span>
-            <div class="ig-cd-unit">
-              <span class="ig-cd-unit__num">{{ pad(countdown.m) }}</span>
-              <span class="ig-cd-unit__lbl">m</span>
-            </div>
-            <span class="ig-cd-sep">:</span>
-            <div class="ig-cd-unit">
-              <span class="ig-cd-unit__num" :class="{ 'ig-cd-unit__num--tick': countdown.s % 2 === 0 }">
-                {{ pad(countdown.s) }}
-              </span>
-              <span class="ig-cd-unit__lbl">s</span>
+            <span class="timer__sep">:</span>
+            <div class="timer__unit">
+              <span class="timer__num">{{ pad(cd.time.seconds) }}</span>
+              <span class="timer__lbl">S</span>
             </div>
           </div>
         </div>
 
-        <div v-else-if="gameStarted" class="ig-live-badge">
+        <div v-else class="ig-live-badge">
           <span class="ig-live-badge__dot" />
           EN VIVO
         </div>
 
-        <div class="ig-panel__divider" v-if="!gameStarted || livePlayers > 0" />
+        <div class="ig-panel__divider" />
 
         <!-- Meta -->
         <div class="ig-meta">
@@ -520,36 +517,20 @@ body.hold-transition,
   align-items: center;
   gap: 4px;
 }
-.ig-countdown__display { display: flex; align-items: center; gap: 4px }
-
-.ig-cd-unit {
+.ig-timer {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.timer__unit {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(0,5,30,0.5);
-  border: 1px solid rgba(100,140,255,0.2);
-  border-radius: 8px;
-  padding: 3px 8px;
-  min-width: 38px;
+  min-width: 28px;
 }
-.ig-cd-unit__num {
-  font-family: 'Anton', sans-serif;
-  font-size: 20px;
-  line-height: 1;
-  color: #e0eaff;
-  transition: color 0.15s;
-}
-.ig-cd-unit__num--tick { color: #2af598 }
-.ig-cd-unit__lbl { font-size: 8px; color: #3a5080; letter-spacing: 1px; text-transform: uppercase }
-
-.ig-cd-sep {
-  font-family: 'Anton', sans-serif;
-  font-size: 18px;
-  color: #3a5080;
-  margin-bottom: 8px;
-  animation: blink-sep 1s step-start infinite;
-}
-@keyframes blink-sep { 0%,100%{ opacity:1 } 50%{ opacity:0.2 } }
+.timer__num { font-size: 14px; font-weight: 700; color: #e0eaff; line-height: 1 }
+.timer__lbl { font-size: 8px; color: #7c9dff; text-transform: uppercase; line-height: 1 }
+.timer__sep { color: #4a6aaa; font-size: 13px; line-height: 1; margin: 0 1px; padding-bottom: 8px }
 
 /* ── Live badge ── */
 .ig-live-badge {
