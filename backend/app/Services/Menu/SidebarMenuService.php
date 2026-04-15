@@ -65,6 +65,13 @@ class SidebarMenuService
                 ],
             ],
         ],
+        'settings' => [
+            'title' => 'Configuración',
+            'icon' => 'fas fa-sliders-h',
+            'permission' => 'settings.manage',
+            'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
+            'route' => 'settings.index',
+        ],
         'prizes' => [
             'title' => 'Gestión de Premios',
             'icon' => 'fas fa-trophy',
