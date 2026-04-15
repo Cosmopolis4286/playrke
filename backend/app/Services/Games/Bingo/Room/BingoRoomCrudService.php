@@ -243,17 +243,41 @@ class BingoRoomCrudService
             'serials_pct'             => $dto->serialsPct ?? null,
             'num_serials'             => $dto->numSerials ?? null,
             'jackpot_pct'             => $dto->jackpotPct ?? null,
-            'from_house'              => $dto->fromHouse ?? 'N',
         ];
 
         if ($isCreate) {
-            $base['room_id'] = $roomId;
-            $base['creation'] = 'M';
+            $base['room_id']      = $roomId;
+            $base['creation']     = 'M';
             $base['creator_user_id'] = $userId;
-            $base['in_live'] = 'N';
+            $base['in_live']      = 'N';
+            // from_house = Y si el creador es admin o superadmin; N para commerce/customer
+            $base['from_house']   = $this->resolveFromHouse($userId);
         }
+        // En update: from_house nunca se modifica — es inmutable tras la creación
 
         return $base;
+    }
+
+    /**
+     * Determina si la sala es "propia de la app" según el rol del creador.
+     * admin / superadmin → 'Y'
+     * commerce / customer / otros → 'N'
+     */
+    private function resolveFromHouse(int $userId): string
+    {
+        $adminRoles = ['admin', 'superadmin'];
+
+        $isAdmin = \DB::table('role_user')
+            ->join('roles', 'role_user.role_id', '=', 'roles.id')
+            ->where('role_user.user_id', $userId)
+            ->whereIn('roles.prefix', $adminRoles)
+            ->where(function ($q) {
+                $q->whereNull('role_user.expires_at')
+                    ->orWhere('role_user.expires_at', '>', now());
+            })
+            ->exists();
+
+        return $isAdmin ? 'Y' : 'N';
     }
 
     /**
