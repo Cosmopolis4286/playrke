@@ -37,6 +37,7 @@ interface Props {
   cardPrice?: number;
   startTime?: number;
   closingRoute?: string;
+  isLocal?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -63,6 +64,7 @@ const props = withDefaults(defineProps<Props>(), {
   cardPrice: 0,
   startTime: 0,
   closingRoute: "",
+  isLocal: false,
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -153,6 +155,34 @@ function subscribeToRoom() {
     if (countdownInterval) clearInterval(countdownInterval);
     countdown.value = { h: 0, m: 0, s: 0, total: 0 };
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// [DEV] Reset start time
+// ─────────────────────────────────────────────────────────────────────────────
+const devResetting = ref(false);
+
+async function devResetTime() {
+  if (devResetting.value) return;
+  devResetting.value = true;
+  try {
+    const res = await fetch(`/bingo-game/${roomId.value}/dev-reset-time`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
+    const data = await res.json();
+    if (data.startTime) {
+      // Re-init countdown with new unix_date
+      initCountdown([{ id: roomId.value, config: { unix_date: data.startTime } } as any]);
+      gameStarted.value = false;
+    }
+  } finally {
+    devResetting.value = false;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -270,6 +300,22 @@ onUnmounted(() => {
           </div>
         </div>
 
+      </div>
+
+      <!-- ══════════════════════════════════════════
+           [DEV] Reset start time button
+      ══════════════════════════════════════════ -->
+      <div v-if="isLocal" class="ig-dev-bar">
+        <button
+          class="ig-dev-btn"
+          :disabled="devResetting"
+          @click="devResetTime"
+        >
+          <span v-if="devResetting" class="ig-dev-btn__spinner" />
+          <i v-else class="fas fa-play-circle" />
+          {{ devResetting ? 'Actualizando...' : 'Iniciar Partida (+3 min)' }}
+        </button>
+        <span class="ig-dev-label">DEV · solo visible en local</span>
       </div>
 
       <!-- ══════════════════════════════════════════
@@ -612,6 +658,55 @@ body.hold-transition,
    CARDS SECTION
 ══════════════════════════════════════ */
 .ig-cards-section { width: 100% }
+
+/* ══════════════════════════════════════
+   DEV BAR
+══════════════════════════════════════ */
+.ig-dev-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 171, 0, 0.06);
+  border: 1px dashed rgba(255, 171, 0, 0.3);
+  border-radius: 12px;
+}
+.ig-dev-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 171, 0, 0.4);
+  background: rgba(255, 171, 0, 0.12);
+  color: #ffd060;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.ig-dev-btn:not(:disabled):hover {
+  background: rgba(255, 171, 0, 0.22);
+  transform: translateY(-1px);
+}
+.ig-dev-btn:disabled { opacity: 0.5; cursor: not-allowed }
+.ig-dev-btn i { font-size: 13px }
+.ig-dev-btn__spinner {
+  width: 12px; height: 12px;
+  border: 2px solid rgba(255,171,0,0.3);
+  border-top-color: #ffd060;
+  border-radius: 50%;
+  animation: dev-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes dev-spin { to { transform: rotate(360deg) } }
+.ig-dev-label {
+  font-size: 10px;
+  color: rgba(255,171,0,0.45);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
 
 /* ══════════════════════════════════════
    RESPONSIVE

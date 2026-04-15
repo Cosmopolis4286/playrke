@@ -242,6 +242,30 @@ final class BingoGameService
     }
 
     /**
+     * [DEV] Actualizar unix_date y time de la sala a now+3 minutos.
+     * Solo debe llamarse en entorno local.
+     *
+     * @param BingoRoom $room
+     * @return array  Nuevo startTime y time legible
+     */
+    public function devResetStartTime(BingoRoom $room): array
+    {
+        $newTime   = now()->addMinutes(3);
+        $unixDate  = $newTime->timestamp;
+
+        $room->config()->update([
+            'unix_date' => $unixDate,
+            'date'      => $newTime->toDateString(),
+            'time'      => $newTime->format('H:i:s'),
+        ]);
+
+        return [
+            'startTime'   => $unixDate,
+            'humanTime'   => $newTime->format('H:i:s'),
+        ];
+    }
+
+    /**
      * Validar formato del identificador de sala
      *
      * @param string $identifier

@@ -42,6 +42,7 @@ final class BingoGameController extends Controller
             function () use ($room) {
                 $userId = $this->userContext->resolveUserId();
                 $response = $this->service->getInGameData($room, $userId);
+                $response['isLocal'] = app()->environment('local');
 
                 return Inertia::render('Games/Bingo/Game/Index', $response);
             },
@@ -69,6 +70,19 @@ final class BingoGameController extends Controller
                 ];
             },
             'No se pudieron obtener los cartones del usuario.'
+        );
+    }
+
+    /**
+     * [DEV] Resetea unix_date de la sala a now+3min para pruebas locales.
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function devResetStartTime(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->devResetStartTime($room)
         );
     }
 
