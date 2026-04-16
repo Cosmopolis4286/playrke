@@ -29,7 +29,7 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
     // Olvidé mi contraseña (formulario para solicitar reset link)
-    Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
+    Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request')->defaults('inertiaOnly', true);
     // Enviar email con link de recuperación
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
 
