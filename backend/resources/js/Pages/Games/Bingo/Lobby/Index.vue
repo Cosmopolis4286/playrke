@@ -6,7 +6,7 @@
  * Muestra información de la sala y permite al jugador prepararse.
  */
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { Link, router } from "@inertiajs/vue3";
+import { Link } from "@inertiajs/vue3";
 import type { BingoRoom } from "@js/Services/bingoService";
 import { BingoService } from "@js/Services/bingoService";
 import axios from "axios";
@@ -34,6 +34,7 @@ const playersFlash = ref(false);
 let echoChannel = null;
 interface Props {
   room: BingoRoom;
+  roomRouteKey?: string;
   userCards?: number;
 }
 
@@ -43,6 +44,9 @@ const props = defineProps<Props>();
 // Computed
 // ─────────────────────────────────────────────────────────────────────────────
 const roomId = computed(() => props.room?.id?.toString() ?? "");
+const routeKey = computed(() => props.roomRouteKey?.trim() ?? "");
+const roomRouteKey = computed(() => routeKey.value || roomId.value);
+const canNavigateGame = computed(() => Boolean(routeKey.value));
 
 const roomStatusText = computed(() => {
   if (!props.room) return "";
@@ -50,6 +54,10 @@ const roomStatusText = computed(() => {
 });
 
 const isRoomLoading = computed(() => !props.room);
+const canPurchaseCards = computed(() => {
+  if (!props.room) return false;
+  return props.room.status === 1 && !props.room.closeRoom;
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Lifecycle
@@ -63,9 +71,6 @@ onUnmounted(() => {
     echoChannel.stopListening('RoomUpdated');
   }
 });
-function enterGame() {
-  router.visit(`/bingo/${roomId.value}/game`);
-}
 
 function setupEcho() {
   if (!props.room?.id) return;
@@ -96,6 +101,16 @@ function setupEcho() {
 }
 
 function openPurchaseModal() {
+  if (!canNavigateGame.value) {
+    alert('La sala no tiene una clave de ruta válida. Recarga la página o contacta al soporte.');
+    return;
+  }
+
+  if (!canPurchaseCards.value) {
+    alert('No es posible comprar cartones en esta sala: la sala debe estar abierta.');
+    return;
+  }
+
   showPurchaseModal.value = true;
   loadPurchaseData();
 }
@@ -107,7 +122,7 @@ async function loadPurchaseData() {
     availableCountries.value = countriesResponse.data.data || [];
 
     // Load card price
-    const priceResponse = await axios.get(`/bingo-card/${roomId.value}/card-price`);
+    const priceResponse = await axios.get(`/bingo-card/${roomRouteKey.value}/card-price`);
     cardPrice.value = priceResponse.data.data?.card_price || 0;
 
     // Set default country
@@ -121,10 +136,14 @@ async function loadPurchaseData() {
 
 async function confirmPurchase() {
   if (purchaseQuantity.value < 1) return;
+  if (!canNavigateGame.value) {
+    alert('No se puede completar la compra porque la sala no tiene una clave de ruta válida.');
+    return;
+  }
 
   isPurchasing.value = true;
   try {
-    const response = await axios.post(`/api/bingo/rooms/${roomId.value}/purchase`, {
+    const response = await axios.post(`/api/bingo/rooms/${roomRouteKey.value}/purchase`, {
       num_ctns: purchaseQuantity.value,
       country_id: selectedCountry.value
     });
@@ -184,21 +203,36 @@ async function confirmPurchase() {
 
         <div class="lobby-card__footer">
           <button
-            v-if="userCards === 0"
+            v-if="userCards === 0 && canPurchaseCards"
             class="lobby-btn lobby-btn--secondary"
             @click="openPurchaseModal"
           >
             <i class="fas fa-shopping-cart" />
             Comprar Cartones
           </button>
+
+          <template v-if="canNavigateGame">
+            <Link
+              :href="`/bingo/${roomRouteKey}/game`"
+              class="lobby-btn lobby-btn--primary"
+            >
+              <i class="fas fa-play" />
+              Entrar al Juego
+            </Link>
+          </template>
+
           <button
-            class="lobby-btn lobby-btn--primary"
-            @click="enterGame"
+            v-else
+            class="lobby-btn lobby-btn--primary lobby-btn--disabled"
+            disabled
           >
             <i class="fas fa-play" />
             Entrar al Juego
           </button>
         </div>
+        <p v-if="!canNavigateGame" class="lobby-warning">
+          No se puede acceder al juego porque la sala no tiene una clave válida. Recarga la página.
+        </p>
       </div>
 
       <!-- Loading State -->
@@ -434,6 +468,20 @@ async function confirmPurchase() {
 .lobby-btn--primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(123, 79, 255, 0.4);
+}
+
+.lobby-btn--disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.lobby-warning {
+  margin-top: 16px;
+  color: #ffc107;
+  font-size: 14px;
+  text-align: center;
 }
 
 .lobby-btn--secondary {

@@ -50,6 +50,7 @@ final class BingoGameController extends Controller
 
                 return Inertia::render('Games/Bingo/Lobby/Index', [
                     'room' => $room,
+                    'roomRouteKey' => $room->getRouteKey(),
                     'userCards' => $userCards,
                 ]);
             },

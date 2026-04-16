@@ -79,11 +79,42 @@ export default defineConfig(({ mode }) => {
               exclude: [/node_modules/],
               apply: 'build',
               options: {
-                identifierNamesGenerator: 'mangled',
-                reservedStrings: ['route', 'Ziggy'], // Palabras clave sin ofuscar
-                compact: true,
+                // Ofuscación de identificadores
+                identifierNamesGenerator: 'mangled-shuffled',
+                reservedNames: ['^$', '_', 'console', 'window', 'document'], // Proteger símbolos críticos
+                reservedStrings: ['route', 'Ziggy', 'csrf', 'api'], // Palabras clave de la app
+                
+                // Protección contra debugging
                 debugProtection: true,
-                selfDefending: true
+                debugProtectionInterval: 2000, // Chequeo cada 2 segundos
+                selfDefending: true,
+                
+                // Ofuscación de strings
+                stringArray: true,
+                stringArrayEncoding: ['rc4', 'base64'],
+                stringArrayThreshold: 0.75, // 75% de strings ofuscados
+                
+                // Protección adicional
+                deadCodeInjection: true,
+                deadCodeInjectionThreshold: 0.4, // 40% código muerto
+                controlFlowFlattening: true,
+                controlFlowFlatteningThreshold: 0.75,
+                
+                // Compactación
+                compact: true,
+                simplify: true,
+                
+                // Deshabilitar funciones de desarrollo
+                disableConsoleOutput: true, // Elimina console.*
+                
+                // Transformaciones
+                numbersToExpressions: true,
+                transformObjectKeys: true,
+                shuffleStringArray: true,
+                rotateStringArray: true,
+                
+                // Opciones de dominio (opcional - descomenta si quieres bloquear dominios)
+                // domainLock: ['playrke.com', 'www.playrke.com'],
               }
             }),
             // Visualizador del bundle para análisis (abrir después de build)
