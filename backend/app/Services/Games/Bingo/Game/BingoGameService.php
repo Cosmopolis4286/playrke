@@ -2,6 +2,7 @@
 
 namespace App\Services\Games\Bingo\Game;
 
+use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Games\Bingo\ExternalPlayers;
 use App\Models\User;
@@ -55,7 +56,7 @@ final class BingoGameService
         // Preparar datos del juego
         $config = $bingoRoom->config;
         $rounds = $bingoRoom->rounds;
-        
+
         // Debug logging para verificar la configuración y rondas
         \Log::info('BingoRoom data', [
             'room_id' => $bingoRoom->id,
@@ -64,7 +65,21 @@ final class BingoGameService
             'rounds_data' => $rounds->toArray(),
             'config_rounds' => $config?->rounds ?? 'NOT_FOUND'
         ]);
-        
+
+        // Cargar números sorteados desde la base de datos
+        $drawnNumbers = BingoDraw::where('room_id', $bingoRoom->id)
+            ->orderBy('time')
+            ->orderBy('created_at')
+            ->pluck('chip')
+            ->map(fn($chip) => (int) $chip)
+            ->toArray();
+
+        \Log::info('Drawn numbers loaded', [
+            'room_id' => $bingoRoom->id,
+            'drawn_count' => count($drawnNumbers),
+            'drawn_numbers' => $drawnNumbers
+        ]);
+
         $gameData = [
             'title' => 'Juego de Bingo',
             'room' => $bingoRoom,
@@ -83,7 +98,7 @@ final class BingoGameService
             'player' => ['ctns' => count($cartons)],
             'encrypt' => false,
             'chipsRest' => [],
-            'draw' => [],
+            'draw' => $drawnNumbers,
             'timeServ' => now()->timestamp,
             'allChips' => [],
             'infoGame' => null,

@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
     // Registro de usuario
-    Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
+    Route::get('register', [RegisteredUserController::class, 'create'])->name('register')->defaults('inertiaOnly', true);
     Route::post('register', [RegisteredUserController::class, 'store']);
 
     // Login de usuario
