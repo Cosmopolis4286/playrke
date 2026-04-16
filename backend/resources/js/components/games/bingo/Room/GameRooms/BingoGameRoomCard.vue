@@ -163,7 +163,7 @@ function handleCardClick(): void {
   
   // Si la sala está IN_PROGRESS y el jugador tiene cartones, redirigir al juego
   if (props.room.status_code === 'IN_PROGRESS' && playerCtns.value > 0) {
-    const roomUrl = `/bingo/${props.room.id}`
+    const roomUrl = `/bingo/${props.room.id}/game`
     window.location.href = roomUrl
     return
   }

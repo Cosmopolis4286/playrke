@@ -112,8 +112,9 @@ route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'multiPermission:g
  * JUEGO DE BINGO
  * ====================================
  */
-route_group('bingo.', 'bingo.', ['auth'], BingoGameController::class, [
-    'game'     => ['method' => 'get',  'uri' => '{room}',              'action' => 'inGame'],
+route_group('bingo', 'bingo.', ['auth'], BingoGameController::class, [
+    'lobby' => ['method' => 'get', 'uri'=> '{room}/lobby'],  
+    'game'     => ['method' => 'get',  'uri' => '{room}/game',              'action' => 'inGame'],
     'user-cards'  => ['method' => 'get',  'uri' => '{room}/user-cards',  'action' => 'getUserCards'],
     'check-bingo' => ['method' => 'post', 'uri' => '{room}/check-bingo', 'action' => 'checkBingo'],
 ]);
