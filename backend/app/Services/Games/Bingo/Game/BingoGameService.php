@@ -259,16 +259,33 @@ final class BingoGameService
     }
 
     /**
-     * [DEV] Actualizar unix_date y time de la sala a now+3 minutos.
+     * [DEV] Actualizar unix_date y time de la sala a now+2 minutos.
+     * Si existe un sorteo previo, lo regenera.
      * Solo debe llamarse en entorno local.
      *
      * @param BingoRoom $room
-     * @return array  Nuevo startTime y time legible
+     * @return array  Nuevo startTime, time legible y estado de regeneración
      */
     public function devResetStartTime(BingoRoom $room): array
     {
-        $newTime   = now()->addMinutes(3);
+        $newTime   = now()->addMinutes(2);
         $unixDate  = $newTime->timestamp;
+
+        // Verificar si existe un sorteo previo
+        $hasExistingDraw = \App\Domains\Games\Bingo\Models\Draw\BingoDraw::where('room_id', $room->id)->exists();
+
+        if ($hasExistingDraw) {
+            // Resetear estados de las rondas
+            $room->rounds()->update(['status' => 'ACTIVE']);
+
+            // Limpiar sorteos anteriores
+            \App\Domains\Games\Bingo\Models\Draw\BingoDraw::where('room_id', $room->id)->delete();
+
+            \Log::info('[DEV] Sorteo previo regenerado', [
+                'room_id' => $room->id,
+                'room_uuid' => $room->uuid_code,
+            ]);
+        }
 
         $room->config()->update([
             'unix_date' => $unixDate,
@@ -277,8 +294,10 @@ final class BingoGameService
         ]);
 
         return [
-            'startTime'   => $unixDate,
-            'humanTime'   => $newTime->format('H:i:s'),
+            'startTime'       => $unixDate,
+            'humanTime'       => $newTime->format('H:i:s'),
+            'hasExistingDraw' => $hasExistingDraw,
+            'message'         => $hasExistingDraw ? 'Sorteo regenerado exitosamente' : 'Nuevo sorteo iniciado',
         ];
     }
 

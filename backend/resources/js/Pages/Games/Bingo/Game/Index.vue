@@ -7,6 +7,7 @@ import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-room
 import { useAntiDebug } from "@js/composables/games/bingo/useAntiDebug";
 import BingoCartons from "@js/Components/Games/Bingo/views/inGame/Cartons.vue";
 import type { BingoRoom, BingoCard } from "@js/Services/bingoService";
+import Swal from "sweetalert2";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Anti-Debug Protection (solo en producción)
@@ -290,6 +291,34 @@ const devResetting = ref(false);
 
 async function devResetTime() {
   if (devResetting.value) return;
+
+  // Verificar si ya existe un sorteo previo
+  const hasExistingDraw = liveDrawn.value.length > 0;
+
+  if (hasExistingDraw) {
+    const result = await Swal.fire({
+      title: '¿Regenerar sorteo?',
+      text: 'Ya existe un sorteo cargado/finalizado. ¿Deseas regenerarlo? Esto reiniciará el juego.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, regenerar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#7b4fff',
+      cancelButtonColor: '#6c757d',
+      background: '#1a1f3a',
+      color: '#fff',
+      customClass: {
+        popup: 'swal-dark',
+        confirmButton: 'swal-confirm-btn',
+        cancelButton: 'swal-cancel-btn'
+      }
+    });
+
+    if (!result.isConfirmed) {
+      return; // Usuario canceló
+    }
+  }
+
   devResetting.value = true;
   try {
     const routeKey = props.roomRouteKey || roomId.value;
@@ -309,7 +338,25 @@ async function devResetTime() {
       gameStarted.value = false;
       // Re-init countdown with new unix_date
       initCountdown([{ id: roomId.value, config: { unix_date: data.startTime } } as any]);
+
+      Swal.fire({
+        title: '¡Sorteo iniciado!',
+        text: 'El sorteo ha sido regenerado exitosamente.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+        background: '#1a1f3a',
+        color: '#fff'
+      });
     }
+  } catch (error) {
+    Swal.fire({
+      title: 'Error',
+      text: 'No se pudo regenerar el sorteo. Inténtalo de nuevo.',
+      icon: 'error',
+      background: '#1a1f3a',
+      color: '#fff'
+    });
   } finally {
     devResetting.value = false;
   }
@@ -432,7 +479,7 @@ onUnmounted(() => {
 
           <!-- Game rooms button (solo visible cuando la sala está finalizada) -->
           <Link
-            v-if="room?.status?.toUpperCase() === 'FINISHED' || room?.status_code?.toUpperCase() === 'FINISHED'"
+            v-if="String(room?.status ?? '').toUpperCase() === 'FINISHED' || String(room?.status_code ?? '').toUpperCase() === 'FINISHED'"
             href="/bingo/game-rooms"
             class="ig-badge ig-badge--rooms"
           >
@@ -454,7 +501,7 @@ onUnmounted(() => {
         >
           <span v-if="devResetting" class="ig-dev-btn__spinner" />
           <i v-else class="fas fa-play-circle" />
-          {{ devResetting ? 'Actualizando...' : 'Iniciar Partida (+3 min)' }}
+          {{ devResetting ? 'Actualizando...' : 'Iniciar Partida (+2 min)' }}
         </button>
         <span class="ig-dev-label">DEV · solo visible en local</span>
       </div>
