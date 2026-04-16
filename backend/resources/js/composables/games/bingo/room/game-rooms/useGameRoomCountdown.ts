@@ -174,6 +174,55 @@ export function useGameRoomCountdown(
     return countdowns.value.get(roomId)
   }
 
+  /**
+   * Sincroniza el tiempo del cliente con el tiempo del servidor.
+   * Útil cuando el usuario vuelve a la página después de estar en segundo plano.
+   * @param serverTimestampMs - Timestamp actual del servidor en milisegundos
+   */
+  function syncTime(serverTimestampMs: number): void {
+    now.value = serverTimestampMs
+
+    // Recalcular todos los countdowns con el nuevo tiempo
+    countdowns.value.forEach((entry, roomId) => {
+      const endMs = _endMs.get(roomId)
+      if (endMs === undefined) return
+
+      const diff = endMs - now.value
+
+      if (diff <= 0) {
+        countdowns.value.set(roomId, { roomId, time: calcTimeRemaining(0), expired: true })
+      } else {
+        countdowns.value.set(roomId, {
+          roomId,
+          time: calcTimeRemaining(diff),
+          expired: false,
+        })
+      }
+    })
+  }
+
+  /**
+   * Actualiza el unix_date de una sala específica y recalcula el countdown.
+   * @param roomId - ID de la sala
+   * @param unixDate - Nuevo timestamp de fin
+   */
+  function updateRoomTime(roomId: string, unixDate: number): void {
+    const endMs = unixDate * 1_000
+    _endMs.set(roomId, endMs)
+
+    const diff = endMs - now.value
+
+    if (diff <= 0) {
+      countdowns.value.set(roomId, { roomId, time: calcTimeRemaining(0), expired: true })
+    } else {
+      countdowns.value.set(roomId, {
+        roomId,
+        time: calcTimeRemaining(diff),
+        expired: false,
+      })
+    }
+  }
+
   onUnmounted(stop)
 
   return {
@@ -185,5 +234,9 @@ export function useGameRoomCountdown(
     stop,
     /** Retorna el countdown de una sala por ID */
     getCountdown,
+    /** Sincroniza el tiempo con el servidor */
+    syncTime,
+    /** Actualiza el tiempo de una sala específica */
+    updateRoomTime,
   }
 }

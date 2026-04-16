@@ -118,7 +118,7 @@ const fakeRoom = computed(() => ({
   config: { unix_date: props.startTime ?? 0 },
 }));
 
-const { init: initCountdown, getCountdown, stop: stopCountdown } = useGameRoomCountdown(
+const { init: initCountdown, getCountdown, stop: stopCountdown, syncTime, updateRoomTime } = useGameRoomCountdown(
   Date.now(),
   () => {
     gameStarted.value = true;
@@ -280,6 +280,23 @@ function subscribeToRoom() {
   channel.listen(".WinnerDeclared", (e: { winner: WinnerInfo }) => {
     if (e.winner) {
       handleWinnerDeclared(e.winner);
+    }
+  });
+
+  // Room time sync - sincroniza el contador con el tiempo del servidor
+  // Esto corrige el desfase cuando el usuario vuelve después de estar fuera de la página
+  channel.listen(".RoomTimeSync", (e: { server_timestamp: number; unix_date: number; remaining_seconds: number }) => {
+    if (e.server_timestamp && e.unix_date) {
+      // Sincronizar el tiempo del cliente con el servidor
+      const serverTimeMs = e.server_timestamp * 1000;
+      syncTime(serverTimeMs);
+
+      // Actualizar el tiempo de la sala si ha cambiado
+      if (e.unix_date !== props.startTime) {
+        updateRoomTime(roomId.value, e.unix_date);
+      }
+
+      console.log('[WebSocket] Tiempo sincronizado con servidor:', new Date(serverTimeMs).toISOString());
     }
   });
 }

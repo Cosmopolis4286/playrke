@@ -293,6 +293,9 @@ final class BingoGameService
             'time'      => $newTime->format('H:i:s'),
         ]);
 
+        // Emitir evento para sincronizar el tiempo con todos los clientes conectados
+        broadcast(new \App\Events\Games\Bingo\RoomTimeSync($room->id, $unixDate))->toOthers();
+
         return [
             'startTime'       => $unixDate,
             'humanTime'       => $newTime->format('H:i:s'),
