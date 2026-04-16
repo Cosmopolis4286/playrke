@@ -26,6 +26,7 @@ final class BingoGameController extends Controller
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly \App\Services\Games\Bingo\Game\BingoGameService $service,
+        private readonly \App\Services\Games\Bingo\Game\BingoDrawService $drawService,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
@@ -83,6 +84,20 @@ final class BingoGameController extends Controller
     {
         return $this->handleServiceJson(
             fn() => $this->service->devResetStartTime($room)
+        );
+    }
+
+    /**
+     * [DEV] Inicia el sorteo de la sala (genera fichas, persiste y broadcast).
+     * Solo disponible en entorno local.
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function startDraw(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->drawService->startDraw($room)
         );
     }
 

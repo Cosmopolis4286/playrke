@@ -117,11 +117,15 @@ route_group('bingo-game', 'bingo-games.', ['auth'], BingoGameController::class, 
     'user-cards' => ['method' => 'get',  'uri' => '{room}/user-cards',      'action' => 'getUserCards'],
 ]);
 
-// Solo disponible en entorno local — reset de tiempo para desarrollo
+// Solo disponible en entorno local — utilidades de desarrollo
 if (app()->environment('local')) {
     Route::post('bingo-game/{room}/dev-reset-time', [\App\Http\Controllers\Games\Bingo\Game\BingoGameController::class, 'devResetStartTime'])
         ->middleware(['auth'])
         ->name('bingo-games.dev-reset-time');
+
+    Route::post('bingo-game/{room}/dev-start-draw', [\App\Http\Controllers\Games\Bingo\Game\BingoGameController::class, 'startDraw'])
+        ->middleware(['auth'])
+        ->name('bingo-games.dev-start-draw');
 }
 
 /**

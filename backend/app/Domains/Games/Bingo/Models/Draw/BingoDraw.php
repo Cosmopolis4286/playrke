@@ -19,7 +19,7 @@ class BingoDraw extends Model
     public const STATUS_WINNING   = 3;
     public const STATUS_COMPLETED = 4;
 
-    protected $fillable = ['chip', 'code', 'room', 'round', 'time', 'status'];
+    protected $fillable = ['room_id', 'chip', 'code', 'round', 'time', 'status'];
 
     protected $casts = [
         'round'      => 'integer',

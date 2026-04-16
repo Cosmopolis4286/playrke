@@ -83,7 +83,10 @@ const playersFlash = ref(false);
 // ─────────────────────────────────────────────────────────────────────────────
 // Countdown — mismo composable que GameRooms
 // ─────────────────────────────────────────────────────────────────────────────
-const gameStarted = ref(false);
+const gameStarted  = ref(false);
+const drawStarting = ref(false);   // 10-s pre-draw countdown
+const drawStartingSecs = ref(10);  // contador visual regresivo
+let   drawStartTimer: ReturnType<typeof setInterval> | null = null;
 
 // Fake single-room list so we can reuse useGameRoomCountdown as-is
 const fakeRoom = computed(() => ({
@@ -93,13 +96,61 @@ const fakeRoom = computed(() => ({
 
 const { init: initCountdown, getCountdown, stop: stopCountdown } = useGameRoomCountdown(
   Date.now(),
-  () => { gameStarted.value = true; },
+  () => {
+    gameStarted.value = true;
+    // Iniciar sorteo 10 segundos después del fin del countdown
+    scheduleDrawStart();
+  },
 );
 
 const cd = computed(() => getCountdown(fakeRoom.value.id));
 const hasTime = computed(() => cd.value && !cd.value.expired);
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Draw scheduling (fires 10 s after countdown expires)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function clearDrawTimer() {
+  if (drawStartTimer !== null) {
+    clearInterval(drawStartTimer);
+    drawStartTimer = null;
+  }
+  drawStarting.value = false;
+  drawStartingSecs.value = 10;
+}
+
+async function triggerStartDraw() {
+  try {
+    const routeKey = props.roomRouteKey || roomId.value;
+    await fetch(`/bingo-game/${routeKey}/dev-start-draw`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
+    // Response may take a long time (75 chips × 5 s). Numbers arrive via WebSocket.
+  } catch (e) {
+    console.error('[BingoDraw] Error al iniciar sorteo:', e);
+  }
+}
+
+function scheduleDrawStart() {
+  clearDrawTimer();
+  drawStarting.value = true;
+  drawStartingSecs.value = 10;
+
+  drawStartTimer = setInterval(() => {
+    drawStartingSecs.value -= 1;
+    if (drawStartingSecs.value <= 0) {
+      clearDrawTimer();
+      triggerStartDraw();
+    }
+  }, 1_000);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Computed
@@ -153,11 +204,10 @@ function subscribeToRoom() {
     }
   });
 
-  // Game started
+  // Game started (broadcast from backend when draw begins)
   channel.listen(".GameStarted", () => {
     gameStarted.value = true;
-    if (countdownInterval) clearInterval(countdownInterval);
-    countdown.value = { h: 0, m: 0, s: 0, total: 0 };
+    clearDrawTimer();
   });
 }
 
@@ -181,9 +231,12 @@ async function devResetTime() {
     });
     const data = await res.json();
     if (data.startTime) {
+      // Cancel any pending draw start
+      clearDrawTimer();
+      liveDrawn.value = [];
+      gameStarted.value = false;
       // Re-init countdown with new unix_date
       initCountdown([{ id: roomId.value, config: { unix_date: data.startTime } } as any]);
-      gameStarted.value = false;
     }
   } finally {
     devResetting.value = false;
@@ -208,6 +261,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopCountdown();
+  clearDrawTimer();
   if (channel && roomId.value) {
     const echo = getEchoInstance();
     echo.leaveChannel(`bingo.room.${roomId.value}`);
@@ -322,6 +376,54 @@ onUnmounted(() => {
         </button>
         <span class="ig-dev-label">DEV · solo visible en local</span>
       </div>
+
+      <!-- ══════════════════════════════════════════
+           PRE-DRAW BANNER (10 s antes del sorteo)
+      ══════════════════════════════════════════ -->
+      <Transition name="ig-fade">
+        <div v-if="drawStarting" class="ig-predraw-banner">
+          <span class="ig-predraw-banner__icon">🎱</span>
+          <span class="ig-predraw-banner__text">
+            El sorteo inicia en
+            <strong class="ig-predraw-banner__secs">{{ drawStartingSecs }}</strong>
+            segundo{{ drawStartingSecs === 1 ? '' : 's' }}…
+          </span>
+        </div>
+      </Transition>
+
+      <!-- ══════════════════════════════════════════
+           DRAWN NUMBERS BOARD
+      ══════════════════════════════════════════ -->
+      <Transition name="ig-fade">
+        <div v-if="liveDrawn.length > 0" class="ig-drawn-board">
+          <!-- Last chip (prominent) -->
+          <div class="ig-drawn-board__last">
+            <div class="ig-last-chip-wrap">
+              <img
+                :src="`/img/games/bingo/chips/${liveDrawn[liveDrawn.length - 1]}.png`"
+                :alt="`Ficha ${liveDrawn[liveDrawn.length - 1]}`"
+                class="ig-last-chip"
+              />
+            </div>
+            <div class="ig-drawn-board__header">
+              <i class="fas fa-random" />
+              Números sorteados
+              <span class="ig-drawn-board__count">{{ liveDrawn.length }} / 75</span>
+            </div>
+          </div>
+          <!-- All drawn chips -->
+          <div class="ig-drawn-board__chips">
+            <img
+              v-for="n in [...liveDrawn].reverse()"
+              :key="n"
+              :src="`/img/games/bingo/chips/${n}.png`"
+              :alt="`Ficha ${n}`"
+              class="ig-chip-img"
+              :class="{ 'ig-chip-img--latest': n === liveDrawn[liveDrawn.length - 1] }"
+            />
+          </div>
+        </div>
+      </Transition>
 
       <!-- ══════════════════════════════════════════
            CARDS GRID
@@ -714,6 +816,128 @@ body.hold-transition,
 }
 
 /* ══════════════════════════════════════
+   PRE-DRAW BANNER
+══════════════════════════════════════ */
+.ig-predraw-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, rgba(123,79,255,0.18) 0%, rgba(0,158,253,0.12) 100%);
+  border: 1px solid rgba(123,79,255,0.35);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  animation: banner-pulse 2s ease-in-out infinite;
+}
+@keyframes banner-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(123,79,255,0.2) }
+  50%     { box-shadow: 0 0 0 10px rgba(123,79,255,0) }
+}
+.ig-predraw-banner__icon { font-size: 22px }
+.ig-predraw-banner__text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c4aaff;
+  letter-spacing: 0.3px;
+}
+.ig-predraw-banner__secs {
+  display: inline-block;
+  min-width: 20px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ══════════════════════════════════════
+   DRAWN NUMBERS BOARD
+══════════════════════════════════════ */
+.ig-drawn-board {
+  background: linear-gradient(135deg, rgba(13,22,51,0.94) 0%, rgba(8,15,38,0.94) 100%);
+  border: 1px solid rgba(100,140,255,0.18);
+  border-radius: 20px;
+  padding: 16px 20px;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+}
+
+/* Last drawn chip */
+.ig-drawn-board__last {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.ig-last-chip-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.ig-last-chip {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 14px rgba(123,79,255,0.7));
+  animation: last-chip-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes last-chip-enter {
+  from { transform: scale(0) rotate(-20deg); opacity: 0 }
+  to   { transform: scale(1) rotate(0deg);  opacity: 1 }
+}
+
+.ig-drawn-board__header {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5578bb;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  flex: 1;
+}
+.ig-drawn-board__header i { color: #7b4fff; font-size: 11px }
+.ig-drawn-board__count {
+  font-size: 22px;
+  color: #e0eaff;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.ig-drawn-board__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* ── Chip images ── */
+.ig-chip-img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  border-radius: 50%;
+  animation: chip-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+.ig-chip-img:hover { transform: scale(1.15) }
+.ig-chip-img--latest {
+  filter: drop-shadow(0 0 8px rgba(255,255,255,0.6));
+}
+@keyframes chip-pop {
+  from { transform: scale(0); opacity: 0 }
+  to   { transform: scale(1); opacity: 1 }
+}
+
+/* ══════════════════════════════════════
+   TRANSITION
+══════════════════════════════════════ */
+.ig-fade-enter-active,
+.ig-fade-leave-active { transition: opacity 0.35s ease, transform 0.35s ease }
+.ig-fade-enter-from,
+.ig-fade-leave-to { opacity: 0; transform: translateY(-6px) }
+
+/* ══════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════ */
 @media (max-width: 640px) {
@@ -722,5 +946,7 @@ body.hold-transition,
   .ig-prize__num { font-size: 28px }
   .ig-cd-unit__num { font-size: 16px }
   .ig-cd-unit { min-width: 30px }
+  .ig-chip-img { width: 30px; height: 30px }
+  .ig-last-chip { width: 52px; height: 52px }
 }
 </style>
