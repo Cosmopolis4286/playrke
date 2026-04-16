@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Games\Bingo\Card;
 use App\DTOs\Games\Bingo\Card\Generate\BingoCardGenerateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
+use App\Http\Requests\Games\Bingo\Room\BingoRoomPlayerBuyRequest;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -142,6 +143,23 @@ final class BingoCardController extends Controller
 
         return $this->handleServiceJson(
             fn() => $this->generateService->getPlayerCardPrice($room->id, $userId)
+        );
+    }
+
+    /**
+     * Comprar cartones para un jugador desde la vista de salas de juego.
+     *
+     * @param BingoRoom                $room    Sala de bingo (model binding por {room}).
+     * @param BingoRoomPlayerBuyRequest $request Datos de la compra.
+     * @return JsonResponse
+     */
+    public function purchaseCards(BingoRoom $room, BingoRoomPlayerBuyRequest $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->generateService->playerBuyFromGameRooms(
+                $room->id,
+                (int) $request->validated()['num_ctns']
+            )
         );
     }
 }

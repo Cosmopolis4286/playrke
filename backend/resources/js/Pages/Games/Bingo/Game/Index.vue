@@ -424,8 +424,12 @@ onUnmounted(() => {
             {{ cardCount }} cartón{{ cardCount === 1 ? '' : 'es' }}
           </div>
 
-          <!-- Game rooms button -->
-          <Link href="/bingo/rooms" class="ig-badge ig-badge--rooms">
+          <!-- Game rooms button (solo visible cuando la sala está finalizada) -->
+          <Link
+            v-if="room?.status?.toUpperCase() === 'FINISHED' || room?.status_code?.toUpperCase() === 'FINISHED'"
+            href="/bingo/game-rooms"
+            class="ig-badge ig-badge--rooms"
+          >
             <i class="fas fa-door-open" />
             Salas
           </Link>

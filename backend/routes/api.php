@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Auth\DemoCredentialsController;
 use App\Http\Controllers\Api\UserLevelController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Games\Bingo\Card\BingoCardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -92,8 +93,8 @@ use App\Http\Controllers\NotificationController;
 //         Route::get('rooms/{id}', [BingoController::class, 'getRoom'])->name('api.bingo.room');
 
 //         // Cards
-//         Route::post('rooms/{id}/purchase', [BingoController::class, 'purchaseCards'])->name('api.bingo.purchase');
-//         Route::get('rooms/{id}/cards', [BingoController::class, 'getPlayerCards'])->name('api.bingo.player-cards');
+        Route::post('rooms/{room}/purchase', [BingoCardController::class, 'purchaseCards'])->name('api.bingo.purchase');
+        Route::get('rooms/{id}/cards', [BingoController::class, 'getPlayerCards'])->name('api.bingo.player-cards');
 
 //         // Game
 //         Route::get('rooms/{id}/draw', [BingoController::class, 'getDraw'])->name('api.bingo.draw');

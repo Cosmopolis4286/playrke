@@ -68,8 +68,21 @@ final class BingoGameController extends Controller
         return $this->handleServiceInertia(
             function () use ($room) {
                 $userId = $this->userContext->resolveUserId();
+
+                \Log::info('[BingoGameController] inGame loaded', [
+                    'room_id' => $room->id,
+                    'user_id' => $userId,
+                    'auth_check' => auth()->check(),
+                    'auth_id' => auth()->id(),
+                ]);
+
                 $response = $this->service->getInGameData($room, $userId);
                 $response['isLocal'] = app()->environment('local');
+
+                \Log::info('[BingoGameController] inGame response', [
+                    'cartons_count' => count($response['cartons'] ?? []),
+                    'cartons_data' => $response['cartons'] ?? [],
+                ]);
 
                 return Inertia::render('Games/Bingo/Game/Index', $response);
             },

@@ -8,6 +8,8 @@
 import { computed } from "vue";
 import { Link, router } from "@inertiajs/vue3";
 import type { BingoRoom } from "@js/Services/bingoService";
+import { BingoService } from "@js/Services/bingoService";
+import axios from "axios";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Props
@@ -24,11 +26,36 @@ const props = defineProps<Props>();
 // ─────────────────────────────────────────────────────────────────────────────
 const roomId = computed(() => props.room?.id?.toString() ?? "");
 
+const roomStatusText = computed(() => {
+  if (!props.room) return "";
+  return BingoService.getRoomStatusText(props.room.status);
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Methods
 // ─────────────────────────────────────────────────────────────────────────────
 function enterGame() {
   router.visit(`/bingo/${roomId.value}/game`);
+}
+
+function buyCards() {
+  // TODO: Open modal to select number of cards and country
+  const numCards = prompt('¿Cuántos cartones deseas comprar?', '1');
+  if (!numCards || isNaN(Number(numCards))) return;
+
+  // For now, assume default country
+  axios.post(`/api/bingo/rooms/${roomId.value}/purchase`, {
+    num_ctns: Number(numCards),
+    country_id: 'default' // TODO: Get from user selection
+  })
+  .then(response => {
+    alert('Cartones comprados exitosamente!');
+    // TODO: Update userCards count
+    location.reload(); // Temporary reload
+  })
+  .catch(error => {
+    alert('Error al comprar cartones: ' + (error.response?.data?.message || error.message));
+  });
 }
 </script>
 
@@ -47,9 +74,9 @@ function enterGame() {
       <!-- Room Info Card -->
       <div v-if="room" class="lobby-card">
         <div class="lobby-card__header">
-          <h2 class="lobby-room-name">{{ room.name }}</h2>
-          <span class="lobby-room-status" :class="`status-${room.status?.toLowerCase()}`">
-            {{ room.status }}
+          <h2 class="lobby-room-name">{{ room.roomTypeDescription }}</h2>
+          <span class="lobby-room-status" :class="`status-${roomStatusText.toLowerCase().replace(' ', '_')}`">
+            {{ roomStatusText }}
           </span>
         </div>
 
@@ -58,12 +85,12 @@ function enterGame() {
             <div class="lobby-info-item">
               <i class="fas fa-trophy" />
               <span class="label">Premio</span>
-              <span class="value">{{ room.prize_pool }}</span>
+              <span class="value">{{ room.prizePool }}</span>
             </div>
             <div class="lobby-info-item">
               <i class="fas fa-users" />
               <span class="label">Jugadores</span>
-              <span class="value">{{ room.total_players ?? 0 }}</span>
+              <span class="value">{{ room.currentPlayers }}</span>
             </div>
             <div class="lobby-info-item">
               <i class="fas fa-ticket-alt" />
@@ -74,6 +101,14 @@ function enterGame() {
         </div>
 
         <div class="lobby-card__footer">
+          <button
+            v-if="userCards === 0"
+            class="lobby-btn lobby-btn--secondary"
+            @click="buyCards"
+          >
+            <i class="fas fa-shopping-cart" />
+            Comprar Cartones
+          </button>
           <button
             class="lobby-btn lobby-btn--primary"
             @click="enterGame"
@@ -242,6 +277,18 @@ function enterGame() {
 .lobby-btn--primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(123, 79, 255, 0.4);
+}
+
+.lobby-btn--secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: #7c9dff;
+  border: 1px solid rgba(100, 140, 255, 0.3);
+  margin-right: 16px;
+}
+
+.lobby-btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
 }
 
 .lobby-loading {
