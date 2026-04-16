@@ -79,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, watch, ref } from "vue";
 import { type BingoCard } from "@js/Services/bingoService";
 
 interface Props {
@@ -87,6 +87,7 @@ interface Props {
   customerLogo?: string;
   roomId?: string;
   drawnNumbers?: number[];
+  autoCheckBingo?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -94,10 +95,16 @@ const props = withDefaults(defineProps<Props>(), {
   customerLogo: null,
   roomId: "",
   drawnNumbers: () => [],
+  autoCheckBingo: true,
 });
+
+const emit = defineEmits<{
+  (e: "bingo-detected", card: BingoCard): void;
+}>();
 
 const defaultLogo = "/img/rke.png";
 const letters = ["B", "I", "N", "G", "O"] as const;
+const bingoTriggered = ref<Set<string>>(new Set());
 
 const displayCards = computed(() => props.cartons);
 
@@ -130,6 +137,41 @@ function getCardHits(card: BingoCard): number {
   }
   return hits;
 }
+
+// Verifica si un cartón tiene bingo completo (24 números + centro libre)
+function hasFullBingo(card: BingoCard): boolean {
+  for (const letter of letters) {
+    for (let row = 1; row <= 5; row++) {
+      // El centro es libre (N3)
+      if (letter === "N" && row === 3) continue;
+
+      const num = getCardNumber(card, letter, row);
+      if (num === null || !drawnSet.value.has(num)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+// Watcher para detectar bingo automáticamente cuando cambian los números sorteados
+watch(
+  () => props.drawnNumbers,
+  () => {
+    if (!props.autoCheckBingo) return;
+
+    for (const card of props.cartons) {
+      // Evitar disparar múltiples veces para el mismo cartón
+      if (bingoTriggered.value.has(card.id)) continue;
+
+      if (hasFullBingo(card)) {
+        bingoTriggered.value.add(card.id);
+        emit("bingo-detected", card);
+      }
+    }
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>

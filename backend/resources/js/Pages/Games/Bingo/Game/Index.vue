@@ -7,6 +7,22 @@ import BingoCartons from "@js/Components/Games/Bingo/views/inGame/Cartons.vue";
 import type { BingoRoom, BingoCard } from "@js/Services/bingoService";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Winner Modal State
+// ─────────────────────────────────────────────────────────────────────────────
+interface WinnerInfo {
+  id: number;
+  name: string;
+  card_id: number;
+  pattern: string;
+  prize: number;
+}
+
+const showWinnerModal = ref(false);
+const winnerInfo = ref<WinnerInfo | null>(null);
+const isMyWin = ref(false);
+const checkingBingo = ref(false);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Props
 // ─────────────────────────────────────────────────────────────────────────────
 interface Player { ctns: number }
@@ -165,6 +181,48 @@ const cardCount = computed(() => props.cartons?.length ?? 0);
 const roomId = computed(() => props.roomId || props.room?.id?.toString() || "");
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Bingo Detection & Winner Handling
+// ─────────────────────────────────────────────────────────────────────────────
+async function handleBingoDetected(card: BingoCard) {
+  if (checkingBingo.value) return;
+  checkingBingo.value = true;
+
+  try {
+    const routeKey = props.roomRouteKey || roomId.value;
+    const res = await fetch(`/bingo-game/${routeKey}/check-bingo`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
+    const data = await res.json();
+
+    if (data.success && data.hasBingo && data.winner) {
+      winnerInfo.value = data.winner;
+      isMyWin.value = true;
+      showWinnerModal.value = true;
+    }
+  } catch (e) {
+    console.error('[Bingo] Error verificando bingo:', e);
+  } finally {
+    checkingBingo.value = false;
+  }
+}
+
+function handleWinnerDeclared(winner: WinnerInfo) {
+  winnerInfo.value = winner;
+  isMyWin.value = winner.id === (props as any).userId;
+  showWinnerModal.value = true;
+}
+
+function closeWinnerModal() {
+  showWinnerModal.value = false;
+  winnerInfo.value = null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // WebSocket
 // ─────────────────────────────────────────────────────────────────────────────
 let channel: any = null;
@@ -208,6 +266,13 @@ function subscribeToRoom() {
   channel.listen(".GameStarted", () => {
     gameStarted.value = true;
     clearDrawTimer();
+  });
+
+  // Winner declared (broadcast to all players)
+  channel.listen(".WinnerDeclared", (e: { winner: WinnerInfo }) => {
+    if (e.winner) {
+      handleWinnerDeclared(e.winner);
+    }
   });
 }
 
@@ -434,10 +499,48 @@ onUnmounted(() => {
           :customerLogo="customerLogo ?? null"
           :roomId="roomId"
           :drawnNumbers="liveDrawn"
+          @bingo-detected="handleBingoDetected"
         />
       </div>
 
     </div>
+
+    <!-- ══════════════════════════════════════════
+         WINNER MODAL
+    ══════════════════════════════════════════ -->
+    <Transition name="winner-modal">
+      <div v-if="showWinnerModal" class="winner-modal-overlay" @click.self="closeWinnerModal">
+        <div class="winner-modal" :class="{ 'is-my-win': isMyWin }">
+          <div class="winner-modal__glow" />
+          <div class="winner-modal__content">
+            <div class="winner-modal__icon">🏆</div>
+            <h2 class="winner-modal__title">
+              {{ isMyWin ? '¡BINGO! ¡Has Ganado!' : '¡Tenemos un Ganador!' }}
+            </h2>
+            <div v-if="winnerInfo" class="winner-modal__details">
+              <div class="winner-detail">
+                <span class="winner-detail__label">Ganador</span>
+                <span class="winner-detail__value">{{ winnerInfo.name }}</span>
+              </div>
+              <div class="winner-detail">
+                <span class="winner-detail__label">Cartón</span>
+                <span class="winner-detail__value">#{{ winnerInfo.card_id }}</span>
+              </div>
+              <div class="winner-detail winner-detail--prize">
+                <span class="winner-detail__label">Premio</span>
+                <span class="winner-detail__value winner-detail__value--prize">
+                  {{ currencySym }}{{ winnerInfo.prize.toFixed(2) }}
+                </span>
+              </div>
+            </div>
+            <button class="winner-modal__btn" @click="closeWinnerModal">
+              {{ isMyWin ? '¡Celebrar Victoria!' : 'Continuar Juego' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
   </div>
 </template>
 
@@ -948,5 +1051,194 @@ body.hold-transition,
   .ig-cd-unit { min-width: 30px }
   .ig-chip-img { width: 30px; height: 30px }
   .ig-last-chip { width: 52px; height: 52px }
+}
+
+/* ══════════════════════════════════════════
+   WINNER MODAL STYLES
+══════════════════════════════════════════ */
+.winner-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 8, 26, 0.9);
+  backdrop-filter: blur(8px);
+}
+
+.winner-modal {
+  position: relative;
+  width: 90%;
+  max-width: 420px;
+  background: linear-gradient(135deg, rgba(13, 22, 51, 0.98) 0%, rgba(8, 15, 38, 0.98) 100%);
+  border: 2px solid rgba(123, 79, 255, 0.4);
+  border-radius: 24px;
+  padding: 2px;
+  overflow: hidden;
+  animation: winner-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.winner-modal.is-my-win {
+  border-color: rgba(42, 245, 152, 0.5);
+  box-shadow:
+    0 0 60px rgba(42, 245, 152, 0.3),
+    0 0 120px rgba(123, 79, 255, 0.2),
+    inset 0 0 60px rgba(42, 245, 152, 0.05);
+}
+
+@keyframes winner-enter {
+  from { transform: scale(0.8) translateY(20px); opacity: 0 }
+  to { transform: scale(1) translateY(0); opacity: 1 }
+}
+
+.winner-modal__glow {
+  position: absolute;
+  inset: -50%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(123, 79, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(42, 245, 152, 0.1) 0%, transparent 50%);
+  animation: glow-rotate 10s linear infinite;
+}
+
+@keyframes glow-rotate {
+  from { transform: rotate(0deg) }
+  to { transform: rotate(360deg) }
+}
+
+.winner-modal__content {
+  position: relative;
+  z-index: 1;
+  padding: 32px 28px;
+  text-align: center;
+}
+
+.winner-modal__icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: trophy-bounce 1s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 193, 7, 0.5));
+}
+
+@keyframes trophy-bounce {
+  0%, 100% { transform: scale(1) rotate(-5deg) }
+  50% { transform: scale(1.1) rotate(5deg) }
+}
+
+.winner-modal__title {
+  font-family: 'Anton', sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  color: #fff;
+  margin: 0 0 24px;
+  background: linear-gradient(135deg, #ffe566 0%, #ffab00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 1px;
+}
+
+.is-my-win .winner-modal__title {
+  background: linear-gradient(135deg, #2af598 0%, #00c853 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.winner-modal__details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.winner-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(100, 140, 255, 0.1);
+}
+
+.winner-detail--prize {
+  background: rgba(255, 171, 0, 0.08);
+  border-color: rgba(255, 171, 0, 0.25);
+}
+
+.winner-detail__label {
+  font-size: 12px;
+  color: #5578bb;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.winner-detail__value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #e0eaff;
+}
+
+.winner-detail__value--prize {
+  font-size: 20px;
+  color: #ffd060;
+}
+
+.winner-modal__btn {
+  width: 100%;
+  padding: 16px 24px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7b4fff 0%, #009efd 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.winner-modal__btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(123, 79, 255, 0.4);
+}
+
+.is-my-win .winner-modal__btn {
+  background: linear-gradient(135deg, #2af598 0%, #00c853 100%);
+  box-shadow: 0 8px 24px rgba(42, 245, 152, 0.3);
+}
+
+.is-my-win .winner-modal__btn:hover {
+  box-shadow: 0 8px 24px rgba(42, 245, 152, 0.5);
+}
+
+/* Modal transitions */
+.winner-modal-enter-active,
+.winner-modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.winner-modal-enter-from,
+.winner-modal-leave-to {
+  opacity: 0;
+}
+
+.winner-modal-enter-active .winner-modal,
+.winner-modal-leave-active .winner-modal {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+}
+
+.winner-modal-enter-from .winner-modal,
+.winner-modal-leave-to .winner-modal {
+  transform: scale(0.9);
+  opacity: 0;
+}
+
+@media (max-width: 500px) {
+  .winner-modal__content { padding: 24px 20px }
+  .winner-modal__title { font-size: 22px }
+  .winner-modal__icon { font-size: 48px }
+  .winner-detail { padding: 10px 12px }
 }
 </style>

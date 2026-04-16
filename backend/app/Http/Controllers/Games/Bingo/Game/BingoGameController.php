@@ -27,6 +27,7 @@ final class BingoGameController extends Controller
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly \App\Services\Games\Bingo\Game\BingoGameService $service,
         private readonly \App\Services\Games\Bingo\Game\BingoDrawService $drawService,
+        private readonly \App\Services\Games\Bingo\Game\BingoWinnerDetectionService $winnerDetection,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
@@ -98,6 +99,40 @@ final class BingoGameController extends Controller
     {
         return $this->handleServiceJson(
             fn() => $this->drawService->startDraw($room)
+        );
+    }
+
+    /**
+     * Verifica si el usuario tiene bingo en alguno de sus cartones.
+     * Si hay bingo, declara al ganador y dispara evento WebSocket.
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function checkBingo(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($room) {
+                $userId = $this->userContext->resolveUserId();
+                $winner = $this->winnerDetection->checkWinnerForUser($room, $userId);
+
+                if ($winner) {
+                    $this->winnerDetection->declareWinner($room, $winner);
+                    return [
+                        'success' => true,
+                        'hasBingo' => true,
+                        'winner' => $winner,
+                        'message' => '¡BINGO! Has completado tu cartón.',
+                    ];
+                }
+
+                return [
+                    'success' => true,
+                    'hasBingo' => false,
+                    'message' => 'No tienes bingo aún. Sigue atento.',
+                ];
+            },
+            'Error al verificar bingo.'
         );
     }
 
