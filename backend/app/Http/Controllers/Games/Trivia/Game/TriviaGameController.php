@@ -134,7 +134,7 @@ final class TriviaGameController extends Controller
     }
 
     /**
-     * Display the in-game interface. (Legacy — sistema deprecated)
+     * Display the game interface. (Legacy — sistema deprecated)
      */
     public function inGame($id): Response
     {

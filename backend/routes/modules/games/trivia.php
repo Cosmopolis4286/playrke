@@ -64,7 +64,7 @@ Route::prefix('trivia-questions')->name('trivia-questions.')->middleware(['auth'
 Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth', 'role:player'])->group(function () {
     // Salas de trivia para usuarios (legacy)
     Route::get('/rooms/{coin}', [TriviaGameController::class, 'rooms'])->name('rooms');
-    Route::get('/room/{id}/in-game', [TriviaGameController::class, 'inGame'])->name('in-game');
+    Route::get('/room/{id}/game', [TriviaGameController::class, 'inGame'])->name('game');
     Route::get('/room/{id}/timer', [TriviaGameController::class, 'timer'])->name('timer');
     Route::get('/room/{id}/info', [TriviaGameController::class, 'roomInfo'])->name('room-info');
     Route::post('/room/{id}/leave', [TriviaGameController::class, 'leaveRoom'])->name('leave-room');
@@ -121,7 +121,7 @@ Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function (
     });
     
     Route::get('/room/{id}', function ($id) {
-        return redirect()->route('trivia-games.in-game', $id);
+        return redirect()->route('trivia-games.game', $id);
     });
     
     Route::get('/timer/{id}', function ($id) {
@@ -129,7 +129,7 @@ Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function (
     });
     
     Route::get('/rm-multi/{id}', function ($id) {
-        return redirect()->route('trivia-games.in-game', $id);
+        return redirect()->route('trivia-games.game', $id);
     });
     
     Route::get('/individual/{id}', function ($id) {

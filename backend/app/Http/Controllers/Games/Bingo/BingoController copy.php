@@ -821,7 +821,7 @@ class BingoController extends Controller
             $viewData = array_merge($viewData, $moreViewData);
         }
 
-        return ['route' => 'modules.games.bingo.in-game', 'data' => $viewData];
+        return ['route' => 'modules.games.bingo.game', 'data' => $viewData];
     }
 
     public function inGame($player, $room = '')

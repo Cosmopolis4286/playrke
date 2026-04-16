@@ -301,7 +301,7 @@
       show: (ids: string[]) => !ids.length,
       onClick: (ids: string[]) => {
         if (ids.length) return
-        window.location.href = `/bingo-game-rooms`
+        window.location.href = `/bingo/rooms`
       }
     },
     {

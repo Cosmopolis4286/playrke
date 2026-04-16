@@ -57,7 +57,7 @@
       label:       'Bingo',
       description: 'Ver salas disponibles y jugar',
       icon:        'fas fa-hat-wizard',
-      href:        '/bingo-game-rooms',
+      href:        '/bingo/rooms',
       variant:     'success',
     },
     {
@@ -80,7 +80,7 @@
         roleName="Jugador"
         :message="props.period ? `Período: ${props.period}` : undefined"
         :actions="[
-          { label: 'Ir al Bingo', icon: 'fas fa-hat-wizard', href: '/bingo-game-rooms', variant: 'primary' },
+          { label: 'Ir al Bingo', icon: 'fas fa-hat-wizard', href: '/bingo/rooms', variant: 'primary' },
           { label: 'Mi Billetera', icon: 'fas fa-wallet', href: '/wallet', variant: 'outline-primary' },
         ]"
       />

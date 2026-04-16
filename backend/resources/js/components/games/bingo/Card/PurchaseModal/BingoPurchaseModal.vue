@@ -90,7 +90,7 @@
   function goToUserCards() {
     if (!props.selectedRoom) return
     emit('close')
-    router.visit(`/bingo-game/${props.selectedRoom.id}/in-game`)
+    router.visit(`/bingo/${props.selectedRoom.id}`)
   }
 </script>
 

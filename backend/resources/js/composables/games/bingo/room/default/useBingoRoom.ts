@@ -527,7 +527,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
 
         try {
             // Redirigir directamente a la página de juego
-            const roomUrl = `/bingo-game/${roomId}/in-game`
+            const roomUrl = `/bingo-game/${roomId}/game`
             console.log(`Redirigiendo a: ${roomUrl}`)
             window.location.href = roomUrl
         } catch (error) {

@@ -41,7 +41,7 @@
                     <td>
                         <div class="btn-group" role="group" aria-label="Acciones">
                             <a class="btn btn-sm bg-primary show-ctns" target="_blank"
-                                href="{{ route('bingo.in-game', ['player' => $win->ExternalPlayers->link]) }}">
+                                href="{{ route('bingo.game', ['player' => $win->ExternalPlayers->link]) }}">
                                 <i class="fa-solid fa-eye"></i>
                             </a>
                         </div>

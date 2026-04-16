@@ -41,7 +41,7 @@
                                             <td>{{ $currencyData->iso_code }} {{ number_format($commn, 2, '.', ',') }}</td>
                                             <td>
                                                 <a class="btn btn-sm bg-primary show-ctns" target="_blank"
-                                                    href="{{ route('bingo.in-game', ['player' => $player->link]) }}">
+                                                    href="{{ route('bingo.game', ['player' => $player->link]) }}">
                                                     <i class="fa-solid fa-eye"></i> CTNs
                                                 </a>
                                             </td>

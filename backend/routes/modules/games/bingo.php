@@ -96,10 +96,10 @@ route_group('bingo-card', 'bingo-card.', ['auth', 'multiPermission:games.bingo,g
 
 /**
  * ====================================
- * SALAS DE JUEGO (Para jugadores)
+ * SALAS DE JUEGO
  * ====================================
  */
-route_group('bingo-game-rooms', 'bingo-game-rooms.', ['auth', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoRoomController::class, [
+route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoRoomController::class, [
     'index' => ['method' => 'get',  'uri' => '',           'action' => 'viewGameRooms'],
     'buy-from-rooms'  => ['method' => 'post', 'uri' => '{room}/buy', 'action' => 'buyFromGameRooms'],
     'player-buy'       => ['method' => 'post', 'uri' => '{room}/player-buy', 'action' => 'playerBuyFromGameRooms'],
@@ -109,24 +109,24 @@ route_group('bingo-game-rooms', 'bingo-game-rooms.', ['auth', 'multiPermission:g
 
 /**
  * ====================================
- * JUEGO DE BINGO (IN-GAME)
+ * JUEGO DE BINGO
  * ====================================
  */
-route_group('bingo-game', 'bingo-games.', ['auth'], BingoGameController::class, [
-    'in-game'     => ['method' => 'get',  'uri' => '{room}/in-game',     'action' => 'inGame'],
+route_group('bingo.', 'bingo.', ['auth'], BingoGameController::class, [
+    'game'     => ['method' => 'get',  'uri' => '{room}',              'action' => 'inGame'],
     'user-cards'  => ['method' => 'get',  'uri' => '{room}/user-cards',  'action' => 'getUserCards'],
     'check-bingo' => ['method' => 'post', 'uri' => '{room}/check-bingo', 'action' => 'checkBingo'],
 ]);
 
 // Solo disponible en entorno local — utilidades de desarrollo
 if (app()->environment('local')) {
-    Route::post('bingo-game/{room}/dev-reset-time', [\App\Http\Controllers\Games\Bingo\Game\BingoGameController::class, 'devResetStartTime'])
+    Route::post('bingo/{room}/dev-reset-time', [\App\Http\Controllers\Games\Bingo\Game\BingoGameController::class, 'devResetStartTime'])
         ->middleware(['auth'])
-        ->name('bingo-games.dev-reset-time');
+        ->name('bingo.dev-reset-time');
 
-    Route::post('bingo-game/{room}/dev-start-draw', [\App\Http\Controllers\Games\Bingo\Game\BingoGameController::class, 'startDraw'])
+    Route::post('bingo/{room}/dev-start-draw', [\App\Http\Controllers\Games\Bingo\Game\BingoGameController::class, 'startDraw'])
         ->middleware(['auth'])
-        ->name('bingo-games.dev-start-draw');
+        ->name('bingo.dev-start-draw');
 }
 
 /**
@@ -176,7 +176,7 @@ route_group('bingo', 'bingo.', [], BingoReportController::class, [
  */
 // Route::get('bingo/view-ctn/{ctnId}', [BingoReportController::class, 'viewCtn'])->name('bingo.view-carton');
 // Route::get('bingo/{roomType}/{creatorType}/{creatorId?}/{currency?}', [BingoReportController::class, 'handleGameRoomSummary'])->name('bingo-rooms.index');
-// Route::get('{customer}/{userToken}/room/{room}', [BingoReportController::class, 'inGameCustomer'])->name('bingo.in-game-customer');
+// Route::get('{customer}/{userToken}/room/{room}', [BingoReportController::class, 'inGameCustomer'])->name('bingo.game-customer');
 // Route::get('game/{customer}/room/{room}/{currency}', [BingoReportController::class, 'outGameCustomer'])->name('bingo.out-game-customer');
 
 // Ruta especial de sesión

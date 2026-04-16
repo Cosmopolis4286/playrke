@@ -15,7 +15,7 @@
 // ==========================================================================
 import { ref, onMounted, computed } from "vue";
 import { usePage } from "@inertiajs/vue3";
-import "@/css/games/bingo/bingo-game-rooms.css";
+import "@/css/games/bingo/bingo/game-rooms.css";
 
 // ==========================================================================
 // Services

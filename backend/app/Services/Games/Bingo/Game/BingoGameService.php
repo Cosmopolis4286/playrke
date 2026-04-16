@@ -16,7 +16,7 @@ final class BingoGameService
     ) {}
 
     /**
-     * Obtener datos para la vista del juego (in-game).
+     * Obtener datos para la vista del juego (game).
      *
      * @param BingoRoom $room
      * @param int|null $userId

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import "@/css/games/bingo/bingo-in-game.css";
+import { Link } from "@inertiajs/vue3";
+import "@/css/games/bingo/bingo-game.css";
 import { getEchoInstance } from "@js/plugins/echo";
 import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
 import BingoCartons from "@js/Components/Games/Bingo/views/inGame/Cartons.vue";
@@ -140,7 +141,7 @@ function clearDrawTimer() {
 async function triggerStartDraw() {
   try {
     const routeKey = props.roomRouteKey || roomId.value;
-    await fetch(`/bingo-game/${routeKey}/dev-start-draw`, {
+    await fetch(`/bingo/${routeKey}/dev-start-draw`, {
       method: 'POST',
       headers: {
         'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
@@ -189,7 +190,7 @@ async function handleBingoDetected(card: BingoCard) {
 
   try {
     const routeKey = props.roomRouteKey || roomId.value;
-    const res = await fetch(`/bingo-game/${routeKey}/check-bingo`, {
+    const res = await fetch(`/bingo/${routeKey}/check-bingo`, {
       method: 'POST',
       headers: {
         'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
@@ -286,7 +287,7 @@ async function devResetTime() {
   devResetting.value = true;
   try {
     const routeKey = props.roomRouteKey || roomId.value;
-    const res = await fetch(`/bingo-game/${routeKey}/dev-reset-time`, {
+    const res = await fetch(`/bingo/${routeKey}/dev-reset-time`, {
       method: 'POST',
       headers: {
         'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
@@ -422,6 +423,12 @@ onUnmounted(() => {
             <i class="fas fa-ticket-alt" />
             {{ cardCount }} cartón{{ cardCount === 1 ? '' : 'es' }}
           </div>
+
+          <!-- Game rooms button -->
+          <Link href="/bingo/rooms" class="ig-badge ig-badge--rooms">
+            <i class="fas fa-door-open" />
+            Salas
+          </Link>
         </div>
 
       </div>
@@ -837,6 +844,23 @@ body.hold-transition,
 .ig-badge small { font-size: 9px; opacity: 0.65; font-weight: 400 }
 
 .ig-badge--flash { animation: badge-pop 0.5s ease }
+
+/* ── Rooms badge (button) ── */
+.ig-badge--rooms {
+  background: rgba(100, 140, 255, 0.1);
+  border-color: rgba(100, 140, 255, 0.3);
+  color: #7c9dff;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+.ig-badge--rooms:hover {
+  background: rgba(100, 140, 255, 0.2);
+  border-color: rgba(100, 140, 255, 0.5);
+  color: #a8bdff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(100, 140, 255, 0.2);
+}
 @keyframes badge-pop {
   0%  { transform: scale(1); box-shadow: 0 0 0 0 rgba(42,245,152,0.4) }
   40% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(42,245,152,0) }

@@ -23,7 +23,7 @@ import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo
  * Endpoints:
  *  - GET  /bingo-card/{room}/available-countries
  *  - GET  /bingo-card/{room}/card-price?country_id=
- *  - POST /bingo-game-rooms/{room}/buy
+ *  - POST /bingo/game-rooms/{room}/buy
  *
  * Uso:
  * ```ts
@@ -70,7 +70,7 @@ export function useGameRoomPurchaseModal() {
         checkingRole.value = true
 
         try {
-            const { data } = await backendClient.get('/bingo-game-rooms/check-user-role');
+            const { data } = await backendClient.get('/bingo/game-rooms/check-user-role');
             isPlayer.value = data.is_player;
             return isPlayer.value;
         } catch (error) {
@@ -144,7 +144,7 @@ export function useGameRoomPurchaseModal() {
         try {
             loadingPrice.value = true
             const { data } = await backendClient.get<BingoCardPriceResponse>(
-                `/bingo-game-rooms/${roomId}/player-card-price`,
+                `/bingo/game-rooms/${roomId}/player-card-price`,
             )
             // El precio ya viene convertido a la moneda del jugador
             cardPrice.value = data.card_price
@@ -261,13 +261,13 @@ export function useGameRoomPurchaseModal() {
 
             if (isPlayer.value === true) {
                 // Jugadores: endpoint específico sin country_id
-                endpoint = `/bingo-game-rooms/${selectedRoom.value.id}/player-buy`
+                endpoint = `/bingo/game-rooms/${selectedRoom.value.id}/player-buy`
                 payload = {
                     num_ctns: numCtns.value,
                 }
             } else {
                 // Otros roles: endpoint original con country_id
-                endpoint = `/bingo-game-rooms/${selectedRoom.value.id}/buy`
+                endpoint = `/bingo/game-rooms/${selectedRoom.value.id}/buy`
                 payload = {
                     num_ctns: numCtns.value,
                     country_id: selectedCountry.value!.id,
