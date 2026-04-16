@@ -4,33 +4,35 @@ import type { AxiosResponse } from 'axios';
 // Tipos para el servicio de Bingo
 export interface BingoRoom {
   id: string;
-  encrypted: string;
-  uuidCode: string;
-  status: number;
-  roomType: number;
-  roomTypeDescription: string;
-  creator: {
+  encrypted?: string;
+  uuidCode?: string;
+  status?: number | string;
+  status_code?: string;
+  status_id?: string;
+  roomType?: number;
+  roomTypeDescription?: string;
+  creator?: {
     id: string;
     username: string;
     email?: string;
   };
-  paidWin: boolean;
-  publicationDate: Date;
-  cardPrice: number;
-  players: number;
-  ctns: number;
-  allSale: boolean;
-  rkeCommn: number;
-  roomCommn: number;
-  commission: number;
-  prizePool: number;
-  fullHousePrize: number;
-  serialPrize: number;
-  closeRoom: boolean;
-  currentPlayers: number;
-  currentCards: number;
-  createdAt: Date;
-  updatedAt: Date;
+  paidWin?: boolean;
+  publicationDate?: Date;
+  cardPrice?: number;
+  players?: number;
+  ctns?: number;
+  allSale?: boolean;
+  rkeCommn?: number;
+  roomCommn?: number;
+  commission?: number;
+  prizePool?: number;
+  fullHousePrize?: number;
+  serialPrize?: number;
+  closeRoom?: boolean;
+  currentPlayers?: number;
+  currentCards?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface BingoCard {
@@ -444,15 +446,32 @@ export class BingoService {
   /**
    * Obtener estado de la sala
    */
-  static getRoomStatusText(status: number): string {
-    const statuses: { [key: number]: string } = {
+  static getRoomStatusText(status: number | string | undefined): string {
+    const statusKey = typeof status === 'string' ? status.toUpperCase() : status;
+    const numericStatuses: Record<number, string> = {
       1: 'Abierta',
       2: 'En Juego',
       3: 'Pausada',
       4: 'Finalizada',
       5: 'Cancelada'
     };
-    return statuses[status] || 'Desconocido';
+    const codeStatuses: Record<string, string> = {
+      ACTIVE: 'Disponible',
+      IN_PROGRESS: 'En Juego',
+      FINISHED: 'Finalizada',
+      REFUND: 'Reembolso',
+      OFFLINE: 'Fuera de Línea'
+    };
+
+    if (typeof statusKey === 'number') {
+      return numericStatuses[statusKey] || 'Desconocido';
+    }
+
+    if (typeof statusKey === 'string') {
+      return codeStatuses[statusKey] || numericStatuses[Number(statusKey)] || 'Desconocido';
+    }
+
+    return 'Desconocido';
   }
 
   /**

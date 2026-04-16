@@ -50,13 +50,18 @@ const canNavigateGame = computed(() => Boolean(routeKey.value));
 
 const roomStatusText = computed(() => {
   if (!props.room) return "";
-  return BingoService.getRoomStatusText(props.room.status);
+  return BingoService.getRoomStatusText(props.room.status_code || props.room.status);
 });
 
 const isRoomLoading = computed(() => !props.room);
 const canPurchaseCards = computed(() => {
   if (!props.room) return false;
-  return props.room.status === 1 && !props.room.closeRoom;
+
+  const roomStatusCode = (props.room.status_code || props.room.status)?.toString().toUpperCase();
+  const roomStatusNumber = typeof props.room.status === 'number' ? props.room.status : Number(props.room.status);
+
+  const isOpen = roomStatusCode === 'ACTIVE' || roomStatusNumber === 1;
+  return isOpen && !props.room.closeRoom;
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
