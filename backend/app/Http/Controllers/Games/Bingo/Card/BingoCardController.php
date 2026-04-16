@@ -155,11 +155,56 @@ final class BingoCardController extends Controller
      */
     public function purchaseCards(BingoRoom $room, BingoRoomPlayerBuyRequest $request): JsonResponse
     {
+        // Validate room state
+        if ($room->status !== 1) { // Only allow purchases in "Abierta" status
+            return response()->json([
+                'message' => 'No se pueden comprar cartones en este momento. La sala debe estar abierta.'
+            ], 400);
+        }
+
+        if ($room->closeRoom) {
+            return response()->json([
+                'message' => 'La sala está cerrada para nuevas compras.'
+            ], 400);
+        }
+
         return $this->handleServiceJson(
-            fn() => $this->generateService->playerBuyFromGameRooms(
-                $room->id,
-                (int) $request->validated()['num_ctns']
-            )
+            function () use ($room, $request) {
+                $result = $this->generateService->playerBuyFromGameRooms(
+                    $room->id,
+                    (int) $request->validated()['num_ctns']
+                );
+
+                return [
+                    'message' => 'Cartones comprados exitosamente',
+                    'data' => $result,
+                    'user_cards_count' => count($result['cards'] ?? [])
+                ];
+            },
+            'Error al procesar la compra de cartones.'
+        );
+    }
+
+    /**
+     * Obtener los cartones del jugador actual en una sala específica.
+     *
+     * @param BingoRoom $room Sala de bingo (model binding por {room}).
+     * @return JsonResponse
+     */
+    public function getPlayerCards(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($room) {
+                $userId = $this->userContext->resolveUserId();
+
+                // This would need to be implemented in the service
+                // For now, return empty array
+                return [
+                    'cards' => [],
+                    'count' => 0
+                ];
+            },
+            'Error al obtener los cartones del jugador.'
         );
     }
 }

@@ -36,6 +36,8 @@
                     :src="customerLogo || defaultLogo"
                     alt="★"
                     class="ctn-cell__logo"
+                    draggable="false"
+                    @contextmenu.prevent
                   />
                 </div>
               </template>

@@ -4,8 +4,14 @@ import { Link } from "@inertiajs/vue3";
 import "@/css/games/bingo/bingo-in-game.css";
 import { getEchoInstance } from "@js/plugins/echo";
 import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
+import { useAntiDebug } from "@js/composables/games/bingo/useAntiDebug";
 import BingoCartons from "@js/Components/Games/Bingo/views/inGame/Cartons.vue";
 import type { BingoRoom, BingoCard } from "@js/Services/bingoService";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Anti-Debug Protection (solo en producción)
+// ─────────────────────────────────────────────────────────────────────────────
+useAntiDebug()
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Winner Modal State
@@ -479,6 +485,8 @@ onUnmounted(() => {
                 :src="`/img/games/bingo/chips/${liveDrawn[liveDrawn.length - 1]}.png`"
                 :alt="`Ficha ${liveDrawn[liveDrawn.length - 1]}`"
                 class="ig-last-chip"
+                draggable="false"
+                @contextmenu.prevent
               />
             </div>
             <div class="ig-drawn-board__header">
@@ -496,6 +504,8 @@ onUnmounted(() => {
               :alt="`Ficha ${n}`"
               class="ig-chip-img"
               :class="{ 'ig-chip-img--latest': n === liveDrawn[liveDrawn.length - 1] }"
+              draggable="false"
+              @contextmenu.prevent
             />
           </div>
         </div>
@@ -1050,10 +1060,24 @@ body.hold-transition,
   border-radius: 50%;
   animation: chip-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   transition: transform 0.2s ease, filter 0.2s ease;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 .ig-chip-img:hover { transform: scale(1.15) }
 .ig-chip-img--latest {
   filter: drop-shadow(0 0 8px rgba(255,255,255,0.6));
+}
+
+/* Prevent image download/selection */
+.ig-last-chip {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 @keyframes chip-pop {
   from { transform: scale(0); opacity: 0 }
