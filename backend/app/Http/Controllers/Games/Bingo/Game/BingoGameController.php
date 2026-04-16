@@ -31,7 +31,32 @@ final class BingoGameController extends Controller
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
-    
+
+    /**
+     * Vista del lobby de bingo (pantalla previa al juego).
+     *
+     * @param BingoRoom $room
+     * @return Response
+     */
+    public function lobby(BingoRoom $room): Response
+    {
+        return $this->handleServiceInertia(
+            function () use ($room) {
+                $userId = $this->userContext->resolveUserId();
+                $userCards = $room->cards()
+                    ->whereHas('roomUser', fn($q) => $q->where('user_id', $userId))
+                    ->where('status', 'active')
+                    ->count();
+
+                return Inertia::render('Games/Bingo/Lobby/Index', [
+                    'room' => $room,
+                    'userCards' => $userCards,
+                ]);
+            },
+            'No se pudo cargar el lobby.'
+        );
+    }
+
     /**
      * Vista del juego de bingo (jugador en sala).
      *

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { Link } from "@inertiajs/vue3";
-import "@/css/games/bingo/bingo-game.css";
+import "@/css/games/bingo/bingo-in-game.css";
 import { getEchoInstance } from "@js/plugins/echo";
 import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
 import BingoCartons from "@js/Components/Games/Bingo/views/inGame/Cartons.vue";

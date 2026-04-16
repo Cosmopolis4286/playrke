@@ -87,10 +87,10 @@
     if (!isNaN(val)) emit('set-ctns', val)
   }
 
-  function goToUserCards() {
+  function goToLobby() {
     if (!props.selectedRoom) return
     emit('close')
-    router.visit(`/bingo/${props.selectedRoom.id}/game`)
+    router.visit(`/bingo/${props.selectedRoom.id}/lobby`)
   }
 </script>
 
@@ -296,9 +296,9 @@
               <button
                 v-if="step === 'confirm' && currentCtns > 0"
                 class="pm-btn pm-btn--cards"
-                @click="goToUserCards"
+                @click="goToLobby"
               >
-                <i class="fas fa-th mr-1" />Ver mis cartones
+                <i class="fas fa-door-open mr-1" />Ir al lobby
               </button>
 
               <div class="pm-footer__spacer" />
