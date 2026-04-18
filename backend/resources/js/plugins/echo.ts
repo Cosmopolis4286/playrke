@@ -43,9 +43,11 @@ const getEchoInstance = (): Echo<any> => {
      */
     const APP_KEY = import.meta.env.VITE_REVERB_APP_KEY
     const HOST = import.meta.env.VITE_REVERB_HOST ?? window.location.hostname
-    const PORT = Number(import.meta.env.VITE_REVERB_PORT) || 8080
+    const PORT = Number(import.meta.env.VITE_REVERB_PORT) || 8082
     const SCHEME = import.meta.env.VITE_REVERB_SCHEME ?? window.location.protocol.replace(':', '')
     const IS_HTTPS = SCHEME === 'https'
+
+    console.log('[Echo Debug] Config:', { APP_KEY, HOST, PORT, SCHEME, IS_HTTPS })
 
     /**
      * Creación de la instancia Echo usando Pusher
@@ -89,7 +91,14 @@ const getEchoInstance = (): Echo<any> => {
     })
 
     echoInstance.connector.pusher.connection.bind('error', (err: any) => {
-        console.error('⚠️ Error en WebSocket:', err)
+        console.error('WebSocket Error Details:', {
+            error: err,
+            type: err.type,
+            message: err.message,
+            data: err.data,
+            code: err.code,
+            status: err.status
+        })
     })
 
     return echoInstance
