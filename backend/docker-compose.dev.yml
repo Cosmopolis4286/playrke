@@ -1,0 +1,190 @@
+# Variables cargadas desde .env.dev en todos los servicios Laravel
+# Arrancar con: docker compose -f docker-compose.dev.yml --env-file .env.dev up -d --build
+
+services:
+
+  # ─── Traefik — Proxy inverso ───────────────────────────────────────────────
+  traefik:
+    image: traefik:v3.1
+    container_name: playrke_traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.ws.address=:6001"
+      - "--log.level=WARN"
+    ports:
+      - "80:80"
+      - "6001:6001"
+      - "8888:8080"       # Panel Traefik → http://localhost:8888
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - playrke_network
+
+  # ─── PHP-FPM — Aplicación Laravel ─────────────────────────────────────────
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: playrke_php
+    env_file: .env.dev
+    volumes:
+      - ./:/var/www                        # código fuente en caliente
+      - php_vendor:/var/www/vendor         # vendor aislado del host
+      - php_bootstrap:/var/www/bootstrap/cache
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.php.rule=Host(`playrke.localhost`)"
+      - "traefik.http.routers.php.entrypoints=web"
+      - "traefik.http.services.php.loadbalancer.server.port=9000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - playrke_network
+
+  # ─── MySQL ─────────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: playrke_mysql
+    env_file: .env.dev
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --skip-log-bin
+      --innodb-flush-log-at-trx-commit=2
+      --innodb-flush-method=O_DIRECT
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - playrke_network
+
+  # ─── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: playrke_redis
+    command: >
+      redis-server
+      --appendonly no
+      --save ""
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - playrke_network
+
+  # ─── Reverb — WebSocket ────────────────────────────────────────────────────
+  reverb:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: playrke_reverb
+    command: ["php", "artisan", "reverb:start", "--debug", "--port=8080", "--host=0.0.0.0"]
+    env_file: .env.dev
+    volumes:
+      - ./:/var/www
+      - reverb_vendor:/var/www/vendor
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.reverb.rule=Host(`ws.playrke.localhost`)"
+      - "traefik.http.routers.reverb.entrypoints=ws"
+      - "traefik.http.services.reverb.loadbalancer.server.port=8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - playrke_network
+
+  # ─── Queue Worker ──────────────────────────────────────────────────────────
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: playrke_queue
+    command: ["php", "artisan", "queue:work", "--sleep=1", "--tries=3", "--timeout=60", "--verbose"]
+    env_file: .env.dev
+    volumes:
+      - ./:/var/www
+      - queue_vendor:/var/www/vendor
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - playrke_network
+
+  # ─── Scheduler ─────────────────────────────────────────────────────────────
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: playrke_scheduler
+    command: ["sh", "-c", "while true; do php artisan schedule:run --verbose; sleep 60; done"]
+    env_file: .env.dev
+    volumes:
+      - ./:/var/www
+      - scheduler_vendor:/var/www/vendor
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - playrke_network
+
+  # ─── Mailpit — Captura de correos ──────────────────────────────────────────
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: playrke_mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - playrke_network
+
+volumes:
+  mysql_data:
+    driver: local
+  php_vendor:
+    driver: local
+  php_bootstrap:
+    driver: local
+  reverb_vendor:
+    driver: local
+  queue_vendor:
+    driver: local
+  scheduler_vendor:
+    driver: local
+
+networks:
+  playrke_network:
+    driver: bridge

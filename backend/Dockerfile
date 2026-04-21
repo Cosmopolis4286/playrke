@@ -121,29 +121,81 @@ RUN if [ -f package.json ]; then \
 # ============================================
 FROM base AS development
 
-# Instalar dependencias de desarrollo
-COPY --from=dependencies /var/www/vendor ./vendor
+# Xdebug para profiling/debugging
+RUN apk add --no-cache $PHPIZE_DEPS linux-headers \
+ && pecl install xdebug \
+ && docker-php-ext-enable xdebug \
+ && apk del $PHPIZE_DEPS
+
+# OPcache en modo dev: revalida en cada request
+RUN { \
+        echo "opcache.memory_consumption=128"; \
+        echo "opcache.interned_strings_buffer=8"; \
+        echo "opcache.max_accelerated_files=4000"; \
+        echo "opcache.revalidate_freq=0"; \
+        echo "opcache.validate_timestamps=1"; \
+        echo "opcache.enable_cli=1"; \
+    } > /usr/local/etc/php/conf.d/opcache-dev.ini
+
+# Xdebug config
+RUN { \
+        echo "xdebug.mode=debug,coverage"; \
+        echo "xdebug.start_with_request=yes"; \
+        echo "xdebug.client_host=host.docker.internal"; \
+        echo "xdebug.client_port=9003"; \
+        echo "xdebug.log_level=0"; \
+    } > /usr/local/etc/php/conf.d/xdebug.ini
+
+# PHP-FPM pool liviano para dev
+RUN { \
+        echo "[www]"; \
+        echo "user = www-data"; \
+        echo "group = www-data"; \
+        echo "listen = 9000"; \
+        echo "listen.owner = www-data"; \
+        echo "listen.group = www-data"; \
+        echo "pm = dynamic"; \
+        echo "pm.max_children = 10"; \
+        echo "pm.start_servers = 2"; \
+        echo "pm.min_spare_servers = 1"; \
+        echo "pm.max_spare_servers = 4"; \
+        echo "catch_workers_output = yes"; \
+        echo "clear_env = no"; \
+    } > /usr/local/etc/php-fpm.d/www.conf
+
+# Composer con deps de desarrollo
+COPY composer.json composer.lock* ./
+RUN composer install \
+    --no-scripts \
+    --no-autoloader \
+    --prefer-dist
+
+# Guardar vendor en ruta alternativa como respaldo para el entrypoint
+# (el bind mount de /var/www pisa /var/www/vendor en runtime)
+RUN cp -r vendor /var/www-image-vendor
+
 RUN mkdir -p node_modules
-COPY --from=dependencies /var/www/node_modules* ./node_modules/
+COPY package.json* pnpm-lock.yaml* ./
+RUN if [ -f package.json ]; then pnpm install --no-frozen-lockfile; fi
 
-# Copiar archivos de la aplicación
-COPY . .
-
-# Permisos necesarios
+# Directorios de runtime (el código llega por bind mount)
 RUN mkdir -p \
     storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
     storage/logs \
     bootstrap/cache \
- && chown -R www-data:www-data storage bootstrap/cache vendor \
- && chmod -R 775 storage bootstrap/cache vendor
+ && chown -R www-data:www-data storage bootstrap/cache \
+ && chmod -R 775 storage bootstrap/cache
 
-# Exponer puertos
-EXPOSE 8000 8080
+COPY docker/entrypoint-dev.sh /usr/local/bin/entrypoint-dev.sh
+RUN chmod +x /usr/local/bin/entrypoint-dev.sh \
+ && sed -i 's|/var/www-image/vendor|/var/www-image-vendor|g' /usr/local/bin/entrypoint-dev.sh
 
-# Comando de desarrollo
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+EXPOSE 9000 8080
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-dev.sh"]
+CMD ["php-fpm"]
 
 # ============================================
 # Stage 4: Production

@@ -37,9 +37,8 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Usuario que jugó');
 
-            $table->integer('room_id')
-                ->nullable()
-                ->comment('Sala o room asociada');
+            $table->string('room_id')
+                ->comment('ID de sala asociada');
 
             // Detalles del juego
             $table->decimal('gain', 12, 2)->default(0.00)->comment('Ganancia obtenida');

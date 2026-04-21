@@ -22,9 +22,7 @@ return new class extends Migration
                 ->constrained('game_modes')
                 ->nullOnDelete();
 
-            $table->foreignSnowflake('room_id')
-                ->constrained('bingo_rooms')
-                ->cascadeOnDelete();
+            $table->string('room_id');
 
             $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')

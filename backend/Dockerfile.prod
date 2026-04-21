@@ -1,0 +1,167 @@
+# ── Stage 1: Dependencias ─────────────────────────────────────────────────────
+FROM php:8.4-fpm-alpine AS deps
+
+RUN apk add --no-cache \
+    git curl zip unzip \
+    libpng-dev libzip-dev oniguruma-dev icu-dev \
+    freetype-dev libjpeg-turbo-dev libwebp-dev \
+    postgresql-dev postgresql-libs \
+    libxml2-dev libxslt-dev readline-dev sqlite-dev \
+    nodejs npm
+
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+ && docker-php-ext-install \
+    pdo_mysql pdo_pgsql mbstring exif pcntl bcmath \
+    gd zip intl opcache pdo_sqlite xsl xml xmlwriter simplexml
+
+RUN apk add --no-cache $PHPIZE_DEPS \
+ && pecl install redis \
+ && docker-php-ext-enable redis \
+ && apk del $PHPIZE_DEPS
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN npm install -g pnpm@10.25.0
+
+WORKDIR /var/www
+
+COPY composer.json composer.lock* ./
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+
+COPY package.json* pnpm-lock.yaml* ./
+RUN if [ -f package.json ]; then \
+        pnpm install --frozen-lockfile --prod; \
+        pnpm store prune; \
+    fi
+
+# ── Stage 2: Producción ────────────────────────────────────────────────────────
+FROM php:8.4-fpm-alpine AS production
+
+LABEL maintainer="PlayRKE Team"
+
+ENV PHP_MEMORY_LIMIT=512M \
+    PHP_UPLOAD_MAX_FILESIZE=100M \
+    PHP_POST_MAX_SIZE=100M \
+    PHP_MAX_EXECUTION_TIME=300
+
+# Librerías de runtime (sin -dev)
+RUN apk add --no-cache \
+    curl bash supervisor \
+    libpng libzip oniguruma icu-libs \
+    freetype libjpeg-turbo libwebp \
+    postgresql-libs \
+    libxml2 libxslt readline sqlite-libs
+
+RUN apk add --no-cache --virtual .build-deps \
+    libpng-dev libzip-dev oniguruma-dev icu-dev \
+    freetype-dev libjpeg-turbo-dev libwebp-dev \
+    postgresql-dev \
+    libxml2-dev libxslt-dev readline-dev sqlite-dev \
+ && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+ && docker-php-ext-install \
+    pdo_mysql pdo_pgsql mbstring exif pcntl bcmath \
+    gd zip intl opcache pdo_sqlite xsl xml xmlwriter simplexml \
+ && apk add --no-cache $PHPIZE_DEPS \
+ && pecl install redis \
+ && docker-php-ext-enable redis \
+ && apk del .build-deps $PHPIZE_DEPS
+
+# OPcache agresivo para prod
+RUN { \
+        echo "opcache.memory_consumption=256"; \
+        echo "opcache.interned_strings_buffer=16"; \
+        echo "opcache.max_accelerated_files=20000"; \
+        echo "opcache.validate_timestamps=0"; \
+        echo "opcache.revalidate_freq=0"; \
+        echo "opcache.fast_shutdown=1"; \
+        echo "opcache.enable_cli=1"; \
+    } > /usr/local/etc/php/conf.d/opcache.ini
+
+# PHP-FPM pool prod
+RUN { \
+        echo "[www]"; \
+        echo "user = www-data"; \
+        echo "group = www-data"; \
+        echo "listen = 9000"; \
+        echo "listen.owner = www-data"; \
+        echo "listen.group = www-data"; \
+        echo "pm = dynamic"; \
+        echo "pm.max_children = 50"; \
+        echo "pm.start_servers = 5"; \
+        echo "pm.min_spare_servers = 2"; \
+        echo "pm.max_spare_servers = 10"; \
+        echo "pm.max_requests = 500"; \
+        echo "catch_workers_output = yes"; \
+        echo "clear_env = no"; \
+    } > /usr/local/etc/php-fpm.d/www.conf
+
+# Supervisor inline
+RUN mkdir -p /etc/supervisor/conf.d \
+ && { \
+        echo "[supervisord]"; \
+        echo "nodaemon=true"; \
+        echo "logfile=/var/log/supervisor/supervisord.log"; \
+        echo "pidfile=/var/run/supervisord.pid"; \
+        echo ""; \
+        echo "[program:php-fpm]"; \
+        echo "command=php-fpm -F"; \
+        echo "autostart=true"; \
+        echo "autorestart=true"; \
+        echo "stderr_logfile=/var/log/supervisor/php-fpm.err.log"; \
+        echo "stdout_logfile=/var/log/supervisor/php-fpm.out.log"; \
+        echo ""; \
+        echo "[program:reverb]"; \
+        echo "command=php /var/www/artisan reverb:start --host=0.0.0.0 --port=8080"; \
+        echo "autostart=false"; \
+        echo "autorestart=true"; \
+        echo "stderr_logfile=/var/log/supervisor/reverb.err.log"; \
+        echo "stdout_logfile=/var/log/supervisor/reverb.out.log"; \
+    } > /etc/supervisor/conf.d/supervisor.conf \
+ && mkdir -p /var/log/supervisor
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www
+
+COPY --from=deps /var/www/vendor ./vendor
+COPY --chown=www-data:www-data . .
+
+RUN composer dump-autoload --optimize --classmap-authoritative --apcu
+
+COPY --from=deps /var/www/node_modules* ./node_modules/
+RUN if [ -f package.json ] && grep -q '"build"' package.json; then \
+        npm install -g pnpm@10.25.0 && pnpm run build; \
+    fi \
+ && rm -rf node_modules
+
+RUN php artisan config:cache \
+ && php artisan route:cache \
+ && php artisan view:cache \
+ && php artisan event:cache
+
+RUN rm -rf \
+    .git tests docs \
+    docker-compose.*.yml Dockerfile* .dockerignore \
+    .env.example .gitignore \
+    .phpunit.cache .php-cs-fixer.cache .phpstan.cache \
+    build/ coverage.xml phpunit.xml
+
+RUN mkdir -p \
+    storage/framework/cache/data \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache \
+ && chown -R www-data:www-data storage bootstrap/cache \
+ && chmod -R 775 storage bootstrap/cache
+
+# Entrypoint inline
+RUN printf '#!/bin/sh\nset -e\n\n# Migraciones automáticas al arrancar\nphp /var/www/artisan migrate --force --no-interaction\n\nchown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache\nchmod -R 775 /var/www/storage /var/www/bootstrap/cache\n\nexec "$@"\n' > /usr/local/bin/entrypoint.sh \
+ && chmod +x /usr/local/bin/entrypoint.sh
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
+    CMD php-fpm -t || exit 1
+
+EXPOSE 9000 8080
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisor.conf"]

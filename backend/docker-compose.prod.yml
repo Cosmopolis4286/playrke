@@ -1,148 +1,149 @@
-version: '3.8'
+# Variables cargadas desde .env.prod
+# Arrancar con: docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
 services:
-  # Nginx - Web Server
-  nginx:
-    image: nginx:alpine
-    container_name: playrke_nginx
+
+  # ─── Traefik — Proxy inverso + TLS automático Let's Encrypt ───────────────
+  traefik:
+    image: traefik:v3.1
+    container_name: playrke_traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=ERROR"
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./:/var/www
-      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-      - ./docker/nginx/ssl:/etc/nginx/ssl
-    depends_on:
-      - php
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
     networks:
       - playrke_network
     restart: unless-stopped
 
-  # PHP-FPM - Laravel Application
+  # ─── PHP-FPM ───────────────────────────────────────────────────────────────
   php:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.prod
     container_name: playrke_php
+    env_file: .env.prod
     volumes:
-      - ./:/var/www
-      - ./storage/app/public:/var/www/storage/app/public
-    environment:
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - DB_HOST=mysql
-      - REDIS_HOST=redis
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
-      - BROADCAST_DRIVER=reverb
-      - REVERB_HOST=reverb
+      - storage_public:/var/www/storage/app/public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.php.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.php.entrypoints=websecure"
+      - "traefik.http.routers.php.tls.certresolver=letsencrypt"
+      - "traefik.http.services.php.loadbalancer.server.port=9000"
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - playrke_network
     restart: unless-stopped
 
-  # MySQL Database
+  # ─── MySQL ─────────────────────────────────────────────────────────────────
   mysql:
     image: mysql:8.0
     container_name: playrke_mysql
+    env_file: .env.prod
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: ${DB_DATABASE:-playrke}
-      MYSQL_USER: ${DB_USERNAME:-playrke_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-playrke_password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
-    ports:
-      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - playrke_network
     restart: unless-stopped
 
-  # Redis Cache
+  # ─── Redis ─────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: playrke_redis
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
-      - ./docker/redis/redis.conf:/etc/redis/redis.conf
-    ports:
-      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
     networks:
       - playrke_network
     restart: unless-stopped
 
-  # Laravel Reverb WebSocket Server
+  # ─── Reverb — WebSocket ────────────────────────────────────────────────────
   reverb:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.prod
     container_name: playrke_reverb
-    command: php artisan reverb:start
-    volumes:
-      - ./:/var/www
-    environment:
-      - APP_ENV=production
-      - REVERB_SERVER_HOST=0.0.0.0
-      - REVERB_SERVER_PORT=8080
+    command: ["php", "artisan", "reverb:start", "--port=8080", "--host=0.0.0.0"]
+    env_file: .env.prod
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.reverb.rule=Host(`ws.${APP_DOMAIN}`)"
+      - "traefik.http.routers.reverb.entrypoints=websecure"
+      - "traefik.http.routers.reverb.tls.certresolver=letsencrypt"
+      - "traefik.http.services.reverb.loadbalancer.server.port=8080"
     depends_on:
-      - redis
-    ports:
-      - "8080:8080"
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - playrke_network
     restart: unless-stopped
 
-  # Laravel Queue Worker
+  # ─── Queue Worker ──────────────────────────────────────────────────────────
   queue:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.prod
     container_name: playrke_queue
-    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
-    volumes:
-      - ./:/var/www
-    environment:
-      - APP_ENV=production
-      - DB_HOST=mysql
-      - REDIS_HOST=redis
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
+    env_file: .env.prod
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - playrke_network
     restart: unless-stopped
 
-  # Laravel Scheduler
+  # ─── Scheduler ─────────────────────────────────────────────────────────────
   scheduler:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: production
+      dockerfile: Dockerfile.prod
     container_name: playrke_scheduler
-    command: sh -c "while true; do php artisan schedule:run; sleep 60; done"
-    volumes:
-      - ./:/var/www
-    environment:
-      - APP_ENV=production
-      - DB_HOST=mysql
-      - REDIS_HOST=redis
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
+    command: ["sh", "-c", "while true; do php artisan schedule:run; sleep 60; done"]
+    env_file: .env.prod
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - playrke_network
     restart: unless-stopped
@@ -151,6 +152,10 @@ volumes:
   mysql_data:
     driver: local
   redis_data:
+    driver: local
+  letsencrypt:
+    driver: local
+  storage_public:
     driver: local
 
 networks:
