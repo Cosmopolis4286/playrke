@@ -11,11 +11,11 @@ services:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.address=:7000"
       - "--entrypoints.ws.address=:6001"
       - "--log.level=WARN"
     ports:
-      - "80:80"
+      - "7000:7000"
       - "6001:6001"
       - "8888:8080"       # Panel Traefik → http://localhost:8888
     volumes:
@@ -24,23 +24,33 @@ services:
       - playrke_network
 
   # ─── PHP-FPM — Aplicación Laravel ─────────────────────────────────────────
+  # vendor queda dentro de la imagen — solo se montan los dirs que cambian
   php:
     build:
       context: .
       dockerfile: Dockerfile.dev
     container_name: playrke_php
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080"]
     env_file: .env.dev
+    ports:
+      - "8000:8080"
     volumes:
-      - ./:/var/www                        # código fuente en caliente
-      - php_vendor:/var/www/vendor         # vendor aislado del host
-      - php_bootstrap:/var/www/bootstrap/cache
+      - ./app:/var/www/app
+      - ./config:/var/www/config
+      - ./database:/var/www/database
+      - ./resources:/var/www/resources
+      - ./routes:/var/www/routes
+      - ./tests:/var/www/tests
+      - ./artisan:/var/www/artisan
+      - ./.env.dev:/var/www/.env
+      - storage_data:/var/www/storage
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.php.rule=Host(`playrke.localhost`)"
+      - "traefik.http.routers.php.rule=Host(`playrke.localhost`) || Host(`localhost`)"
       - "traefik.http.routers.php.entrypoints=web"
-      - "traefik.http.services.php.loadbalancer.server.port=9000"
+      - "traefik.http.services.php.loadbalancer.server.port=8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -107,8 +117,11 @@ services:
     command: ["php", "artisan", "reverb:start", "--debug", "--port=8080", "--host=0.0.0.0"]
     env_file: .env.dev
     volumes:
-      - ./:/var/www
-      - reverb_vendor:/var/www/vendor
+      - ./app:/var/www/app
+      - ./config:/var/www/config
+      - ./routes:/var/www/routes
+      - ./.env.dev:/var/www/.env
+      - storage_data:/var/www/storage
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.reverb.rule=Host(`ws.playrke.localhost`)"
@@ -131,8 +144,11 @@ services:
     command: ["php", "artisan", "queue:work", "--sleep=1", "--tries=3", "--timeout=60", "--verbose"]
     env_file: .env.dev
     volumes:
-      - ./:/var/www
-      - queue_vendor:/var/www/vendor
+      - ./app:/var/www/app
+      - ./config:/var/www/config
+      - ./routes:/var/www/routes
+      - ./.env.dev:/var/www/.env
+      - storage_data:/var/www/storage
     restart: unless-stopped
     depends_on:
       mysql:
@@ -151,8 +167,11 @@ services:
     command: ["sh", "-c", "while true; do php artisan schedule:run --verbose; sleep 60; done"]
     env_file: .env.dev
     volumes:
-      - ./:/var/www
-      - scheduler_vendor:/var/www/vendor
+      - ./app:/var/www/app
+      - ./config:/var/www/config
+      - ./routes:/var/www/routes
+      - ./.env.dev:/var/www/.env
+      - storage_data:/var/www/storage
     depends_on:
       mysql:
         condition: service_healthy
@@ -174,15 +193,7 @@ services:
 volumes:
   mysql_data:
     driver: local
-  php_vendor:
-    driver: local
-  php_bootstrap:
-    driver: local
-  reverb_vendor:
-    driver: local
-  queue_vendor:
-    driver: local
-  scheduler_vendor:
+  storage_data:
     driver: local
 
 networks:

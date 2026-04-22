@@ -24,7 +24,7 @@ RUN apk add --no-cache $PHPIZE_DEPS \
  && docker-php-ext-enable redis xdebug \
  && apk del $PHPIZE_DEPS
 
-# OPcache: revalida en cada request para ver cambios al instante
+# OPcache: revalida en cada request
 RUN { \
         echo "opcache.memory_consumption=128"; \
         echo "opcache.max_accelerated_files=4000"; \
@@ -64,14 +64,15 @@ RUN npm install -g pnpm@10.25.0
 
 WORKDIR /var/www
 
+# Instalar vendor aquí — Docker pobla el volumen nombrado desde este path
 COPY composer.json composer.lock* ./
-RUN composer install --no-scripts --no-autoloader --prefer-dist
+RUN composer install --no-scripts --prefer-dist
 
 COPY package.json* pnpm-lock.yaml* ./
 RUN if [ -f package.json ]; then pnpm install --no-frozen-lockfile; fi
 
-# Guardar vendor fuera de /var/www; el entrypoint lo restaura si el bind mount lo pisa
-RUN cp -r vendor /vendor-cache
+# Copiar todo el código fuente — los bind mounts selectivos del compose lo sobreescriben en runtime
+COPY . .
 
 RUN mkdir -p \
     storage/framework/cache/data \
@@ -82,8 +83,9 @@ RUN mkdir -p \
  && chown -R www-data:www-data storage bootstrap/cache \
  && chmod -R 775 storage bootstrap/cache
 
-# Entrypoint inline — sin archivos externos
-RUN printf '#!/bin/sh\nset -e\n\n# Restaurar vendor si el bind mount lo dejó vacío\nif [ ! -f /var/www/vendor/autoload.php ]; then\n    echo "[dev] Restaurando vendor..."\n    mkdir -p /var/www/vendor\n    cp -r /vendor-cache/. /var/www/vendor/\n    echo "[dev] Vendor listo."\nfi\n\n# Permisos de storage en cada arranque\nchown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true\nchmod -R 775 /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true\n\nexec "$@"\n' > /usr/local/bin/entrypoint.sh \
+# Entrypoint: solo permisos, sin cp lento
+RUN printf '#!/bin/sh\nset -e\nchown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true\nchmod -R 775 /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true\nexec "$@"\n' \
+    > /usr/local/bin/entrypoint.sh \
  && chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 9000 8080
