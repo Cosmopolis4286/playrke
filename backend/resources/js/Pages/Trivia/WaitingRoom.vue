@@ -7,9 +7,8 @@ import JoinForm from '@js/Components/Trivia/Room/JoinForm.vue'
 import { getEchoInstance } from '@js/plugins/echo'
 import type { Room, Player } from '@js/types/trivia'
 
-const page = usePage()
-const authUser = computed(() => (page.props as any).auth?.user ?? null)
-const authName = computed(() => authUser.value?.username ?? authUser.value?.name ?? null)
+const page  = usePage()
+const authName = computed<string | null>(() => (page.props as any).auth?.user?.name ?? null)
 
 interface Props {
   room: Room
@@ -226,12 +225,34 @@ const statusLabel   = computed(() => ({
             </div>
           </Transition>
 
-          <!-- Formulario de unirse -->
+          <!-- Formulario de unirse (solo jugadores externos) -->
           <Transition name="slide-down">
             <JoinForm
               v-if="showJoinForm"
               @join="handleJoin"
             />
+          </Transition>
+
+          <!-- Conectando automáticamente (usuario auth aún no unido) -->
+          <Transition name="slide-down">
+            <div
+              v-if="authName && !hasJoined && !joinError"
+              class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
+            >
+              <div class="h-1 bg-gradient-to-r from-indigo-400 to-purple-500" />
+              <div class="p-6 text-center space-y-4">
+                <div class="w-14 h-14 mx-auto rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center">
+                  <svg class="w-7 h-7 text-indigo-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-base font-bold text-gray-900 dark:text-white">Uniéndose a la sala...</h3>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Entrando como <span class="font-semibold text-indigo-600 dark:text-indigo-400">{{ authName }}</span></p>
+                </div>
+              </div>
+            </div>
           </Transition>
 
           <!-- Ya unido -->

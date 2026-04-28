@@ -7,6 +7,9 @@ namespace App\Domains\Games\Trivia\Actions;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\DTOs\PlayerDTO;
 use App\Domains\Games\Trivia\DTOs\RoomDTO;
+use App\Models\Games\Trivia\TriviaRoom;
+use App\Models\User;
+use App\Services\WalletService;
 use RuntimeException;
 
 /**
@@ -17,7 +20,8 @@ use RuntimeException;
 class JoinRoomAction
 {
     public function __construct(
-        private readonly RoomServiceInterface $roomService
+        private readonly RoomServiceInterface $roomService,
+        private readonly WalletService        $walletService,
     ) {}
 
     /**
@@ -40,8 +44,8 @@ class JoinRoomAction
             throw new RuntimeException('El nickname debe tener entre 2 y 30 caracteres');
         }
 
-        // Verificar que el jugador no está en otra sala activa
-        // (Implementar según reglas de negocio)
+        // Descontar tarifa de entrada si la sala tiene entry_fee
+        $this->chargeEntryFee($roomId, $playerId);
 
         // Unir a sala
         $playerData['nickname'] = $nickname;
@@ -57,6 +61,39 @@ class JoinRoomAction
             'players' => $players,
             'message' => 'Te has unido a la sala exitosamente',
         ];
+    }
+
+    /**
+     * Descuenta la tarifa de entrada de la wallet del jugador.
+     * Si entry_fee es 0 o null, no hace nada.
+     */
+    private function chargeEntryFee(string $roomId, string $playerId): void
+    {
+        $room = TriviaRoom::find($roomId);
+
+        if (! $room || ! $room->entry_fee || (float) $room->entry_fee <= 0) {
+            return;
+        }
+
+        $user   = User::findOrFail($playerId);
+        $wallet = $user->wallets()
+            ->where('currency_id', $room->entry_currency_id)
+            ->where('status', 'ACTIVE')
+            ->first();
+
+        if (! $wallet) {
+            throw new RuntimeException('No tienes una billetera en la moneda requerida para esta sala.');
+        }
+
+        if (! $wallet->hasSufficientBalance((float) $room->entry_fee)) {
+            throw new RuntimeException('Saldo insuficiente para unirte a esta sala. Se requieren ' . $room->entry_fee . '.');
+        }
+
+        $this->walletService->recordCardPurchase(
+            walletId:    (string) $wallet->id,
+            amount:      (float) $room->entry_fee,
+            description: "Entrada sala Trivia: {$room->title} ({$room->code})",
+        );
     }
 
     /**

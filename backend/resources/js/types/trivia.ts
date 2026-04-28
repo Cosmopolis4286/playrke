@@ -4,6 +4,7 @@ export interface Room {
   code: string
   title: string
   description?: string
+  category?: string
   hostId: string
   status: 'waiting' | 'playing' | 'paused' | 'finished' | 'cancelled'
   maxPlayers: number
@@ -11,6 +12,11 @@ export interface Room {
   timePerQuestion: number
   currentPlayers: number
   scheduledAt?: string
+  entryFee?: number | null
+  entryCurrencyId?: string | null
+  prizeAmount?: number | null
+  prizeCurrencyId?: string | null
+  prizeType?: 'fixed' | 'accumulated' | null
   createdAt: string
   updatedAt: string
 }
