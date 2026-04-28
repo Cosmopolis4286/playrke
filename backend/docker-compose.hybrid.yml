@@ -1,0 +1,211 @@
+# Modo HYBRID: Laravel + servicios en Docker, Vite en el host
+# El browser accede a Laravel en :8000 y a Vite HMR en :5173 (host)
+#
+# Arrancar con:
+#   docker compose -f docker-compose.hybrid.yml --env-file .env.dev up -d
+#   pnpm run dev        ← en otra terminal, desde esta carpeta
+
+services:
+
+  # ─── PHP — Laravel (ve cambios via bind mount en resources/) ───────────────
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: playrke_php
+    command: >
+      sh -c "
+        php artisan migrate --force &&
+        php artisan migrate --path=database/migrations/bingo --force &&
+        php artisan migrate --path=database/migrations/trivia --force &&
+        php artisan db:seed --force &&
+        php artisan serve --host=0.0.0.0 --port=8080
+      "
+    env_file: .env.dev
+    environment:
+      VITE_DEV_SERVER_URL: "http://localhost:5173"
+    ports:
+      - "8000:8080"
+    volumes:
+      - ./app:/var/www/app
+      - ./config:/var/www/config
+      - ./database:/var/www/database
+      - ./resources:/var/www/resources
+      - ./routes:/var/www/routes
+      - ./tests:/var/www/tests
+      - ./artisan:/var/www/artisan
+      - ./public:/var/www/public
+      - ./.env.dev:/var/www/.env
+      - storage_data:/var/www/storage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - playrke_network
+
+  # ─── PostgreSQL — Trivia ───────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: playrke_postgres
+    environment:
+      POSTGRES_DB: trivia
+      POSTGRES_USER: trivia
+      POSTGRES_PASSWORD: trivia
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trivia -d trivia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - playrke_network
+
+  # ─── MySQL ─────────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: playrke_mysql
+    env_file: .env.dev
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --skip-log-bin
+      --innodb-flush-log-at-trx-commit=2
+      --innodb-flush-method=O_DIRECT
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - playrke_network
+
+  # ─── Redis ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: playrke_redis
+    command: >
+      redis-server
+      --appendonly no
+      --save ""
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - playrke_network
+
+  # ─── Reverb — WebSocket ────────────────────────────────────────────────────
+  reverb:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: playrke_reverb
+    command: ["php", "artisan", "reverb:start", "--debug", "--port=8080", "--host=0.0.0.0"]
+    env_file: .env.dev
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./app:/var/www/app
+      - ./config:/var/www/config
+      - ./routes:/var/www/routes
+      - ./.env.dev:/var/www/.env
+      - storage_data:/var/www/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - playrke_network
+
+  # ─── Queue Worker ──────────────────────────────────────────────────────────
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: playrke_queue
+    command: ["php", "artisan", "queue:work", "--sleep=1", "--tries=3", "--timeout=60", "--verbose"]
+    env_file: .env.dev
+    volumes:
+      - ./app:/var/www/app
+      - ./config:/var/www/config
+      - ./routes:/var/www/routes
+      - ./.env.dev:/var/www/.env
+      - storage_data:/var/www/storage
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - playrke_network
+
+  # ─── Scheduler ─────────────────────────────────────────────────────────────
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: playrke_scheduler
+    command: ["sh", "-c", "while true; do php artisan schedule:run --verbose; sleep 60; done"]
+    env_file: .env.dev
+    volumes:
+      - ./app:/var/www/app
+      - ./config:/var/www/config
+      - ./routes:/var/www/routes
+      - ./.env.dev:/var/www/.env
+      - storage_data:/var/www/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - playrke_network
+
+  # ─── Mailpit — Captura de correos ──────────────────────────────────────────
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: playrke_mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - playrke_network
+
+volumes:
+  mysql_data:
+    driver: local
+  postgres_data:
+    driver: local
+  storage_data:
+    driver: local
+
+networks:
+  playrke_network:
+    driver: bridge
