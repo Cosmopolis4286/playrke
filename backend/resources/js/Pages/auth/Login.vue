@@ -4,6 +4,7 @@
   import { useLogin } from '@js/composables/auth/useLogin'
   import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
   import DemoCredentials from '@js/Components/Auth/DemoCredentials.vue'
+  import LoadingOverlay from '@js/Components/Trivia/Shared/LoadingOverlay.vue'
 
   const props = defineProps<{ register: Boolean }>()
 
@@ -77,4 +78,8 @@
   </GuestLayout>
 
   <DemoCredentials @fill-credentials="fillFromDemo" />
+
+  <Teleport to="body">
+    <LoadingOverlay v-if="loading" message="Iniciando sesión..." />
+  </Teleport>
 </template>
