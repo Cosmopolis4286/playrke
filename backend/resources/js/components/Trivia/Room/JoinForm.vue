@@ -13,20 +13,19 @@ const MAX_NAME_LENGTH = 20
 
 function handleSubmit() {
   error.value = ''
-  
-  // Validation
+
   const trimmed = playerName.value.trim()
-  
+
   if (!trimmed) {
     error.value = 'Por favor ingresa tu nombre'
     return
   }
-  
+
   if (trimmed.length < 2) {
     error.value = 'El nombre debe tener al menos 2 caracteres'
     return
   }
-  
+
   if (trimmed.length > MAX_NAME_LENGTH) {
     error.value = `El nombre no puede tener más de ${MAX_NAME_LENGTH} caracteres`
     return
@@ -63,12 +62,7 @@ function handleSubmit() {
           autocomplete="off"
         />
         <div class="flex justify-between mt-1">
-          <span
-            v-if="error"
-            class="text-sm text-red-600"
-          >
-            {{ error }}
-          </span>
+          <span v-if="error" class="text-sm text-red-600">{{ error }}</span>
           <span
             class="text-xs text-gray-500 ml-auto"
             :class="{ 'text-red-500': playerName.length > MAX_NAME_LENGTH }"

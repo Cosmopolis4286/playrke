@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Head } from '@inertiajs/vue3'
+import { Head, usePage } from '@inertiajs/vue3'
 import RoomHeader from '@js/Components/Trivia/Room/RoomHeader.vue'
 import PlayerList from '@js/Components/Trivia/Room/PlayerList.vue'
 import JoinForm from '@js/Components/Trivia/Room/JoinForm.vue'
 import { getEchoInstance } from '@js/plugins/echo'
 import type { Room, Player } from '@js/types/trivia'
+
+const page = usePage()
+const authUser = computed(() => (page.props as any).auth?.user ?? null)
+const authName = computed(() => authUser.value?.username ?? authUser.value?.name ?? null)
 
 interface Props {
   room: Room
@@ -126,12 +130,17 @@ async function handleJoin(playerName: string) {
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
-onMounted(() => { subscribeToChannel() })
+onMounted(() => {
+  subscribeToChannel()
+  if (authName.value && !props.alreadyJoined) {
+    handleJoin(authName.value)
+  }
+})
 onUnmounted(() => { unsubscribeFromChannel() })
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 
-const showJoinForm  = computed(() => !hasJoined.value && !joinError.value)
+const showJoinForm  = computed(() => !hasJoined.value && !joinError.value && !authName.value)
 const statusDot     = computed(() => ({
   connected:    'bg-emerald-400',
   reconnecting: 'bg-amber-400 animate-pulse',

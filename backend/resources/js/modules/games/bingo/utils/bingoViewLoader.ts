@@ -5,7 +5,7 @@ import type { Component } from 'vue'
 type BingoViewName = 'Form' | 'GameInfo' | 'Summary'
 
 const views: Record<BingoViewName, () => Promise<{ default: Component }>> = {
-    Form: () => import('@js/components/games/bingo/views/form/BingoForm.vue'),
+    Form: () => import('@js/Components/Games/Bingo/Room/Form/BingoRoomForm.vue'),
     GameInfo: () => import('@js/components/games/bingo/views/gameInfo/GameInfo.vue'),
     Summary: () => import('@js/components/games/bingo/views/summary/Summary.vue'),
 }
