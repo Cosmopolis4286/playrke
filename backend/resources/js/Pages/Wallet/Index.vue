@@ -25,7 +25,7 @@ const {
   canGoToStep2, canSubmitDeposit, canSubmitWithdraw,
   openModal, closeModal,
   goToStep1, goToStep2,
-  selectWallet, loadMoreMovements,
+  selectWallet, loadMovements, loadMoreMovements,
   submit, dismissResultToast,
 } = useWallet(props.wallets, userId.value)
 
@@ -279,6 +279,7 @@ const modalIcon = computed(() => {
           <div class="wallet-card">
             <h3 class="wallet-card__title">
               <i class="fas fa-chart-line"></i> Resumen de actividad
+              <span class="live-dot" title="Actualización en tiempo real"></span>
             </h3>
             <div class="summary-list">
               <div class="summary-item summary-item--deposit">
@@ -348,8 +349,21 @@ const modalIcon = computed(() => {
           <div class="movements-header">
             <h3 class="wallet-card__title">
               <i class="fas fa-history"></i> Movimientos recientes
+              <span class="live-dot" title="Actualización en tiempo real"></span>
             </h3>
-            <span class="movements-count">{{ movements.length }} movimientos</span>
+            <div class="movements-header__right">
+              <button
+                type="button"
+                class="refresh-btn"
+                :class="{ 'refresh-btn--loading': movementsLoading }"
+                :disabled="movementsLoading"
+                @click="loadMovements(1)"
+                title="Actualizar"
+              >
+                <i class="fas fa-sync-alt"></i>
+              </button>
+              <span class="movements-count">{{ movements.length }} movimientos</span>
+            </div>
           </div>
 
           <!-- Cargando -->
@@ -2110,6 +2124,50 @@ const modalIcon = computed(() => {
 /* ── Transición mensajes ── */
 .msg-fade-enter-active, .msg-fade-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
 .msg-fade-enter-from,   .msg-fade-leave-to     { opacity: 0; transform: translateY(-4px); }
+
+/* ── Live dot ── */
+.live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  margin-left: 6px;
+  vertical-align: middle;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  50%       { opacity: 0.7; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+}
+
+/* ── Movements header right ── */
+.movements-header__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Refresh button ── */
+.refresh-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 8px;
+  color: #667eea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.refresh-btn:hover:not(:disabled) { background: #f6f7ff; border-color: #667eea; }
+.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.refresh-btn--loading i { animation: spin 0.7s linear infinite; }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {

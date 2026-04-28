@@ -218,6 +218,7 @@ onUnmounted(() => {
   z-index: 1050;
   padding: 1rem;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .modal-backdrop-layer {
@@ -232,6 +233,8 @@ onUnmounted(() => {
 .modal-dialog {
   position: relative;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   z-index: 1051;
   margin: auto;
 }
@@ -246,6 +249,8 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 0;
   max-height: calc(100vh - 2rem);
   border-radius: 16px;
   background: #fff;
@@ -324,9 +329,11 @@ onUnmounted(() => {
 .modal-body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 1.5rem 1.4rem;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
+  min-width: 0;
 }
 .modal-body::-webkit-scrollbar       { width: 6px; }
 .modal-body::-webkit-scrollbar-track { background: transparent; }

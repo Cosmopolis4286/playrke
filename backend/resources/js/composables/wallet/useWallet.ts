@@ -220,6 +220,8 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
       if (data.success) {
         successMsg.value = data.message
         step.value = 3
+        // Recargar movimientos para mostrar el depósito PENDING recién creado
+        loadMovements(1)
       } else {
         errorMsg.value = data.message
       }
@@ -336,9 +338,9 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
     }))
   }
 
-  // ── Tiempo real: resultado de aprobación/rechazo ──────────────────────
+  // ── Tiempo real: wallet.updated (saldo, nuevo movimiento, resultado) ──
   function _handleWalletUpdated(payload: WalletUpdatedPayload) {
-    // Actualizar saldo local si viene balance
+    // 1. Actualizar saldo local inmediatamente
     if (payload.balance !== undefined) {
       const idx = wallets.value.findIndex(w => w.id === payload.wallet_id)
       if (idx !== -1) {
@@ -355,17 +357,9 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
       }))
     }
 
-    // Mostrar toast solo cuando hay un resultado de procesamiento (COMPLETED o REJECTED)
+    // 2. Si es resultado de aprobación/rechazo: actualizar movimiento en lista
+    //    de forma optimista y mostrar toast
     if (payload.movement_status === 'COMPLETED' || payload.movement_status === 'REJECTED') {
-      if (resultToastTimer) clearTimeout(resultToastTimer)
-      resultToast.value = {
-        type:           payload.movement_status === 'COMPLETED' ? 'approved' : 'rejected',
-        movementType:   payload.movement_type as 'DEPOSIT' | 'WITHDRAWAL',
-        amount:         payload.amount,
-        currencySymbol: payload.currency_symbol,
-      }
-
-      // Actualizar el movimiento específico en la lista de forma reactiva sin esperar el reload
       if (payload.movement_id) {
         const idx = movements.value.findIndex(m => m.id === payload.movement_id)
         if (idx !== -1) {
@@ -376,21 +370,29 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
           const desc = statusDescriptions[payload.movement_type]?.[payload.movement_status]
           movements.value[idx] = {
             ...movements.value[idx],
-            status: payload.movement_status as WalletMovementStatus,
+            status:      payload.movement_status as WalletMovementStatus,
             description: desc ?? movements.value[idx].description,
           }
         }
       }
 
-      // Recargar lista completa para asegurar datos frescos del servidor
+      if (resultToastTimer) clearTimeout(resultToastTimer)
+      resultToast.value = {
+        type:           payload.movement_status === 'COMPLETED' ? 'approved' : 'rejected',
+        movementType:   payload.movement_type as 'DEPOSIT' | 'WITHDRAWAL',
+        amount:         payload.amount,
+        currencySymbol: payload.currency_symbol,
+      }
+      resultToastTimer = setTimeout(() => { resultToast.value = null }, 8000)
+
       if (modalOpen.value && pendingOperation.value) {
         checkPendingOperation()
       }
-      loadMovements(1)
-
-      // Auto-cerrar toast después de 8 segundos
-      resultToastTimer = setTimeout(() => { resultToast.value = null }, 8000)
     }
+
+    // 3. Recargar lista en cualquier caso para mantener el historial y
+    //    el resumen de actividad sincronizados sin refresh manual
+    loadMovements(1)
   }
 
   function dismissResultToast() {
@@ -431,7 +433,7 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
     // acciones
     openModal, closeModal,
     goToStep1, goToStep2,
-    selectWallet, loadMoreMovements,
+    selectWallet, loadMovements, loadMoreMovements,
     submit, dismissResultToast,
   }
 }
