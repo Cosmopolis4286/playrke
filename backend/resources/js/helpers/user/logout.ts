@@ -1,5 +1,4 @@
-import { axios, clearAuthTokens } from '@js/plugins/axios';
-import { router } from '@inertiajs/vue3';
+import backendClient, { clearAuthTokens } from '@js/plugins/axios';
 
 /**
  * Interfaz para las opciones de logout
@@ -45,21 +44,7 @@ export async function performLogout(options: LogoutOptions = {}): Promise<void> 
     }
 
     try {
-        // Obtener token CSRF
-        const csrfToken = getCsrfToken();
-
-        // Realizar petición de logout
-        await axios.post(
-            logoutUrl,
-            {},
-            {
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-            }
-        );
+        await backendClient.post(logoutUrl);
 
         // Limpiar tokens y datos de usuario
         clearAuthTokens();
@@ -141,38 +126,6 @@ async function handleLogoutClick(
         button.disabled = false;
         button.textContent = originalText;
     }
-}
-
-/**
- * Obtiene el token CSRF desde meta tag o cookie
- */
-function getCsrfToken(): string {
-    // Intentar obtener desde meta tag
-    const metaToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
-    if (metaToken) {
-        return metaToken;
-    }
-
-    // Intentar obtener desde cookie
-    const cookieToken = getCookie('XSRF-TOKEN');
-    if (cookieToken) {
-        return decodeURIComponent(cookieToken);
-    }
-
-    console.warn('No se encontró token CSRF');
-    return '';
-}
-
-/**
- * Obtiene una cookie por nombre
- */
-function getCookie(name: string): string | null {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) {
-        return parts.pop()?.split(';').shift() || null;
-    }
-    return null;
 }
 
 /**
