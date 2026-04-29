@@ -36,3 +36,9 @@ Schedule::command('handle:exchange-rates')
     ->hourly()
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/schedule.log'));
+
+Schedule::command('trivia:start-scheduled-rooms')
+    ->timezone('America/Caracas')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/schedule.log'));

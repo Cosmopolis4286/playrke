@@ -297,6 +297,9 @@ class RoomService implements RoomServiceInterface
         if (array_key_exists('prize_currency_id', $config)) {
             $updateData['prize_currency_id'] = $config['prize_currency_id'];
         }
+        if (array_key_exists('scheduled_at', $config)) {
+            $updateData['scheduled_at'] = $config['scheduled_at'];
+        }
         if (isset($config['settings'])) {
             $updateData['settings'] = array_merge($room->settings ?? [], $config['settings']);
         }

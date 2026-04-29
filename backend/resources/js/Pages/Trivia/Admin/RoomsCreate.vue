@@ -24,6 +24,7 @@ const form = useForm({
   prize_type: 'accumulated' as 'accumulated' | 'fixed',
   prize_amount: 0,
   prize_currency_id: '' as string,
+  scheduled_at: '' as string,
   settings: {
     allow_late_join: false,
     show_leaderboard: true,
@@ -38,7 +39,24 @@ const estimatedTime = computed(() => {
   return minutes
 })
 
+// Min datetime for scheduled_at (must be in the future)
+const minScheduledAt = computed(() => {
+  const now = new Date()
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+  return now.toISOString().slice(0, 16)
+})
+
+// Validate scheduled_at is in the future
+const scheduledAtError = computed(() => {
+  if (!form.scheduled_at) return ''
+  if (new Date(form.scheduled_at) <= new Date()) {
+    return 'La fecha y hora de inicio debe ser futura'
+  }
+  return ''
+})
+
 const submit = () => {
+  if (scheduledAtError.value) return
   form.post(getRoute('roomsStore'), {
     onSuccess: () => form.reset(),
   })
@@ -257,6 +275,29 @@ const submit = () => {
                   </label>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Fecha y Hora de Inicio -->
+          <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              📅 Fecha y Hora de Inicio
+            </h3>
+
+            <div>
+              <label for="scheduled_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Inicio Automático
+              </label>
+              <input
+                id="scheduled_at"
+                v-model="form.scheduled_at"
+                type="datetime-local"
+                :min="minScheduledAt"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              />
+              <p class="mt-1 text-xs text-gray-500">Deja vacío para inicio manual. Si especificas fecha y hora, la sala se iniciará automáticamente.</p>
+              <p v-if="scheduledAtError" class="mt-1 text-sm text-red-600">{{ scheduledAtError }}</p>
+              <p v-if="form.errors.scheduled_at" class="mt-1 text-sm text-red-600">{{ form.errors.scheduled_at }}</p>
             </div>
           </div>
 

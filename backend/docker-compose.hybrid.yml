@@ -1,11 +1,31 @@
 # Modo HYBRID: Laravel + servicios en Docker, Vite en el host
-# El browser accede a Laravel en :8000 y a Vite HMR en :5173 (host)
+# El browser accede a Laravel via Traefik (:7000) y a Vite HMR en :5173 (host)
 #
 # Arrancar con:
 #   docker compose -f docker-compose.hybrid.yml --env-file .env.dev up -d
 #   pnpm run dev        ← en otra terminal, desde esta carpeta
 
 services:
+
+  # ─── Traefik — Proxy inverso ───────────────────────────────────────────────
+  traefik:
+    image: traefik:v3.1
+    container_name: playrke_traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:7000"
+      - "--entrypoints.ws.address=:6001"
+      - "--log.level=WARN"
+    ports:
+      - "7000:7000"
+      - "6001:6001"
+      - "8888:8080"       # Panel Traefik → http://localhost:8888
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - playrke_network
 
   # ─── PHP — Laravel (ve cambios via bind mount en resources/) ───────────────
   php:
@@ -17,7 +37,7 @@ services:
       sh -c "
         php artisan migrate --force &&
         php artisan migrate --path=database/migrations/bingo --force &&
-        php artisan migrate --path=database/migrations/trivia --force &&
+        php artisan migrate --path=database/migrations/trivia --force || true &&
         php artisan db:seed --force &&
         php artisan serve --host=0.0.0.0 --port=8080
       "
@@ -28,6 +48,7 @@ services:
       - "8000:8080"
     volumes:
       - ./app:/var/www/app
+      - ./bootstrap:/var/www/bootstrap
       - ./config:/var/www/config
       - ./database:/var/www/database
       - ./resources:/var/www/resources
@@ -39,6 +60,11 @@ services:
       - storage_data:/var/www/storage
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.php.rule=Host(`playrke.localhost`) || Host(`localhost`)"
+      - "traefik.http.routers.php.entrypoints=web"
+      - "traefik.http.services.php.loadbalancer.server.port=8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -132,13 +158,22 @@ services:
     volumes:
       - ./app:/var/www/app
       - ./config:/var/www/config
+      - ./resources:/var/www/resources
       - ./routes:/var/www/routes
       - ./.env.dev:/var/www/.env
       - storage_data:/var/www/storage
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.reverb.rule=Host(`ws.playrke.localhost`)"
+      - "traefik.http.routers.reverb.entrypoints=ws"
+      - "traefik.http.services.reverb.loadbalancer.server.port=8080"
+    restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     networks:
       - playrke_network
@@ -154,6 +189,7 @@ services:
     volumes:
       - ./app:/var/www/app
       - ./config:/var/www/config
+      - ./resources:/var/www/resources
       - ./routes:/var/www/routes
       - ./.env.dev:/var/www/.env
       - storage_data:/var/www/storage
@@ -162,6 +198,8 @@ services:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     networks:
       - playrke_network
@@ -177,13 +215,17 @@ services:
     volumes:
       - ./app:/var/www/app
       - ./config:/var/www/config
+      - ./resources:/var/www/resources
       - ./routes:/var/www/routes
       - ./.env.dev:/var/www/.env
       - storage_data:/var/www/storage
+    restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     networks:
       - playrke_network

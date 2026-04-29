@@ -143,6 +143,7 @@ final class TriviaRoomAdminController extends Controller
             'prize_type'         => 'nullable|in:fixed,accumulated',
             'prize_amount'       => 'nullable|numeric|min:0',
             'prize_currency_id'  => 'nullable|string',
+            'scheduled_at'       => 'nullable|date|after:now',
             'settings'           => 'nullable|array',
         ]);
 
@@ -160,6 +161,7 @@ final class TriviaRoomAdminController extends Controller
                 'prize_type'        => $validated['prize_type'] ?? 'accumulated',
                 'prize_amount'      => $validated['prize_amount'] ?? 0,
                 'prize_currency_id' => $validated['prize_currency_id'] ?? null,
+                'scheduled_at'      => $validated['scheduled_at'] ?? null,
                 'settings'          => $validated['settings'] ?? [],
             ]);
 
@@ -233,6 +235,7 @@ final class TriviaRoomAdminController extends Controller
             'prize_type'        => 'nullable|in:fixed,accumulated',
             'prize_amount'      => 'nullable|numeric|min:0',
             'prize_currency_id' => 'nullable|string',
+            'scheduled_at'       => 'nullable|date|after:now',
             'settings'          => 'nullable|array',
         ]);
 
@@ -247,6 +250,7 @@ final class TriviaRoomAdminController extends Controller
                 'prize_type'        => $validated['prize_type'] ?? 'accumulated',
                 'prize_amount'      => $validated['prize_amount'] ?? 0,
                 'prize_currency_id' => $validated['prize_currency_id'] ?? null,
+                'scheduled_at'      => $validated['scheduled_at'] ?? null,
                 'settings'          => $validated['settings'] ?? [],
             ]);
 
