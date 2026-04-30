@@ -56,11 +56,12 @@ class Notification extends Model
      * Tipos de notificación disponibles
      */
     public const TYPES = [
-        'WALLET_UPDATED'      => 'Actualización de Billetera',
-        'WALLET_ADMIN_ALERT'  => 'Movimiento Pendiente (Admin)',
-        'GAME_ALERT'          => 'Alerta de Juego',
-        'SYSTEM'              => 'Sistema',
-        'PROMOTION'           => 'Promoción',
+        'WALLET_UPDATED'        => 'Actualización de Billetera',
+        'WALLET_ADMIN_ALERT'    => 'Movimiento Pendiente (Admin)',
+        'GAME_ALERT'            => 'Alerta de Juego',
+        'TRIVIA_REGISTRATION'   => 'Inscripción a Trivia',
+        'SYSTEM'                => 'Sistema',
+        'PROMOTION'             => 'Promoción',
     ];
 
     /**
@@ -185,6 +186,7 @@ class Notification extends Model
         return match($this->type) {
             'WALLET_UPDATED' => '#28a745', // verde
             'GAME_ALERT' => '#ffc107', // amarillo
+            'TRIVIA_REGISTRATION' => '#8b5cf6', // violeta
             'SYSTEM' => '#17a2b8', // cyan
             'PROMOTION' => '#6f42c1', // púrpura
             default => '#6c757d', // gris
@@ -201,6 +203,7 @@ class Notification extends Model
         return match($this->type) {
             'WALLET_UPDATED' => '💰',
             'GAME_ALERT' => '🎮',
+            'TRIVIA_REGISTRATION' => '🎯',
             'SYSTEM' => '⚙️',
             'PROMOTION' => '🎁',
             default => '📢',

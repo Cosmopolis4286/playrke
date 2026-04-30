@@ -38,6 +38,64 @@ const category   = ref(props.filters.category   ?? '')
 const difficulty = ref(props.filters.difficulty ?? '')
 const active     = ref(props.filters.active     ?? '')
 
+// ── Selección de filas ───────────────────────────────────────────────────────
+const selectedRows = ref<Set<string>>(new Set())
+
+const toggleSelectAll = () => {
+  if (selectedRows.value.size === props.questions.data.length) {
+    selectedRows.value.clear()
+  } else {
+    selectedRows.value = new Set(props.questions.data.map(q => q.id))
+  }
+}
+
+const toggleSelectRow = (id: string) => {
+  if (selectedRows.value.has(id)) {
+    selectedRows.value.delete(id)
+  } else {
+    selectedRows.value.add(id)
+  }
+}
+
+const clearSelection = () => {
+  selectedRows.value.clear()
+}
+
+const selectedCount = computed(() => selectedRows.value.size)
+
+const selectedQuestions = computed(() =>
+  props.questions.data.filter(q => selectedRows.value.has(q.id))
+)
+
+// ── Acciones en bulk ──────────────────────────────────────────────────────────
+const bulkEdit = () => {
+  if (selectedRows.value.size === 1) {
+    const q = selectedQuestions.value[0]
+    router.get(getRoute('questionsEdit', { roomId: props.roomId, questionId: q.id }))
+  }
+}
+
+const bulkToggleActive = () => {
+  selectedQuestions.value.forEach(q => {
+    router.patch(getRoute('questionsToggleActive', { roomId: props.roomId, questionId: q.id }), {}, {
+      preserveScroll: true,
+    })
+  })
+  clearSelection()
+}
+
+const bulkDelete = () => {
+  const count = selectedQuestions.value.length
+  const names = selectedQuestions.value.map(q => `"${q.question_text.slice(0, 40)}..."`).join(', ')
+
+  if (confirm(`¿Eliminar ${count} pregunta(s)?\n\n${names}\n\nEsta acción no se puede deshacer.`)) {
+    selectedQuestions.value.forEach(q => {
+      router.delete(getRoute('questionsDestroy', { roomId: props.roomId, questionId: q.id }))
+    })
+    clearSelection()
+  }
+}
+
 const applyFilters = debounce(() => {
   router.get(
     getRoute('questionsIndex', { roomId: props.roomId }),
@@ -116,7 +174,7 @@ function formatDate(d: string) {
       </div>
 
       <!-- Filtros -->
-      <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-6">
+      <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-4">
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <!-- Búsqueda -->
           <input
@@ -159,26 +217,89 @@ function formatDate(d: string) {
         </div>
       </div>
 
+      <!-- Acciones Bulk (debajo del filtrado) -->
+      <Transition name="slide-down">
+        <div v-if="selectedCount > 0" class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg p-3 mb-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-medium text-indigo-700 dark:text-indigo-300">
+                {{ selectedCount }} pregunta(s) seleccionada(s)
+              </span>
+              <button
+                @click="clearSelection"
+                class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 underline"
+              >
+                Limpiar
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                v-if="selectedCount === 1"
+                @click="bulkEdit"
+                class="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
+              >
+                Editar
+              </button>
+              <button
+                @click="bulkToggleActive"
+                class="px-3 py-1.5 text-sm font-medium text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300"
+              >
+                Activar/Desactivar
+              </button>
+              <button
+                @click="bulkDelete"
+                class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors"
+              >
+                Eliminar {{ selectedCount > 1 ? `(${selectedCount})` : '' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
       <!-- Tabla -->
       <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
+              <th class="px-3 py-3 text-left">
+                <input
+                  type="checkbox"
+                  :checked="selectedCount === questions.data.length && questions.data.length > 0"
+                  @change="toggleSelectAll"
+                  class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+              </th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Pregunta</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Opciones</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Dificultad</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Pts / Seg</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Usos</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Estado</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Acciones</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
             <tr
               v-for="q in questions.data"
               :key="q.id"
-              :class="['hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors', !q.is_active && 'opacity-60']"
+              :class="[
+                'transition-colors cursor-pointer',
+                selectedRows.has(q.id)
+                  ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50',
+                !q.is_active && 'opacity-60'
+              ]"
+              @click="toggleSelectRow(q.id)"
             >
+              <!-- Checkbox -->
+              <td class="px-3 py-4 whitespace-nowrap" @click.stop>
+                <input
+                  type="checkbox"
+                  :checked="selectedRows.has(q.id)"
+                  @change="toggleSelectRow(q.id)"
+                  class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+              </td>
               <!-- Pregunta -->
               <td class="px-4 py-4 max-w-xs">
                 <p class="text-sm font-medium text-gray-900 dark:text-white line-clamp-2">
@@ -215,7 +336,7 @@ function formatDate(d: string) {
                 {{ q.times_used }}
               </td>
               <!-- Estado -->
-              <td class="px-4 py-4 whitespace-nowrap">
+              <td class="px-4 py-4 whitespace-nowrap" @click.stop>
                 <button
                   @click="toggleActive(q)"
                   :class="[
@@ -226,21 +347,6 @@ function formatDate(d: string) {
                   ]"
                 >
                   {{ q.is_active ? 'Activa' : 'Inactiva' }}
-                </button>
-              </td>
-              <!-- Acciones -->
-              <td class="px-4 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                <Link
-                  :href="getRoute('questionsEdit', { roomId, questionId: q.id })"
-                  class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900"
-                >
-                  Editar
-                </Link>
-                <button
-                  @click="confirmDelete(q)"
-                  class="text-red-600 dark:text-red-400 hover:text-red-900"
-                >
-                  Eliminar
                 </button>
               </td>
             </tr>
@@ -291,3 +397,20 @@ function formatDate(d: string) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.slide-down-enter-active {
+  transition: all 0.25s ease-out;
+}
+.slide-down-leave-active {
+  transition: all 0.15s ease-in;
+}
+.slide-down-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+</style>

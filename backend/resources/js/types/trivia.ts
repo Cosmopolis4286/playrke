@@ -14,6 +14,7 @@ export interface Room {
   scheduledAt?: string
   entryFee?: number | null
   entryCurrencyId?: string | null
+  entryCurrencySymbol?: string | null
   prizeAmount?: number | null
   prizeCurrencyId?: string | null
   prizeType?: 'fixed' | 'accumulated' | null

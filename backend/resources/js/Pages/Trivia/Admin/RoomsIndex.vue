@@ -14,6 +14,66 @@ const props = defineProps({
 const search = ref(props.filters?.search || '')
 const status = ref(props.filters?.status || '')
 
+// ── Selección de filas ───────────────────────────────────────────────────────
+const selectedRows = ref(new Set())
+
+const toggleSelectAll = () => {
+  if (selectedRows.value.size === props.rooms.data.length) {
+    selectedRows.value.clear()
+  } else {
+    selectedRows.value = new Set(props.rooms.data.map(r => r.id))
+  }
+}
+
+const toggleSelectRow = (id) => {
+  if (selectedRows.value.has(id)) {
+    selectedRows.value.delete(id)
+  } else {
+    selectedRows.value.add(id)
+  }
+}
+
+const clearSelection = () => {
+  selectedRows.value.clear()
+}
+
+const selectedCount = computed(() => selectedRows.value.size)
+
+const selectedRooms = computed(() =>
+  props.rooms.data.filter(r => selectedRows.value.has(r.id))
+)
+
+// ── Acciones en bulk ──────────────────────────────────────────────────────────
+const bulkView = () => {
+  if (selectedRows.value.size === 1) {
+    const room = selectedRooms.value[0]
+    router.get(getRoute('roomsShow', { id: room.id }))
+  }
+}
+
+const bulkEdit = () => {
+  if (selectedRows.value.size === 1) {
+    const room = selectedRooms.value[0]
+    if (room.status === 'waiting') {
+      router.get(getRoute('roomsEdit', { id: room.id }))
+    }
+  }
+}
+
+const bulkClose = () => {
+  const closable = selectedRooms.value.filter(r => r.status !== 'closed')
+  if (closable.length === 0) return
+
+  const names = closable.map(r => `"${r.title}"`).join(', ')
+  if (confirm(`¿Estás seguro de cerrar ${closable.length} sala(s)?\n\n${names}\n\nEsta acción no se puede deshacer.`)) {
+    // Cerrar una por una
+    closable.forEach(room => {
+      router.delete(getRoute('roomsDestroy', { id: room.id }))
+    })
+    clearSelection()
+  }
+}
+
 // Stats calculados
 const statsCards = computed(() => [
   { label: 'Total Salas', value: props.stats?.total || 0, color: 'blue', icon: '🏠' },
@@ -121,7 +181,7 @@ const confirmDelete = (room) => {
       </div>
 
       <!-- Filters -->
-      <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-6">
+      <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4 mb-4">
         <div class="flex flex-col sm:flex-row gap-4">
           <div class="flex-1">
             <input
@@ -150,11 +210,60 @@ const confirmDelete = (room) => {
         </div>
       </div>
 
+      <!-- Acciones Bulk (debajo del filtrado) -->
+      <Transition name="slide-down">
+        <div v-if="selectedCount > 0" class="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-700 rounded-lg p-3 mb-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-medium text-indigo-700 dark:text-indigo-300">
+                {{ selectedCount }} sala(s) seleccionada(s)
+              </span>
+              <button
+                @click="clearSelection"
+                class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 underline"
+              >
+                Limpiar
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                v-if="selectedCount === 1"
+                @click="bulkView"
+                class="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
+              >
+                Ver
+              </button>
+              <button
+                v-if="selectedCount === 1 && selectedRooms[0]?.status === 'waiting'"
+                @click="bulkEdit"
+                class="px-3 py-1.5 text-sm font-medium text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300"
+              >
+                Editar
+              </button>
+              <button
+                @click="bulkClose"
+                class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors"
+              >
+                Cerrar {{ selectedCount > 1 ? `(${selectedCount})` : '' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
       <!-- Rooms Table -->
       <div class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead class="bg-gray-50 dark:bg-gray-700">
             <tr>
+              <th class="px-3 py-3 text-left">
+                <input
+                  type="checkbox"
+                  :checked="selectedCount === rooms.data.length && rooms.data.length > 0"
+                  @change="toggleSelectAll"
+                  class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+              </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Sala
               </th>
@@ -179,17 +288,28 @@ const confirmDelete = (room) => {
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Fecha de Inicio
               </th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                Acciones
-              </th>
             </tr>
           </thead>
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr
               v-for="room in rooms.data"
               :key="room.id"
-              class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              :class="[
+                'transition-colors cursor-pointer',
+                selectedRows.has(room.id)
+                  ? 'bg-indigo-50 dark:bg-indigo-900/30'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+              ]"
+              @click="toggleSelectRow(room.id)"
             >
+              <td class="px-3 py-4 whitespace-nowrap" @click.stop>
+                <input
+                  type="checkbox"
+                  :checked="selectedRows.has(room.id)"
+                  @change="toggleSelectRow(room.id)"
+                  class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+              </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
@@ -250,31 +370,9 @@ const confirmDelete = (room) => {
                 </span>
                 <span v-else class="text-xs text-gray-400">Manual</span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <Link
-                  :href="getRoute('roomsShow', { id: room.id })"
-                  class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-3"
-                >
-                  Ver
-                </Link>
-                <Link
-                  v-if="room.status === 'waiting'"
-                  :href="getRoute('roomsEdit', { id: room.id })"
-                  class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 mr-3"
-                >
-                  Editar
-                </Link>
-                <button
-                  v-if="room.status !== 'closed'"
-                  @click="confirmDelete(room)"
-                  class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
-                >
-                  Cerrar
-                </button>
-              </td>
             </tr>
             <tr v-if="rooms.data.length === 0">
-              <td colspan="9" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+              <td colspan="8" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                 <div class="text-4xl mb-2">🎮</div>
                 <p>No se encontraron salas</p>
                 <Link
@@ -325,3 +423,20 @@ const confirmDelete = (room) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.slide-down-enter-active {
+  transition: all 0.25s ease-out;
+}
+.slide-down-leave-active {
+  transition: all 0.15s ease-in;
+}
+.slide-down-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+</style>

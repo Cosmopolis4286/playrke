@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Games\Trivia\Game;
 use App\Http\Controllers\Controller;
 use App\Traits\Users\UserTrait;
 use App\Domains\Games\Trivia\Services\RoomService;
+use App\Domains\Games\Trivia\Actions\JoinRoomAction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 /**
  * Controlador de juego de Trivia.
@@ -63,6 +65,7 @@ final class TriviaGameController extends Controller
     {
         $user     = Auth::user();
         $roomService = app(RoomService::class);
+        $joinAction = app(JoinRoomAction::class);
 
         $room = \App\Domains\Games\Trivia\Models\TriviaRoom::findOrFail($id);
 
@@ -100,37 +103,38 @@ final class TriviaGameController extends Controller
             return redirect()->route('trivia.room.wait', ['code' => $room->code]);
         }
 
-        // Insertar en trivia_participants
-        DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
-            'id'            => (string) \Illuminate\Support\Str::ulid(),
-            'room_id'       => $roomId,
-            'user_id'       => $userId,
-            'status'        => 'registered',
-            'registered_at' => now(),
-            'created_at'    => now(),
-            'updated_at'    => now(),
-        ]);
-
-        // Disparar evento PlayerJoined vía RoomService (best-effort — requiere Redis)
+        // Usar JoinRoomAction para manejar descuento de wallet y unión
         try {
-            $roomService->joinRoom($roomId, $userId, ['nickname' => $displayName]);
-        } catch (\Throwable) {
-            // Redis no disponible — el participante quedó en DB de todas formas
-        }
+            $result = $joinAction->execute($roomId, $userId, $displayName);
 
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success'        => true,
-                'already_joined' => false,
-                'player'         => [
-                    'id'       => $userId,
-                    'name'     => $displayName,
-                    'roomCode' => $room->code,
-                ],
-            ]);
-        }
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success'        => true,
+                    'already_joined' => false,
+                    'player'         => [
+                        'id'       => $userId,
+                        'name'     => $displayName,
+                        'roomCode' => $room->code,
+                    ],
+                    'message'        => $result['message'] ?? 'Te has unido a la sala exitosamente',
+                ]);
+            }
 
-        return redirect()->route('trivia.room.wait', ['code' => $room->code]);
+            return redirect()->route('trivia.room.wait', ['code' => $room->code]);
+
+        } catch (RuntimeException $e) {
+            // Error de saldo insuficiente o wallet no encontrada
+            $statusCode = str_contains($e->getMessage(), 'Saldo insuficiente') ? 402 : 422;
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], $statusCode);
+            }
+
+            return back()->with('error', $e->getMessage());
+        }
     }
 
     /**
@@ -370,30 +374,57 @@ final class TriviaGameController extends Controller
         $alreadyJoined = collect($initialPlayers)
             ->contains('id', (string) $user->id);
 
+        // ── Obtener símbolo de moneda de entrada ──────────────────────────────
+        $entryCurrencySymbol = null;
+        if ($room->entry_currency_id) {
+            $currency = DB::table('currencies')->where('id', $room->entry_currency_id)->first();
+            $entryCurrencySymbol = $currency?->symbol;
+        }
+
+        // ── Obtener wallet del usuario para la moneda de entrada ────────────────
+        $userWallet = null;
+        if ($room->entry_currency_id) {
+            $wallet = $user->wallets()
+                ->where('currency_id', $room->entry_currency_id)
+                ->where('status', 'ACTIVE')
+                ->with('currency')
+                ->first();
+
+            if ($wallet) {
+                $userWallet = [
+                    'balance'    => (float) $wallet->balance,
+                    'symbol'     => $wallet->currency?->symbol ?? $entryCurrencySymbol ?? '',
+                    'currencyId' => (string) $wallet->currency_id,
+                ];
+            }
+        }
+
         return Inertia::render('Trivia/WaitingRoom', [
             'room' => [
-                'id'               => (string) $roomDto->roomId,
-                'code'             => $roomDto->code,
-                'title'            => $roomDto->title,
-                'description'      => $room->description,
-                'category'         => $room->category ?? null,
-                'hostId'           => $roomDto->hostId,
-                'status'           => $roomDto->status,
-                'maxPlayers'       => $roomDto->maxPlayers,
-                'currentPlayers'   => count($initialPlayers),
-                'questionCount'    => $room->question_count,
-                'timePerQuestion'  => $room->time_per_question,
-                'entryFee'         => $room->entry_fee ? (float) $room->entry_fee : null,
-                'entryCurrencyId'  => $room->entry_currency_id,
-                'prizeAmount'      => $room->prize_amount ? (float) $room->prize_amount : null,
-                'prizeCurrencyId'  => $room->prize_currency_id,
-                'prizeType'        => $room->prize_type,
-                'createdAt'        => $room->created_at->toISOString(),
-                'updatedAt'        => $room->updated_at->toISOString(),
+                'id'                   => (string) $roomDto->roomId,
+                'code'                 => $roomDto->code,
+                'title'                => $roomDto->title,
+                'description'          => $room->description,
+                'category'             => $room->category ?? null,
+                'hostId'               => $roomDto->hostId,
+                'status'               => $roomDto->status,
+                'maxPlayers'           => $roomDto->maxPlayers,
+                'currentPlayers'       => count($initialPlayers),
+                'questionCount'        => $room->question_count,
+                'timePerQuestion'      => $room->time_per_question,
+                'entryFee'             => $room->entry_fee ? (float) $room->entry_fee : null,
+                'entryCurrencyId'      => $room->entry_currency_id,
+                'entryCurrencySymbol'  => $entryCurrencySymbol,
+                'prizeAmount'          => $room->prize_amount ? (float) $room->prize_amount : null,
+                'prizeCurrencyId'      => $room->prize_currency_id,
+                'prizeType'            => $room->prize_type,
+                'createdAt'            => $room->created_at->toISOString(),
+                'updatedAt'            => $room->updated_at->toISOString(),
             ],
             'initialPlayers' => $initialPlayers,
             'alreadyJoined'  => $alreadyJoined,
             'currentUserId'  => (string) $user->id,
+            'userWallet'     => $userWallet,
         ]);
     }
 

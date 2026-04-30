@@ -113,6 +113,46 @@ final class NotificationService
     }
 
     /**
+     * Crear notificación de inscripción a trivia
+     *
+     * @param string $userId
+     * @param string $roomTitle
+     * @param string $roomCode
+     * @param float|null $entryFee
+     * @param string|null $currencySymbol
+     * @return Notification
+     */
+    public function createTriviaRegistrationNotification(
+        string $userId,
+        string $roomTitle,
+        string $roomCode,
+        ?float $entryFee = null,
+        ?string $currencySymbol = null,
+    ): Notification {
+        $title = '🎮 ¡Inscripción Exitosa!';
+
+        if ($entryFee && $entryFee > 0) {
+            $message = "Te has inscrito a la trivia '{$roomTitle}' ({$roomCode}). Se descontó {$currencySymbol}{$entryFee} de tu billetera.";
+        } else {
+            $message = "Te has inscrito gratuitamente a la trivia '{$roomTitle}' ({$roomCode}).";
+        }
+
+        return $this->create(
+            userId: $userId,
+            type: 'TRIVIA_REGISTRATION',
+            title: $title,
+            message: $message,
+            data: [
+                'room_title' => $roomTitle,
+                'room_code' => $roomCode,
+                'entry_fee' => $entryFee,
+                'currency_symbol' => $currencySymbol,
+                'url' => "/trivia/room/{$roomCode}/wait",
+            ]
+        );
+    }
+
+    /**
      * Obtener notificaciones del usuario autenticado
      *
      * @param array $filters

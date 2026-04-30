@@ -10,6 +10,8 @@ use App\Domains\Games\Trivia\DTOs\RoomDTO;
 use App\Models\Games\Trivia\TriviaRoom;
 use App\Models\User;
 use App\Services\WalletService;
+use App\Services\NotificationService;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
@@ -20,8 +22,9 @@ use RuntimeException;
 class JoinRoomAction
 {
     public function __construct(
-        private readonly RoomServiceInterface $roomService,
-        private readonly WalletService        $walletService,
+        private readonly RoomServiceInterface  $roomService,
+        private readonly WalletService         $walletService,
+        private readonly NotificationService   $notificationService,
     ) {}
 
     /**
@@ -44,10 +47,31 @@ class JoinRoomAction
             throw new RuntimeException('El nickname debe tener entre 2 y 30 caracteres');
         }
 
-        // Descontar tarifa de entrada si la sala tiene entry_fee
+        // Verificar si ya está registrado
+        $alreadyJoined = $this->isPlayerAlreadyJoined($roomId, $playerId);
+
+        // Si ya está registrado, solo retornar info sin hacer nada más
+        if ($alreadyJoined) {
+            $room = $this->roomService->getRoom($roomId);
+            $players = $this->roomService->listPlayers($roomId);
+
+            return [
+                'player' => [
+                    'id' => $playerId,
+                    'name' => $nickname,
+                    'roomId' => $roomId,
+                ],
+                'room' => $room,
+                'players' => $players,
+                'already_joined' => true,
+                'message' => 'Ya estás registrado en esta sala',
+            ];
+        }
+
+        // Descontar tarifa de entrada
         $this->chargeEntryFee($roomId, $playerId);
 
-        // Unir a sala
+        // Unir a sala (registrar en DB y Redis)
         $playerData['nickname'] = $nickname;
         $player = $this->roomService->joinRoom($roomId, $playerId, $playerData);
 
@@ -55,12 +79,53 @@ class JoinRoomAction
         $room = $this->roomService->getRoom($roomId);
         $players = $this->roomService->listPlayers($roomId);
 
+        // Crear notificación de inscripción
+        $this->createTriviaNotification($roomId, $playerId);
+
         return [
             'player' => $player,
             'room' => $room,
             'players' => $players,
+            'already_joined' => false,
             'message' => 'Te has unido a la sala exitosamente',
         ];
+    }
+
+    /**
+     * Verifica si el jugador ya está registrado en la sala.
+     */
+    private function isPlayerAlreadyJoined(string $roomId, string $playerId): bool
+    {
+        return DB::connection('pgsql_trivia')
+            ->table('trivia_participants')
+            ->where('room_id', $roomId)
+            ->where('user_id', $playerId)
+            ->whereNull('deleted_at')
+            ->exists();
+    }
+
+    /**
+     * Crea notificación de inscripción a trivia.
+     */
+    private function createTriviaNotification(string $roomId, string $playerId): void
+    {
+        $room = TriviaRoom::find($roomId);
+        if (!$room) {
+            return;
+        }
+
+        $currency = null;
+        if ($room->entry_currency_id) {
+            $currency = DB::table('currencies')->where('id', $room->entry_currency_id)->first();
+        }
+
+        $this->notificationService->createTriviaRegistrationNotification(
+            userId: $playerId,
+            roomTitle: $room->title,
+            roomCode: $room->code,
+            entryFee: $room->entry_fee ? (float) $room->entry_fee : null,
+            currencySymbol: $currency?->symbol,
+        );
     }
 
     /**
@@ -89,6 +154,7 @@ class JoinRoomAction
             throw new RuntimeException('Saldo insuficiente para unirte a esta sala. Se requieren ' . $room->entry_fee . '.');
         }
 
+        // Descontar de la billetera usando el método existente
         $this->walletService->recordCardPurchase(
             walletId:    (string) $wallet->id,
             amount:      (float) $room->entry_fee,
