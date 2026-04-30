@@ -123,7 +123,7 @@
                             enter-to-class="opacity-100 translate-y-0"
                           >
                             <div
-                              v-if="showPasswordFor === cred.role"
+                              v-if="showPasswordFor === cred.id"
                               class="mt-1 text-xs font-mono text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-0.5 inline-flex items-center gap-1"
                             >
                               <i class="fa-solid fa-key text-[10px]" /> {{ cred.password }}
@@ -135,21 +135,21 @@
                       <!-- Derecha: acciones -->
                       <div class="flex items-center gap-1 flex-shrink-0">
                         <button
-                          :title="showPasswordFor === cred.role ? 'Ocultar' : 'Mostrar contraseña'"
+                          :title="showPasswordFor === cred.id ? 'Ocultar' : 'Mostrar contraseña'"
                           class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
                           type="button"
-                          @click.stop="togglePassword(cred.role)"
+                          @click.stop="togglePassword(cred.id)"
                         >
-                          <i :class="showPasswordFor === cred.role ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm" />
+                          <i :class="showPasswordFor === cred.id ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm" />
                         </button>
                         <button
-                          :disabled="fillingRole === cred.role"
+                          :disabled="fillingId === cred.id"
                           title="Rellenar formulario"
                           class="p-1.5 rounded-lg text-orange-500 hover:text-orange-700 hover:bg-orange-100 transition-all disabled:opacity-50"
                           type="button"
                           @click.stop="handleFill(cred)"
                         >
-                          <i v-if="fillingRole === cred.role" class="fa-solid fa-spinner animate-spin text-sm" />
+                          <i v-if="fillingId === cred.id" class="fa-solid fa-spinner animate-spin text-sm" />
                           <i v-else class="fa-solid fa-right-to-bracket text-sm" />
                         </button>
                       </div>
@@ -191,22 +191,22 @@ const page = usePage<{ app: { env: string; debug: boolean } }>()
 const isDev = computed(() => ['local', 'testing'].includes(page.props.app?.env ?? ''))
 const isOpen = ref(false)
 const showPasswordFor = ref<string | null>(null)
-const fillingRole = ref<string | null>(null)
+const fillingId = ref<string | null>(null)
 
 const toggleModal = () => { isOpen.value = !isOpen.value }
 const closeModal  = () => { isOpen.value = false }
 
-const togglePassword = (role: string) => {
-  showPasswordFor.value = showPasswordFor.value === role ? null : role
+const togglePassword = (id: string) => {
+  showPasswordFor.value = showPasswordFor.value === id ? null : id
 }
 
 const handleFill = async (cred: DemoCredential) => {
-  if (fillingRole.value) return
-  fillingRole.value = cred.role
+  if (fillingId.value) return
+  fillingId.value = cred.id
   await new Promise(resolve => setTimeout(resolve, 150))
   emit('fillCredentials', { login: cred.email, password: cred.password })
   closeModal()
-  fillingRole.value = null
+  fillingId.value = null
 }
 
 const handleKeydown = (e: KeyboardEvent) => {

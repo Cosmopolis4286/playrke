@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\WalletService;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -71,7 +72,10 @@ class JoinRoomAction
         // Descontar tarifa de entrada
         $this->chargeEntryFee($roomId, $playerId);
 
-        // Unir a sala (registrar en DB y Redis)
+        // Insertar en trivia_participants (PostgreSQL)
+        $this->registerParticipantInDatabase($roomId, $playerId, $nickname);
+
+        // Unir a sala en Redis (tiempo real)
         $playerData['nickname'] = $nickname;
         $player = $this->roomService->joinRoom($roomId, $playerId, $playerData);
 
@@ -160,6 +164,31 @@ class JoinRoomAction
             amount:      (float) $room->entry_fee,
             description: "Entrada sala Trivia: {$room->title} ({$room->code})",
         );
+    }
+
+    /**
+     * Registra al participante en la tabla trivia_participants.
+     */
+    private function registerParticipantInDatabase(string $roomId, string $playerId, string $nickname): void
+    {
+        $room = TriviaRoom::find($roomId);
+        if (!$room) {
+            return;
+        }
+
+        DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
+            'id' => (string) Str::ulid(),
+            'room_id' => $roomId,
+            'user_id' => $playerId,
+            'status' => 'confirmed',
+            'registered_at' => now(),
+            'confirmed_at' => now(),
+            'paid_amount' => $room->entry_fee ?? 0,
+            'paid_currency_id' => $room->entry_currency_id,
+            'metadata' => json_encode(['nickname' => $nickname]),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     /**

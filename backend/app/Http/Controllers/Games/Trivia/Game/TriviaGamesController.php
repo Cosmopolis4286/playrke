@@ -128,7 +128,7 @@ final class TriviaGamesController extends Controller
             'cancelled' => $pgsql->table('trivia_games')->whereNull('deleted_at')->where('status', 'cancelled')->count(),
         ];
 
-        return Inertia::render('Trivia/Games', [
+        return Inertia::render('Games/Trivia/Games', [
             'games'   => array_merge($games->toArray(), ['data' => $items->values()->all()]),
             'stats'   => $stats,
             'filters' => compact('status', 'search', 'dateFrom', 'dateTo'),
@@ -231,7 +231,7 @@ final class TriviaGamesController extends Controller
             ? round((strtotime($game->ended_at) - strtotime($game->started_at)) / 60, 1)
             : null;
 
-        return Inertia::render('Trivia/GameShow', [
+        return Inertia::render('Games/Trivia/GameShow', [
             'game'        => array_merge((array) $game, [
                 'winner_name' => $winnerName,
                 'duration_min' => $duration,

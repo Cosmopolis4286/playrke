@@ -134,6 +134,23 @@ final class TriviaGameController extends Controller
             }
 
             return back()->with('error', $e->getMessage());
+        } catch (\Exception $e) {
+            // Cualquier otro error (incluyendo Pusher/broadcasting)
+            // No debe impedir que el usuario se una a la sala
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success'        => true,
+                    'already_joined' => false,
+                    'player'         => [
+                        'id'       => $userId,
+                        'name'     => $displayName,
+                        'roomCode' => $room->code,
+                    ],
+                    'warning'        => 'Te uniste pero hubo un error de conexión en tiempo real',
+                ]);
+            }
+
+            return redirect()->route('trivia.room.wait', ['code' => $room->code]);
         }
     }
 
@@ -399,7 +416,7 @@ final class TriviaGameController extends Controller
             }
         }
 
-        return Inertia::render('Trivia/WaitingRoom', [
+        return Inertia::render('Games/Trivia/WaitingRoom', [
             'room' => [
                 'id'                   => (string) $roomDto->roomId,
                 'code'                 => $roomDto->code,
@@ -510,7 +527,7 @@ final class TriviaGameController extends Controller
             'total'   => $pgsql->table('trivia_rooms')->whereNull('deleted_at')->whereIn('status', ['waiting', 'playing'])->count(),
         ];
 
-        return Inertia::render('Trivia/Lobby', [
+        return Inertia::render('Games/Trivia/Lobby', [
             'rooms'      => $rooms,
             'categories' => $categories,
             'stats'      => $stats,

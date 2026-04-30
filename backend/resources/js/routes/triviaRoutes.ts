@@ -31,6 +31,8 @@ export const triviaRoutes = {
     leaderboard: '/trivia/leaderboard',
     gamesIndex:  '/trivia/games',
     gamesShow:   '/trivia/games/{id}',
+    play:        '/trivia/play/{gameId}',
+    playResults: '/trivia/play/{gameId}/results',
 
     // ── API (referencia interna) ─────────────────────────
     apiRoomsIndex:    '/api/trivia/rooms',

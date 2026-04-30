@@ -64,7 +64,7 @@ final class TriviaRoomAdminController extends Controller
             'closed' => TriviaRoom::where('status', 'closed')->count(),
         ];
 
-        return Inertia::render('Trivia/Admin/RoomsIndex', [
+        return Inertia::render('Games/Trivia/Admin/RoomsIndex', [
             'rooms' => $rooms,
             'stats' => $stats,
             'filters' => $request->only(['search', 'status']),
@@ -115,7 +115,7 @@ final class TriviaRoomAdminController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Trivia/Admin/RoomsCreate', [
+        return Inertia::render('Games/Trivia/Admin/RoomsCreate', [
             'defaultSettings' => [
                 'max_players' => 100,
                 'question_count' => 10,
@@ -191,7 +191,7 @@ final class TriviaRoomAdminController extends Controller
             $players = [];
         }
 
-        return Inertia::render('Trivia/Admin/RoomsShow', [
+        return Inertia::render('Games/Trivia/Admin/RoomsShow', [
             'room' => $room,
             'roomState' => $roomDto?->toArray(),
             'players' => array_map(fn($p) => $p->toArray(), $players),
@@ -213,7 +213,7 @@ final class TriviaRoomAdminController extends Controller
                 ->with('error', 'No se puede editar una sala que ya inició o cerró.');
         }
 
-        return Inertia::render('Trivia/Admin/RoomsEdit', [
+        return Inertia::render('Games/Trivia/Admin/RoomsEdit', [
             'room'       => $room,
             'categories' => $this->availableCategories(),
             'currencies' => $this->availableCurrencies(),

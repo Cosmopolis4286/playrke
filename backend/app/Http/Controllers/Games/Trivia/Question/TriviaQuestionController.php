@@ -62,7 +62,7 @@ final class TriviaQuestionController extends Controller
             ->orderBy('category')
             ->pluck('category');
 
-        return Inertia::render('Trivia/Admin/QuestionsIndex', [
+        return Inertia::render('Games/Trivia/Admin/QuestionsIndex', [
             'questions'  => $questions,
             'stats'      => $stats,
             'categories' => $categories,
@@ -82,7 +82,7 @@ final class TriviaQuestionController extends Controller
             ->orderBy('category')
             ->pluck('category');
 
-        return Inertia::render('Trivia/Admin/QuestionsCreate', [
+        return Inertia::render('Games/Trivia/Admin/QuestionsCreate', [
             'roomId'     => $roomId,
             'categories' => $categories,
         ]);
@@ -151,7 +151,7 @@ final class TriviaQuestionController extends Controller
     {
         $question = TriviaQuestion::findOrFail($questionId);
 
-        return Inertia::render('Trivia/Admin/QuestionsShow', [
+        return Inertia::render('Games/Trivia/Admin/QuestionsShow', [
             'question' => $question,
             'roomId'   => $roomId,
         ]);
@@ -170,7 +170,7 @@ final class TriviaQuestionController extends Controller
             ->orderBy('category')
             ->pluck('category');
 
-        return Inertia::render('Trivia/Admin/QuestionsEdit', [
+        return Inertia::render('Games/Trivia/Admin/QuestionsEdit', [
             'question'   => $question->makeVisible('correct_option_index'),
             'roomId'     => $roomId,
             'categories' => $categories,

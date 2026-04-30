@@ -335,7 +335,7 @@ final class TriviaReportController extends Controller
         ];
 
         if ($scores->isEmpty()) {
-            return Inertia::render('Trivia/Leaderboard', [
+            return Inertia::render('Games/Trivia/Leaderboard', [
                 'players'     => [],
                 'period'      => $period,
                 'globalStats' => $globalStats,
@@ -399,7 +399,7 @@ final class TriviaReportController extends Controller
         $globalStats['top_score']     = $players[0]['total_score'] ?? 0;
         $globalStats['top_name']      = $players[0]['name']        ?? '-';
 
-        return Inertia::render('Trivia/Leaderboard', [
+        return Inertia::render('Games/Trivia/Leaderboard', [
             'players'     => $players,
             'period'      => $period,
             'globalStats' => $globalStats,
@@ -486,7 +486,7 @@ final class TriviaReportController extends Controller
             ->value('t');
         $accuracyRate = $totalAnswers > 0 ? round(($totalCorrect / $totalAnswers) * 100, 1) : 0;
 
-        return Inertia::render('Trivia/Stats', [
+        return Inertia::render('Games/Trivia/Stats', [
             'roomStats'        => $roomStats,
             'gameStats'        => $gameStats,
             'questionStats'    => $questionStats,
