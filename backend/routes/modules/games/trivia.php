@@ -111,6 +111,15 @@ Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function (
     Route::get('/stats', [TriviaReportController::class, 'stats'])->name('stats');
 });
 
+// ── Nuevas rutas para el juego "El Poder del Saber" ───────────────────────────
+Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:player'])->group(function () {
+    // Página de juego activo
+    Route::get('/play/{gameId}', [TriviaGameController::class, 'play'])->name('play');
+    
+    // Página de resultados
+    Route::get('/play/{gameId}/results', [TriviaGameController::class, 'playResults'])->name('play.results');
+});
+
 // ====================================
 // RUTAS LEGACY (MANTENER COMPATIBILIDAD)
 // ====================================

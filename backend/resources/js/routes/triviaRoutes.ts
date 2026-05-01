@@ -33,6 +33,10 @@ export const triviaRoutes = {
     gamesShow:   '/trivia/games/{id}',
     play:        '/trivia/play/{gameId}',
     playResults: '/trivia/play/{gameId}/results',
+    
+    // ── Rutas nuevas El Poder del Saber ───────────────────
+    triviaPlay:       '/trivia/play/{gameId}',
+    triviaPlayResults:'/trivia/play/{gameId}/results',
 
     // ── API (referencia interna) ─────────────────────────
     apiRoomsIndex:    '/api/trivia/rooms',

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Head, usePage } from '@inertiajs/vue3'
-import RoomHeader from '@js/Components/Trivia/Room/RoomHeader.vue'
-import PlayerList from '@js/Components/Trivia/Room/PlayerList.vue'
-import JoinForm from '@js/Components/Trivia/Room/JoinForm.vue'
+import RoomHeader from '@js/Components/Games/Trivia/Room/RoomHeader.vue'
+import PlayerList from '@js/Components/Games/Trivia/Room/PlayerList.vue'
+import JoinForm from '@js/Components/Games/Trivia/Room/JoinForm.vue'
 import { getEchoInstance } from '@js/plugins/echo'
 import type { Room, Player } from '@js/types/trivia'
 

@@ -534,4 +534,193 @@ final class TriviaGameController extends Controller
             'filters'    => compact('search', 'category'),
         ]);
     }
+
+    /**
+     * Página de juego activo - "El Poder del Saber".
+     * Interfaz de juego inmersiva con el diseño visual del concurso.
+     * Ruta: GET /trivia/play/{gameId}
+     */
+    public function play(string $gameId): Response
+    {
+        $user = Auth::user();
+        $pgsql = DB::connection('pgsql_trivia');
+
+        // Obtener información del juego
+        $game = $pgsql->table('trivia_games')
+            ->where('id', $gameId)
+            ->first();
+
+        if (!$game) {
+            abort(404, 'Juego no encontrado');
+        }
+
+        // Obtener información de la sala
+        $room = $pgsql->table('trivia_rooms')
+            ->where('id', $game->room_id)
+            ->first();
+
+        // Calcular el pote total
+        $potAmount = $room->prize_amount ?? (
+            ($room->entry_fee ?? 0) * ($room->current_players ?? 0)
+        );
+
+        // Obtener la pregunta actual (si existe)
+        $currentQuestion = $pgsql->table('trivia_questions')
+            ->where('game_id', $gameId)
+            ->where('status', 'sent')
+            ->orderBy('sent_at', 'desc')
+            ->first();
+
+        $question = null;
+        if ($currentQuestion) {
+            $questionData = $pgsql->table('trivia_question_bank')
+                ->where('id', $currentQuestion->question_id)
+                ->first();
+
+            if ($questionData) {
+                $question = [
+                    'id' => $questionData->id,
+                    'text' => $questionData->question_text,
+                    'image' => $questionData->image_url ?? null,
+                    'options' => $questionData->options ?? [],
+                    'timeLimit' => $questionData->time_limit_seconds ?? $room->time_per_question ?? 20,
+                    'category' => $questionData->category ?? null,
+                ];
+            }
+        }
+
+        // Obtener posición del jugador
+        $participant = $pgsql->table('trivia_participants')
+            ->where('room_id', $game->room_id)
+            ->where('user_id', (string) $user->id)
+            ->first();
+
+        return Inertia::render('Games/Trivia/Play', [
+            'room' => [
+                'id' => (string) $room->id,
+                'code' => $room->code,
+                'title' => $room->title,
+                'potAmount' => (float) $potAmount,
+                'currentPlayers' => $room->current_players ?? 0,
+                'maxPlayers' => $room->max_players ?? 100,
+                'cupsAvailable' => $room->cups_available ?? 0,
+                'cupsTotal' => $room->max_players ?? 0,
+            ],
+            'game' => [
+                'id' => $gameId,
+                'currentQuestion' => $game->current_question_index ?? 1,
+                'totalQuestions' => $room->question_count ?? 10,
+            ],
+            'question' => $question,
+            'player' => [
+                'id' => (string) $user->id,
+                'name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador'),
+                'avatar' => $user->avatar ?? null,
+            ],
+        ]);
+    }
+
+    /**
+     * Página de resultados del juego - "El Poder del Saber".
+     * Muestra el desempeño del jugador y la clasificación final.
+     * Ruta: GET /trivia/play/{gameId}/results
+     */
+    public function playResults(string $gameId): Response
+    {
+        $user = Auth::user();
+        $pgsql = DB::connection('pgsql_trivia');
+
+        // Obtener información del juego
+        $game = $pgsql->table('trivia_games')
+            ->where('id', $gameId)
+            ->first();
+
+        if (!$game) {
+            abort(404, 'Juego no encontrado');
+        }
+
+        // Obtener información de la sala
+        $room = $pgsql->table('trivia_rooms')
+            ->where('id', $game->room_id)
+            ->first();
+
+        // Obtener score del jugador actual
+        $playerScore = $pgsql->table('trivia_scores')
+            ->where('game_id', $gameId)
+            ->where('player_id', (string) $user->id)
+            ->first();
+
+        // Obtener todos los scores para el ranking
+        $allScores = $pgsql->table('trivia_scores')
+            ->where('game_id', $gameId)
+            ->orderBy('final_score', 'desc')
+            ->orderBy('correct_answers', 'desc')
+            ->get();
+
+        // Calcular ranking del jugador
+        $playerRank = 0;
+        $totalPlayers = $allScores->count();
+
+        foreach ($allScores as $index => $score) {
+            if ($score->player_id === (string) $user->id) {
+                $playerRank = $index + 1;
+                break;
+            }
+        }
+
+        // Obtener nombres de jugadores
+        $playerIds = $allScores->pluck('player_id')->unique()->all();
+        $playerNames = [];
+        if (!empty($playerIds)) {
+            $playerNames = DB::table('users')
+                ->whereIn('id', $playerIds)
+                ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
+                ->get()
+                ->pluck('display_name', 'id')
+                ->all();
+        }
+
+        // Construir top players (top 10)
+        $topPlayers = $allScores->take(10)->map(function ($score, $index) use ($playerNames, $user) {
+            return [
+                'position' => $index + 1,
+                'name' => $playerNames[$score->player_id] ?? 'Jugador',
+                'score' => $score->final_score ?? 0,
+                'correctAnswers' => $score->correct_answers ?? 0,
+                'isCurrentPlayer' => $score->player_id === (string) $user->id,
+            ];
+        })->all();
+
+        // Calcular premio ganado (si aplica)
+        $wonPrize = null;
+        if ($playerRank <= 3 && $room->prize_type === 'winner_takes_all') {
+            // Lógica de premios según configuración
+            $prizeDistribution = match($playerRank) {
+                1 => 0.5,  // 50% para el primer lugar
+                2 => 0.3,  // 30% para el segundo
+                3 => 0.2,  // 20% para el tercero
+                default => 0,
+            };
+            $wonPrize = ($room->prize_amount ?? 0) * $prizeDistribution;
+        }
+
+        return Inertia::render('Games/Trivia/PlayResults', [
+            'game' => [
+                'id' => $gameId,
+                'roomTitle' => $room->title,
+                'totalQuestions' => $room->question_count ?? 10,
+                'correctAnswers' => $playerScore->correct_answers ?? 0,
+                'finalScore' => $playerScore->final_score ?? 0,
+                'rank' => $playerRank,
+                'totalPlayers' => $totalPlayers,
+                'wonPrize' => $wonPrize,
+            ],
+            'player' => [
+                'id' => (string) $user->id,
+                'name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador'),
+                'avatar' => $user->avatar ?? null,
+            ],
+            'topPlayers' => $topPlayers,
+        ]);
+    }
 }

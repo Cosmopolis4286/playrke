@@ -4,7 +4,7 @@
   import { useLogin } from '@js/composables/auth/useLogin'
   import { usePasswordToggle } from '@js/composables/utils/usePasswordToggle'
   import DemoCredentials from '@js/Components/Auth/DemoCredentials.vue'
-  import LoadingOverlay from '@js/Components/Trivia/Shared/LoadingOverlay.vue'
+  import LoadingOverlay from '@js/Components/Games/Trivia/Shared/LoadingOverlay.vue'
 
   const props = defineProps<{ register: Boolean }>()
 

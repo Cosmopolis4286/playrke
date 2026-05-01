@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Head } from '@inertiajs/vue3'
-import GameHeader from '@js/Components/Trivia/Game/GameHeader.vue'
-import QuestionCard from '@js/Components/Trivia/Game/QuestionCard.vue'
-import AnswerOptions from '@js/Components/Trivia/Game/AnswerOptions.vue'
-import TimerBar from '@js/Components/Trivia/Game/TimerBar.vue'
-import GameStatus from '@js/Components/Trivia/Game/GameStatus.vue'
-import Leaderboard from '@js/Components/Trivia/Score/Leaderboard.vue'
-import ConnectionStatus from '@js/Components/Trivia/Shared/ConnectionStatus.vue'
+import axios from 'axios'
+import GameHeader from '@js/Components/Games/Trivia/Game/GameHeader.vue'
+import QuestionCard from '@js/Components/Games/Trivia/Game/QuestionCard.vue'
+import AnswerOptions from '@js/Components/Games/Trivia/Game/AnswerOptions.vue'
+import TimerBar from '@js/Components/Games/Trivia/Game/TimerBar.vue'
+import GameStatus from '@js/Components/Games/Trivia/Game/GameStatus.vue'
+import Leaderboard from '@js/Components/Games/Trivia/Score/Leaderboard.vue'
+import ConnectionStatus from '@js/Components/Games/Trivia/Shared/ConnectionStatus.vue'
 import type { Question, Player, GameState } from '@js/types/trivia'
 
 interface Props {
