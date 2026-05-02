@@ -81,8 +81,8 @@ Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth', 'role:p
 // RUTAS PARA SIDEBAR MENÚ (NUEVAS)
 // ====================================
 
-// ── Solo rol player: lobby y sala de espera ───────────────────────────────────
-Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:player'])->group(function () {
+// ── Players, admins y superadmins: lobby y sala de espera (solo observar) ─────
+Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:player,admin,superadmin'])->group(function () {
     Route::get('/lobby', [TriviaGameController::class, 'lobby'])->name('lobby');
     Route::get('/room/{code}/wait', [TriviaGameController::class, 'waitingRoom'])->name('room.wait');
     Route::get('/room/{code}/state', [TriviaGameController::class, 'roomState'])->name('room.state');
@@ -112,10 +112,10 @@ Route::prefix('trivia')->name('trivia.')->middleware(['auth'])->group(function (
 });
 
 // ── Nuevas rutas para el juego "El Poder del Saber" ───────────────────────────
-Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:player'])->group(function () {
+Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:player,admin,superadmin'])->group(function () {
     // Página de juego activo
     Route::get('/play/{gameId}', [TriviaGameController::class, 'play'])->name('play');
-    
+
     // Página de resultados
     Route::get('/play/{gameId}/results', [TriviaGameController::class, 'playResults'])->name('play.results');
 });
