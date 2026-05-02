@@ -12,6 +12,7 @@ use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Wallet;
 use App\Models\WalletMovement;
 use App\Services\NotificationService;
+use App\Services\WithdrawalLimitService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -21,6 +22,7 @@ final class WalletService
         private readonly WalletRepositoryInterface         $walletRepository,
         private readonly WalletMovementRepositoryInterface $movementRepository,
         private readonly NotificationService                $notificationService,
+        private readonly WithdrawalLimitService             $withdrawalLimitService,
     ) {}
 
     /**
@@ -184,6 +186,10 @@ final class WalletService
         ?string $notes = null,
     ): Wallet {
         $withdrawalMovement = null;
+
+        // Validar límites ANTES de abrir la transacción
+        $kycLevel = (int) ($wallet->user?->kyc_level ?? 0);
+        $this->withdrawalLimitService->assertWithinLimits($wallet, $amount, $kycLevel);
 
         $wallet = DB::transaction(function () use ($wallet, $amount, $directoryId, $directoryType, $notes, &$withdrawalMovement) {
             $walletId = (string) $wallet->id;
@@ -352,6 +358,39 @@ final class WalletService
         $this->broadcastWalletUpdated($result, WalletMovement::TYPE_TRIVIA_ENTRY, $amount);
 
         return $result;
+    }
+
+    /**
+     * Acredita el premio de Trivia al ganador.
+     * La wallet se recibe ya resuelta — nunca acepta un ID externo.
+     */
+    public function recordTriviaPrize(Wallet $wallet, float $amount, string $description = 'Premio Trivia'): WalletMovement
+    {
+        $movement = null;
+
+        DB::transaction(function () use ($wallet, $amount, $description, &$movement) {
+            $walletId = (string) $wallet->id;
+
+            $balanceBefore = (float) $wallet->balance;
+
+            $this->walletRepository->incrementBalance($walletId, $amount);
+            $wallet->refresh();
+
+            $movement = $this->movementRepository->record([
+                'wallet_id'      => $walletId,
+                'user_id'        => (string) $wallet->user_id,
+                'type'           => WalletMovement::TYPE_TRIVIA_PRIZE,
+                'status'         => WalletMovement::STATUS_COMPLETED,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => (float) $wallet->balance,
+                'description'    => $description,
+            ]);
+        });
+
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_TRIVIA_PRIZE, $amount);
+
+        return $movement;
     }
 
     public function recordCardPurchase(string $walletId, float $amount, string $description = 'Compra de cartones'): Wallet
@@ -652,7 +691,7 @@ final class WalletService
      */
     public function findOwnedWalletByCurrency(string $currencyId): Wallet
     {
-        $wallet = Wallet::with(['currency'])
+        $wallet = Wallet::with(['currency', 'user'])
             ->where('user_id', (string) Auth::id())
             ->where('currency_id', $currencyId)
             ->where('status', 'ACTIVE')
