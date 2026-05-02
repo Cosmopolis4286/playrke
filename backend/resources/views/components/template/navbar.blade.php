@@ -137,6 +137,7 @@
         PURCHASE:     { label: 'Compra cartón',    icon: 'fa-ticket-alt',  color: '#dc3545', sign: '-' },
         PRIZE:        { label: '¡Premio! 🎉',      icon: 'fa-trophy',      color: '#fd7e14', sign: '+' },
         TRIVIA_ENTRY: { label: 'Entrada Trivia',   icon: 'fa-brain',       color: '#7c3aed', sign: '-' },
+        TRIVIA_PRIZE: { label: '🏆 Premio Trivia', icon: 'fa-brain',       color: '#7c3aed', sign: '+' },
     };
 
     var ADMIN_META = {

@@ -218,6 +218,7 @@ const typeConfig: Record<string, { label: string; cls: string; icon: string }> =
   PURCHASE:     { label: 'Compra',         cls: 'mv-badge mv-badge--purchase',     icon: 'fas fa-ticket-alt'  },
   PRIZE:        { label: 'Premio',         cls: 'mv-badge mv-badge--prize',        icon: 'fas fa-trophy'      },
   TRIVIA_ENTRY: { label: 'Entrada Trivia', cls: 'mv-badge mv-badge--trivia-entry', icon: 'fas fa-brain'       },
+  TRIVIA_PRIZE: { label: 'Premio Trivia',  cls: 'mv-badge mv-badge--trivia-prize', icon: 'fas fa-brain'       },
 }
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
@@ -685,6 +686,7 @@ onMounted(() => fetchMovements())
 .mv-badge--purchase     { background: #ffe4e6; color: #e11d48; }
 .mv-badge--prize        { background: #fef9c3; color: #ca8a04; }
 .mv-badge--trivia-entry { background: #ede9fe; color: #7c3aed; }
+.mv-badge--trivia-prize { background: #ede9fe; color: #7c3aed; }
 
 /* Monto */
 .mv-amount           { font-size: 0.875rem; font-weight: 700; white-space: nowrap; }

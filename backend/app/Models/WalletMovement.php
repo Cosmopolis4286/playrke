@@ -41,6 +41,7 @@ class WalletMovement extends Model
     public const TYPE_PURCHASE      = 'PURCHASE';
     public const TYPE_PRIZE         = 'PRIZE';
     public const TYPE_TRIVIA_ENTRY  = 'TRIVIA_ENTRY';
+    public const TYPE_TRIVIA_PRIZE  = 'TRIVIA_PRIZE';
 
     public const STATUS_PENDING    = 'PENDING';
     public const STATUS_COMPLETED  = 'COMPLETED';
@@ -53,6 +54,7 @@ class WalletMovement extends Model
         self::TYPE_PURCHASE     => 'Compra de cartón',
         self::TYPE_PRIZE        => 'Premio ganado',
         self::TYPE_TRIVIA_ENTRY => 'Entrada Trivia',
+        self::TYPE_TRIVIA_PRIZE => 'Premio Trivia',
     ];
 
     protected $fillable = [
