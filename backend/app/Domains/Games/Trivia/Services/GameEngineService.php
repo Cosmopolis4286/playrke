@@ -16,6 +16,10 @@ use App\Domains\Games\Trivia\Events\ScoreUpdated;
 use App\Domains\Games\Trivia\Models\TriviaGame;
 use App\Domains\Games\Trivia\Models\TriviaQuestion;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Events\Games\Trivia\TriviaGameFinished;
+use App\Events\Games\Trivia\TriviaGameStarted;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -36,8 +40,10 @@ class GameEngineService implements GameEngineInterface
 {
     public function __construct(
         private readonly GameStateRepositoryInterface $stateRepository,
-        private readonly ScoreService $scoreService,
-        private readonly RoomService $roomService
+        private readonly ScoreService                $scoreService,
+        private readonly PrizeDistributionService    $prizeService,
+        private readonly TeamScoreService            $teamScoreService,
+        private readonly SkillRatingService          $skillRatingService,
     ) {}
 
     /**
@@ -89,8 +95,21 @@ class GameEngineService implements GameEngineInterface
         // Actualizar sala
         $room->update(['status' => 'playing', 'started_at' => now()]);
 
-        // Emitir evento
+        // Emitir evento de dominio
         event(new GameStarted($gameState));
+
+        // Broadcast WebSocket para que WaitingRoom redirija a /play/{gameId}
+        try {
+            broadcast(new TriviaGameStarted(
+                roomId:          $roomId,
+                roomCode:        $room->code,
+                gameId:          (string) $game->id,
+                totalQuestions:  $game->total_questions,
+                timePerQuestion: $room->time_per_question,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('[GameEngine] broadcast TriviaGameStarted falló: ' . $e->getMessage());
+        }
 
         return $gameState;
     }
@@ -240,12 +259,14 @@ class GameEngineService implements GameEngineInterface
 
     /**
      * Finalizar juego.
+     * Sincroniza trivia_participants, actualiza skill ratings, distribuye premios
+     * y emite el evento broadcast a todos los jugadores.
      */
     public function finishGame(string $gameId): GameStateDTO
     {
         $state = $this->stateRepository->getState($gameId);
-        
-        if (!$state) {
+
+        if (! $state) {
             throw new RuntimeException('Juego no encontrado');
         }
 
@@ -253,61 +274,143 @@ class GameEngineService implements GameEngineInterface
             return $state;
         }
 
-        // Cambiar estado
         $finalState = $state->withStatus('finished');
         $this->stateRepository->saveState($gameId, $finalState);
 
-        // Obtener leaderboard final
         $leaderboard = $this->scoreService->getLeaderboard($gameId);
+        $game        = TriviaGame::findOrFail($gameId);
+        $room        = TriviaRoom::findOrFail($state->roomId);
 
-        // Actualizar DB
-        $game = TriviaGame::findOrFail($gameId);
+        // ── 1. Ranking skill-first ──────────────────────────────────────────
+        $sortedScores = $leaderboard->scores;
+        usort($sortedScores, function ($a, $b) {
+            if ($b->correctAnswers !== $a->correctAnswers) {
+                return $b->correctAnswers <=> $a->correctAnswers;
+            }
+            if ($a->averageResponseTimeMs !== $b->averageResponseTimeMs) {
+                return $a->averageResponseTimeMs <=> $b->averageResponseTimeMs;
+            }
+            return $b->maxStreak <=> $a->maxStreak;
+        });
+
+        $finalRanks = array_map(fn($s, $i) => [
+            'playerId'       => $s->playerId,
+            'position'       => $i + 1,
+            'correctAnswers' => $s->correctAnswers,
+            'totalQuestions' => $state->totalQuestions,
+            'avgTimeMs'      => $s->averageResponseTimeMs,
+            'maxStreak'      => $s->maxStreak,
+        ], $sortedScores, array_keys($sortedScores));
+
+        // ── 2. Persistir scores finales en BD ───────────────────────────────
         $game->finish($leaderboard->toArray());
 
-        // Guardar scores finales en DB
         foreach ($leaderboard->scores as $scoreDto) {
             \App\Domains\Games\Trivia\Models\TriviaScore::create([
-                'game_id' => $gameId,
-                'player_id' => $scoreDto->playerId,
-                'final_score' => $scoreDto->totalScore,
-                'correct_answers' => $scoreDto->correctAnswers,
-                'wrong_answers' => $scoreDto->wrongAnswers,
+                'game_id'                  => $gameId,
+                'player_id'                => $scoreDto->playerId,
+                'final_score'              => $scoreDto->totalScore,
+                'correct_answers'          => $scoreDto->correctAnswers,
+                'wrong_answers'            => $scoreDto->wrongAnswers,
                 'average_response_time_ms' => $scoreDto->averageResponseTimeMs,
-                'position' => $scoreDto->position,
-                'max_streak' => $scoreDto->maxStreak,
+                'position'                 => $scoreDto->position,
+                'max_streak'               => $scoreDto->maxStreak,
             ]);
         }
 
-        // Actualizar sala
+        // ── 3. Sincronizar trivia_participants ──────────────────────────────
+        // Actualiza posición final, puntuación y marca como 'played' a todos.
+        try {
+            foreach ($finalRanks as $rank) {
+                DB::connection('pgsql_trivia')
+                    ->table('trivia_participants')
+                    ->where('room_id', $state->roomId)
+                    ->where('user_id', $rank['playerId'])
+                    ->update([
+                        'final_rank'      => $rank['position'],
+                        'total_score'     => collect($leaderboard->scores)
+                            ->firstWhere('playerId', $rank['playerId'])?->totalScore ?? 0,
+                        'correct_answers' => $rank['correctAnswers'],
+                        'status'          => 'playing', // se actualizará a 'winner' en prizeService
+                        'updated_at'      => now(),
+                    ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[GameEngine] No se pudo sincronizar trivia_participants: ' . $e->getMessage());
+        }
+
+        // ── 4. Scores de equipos (modos teams / duel) ───────────────────────
+        $teamLeaderboard = [];
+        if ($room->usesTeams()) {
+            try {
+                $teamLeaderboard = $this->teamScoreService->calculateTeamScores($state->roomId);
+            } catch (\Throwable $e) {
+                Log::warning('[GameEngine] Error calculando team scores: ' . $e->getMessage());
+            }
+        }
+
+        // ── 5. Actualizar sala ──────────────────────────────────────────────
         TriviaRoom::where('id', $state->roomId)->update([
-            'status' => 'closed',
+            'status'   => 'closed',
             'ended_at' => now(),
         ]);
 
-        // Obtener ganadores (top 3)
-        $winners = array_slice(array_map(
-            fn($s) => $s->playerId,
-            $leaderboard->scores
-        ), 0, 3);
+        // ── 6. Distribuir premios ───────────────────────────────────────────
+        $prizeResults = [];
+        try {
+            $prizeResults = $this->prizeService->distribute($state->roomId, $finalRanks);
+        } catch (\Throwable $e) {
+            Log::error('[GameEngine] Error distribuyendo premios', [
+                'game_id' => $gameId,
+                'room_id' => $state->roomId,
+                'error'   => $e->getMessage(),
+            ]);
+        }
 
-        // Estadísticas del juego
+        // ── 7. Actualizar skill ratings ─────────────────────────────────────
+        try {
+            $this->skillRatingService->updateAfterGame($finalRanks);
+        } catch (\Throwable $e) {
+            Log::warning('[GameEngine] Error actualizando skill ratings: ' . $e->getMessage());
+        }
+
+        // ── 8. Construir leaderboard para broadcast ─────────────────────────
+        $broadcastLeaderboard = array_map(fn($rank) => [
+            'player_id' => $rank['playerId'],
+            'position'  => $rank['position'],
+            'score'     => collect($leaderboard->scores)
+                ->firstWhere('playerId', $rank['playerId'])?->totalScore ?? 0,
+            'name'      => '',   // el frontend resuelve nombre desde la lista de jugadores
+        ], array_slice($finalRanks, 0, 10));
+
+        $winners    = array_slice(array_column($finalRanks, 'playerId'), 0, 3);
         $statistics = [
-            'total_players' => count($state->playerIds),
-            'total_questions' => $state->totalQuestions,
+            'total_players'    => count($state->playerIds),
+            'total_questions'  => $state->totalQuestions,
             'duration_seconds' => time() - ($state->startTime ?? time()),
-            'average_score' => array_sum(array_map(
-                fn($s) => $s->totalScore,
-                $leaderboard->scores
-            )) / max(1, count($leaderboard->scores)),
+            'average_score'    => array_sum(array_map(fn($s) => $s->totalScore, $leaderboard->scores))
+                                  / max(1, count($leaderboard->scores)),
+            'prizes_paid'      => count($prizeResults),
+            'teams'            => $teamLeaderboard,
         ];
 
-        // Emitir evento
+        // ── 9. Eventos ──────────────────────────────────────────────────────
         event(new GameFinished(
-            gameState: $finalState,
+            gameState:        $finalState,
             finalLeaderboard: $leaderboard,
-            winners: $winners,
-            statistics: $statistics
+            winners:          $winners,
+            statistics:       $statistics,
         ));
+
+        try {
+            broadcast(new TriviaGameFinished(
+                roomId:      $state->roomId,
+                gameId:      $gameId,
+                leaderboard: $broadcastLeaderboard,
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('[GameEngine] broadcast TriviaGameFinished falló: ' . $e->getMessage());
+        }
 
         return $finalState;
     }

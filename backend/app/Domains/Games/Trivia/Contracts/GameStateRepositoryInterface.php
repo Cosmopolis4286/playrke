@@ -48,4 +48,14 @@ interface GameStateRepositoryInterface
      * Obtener campo específico del estado.
      */
     public function getField(string $gameId, string $field): mixed;
+
+    /**
+     * Guardar la pregunta activa del juego.
+     */
+    public function saveCurrentQuestion(string $gameId, array $questionData): void;
+
+    /**
+     * Obtener la pregunta activa del juego.
+     */
+    public function getCurrentQuestion(string $gameId): ?array;
 }

@@ -27,6 +27,24 @@ class QuestionDTO
     ) {}
 
     /**
+     * Reconstruir desde array serializado (ej: Redis).
+     */
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            questionId:       (string) ($data['question_id'] ?? $data['id'] ?? ''),
+            gameId:           (string) ($data['game_id'] ?? ''),
+            questionNumber:   (int)    ($data['question_number'] ?? 1),
+            questionText:     (string) ($data['question_text'] ?? $data['question'] ?? ''),
+            imageUrl:         $data['image_url'] ?? $data['imagen'] ?? null,
+            options:          (array)  ($data['options'] ?? []),
+            timeLimitSeconds: (int)    ($data['time_limit_seconds'] ?? $data['time_limit'] ?? 15),
+            correctAnswer:    $data['correct_answer'] ?? $data['answer'] ?? null,
+            points:           (int)    ($data['points'] ?? 100),
+        );
+    }
+
+    /**
      * Crear desde array de base de datos.
      */
     public static function fromModel(array $data, ?string $gameId = null): self
