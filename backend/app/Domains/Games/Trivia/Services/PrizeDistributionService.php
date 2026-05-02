@@ -1,0 +1,270 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domains\Games\Trivia\Services;
+
+use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Models\Games\Trivia\TriviaParticipant;
+use App\Models\Wallet;
+use App\Services\WalletService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
+
+/**
+ * Distribuye premios al finalizar una partida de Trivia.
+ *
+ * Modelos soportados
+ * ──────────────────
+ * guaranteed  Premios fijos definidos por el organizador, independientes del
+ *             número de jugadores. Equivale a un torneo con premio patrocinado.
+ *             No hay "bote": la plataforma garantiza el monto antes de abrir la sala.
+ *
+ * pool        Los premios provienen de las entradas cobradas más cualquier aporte de
+ *             patrocinador (sponsor_prize). Se descuenta un rake transparente para la
+ *             plataforma y el resto se distribuye entre los top N según prize_payouts.
+ *             Al menos 3 posiciones pagas evitan la percepción "winner-takes-all".
+ *
+ * Reglas antifraud / skill-first
+ * ──────────────────────────────
+ * • El ranking se determina por: respuestas correctas → tiempo de respuesta promedio
+ *   → racha máxima. Nunca por azar.
+ * • Un jugador solo puede ganar si contestó ≥ 1 pregunta correcta.
+ * • Los pagos son atómicos: o todos se acreditan o ninguno (transacción).
+ * • Se registra un movimiento TRIVIA_PRIZE en la wallet de cada ganador.
+ */
+final class PrizeDistributionService
+{
+    // Rake máximo permitido para proteger al jugador (aplicado como guardrail)
+    private const MAX_RAKE_PERCENT = 30.0;
+
+    // Mínimo de posiciones pagas para modelo pool (evita winner-takes-all)
+    private const MIN_PAID_POSITIONS_POOL = 3;
+
+    public function __construct(
+        private readonly WalletService $walletService,
+    ) {}
+
+    /**
+     * Distribuye los premios de una sala finalizada.
+     *
+     * @param  string  $roomId     ID de la sala (pgsql_trivia)
+     * @param  array   $finalRanks [{playerId: string, position: int, correctAnswers: int, avgTimeMs: float}]
+     * @return array   [{playerId, position, prizeAmount, currencyId, txId}]
+     */
+    public function distribute(string $roomId, array $finalRanks): array
+    {
+        $room = TriviaRoom::findOrFail($roomId);
+
+        if (empty($finalRanks)) {
+            return [];
+        }
+
+        $payouts = $this->resolvePrizePayouts($room, count($finalRanks));
+
+        if (empty($payouts)) {
+            return [];
+        }
+
+        $currencyId = (string) $room->prize_currency_id;
+        $results    = [];
+
+        // Transacción MySQL (wallets) — las actualizaciones de pgsql_trivia son
+        // idempotentes y se hacen dentro del mismo bloque para consistencia lógica.
+        DB::transaction(function () use ($room, $finalRanks, $payouts, $currencyId, &$results) {
+            foreach ($payouts as $payout) {
+                $rank   = $finalRanks[$payout['rank'] - 1] ?? null;
+
+                // La posición no existe (menos jugadores que posiciones pagas)
+                if (! $rank) {
+                    continue;
+                }
+
+                // No pagar a jugadores sin ninguna respuesta correcta (skill gate)
+                if (($rank['correctAnswers'] ?? 0) === 0) {
+                    continue;
+                }
+
+                $userId = $rank['playerId'];
+                $amount = round((float) $payout['amount'], 8);
+
+                if ($amount <= 0) {
+                    continue;
+                }
+
+                // Obtener wallet del ganador en la moneda del premio
+                $wallet = Wallet::where('user_id', $userId)
+                    ->where('currency_id', $currencyId)
+                    ->where('status', 'ACTIVE')
+                    ->first();
+
+                if (! $wallet) {
+                    Log::warning('[PrizeDistribution] Ganador sin wallet', [
+                        'room_id'     => $room->id,
+                        'user_id'     => $userId,
+                        'currency_id' => $currencyId,
+                        'amount'      => $amount,
+                    ]);
+                    continue;
+                }
+
+                // Acreditar premio
+                $movement = $this->walletService->recordTriviaPrize(
+                    wallet:      $wallet,
+                    amount:      $amount,
+                    description: "Premio Trivia #{$payout['rank']}° — {$room->title} ({$room->code})",
+                );
+
+                // Actualizar participant en pgsql_trivia
+                TriviaParticipant::where('room_id', $room->id)
+                    ->where('user_id', $userId)
+                    ->update([
+                        'final_rank' => $payout['rank'],
+                        'prize_won'  => $amount,
+                        'status'     => 'winner',
+                    ]);
+
+                $results[] = [
+                    'playerId'   => $userId,
+                    'position'   => $payout['rank'],
+                    'prizeAmount' => $amount,
+                    'currencyId' => $currencyId,
+                    'movementId' => (string) $movement->id,
+                ];
+            }
+        });
+
+        Log::info('[PrizeDistribution] Premios distribuidos', [
+            'room_id' => $roomId,
+            'model'   => $room->prize_model,
+            'payouts' => $results,
+        ]);
+
+        return $results;
+    }
+
+    /**
+     * Calcula los montos concretos a pagar por posición.
+     *
+     * @return array [{rank, amount, percent}]
+     */
+    public function resolvePrizePayouts(TriviaRoom $room, int $playerCount): array
+    {
+        $model    = $room->prize_model ?? 'guaranteed';
+        $rawSplit = $this->normalizedSplit($room);
+
+        return match ($model) {
+            'guaranteed' => $this->payoutsGuaranteed($room, $rawSplit),
+            'pool'       => $this->payoutsPool($room, $rawSplit, $playerCount),
+            default      => throw new RuntimeException("Modelo de premio desconocido: {$model}"),
+        };
+    }
+
+    // ── Modelo guaranteed ────────────────────────────────────────────────────
+
+    private function payoutsGuaranteed(TriviaRoom $room, array $split): array
+    {
+        $base        = (float) ($room->prize_amount ?? 0);
+        $sponsor     = (float) ($room->sponsor_prize ?? 0);
+        $totalPrize  = $base + $sponsor;
+
+        if ($totalPrize <= 0) {
+            return [];
+        }
+
+        return array_map(fn($s) => [
+            'rank'    => $s['rank'],
+            'percent' => $s['percent'],
+            'amount'  => round($totalPrize * $s['percent'], 8),
+        ], $split);
+    }
+
+    // ── Modelo pool ──────────────────────────────────────────────────────────
+
+    private function payoutsPool(TriviaRoom $room, array $split, int $playerCount): array
+    {
+        $entryFee    = (float) ($room->entry_fee ?? 0);
+        $sponsor     = (float) ($room->sponsor_prize ?? 0);
+        $rake        = min((float) ($room->platform_rake_percent ?? 0), self::MAX_RAKE_PERCENT);
+
+        $grossPool   = ($entryFee * $playerCount) + $sponsor;
+        $netPool     = $grossPool * (1 - $rake / 100);
+
+        if ($netPool <= 0) {
+            return [];
+        }
+
+        // Garantizar mínimo 3 posiciones en modelo pool
+        $split = $this->ensureMinPositions($split, self::MIN_PAID_POSITIONS_POOL);
+
+        return array_map(fn($s) => [
+            'rank'    => $s['rank'],
+            'percent' => $s['percent'],
+            'amount'  => round($netPool * $s['percent'], 8),
+        ], $split);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Lee prize_payouts del modelo o devuelve el split por defecto (60/25/15).
+     * Normaliza percents para que sumen exactamente 1.0.
+     */
+    private function normalizedSplit(TriviaRoom $room): array
+    {
+        $raw = $room->prize_payouts;
+
+        // Deserializar si viene como string JSON (PostgreSQL jsonb → string en ciertos drivers)
+        if (is_string($raw)) {
+            $raw = json_decode($raw, true);
+        }
+
+        if (empty($raw) || ! is_array($raw)) {
+            // Split por defecto: distribuido en 3 posiciones — evita winner-takes-all
+            return [
+                ['rank' => 1, 'percent' => 0.60],
+                ['rank' => 2, 'percent' => 0.25],
+                ['rank' => 3, 'percent' => 0.15],
+            ];
+        }
+
+        // Normalizar a float y ordenar por rank
+        $parsed = array_map(fn($p) => [
+            'rank'    => (int) $p['rank'],
+            'percent' => (float) $p['percent'],
+        ], $raw);
+
+        usort($parsed, fn($a, $b) => $a['rank'] <=> $b['rank']);
+
+        // Si los percents no suman 1, escalarlos proporcionalmente
+        $sum = array_sum(array_column($parsed, 'percent'));
+        if ($sum > 0 && abs($sum - 1.0) > 0.001) {
+            $parsed = array_map(fn($p) => [
+                'rank'    => $p['rank'],
+                'percent' => round($p['percent'] / $sum, 8),
+            ], $parsed);
+        }
+
+        return $parsed;
+    }
+
+    /**
+     * Asegura al menos $min posiciones en el split repartiéndolas equitativamente.
+     */
+    private function ensureMinPositions(array $split, int $min): array
+    {
+        if (count($split) >= $min) {
+            return $split;
+        }
+
+        // Redistribuir uniformemente entre $min posiciones
+        $perPosition = round(1.0 / $min, 8);
+        $positions   = [];
+        for ($i = 1; $i <= $min; $i++) {
+            $positions[] = ['rank' => $i, 'percent' => $perPosition];
+        }
+
+        return $positions;
+    }
+}
