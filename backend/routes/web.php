@@ -46,6 +46,7 @@ require __DIR__ . '/modules/currency.php';
 require __DIR__ . '/modules/payments.php';        
 require __DIR__ . '/modules/wallets.php';
 require __DIR__ . '/modules/tos.php';
+require __DIR__ . '/modules/kyc.php';
 // require __DIR__ . '/modules/reports.php';
 
 // ====================================

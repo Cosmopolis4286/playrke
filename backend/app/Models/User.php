@@ -98,6 +98,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'tos_accepted_version',
         'tos_accepted_at',
         'tos_accepted_ip',
+        'kyc_level',
+        'kyc_status',
+        'kyc_verified_at',
+        'kyc_rejection_reason',
     ];
 
     /**
@@ -123,6 +127,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'user_preferences'      => 'array',
         'specific_permissions'  => 'array',
         'tos_accepted_at'       => 'datetime',
+        'kyc_level'             => 'integer',
+        'kyc_verified_at'       => 'datetime',
         'created_at'            => 'datetime',
         'updated_at'            => 'datetime',
     ];
