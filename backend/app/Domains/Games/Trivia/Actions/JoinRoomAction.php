@@ -35,12 +35,14 @@ class JoinRoomAction
      * @param string $playerId ID del jugador
      * @param string $nickname Nombre del jugador
      * @param array $playerData Datos adicionales del jugador
+     * @param string|null $teamId ID del equipo (para modos teams/duel)
      */
     public function execute(
         string $roomId,
         string $playerId,
         string $nickname,
-        array $playerData = []
+        array $playerData = [],
+        ?string $teamId = null
     ): array {
         // Validar nickname
         $nickname = trim($nickname);
@@ -69,11 +71,16 @@ class JoinRoomAction
             ];
         }
 
+        // Validar equipo si el modo lo requiere
+        if ($teamId) {
+            $this->validateTeamSelection($roomId, $teamId);
+        }
+
         // Descontar tarifa de entrada
         $this->chargeEntryFee($roomId, $playerId);
 
         // Insertar en trivia_participants (PostgreSQL)
-        $this->registerParticipantInDatabase($roomId, $playerId, $nickname);
+        $this->registerParticipantInDatabase($roomId, $playerId, $nickname, $teamId);
 
         // Unir a sala en Redis (tiempo real)
         $playerData['nickname'] = $nickname;
@@ -92,7 +99,28 @@ class JoinRoomAction
             'players' => $players,
             'already_joined' => false,
             'message' => 'Te has unido a la sala exitosamente',
+            'team_id' => $teamId,
         ];
+    }
+
+    /**
+     * Validar que el equipo existe y tiene espacio.
+     */
+    private function validateTeamSelection(string $roomId, string $teamId): void
+    {
+        $team = DB::connection('pgsql_trivia')
+            ->table('trivia_teams')
+            ->where('id', $teamId)
+            ->where('room_id', $roomId)
+            ->first();
+
+        if (!$team) {
+            throw new RuntimeException('El equipo seleccionado no existe en esta sala');
+        }
+
+        if ($team->current_players >= $team->max_players) {
+            throw new RuntimeException('El equipo seleccionado está lleno');
+        }
     }
 
     /**
@@ -169,16 +197,19 @@ class JoinRoomAction
     /**
      * Registra al participante en la tabla trivia_participants.
      */
-    private function registerParticipantInDatabase(string $roomId, string $playerId, string $nickname): void
+    private function registerParticipantInDatabase(string $roomId, string $playerId, string $nickname, ?string $teamId = null): void
     {
         $room = TriviaRoom::find($roomId);
         if (!$room) {
             return;
         }
 
+        $participantId = (string) Str::ulid();
+
         DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
             'id' => (string) Str::ulid(),
             'room_id' => $roomId,
+            'team_id' => $teamId,
             'user_id' => $playerId,
             'status' => 'confirmed',
             'registered_at' => now(),
@@ -189,6 +220,14 @@ class JoinRoomAction
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        // Incrementar contador de jugadores en el equipo
+        if ($teamId) {
+            DB::connection('pgsql_trivia')
+                ->table('trivia_teams')
+                ->where('id', $teamId)
+                ->increment('current_players');
+        }
     }
 
     /**

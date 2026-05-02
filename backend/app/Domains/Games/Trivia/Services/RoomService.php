@@ -10,6 +10,8 @@ use App\Domains\Games\Trivia\DTOs\RoomDTO;
 use App\Domains\Games\Trivia\Events\PlayerJoined;
 use App\Domains\Games\Trivia\Events\PlayerLeft;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Domains\Games\Trivia\Models\TriviaTeam;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -35,6 +37,9 @@ class RoomService implements RoomServiceInterface
      */
     public function createRoom(array $config): RoomDTO
     {
+        $gameMode = $config['game_mode'] ?? 'free_for_all';
+        $teamsConfig = $config['teams_config'] ?? null;
+
         // Crear en base de datos
         $room = TriviaRoom::create([
             'code'               => $config['code'] ?? $this->generateRoomCode(),
@@ -43,6 +48,8 @@ class RoomService implements RoomServiceInterface
             'category'           => $config['category'] ?? null,
             'host_id'            => $config['host_id'] ?? null,
             'status'             => 'waiting',
+            'game_mode'          => $gameMode,
+            'teams_config'       => $teamsConfig,
             'max_players'        => $config['max_players'] ?? 100,
             'question_count'     => $config['question_count'] ?? 10,
             'time_per_question'  => $config['time_per_question'] ?? 15,
@@ -56,6 +63,14 @@ class RoomService implements RoomServiceInterface
             'current_players'    => 0,
         ]);
 
+        // Crear equipos si el modo lo requiere
+        if ($room->usesTeams() && $teamsConfig) {
+            $this->createTeamsForRoom($room, $teamsConfig);
+        }
+
+        // Recargar con equipos
+        $room->load('teams');
+
         // Crear DTO
         $roomDto = new RoomDTO(
             roomId: (string) $room->id,
@@ -66,7 +81,15 @@ class RoomService implements RoomServiceInterface
             currentPlayers: 0,
             hostId: $room->host_id,
             playerIds: [],
-            settings: $room->settings ?? [],
+            settings: array_merge($room->settings ?? [], [
+                'game_mode' => $room->game_mode,
+                'teams' => $room->teams->map(fn($t) => [
+                    'id' => $t->id,
+                    'name' => $t->name,
+                    'color' => $t->color,
+                    'icon' => $t->icon,
+                ])->toArray(),
+            ]),
             createdAt: $room->created_at->timestamp,
             startedAt: null,
             endedAt: null
@@ -279,6 +302,17 @@ class RoomService implements RoomServiceInterface
         if (array_key_exists('category', $config)) {
             $updateData['category'] = $config['category'];
         }
+        if (isset($config['game_mode'])) {
+            $updateData['game_mode'] = $config['game_mode'];
+        }
+        if (isset($config['teams_config'])) {
+            $updateData['teams_config'] = $config['teams_config'];
+            // Recrear equipos si cambió la config
+            if ($room->usesTeams() || in_array($config['game_mode'] ?? '', ['teams', 'duel'])) {
+                $room->teams()->delete();
+                $this->createTeamsForRoom($room, $config['teams_config']);
+            }
+        }
         if (isset($config['max_players'])) {
             $updateData['max_players'] = $config['max_players'];
         }
@@ -323,6 +357,53 @@ class RoomService implements RoomServiceInterface
         } while (TriviaRoom::where('code', $code)->exists());
 
         return $code;
+    }
+
+    /**
+     * Crear equipos para una sala según la configuración.
+     */
+    private function createTeamsForRoom(TriviaRoom $room, array $config): void
+    {
+        $mode = $room->game_mode;
+        $teamCount = $config['team_count'] ?? 2;
+        $teamSize = $config['team_size'] ?? null;
+        $teamNames = $config['team_names'] ?? null;
+        $teamColors = $config['team_colors'] ?? ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
+
+        // Para modo duel, siempre 2 equipos mínimo
+        if ($mode === 'duel' && $teamCount < 2) {
+            $teamCount = 2;
+        }
+
+        // Nombres por defecto según el modo
+        $defaultNames = match($mode) {
+            'duel' => ['Equipo Rojo', 'Equipo Azul'],
+            default => array_map(fn($i) => "Equipo {$i}", range(1, $teamCount)),
+        };
+
+        for ($i = 1; $i <= $teamCount; $i++) {
+            $name = $teamNames[$i - 1] ?? $defaultNames[$i - 1] ?? "Equipo {$i}";
+            $color = $teamColors[$i - 1] ?? $teamColors[array_rand($teamColors)];
+
+            // Para modo duel con 1vsX, el equipo 1 es solo 1 jugador
+            $maxPlayers = ($mode === 'duel' && $i === 1 && ($config['duel_type'] ?? null) === '1vsX')
+                ? 1
+                : ($teamSize ?? (int) ceil($room->max_players / $teamCount));
+
+            TriviaTeam::create([
+                'room_id' => $room->id,
+                'name' => $name,
+                'color' => $color,
+                'icon' => $config['team_icons'][$i - 1] ?? null,
+                'max_players' => $maxPlayers,
+                'current_players' => 0,
+                'team_number' => $i,
+                'metadata' => [
+                    'created_for_mode' => $mode,
+                    'duel_type' => $config['duel_type'] ?? null,
+                ],
+            ]);
+        }
     }
 
     /**
