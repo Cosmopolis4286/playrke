@@ -58,115 +58,91 @@ final class TriviaGameController extends Controller
     }
 
     /**
-     * Unirse a una sala de trivia (nuevo sistema).
+     * Unirse a una sala de trivia.
      * POST /trivia-game/room/{id}/join
      */
-    public function room(Request $request, $id)
+    public function join(Request $request, string $id): \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
     {
-        $user     = Auth::user();
-        $roomService = app(RoomService::class);
+        $user       = Auth::user();
         $joinAction = app(JoinRoomAction::class);
 
         $room = \App\Domains\Games\Trivia\Models\TriviaRoom::findOrFail($id);
 
-        if (!in_array($room->status, ['waiting', 'playing'])) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'La sala ya no está disponible'], 422);
-            }
-            return back()->with('error', 'La sala ya no está disponible.');
+        if (! in_array($room->status, ['waiting', 'playing'])) {
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => 'La sala ya no está disponible.'], 422)
+                : back()->with('error', 'La sala ya no está disponible.');
         }
 
-        $roomId  = (string) $room->id;
-        $userId  = (string) $user->id;
+        $roomId      = (string) $room->id;
+        $userId      = (string) $user->id;
         $displayName = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador');
 
-        // Verificar si ya está registrado
-        $exists = DB::connection('pgsql_trivia')
+        // Verificar si ya está registrado (respuesta rápida, sin cobro)
+        $alreadyJoined = DB::connection('pgsql_trivia')
             ->table('trivia_participants')
             ->where('room_id', $roomId)
             ->where('user_id', $userId)
             ->whereNull('deleted_at')
             ->exists();
 
-        if ($exists) {
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success'      => true,
+        if ($alreadyJoined) {
+            return $request->expectsJson()
+                ? response()->json([
+                    'success'        => true,
                     'already_joined' => true,
-                    'player'       => [
-                        'id'       => $userId,
-                        'name'     => $displayName,
-                        'roomCode' => $room->code,
-                    ],
-                ]);
-            }
-            return redirect()->route('trivia.room.wait', ['code' => $room->code]);
+                    'player'         => ['id' => $userId, 'name' => $displayName, 'roomCode' => $room->code],
+                ])
+                : redirect()->route('trivia.room.wait', ['code' => $room->code]);
         }
 
-        // Obtener team_id si se proporcionó (para modos teams/duel)
+        // Validar equipo si el modo lo requiere
         $teamId = $request->input('team_id') ?: null;
-
-        // Si el modo requiere equipo pero no se seleccionó, validar
-        if ($room->usesTeams() && !$teamId) {
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Debes seleccionar un equipo para unirte a esta sala',
-                ], 422);
-            }
-            return back()->with('error', 'Debes seleccionar un equipo para unirte a esta sala');
+        if ($room->usesTeams() && ! $teamId) {
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => 'Debes seleccionar un equipo para unirte.'], 422)
+                : back()->with('error', 'Debes seleccionar un equipo para unirte.');
         }
 
-        // Usar JoinRoomAction para manejar descuento de wallet y unión
         try {
             $result = $joinAction->execute($roomId, $userId, $displayName, [], $teamId);
 
-            if ($request->expectsJson()) {
-                return response()->json([
+            return $request->expectsJson()
+                ? response()->json([
                     'success'        => true,
                     'already_joined' => false,
-                    'player'         => [
-                        'id'       => $userId,
-                        'name'     => $displayName,
-                        'roomCode' => $room->code,
-                    ],
+                    'player'         => ['id' => $userId, 'name' => $displayName, 'roomCode' => $room->code],
                     'team_id'        => $result['team_id'] ?? null,
-                    'message'        => $result['message'] ?? 'Te has unido a la sala exitosamente',
-                ]);
-            }
-
-            return redirect()->route('trivia.room.wait', ['code' => $room->code]);
+                    'message'        => $result['message'] ?? 'Te has unido a la sala exitosamente.',
+                ])
+                : redirect()->route('trivia.room.wait', ['code' => $room->code]);
 
         } catch (RuntimeException $e) {
-            // Error de saldo insuficiente o wallet no encontrada
-            $statusCode = str_contains($e->getMessage(), 'Saldo insuficiente') ? 402 : 422;
+            $status = str_contains($e->getMessage(), 'Saldo insuficiente') ? 402 : 422;
 
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage(),
-                ], $statusCode);
-            }
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $e->getMessage()], $status)
+                : back()->with('error', $e->getMessage());
 
-            return back()->with('error', $e->getMessage());
-        } catch (\Exception $e) {
-            // Cualquier otro error (incluyendo Pusher/broadcasting)
-            // No debe impedir que el usuario se una a la sala
-            if ($request->expectsJson()) {
-                return response()->json([
+        } catch (\Throwable $e) {
+            // Broadcasting u otro error no crítico — el join en BD ya ocurrió
+            \Illuminate\Support\Facades\Log::warning('[TriviaGameController@join] ' . $e->getMessage());
+
+            return $request->expectsJson()
+                ? response()->json([
                     'success'        => true,
                     'already_joined' => false,
-                    'player'         => [
-                        'id'       => $userId,
-                        'name'     => $displayName,
-                        'roomCode' => $room->code,
-                    ],
-                    'warning'        => 'Te uniste pero hubo un error de conexión en tiempo real',
-                ]);
-            }
-
-            return redirect()->route('trivia.room.wait', ['code' => $room->code]);
+                    'player'         => ['id' => $userId, 'name' => $displayName, 'roomCode' => $room->code],
+                    'warning'        => 'Te uniste pero hubo un error de conexión en tiempo real.',
+                ])
+                : redirect()->route('trivia.room.wait', ['code' => $room->code]);
         }
+    }
+
+    /** @deprecated Alias para compatibilidad — usar join() */
+    public function room(Request $request, $id)
+    {
+        return $this->join($request, (string) $id);
     }
 
     /**
