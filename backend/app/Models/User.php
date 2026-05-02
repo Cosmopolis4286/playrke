@@ -94,7 +94,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_email_notifications_enabled',
         'is_two_factor_enabled',
         'user_preferences',
-        'specific_permissions', // Permisos específicos del usuario
+        'specific_permissions',
+        'tos_accepted_version',
+        'tos_accepted_at',
+        'tos_accepted_ip',
     ];
 
     /**
@@ -117,10 +120,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'last_login_at' => 'datetime',
         'is_email_notifications_enabled' => 'boolean',
         'is_two_factor_enabled' => 'boolean',
-        'user_preferences' => 'array',
-        'specific_permissions' => 'array', // Permisos específicos como array
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'user_preferences'      => 'array',
+        'specific_permissions'  => 'array',
+        'tos_accepted_at'       => 'datetime',
+        'created_at'            => 'datetime',
+        'updated_at'            => 'datetime',
     ];
 
     /**
@@ -697,5 +701,18 @@ class User extends Authenticatable implements MustVerifyEmail
     public function clearSpecificPermissions(): void
     {
         $this->update(['specific_permissions' => []]);
+    }
+
+    public function hasTosAccepted(): bool
+    {
+        return $this->tos_accepted_version !== null;
+    }
+
+    public function tosNeedsRenewal(?string $currentVersion): bool
+    {
+        if ($currentVersion === null) {
+            return false;
+        }
+        return $this->tos_accepted_version !== $currentVersion;
     }
 }

@@ -17,11 +17,15 @@ use Illuminate\Support\Facades\Route;
 // ====================================
 Route::middleware(['auth', 'multiPermission:wallet.view,wallet.deposit,wallet.withdraw,wallet.movements'])->group(function () {
     Route::get('wallet',                        [WalletController::class, 'index'])            ->name('wallet.index');
-    Route::post('wallet/deposit',               [WalletController::class, 'deposit'])          ->name('wallet.deposit');
-    Route::post('wallet/withdraw',              [WalletController::class, 'withdraw'])         ->name('wallet.withdraw');
     Route::get('wallet/movements',              [WalletController::class, 'movements'])        ->name('wallet.movements');
     Route::get('wallet/directories',            [WalletController::class, 'userDirectories'])  ->name('wallet.directories');
     Route::get('wallet/pending-operation',      [WalletController::class, 'pendingOperation']) ->name('wallet.pending-operation');
+
+    // Operaciones financieras: requieren TOS aceptados
+    Route::middleware('tos')->group(function () {
+        Route::post('wallet/deposit',  [WalletController::class, 'deposit'])  ->name('wallet.deposit');
+        Route::post('wallet/withdraw', [WalletController::class, 'withdraw']) ->name('wallet.withdraw');
+    });
 });
 
 // ====================================
