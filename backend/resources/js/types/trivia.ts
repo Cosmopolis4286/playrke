@@ -1,4 +1,15 @@
-// Room Types
+// ── Room ──────────────────────────────────────────────────────────────────────
+export type GameMode = 'free_for_all' | 'teams' | 'duel'
+
+export interface Team {
+  id: string
+  name: string
+  color?: string
+  icon?: string
+  maxPlayers: number
+  currentPlayers: number
+}
+
 export interface Room {
   id: string
   code: string
@@ -7,6 +18,7 @@ export interface Room {
   category?: string
   hostId: string
   status: 'waiting' | 'playing' | 'paused' | 'finished' | 'cancelled'
+  gameMode?: GameMode
   maxPlayers: number
   questionCount: number
   timePerQuestion: number
@@ -22,12 +34,13 @@ export interface Room {
   updatedAt: string
 }
 
-// Player Types
+// ── Player ────────────────────────────────────────────────────────────────────
 export interface Player {
   id: string
   name: string
   roomCode: string
-  joinedAt?: string | null   // ISO timestamp de inscripción
+  teamId?: string | null
+  joinedAt?: string | null
   score?: number
   correctAnswers?: number
   wrongAnswers?: number
@@ -37,22 +50,22 @@ export interface Player {
   isHost?: boolean
 }
 
-// Question Types
+// ── Question ──────────────────────────────────────────────────────────────────
 export interface Question {
   id: string
-  questionText: string
-  imageUrl?: string
+  text: string
+  image?: string | null
   options: string[]
   correctOptionIndex: number
   timeLimit: number
   points: number
   category?: string
-  difficulty: 'easy' | 'medium' | 'hard'
-  orderIndex: number
-  totalQuestions: number
+  difficulty?: 'easy' | 'medium' | 'hard'
+  orderIndex?: number
+  totalQuestions?: number
 }
 
-// Game Types
+// ── Game ──────────────────────────────────────────────────────────────────────
 export type GameState = 'waiting' | 'answering' | 'closed' | 'finished'
 
 export interface Game {
@@ -69,22 +82,24 @@ export interface Game {
   endedAt?: string
 }
 
-// Answer Types
-export interface Answer {
-  id: string
-  gameId: string
-  playerId: string
-  questionId: string
-  selectedOptionIndex: number
-  isCorrect: boolean
-  pointsEarned: number
-  responseTimeMs: number
-  isLate: boolean
-  clientId?: string
-  createdAt: string
+// ── Answer ────────────────────────────────────────────────────────────────────
+export interface AnswerPayload {
+  question_id: string
+  selected_option_index: number   // -1 = tiempo agotado
+  response_time_ms: number
+  client_id?: string
 }
 
-// Score Types
+export interface AnswerResult {
+  success: boolean
+  is_correct: boolean
+  is_late: boolean
+  points_earned: number
+  correct_option_index: number
+  current_score: number
+}
+
+// ── Score ─────────────────────────────────────────────────────────────────────
 export interface Score {
   id: string
   gameId: string
@@ -97,22 +112,60 @@ export interface Score {
   maxStreak: number
   isWinner: boolean
   totalQuestions: number
-  totalResponseTimeMs: number
-  metadata?: Record<string, any>
 }
 
-// Game Stats
-export interface GameStats {
-  score: number
-  correctAnswers: number
-  wrongAnswers: number
-  accuracy: number
-  averageResponseTime: number
-  position?: number
-  maxStreak?: number
+// ── WebSocket events (broadcastWith payloads) ─────────────────────────────────
+export interface WsPlayerJoined {
+  player: { id: string; name: string; teamId?: string | null }
+  current_player_count: number
 }
 
-// DTOs
+export interface WsPlayerLeft {
+  player_id: string
+  current_player_count: number
+  reason: string
+}
+
+export interface WsGameStarted {
+  game_id: string
+  room_code: string
+  total_questions: number
+  time_per_question: number
+}
+
+export interface WsQuestionSent {
+  game_id: string
+  question_index: number
+  total_questions: number
+  question: Question
+}
+
+export interface WsAnswerResult {
+  game_id: string
+  question_id: string
+  is_correct: boolean
+  points_earned: number
+  correct_option_index: number
+  current_score: number
+}
+
+export interface WsGameFinished {
+  game_id: string
+  leaderboard: Array<{ player_id: string; name: string; score: number; position: number }>
+}
+
+// ── API response helpers ──────────────────────────────────────────────────────
+export interface ApiResponse<T> {
+  data: T
+  message?: string
+}
+
+export interface ApiError {
+  message: string
+  errors?: Record<string, string[]>
+}
+
+// ── DTOs (internal) ───────────────────────────────────────────────────────────
 export interface RoomDTO {
   id: string
   code: string
@@ -130,21 +183,4 @@ export interface PlayerDTO {
   id: string
   name: string
   roomCode: string
-}
-
-// WebSocket Event Types
-export interface GameEvent {
-  type: 'question.sent' | 'question.closed' | 'answer.received' | 'leaderboard.updated' | 'game.started' | 'game.finished' | 'player.joined' | 'player.left' | 'room.updated'
-  [key: string]: any
-}
-
-// API Response Types
-export interface ApiResponse<T> {
-  data: T
-  message?: string
-}
-
-export interface ApiError {
-  message: string
-  errors?: Record<string, string[]>
 }

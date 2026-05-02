@@ -38,14 +38,9 @@ export const triviaRoutes = {
     triviaPlay:       '/trivia/play/{gameId}',
     triviaPlayResults:'/trivia/play/{gameId}/results',
 
-    // ── API (referencia interna) ─────────────────────────
-    apiRoomsIndex:    '/api/trivia/rooms',
-    apiRoomsStore:    '/api/trivia/rooms',
-    apiRoomsShow:     '/api/trivia/rooms/{id}',
-    apiRoomsJoin:     '/api/trivia/rooms/{id}/join',
-    apiRoomsLeave:    '/api/trivia/rooms/{id}/leave',
-    apiGamesShow:     '/api/trivia/games/{id}',
-    apiGamesAnswer:   '/api/trivia/games/{id}/answer',
+    // ── Acciones de juego ────────────────────────────────
+    joinRoom:   '/trivia-game/room/{id}/join',
+    gameAnswer: '/trivia-game/game/{gameId}/answer',
 } as const;
 
 /**
