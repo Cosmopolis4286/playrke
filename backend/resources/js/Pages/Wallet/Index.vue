@@ -267,9 +267,14 @@ const modalIcon = computed(() => {
         <div class="wallet-empty__icon"><i class="fas fa-wallet"></i></div>
         <h2 class="wallet-empty__title">Sin billeteras activas</h2>
         <p class="wallet-empty__text">Contacta al soporte para activar tu billetera y comenzar a gestionar tus fondos.</p>
-        <button class="action-btn action-btn--deposit">
+        <a
+          class="action-btn action-btn--deposit"
+          href="https://t.me/+rV3KWBuuKOtjYzkx"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <i class="fas fa-headset"></i> Contactar soporte
-        </button>
+        </a>
       </div>
 
       <template v-else>
