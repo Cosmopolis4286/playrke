@@ -60,12 +60,20 @@ final class TriviaRoomController extends Controller
     public function store(Request $request)
     {
         $validated = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'currency_id' => 'required|exists:currencies,id',
-            'players' => 'required|integer|min:2|max:100',
-            'prize' => 'required|numeric|min:0',
-            'questions_count' => 'required|integer|min:1|max:50',
-            'time_per_question' => 'required|integer|min:10|max:300',
+            'name'                    => 'required|string|max:255',
+            'currency_id'             => 'required|exists:currencies,id',
+            'players'                 => 'required|integer|min:2|max:500',
+            'prize'                   => 'required|numeric|min:0',
+            'questions_count'         => 'required|integer|min:1|max:50',
+            'time_per_question'       => 'required|integer|min:10|max:300',
+            // Modelo de premio
+            'prize_model'             => 'nullable|in:guaranteed,pool',
+            'platform_rake_percent'   => 'nullable|numeric|min:0|max:30',
+            'sponsor_prize'           => 'nullable|numeric|min:0',
+            // Distribución de premios: [{rank: 1, percent: 0.60}, ...]
+            'prize_payouts'           => 'nullable|array|min:1',
+            'prize_payouts.*.rank'    => 'required|integer|min:1',
+            'prize_payouts.*.percent' => 'required|numeric|min:0.01|max:1',
         ]);
 
         if ($validated->fails()) {
@@ -77,25 +85,42 @@ final class TriviaRoomController extends Controller
         try {
             DB::beginTransaction();
 
-            $currency = Currency::findOrFail($request->currency_id);
+            $currency   = Currency::findOrFail($request->currency_id);
+            $prizeModel = $request->input('prize_model', 'guaranteed');
 
-            // Crear la sala de trivia
+            // Normalizar prize_payouts: suma de percents ≤ 1
+            $payouts = $request->input('prize_payouts');
+            if ($payouts) {
+                $sum = array_sum(array_column($payouts, 'percent'));
+                if ($sum > 1.001) {
+                    return redirect()->back()
+                        ->withErrors(['prize_payouts' => 'La suma de porcentajes no puede superar 100%.'])
+                        ->withInput();
+                }
+                // Ordenar por rank
+                usort($payouts, fn($a, $b) => $a['rank'] <=> $b['rank']);
+            }
+
             $room = TriviaRoom::create([
-                'code' => strtoupper(substr(uniqid(), -6)),
-                'host_id' => auth()->user()->id,
-                'title' => $request->name,
-                'description' => $request->description ?? null,
-                'status' => 'waiting',
-                'max_players' => $request->players,
-                'question_count' => $request->questions_count,
-                'time_per_question' => $request->time_per_question,
-                'entry_currency_type' => 'fixed',
-                'entry_currency_id' => $currency->id,
-                'entry_fee' => $request->entry_fee ?? 0,
-                'prize_type' => 'fixed',
-                'prize_amount' => $request->prize,
-                'prize_currency_id' => $currency->id,
-                'scheduled_at' => $request->scheduled_at ?? now()->addMinutes(30),
+                'code'                  => strtoupper(substr(uniqid(), -6)),
+                'host_id'               => auth()->user()->id,
+                'title'                 => $request->name,
+                'description'           => $request->description ?? null,
+                'status'                => 'waiting',
+                'max_players'           => $request->players,
+                'question_count'        => $request->questions_count,
+                'time_per_question'     => $request->time_per_question,
+                'entry_currency_type'   => 'fixed',
+                'entry_currency_id'     => $currency->id,
+                'entry_fee'             => $request->input('entry_fee', 0),
+                'prize_type'            => $prizeModel === 'pool' ? 'accumulated' : 'fixed',
+                'prize_model'           => $prizeModel,
+                'prize_amount'          => $request->prize,
+                'prize_currency_id'     => $currency->id,
+                'prize_payouts'         => $payouts ? json_encode($payouts) : null,
+                'platform_rake_percent' => $request->input('platform_rake_percent', 0),
+                'sponsor_prize'         => $request->input('sponsor_prize', 0),
+                'scheduled_at'          => $request->scheduled_at ?? now()->addMinutes(30),
             ]);
 
             DB::commit();
@@ -106,9 +131,9 @@ final class TriviaRoomController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('Error al crear sala de trivia.', [
-                'error' => $e->getMessage(),
+                'error'   => $e->getMessage(),
                 'usuario' => Auth::id() ?? 'Invitado',
             ]);
 

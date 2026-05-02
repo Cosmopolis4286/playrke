@@ -13,6 +13,7 @@ use App\Http\Controllers\Games\Trivia\Report\TriviaReportController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaAnswerController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaGameController;
 use App\Http\Controllers\Games\Trivia\Game\TriviaGamesController;
+use App\Http\Controllers\Games\Trivia\Game\TriviaStartController;
 use App\Http\Controllers\Games\Trivia\Question\TriviaQuestionController;
 use Illuminate\Support\Facades\Route;
 
@@ -72,6 +73,9 @@ Route::prefix('trivia-game')->name('trivia-games.')->middleware(['auth', 'role:p
 
     // Unirse a sala (nuevo sistema — solo players)
     Route::post('/room/{id}/join', [TriviaGameController::class, 'join'])->name('join');
+
+    // Iniciar partida (solo host o admin)
+    Route::post('/room/{id}/start', TriviaStartController::class)->name('room.start');
 
     // Enviar respuesta durante una partida activa
     Route::post('/game/{gameId}/answer', [TriviaAnswerController::class, 'store'])->name('game.answer');

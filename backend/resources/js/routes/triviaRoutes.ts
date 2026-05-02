@@ -40,6 +40,7 @@ export const triviaRoutes = {
 
     // ── Acciones de juego ────────────────────────────────
     joinRoom:   '/trivia-game/room/{id}/join',
+    startRoom:  '/trivia-game/room/{id}/start',
     gameAnswer: '/trivia-game/game/{gameId}/answer',
 } as const;
 
