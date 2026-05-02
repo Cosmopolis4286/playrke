@@ -62,6 +62,11 @@ final class TriviaRoomAdminController extends Controller
             'waiting' => TriviaRoom::where('status', 'waiting')->count(),
             'playing' => TriviaRoom::where('status', 'playing')->count(),
             'closed' => TriviaRoom::where('status', 'closed')->count(),
+            'by_mode' => [
+                'free_for_all' => TriviaRoom::where('game_mode', 'free_for_all')->count(),
+                'teams' => TriviaRoom::where('game_mode', 'teams')->count(),
+                'duel' => TriviaRoom::where('game_mode', 'duel')->count(),
+            ],
         ];
 
         return Inertia::render('Games/Trivia/Admin/RoomsIndex', [
@@ -111,6 +116,18 @@ final class TriviaRoomAdminController extends Controller
     }
 
     /**
+     * Modos de juego disponibles.
+     */
+    private function availableGameModes(): array
+    {
+        return [
+            ['value' => 'free_for_all', 'label' => 'Todos vs Todos', 'description' => 'Cada jugador compite individualmente'],
+            ['value' => 'teams', 'label' => 'Equipos', 'description' => 'Jugadores divididos en equipos, gana el equipo con más puntos'],
+            ['value' => 'duel', 'label' => 'Duelo / Versus', 'description' => '2 equipos o 1vsX. Gana quien tenga más respuestas correctas'],
+        ];
+    }
+
+    /**
      * Formulario para crear sala.
      */
     public function create(): Response
@@ -121,6 +138,7 @@ final class TriviaRoomAdminController extends Controller
                 'question_count' => 10,
                 'time_per_question' => 15,
             ],
+            'gameModes'   => $this->availableGameModes(),
             'categories'  => $this->availableCategories(),
             'currencies'  => $this->availableCurrencies(),
         ]);
@@ -135,6 +153,11 @@ final class TriviaRoomAdminController extends Controller
             'title'              => 'required|string|max:255',
             'description'        => 'nullable|string|max:1000',
             'category'           => 'nullable|string|max:50',
+            'game_mode'          => 'required|in:free_for_all,teams,duel,tournament',
+            'teams_config'       => 'nullable|array',
+            'teams_config.team_count' => 'nullable|integer|min:2|max:10',
+            'teams_config.team_size'  => 'nullable|integer|min:1|max:100',
+            'teams_config.duel_type'  => 'nullable|in:2vs2,1vsX',
             'max_players'        => 'required|integer|min:2|max:500',
             'question_count'     => 'required|integer|min:1|max:100',
             'time_per_question'  => 'required|integer|min:5|max:300',
@@ -153,6 +176,8 @@ final class TriviaRoomAdminController extends Controller
                 'title'             => $validated['title'],
                 'description'       => $validated['description'] ?? null,
                 'category'          => $validated['category'] ?? null,
+                'game_mode'         => $validated['game_mode'],
+                'teams_config'      => $validated['teams_config'] ?? null,
                 'max_players'       => $validated['max_players'],
                 'question_count'    => $validated['question_count'],
                 'time_per_question' => $validated['time_per_question'],
@@ -181,7 +206,7 @@ final class TriviaRoomAdminController extends Controller
      */
     public function show(string $id): Response
     {
-        $room = TriviaRoom::findOrFail($id);
+        $room = TriviaRoom::with('teams')->findOrFail($id);
 
         try {
             $roomDto = $this->roomService->getRoom($id);
@@ -204,7 +229,7 @@ final class TriviaRoomAdminController extends Controller
      */
     public function edit(string $id): Response
     {
-        $room = TriviaRoom::findOrFail($id);
+        $room = TriviaRoom::with('teams')->findOrFail($id);
 
         // Solo permitir editar si está en espera
         if ($room->status !== 'waiting') {
@@ -215,6 +240,7 @@ final class TriviaRoomAdminController extends Controller
 
         return Inertia::render('Games/Trivia/Admin/RoomsEdit', [
             'room'       => $room,
+            'gameModes'  => $this->availableGameModes(),
             'categories' => $this->availableCategories(),
             'currencies' => $this->availableCurrencies(),
         ]);

@@ -103,9 +103,23 @@ final class TriviaGameController extends Controller
             return redirect()->route('trivia.room.wait', ['code' => $room->code]);
         }
 
+        // Obtener team_id si se proporcionó (para modos teams/duel)
+        $teamId = $request->input('team_id') ?: null;
+
+        // Si el modo requiere equipo pero no se seleccionó, validar
+        if ($room->usesTeams() && !$teamId) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debes seleccionar un equipo para unirte a esta sala',
+                ], 422);
+            }
+            return back()->with('error', 'Debes seleccionar un equipo para unirte a esta sala');
+        }
+
         // Usar JoinRoomAction para manejar descuento de wallet y unión
         try {
-            $result = $joinAction->execute($roomId, $userId, $displayName);
+            $result = $joinAction->execute($roomId, $userId, $displayName, [], $teamId);
 
             if ($request->expectsJson()) {
                 return response()->json([
@@ -116,6 +130,7 @@ final class TriviaGameController extends Controller
                         'name'     => $displayName,
                         'roomCode' => $room->code,
                     ],
+                    'team_id'        => $result['team_id'] ?? null,
                     'message'        => $result['message'] ?? 'Te has unido a la sala exitosamente',
                 ]);
             }
@@ -355,7 +370,8 @@ final class TriviaGameController extends Controller
         $roomService = app(RoomService::class);
         $user        = Auth::user();
 
-        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::where('code', $code)
+        $room = \App\Domains\Games\Trivia\Models\TriviaRoom::with('teams')
+            ->where('code', $code)
             ->whereIn('status', ['waiting', 'playing'])
             ->firstOrFail();
 
@@ -369,7 +385,7 @@ final class TriviaGameController extends Controller
             ->whereNull('deleted_at')
             ->whereNotIn('status', ['abandoned'])
             ->orderBy('registered_at')
-            ->select('user_id', 'status', 'registered_at')
+            ->select('user_id', 'team_id', 'status', 'registered_at')
             ->get();
 
         $userIds = $participants->pluck('user_id')->all();
@@ -385,6 +401,7 @@ final class TriviaGameController extends Controller
             'name'         => $names[$p->user_id] ?? 'Jugador',
             'roomCode'     => $roomDto->code,
             'joinedAt'     => $p->registered_at, // ISO string para el frontend
+            'teamId'       => $p->team_id,
         ])->values()->all();
 
         // ── Detectar si el usuario ya está inscrito ───────────────────────────
@@ -416,6 +433,19 @@ final class TriviaGameController extends Controller
             }
         }
 
+        // ── Preparar datos de equipos si aplica ────────────────────────────────
+        $teams = null;
+        if ($room->usesTeams() && $room->teams) {
+            $teams = $room->teams->map(fn($t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'color' => $t->color,
+                'icon' => $t->icon,
+                'maxPlayers' => $t->max_players,
+                'currentPlayers' => $t->current_players,
+            ])->toArray();
+        }
+
         return Inertia::render('Games/Trivia/WaitingRoom', [
             'room' => [
                 'id'                   => (string) $roomDto->roomId,
@@ -438,6 +468,8 @@ final class TriviaGameController extends Controller
                 'createdAt'            => $room->created_at->toISOString(),
                 'updatedAt'            => $room->updated_at->toISOString(),
             ],
+            'teams' => $teams,
+            'gameMode' => $room->game_mode,
             'initialPlayers' => $initialPlayers,
             'alreadyJoined'  => $alreadyJoined,
             'currentUserId'  => (string) $user->id,
@@ -478,7 +510,7 @@ final class TriviaGameController extends Controller
 
         $rooms = $query->select(
             'id', 'code', 'title', 'description', 'category',
-            'status', 'max_players', 'current_players',
+            'status', 'game_mode', 'max_players', 'current_players',
             'question_count', 'time_per_question', 'created_at',
             'entry_fee', 'entry_currency_id',
             'prize_amount', 'prize_type', 'prize_currency_id'
