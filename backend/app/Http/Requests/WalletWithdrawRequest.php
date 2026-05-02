@@ -14,19 +14,18 @@ class WalletWithdrawRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'wallet_id'        => ['required', 'string', 'exists:wallets,id'],
-            'amount'           => ['required', 'numeric', 'min:0.01', 'max:999999.99'],
-            'directory_id'     => ['required', 'string'],
-            'directory_type'   => ['required', 'string', 'in:pago_movil,pix,binance'],
-            'notes'            => ['nullable', 'string', 'max:500'],
+            'currency_id'    => ['required', 'string'],
+            'amount'         => ['required', 'numeric', 'min:0.01', 'max:999999.99'],
+            'directory_id'   => ['required', 'string'],
+            'directory_type' => ['required', 'string', 'in:pago_movil,pix,binance'],
+            'notes'          => ['nullable', 'string', 'max:500'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'wallet_id.required'      => 'Selecciona una billetera.',
-            'wallet_id.exists'        => 'La billetera no existe.',
+            'currency_id.required'    => 'Selecciona una billetera.',
             'amount.required'         => 'El monto es obligatorio.',
             'amount.numeric'          => 'El monto debe ser un número.',
             'amount.min'              => 'El monto mínimo es 0.01.',
