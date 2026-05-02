@@ -134,8 +134,8 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
     try {
       const type = operation.value === 'deposit' ? 'DEPOSIT' : 'WITHDRAWAL'
       const { data } = await backendClient.get<PendingOperationResponse>(
-        `wallet/${activeWallet.value.id}/pending-operation`,
-        { params: { type } }
+        'wallet/pending-operation',
+        { params: { currency_id: activeWallet.value.currency_id, type } }
       )
       pendingOperation.value = data.success ? data.pending : null
     } catch {
@@ -179,7 +179,8 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
     directories.value = []
     try {
       const { data } = await backendClient.get<DirectoriesResponse>(
-        `wallet/${activeWallet.value.id}/directories`
+        'wallet/directories',
+        { params: { currency_id: activeWallet.value.currency_id } }
       )
       directories.value = data.success ? data.data : []
     } catch (err) {
@@ -205,7 +206,7 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
       await getCsrfCookie()
 
       const formData = new FormData()
-      formData.append('wallet_id', activeWallet.value.id)
+      formData.append('currency_id', activeWallet.value.currency_id)
       formData.append('amount', parsedAmount.value.toString())
       formData.append('receipt', receipt.value)
       if (reference.value) formData.append('reference', reference.value)
@@ -247,7 +248,7 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
       await getCsrfCookie()
 
       const { data } = await backendClient.post<WalletOperationResponse>('wallet/withdraw', {
-        wallet_id:      activeWallet.value.id,
+        currency_id:    activeWallet.value.currency_id,
         amount:         parsedAmount.value,
         directory_id:   selectedDirectory.value.id,
         directory_type: selectedDirectory.value.type,
@@ -295,8 +296,8 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
     movementsLoading.value = true
     try {
       const { data } = await backendClient.get<WalletMovementsResponse>(
-        `wallet/${activeWallet.value.id}/movements`,
-        { params: { page, per_page: 20 } },
+        'wallet/movements',
+        { params: { currency_id: activeWallet.value.currency_id, page, per_page: 20 } },
       )
       if (data.success) {
         movements.value     = page === 1 ? data.data : [...movements.value, ...data.data]
