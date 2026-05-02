@@ -327,7 +327,9 @@ final class TriviaGameController extends Controller
                 'id'       => $p->user_id,
                 'name'     => $names[$p->user_id] ?? 'Jugador',
                 'roomCode' => $room->code,
-                'joinedAt' => $p->registered_at ?? null,
+                'joinedAt' => $p->registered_at
+                    ? \Carbon\Carbon::parse($p->registered_at)->toISOString()
+                    : null,
             ];
         })->values()->all();
 
@@ -373,11 +375,13 @@ final class TriviaGameController extends Controller
             : [];
 
         $initialPlayers = $participants->map(fn($p) => [
-            'id'           => $p->user_id,
-            'name'         => $names[$p->user_id] ?? 'Jugador',
-            'roomCode'     => $roomDto->code,
-            'joinedAt'     => $p->registered_at, // ISO string para el frontend
-            'teamId'       => $p->team_id,
+            'id'       => $p->user_id,
+            'name'     => $names[$p->user_id] ?? 'Jugador',
+            'roomCode' => $roomDto->code,
+            'joinedAt' => $p->registered_at
+                ? \Carbon\Carbon::parse($p->registered_at)->toISOString()
+                : null,
+            'teamId'   => $p->team_id,
         ])->values()->all();
 
         // ── Detectar si el usuario ya está inscrito ───────────────────────────

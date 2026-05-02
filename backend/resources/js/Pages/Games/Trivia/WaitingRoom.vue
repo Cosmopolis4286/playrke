@@ -255,6 +255,8 @@ const statusLabel = computed(() => ({
             :players="players"
             :host-id="room.hostId"
             :current-player-id="currentPlayer?.id ?? (hasJoined ? currentUserId : undefined)"
+            :teams="teams"
+            :max-players="room.maxPlayers"
           />
         </div>
 
