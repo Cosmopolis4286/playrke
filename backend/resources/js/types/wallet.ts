@@ -76,7 +76,7 @@ export interface PendingOperationResponse {
 export type WalletOperation = 'deposit' | 'withdraw'
 
 // ─── Movimientos ───────────────────────────────────────────────────────────
-export type WalletMovementType = 'DEPOSIT' | 'WITHDRAWAL' | 'PURCHASE' | 'PRIZE'
+export type WalletMovementType = 'DEPOSIT' | 'WITHDRAWAL' | 'PURCHASE' | 'PRIZE' | 'TRIVIA_ENTRY'
 
 export interface WalletMovement {
   id: string

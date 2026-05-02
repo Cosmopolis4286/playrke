@@ -213,10 +213,11 @@ async function handleReject() {
 
 // ── Helpers visuales ───────────────────────────────────────────────────────
 const typeConfig: Record<string, { label: string; cls: string; icon: string }> = {
-  DEPOSIT:    { label: 'Depósito', cls: 'mv-badge mv-badge--deposit',    icon: 'fas fa-arrow-down'  },
-  WITHDRAWAL: { label: 'Retiro',   cls: 'mv-badge mv-badge--withdrawal', icon: 'fas fa-arrow-up'    },
-  PURCHASE:   { label: 'Compra',   cls: 'mv-badge mv-badge--purchase',   icon: 'fas fa-ticket-alt'  },
-  PRIZE:      { label: 'Premio',   cls: 'mv-badge mv-badge--prize',      icon: 'fas fa-trophy'      },
+  DEPOSIT:      { label: 'Depósito',       cls: 'mv-badge mv-badge--deposit',      icon: 'fas fa-arrow-down'  },
+  WITHDRAWAL:   { label: 'Retiro',         cls: 'mv-badge mv-badge--withdrawal',   icon: 'fas fa-arrow-up'    },
+  PURCHASE:     { label: 'Compra',         cls: 'mv-badge mv-badge--purchase',     icon: 'fas fa-ticket-alt'  },
+  PRIZE:        { label: 'Premio',         cls: 'mv-badge mv-badge--prize',        icon: 'fas fa-trophy'      },
+  TRIVIA_ENTRY: { label: 'Entrada Trivia', cls: 'mv-badge mv-badge--trivia-entry', icon: 'fas fa-brain'       },
 }
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
@@ -679,10 +680,11 @@ onMounted(() => fetchMovements())
   border-radius: 20px;
   white-space: nowrap;
 }
-.mv-badge--deposit    { background: #dcfce7; color: #16a34a; }
-.mv-badge--withdrawal { background: #fef3c7; color: #d97706; }
-.mv-badge--purchase   { background: #ffe4e6; color: #e11d48; }
-.mv-badge--prize      { background: #fef9c3; color: #ca8a04; }
+.mv-badge--deposit      { background: #dcfce7; color: #16a34a; }
+.mv-badge--withdrawal   { background: #fef3c7; color: #d97706; }
+.mv-badge--purchase     { background: #ffe4e6; color: #e11d48; }
+.mv-badge--prize        { background: #fef9c3; color: #ca8a04; }
+.mv-badge--trivia-entry { background: #ede9fe; color: #7c3aed; }
 
 /* Monto */
 .mv-amount           { font-size: 0.875rem; font-weight: 700; white-space: nowrap; }

@@ -35,10 +35,11 @@ const quickAmounts = [10, 25, 50, 100, 200, 500]
 const movementMeta: Record<WalletMovementType, {
   icon: string; label: string; colorClass: string; sign: '+' | '-'; description: string
 }> = {
-  DEPOSIT:    { icon: 'fas fa-arrow-down',  label: 'Depósito',        colorClass: 'meta--deposit',    sign: '+', description: 'Fondos añadidos a tu cuenta' },
-  PRIZE:      { icon: 'fas fa-trophy',      label: 'Premio ganado',    colorClass: 'meta--prize',      sign: '+', description: 'Premio por juego ganado' },
-  PURCHASE:   { icon: 'fas fa-ticket-alt',  label: 'Compra de cartón', colorClass: 'meta--purchase',   sign: '-', description: 'Cartón de bingo adquirido' },
-  WITHDRAWAL: { icon: 'fas fa-arrow-up',    label: 'Retiro',           colorClass: 'meta--withdrawal', sign: '-', description: 'Fondos retirados de tu cuenta' },
+  DEPOSIT:      { icon: 'fas fa-arrow-down',      label: 'Depósito',        colorClass: 'meta--deposit',      sign: '+', description: 'Fondos añadidos a tu cuenta' },
+  PRIZE:        { icon: 'fas fa-trophy',          label: 'Premio ganado',    colorClass: 'meta--prize',        sign: '+', description: 'Premio por juego ganado' },
+  PURCHASE:     { icon: 'fas fa-ticket-alt',      label: 'Compra de cartón', colorClass: 'meta--purchase',     sign: '-', description: 'Cartón de bingo adquirido' },
+  WITHDRAWAL:   { icon: 'fas fa-arrow-up',        label: 'Retiro',           colorClass: 'meta--withdrawal',   sign: '-', description: 'Fondos retirados de tu cuenta' },
+  TRIVIA_ENTRY: { icon: 'fas fa-brain',           label: 'Entrada Trivia',   colorClass: 'meta--trivia-entry', sign: '-', description: 'Entrada a sala de Trivia' },
 }
 
 function formatDate(iso: string): string {
@@ -1296,10 +1297,11 @@ const modalIcon = computed(() => {
   flex-shrink: 0;
 }
 
-.meta--deposit    .movement-type-item__icon { color: #16a34a; }
-.meta--prize      .movement-type-item__icon { color: #d97706; }
-.meta--purchase   .movement-type-item__icon { color: #e11d48; }
-.meta--withdrawal .movement-type-item__icon { color: #2563eb; }
+.meta--deposit      .movement-type-item__icon { color: #16a34a; }
+.meta--prize        .movement-type-item__icon { color: #d97706; }
+.meta--purchase     .movement-type-item__icon { color: #e11d48; }
+.meta--withdrawal   .movement-type-item__icon { color: #2563eb; }
+.meta--trivia-entry .movement-type-item__icon { color: #7c3aed; }
 
 .movement-type-item__info { flex: 1; min-width: 0; }
 
@@ -1415,10 +1417,11 @@ const modalIcon = computed(() => {
   flex-shrink: 0;
 }
 
-.movement-row__icon.meta--deposit    { background: #f0fdf4; color: #16a34a; }
-.movement-row__icon.meta--prize      { background: #fffbeb; color: #d97706; }
-.movement-row__icon.meta--purchase   { background: #fff1f2; color: #e11d48; }
-.movement-row__icon.meta--withdrawal { background: #eff6ff; color: #2563eb; }
+.movement-row__icon.meta--deposit      { background: #f0fdf4; color: #16a34a; }
+.movement-row__icon.meta--prize        { background: #fffbeb; color: #d97706; }
+.movement-row__icon.meta--purchase     { background: #fff1f2; color: #e11d48; }
+.movement-row__icon.meta--withdrawal   { background: #eff6ff; color: #2563eb; }
+.movement-row__icon.meta--trivia-entry { background: #f5f3ff; color: #7c3aed; }
 
 .movement-row__info { flex: 1; min-width: 0; }
 
