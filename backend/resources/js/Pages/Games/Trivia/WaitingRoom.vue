@@ -4,27 +4,17 @@ import { Head, usePage } from '@inertiajs/vue3'
 import RoomHeader from '@js/Components/Games/Trivia/Room/RoomHeader.vue'
 import PlayerList from '@js/Components/Games/Trivia/Room/PlayerList.vue'
 import { getEchoInstance } from '@js/plugins/echo'
-import type { Room, Player } from '@js/types/trivia'
+import type { Room, Player, Team, WsPlayerJoined, WsPlayerLeft, WsGameStarted } from '@js/types/trivia'
 
-const page  = usePage()
-// La ruta siempre requiere auth: si hay currentUserId el usuario está autenticado.
-// authName se usa para mostrar el nombre en el botón de unirse.
-const authName = computed<string | null>(() => {
-  if (!props.currentUserId) return null
+const page = usePage()
+
+// La ruta siempre requiere auth — authName resuelve nombre del usuario autenticado.
+const authName = computed<string>(() => {
   const auth = (page.props as any).auth?.user
   if (!auth) return 'Jugador'
   const full = `${auth.first_name ?? ''} ${auth.last_name ?? ''}`.trim()
   return full || auth.name || auth.username || 'Jugador'
 })
-
-interface Team {
-  id: string
-  name: string
-  color?: string
-  icon?: string
-  maxPlayers: number
-  currentPlayers: number
-}
 
 interface Props {
   room: Room
@@ -33,35 +23,26 @@ interface Props {
   initialPlayers: Player[]
   alreadyJoined: boolean
   currentUserId: string
-  userWallet?: {
-    balance: number
-    symbol: string
-    currencyId: string
-  } | null
+  userWallet?: { balance: number; symbol: string; currencyId: string } | null
 }
 
 const props = defineProps<Props>()
 
-const players    = ref<Player[]>(props.initialPlayers)
-const hasJoined  = ref(props.alreadyJoined)
-const isLoading  = ref(false)
-const joinError  = ref<string | null>(null)
+const players          = ref<Player[]>(props.initialPlayers)
+const hasJoined        = ref(props.alreadyJoined)
+const isLoading        = ref(false)
+const joinError        = ref<string | null>(null)
 const connectionStatus = ref<'connected' | 'disconnected' | 'reconnecting'>('disconnected')
-const selectedTeamId = ref<string | null>(null)
-const playersByTeam = ref<Record<string, Player[]>>({})
+const selectedTeamId   = ref<string | null>(null)
 
-// Computed para verificar si se requiere selección de equipo
-const requiresTeamSelection = computed(() => {
-  return props.gameMode === 'teams' || props.gameMode === 'duel'
-})
+const requiresTeamSelection = computed(() =>
+  props.gameMode === 'teams' || props.gameMode === 'duel'
+)
+const canJoin = computed(() =>
+  requiresTeamSelection.value ? selectedTeamId.value !== null : true
+)
 
-// Computed para verificar si el usuario puede unirse
-const canJoin = computed(() => {
-  if (!requiresTeamSelection.value) return true
-  return selectedTeamId.value !== null
-})
-
-// ── Modal de confirmación ───────────────────────────────────────────────────
+// ── Modal de confirmación (solo si hay costo) ─────────────────────────────────
 const showConfirmModal = ref(false)
 const hasInsufficientFunds = computed(() => {
   if (!props.room.entryFee || props.room.entryFee <= 0) return false
@@ -76,44 +57,48 @@ const currentPlayer = ref<Player | null>(
 )
 
 // ── Echo / Reverb ─────────────────────────────────────────────────────────────
-
 let channel: any = null
-const echo = getEchoInstance()
+const echo        = getEchoInstance()
 const channelName = `trivia.room.${props.room.id}`
 
 function subscribeToChannel() {
   try {
     channel = echo.channel(channelName)
 
+    // NOTA: Laravel Echo antepone '.' al broadcastAs() — los nombres deben
+    // coincidir exactamente con broadcastAs() del evento PHP.
     channel
-      .listen('.trivia.player.joined', (data: any) => {
+      .listen('.trivia.player.joined', (data: WsPlayerJoined) => {
         const incoming: Player = {
-          id:       data.player?.player_id ?? data.player?.id,
-          name:     data.player?.nickname  ?? data.player?.name ?? 'Jugador',
+          id:       data.player.id,
+          name:     data.player.name,
           roomCode: props.room.code,
+          teamId:   data.player.teamId ?? null,
           joinedAt: new Date().toISOString(),
         }
         if (!players.value.find(p => p.id === incoming.id)) {
           players.value.push(incoming)
         }
       })
-      .listen('.trivia.player.left', (data: any) => {
+      .listen('.trivia.player.left', (data: WsPlayerLeft) => {
         players.value = players.value.filter(p => p.id !== data.player_id)
       })
-      .listen('.trivia.game.started', () => {
-        window.location.href = `/trivia/game/${props.room.code}`
+      .listen('.trivia.game.started', (data: WsGameStarted) => {
+        // Redirige a la página de juego usando el gameId recibido
+        window.location.href = `/trivia/play/${data.game_id}`
       })
 
-    const conn = echo.connector.pusher.connection
-    conn.bind('connected',    () => { connectionStatus.value = 'connected' })
-    conn.bind('disconnected', () => { connectionStatus.value = 'disconnected' })
-    conn.bind('unavailable',  () => { connectionStatus.value = 'disconnected' })
-    conn.bind('connecting',   () => { connectionStatus.value = 'reconnecting' })
+    const conn = (echo.connector as any).pusher?.connection
+    if (conn) {
+      conn.bind('connected',    () => { connectionStatus.value = 'connected' })
+      conn.bind('disconnected', () => { connectionStatus.value = 'disconnected' })
+      conn.bind('unavailable',  () => { connectionStatus.value = 'disconnected' })
+      conn.bind('connecting',   () => { connectionStatus.value = 'reconnecting' })
 
-    const state = conn.state
-    if (state === 'connected') connectionStatus.value = 'connected'
-    else if (['connecting', 'reconnecting'].includes(state)) connectionStatus.value = 'reconnecting'
-
+      const state: string = conn.state ?? ''
+      if (state === 'connected') connectionStatus.value = 'connected'
+      else if (['connecting', 'reconnecting'].includes(state)) connectionStatus.value = 'reconnecting'
+    }
   } catch (err) {
     console.warn('[WaitingRoom] Echo no disponible:', err)
     connectionStatus.value = 'disconnected'
@@ -127,12 +112,16 @@ function unsubscribeFromChannel() {
 
 // ── Join ──────────────────────────────────────────────────────────────────────
 
+/** Punto de entrada del botón "Unirme". Muestra modal si hay costo; sino une directo. */
 function openJoinModal() {
+  if (!canJoin.value) {
+    joinError.value = 'Debes seleccionar un equipo para unirte.'
+    return
+  }
   if (props.room.entryFee && props.room.entryFee > 0) {
     showConfirmModal.value = true
   } else {
-    // Sin costo, unirse directamente
-    doJoin(authName.value || 'Jugador')
+    doJoin()
   }
 }
 
@@ -140,82 +129,57 @@ function closeConfirmModal() {
   showConfirmModal.value = false
 }
 
-async function handleJoin(playerName: string) {
-  // Para usuarios no autenticados o cuando hay costo, mostrar modal primero
-  if (props.room.entryFee && props.room.entryFee > 0 && !showConfirmModal.value) {
-    showConfirmModal.value = true
-    return
-  }
-  await doJoin(playerName)
+/** Llamado desde el modal de confirmación tras confirmar el pago. */
+function confirmAndJoin() {
+  showConfirmModal.value = false
+  doJoin()
 }
 
-async function doJoin(playerName: string) {
-  if (hasJoined.value) return
+async function doJoin() {
+  if (hasJoined.value || isLoading.value) return
   if (!canJoin.value) {
-    joinError.value = 'Debes seleccionar un equipo para unirte'
+    joinError.value = 'Debes seleccionar un equipo para unirte.'
     return
   }
+
   isLoading.value = true
   joinError.value = null
-  showConfirmModal.value = false
 
   try {
     const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? ''
     const res  = await fetch(`/trivia-game/room/${props.room.id}/join`, {
-      method: 'POST',
+      method:  'POST',
       headers: {
         'Content-Type':     'application/json',
         'Accept':           'application/json',
         'X-Requested-With': 'XMLHttpRequest',
         'X-CSRF-TOKEN':     csrf,
       },
-      body: JSON.stringify({
-        name: playerName,
-        team_id: selectedTeamId.value,
-      }),
+      body: JSON.stringify({ team_id: selectedTeamId.value }),
     })
 
     const data = await res.json().catch(() => ({}))
 
     if (res.ok) {
-      // Si ya estaba unido, no hacer nada más que actualizar estado
-      if (data.already_joined) {
-        hasJoined.value = true
-        // Asegurarnos de que estamos en la lista de jugadores
-        const existingPlayer = players.value.find(p => p.id === props.currentUserId)
-        if (!existingPlayer) {
-          const player: Player = {
-            id: props.currentUserId,
-            name: playerName,
-            roomCode: props.room.code,
-            joinedAt: new Date().toISOString(),
-          }
-          players.value.push(player)
-          currentPlayer.value = player
-        } else {
-          currentPlayer.value = existingPlayer
-        }
-        return
-      }
-
-      // Unión exitosa por primera vez
       const player: Player = {
-        ...(data.player ?? { id: props.currentUserId, name: playerName, roomCode: props.room.code }),
+        id:       data.player?.id    ?? props.currentUserId,
+        name:     data.player?.name  ?? authName.value,
+        roomCode: props.room.code,
+        teamId:   data.team_id       ?? selectedTeamId.value,
         joinedAt: new Date().toISOString(),
       }
-      currentPlayer.value = player
-      hasJoined.value     = true
       if (!players.value.find(p => p.id === player.id)) {
         players.value.push(player)
       }
-    } else if (res.status === 403) {
-      joinError.value = 'No tienes permiso. Se requiere el rol de jugador.'
-    } else if (res.status === 422) {
-      joinError.value = data.message ?? 'La sala no está disponible.'
-    } else if (res.status === 402) {
-      joinError.value = data.message ?? 'Saldo insuficiente para unirte a esta sala.'
+      currentPlayer.value = player
+      hasJoined.value     = true
     } else {
-      joinError.value = data.message ?? 'Error al unirse a la sala.'
+      joinError.value = data.message ?? ({
+        402: 'Saldo insuficiente para unirte a esta sala.',
+        403: 'No tienes permiso para unirte.',
+        409: 'Ya estás registrado en esta sala.',
+        422: 'La sala no está disponible.',
+      } as Record<number, string>)[res.status] ?? 'Error al unirse a la sala.'
     }
   } catch {
     joinError.value = 'Error de conexión. Intenta de nuevo.'
@@ -225,24 +189,19 @@ async function doJoin(playerName: string) {
 }
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
-
-onMounted(() => {
-  subscribeToChannel()
-  // Ya no se une automáticamente - el usuario debe confirmar (especialmente si hay costo)
-})
+onMounted(() => { subscribeToChannel() })
 onUnmounted(() => { unsubscribeFromChannel() })
 
-// ── Computed ──────────────────────────────────────────────────────────────────
-
-const notJoined = computed(() => !hasJoined.value && !props.alreadyJoined && !joinError.value)
-const showAuthJoinButton = computed(() => notJoined.value && !isLoading.value)
+// ── Computed helpers ──────────────────────────────────────────────────────────
+const notJoined           = computed(() => !hasJoined.value && !props.alreadyJoined && !joinError.value)
+const showAuthJoinButton  = computed(() => notJoined.value && !isLoading.value)
 const showAuthJoinLoading = computed(() => notJoined.value && isLoading.value)
-const statusDot     = computed(() => ({
+const statusDot = computed(() => ({
   connected:    'bg-emerald-400',
   reconnecting: 'bg-amber-400 animate-pulse',
   disconnected: 'bg-gray-400',
 })[connectionStatus.value])
-const statusLabel   = computed(() => ({
+const statusLabel = computed(() => ({
   connected:    'En tiempo real',
   reconnecting: 'Reconectando...',
   disconnected: 'Sin conexión',
@@ -581,7 +540,7 @@ const statusLabel   = computed(() => ({
               Cancelar
             </button>
             <button
-              @click="doJoin(authName || 'Jugador')"
+              @click="confirmAndJoin"
               :disabled="hasInsufficientFunds || isLoading"
               class="flex-1 py-2.5 px-4 rounded-xl font-semibold text-white transition-colors flex items-center justify-center gap-2"
               :class="hasInsufficientFunds ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'"
