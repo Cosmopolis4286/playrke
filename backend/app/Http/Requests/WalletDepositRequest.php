@@ -14,7 +14,7 @@ class WalletDepositRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'wallet_id' => ['required', 'string', 'exists:wallets,id'],
+            'wallet_id' => ['required', 'string'],
             'amount'    => ['required', 'numeric', 'min:0.01', 'max:999999.99'],
             'receipt'   => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
             'reference' => ['nullable', 'string', 'max:100'],
@@ -26,7 +26,6 @@ class WalletDepositRequest extends FormRequest
     {
         return [
             'wallet_id.required' => 'Selecciona una billetera.',
-            'wallet_id.exists'   => 'La billetera no existe.',
             'amount.required'    => 'El monto es obligatorio.',
             'amount.numeric'     => 'El monto debe ser un número.',
             'amount.min'         => 'El monto mínimo es 0.01.',
