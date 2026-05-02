@@ -84,6 +84,7 @@ class JoinRoomAction
 
         // Unir a sala en Redis (tiempo real)
         $playerData['nickname'] = $nickname;
+        $playerData['team_id']  = $teamId;
         $player = $this->roomService->joinRoom($roomId, $playerId, $playerData);
 
         // Obtener información actualizada de la sala
@@ -186,9 +187,8 @@ class JoinRoomAction
             throw new RuntimeException('Saldo insuficiente para unirte a esta sala. Se requieren ' . $room->entry_fee . '.');
         }
 
-        // Descontar de la billetera usando el método existente
-        $this->walletService->recordCardPurchase(
-            walletId:    (string) $wallet->id,
+        $this->walletService->recordTriviaEntry(
+            wallet:      $wallet,
             amount:      (float) $room->entry_fee,
             description: "Entrada sala Trivia: {$room->title} ({$room->code})",
         );
@@ -203,8 +203,6 @@ class JoinRoomAction
         if (!$room) {
             return;
         }
-
-        $participantId = (string) Str::ulid();
 
         DB::connection('pgsql_trivia')->table('trivia_participants')->insert([
             'id' => (string) Str::ulid(),

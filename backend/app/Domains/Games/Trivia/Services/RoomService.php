@@ -7,10 +7,10 @@ namespace App\Domains\Games\Trivia\Services;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\DTOs\PlayerDTO;
 use App\Domains\Games\Trivia\DTOs\RoomDTO;
-use App\Domains\Games\Trivia\Events\PlayerJoined;
-use App\Domains\Games\Trivia\Events\PlayerLeft;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Models\TriviaTeam;
+use App\Events\Games\Trivia\TriviaPlayerJoined;
+use App\Events\Games\Trivia\TriviaPlayerLeft;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Str;
@@ -103,25 +103,34 @@ class RoomService implements RoomServiceInterface
 
     /**
      * Unir jugador a sala.
+     * Actualiza Redis y sincroniza current_players en BD.
      */
     public function joinRoom(string $roomId, string $playerId, array $playerData): PlayerDTO
     {
         $roomDto = $this->getRoom($roomId);
 
-        // Validaciones
-        if (!$roomDto->isJoinable()) {
+        if (! $roomDto->isJoinable()) {
             throw new RuntimeException('No se puede unir a esta sala');
         }
 
         if ($roomDto->isFull()) {
-            throw new RuntimeException('Sala llena');
+            throw new RuntimeException('La sala está llena');
         }
 
         if (in_array($playerId, $roomDto->playerIds, true)) {
-            throw new RuntimeException('Ya estás en esta sala');
+            // Jugador ya en Redis — devolver sin error
+            return new PlayerDTO(
+                playerId: $playerId,
+                roomId: $roomId,
+                nickname: $playerData['nickname'] ?? 'Jugador',
+                status: 'waiting',
+                avatar: null,
+                joinedAt: time(),
+                connectedAt: null,
+                disconnectedAt: null,
+            );
         }
 
-        // Crear jugador
         $player = new PlayerDTO(
             playerId: $playerId,
             roomId: $roomId,
@@ -130,22 +139,30 @@ class RoomService implements RoomServiceInterface
             avatar: $playerData['avatar'] ?? null,
             joinedAt: time(),
             connectedAt: null,
-            disconnectedAt: null
+            disconnectedAt: null,
         );
 
-        // Actualizar sala
+        // Actualizar Redis
         $updatedRoom = $roomDto->addPlayer($playerId);
         $this->saveRoomToRedis($updatedRoom);
-
-        // Guardar jugador en Redis
         $this->savePlayerToRedis($player);
 
-        // Emitir evento (best-effort — puede fallar si broadcasting usa Redis)
+        // Sincronizar current_players en BD (best-effort)
         try {
-            event(new PlayerJoined($player, $roomId, $updatedRoom->currentPlayers));
-        } catch (\Throwable) {
-            // Redis/broadcasting no disponible — ignorar
-        }
+            TriviaRoom::where('id', $roomId)
+                ->update(['current_players' => $updatedRoom->currentPlayers]);
+        } catch (\Throwable) {}
+
+        // Broadcast del nuevo evento (best-effort)
+        try {
+            broadcast(new TriviaPlayerJoined(
+                roomId:             $roomId,
+                playerId:           $playerId,
+                playerName:         $player->nickname,
+                currentPlayerCount: $updatedRoom->currentPlayers,
+                teamId:             $playerData['team_id'] ?? null,
+            ));
+        } catch (\Throwable) {}
 
         return $player;
     }
@@ -157,28 +174,28 @@ class RoomService implements RoomServiceInterface
     {
         $roomDto = $this->getRoom($roomId);
 
-        if (!in_array($playerId, $roomDto->playerIds, true)) {
+        if (! in_array($playerId, $roomDto->playerIds, true)) {
             return;
         }
 
-        // Actualizar sala
         $updatedRoom = $roomDto->removePlayer($playerId);
         $this->saveRoomToRedis($updatedRoom);
-
-        // Eliminar jugador de Redis
         $this->deletePlayerFromRedis($playerId, $roomId);
 
-        // Emitir evento (best-effort)
+        // Sincronizar current_players en BD (best-effort)
         try {
-            event(new PlayerLeft(
-                playerId: $playerId,
-                roomId: $roomId,
+            TriviaRoom::where('id', $roomId)
+                ->update(['current_players' => $updatedRoom->currentPlayers]);
+        } catch (\Throwable) {}
+
+        try {
+            broadcast(new TriviaPlayerLeft(
+                roomId:             $roomId,
+                playerId:           $playerId,
                 currentPlayerCount: $updatedRoom->currentPlayers,
-                reason: 'left'
+                reason:             'left',
             ));
-        } catch (\Throwable) {
-            // Redis/broadcasting no disponible — ignorar
-        }
+        } catch (\Throwable) {}
     }
 
     /**
@@ -222,24 +239,52 @@ class RoomService implements RoomServiceInterface
 
     /**
      * Listar jugadores en sala.
-     * Devuelve array vacío si Redis no está disponible.
+     * Intenta Redis primero; si no hay datos hace fallback a trivia_participants en BD.
      */
     public function listPlayers(string $roomId): array
     {
         $roomDto = $this->getRoom($roomId);
-
         $players = [];
+
+        // Intentar desde Redis
         foreach ($roomDto->playerIds as $playerId) {
             try {
-                $playerData = Redis::hget(
-                    self::KEY_PREFIX . "player:{$roomId}:{$playerId}",
-                    'data'
-                );
-                if ($playerData) {
-                    $players[] = PlayerDTO::fromArray(json_decode($playerData, true));
+                $raw = Redis::hget(self::KEY_PREFIX . "player:{$roomId}:{$playerId}", 'data');
+                if ($raw) {
+                    $players[] = PlayerDTO::fromArray(json_decode($raw, true));
                 }
-            } catch (\Throwable) {
-                // Redis no disponible — saltar jugador
+            } catch (\Throwable) {}
+        }
+
+        // Si Redis no tenía datos, cargar desde BD
+        if (empty($players)) {
+            $participants = DB::connection('pgsql_trivia')
+                ->table('trivia_participants')
+                ->where('room_id', $roomId)
+                ->whereNull('deleted_at')
+                ->whereNotIn('status', ['abandoned'])
+                ->select('user_id', 'status', 'registered_at')
+                ->get();
+
+            $userIds = $participants->pluck('user_id')->all();
+            $names   = $userIds
+                ? DB::table('users')
+                    ->whereIn('id', $userIds)
+                    ->select('id', DB::raw("TRIM(CONCAT(COALESCE(first_name,''), ' ', COALESCE(last_name,''))) as display_name"))
+                    ->get()->pluck('display_name', 'id')->all()
+                : [];
+
+            foreach ($participants as $p) {
+                $players[] = new PlayerDTO(
+                    playerId:        $p->user_id,
+                    roomId:          $roomId,
+                    nickname:        $names[$p->user_id] ?? 'Jugador',
+                    status:          $p->status,
+                    avatar:          null,
+                    joinedAt:        $p->registered_at ? strtotime($p->registered_at) : time(),
+                    connectedAt:     null,
+                    disconnectedAt:  null,
+                );
             }
         }
 
