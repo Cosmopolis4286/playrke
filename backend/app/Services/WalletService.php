@@ -317,6 +317,43 @@ final class WalletService
      * @return Wallet
      * @throws \DomainException Si no hay saldo suficiente
      */
+    /**
+     * Descuenta la entrada a una sala de Trivia y registra el movimiento TRIVIA_ENTRY.
+     * La wallet se pasa ya resuelta (sin aceptar walletId externo).
+     */
+    public function recordTriviaEntry(Wallet $wallet, float $amount, string $description = 'Entrada sala Trivia'): Wallet
+    {
+        $result = DB::transaction(function () use ($wallet, $amount, $description) {
+            $walletId = (string) $wallet->id;
+
+            if (! $wallet->hasSufficientBalance($amount)) {
+                throw new \DomainException('Saldo insuficiente para unirte a esta sala.');
+            }
+
+            $balanceBefore = (float) $wallet->balance;
+
+            $this->walletRepository->decrementBalance($walletId, $amount);
+            $wallet->refresh();
+
+            $this->movementRepository->record([
+                'wallet_id'      => $walletId,
+                'user_id'        => (string) $wallet->user_id,
+                'type'           => WalletMovement::TYPE_TRIVIA_ENTRY,
+                'status'         => WalletMovement::STATUS_COMPLETED,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => (float) $wallet->balance,
+                'description'    => $description,
+            ]);
+
+            return $wallet;
+        });
+
+        $this->broadcastWalletUpdated($result, WalletMovement::TYPE_TRIVIA_ENTRY, $amount);
+
+        return $result;
+    }
+
     public function recordCardPurchase(string $walletId, float $amount, string $description = 'Compra de cartones'): Wallet
     {
         $wallet = DB::transaction(function () use ($walletId, $amount, $description) {

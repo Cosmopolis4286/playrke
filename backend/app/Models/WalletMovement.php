@@ -36,10 +36,11 @@ class WalletMovement extends Model
     public    $incrementing = false;
     protected $keyType    = 'string';
 
-    public const TYPE_DEPOSIT    = 'DEPOSIT';
-    public const TYPE_WITHDRAWAL = 'WITHDRAWAL';
-    public const TYPE_PURCHASE   = 'PURCHASE';
-    public const TYPE_PRIZE      = 'PRIZE';
+    public const TYPE_DEPOSIT       = 'DEPOSIT';
+    public const TYPE_WITHDRAWAL    = 'WITHDRAWAL';
+    public const TYPE_PURCHASE      = 'PURCHASE';
+    public const TYPE_PRIZE         = 'PRIZE';
+    public const TYPE_TRIVIA_ENTRY  = 'TRIVIA_ENTRY';
 
     public const STATUS_PENDING    = 'PENDING';
     public const STATUS_COMPLETED  = 'COMPLETED';
@@ -47,10 +48,11 @@ class WalletMovement extends Model
     public const STATUS_REJECTED   = 'REJECTED';
 
     public const TYPES = [
-        self::TYPE_DEPOSIT    => 'Depósito',
-        self::TYPE_WITHDRAWAL => 'Retiro',
-        self::TYPE_PURCHASE   => 'Compra de cartón',
-        self::TYPE_PRIZE      => 'Premio ganado',
+        self::TYPE_DEPOSIT      => 'Depósito',
+        self::TYPE_WITHDRAWAL   => 'Retiro',
+        self::TYPE_PURCHASE     => 'Compra de cartón',
+        self::TYPE_PRIZE        => 'Premio ganado',
+        self::TYPE_TRIVIA_ENTRY => 'Entrada Trivia',
     ];
 
     protected $fillable = [
