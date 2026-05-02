@@ -4,13 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\WalletDepositRequest;
 use App\Http\Requests\WalletWithdrawRequest;
-use App\Models\Directories\Crypto\Binance\BinanceAccounts;
-use App\Models\Directories\Fiat\Brazil\PixKey;
-use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Services\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,58 +29,16 @@ class WalletController extends Controller
     }
 
     /**
-     * Retorna la solicitud pendiente (DEPOSIT o WITHDRAWAL en PENDING) de una billetera.
-     * GET /wallet/{walletId}/pending-operation
-     */
-    public function pendingOperation(Request $request, string $walletId): JsonResponse
-    {
-        try {
-            $type = strtoupper($request->query('type', ''));
-
-            if (! in_array($type, ['DEPOSIT', 'WITHDRAWAL'])) {
-                return response()->json(['success' => true, 'pending' => null]);
-            }
-
-            $pending = $this->walletService->getPendingOperation($walletId, $type);
-
-            return response()->json([
-                'success' => true,
-                'pending' => $pending ? [
-                    'id'          => (string) $pending->id,
-                    'type'        => $pending->type,
-                    'status'      => $pending->status,
-                    'amount'      => (float) $pending->amount,
-                    'description' => $pending->description,
-                    'created_at'  => $pending->created_at,
-                ] : null,
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json(['success' => true, 'pending' => null]);
-        }
-    }
-
-    /**
-     * Directorios del usuario agrupados por tipo, filtrados por moneda de la billetera.
-     * GET /wallet/{walletId}/directories
-     */
-    public function userDirectories(string $walletId): JsonResponse
-    {
-        try {
-            $userId = (string) Auth::id();
-            $directories = $this->walletService->getUserDirectories($userId, $walletId);
-
-            return response()->json(['success' => true, 'data' => $directories]);
-        } catch (\Throwable $e) {
-            return response()->json(['success' => true, 'data' => []], 200);
-        }
-    }
-
-    /**
-     * Solicitar depósito con comprobante (queda en PENDING hasta que admin confirme).
+     * POST /wallet/deposit
+     * El cliente envía currency_id; el backend resuelve la wallet del usuario autenticado.
      */
     public function deposit(WalletDepositRequest $request): JsonResponse
     {
         try {
+            $wallet = $this->walletService->findOwnedWalletByCurrency(
+                $request->input('currency_id')
+            );
+
             $file = $request->file('receipt');
 
             if (! $file || ! $file->isValid()) {
@@ -93,7 +48,6 @@ class WalletController extends Controller
                 ], 422);
             }
 
-            // Generar nombre único y mover el archivo al storage público
             $filename    = Str::uuid() . '.' . $file->getClientOriginalExtension();
             $destination = storage_path('app/public/wallet/receipts');
 
@@ -102,12 +56,11 @@ class WalletController extends Controller
             }
 
             $file->move($destination, $filename);
-            $receiptPath = 'wallet/receipts/' . $filename;
 
             $wallet = $this->walletService->requestDeposit(
-                walletId:  $request->input('wallet_id'),
+                wallet:    $wallet,
                 amount:    (float) $request->input('amount'),
-                receipt:   $receiptPath,
+                receipt:   'wallet/receipts/' . $filename,
                 reference: $request->input('reference'),
                 notes:     $request->input('notes'),
             );
@@ -117,19 +70,27 @@ class WalletController extends Controller
                 'message' => 'Solicitud de depósito enviada. Un administrador la revisará pronto.',
                 'balance' => (float) $wallet->balance,
             ]);
-        } catch (\DomainException|\RuntimeException $e) {
+        } catch (\DomainException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            Log::error('[WalletController@deposit] ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['success' => false, 'message' => 'Error interno. Intenta de nuevo.'], 500);
         }
     }
 
     /**
-     * Solicitar retiro indicando el directorio destino (queda en PENDING hasta que admin confirme).
+     * POST /wallet/withdraw
+     * El cliente envía currency_id; el backend resuelve la wallet del usuario autenticado.
      */
     public function withdraw(WalletWithdrawRequest $request): JsonResponse
     {
         try {
+            $wallet = $this->walletService->findOwnedWalletByCurrency(
+                $request->input('currency_id')
+            );
+
             $wallet = $this->walletService->requestWithdraw(
-                walletId:      $request->input('wallet_id'),
+                wallet:        $wallet,
                 amount:        (float) $request->input('amount'),
                 directoryId:   $request->input('directory_id'),
                 directoryType: $request->input('directory_type'),
@@ -143,19 +104,23 @@ class WalletController extends Controller
             ]);
         } catch (\DomainException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            Log::error('[WalletController@withdraw] ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['success' => false, 'message' => 'Error interno. Intenta de nuevo.'], 500);
         }
     }
 
     /**
-     * Movimientos paginados de una billetera.
-     * GET /wallet/{walletId}/movements?page=1&per_page=20
+     * GET /wallet/movements?currency_id=xxx&page=1&per_page=20
      */
-    public function movements(Request $request, string $walletId): JsonResponse
+    public function movements(Request $request): JsonResponse
     {
-        $perPage = (int) $request->query('per_page', 20);
+        $currencyId = (string) $request->query('currency_id', '');
+        $perPage    = min((int) $request->query('per_page', 20), 100);
 
         try {
-            $paginator = $this->walletService->getMovements($walletId, $perPage);
+            $wallet    = $this->walletService->findOwnedWalletByCurrency($currencyId);
+            $paginator = $this->walletService->getMovements($wallet, $perPage);
 
             return response()->json([
                 'success' => true,
@@ -169,6 +134,61 @@ class WalletController extends Controller
             ]);
         } catch (\DomainException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            Log::error('[WalletController@movements] ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['success' => false, 'message' => 'Error interno.'], 500);
+        }
+    }
+
+    /**
+     * GET /wallet/directories?currency_id=xxx
+     */
+    public function userDirectories(Request $request): JsonResponse
+    {
+        $currencyId = (string) $request->query('currency_id', '');
+
+        try {
+            $wallet      = $this->walletService->findOwnedWalletByCurrency($currencyId);
+            $directories = $this->walletService->getUserDirectories($wallet);
+
+            return response()->json(['success' => true, 'data' => $directories]);
+        } catch (\DomainException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            Log::error('[WalletController@userDirectories] ' . $e->getMessage(), ['exception' => $e]);
+            return response()->json(['success' => true, 'data' => []]);
+        }
+    }
+
+    /**
+     * GET /wallet/pending-operation?currency_id=xxx&type=DEPOSIT|WITHDRAWAL
+     */
+    public function pendingOperation(Request $request): JsonResponse
+    {
+        $currencyId = (string) $request->query('currency_id', '');
+        $type       = strtoupper((string) $request->query('type', ''));
+
+        if (! in_array($type, ['DEPOSIT', 'WITHDRAWAL'], true)) {
+            return response()->json(['success' => true, 'pending' => null]);
+        }
+
+        try {
+            $wallet  = $this->walletService->findOwnedWalletByCurrency($currencyId);
+            $pending = $this->walletService->getPendingOperation((string) $wallet->id, $type);
+
+            return response()->json([
+                'success' => true,
+                'pending' => $pending ? [
+                    'id'          => (string) $pending->id,
+                    'type'        => $pending->type,
+                    'status'      => $pending->status,
+                    'amount'      => (float) $pending->amount,
+                    'description' => $pending->description,
+                    'created_at'  => $pending->created_at,
+                ] : null,
+            ]);
+        } catch (\Throwable) {
+            return response()->json(['success' => true, 'pending' => null]);
         }
     }
 }

@@ -65,15 +65,10 @@ final class WalletService
      * Directorios de pago del usuario filtrados según la moneda de la billetera.
      * VES → PagoMovil | BRL → PIX | USDT → Binance
      */
-    public function getUserDirectories(string $userId, string $walletId): array
+    public function getUserDirectories(Wallet $wallet): array
     {
-        $wallet = Wallet::with('currency')->findOrFail($walletId);
-
-        if ((string) $wallet->user_id !== $userId) {
-            throw new \DomainException('No autorizado.');
-        }
-
-        $iso = strtoupper($wallet->currency->iso_code);
+        $userId = (string) $wallet->user_id;
+        $iso    = strtoupper($wallet->currency->iso_code);
 
         return match (true) {
             in_array($iso, ['VES', 'VED', 'BSS']) => $this->getPagoMovilDirectories($userId),
@@ -135,21 +130,20 @@ final class WalletService
 
     /**
      * Registrar solicitud de depósito con comprobante (STATUS_PENDING, sin tocar el saldo).
+     * Recibe la wallet ya resuelta y verificada desde el controller.
      */
     public function requestDeposit(
-        string $walletId,
-        float  $amount,
-        string $receipt,
+        Wallet  $wallet,
+        float   $amount,
+        string  $receipt,
         ?string $reference = null,
         ?string $notes = null,
     ): Wallet {
-        $wallet = $this->findOwnedWallet($walletId);
-
         if ($wallet->isBlocked()) {
             throw new \DomainException('La billetera está bloqueada.');
         }
 
-        if ($this->getPendingOperation($walletId, WalletMovement::TYPE_DEPOSIT)) {
+        if ($this->getPendingOperation((string) $wallet->id, WalletMovement::TYPE_DEPOSIT)) {
             throw new \DomainException('Ya tienes un depósito pendiente de confirmación. Espera a que sea procesado antes de hacer otro.');
         }
 
@@ -178,17 +172,21 @@ final class WalletService
      * Solicitud de retiro: descuenta el saldo inmediatamente (PENDING).
      * Si admin rechaza/cancela, debe devolverse el monto manualmente.
      */
+    /**
+     * Registrar solicitud de retiro.
+     * Recibe la wallet ya resuelta y verificada desde el controller.
+     */
     public function requestWithdraw(
-        string $walletId,
-        float  $amount,
-        string $directoryId,
-        string $directoryType,
+        Wallet  $wallet,
+        float   $amount,
+        string  $directoryId,
+        string  $directoryType,
         ?string $notes = null,
     ): Wallet {
         $withdrawalMovement = null;
 
-        $wallet = DB::transaction(function () use ($walletId, $amount, $directoryId, $directoryType, $notes, &$withdrawalMovement) {
-            $wallet = $this->findOwnedWallet($walletId);
+        $wallet = DB::transaction(function () use ($wallet, $amount, $directoryId, $directoryType, $notes, &$withdrawalMovement) {
+            $walletId = (string) $wallet->id;
 
             if ($wallet->isBlocked()) {
                 throw new \DomainException('La billetera está bloqueada.');
@@ -356,11 +354,9 @@ final class WalletService
     /**
      * Movimientos paginados de una billetera del usuario autenticado.
      */
-    public function getMovements(string $walletId, int $perPage = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function getMovements(Wallet $wallet, int $perPage = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        $this->findOwnedWallet($walletId); // verifica propiedad
-
-        return $this->movementRepository->getByWallet($walletId, $perPage);
+        return $this->movementRepository->getByWallet((string) $wallet->id, $perPage);
     }
 
     /**
@@ -492,17 +488,21 @@ final class WalletService
         $userId        = (string) $movement->user_id;
         $amount        = (float) $movement->amount;
 
-        // WebSocket: notifica al canal privado del usuario
-        broadcast(new WalletUpdated(
-            userId:         $userId,
-            walletId:       (string) $movement->wallet_id,
-            balance:        (float) ($wallet?->balance ?? 0),
-            currencySymbol: $currencySymbol,
-            movementType:   $movement->type,
-            amount:         $amount,
-            movementStatus: $status,
-            movementId:     (string) $movement->id,
-        ));
+        // WebSocket: notifica al canal privado del usuario (best-effort — no bloquea si Reverb está caído)
+        try {
+            broadcast(new WalletUpdated(
+                userId:         $userId,
+                walletId:       (string) $movement->wallet_id,
+                balance:        (float) ($wallet?->balance ?? 0),
+                currencySymbol: $currencySymbol,
+                movementType:   $movement->type,
+                amount:         $amount,
+                movementStatus: $status,
+                movementId:     (string) $movement->id,
+            ));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('[WalletService] broadcastAndNotifyResult falló (WebSocket no disponible): ' . $e->getMessage());
+        }
 
         // Notificación persistente en tabla notifications
         if ($movement->type === WalletMovement::TYPE_DEPOSIT) {
@@ -529,15 +529,18 @@ final class WalletService
      */
     private function broadcastWalletUpdated(Wallet $wallet, string $type, float $amount): void
     {
-        // Emitir evento WebSocket para actualización en tiempo real
-        broadcast(new WalletUpdated(
-            userId:         (string) $wallet->user_id,
-            walletId:       (string) $wallet->id,
-            balance:        (float)  $wallet->balance,
-            currencySymbol: $wallet->currency->symbol ?? '',
-            movementType:   $type,
-            amount:         $amount,
-        ));
+        try {
+            broadcast(new WalletUpdated(
+                userId:         (string) $wallet->user_id,
+                walletId:       (string) $wallet->id,
+                balance:        (float)  $wallet->balance,
+                currencySymbol: $wallet->currency->symbol ?? '',
+                movementType:   $type,
+                amount:         $amount,
+            ));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('[WalletService] broadcastWalletUpdated falló (WebSocket no disponible): ' . $e->getMessage());
+        }
 
         // Guardar notificación persistente
         $this->notificationService->createWalletNotification(
@@ -562,16 +565,20 @@ final class WalletService
             ? trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? $user->email)
             : 'Usuario';
 
-        // 1. Broadcast WebSocket al canal de admins
-        broadcast(new WalletMovementRequested(
-            movementId:     $movementId,
-            userId:         (string) $wallet->user_id,
-            userName:       $userName,
-            movementType:   $type,
-            amount:         $amount,
-            currencySymbol: $currency?->symbol ?? '',
-            currencyIso:    $currency?->iso_code ?? '',
-        ));
+        // 1. Broadcast WebSocket al canal de admins (best-effort)
+        try {
+            broadcast(new WalletMovementRequested(
+                movementId:     $movementId,
+                userId:         (string) $wallet->user_id,
+                userName:       $userName,
+                movementType:   $type,
+                amount:         $amount,
+                currencySymbol: $currency?->symbol ?? '',
+                currencyIso:    $currency?->iso_code ?? '',
+            ));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('[WalletService] broadcastAdminWalletMovement falló (WebSocket no disponible): ' . $e->getMessage());
+        }
 
         // 2. Notificación persistente en DB para cada admin/superadmin
         $admins = \App\Models\User::withRole('admin')
@@ -603,7 +610,26 @@ final class WalletService
     }
 
     /**
-     * Obtiene una wallet del usuario autenticado o lanza 403.
+     * Resuelve la wallet ACTIVA del usuario autenticado para una moneda dada.
+     * Nunca acepta un wallet_id externo — el cliente solo indica la moneda.
+     */
+    public function findOwnedWalletByCurrency(string $currencyId): Wallet
+    {
+        $wallet = Wallet::with(['currency'])
+            ->where('user_id', (string) Auth::id())
+            ->where('currency_id', $currencyId)
+            ->where('status', 'ACTIVE')
+            ->first();
+
+        if (! $wallet) {
+            throw new \DomainException('No tienes una billetera activa para esa moneda.');
+        }
+
+        return $wallet;
+    }
+
+    /**
+     * Obtiene una wallet del usuario autenticado por su ID (uso interno / admin).
      */
     private function findOwnedWallet(string $walletId): Wallet
     {
