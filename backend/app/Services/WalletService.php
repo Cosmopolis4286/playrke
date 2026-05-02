@@ -12,6 +12,7 @@ use App\Models\Directories\Fiat\Venezuela\PagoMovil;
 use App\Models\Wallet;
 use App\Models\WalletMovement;
 use App\Services\NotificationService;
+use App\Services\WalletFraudService;
 use App\Services\WithdrawalLimitService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,7 @@ final class WalletService
         private readonly WalletMovementRepositoryInterface $movementRepository,
         private readonly NotificationService                $notificationService,
         private readonly WithdrawalLimitService             $withdrawalLimitService,
+        private readonly WalletFraudService                 $fraudService,
     ) {}
 
     /**
@@ -145,6 +147,13 @@ final class WalletService
             throw new \DomainException('La billetera está bloqueada.');
         }
 
+        // Checks antifraude
+        $this->fraudService->checkDepositVelocity((string) $wallet->user_id);
+        $this->fraudService->checkDoubleSubmit((string) $wallet->id, $amount, WalletMovement::TYPE_DEPOSIT);
+        if ($reference) {
+            $this->fraudService->checkDuplicateReference((string) $wallet->id, $reference);
+        }
+
         if ($this->getPendingOperation((string) $wallet->id, WalletMovement::TYPE_DEPOSIT)) {
             throw new \DomainException('Ya tienes un depósito pendiente de confirmación. Espera a que sea procesado antes de hacer otro.');
         }
@@ -187,7 +196,9 @@ final class WalletService
     ): Wallet {
         $withdrawalMovement = null;
 
-        // Validar límites ANTES de abrir la transacción
+        // Checks antifraude y límites ANTES de abrir la transacción
+        $this->fraudService->checkWithdrawalVelocity((string) $wallet->user_id);
+        $this->fraudService->checkDoubleSubmit((string) $wallet->id, $amount, WalletMovement::TYPE_WITHDRAWAL);
         $kycLevel = (int) ($wallet->user?->kyc_level ?? 0);
         $this->withdrawalLimitService->assertWithinLimits($wallet, $amount, $kycLevel);
 

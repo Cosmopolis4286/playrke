@@ -7,6 +7,7 @@ namespace App\Domains\Games\Trivia\Actions;
 use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
 use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
 use App\Domains\Games\Trivia\DTOs\AnswerResultDTO;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
@@ -19,6 +20,10 @@ class SubmitAnswerAction
 {
     // Tiempo máximo permitido para respuesta (segundos)
     private const MAX_RESPONSE_TIME = 30;
+
+    // Velocidad mínima humana: respuestas en menos de 300 ms son sospechosas de bot.
+    // Cubre el tiempo real de procesamiento cognitivo mínimo documentado (~200 ms).
+    private const MIN_HUMAN_RESPONSE_MS = 300;
 
     public function __construct(
         private readonly GameEngineInterface $gameEngine,
@@ -57,6 +62,16 @@ class SubmitAnswerAction
         // Validar tiempo límite
         if ($responseTimeMs > ($question->timeLimitSeconds * 1000)) {
             throw new RuntimeException('Tiempo de respuesta excedido');
+        }
+
+        // Bot gate: ningún humano responde en menos de 300 ms
+        if ($clientTimestamp !== null && $responseTimeMs > 0 && $responseTimeMs < self::MIN_HUMAN_RESPONSE_MS) {
+            Log::warning('[TriviaBot] Respuesta sospechosamente rápida', [
+                'game_id'        => $gameId,
+                'player_id'      => $playerId,
+                'response_ms'    => $responseTimeMs,
+            ]);
+            throw new RuntimeException('Respuesta inválida. Velocidad de respuesta sospechosa.');
         }
 
         // Validar que la respuesta es una opción válida

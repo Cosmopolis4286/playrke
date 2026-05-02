@@ -21,8 +21,9 @@ Route::middleware(['auth', 'multiPermission:wallet.view,wallet.deposit,wallet.wi
     Route::get('wallet/directories',            [WalletController::class, 'userDirectories'])  ->name('wallet.directories');
     Route::get('wallet/pending-operation',      [WalletController::class, 'pendingOperation']) ->name('wallet.pending-operation');
 
-    // Operaciones financieras: requieren TOS aceptados
-    Route::middleware('tos')->group(function () {
+    // Operaciones financieras: requieren TOS + throttle antifraude
+    // throttle:5,1 → máximo 5 intentos por minuto por usuario
+    Route::middleware(['tos', 'throttle:5,1'])->group(function () {
         Route::post('wallet/deposit',  [WalletController::class, 'deposit'])  ->name('wallet.deposit');
         Route::post('wallet/withdraw', [WalletController::class, 'withdraw']) ->name('wallet.withdraw');
     });
