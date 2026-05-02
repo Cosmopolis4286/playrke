@@ -3,15 +3,33 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Head, usePage } from '@inertiajs/vue3'
 import RoomHeader from '@js/Components/Games/Trivia/Room/RoomHeader.vue'
 import PlayerList from '@js/Components/Games/Trivia/Room/PlayerList.vue'
-import JoinForm from '@js/Components/Games/Trivia/Room/JoinForm.vue'
 import { getEchoInstance } from '@js/plugins/echo'
 import type { Room, Player } from '@js/types/trivia'
 
 const page  = usePage()
-const authName = computed<string | null>(() => (page.props as any).auth?.user?.name ?? null)
+// La ruta siempre requiere auth: si hay currentUserId el usuario está autenticado.
+// authName se usa para mostrar el nombre en el botón de unirse.
+const authName = computed<string | null>(() => {
+  if (!props.currentUserId) return null
+  const auth = (page.props as any).auth?.user
+  if (!auth) return 'Jugador'
+  const full = `${auth.first_name ?? ''} ${auth.last_name ?? ''}`.trim()
+  return full || auth.name || auth.username || 'Jugador'
+})
+
+interface Team {
+  id: string
+  name: string
+  color?: string
+  icon?: string
+  maxPlayers: number
+  currentPlayers: number
+}
 
 interface Props {
   room: Room
+  teams?: Team[]
+  gameMode?: 'free_for_all' | 'teams' | 'duel'
   initialPlayers: Player[]
   alreadyJoined: boolean
   currentUserId: string
@@ -29,6 +47,19 @@ const hasJoined  = ref(props.alreadyJoined)
 const isLoading  = ref(false)
 const joinError  = ref<string | null>(null)
 const connectionStatus = ref<'connected' | 'disconnected' | 'reconnecting'>('disconnected')
+const selectedTeamId = ref<string | null>(null)
+const playersByTeam = ref<Record<string, Player[]>>({})
+
+// Computed para verificar si se requiere selección de equipo
+const requiresTeamSelection = computed(() => {
+  return props.gameMode === 'teams' || props.gameMode === 'duel'
+})
+
+// Computed para verificar si el usuario puede unirse
+const canJoin = computed(() => {
+  if (!requiresTeamSelection.value) return true
+  return selectedTeamId.value !== null
+})
 
 // ── Modal de confirmación ───────────────────────────────────────────────────
 const showConfirmModal = ref(false)
@@ -120,6 +151,10 @@ async function handleJoin(playerName: string) {
 
 async function doJoin(playerName: string) {
   if (hasJoined.value) return
+  if (!canJoin.value) {
+    joinError.value = 'Debes seleccionar un equipo para unirte'
+    return
+  }
   isLoading.value = true
   joinError.value = null
   showConfirmModal.value = false
@@ -134,7 +169,10 @@ async function doJoin(playerName: string) {
         'X-Requested-With': 'XMLHttpRequest',
         'X-CSRF-TOKEN':     csrf,
       },
-      body: JSON.stringify({ name: playerName }),
+      body: JSON.stringify({
+        name: playerName,
+        team_id: selectedTeamId.value,
+      }),
     })
 
     const data = await res.json().catch(() => ({}))
@@ -196,9 +234,9 @@ onUnmounted(() => { unsubscribeFromChannel() })
 
 // ── Computed ──────────────────────────────────────────────────────────────────
 
-const showJoinForm  = computed(() => !hasJoined.value && !props.alreadyJoined && !joinError.value && !authName.value)
-const showAuthJoinButton = computed(() => !hasJoined.value && !props.alreadyJoined && !joinError.value && !!authName.value && !isLoading.value)
-const showAuthJoinLoading = computed(() => !hasJoined.value && !props.alreadyJoined && !joinError.value && !!authName.value && isLoading.value)
+const notJoined = computed(() => !hasJoined.value && !props.alreadyJoined && !joinError.value)
+const showAuthJoinButton = computed(() => notJoined.value && !isLoading.value)
+const showAuthJoinLoading = computed(() => notJoined.value && isLoading.value)
 const statusDot     = computed(() => ({
   connected:    'bg-emerald-400',
   reconnecting: 'bg-amber-400 animate-pulse',
@@ -284,12 +322,61 @@ const statusLabel   = computed(() => ({
             </div>
           </Transition>
 
-          <!-- Formulario de unirse (solo jugadores externos) -->
+          <!-- Selección de Equipos -->
           <Transition name="slide-down">
-            <JoinForm
-              v-if="showJoinForm"
-              @join="handleJoin"
-            />
+            <div
+              v-if="requiresTeamSelection && !hasJoined"
+              class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden"
+            >
+              <div class="h-1" :class="props.gameMode === 'duel' ? 'bg-gradient-to-r from-red-500 to-blue-500' : 'bg-gradient-to-r from-indigo-400 to-purple-500'" />
+              <div class="p-4 space-y-4">
+                <div class="text-center">
+                  <h3 class="text-base font-bold text-gray-900 dark:text-white">
+                    {{ props.gameMode === 'duel' ? '⚔️ Elige tu bando' : '👥 Elige tu equipo' }}
+                  </h3>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Selecciona un equipo para unirte
+                  </p>
+                </div>
+
+                <div class="space-y-2">
+                  <button
+                    v-for="team in props.teams"
+                    :key="team.id"
+                    @click="selectedTeamId = team.id"
+                    class="w-full p-3 rounded-xl border-2 transition-all text-left flex items-center gap-3"
+                    :class="selectedTeamId === team.id
+                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                      : 'border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-700'
+                    "
+                    :style="team.color ? { borderColor: selectedTeamId === team.id ? team.color : undefined } : {}"
+                  >
+                    <div
+                      class="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
+                      :style="team.color ? { backgroundColor: team.color + '20', color: team.color } : {}"
+                    >
+                      {{ team.icon || '🏆' }}
+                    </div>
+                    <div class="flex-1">
+                      <p class="font-medium text-gray-900 dark:text-white">{{ team.name }}</p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ team.currentPlayers }}/{{ team.maxPlayers }} jugadores
+                      </p>
+                    </div>
+                    <div
+                      v-if="selectedTeamId === team.id"
+                      class="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center text-sm"
+                    >
+                      ✓
+                    </div>
+                  </button>
+                </div>
+
+                <p v-if="!selectedTeamId" class="text-xs text-center text-amber-600 dark:text-amber-400">
+                  ⚠️ Debes seleccionar un equipo para continuar
+                </p>
+              </div>
+            </div>
           </Transition>
 
           <!-- Botón para unirse (usuario autenticado aún no unido) -->

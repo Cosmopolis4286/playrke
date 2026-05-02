@@ -11,6 +11,7 @@ interface Room {
   description: string | null
   category: string | null
   status: 'waiting' | 'playing'
+  game_mode: 'free_for_all' | 'teams' | 'duel'
   max_players: number
   current_players: number
   question_count: number
@@ -68,6 +69,22 @@ const STATUS_COLOR: Record<string, string> = {
 const STATUS_DOT: Record<string, string> = {
   waiting: 'bg-emerald-400',
   playing: 'bg-blue-400 animate-pulse',
+}
+
+const GAME_MODE_LABEL: Record<string, string> = {
+  free_for_all: 'Todos vs Todos',
+  teams: 'Equipos',
+  duel: 'Duelo',
+}
+const GAME_MODE_ICON: Record<string, string> = {
+  free_for_all: '👤',
+  teams: '👥',
+  duel: '⚔️',
+}
+const GAME_MODE_COLOR: Record<string, string> = {
+  free_for_all: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+  teams: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+  duel: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -257,6 +274,9 @@ function joinRoom(room: Room) {
                 </div>
                 <p v-if="room.description" class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">{{ room.description }}</p>
                 <div class="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
+                  <span :class="['inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium', GAME_MODE_COLOR[room.game_mode]]">
+                    {{ GAME_MODE_ICON[room.game_mode] }} {{ GAME_MODE_LABEL[room.game_mode] }}
+                  </span>
                   <span>❓ {{ room.question_count }} preguntas</span>
                   <span>⏱️ {{ room.time_per_question }}s / pregunta</span>
                   <span v-if="room.category" class="text-indigo-600 dark:text-indigo-400">{{ categoryIcon(room.category) }} {{ room.category }}</span>
@@ -333,6 +353,9 @@ function joinRoom(room: Room) {
 
                   <!-- Meta info -->
                   <div class="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
+                    <span :class="['inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium', GAME_MODE_COLOR[room.game_mode]]">
+                      {{ GAME_MODE_ICON[room.game_mode] }} {{ GAME_MODE_LABEL[room.game_mode] }}
+                    </span>
                     <span class="flex items-center gap-1">❓ {{ room.question_count }} preguntas</span>
                     <span class="flex items-center gap-1">⏱️ {{ room.time_per_question }}s / pregunta</span>
                     <span v-if="hasPrize(room)" class="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 font-medium">

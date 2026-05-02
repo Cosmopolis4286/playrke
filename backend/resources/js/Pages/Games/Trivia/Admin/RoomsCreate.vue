@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { Head, useForm, Link } from '@inertiajs/vue3'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { getRoute } from '@js/routes/triviaRoutes'
 
 interface Currency { id: string; symbol: string; name: string; iso_code: string }
+interface GameMode { value: string; label: string; description: string }
 
 const props = defineProps({
   defaultSettings: Object,
+  gameModes: { type: Array as () => GameMode[], default: () => [] },
   categories: Array as () => string[],
   currencies: { type: Array as () => Currency[], default: () => [] },
   errors: Object,
@@ -16,6 +18,13 @@ const form = useForm({
   title: '',
   description: '',
   category: '',
+  game_mode: 'free_for_all' as 'free_for_all' | 'teams' | 'duel',
+  teams_config: {
+    team_count: 2,
+    team_size: null as number | null,
+    duel_type: '2vs2' as '2vs2' | '1vsX',
+    team_names: ['', ''] as string[],
+  },
   max_players: props.defaultSettings?.max_players || 100,
   question_count: props.defaultSettings?.question_count || 10,
   time_per_question: props.defaultSettings?.time_per_question || 15,
@@ -53,6 +62,32 @@ const scheduledAtError = computed(() => {
     return 'La fecha y hora de inicio debe ser futura'
   }
   return ''
+})
+
+// Computed para mostrar config de equipos
+const showTeamConfig = computed(() => form.game_mode !== 'free_for_all')
+const isDuelMode = computed(() => form.game_mode === 'duel')
+
+// Actualizar team_names cuando cambia team_count
+watch(() => form.teams_config.team_count, (newCount) => {
+  const names = form.teams_config.team_names
+  if (newCount > names.length) {
+    // Agregar nombres vacíos
+    for (let i = names.length; i < newCount; i++) {
+      names.push(i < 2 ? ['Equipo Rojo', 'Equipo Azul'][i] : `Equipo ${i + 1}`)
+    }
+  } else if (newCount < names.length) {
+    // Quitar nombres sobrantes
+    names.splice(newCount)
+  }
+  form.teams_config.team_names = names
+})
+
+// Ajustar team_count para duelo (máximo 2)
+watch(() => form.game_mode, (mode) => {
+  if (mode === 'duel') {
+    form.teams_config.team_count = 2
+  }
 })
 
 const submit = () => {
@@ -138,6 +173,118 @@ const submit = () => {
               <option v-for="cat in categories" :key="cat" :value="cat" />
             </datalist>
             <p class="mt-1 text-xs text-gray-500">Opcional. Escribe o elige una categoría existente.</p>
+          </div>
+
+          <!-- Modo de Juego -->
+          <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              🎮 Modo de Juego
+            </h3>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Selecciona el modo <span class="text-red-500">*</span>
+                </label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <label
+                    v-for="mode in gameModes"
+                    :key="mode.value"
+                    class="relative flex cursor-pointer rounded-lg border p-4 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    :class="form.game_mode === mode.value ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-300 dark:border-gray-600'"
+                  >
+                    <input
+                      v-model="form.game_mode"
+                      type="radio"
+                      :value="mode.value"
+                      class="sr-only"
+                    />
+                    <div class="flex flex-col">
+                      <span class="font-medium text-gray-900 dark:text-white">{{ mode.label }}</span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ mode.description }}</span>
+                    </div>
+                    <div
+                      v-if="form.game_mode === mode.value"
+                      class="absolute top-2 right-2 text-indigo-600"
+                    >
+                      ✓
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Configuración de Equipos (visible si no es free_for_all) -->
+              <div v-if="showTeamConfig" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <h4 class="font-medium text-gray-900 dark:text-white mb-3">
+                  {{ isDuelMode ? '⚔️ Configuración del Duelo' : '👥 Configuración de Equipos' }}
+                </h4>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <!-- Tipo de Duelo -->
+                  <div v-if="isDuelMode">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Tipo de duelo
+                    </label>
+                    <select
+                      v-model="form.teams_config.duel_type"
+                      class="block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    >
+                      <option value="2vs2">2 vs 2 (Igual número)</option>
+                      <option value="1vsX">1 vs Todos (Uno contra todos)</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">
+                      {{ form.teams_config.duel_type === '1vsX' ? 'Equipo 1: 1 jugador | Equipo 2: Todos los demás' : 'Ambos equipos con igual número de jugadores' }}
+                    </p>
+                  </div>
+
+                  <!-- Número de equipos -->
+                  <div v-else>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Número de equipos
+                    </label>
+                    <input
+                      v-model.number="form.teams_config.team_count"
+                      type="number"
+                      min="2"
+                      max="10"
+                      class="block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+
+                  <!-- Tamaño máximo por equipo -->
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Jugadores por equipo
+                    </label>
+                    <input
+                      v-model.number="form.teams_config.team_size"
+                      type="number"
+                      :placeholder="Math.ceil(form.max_players / form.teams_config.team_count).toString()"
+                      min="1"
+                      class="block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                    <p class="mt-1 text-xs text-gray-500">Deja vacío para distribución automática</p>
+                  </div>
+                </div>
+
+                <!-- Nombres de equipos -->
+                <div class="mt-4">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Nombres de los equipos
+                  </label>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input
+                      v-for="(name, index) in form.teams_config.team_names"
+                      :key="index"
+                      v-model="form.teams_config.team_names[index]"
+                      type="text"
+                      :placeholder="'Equipo ' + (index + 1)"
+                      class="block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Configuración del Juego -->
