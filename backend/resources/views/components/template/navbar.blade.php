@@ -132,10 +132,11 @@
 
     // ── Metadatos por tipo de movimiento ─────────────────────
     var TYPE_META = {
-        DEPOSIT:    { label: 'Depósito',      icon: 'fa-arrow-down',  color: '#28a745', sign: '+' },
-        WITHDRAWAL: { label: 'Retiro',         icon: 'fa-arrow-up',    color: '#ffc107', sign: '-' },
-        PURCHASE:   { label: 'Compra cartón',  icon: 'fa-ticket-alt',  color: '#dc3545', sign: '-' },
-        PRIZE:      { label: '¡Premio! 🎉',    icon: 'fa-trophy',      color: '#fd7e14', sign: '+' },
+        DEPOSIT:      { label: 'Depósito',        icon: 'fa-arrow-down',  color: '#28a745', sign: '+' },
+        WITHDRAWAL:   { label: 'Retiro',           icon: 'fa-arrow-up',    color: '#ffc107', sign: '-' },
+        PURCHASE:     { label: 'Compra cartón',    icon: 'fa-ticket-alt',  color: '#dc3545', sign: '-' },
+        PRIZE:        { label: '¡Premio! 🎉',      icon: 'fa-trophy',      color: '#fd7e14', sign: '+' },
+        TRIVIA_ENTRY: { label: 'Entrada Trivia',   icon: 'fa-brain',       color: '#7c3aed', sign: '-' },
     };
 
     var ADMIN_META = {
@@ -318,8 +319,12 @@
         );
     }
 
-    // ── Cargar no leídas desde API ────────────────────────────
-    function loadNotificationsFromAPI() {
+    // ── Estado del panel ──────────────────────────────────────
+    var panelLoaded = false; // se cargaron datos desde API al menos una vez
+    var panelOpen   = false; // panel actualmente abierto
+
+    // ── Cargar no leídas desde API (lazy: solo al abrir) ──────
+    function loadNotificationsFromAPI(callback) {
         apiFetch('/notifications/unread?limit=25')
             .then(function(r) { return r.ok ? r.json() : null; })
             .then(function(json) {
@@ -331,8 +336,10 @@
                     json.data.slice().reverse().forEach(addPersistentNotification);
                     setBadge(json.unread_count || json.data.length);
                 }
+                panelLoaded = true;
+                if (callback) callback();
             })
-            .catch(function() {});
+            .catch(function() { if (callback) callback(); });
     }
 
     // ── Marcar leídas (sin borrar) ────────────────────────────
@@ -350,21 +357,35 @@
                     $list.querySelectorAll('.notif-entry').forEach(function(el) { el.remove(); });
                     if ($empty) $empty.style.display = '';
                     setBadge(0);
+                    panelLoaded = false; // forzar recarga la próxima vez
                 }
             })
             .catch(function() {});
     });
 
-    // ── Abrir panel → marcar como leídas ─────────────────────
+    // ── Abrir panel: lazy load + marcar leídas ────────────────
     document.getElementById('notifToggle').addEventListener('click', function () {
-        if (notifCount > 0 && !panelOpened) {
-            panelOpened = true;
-            setTimeout(function () {
-                markAllReadInAPI();
-                setBadge(0);
-                panelOpened = false;
-            }, 300);
+        if (panelOpen) { panelOpen = false; return; }
+        panelOpen = true;
+
+        // Primera apertura: cargar desde DB, luego marcar leídas
+        if (!panelLoaded) {
+            loadNotificationsFromAPI(function () {
+                if (notifCount > 0) { markAllReadInAPI(); setBadge(0); }
+            });
+        } else if (notifCount > 0) {
+            // Panel ya cargado: solo marcar leídas
+            markAllReadInAPI();
+            setBadge(0);
         }
+
+        // Resetear flag cuando el dropdown se cierra
+        document.addEventListener('click', function onOutside(ev) {
+            if (!ev.target.closest('.nb-notif-menu') && !ev.target.closest('#notifToggle')) {
+                panelOpen = false;
+                document.removeEventListener('click', onOutside);
+            }
+        });
     });
 
     // ── wallet:updated desde Vue ──────────────────────────────
@@ -393,19 +414,15 @@
         }
     }
 
-    // ── Badge inicial desde PHP (antes de que responda la API) ─
+    // ── Badge inicial desde PHP — sin ninguna petición HTTP ───
     var serverCount = window.notificationsData && window.notificationsData.unreadCount
         ? parseInt(window.notificationsData.unreadCount, 10) : 0;
     if (serverCount > 0) setBadge(serverCount);
 
-    // ── Init ──────────────────────────────────────────────────
+    // ── Init: solo WebSocket, nada de fetch al cargar ─────────
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function () {
-            loadNotificationsFromAPI();
-            boot();
-        });
+        document.addEventListener('DOMContentLoaded', boot);
     } else {
-        loadNotificationsFromAPI();
         boot();
     }
 
