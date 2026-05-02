@@ -26,6 +26,8 @@ class TriviaRoom extends BaseModel
         'category',
         'host_id',
         'status', // 'waiting', 'playing', 'closed', 'cancelled'
+        'game_mode', // 'free_for_all', 'teams', 'duel', 'tournament'
+        'teams_config',       // jsonb
         'max_players',
         'question_count',
         'time_per_question',
@@ -49,6 +51,7 @@ class TriviaRoom extends BaseModel
     protected $casts = [
         'settings'           => 'array',
         'metadata'           => 'array',
+        'teams_config'       => 'array',
         'scheduled_at'       => 'datetime',
         'started_at'         => 'datetime',
         'ended_at'           => 'datetime',
@@ -67,11 +70,35 @@ class TriviaRoom extends BaseModel
     }
 
     /**
+     * Relación: Equipos de esta sala (para modos teams/duel).
+     */
+    public function teams(): HasMany
+    {
+        return $this->hasMany(TriviaTeam::class, 'room_id');
+    }
+
+    /**
      * Relación: Preguntas de esta sala.
      */
     public function questions(): HasMany
     {
         return $this->hasMany(TriviaQuestion::class, 'room_id');
+    }
+
+    /**
+     * Verificar si la sala usa equipos.
+     */
+    public function usesTeams(): bool
+    {
+        return in_array($this->game_mode, ['teams', 'duel']);
+    }
+
+    /**
+     * Verificar si es modo duel (2 equipos o 1vsX).
+     */
+    public function isDuelMode(): bool
+    {
+        return $this->game_mode === 'duel';
     }
 
     /**

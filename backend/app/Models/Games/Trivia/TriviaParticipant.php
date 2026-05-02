@@ -12,6 +12,7 @@ class TriviaParticipant extends BaseModel
 
     protected $fillable = [
         'room_id',
+        'team_id',              // null si es free_for_all
         'user_id',
         'status',               // registered, confirmed, playing, eliminated, winner, abandoned
         'registered_at',
@@ -50,6 +51,11 @@ class TriviaParticipant extends BaseModel
     public function room(): BelongsTo
     {
         return $this->belongsTo(TriviaRoom::class, 'room_id');
+    }
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domains\Games\Trivia\Models\TriviaTeam::class, 'team_id');
     }
 
     // El usuario está en MySQL, no se puede hacer relación directa Eloquent
