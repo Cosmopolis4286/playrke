@@ -1,11 +1,14 @@
 import { ref, computed } from 'vue'
-import { useForm } from '@inertiajs/vue3'
+import backendClient, { getCsrfCookie } from '@js/plugins/axios'
 import { showToast } from '@js/utils/toastNotify'
+import type { KycState } from '@js/types/kyc'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ProfileUser {
     id: string
+    first_name: string | null
+    last_name: string | null
     name: string
     username: string
     email: string
@@ -16,10 +19,13 @@ export interface ProfileUser {
     country_iso: string | null
     bio: string | null
     is_verified: boolean
+    kyc_level: 0 | 1 | 2
+    kyc_status: 'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED'
+    tos_accepted_at: string | null
     created_at: string
     last_active?: string
-    roles: Array<{ id: string; name: string; description?: string }>
-    wallet: { balance: number; currency: string } | null
+    roles: Array<{ id: string; name: string; description?: string | null }>
+    wallet: { balance: number; currency: string; symbol: string } | null
 }
 
 export interface CountryOption {
@@ -36,32 +42,52 @@ export interface ProfilePreferences {
     game_settings: { sound_enabled: boolean; music_enabled: boolean; auto_dauber: boolean; card_animation: boolean }
 }
 
+export interface ProfileSession {
+    id: string
+    is_current: boolean
+    ip_address: string | null
+    user_agent: string
+    last_activity: number
+    device: string
+}
+
 // ─── Composable ───────────────────────────────────────────────────────────────
 
 export function useProfile(
     initialUser: ProfileUser,
     initialPreferences: ProfilePreferences,
     countries: CountryOption[],
+    initialKyc: KycState | null = null,
 ) {
-    // ── State ──────────────────────────────────────────────────────────────────
+    // ── State ──────────────────────────────────────────────────────────────
+    const saving        = ref(false)
     const editMode      = ref(false)
     const activeTab     = ref<'personal' | 'stats' | 'preferences' | 'security'>('personal')
     const showPassword  = ref(false)
     const showAvatar    = ref(false)
+    const showKycModal  = ref(false)
     const user          = ref<ProfileUser>({ ...initialUser })
+    const kycState      = ref<KycState | null>(initialKyc)
+    const sessions      = ref<ProfileSession[]>([])
+    const sessionsLoading = ref(false)
+    const errorMsg      = ref<string | null>(null)
 
-    // ── Profile form ───────────────────────────────────────────────────────────
-    const profileForm = useForm({
-        name:       initialUser.name,
+    // ── Profile form ───────────────────────────────────────────────────────
+    const profileForm = ref({
+        first_name: initialUser.first_name ?? '',
+        last_name:  initialUser.last_name  ?? '',
         username:   initialUser.username,
         email:      initialUser.email,
         phone:      initialUser.phone ?? '',
         birth_date: initialUser.birth_date ?? '',
         country_id: initialUser.country_id ?? '',
+        bio:        initialUser.bio ?? '',
+        errors:     {} as Record<string, string>,
+        processing: false,
     })
 
-    // ── Preferences form ───────────────────────────────────────────────────────
-    const prefsForm = useForm({
+    // ── Preferences ────────────────────────────────────────────────────────
+    const prefsForm = ref<ProfilePreferences>({
         language:      initialPreferences.language,
         timezone:      initialPreferences.timezone,
         notifications: { ...initialPreferences.notifications },
@@ -69,66 +95,89 @@ export function useProfile(
         game_settings: { ...initialPreferences.game_settings },
     })
 
-    // ── Computed ───────────────────────────────────────────────────────────────
-    const selectedCountryName = computed(() => {
-        if (!user.value.country_id) return ''
-        return countries.find(c => c.value === user.value.country_id)?.label ?? ''
-    })
+    // ── Computed ───────────────────────────────────────────────────────────
+    const selectedCountryName = computed(() =>
+        countries.find(c => c.value === user.value.country_id)?.label ?? ''
+    )
 
     const isBirthDateEditable = computed(() =>
         editMode.value || !user.value.birth_date
     )
 
-    // ── Actions ────────────────────────────────────────────────────────────────
+    const kycLevelLabel = computed(() => {
+        const map = { 0: 'Sin verificar', 1: 'Básico', 2: 'Completo' }
+        return map[user.value.kyc_level] ?? 'Sin verificar'
+    })
+
+    // ── Actions ────────────────────────────────────────────────────────────
     function toggleEdit() {
-        if (editMode.value) {
-            saveProfile()
-        } else {
-            editMode.value = true
-        }
+        if (editMode.value) saveProfile()
+        else editMode.value = true
     }
 
     function cancelEdit() {
-        profileForm.reset()
+        profileForm.value = {
+            first_name: user.value.first_name ?? '',
+            last_name:  user.value.last_name  ?? '',
+            username:   user.value.username,
+            email:      user.value.email,
+            phone:      user.value.phone ?? '',
+            birth_date: user.value.birth_date ?? '',
+            country_id: user.value.country_id ?? '',
+            bio:        user.value.bio ?? '',
+            errors:     {},
+            processing: false,
+        }
         editMode.value = false
+        errorMsg.value = null
     }
 
-    function saveProfile() {
-        profileForm.put('/profile/api/profile', {
-            onSuccess: () => {
-                showToast('Perfil actualizado exitosamente', 'success')
+    async function saveProfile() {
+        profileForm.value.processing = true
+        profileForm.value.errors     = {}
+        errorMsg.value               = null
+
+        try {
+            await getCsrfCookie()
+            const { data } = await backendClient.put('/profile/update', {
+                first_name: profileForm.value.first_name,
+                last_name:  profileForm.value.last_name,
+                username:   profileForm.value.username,
+                email:      profileForm.value.email,
+                phone:      profileForm.value.phone || null,
+                birth_date: profileForm.value.birth_date || null,
+                country_id: profileForm.value.country_id || null,
+                bio:        profileForm.value.bio || null,
+            })
+
+            if (data.success) {
+                user.value     = { ...user.value, ...data.data }
                 editMode.value = false
-                // sync local user ref
-                user.value = {
-                    ...user.value,
-                    name:       profileForm.name,
-                    username:   profileForm.username,
-                    email:      profileForm.email,
-                    phone:      profileForm.phone || null,
-                    birth_date: profileForm.birth_date || null,
-                    country_id: profileForm.country_id || null,
-                }
-            },
-            onError: () => {
-                showToast('Error al actualizar el perfil', 'error')
-            },
-        })
+                showToast('Perfil actualizado correctamente', 'success')
+                // Sync Blade navbar avatar
+                document.querySelectorAll<HTMLImageElement>('.user-img').forEach(img => {
+                    if (user.value.avatar) img.src = user.value.avatar
+                })
+            }
+        } catch (err: any) {
+            if (err?.response?.data?.errors) {
+                profileForm.value.errors = Object.fromEntries(
+                    Object.entries(err.response.data.errors).map(([k, v]) => [k, (v as string[])[0]])
+                )
+            }
+            errorMsg.value = err?.response?.data?.message ?? 'Error al guardar los cambios.'
+            showToast('Error al actualizar el perfil', 'error')
+        } finally {
+            profileForm.value.processing = false
+        }
     }
 
     async function savePreferences(patch: Partial<ProfilePreferences>) {
-        const csrf = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? ''
         try {
-            const res = await fetch('/profile/api/preferences', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrf,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify(patch),
-            })
-            const data = await res.json()
+            await getCsrfCookie()
+            const { data } = await backendClient.put('/profile/preferences', patch)
             if (data.success) {
+                prefsForm.value = { ...prefsForm.value, ...patch }
                 showToast('Preferencias guardadas', 'success')
             } else {
                 showToast('Error al guardar preferencias', 'error')
@@ -142,7 +191,6 @@ export function useProfile(
         if (newAvatar !== undefined) {
             user.value.avatar = newAvatar
             showToast('Avatar actualizado', 'success')
-            // Update Blade navbar images (rendered server-side, outside Vue root)
             document.querySelectorAll<HTMLImageElement>('.user-img').forEach(img => {
                 img.src = newAvatar
             })
@@ -155,45 +203,84 @@ export function useProfile(
         showPassword.value = false
     }
 
-    // ── Formatters (shared) ────────────────────────────────────────────────────
+    function onKycUpdated(newState: KycState) {
+        kycState.value       = newState
+        user.value.kyc_level  = newState.kyc_level
+        user.value.kyc_status = newState.kyc_status
+        showKycModal.value   = false
+    }
+
+    // ── Sessions ───────────────────────────────────────────────────────────
+    async function loadSessions() {
+        sessionsLoading.value = true
+        try {
+            const { data } = await backendClient.get('/profile/sessions')
+            if (data.success) sessions.value = data.data
+        } catch {
+            // silencioso
+        } finally {
+            sessionsLoading.value = false
+        }
+    }
+
+    async function revokeSession(id: string) {
+        try {
+            await getCsrfCookie()
+            const { data } = await backendClient.delete(`/profile/sessions/${id}`)
+            if (data.success) {
+                sessions.value = sessions.value.filter(s => s.id !== id)
+                showToast('Sesión cerrada', 'success')
+            } else {
+                showToast(data.message ?? 'Error al cerrar la sesión', 'error')
+            }
+        } catch (err: any) {
+            showToast(err?.response?.data?.message ?? 'Error al cerrar la sesión', 'error')
+        }
+    }
+
+    async function revokeAllSessions() {
+        try {
+            await getCsrfCookie()
+            const { data } = await backendClient.delete('/profile/sessions')
+            if (data.success) {
+                sessions.value = sessions.value.filter(s => s.is_current)
+                showToast('Todas las otras sesiones han sido cerradas', 'success')
+            }
+        } catch {
+            showToast('Error al cerrar las sesiones', 'error')
+        }
+    }
+
+    // ── Formatters ─────────────────────────────────────────────────────────
     function formatDate(dateString: string | null | undefined, withTime = false): string {
         if (!dateString) return 'No disponible'
         return new Date(dateString).toLocaleDateString('es-VE', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+            year: 'numeric', month: 'long', day: 'numeric',
             ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
         })
     }
 
     function formatCurrency(amount: number | null, currency: unknown): string {
-        if (!amount) return '$0.00'
+        if (!amount) return '0.00'
         const code = typeof currency === 'string' ? currency : 'USD'
         return new Intl.NumberFormat('es-VE', { style: 'currency', currency: code }).format(amount)
     }
 
+    function formatUnixDate(ts: number): string {
+        return new Date(ts * 1000).toLocaleDateString('es-VE', {
+            day: '2-digit', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+        })
+    }
+
     return {
-        // state
-        user,
-        editMode,
-        activeTab,
-        showPassword,
-        showAvatar,
-        // forms
-        profileForm,
-        prefsForm,
-        // computed
-        selectedCountryName,
-        isBirthDateEditable,
-        // actions
-        toggleEdit,
-        cancelEdit,
-        saveProfile,
-        savePreferences,
-        onAvatarUpdated,
-        onPasswordChanged,
-        // formatters
-        formatDate,
-        formatCurrency,
+        user, editMode, activeTab, showPassword, showAvatar, showKycModal,
+        profileForm, prefsForm, kycState, sessions, sessionsLoading, errorMsg,
+        saving,
+        selectedCountryName, isBirthDateEditable, kycLevelLabel,
+        toggleEdit, cancelEdit, saveProfile, savePreferences,
+        onAvatarUpdated, onPasswordChanged, onKycUpdated,
+        loadSessions, revokeSession, revokeAllSessions,
+        formatDate, formatCurrency, formatUnixDate,
     }
 }

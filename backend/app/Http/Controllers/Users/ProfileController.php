@@ -4,19 +4,20 @@ namespace App\Http\Controllers\Users;
 
 use App\Http\Controllers\Controller;
 use App\Models\Country;
-use App\Models\Shared\DocumentType;
 use App\Models\User;
+use App\Services\KycService;
 use App\Services\ProfileService;
+use App\Services\TosService;
 use App\Traits\Users\UserTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class ProfileController extends Controller
 {
@@ -24,408 +25,331 @@ class ProfileController extends Controller
 
     public function __construct(
         protected ProfileService $profileService,
+        protected KycService     $kycService,
+        protected TosService     $tosService,
     ) {}
 
-    /**
-     * Vista del perfil del usuario.
-     *
-     * @return \Inertia\Response
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // Página principal
+    // ─────────────────────────────────────────────────────────────────────────
+
     public function index(): \Inertia\Response
     {
-        $user = Auth::user()->load(['roles', 'wallets', 'country']);
-
-        // Obtener el primer wallet del usuario si existe
+        $user  = Auth::user()->load(['roles', 'wallets.currency', 'country', 'userLevel', 'achievements']);
         $wallet = $user->wallets->first();
 
-        // Cargar países para el select
-        $countries = Country::orderBy('name')->get(['id', 'name', 'iso_code_2']);
-        
-        // Obtener estadísticas del usuario
-        $stats = [
-            'games_played' => 0,
-            'games_won' => 0,
-            'total_winnings' => 0,
-            'current_streak' => 0,
-            'best_streak' => 0,
-            'level' => 1,
-            'experience_points' => 0,
-            'achievements_count' => 0,
-            'join_date' => $user->created_at->format('Y-m-d'),
-            'last_active' => $user->last_login_at?->format('Y-m-d H:i:s') ?? $user->updated_at->format('Y-m-d H:i:s'),
-        ];
-
-        // Obtener preferencias del usuario
-        $preferences = [
-            'language' => $user->user_preferences['language'] ?? 'es',
-            'timezone' => $user->user_preferences['timezone'] ?? 'America/Caracas',
-            'notifications' => $user->user_preferences['notifications'] ?? [
-                'email' => true,
-                'push' => true,
-                'sms' => false,
-            ],
-            'privacy' => $user->user_preferences['privacy'] ?? [
-                'profile_visible' => true,
-                'show_email' => false,
-                'show_phone' => false,
-            ],
-            'game_settings' => $user->user_preferences['game_settings'] ?? [
-                'sound_enabled' => true,
-                'music_enabled' => true,
-                'auto_dauber' => false,
-                'card_animation' => true,
-            ],
+        $stats = $this->buildStats($user);
+        $prefs = $this->buildPreferences($user);
+        $kyc   = $this->kycService->statusForUser($user);
+        $tos   = [
+            'needs_acceptance' => $this->tosService->needsAcceptance($user),
+            'accepted_version' => $user->tos_accepted_version,
+            'accepted_at'      => $user->tos_accepted_at?->toIso8601String(),
         ];
 
         return Inertia::render('Profile/Index', [
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->first_name . ' ' . $user->last_name,
-                'username' => $user->username,
-                'email' => $user->email,
-                'avatar' => $user->profile_photo_url,
-                'phone' => $user->phone_number,
-                'birth_date' => $user->birth_date?->format('Y-m-d'),
-                'country_id' => (string) $user->country_id,
-                'country_iso' => $user->country?->iso_code_2,
-                'bio' => $user->bio,
-                'is_verified' => !is_null($user->email_verified_at),
-                'created_at' => $user->created_at,
-                'roles' => $user->roles,
-                'wallet' => $wallet ? [
-                    'balance' => $wallet->balance,
-                    'currency' => $wallet->currency,
-                ] : null,
-            ],
-            'countries' => $countries->map(fn($c) => [
-                'value' => (string) $c->id,
-                'label' => $c->name,
-                'iso'   => $c->iso_code_2,
-            ]),
-            'stats' => $stats,
-            'preferences' => $preferences,
+            'user'        => $this->serializeUser($user, $wallet),
+            'countries'   => Country::orderBy('name')->get(['id', 'name', 'iso_code_2'])
+                                ->map(fn($c) => ['value' => (string) $c->id, 'label' => $c->name, 'iso' => $c->iso_code_2]),
+            'stats'       => $stats,
+            'preferences' => $prefs,
+            'kyc'         => $kyc,
+            'tos'         => $tos,
         ]);
     }
 
-    public function update($request, $id)
-    {
-        $user = User::findOrFail($id);
+    // ─────────────────────────────────────────────────────────────────────────
+    // GET /profile/data
+    // ─────────────────────────────────────────────────────────────────────────
 
-        $files = $request->file("foto");
-        $nombreimg = date("Y-m-d hms") . '.' . $files->getClientOriginalExtension();
-
-        if (empty($files) == false) {
-            if ($user->foto != $nombreimg) {
-                $ruta = public_path('imgSystem/imgUsers/' . $nombreimg);
-                InterventionImage::make($request->file("foto"))
-                    ->resize(100, null, function ($constraint) {
-                        $constraint->aspectRatio();
-                    })->save($ruta);
-                $user->foto = $nombreimg;
-            }
-        }
-
-        $user->update(['name' => $request->name, 'last_name' => $request->last_name]);
-
-        return redirect()->back();
-    }
-
-    /**
-     * Obtener datos del perfil para API
-     */
     public function getProfileData(): JsonResponse
     {
-        $user = Auth::user()->load(['roles', 'wallet']);
+        $user   = Auth::user()->load(['roles', 'wallets.currency', 'country']);
+        $wallet = $user->wallets->first();
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'id' => $user->id,
-                'name' => $user->first_name . ' ' . $user->last_name,
-                'username' => $user->username,
-                'email' => $user->email,
-                'avatar' => $user->profile_photo_url,
-                'phone' => $user->phone_number,
-                'birth_date' => $user->birth_date,
-                'country' => $user->country_id,
-                'bio' => $user->bio,
-                'is_verified' => !is_null($user->email_verified_at),
-                'created_at' => $user->created_at,
-                'roles' => $user->roles->pluck('name'),
-                'wallet' => $user->wallet ? [
-                    'balance' => $user->wallet->balance,
-                    'currency' => $user->wallet->currency,
-                ] : null,
-            ]
+            'data'    => $this->serializeUser($user, $wallet),
         ]);
     }
 
-    /**
-     * Actualizar perfil del usuario
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // PUT /profile/update
+    // ─────────────────────────────────────────────────────────────────────────
+
     public function updateProfile(Request $request): JsonResponse
     {
         $user = Auth::user();
 
-        $validator = Validator::make($request->all(), [
-            'name'       => 'required|string|max:255',
-            'username'   => 'required|string|max:255|unique:users,username,' . $user->id,
-            'email'      => 'required|email|max:255|unique:users,email,' . $user->id,
-            'phone'      => 'nullable|string|max:20',
-            'birth_date' => 'nullable|date|before:today',
-            'country_id' => 'nullable|string|exists:countries,id',
-            'bio'        => 'nullable|string|max:500',
+        $request->validate([
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name'  => ['nullable', 'string', 'max:100'],
+            'username'   => ['required', 'string', 'max:30', 'unique:users,username,' . $user->id],
+            'email'      => ['required', 'email', 'max:320', 'unique:users,email,' . $user->id],
+            'phone'      => ['nullable', 'string', 'max:25'],
+            'birth_date' => ['nullable', 'date', 'before:today'],
+            'country_id' => ['nullable', 'string', 'exists:countries,id'],
+            'bio'        => ['nullable', 'string', 'max:500'],
+        ], [
+            'username.unique'   => 'Este nombre de usuario ya está en uso.',
+            'email.unique'      => 'Este correo ya está registrado.',
+            'birth_date.before' => 'La fecha de nacimiento debe ser en el pasado.',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        // Separar name en first_name / last_name
-        $nameParts = explode(' ', trim($request->name), 2);
         $user->update([
-            'first_name'   => $nameParts[0],
-            'last_name'    => $nameParts[1] ?? null,
+            'first_name'   => $request->first_name,
+            'last_name'    => $request->last_name,
             'username'     => $request->username,
             'email'        => $request->email,
             'phone_number' => $request->phone,
             'birth_date'   => $request->birth_date,
             'country_id'   => $request->country_id,
+            'bio'          => $request->bio,
         ]);
+
+        $user->refresh()->load(['wallets.currency', 'country']);
+        $wallet = $user->wallets->first();
 
         return response()->json([
             'success' => true,
-            'message' => 'Profile updated successfully',
-            'data' => $user->fresh()
+            'message' => 'Perfil actualizado correctamente.',
+            'data'    => $this->serializeUser($user, $wallet),
         ]);
     }
 
-    /**
-     * Subir y procesar el avatar del usuario.
-     *
-     * Pipeline:
-     *  1. Validación: jpeg/png/gif, máx 5 MB en upload
-     *  2. Redimensiona a 400×400 px (cover, sin deformar)
-     *  3. Convierte siempre a JPEG y comprime al 80 %
-     *  4. Elimina el avatar anterior del disco
-     *  5. Guarda en storage/app/public/avatars/
-     */
-    public function uploadAvatar(Request $request): JsonResponse
+    // ─────────────────────────────────────────────────────────────────────────
+    // PATCH /profile/password
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function changePassword(Request $request): JsonResponse
     {
         $request->validate([
-            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // 5 MB
+            'current_password' => ['required', 'current_password'],
+            'new_password'     => ['required', 'string', 'min:8', 'confirmed', 'different:current_password'],
+        ], [
+            'current_password.current_password' => 'La contraseña actual es incorrecta.',
+            'new_password.different'            => 'La nueva contraseña debe ser diferente a la actual.',
+            'new_password.confirmed'            => 'Las contraseñas no coinciden.',
         ]);
 
+        $this->profileService->changePassword($request->user()->id, $request->new_password);
+
+        return response()->json(['success' => true, 'message' => 'Contraseña actualizada correctamente.']);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // POST /profile/avatar
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        $request->validate(['avatar' => ['required', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120']]);
+
         try {
-            $user = Auth::user();
-            $file = $request->file('avatar');
-
-            // getContent() es el método seguro de Symfony UploadedFile —
-            // funciona aunque getRealPath() falle en Windows con archivos temporales
-            $binaryContent = $file->getContent();
-
-            // Procesar imagen con Intervention Image v3 (driver GD)
+            $user    = Auth::user();
             $manager = new ImageManager(new Driver());
-            $image   = $manager->read($binaryContent);
-
-            // Redimensionar a 400×400 recortando al centro (cover)
+            $image   = $manager->read($request->file('avatar')->getContent());
             $image->cover(400, 400);
-
-            // Codificar como JPEG al 80 % de calidad
             $encoded  = $image->toJpeg(80);
             $filename = time() . '_' . uniqid() . '.jpg';
-            $directory = 'avatars';
 
-            // Guardar en disco public
-            Storage::disk('public')->makeDirectory($directory);
-            Storage::disk('public')->put("{$directory}/{$filename}", $encoded);
+            Storage::disk('public')->makeDirectory('avatars');
+            Storage::disk('public')->put("avatars/{$filename}", $encoded);
 
-            $publicPath = "/storage/{$directory}/{$filename}";
-
-            // Eliminar avatar anterior
             if ($user->profile_photo_url) {
                 $old = ltrim(str_replace('/storage/', '', $user->profile_photo_url), '/');
                 Storage::disk('public')->delete($old);
             }
 
-            $user->update(['profile_photo_url' => $publicPath]);
+            $path = "/storage/avatars/{$filename}";
+            $user->update(['profile_photo_url' => $path]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Avatar actualizado correctamente',
-                'data'    => ['avatar' => $publicPath],
-            ]);
-
-        } catch (\Exception $e) {
-            \Log::error('Avatar upload error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al procesar el avatar',
-            ], 500);
+            return response()->json(['success' => true, 'message' => 'Avatar actualizado.', 'data' => ['avatar' => $path]]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Avatar upload: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al procesar el avatar.'], 500);
         }
     }
 
-    /**
-     * Eliminar avatar del usuario
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // DELETE /profile/avatar
+    // ─────────────────────────────────────────────────────────────────────────
+
     public function deleteAvatar(): JsonResponse
     {
-        try {
-            $user = Auth::user();
+        $user = Auth::user();
 
-            if ($user->profile_photo_url) {
-                $oldPath = str_replace('/storage/', '', $user->profile_photo_url);
-                Storage::disk('public')->delete($oldPath);
-                $user->update(['profile_photo_url' => null]);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Avatar deleted successfully'
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Avatar delete error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error deleting avatar: ' . $e->getMessage()
-            ], 500);
+        if ($user->profile_photo_url) {
+            $old = ltrim(str_replace('/storage/', '', $user->profile_photo_url), '/');
+            Storage::disk('public')->delete($old);
+            $user->update(['profile_photo_url' => null]);
         }
+
+        return response()->json(['success' => true, 'message' => 'Avatar eliminado.']);
     }
 
-    /**
-     * Obtener preferencias del usuario
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // GET /profile/preferences  |  PUT /profile/preferences
+    // ─────────────────────────────────────────────────────────────────────────
+
     public function getPreferences(): JsonResponse
     {
-        $user = Auth::user();
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'language' => $user->user_preferences['language'] ?? 'es',
-                'timezone' => $user->user_preferences['timezone'] ?? 'America/Caracas',
-                'notifications' => $user->user_preferences['notifications'] ?? [
-                    'email' => true,
-                    'push' => true,
-                    'sms' => false,
-                ],
-                'privacy' => $user->user_preferences['privacy'] ?? [
-                    'profile_visible' => true,
-                    'show_email' => false,
-                    'show_phone' => false,
-                ],
-                'game_settings' => $user->user_preferences['game_settings'] ?? [
-                    'sound_enabled' => true,
-                    'music_enabled' => true,
-                    'auto_dauber' => false,
-                    'card_animation' => true,
-                ],
-            ]
-        ]);
+        return response()->json(['success' => true, 'data' => $this->buildPreferences(Auth::user())]);
     }
 
-    /**
-     * Actualizar preferencias del usuario
-     */
     public function updatePreferences(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'language' => 'nullable|string|max:10',
-            'timezone' => 'nullable|string|max:50',
-            'notifications' => 'nullable|array',
-            'privacy' => 'nullable|array',
-            'game_settings' => 'nullable|array',
+        $request->validate([
+            'language'      => ['nullable', 'string', 'max:10'],
+            'timezone'      => ['nullable', 'string', 'max:50'],
+            'notifications' => ['nullable', 'array'],
+            'privacy'       => ['nullable', 'array'],
+            'game_settings' => ['nullable', 'array'],
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $user = Auth::user();
-        
-        $preferences = array_merge($user->user_preferences ?? [], $request->only([
-            'language', 'timezone', 'notifications', 'privacy', 'game_settings'
+        $user  = Auth::user();
+        $prefs = array_merge($user->user_preferences ?? [], $request->only([
+            'language', 'timezone', 'notifications', 'privacy', 'game_settings',
         ]));
 
-        $user->update(['user_preferences' => $preferences]);
+        $user->update(['user_preferences' => $prefs]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Preferences updated successfully',
-            'data' => $preferences
-        ]);
+        return response()->json(['success' => true, 'message' => 'Preferencias guardadas.', 'data' => $prefs]);
     }
 
-    /**
-     * Obtener estadísticas del usuario
-     */
+    // ─────────────────────────────────────────────────────────────────────────
+    // GET /profile/stats
+    // ─────────────────────────────────────────────────────────────────────────
+
     public function getStats(): JsonResponse
     {
-        $user = Auth::user();
-
-        // Aquí deberías obtener las estadísticas reales de tu base de datos
-        // Por ahora, devolvemos datos de ejemplo
-        $stats = [
-            'games_played' => $user->games_played ?? 0,
-            'games_won' => $user->games_won ?? 0,
-            'total_winnings' => $user->total_winnings ?? 0,
-            'current_streak' => $user->current_streak ?? 0,
-            'best_streak' => $user->best_streak ?? 0,
-            'level' => $user->level ?? 1,
-            'experience_points' => $user->experience_points ?? 0,
-            'achievements_count' => $user->achievements()->count() ?? 0,
-            'join_date' => $user->created_at->format('Y-m-d'),
-            'last_active' => $user->last_login_at?->format('Y-m-d H:i:s') ?? $user->updated_at->format('Y-m-d H:i:s'),
-        ];
-
-        return response()->json([
-            'success' => true,
-            'data' => $stats
-        ]);
+        $user = Auth::user()->load(['userLevel', 'achievements']);
+        return response()->json(['success' => true, 'data' => $this->buildStats($user)]);
     }
 
-    /**
-     * Cambiar la contraseña del usuario autenticado
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function changePassword(Request $request): JsonResponse
+    // ─────────────────────────────────────────────────────────────────────────
+    // Sesiones
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getSessions(Request $request): JsonResponse
     {
-        $request->validate(
-            [
-                'current_password' => ['required', 'current_password'],
-                'new_password' => ['required', 'string', 'min:8', 'confirmed', 'different:current_password'],
-            ],
-            [
-                'current_password.current_password' => 'La contraseña actual es incorrecta.',
-                'new_password.different' => 'La nueva contraseña no puede ser la misma que la contraseña actual.',
-                'new_password.confirmed' => 'La confirmación de la nueva contraseña no coincide.',
-            ]
-        );
+        $currentId = $request->session()->getId();
 
-        return $this->handleServiceJson(
-            function () use ($request) {
-                $this->profileService->changePassword(
-                    $request->user()->id,
-                    $request->new_password
-                );
+        $rows = DB::table('sessions')
+            ->where('user_id', Auth::id())
+            ->orderByDesc('last_activity')
+            ->limit(10)
+            ->get();
 
-                // $request->session()->regenerate();
+        $sessions = $rows->map(fn($row) => [
+            'id'            => $row->id,
+            'is_current'    => $row->id === $currentId,
+            'ip_address'    => $row->ip_address,
+            'user_agent'    => $row->user_agent ?? '',
+            'last_activity' => $row->last_activity,
+            'device'        => $this->parseDevice($row->user_agent ?? ''),
+        ]);
 
-                return [
-                    'message' => '✅ Contraseña actualizada correctamente',
-                ];
-            },
-            'No se pudo cambiar la contraseña.'
-        );
+        return response()->json(['success' => true, 'data' => $sessions]);
+    }
+
+    public function revokeSession(Request $request, string $id): JsonResponse
+    {
+        $currentId = $request->session()->getId();
+
+        if ($id === $currentId) {
+            return response()->json(['success' => false, 'message' => 'No puedes cerrar la sesión actual desde aquí.'], 422);
+        }
+
+        DB::table('sessions')->where('id', $id)->where('user_id', Auth::id())->delete();
+
+        return response()->json(['success' => true, 'message' => 'Sesión cerrada.']);
+    }
+
+    public function revokeAllSessions(Request $request): JsonResponse
+    {
+        $currentId = $request->session()->getId();
+
+        DB::table('sessions')
+            ->where('user_id', Auth::id())
+            ->where('id', '!=', $currentId)
+            ->delete();
+
+        return response()->json(['success' => true, 'message' => 'Todas las otras sesiones han sido cerradas.']);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Helpers privados
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private function serializeUser($user, $wallet): array
+    {
+        return [
+            'id'               => (string) $user->id,
+            'first_name'       => $user->first_name,
+            'last_name'        => $user->last_name,
+            'name'             => trim($user->first_name . ' ' . $user->last_name),
+            'username'         => $user->username,
+            'email'            => $user->email,
+            'avatar'           => $user->profile_photo_url,
+            'phone'            => $user->phone_number,
+            'birth_date'       => $user->birth_date?->format('Y-m-d'),
+            'country_id'       => (string) $user->country_id,
+            'country_iso'      => $user->country?->iso_code_2,
+            'bio'              => $user->bio,
+            'is_verified'      => ! is_null($user->email_verified_at),
+            'kyc_level'        => (int) ($user->kyc_level ?? 0),
+            'kyc_status'       => $user->kyc_status ?? 'NONE',
+            'tos_accepted_at'  => $user->tos_accepted_at?->toIso8601String(),
+            'created_at'       => $user->created_at->toIso8601String(),
+            'last_active'      => $user->last_login_at?->toIso8601String() ?? $user->updated_at->toIso8601String(),
+            'roles'            => $user->roles->map(fn($r) => ['id' => (string) $r->id, 'name' => $r->name, 'description' => $r->description ?? null]),
+            'wallet'           => $wallet ? [
+                'balance'  => (float) $wallet->balance,
+                'currency' => $wallet->currency?->iso_code ?? 'USD',
+                'symbol'   => $wallet->currency?->symbol ?? '$',
+            ] : null,
+        ];
+    }
+
+    private function buildStats($user): array
+    {
+        $level = $user->userLevel;
+        return [
+            'games_played'      => 0,
+            'games_won'         => 0,
+            'total_winnings'    => 0.0,
+            'current_streak'    => 0,
+            'best_streak'       => 0,
+            'level'             => $level?->current_level ?? 1,
+            'experience_points' => $level?->current_xp ?? 0,
+            'xp_to_next_level'  => $level?->xp_to_next_level ?? 1000,
+            'level_progress'    => $level ? round(($level->current_xp / max(1, $level->xp_to_next_level)) * 100, 1) : 0,
+            'achievements_count'=> $user->achievements?->count() ?? 0,
+            'join_date'         => $user->created_at->format('Y-m-d'),
+            'last_active'       => $user->last_login_at?->toIso8601String() ?? $user->updated_at->toIso8601String(),
+        ];
+    }
+
+    private function buildPreferences($user): array
+    {
+        $p = $user->user_preferences ?? [];
+        return [
+            'language'      => $p['language'] ?? 'es',
+            'timezone'      => $p['timezone'] ?? 'America/Caracas',
+            'notifications' => $p['notifications'] ?? ['email' => true, 'push' => true, 'sms' => false],
+            'privacy'       => $p['privacy']       ?? ['profile_visible' => true, 'show_email' => false, 'show_phone' => false],
+            'game_settings' => $p['game_settings'] ?? ['sound_enabled' => true, 'music_enabled' => true, 'auto_dauber' => false, 'card_animation' => true],
+        ];
+    }
+
+    private function parseDevice(string $ua): string
+    {
+        if (str_contains($ua, 'iPhone') || str_contains($ua, 'iPad'))  return 'iOS';
+        if (str_contains($ua, 'Android'))  return 'Android';
+        if (str_contains($ua, 'Windows'))  return 'Windows';
+        if (str_contains($ua, 'Macintosh')) return 'Mac';
+        if (str_contains($ua, 'Linux'))    return 'Linux';
+        return 'Desconocido';
     }
 }

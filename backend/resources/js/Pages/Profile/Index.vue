@@ -1,127 +1,193 @@
-<template>
-  <div class="profile-page">
-    <div class="profile-body">
-    <ProfileHeader
-      :user="user"
-      :stats="stats"
-      :edit-mode="editMode"
-      :format-currency="formatCurrency"
-      @toggle-edit="toggleEdit"
-      @open-password="showPassword = true"
-      @open-avatar="showAvatar = true"
-    />
-
-      <div class="profile-card">
-        <ProfileTabs v-model="activeTab" />
-
-        <div class="tab-content">
-        <Transition name="tab-fade" mode="out-in">
-          <PersonalInfoTab
-            v-if="activeTab === 'personal'"
-            key="personal"
-            :user="user"
-            :countries="countries"
-            :edit-mode="editMode"
-            :profile-form="profileForm"
-            :selected-country-name="selectedCountryName"
-            :is-birth-date-editable="isBirthDateEditable"
-            :format-date="formatDate"
-            :format-currency="formatCurrency"
-            @cancel="cancelEdit"
-            @submit="saveProfile"
-          />
-          <GameStatsTab
-            v-else-if="activeTab === 'stats'"
-            key="stats"
-            :stats="stats"
-          />
-          <PreferencesTab
-            v-else-if="activeTab === 'preferences'"
-            key="preferences"
-            :prefs-form="prefsForm"
-            @save="savePreferences"
-          />
-          <SecurityTab
-            v-else-if="activeTab === 'security'"
-            key="security"
-            :user="user"
-            :format-date="formatDate"
-            @open-password="showPassword = true"
-          />
-        </Transition>
-        </div>
-      </div>
-    </div><!-- /profile-body -->
-
-    <PasswordModal
-      v-if="showPassword"
-      @close="showPassword = false"
-      @password-changed="onPasswordChanged"
-    />
-    <AvatarUploadModal
-      v-if="showAvatar"
-      :current-avatar="user.avatar"
-      @close="showAvatar = false"
-      @avatar-updated="onAvatarUpdated"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
+import { onMounted, watch } from 'vue'
 import { useProfile, type ProfileUser, type ProfilePreferences, type CountryOption } from '@js/composables/useProfile'
-import ProfileHeader    from '@js/Components/Profile/ProfileHeader.vue'
-import ProfileTabs      from '@js/Components/Profile/ProfileTabs.vue'
-import PersonalInfoTab  from '@js/Components/Profile/PersonalInfoTab.vue'
-import GameStatsTab     from '@js/Components/Profile/GameStatsTab.vue'
-import PreferencesTab   from '@js/Components/Profile/PreferencesTab.vue'
-import SecurityTab      from '@js/Components/Profile/SecurityTab.vue'
-import PasswordModal    from '@js/Components/Profile/PasswordModal.vue'
-import AvatarUploadModal from '@js/Components/Profile/AvatarUploadModal.vue'
+import { useTos }          from '@js/composables/useTos'
+import { useKyc }          from '@js/composables/useKyc'
+import ProfileHeader       from '@js/Components/Profile/ProfileHeader.vue'
+import ProfileTabs         from '@js/Components/Profile/ProfileTabs.vue'
+import PersonalInfoTab     from '@js/Components/Profile/PersonalInfoTab.vue'
+import GameStatsTab        from '@js/Components/Profile/GameStatsTab.vue'
+import PreferencesTab      from '@js/Components/Profile/PreferencesTab.vue'
+import SecurityTab         from '@js/Components/Profile/SecurityTab.vue'
+import PasswordModal       from '@js/Components/Profile/PasswordModal.vue'
+import AvatarUploadModal   from '@js/Components/Profile/AvatarUploadModal.vue'
+import TosModal            from '@js/Components/Common/TosModal.vue'
+import KycUploadModal      from '@js/Components/Common/KycUploadModal.vue'
+import type { KycState }   from '@js/types/kyc'
 
 const props = defineProps<{
     user: ProfileUser
     countries: CountryOption[]
     stats: Record<string, any>
     preferences: ProfilePreferences
+    kyc: KycState | null
+    tos: { needs_acceptance: boolean; accepted_version: string | null; accepted_at: string | null }
 }>()
 
+// ── Composable central del perfil ──────────────────────────────────────────
 const {
-    user, editMode, activeTab, showPassword, showAvatar,
+    user, editMode, activeTab,
+    showPassword, showAvatar, showKycModal,
     profileForm, prefsForm,
+    kycState, sessions, sessionsLoading, errorMsg,
     selectedCountryName, isBirthDateEditable,
     toggleEdit, cancelEdit, saveProfile, savePreferences,
-    onAvatarUpdated, onPasswordChanged,
-    formatDate, formatCurrency,
-} = useProfile(props.user, props.preferences, props.countries)
+    onAvatarUpdated, onPasswordChanged, onKycUpdated,
+    loadSessions, revokeSession, revokeAllSessions,
+    formatDate, formatCurrency, formatUnixDate,
+} = useProfile(props.user, props.preferences, props.countries, props.kyc)
+
+// ── TOS ────────────────────────────────────────────────────────────────────
+const tosModalOpen = ref(false)
+const { status: tosStatus, accepting: tosAccepting, error: tosError,
+        needsAcceptance, accept: acceptTos } = useTos()
+
+async function handleTosAccept() {
+    const ok = await acceptTos()
+    if (ok) {
+        tosModalOpen.value = false
+        user.value.tos_accepted_at = new Date().toISOString()
+    }
+}
+
+// ── KYC ────────────────────────────────────────────────────────────────────
+const { uploading: kycUploading, error: kycError, success: kycSuccess,
+        submitDocument } = useKyc()
+
+async function handleKycSubmit(form: Parameters<typeof submitDocument>[0]) {
+    const ok = await submitDocument(form)
+    if (ok && kycState.value) {
+        onKycUpdated({ ...kycState.value, kyc_status: 'PENDING', has_pending: true })
+    }
+}
+
+// ── Sesiones: cargar al abrir el tab ──────────────────────────────────────
+watch(activeTab, (tab) => {
+    if (tab === 'security' && !sessions.value.length) loadSessions()
+})
+onMounted(() => {
+    if (props.tos.needs_acceptance) tosModalOpen.value = true
+})
 </script>
 
+<script lang="ts">
+import { ref } from 'vue'
+export default { name: 'ProfileIndex' }
+</script>
+
+<template>
+  <div class="profile-page">
+    <div class="profile-body">
+
+      <ProfileHeader
+        :user="user"
+        :stats="stats"
+        :edit-mode="editMode"
+        :format-currency="formatCurrency"
+        @toggle-edit="toggleEdit"
+        @open-password="showPassword = true"
+        @open-avatar="showAvatar = true"
+        @open-kyc="showKycModal = true"
+      />
+
+      <div class="profile-card">
+        <ProfileTabs v-model="activeTab" />
+
+        <div class="tab-content">
+          <Transition name="tab-fade" mode="out-in">
+
+            <PersonalInfoTab
+              v-if="activeTab === 'personal'"
+              key="personal"
+              :user="user"
+              :countries="countries"
+              :edit-mode="editMode"
+              :profile-form="profileForm"
+              :selected-country-name="selectedCountryName"
+              :is-birth-date-editable="isBirthDateEditable"
+              :error-msg="errorMsg"
+              :format-date="formatDate"
+              :format-currency="formatCurrency"
+              @submit="saveProfile"
+              @cancel="cancelEdit"
+              @open-kyc="showKycModal = true"
+            />
+
+            <GameStatsTab
+              v-else-if="activeTab === 'stats'"
+              key="stats"
+              :stats="stats"
+            />
+
+            <PreferencesTab
+              v-else-if="activeTab === 'preferences'"
+              key="preferences"
+              :prefs-form="prefsForm"
+              @save="savePreferences"
+            />
+
+            <SecurityTab
+              v-else-if="activeTab === 'security'"
+              key="security"
+              :user="user"
+              :sessions="sessions"
+              :sessions-loading="sessionsLoading"
+              :format-date="formatDate"
+              :format-unix-date="formatUnixDate"
+              @open-password="showPassword = true"
+              @open-tos="tosModalOpen = true"
+              @open-kyc="showKycModal = true"
+              @load-sessions="loadSessions"
+              @revoke-session="revokeSession"
+              @revoke-all-sessions="revokeAllSessions"
+            />
+
+          </Transition>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Modales -->
+    <PasswordModal
+      v-if="showPassword"
+      @close="showPassword = false"
+      @password-changed="onPasswordChanged"
+    />
+
+    <AvatarUploadModal
+      v-if="showAvatar"
+      :current-avatar="user.avatar"
+      @close="showAvatar = false"
+      @avatar-updated="onAvatarUpdated"
+    />
+
+    <TosModal
+      v-model="tosModalOpen"
+      :status="tosStatus"
+      :accepting="tosAccepting"
+      :error="tosError"
+      @accept="handleTosAccept"
+    />
+
+    <KycUploadModal
+      v-model="showKycModal"
+      :uploading="kycUploading"
+      :error="kycError"
+      :success="kycSuccess"
+      @submit="handleKycSubmit"
+    />
+
+  </div>
+</template>
+
 <style scoped>
-.profile-page {
-    min-height: 100vh;
-    background: #f0f2f7;
-}
+.profile-page  { min-height: 100vh; background: #f0f2f7; }
+.profile-body  { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; }
+.profile-card  { background: #fff; border-radius: 0 0 16px 16px; box-shadow: 0 4px 24px rgba(102,126,234,0.10); overflow: hidden; }
+.tab-content   { padding: 2rem; min-height: 400px; }
 
-.profile-body {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 1.5rem 1.5rem 3rem;
-}
-
-.profile-card {
-    background: #fff;
-    border-radius: 0 0 16px 16px;
-    box-shadow: 0 4px 24px rgba(102, 126, 234, 0.10);
-    overflow: hidden;
-}
-
-.tab-content {
-    padding: 2rem;
-    min-height: 400px;
-}
-
-/* Tab transition */
-.tab-fade-enter-active,
-.tab-fade-leave-active { transition: opacity 0.18s ease, transform 0.18s ease; }
-.tab-fade-enter-from   { opacity: 0; transform: translateY(6px); }
-.tab-fade-leave-to     { opacity: 0; transform: translateY(-4px); }
+.tab-fade-enter-active, .tab-fade-leave-active { transition: opacity 0.18s ease, transform 0.18s ease; }
+.tab-fade-enter-from { opacity: 0; transform: translateY(6px); }
+.tab-fade-leave-to   { opacity: 0; transform: translateY(-4px); }
 </style>

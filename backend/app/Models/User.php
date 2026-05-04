@@ -95,6 +95,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_two_factor_enabled',
         'user_preferences',
         'specific_permissions',
+        'bio',
         'tos_accepted_version',
         'tos_accepted_at',
         'tos_accepted_ip',
