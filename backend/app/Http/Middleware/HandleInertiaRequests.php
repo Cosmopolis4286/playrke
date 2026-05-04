@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\TosService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -17,6 +18,7 @@ use Inertia\Middleware;
  */
 class HandleInertiaRequests extends Middleware
 {
+    public function __construct(private readonly TosService $tosService) {}
     /**
      * Vista raíz por defecto de Inertia.
      *
@@ -94,10 +96,13 @@ class HandleInertiaRequests extends Middleware
             
             'auth' => [
                 'user' => $user ? [
-                    'id'         => $user->id,
-                    'name'       => $user->name,
-                    'email'      => $user->email,
-                    'userRoles'  => $user->roles ? $user->roles->map(fn($role) => [
+                    'id'                  => $user->id,
+                    'name'                => $user->name,
+                    'email'               => $user->email,
+                    'kyc_level'           => (int) ($user->kyc_level ?? 0),
+                    'kyc_status'          => $user->kyc_status ?? 'NONE',
+                    'tos_needs_acceptance'=> $this->tosService->needsAcceptance($user),
+                    'userRoles'           => $user->roles ? $user->roles->map(fn($role) => [
                         'role' => [
                             'name'   => $role->name,
                             'prefix' => $role->prefix,

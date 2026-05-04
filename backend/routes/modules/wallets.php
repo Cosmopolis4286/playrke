@@ -20,6 +20,7 @@ Route::middleware(['auth', 'multiPermission:wallet.view,wallet.deposit,wallet.wi
     Route::get('wallet/movements',              [WalletController::class, 'movements'])        ->name('wallet.movements');
     Route::get('wallet/directories',            [WalletController::class, 'userDirectories'])  ->name('wallet.directories');
     Route::get('wallet/pending-operation',      [WalletController::class, 'pendingOperation']) ->name('wallet.pending-operation');
+    Route::get('wallet/limits',                 [WalletController::class, 'limits'])           ->name('wallet.limits');
 
     // Operaciones financieras: requieren TOS + throttle antifraude
     // throttle:5,1 → máximo 5 intentos por minuto por usuario

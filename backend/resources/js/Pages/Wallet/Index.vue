@@ -1,16 +1,21 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import { useWallet } from '@js/composables/wallet/useWallet'
-import Modal from '@js/Components/Common/Modal/Modal.vue'
+import { useWallet }   from '@js/composables/wallet/useWallet'
+import { useTos }      from '@js/composables/useTos'
+import { useKyc }      from '@js/composables/useKyc'
+import Modal           from '@js/Components/Common/Modal/Modal.vue'
+import TosModal        from '@js/Components/Common/TosModal.vue'
+import KycBanner       from '@js/Components/Common/KycBanner.vue'
+import KycUploadModal  from '@js/Components/Common/KycUploadModal.vue'
 import type { WalletPageProps, WalletMovementType } from '@js/types/wallet'
 
 const props = defineProps<WalletPageProps>()
 
-// userId del usuario autenticado (para suscripción al canal privado Echo)
 const page   = usePage()
 const userId = computed(() => (page.props.auth as any)?.user?.id as string | undefined)
 
+// ─── Wallet core (debe ir primero para que wallets esté disponible) ──────────
 const {
   wallets, activeWallet,
   movements, movementsMeta, movementsLoading,
@@ -19,7 +24,7 @@ const {
   receipt, reference, notes,
   directories, directoriesLoading, selectedDirectory,
   pendingOperation, pendingLoading,
-  loading, errorMsg, successMsg,
+  loading, errorMsg, successMsg, tosRequired,
   resultToast,
   canWithdraw, formattedBalance, parsedAmount,
   canGoToStep2, canSubmitDeposit, canSubmitWithdraw,
@@ -28,6 +33,53 @@ const {
   selectWallet, loadMovements, loadMoreMovements,
   submit, dismissResultToast,
 } = useWallet(props.wallets, userId.value)
+
+// ─── TOS ────────────────────────────────────────────────────────────────────
+const { status: tosStatus, accepting: tosAccepting, error: tosError,
+        needsAcceptance, accept: acceptTos } = useTos()
+
+const tosModalOpen  = ref(false)
+const pendingAction = ref<'deposit' | 'withdraw' | null>(null)
+
+async function handleTosAccept() {
+  const ok = await acceptTos()
+  if (ok && pendingAction.value) {
+    const action = pendingAction.value
+    pendingAction.value = null
+    tosModalOpen.value  = false
+    openModal(action)
+  }
+}
+
+// ─── KYC ────────────────────────────────────────────────────────────────────
+const { state: kycState, limits: kycLimits, uploading: kycUploading,
+        error: kycError, success: kycSuccess,
+        fetchStatus: fetchKycStatus, fetchLimits, submitDocument } = useKyc()
+
+const kycModalOpen = ref(false)
+
+async function handleKycSubmit(form: Parameters<typeof submitDocument>[0]) {
+  await submitDocument(form)
+}
+
+watch(
+  () => activeWallet.value?.currency_id,
+  (cid) => { if (cid) { fetchKycStatus(); fetchLimits(cid) } },
+  { immediate: true }
+)
+
+// Si el servidor rechaza con tos_required, abrir modal TOS
+watch(tosRequired, (v) => { if (v) { tosModalOpen.value = true; tosRequired.value = false } })
+
+// ─── Gate TOS en apertura de modales ────────────────────────────────────────
+function openDepositModal() {
+  if (needsAcceptance.value) { pendingAction.value = 'deposit'; tosModalOpen.value = true; return }
+  openModal('deposit')
+}
+function openWithdrawModal() {
+  if (needsAcceptance.value) { pendingAction.value = 'withdraw'; tosModalOpen.value = true; return }
+  openModal('withdraw')
+}
 
 const quickAmounts = [10, 25, 50, 100, 200, 500]
 
@@ -233,14 +285,14 @@ const modalIcon = computed(() => {
 
           <!-- Acciones -->
           <div v-if="activeWallet" class="wallet-header__actions">
-            <button class="action-btn action-btn--deposit" @click="openModal('deposit')">
+            <button class="action-btn action-btn--deposit" @click="openDepositModal">
               <i class="fas fa-arrow-down"></i> Depositar
             </button>
             <button
               class="action-btn action-btn--withdraw"
               :class="{ 'action-btn--disabled': !canWithdraw }"
               :disabled="!canWithdraw"
-              @click="openModal('withdraw')"
+              @click="openWithdrawModal"
             >
               <i class="fas fa-arrow-up"></i>
               {{ canWithdraw ? 'Retirar' : 'Sin saldo' }}
@@ -349,6 +401,16 @@ const modalIcon = computed(() => {
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- ── KYC Banner + Límites ─────────────────────────────────── -->
+        <div v-if="kycState" class="wallet-card kyc-card">
+          <KycBanner
+            :state="kycState"
+            :limits="kycLimits"
+            :currency-symbol="activeWallet?.currency.symbol"
+            @verify="kycModalOpen = true"
+          />
         </div>
 
         <!-- ── Historial de movimientos ──────────────────────────────── -->
@@ -959,6 +1021,24 @@ const modalIcon = computed(() => {
       </template>
     </Modal>
 
+    <!-- ══ MODAL TOS ════════════════════════════════════════════════════ -->
+    <TosModal
+      v-model="tosModalOpen"
+      :status="tosStatus"
+      :accepting="tosAccepting"
+      :error="tosError"
+      @accept="handleTosAccept"
+    />
+
+    <!-- ══ MODAL KYC ════════════════════════════════════════════════════ -->
+    <KycUploadModal
+      v-model="kycModalOpen"
+      :uploading="kycUploading"
+      :error="kycError"
+      :success="kycSuccess"
+      @submit="handleKycSubmit"
+    />
+
   </div>
 </template>
 
@@ -1193,6 +1273,12 @@ const modalIcon = computed(() => {
 .wallet-card {
   background: #fff;
   padding: 1.5rem;
+}
+
+.kyc-card {
+  border-radius: 0;
+  border-top: 1px solid #f0f2f7;
+  padding: 1rem 1.5rem;
 }
 
 .movements-card {

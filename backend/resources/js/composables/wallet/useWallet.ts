@@ -62,6 +62,8 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
   const loading    = ref(false)
   const errorMsg   = ref<string | null>(null)
   const successMsg = ref<string | null>(null)
+  // Se pone a true cuando el servidor responde 403 tos_required
+  const tosRequired = ref(false)
 
   // Feedback en tiempo real del resultado de aprobación/rechazo
   const resultToast = ref<{
@@ -318,6 +320,10 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
 
   // ── Helpers privados ───────────────────────────────────────────────────
   function _extractError(err: any): string {
+    if (err?.response?.status === 403 && err?.response?.data?.tos_required) {
+      tosRequired.value = true
+      return err.response.data.message ?? 'Debes aceptar los Términos de Servicio.'
+    }
     const errors = err?.response?.data?.errors
     if (errors) return Object.values(errors).flat().join(' ')
     return err?.response?.data?.message ?? 'Error inesperado. Intenta nuevamente.'
@@ -426,7 +432,7 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
     receipt, reference, notes,
     directories, directoriesLoading, selectedDirectory,
     pendingOperation, pendingLoading,
-    loading, errorMsg, successMsg,
+    loading, errorMsg, successMsg, tosRequired,
     resultToast,
     // computed
     canWithdraw, formattedBalance, parsedAmount,

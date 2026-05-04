@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\WalletDepositRequest;
 use App\Http\Requests\WalletWithdrawRequest;
 use App\Services\WalletService;
+use App\Services\WithdrawalLimitService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -15,7 +17,8 @@ use Inertia\Response;
 class WalletController extends Controller
 {
     public function __construct(
-        private readonly WalletService $walletService,
+        private readonly WalletService         $walletService,
+        private readonly WithdrawalLimitService $limitService,
     ) {}
 
     /**
@@ -189,6 +192,28 @@ class WalletController extends Controller
             ]);
         } catch (\Throwable) {
             return response()->json(['success' => true, 'pending' => null]);
+        }
+    }
+
+    /**
+     * GET /wallet/limits?currency_id=xxx
+     * Devuelve los límites de retiro y el uso actual del período.
+     */
+    public function limits(Request $request): JsonResponse
+    {
+        $currencyId = (string) $request->query('currency_id', '');
+
+        try {
+            $wallet   = $this->walletService->findOwnedWalletByCurrency($currencyId);
+            $kycLevel = (int) (Auth::user()?->kyc_level ?? 0);
+            $usage    = $this->limitService->usage($wallet, $kycLevel);
+
+            return response()->json(['success' => true, 'data' => $usage]);
+        } catch (\DomainException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            Log::error('[WalletController@limits] ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno.'], 500);
         }
     }
 }
