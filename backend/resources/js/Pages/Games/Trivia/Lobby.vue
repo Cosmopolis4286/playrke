@@ -349,7 +349,7 @@ const joinRoom = (r: Room) => router.get(getRoute('roomWait', { code: r.code }))
 .room-card {
   @apply text-left w-full rounded-2xl bg-white border border-gray-100 shadow-sm
          hover:-translate-y-1 hover:shadow-lg hover:border-gray-200
-         transition-all duration-250 overflow-hidden
+         transition-all duration-300 overflow-hidden
          focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2;
 }
 
