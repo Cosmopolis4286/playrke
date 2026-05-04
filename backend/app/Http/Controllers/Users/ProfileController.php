@@ -13,7 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
@@ -29,32 +29,41 @@ class ProfileController extends Controller
         protected TosService     $tosService,
     ) {}
 
+    /** Retorna el usuario autenticado tipado como User (elimina advertencias del IDE). */
+    private function authUser(): User
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        return $user;
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Página principal
     // ─────────────────────────────────────────────────────────────────────────
 
     public function index(): \Inertia\Response
     {
-        $user  = Auth::user()->load(['roles', 'wallets.currency', 'country', 'userLevel', 'achievements']);
-        $wallet = $user->wallets->first();
+        $user = User::with(['roles', 'wallets.currency', 'country'])
+            ->findOrFail(Auth::id());
 
-        $stats = $this->buildStats($user);
-        $prefs = $this->buildPreferences($user);
-        $kyc   = $this->kycService->statusForUser($user);
-        $tos   = [
-            'needs_acceptance' => $this->tosService->needsAcceptance($user),
-            'accepted_version' => $user->tos_accepted_version,
-            'accepted_at'      => $user->tos_accepted_at?->toIso8601String(),
-        ];
+        try { $user->load('userLevel'); }    catch (\Throwable) {}
+        try { $user->load('achievements'); } catch (\Throwable) {}
+
+        $wallet = $user->wallets->first();
 
         return Inertia::render('Profile/Index', [
             'user'        => $this->serializeUser($user, $wallet),
-            'countries'   => Country::orderBy('name')->get(['id', 'name', 'iso_code_2'])
-                                ->map(fn($c) => ['value' => (string) $c->id, 'label' => $c->name, 'iso' => $c->iso_code_2]),
-            'stats'       => $stats,
-            'preferences' => $prefs,
-            'kyc'         => $kyc,
-            'tos'         => $tos,
+            'countries'   => Country::orderBy('name')
+                                ->get(['id', 'name', 'iso_code_2'])
+                                ->map(fn ($c) => ['value' => (string) $c->id, 'label' => $c->name, 'iso' => $c->iso_code_2]),
+            'stats'       => $this->buildStats($user),
+            'preferences' => $this->buildPreferences($user),
+            'kyc'         => $this->kycService->statusForUser($user),
+            'tos'         => [
+                'needs_acceptance' => $this->tosService->needsAcceptance($user),
+                'accepted_version' => $user->tos_accepted_version,
+                'accepted_at'      => $user->tos_accepted_at?->toIso8601String(),
+            ],
         ]);
     }
 
@@ -64,13 +73,11 @@ class ProfileController extends Controller
 
     public function getProfileData(): JsonResponse
     {
-        $user   = Auth::user()->load(['roles', 'wallets.currency', 'country']);
+        $user = User::with(['roles', 'wallets.currency', 'country'])
+            ->findOrFail(Auth::id());
         $wallet = $user->wallets->first();
 
-        return response()->json([
-            'success' => true,
-            'data'    => $this->serializeUser($user, $wallet),
-        ]);
+        return response()->json(['success' => true, 'data' => $this->serializeUser($user, $wallet)]);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -79,7 +86,7 @@ class ProfileController extends Controller
 
     public function updateProfile(Request $request): JsonResponse
     {
-        $user = Auth::user();
+        $user = $this->authUser();
 
         $request->validate([
             'first_name' => ['required', 'string', 'max:100'],
@@ -132,7 +139,7 @@ class ProfileController extends Controller
             'new_password.confirmed'            => 'Las contraseñas no coinciden.',
         ]);
 
-        $this->profileService->changePassword($request->user()->id, $request->new_password);
+        $this->profileService->changePassword($this->authUser()->id, $request->new_password);
 
         return response()->json(['success' => true, 'message' => 'Contraseña actualizada correctamente.']);
     }
@@ -146,7 +153,7 @@ class ProfileController extends Controller
         $request->validate(['avatar' => ['required', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120']]);
 
         try {
-            $user    = Auth::user();
+            $user    = $this->authUser();
             $manager = new ImageManager(new Driver());
             $image   = $manager->read($request->file('avatar')->getContent());
             $image->cover(400, 400);
@@ -166,7 +173,7 @@ class ProfileController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Avatar actualizado.', 'data' => ['avatar' => $path]]);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Avatar upload: ' . $e->getMessage());
+            Log::error('Avatar upload: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error al procesar el avatar.'], 500);
         }
     }
@@ -177,7 +184,7 @@ class ProfileController extends Controller
 
     public function deleteAvatar(): JsonResponse
     {
-        $user = Auth::user();
+        $user = $this->authUser();
 
         if ($user->profile_photo_url) {
             $old = ltrim(str_replace('/storage/', '', $user->profile_photo_url), '/');
@@ -194,7 +201,7 @@ class ProfileController extends Controller
 
     public function getPreferences(): JsonResponse
     {
-        return response()->json(['success' => true, 'data' => $this->buildPreferences(Auth::user())]);
+        return response()->json(['success' => true, 'data' => $this->buildPreferences($this->authUser())]);
     }
 
     public function updatePreferences(Request $request): JsonResponse
@@ -207,7 +214,7 @@ class ProfileController extends Controller
             'game_settings' => ['nullable', 'array'],
         ]);
 
-        $user  = Auth::user();
+        $user  = $this->authUser();
         $prefs = array_merge($user->user_preferences ?? [], $request->only([
             'language', 'timezone', 'notifications', 'privacy', 'game_settings',
         ]));
@@ -223,7 +230,10 @@ class ProfileController extends Controller
 
     public function getStats(): JsonResponse
     {
-        $user = Auth::user()->load(['userLevel', 'achievements']);
+        $user = User::findOrFail(Auth::id());
+        try { $user->load('userLevel'); }    catch (\Throwable) {}
+        try { $user->load('achievements'); } catch (\Throwable) {}
+
         return response()->json(['success' => true, 'data' => $this->buildStats($user)]);
     }
 
@@ -241,7 +251,7 @@ class ProfileController extends Controller
             ->limit(10)
             ->get();
 
-        $sessions = $rows->map(fn($row) => [
+        $sessions = $rows->map(fn ($row) => [
             'id'            => $row->id,
             'is_current'    => $row->id === $currentId,
             'ip_address'    => $row->ip_address,
@@ -255,10 +265,8 @@ class ProfileController extends Controller
 
     public function revokeSession(Request $request, string $id): JsonResponse
     {
-        $currentId = $request->session()->getId();
-
-        if ($id === $currentId) {
-            return response()->json(['success' => false, 'message' => 'No puedes cerrar la sesión actual desde aquí.'], 422);
+        if ($id === $request->session()->getId()) {
+            return response()->json(['success' => false, 'message' => 'No puedes cerrar la sesión actual.'], 422);
         }
 
         DB::table('sessions')->where('id', $id)->where('user_id', Auth::id())->delete();
@@ -268,11 +276,9 @@ class ProfileController extends Controller
 
     public function revokeAllSessions(Request $request): JsonResponse
     {
-        $currentId = $request->session()->getId();
-
         DB::table('sessions')
             ->where('user_id', Auth::id())
-            ->where('id', '!=', $currentId)
+            ->where('id', '!=', $request->session()->getId())
             ->delete();
 
         return response()->json(['success' => true, 'message' => 'Todas las otras sesiones han sido cerradas.']);
@@ -282,62 +288,69 @@ class ProfileController extends Controller
     // Helpers privados
     // ─────────────────────────────────────────────────────────────────────────
 
-    private function serializeUser($user, $wallet): array
+    private function serializeUser(User $user, $wallet): array
     {
         return [
-            'id'               => (string) $user->id,
-            'first_name'       => $user->first_name,
-            'last_name'        => $user->last_name,
-            'name'             => trim($user->first_name . ' ' . $user->last_name),
-            'username'         => $user->username,
-            'email'            => $user->email,
-            'avatar'           => $user->profile_photo_url,
-            'phone'            => $user->phone_number,
-            'birth_date'       => $user->birth_date?->format('Y-m-d'),
-            'country_id'       => (string) $user->country_id,
-            'country_iso'      => $user->country?->iso_code_2,
-            'bio'              => $user->bio,
-            'is_verified'      => ! is_null($user->email_verified_at),
-            'kyc_level'        => (int) ($user->kyc_level ?? 0),
-            'kyc_status'       => $user->kyc_status ?? 'NONE',
-            'tos_accepted_at'  => $user->tos_accepted_at?->toIso8601String(),
-            'created_at'       => $user->created_at->toIso8601String(),
-            'last_active'      => $user->last_login_at?->toIso8601String() ?? $user->updated_at->toIso8601String(),
-            'roles'            => $user->roles->map(fn($r) => ['id' => (string) $r->id, 'name' => $r->name, 'description' => $r->description ?? null]),
-            'wallet'           => $wallet ? [
+            'id'              => (string) $user->id,
+            'first_name'      => $user->first_name,
+            'last_name'       => $user->last_name,
+            'name'            => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')),
+            'username'        => $user->username,
+            'email'           => $user->email,
+            'avatar'          => $user->profile_photo_url,
+            'phone'           => $user->phone_number,
+            'birth_date'      => $user->birth_date?->format('Y-m-d'),
+            'country_id'      => $user->country_id ? (string) $user->country_id : null,
+            'country_iso'     => $user->country?->iso_code_2,
+            'bio'             => $user->bio,
+            'is_verified'     => ! is_null($user->email_verified_at),
+            'kyc_level'       => (int) ($user->kyc_level ?? 0),
+            'kyc_status'      => $user->kyc_status ?? 'NONE',
+            'tos_accepted_at' => $user->tos_accepted_at?->toIso8601String(),
+            'created_at'      => $user->created_at->toIso8601String(),
+            'last_active'     => $user->last_login_at?->toIso8601String() ?? $user->updated_at->toIso8601String(),
+            'roles'           => $user->roles->map(fn ($r) => [
+                'id'          => (string) $r->id,
+                'name'        => $r->name,
+                'description' => $r->description ?? null,
+            ]),
+            'wallet' => $wallet ? [
                 'balance'  => (float) $wallet->balance,
                 'currency' => $wallet->currency?->iso_code ?? 'USD',
-                'symbol'   => $wallet->currency?->symbol ?? '$',
+                'symbol'   => $wallet->currency?->symbol   ?? '$',
             ] : null,
         ];
     }
 
-    private function buildStats($user): array
+    private function buildStats(User $user): array
     {
-        $level = $user->userLevel;
+        $level = $user->relationLoaded('userLevel') ? $user->userLevel : null;
         return [
-            'games_played'      => 0,
-            'games_won'         => 0,
-            'total_winnings'    => 0.0,
-            'current_streak'    => 0,
-            'best_streak'       => 0,
-            'level'             => $level?->current_level ?? 1,
-            'experience_points' => $level?->current_xp ?? 0,
-            'xp_to_next_level'  => $level?->xp_to_next_level ?? 1000,
-            'level_progress'    => $level ? round(($level->current_xp / max(1, $level->xp_to_next_level)) * 100, 1) : 0,
-            'achievements_count'=> $user->achievements?->count() ?? 0,
-            'join_date'         => $user->created_at->format('Y-m-d'),
-            'last_active'       => $user->last_login_at?->toIso8601String() ?? $user->updated_at->toIso8601String(),
+            'games_played'       => 0,
+            'games_won'          => 0,
+            'total_winnings'     => 0.0,
+            'current_streak'     => 0,
+            'best_streak'        => 0,
+            'level'              => $level?->current_level    ?? 1,
+            'experience_points'  => $level?->current_xp       ?? 0,
+            'xp_to_next_level'   => $level?->xp_to_next_level ?? 1000,
+            'level_progress'     => $level
+                ? round(($level->current_xp / max(1, $level->xp_to_next_level)) * 100, 1)
+                : 0,
+            'achievements_count' => $user->relationLoaded('achievements') ? $user->achievements->count() : 0,
+            'join_date'          => $user->created_at->format('Y-m-d'),
+            'last_active'        => $user->last_login_at?->toIso8601String()
+                                    ?? $user->updated_at->toIso8601String(),
         ];
     }
 
-    private function buildPreferences($user): array
+    private function buildPreferences(User $user): array
     {
         $p = $user->user_preferences ?? [];
         return [
-            'language'      => $p['language'] ?? 'es',
-            'timezone'      => $p['timezone'] ?? 'America/Caracas',
-            'notifications' => $p['notifications'] ?? ['email' => true, 'push' => true, 'sms' => false],
+            'language'      => $p['language']      ?? 'es',
+            'timezone'      => $p['timezone']      ?? 'America/Caracas',
+            'notifications' => $p['notifications'] ?? ['email' => true,  'push' => true, 'sms' => false],
             'privacy'       => $p['privacy']       ?? ['profile_visible' => true, 'show_email' => false, 'show_phone' => false],
             'game_settings' => $p['game_settings'] ?? ['sound_enabled' => true, 'music_enabled' => true, 'auto_dauber' => false, 'card_animation' => true],
         ];
@@ -345,11 +358,11 @@ class ProfileController extends Controller
 
     private function parseDevice(string $ua): string
     {
-        if (str_contains($ua, 'iPhone') || str_contains($ua, 'iPad'))  return 'iOS';
-        if (str_contains($ua, 'Android'))  return 'Android';
-        if (str_contains($ua, 'Windows'))  return 'Windows';
+        if (str_contains($ua, 'iPhone') || str_contains($ua, 'iPad'))   return 'iOS';
+        if (str_contains($ua, 'Android'))   return 'Android';
+        if (str_contains($ua, 'Windows'))   return 'Windows';
         if (str_contains($ua, 'Macintosh')) return 'Mac';
-        if (str_contains($ua, 'Linux'))    return 'Linux';
+        if (str_contains($ua, 'Linux'))     return 'Linux';
         return 'Desconocido';
     }
 }
