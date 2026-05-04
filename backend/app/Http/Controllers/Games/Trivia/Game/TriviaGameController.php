@@ -490,11 +490,27 @@ final class TriviaGameController extends Controller
 
         $rooms = $query->select(
             'id', 'code', 'title', 'description', 'category',
-            'status', 'game_mode', 'max_players', 'current_players',
+            'status', 'game_mode', 'max_players',
             'question_count', 'time_per_question', 'created_at',
             'entry_fee', 'entry_currency_id',
             'prize_amount', 'prize_type', 'prize_currency_id'
         )->get();
+
+        // ── Contar participantes reales desde trivia_participants ─────────────
+        // current_players en trivia_rooms es denormalizado y puede estar desactualizado.
+        // La fuente de verdad es trivia_participants (igual que waitingRoom).
+        $roomIds = $rooms->pluck('id')->all();
+        $participantCounts = [];
+        if (!empty($roomIds)) {
+            $participantCounts = $pgsql->table('trivia_participants')
+                ->whereIn('room_id', $roomIds)
+                ->whereNull('deleted_at')
+                ->whereNotIn('status', ['abandoned'])
+                ->selectRaw('room_id, COUNT(*) as cnt')
+                ->groupBy('room_id')
+                ->pluck('cnt', 'room_id')
+                ->all();
+        }
 
         // ── Resolver símbolos de moneda (MySQL currencies) ────────────────────
         $currencyIds = collect($rooms)
@@ -511,8 +527,9 @@ final class TriviaGameController extends Controller
                 ->all();
         }
 
-        $rooms = $rooms->map(function ($room) use ($currencySymbols) {
+        $rooms = $rooms->map(function ($room) use ($currencySymbols, $participantCounts) {
             return array_merge((array) $room, [
+                'current_players'       => (int) ($participantCounts[$room->id] ?? 0),
                 'entry_currency_symbol' => $room->entry_currency_id
                     ? ($currencySymbols[$room->entry_currency_id] ?? null)
                     : null,
