@@ -7,54 +7,62 @@ namespace App\Domains\Games\Trivia\Actions;
 use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\DTOs\GameStateDTO;
+use App\Domains\Games\Trivia\Models\TriviaRoom;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
  * Action: Iniciar Juego.
- * 
- * Caso de uso independiente y reutilizable.
- * Valida precondiciones y orquesta el inicio.
+ *
+ * Soporta dos modos:
+ *   - Manual (hostId = ID del usuario que hace clic) → valida permisos
+ *   - Automático (hostId = null)                    → inicio programado por el sistema
  */
 class StartGameAction
 {
     public function __construct(
-        private readonly GameEngineInterface $gameEngine,
-        private readonly RoomServiceInterface $roomService
+        private readonly GameEngineInterface  $gameEngine,
+        private readonly RoomServiceInterface $roomService,
     ) {}
 
     /**
-     * Ejecutar la acción.
-     * 
-     * @param string $roomId ID de la sala
-     * @param string $hostId ID del anfitrión que inicia
-     * @param array<string> $playerIds IDs de jugadores a incluir
-     * @throws RuntimeException Si no se puede iniciar
+     * @param  string        $roomId    ID de la sala
+     * @param  string|null   $hostId    ID del anfitrión. null = inicio automático (sin validar permisos)
+     * @param  string[]      $playerIds IDs de jugadores confirmados
+     * @throws RuntimeException
      */
-    public function execute(string $roomId, string $hostId, array $playerIds): GameStateDTO
+    public function execute(string $roomId, ?string $hostId, array $playerIds): GameStateDTO
     {
-        // Validar que el host tiene permisos
-        $room = $this->roomService->getRoom($roomId);
-        
-        if ($room->hostId !== $hostId) {
-            throw new RuntimeException('Solo el anfitrión puede iniciar el juego');
+        // ── 1. Cargar sala desde BD (fuente de verdad) ────────────────────────
+        $room = TriviaRoom::findOrFail($roomId);
+
+        if ($room->status !== 'waiting') {
+            throw new RuntimeException("La sala ya no está en espera (estado: {$room->status}).");
         }
 
-        // Validar mínimo de jugadores
-        if (count($playerIds) < 1) {
-            throw new RuntimeException('Se necesita al menos un jugador');
+        // ── 2. Validar permisos del host (solo en inicio manual) ──────────────
+        if ($hostId !== null && (string) $room->host_id !== $hostId) {
+            throw new RuntimeException('Solo el anfitrión puede iniciar el juego.');
         }
 
-        // Validar que todos los jugadores están en la sala
-        foreach ($playerIds as $playerId) {
-            if (!$this->roomService->isPlayerInRoom($roomId, $playerId)) {
-                throw new RuntimeException("El jugador {$playerId} no está en la sala");
-            }
+        // ── 3. Validar jugadores desde BD si playerIds está vacío o Redis expiró
+        if (empty($playerIds)) {
+            $playerIds = DB::connection('pgsql_trivia')
+                ->table('trivia_participants')
+                ->where('room_id', $roomId)
+                ->whereNull('deleted_at')
+                ->whereIn('status', ['confirmed', 'registered'])
+                ->pluck('user_id')
+                ->map(fn($id) => (string) $id)
+                ->all();
         }
 
-        // Iniciar juego
+        if (empty($playerIds)) {
+            throw new RuntimeException('No hay jugadores registrados en la sala.');
+        }
+
+        // ── 4. Iniciar juego y enviar primera pregunta ────────────────────────
         $gameState = $this->gameEngine->startGame($roomId, $playerIds);
-
-        // Enviar primera pregunta automáticamente
         $this->gameEngine->sendNextQuestion($gameState->gameId);
 
         return $gameState;

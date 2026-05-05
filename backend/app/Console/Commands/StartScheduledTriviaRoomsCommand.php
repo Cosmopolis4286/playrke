@@ -2,11 +2,11 @@
 
 namespace App\Console\Commands;
 
-use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
-use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
+use App\Domains\Games\Trivia\Actions\StartGameAction;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -14,60 +14,94 @@ class StartScheduledTriviaRoomsCommand extends Command
 {
     protected $signature = 'trivia:start-scheduled-rooms';
 
-    protected $description = 'Inicia automáticamente las salas de trivia cuya fecha programada (scheduled_at) ha llegado';
+    protected $description = 'Inicia automáticamente las salas de trivia cuya scheduled_at ha llegado';
 
     public function handle(): void
     {
-        $status = 'SUCCESS';
+        $status       = 'SUCCESS';
         $startedCount = 0;
         $skippedCount = 0;
+        $errorCount   = 0;
 
         try {
+            // Buscar salas que deben iniciarse ahora.
+            // Comparamos en la misma zona horaria que usa el scheduler (America/Caracas)
+            // convirtiendo a UTC para la query, o simplemente usando now() que Laravel
+            // resuelve en la zona configurada en config/app.php → timezone.
             $rooms = TriviaRoom::where('status', 'waiting')
                 ->whereNotNull('scheduled_at')
                 ->where('scheduled_at', '<=', now())
                 ->get();
 
-            $roomService = app(RoomServiceInterface::class);
-            $gameEngine = app(GameEngineInterface::class);
+            if ($rooms->isEmpty()) {
+                $output = 'No hay salas programadas pendientes de inicio.';
+                app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
+                $this->info($output);
+                return;
+            }
+
+            $startAction = app(StartGameAction::class);
 
             foreach ($rooms as $room) {
-                try {
-                    $roomDto = $roomService->getRoom((string) $room->id);
-                    $playerIds = $roomDto->playerIds;
+                $roomId = (string) $room->id;
 
-                    if (count($playerIds) < 1) {
+                try {
+                    // ── Obtener jugadores inscritos desde BD (fuente de verdad) ──
+                    // No dependemos de Redis, que puede haber expirado.
+                    $playerIds = DB::connection('pgsql_trivia')
+                        ->table('trivia_participants')
+                        ->where('room_id', $roomId)
+                        ->whereNull('deleted_at')
+                        ->whereIn('status', ['confirmed', 'registered'])
+                        ->pluck('user_id')
+                        ->map(fn($id) => (string) $id)
+                        ->all();
+
+                    if (empty($playerIds)) {
                         $skippedCount++;
-                        Log::info("Trivia: Sala {$room->code} programada pero sin jugadores, se omite.", [
-                            'room_id' => $room->id,
+                        Log::info("[Trivia:Scheduled] Sala {$room->code} sin jugadores inscritos — omitida.", [
+                            'room_id'      => $roomId,
                             'scheduled_at' => $room->scheduled_at,
                         ]);
+                        $this->warn("  ⚠ Sala {$room->code}: sin jugadores, omitida.");
                         continue;
                     }
 
-                    $gameEngine->startGame((string) $room->id, $playerIds);
-                    $startedCount++;
+                    // ── Iniciar via StartGameAction (incluye sendNextQuestion) ───
+                    $gameState = $startAction->execute(
+                        roomId:    $roomId,
+                        hostId:    (string) $room->host_id,
+                        playerIds: $playerIds,
+                    );
 
-                    $this->info("Sala {$room->code} iniciada automáticamente ({$room->scheduled_at})");
-                } catch (Throwable $e) {
-                    Log::error("Trivia: Error al iniciar sala programada {$room->code}", [
-                        'room_id' => $room->id,
-                        'error' => $e->getMessage(),
+                    $startedCount++;
+                    Log::info("[Trivia:Scheduled] Sala {$room->code} iniciada automáticamente.", [
+                        'room_id'      => $roomId,
+                        'game_id'      => $gameState->gameId,
+                        'players'      => count($playerIds),
+                        'scheduled_at' => $room->scheduled_at,
                     ]);
-                    $this->warn("Error al iniciar sala {$room->code}: {$e->getMessage()}");
+                    $this->info("  ✓ Sala {$room->code} iniciada (game: {$gameState->gameId}, {$room->scheduled_at}).");
+
+                } catch (Throwable $e) {
+                    $errorCount++;
+                    Log::error("[Trivia:Scheduled] Error al iniciar sala {$room->code}.", [
+                        'room_id' => $roomId,
+                        'error'   => $e->getMessage(),
+                        'trace'   => $e->getTraceAsString(),
+                    ]);
+                    $this->warn("  ✗ Error en sala {$room->code}: {$e->getMessage()}");
                 }
             }
 
-            $output = "Salas de trivia programadas: {$startedCount} iniciadas, {$skippedCount} omitidas (sin jugadores), " . ($rooms->count() - $startedCount - $skippedCount) . " con errores.";
+            $total  = $rooms->count();
+            $output = "Salas programadas: {$total} encontradas — {$startedCount} iniciadas, {$skippedCount} omitidas (sin jugadores), {$errorCount} con errores.";
+
         } catch (Throwable $e) {
             $status = 'ERROR';
-            $output = sprintf(
-                'Error al ejecutar la tarea: %s en archivo %s línea %d',
-                $e->getMessage(),
-                $e->getFile(),
-                $e->getLine()
-            );
+            $output = "Error general: {$e->getMessage()} en {$e->getFile()}:{$e->getLine()}";
             $this->error($output);
+            Log::error('[Trivia:Scheduled] ' . $output);
         }
 
         app(CommandService::class)->logCommandExecution($this->signature, $output, $status);

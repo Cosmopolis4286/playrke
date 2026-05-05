@@ -58,14 +58,18 @@ class GameEngineService implements GameEngineInterface
             throw new RuntimeException('La sala no puede iniciar un juego en este momento');
         }
 
+        // total_questions desde la configuración de la sala (banco global, sin room_id)
+        $totalQuestions = max(1, (int) $room->question_count);
+
         // Crear juego en base de datos
         $game = TriviaGame::create([
-            'room_id' => $roomId,
-            'game_code' => strtoupper(Str::random(6)),
-            'status' => 'active',
-            'total_questions' => $room->questions()->count(),
-            'player_count' => count($playerIds),
-            'started_at' => now(),
+            'room_id'         => $roomId,
+            'game_code'       => strtoupper(Str::random(6)),
+            'status'          => 'active',
+            'total_questions' => $totalQuestions,
+            'time_per_question'=> $room->time_per_question,
+            'player_count'    => count($playerIds),
+            'started_at'      => now(),
         ]);
 
         // Crear estado inicial en Redis
@@ -149,27 +153,78 @@ class GameEngineService implements GameEngineInterface
         $newState = $state->advanceQuestion();
         $this->stateRepository->saveState($gameId, $newState);
 
-        // Obtener pregunta de la base de datos
-        $question = TriviaQuestion::where('room_id', $state->roomId)
-            ->where('question_number', $newState->currentQuestionIndex)
-            ->first();
+        // Obtener pregunta del banco global, evitando repetir preguntas ya enviadas.
+        // Filtra por categoría de la sala si está configurada.
+        $room = TriviaRoom::find($state->roomId);
 
-        if (!$question) {
-            throw new RuntimeException("Pregunta {$newState->currentQuestionIndex} no encontrada");
+        // IDs ya usados en este juego (guardados en metadata del estado)
+        $usedIds = $state->metadata['used_question_ids'] ?? [];
+
+        $query = TriviaQuestion::where('is_active', true)
+            ->whereNotIn('id', $usedIds);
+
+        if ($room?->category) {
+            // Intenta con la categoría de la sala primero
+            $questionWithCat = (clone $query)->where('category', $room->category)->inRandomOrder()->first();
+            $question = $questionWithCat ?? $query->inRandomOrder()->first();
+        } else {
+            $question = $query->inRandomOrder()->first();
         }
 
-        // Crear DTO
-        $questionDto = QuestionDTO::fromModel($question->toArray(), $gameId);
+        if (!$question) {
+            // No quedan preguntas disponibles → terminar juego
+            $this->finishGame($gameId);
+            return null;
+        }
+
+        // Guardar el ID usado para no repetirlo
+        $usedIds[] = (string) $question->id;
+        $updatedMetadata = array_merge($state->metadata, ['used_question_ids' => $usedIds]);
+        $newState = new \App\Domains\Games\Trivia\DTOs\GameStateDTO(
+            gameId:               $newState->gameId,
+            roomId:               $newState->roomId,
+            status:               $newState->status,
+            currentQuestionIndex: $newState->currentQuestionIndex,
+            totalQuestions:       $newState->totalQuestions,
+            startTime:            $newState->startTime,
+            endTime:              $newState->endTime,
+            playerIds:            $newState->playerIds,
+            scores:               $newState->scores,
+            metadata:             $updatedMetadata,
+        );
+        $this->stateRepository->saveState($gameId, $newState);
+
+        // Crear DTO desde el banco global (campos: question_text, options jsonb, correct_option_index, time_limit_seconds)
+        $questionDto = new QuestionDTO(
+            questionId:       (string) $question->id,
+            gameId:           $gameId,
+            questionNumber:   $newState->currentQuestionIndex,
+            questionText:     $question->question_text,
+            imageUrl:         $question->image_url ?? null,
+            options:          is_array($question->options) ? $question->options : json_decode($question->options, true) ?? [],
+            timeLimitSeconds: (int) ($question->time_limit_seconds ?? $room?->time_per_question ?? 20),
+            correctAnswer:    (string) ($question->correct_option_index ?? 0),
+            points:           (int) ($question->points ?? 100),
+        );
 
         // Guardar en Redis
         $this->stateRepository->saveCurrentQuestion($gameId, $questionDto->toArray());
 
-        // Emitir evento
-        event(new QuestionSent(
-            question: $questionDto,
-            gameId: $gameId,
-            serverTimestamp: time()
-        ));
+        // Broadcast WebSocket a todos en la sala
+        try {
+            broadcast(new \App\Events\Games\Trivia\TriviaQuestionSent(
+                roomId:          $state->roomId,
+                gameId:          $gameId,
+                questionIndex:   $newState->currentQuestionIndex,
+                totalQuestions:  $newState->totalQuestions,
+                question:        $questionDto->forClient(),
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('[GameEngine] broadcast TriviaQuestionSent falló: ' . $e->getMessage());
+        }
+
+        // Evento de dominio (para listeners internos)
+        event(new QuestionSent(question: $questionDto, gameId: $gameId, serverTimestamp: time()));
 
         return $questionDto;
     }
