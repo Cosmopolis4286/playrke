@@ -2,6 +2,7 @@
 import { Head, useForm, Link } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import { getRoute } from '@js/routes/triviaRoutes'
+import { utcToLocalInput, localInputToUtc, getMinLocalDatetime } from '@js/composables/useTimezone'
 
 interface Currency { id: string; symbol: string; name: string; iso_code: string }
 
@@ -22,18 +23,14 @@ const form = useForm({
   prize_type: (props.room.prize_type ?? 'accumulated') as 'accumulated' | 'fixed',
   prize_amount: Number(props.room.prize_amount ?? 0),
   prize_currency_id: props.room.prize_currency_id ?? '',
-  scheduled_at: props.room.scheduled_at ? new Date(props.room.scheduled_at).toISOString().slice(0, 16) : '',
+  scheduled_at: utcToLocalInput(props.room.scheduled_at),
   settings: props.room.settings || {},
 })
 
 // Min datetime for scheduled_at (must be in the future)
-const minScheduledAt = computed(() => {
-  const now = new Date()
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
-  return now.toISOString().slice(0, 16)
-})
+const minScheduledAt = computed(() => getMinLocalDatetime())
 
-// Validate scheduled_at is in the future
+// Validate scheduled_at is in the future (comparando en hora local)
 const scheduledAtError = computed(() => {
   if (!form.scheduled_at) return ''
   if (new Date(form.scheduled_at) <= new Date()) {
@@ -44,6 +41,13 @@ const scheduledAtError = computed(() => {
 
 const submit = () => {
   if (scheduledAtError.value) return
+
+  // Transformar la fecha de hora local a UTC antes de enviar
+  form.transform((data) => ({
+    ...data,
+    scheduled_at: localInputToUtc(data.scheduled_at),
+  }))
+
   form.put(getRoute('roomsUpdate', { id: props.room.id }))
 }
 </script>

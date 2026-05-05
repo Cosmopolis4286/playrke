@@ -2,6 +2,7 @@
 import { Head, useForm, Link } from '@inertiajs/vue3'
 import { computed, watch } from 'vue'
 import { getRoute } from '@js/routes/triviaRoutes'
+import { localInputToUtc, getMinLocalDatetime } from '@js/composables/useTimezone'
 
 interface Currency { id: string; symbol: string; name: string; iso_code: string }
 interface GameMode { value: string; label: string; description: string }
@@ -49,11 +50,7 @@ const estimatedTime = computed(() => {
 })
 
 // Min datetime for scheduled_at (must be in the future)
-const minScheduledAt = computed(() => {
-  const now = new Date()
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
-  return now.toISOString().slice(0, 16)
-})
+const minScheduledAt = computed(() => getMinLocalDatetime())
 
 // Validate scheduled_at is in the future
 const scheduledAtError = computed(() => {
@@ -92,6 +89,13 @@ watch(() => form.game_mode, (mode) => {
 
 const submit = () => {
   if (scheduledAtError.value) return
+
+  // Transformar la fecha de hora local a UTC antes de enviar
+  form.transform((data) => ({
+    ...data,
+    scheduled_at: localInputToUtc(data.scheduled_at),
+  }))
+
   form.post(getRoute('roomsStore'), {
     onSuccess: () => form.reset(),
   })

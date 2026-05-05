@@ -166,9 +166,21 @@ final class TriviaRoomAdminController extends Controller
             'prize_type'         => 'nullable|in:fixed,accumulated',
             'prize_amount'       => 'nullable|numeric|min:0',
             'prize_currency_id'  => 'nullable|string',
-            'scheduled_at'       => 'nullable|date|after:now',
+            'scheduled_at'       => 'nullable|date',
             'settings'           => 'nullable|array',
         ]);
+
+        // Validar que scheduled_at sea futuro (con tolerancia de 1 minuto para diferencias de timezone)
+        if (!empty($validated['scheduled_at'])) {
+            $scheduledTime = new \DateTime($validated['scheduled_at']);
+            $now = new \DateTime('now', new \DateTimeZone('UTC'));
+            if ($scheduledTime <= $now->modify('-1 minute')) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'La fecha programada debe ser futura.')
+                    ->withInput();
+            }
+        }
 
         try {
             $roomDto = $this->roomService->createRoom([
@@ -261,9 +273,21 @@ final class TriviaRoomAdminController extends Controller
             'prize_type'        => 'nullable|in:fixed,accumulated',
             'prize_amount'      => 'nullable|numeric|min:0',
             'prize_currency_id' => 'nullable|string',
-            'scheduled_at'       => 'nullable|date|after:now',
+            'scheduled_at'       => 'nullable|date',
             'settings'          => 'nullable|array',
         ]);
+
+        // Validar que scheduled_at sea futuro si se está actualizando (con tolerancia de 1 minuto)
+        if (!empty($validated['scheduled_at'])) {
+            $scheduledTime = new \DateTime($validated['scheduled_at']);
+            $now = new \DateTime('now', new \DateTimeZone('UTC'));
+            if ($scheduledTime <= $now->modify('-1 minute')) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'La fecha programada debe ser futura.')
+                    ->withInput();
+            }
+        }
 
         try {
             $this->roomService->updateRoomConfig($id, [
