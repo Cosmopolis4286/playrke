@@ -198,7 +198,7 @@ class ExchangeRateController extends Controller
         return $this->handleServiceJson(
             fn() => [
                 'message' => 'Tasas obtenidas correctamente.',
-                'data'    => $this->service->getRawRates($this->resolveToken($request)),
+                'data'    => $this->service->getRawRates($this->resolveToken($request)) ?? [],
             ],
             'No se pudieron obtener las tasas de cambio.'
         );

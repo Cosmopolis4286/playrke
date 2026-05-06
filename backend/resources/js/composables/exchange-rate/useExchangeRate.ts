@@ -283,8 +283,8 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
                 data: Record<string, number>
             }>('/exchange-rate/raw-rates')
 
-            if (!response.data?.data) {
-                throw new Error('No se recibieron tasas para mostrar')
+            if (!response.data?.data || Object.keys(response.data.data).length === 0) {
+                throw new Error('No hay tasas disponibles. Verifique que tenga monedas activas configuradas o que el proveedor de tasas esté disponible.')
             }
 
             const rates = response.data.data
