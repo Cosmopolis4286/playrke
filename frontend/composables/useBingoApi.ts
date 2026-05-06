@@ -35,7 +35,16 @@ export const useBingoApi = () => {
    * Compra un cartón de bingo
    */
   const purchaseCard = async (roomId: string, quantity: number = 1) => {
-    return api.post<{ data: BingoCard[] }>(`/bingo/rooms/${roomId}/purchase`, {
+    return api.post<{
+      message: string
+      data: {
+        cards: BingoCard[]
+        prize_pool: number
+        currency: string
+        exchange_rate: number
+      }
+      user_cards_count: number
+    }>(`/bingo/rooms/${roomId}/purchase`, {
       quantity
     })
   }

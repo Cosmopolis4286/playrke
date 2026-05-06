@@ -22,9 +22,9 @@ class BingoDrawCode extends Model
 
     protected $appends = ['full_code', 'formatted_code'];
 
-    public function room(): BelongsTo { return $this->belongsTo(BingoRoom::class, 'room'); }
+    public function room(): BelongsTo { return $this->belongsTo(BingoRoom::class, 'room_id'); }
 
-    public function scopeByRoom($query, string $roomId) { return $query->where('room', $roomId); }
+    public function scopeByRoom($query, string $roomId) { return $query->where('room_id', $roomId); }
     public function scopeByNumber($query, string $num) { return $query->where('num', $num); }
     public function scopeBySymbol($query, string $sym) { return $query->where('sym', $sym); }
     public function scopeByNumberPattern($query, string $pattern) { return $query->where('num', 'like', $pattern); }

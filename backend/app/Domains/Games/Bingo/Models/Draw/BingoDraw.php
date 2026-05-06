@@ -31,10 +31,10 @@ class BingoDraw extends Model
 
     protected $appends = ['status_description', 'is_winning', 'formatted_time'];
 
-    public function room(): BelongsTo { return $this->belongsTo(BingoRoom::class, 'room'); }
-    public function codeDraw(): BelongsTo { return $this->belongsTo(BingoDrawCode::class, 'room', 'room'); }
+    public function room(): BelongsTo { return $this->belongsTo(BingoRoom::class, 'room_id'); }
+    public function codeDraw(): BelongsTo { return $this->belongsTo(BingoDrawCode::class, 'room_id', 'room_id'); }
 
-    public function scopeByRoom($query, string $roomId) { return $query->where('room', $roomId); }
+    public function scopeByRoom($query, string $roomId) { return $query->where('room_id', $roomId); }
     public function scopeByStatus($query, int $status) { return $query->where('status', $status); }
     public function scopeByRound($query, int $round) { return $query->where('round', $round); }
     public function scopePending($query) { return $query->where('status', self::STATUS_PENDING); }

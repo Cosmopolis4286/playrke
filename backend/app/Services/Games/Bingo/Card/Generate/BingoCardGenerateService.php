@@ -10,6 +10,7 @@ use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
 use App\Models\Currency;
+use App\Models\ExchangeRate;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Services\Games\Bingo\Card\BingoCardPriceCalculator;
@@ -443,6 +444,7 @@ final class BingoCardGenerateService
         $cardPrice = $customPrice !== null
             ? $this->priceCalculator->calculate($customPrice, true, $exchangeRate)
             : $this->priceCalculator->calculate($roomCtnPrice, false, $exchangeRate);
+        $cardPriceUsd = $this->toUsdAmount($cardPrice, $exchangeRate);
 
         // 6. Buscar jugador existente en la sala
         $existingRoomUser = ExternalPlayer::select('id', 'link')
@@ -466,6 +468,8 @@ final class BingoCardGenerateService
             'currency'      => $currency,
             'numOfCtns'     => $dto->numCtns,
             'cardPrice'     => $cardPrice,
+            'cardPriceUsd'  => $cardPriceUsd,
+            'saleAmountUsd' => round($cardPriceUsd * $dto->numCtns, 3),
             'country'       => $dto->countryId,
             'playerPhone'   => $dto->playerPhone,
             'playerName'    => $dto->playerName,
@@ -569,20 +573,26 @@ final class BingoCardGenerateService
         $cardPrice = $customPrice !== null
             ? $this->priceCalculator->calculate($customPrice, true, $exchangeRate)
             : $this->priceCalculator->calculate($room->config?->card_price_usd ?? 0, false, $exchangeRate);
+        $cardPriceUsd = $this->toUsdAmount($cardPrice, $exchangeRate);
 
         // 6. Seller ID (null si es commerce)
         $sellerId = $role === 'seller'
             ? $this->sellerRepository->getValueByUserId($userId, 'id')
             : null;
 
+        $currencySymbol = $this->currencies->find($currencyId, ['symbol'])?->symbol ?? '$';
+
         $arrCtn = [
-            'room'           => $room->id,
-            'creator'        => $creatorUserId,
+            'gameId'         => Game::getValueByName('BINGO', 'id'),
+            'roomId'         => $room->id,
+            'creator'        => ['id' => $creatorUserId, 'type' => 'user_id'],
             'seller'         => $sellerId,
             'commerce'       => $commerceId,
             'currency'       => $currencyId,
             'numOfCtns'      => $dto->numCtns,
             'cardPrice'      => $cardPrice,
+            'cardPriceUsd'   => $cardPriceUsd,
+            'saleAmountUsd'  => round($cardPriceUsd * $dto->numCtns, 3),
             'country'        => $dto->countryId,
             'playerPhone'    => '',
             'playerName'     => '',
@@ -591,7 +601,7 @@ final class BingoCardGenerateService
             'exchangeRate'   => $exchangeRate,
         ];
 
-        return DB::transaction(function () use ($arrCtn, $room) {
+        $result = DB::transaction(function () use ($arrCtn, $room) {
             $roomUser = $this->cardGenerationService->generateCards($arrCtn);
 
             if (!$roomUser) {
@@ -603,7 +613,6 @@ final class BingoCardGenerateService
             return [
                 'type'       => 'success',
                 'message'    => 'Cartones generados correctamente.',
-                'prize_pool' => (float) $room->prize_pool,
                 'ctns'       => $arrCtn['numOfCtns'],
             ];
         });
@@ -614,28 +623,20 @@ final class BingoCardGenerateService
             ->find($room->id);
 
         if ($fresh) {
-            $event = new \App\Events\Games\Bingo\BingoRoomUpdated(
+            broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
                 roomId: (string) $fresh->uuid_code,
                 prizePool: (float)  $fresh->prize_pool,
                 totalPlayers: (int)    $fresh->total_players,
                 cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
-            );
-
-            // Debug: Log antes de emitir
-            \Log::info('BingoRoomUpdated: Emitiendo evento desde buyFromGameRooms', [
-                'room_id' => $fresh->id,
-                'prize_pool' => $fresh->prize_pool,
-                'total_players' => $fresh->total_players,
-                'card_price_usd' => $fresh->config?->card_price_usd,
-                'channel' => "bingo.room.{$fresh->id}",
-                'event_name' => 'RoomUpdated'
-            ]);
-
-            // Debug: Log después de emitir
-            \Log::info('BingoRoomUpdated: Evento emitido correctamente desde buyFromGameRooms');
+            ));
         } else {
             \Log::warning('BingoRoomUpdated: No se encontró la sala fresca en buyFromGameRooms', ['room_id' => $room->id]);
         }
+
+        return array_merge($result, [
+            'prize_pool' => $fresh?->prize_pool ?? $room->prize_pool,
+            'currency' => $currencySymbol,
+        ]);
     }
 
     /**
@@ -652,6 +653,19 @@ final class BingoCardGenerateService
                 ->getValueByUserId($userId, 'manager_user_id'),
             default => throw new DomainException('Rol inválido'),
         };
+    }
+
+    private function getPlayerExchangeRate(int $currencyId): float
+    {
+        if ($currencyId === 1) {
+            return 1.0;
+        }
+
+        return (float) ExchangeRate::where('currency_id', $currencyId)
+            ->where('status', 'ACTIVE')
+            ->orderBy('created_at', 'desc')
+            ->value('amount')
+            ?: 1.0;
     }
 
     /**
@@ -687,8 +701,8 @@ final class BingoCardGenerateService
         $currency = $this->currencies->find($currencyId, ['symbol']);
         $currencySymbol = $currency?->symbol ?? 'USD';
 
-        // Obtener tasa de cambio por defecto (1.0 para la moneda del jugador)
-        $exchangeRate = 1.0;
+        // Obtener tasa de cambio para la moneda del jugador
+        $exchangeRate = $this->getPlayerExchangeRate($currencyId);
 
         // Buscar precio personalizado en bingo_card_prices (room + currency)
         // Para jugadores, no filtramos por creator_user_id para permitir precios globales
@@ -705,9 +719,11 @@ final class BingoCardGenerateService
             $roomCtnPrice = $room?->config?->card_price_usd ?? 0.0;
             $cardPrice = $this->priceCalculator->calculate($roomCtnPrice, false, $exchangeRate);
         }
+        $cardPriceUsd = $this->toUsdAmount($cardPrice, $exchangeRate);
 
         return [
             'card_price' => (float) $cardPrice,
+            'card_price_usd' => (float) $cardPriceUsd,
             'currency_symbol' => (string) ($currencySymbol ?? 'USD'),
             'exchange_rate' => $exchangeRate,
             'is_custom_price' => $isCustomPrice,
@@ -766,7 +782,9 @@ final class BingoCardGenerateService
             'playerName'    => 'Player', // Puede obtenerse del usuario si es necesario
             'playerLastName' => 'User',
             'initials'      => 'PU',
-            'exchangeRate'  => 1.0,
+            'cardPriceUsd'  => $priceInfo['card_price_usd'],
+            'saleAmountUsd' => round($priceInfo['card_price_usd'] * $numCtns, 3),
+            'exchangeRate'  => $priceInfo['exchange_rate'],
             'playerUser'    => $userId, // ID del jugador
         ];
 
@@ -813,8 +831,9 @@ final class BingoCardGenerateService
             'message' => 'Cartones generados exitosamente',
             'type' => 'success',
             'ctns' => $numCtns,
-            'prize_pool' => $room->prize_pool + $totalAmount,
+            'prize_pool' => $fresh?->prize_pool ?? $room->prize_pool,
             'currency' => $priceInfo['currency_symbol'],
+            'exchange_rate' => $priceInfo['exchange_rate'],
             'room_user' => $result['roomUser'] ?? null,
             'wallet_balance' => $currentBalance - $totalAmount,
         ];
@@ -829,5 +848,14 @@ final class BingoCardGenerateService
             'exists' => false,
             'rooms'  => []
         ];
+    }
+
+    private function toUsdAmount(float $amount, float $exchangeRate): float
+    {
+        if ($exchangeRate <= 0) {
+            throw new DomainException('Tasa de cambio invÃ¡lida para convertir el monto a USD.');
+        }
+
+        return round($amount / $exchangeRate, 3);
     }
 }

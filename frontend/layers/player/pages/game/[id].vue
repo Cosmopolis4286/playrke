@@ -270,7 +270,14 @@ const loadGameData = async () => {
 
 const purchaseCards = async () => {
   try {
-    await purchaseCard(roomId, purchaseQuantity.value)
+    const response = await purchaseCard(roomId, purchaseQuantity.value)
+    
+    // Update room prize pool and currency with the response data
+    if (response.data && room.value) {
+      room.value.prize_pool = response.data.prize_pool
+      room.value.currency = response.data.currency
+    }
+    
     await loadMyCards()
     showPurchaseModal.value = false
     purchaseQuantity.value = 1

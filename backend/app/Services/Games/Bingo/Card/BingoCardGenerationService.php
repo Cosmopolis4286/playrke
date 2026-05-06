@@ -94,10 +94,15 @@ final class BingoCardGenerationService
 
             // Formatear Monto de Venta
             $saleAmount = round($numOfCtns * $arrCtn['cardPrice'], 2);
+            $exchangeRate = (float) ($arrCtn['exchangeRate'] ?? 1);
+            $saleAmountUsd = isset($arrCtn['saleAmountUsd'])
+                ? round((float) $arrCtn['saleAmountUsd'], 3)
+                : $this->toUsdAmount($saleAmount, $exchangeRate);
 
             Log::info('Variables initialized', [
                 'creator' => $creator,
                 'saleAmount' => $saleAmount,
+                'saleAmountUsd' => $saleAmountUsd,
                 'currency' => $currency,
                 'numOfCtns' => $numOfCtns
             ]);
@@ -131,7 +136,7 @@ final class BingoCardGenerationService
             }
 
             // Actualizar acumulado y comisiones de la sala
-            $updateRoomMetrics = $this->roomMetrics->updateRoomMetricsWithCommissions($room, $arrCtn, $saleAmount, $sellerSaleCommn ?? 0);
+            $updateRoomMetrics = $this->roomMetrics->updateRoomMetricsWithCommissions($room, $arrCtn, $saleAmountUsd, $sellerSaleCommn ?? 0);
 
             Log::info('Room metrics update result', ['updateRoomMetrics' => $updateRoomMetrics]);
 
@@ -261,6 +266,15 @@ final class BingoCardGenerationService
             $roomUser = $this->generateCards($arrCtn);
             return $roomUser;
         });
+    }
+
+    private function toUsdAmount(float $amount, float $exchangeRate): float
+    {
+        if ($exchangeRate <= 0) {
+            throw new \DomainException('Tasa de cambio invÃ¡lida para convertir el monto a USD.');
+        }
+
+        return round($amount / $exchangeRate, 3);
     }
 
     /**

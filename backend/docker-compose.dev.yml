@@ -48,6 +48,7 @@ services:
       - ./resources:/var/www/resources
       - ./routes:/var/www/routes
       - ./tests:/var/www/tests
+      - ./public:/var/www/public
       - ./artisan:/var/www/artisan
       - ./.env.dev:/var/www/.env
       - storage_data:/var/www/storage

@@ -200,7 +200,8 @@ class RoomMetricsService implements RoomMetricsInterface
                 'sellerCommission' => $sellerCommission
             ]);
             
-            // Recalcular venta y comisiones en base a USDT
+            // Persistir mÃ©tricas monetarias de bingo_rooms en USD.
+            // Los lotes/pagos pueden conservar moneda local; este agregado siempre queda normalizado.
             $exchangeRate = $saleData['exchangeRate'] ?? 1;
             
             // Prevent division by zero
@@ -212,8 +213,12 @@ class RoomMetricsService implements RoomMetricsInterface
                 return false;
             }
             
-            $saleAmount = round($saleAmount / $exchangeRate, 3);
-            $sellerCommission = round($sellerCommission / $exchangeRate, 3);
+            $saleAmount = isset($saleData['saleAmountUsd'])
+                ? round((float) $saleData['saleAmountUsd'], 3)
+                : round($saleAmount / $exchangeRate, 3);
+            $sellerCommission = isset($saleData['sellerCommissionUsd'])
+                ? round((float) $saleData['sellerCommissionUsd'], 3)
+                : round($sellerCommission / $exchangeRate, 3);
 
             // Obtener configuración de la sala
             $bingoConfig = \App\Domains\Games\Bingo\Models\Room\BingoRoomConfig::where('room_id', $room->id)

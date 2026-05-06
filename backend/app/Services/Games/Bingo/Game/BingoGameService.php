@@ -56,6 +56,7 @@ final class BingoGameService
         $wallet = $this->resolveUserWallet($userId);
         $walletCurrencyId = $wallet?->currency_id ? (int) $wallet->currency_id : null;
         $currencySym = $wallet?->currency?->symbol ?? '$';
+        $exchangeRate = $this->getWalletExchangeRate($walletCurrencyId);
 
         // Obtener precio del cartón adaptado a la moneda de la wallet del usuario
         $cardPrice = $this->getCardPrice($bingoRoom, $walletCurrencyId);
@@ -95,7 +96,8 @@ final class BingoGameService
             'cartons' => $cartons,
             'customerLogo' => null, // Se puede configurar según necesidad
             'currencySym' => $currencySym,
-            'prizePool' => $this->convertToWalletCurrency((float) $bingoRoom->prize_pool, $walletCurrencyId),
+            'prizePool' => (float) $bingoRoom->prize_pool, // Enviar en USD
+            'exchangeRate' => $exchangeRate, // Enviar la tasa de cambio
             'totalPlayers' => (int) $bingoRoom->total_players,
             'prizePoolType' => 'Premio',
             'round' => 1, // Obtener de la configuración del juego

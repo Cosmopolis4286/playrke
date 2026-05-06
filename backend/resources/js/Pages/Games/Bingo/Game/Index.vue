@@ -42,6 +42,7 @@ interface Props {
   customerLogo?: string;
   currencySym?: string;
   prizePool?: number;
+  exchangeRate?: number;
   totalPlayers?: number;
   prizePoolType?: string;
   round?: number;
@@ -72,6 +73,7 @@ const props = withDefaults(defineProps<Props>(), {
   customerLogo: null,
   currencySym: "$",
   prizePool: 0,
+  exchangeRate: 1,
   totalPlayers: 0,
   prizePoolType: "PREMIO",
   round: 1,
@@ -99,6 +101,7 @@ const props = withDefaults(defineProps<Props>(), {
 // Reactive state (updated via WebSocket)
 // ─────────────────────────────────────────────────────────────────────────────
 const livePrize   = ref(props.prizePool ?? 0);
+const liveExchangeRate = ref(props.exchangeRate ?? 1);
 const livePlayers = ref(props.totalPlayers ?? 0);
 const liveDrawn   = ref<number[]>([...(props.draw ?? [])]);
 const prizeFlash  = ref(false);
@@ -180,8 +183,8 @@ function scheduleDrawStart() {
 // Computed
 // ─────────────────────────────────────────────────────────────────────────────
 const prizeFormatted = computed(() => {
-  const n = livePrize.value;
-  return n % 1 === 0 ? n.toFixed(0) : n.toFixed(2);
+  const convertedPrize = livePrize.value * liveExchangeRate.value;
+  return convertedPrize % 1 === 0 ? convertedPrize.toFixed(0) : convertedPrize.toFixed(2);
 });
 
 const cardCount = computed(() => props.cartons?.length ?? 0);

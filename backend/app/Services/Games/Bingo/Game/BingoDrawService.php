@@ -42,7 +42,7 @@ final class BingoDrawService
         @set_time_limit(0);
         ignore_user_abort(true);
 
-        $roomId = (int) $room->id;
+        $roomId = $room->id;
 
         Log::info('[BingoDrawService] Iniciando sorteo', ['room_id' => $roomId]);
 
@@ -118,10 +118,10 @@ final class BingoDrawService
      * - num = posición en la secuencia (1-indexed, máximo 75 → cabe en tinyInt)
      * - sym = el número de la ficha como string (ej: "34", "B-12" no, solo el número)
      *
-     * @param int   $roomId
-     * @param int[] $sequence
+     * @param string $roomId
+     * @param int[]  $sequence
      */
-    private function persistDrawCodes(int $roomId, array $sequence): void
+    private function persistDrawCodes(string $roomId, array $sequence): void
     {
         foreach ($sequence as $index => $number) {
             BingoDrawCode::create([
@@ -135,13 +135,13 @@ final class BingoDrawService
     /**
      * Crea un registro en bingo_draws para una ficha.
      *
-     * @param int $roomId
-     * @param int $round
-     * @param int $chip    Número de ficha (1–75)
-     * @param int $time    Segundos desde inicio del sorteo
+     * @param string $roomId
+     * @param int    $round
+     * @param int    $chip    Número de ficha (1–75)
+     * @param int    $time    Segundos desde inicio del sorteo
      * @return BingoDraw
      */
-    private function createDrawRecord(int $roomId, int $round, int $chip, int $time): BingoDraw
+    private function createDrawRecord(string $roomId, int $round, int $chip, int $time): BingoDraw
     {
         return BingoDraw::create([
             'room_id' => $roomId,
