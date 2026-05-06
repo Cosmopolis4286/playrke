@@ -43,16 +43,24 @@ final class TriviaRoomAdminController extends Controller
 
         $rooms = $query->paginate(15)->withQueryString();
 
-        // Enriquecer con datos de Redis (jugadores actuales)
-        $rooms->getCollection()->transform(function ($room) {
-            try {
-                $roomDto = $this->roomService->getRoom((string) $room->id);
-                $room->current_players = $roomDto->currentPlayers;
-                $room->player_ids = $roomDto->playerIds;
-            } catch (\Exception) {
-                $room->current_players = 0;
-                $room->player_ids = [];
-            }
+        // Contar jugadores reales desde trivia_participants (fuente de verdad)
+        // Redis puede estar desactualizado — mismo patrón que lobby y waitingRoom
+        $roomIds = $rooms->pluck('id')->map(fn($id) => (string) $id)->all();
+        $participantCounts = [];
+        if (!empty($roomIds)) {
+            $participantCounts = DB::connection('pgsql_trivia')
+                ->table('trivia_participants')
+                ->whereIn('room_id', $roomIds)
+                ->whereNull('deleted_at')
+                ->whereNotIn('status', ['abandoned'])
+                ->selectRaw('room_id, COUNT(*) as cnt')
+                ->groupBy('room_id')
+                ->pluck('cnt', 'room_id')
+                ->all();
+        }
+
+        $rooms->getCollection()->transform(function ($room) use ($participantCounts) {
+            $room->current_players = (int) ($participantCounts[(string) $room->id] ?? 0);
             return $room;
         });
 

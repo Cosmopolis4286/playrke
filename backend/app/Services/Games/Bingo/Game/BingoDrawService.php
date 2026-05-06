@@ -39,6 +39,9 @@ final class BingoDrawService
      */
     public function startDraw(BingoRoom $room): array
     {
+        @set_time_limit(0);
+        ignore_user_abort(true);
+
         $roomId = (int) $room->id;
 
         Log::info('[BingoDrawService] Iniciando sorteo', ['room_id' => $roomId]);

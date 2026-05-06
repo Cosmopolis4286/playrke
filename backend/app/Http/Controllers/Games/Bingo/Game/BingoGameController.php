@@ -137,7 +137,29 @@ final class BingoGameController extends Controller
     public function startDraw(BingoRoom $room): JsonResponse
     {
         return $this->handleServiceJson(
-            fn() => $this->drawService->startDraw($room)
+            function () use ($room) {
+                $roomId = (int) $room->id;
+
+                dispatch(function () use ($roomId) {
+                    $room = BingoRoom::find($roomId);
+
+                    if (!$room) {
+                        \Log::warning('[BingoGameController] No se pudo iniciar sorteo: sala no encontrada', [
+                            'room_id' => $roomId,
+                        ]);
+
+                        return;
+                    }
+
+                    app(\App\Services\Games\Bingo\Game\BingoDrawService::class)->startDraw($room);
+                })->afterResponse();
+
+                return [
+                    'success' => true,
+                    'room_id' => $roomId,
+                    'message' => 'Sorteo iniciado. Las fichas se emitirán por WebSocket.',
+                ];
+            }
         );
     }
 

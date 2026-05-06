@@ -4,8 +4,10 @@ namespace App\Services\Games\Bingo\Game;
 
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Models\ExchangeRate;
 use App\Models\Games\Bingo\ExternalPlayers;
 use App\Models\User;
+use App\Models\Wallet;
 use App\Services\Games\Bingo\Room\Utils\CheckExpiredBingoRoomsService;
 
 final class BingoGameService
@@ -25,10 +27,10 @@ final class BingoGameService
     public function getInGameData(BingoRoom $room, ?int $userId = null): array
     {
         $this->checkExpired->handle();
-        
+
         // La sala ya viene del route binding, solo necesitamos cargar las relaciones
         $bingoRoom = $room->load(['config', 'creator', 'cardPrices', 'rounds']);
-        
+
         // Verificar si la sala está eliminada (soft delete)
         if ($bingoRoom->trashed()) {
             \Log::warning('BingoRoom found but is soft deleted', [
@@ -41,7 +43,7 @@ final class BingoGameService
 
         // Obtener cartones del jugador
         $cartons = $this->getUserCartons((int) $bingoRoom->id, $userId);
-        
+
         // Debug logging para verificar los cartones obtenidos
         \Log::info('User cartons loaded', [
             'room_id' => $bingoRoom->id,
@@ -50,8 +52,13 @@ final class BingoGameService
             'cartons_data' => $cartons
         ]);
 
-        // Obtener precio del cartón (USD por defecto)
-        $cardPrice = $this->getCardPrice($bingoRoom);
+        // Obtener la wallet del usuario y la moneda asociada (si existe)
+        $wallet = $this->resolveUserWallet($userId);
+        $walletCurrencyId = $wallet?->currency_id ? (int) $wallet->currency_id : null;
+        $currencySym = $wallet?->currency?->symbol ?? '$';
+
+        // Obtener precio del cartón adaptado a la moneda de la wallet del usuario
+        $cardPrice = $this->getCardPrice($bingoRoom, $walletCurrencyId);
 
         // Preparar datos del juego
         $config = $bingoRoom->config;
@@ -87,8 +94,8 @@ final class BingoGameService
             'roomRouteKey' => $bingoRoom->getRouteKey(),
             'cartons' => $cartons,
             'customerLogo' => null, // Se puede configurar según necesidad
-            'currencySym' => '$', // Configurable según moneda de la sala
-            'prizePool' => (float) $bingoRoom->prize_pool,
+            'currencySym' => $currencySym,
+            'prizePool' => $this->convertToWalletCurrency((float) $bingoRoom->prize_pool, $walletCurrencyId),
             'totalPlayers' => (int) $bingoRoom->total_players,
             'prizePoolType' => 'Premio',
             'round' => 1, // Obtener de la configuración del juego
@@ -104,15 +111,15 @@ final class BingoGameService
             'infoGame' => null,
             'creatorType' => 'admin', // Obtener del creador de la sala
             'creatorId' => $bingoRoom->creator_user_id,
-            'currencyId' => (string) 1, // Configurable
+            'currencyId' => (string) ($walletCurrencyId ?? 1),
             'cardPrice' => (float) $cardPrice,
             'startTime' => (int) ($config?->unix_date ?? $bingoRoom->published_at?->timestamp ?? now()->timestamp),
             'closingRoute' => route('bingo-rooms.index'),
         ];
-        
+
         // Forzar la serialización correcta para Inertia
         $gameData['rounds'] = (int) $gameData['rounds'];
-        
+
         // Debug final para verificar los datos que se envían
         \Log::info('Final game data for Inertia', [
             'data_keys' => array_keys($gameData),
@@ -120,7 +127,7 @@ final class BingoGameService
             'rounds_type' => gettype($gameData['rounds']),
             'rounds_forced' => (int) $gameData['rounds']
         ]);
-        
+
         return $gameData;
     }
 
@@ -316,22 +323,22 @@ final class BingoGameService
         if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $identifier)) {
             return true;
         }
-        
+
         // Verificar si es un ID Snowflake válido (número grande, generalmente 15+ dígitos)
         if (preg_match('/^\d{15,}$/', $identifier)) {
             return true;
         }
-        
+
         // Verificar si es un UUID sin guiones (formato alternativo)
         if (preg_match('/^[0-9a-f]{32}$/i', $identifier)) {
             return true;
         }
-        
+
         // Verificar si es un ID corto alfanumérico (como 4xZOjvaxq3G2d)
         if (preg_match('/^[a-zA-Z0-9]{8,}$/', $identifier)) {
             return true;
         }
-        
+
         return false;
     }
 
@@ -341,8 +348,16 @@ final class BingoGameService
      * @param BingoRoom $room
      * @return float
      */
-    private function getCardPrice(BingoRoom $room): float
+    private function getCardPrice(BingoRoom $room, ?int $walletCurrencyId = null): float
     {
+        if ($walletCurrencyId) {
+            $localPrice = $room->cardPrices->firstWhere('currency_id', $walletCurrencyId);
+
+            if ($localPrice) {
+                return (float) $localPrice->card_price;
+            }
+        }
+
         // Buscar precio en USD (moneda por defecto)
         $cardPrice = $room->cardPrices
             ->where('currency_id', 1) // Asumiendo que 1 es USD
@@ -353,6 +368,45 @@ final class BingoGameService
             $cardPrice = $room->cardPrices->first();
         }
 
-        return $cardPrice?->card_price ?? 0;
+        $price = (float) ($cardPrice?->card_price ?? 0);
+
+        return $walletCurrencyId && $walletCurrencyId !== 1
+            ? $this->convertToWalletCurrency($price, $walletCurrencyId)
+            : $price;
+    }
+
+    private function resolveUserWallet(?int $userId): ?Wallet
+    {
+        if (!$userId) {
+            return null;
+        }
+
+        return Wallet::with('currency')
+            ->where('user_id', $userId)
+            ->active()
+            ->first();
+    }
+
+    private function getWalletExchangeRate(?int $currencyId): float
+    {
+        if (!$currencyId || $currencyId === 1) {
+            return 1.0;
+        }
+
+        $exchangeRate = ExchangeRate::where('currency_id', $currencyId)
+            ->where('status', 'ACTIVE')
+            ->orderByDesc('created_at')
+            ->first();
+
+        return $exchangeRate ? (float) $exchangeRate->amount : 1.0;
+    }
+
+    private function convertToWalletCurrency(float $amount, ?int $currencyId): float
+    {
+        if (!$currencyId || $currencyId === 1) {
+            return round($amount, 2);
+        }
+
+        return round($amount * $this->getWalletExchangeRate($currencyId), 2);
     }
 }
