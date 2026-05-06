@@ -28,6 +28,10 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Usuario que participa en la sala');
 
+            $table->enum('role', ['PLAYER', 'SELLER', 'ADMIN', 'PLAYER_SELLER'])
+                ->default('PLAYER')
+                ->comment('Rol del usuario en la sala: PLAYER = jugador, SELLER = vendedor, ADMIN = administrador, PLAYER_SELLER = ambos roles');
+
             // Datos del jugador
             $table->unsignedSmallInteger('cards_purchased')->comment('Cantidad de cartones adquiridos');
             $table->decimal('automarker', 8, 2)->nullable()->comment('Valor del automarcador si aplica');
@@ -37,6 +41,8 @@ return new class extends Migration
 
             // Índices para optimizar consultas frecuentes
             $table->index(['room_id', 'user_id'], 'idx_room_user');
+            $table->index(['room_id', 'role'], 'idx_room_role');
+            $table->index(['user_id', 'role'], 'idx_user_role');
             $table->index('created_at', 'idx_bingo_room_users_created');
         });
     }

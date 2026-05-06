@@ -41,14 +41,8 @@ return new class extends Migration
             $table->integer('total_players')->default(0)->comment('Número de jugadores en la sala');
             $table->integer('total_cards')->default(0)->comment('Número total de cartones vendidos');
 
-            // Campos financieros
-            $table->decimal('total_sales', 15, 2)->default(0)->comment('Ventas totales de la sala');
-            $table->decimal('rke_commission', 15, 2)->default(0)->comment('Comisión de la plataforma RKE');
-            $table->decimal('room_commission', 15, 2)->default(0)->comment('Comisión de la sala');
-            $table->decimal('seller_commission', 15, 2)->default(0)->comment('Comisión del vendedor');
-            $table->decimal('prize_pool', 15, 2)->default(0)->comment('Pool de premios acumulado');
-            $table->decimal('full_house_prize', 15, 2)->default(0)->comment('Premio por cartón lleno');
-            $table->decimal('serial_prize', 15, 2)->default(0)->comment('Premio por serie completa');
+            // Campo financiero principal (los demás están en bingo_rooms_config)
+            $table->decimal('total_sales', 15, 2)->default(0)->comment('Ventas totales de la sala (resumen)');
 
             // Fecha de publicación
             $table->timestamp('published_at')->nullable()->comment('Fecha de publicación de la sala');
@@ -63,8 +57,10 @@ return new class extends Migration
 
             // Índices compuestos útiles
             $table->index(['creator_user_id', 'created_at'], 'idx_creator_createdat');
+            $table->index(['creator_user_id', 'status_id'], 'idx_creator_status');
             $table->index(['finished_at'], 'idx_finished_at');
             $table->index('uuid_code', 'idx_uuid_code');
+            $table->index(['paid_prizes', 'finished_at'], 'idx_paid_prizes_finished');
             $table->index('updated_at', 'idx_bingo_rooms_updated');
         });
     }

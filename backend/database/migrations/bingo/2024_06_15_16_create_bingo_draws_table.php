@@ -18,7 +18,10 @@ return new class extends Migration
                 ->constrained('bingo_rooms')
                 ->cascadeOnDelete()
                 ->comment('Sala asociada');
-            $table->string('round', 2)->default('1')->comment('Número de ronda');
+            $table->foreignSnowflake('round_id')
+                ->constrained('bingo_rounds')
+                ->cascadeOnDelete()
+                ->comment('Ronda asociada');
             $table->char('chip', 2)->comment('Ficha extraída (B, I, N, G, O + número)');
             $table->char('code', 8)->comment('Código asociado a la ficha');
             $table->integer('time')->comment('Tiempo en segundos desde el inicio de la ronda');
@@ -26,8 +29,9 @@ return new class extends Migration
             $table->timestamps();
 
             // Índice único: chip no puede repetirse en la misma sala/ronda
-            $table->unique(['room_id', 'round', 'chip'], 'unique_chip_per_room_round');
-            $table->index(['room_id', 'round'], 'idx_bingo_draws_room_round');
+            $table->unique(['room_id', 'round_id', 'chip'], 'unique_chip_per_room_round');
+            $table->index(['room_id', 'round_id'], 'idx_bingo_draws_room_round');
+            $table->index(['room_id', 'round_id', 'status'], 'idx_bingo_draws_room_round_status');
             $table->index('created_at', 'idx_bingo_draws_created');
         });
     }

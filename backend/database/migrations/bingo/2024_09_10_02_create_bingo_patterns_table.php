@@ -33,6 +33,7 @@ return new class extends Migration
             $table->index('user_id', 'idx_bingo_patterns_user');
             $table->index('status', 'idx_bingo_patterns_status');
             $table->index('created_at', 'idx_bingo_patterns_created');
+            $table->index(['user_id', 'num_id'], 'idx_bingo_patterns_user_numid');
         });
     }
 

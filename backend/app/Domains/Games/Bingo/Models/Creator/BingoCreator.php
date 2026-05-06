@@ -12,7 +12,7 @@ class BingoCreator extends Model
 {
     use SnowflakeId;
 
-    protected $table = 'bingo_creators';
+    protected $table = 'bingo_room_creators';
 
     public const STATUSES = [
         'active'   => 'Activo',

@@ -7,11 +7,11 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Ejecutar la migración: crear tabla 'bingo_creators'.
+     * Ejecutar la migración: crear tabla 'bingo_room_creators'.
      */
     public function up(): void
     {
-        Schema::create('bingo_creators', function (Blueprint $table) {
+        Schema::create('bingo_room_creators', function (Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del registro de creador');
 
@@ -52,10 +52,10 @@ return new class extends Migration
     }
 
     /**
-     * Revertir la migración: eliminar tabla 'bingo_creators'.
+     * Revertir la migración: eliminar tabla 'bingo_room_creators'.
      */
     public function down(): void
     {
-        Schema::dropIfExists('bingo_creators');
+        Schema::dropIfExists('bingo_room_creators');
     }
 };

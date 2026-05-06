@@ -17,6 +17,11 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Sala asociada');
 
+            $table->foreignSnowflake('room_config_id')
+                ->constrained('bingo_rooms_config')
+                ->cascadeOnDelete()
+                ->comment('Configuración específica de la sala');
+
             $table->tinyInteger('round')->unsigned()->comment('Número de la ronda');
             $table->timestamp('start_time')->nullable()->comment('Inicio de la ronda');
             $table->char('last_chip', 2)->nullable()->comment('Última ficha jugada');
@@ -36,6 +41,9 @@ return new class extends Migration
             $table->index('created_at', 'idx_bingo_rounds_created');
             $table->index('updated_at', 'idx_bingo_rounds_updated');
 
+            // Índices para consultas frecuentes
+            $table->index('room_config_id', 'idx_bingo_rounds_room_config');
+            
             // Índice compuesto útil para evitar duplicados de ronda por sala
             $table->unique(['room_id', 'round'], 'unique_round_per_room');
         });

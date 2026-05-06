@@ -97,6 +97,13 @@ return new class extends Migration
 
             $table->decimal('jackpot_pct', 5, 2)->nullable()->comment('Porcentaje destinado al jackpot');
 
+            // Campos financieros adicionales (centralizados desde bingo_rooms)
+            $table->decimal('room_commission', 8, 2)->nullable()->comment('Comisión de la sala (configuración específica)');
+            $table->decimal('seller_commission', 8, 2)->nullable()->comment('Comisión del vendedor');
+            $table->decimal('prize_pool', 15, 2)->default(0)->comment('Pool de premios acumulado configurado');
+            $table->decimal('full_house_prize', 15, 2)->default(0)->comment('Premio por cartón lleno configurado');
+            $table->decimal('serial_prize', 15, 2)->default(0)->comment('Premio por serie completa configurado');
+
             $table->timestamps(); // created_at y updated_at
 
             // indices
@@ -105,6 +112,8 @@ return new class extends Migration
             $table->index('creator_user_id', 'idx_creator_user_id');
             $table->index('game_mode_id', 'idx_game_mode_id');
             $table->index('prize_pool_type_id', 'idx_prize_pool_type_id');
+            $table->index(['date', 'time'], 'idx_datetime');
+            $table->index(['creation', 'status'], 'idx_creation_status');
             $table->index('created_at', 'idx_bingo_rooms_config_created');
             $table->index('updated_at', 'idx_bingo_rooms_config_updated');
         });

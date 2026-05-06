@@ -60,8 +60,10 @@ return new class extends Migration
                 ->comment('Moneda asociada');
 
             // Datos del premio
-            $table->string('game_round', 10)
-                ->comment('Ronda del juego');
+            $table->foreignSnowflake('round_id')
+                ->constrained('bingo_rounds')
+                ->cascadeOnDelete()
+                ->comment('Ronda del premio');
 
             $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('INACTIVE')
                 ->comment('Estado de activación del premio: true = activo, false = inactivo');
@@ -76,7 +78,7 @@ return new class extends Migration
                 ->unsigned()
                 ->comment('Monto en USD');
 
-            $table->decimal('local_amount', 12, 8)
+            $table->decimal('local_amount', 12, 4)
                 ->unsigned()
                 ->comment('Monto en moneda local');
 
@@ -107,9 +109,10 @@ return new class extends Migration
             $table->index(['room_id', 'prize_status'], 'idx_bingo_card_prizes_room_status');
             $table->index(['prize_type', 'prize_status'], 'idx_bingo_card_prizes_type_status');
             $table->index(['card_lot_id', 'prize_status'], 'idx_bingo_card_prizes_lot_status');
-            $table->index(['game_round', 'room_id'], 'idx_bingo_card_prizes_round_room');
+            $table->index(['round_id', 'room_id'], 'idx_bingo_card_prizes_round_room');
             $table->index('claimed_at', 'idx_bingo_card_prizes_claimed');
             $table->index('verification_code', 'idx_bingo_card_prizes_verification');
+            $table->index(['winning_card_id', 'prize_status'], 'idx_card_prize_status');
             $table->index('created_at', 'idx_bingo_card_prizes_created');
             $table->index('updated_at', 'idx_bingo_card_prizes_updated');
 

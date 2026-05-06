@@ -62,7 +62,11 @@ return new class extends Migration
                 ->unique()
                 ->comment('Número de serie único del cartón');
 
-            // Columnas del cartón: B, I, N, G, O (5x5 grid)
+            // Estructura del cartón optimizada en JSON (matriz 5x5)
+            $table->json('card_numbers')
+                ->comment('Matriz 5x5 del cartón: {"B":[1,2,3,4,5], "I":[16,17,18,19,20], "N":[31,32,null,34,35], "G":[46,47,48,49,50], "O":[61,62,63,64,65]}');
+
+            // Columnas legacy para compatibilidad (opcional - pueden eliminarse en futura migración)
             foreach (['b', 'i', 'n', 'g', 'o'] as $letter) {
                 for ($i = 1; $i <= 5; $i++) {
                     // El centro (N3) es tradicionalmente libre en bingo
@@ -70,7 +74,7 @@ return new class extends Migration
                     $table->tinyInteger("{$letter}{$i}")
                         ->nullable($nullable)
                         ->unsigned()
-                        ->comment("Número en posición {$letter}{$i} del cartón");
+                        ->comment("Número en posición {$letter}{$i} del cartón (legacy)");
                 }
             }
 
@@ -98,6 +102,7 @@ return new class extends Migration
             $table->index(['room_user_id', 'status'], 'idx_bingo_cards_user_status');
             $table->index('serial_number', 'idx_bingo_cards_serial');
             $table->index('card_hash', 'idx_bingo_cards_hash');
+            $table->index('card_numbers', 'idx_bingo_card_numbers');
             $table->index('created_at', 'idx_bingo_cards_created');
             $table->index('updated_at', 'idx_bingo_cards_updated');
         });
