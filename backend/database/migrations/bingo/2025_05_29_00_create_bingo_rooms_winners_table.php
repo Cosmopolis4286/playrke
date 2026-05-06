@@ -13,12 +13,24 @@ return new class extends Migration
     {
         Schema::create('bingo_rooms_winners', function (Blueprint $table) {
             // PK con Snowflake
-            $table->snowflake('id')->primary();;
-            $table->foreignSnowflake('room_id')->constrained('bingo_rooms')->onDelete('cascade');
-            $table->foreignSnowflake('room_user_id')->constrained('bingo_room_users')->onDelete('cascade');
-            $table->foreignSnowflake('round_id')->constrained('bingo_rounds');
-            $table->enum('award_status', ['WAITING', 'PAID'])->default('WAITING');
+            $table->snowflake('id')->primary()->comment('ID único del ganador');
+            $table->foreignSnowflake('room_id')
+                ->constrained('bingo_rooms')
+                ->cascadeOnDelete()
+                ->comment('Sala asociada');
+            $table->foreignSnowflake('room_user_id')
+                ->constrained('bingo_room_users')
+                ->cascadeOnDelete()
+                ->comment('Usuario en la sala');
+            $table->foreignSnowflake('round_id')
+                ->constrained('bingo_rounds')
+                ->comment('Ronda ganada');
+            $table->enum('award_status', ['WAITING', 'PAID'])
+                ->default('WAITING')
+                ->comment('Estado del pago del premio');
             $table->timestamps();
+            $table->index(['room_id', 'award_status'], 'idx_bingo_rooms_winners_room_status');
+            $table->index('created_at', 'idx_bingo_rooms_winners_created');
         });
     }
 

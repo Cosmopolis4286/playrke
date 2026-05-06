@@ -18,7 +18,7 @@ return new class extends Migration
             // Estado del cartón
             $table->enum('status', ['ACTIVE', 'INACTIVE', 'WINNER', 'CANCELLED'])
                 ->default('ACTIVE')
-                ->comment('Estado del cartón');
+                ->comment('Estado del cartón: ACTIVE = activo, INACTIVE = inactivo, WINNER = ganador, CANCELLED = cancelado');
 
             // Relaciones
             $table->foreignSnowflake('room_id')
@@ -99,6 +99,7 @@ return new class extends Migration
             $table->index('serial_number', 'idx_bingo_cards_serial');
             $table->index('card_hash', 'idx_bingo_cards_hash');
             $table->index('created_at', 'idx_bingo_cards_created');
+            $table->index('updated_at', 'idx_bingo_cards_updated');
         });
     }
 

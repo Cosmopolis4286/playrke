@@ -65,6 +65,7 @@ return new class extends Migration
             $table->index(['creator_user_id', 'created_at'], 'idx_creator_createdat');
             $table->index(['finished_at'], 'idx_finished_at');
             $table->index('uuid_code', 'idx_uuid_code');
+            $table->index('updated_at', 'idx_bingo_rooms_updated');
         });
     }
 

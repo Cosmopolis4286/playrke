@@ -248,7 +248,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
 
         $this->assertNotNull($creator);
         $this->assertEquals($template->creator_user_id, $creator->user_id);
-        $this->assertEquals((float) $template->room_commission, (float) $creator->creator_commn);
+        $this->assertEquals((float) $template->room_commission, (float) $creator->creator_commission);
         $this->assertEquals('ACTIVE', $creator->status);
     }
 

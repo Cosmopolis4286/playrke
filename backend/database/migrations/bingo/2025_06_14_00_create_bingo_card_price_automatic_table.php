@@ -10,28 +10,35 @@ return new class extends Migration
     {
         Schema::create('bingo_card_price_automatic', function (Blueprint $table) {
             // PK con Snowflake
-            $table->snowflake('id')->primary();;
+            $table->snowflake('id')->primary()->comment('ID único del precio automático');
 
             $table->foreignSnowflake('bingo_room_id')
                 ->nullable()
                 ->constrained('bingo_rooms')
-                ->nullOnDelete();
+                ->nullOnDelete()
+                ->comment('Sala de bingo asociada');
 
             $table->foreignSnowflake('automatic_bingo_room_id')
                 ->nullable()
                 ->constrained('bingo_rooms_automatic')
-                ->nullOnDelete();
+                ->nullOnDelete()
+                ->comment('Sala automática asociada');
 
             $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
-                ->cascadeOnDelete();
+                ->cascadeOnDelete()
+                ->comment('Usuario creador');
 
-            $table->json('currencies');       // Ej: ["USD","BRL"]
-            $table->json('card_prices');  // Ej: {"USD": 5, "BRL": 25}
+            $table->json('currencies')->comment('Monedas permitidas. Ej: ["USD","BRL"]');
+            $table->json('card_prices')->comment('Precios por moneda. Ej: {"USD": 5, "BRL": 25}');
 
-            $table->enum('status', ['ACTIVE', 'EXECUTED'])->default('ACTIVE');
+            $table->enum('status', ['ACTIVE', 'EXECUTED'])
+                ->default('ACTIVE')
+                ->comment('Estado del precio automático');
 
             $table->timestamps();
+            $table->index('status', 'idx_bingo_card_price_auto_status');
+            $table->index('created_at', 'idx_bingo_card_price_auto_created');
 
             // Opcional: evitar duplicados por combinación
             $table->unique(

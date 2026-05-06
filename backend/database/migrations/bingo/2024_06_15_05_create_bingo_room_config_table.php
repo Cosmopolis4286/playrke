@@ -105,6 +105,8 @@ return new class extends Migration
             $table->index('creator_user_id', 'idx_creator_user_id');
             $table->index('game_mode_id', 'idx_game_mode_id');
             $table->index('prize_pool_type_id', 'idx_prize_pool_type_id');
+            $table->index('created_at', 'idx_bingo_rooms_config_created');
+            $table->index('updated_at', 'idx_bingo_rooms_config_updated');
         });
     }
 

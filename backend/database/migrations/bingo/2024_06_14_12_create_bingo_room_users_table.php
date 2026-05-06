@@ -22,7 +22,11 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Sala asociada');
 
-            $table->string('user_id')->comment('Usuario que participa en la sala');
+            $table->foreignSnowflake('user_id')
+                ->constrained('users')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Usuario que participa en la sala');
 
             // Datos del jugador
             $table->unsignedSmallInteger('cards_purchased')->comment('Cantidad de cartones adquiridos');
@@ -33,6 +37,7 @@ return new class extends Migration
 
             // Índices para optimizar consultas frecuentes
             $table->index(['room_id', 'user_id'], 'idx_room_user');
+            $table->index('created_at', 'idx_bingo_room_users_created');
         });
     }
 

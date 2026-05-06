@@ -13,11 +13,15 @@ return new class extends Migration
     {
         Schema::create('bingo_draws_code', function (Blueprint $table) {
             // PK con Snowflake
-            $table->snowflake('id')->primary();;
-            $table->foreignSnowflake('room_id')->constrained('bingo_rooms')->onDelete('cascade');
-            $table->tinyInteger('num'); // número (1 dígito)
-            $table->char('sym', 6);     // símbolo (ej: código fijo)
+            $table->snowflake('id')->primary()->comment('ID único del código de sorteo');
+            $table->foreignSnowflake('room_id')
+                ->constrained('bingo_rooms')
+                ->cascadeOnDelete()
+                ->comment('Sala asociada');
+            $table->tinyInteger('num')->comment('Número (1 dígito)');
+            $table->char('sym', 6)->comment('Símbolo/código fijo');
             $table->timestamps();
+            $table->index('created_at', 'idx_bingo_draws_code_created');
 
             // Evitar duplicados: un número único por sala
             $table->unique(['room_id', 'num'], 'unique_num_per_room');

@@ -10,15 +10,17 @@ return new class extends Migration
     {
         Schema::create('bingo_round_prizes', function (Blueprint $table) {
             // PK con Snowflake
-            $table->snowflake('id')->primary();;
+            $table->snowflake('id')->primary()->comment('ID único del premio de ronda');
 
             $table->foreignSnowflake('bingo_round_id')
                 ->constrained('bingo_rounds')
-                ->cascadeOnDelete();
+                ->cascadeOnDelete()
+                ->comment('Ronda de bingo asociada');
 
             $table->foreignSnowflake('room_id')
                 ->constrained('bingo_rooms')
-                ->cascadeOnDelete();
+                ->cascadeOnDelete()
+                ->comment('Sala asociada');
 
             $table->foreignSnowflake('currency_id')
                 ->nullable()
@@ -34,9 +36,11 @@ return new class extends Migration
 
             $table->decimal('prize_value', 15, 6)->nullable()->comment('Valor del premio');
 
-            $table->string('prize_description', 60);
+            $table->string('prize_description', 60)->comment('Descripción del premio');
 
             $table->timestamps();
+            $table->index(['room_id', 'bingo_round_id'], 'idx_bingo_round_prizes_room_round');
+            $table->index('created_at', 'idx_bingo_round_prizes_created');
         });
     }
 

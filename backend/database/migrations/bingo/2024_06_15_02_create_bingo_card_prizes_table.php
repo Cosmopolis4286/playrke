@@ -111,6 +111,7 @@ return new class extends Migration
             $table->index('claimed_at', 'idx_bingo_card_prizes_claimed');
             $table->index('verification_code', 'idx_bingo_card_prizes_verification');
             $table->index('created_at', 'idx_bingo_card_prizes_created');
+            $table->index('updated_at', 'idx_bingo_card_prizes_updated');
 
             // Nota: Validaciones de integridad se manejan a nivel de aplicación
         });

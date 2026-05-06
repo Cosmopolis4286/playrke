@@ -13,13 +13,16 @@ return new class extends Migration
     {
         Schema::create('bingo_rooms_automatic', function (Blueprint $table) {
             // PK con Snowflake
-            $table->snowflake('id')->primary();;
+            $table->snowflake('id')->primary()->comment('ID único de la sala automática');
 
             $table->json('days')->nullable();
             $table->string('time', 10);
             $table->enum('in_live', ['Y', 'N'])->default('N');
 
-            $table->foreignSnowflake('game_mode_id')->constrained('game_modes')->onDelete('cascade');
+            $table->foreignSnowflake('game_mode_id')
+                ->constrained('game_modes')
+                ->cascadeOnDelete()
+                ->comment('Modo de juego');
 
             $table->foreignSnowflake('room_type_id')
                 ->constrained('room_types')
@@ -64,9 +67,14 @@ return new class extends Migration
 
             $table->decimal('jackpot_pct', 5, 2)->nullable();
 
-            $table->foreignSnowflake('creator_user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignSnowflake('creator_user_id')
+                ->constrained('users')
+                ->cascadeOnDelete()
+                ->comment('Usuario creador');
 
-            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('INACTIVE');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])
+                ->default('INACTIVE')
+                ->comment('Estado de la sala automática');
 
             $table->timestamps();
 
@@ -75,6 +83,7 @@ return new class extends Migration
 
             // Índices compuestos útiles
             $table->index(['status', 'room_type_id'], 'idx_status_roomtype_automatic');
+            $table->index('created_at', 'idx_bingo_rooms_automatic_created');
             $table->index(['creator_user_id', 'created_at'], 'idx_creator_createdat_automatic');
         });
     }

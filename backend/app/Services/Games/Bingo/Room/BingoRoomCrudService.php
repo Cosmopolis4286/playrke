@@ -116,7 +116,7 @@ class BingoRoomCrudService
                 if (!$isCreate) {
                     BingoCreator::where('room_id', $room->id)
                         ->where('user_id', $room->creator_user_id)
-                        ->update(['creator_commn' => $dto->roomCommission]);
+                        ->update(['creator_commission' => $dto->roomCommission]);
                 }
 
                 // Sincronizar precios de cartones
@@ -179,7 +179,7 @@ class BingoRoomCrudService
         BingoCreator::create([
             'room_id'       => $room->id,
             'user_id'       => $userId,
-            'creator_commn' => $dto->roomCommission,
+            'creator_commission' => $dto->roomCommission,
             'status'        => 'ACTIVE',
         ]);
 

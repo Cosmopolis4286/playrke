@@ -13,17 +13,22 @@ return new class extends Migration
     {
         Schema::create('bingo_draws', function (Blueprint $table) {
             // PK con Snowflake
-            $table->snowflake('id')->primary();;
-            $table->foreignSnowflake('room_id')->constrained('bingo_rooms')->onDelete('cascade');
-            $table->string('round', 2)->default('1'); // número de ronda
-            $table->char('chip', 2); // ficha extraída
-            $table->char('code', 8); // código asociado
-            $table->integer('time'); // segundos o timestamp relativo
-            $table->enum('status', ['WAITING', 'FINISHED'])->default('WAITING'); // pendiente/finalizado
+            $table->snowflake('id')->primary()->comment('ID único del sorteo');
+            $table->foreignSnowflake('room_id')
+                ->constrained('bingo_rooms')
+                ->cascadeOnDelete()
+                ->comment('Sala asociada');
+            $table->string('round', 2)->default('1')->comment('Número de ronda');
+            $table->char('chip', 2)->comment('Ficha extraída (B, I, N, G, O + número)');
+            $table->char('code', 8)->comment('Código asociado a la ficha');
+            $table->integer('time')->comment('Tiempo en segundos desde el inicio de la ronda');
+            $table->enum('status', ['WAITING', 'FINISHED'])->default('WAITING')->comment('Estado del sorteo');
             $table->timestamps();
 
             // Índice único: chip no puede repetirse en la misma sala/ronda
             $table->unique(['room_id', 'round', 'chip'], 'unique_chip_per_room_round');
+            $table->index(['room_id', 'round'], 'idx_bingo_draws_room_round');
+            $table->index('created_at', 'idx_bingo_draws_created');
         });
     }
 

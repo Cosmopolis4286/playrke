@@ -252,7 +252,7 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
 
         $roomCount = $this->model->where('creator_id', $creatorId)->count();
         $totalCommission = $this->model->where('creator_id', $creatorId)
-            ->sum('creator_commn');
+            ->sum('creator_commission');
         $averageCommission = $roomCount > 0 ? $totalCommission / $roomCount : 0.0;
 
         return [
@@ -334,7 +334,7 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
      */
     public function getAverageCommission(): float
     {
-        return (float) $this->model->avg('creator_commn') ?? 0.0;
+        return (float) $this->model->avg('creator_commission') ?? 0.0;
     }
 
     /**

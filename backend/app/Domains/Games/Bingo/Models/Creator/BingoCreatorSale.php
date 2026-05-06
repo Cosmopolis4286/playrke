@@ -17,14 +17,14 @@ class BingoCreatorSale extends Model
 
     protected $fillable = [
         'room', 'creator_user_id', 'currency', 'sale_amount',
-        'rke_commission', 'room_commission', 'seller_commn', 'prize_pool_amount',
+        'rke_commission', 'room_commission', 'seller_commission', 'prize_pool_amount',
     ];
 
     protected $casts = [
         'sale_amount'       => 'decimal:8',
         'rke_commission'    => 'decimal:8',
         'room_commission'   => 'decimal:8',
-        'seller_commn'      => 'decimal:8',
+        'seller_commission'      => 'decimal:8',
         'prize_pool_amount' => 'decimal:8',
         'created_at'        => 'datetime',
         'updated_at'        => 'datetime',
@@ -43,7 +43,7 @@ class BingoCreatorSale extends Model
     public function scopeByDateRange($query, string $start, string $end) { return $query->whereBetween('created_at', [$start, $end]); }
     public function scopeTopByVolume($query, int $limit = 10) { return $query->orderByDesc('sale_amount')->limit($limit); }
 
-    public function getTotalCommissionAttribute(): float { return $this->rke_commission + $this->room_commission + $this->seller_commn; }
+    public function getTotalCommissionAttribute(): float { return $this->rke_commission + $this->room_commission + $this->seller_commission; }
 
     public function getCommissionPercentageAttribute(): float
     {
@@ -53,7 +53,7 @@ class BingoCreatorSale extends Model
 
     public function getIsValidAttribute(): bool
     {
-        $calculatedTotal = $this->rke_commission + $this->room_commission + $this->seller_commn + $this->prize_pool_amount;
+        $calculatedTotal = $this->rke_commission + $this->room_commission + $this->seller_commission + $this->prize_pool_amount;
         return abs($this->sale_amount - $calculatedTotal) <= 0.01;
     }
 }

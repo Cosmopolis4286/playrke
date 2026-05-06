@@ -20,13 +20,13 @@ class BingoCreator extends Model
     ];
 
     protected $fillable = [
-        'room_id', 'user_id', 'creator_commn', 'status',
+        'room_id', 'user_id', 'creator_commission', 'status',
     ];
 
     protected $casts = [
         'room_id'       => 'string',
         'user_id'       => 'string',
-        'creator_commn' => 'decimal:8',
+        'creator_commission' => 'decimal:8',
         'created_at'    => 'datetime',
         'updated_at'    => 'datetime',
     ];

@@ -22,7 +22,11 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Sala asociada');
 
-            $table->string('user_id')->comment('Usuario creador del lote');
+            $table->foreignSnowflake('user_id')
+                ->constrained('users')
+                ->cascadeOnUpdate()
+                ->cascadeOnDelete()
+                ->comment('Usuario creador del lote');
 
             $table->foreignSnowflake('seller_id')
                 ->nullable()
@@ -78,6 +82,7 @@ return new class extends Migration
 
             // Índice único para evitar duplicados
             $table->unique(['room_id', 'room_user_id', 'created_at'], 'unq_bingo_card_lots_room_user_time');
+            $table->index('updated_at', 'idx_bingo_card_lots_updated');
         });
     }
 

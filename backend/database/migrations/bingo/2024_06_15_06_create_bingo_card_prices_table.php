@@ -42,6 +42,10 @@ return new class extends Migration
 
             // Evita duplicados: mismo room y misma moneda no deben repetirse
             $table->unique(['room_id', 'currency_id'], 'uniq_room_currency_price');
+
+            // Índices para consultas por fecha
+            $table->index('created_at', 'idx_bingo_card_prices_created');
+            $table->index('updated_at', 'idx_bingo_card_prices_updated');
         });
     }
 

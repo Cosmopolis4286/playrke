@@ -29,7 +29,7 @@ return new class extends Migration
                 ->comment('ID del usuario creador de la sala');
 
             // Datos financieros
-            $table->decimal('creator_commn', 10, 2)
+            $table->decimal('creator_commission', 10, 2)
                 ->default(0)
                 ->comment('Comisión del creador en la sala');
 
@@ -46,6 +46,8 @@ return new class extends Migration
 
             // Índices compuestos opcionales para consultas rápidas
             $table->index(['room_id', 'status'], 'idx_room_status');
+            $table->index('created_at', 'idx_bingo_creators_created');
+            $table->index('updated_at', 'idx_bingo_creators_updated');
         });
     }
 

@@ -82,7 +82,7 @@ class RoomConfigService
                 'creator_user_id' => $dataRoom->creator_user,
                 'creator_type' => $dataRoom->creator_type,
                 'creator_id' => $dataRoom->creator_id,
-                'creator_commn' => $dataRoom->room_commission,
+                'creator_commission' => $dataRoom->room_commission,
                 'card_price' => $dataRoom->card_price_usd,
                 'allowed_currencies' => $dataRoom->allowed_currencies
             ]

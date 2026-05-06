@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('bingo_images', function (Blueprint $table) {
             // PK con Snowflake
-            $table->snowflake('id')->primary();;
+            $table->snowflake('id')->primary()->comment('ID único de la imagen');
 
             $table->foreignSnowflake('user_id')
                 ->nullable()
@@ -31,7 +31,8 @@ return new class extends Migration
             $table->timestamps();
 
             // Índices para consultas frecuentes
-            $table->index(['user_id', 'type', 'status']);
+            $table->index(['user_id', 'type', 'status'], 'idx_bingo_images_lookup');
+            $table->index('created_at', 'idx_bingo_images_created');
         });
     }
 
