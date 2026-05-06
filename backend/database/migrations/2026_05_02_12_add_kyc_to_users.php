@@ -29,9 +29,10 @@ return new class extends Migration
         });
 
         Schema::create('kyc_documents', function (Blueprint $table) {
-            $table->id();
-            $table->snowflake('user_id');
-            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+            $table->snowflake('id')->primary();
+            $table->foreignSnowflake('user_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
 
             // 'dni' | 'passport' | 'driving_license' | 'residence_permit'
             $table->string('document_type', 30);
@@ -47,11 +48,16 @@ return new class extends Migration
             $table->string('status', 20)->default('pending')->index();
             $table->string('rejection_reason', 500)->nullable();
 
-            $table->snowflake('reviewed_by')->nullable();
+            $table->foreignSnowflake('reviewed_by')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
             $table->timestamp('reviewed_at')->nullable();
             $table->timestamps();
 
-            $table->index('user_id');
+            $table->index('user_id', 'idx_kyc_documents_user');
+            $table->index('status', 'idx_kyc_documents_status');
+            $table->index('reviewed_by', 'idx_kyc_documents_reviewer');
         });
     }
 
