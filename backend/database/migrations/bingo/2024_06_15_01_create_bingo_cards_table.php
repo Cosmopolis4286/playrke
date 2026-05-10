@@ -7,109 +7,176 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Ejecutar la migración: crear tabla 'bingo_cards'.
+     * Ejecutar la migración: crear tabla bingo_cards
      */
     public function up(): void
     {
         Schema::create('bingo_cards', function (Blueprint $table) {
-            // PK con Snowflake
-            $table->snowflake('id')->primary()->comment('ID del cartón de bingo');
 
-            // Estado del cartón
-            $table->enum('status', ['ACTIVE', 'INACTIVE', 'WINNER', 'CANCELLED'])
-                ->default('ACTIVE')
-                ->comment('Estado del cartón: ACTIVE = activo, INACTIVE = inactivo, WINNER = ganador, CANCELLED = cancelado');
+            /**
+             * =========================================================
+             * PRIMARY KEY
+             * =========================================================
+             */
+            $table->snowflake('id')
+                ->primary()
+                ->comment('ID único del cartón de bingo');
 
-            // Relaciones
+            /**
+             * =========================================================
+             * STATUS
+             * =========================================================
+             *
+             * 1 = ACTIVE
+             * 2 = INACTIVE
+             * 3 = WINNER
+             * 4 = CANCELLED
+             */
+            $table->unsignedTinyInteger('status')
+                ->default(1)
+                ->comment('Estado del cartón');
+
+            /**
+             * =========================================================
+             * RELACIONES
+             * =========================================================
+             */
+
+            // Sala
             $table->foreignSnowflake('room_id')
                 ->constrained('bingo_rooms')
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete()
+                ->restrictOnDelete()
                 ->comment('Sala asociada');
 
-            $table->foreignSnowflake('creator_room_user_id')
+            // Usuario creador
+            $table->foreignSnowflake('creator_user_id')
                 ->constrained('users')
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete()
-                ->comment('ID del usuario creador de la sala');
+                ->restrictOnDelete()
+                ->comment('Usuario creador del cartón');
 
+            // Usuario vendedor/generador
             $table->foreignSnowflake('seller_user_id')
                 ->nullable()
                 ->constrained('users')
                 ->cascadeOnUpdate()
                 ->nullOnDelete()
-                ->comment('Id de usuario del vendedor/generador del carton');
+                ->comment('Usuario vendedor o generador');
 
+            // Usuario dentro de la sala
             $table->foreignSnowflake('room_user_id')
                 ->constrained('bingo_room_users')
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete()
-                ->comment('Usuario en la sala');
+                ->restrictOnDelete()
+                ->comment('Usuario asociado dentro de la sala');
 
+            // Lote del cartón
             $table->foreignSnowflake('card_lot_id')
                 ->constrained('bingo_card_lots')
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete()
+                ->restrictOnDelete()
                 ->comment('Lote del cartón');
 
+            // Moneda
             $table->foreignSnowflake('currency_id')
                 ->constrained('currencies')
                 ->cascadeOnUpdate()
-                ->cascadeOnDelete()
+                ->restrictOnDelete()
                 ->comment('Moneda utilizada');
+
+            /**
+             * =========================================================
+             * DATOS DEL CARTÓN
+             * =========================================================
+             */
 
             $table->string('serial_number', 30)
                 ->unique()
-                ->comment('Número de serie único del cartón');
+                ->comment('Serial único del cartón');
 
-            // Estructura del cartón optimizada en JSON (matriz 5x5)
+            /**
+             * Estructura:
+             *
+             * {
+             *   "B":[1,2,3,4,5],
+             *   "I":[16,17,18,19,20],
+             *   "N":[31,32,null,34,35],
+             *   "G":[46,47,48,49,50],
+             *   "O":[61,62,63,64,65]
+             * }
+             */
             $table->json('card_numbers')
-                ->comment('Matriz 5x5 del cartón: {"B":[1,2,3,4,5], "I":[16,17,18,19,20], "N":[31,32,null,34,35], "G":[46,47,48,49,50], "O":[61,62,63,64,65]}');
+                ->comment('Estructura JSON del cartón');
 
-            // Columnas legacy para compatibilidad (opcional - pueden eliminarse en futura migración)
-            foreach (['b', 'i', 'n', 'g', 'o'] as $letter) {
-                for ($i = 1; $i <= 5; $i++) {
-                    // El centro (N3) es tradicionalmente libre en bingo
-                    $nullable = ($letter === 'n' && $i === 3);
-                    $table->tinyInteger("{$letter}{$i}")
-                        ->nullable($nullable)
-                        ->unsigned()
-                        ->comment("Número en posición {$letter}{$i} del cartón (legacy)");
-                }
-            }
-
+            /**
+             * Hash SHA256 del cartón
+             */
             $table->string('card_hash', 64)
                 ->unique()
-                ->comment('Hash único del cartón para verificación de integridad');
+                ->comment('Hash único de integridad');
 
-            // Campos de auditoría
+            /**
+             * =========================================================
+             * VALIDACIÓN
+             * =========================================================
+             */
+
             $table->boolean('is_validated')
                 ->default(false)
-                ->comment('Indica si el cartón ha sido validado');
+                ->comment('Indica si el cartón fue validado');
 
             $table->timestamp('validated_at')
                 ->nullable()
-                ->comment('Fecha y hora de validación del cartón');
+                ->comment('Fecha de validación');
 
+            /**
+             * =========================================================
+             * AUDITORÍA
+             * =========================================================
+             */
             $table->timestamps();
+
             $table->softDeletes();
 
-            // Índices para consultas frecuentes y rendimiento
-            $table->index(['room_id', 'creator_room_user_id'], 'idx_bingo_cards_room_creator');
-            $table->index(['room_id', 'card_lot_id'], 'idx_bingo_cards_room_lot');
-            $table->index(['room_id', 'status'], 'idx_bingo_cards_room_status');
-            $table->index(['seller_user_id', 'status'], 'idx_bingo_cards_seller_status');
-            $table->index(['room_user_id', 'status'], 'idx_bingo_cards_user_status');
-            $table->index('serial_number', 'idx_bingo_cards_serial');
-            $table->index('card_hash', 'idx_bingo_cards_hash');
-            $table->index('card_numbers', 'idx_bingo_card_numbers');
-            $table->index('created_at', 'idx_bingo_cards_created');
-            $table->index('updated_at', 'idx_bingo_cards_updated');
+            /**
+             * =========================================================
+             * ÍNDICES
+             * =========================================================
+             */
+
+            $table->index(
+                ['room_id', 'status'],
+                'idx_bingo_cards_room_status'
+            );
+
+            $table->index(
+                ['room_user_id', 'status'],
+                'idx_bingo_cards_room_user_status'
+            );
+
+            $table->index(
+                ['seller_user_id', 'status'],
+                'idx_bingo_cards_seller_status'
+            );
+
+            $table->index(
+                ['room_id', 'card_lot_id'],
+                'idx_bingo_cards_room_lot'
+            );
+
+            /**
+             * Evita duplicidad lógica del cartón
+             */
+            $table->unique(
+                ['room_id', 'room_user_id', 'card_hash'],
+                'uq_bingo_cards_room_user_hash'
+            );
         });
     }
 
     /**
-     * Revertir la migración: eliminar tabla 'bingo_cards'.
+     * Revertir migración
      */
     public function down(): void
     {

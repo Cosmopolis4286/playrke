@@ -46,7 +46,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function getWinningChip(string $roomId): ?BingoDraw
     {
-        return $this->model->where('room', $roomId)
+        return $this->model->where('room_id', $roomId)
             ->where('status', self::STATUS_WINNING)
             ->orderByDesc('id')
             ->first();
@@ -60,7 +60,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function getRoomDraws(string $roomId): Collection
     {
-        return $this->model->where('room', $roomId)->get();
+        return $this->model->where('room_id', $roomId)->get();
     }
 
     /**
@@ -71,7 +71,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function getFirstDrawChip(string $roomId): ?BingoDraw
     {
-        return $this->model->where('room', $roomId)->first();
+        return $this->model->where('room_id', $roomId)->first();
     }
 
     /**
@@ -83,7 +83,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function getByRoomAndStatus(string $roomId, int $status): Collection
     {
-        return $this->model->where('room', $roomId)
+        return $this->model->where('room_id', $roomId)
             ->where('status', $status)
             ->get();
     }
@@ -97,8 +97,8 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function getByRound(string $roomId, int $round): Collection
     {
-        return $this->model->where('room', $roomId)
-            ->where('round', $round)
+        return $this->model->where('room_id', $roomId)
+            ->where('round_id', $round)
             ->get();
     }
 
@@ -162,7 +162,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function getLastDraw(string $roomId): ?BingoDraw
     {
-        return $this->model->where('room', $roomId)
+        return $this->model->where('room_id', $roomId)
             ->orderByDesc('created_at')
             ->first();
     }
@@ -177,7 +177,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function getByTimeRange(string $roomId, int $startTime, int $endTime): Collection
     {
-        return $this->model->where('room', $roomId)
+        return $this->model->where('room_id', $roomId)
             ->whereBetween('time', [$startTime, $endTime])
             ->get();
     }
@@ -190,7 +190,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function countByRoom(string $roomId): int
     {
-        return $this->model->where('room', $roomId)->count();
+        return $this->model->where('room_id', $roomId)->count();
     }
 
     /**
@@ -216,7 +216,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function existsChipInRoom(string $roomId, string $chip): bool
     {
-        return $this->model->where('room', $roomId)
+        return $this->model->where('room_id', $roomId)
             ->where('chip', $chip)
             ->exists();
     }
@@ -230,8 +230,8 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function isRoundComplete(string $roomId, int $round): bool
     {
-        return $this->model->where('room', $roomId)
-            ->where('round', $round)
+        return $this->model->where('room_id', $roomId)
+            ->where('round_id', $round)
             ->where('status', self::STATUS_COMPLETED)
             ->exists();
     }
@@ -245,7 +245,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function getUndrawnChips(string $roomId, array $allChips): array
     {
-        $drawnChips = $this->model->where('room', $roomId)
+        $drawnChips = $this->model->where('room_id', $roomId)
             ->pluck('chip')
             ->toArray();
 
@@ -294,10 +294,10 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function getRoundStats(string $roomId): array
     {
-        $rounds = $this->model->where('room', $roomId)
-            ->selectRaw('round, COUNT(*) as draw_count')
-            ->groupBy('round')
-            ->orderBy('round')
+        $rounds = $this->model->where('room_id', $roomId)
+            ->selectRaw('round_id, COUNT(*) as draw_count')
+            ->groupBy('round_id')
+            ->orderBy('round_id')
             ->get()
             ->toArray();
 
@@ -387,7 +387,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function getDrawSequence(string $roomId): Collection
     {
-        return $this->model->where('room', $roomId)
+        return $this->model->where('room_id', $roomId)
             ->orderBy('time')
             ->orderBy('created_at')
             ->get();
@@ -416,7 +416,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function getAverageDrawTime(string $roomId): float
     {
-        $draws = $this->model->where('room', $roomId)
+        $draws = $this->model->where('room_id', $roomId)
             ->orderBy('time')
             ->pluck('time')
             ->toArray();
@@ -444,7 +444,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
         return $this->model->where(function ($query) use ($searchTerm) {
             $query->where('chip', 'like', "%{$searchTerm}%")
                 ->orWhere('code', 'like', "%{$searchTerm}%")
-                ->orWhere('room', 'like', "%{$searchTerm}%");
+                ->orWhere('room_id', 'like', "%{$searchTerm}%");
         })->get();
     }
 
@@ -456,9 +456,9 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function getDuplicateDraws(string $roomId): Collection
     {
-        return $this->model->where('room', $roomId)
-            ->select('chip', 'room', 'round', DB::raw('COUNT(*) as count'))
-            ->groupBy('chip', 'room', 'round')
+        return $this->model->where('room_id', $roomId)
+            ->select('chip', 'room_id', 'round_id', DB::raw('COUNT(*) as count'))
+            ->groupBy('chip', 'room_id', 'round_id')
             ->having('count', '>', 1)
             ->get();
     }
@@ -491,12 +491,12 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
     public function getGeneralStats(): array
     {
         $totalDraws = $this->model->count();
-        $totalRooms = $this->model->distinct('room')->count();
+        $totalRooms = $this->model->distinct('room_id')->count();
 
         $avgDrawsPerRoom = $totalRooms > 0 ? $totalDraws / $totalRooms : 0;
 
-        $mostActiveRoom = $this->model->selectRaw('room, COUNT(*) as draw_count')
-            ->groupBy('room')
+        $mostActiveRoom = $this->model->selectRaw('room_id, COUNT(*) as draw_count')
+            ->groupBy('room_id')
             ->orderByDesc('draw_count')
             ->first();
 
@@ -504,7 +504,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
             'total_draws' => $totalDraws,
             'total_rooms' => $totalRooms,
             'avg_draws_per_room' => round($avgDrawsPerRoom, 2),
-            'most_active_room' => $mostActiveRoom->room ?? null
+            'most_active_room' => $mostActiveRoom->room_id ?? null
         ];
     }
 

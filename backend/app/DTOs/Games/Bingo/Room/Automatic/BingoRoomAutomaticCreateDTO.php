@@ -31,6 +31,17 @@ final class BingoRoomAutomaticCreateDTO
         public readonly ?array        $roundsConfig      = null,
         public readonly bool          $activateRoom           = false,
         public readonly string        $inLive            = 'N',
+        // Nuevos campos de programación avanzada
+        public readonly string        $recurrenceType    = 'WEEKLY',
+        public readonly ?array        $recurrenceDays    = null,
+        public readonly ?string       $gameTime          = null,
+        public readonly ?string       $startDate         = null,
+        public readonly ?string       $endDate           = null,
+        public readonly ?array        $defaultConfig     = null,
+        public readonly ?float        $defaultCardPrice  = null,
+        public readonly ?string       $defaultCurrencyId = null,
+        public readonly bool          $autoCreateRoom    = true,
+        public readonly ?int          $maxRoomsPerDay    = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -67,6 +78,17 @@ final class BingoRoomAutomaticCreateDTO
             roundsConfig: $data['roundsConfig'] ?? null,
             activateRoom: (bool) ($data['activateRoom'] ?? false),
             inLive: ($data['inLive'] ?? 'N') === 'Y' ? 'Y' : 'N',
+            // Nuevos campos de programación avanzada
+            recurrenceType: $data['recurrenceType'] ?? 'WEEKLY',
+            recurrenceDays: $data['recurrenceDays'] ?? null,
+            gameTime: $data['gameTime'] ?? null,
+            startDate: $data['startDate'] ?? null,
+            endDate: $data['endDate'] ?? null,
+            defaultConfig: $data['defaultConfig'] ?? null,
+            defaultCardPrice: isset($data['defaultCardPrice']) ? (float) $data['defaultCardPrice'] : null,
+            defaultCurrencyId: $data['defaultCurrencyId'] ?? null,
+            autoCreateRoom: (bool) ($data['autoCreateRoom'] ?? true),
+            maxRoomsPerDay: isset($data['maxRoomsPerDay']) ? (int) $data['maxRoomsPerDay'] : null,
         );
     }
 }

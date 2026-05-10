@@ -23,10 +23,12 @@ class BingoRoomAutomatic extends Model
 
     public const STATUS_ACTIVE   = 'ACTIVE';
     public const STATUS_INACTIVE = 'INACTIVE';
+    public const STATUS_SUSPENDED = 'SUSPENDED';
 
     public const STATUSES = [
         'ACTIVE'   => 'Activa',
         'INACTIVE' => 'Inactiva',
+        'SUSPENDED' => 'Suspendida',
     ];
 
     public const DAYS = [
@@ -37,6 +39,18 @@ class BingoRoomAutomatic extends Model
         'friday'    => 'Viernes',
         'saturday'  => 'Sábado',
         'sunday'    => 'Domingo',
+    ];
+
+    public const RECURRENCE_DAILY = 'DAILY';
+    public const RECURRENCE_WEEKLY = 'WEEKLY';
+    public const RECURRENCE_MONTHLY = 'MONTHLY';
+    public const RECURRENCE_CUSTOM = 'CUSTOM';
+
+    public const RECURRENCE_TYPES = [
+        'DAILY'   => 'Diario',
+        'WEEKLY'  => 'Semanal',
+        'MONTHLY' => 'Mensual',
+        'CUSTOM'  => 'Personalizado',
     ];
 
     protected $fillable = [
@@ -63,6 +77,19 @@ class BingoRoomAutomatic extends Model
         'jackpot_pct',
         'creator_user_id',
         'status',
+        // Nuevos campos de programación avanzada
+        'recurrence_type',
+        'recurrence_days',
+        'game_time',
+        'start_date',
+        'end_date',
+        'default_config',
+        'default_card_price',
+        'default_currency_id',
+        'auto_create_room',
+        'max_rooms_per_day',
+        'rooms_created',
+        'last_room_created_at',
     ];
 
     protected $casts = [
@@ -71,13 +98,20 @@ class BingoRoomAutomatic extends Model
         'room_type_id'            => 'string',
         'prize_pool_type_id'      => 'string',
         'creator_user_id'         => 'string',
+        'default_currency_id'     => 'string',
         'allowed_currencies'      => 'array',
         'days'                    => 'array',
+        'recurrence_days'         => 'array',
+        'default_config'          => 'array',
         'in_live'                 => 'string',
         'date'                    => 'date',
         'time'                    => 'datetime:H:i:s',
+        'game_time'               => 'datetime:H:i:s',
+        'start_date'              => 'date',
+        'end_date'                => 'date',
         'use_base_usd'            => 'boolean',
         'card_price_usd'          => 'decimal:2',
+        'default_card_price'      => 'decimal:2',
         'usd_exchange_round_step' => 'decimal:2',
         'rke_commission'          => 'decimal:2',
         'room_commission'         => 'decimal:2',
@@ -87,10 +121,14 @@ class BingoRoomAutomatic extends Model
         'jackpot_pct'             => 'decimal:2',
         'time_chip'               => 'string',
         'use_serials'             => 'boolean',
+        'auto_create_room'        => 'boolean',
         'rounds'                  => 'integer',
         'num_serials'             => 'integer',
+        'max_rooms_per_day'       => 'integer',
+        'rooms_created'           => 'integer',
         'created_at'              => 'datetime',
         'updated_at'              => 'datetime',
+        'last_room_created_at'    => 'datetime',
     ];
 
     protected $appends = [
@@ -131,6 +169,11 @@ class BingoRoomAutomatic extends Model
         return $this->belongsTo(User::class, 'creator_user_id');
     }
 
+    public function defaultCurrency(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Currency::class, 'default_currency_id');
+    }
+
     // ─── Scopes ───────────────────────────────────────────────────────────────
 
     public function scopeActive($query)
@@ -138,10 +181,9 @@ class BingoRoomAutomatic extends Model
         return $query->where('status', self::STATUS_ACTIVE);
     }
 
-    public function scopeByCreator($query, string $creatorType, string $creatorId)
+    public function scopeByCreator($query, string $creatorUserId)
     {
-        return $query->where('creator_type', $creatorType)
-                     ->where('creator_id', $creatorId);
+        return $query->where('creator_user_id', $creatorUserId);
     }
 
     // ─── Accessors ────────────────────────────────────────────────────────────
@@ -169,6 +211,7 @@ class BingoRoomAutomatic extends Model
         return match ($this->status) {
             'ACTIVE'   => '<span class="badge badge-success">Activa</span>',
             'INACTIVE' => '<span class="badge badge-secondary">Inactiva</span>',
+            'SUSPENDED' => '<span class="badge badge-warning">Suspendida</span>',
             default    => '<span class="badge badge-dark">Desconocido</span>',
         };
     }

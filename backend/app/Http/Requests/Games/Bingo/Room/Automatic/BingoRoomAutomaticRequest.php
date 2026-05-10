@@ -82,6 +82,19 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'roundsConfig.*.prizeValueByCurrency.*'         => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'roundsConfig.*.prizeId'                        => ['nullable', 'exists:prizes,id'],
             'roundsConfig.*.prizeName'                      => ['nullable', 'string', 'max:255'],
+
+            // Nuevos campos de programación avanzada
+            'recurrenceType'             => ['nullable', 'string', 'in:DAILY,WEEKLY,MONTHLY,CUSTOM'],
+            'recurrenceDays'               => ['nullable', 'array'],
+            'recurrenceDays.*'             => ['integer', 'min:0', 'max:6'], // 0=domingo, 6=sábado
+            'gameTime'                     => ['nullable', 'date_format:H:i'],
+            'startDate'                    => ['nullable', 'date', 'after_or_equal:today'],
+            'endDate'                      => ['nullable', 'date', 'after_or_equal:startDate'],
+            'defaultConfig'                => ['nullable', 'array'],
+            'defaultCardPrice'             => ['nullable', 'numeric', 'min:0.5', 'max:500'],
+            'defaultCurrencyId'            => ['nullable', 'exists:currencies,id'],
+            'autoCreateRoom'             => ['boolean'],
+            'maxRoomsPerDay'             => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
 

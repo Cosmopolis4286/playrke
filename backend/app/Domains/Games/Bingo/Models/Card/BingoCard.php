@@ -37,7 +37,7 @@ class BingoCard extends Model
 
     protected $fillable = [
         'room_id', 'creator_room_user_id', 'seller_user_id', 'room_user_id',
-        'card_lot_id', 'currency_id', 'serial_number',
+        'card_lot_id', 'currency_id', 'serial_number', 'card_numbers',
         'b1', 'b2', 'b3', 'b4', 'b5',
         'i1', 'i2', 'i3', 'i4', 'i5',
         'n1', 'n2', 'n3', 'n4', 'n5',
@@ -52,6 +52,7 @@ class BingoCard extends Model
         'n1' => 'integer', 'n2' => 'integer', 'n3' => 'integer', 'n4' => 'integer', 'n5' => 'integer',
         'g1' => 'integer', 'g2' => 'integer', 'g3' => 'integer', 'g4' => 'integer', 'g5' => 'integer',
         'o1' => 'integer', 'o2' => 'integer', 'o3' => 'integer', 'o4' => 'integer', 'o5' => 'integer',
+        'card_numbers' => 'array',
         'is_validated' => 'boolean',
         'validated_at' => 'datetime',
         'created_at'   => 'datetime',

@@ -73,6 +73,19 @@ class BingoRoomAutomaticResource extends JsonResource
                 'serials_pct'             => $this->use_serials ? $this->serials_pct : null,
                 'num_serials'             => $this->use_serials ? $this->num_serials : null,
                 'in_live'                 => $this->in_live,
+                // Nuevos campos de programación avanzada
+                'recurrence_type'         => $this->recurrence_type,
+                'recurrence_days'         => $this->recurrence_days ?? [],
+                'game_time'               => $this->game_time,
+                'start_date'              => $this->start_date?->format('Y-m-d'),
+                'end_date'                => $this->end_date?->format('Y-m-d'),
+                'default_config'          => $this->default_config ?? [],
+                'default_card_price'      => $this->default_card_price !== null ? (float) $this->default_card_price : null,
+                'default_currency_id'     => $this->default_currency_id,
+                'auto_create_room'        => (bool) $this->auto_create_room,
+                'max_rooms_per_day'       => $this->max_rooms_per_day,
+                'rooms_created'           => (int) $this->rooms_created,
+                'last_room_created_at'    => $this->last_room_created_at?->toISOString(),
             ],
         ];
     }

@@ -15,7 +15,12 @@ export type BingoPrizesPaid = 'Y' | 'N'
 /**
  * Estado de la sala
  */
-export type BingoRoomAutomaticStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED'
+export type BingoRoomAutomaticStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
+
+/**
+ * Tipo de recurrencia del horario
+ */
+export type RecurrenceType = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'CUSTOM'
 
 /**
  * Relación: estado de la sala
@@ -69,7 +74,7 @@ export interface BingoRoomAutomatic {
     readonly time_chip?: string | null
     readonly rounds?: number
     readonly rounds_pct?: number | null
-    readonly use_serials?: 'Y' | 'N'
+    readonly use_serials?: boolean
     readonly serials_pct?: number | null
     readonly num_serials?: number | null
     readonly jackpot_pct?: number | null
@@ -77,6 +82,19 @@ export interface BingoRoomAutomatic {
     readonly status?: BingoRoomAutomaticStatus
     readonly created_at?: string
     readonly updated_at?: string
+    // Nuevos campos de programación avanzada
+    readonly recurrence_type?: RecurrenceType
+    readonly recurrence_days?: number[] | null // 0=domingo, 6=sábado
+    readonly game_time?: string | null
+    readonly start_date?: string | null
+    readonly end_date?: string | null
+    readonly default_config?: Record<string, unknown> | null
+    readonly default_card_price?: number | null
+    readonly default_currency_id?: string | null
+    readonly auto_create_room?: boolean
+    readonly max_rooms_per_day?: number | null
+    readonly rooms_created?: number
+    readonly last_room_created_at?: string | null
 }
 
 /**
@@ -85,4 +103,15 @@ export interface BingoRoomAutomatic {
  */
 export interface BingoRoomAutomaticFormData extends BingoRoomFormData {
     days?: DayOfWeek[]
+    // Nuevos campos de programación avanzada
+    recurrenceType?: RecurrenceType
+    recurrenceDays?: number[] // 0=domingo, 6=sábado
+    gameTime?: string | null
+    startDate?: string | null
+    endDate?: string | null
+    defaultConfig?: Record<string, unknown> | null
+    defaultCardPrice?: number | null
+    defaultCurrencyId?: string | null
+    autoCreateRoom?: boolean
+    maxRoomsPerDay?: number | null
 }

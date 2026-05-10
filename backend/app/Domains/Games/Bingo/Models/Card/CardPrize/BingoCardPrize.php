@@ -6,6 +6,7 @@ use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
+use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Models\Currency;
 use App\Models\Roles\Seller;
 use App\Models\User;
@@ -36,15 +37,16 @@ class BingoCardPrize extends Model
 
     protected $fillable = [
         'room_id', 'creator_user_id', 'seller_id', 'room_user_id', 'card_lot_id',
-        'winning_card_id', 'currency_id', 'game_round', 'status', 'prize_type',
+        'winning_card_id', 'currency_id', 'round_id', 'status', 'prize_type',
         'winning_pattern', 'usd_amount', 'local_amount', 'prize_status',
         'claimed_at', 'verification_code', 'prize_notes',
     ];
 
     protected $casts = [
         'status'       => 'boolean',
+        'round_id'     => 'string',
         'usd_amount'   => 'decimal:2',
-        'local_amount' => 'decimal:8',
+        'local_amount' => 'decimal:4',
         'claimed_at'   => 'datetime',
         'created_at'   => 'datetime',
         'updated_at'   => 'datetime',
@@ -60,6 +62,7 @@ class BingoCardPrize extends Model
     public function cardLot(): BelongsTo { return $this->belongsTo(BingoCardLot::class, 'card_lot_id'); }
     public function winningCard(): BelongsTo { return $this->belongsTo(BingoCard::class, 'winning_card_id'); }
     public function currency(): BelongsTo { return $this->belongsTo(Currency::class, 'currency_id'); }
+    public function round(): BelongsTo { return $this->belongsTo(BingoRound::class, 'round_id'); }
 
     public function payments(): HasMany
     {
@@ -93,7 +96,7 @@ class BingoCardPrize extends Model
     }
 
     public function getFormattedUsdAmount(): string { return number_format($this->usd_amount, 2); }
-    public function getFormattedLocalAmount(): string { return number_format($this->local_amount, 8); }
+    public function getFormattedLocalAmount(): string { return number_format($this->local_amount, 4); }
 
     public function scopeActive($query) { return $query->where('status', true); }
     public function scopeInactive($query) { return $query->where('status', false); }
@@ -105,7 +108,7 @@ class BingoCardPrize extends Model
     public function scopeSuspended($query) { return $query->where('prize_status', 'suspended'); }
     public function scopeByRoom($query, string $roomId) { return $query->where('room_id', $roomId); }
     public function scopeByCreator($query, string $id) { return $query->where('creator_user_id', $id); }
-    public function scopeByGameRound($query, string $round) { return $query->where('game_round', $round); }
+    public function scopeByRound($query, string $roundId) { return $query->where('round_id', $roundId); }
     public function scopeWithVerificationCode($query) { return $query->whereNotNull('verification_code'); }
     public function scopeWithoutVerificationCode($query) { return $query->whereNull('verification_code'); }
 }

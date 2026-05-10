@@ -74,6 +74,17 @@ final class BingoRoomAutomaticCrudService
                 'num_serials'             => $dto->numSerials ?? null,
                 'jackpot_pct'             => $dto->jackpotPct,
                 'status'                  => ($dto->activateRoom ?? false) ? 'INACTIVE' : 'ACTIVE',
+                // New scheduling fields
+                'recurrence_type'         => $dto->recurrenceType ?? 'WEEKLY',
+                'recurrence_days'         => $dto->recurrenceDays ?? null,
+                'game_time'               => $dto->gameTime ?? null,
+                'start_date'              => $dto->startDate ?? null,
+                'end_date'                => $dto->endDate ?? null,
+                'default_config'          => $dto->defaultConfig ?? null,
+                'default_card_price'      => $dto->defaultCardPrice ?? null,
+                'default_currency_id'     => $dto->defaultCurrencyId ?? null,
+                'auto_create_room'        => $dto->autoCreateRoom ?? true,
+                'max_rooms_per_day'       => $dto->maxRoomsPerDay ?? null,
             ];
 
             if ($isCreate) {
