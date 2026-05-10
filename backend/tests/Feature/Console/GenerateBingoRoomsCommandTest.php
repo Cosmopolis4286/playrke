@@ -232,9 +232,9 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $inactiveId = GameStatus::where('code', 'INACTIVE')->value('id');
         $this->assertEquals($inactiveId, $room->status_id);
         $this->assertEquals($template->creator_user_id, $room->creator_user_id);
-        $this->assertTrue((bool) $room->is_automatic);
         $this->assertEquals((float) $template->rke_commission, (float) $room->rke_commission);
         $this->assertEquals((float) $template->room_commission, (float) $room->room_commission);
+        $this->assertEquals('Y', $room->config->is_scheduled);
     }
 
     #[Test]

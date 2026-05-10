@@ -128,7 +128,6 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
         $room->update([
             'rke_commission'  => $template->rke_commission,
             'room_commission' => $template->room_commission,
-            'is_automatic'    => true,
         ]);
 
         // 3. Crear configuración de sala (creation='A' para automática)

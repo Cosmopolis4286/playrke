@@ -245,3 +245,81 @@ Se aplico una optimizacion no destructiva enfocada en trazabilidad y preparacion
 5. Se reforzo el test `GenerateBingoRoomsCommandTest` para validar `is_automatic` y `parent_automatic_id`.
 
 No se eliminaron `bingo_room_creators`, `bingo_rounds_automatic` ni `bingo_card_price_automatic` porque tienen referencias activas en modelos, servicios y pruebas. Esa limpieza debe hacerse en una fase posterior junto con refactor de codigo y migracion de datos.
+
+---
+
+## �️ Trabajo iniciado
+
+- Creada migración `backend/database/migrations/bingo/2026_05_10_00_update_bingo_rooms_for_automatic_tracking.php` para agregar `bingo_rooms.is_automatic`, `bingo_rooms_config.parent_automatic_id` e `bingo_rooms_config.is_scheduled`.
+- Actualizado `backend/app/Domains/Games/Bingo/Models/Room/BingoRoom.php` para permitir `is_automatic` en asignación masiva y casteo.
+- Próximo paso: ejecutar las migraciones en desarrollo y validar `GenerateBingoRoomsCommandTest`.
+
+---
+
+## �🔍 Análisis de Tablas Críticas y Siguientes Acciones
+
+### `bingo_rooms` / `bingo_rooms_config`
+- `bingo_rooms` es una tabla sólida para el estado de sala y el resumen financiero.
+- `bingo_rooms_config` concentra la configuración de juego y también gran parte de la lógica de precios/comisiones.
+- Esto sugiere que la tabla `bingo_rooms_config` ya actúa como una tabla de “configuración extendida”, y que `bingo_rooms` debe mantenerse ligera.
+- `is_scheduled` en `bingo_rooms_config` es la flag que indica el origen/estado de la sala creada: manual (`N`), programada (`Y`) o automática (`A`).
+
+**Recomendaciones:**
+- Mantener `bingo_rooms` como entidad principal.
+- Extraer la configuración común de sala manual/automática a un posible `bingo_room_templates` o `bingo_room_settings`.
+- Añadir `template_id` en `bingo_rooms_config` o directamente en `bingo_rooms` para evitar duplicar campos entre mecanismos de creación.
+
+### `bingo_rooms_automatic`
+- Contiene la mayoría de los mismos campos económicos que `bingo_rooms_config`.
+- También almacena programación avanzada (`recurrence_type`, `start_date`, `end_date`, `default_config`).
+- La existencia de `default_config` y `allowed_currencies` en JSON sugiere un diseño que ya está cerca de una plantilla de configuración.
+
+**Recomendaciones:**
+- Consolidar `bingo_rooms_automatic` como tabla de plantillas de salas automáticas.
+- Eliminar la duplicación alrededor de `rke_commission`, `room_commission`, `use_base_usd`, `card_price_usd`, `allowed_currencies`, `jackpot_pct`, `rounds`, `time_chip`.
+- Dejar solo los campos de programación exclusiva en `bingo_rooms_automatic` y delegar el resto al template/configuración compartida.
+
+### `bingo_rounds_automatic`
+- Guarda una única relación por sala (`bingo_room_id` o `automatic_bingo_room_id`) con datos JSON de rondas, premios y patrones.
+- Su estructura es redundante con la naturaleza de `bingo_rooms_automatic`, que ya modela la creación automática.
+
+**Recomendaciones:**
+- Considerar mover estos campos JSON dentro de `bingo_rooms_automatic`.
+- Si se mantiene, renombrar a `bingo_automatic_room_rounds` y hacerla estrictamente hija de `bingo_rooms_automatic`.
+- Si se elimina, mantener solo `bingo_rooms_automatic.rounds` y vincularlo a la configuración de patrones/premios en una estructura relacional más explícita.
+
+### `bingo_card_price_automatic`
+- Contiene una relación directa tanto a `bingo_rooms` como a `bingo_rooms_automatic`.
+- Almacena `currencies` y `card_prices` en JSON, duplicando lógicas ya presentes en `bingo_rooms_automatic`.
+
+**Recomendaciones:**
+- Si se implementa un template común, mover `currencies`/`card_prices` a esa plantilla.
+- Si la flexibilidad es necesaria, dejar `bingo_card_price_automatic` como registro de precios por cambio, pero quitar la relación redundante con `bingo_rooms`.
+- En ese caso, `automatic_bingo_room_id` debería ser la FK exclusiva.
+
+### `bingo_room_creators`
+- Sirve como tabla de vínculo entre sala y creador con comisión.
+- Es redundante con `bingo_rooms.creator_user_id` y con campos equivalentes en `bingo_rooms_config`.
+
+**Recomendaciones:**
+- Marcarla como candidata inmediata a eliminación.
+- Migrar `creator_commission` a una columna en `bingo_rooms_config` o a la nueva plantilla de sala.
+- Usar `bingo_rooms.creator_user_id` como referencia canónica al creador.
+
+---
+
+## 🧩 Próxima Fase: Trabajo Incremental
+
+1. Definir el modelo de `bingo_room_templates` y los campos comunes.
+2. Crear migración intermedia que conserve datos mientras normaliza `bingo_rooms_config` y `bingo_rooms_automatic`.
+3. Refactorizar los servicios que consumen `bingo_rooms_automatic`, `bingo_rounds_automatic` y `bingo_card_price_automatic`.
+4. Ejecutar pruebas de integridad con datos reales y validar que `creator_user_id` de `bingo_rooms` sea suficiente.
+5. Preparar una segunda fase para eliminar tablas redundantes de forma segura.
+
+---
+
+## 📌 Notas de Implementación Gradual
+
+- No eliminar nada de inmediato en producción sin migración completa de datos.
+- Mantener siempre un camino de reversión (`down()` claro) en las migraciones de consolidación.
+- Priorizar la estabilidad de generación automática de salas, que es el área con mayor riesgo funcional.
