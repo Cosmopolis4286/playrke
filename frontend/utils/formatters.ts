@@ -432,7 +432,7 @@ export function formatCompactNumber(num: number, decimals: number = 1): string {
     return String(num)
   }
 
-  const units = ['', 'K', 'M', 'B', 'T']
+  const units = ['', 'K', 'N', 'B', 'T']
   const order = Math.floor(Math.log10(num) / 3)
   const unitname = units[order]
   const numInUnit = num / Math.pow(1000, order)

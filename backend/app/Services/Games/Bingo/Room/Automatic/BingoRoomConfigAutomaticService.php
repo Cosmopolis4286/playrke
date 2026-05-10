@@ -69,7 +69,7 @@ class RoomConfigService
         BingoRoomConfig::updateOrCreate(
             ['room' => $roomId],
             array_merge((array)$dataRoom, [
-                'creation' => 'A',
+                'is_scheduled' => 'A',
                 'date' => $roomDate,
                 'unix_date' => $unixDate,
                 'rke_commission' => $bingoRKECommission

@@ -118,12 +118,17 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
         $dto = $this->buildDtoFromTemplate($template);
 
         // 2. Crear BingoRoom + BingoCreator (reutiliza createBaseRoom del padre)
-        $room = $this->createBaseRoom((int) $template->creator_user_id, $dto);
+        $room = $this->createBaseRoom(
+            (int) $template->creator_user_id,
+            $dto,
+            $this->generatedRoomStatusId()
+        );
 
         // Establecer comisiones en la sala (createBaseRoom no las incluye)
         $room->update([
             'rke_commission'  => $template->rke_commission,
             'room_commission' => $template->room_commission,
+            'is_automatic'    => true,
         ]);
 
         // 3. Crear configuración de sala (creation='A' para automática)
@@ -176,7 +181,8 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
 
         BingoRoomConfig::create([
             'room_id'                 => $room->id,
-            'creation'                => 'A',
+            'parent_automatic_id'     => $template->id,
+            'is_scheduled'                => 'A',
             'room_type_id'            => $template->room_type_id,
             'creator_user_id'         => $template->creator_user_id,
             'game_mode_id'            => $template->game_mode_id,
@@ -200,6 +206,11 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             'num_serials'             => $template->num_serials,
             'jackpot_pct'             => $template->jackpot_pct,
         ]);
+    }
+
+    private function generatedRoomStatusId(): int
+    {
+        return (int) GameStatus::where('code', 'INACTIVE')->value('id');
     }
 
     /**

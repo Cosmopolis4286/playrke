@@ -1377,7 +1377,7 @@ class BingoController extends Controller
             // Configuración de la sala
             $dataConfig = [
                 'room' => $roomId,
-                'creation' => 'M',
+                'is_scheduled' => 'N',
                 'creator_user_id' => $userId,
                 'game_mode' => $request->game_mode,
                 'date' => $request->date,
@@ -1414,7 +1414,7 @@ class BingoController extends Controller
 
             // --- 4. Premios y monedas adicionales ---
             $this->handleRoundsAutomatics(
-                'M',
+                'N',
                 'CREATE',
                 $request->rounds_prize_type ?? [],
                 $request->rounds_bingo_patterns ?? [],
@@ -1423,7 +1423,7 @@ class BingoController extends Controller
             );
 
             if ($request->card_price_currencies) {
-                $this->handleCtnPriceCurrencies('M', 'CREATE', $request->card_price_currencies, $roomId, $userId);
+                $this->handleCtnPriceCurrencies('N', 'CREATE', $request->card_price_currencies, $roomId, $userId);
             }
 
             // Confirmar transacción
@@ -1440,7 +1440,7 @@ class BingoController extends Controller
     private function handleRoundsAutomatics(string $type, string $action, array $roundsPrizeType, array $roundsPlayType, array $roundsPrizeValue, int $roomId)
     {
         try {
-            $columnRoom = $type === 'M' ? 'bingo_room_id' : 'automatic_bingo_room_id';
+            $columnRoom = $type === 'N' ? 'bingo_room_id' : 'automatic_bingo_room_id';
             $numRounds = count($roundsPlayType);
             $timestamp = now();
 
@@ -1456,7 +1456,7 @@ class BingoController extends Controller
                 'updated_at' => $timestamp,
             ];
 
-            $existing = $type === 'M' ? BingoRoundAutomatic::getByRoom($roomId) : BingoRoundAutomatic::getByAutomaticRoom($roomId);
+            $existing = $type === 'N' ? BingoRoundAutomatic::getByRoom($roomId) : BingoRoundAutomatic::getByAutomaticRoom($roomId);
 
             if ($action === 'CREATE') {
                 if (!$existing) {
@@ -1492,7 +1492,7 @@ class BingoController extends Controller
 
     private function handleCtnPriceCurrencies(string $type, $action, $cardPriceCurrencies, $roomId, $creatorUser = '')
     {
-        $column = $type === 'M' ? 'bingo_room_id' : 'automatic_bingo_room_id';
+        $column = $type === 'N' ? 'bingo_room_id' : 'automatic_bingo_room_id';
         $timestamp = now();
 
         // Filtrar y preparar arrays de monedas y precios
@@ -1529,7 +1529,7 @@ class BingoController extends Controller
             }
 
             // UPDATE
-            $existing = $type === 'M'
+            $existing = $type === 'N'
                 ? BingoCardPriceAutomatic::getByRoom($roomId)
                 : BingoCardPriceAutomatic::getByAutomaticRoom($roomId);
 
@@ -1570,7 +1570,7 @@ class BingoController extends Controller
             try {
 
                 if ($cardPriceCurrencies) {
-                    $this->handleCtnPriceCurrencies('M', 'UPDATE', $cardPriceCurrencies, $roomId, $creatorUser);
+                    $this->handleCtnPriceCurrencies('N', 'UPDATE', $cardPriceCurrencies, $roomId, $creatorUser);
                 }
 
                 $bingoCreator = BingoCreator::select('id', 'creator_commission', 'card_price', 'allowed_currencies')
@@ -1670,10 +1670,10 @@ class BingoController extends Controller
             $roundsPlayType = $request->rounds_bingo_patterns ?? [];
             $roundsPrizeValue = $request->rounds_prize_value ?? [];
 
-            $this->handleRoundsAutomatics('M', 'UPDATE', $roundsPrizeType, $roundsPlayType, $roundsPrizeValue, $roomId);
+            $this->handleRoundsAutomatics('N', 'UPDATE', $roundsPrizeType, $roundsPlayType, $roundsPrizeValue, $roomId);
 
             if ($cardPriceCurrencies) {
-                $this->handleCtnPriceCurrencies('M', 'UPDATE', $cardPriceCurrencies, $roomId);
+                $this->handleCtnPriceCurrencies('N', 'UPDATE', $cardPriceCurrencies, $roomId);
             }
 
             DB::commit();
@@ -1695,7 +1695,7 @@ class BingoController extends Controller
             'prize_values'
         );
 
-        if ($type === 'M') {
+        if ($type === 'N') {
             $roomId = BingoRoom::getValueByEncrypted($room, 'id');
             $query->where('bingo_room_id', $roomId);
         } else {
@@ -1721,7 +1721,7 @@ class BingoController extends Controller
         $currenciesCtnPrice = collect();
 
         if ($room) {
-            $bingoCtnPrice = $creation === 'M'
+            $bingoCtnPrice = $creation === 'N'
                 ? BingoCardPriceAutomatic::getByRoom(BingoRoom::getValueByEncrypted($room, 'id'), ['bingo_room_id', 'currencies', 'card_prices'])
                 : BingoCardPriceAutomatic::getByAutomaticRoom($room, ['automatic_bingo_room_id', 'currencies', 'card_prices']);
 
@@ -2315,7 +2315,7 @@ class BingoController extends Controller
 
             BingoRoomConfig::create([
                 'room' => $newRoomID,
-                'creation' => 'A',
+                'is_scheduled' => 'A',
                 'creator_user_id' => $userId,
                 'game_mode' => $existingRoomConfig->game_mode,
                 'date' => $existingRoomConfig->date,
@@ -2352,7 +2352,7 @@ class BingoController extends Controller
             $roundsPlayType = $existingRoomRounds->bingo_patterns;
             $roundsPrizeValue = $existingRoomRounds->prize_value;
 
-            $this->handleRoundsAutomatics('M', 'CREATE', $roundsPrizeType, $roundsPlayType, $roundsPrizeValue, $roomId);
+            $this->handleRoundsAutomatics('N', 'CREATE', $roundsPrizeType, $roundsPlayType, $roundsPrizeValue, $roomId);
 
             if ($existingRoomCtnPrice) {
                 BingoCardPriceAutomatic::create([

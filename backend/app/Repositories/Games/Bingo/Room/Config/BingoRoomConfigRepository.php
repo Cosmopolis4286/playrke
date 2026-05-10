@@ -63,12 +63,12 @@ class BingoRoomConfigRepository extends BaseRepository implements BingoRoomConfi
     /**
      * Obtiene configuraciones por modo de creación
      *
-     * @param string $creation Modo de creación ('M' = manual, 'A' = automático)
+     * @param string $creation Modo de creación ('N' = manual, 'A' = automático)
      * @return Collection
      */
     public function getByCreationMode(string $creation): Collection
     {
-        return $this->model->where('creation', $creation)->get();
+        return $this->model->where('is_scheduled', $creation)->get();
     }
 
     /**

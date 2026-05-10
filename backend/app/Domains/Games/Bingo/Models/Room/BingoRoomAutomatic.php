@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -152,6 +153,11 @@ class BingoRoomAutomatic extends Model
     public function roundAutomatic(): HasOne
     {
         return $this->hasOne(BingoRoundAutomatic::class, 'automatic_bingo_room_id');
+    }
+
+    public function generatedRoomConfigs(): HasMany
+    {
+        return $this->hasMany(BingoRoomConfig::class, 'parent_automatic_id');
     }
 
     public function gameMode(): BelongsTo

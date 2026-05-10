@@ -231,3 +231,17 @@ Tres tablas separadas para funcionalidad similar:
 
 *Documento generado: 2024-06-15*
 *Estado: Análisis completo - Pendiente implementación*
+
+---
+
+## Aplicacion incremental - 2026-05-10
+
+Se aplico una optimizacion no destructiva enfocada en trazabilidad y preparacion para futuras consolidaciones:
+
+1. Se agrego `bingo_rooms.is_automatic` para diferenciar salas manuales y salas generadas automaticamente sin depender solo de `bingo_rooms_config.creation`.
+2. Se agrego `bingo_rooms_config.parent_automatic_id` como FK nullable hacia `bingo_rooms_automatic`, permitiendo auditar que plantilla origino cada sala generada.
+3. Se actualizaron los modelos `BingoRoom`, `BingoRoomConfig` y `BingoRoomAutomatic` con casts, scopes y relaciones Eloquent para consultar esta trazabilidad.
+4. Se ajusto `AutoGenerateBingoRoomsService` para crear salas automaticas con estado inicial `INACTIVE`, marcarlas como automaticas y guardar el origen en la configuracion.
+5. Se reforzo el test `GenerateBingoRoomsCommandTest` para validar `is_automatic` y `parent_automatic_id`.
+
+No se eliminaron `bingo_room_creators`, `bingo_rounds_automatic` ni `bingo_card_price_automatic` porque tienen referencias activas en modelos, servicios y pruebas. Esa limpieza debe hacerse en una fase posterior junto con refactor de codigo y migracion de datos.

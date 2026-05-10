@@ -21,7 +21,8 @@ class BingoRoomConfig extends Model
 
     protected $fillable = [
         'room_id',
-        'creation',
+        'parent_automatic_id',
+        'is_scheduled',
         'room_type_id',
         'creator_user_id',
         'game_mode_id',
@@ -48,7 +49,8 @@ class BingoRoomConfig extends Model
 
     protected $casts = [
         'room_id'                 => 'string',
-        'creation'                => 'string',
+        'parent_automatic_id'     => 'string',
+        'is_scheduled'                => 'string',
         'room_type_id'            => 'string',
         'creator_user_id'         => 'string',
         'game_mode_id'            => 'string',
@@ -75,6 +77,14 @@ class BingoRoomConfig extends Model
     public function room(): BelongsTo
     {
         return $this->belongsTo(BingoRoom::class, 'room_id');
+    }
+
+    /**
+     * Plantilla automatica que origino esta configuracion, cuando aplica.
+     */
+    public function parentAutomatic(): BelongsTo
+    {
+        return $this->belongsTo(BingoRoomAutomatic::class, 'parent_automatic_id');
     }
 
     /**

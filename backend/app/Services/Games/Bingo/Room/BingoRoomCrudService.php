@@ -247,7 +247,7 @@ class BingoRoomCrudService
 
         if ($isCreate) {
             $base['room_id']      = $roomId;
-            $base['creation']     = 'M';
+            $base['is_scheduled']     = 'N';
             $base['creator_user_id'] = $userId;
             $base['in_live']      = 'N';
             // from_house = Y si el creador es admin o superadmin; N para commerce/customer
