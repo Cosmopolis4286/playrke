@@ -36,7 +36,7 @@ class BingoCard extends Model
     ];
 
     protected $fillable = [
-        'room_id', 'creator_room_user_id', 'seller_user_id', 'room_user_id',
+        'room_id', 'creator_user_id', 'seller_user_id', 'seller_type', 'room_user_id',
         'card_lot_id', 'currency_id', 'serial_number', 'card_numbers',
         'b1', 'b2', 'b3', 'b4', 'b5',
         'i1', 'i2', 'i3', 'i4', 'i5',
@@ -67,12 +67,12 @@ class BingoCard extends Model
 
     public function creatorUser(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'creator_room_user_id');
+        return $this->belongsTo(User::class, 'creator_user_id');
     }
 
     public function seller(): BelongsTo
     {
-        return $this->belongsTo(Seller::class, 'seller_user_id');
+        return $this->belongsTo(User::class, 'seller_user_id');
     }
 
     public function roomUser(): BelongsTo

@@ -66,9 +66,9 @@ final class BingoWinnerDetectionService
             ->get();
 
         if ($cards->isEmpty()) {
-            // Intentar por creator_room_user_id como fallback
+            // Intentar por creator_user_id como fallback
             $cards = BingoCard::where('room_id', $room->id)
-                ->where('creator_room_user_id', $userId)
+                ->where('creator_user_id', $userId)
                 ->where('status', 'active')
                 ->get();
         }

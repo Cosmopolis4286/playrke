@@ -218,10 +218,10 @@ final class BingoGameService
             ]);
 
             if (!$roomUser) {
-                // Si no hay room_user, intentar obtener cartones directamente por creator_room_user_id
+                // Si no hay room_user, intentar obtener cartones directamente por creator_user_id
                 \Log::info('Trying alternative method to get cartons');
                 $cards = \App\Domains\Games\Bingo\Models\Card\BingoCard::where('room_id', $roomId)
-                    ->where('creator_room_user_id', $userId)
+                    ->where('creator_user_id', $userId)
                     ->where('status', 'active')
                     ->with(['currency', 'cardLot', 'roomUser'])
                     ->orderBy('serial_number')

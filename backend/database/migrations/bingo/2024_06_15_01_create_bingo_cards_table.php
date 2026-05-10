@@ -64,6 +64,11 @@ return new class extends Migration
                 ->nullOnDelete()
                 ->comment('Usuario vendedor o generador');
 
+            // Tipo de vendedor para auditoría
+            $table->enum('seller_type', ['USER', 'SELLER', 'COMMERCE', 'CUSTOMER'])
+                ->nullable()
+                ->comment('Tipo de vendedor: USER = usuario normal, SELLER = vendedor oficial, COMMERCE = comercio, CUSTOMER = cliente API');
+
             // Usuario dentro de la sala
             $table->foreignSnowflake('room_user_id')
                 ->constrained('bingo_room_users')

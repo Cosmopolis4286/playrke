@@ -97,12 +97,8 @@ return new class extends Migration
 
             $table->decimal('jackpot_pct', 5, 2)->nullable()->comment('Porcentaje destinado al jackpot');
 
-            // Campos financieros adicionales (centralizados desde bingo_rooms)
-            $table->decimal('room_commission', 8, 2)->nullable()->comment('Comisión de la sala (configuración específica)');
-            $table->decimal('seller_commission', 8, 2)->nullable()->comment('Comisión del vendedor');
-            $table->decimal('prize_pool', 15, 2)->default(0)->comment('Pool de premios acumulado configurado');
-            $table->decimal('full_house_prize', 15, 2)->default(0)->comment('Premio por cartón lleno configurado');
-            $table->decimal('serial_prize', 15, 2)->default(0)->comment('Premio por serie completa configurado');
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE')
+                ->comment('Estado de la configuración: ACTIVE = activa, INACTIVE = inactiva');
 
             $table->timestamps(); // created_at y updated_at
 

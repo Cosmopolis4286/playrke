@@ -37,12 +37,17 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Usuario creador del pago');
 
-            $table->foreignSnowflake('seller_id')
+            $table->foreignSnowflake('seller_user_id')
                 ->nullable()
-                ->constrained('sellers')
+                ->constrained('users')
                 ->cascadeOnUpdate()
                 ->nullOnDelete()
-                ->comment('Vendedor asociado si aplica');
+                ->comment('Usuario vendedor asociado si aplica');
+
+            // Tipo de vendedor para auditoría
+            $table->enum('seller_type', ['USER', 'SELLER', 'COMMERCE', 'CUSTOMER'])
+                ->nullable()
+                ->comment('Tipo de vendedor: USER = usuario normal, SELLER = vendedor oficial, COMMERCE = comercio, CUSTOMER = cliente API');
 
             $table->foreignSnowflake('external_player_id')
                 ->nullable()

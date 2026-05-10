@@ -8,7 +8,6 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Models\Currency;
-use App\Models\Roles\Seller;
 use App\Models\User;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -36,7 +35,7 @@ class BingoCardPrize extends Model
     ];
 
     protected $fillable = [
-        'room_id', 'creator_user_id', 'seller_id', 'room_user_id', 'card_lot_id',
+        'room_id', 'creator_user_id', 'seller_user_id', 'seller_type', 'room_user_id', 'card_lot_id',
         'winning_card_id', 'currency_id', 'round_id', 'status', 'prize_type',
         'winning_pattern', 'usd_amount', 'local_amount', 'prize_status',
         'claimed_at', 'verification_code', 'prize_notes',
@@ -57,7 +56,7 @@ class BingoCardPrize extends Model
 
     public function room(): BelongsTo { return $this->belongsTo(BingoRoom::class, 'room_id'); }
     public function creatorUser(): BelongsTo { return $this->belongsTo(User::class, 'creator_user_id'); }
-    public function seller(): BelongsTo { return $this->belongsTo(Seller::class, 'seller_id'); }
+    public function seller(): BelongsTo { return $this->belongsTo(User::class, 'seller_user_id'); }
     public function roomUser(): BelongsTo { return $this->belongsTo(BingoRoomUser::class, 'room_user_id'); }
     public function cardLot(): BelongsTo { return $this->belongsTo(BingoCardLot::class, 'card_lot_id'); }
     public function winningCard(): BelongsTo { return $this->belongsTo(BingoCard::class, 'winning_card_id'); }
