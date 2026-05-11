@@ -66,7 +66,7 @@ class BingoCardPrizePayment extends Model
     public function scopeByStatus($query, string $status) { return $query->where('payment_status', $status); }
     public function scopeProcessed($query) { return $query->whereNotNull('processed_at'); }
     public function scopeUnprocessed($query) { return $query->whereNull('processed_at'); }
-    public function scopeBySeller($query, string $id) { return $query->where('seller_id', $id); }
+    public function scopeBySeller($query, string $id) { return $query->where('seller_user_id', $id); }
     public function scopeByRoom($query, string $id) { return $query->where('room_id', $id); }
     public function scopeByPrize($query, string $id) { return $query->where('card_prize_id', $id); }
     public function scopeByUser($query, string $id) { return $query->where('user_id', $id); }

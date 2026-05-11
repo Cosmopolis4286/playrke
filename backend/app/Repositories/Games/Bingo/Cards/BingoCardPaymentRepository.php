@@ -43,7 +43,7 @@ class BingoCardPaymentRepository extends BaseRepository implements BingoCardPaym
         }
 
         if (isset($filters['seller_id'])) {
-            $query->where('seller_id', $filters['seller_id']);
+            $query->where('seller_user_id', $filters['seller_id']);
         }
 
         if (isset($filters['user_id'])) {
@@ -72,7 +72,7 @@ class BingoCardPaymentRepository extends BaseRepository implements BingoCardPaym
         }
 
         if (isset($filters['seller_id'])) {
-            $query->where('seller_id', $filters['seller_id']);
+            $query->where('seller_user_id', $filters['seller_id']);
         }
 
         return $query->with(['room', 'seller', 'user', 'currency'])
@@ -97,7 +97,7 @@ class BingoCardPaymentRepository extends BaseRepository implements BingoCardPaym
         }
 
         if (isset($filters['seller_id'])) {
-            $query->where('seller_id', $filters['seller_id']);
+            $query->where('seller_user_id', $filters['seller_id']);
         }
 
         return $query->with(['room', 'seller', 'user', 'currency'])
@@ -126,7 +126,7 @@ class BingoCardPaymentRepository extends BaseRepository implements BingoCardPaym
      */
     public function getPaymentsBySeller(string $sellerId, array $filters = []): Collection
     {
-        $query = $this->model->where('seller_id', $sellerId);
+        $query = $this->model->where('seller_user_id', $sellerId);
 
         // Aplicar filtros adicionales
         if (isset($filters['room_id'])) {
@@ -366,7 +366,7 @@ class BingoCardPaymentRepository extends BaseRepository implements BingoCardPaym
         }
 
         if (isset($filters['seller_id'])) {
-            $query->where('seller_id', $filters['seller_id']);
+            $query->where('seller_user_id', $filters['seller_id']);
         }
 
         if (isset($filters['date_from'])) {

@@ -15,44 +15,9 @@ class BingoRoomAutomaticResource extends JsonResource
 
             'allowed_currencies' => $this->allowed_currencies ?? [],
 
-            'card_price_by_currency' => $this->whenLoaded('cardPriceAutomatic', function () {
-                $prices = $this->cardPriceAutomatic?->card_prices ?? [];
-                return collect($prices)->map(fn($v) => (float) $v)->toArray();
-            }, []),
+            'card_price_by_currency' => collect($this->getCardPricesConfig()['card_prices'] ?? [])->map(fn($v) => (float) $v)->toArray(),
 
-            'rounds_config' => $this->whenLoaded('roundAutomatic', function () {
-                $round = $this->roundAutomatic;
-                if (!$round) return [];
-
-                $prizeTypeMap = ['PCT' => 'percentage', 'FIXED' => 'fixed', 'OTHER' => 'prize'];
-                $prizeTypes   = $round->prize_types    ?? [];
-                $patterns     = $round->bingo_patterns ?? [];
-                $prizeValues  = $round->prize_values   ?? [];
-
-                $config = [];
-                foreach ($prizeTypes as $i => $type) {
-                    $frontendType = $prizeTypeMap[$type] ?? 'percentage';
-                    $entry = [
-                        'prizeType'    => $frontendType,
-                        'bingoPattern' => $patterns[$i] ?? null,
-                    ];
-
-                    if ($frontendType === 'fixed') {
-                        $entry['prizeValueByCurrency'] = $prizeValues[$i] ?? null;
-                        $entry['prizeValue']           = null;
-                    } elseif ($frontendType === 'prize') {
-                        $entry['prizeId']    = ($prizeValues[$i] ?? [])['prizeId']   ?? null;
-                        $entry['prizeName']  = ($prizeValues[$i] ?? [])['prizeName'] ?? null;
-                        $entry['prizeValue'] = null;
-                    } else {
-                        $entry['prizeValue'] = isset($prizeValues[$i]) ? (float) $prizeValues[$i] : null;
-                    }
-
-                    $config[] = $entry;
-                }
-
-                return $config;
-            }, []),
+            'rounds_config' => $this->formatRoundsConfig(),
 
             'config' => [
                 'room_type_id'            => $this->room_type_id,
@@ -88,5 +53,39 @@ class BingoRoomAutomaticResource extends JsonResource
                 'last_room_created_at'    => $this->last_room_created_at?->toISOString(),
             ],
         ];
+    }
+
+    protected function formatRoundsConfig(): array
+    {
+        $roundsConfig = $this->getRoundsConfig();
+        $prizeTypes   = $roundsConfig['prize_types'] ?? [];
+        $patterns     = $roundsConfig['bingo_patterns'] ?? [];
+        $prizeValues  = $roundsConfig['prize_values'] ?? [];
+
+        $prizeTypeMap = ['PCT' => 'percentage', 'FIXED' => 'fixed', 'OTHER' => 'prize'];
+        $config = [];
+
+        foreach ($prizeTypes as $i => $type) {
+            $frontendType = $prizeTypeMap[$type] ?? 'percentage';
+            $entry = [
+                'prizeType'    => $frontendType,
+                'bingoPattern' => $patterns[$i] ?? null,
+            ];
+
+            if ($frontendType === 'fixed') {
+                $entry['prizeValueByCurrency'] = $prizeValues[$i] ?? null;
+                $entry['prizeValue'] = null;
+            } elseif ($frontendType === 'prize') {
+                $entry['prizeId']    = ($prizeValues[$i] ?? [])['prizeId']   ?? null;
+                $entry['prizeName']  = ($prizeValues[$i] ?? [])['prizeName'] ?? null;
+                $entry['prizeValue'] = null;
+            } else {
+                $entry['prizeValue'] = isset($prizeValues[$i]) ? (float) $prizeValues[$i] : null;
+            }
+
+            $config[] = $entry;
+        }
+
+        return $config;
     }
 }

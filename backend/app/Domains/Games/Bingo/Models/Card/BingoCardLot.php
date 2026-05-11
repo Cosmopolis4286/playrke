@@ -76,5 +76,5 @@ class BingoCardLot extends Model
     }
 
     public function scopeActive($query) { return $query->where('status', true); }
-    public function scopeBySeller($query, string $sellerId) { return $query->where('seller_id', $sellerId); }
+    public function scopeBySeller($query, string $sellerId) { return $query->where('seller_user_id', $sellerId); }
 }

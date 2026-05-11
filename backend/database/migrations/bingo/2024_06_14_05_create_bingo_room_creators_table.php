@@ -7,20 +7,24 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Ejecutar la migración: crear tabla 'bingo_room_creators'.
+     * Tabla PIVOT: creadores que participan en salas (propias o ajenas)
+     * con comisiones específicas por sala.
+     * 
+     * NOTA: Un creador puede participar en salas de OTROS creadores
+     * con comisiones distintas. Por eso es necesaria esta tabla.
      */
     public function up(): void
     {
         Schema::create('bingo_room_creators', function (Blueprint $table) {
             // ID Snowflake
-            $table->snowflake('id')->primary()->comment('ID único del registro de creador');
+            $table->snowflake('id')->primary()->comment('ID único del registro');
 
             // Relaciones
             $table->foreignSnowflake('room_id')
                 ->constrained('bingo_rooms')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete()
-                ->comment('Sala asociada');
+                ->comment('Sala donde el creador participa');
 
             $table->foreignSnowflake('user_id')
                 ->constrained('users')

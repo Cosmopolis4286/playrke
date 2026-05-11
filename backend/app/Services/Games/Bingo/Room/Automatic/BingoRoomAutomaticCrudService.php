@@ -108,7 +108,7 @@ final class BingoRoomAutomaticCrudService
     /**
      * Guardar precios de cartones en campos consolidados de bingo_rooms_automatic.
      * Escribe directamente en card_currencies y card_prices (JSON).
-     * 
+     *
      * Nota: Para backward compatibility, también se crea registro en bingo_card_price_automatic.
      */
     private function syncCardPrices(
@@ -155,7 +155,7 @@ final class BingoRoomAutomaticCrudService
     /**
      * Guardar configuración de rondas en campos consolidados de bingo_rooms_automatic.
      * Escribe directamente en prize_types, bingo_patterns, prize_values, rounds_config (JSON).
-     * 
+     *
      * Mapeo prize_type (frontend → DB):
      *   percentage → PCT
      *   fixed      → FIXED
@@ -249,38 +249,34 @@ final class BingoRoomAutomaticCrudService
     {
         $room->load(['cardPriceAutomatic', 'roundAutomatic']);
 
-        $cardPriceByCurrency = [];
-        if ($room->cardPriceAutomatic) {
-            $cardPriceByCurrency = $room->cardPriceAutomatic->card_prices ?? [];
-        }
-
+        $cardPriceByCurrency = $room->getCardPricesConfig()['card_prices'] ?? [];
         $roundsConfig = [];
-        if ($room->roundAutomatic) {
-            $prizeTypeMap = ['PCT' => 'percentage', 'FIXED' => 'fixed', 'OTHER' => 'prize'];
-            $prizeTypes   = $room->roundAutomatic->prize_types ?? [];
-            $patterns     = $room->roundAutomatic->bingo_patterns ?? [];
-            $prizeValues  = $room->roundAutomatic->prize_values ?? [];
 
-            foreach ($prizeTypes as $i => $type) {
-                $frontendType = $prizeTypeMap[$type] ?? 'percentage';
-                $config = [
-                    'prizeType'    => $frontendType,
-                    'bingoPattern' => $patterns[$i] ?? null,
-                ];
+        $roundsState = $room->getRoundsConfig();
+        $prizeTypeMap = ['PCT' => 'percentage', 'FIXED' => 'fixed', 'OTHER' => 'prize'];
+        $prizeTypes   = $roundsState['prize_types'] ?? [];
+        $patterns     = $roundsState['bingo_patterns'] ?? [];
+        $prizeValues  = $roundsState['prize_values'] ?? [];
 
-                if ($frontendType === 'fixed') {
-                    $config['prizeValueByCurrency'] = $prizeValues[$i] ?? null;
-                    $config['prizeValue'] = null;
-                } elseif ($frontendType === 'prize') {
-                    $config['prizeId']   = ($prizeValues[$i] ?? [])['prizeId'] ?? null;
-                    $config['prizeName'] = ($prizeValues[$i] ?? [])['prizeName'] ?? null;
-                    $config['prizeValue'] = null;
-                } else {
-                    $config['prizeValue'] = $prizeValues[$i] ?? null;
-                }
+        foreach ($prizeTypes as $i => $type) {
+            $frontendType = $prizeTypeMap[$type] ?? 'percentage';
+            $config = [
+                'prizeType'    => $frontendType,
+                'bingoPattern' => $patterns[$i] ?? null,
+            ];
 
-                $roundsConfig[] = $config;
+            if ($frontendType === 'fixed') {
+                $config['prizeValueByCurrency'] = $prizeValues[$i] ?? null;
+                $config['prizeValue'] = null;
+            } elseif ($frontendType === 'prize') {
+                $config['prizeId']   = ($prizeValues[$i] ?? [])['prizeId'] ?? null;
+                $config['prizeName'] = ($prizeValues[$i] ?? [])['prizeName'] ?? null;
+                $config['prizeValue'] = null;
+            } else {
+                $config['prizeValue'] = $prizeValues[$i] ?? null;
             }
+
+            $roundsConfig[] = $config;
         }
 
         $dto = BingoRoomAutomaticCreateDTO::fromArray([

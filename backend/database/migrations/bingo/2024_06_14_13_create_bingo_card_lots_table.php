@@ -82,12 +82,11 @@ return new class extends Migration
             // Índices para consultas frecuentes y rendimiento
             $table->index(['room_id', 'room_user_id'], 'idx_bingo_card_lots_room_user');
             $table->index(['room_id', 'status'], 'idx_bingo_card_lots_room_active');
-            $table->index(['seller_id', 'status'], 'idx_bingo_card_lots_seller_active');
-            $table->index('created_at', 'idx_bingo_card_lots_created');
+            $table->index(['seller_user_id', 'status'], 'idx_bingo_card_lots_seller_active');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
 
             // Índice único para evitar duplicados
             $table->unique(['room_id', 'room_user_id', 'created_at'], 'unq_bingo_card_lots_room_user_time');
-            $table->index('updated_at', 'idx_bingo_card_lots_updated');
         });
     }
 

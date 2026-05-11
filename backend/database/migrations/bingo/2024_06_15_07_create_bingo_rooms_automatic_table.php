@@ -135,7 +135,7 @@ return new class extends Migration
 
             // Índices compuestos útiles
             $table->index(['status', 'room_type_id'], 'idx_status_roomtype_automatic');
-            $table->index('created_at', 'idx_bingo_rooms_automatic_created');
+            // NOTA: índice en created_at eliminado - gestionado por Laravel
             $table->index(['creator_user_id', 'created_at'], 'idx_creator_createdat_automatic');
             
             // Índices para nuevos campos de programación avanzada

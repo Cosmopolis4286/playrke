@@ -61,7 +61,7 @@ return new class extends Migration
             $table->index(['finished_at'], 'idx_finished_at');
             $table->index('uuid_code', 'idx_uuid_code');
             $table->index(['paid_prizes', 'finished_at'], 'idx_paid_prizes_finished');
-            $table->index('updated_at', 'idx_bingo_rooms_updated');
+            // NOTA: índice en updated_at eliminado - Laravel ya gestiona timestamps eficientemente
         });
     }
 

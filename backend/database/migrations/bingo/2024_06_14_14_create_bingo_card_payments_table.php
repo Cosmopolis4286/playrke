@@ -89,8 +89,7 @@ return new class extends Migration
             $table->index(['payment_method', 'payment_status'], 'idx_bingo_card_payments_method_status');
             $table->index(['card_lot_id', 'payment_status'], 'idx_bingo_card_payments_lot_status');
             $table->index('processed_at', 'idx_bingo_card_payments_processed');
-            $table->index('created_at', 'idx_bingo_card_payments_created');
-            $table->index('updated_at', 'idx_bingo_card_payments_updated');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
 
             // Índice único para evitar pagos duplicados
             $table->unique(['card_lot_id', 'user_id', 'external_player_id', 'created_at'], 'unq_bingo_card_payments_lot_user_time');

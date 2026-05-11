@@ -110,8 +110,7 @@ return new class extends Migration
             $table->index('prize_pool_type_id', 'idx_prize_pool_type_id');
             $table->index(['date', 'time'], 'idx_datetime');
             $table->index(['creation', 'status'], 'idx_creation_status');
-            $table->index('created_at', 'idx_bingo_rooms_config_created');
-            $table->index('updated_at', 'idx_bingo_rooms_config_updated');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
     }
 

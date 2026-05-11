@@ -103,12 +103,11 @@ return new class extends Migration
             $table->index(['room_id', 'user_id'], 'idx_bingo_card_prize_payments_room_user');
             $table->index(['card_prize_id', 'payment_status'], 'idx_bingo_card_prize_payments_prize_status');
             $table->index(['payment_method', 'payment_status'], 'idx_bingo_card_prize_payments_method_status');
-            $table->index(['seller_id', 'payment_status'], 'idx_bingo_card_prize_payments_seller_status');
+            $table->index(['seller_user_id', 'payment_status'], 'idx_bingo_card_prize_payments_seller_status');
             $table->index(['external_player_id', 'payment_status'], 'idx_bingo_card_prize_payments_player_status');
             $table->index('processed_at', 'idx_bingo_card_prize_payments_processed');
             $table->index('transaction_reference', 'idx_bingo_card_prize_payments_reference');
-            $table->index('created_at', 'idx_bingo_card_prize_payments_created');
-            $table->index('updated_at', 'idx_bingo_card_prize_payments_updated');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
 
             // Nota: Validaciones de integridad se manejan a nivel de aplicación
         });
