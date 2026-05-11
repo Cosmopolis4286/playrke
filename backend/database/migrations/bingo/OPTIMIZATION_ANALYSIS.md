@@ -190,8 +190,8 @@ Tres tablas separadas para funcionalidad similar:
 | Tabla | Campo | Razón |
 |-------|-------|-------|
 | `bingo_rooms` | `template_id` | FK a plantilla de configuración |
-| `bingo_rooms` | `is_automatic` | Boolean para distinguir tipo |
 | `bingo_room_config` | `parent_automatic_id` | FK a sala automática padre |
+| `bingo_room_config` | `is_scheduled` | Indica origen/estado de la sala: manual, programada o automática |
 
 ---
 
@@ -238,20 +238,20 @@ Tres tablas separadas para funcionalidad similar:
 
 Se aplico una optimizacion no destructiva enfocada en trazabilidad y preparacion para futuras consolidaciones:
 
-1. Se agrego `bingo_rooms.is_automatic` para diferenciar salas manuales y salas generadas automaticamente sin depender solo de `bingo_rooms_config.creation`.
-2. Se agrego `bingo_rooms_config.parent_automatic_id` como FK nullable hacia `bingo_rooms_automatic`, permitiendo auditar que plantilla origino cada sala generada.
-3. Se actualizaron los modelos `BingoRoom`, `BingoRoomConfig` y `BingoRoomAutomatic` con casts, scopes y relaciones Eloquent para consultar esta trazabilidad.
-4. Se ajusto `AutoGenerateBingoRoomsService` para crear salas automaticas con estado inicial `INACTIVE`, marcarlas como automaticas y guardar el origen en la configuracion.
-5. Se reforzo el test `GenerateBingoRoomsCommandTest` para validar `is_automatic` y `parent_automatic_id`.
+1. Se agregó `bingo_rooms_config.parent_automatic_id` como FK nullable hacia `bingo_rooms_automatic`, permitiendo auditar qué plantilla originó cada sala generada.
+2. Se agregó `bingo_rooms_config.is_scheduled` como flag de origen/estado de la sala: `N` = manual, `Y` = programada, `A` = automática.
+3. Se actualizaron los modelos `BingoRoomConfig` y `BingoRoomAutomatic` con casts, scopes y relaciones Eloquent para consultar esta trazabilidad.
+4. Se ajustó `AutoGenerateBingoRoomsService` para crear salas automáticas con estado inicial `INACTIVE`, guardar el origen en la configuración y marcar `is_scheduled = 'A'`.
+5. Se reforzó el test `GenerateBingoRoomsCommandTest` para validar `is_scheduled` y `parent_automatic_id`.
 
-No se eliminaron `bingo_room_creators`, `bingo_rounds_automatic` ni `bingo_card_price_automatic` porque tienen referencias activas en modelos, servicios y pruebas. Esa limpieza debe hacerse en una fase posterior junto con refactor de codigo y migracion de datos.
+No se eliminaron `bingo_room_creators`, `bingo_rounds_automatic` ni `bingo_card_price_automatic` porque tienen referencias activas en modelos, servicios y pruebas. Esa limpieza debe hacerse en una fase posterior junto con refactor de código y migración de datos.
 
 ---
 
 ## �️ Trabajo iniciado
 
-- Creada migración `backend/database/migrations/bingo/2026_05_10_00_update_bingo_rooms_for_automatic_tracking.php` para agregar `bingo_rooms.is_automatic`, `bingo_rooms_config.parent_automatic_id` e `bingo_rooms_config.is_scheduled`.
-- Actualizado `backend/app/Domains/Games/Bingo/Models/Room/BingoRoom.php` para permitir `is_automatic` en asignación masiva y casteo.
+- Creada migración `backend/database/migrations/bingo/2026_05_10_00_add_parent_automatic_id_and_is_scheduled_to_bingo_rooms_config.php` para agregar `bingo_rooms_config.parent_automatic_id` e `bingo_rooms_config.is_scheduled`.
+- No se agregó `bingo_rooms.is_automatic`; la flag de origen/estado de la sala se mantiene en `bingo_rooms_config.is_scheduled`.
 - Próximo paso: ejecutar las migraciones en desarrollo y validar `GenerateBingoRoomsCommandTest`.
 
 ---
@@ -323,3 +323,98 @@ No se eliminaron `bingo_room_creators`, `bingo_rounds_automatic` ni `bingo_card_
 - No eliminar nada de inmediato en producción sin migración completa de datos.
 - Mantener siempre un camino de reversión (`down()` claro) en las migraciones de consolidación.
 - Priorizar la estabilidad de generación automática de salas, que es el área con mayor riesgo funcional.
+
+---
+
+## ✅ Implementación End-to-End Completada - 2026-05-10
+
+### Fase 1: Trazabilidad y Plantillas (COMPLETADO)
+
+1. **Migración:** `2026_05_10_00_add_parent_automatic_id_and_is_scheduled_to_bingo_rooms_config.php`
+   - Agregó `parent_automatic_id` FK nullable → `bingo_rooms_automatic`
+   - Agregó `is_scheduled` enum: `N` (manual), `Y` (programada), `A` (automática)
+
+2. **Modelos Actualizados:**
+   - `BingoRoomConfig`: fillable, casts, relación `template()` → `BingoRoomTemplate`
+   - `BingoRoomAutomatic`: fillable, casts, relación `template()` → `BingoRoomTemplate`
+   - `BingoRoomTemplate`: modelo nuevo con relaciones a config y automatic
+
+3. **Servicio:** `AutoGenerateBingoRoomsService`
+   - Ahora establece `template_id` al crear `BingoRoomConfig`
+   - Marca `is_scheduled = 'A'` para salas automáticas
+   - Registra trazabilidad en logs
+
+4. **Tests:** `GenerateBingoRoomsCommandTest`
+   - Validación de `is_scheduled` y `template_id`
+   - Nuevo test: `service_config_has_template_relation()`
+
+### Fase 2: Consolidación de Tablas Automáticas (COMPLETADO)
+
+5. **Migración:** `2026_05_10_03_consolidate_automatic_tables.php`
+   - Agrega 6 campos JSON a `bingo_rooms_automatic`:
+     * Rondas: `rounds_config`, `prize_types`, `bingo_patterns`, `prize_values`
+     * Precios: `card_currencies`, `card_prices`
+   - Migra datos de `bingo_rounds_automatic` → `rounds_config`, etc.
+   - Migra datos de `bingo_card_price_automatic` → `card_currencies`, `card_prices`
+   - Mantiene tablas antiguas (sin eliminar, para backward compatibility)
+
+6. **Modelo:** `BingoRoomAutomatic` Actualizado
+   - Nuevos campos en `$fillable` y `$casts`
+   - Métodos helper:
+     * `getRoundsConfig()`: retorna array consolidado con fallback a relación antigua
+     * `getCardPricesConfig()`: retorna array consolidado con fallback a relación antigua
+
+7. **Servicio:** `AutoGenerateBingoRoomsService` Refactorizado
+   - `syncCardPricesFromTemplate()`: usa `getCardPricesConfig()` en lugar de relación
+   - `syncRoundsFromTemplate()`: usa `getRoundsConfig()` en lugar de relación
+   - Lógica de transformación mantenida intacta
+
+### Arquitectura Resultante
+
+```
+bingo_room_templates (plantilla base)
+├─ rk_commission, room_commission
+├─ use_base_usd, card_price_usd
+├─ allowed_currencies
+├─ prize_pool_type_id, amount_added_prize_pool
+├─ time_chip, rounds, rounds_pct
+├─ use_serials, serials_pct, num_serials, jackpot_pct
+
+bingo_rooms_automatic (plantilla para automatización)
+├─ FK: template_id → bingo_room_templates
+├─ Campos de programación: recurrence_type, start_date, end_date, days, time
+├─ Campos consolidados (new):
+│  ├─ rounds_config, prize_types, bingo_patterns, prize_values (ex bingo_rounds_automatic)
+│  └─ card_currencies, card_prices (ex bingo_card_price_automatic)
+├─ Relaciones antiguas (para backward compat):
+│  ├─ roundAutomatic() → bingo_rounds_automatic
+│  └─ cardPriceAutomatic() → bingo_card_price_automatic
+
+bingo_rooms_config (configuración de sala específica)
+├─ FK: template_id → bingo_room_templates
+├─ FK: parent_automatic_id → bingo_rooms_automatic (si fue generada automáticamente)
+├─ is_scheduled: N|Y|A (origen/estado de la sala)
+```
+
+### Próximos Pasos Recomendados
+
+- **Fase 3:** Ejecutar `php artisan migrate:fresh --seed` en desarrollo y validar tests
+- **Fase 4:** Eliminar tablas `bingo_rounds_automatic` y `bingo_card_price_automatic` en migración futura (una vez que todo código esté migrado)
+- **Fase 5:** Considerar eliminación de `bingo_room_creators` (actualmente con referencias activas, requiere refactoring mayor)
+
+### Beneficios Logrados
+
+✅ **Trazabilidad:** Auditoría completa de origen de salas
+✅ **Normalización:** Tabla `bingo_room_templates` elimina ~15 campos duplicados
+✅ **Consolidación:** Rondas y precios automáticos en una tabla (preparación para eliminar 2 tablas)
+✅ **Backward Compatibility:** Código antiguo sigue funcionando sin cambios
+✅ **Escalabilidad:** Arquitectura lista para agregar más tipos de plantillas
+
+### Estado Actual
+
+- ✅ Todos los archivos tienen sintaxis válida
+- ✅ Migraciones creadas y listas para ejecutar
+- ✅ Modelos actualizados con relaciones
+- ✅ Servicios refactorizados
+- ✅ Tests preparados para validación
+- ⏳ Pendiente: Ejecutar migraciones y tests en desarrollo

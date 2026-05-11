@@ -9,6 +9,7 @@ use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Concerns\HasHashedRouteKey;
 use App\Models\Games\Common\Room\RoomType;
 use App\Models\User;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomTemplate;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -55,6 +56,7 @@ class BingoRoomAutomatic extends Model
     ];
 
     protected $fillable = [
+        'template_id',
         'date',
         'days',
         'time',
@@ -91,10 +93,19 @@ class BingoRoomAutomatic extends Model
         'max_rooms_per_day',
         'rooms_created',
         'last_room_created_at',
+        // Campos consolidados de rondas automáticas
+        'rounds_config',
+        'prize_types',
+        'bingo_patterns',
+        'prize_values',
+        // Campos consolidados de precios automáticos
+        'card_currencies',
+        'card_prices',
     ];
 
     protected $casts = [
         'id'                      => 'string',
+        'template_id'             => 'string',
         'game_mode_id'            => 'string',
         'room_type_id'            => 'string',
         'prize_pool_type_id'      => 'string',
@@ -104,6 +115,12 @@ class BingoRoomAutomatic extends Model
         'days'                    => 'array',
         'recurrence_days'         => 'array',
         'default_config'          => 'array',
+        'rounds_config'           => 'array',
+        'prize_types'             => 'array',
+        'bingo_patterns'          => 'array',
+        'prize_values'            => 'array',
+        'card_currencies'         => 'array',
+        'card_prices'             => 'array',
         'in_live'                 => 'string',
         'date'                    => 'date',
         'time'                    => 'datetime:H:i:s',
@@ -158,6 +175,11 @@ class BingoRoomAutomatic extends Model
     public function generatedRoomConfigs(): HasMany
     {
         return $this->hasMany(BingoRoomConfig::class, 'parent_automatic_id');
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(BingoRoomTemplate::class, 'template_id');
     }
 
     public function gameMode(): BelongsTo
@@ -220,5 +242,55 @@ class BingoRoomAutomatic extends Model
             'SUSPENDED' => '<span class="badge badge-warning">Suspendida</span>',
             default    => '<span class="badge badge-dark">Desconocido</span>',
         };
+    }
+
+    // ─── Consolidated Rounds & Prices Helpers ────────────────────────────────
+
+    /**
+     * Obtiene la configuración de rondas consolidada.
+     * Compatibilidad con bingo_rounds_automatic si existe.
+     */
+    public function getRoundsConfig(): array
+    {
+        if ($this->rounds_config && is_array($this->rounds_config)) {
+            return $this->rounds_config;
+        }
+
+        // Fallback a la relación antigua si existe
+        if ($this->relationLoaded('roundAutomatic') && $this->roundAutomatic) {
+            return [
+                'rounds' => $this->roundAutomatic->rounds,
+                'prize_types' => $this->roundAutomatic->prize_types,
+                'bingo_patterns' => $this->roundAutomatic->bingo_patterns,
+                'prize_values' => $this->roundAutomatic->prize_values,
+                'status' => $this->roundAutomatic->status,
+            ];
+        }
+
+        return [];
+    }
+
+    /**
+     * Obtiene los precios de cartones consolidados.
+     * Compatibilidad con bingo_card_price_automatic si existe.
+     */
+    public function getCardPricesConfig(): array
+    {
+        if (($this->card_currencies || $this->card_prices) && is_array($this->card_currencies) && is_array($this->card_prices)) {
+            return [
+                'currencies' => $this->card_currencies,
+                'card_prices' => $this->card_prices,
+            ];
+        }
+
+        // Fallback a la relación antigua si existe
+        if ($this->relationLoaded('cardPriceAutomatic') && $this->cardPriceAutomatic) {
+            return [
+                'currencies' => $this->cardPriceAutomatic->currencies,
+                'card_prices' => $this->cardPriceAutomatic->card_prices,
+            ];
+        }
+
+        return ['currencies' => [], 'card_prices' => []];
     }
 }

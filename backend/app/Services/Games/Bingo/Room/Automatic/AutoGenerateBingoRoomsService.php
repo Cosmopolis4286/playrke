@@ -180,6 +180,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
 
         BingoRoomConfig::create([
             'room_id'                 => $room->id,
+            'template_id'             => $template->id,
             'parent_automatic_id'     => $template->id,
             'is_scheduled'                => 'A',
             'room_type_id'            => $template->room_type_id,
@@ -215,17 +216,23 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
     /**
      * Transforma los precios de cartón de la plantilla al formato
      * que espera syncCardPrices del padre: allowedCurrencies[] + cardPriceByCurrency[].
+     * 
+     * Usa los campos consolidados de bingo_rooms_automatic:
+     * - card_currencies (monedas)
+     * - card_prices (precios por moneda)
      */
     private function syncCardPricesFromTemplate(BingoRoom $room, BingoRoomAutomatic $template): void
     {
-        $draft = $template->cardPriceAutomatic;
+        // Obtener precios de los campos consolidados
+        $pricesConfig = $template->getCardPricesConfig();
+        $cardPrices = $pricesConfig['card_prices'] ?? [];
 
-        if (!$draft || empty($draft->card_prices)) {
+        if (empty($cardPrices)) {
             return;
         }
 
         $prices = array_filter(
-            $draft->card_prices,
+            $cardPrices,
             fn($price) => $price !== null && $price !== ''
         );
 
@@ -256,19 +263,21 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
      *   [prizeType, bingoPattern, prizeValue?, prizeValueByCurrency?, prizeId?, prizeName?]
      *
      * Mapeo inverso: PCT→'percentage', FIXED→'fixed', OTHER→'prize'
+     * 
+     * Usa los campos consolidados de bingo_rooms_automatic:
+     * - prize_types (tipos de premios)
+     * - bingo_patterns (patrones)
+     * - prize_values (valores de premios)
      */
     private function syncRoundsFromTemplate(BingoRoom $room, BingoRoomAutomatic $template): void
     {
-        $draft = $template->roundAutomatic;
-
-        if (!$draft) {
-            return;
-        }
-
+        // Obtener configuración de rondas de los campos consolidados
+        $roundsConfig = $template->getRoundsConfig();
+        
         $totalRounds = $template->rounds ?? 1;
-        $prizeTypes  = $draft->prize_types   ?? [];
-        $patterns    = $draft->bingo_patterns ?? [];
-        $prizeValues = $draft->prize_values   ?? [];
+        $prizeTypes  = $roundsConfig['prize_types'] ?? [];
+        $patterns    = $roundsConfig['bingo_patterns'] ?? [];
+        $prizeValues = $roundsConfig['prize_values'] ?? [];
 
         if ($totalRounds === 0) {
             return;
@@ -281,7 +290,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             'OTHER' => 'prize',
         ];
 
-        $roundsConfig = [];
+        $configuredRounds = [];
 
         for ($i = 0; $i < $totalRounds; $i++) {
             $prizeType = $prizeTypes[$i] ?? 'PCT';
@@ -301,10 +310,10 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
                 $config['prizeName'] = $value['prizeName'] ?? '';
             }
 
-            $roundsConfig[] = $config;
+            $configuredRounds[] = $config;
         }
 
         // Delegar al método protegido del padre
-        $this->syncRounds((string) $room->id, $roundsConfig);
+        $this->syncRounds((string) $room->id, $configuredRounds);
     }
 }

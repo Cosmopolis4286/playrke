@@ -6,6 +6,7 @@ use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Room\RoomType;
 use App\Models\User;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomTemplate;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,7 @@ class BingoRoomConfig extends Model
 
     protected $fillable = [
         'room_id',
+        'template_id',
         'parent_automatic_id',
         'is_scheduled',
         'room_type_id',
@@ -49,8 +51,9 @@ class BingoRoomConfig extends Model
 
     protected $casts = [
         'room_id'                 => 'string',
+        'template_id'             => 'string',
         'parent_automatic_id'     => 'string',
-        'is_scheduled'                => 'string',
+        'is_scheduled'            => 'string',
         'room_type_id'            => 'string',
         'creator_user_id'         => 'string',
         'game_mode_id'            => 'string',
@@ -117,6 +120,11 @@ class BingoRoomConfig extends Model
     public function prizePoolType(): BelongsTo
     {
         return $this->belongsTo(PrizePoolType::class, 'prize_pool_type_id');
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(BingoRoomTemplate::class, 'template_id');
     }
 
     /**

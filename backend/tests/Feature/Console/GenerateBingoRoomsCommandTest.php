@@ -7,6 +7,7 @@ use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomTemplate;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Models\Round\BingoRoundPrize;
 use App\Models\Games\Common\Utils\GameStatus;
@@ -261,7 +262,8 @@ class GenerateBingoRoomsCommandTest extends TestCase
         app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
 
         $config = BingoRoomConfig::first();
-        $this->assertEquals('A', $config->creation);
+        $this->assertEquals('A', $config->is_scheduled);
+        $this->assertEquals($template->id, $config->template_id);
         $this->assertEquals($template->id, $config->parent_automatic_id);
     }
 
@@ -295,6 +297,21 @@ class GenerateBingoRoomsCommandTest extends TestCase
             Carbon::now('America/Caracas')->format('Y-m-d'),
             $config->date->format('Y-m-d')
         );
+    }
+
+    #[Test]
+    public function service_config_has_template_relation(): void
+    {
+        $template = $this->makeTemplate();
+
+        app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
+
+        $config = BingoRoomConfig::first();
+        $relatedTemplate = $config->template;
+
+        $this->assertNotNull($relatedTemplate);
+        $this->assertInstanceOf(BingoRoomTemplate::class, $relatedTemplate);
+        $this->assertEquals($template->id, $relatedTemplate->id);
     }
 
     #[Test]

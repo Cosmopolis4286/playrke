@@ -106,8 +106,10 @@ final class BingoRoomAutomaticCrudService
     }
 
     /**
-     * Guardar precios de cartones en bingo_card_price_automatic.
-     * Usa un único registro JSON por sala (upsert).
+     * Guardar precios de cartones en campos consolidados de bingo_rooms_automatic.
+     * Escribe directamente en card_currencies y card_prices (JSON).
+     * 
+     * Nota: Para backward compatibility, también se crea registro en bingo_card_price_automatic.
      */
     private function syncCardPrices(
         string $roomId,
@@ -117,6 +119,11 @@ final class BingoRoomAutomaticCrudService
         string $userId
     ): void {
         if (empty($allowedCurrencies)) {
+            // Limpiar ambos: campos consolidados y tabla antigua
+            BingoRoomAutomatic::where('id', $roomId)->update([
+                'card_currencies' => null,
+                'card_prices' => null,
+            ]);
             BingoCardPriceAutomatic::where('automatic_bingo_room_id', $roomId)->delete();
             return;
         }
@@ -127,6 +134,13 @@ final class BingoRoomAutomaticCrudService
             $cardPrices[(string) $currencyId] = $cardPriceByCurrency[(string) $currencyId] ?? $defaultCardPrice;
         }
 
+        // Escribir en campos consolidados
+        BingoRoomAutomatic::where('id', $roomId)->update([
+            'card_currencies' => array_map('strval', $allowedCurrencies),
+            'card_prices' => $cardPrices,
+        ]);
+
+        // Mantener backward compatibility: también escribir en tabla antigua
         BingoCardPriceAutomatic::updateOrCreate(
             ['automatic_bingo_room_id' => $roomId],
             [
@@ -139,17 +153,26 @@ final class BingoRoomAutomaticCrudService
     }
 
     /**
-     * Guardar configuración de rondas en bingo_rounds_automatic.
-     * Usa un único registro JSON por sala (upsert).
-     *
+     * Guardar configuración de rondas en campos consolidados de bingo_rooms_automatic.
+     * Escribe directamente en prize_types, bingo_patterns, prize_values, rounds_config (JSON).
+     * 
      * Mapeo prize_type (frontend → DB):
      *   percentage → PCT
      *   fixed      → FIXED
      *   prize      → OTHER
+     *
+     * Nota: Para backward compatibility, también se crea registro en bingo_rounds_automatic.
      */
     private function syncRounds(string $roomId, int $roundsCount, array $roundsConfig): void
     {
         if (empty($roundsConfig)) {
+            // Limpiar ambos: campos consolidados y tabla antigua
+            BingoRoomAutomatic::where('id', $roomId)->update([
+                'rounds_config' => null,
+                'prize_types' => null,
+                'bingo_patterns' => null,
+                'prize_values' => null,
+            ]);
             BingoRoundAutomatic::where('automatic_bingo_room_id', $roomId)->delete();
             return;
         }
@@ -178,6 +201,21 @@ final class BingoRoomAutomaticCrudService
             }
         }
 
+        // Escribir en campos consolidados
+        BingoRoomAutomatic::where('id', $roomId)->update([
+            'rounds_config' => [
+                'rounds' => (string) $roundsCount,
+                'prize_types' => $prizeTypes,
+                'bingo_patterns' => $bingoPatterns,
+                'prize_values' => $prizeValues,
+                'status' => 'ACTIVE',
+            ],
+            'prize_types'   => $prizeTypes,
+            'bingo_patterns' => $bingoPatterns,
+            'prize_values'  => $prizeValues,
+        ]);
+
+        // Mantener backward compatibility: también escribir en tabla antigua
         BingoRoundAutomatic::updateOrCreate(
             ['automatic_bingo_room_id' => $roomId],
             [
