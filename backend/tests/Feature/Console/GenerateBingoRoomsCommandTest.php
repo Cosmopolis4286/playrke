@@ -255,14 +255,14 @@ class GenerateBingoRoomsCommandTest extends TestCase
     }
 
     #[Test]
-    public function service_creates_config_with_creation_automatic(): void
+    public function service_creates_config_with_is_scheduled_automatic(): void
     {
         $template = $this->makeTemplate();
 
         app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
 
         $config = BingoRoomConfig::first();
-        $this->assertEquals('A', $config->is_scheduled);
+        $this->assertEquals('Y', $config->is_scheduled);
         $this->assertEquals($template->id, $config->template_id);
         $this->assertEquals($template->id, $config->parent_automatic_id);
     }

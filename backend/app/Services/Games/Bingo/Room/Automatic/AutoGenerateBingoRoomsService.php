@@ -130,7 +130,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             'room_commission' => $template->room_commission,
         ]);
 
-        // 3. Crear configuración de sala (creation='A' para automática)
+        // 3. Crear configuración de sala (is_scheduled='Y' para automática)
         $this->createRoomConfig($room, $template);
 
         // 4. Sincronizar precios de cartones (reutiliza syncCardPrices del padre)
@@ -168,7 +168,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
     }
 
     /**
-     * Crea la BingoRoomConfig con creation='A' (automática).
+     * Crea la BingoRoomConfig con is_scheduled='Y' (automática).
      */
     private function createRoomConfig(BingoRoom $room, BingoRoomAutomatic $template): void
     {
@@ -182,7 +182,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             'room_id'                 => $room->id,
             'template_id'             => $template->id,
             'parent_automatic_id'     => $template->id,
-            'is_scheduled'                => 'A',
+            'is_scheduled'                => 'Y',
             'room_type_id'            => $template->room_type_id,
             'creator_user_id'         => $template->creator_user_id,
             'game_mode_id'            => $template->game_mode_id,
@@ -216,7 +216,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
     /**
      * Transforma los precios de cartón de la plantilla al formato
      * que espera syncCardPrices del padre: allowedCurrencies[] + cardPriceByCurrency[].
-     * 
+     *
      * Usa los campos consolidados de bingo_rooms_automatic:
      * - card_currencies (monedas)
      * - card_prices (precios por moneda)
@@ -263,7 +263,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
      *   [prizeType, bingoPattern, prizeValue?, prizeValueByCurrency?, prizeId?, prizeName?]
      *
      * Mapeo inverso: PCT→'percentage', FIXED→'fixed', OTHER→'prize'
-     * 
+     *
      * Usa los campos consolidados de bingo_rooms_automatic:
      * - prize_types (tipos de premios)
      * - bingo_patterns (patrones)
@@ -273,7 +273,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
     {
         // Obtener configuración de rondas de los campos consolidados
         $roundsConfig = $template->getRoundsConfig();
-        
+
         $totalRounds = $template->rounds ?? 1;
         $prizeTypes  = $roundsConfig['prize_types'] ?? [];
         $patterns    = $roundsConfig['bingo_patterns'] ?? [];

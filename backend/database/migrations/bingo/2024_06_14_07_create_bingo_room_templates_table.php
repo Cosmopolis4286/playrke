@@ -59,25 +59,19 @@ return new class extends Migration
             $table->string('num_serials', 2)->nullable()->comment('Número de seriales disponibles');
             $table->decimal('jackpot_pct', 5, 2)->nullable()->comment('Porcentaje destinado al jackpot');
 
+            $table->enum('status', ['ACTIVE', 'INACTIVE'])->default('ACTIVE')
+                ->comment('Estado de la plantilla: ACTIVE = activa, INACTIVE = inactiva');
+
             $table->timestamps();
 
             $table->index('room_type_id', 'idx_bingo_room_templates_room_type_id');
             $table->index('creator_user_id', 'idx_bingo_room_templates_creator_user_id');
             $table->index('game_mode_id', 'idx_bingo_room_templates_game_mode_id');
             $table->index('prize_pool_type_id', 'idx_bingo_room_templates_prize_pool_type_id');
+            $table->index('status', 'idx_bingo_room_templates_status');
         });
 
-        Schema::table('bingo_rooms_config', function (Blueprint $table) {
-            $table->foreignSnowflake('template_id')
-                ->nullable()
-                ->after('room_id')
-                ->constrained('bingo_room_templates')
-                ->nullOnDelete()
-                ->comment('Plantilla base usada para esta configuración');
-
-            $table->index('template_id', 'idx_bingo_rooms_config_template_id');
-        });
-
+        // Agregar template_id a salas automáticas (la tabla config ya lo tiene en su migración original)
         Schema::table('bingo_rooms_automatic', function (Blueprint $table) {
             $table->foreignSnowflake('template_id')
                 ->nullable()
@@ -95,12 +89,6 @@ return new class extends Migration
         Schema::table('bingo_rooms_automatic', function (Blueprint $table) {
             $table->dropForeign(['template_id']);
             $table->dropIndex('idx_bingo_rooms_automatic_template_id');
-            $table->dropColumn('template_id');
-        });
-
-        Schema::table('bingo_rooms_config', function (Blueprint $table) {
-            $table->dropForeign(['template_id']);
-            $table->dropIndex('idx_bingo_rooms_config_template_id');
             $table->dropColumn('template_id');
         });
 

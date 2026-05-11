@@ -22,8 +22,24 @@ return new class extends Migration
                 ->cascadeOnUpdate()
                 ->comment('Sala a la que pertenece la configuración');
 
-            $table->enum('creation', ['M', 'A'])->default('M')
-                ->comment('Modo de creación: M = manual, A = automático');
+            // Plantilla base (opcional)
+            $table->foreignSnowflake('template_id')
+                ->nullable()
+                ->constrained('bingo_room_templates')
+                ->nullOnDelete()
+                ->comment('Plantilla base usada para esta configuración');
+
+            // Sala automática origen (opcional)
+            $table->foreignSnowflake('parent_automatic_id')
+                ->nullable()
+                ->constrained('bingo_rooms_automatic')
+                ->nullOnDelete()
+                ->comment('Sala automática que originó esta configuración, si aplica');
+
+            // Origen/estado de la sala
+            $table->enum('is_scheduled', ['N', 'Y'])
+                ->default('N')
+                ->comment('Origen/estado: N=manual, Y=automática');
 
             $table->enum('from_house', ['Y', 'N'])->default('N')
                 ->comment('Sala propia de la app: Y = sí, N = no');
@@ -104,12 +120,15 @@ return new class extends Migration
 
             // indices
             $table->index('room_id', 'idx_room_id');
+            $table->index('template_id', 'idx_bingo_rooms_config_template_id');
+            $table->index('parent_automatic_id', 'idx_bingo_rooms_config_parent_automatic_id');
+            $table->index('is_scheduled', 'idx_bingo_rooms_config_is_scheduled');
             $table->index('room_type_id', 'idx_room_type_id');
             $table->index('creator_user_id', 'idx_creator_user_id');
             $table->index('game_mode_id', 'idx_game_mode_id');
             $table->index('prize_pool_type_id', 'idx_prize_pool_type_id');
             $table->index(['date', 'time'], 'idx_datetime');
-            $table->index(['creation', 'status'], 'idx_creation_status');
+            $table->index(['status'], 'idx_status');
             // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
     }

@@ -15,9 +15,9 @@ return new class extends Migration
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la sala automática');
 
-            $table->json('days')->nullable();
-            $table->string('time', 10);
-            $table->enum('in_live', ['Y', 'N'])->default('N');
+            $table->json('days')->nullable()->comment('Días de la semana para generación');
+            $table->string('time', 10)->comment('Hora programada');
+            $table->enum('in_live', ['Y', 'N'])->default('N')->comment('Indica si produce salas en vivo');
 
             $table->foreignSnowflake('game_mode_id')
                 ->constrained('game_modes')
@@ -51,19 +51,20 @@ return new class extends Migration
             $table->foreignSnowflake('prize_pool_type_id')
                 ->constrained('prize_pool_types')
                 ->onDelete('cascade')
-                ->default(1);
+                ->default(1)
+                ->comment('Tipo de pool de premios');
 
             $table->decimal('amount_added_prize_pool', 10, 2)->nullable()
                 ->comment('Monto agregado al pool de premios');
 
-            $table->string('time_chip', 2)->nullable();
+            $table->string('time_chip', 2)->nullable()->comment('Duración del chip');
 
-            $table->string('rounds', 2)->default('1');
-            $table->decimal('rounds_pct', 5, 2)->nullable();
+            $table->string('rounds', 2)->default('1')->comment('Número de rondas');
+            $table->decimal('rounds_pct', 5, 2)->nullable()->comment('Porcentaje aplicado a rondas');
 
-            $table->boolean('use_serials')->default(false);
-            $table->decimal('serials_pct', 5, 2)->nullable();
-            $table->string('num_serials', 2)->nullable();
+            $table->boolean('use_serials')->default(false)->comment('Usar seriales');
+            $table->decimal('serials_pct', 5, 2)->nullable()->comment('Porcentaje aplicado a seriales');
+            $table->string('num_serials', 2)->nullable()->comment('Número de seriales');
 
             $table->decimal('jackpot_pct', 5, 2)->nullable();
 
@@ -98,21 +99,6 @@ return new class extends Migration
                 ->nullable()
                 ->comment('Fecha de fin de la programación (null = sin fin)');
 
-            // Configuración automática de sala
-            $table->json('default_config')
-                ->nullable()
-                ->comment('Configuración por defecto para salas automáticas');
-
-            $table->decimal('default_card_price', 12, 2)
-                ->nullable()
-                ->comment('Precio por defecto del cartón');
-
-            $table->foreignSnowflake('default_currency_id')
-                ->nullable()
-                ->constrained('currencies')
-                ->nullOnDelete()
-                ->comment('Moneda por defecto');
-
             // Control avanzado de creación
             $table->boolean('auto_create_room')
                 ->default(true)
@@ -137,7 +123,7 @@ return new class extends Migration
             $table->index(['status', 'room_type_id'], 'idx_status_roomtype_automatic');
             // NOTA: índice en created_at eliminado - gestionado por Laravel
             $table->index(['creator_user_id', 'created_at'], 'idx_creator_createdat_automatic');
-            
+
             // Índices para nuevos campos de programación avanzada
             $table->index(['recurrence_type', 'status'], 'idx_bingo_rooms_automatic_type_status');
             $table->index(['game_time', 'status'], 'idx_bingo_rooms_automatic_time_status');

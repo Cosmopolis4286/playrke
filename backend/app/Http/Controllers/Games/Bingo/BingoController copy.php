@@ -2315,7 +2315,7 @@ class BingoController extends Controller
 
             BingoRoomConfig::create([
                 'room' => $newRoomID,
-                'is_scheduled' => 'A',
+                'is_scheduled' => 'Y',
                 'creator_user_id' => $userId,
                 'game_mode' => $existingRoomConfig->game_mode,
                 'date' => $existingRoomConfig->date,

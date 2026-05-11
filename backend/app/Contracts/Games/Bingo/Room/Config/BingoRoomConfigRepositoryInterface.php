@@ -41,10 +41,10 @@ interface BingoRoomConfigRepositoryInterface extends BaseRepositoryInterface
     /**
      * Obtiene configuraciones por modo de creación
      *
-     * @param string $creation Modo de creación ('N' = manual, 'A' = automático)
+     * @param string $isScheduled Modo de creación ('N' = manual, 'Y' = automático)
      * @return Collection
      */
-    public function getByCreationMode(string $creation): Collection;
+    public function getByIsScheduled(string $isScheduled): Collection;
 
     /**
      * Obtiene configuraciones en vivo

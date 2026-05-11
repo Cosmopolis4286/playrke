@@ -7,10 +7,9 @@
 /**
  * Estado de origen/programación de la sala
  * N = Manual (No programada)
- * Y = Programada
- * A = Automática
+ * Y = Automática
  */
-export type IsScheduledType = 'N' | 'Y' | 'A'
+export type IsScheduledType = 'N' | 'Y'
 
 /**
  * Modelo BingoRoomConfig
@@ -25,7 +24,6 @@ export interface BingoRoomConfig {
     readonly room_type_id?: string | null
     readonly creator_user_id?: string | null
     readonly game_mode_id?: string | null
-    readonly creation?: string | null
     readonly status?: string | null
     readonly date?: string | null
     readonly time?: string | null

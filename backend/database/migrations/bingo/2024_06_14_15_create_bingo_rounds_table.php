@@ -38,12 +38,11 @@ return new class extends Migration
                 ->index();
 
             $table->timestamps();
-            $table->index('created_at', 'idx_bingo_rounds_created');
-            $table->index('updated_at', 'idx_bingo_rounds_updated');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
 
             // Índices para consultas frecuentes
             $table->index('room_config_id', 'idx_bingo_rounds_room_config');
-            
+
             // Índice compuesto útil para evitar duplicados de ronda por sala
             $table->unique(['room_id', 'round'], 'unique_round_per_room');
         });
