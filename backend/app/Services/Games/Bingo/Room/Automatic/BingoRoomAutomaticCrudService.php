@@ -6,18 +6,16 @@ use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticCreateDTO;
 use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticUpdateDTO;
 use App\Exceptions\Domain\Games\Bingo\Room\Automatic\BingoRoomAutomaticException;
 use App\Http\Resources\Games\Bingo\Room\Automatic\BingoRoomAutomaticResource;
-use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPriceAutomatic;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
-use App\Domains\Games\Bingo\Models\Round\BingoRoundAutomatic;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Servicio CRUD para salas de bingo automáticas.
  *
- * Opera directamente sobre bingo_rooms_automatic y sus tablas relacionadas:
- * - bingo_rounds_automatic  (un registro JSON por sala)
- * - bingo_card_price_automatic (un registro JSON por sala)
+ * Opera directamente sobre bingo_rooms_automatic con campos JSON consolidados:
+ * - rounds_config, prize_types, bingo_patterns, prize_values (configuración de rondas)
+ * - card_currencies, card_prices (precios de cartones)
  *
  * @final
  */
@@ -31,8 +29,6 @@ final class BingoRoomAutomaticCrudService
         if (!$room->exists) {
             throw BingoRoomAutomaticException::notFound();
         }
-
-        $room->load(['cardPriceAutomatic', 'roundAutomatic']);
 
         return new BingoRoomAutomaticResource($room);
     }
@@ -96,7 +92,7 @@ final class BingoRoomAutomaticCrudService
             }
 
             // Sincronizar precios de cartones por moneda
-            $this->syncCardPrices($room->id, $dto->allowedCurrencies, $dto->cardPriceUsd ?? 0, $dto->cardPriceByCurrency ?? [], $userId);
+            $this->syncCardPrices($room->id, $dto->allowedCurrencies, $dto->cardPriceUsd ?? 0, $dto->cardPriceByCurrency ?? []);
 
             // Sincronizar rondas
             $this->syncRounds($room->id, $dto->rounds, $dto->roundsConfig ?? []);
@@ -108,23 +104,18 @@ final class BingoRoomAutomaticCrudService
     /**
      * Guardar precios de cartones en campos consolidados de bingo_rooms_automatic.
      * Escribe directamente en card_currencies y card_prices (JSON).
-     *
-     * Nota: Para backward compatibility, también se crea registro en bingo_card_price_automatic.
      */
     private function syncCardPrices(
         string $roomId,
         array $allowedCurrencies,
         float $defaultCardPrice,
-        array $cardPriceByCurrency,
-        string $userId
+        array $cardPriceByCurrency
     ): void {
         if (empty($allowedCurrencies)) {
-            // Limpiar ambos: campos consolidados y tabla antigua
             BingoRoomAutomatic::where('id', $roomId)->update([
                 'card_currencies' => null,
                 'card_prices' => null,
             ]);
-            BingoCardPriceAutomatic::where('automatic_bingo_room_id', $roomId)->delete();
             return;
         }
 
@@ -139,17 +130,6 @@ final class BingoRoomAutomaticCrudService
             'card_currencies' => array_map('strval', $allowedCurrencies),
             'card_prices' => $cardPrices,
         ]);
-
-        // Mantener backward compatibility: también escribir en tabla antigua
-        BingoCardPriceAutomatic::updateOrCreate(
-            ['automatic_bingo_room_id' => $roomId],
-            [
-                'creator_user_id' => $userId,
-                'currencies'      => array_map('strval', $allowedCurrencies),
-                'card_prices'     => $cardPrices,
-                'status'          => 'ACTIVE',
-            ]
-        );
     }
 
     /**
@@ -160,20 +140,16 @@ final class BingoRoomAutomaticCrudService
      *   percentage → PCT
      *   fixed      → FIXED
      *   prize      → OTHER
-     *
-     * Nota: Para backward compatibility, también se crea registro en bingo_rounds_automatic.
      */
     private function syncRounds(string $roomId, int $roundsCount, array $roundsConfig): void
     {
         if (empty($roundsConfig)) {
-            // Limpiar ambos: campos consolidados y tabla antigua
             BingoRoomAutomatic::where('id', $roomId)->update([
                 'rounds_config' => null,
                 'prize_types' => null,
                 'bingo_patterns' => null,
                 'prize_values' => null,
             ]);
-            BingoRoundAutomatic::where('automatic_bingo_room_id', $roomId)->delete();
             return;
         }
 
@@ -214,18 +190,6 @@ final class BingoRoomAutomaticCrudService
             'bingo_patterns' => $bingoPatterns,
             'prize_values'  => $prizeValues,
         ]);
-
-        // Mantener backward compatibility: también escribir en tabla antigua
-        BingoRoundAutomatic::updateOrCreate(
-            ['automatic_bingo_room_id' => $roomId],
-            [
-                'rounds'        => (string) $roundsCount,
-                'prize_types'   => $prizeTypes,
-                'bingo_patterns' => $bingoPatterns,
-                'prize_values'  => $prizeValues,
-                'status'        => 'ACTIVE',
-            ]
-        );
     }
 
     /**
@@ -247,7 +211,6 @@ final class BingoRoomAutomaticCrudService
      */
     public function copyRoom(BingoRoomAutomatic $room): bool
     {
-        $room->load(['cardPriceAutomatic', 'roundAutomatic']);
 
         $cardPriceByCurrency = $room->getCardPricesConfig()['card_prices'] ?? [];
         $roundsConfig = [];

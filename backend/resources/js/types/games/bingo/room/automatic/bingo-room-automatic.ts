@@ -55,9 +55,11 @@ export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'frida
 /**
  * Modelo BingoRoomAutomatic
  * Basado en: 2024_06_15_07_create_bingo_rooms_automatic_table
+ * Actualizado con: 2026_05_10_03_consolidate_automatic_tables
  */
 export interface BingoRoomAutomatic {
     readonly id: string
+    readonly template_id?: string | null  // FK a bingo_room_templates
     readonly date?: string | null
     readonly days?: DayOfWeek[] | null
     readonly time?: string | null
@@ -95,6 +97,14 @@ export interface BingoRoomAutomatic {
     readonly max_rooms_per_day?: number | null
     readonly rooms_created?: number
     readonly last_room_created_at?: string | null
+    // Campos consolidados de bingo_rounds_automatic (JSON)
+    readonly rounds_config?: Record<string, unknown> | null
+    readonly prize_types?: unknown[] | null
+    readonly bingo_patterns?: unknown[] | null
+    readonly prize_values?: Record<string, number> | null
+    // Campos consolidados de bingo_card_price_automatic (JSON)
+    readonly card_currencies?: (number | string)[] | null
+    readonly card_prices?: Record<string, number> | null
 }
 
 /**

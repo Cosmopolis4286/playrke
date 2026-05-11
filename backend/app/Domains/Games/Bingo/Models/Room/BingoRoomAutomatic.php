@@ -2,8 +2,6 @@
 
 namespace App\Domains\Games\Bingo\Models\Room;
 
-use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPriceAutomatic;
-use App\Domains\Games\Bingo\Models\Round\BingoRoundAutomatic;
 use App\Models\Games\Common\GameMode\GameMode;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Concerns\HasHashedRouteKey;
@@ -14,7 +12,6 @@ use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BingoRoomAutomatic extends Model
@@ -162,16 +159,6 @@ class BingoRoomAutomatic extends Model
         return $this->belongsTo(RoomType::class, 'room_type_id');
     }
 
-    public function cardPriceAutomatic(): HasOne
-    {
-        return $this->hasOne(BingoCardPriceAutomatic::class, 'automatic_bingo_room_id');
-    }
-
-    public function roundAutomatic(): HasOne
-    {
-        return $this->hasOne(BingoRoundAutomatic::class, 'automatic_bingo_room_id');
-    }
-
     public function generatedRoomConfigs(): HasMany
     {
         return $this->hasMany(BingoRoomConfig::class, 'parent_automatic_id');
@@ -248,49 +235,24 @@ class BingoRoomAutomatic extends Model
 
     /**
      * Obtiene la configuración de rondas consolidada.
-     * Compatibilidad con bingo_rounds_automatic si existe.
      */
     public function getRoundsConfig(): array
     {
-        if ($this->rounds_config && is_array($this->rounds_config)) {
-            return $this->rounds_config;
-        }
-
-        // Fallback a la relación antigua si existe
-        if ($this->relationLoaded('roundAutomatic') && $this->roundAutomatic) {
-            return [
-                'rounds' => $this->roundAutomatic->rounds,
-                'prize_types' => $this->roundAutomatic->prize_types,
-                'bingo_patterns' => $this->roundAutomatic->bingo_patterns,
-                'prize_values' => $this->roundAutomatic->prize_values,
-                'status' => $this->roundAutomatic->status,
-            ];
-        }
-
-        return [];
+        return $this->rounds_config && is_array($this->rounds_config)
+            ? $this->rounds_config
+            : [];
     }
 
     /**
      * Obtiene los precios de cartones consolidados.
-     * Compatibilidad con bingo_card_price_automatic si existe.
      */
     public function getCardPricesConfig(): array
     {
-        if (($this->card_currencies || $this->card_prices) && is_array($this->card_currencies) && is_array($this->card_prices)) {
-            return [
-                'currencies' => $this->card_currencies,
-                'card_prices' => $this->card_prices,
-            ];
-        }
+        $hasData = is_array($this->card_currencies) && is_array($this->card_prices)
+            && (count($this->card_currencies) > 0 || count($this->card_prices) > 0);
 
-        // Fallback a la relación antigua si existe
-        if ($this->relationLoaded('cardPriceAutomatic') && $this->cardPriceAutomatic) {
-            return [
-                'currencies' => $this->cardPriceAutomatic->currencies,
-                'card_prices' => $this->cardPriceAutomatic->card_prices,
-            ];
-        }
-
-        return ['currencies' => [], 'card_prices' => []];
+        return $hasData
+            ? ['currencies' => $this->card_currencies, 'card_prices' => $this->card_prices]
+            : ['currencies' => [], 'card_prices' => []];
     }
 }

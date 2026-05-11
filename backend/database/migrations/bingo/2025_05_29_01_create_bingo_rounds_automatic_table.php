@@ -8,33 +8,14 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * NOTA: Esta tabla está obsoleta. Los datos se consolidaron en
+     * bingo_rooms_automatic (campos JSON: rounds_config, prize_types, etc.)
+     * La migración se mantiene vacía por orden cronológico.
      */
     public function up(): void
     {
-        Schema::create('bingo_rounds_automatic', function (Blueprint $table) {
-            // PK con Snowflake
-            $table->snowflake('id')->primary()->comment('ID único de la ronda automática');
-            $table->foreignSnowflake('bingo_room_id')
-                ->unique()
-                ->nullable()
-                ->constrained('bingo_rooms')
-                ->comment('Sala de bingo asociada');
-            $table->foreignSnowflake('automatic_bingo_room_id')
-                ->unique()
-                ->nullable()
-                ->constrained('bingo_rooms_automatic')
-                ->comment('Sala automática asociada');
-            $table->string('rounds', 2)->comment('Número de rondas');
-            $table->json('prize_types')->comment('Tipos de premios (JSON)');
-            $table->json('bingo_patterns')->comment('Patrones de bingo (JSON)');
-            $table->json('prize_values')->comment('Valores de premios (JSON)');
-            $table->enum('status', ['ACTIVE', 'EXECUTED'])
-                ->default('ACTIVE')
-                ->comment('Estado de la ronda automática');
-            $table->timestamps();
-            $table->index('status', 'idx_bingo_rounds_automatic_status');
-            $table->index('created_at', 'idx_bingo_rounds_automatic_created');
-        });
+        // Tabla obsoleta - datos consolidados en bingo_rooms_automatic
     }
 
     /**
@@ -42,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('bingo_rounds_automatic');
+        // No se creó tabla, no hay nada que eliminar
     }
 };
