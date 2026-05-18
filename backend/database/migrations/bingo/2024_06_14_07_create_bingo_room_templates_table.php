@@ -70,28 +70,10 @@ return new class extends Migration
             $table->index('prize_pool_type_id', 'idx_bingo_room_templates_prize_pool_type_id');
             $table->index('status', 'idx_bingo_room_templates_status');
         });
-
-        // Agregar template_id a salas automáticas (la tabla config ya lo tiene en su migración original)
-        Schema::table('bingo_rooms_automatic', function (Blueprint $table) {
-            $table->foreignSnowflake('template_id')
-                ->nullable()
-                ->after('room_type_id')
-                ->constrained('bingo_room_templates')
-                ->nullOnDelete()
-                ->comment('Plantilla base usada por esta sala automática');
-
-            $table->index('template_id', 'idx_bingo_rooms_automatic_template_id');
-        });
     }
 
     public function down(): void
     {
-        Schema::table('bingo_rooms_automatic', function (Blueprint $table) {
-            $table->dropForeign(['template_id']);
-            $table->dropIndex('idx_bingo_rooms_automatic_template_id');
-            $table->dropColumn('template_id');
-        });
-
         Schema::dropIfExists('bingo_room_templates');
     }
 };

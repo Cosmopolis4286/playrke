@@ -62,7 +62,7 @@ return new class extends Migration
             $table->index(['round_id', 'status'], 'idx_bingo_card_validations_round_status');
             $table->index(['validation_type', 'status'], 'idx_bingo_card_validations_type_status');
             $table->index('validated_at', 'idx_bingo_card_validations_validated');
-            $table->index('created_at', 'idx_bingo_card_validations_created');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
 
             // Evita duplicados: misma combinación de cartón, ronda y patrón
             $table->unique(['card_id', 'round_id', 'pattern_id'], 'unique_card_round_pattern_validation');

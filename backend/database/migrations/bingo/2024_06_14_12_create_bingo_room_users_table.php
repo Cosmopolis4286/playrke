@@ -43,7 +43,7 @@ return new class extends Migration
             $table->index(['room_id', 'user_id'], 'idx_room_user');
             $table->index(['room_id', 'role'], 'idx_room_role');
             $table->index(['user_id', 'role'], 'idx_user_role');
-            $table->index('created_at', 'idx_bingo_room_users_created');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
     }
 

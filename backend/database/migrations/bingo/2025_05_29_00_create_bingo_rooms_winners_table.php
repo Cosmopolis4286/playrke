@@ -30,7 +30,7 @@ return new class extends Migration
                 ->comment('Estado del pago del premio');
             $table->timestamps();
             $table->index(['room_id', 'award_status'], 'idx_bingo_rooms_winners_room_status');
-            $table->index('created_at', 'idx_bingo_rooms_winners_created');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
     }
 

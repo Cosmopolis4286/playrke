@@ -118,10 +118,8 @@ return new class extends Migration
             $table->index('claimed_at', 'idx_bingo_card_prizes_claimed');
             $table->index('verification_code', 'idx_bingo_card_prizes_verification');
             $table->index(['winning_card_id', 'prize_status'], 'idx_card_prize_status');
-            $table->index('created_at', 'idx_bingo_card_prizes_created');
-            $table->index('updated_at', 'idx_bingo_card_prizes_updated');
 
-            // Nota: Validaciones de integridad se manejan a nivel de aplicación
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
     }
 

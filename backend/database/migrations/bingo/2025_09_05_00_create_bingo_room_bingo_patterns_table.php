@@ -30,7 +30,7 @@ return new class extends Migration
             // Índices para consultas frecuentes
             $table->index('bingo_room_config_id', 'idx_bingo_room_patterns_config');
             $table->index('bingo_pattern_id', 'idx_bingo_room_patterns_pattern');
-            $table->index('created_at', 'idx_bingo_room_patterns_created');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
 
             // Evita duplicados de tipo de juego por configuración de sala
             $table->unique(['bingo_room_config_id', 'bingo_pattern_id'], 'bingo_room_config_pattern_unique');
@@ -42,6 +42,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('bingo_room_bingo_patterns'); 
+        Schema::dropIfExists('bingo_room_bingo_patterns');
     }
 };

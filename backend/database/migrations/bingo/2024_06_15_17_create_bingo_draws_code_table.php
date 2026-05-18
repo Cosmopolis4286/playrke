@@ -21,7 +21,7 @@ return new class extends Migration
             $table->tinyInteger('num')->comment('Número (1 dígito)');
             $table->char('sym', 6)->comment('Símbolo/código fijo');
             $table->timestamps();
-            $table->index('created_at', 'idx_bingo_draws_code_created');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
 
             // Evitar duplicados: un número único por sala
             $table->unique(['room_id', 'num'], 'unique_num_per_room');

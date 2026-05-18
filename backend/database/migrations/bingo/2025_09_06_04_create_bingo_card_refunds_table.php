@@ -109,7 +109,7 @@ return new class extends Migration
             $table->index(['refund_reason', 'status'], 'idx_bingo_card_refunds_reason_status');
             $table->index('refund_reference', 'idx_bingo_card_refunds_reference');
             $table->index('processed_at', 'idx_bingo_card_refunds_processed');
-            $table->index('created_at', 'idx_bingo_card_refunds_created');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
 
             // Evita múltiples reembolsos para el mismo cartón
             $table->unique('card_id', 'unique_refund_per_card');

@@ -33,7 +33,7 @@ return new class extends Migration
             $table->index('round_id', 'idx_bingo_round_draws_round');
             $table->index('draw_id', 'idx_bingo_round_draws_draw');
             $table->index(['round_id', 'draw_order'], 'idx_bingo_round_draws_round_order');
-            $table->index('created_at', 'idx_bingo_round_draws_created');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
 
             // Evita duplicados: mismo sorteo no puede estar en múltiples rondas
             $table->unique(['round_id', 'draw_id'], 'unique_round_draw');

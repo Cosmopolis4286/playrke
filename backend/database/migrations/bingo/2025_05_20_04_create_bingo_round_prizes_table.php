@@ -40,7 +40,7 @@ return new class extends Migration
 
             $table->timestamps();
             $table->index(['room_id', 'bingo_round_id'], 'idx_bingo_round_prizes_room_round');
-            $table->index('created_at', 'idx_bingo_round_prizes_created');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
     }
 

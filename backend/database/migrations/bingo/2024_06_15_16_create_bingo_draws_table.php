@@ -32,7 +32,7 @@ return new class extends Migration
             $table->unique(['room_id', 'round_id', 'chip'], 'unique_chip_per_room_round');
             $table->index(['room_id', 'round_id'], 'idx_bingo_draws_room_round');
             $table->index(['room_id', 'round_id', 'status'], 'idx_bingo_draws_room_round_status');
-            $table->index('created_at', 'idx_bingo_draws_created');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
     }
 

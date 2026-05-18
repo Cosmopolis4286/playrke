@@ -29,6 +29,12 @@ return new class extends Migration
                 ->cascadeOnDelete()
                 ->comment('Tipo de sala');
 
+            $table->foreignSnowflake('template_id')
+                ->nullable()
+                ->constrained('bingo_room_templates')
+                ->nullOnDelete()
+                ->comment('Plantilla base usada por esta sala automática');
+
             // Comisiones
             $table->decimal('rke_commission', 8, 2)->default(0)->comment('Comisión RKE');
             $table->decimal('room_commission', 8, 2)->default(0)->comment('Comisión de la sala');
@@ -132,6 +138,7 @@ return new class extends Migration
             $table->index('prize_pool_type_id', 'idx_bingo_rooms_automatic_prize_pool');
             $table->index(['auto_create_room', 'status'], 'idx_bingo_rooms_automatic_auto_status');
             $table->index('last_room_created_at', 'idx_bingo_rooms_automatic_last_created');
+            $table->index('template_id', 'idx_bingo_rooms_automatic_template_id');
         });
     }
 

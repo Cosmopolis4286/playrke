@@ -32,7 +32,7 @@ return new class extends Migration
 
             // Índices para consultas frecuentes
             $table->index(['user_id', 'type', 'status'], 'idx_bingo_images_lookup');
-            $table->index('created_at', 'idx_bingo_images_created');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
         });
     }
 

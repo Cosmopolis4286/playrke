@@ -32,7 +32,7 @@ return new class extends Migration
             $table->timestamps();
             $table->index('user_id', 'idx_bingo_patterns_user');
             $table->index('status', 'idx_bingo_patterns_status');
-            $table->index('created_at', 'idx_bingo_patterns_created');
+            // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
             $table->index(['user_id', 'num_id'], 'idx_bingo_patterns_user_numid');
         });
     }
