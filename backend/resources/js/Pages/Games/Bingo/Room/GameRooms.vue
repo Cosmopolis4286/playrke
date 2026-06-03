@@ -17,6 +17,8 @@ import type {
 
 const props = defineProps<BingoGameRoomsPageProps>();
 
+const bingoRoomImg = '/img/games/bingo/estelar_fd.png'
+
 const page = usePage();
 
 const isAdmin = computed(() => {
@@ -64,6 +66,8 @@ function openRoomInfo(roomId: string): void {
   if (!room) return;
   selectedRoomForInfo.value = room;
   showRoomInfoModal.value = true;
+  // Pre-carga el precio en segundo plano mientras el usuario lee la info de la sala
+  modal.prefetch(room);
 }
 
 function closeRoomInfo(): void {
@@ -194,7 +198,7 @@ onMounted(() => {
 
           <!-- Imagen header -->
           <div class="grm-modal__img-wrap">
-            <img src="/img/games/bingo/estelar_fd.png" alt="Sala" class="grm-modal__img" />
+            <img :src="bingoRoomImg" alt="Sala" class="grm-modal__img" />
             <div class="grm-modal__img-overlay" />
 
             <!-- Countdown sobre la imagen -->

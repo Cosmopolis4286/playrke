@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
 import type {
@@ -9,29 +10,26 @@ import type {
 } from '@/js/types/games/bingo/card/purchase-modal/bingo-purchase-modal'
 import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Composable
-// ─────────────────────────────────────────────────────────────────────────────
+// Caché en módulo: sobrevive navegación dentro de la SPA pero se limpia al recargar
+const _priceCache = new Map<string, { price: number; symbol: string; ts: number }>()
+const CACHE_TTL_MS = 60_000 // 1 minuto
 
-/**
- * Gestiona el flujo de compra de cartones desde la vista game-rooms.
- *
- * Flujo de 2 pasos (sin datos del jugador — el player ya está en sesión):
- *  1. `country`  — seleccionar país y obtener precio del cartón
- *  2. `confirm`  — ajustar cantidad y confirmar compra
- *
- * Endpoints:
- *  - GET  /bingo-card/{room}/available-countries
- *  - GET  /bingo-card/{room}/card-price?country_id=
- *  - POST /bingo/game-rooms/{room}/buy
- *
- * Uso:
- * ```ts
- * const modal = useGameRoomPurchaseModal()
- * modal.open(room, cardPriceFromContext)
- * ```
- */
+function _cachedPrice(roomId: string) {
+    const entry = _priceCache.get(roomId)
+    if (!entry) return null
+    if (Date.now() - entry.ts > CACHE_TTL_MS) { _priceCache.delete(roomId); return null }
+    return entry
+}
+
 export function useGameRoomPurchaseModal() {
+    const page = usePage()
+
+    // ── Rol leído de Inertia (sin HTTP) ─────────────────────────────────────
+    const isPlayer = computed<boolean>(() => {
+        const roles: any[] = page.props.auth?.user?.userRoles ?? []
+        return roles.some((ur: any) => ur.role?.prefix === 'player')
+    })
+
     // ── Visibilidad ──────────────────────────────────────────────────────────
     const isOpen = ref(false)
     const step = ref<PurchaseModalStep>('loading')
@@ -57,54 +55,20 @@ export function useGameRoomPurchaseModal() {
     // ── Estado de compra ─────────────────────────────────────────────────────
     const purchasing = ref(false)
 
-    // ── Role detection ───────────────────────────────────────────────────────
-    const isPlayer = ref<boolean | null>(null)
-    const checkingRole = ref(false)
+    // ── Computed ─────────────────────────────────────────────────────────────
 
-    /**
-     * Verificar el rol del usuario desde el backend
-     */
-    async function checkUserRole(): Promise<boolean> {
-        if (checkingRole.value) return isPlayer.value || false
-
-        checkingRole.value = true
-
-        try {
-            const { data } = await backendClient.get('/bingo/game-rooms/check-user-role');
-            isPlayer.value = data.is_player;
-            return isPlayer.value;
-        } catch (error) {
-            console.error('Error checking user role:', error);
-            // Fallback: assume player if backend check fails
-            isPlayer.value = true;
-            return true;
-        } finally {
-            checkingRole.value = false;
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Computed
-    // ─────────────────────────────────────────────────────────────────────────
-
-    /** Total a pagar */
     const totalAmount = computed(() =>
         parseFloat((numCtns.value * cardPrice.value).toFixed(2)),
     )
 
-    /** Si se puede avanzar al paso de confirmación */
     const canAdvance = computed(() => {
-        if (isPlayer.value === null) return false // Still checking role
-        if (isPlayer.value) return true // Players can always advance
+        if (isPlayer.value) return true
         if (step.value === 'country') return selectedCountry.value !== null && cardPrice.value > 0
         return true
     })
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Métodos privados
-    // ─────────────────────────────────────────────────────────────────────────
+    // ── Fetch privados ───────────────────────────────────────────────────────
 
-    /** Carga los países disponibles para la sala */
     async function _fetchCountries(roomId: string): Promise<void> {
         try {
             loadingCountries.value = true
@@ -121,7 +85,6 @@ export function useGameRoomPurchaseModal() {
         }
     }
 
-    /** Carga el precio del cartón para el país seleccionado */
     async function _fetchCardPrice(roomId: string, countryId: string): Promise<void> {
         try {
             loadingPrice.value = true
@@ -139,19 +102,26 @@ export function useGameRoomPurchaseModal() {
         }
     }
 
-    /** Carga el precio del cartón para el jugador usando su billetera */
     async function _fetchPlayerCardPrice(roomId: string): Promise<void> {
+        // Servir desde caché si está vigente
+        const cached = _cachedPrice(roomId)
+        if (cached) {
+            cardPrice.value = cached.price
+            currencySymbol.value = cached.symbol
+            step.value = 'confirm'
+            return
+        }
+
         try {
             loadingPrice.value = true
             const { data } = await backendClient.get<BingoCardPriceResponse>(
                 `/bingo/game-rooms/${roomId}/player-card-price`,
             )
-            // El precio ya viene convertido a la moneda del jugador
             cardPrice.value = data.card_price
             currencySymbol.value = data.currency_symbol
             step.value = 'confirm'
-        } catch (error) {
-            console.error('Error fetching player card price:', error);
+            _priceCache.set(roomId, { price: data.card_price, symbol: data.currency_symbol, ts: Date.now() })
+        } catch {
             showToast('Error al obtener el precio del cartón', 'error')
             cardPrice.value = 0
         } finally {
@@ -159,37 +129,56 @@ export function useGameRoomPurchaseModal() {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // API pública
-    // ─────────────────────────────────────────────────────────────────────────
+    // ── API pública ───────────────────────────────────────────────────────────
 
     /**
-     * Abre el modal para una sala y carga los datos necesarios.
-     * Para jugadores: obtiene precio directamente y va al paso de confirmación
-     * Para otros roles: carga países y empieza con selección de país
-     * @param room - Sala seleccionada
+     * Pre-carga el precio del cartón en segundo plano al pasar el cursor / abrir
+     * el modal de info, para que cuando el usuario presione "Comprar" ya esté listo.
+     */
+    async function prefetch(room: BingoGameRoom): Promise<void> {
+        if (!isPlayer.value) return
+        if (_cachedPrice(room.id)) return
+        try {
+            const { data } = await backendClient.get<BingoCardPriceResponse>(
+                `/bingo/game-rooms/${room.id}/player-card-price`,
+            )
+            _priceCache.set(room.id, { price: data.card_price, symbol: data.currency_symbol, ts: Date.now() })
+        } catch {
+            // silencioso — es una optimización, no crítico
+        }
+    }
+
+    /**
+     * Abre el modal de compra. Si el precio ya está en caché (gracias a prefetch),
+     * el paso 'loading' dura ~0ms.
      */
     async function open(room: BingoGameRoom): Promise<void> {
         selectedRoom.value = room
         selectedCountry.value = null
-        cardPrice.value = 0
         numCtns.value = 1
-        step.value = 'loading'
-        isOpen.value = true
 
-        // Verificar el rol desde el backend
-        const userIsPlayer = await checkUserRole();
-
-        if (userIsPlayer) {
-            // Para jugadores: siempre obtener precio fresco del backend
-            await _fetchPlayerCardPrice(room.id)
+        if (isPlayer.value) {
+            // Precio en caché → paso inmediato; si no → fetch único
+            const cached = _cachedPrice(room.id)
+            if (cached) {
+                cardPrice.value = cached.price
+                currencySymbol.value = cached.symbol
+                step.value = 'confirm'
+                isOpen.value = true
+            } else {
+                cardPrice.value = 0
+                step.value = 'loading'
+                isOpen.value = true
+                await _fetchPlayerCardPrice(room.id)
+            }
         } else {
-            // Para otros roles: cargar países y empezar con selección de país
+            cardPrice.value = 0
+            step.value = 'loading'
+            isOpen.value = true
             await _fetchCountries(room.id)
         }
     }
 
-    /** Cierra el modal y limpia el estado. */
     function close(): void {
         isOpen.value = false
         step.value = 'loading'
@@ -198,57 +187,38 @@ export function useGameRoomPurchaseModal() {
         countries.value = []
     }
 
-    /**
-     * Selecciona un país y obtiene el precio del cartón.
-     * @param country - País seleccionado
-     */
     async function selectCountry(country: BingoAvailableCountry): Promise<void> {
         selectedCountry.value = country
         if (!selectedRoom.value) return
         await _fetchCardPrice(selectedRoom.value.id, country.id)
     }
 
-    /** Avanza al paso de confirmación. */
     function nextStep(): void {
         if (step.value === 'country') step.value = 'confirm'
     }
 
-    /** Retrocede al paso de selección de país. */
     function prevStep(): void {
         if (step.value === 'confirm') step.value = 'country'
     }
 
-    /** Incrementa la cantidad de cartones (máx 40). */
     function increment(): void {
         if (numCtns.value < MAX_CTNS) numCtns.value++
     }
 
-    /** Decrementa la cantidad de cartones (mín 1). */
     function decrement(): void {
         if (numCtns.value > MIN_CTNS) numCtns.value--
     }
 
-    /**
-     * Establece la cantidad de cartones validando el rango [1..40].
-     * @param value - Valor a establecer
-     */
     function setNumCtns(value: number): void {
         numCtns.value = Math.min(MAX_CTNS, Math.max(MIN_CTNS, Math.floor(value) || MIN_CTNS))
     }
 
-    /**
-     * Envía la compra al endpoint correspondiente.
-     * Players usan endpoint específico sin country_id
-     * Otros roles usan endpoint de game-rooms con country_id
-     * @param onSuccess - Callback si la compra fue exitosa
-     */
     async function purchase(
         onSuccess?: (result: { prizePool: number; ctns: number }) => void,
     ): Promise<void> {
         if (purchasing.value || !selectedRoom.value) return
 
-        // Validaciones específicas por rol
-        if (isPlayer.value !== true && !selectedCountry.value) {
+        if (!isPlayer.value && !selectedCountry.value) {
             showToast('Debes seleccionar un país', 'error')
             return
         }
@@ -256,43 +226,26 @@ export function useGameRoomPurchaseModal() {
         try {
             purchasing.value = true
 
-            let endpoint: string
-            let payload: any
+            const endpoint = isPlayer.value
+                ? `/bingo/game-rooms/${selectedRoom.value.id}/player-buy`
+                : `/bingo/game-rooms/${selectedRoom.value.id}/buy`
 
-            if (isPlayer.value === true) {
-                // Jugadores: endpoint específico sin country_id
-                endpoint = `/bingo/game-rooms/${selectedRoom.value.id}/player-buy`
-                payload = {
-                    num_ctns: numCtns.value,
-                }
-            } else {
-                // Otros roles: endpoint original con country_id
-                endpoint = `/bingo/game-rooms/${selectedRoom.value.id}/buy`
-                payload = {
-                    num_ctns: numCtns.value,
-                    country_id: selectedCountry.value!.id,
-                }
-            }
+            const payload = isPlayer.value
+                ? { num_ctns: numCtns.value }
+                : { num_ctns: numCtns.value, country_id: selectedCountry.value!.id }
 
-            const { data } = await backendClient.post<BingoCardPurchaseResponse>(
-                endpoint,
-                payload,
-            )
+            const { data } = await backendClient.post<BingoCardPurchaseResponse>(endpoint, payload)
 
             showToast(data.message, data.type)
 
             if (data.type === 'success') {
-                onSuccess?.({
-                    prizePool: data.prize_pool ?? 0,
-                    ctns: data.ctns ?? numCtns.value,
-                })
+                // Invalidar caché tras compra exitosa (precio pudo cambiar)
+                _priceCache.delete(selectedRoom.value.id)
+                onSuccess?.({ prizePool: data.prize_pool ?? 0, ctns: data.ctns ?? numCtns.value })
                 close()
             }
         } catch (err: any) {
-            showToast(
-                err?.response?.data?.message ?? 'Error al generar los cartones',
-                'error',
-            )
+            showToast(err?.response?.data?.message ?? 'Error al generar los cartones', 'error')
         } finally {
             purchasing.value = false
         }
@@ -313,8 +266,9 @@ export function useGameRoomPurchaseModal() {
         totalAmount,
         canAdvance,
         isPlayer,
-        checkingRole,
+        // checkingRole eliminado — rol viene de Inertia
         open,
+        prefetch,
         close,
         selectCountry,
         nextStep,
@@ -323,6 +277,5 @@ export function useGameRoomPurchaseModal() {
         decrement,
         setNumCtns,
         purchase,
-        checkUserRole,
     }
 }
