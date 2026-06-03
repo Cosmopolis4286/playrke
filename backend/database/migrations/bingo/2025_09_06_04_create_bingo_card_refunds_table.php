@@ -51,6 +51,7 @@ return new class extends Migration
                 ->comment('Monto reembolsado');
 
             $table->decimal('commission_retained', 12, 2)
+                ->unsigned()
                 ->default(0)
                 ->comment('Comisión retenida por la plataforma');
 
@@ -112,7 +113,7 @@ return new class extends Migration
             // NOTA: índices en created_at/updated_at eliminados - gestionados por Laravel
 
             // Evita múltiples reembolsos para el mismo cartón
-            $table->unique('card_id', 'unique_refund_per_card');
+            $table->unique(['card_id'], 'unique_refund_per_card');
         });
     }
 

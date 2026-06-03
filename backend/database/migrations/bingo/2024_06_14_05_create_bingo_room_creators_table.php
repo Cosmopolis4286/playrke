@@ -51,7 +51,6 @@ return new class extends Migration
             // Índices compuestos opcionales para consultas rápidas
             $table->index(['room_id', 'status'], 'idx_room_status');
             $table->index('created_at', 'idx_bingo_creators_created');
-            $table->index('updated_at', 'idx_bingo_creators_updated');
         });
     }
 

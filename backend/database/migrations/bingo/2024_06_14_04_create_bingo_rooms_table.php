@@ -37,6 +37,16 @@ return new class extends Migration
                 ->default('N')
                 ->comment('Indica si los premios fueron pagados');
 
+            // Campos financieros
+            $table->decimal('prize_pool', 15, 2)->default(0)->comment('Pool de premios de la sala');
+            $table->decimal('full_house_prize', 15, 2)->default(0)->comment('Premio por línea completa');
+            $table->decimal('serial_prize', 15, 2)->default(0)->comment('Premio por serial');
+
+            // Comisiones
+            $table->decimal('rke_commission', 8, 2)->default(0)->comment('Comisión del RKE');
+            $table->decimal('room_commission', 8, 2)->default(0)->comment('Comisión de la sala');
+            $table->decimal('seller_commission', 8, 2)->default(0)->comment('Comisión del vendedor');
+
             // Contadores
             $table->integer('total_players')->default(0)->comment('Número de jugadores en la sala');
             $table->integer('total_cards')->default(0)->comment('Número total de cartones vendidos');

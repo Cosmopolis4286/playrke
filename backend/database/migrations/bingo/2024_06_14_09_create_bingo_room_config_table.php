@@ -69,7 +69,7 @@ return new class extends Migration
 
             $table->date('date')->comment('Fecha del juego');
             $table->string('time', 10)->comment('Hora del juego');
-            $table->integer('unix_date')->comment('Fecha en formato timestamp UNIX');
+            $table->unsignedInteger('unix_date')->comment('Fecha en formato timestamp UNIX');
 
             // Comisiones
             $table->decimal('rke_commission', 8, 2)->nullable()->comment('Comisión del RKE');
@@ -93,7 +93,6 @@ return new class extends Migration
             // Tipo de premio
             $table->foreignSnowflake('prize_pool_type_id')
                 ->constrained('prize_pool_types')
-                ->default(1)
                 ->restrictOnDelete()
                 ->cascadeOnUpdate()
                 ->comment('Tipo de pool de premio');
