@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::connection('pgsql_trivia')->hasTable('trivia_games')) {
+            return;
+        }
+
         Schema::connection('pgsql_trivia')->create('trivia_games', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('room_id');
