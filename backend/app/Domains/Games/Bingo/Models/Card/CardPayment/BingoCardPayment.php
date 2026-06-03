@@ -6,7 +6,6 @@ use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\BaseModel;
 use App\Models\Currency;
-use App\Models\Roles\Seller;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,7 +15,7 @@ final class BingoCardPayment extends BaseModel
     protected $table = 'bingo_card_payments';
 
     protected $fillable = [
-        'payment_method', 'description', 'room_id', 'creator_user_id', 'seller_id',
+        'payment_method', 'description', 'room_id', 'creator_user_id', 'seller_user_id',
         'user_id', 'external_player_id', 'currency_id', 'card_lot_id',
         'payment_amount', 'payment_proof', 'payment_status', 'processed_at', 'transaction_reference',
     ];
@@ -38,7 +37,7 @@ final class BingoCardPayment extends BaseModel
 
     public function seller(): BelongsTo
     {
-        return $this->belongsTo(Seller::class, 'seller_id');
+        return $this->belongsTo(User::class, 'seller_user_id');
     }
 
     public function user(): BelongsTo

@@ -29,7 +29,7 @@ class BingoCardLot extends Model
         'exchange_rate'     => 'decimal:4',
         'sale_amount'       => 'decimal:2',
         'commission_amount' => 'decimal:2',
-        'status'            => 'boolean',
+        'status'            => 'string',
         'created_at'        => 'datetime',
         'updated_at'        => 'datetime',
         'deleted_at'        => 'datetime',
@@ -75,6 +75,6 @@ class BingoCardLot extends Model
         return $this->sale_amount + ($this->commission_amount ?? 0);
     }
 
-    public function scopeActive($query) { return $query->where('status', true); }
+    public function scopeActive($query) { return $query->where('status', 'ACTIVE'); }
     public function scopeBySeller($query, string $sellerId) { return $query->where('seller_user_id', $sellerId); }
 }

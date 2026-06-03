@@ -42,7 +42,7 @@ class BingoCardPrize extends Model
     ];
 
     protected $casts = [
-        'status'       => 'boolean',
+        'status'       => 'string',
         'round_id'     => 'string',
         'usd_amount'   => 'decimal:2',
         'local_amount' => 'decimal:4',
@@ -73,7 +73,7 @@ class BingoCardPrize extends Model
 
     public function isWaiting(): bool { return $this->prize_status === 'waiting'; }
     public function isClaimed(): bool { return $this->prize_status === 'claimed'; }
-    public function isActive(): bool { return $this->status; }
+    public function isActive(): bool { return $this->status === 'ACTIVE'; }
     public function isCancelled(): bool { return $this->prize_status === 'cancelled'; }
     public function isSuspended(): bool { return $this->prize_status === 'suspended'; }
 
@@ -84,8 +84,8 @@ class BingoCardPrize extends Model
         return $this->save();
     }
 
-    public function activate(): bool { $this->status = true; return $this->save(); }
-    public function deactivate(): bool { $this->status = false; return $this->save(); }
+    public function activate(): bool { $this->status = 'ACTIVE'; return $this->save(); }
+    public function deactivate(): bool { $this->status = 'INACTIVE'; return $this->save(); }
 
     public function generateVerificationCode(): string
     {
@@ -97,8 +97,8 @@ class BingoCardPrize extends Model
     public function getFormattedUsdAmount(): string { return number_format($this->usd_amount, 2); }
     public function getFormattedLocalAmount(): string { return number_format($this->local_amount, 4); }
 
-    public function scopeActive($query) { return $query->where('status', true); }
-    public function scopeInactive($query) { return $query->where('status', false); }
+    public function scopeActive($query) { return $query->where('status', 'ACTIVE'); }
+    public function scopeInactive($query) { return $query->where('status', 'INACTIVE'); }
     public function scopeByStatus($query, string $status) { return $query->where('prize_status', $status); }
     public function scopeByType($query, string $type) { return $query->where('prize_type', $type); }
     public function scopeWaiting($query) { return $query->where('prize_status', 'waiting'); }

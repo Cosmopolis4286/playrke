@@ -27,31 +27,15 @@ class BingoCard extends Model
         'cancelled' => 'Cancelado',
     ];
 
-    public const ALL_POSITIONS = [
-        'b1', 'b2', 'b3', 'b4', 'b5',
-        'i1', 'i2', 'i3', 'i4', 'i5',
-        'n1', 'n2', 'n3', 'n4', 'n5',
-        'g1', 'g2', 'g3', 'g4', 'g5',
-        'o1', 'o2', 'o3', 'o4', 'o5',
-    ];
+    public const COLUMNS = ['B', 'I', 'N', 'G', 'O'];
 
     protected $fillable = [
         'room_id', 'creator_user_id', 'seller_user_id', 'seller_type', 'room_user_id',
         'card_lot_id', 'currency_id', 'serial_number', 'card_numbers',
-        'b1', 'b2', 'b3', 'b4', 'b5',
-        'i1', 'i2', 'i3', 'i4', 'i5',
-        'n1', 'n2', 'n3', 'n4', 'n5',
-        'g1', 'g2', 'g3', 'g4', 'g5',
-        'o1', 'o2', 'o3', 'o4', 'o5',
         'card_hash', 'status', 'is_validated', 'validated_at',
     ];
 
     protected $casts = [
-        'b1' => 'integer', 'b2' => 'integer', 'b3' => 'integer', 'b4' => 'integer', 'b5' => 'integer',
-        'i1' => 'integer', 'i2' => 'integer', 'i3' => 'integer', 'i4' => 'integer', 'i5' => 'integer',
-        'n1' => 'integer', 'n2' => 'integer', 'n3' => 'integer', 'n4' => 'integer', 'n5' => 'integer',
-        'g1' => 'integer', 'g2' => 'integer', 'g3' => 'integer', 'g4' => 'integer', 'g5' => 'integer',
-        'o1' => 'integer', 'o2' => 'integer', 'o3' => 'integer', 'o4' => 'integer', 'o5' => 'integer',
         'card_numbers' => 'array',
         'is_validated' => 'boolean',
         'validated_at' => 'datetime',
@@ -97,26 +81,20 @@ class BingoCard extends Model
 
     public function getCardMatrix(): array
     {
-        $matrix = [];
-        foreach (self::ALL_POSITIONS as $position) {
-            $matrix[$position] = $this->$position;
-        }
-        return $matrix;
+        return $this->card_numbers ?? [];
     }
 
     public function getColumnNumbers(string $letter): array
     {
-        $letter = strtolower($letter);
-        return [
-            $this->{$letter . '1'}, $this->{$letter . '2'}, $this->{$letter . '3'},
-            $this->{$letter . '4'}, $this->{$letter . '5'},
-        ];
+        return $this->card_numbers[strtoupper($letter)] ?? [];
     }
 
     public function hasNumber(int $number): bool
     {
-        foreach (self::ALL_POSITIONS as $position) {
-            if ($this->$position === $number) return true;
+        foreach (self::COLUMNS as $col) {
+            if (in_array($number, $this->card_numbers[$col] ?? [], true)) {
+                return true;
+            }
         }
         return false;
     }
@@ -140,18 +118,12 @@ class BingoCard extends Model
             'roomId'       => $this->room_id,
             'userId'       => $this->roomUser?->user_id,
             'serialNumber' => $this->serial_number,
-            'cardMatrix'   => [
-                'B' => [$this->b1, $this->b2, $this->b3, $this->b4, $this->b5],
-                'I' => [$this->i1, $this->i2, $this->i3, $this->i4, $this->i5],
-                'N' => [$this->n1, $this->n2, null, $this->n4, $this->n5],
-                'G' => [$this->g1, $this->g2, $this->g3, $this->g4, $this->g5],
-                'O' => [$this->o1, $this->o2, $this->o3, $this->o4, $this->o5],
-            ],
-            'isActive'    => $this->status === 'active',
+            'cardMatrix'   => $this->card_numbers ?? [],
+            'isActive'     => $this->status === 1,
             'purchaseDate' => $this->created_at,
             'price'        => 0,
             'currencyId'   => $this->currency_id,
-            'lot'          => $this->cardLot ? ['id' => $this->cardLot->id, 'serial' => $this->cardLot->serial ?? ''] : null,
+            'lot'          => $this->cardLot ? ['id' => $this->cardLot->id] : null,
         ];
     }
 }
