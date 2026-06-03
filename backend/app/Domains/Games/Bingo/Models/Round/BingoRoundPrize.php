@@ -2,6 +2,8 @@
 
 namespace App\Domains\Games\Bingo\Models\Round;
 
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Models\Currency;
 use App\Models\Prize;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
@@ -33,6 +35,16 @@ class BingoRoundPrize extends Model
     public function round(): BelongsTo
     {
         return $this->belongsTo(BingoRound::class, 'bingo_round_id');
+    }
+
+    public function room(): BelongsTo
+    {
+        return $this->belongsTo(BingoRoom::class, 'room_id');
+    }
+
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class, 'currency_id');
     }
 
     public function prize(): BelongsTo

@@ -16,7 +16,7 @@ class BingoCreatorSale extends Model
     protected $table = 'bingo_creator_sales';
 
     protected $fillable = [
-        'room', 'creator_user_id', 'currency', 'sale_amount',
+        'room_id', 'creator_user_id', 'currency_id', 'sale_amount',
         'rke_commission', 'room_commission', 'seller_commission', 'prize_pool_amount',
     ];
 
@@ -32,13 +32,13 @@ class BingoCreatorSale extends Model
 
     protected $appends = ['total_commission', 'commission_percentage'];
 
-    public function room(): BelongsTo { return $this->belongsTo(BingoRoom::class, 'room'); }
-    public function currency(): BelongsTo { return $this->belongsTo(Currency::class, 'currency'); }
+    public function room(): BelongsTo { return $this->belongsTo(BingoRoom::class, 'room_id'); }
+    public function currency(): BelongsTo { return $this->belongsTo(Currency::class, 'currency_id'); }
     public function creatorUser(): BelongsTo { return $this->belongsTo(User::class, 'creator_user_id'); }
 
-    public function scopeByRoom($query, string $roomId) { return $query->where('room', $roomId); }
+    public function scopeByRoom($query, string $roomId) { return $query->where('room_id', $roomId); }
     public function scopeByCreator($query, string $id) { return $query->where('creator_user_id', $id); }
-    public function scopeByCurrency($query, string $currency) { return $query->where('currency', $currency); }
+    public function scopeByCurrency($query, string $currencyId) { return $query->where('currency_id', $currencyId); }
     public function scopeByAmountRange($query, float $min, float $max) { return $query->whereBetween('sale_amount', [$min, $max]); }
     public function scopeByDateRange($query, string $start, string $end) { return $query->whereBetween('created_at', [$start, $end]); }
     public function scopeTopByVolume($query, int $limit = 10) { return $query->orderByDesc('sale_amount')->limit($limit); }
