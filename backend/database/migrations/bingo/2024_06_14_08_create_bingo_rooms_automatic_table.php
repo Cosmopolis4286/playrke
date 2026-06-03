@@ -15,8 +15,6 @@ return new class extends Migration
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la sala automática');
 
-            $table->json('days')->nullable()->comment('Días de la semana para generación');
-            $table->string('time', 10)->comment('Hora programada');
             $table->enum('in_live', ['Y', 'N'])->default('N')->comment('Indica si produce salas en vivo');
 
             $table->foreignSnowflake('game_mode_id')
@@ -56,8 +54,7 @@ return new class extends Migration
 
             $table->foreignSnowflake('prize_pool_type_id')
                 ->constrained('prize_pool_types')
-                ->onDelete('cascade')
-                ->default(1)
+                ->cascadeOnDelete()
                 ->comment('Tipo de pool de premios');
 
             $table->decimal('amount_added_prize_pool', 10, 2)->nullable()
@@ -113,6 +110,47 @@ return new class extends Migration
             $table->integer('max_rooms_per_day')
                 ->nullable()
                 ->comment('Límite de salas por día (null = sin límite)');
+
+            // Configuración por defecto
+            $table->foreignSnowflake('default_currency_id')
+                ->nullable()
+                ->constrained('currencies')
+                ->nullOnDelete()
+                ->comment('Moneda por defecto para el precio del cartón');
+
+            $table->decimal('default_card_price', 10, 2)
+                ->nullable()
+                ->comment('Precio por defecto del cartón');
+
+            $table->json('default_config')
+                ->nullable()
+                ->comment('Configuración por defecto de la sala (JSON consolidado)');
+
+            // Campos consolidados de rondas y premios
+            $table->json('rounds_config')
+                ->nullable()
+                ->comment('Configuración consolidada de rondas (patrones, tipos de premio, valores)');
+
+            $table->json('prize_types')
+                ->nullable()
+                ->comment('Tipos de premio por ronda');
+
+            $table->json('bingo_patterns')
+                ->nullable()
+                ->comment('Patrones de bingo por ronda');
+
+            $table->json('prize_values')
+                ->nullable()
+                ->comment('Valores de premio por ronda');
+
+            // Campos consolidados de precios por moneda
+            $table->json('card_currencies')
+                ->nullable()
+                ->comment('Monedas disponibles para precio del cartón');
+
+            $table->json('card_prices')
+                ->nullable()
+                ->comment('Precios del cartón por moneda');
 
             // Contadores
             $table->integer('rooms_created')->default(0)->comment('Total de salas creadas');
