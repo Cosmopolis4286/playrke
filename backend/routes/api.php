@@ -210,5 +210,4 @@ Route::prefix('user-level')->group(function () {
     Route::post('/calculate-reward', [UserLevelController::class, 'calculateXpReward'])->name('api.user-level.calculate-reward');
 });
 
-// Módulo Trivia — rutas API REST (auth:sanctum)
-require __DIR__ . '/../trivia.php';
+// Nota: las rutas API de Trivia (trivia.php) son cargadas por TriviaServiceProvider
