@@ -57,39 +57,73 @@
     ],
     link: [
       { rel: 'icon', type: 'image/x-icon', href: '/img/fav.ico' },
-      { rel: 'shortcut icon', type: 'image/x-icon', href: '/img/fav.ico' }
+      { rel: 'shortcut icon', type: 'image/x-icon', href: '/img/fav.ico' },
+      { rel: 'preload', as: 'image', href: '/img/background/bg_6.jpg' }
     ]
   })
 
   const activeSlides = props.slides?.length ? props.slides : DEFAULT_SLIDES
 
-  const current = ref(0)
+  // URLs construidas en runtime para que Vite no las trate como imports estáticos
+  const bgSrc   = `${window.location.origin}/img/background/bg_6.jpg`
+  const logoSrc = `${window.location.origin}/img/logo.png`
+
+  const current  = ref(0)
+  const bgLoaded = ref(false)
   let timer: ReturnType<typeof setInterval> | null = null
 
-  const next = () => { current.value = (current.value + 1) % activeSlides.length }
-  const goTo = (i: number) => { current.value = i; resetTimer() }
+  const next    = () => { current.value = (current.value + 1) % activeSlides.length }
+  const goTo    = (i: number) => { current.value = i; resetTimer() }
   const resetTimer = () => {
     if (timer) clearInterval(timer)
     timer = setInterval(next, 4000)
   }
 
-  onMounted(() => { timer = setInterval(next, 4000) })
+  const onBgLoad = () => { bgLoaded.value = true }
+
+  onMounted(() => {
+    timer = setInterval(next, 4000)
+
+    // Fallback: si por alguna razón el img ya cacheó y no dispara onload
+    const img = new Image()
+    img.src = '/img/background/bg_6.jpg'
+    if (img.complete) bgLoaded.value = true
+  })
   onUnmounted(() => { if (timer) clearInterval(timer) })
 
   const activeModal = ref<ModalKey | null>(null)
-  const openModal = (key: ModalKey) => { activeModal.value = key }
+  const openModal   = (key: ModalKey) => { activeModal.value = key }
 </script>
 
 <template>
-  <main class="guest-layout">
+  <main class="guest-layout" :class="{ 'guest-layout--ready': bgLoaded }">
+
+    <!-- BG como <img> para disparo de onload y fetchpriority -->
+    <img
+      class="guest-layout__bg"
+      :src="bgSrc"
+      alt=""
+      aria-hidden="true"
+      fetchpriority="high"
+      decoding="async"
+      @load="onBgLoad"
+    />
+
+    <!-- Overlay oscuro encima del BG -->
+    <div class="guest-layout__overlay" aria-hidden="true"></div>
+
     <!-- ── CARD SPLIT ─────────────────────────────── -->
     <div class="guest-layout__card">
 
       <!-- ── PANEL IZQUIERDO: carrusel ────────────── -->
       <aside class="guest-layout__panel guest-layout__panel--left">
+
+        <!-- orbe decorativo -->
+        <div class="gl-orb" aria-hidden="true"></div>
+
         <!-- Branding -->
         <div class="gl-panel__brand">
-          <img class="gl-panel__logo" :src="'/img/logo.png'" alt="PlayRKE" />
+          <img class="gl-panel__logo" :src="logoSrc" alt="PlayRKE" />
         </div>
 
         <!-- Slides -->

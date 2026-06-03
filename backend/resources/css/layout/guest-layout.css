@@ -19,14 +19,14 @@
     --gray-1: #cbd5e1;
     --gray-2: #64748b;
 
-    --surface:       rgba(8, 12, 30, 0.78);
-    --surface-input: rgba(6, 10, 28, 0.85);
+    --surface:       rgba(8, 12, 30, 0.82);
+    --surface-input: rgba(6, 10, 28, 0.90);
     --border:        rgba(0, 229, 255, 0.10);
     --border-hover:  rgba(0, 229, 255, 0.30);
     --border-focus:  rgba(0, 229, 255, 0.55);
 
     --radius:  10px;
-    --input-h: 44px;
+    --input-h: 46px;
 }
 
 /* ======================================================
@@ -41,7 +41,7 @@ a:hover { color: var(--cyan); }
 button { border: none; background: none; cursor: pointer; }
 
 /* ======================================================
-   BACKGROUND
+   BACKGROUND — imagen real para onload trigger
 ====================================================== */
 .guest-layout {
     position: relative;
@@ -50,18 +50,41 @@ button { border: none; background: none; cursor: pointer; }
     justify-content: center;
     align-items: center;
     user-select: none;
-    background: url('/img/background/bg_6.jpg') center / cover no-repeat;
     overflow: hidden;
     padding: 16px;
+    background: #020614; /* color sólido mientras carga el BG */
 }
 
-.guest-layout::before {
-    content: '';
+/* imagen de fondo */
+.guest-layout__bg {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(2, 4, 20, 0.55) 0%, rgba(1, 2, 12, 0.80) 100%);
-    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
     z-index: 0;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    will-change: opacity;
+}
+
+/* overlay de oscurecimiento */
+.guest-layout__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(2, 4, 20, 0.60) 0%, rgba(1, 2, 12, 0.82) 100%);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* cuando el BG cargó: revelar imagen + card */
+.guest-layout--ready .guest-layout__bg {
+    opacity: 1;
+}
+
+.guest-layout--ready .guest-layout__card {
+    animation: card-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* ======================================================
@@ -69,20 +92,27 @@ button { border: none; background: none; cursor: pointer; }
 ====================================================== */
 .guest-layout__card {
     position: relative;
-    z-index: 1;
-    width: min(820px, calc(100vw - 32px));
-    min-height: 480px;
+    z-index: 2;
+    width: min(840px, calc(100vw - 32px));
+    min-height: 500px;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    border-radius: 18px;
+    border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
-    animation: card-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    box-shadow:
+        0 0 0 1px rgba(0, 229, 255, 0.07),
+        0 32px 80px rgba(0, 0, 0, 0.70),
+        0 8px 24px rgba(0, 0, 0, 0.40);
+    opacity: 0; /* invisible hasta ready */
+}
+
+.guest-layout--ready .guest-layout__card {
+    opacity: 1; /* la animación card-in lo maneja */
 }
 
 @keyframes card-in {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(22px) scale(0.985); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ======================================================
@@ -96,18 +126,39 @@ button { border: none; background: none; cursor: pointer; }
 
 /* ── LEFT ───────────────────────────────────────── */
 .guest-layout__panel--left {
+    position: relative;
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    background: linear-gradient(160deg, #001466 0%, #000a3a 100%);
+    background: linear-gradient(155deg, #001880 0%, #000b42 55%, #00061f 100%);
     border-right: 1px solid rgba(0, 229, 255, 0.08);
+    overflow: hidden;
+}
+
+/* orbe decorativo animado */
+.gl-orb {
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 40%, rgba(0, 160, 255, 0.22), transparent 70%);
+    top: -60px;
+    right: -80px;
+    pointer-events: none;
+    animation: orb-drift 8s ease-in-out infinite alternate;
+    will-change: transform;
+}
+
+@keyframes orb-drift {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(-20px, 30px) scale(1.08); }
 }
 
 /* ── RIGHT ──────────────────────────────────────── */
 .guest-layout__panel--right {
     background: var(--surface);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
     justify-content: center;
     gap: 8px;
 }
@@ -116,28 +167,36 @@ button { border: none; background: none; cursor: pointer; }
    LEFT — LOGO
 ====================================================== */
 .gl-panel__brand {
+    position: relative;
+    z-index: 1;
     display: flex;
     justify-content: center;
     width: 100%;
 }
 
 .gl-panel__logo {
-    max-height: 72px;
-    opacity: 0.92;
-    transition: opacity 0.3s;
+    max-height: 70px;
+    opacity: 0.95;
+    filter: drop-shadow(0 0 14px rgba(0, 180, 255, 0.30));
+    transition: opacity 0.3s, filter 0.3s;
 }
-.gl-panel__logo:hover { opacity: 1; }
+.gl-panel__logo:hover {
+    opacity: 1;
+    filter: drop-shadow(0 0 20px rgba(0, 229, 255, 0.55));
+}
 
 /* ======================================================
    CAROUSEL
 ====================================================== */
 .gl-carousel {
+    position: relative;
+    z-index: 1;
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-height: 180px;
+    min-height: 190px;
 }
 
 .gl-carousel__slide {
@@ -145,53 +204,62 @@ button { border: none; background: none; cursor: pointer; }
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 12px;
+    gap: 14px;
     padding: 0 8px;
     width: 100%;
 }
 
 .gl-carousel__icon-wrap {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    background: rgba(0, 229, 255, 0.07);
-    border: 1px solid rgba(0, 229, 255, 0.15);
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: rgba(0, 229, 255, 0.06);
+    border: 1px solid rgba(0, 229, 255, 0.18);
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 0 20px rgba(0, 200, 255, 0.10);
+    transition: box-shadow 0.3s;
+}
+.gl-carousel__icon-wrap:hover {
+    box-shadow: 0 0 28px rgba(0, 200, 255, 0.22);
 }
 
 .gl-carousel__icon {
-    font-size: 1.4rem;
+    font-size: 1.45rem;
     color: var(--cyan);
-    opacity: 0.85;
+    opacity: 0.90;
+    filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.4));
 }
 
 .gl-carousel__title {
     margin: 0;
-    font-size: 1em;
+    font-size: 1.05em;
     font-weight: var(--semibold);
     color: var(--white);
     line-height: 1.3;
+    letter-spacing: -0.01em;
 }
 
 .gl-carousel__desc {
     margin: 0;
-    font-size: 0.76em;
+    font-size: 0.77em;
     font-weight: var(--light);
-    color: rgba(148, 163, 184, 0.65);
-    line-height: 1.6;
+    color: rgba(148, 163, 184, 0.72);
+    line-height: 1.65;
     max-width: 220px;
 }
 
 /* Fade transition */
 .carousel-fade-enter-active,
-.carousel-fade-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
-.carousel-fade-enter-from   { opacity: 0; transform: translateX(14px); }
-.carousel-fade-leave-to     { opacity: 0; transform: translateX(-14px); }
+.carousel-fade-leave-active { transition: opacity 0.35s ease, transform 0.35s ease; }
+.carousel-fade-enter-from   { opacity: 0; transform: translateX(16px); }
+.carousel-fade-leave-to     { opacity: 0; transform: translateX(-16px); }
 
 /* ── DOTS ────────────────────────────────────────── */
 .gl-carousel__dots {
+    position: relative;
+    z-index: 1;
     display: flex;
     gap: 6px;
     justify-content: center;
@@ -201,14 +269,15 @@ button { border: none; background: none; cursor: pointer; }
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: rgba(0, 229, 255, 0.20);
+    background: rgba(0, 229, 255, 0.18);
     padding: 0;
-    transition: background 0.2s, width 0.2s;
+    transition: background 0.25s, width 0.25s;
 }
 .gl-carousel__dot--active {
     background: var(--cyan);
-    width: 18px;
+    width: 20px;
     border-radius: 3px;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.50);
 }
 .gl-carousel__dot:hover:not(.gl-carousel__dot--active) {
     background: rgba(0, 229, 255, 0.40);
@@ -216,17 +285,22 @@ button { border: none; background: none; cursor: pointer; }
 
 /* ── SOCIALS ─────────────────────────────────────── */
 .gl-panel__socials {
+    position: relative;
+    z-index: 1;
     display: flex;
-    gap: 14px;
+    gap: 16px;
     justify-content: center;
 }
 
 .gl-panel__social-icon {
-    font-size: 0.9em;
-    color: rgba(0, 229, 255, 0.25);
-    transition: color 0.2s;
+    font-size: 0.95em;
+    color: rgba(0, 229, 255, 0.22);
+    transition: color 0.2s, transform 0.2s;
 }
-.gl-panel__social-icon:hover { color: rgba(0, 229, 255, 0.65); }
+.gl-panel__social-icon:hover {
+    color: rgba(0, 229, 255, 0.70);
+    transform: translateY(-2px);
+}
 
 /* ======================================================
    RIGHT — HEADER
@@ -237,16 +311,16 @@ button { border: none; background: none; cursor: pointer; }
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
 .guest-layout__tagline {
     margin: 0;
-    font-size: 0.65em;
+    font-size: 0.63em;
     font-weight: var(--light);
-    letter-spacing: 3px;
+    letter-spacing: 3.5px;
     text-transform: uppercase;
-    color: rgba(0, 229, 255, 0.40);
+    color: rgba(0, 229, 255, 0.38);
     text-align: center;
 }
 
@@ -306,14 +380,14 @@ button { border: none; background: none; cursor: pointer; }
     padding: 0;
     font-family: var(--font-main);
     font-size: inherit;
-    color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.14);
     cursor: pointer;
     transition: color 0.2s;
 }
-.guest-layout__legal-link:hover { color: rgba(255, 255, 255, 0.40); }
+.guest-layout__legal-link:hover { color: rgba(255, 255, 255, 0.42); }
 
 .guest-layout__copyright {
-    color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.11);
     font-size: 0.70em;
 }
 
@@ -325,7 +399,7 @@ button { border: none; background: none; cursor: pointer; }
     width: 100%;
     display: flex;
     align-items: center;
-    margin: 7px 0;
+    margin: 8px 0;
 }
 
 .auth-form__input {
@@ -334,21 +408,22 @@ button { border: none; background: none; cursor: pointer; }
     padding: 0 40px 0 36px;
     font-family: var(--font-main);
     font-size: 0.86em;
-    font-weight: var(--light);
+    font-weight: var(--regular);
     color: var(--gray-1);
     background: var(--surface-input);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
-.auth-form__input::placeholder { color: rgba(100, 116, 139, 0.55); }
+.auth-form__input::placeholder { color: rgba(100, 116, 139, 0.50); }
 .auth-form__input:hover         { border-color: var(--border-hover); }
 .auth-form__input:focus         {
     border-color: var(--border-focus);
-    box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.06);
+    background: rgba(6, 10, 28, 0.96);
+    box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.07), 0 2px 8px rgba(0,0,0,0.3);
 }
-.auth-form__input:disabled { opacity: 0.40; cursor: not-allowed; }
+.auth-form__input:disabled { opacity: 0.38; cursor: not-allowed; }
 
 .auth-form__icon {
     position: absolute;
@@ -356,12 +431,12 @@ button { border: none; background: none; cursor: pointer; }
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.72em;
-    color: rgba(0, 229, 255, 0.28);
+    color: rgba(0, 229, 255, 0.26);
     pointer-events: none;
     transition: color 0.2s;
     z-index: 1;
 }
-.auth-form__field:focus-within .auth-form__icon { color: rgba(0, 229, 255, 0.60); }
+.auth-form__field:focus-within .auth-form__icon { color: rgba(0, 229, 255, 0.62); }
 
 .auth-form__toggle-password {
     position: absolute;
@@ -369,7 +444,7 @@ button { border: none; background: none; cursor: pointer; }
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.78em;
-    color: rgba(0, 229, 255, 0.25);
+    color: rgba(0, 229, 255, 0.22);
     padding: 4px;
     z-index: 1;
     transition: color 0.2s;
@@ -383,13 +458,13 @@ button { border: none; background: none; cursor: pointer; }
 }
 
 /* ======================================================
-   SUBMIT
+   SUBMIT — con shimmer al hover
 ====================================================== */
 .auth-form__submit {
     position: relative;
     width: 100%;
-    height: 44px;
-    margin: 12px 0 4px;
+    height: 46px;
+    margin: 14px 0 4px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -400,27 +475,45 @@ button { border: none; background: none; cursor: pointer; }
     letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--white);
-    background: linear-gradient(135deg, var(--blue-brand) 0%, var(--blue-deep) 100%);
-    border: 1px solid rgba(0, 229, 255, 0.20);
+    background: linear-gradient(135deg, #0a4ee8 0%, #002bb5 100%);
+    border: 1px solid rgba(0, 229, 255, 0.22);
     border-radius: var(--radius);
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.15s;
+    overflow: hidden;
+    transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
 }
+
+/* shimmer layer */
+.auth-form__submit::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.12) 50%, transparent 60%);
+    transform: translateX(-100%);
+    transition: transform 0.45s ease;
+}
+.auth-form__submit:hover:not(:disabled)::after {
+    transform: translateX(100%);
+}
+
 .auth-form__submit:hover:not(:disabled) {
-    opacity: 0.90;
     transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(10, 78, 232, 0.45), 0 0 0 1px rgba(0, 229, 255, 0.20);
 }
-.auth-form__submit:active:not(:disabled) { transform: translateY(0); }
-.auth-form__submit:disabled { opacity: 0.45; cursor: not-allowed; }
+.auth-form__submit:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: none;
+}
+.auth-form__submit:disabled { opacity: 0.40; cursor: not-allowed; }
 .auth-form__submit-text { position: relative; z-index: 1; }
 
 .auth-form__helper {
-    margin: 2px 0 0;
+    margin: 4px 0 0;
     text-align: center;
     font-size: 0.76em;
-    color: rgba(100, 116, 139, 0.6);
+    color: rgba(100, 116, 139, 0.55);
 }
-.auth-form__helper a       { color: rgba(0, 229, 255, 0.30); }
+.auth-form__helper a       { color: rgba(0, 229, 255, 0.28); }
 .auth-form__helper a:hover { color: var(--cyan-dim); }
 
 /* ======================================================
@@ -446,7 +539,7 @@ button { border: none; background: none; cursor: pointer; }
     display: inline-block;
     width: 1rem; height: 1rem;
     vertical-align: -0.125em;
-    border: 0.18em solid rgba(255, 255, 255, 0.20);
+    border: 0.18em solid rgba(255, 255, 255, 0.18);
     border-top-color: var(--white);
     border-radius: 50%;
     animation: 0.65s linear infinite spin;
@@ -546,11 +639,15 @@ button { border: none; background: none; cursor: pointer; }
         gap: 12px;
     }
     .gl-carousel { min-height: 130px; }
+    .gl-orb { width: 180px; height: 180px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .guest-layout__card         { animation: none; }
-    .spinner-border             { animation-duration: 1.5s; }
+    .guest-layout__card        { animation: none; }
+    .guest-layout__bg          { transition: none; }
+    .spinner-border            { animation-duration: 1.5s; }
+    .gl-orb                    { animation: none; }
     .carousel-fade-enter-active,
     .carousel-fade-leave-active { transition: none; }
+    .auth-form__submit::after  { display: none; }
 }
