@@ -18,6 +18,11 @@ use Illuminate\Support\Facades\Route;
 | salas, cartones, sorteos, premios, patrones, etc.
 */
 
+// Alias: el frontend hardcodea /bingo/rooms → redirige a la ruta canónica
+Route::middleware(['auth', 'multiPermission:games.manage,games.bingo'])
+    ->get('bingo/rooms', [BingoRoomController::class, 'index'])
+    ->name('bingo.rooms.alias');
+
 /**
  * ====================================
  * INFORMACIÓN DE SALAS DE JUEGO Y CONFIGURACIÓN

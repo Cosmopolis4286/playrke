@@ -68,13 +68,13 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
             const now = new Date()
             // Use local date string instead of UTC to avoid timezone issues
             const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-            const minDateTime = new Date(now.getTime() + 15 * 60 * 1000)
+            const minDateTime = new Date(now.getTime() + 10 * 60 * 1000)
             const selectedDateTime = new Date(`${form.value.date}T${form.value.time}:00`)
 
             if (form.value.date === todayStr && selectedDateTime < minDateTime) {
                 const h = String(minDateTime.getHours()).padStart(2, '0')
                 const m = String(minDateTime.getMinutes()).padStart(2, '0')
-                e.time = `La hora debe ser al menos 15 minutos desde ahora (${h}:${m} o posterior).`
+                e.time = `La hora debe ser al menos 10 minutos desde ahora (${h}:${m} o posterior).`
             }
         }
 

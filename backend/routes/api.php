@@ -2,14 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Auth\AuthController;
-use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\BingoController;
-use App\Http\Controllers\Api\WalletController;
-use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Auth\DemoCredentialsController;
 use App\Http\Controllers\Api\UserLevelController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\Games\Bingo\Card\BingoCardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -93,8 +88,8 @@ use App\Http\Controllers\Games\Bingo\Card\BingoCardController;
 //         Route::get('rooms/{id}', [BingoController::class, 'getRoom'])->name('api.bingo.room');
 
 //         // Cards
-        Route::post('rooms/{room}/purchase', [BingoCardController::class, 'purchaseCards'])->name('api.bingo.purchase');
-        Route::get('rooms/{id}/cards', [BingoController::class, 'getPlayerCards'])->name('api.bingo.player-cards');
+//         Route::post('rooms/{room}/purchase', [BingoCardController::class, 'purchaseCards'])->name('api.bingo.purchase');
+//         Route::get('rooms/{id}/cards', [BingoController::class, 'getPlayerCards'])->name('api.bingo.player-cards');
 
 //         // Game
 //         Route::get('rooms/{id}/draw', [BingoController::class, 'getDraw'])->name('api.bingo.draw');
@@ -214,3 +209,6 @@ Route::prefix('user-level')->group(function () {
     Route::get('/leaderboard', [UserLevelController::class, 'getLeaderboard'])->name('api.user-level.leaderboard');
     Route::post('/calculate-reward', [UserLevelController::class, 'calculateXpReward'])->name('api.user-level.calculate-reward');
 });
+
+// Módulo Trivia — rutas API REST (auth:sanctum)
+require __DIR__ . '/../trivia.php';
