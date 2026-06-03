@@ -104,13 +104,10 @@ async function handleLogoutClick(
 ): Promise<void> {
     event.preventDefault();
 
-    // Deshabilitar botón durante el proceso
-    const originalText = button.textContent;
     button.disabled = true;
-    button.textContent = 'Cerrando sesión...';
+    showLogoutOverlay();
 
     try {
-        // Obtener opciones desde atributos data del botón
         const buttonOptions: LogoutOptions = {
             logoutUrl: button.dataset.logoutUrl || defaultOptions.logoutUrl,
             loginRedirectUrl: button.dataset.loginRedirectUrl || defaultOptions.loginRedirectUrl,
@@ -121,11 +118,19 @@ async function handleLogoutClick(
 
     } catch (error) {
         console.error('Error en logout click handler:', error);
-    } finally {
-        // Restaurar botón
         button.disabled = false;
-        button.textContent = originalText;
+        hideLogoutOverlay();
     }
+}
+
+function showLogoutOverlay(): void {
+    const el = document.getElementById('logout-overlay');
+    if (el) { el.style.display = 'flex'; }
+}
+
+function hideLogoutOverlay(): void {
+    const el = document.getElementById('logout-overlay');
+    if (el) { el.style.display = 'none'; }
 }
 
 /**

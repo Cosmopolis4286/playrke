@@ -57,6 +57,16 @@
         <x-template.footer />
     </div>
 
+    {{-- Overlay de logout --}}
+    <div id="logout-overlay" aria-hidden="true" style="display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;flex-direction:column;gap:1.25rem;background:rgba(5,8,20,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+        <svg width="52" height="52" viewBox="0 0 50 50" style="animation:logout-spin 1s linear infinite;">
+            <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="3"/>
+            <circle cx="25" cy="25" r="20" fill="none" stroke="#6366f1" stroke-width="3" stroke-linecap="round" stroke-dasharray="80 126"/>
+        </svg>
+        <p style="margin:0;font-size:.875rem;font-weight:500;color:rgba(255,255,255,.55);letter-spacing:.04em;">Cerrando sesión…</p>
+    </div>
+    <style>@keyframes logout-spin{to{transform:rotate(360deg)}}</style>
+
     {{-- Scripts adicionales y dependencias --}}
     <x-template.scripts :loadDataTables="$loadDataTables" :loadSelect2="$loadSelect2" />
 
