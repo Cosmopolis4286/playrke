@@ -131,13 +131,13 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
         ]);
 
         // 3. Crear configuración de sala (is_scheduled='Y' para automática)
-        $this->createRoomConfig($room, $template);
+        $config = $this->createRoomConfig($room, $template);
 
         // 4. Sincronizar precios de cartones (reutiliza syncCardPrices del padre)
         $this->syncCardPricesFromTemplate($room, $template);
 
         // 5. Sincronizar rondas con sus premios (reutiliza syncRounds del padre)
-        $this->syncRoundsFromTemplate($room, $template);
+        $this->syncRoundsFromTemplate($room, $config->id, $template);
 
         Log::info('[AutoGenerateBingoRooms] Sala generada.', [
             'room_id'     => $room->id,
@@ -170,7 +170,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
     /**
      * Crea la BingoRoomConfig con is_scheduled='Y' (automática).
      */
-    private function createRoomConfig(BingoRoom $room, BingoRoomAutomatic $template): void
+    private function createRoomConfig(BingoRoom $room, BingoRoomAutomatic $template): BingoRoomConfig
     {
         $scheduledDate = Carbon::now('America/Caracas')->format('Y-m-d');
         $scheduledTime = $template->time ? $template->time->format('H:i:s') : null;
@@ -178,11 +178,11 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             ? Carbon::createFromFormat('Y-m-d H:i:s', "$scheduledDate $scheduledTime", 'America/Caracas')->timestamp
             : null;
 
-        BingoRoomConfig::create([
+        return BingoRoomConfig::create([
             'room_id'                 => $room->id,
             'template_id'             => $template->id,
             'parent_automatic_id'     => $template->id,
-            'is_scheduled'                => 'Y',
+            'is_scheduled'            => 'Y',
             'room_type_id'            => $template->room_type_id,
             'creator_user_id'         => $template->creator_user_id,
             'game_mode_id'            => $template->game_mode_id,
@@ -269,7 +269,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
      * - bingo_patterns (patrones)
      * - prize_values (valores de premios)
      */
-    private function syncRoundsFromTemplate(BingoRoom $room, BingoRoomAutomatic $template): void
+    private function syncRoundsFromTemplate(BingoRoom $room, string $roomConfigId, BingoRoomAutomatic $template): void
     {
         // Obtener configuración de rondas de los campos consolidados
         $roundsConfig = $template->getRoundsConfig();
@@ -314,6 +314,6 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
         }
 
         // Delegar al método protegido del padre
-        $this->syncRounds((string) $room->id, $configuredRounds);
+        $this->syncRounds((string) $room->id, $roomConfigId, $configuredRounds);
     }
 }

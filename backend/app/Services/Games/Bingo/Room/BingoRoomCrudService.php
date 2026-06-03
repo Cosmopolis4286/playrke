@@ -107,7 +107,7 @@ class BingoRoomCrudService
                 $configData = $this->buildConfigData($dto, $userId, $rkeCommission, $unixDate, $room->id, $isCreate);
 
                 // Configuración (create/update)
-                BingoRoomConfig::updateOrCreate(
+                $config = BingoRoomConfig::updateOrCreate(
                     ['room_id' => $room->id],
                     $configData
                 );
@@ -128,8 +128,8 @@ class BingoRoomCrudService
                     $userId,
                 );
 
-                // Sincronizar rondas
-                $this->syncRounds($room->id, $dto->roundsConfig ?? []);
+                // Sincronizar rondas (necesita el config ID para room_config_id)
+                $this->syncRounds($room->id, $config->id, $dto->roundsConfig ?? []);
 
                 // Broadcast de actualización en tiempo real para clientes activos
                 $freshRoom = $room->fresh(['config']);
@@ -365,13 +365,14 @@ class BingoRoomCrudService
      *
      * Mapeo prize_type (frontend → DB):
      *   percentage → PCT
-     *   fixed      → USD
+     *   fixed      → FIXED
      *   prize      → OTHER
      *
      * @param string $roomId
+     * @param string $roomConfigId
      * @param array  $roundsConfig  [{prizeType, bingoPattern, prizeValue}]
      */
-    protected function syncRounds(string $roomId, array $roundsConfig): void
+    protected function syncRounds(string $roomId, string $roomConfigId, array $roundsConfig): void
     {
         // Eliminar rondas previas (y sus premios en cascada)
         BingoRound::where('room_id', $roomId)->delete();
@@ -399,6 +400,7 @@ class BingoRoomCrudService
             $rows[] = [
                 'id'               => $roundId,
                 'room_id'          => $roomId,
+                'room_config_id'   => $roomConfigId,
                 'round'            => $index + 1,
                 'bingo_pattern_id' => $config['bingoPattern'] ?? null,
                 'prize_type'       => $prizeType,
