@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('bingo_creator_sales')) {
+            return;
+        }
+
         Schema::create('bingo_creator_sales', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la venta del creador');

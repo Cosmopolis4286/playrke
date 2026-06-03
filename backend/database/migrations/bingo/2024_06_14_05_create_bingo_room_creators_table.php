@@ -15,6 +15,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('bingo_room_creators')) {
+            return;
+        }
+
         Schema::create('bingo_room_creators', function (Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del registro');

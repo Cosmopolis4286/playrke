@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('bingo_cards')) {
+            return;
+        }
+
         Schema::create('bingo_cards', function (Blueprint $table) {
 
             /**

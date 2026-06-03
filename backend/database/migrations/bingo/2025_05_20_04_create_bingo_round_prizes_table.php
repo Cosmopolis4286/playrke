@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('bingo_round_prizes')) {
+            return;
+        }
+
         Schema::create('bingo_round_prizes', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único del premio de ronda');

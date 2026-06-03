@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('bingo_room_templates')) {
+            return;
+        }
+
         Schema::create('bingo_room_templates', function (Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID de la plantilla de sala de bingo');
 
