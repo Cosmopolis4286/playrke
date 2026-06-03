@@ -53,6 +53,7 @@
     roomData,
     roomFormData,
     rooms,
+    loading,
     setInitialRooms,
     create,
     edit,
@@ -112,6 +113,7 @@
     showModalForm,
     modalTitle,
     formRef: gameBingoRoomFormRef,
+    isSubmitting,
     handleSubmit
   } = useModalForm(roomData, submit, {
     defaultTitle: 'Sala de Bingo'
@@ -301,7 +303,7 @@
       show: (ids: string[]) => !ids.length,
       onClick: (ids: string[]) => {
         if (ids.length) return
-        window.location.href = `/bingo/rooms`
+        window.location.href = `/bingo/game-rooms`
       }
     },
     {
@@ -412,13 +414,14 @@ onUnmounted(() => {
         />
         <label class="custom-control-label" for="activateRoom">¿Activar sala?</label>
       </div>
-      <button class="btn btn-sm btn-secondary" @click="showModalForm = false">Cerrar</button>
+      <button class="btn btn-sm btn-secondary" :disabled="isSubmitting" @click="showModalForm = false">Cerrar</button>
       <button
         class="btn btn-sm btn-primary"
-        :disabled="!(gameBingoRoomFormRef?.isValid ?? false)"
+        :disabled="!(gameBingoRoomFormRef?.isValid ?? false) || isSubmitting || loading"
         @click="handleSubmit"
       >
-        Guardar
+        <span v-if="isSubmitting" class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>
+        {{ isSubmitting ? 'Guardando...' : 'Guardar' }}
       </button>
     </template>
   </Modal>

@@ -30,6 +30,7 @@ interface UseModalFormReturn {
     modalTitle: ComputedRef<string>
     formMode: ComputedRef<'create' | 'edit'>
     formRef: Ref<ModalFormExpose | null>
+    isSubmitting: Ref<boolean>
     handleSubmit: () => Promise<boolean>
 }
 
@@ -54,6 +55,9 @@ export function useModalForm<T extends { id?: number | string }>(
     /** Referencia al formulario */
     const formRef = ref<ModalFormExpose | null>(null)
 
+    /** Indica si hay una petición en curso */
+    const isSubmitting = ref(false)
+
     /**
      * Modo actual del formulario
      */
@@ -72,10 +76,16 @@ export function useModalForm<T extends { id?: number | string }>(
      * Submit del modal
      */
     async function handleSubmit(): Promise<boolean> {
+        if (isSubmitting.value) return false
         if (!formRef.value?.submit()) return false
-        const response = await submitFn()
-        if (response) showModalForm.value = false
-        return response
+        isSubmitting.value = true
+        try {
+            const response = await submitFn()
+            if (response) showModalForm.value = false
+            return response
+        } finally {
+            isSubmitting.value = false
+        }
     }
 
     return {
@@ -83,6 +93,7 @@ export function useModalForm<T extends { id?: number | string }>(
         modalTitle,
         formMode,
         formRef,
+        isSubmitting,
         handleSubmit,
     }
 }

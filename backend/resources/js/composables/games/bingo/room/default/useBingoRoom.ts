@@ -17,6 +17,9 @@ interface UseBingoRoomReturn {
     /** Lista reactiva de salas */
     rooms: Ref<BingoRoom[]>
 
+    /** Estado de carga global */
+    loading: Ref<boolean>
+
     /** Inicializa la lista local */
     setInitialRooms: (initialBingoRooms: BingoRoom[]) => void
 
@@ -511,29 +514,21 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
 
         const roomId = ids[0]
         const room = rooms.value.find(r => String(r.id) === String(roomId))
-        
+
         if (!room) {
             showToast('Sala no encontrada', 'error')
             return
         }
 
         const confirm = await showToastConfirmAction({
-            html: `¿Quieres entrar a la sala de juego <b>${room.id}</b>?`,
+            html: `¿Quieres ir a la sala de juego <b>${room.uuid_code ?? roomId}</b>?`,
             icon: 'question',
             confirmButtonText: 'Sí, entrar'
         })
 
         if (!confirm) return
 
-        try {
-            // Redirigir directamente a la página de juego
-            const roomUrl = `/bingo-game/${roomId}/game`
-            console.log(`Redirigiendo a: ${roomUrl}`)
-            window.location.href = roomUrl
-        } catch (error) {
-            console.error('Error al redirigir a la sala:', error)
-            showToast('Error al acceder a la sala de juego', 'error')
-        }
+        window.location.href = `/bingo/${roomId}/game`
     }
 
     /**
@@ -570,6 +565,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         roomData,
         roomFormData,
         rooms,
+        loading,
         setInitialRooms,
         submit,
         create,
