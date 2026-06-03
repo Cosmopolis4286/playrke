@@ -3,6 +3,7 @@
 namespace App\Domains\Games\Bingo\Models\Round;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomWinner;
 use App\Traits\SnowflakeId;
@@ -18,16 +19,18 @@ class BingoRound extends Model
 
     protected $fillable = [
         'room_id',
+        'room_config_id',
         'round',
         'start_time',
         'last_chip',
         'bingo_pattern_id',
         'prize_type',
-        'status'
+        'status',
     ];
 
     protected $casts = [
         'room_id'          => 'string',
+        'room_config_id'   => 'string',
         'round'            => 'integer',
         'start_time'       => 'datetime',
         'bingo_pattern_id' => 'string',
@@ -36,6 +39,11 @@ class BingoRound extends Model
     public function room(): BelongsTo
     {
         return $this->belongsTo(BingoRoom::class, 'room_id');
+    }
+
+    public function roomConfig(): BelongsTo
+    {
+        return $this->belongsTo(BingoRoomConfig::class, 'room_config_id');
     }
 
     public function bingoPattern(): BelongsTo

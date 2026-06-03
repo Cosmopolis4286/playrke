@@ -54,9 +54,6 @@ class BingoRoomAutomatic extends Model
 
     protected $fillable = [
         'template_id',
-        'date',
-        'days',
-        'time',
         'in_live',
         'game_mode_id',
         'room_type_id',
@@ -109,7 +106,6 @@ class BingoRoomAutomatic extends Model
         'creator_user_id'         => 'string',
         'default_currency_id'     => 'string',
         'allowed_currencies'      => 'array',
-        'days'                    => 'array',
         'recurrence_days'         => 'array',
         'default_config'          => 'array',
         'rounds_config'           => 'array',
@@ -119,8 +115,6 @@ class BingoRoomAutomatic extends Model
         'card_currencies'         => 'array',
         'card_prices'             => 'array',
         'in_live'                 => 'string',
-        'date'                    => 'date',
-        'time'                    => 'datetime:H:i:s',
         'game_time'               => 'datetime:H:i:s',
         'start_date'              => 'date',
         'end_date'                => 'date',
@@ -205,15 +199,16 @@ class BingoRoomAutomatic extends Model
 
     public function getFormattedTimeAttribute(): string
     {
-        return $this->time ? $this->time->format('H:i') : '';
+        return $this->game_time ? $this->game_time->format('H:i') : '';
     }
 
     public function getDaysDescriptionAttribute(): string
     {
-        if (!$this->days || !is_array($this->days)) {
+        if (!$this->recurrence_days || !is_array($this->recurrence_days)) {
             return '';
         }
-        return implode(', ', array_map(fn($d) => self::DAYS[$d] ?? $d, $this->days));
+        $dayNames = [1 => 'Lunes', 2 => 'Martes', 3 => 'Miércoles', 4 => 'Jueves', 5 => 'Viernes', 6 => 'Sábado', 0 => 'Domingo'];
+        return implode(', ', array_map(fn($d) => $dayNames[$d] ?? $d, $this->recurrence_days));
     }
 
     public function getIsActiveAttribute(): bool
