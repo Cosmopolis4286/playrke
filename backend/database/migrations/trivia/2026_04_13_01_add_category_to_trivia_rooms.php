@@ -9,16 +9,22 @@ return new class extends Migration
     public function up(): void
     {
         Schema::connection('pgsql_trivia')->table('trivia_rooms', function (Blueprint $table) {
-            // Categoría temática de la sala (misma convención que trivia_questions.category)
-            $table->string('category', 50)->nullable()->after('description');
-            $table->index('category');
+            if (!Schema::connection('pgsql_trivia')->hasColumn('trivia_rooms', 'category')) {
+                $table->string('category', 50)->nullable()->after('description');
+            }
         });
+
+        \Illuminate\Support\Facades\DB::connection('pgsql_trivia')->statement(
+            'CREATE INDEX IF NOT EXISTS trivia_rooms_category_index ON trivia_rooms (category)'
+        );
     }
 
     public function down(): void
     {
         Schema::connection('pgsql_trivia')->table('trivia_rooms', function (Blueprint $table) {
-            $table->dropColumn('category');
+            if (Schema::connection('pgsql_trivia')->hasColumn('trivia_rooms', 'category')) {
+                $table->dropColumn('category');
+            }
         });
     }
 };

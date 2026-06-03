@@ -32,36 +32,41 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::connection('pgsql_trivia')->table('trivia_rooms', function (Blueprint $table) {
-            // 'guaranteed' | 'pool'
-            $table->string('prize_model', 20)->default('guaranteed')->after('commission_percent');
+        $conn = 'pgsql_trivia';
 
-            // [{rank:1, percent:0.60}, {rank:2, percent:0.25}, {rank:3, percent:0.15}]
-            $table->jsonb('prize_payouts')->nullable()->after('prize_model');
-
-            // % de comisión de plataforma visible al usuario (solo modelo pool)
-            $table->decimal('platform_rake_percent', 5, 2)->default(0)->after('prize_payouts');
-
-            // Monto extra de patrocinador que se suma al bote (ambos modelos)
-            $table->decimal('sponsor_prize', 20, 8)->default(0)->after('platform_rake_percent');
-
-            // Pool efectivo acumulado en tiempo real (solo modelo pool)
-            $table->decimal('pool_accumulated', 20, 8)->default(0)->after('sponsor_prize');
-
-            $table->index('prize_model');
+        Schema::connection($conn)->table('trivia_rooms', function (Blueprint $table) use ($conn) {
+            if (!Schema::connection($conn)->hasColumn('trivia_rooms', 'prize_model')) {
+                $table->string('prize_model', 20)->default('guaranteed')->after('commission_percent');
+            }
+            if (!Schema::connection($conn)->hasColumn('trivia_rooms', 'prize_payouts')) {
+                $table->jsonb('prize_payouts')->nullable()->after('prize_model');
+            }
+            if (!Schema::connection($conn)->hasColumn('trivia_rooms', 'platform_rake_percent')) {
+                $table->decimal('platform_rake_percent', 5, 2)->default(0)->after('prize_payouts');
+            }
+            if (!Schema::connection($conn)->hasColumn('trivia_rooms', 'sponsor_prize')) {
+                $table->decimal('sponsor_prize', 20, 8)->default(0)->after('platform_rake_percent');
+            }
+            if (!Schema::connection($conn)->hasColumn('trivia_rooms', 'pool_accumulated')) {
+                $table->decimal('pool_accumulated', 20, 8)->default(0)->after('sponsor_prize');
+            }
         });
+
+        \Illuminate\Support\Facades\DB::connection($conn)->statement(
+            'CREATE INDEX IF NOT EXISTS trivia_rooms_prize_model_index ON trivia_rooms (prize_model)'
+        );
     }
 
     public function down(): void
     {
-        Schema::connection('pgsql_trivia')->table('trivia_rooms', function (Blueprint $table) {
-            $table->dropColumn([
-                'prize_model',
-                'prize_payouts',
-                'platform_rake_percent',
-                'sponsor_prize',
-                'pool_accumulated',
-            ]);
+        $conn = 'pgsql_trivia';
+        $fields = ['prize_model', 'prize_payouts', 'platform_rake_percent', 'sponsor_prize', 'pool_accumulated'];
+
+        Schema::connection($conn)->table('trivia_rooms', function (Blueprint $table) use ($conn, $fields) {
+            $existing = array_filter($fields, fn($c) => Schema::connection($conn)->hasColumn('trivia_rooms', $c));
+            if ($existing) {
+                $table->dropColumn(array_values($existing));
+            }
         });
     }
 };
