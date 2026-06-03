@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('settings')) {
+            return;
+        }
+
         Schema::create('settings', function (Blueprint $table) {
             // ID Snowflake con el paquete bradietilley/laravel-snowflake
             $table->snowflake('id')->primary()->comment('ID único del parámetro');

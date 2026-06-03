@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('pago_movil_venezuela')) {
+            return;
+        }
+
         Schema::create('pago_movil_venezuela', function (Blueprint $table) {
             // ID seguro tipo Snowflake para consistencia con el resto de tablas
             $table->snowflake('id')->primary()->comment('ID único del registro de pago móvil');

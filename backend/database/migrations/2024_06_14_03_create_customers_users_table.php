@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('customers_users')) {
+            return;
+        }
+
         Schema::create('customers_users', function (Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la relación cliente-usuario');

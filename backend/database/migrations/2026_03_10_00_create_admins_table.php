@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('admins')) {
+            return;
+        }
+
         Schema::create('admins', function (Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del administrador');

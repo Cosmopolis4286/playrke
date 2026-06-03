@@ -13,6 +13,10 @@ class CreateTransactionsTable extends Migration
      */
     public function up()
     {
+        if (Schema::hasTable('transactions')) {
+            return;
+        }
+
         Schema::create('transactions', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();;

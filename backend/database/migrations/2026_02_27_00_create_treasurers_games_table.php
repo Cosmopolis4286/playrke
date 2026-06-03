@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('treasurers_games')) {
+            return;
+        }
+
         Schema::create('treasurers_games', function (Blueprint $table) {
             // Tesorero
             $table->foreignSnowflake('treasurer_id')

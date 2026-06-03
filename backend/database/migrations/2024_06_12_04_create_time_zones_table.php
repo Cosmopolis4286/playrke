@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('time_zones')) {
+            return;
+        }
+
         Schema::create('time_zones', function (Blueprint $table) {
             // ID autoincremental estándar
             $table->snowflake('id')->primary()->comment('ID único de la zona horaria');

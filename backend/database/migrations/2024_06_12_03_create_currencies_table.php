@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('currencies')) {
+            return;
+        }
+
         Schema::create('currencies', function (Blueprint $table) {
             $table->snowflake('id')->primary();
 

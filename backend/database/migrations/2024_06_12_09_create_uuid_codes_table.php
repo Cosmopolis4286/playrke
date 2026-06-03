@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('unique_codes')) {
+            return;
+        }
+
         Schema::create('unique_codes', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();;

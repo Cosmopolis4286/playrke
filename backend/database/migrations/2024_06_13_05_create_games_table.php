@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('games')) {
+            return;
+        }
+
         Schema::create('games', function (Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único del juego');

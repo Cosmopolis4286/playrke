@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('binance_accounts')) {
+            return;
+        }
+
         Schema::create('binance_accounts', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();;

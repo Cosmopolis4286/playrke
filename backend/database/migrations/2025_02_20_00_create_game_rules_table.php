@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('game_rules')) {
+            return;
+        }
+
         Schema::create('game_rules', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();;

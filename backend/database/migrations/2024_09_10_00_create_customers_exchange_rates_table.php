@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('customers_exchange_rates')) {
+            return;
+        }
+
         Schema::create('customers_exchange_rates', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la tasa de cambio');

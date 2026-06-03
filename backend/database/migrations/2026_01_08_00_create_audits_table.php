@@ -8,6 +8,10 @@ class CreateAuditsTable extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('audits')) {
+            return;
+        }
+
         Schema::create('audits', function (Blueprint $table) {
 
             $table->id();

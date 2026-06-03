@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('public_tokens')) {
+            return;
+        }
+
         Schema::create('public_tokens', function (Blueprint $table) {
             $table->id();
 

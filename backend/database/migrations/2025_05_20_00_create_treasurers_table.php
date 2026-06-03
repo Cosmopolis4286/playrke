@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('treasurers')) {
+            return;
+        }
+
         Schema::create('treasurers', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();;

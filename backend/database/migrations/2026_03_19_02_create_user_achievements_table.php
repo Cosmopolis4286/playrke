@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('user_achievements')) {
+            return;
+        }
+
         Schema::create('user_achievements', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignSnowflake('user_id')->constrained('users')->onDelete('cascade');

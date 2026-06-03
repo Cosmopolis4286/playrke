@@ -22,6 +22,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('withdrawal_limits')) {
+            return;
+        }
+
         Schema::create('withdrawal_limits', function (Blueprint $table) {
             $table->id();
 

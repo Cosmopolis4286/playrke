@@ -22,6 +22,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('customers_games')) {
+            return;
+        }
+
         Schema::create('customers_games', function (Blueprint $table) {
             // ============================================
             // FOREIGN KEYS

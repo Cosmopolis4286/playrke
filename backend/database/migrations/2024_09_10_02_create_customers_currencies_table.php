@@ -22,6 +22,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('customers_currencies')) {
+            return;
+        }
+
         Schema::create('customers_currencies', function (Blueprint $table) {       
             // ============================================
             // FOREIGN KEYS

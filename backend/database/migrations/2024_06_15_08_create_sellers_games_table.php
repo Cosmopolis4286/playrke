@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('sellers_games')) {
+            return;
+        }
+
         Schema::create('sellers_games', function (Blueprint $table) {
             // Vendedor
             $table->foreignSnowflake('seller_id')

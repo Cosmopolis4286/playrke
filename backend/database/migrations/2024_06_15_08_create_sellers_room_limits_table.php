@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('sellers_room_limits')) {
+            return;
+        }
+
         Schema::create('sellers_room_limits', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();

@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('banks_venezuela')) {
+            return;
+        }
+
         Schema::create('banks_venezuela', function (Blueprint $table) {
             // ID Snowflake para consistencia y seguridad
             $table->snowflake('id')->primary()->comment('ID único del banco');

@@ -13,6 +13,10 @@ return new class extends Migration
      */
     public function up()
     {
+        if (Schema::hasTable('banks_brazil')) {
+            return;
+        }
+
         Schema::create('banks_brazil', function (Blueprint $table) {
             // PK con Snowflake
             $table->snowflake('id')->primary();;

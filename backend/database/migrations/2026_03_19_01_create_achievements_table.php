@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('achievements')) {
+            return;
+        }
+
         Schema::create('achievements', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('code')->unique(); // Código único del logro

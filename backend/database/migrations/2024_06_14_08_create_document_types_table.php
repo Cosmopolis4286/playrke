@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('document_types')) {
+            return;
+        }
+
         Schema::create('document_types', function (Blueprint $table) {
             $table->snowflake('id')->primary(); // ID único Snowflake
             $table->string('code', 25)->comment('Código corto del documento');

@@ -23,33 +23,35 @@ return new class extends Migration
     public function up(): void
     {
         // ── Tabla de versiones ────────────────────────────────────────────────
-        Schema::create('tos_versions', function (Blueprint $table) {
-            $table->id();
-            // Semver o fecha: "1.0.0", "2025-05-01"
-            $table->string('version', 20)->unique();
-            $table->string('title', 200);
-            // URL o clave del archivo de contenido; el texto puede vivir en storage
-            $table->string('content_key', 200)->nullable();
-            // Resumen de cambios para mostrar al usuario
-            $table->text('summary')->nullable();
-            // 'draft' | 'active' | 'archived'
-            $table->string('status', 20)->default('draft')->index();
-            // Cuándo entra en vigor (puede ser futura)
-            $table->timestamp('effective_at')->useCurrent();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('tos_versions')) {
+            Schema::create('tos_versions', function (Blueprint $table) {
+                $table->id();
+                // Semver o fecha: "1.0.0", "2025-05-01"
+                $table->string('version', 20)->unique();
+                $table->string('title', 200);
+                // URL o clave del archivo de contenido; el texto puede vivir en storage
+                $table->string('content_key', 200)->nullable();
+                // Resumen de cambios para mostrar al usuario
+                $table->text('summary')->nullable();
+                // 'draft' | 'active' | 'archived'
+                $table->string('status', 20)->default('draft')->index();
+                // Cuándo entra en vigor (puede ser futura)
+                $table->timestamp('effective_at')->useCurrent();
+                $table->timestamps();
+            });
 
-        // Insertar la versión inicial
-        DB::table('tos_versions')->insert([
-            'version'      => '1.0.0',
-            'title'        => 'Términos y Condiciones de Uso',
-            'content_key'  => 'tos.v1',
-            'summary'      => 'Versión inicial de los Términos de Servicio de Playrke.',
-            'status'       => 'active',
-            'effective_at' => now(),
-            'created_at'   => now(),
-            'updated_at'   => now(),
-        ]);
+            // Insertar la versión inicial
+            DB::table('tos_versions')->insert([
+                'version'      => '1.0.0',
+                'title'        => 'Términos y Condiciones de Uso',
+                'content_key'  => 'tos.v1',
+                'summary'      => 'Versión inicial de los Términos de Servicio de Playrke.',
+                'status'       => 'active',
+                'effective_at' => now(),
+                'created_at'   => now(),
+                'updated_at'   => now(),
+            ]);
+        }
 
         // ── Columnas en users ─────────────────────────────────────────────────
         Schema::table('users', function (Blueprint $table) {

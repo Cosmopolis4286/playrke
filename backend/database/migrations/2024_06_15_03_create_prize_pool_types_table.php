@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('prize_pool_types')) {
+            return;
+        }
+
         Schema::create('prize_pool_types', function (Blueprint $table) {
             $table->snowflake('id')->primary()->comment('ID del tipo de premio');
 

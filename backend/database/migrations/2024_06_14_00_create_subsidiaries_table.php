@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('subsidiaries')) {
+            return;
+        }
+
         Schema::create('subsidiaries', function (Blueprint $table) {
             // ID Snowflake
             $table->snowflake('id')->primary()->comment('ID único de la sucursal');
