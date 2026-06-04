@@ -18,8 +18,24 @@ final class WalletMovementController extends Controller
     {
         $this->authorize('viewAny', WalletMovement::class);
 
+        $paginator = WalletMovement::with([
+            'wallet:id,currency_id',
+            'wallet.currency:id,iso_code,symbol,decimal_places',
+            'user:id,first_name,last_name,email,username',
+            'processedBy:id,first_name,last_name,email',
+        ])
+        ->orderByDesc('created_at')
+        ->paginate(20);
+
         return Inertia::render('Wallet/Movements/Index', [
-            'title' => 'Movimientos de Billetera',
+            'title'     => 'Movimientos de Billetera',
+            'movements' => collect($paginator->items())->map(fn(WalletMovement $m) => $this->mapMovement($m)),
+            'meta'      => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'per_page'     => $paginator->perPage(),
+                'total'        => $paginator->total(),
+            ],
         ]);
     }
 

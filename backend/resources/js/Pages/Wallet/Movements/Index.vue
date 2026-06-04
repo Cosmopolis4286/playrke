@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import CardHeader      from '@js/Components/Common/Card/CardHeader.vue'
 import BaseTable       from '@js/Components/Common/Table/BaseTable.vue'
@@ -9,8 +9,12 @@ import Modal           from '@js/Components/Common/Modal/Modal.vue'
 import backendClient   from '@js/plugins/axios'
 import type { TableFilterInterface } from '@js/types/common/table/table-filter'
 
-interface Props { title: string }
-defineProps<Props>()
+interface Props {
+  title:     string
+  movements: Movement[]
+  meta:      Meta
+}
+const props = defineProps<Props>()
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 interface MovementUser {
@@ -68,8 +72,8 @@ interface Meta {
 }
 
 // ── Estado lista ───────────────────────────────────────────────────────────
-const movements   = ref<Movement[]>([])
-const meta        = ref<Meta | null>(null)
+const movements   = ref<Movement[]>(props.movements)
+const meta        = ref<Meta | null>(props.meta)
 const loading     = ref(false)
 const lastSearch  = ref('')
 const lastFilters = ref<Record<string, string>>({})
@@ -274,7 +278,6 @@ const isActionable = computed(() => isPending.value && (detail.value?.type === '
 const totalPages  = computed(() => meta.value?.last_page    ?? 1)
 const currentPage = computed(() => meta.value?.current_page ?? 1)
 
-onMounted(() => fetchMovements())
 </script>
 
 <template>
@@ -352,7 +355,7 @@ onMounted(() => fetchMovements())
             <button
               class="btn btn-sm btn-outline-info"
               title="Ver detalle"
-              @click="openDetail(row.id)"
+              @click="openDetail(String(row.id))"
             >
               <i class="fas fa-eye"></i>
             </button>

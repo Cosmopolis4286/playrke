@@ -112,6 +112,12 @@ function formatAmount(value: number) {
   }).format(value)
 }
 
+const receiptPreviewUrl = computed(() => {
+  if (!receipt.value) return null
+  if (!receipt.value.type.startsWith('image/')) return null
+  return URL.createObjectURL(receipt.value)
+})
+
 const hasMoreMovements = () =>
   movementsMeta.value !== null &&
   movementsMeta.value.current_page < movementsMeta.value.last_page
@@ -537,6 +543,7 @@ const modalIcon = computed(() => {
       :title="modalTitle"
       :icon="modalIcon"
       size="sm"
+      :static="true"
     >
 
       <!-- ── Indicador de pasos (solo pasos 1 y 2) ────────────────────── -->
