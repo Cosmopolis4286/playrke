@@ -14,10 +14,10 @@
         loader.classList.add('is-hidden');
         loader.setAttribute('aria-busy', 'false');
 
-        // Eliminar del DOM luego de la transición
+        // Eliminar del DOM luego de la transición (debe coincidir con CSS transition: 0.5s)
         setTimeout(() => {
             loader.remove();
-        }, 300);
+        }, 520);
     };
 
     if (document.readyState === 'complete') {

@@ -135,7 +135,7 @@ body::-webkit-scrollbar-thumb {
 
 /* Compensar la altura del navbar custom (54px) sobre el valor por defecto de AdminLTE (57px) */
 .layout-fixed .wrapper .content-wrapper {
-  margin-top: 54px !important;
+  margin-top: 54px;
 }
 
 .user-img {
