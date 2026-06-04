@@ -56,6 +56,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('files', function () {
             return new Filesystem();
         });
+
+        // -------------------------------------------
+        // Binding de middleware 'tos' en el contenedor
+        // -------------------------------------------
+        // Necesario para que Laravel pueda resolver el alias antes de que
+        // el router haya registrado los aliases de middleware.
+        $this->app->bind('tos', \App\Http\Middleware\RequireTosAcceptance::class);
     }
 
     /**
