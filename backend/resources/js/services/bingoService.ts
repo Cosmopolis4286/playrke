@@ -5,12 +5,16 @@ import type { AxiosResponse } from 'axios';
 export interface BingoRoom {
   id: string;
   encrypted?: string;
+  uuid_code?: string;
   uuidCode?: string;
   status?: number | string;
   status_code?: string;
   status_id?: string;
   roomType?: number;
+  room_type_description?: string;
   roomTypeDescription?: string;
+  game_mode_description?: string;
+  gameModeDescription?: string;
   creator?: {
     id: string;
     username: string;
@@ -18,6 +22,7 @@ export interface BingoRoom {
   };
   paidWin?: boolean;
   publicationDate?: Date;
+  card_price_usd?: number;
   cardPrice?: number;
   players?: number;
   ctns?: number;
@@ -25,12 +30,26 @@ export interface BingoRoom {
   rkeCommn?: number;
   roomCommn?: number;
   commission?: number;
+  prize_pool?: number;
   prizePool?: number;
+  full_house_prize?: number;
   fullHousePrize?: number;
+  serial_prize?: number;
   serialPrize?: number;
+  total_players?: number;
+  total_cards?: number;
+  close_room?: boolean;
   closeRoom?: boolean;
+  currency_symbol?: string;
+  currencySymbol?: string;
   currentPlayers?: number;
   currentCards?: number;
+  unix_date?: number | null;
+  date?: string;
+  time?: string;
+  time_chip?: number;
+  rounds?: number;
+  in_live?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

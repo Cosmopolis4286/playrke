@@ -43,15 +43,46 @@ final class BingoGameController extends Controller
         return $this->handleServiceInertia(
             function () use ($room) {
                 $userId = $this->userContext->resolveUserId();
+
+                $room->load([
+                    'status',
+                    'config.roomType',
+                    'config.gameMode',
+                ]);
+
                 $userCards = $room->cards()
                     ->whereHas('roomUser', fn($q) => $q->where('user_id', $userId))
                     ->where('status', 'active')
                     ->count();
 
+                $config = $room->config;
+
+                $roomData = [
+                    'id'                   => (string) $room->id,
+                    'uuid_code'            => $room->uuid_code,
+                    'status_code'          => $room->status_code,
+                    'prize_pool'           => (float) $room->prize_pool,
+                    'full_house_prize'     => (float) $room->full_house_prize,
+                    'serial_prize'         => (float) $room->serial_prize,
+                    'total_players'        => (int) $room->total_players,
+                    'total_cards'          => (int) $room->total_cards,
+                    'close_room'           => $room->is_closed,
+                    'currency_symbol'      => 'USD',
+                    'room_type_description' => $config?->roomType?->description ?? 'Pública',
+                    'game_mode_description' => $config?->gameMode?->description ?? 'Mixto',
+                    'unix_date'            => $config?->unix_date,
+                    'date'                 => $config?->date?->format('Y-m-d'),
+                    'time'                 => $config?->time,
+                    'card_price_usd'       => (float) ($config?->card_price_usd ?? 0),
+                    'time_chip'            => $config?->time_chip,
+                    'rounds'               => $config?->rounds,
+                    'in_live'              => (bool) $config?->in_live,
+                ];
+
                 return Inertia::render('Games/Bingo/Lobby/Index', [
-                    'room' => $room,
+                    'room'         => $roomData,
                     'roomRouteKey' => $room->getRouteKey(),
-                    'userCards' => $userCards,
+                    'userCards'    => $userCards,
                 ]);
             },
             'No se pudo cargar el lobby.'

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import { usePage } from "@inertiajs/vue3";
 import "@/css/games/bingo/bingo-game-rooms.css";
 
@@ -76,7 +76,7 @@ function closeRoomInfo(): void {
 }
 
 function goToLobby(roomId: string): void {
-  window.location.href = `/bingo/${roomId}/game`;
+  window.location.href = `/bingo/${roomId}/lobby`;
 }
 
 function openPurchaseFromInfo(): void {
@@ -120,13 +120,90 @@ const roomTypeMap: Record<string, string> = {
   PUBLIC: "Pública", PRIVATE: "Privada",
 };
 
+// ── Meteoros ──
+let meteorTimer: ReturnType<typeof setInterval> | null = null;
+
+function spawnMeteor() {
+  const container = document.getElementById('grm-meteors');
+  if (!container) return;
+  if (container.children.length >= 22) return;
+
+  const m = document.createElement('div');
+  m.className = 'grm-meteor';
+
+  // variedad de tamaños: pequeño / medio / grande
+  const sizeClass = Math.random();
+  const size     = sizeClass < 0.4
+    ? 140 + Math.random() * 80   // pequeño: 140–220px
+    : sizeClass < 0.75
+    ? 220 + Math.random() * 120  // medio:   220–340px
+    : 320 + Math.random() * 140; // grande:  320–460px
+
+  const height   = sizeClass < 0.4 ? 2 : sizeClass < 0.75 ? 3 : 4; // px
+  // lento: 4–9s
+  const duration = 4 + Math.random() * 5;
+  // ángulo ligero variación ±8°
+  const angle    = 210 + (Math.random() * 16 - 8);
+  // aparece en la franja superior (0%–110% X, -5%→5% Y)
+  const startX   = Math.random() * 110;
+  const startY   = Math.random() * 8;   // % desde top
+  const opacity  = 0.55 + Math.random() * 0.4;
+
+  // cola: box-shadow emulando brillo detrás del meteoro
+  const glowColor = Math.random() > 0.5
+    ? 'rgba(180,210,255,0.35)'
+    : 'rgba(200,240,255,0.3)';
+
+  m.style.cssText = `
+    left: ${startX}%;
+    top: ${startY}%;
+    width: ${size}px;
+    height: ${height}px;
+    opacity: ${opacity};
+    --angle: ${angle}deg;
+    --duration: ${duration}s;
+    --glow: ${glowColor};
+  `;
+
+  container.appendChild(m);
+  m.addEventListener('animationend', () => m.remove(), { once: true });
+}
+
+function startMeteors() {
+  // dispara 1–4 meteoros cada 1.2–3.5s para mayor densidad
+  function schedule() {
+    const delay = 1200 + Math.random() * 2300;
+    meteorTimer = setTimeout(() => {
+      const burst = 1 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < burst; i++) {
+        setTimeout(spawnMeteor, i * 160);
+      }
+      schedule();
+    }, delay) as any;
+  }
+  // lanza 3 meteoros al inicio para que no se vea vacío
+  for (let i = 0; i < 3; i++) setTimeout(spawnMeteor, i * 400);
+  schedule();
+}
+
 onMounted(() => {
   initCountdown(props.rooms);
+  startMeteors();
+});
+
+onUnmounted(() => {
+  if (meteorTimer) clearTimeout(meteorTimer);
 });
 </script>
 
 <template>
   <div class="game-rooms-page">
+
+    <!-- Cubre el viewport completo incluyendo el gap del navbar -->
+    <div class="game-rooms-spacecover" />
+
+    <!-- ── Meteoros ── -->
+    <div id="grm-meteors" class="grm-meteors" aria-hidden="true" />
 
     <!-- ── Encabezado ── -->
     <div class="game-rooms-page__header">
@@ -324,28 +401,54 @@ onMounted(() => {
 </template>
 
 <style>
+/* ══════════════════════════════════════════════════════
+   RESET LAYOUT — idéntico a Game/Index.vue
+══════════════════════════════════════════════════════ */
 html, body {
   height: auto !important;
   min-height: 100%;
   overflow-y: auto !important;
   overflow-x: hidden !important;
+  /* Fondo base que cubre el gap del navbar */
+  background: #04081a !important;
 }
-
-body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
+body,
+body.hold-transition,
+#app-wrapper,
+.wrapper,
+.content-wrapper {
   background-color: #04081a !important;
   background-image: none !important;
 }
-
+/* Capa fija que cubre TODO el viewport incluyendo el gap del navbar (margin-top de AdminLTE) */
+.game-rooms-spacecover {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 55% at 15%  5%, rgba( 80,  0,200,0.30) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 85% 12%, rgba(  0, 60,220,0.24) 0%, transparent 58%),
+    radial-gradient(ellipse 60% 45% at 50% 85%, rgba(  0,150,110,0.16) 0%, transparent 62%),
+    radial-gradient(ellipse 55% 65% at 92% 68%, rgba(130,  0,210,0.20) 0%, transparent 58%),
+    radial-gradient(ellipse 45% 38% at  8% 58%, rgba(  0, 90,255,0.14) 0%, transparent 52%),
+    radial-gradient(ellipse 35% 30% at 40% 40%, rgba(  0,180,255,0.08) 0%, transparent 50%),
+    linear-gradient(160deg, #04081a 0%, #060d2a 45%, #030812 100%);
+}
 .content-header {
   display: none !important;
   padding: 0 !important;
   min-height: 0 !important;
   height: 0 !important;
 }
-
-.content-wrapper > .content { padding: 0 !important; }
-.content-wrapper > .content { display: flex; flex-direction: column; }
-
+.content-wrapper > .content {
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 100vh;
+}
 .content-wrapper > .content > #app,
 .content-wrapper > .content > [data-page] {
   flex: 1;
@@ -355,13 +458,87 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
   min-height: 100vh;
   overflow: visible !important;
 }
+.wrapper, .content-wrapper {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
 
+/* ── Meteoros ── */
+.grm-meteor {
+  position: absolute;
+  border-radius: 999px;
+  /* Cabeza brillante + gradiente estela larga */
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0)     0%,
+    rgba(180,215,255,0.15) 18%,
+    rgba(200,225,255,0.45) 38%,
+    rgba(230,245,255,0.80) 62%,
+    rgba(255,255,255,1)    82%,
+    rgba(255,255,255,0.6)  100%
+  );
+  /* estela luminosa con box-shadow multi-capa */
+  box-shadow:
+    0 0 4px  1px rgba(255,255,255,0.55),
+    0 0 10px 2px rgba(180,220,255,0.35),
+    0 0 22px 4px rgba(140,200,255,0.18);
+  transform: rotate(var(--angle, 215deg));
+  transform-origin: right center;
+  animation: meteorFall var(--duration, 6s) linear forwards;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* cola extra con ::after — partícula brillante en la cabeza */
+.grm-meteor::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(200,230,255,0.4) 60%, transparent 100%);
+  box-shadow: 0 0 8px 3px rgba(180,220,255,0.7);
+}
+
+@keyframes meteorFall {
+  0% {
+    transform: rotate(var(--angle, 215deg)) translateX(0);
+    opacity: 1;
+  }
+  15% { opacity: 1; }
+  80% { opacity: 0.6; }
+  100% {
+    transform: rotate(var(--angle, 215deg)) translateX(220vh);
+    opacity: 0;
+  }
+}
+
+/* idéntico a Game/Index.vue — sin clases dinámicas en body */
+.content-header {
+  display: none !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  height: 0 !important;
+}
 .content-wrapper > .content {
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
   overflow: visible !important;
   height: auto !important;
   min-height: 100vh;
 }
-
+.content-wrapper > .content > #app,
+.content-wrapper > .content > [data-page] {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
 .wrapper, .content-wrapper {
   height: auto !important;
   min-height: 100vh;
@@ -370,13 +547,13 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 </style>
 
 <style scoped>
-/* ═══════════════════════════════
-   PÁGINA
-═══════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   PÁGINA — fondo estelar directo (igual que Game/Index)
+═══════════════════════════════════════════════════════ */
 .game-rooms-page {
   flex: 1;
   min-height: 100vh;
-  padding: 40px 16px 80px;
+  padding: 48px 16px 80px;
   position: relative;
   isolation: isolate;
   overflow-y: auto;
@@ -384,14 +561,7 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
   scrollbar-width: thin;
   scrollbar-color: #7b4fff rgba(255,255,255,0.03);
 
-  background:
-    radial-gradient(ellipse 90% 55% at 15% 5%,  rgba(80,0,200,0.3)   0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 85% 12%,  rgba(0,60,220,0.24)  0%, transparent 58%),
-    radial-gradient(ellipse 60% 45% at 50% 85%,  rgba(0,150,110,0.16) 0%, transparent 62%),
-    radial-gradient(ellipse 55% 65% at 92% 68%,  rgba(130,0,210,0.2)  0%, transparent 58%),
-    radial-gradient(ellipse 45% 38% at 8%  58%,  rgba(0,90,255,0.14)  0%, transparent 52%),
-    radial-gradient(ellipse 35% 30% at 40% 40%,  rgba(0,180,255,0.08) 0%, transparent 50%),
-    linear-gradient(160deg, #04081a 0%, #060d2a 45%, #030812 100%);
+  background: transparent;
 }
 
 .game-rooms-page::-webkit-scrollbar { width: 4px; }
@@ -400,64 +570,66 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
   background: linear-gradient(180deg, #7b4fff 0%, #2af598 45%, #009efd 100%);
   border-radius: 10px;
 }
+.game-rooms-page::-webkit-scrollbar-button { display: none; }
 
-/* Estrellas */
+/* ── Capa estrellas pequeñas (igual que ig-page::before) ── */
 .game-rooms-page::before {
   content: "";
   position: fixed; inset: 0; z-index: -2; pointer-events: none;
   background-image:
-    radial-gradient(1px 1px at  6%  8%, rgba(255,255,255,0.9)  0%, transparent 100%),
+    radial-gradient(1px 1px at  6%  8%, rgba(255,255,255,0.90) 0%, transparent 100%),
     radial-gradient(1px 1px at 14% 22%, rgba(255,255,255,0.55) 0%, transparent 100%),
-    radial-gradient(1px 1px at 24%  4%, rgba(255,255,255,0.8)  0%, transparent 100%),
+    radial-gradient(1px 1px at 24%  4%, rgba(255,255,255,0.80) 0%, transparent 100%),
     radial-gradient(1px 1px at 33% 38%, rgba(255,255,255,0.45) 0%, transparent 100%),
-    radial-gradient(1px 1px at 44% 16%, rgba(255,255,255,0.7)  0%, transparent 100%),
+    radial-gradient(1px 1px at 44% 16%, rgba(255,255,255,0.70) 0%, transparent 100%),
     radial-gradient(1px 1px at 57%  7%, rgba(255,255,255,0.85) 0%, transparent 100%),
-    radial-gradient(1px 1px at 66% 30%, rgba(255,255,255,0.6)  0%, transparent 100%),
+    radial-gradient(1px 1px at 66% 30%, rgba(255,255,255,0.60) 0%, transparent 100%),
     radial-gradient(1px 1px at 76% 12%, rgba(255,255,255,0.75) 0%, transparent 100%),
-    radial-gradient(1px 1px at 88%  5%, rgba(255,255,255,0.5)  0%, transparent 100%),
-    radial-gradient(1px 1px at 95% 22%, rgba(255,255,255,0.8)  0%, transparent 100%),
+    radial-gradient(1px 1px at 88%  5%, rgba(255,255,255,0.50) 0%, transparent 100%),
+    radial-gradient(1px 1px at 95% 22%, rgba(255,255,255,0.80) 0%, transparent 100%),
     radial-gradient(1px 1px at  3% 45%, rgba(255,255,255,0.65) 0%, transparent 100%),
-    radial-gradient(1px 1px at 11% 60%, rgba(255,255,255,0.4)  0%, transparent 100%),
+    radial-gradient(1px 1px at 11% 60%, rgba(255,255,255,0.40) 0%, transparent 100%),
     radial-gradient(1px 1px at 20% 75%, rgba(255,255,255,0.72) 0%, transparent 100%),
-    radial-gradient(1px 1px at 30% 52%, rgba(255,255,255,0.5)  0%, transparent 100%),
-    radial-gradient(1px 1px at 42% 68%, rgba(255,255,255,0.65) 0%, transparent 100%),
     radial-gradient(1px 1px at 53% 48%, rgba(255,255,255,0.85) 0%, transparent 100%),
-    radial-gradient(1px 1px at 72% 55%, rgba(255,255,255,0.7)  0%, transparent 100%),
     radial-gradient(1px 1px at 83% 70%, rgba(255,255,255,0.55) 0%, transparent 100%),
     radial-gradient(1.5px 1.5px at 18% 18%, rgba(180,200,255,0.95) 0%, transparent 100%),
     radial-gradient(1.5px 1.5px at 48% 10%, rgba(200,180,255,0.88) 0%, transparent 100%),
     radial-gradient(1.5px 1.5px at 78% 28%, rgba(180,220,255,0.92) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 60% 58%, rgba(200,255,220,0.85) 0%, transparent 100%);
+    radial-gradient(1.5px 1.5px at 60% 58%, rgba(200,255,220,0.85) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 90% 45%, rgba(255,240,180,0.80) 0%, transparent 100%);
   animation: twinkle-a 7s ease-in-out infinite alternate;
 }
 
+/* ── Capa estrellas grandes + halos (igual que ig-page::after) ── */
 .game-rooms-page::after {
   content: "";
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background-image:
-    radial-gradient(2px 2px at 10% 15%, rgba(255,255,255,0.95)  0%, transparent 100%),
-    radial-gradient(2px 2px at 28% 32%, rgba(200,210,255,0.88)  0%, transparent 100%),
-    radial-gradient(2px 2px at 45%  8%, rgba(255,255,255,0.82)  0%, transparent 100%),
-    radial-gradient(2px 2px at 65% 25%, rgba(255,240,180,0.92)  0%, transparent 100%),
-    radial-gradient(2px 2px at 82% 18%, rgba(180,200,255,0.85)  0%, transparent 100%),
-    radial-gradient(3px 3px at 37% 20%, rgba(255,255,255,1)     0%, transparent 100%),
-    radial-gradient(3px 3px at 70% 45%, rgba(220,200,255,0.96)  0%, transparent 100%),
-    radial-gradient(3px 3px at 15% 82%, rgba(255,255,255,0.92)  0%, transparent 100%),
-    radial-gradient(4px 4px at 62% 35%, rgba(255,255,255,1) 0%, rgba(200,220,255,0.3) 50%, transparent 100%);
+    radial-gradient(2px 2px at 10% 15%, rgba(255,255,255,0.95) 0%, transparent 100%),
+    radial-gradient(2px 2px at 45%  8%, rgba(255,255,255,0.82) 0%, transparent 100%),
+    radial-gradient(2px 2px at 65% 25%, rgba(255,240,180,0.92) 0%, transparent 100%),
+    radial-gradient(2px 2px at 82% 18%, rgba(180,200,255,0.85) 0%, transparent 100%),
+    radial-gradient(2px 2px at 23% 70%, rgba(255,255,255,0.90) 0%, transparent 100%),
+    radial-gradient(2px 2px at 55% 62%, rgba(220,200,255,0.85) 0%, transparent 100%),
+    radial-gradient(3px 3px at 37% 20%, rgba(255,255,255,1.00) 0%, transparent 100%),
+    radial-gradient(3px 3px at 70% 45%, rgba(220,200,255,0.96) 0%, transparent 100%),
+    radial-gradient(3px 3px at 15% 82%, rgba(255,255,255,0.92) 0%, transparent 100%),
+    radial-gradient(4px 4px at 62% 35%, rgba(255,255,255,1.00) 0%, rgba(200,220,255,0.3) 50%, transparent 100%);
   animation: twinkle-b 9s ease-in-out infinite alternate-reverse;
 }
 
 @keyframes twinkle-a {
-  0%   { opacity: 0.55; }
-  40%  { opacity: 0.95; }
-  70%  { opacity: 0.7;  }
-  100% { opacity: 0.85; }
+  0%   { opacity: 0.55; } 40%  { opacity: 0.95; }
+  70%  { opacity: 0.70; } 100% { opacity: 0.85; }
 }
 @keyframes twinkle-b {
-  0%   { opacity: 0.7; }
-  35%  { opacity: 0.5; }
-  65%  { opacity: 1;   }
-  100% { opacity: 0.65;}
+  0%   { opacity: 0.70; } 35%  { opacity: 0.50; }
+  65%  { opacity: 1.00; } 100% { opacity: 0.65; }
+}
+
+/* ── Contenedor de meteoros ── */
+.grm-meteors {
+  position: fixed; inset: 0; z-index: 2; pointer-events: none; overflow: hidden;
 }
 
 /* ═══════════════════════════════
