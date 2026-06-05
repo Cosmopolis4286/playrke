@@ -137,7 +137,7 @@ class WalletController extends Controller
                 'description'    => $m->description,
                 'reference_id'   => $m->reference_id,
                 'receipt_path'   => $m->receipt_path,
-                'receipt_url'    => $m->receipt_path ? '/storage/' . $m->receipt_path : null,
+                'receipt_url'    => $m->receipt_path ? route('wallet.receipt', ['filename' => basename($m->receipt_path)]) : null,
                 'admin_notes'    => $m->admin_notes,
                 'processed_at'   => $m->processed_at?->toISOString(),
                 'created_at'     => $m->created_at,

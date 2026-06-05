@@ -31,6 +31,22 @@ Route::middleware(['auth', 'multiPermission:wallet.view,wallet.deposit,wallet.wi
 });
 
 // ====================================
+// COMPROBANTES (autenticado — evita exposición pública)
+// ====================================
+Route::middleware('auth')->get('wallet/receipt/{filename}', function (string $filename) {
+    // Solo letras, números, guiones y extensión — sin path traversal
+    if (! preg_match('/^[\w\-]+\.(jpg|jpeg|png|pdf|webp)$/i', $filename)) {
+        abort(404);
+    }
+    $path = storage_path('app/public/wallet/receipts/' . $filename);
+    if (! file_exists($path)) {
+        abort(404);
+    }
+    $mime = mime_content_type($path) ?: 'application/octet-stream';
+    return response()->file($path, ['Content-Type' => $mime]);
+})->name('wallet.receipt');
+
+// ====================================
 // GESTIÓN DE MOVIMIENTOS (ADMIN/SUPERADMIN)
 // ====================================
 Route::middleware(['auth', 'multiPermission:wallet.movements.view,wallet.movements.manage'])->group(function () {
