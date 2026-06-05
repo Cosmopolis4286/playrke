@@ -181,15 +181,10 @@ final class BingoCardGenerationService
 
             Log::info('Card lot created', ['lotID' => $lotID]);
 
-            // Generar y almacenar los cartones de bingo
-            $generateAndStoreCtns = $this->cardManagement->generateAndStoreCtns($arrCtn, $lotID);
+            // Generar y almacenar los cartones de bingo (lanza excepción si falla)
+            $this->cardManagement->generateAndStoreCtns($arrCtn, $lotID);
 
-            Log::info('Cards generation result', ['generateAndStoreCtns' => $generateAndStoreCtns]);
-
-            if (!$generateAndStoreCtns) {
-                Log::error('Failed to generate and store cards');
-                throw new \DomainException('Error al generar cartones');
-            }
+            Log::info('Cards generated and stored successfully', ['lotID' => $lotID, 'count' => $arrCtn['numOfCtns']]);
 
             // Guardar comprobante de pago si se proporcionó
             if (isset($arrCtn['receiptImage']) && $arrCtn['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {

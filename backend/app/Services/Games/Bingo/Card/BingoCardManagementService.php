@@ -23,15 +23,17 @@ class BingoCardManagementService
     {
         try {
             $lotData = [
-                'room_id' => $cartonData['roomId'],
-                'user_id' => $cartonData['creator']['id'],
-                'room_user_id' => $cartonData['roomUser'],
-                'currency_id' => $cartonData['currency'],
-                'card_count' => $cartonData['numOfCtns'],
-                'card_price' => $cartonData['cardPrice'],
-                'sale_amount' => $saleAmount,
-                'exchange_rate' => $cartonData['exchangeRate'] ?? 1,
-                'status' => 'ACTIVE',
+                'room_id'        => $cartonData['roomId'],
+                'user_id'        => $cartonData['creator']['id'],
+                'seller_user_id' => $cartonData['seller_user_id'] ?? null,
+                'seller_type'    => $cartonData['seller_type'] ?? 'USER',
+                'room_user_id'   => $cartonData['roomUser'],
+                'currency_id'    => $cartonData['currency'],
+                'card_count'     => $cartonData['numOfCtns'],
+                'card_price'     => $cartonData['cardPrice'],
+                'sale_amount'    => $saleAmount,
+                'exchange_rate'  => $cartonData['exchangeRate'] ?? 1,
+                'status'         => 'ACTIVE',
             ];
 
             $lot = BingoCardLot::create($lotData);
@@ -39,9 +41,10 @@ class BingoCardManagementService
         } catch (\Throwable $e) {
             Log::error('Error al crear lote de cartones: ' . $e->getMessage(), [
                 'cartonData' => $cartonData,
-                'saleAmount' => $saleAmount
+                'saleAmount' => $saleAmount,
+                'trace' => $e->getTraceAsString(),
             ]);
-            return null;
+            throw $e;
         }
     }
 
@@ -70,57 +73,46 @@ class BingoCardManagementService
             // Generar cartones únicos
             for ($i = 0; $i < $numOfCtns; $i++) {
                 $cardData = $this->generateSingleCard($roomId, $roomUserId);
-                
+
+                // card_numbers incluye centro libre (N[2] = null)
+                $numbers = $cardData['numbers'];
+                $cardNumbers = [
+                    'B' => $numbers['B'],
+                    'I' => $numbers['I'],
+                    'N' => [$numbers['N'][0], $numbers['N'][1], null, $numbers['N'][2], $numbers['N'][3]],
+                    'G' => $numbers['G'],
+                    'O' => $numbers['O'],
+                ];
+
                 $cards[] = [
-                    'id' => $cardIds[$i], // Usar ID pre-generado
-                    'card_lot_id' => $lotId,
-                    'room_id' => $roomId,
+                    'id'              => $cardIds[$i],
+                    'card_lot_id'     => $lotId,
+                    'room_id'         => $roomId,
                     'creator_user_id' => $userId,
-                    'room_user_id' => $roomUserId,
-                    'seller_user_id' => $cartonData['seller_user_id'] ?? null,
-                    'seller_type' => $cartonData['seller_type'] ?? 'USER',
-                    'currency_id' => $cartonData['currency'],
-                    'serial_number' => $this->generateSerialNumber(),
-                    'b1' => $cardData['numbers']['B'][0] ?? null,
-                    'b2' => $cardData['numbers']['B'][1] ?? null,
-                    'b3' => $cardData['numbers']['B'][2] ?? null,
-                    'b4' => $cardData['numbers']['B'][3] ?? null,
-                    'b5' => $cardData['numbers']['B'][4] ?? null,
-                    'i1' => $cardData['numbers']['I'][0] ?? null,
-                    'i2' => $cardData['numbers']['I'][1] ?? null,
-                    'i3' => $cardData['numbers']['I'][2] ?? null,
-                    'i4' => $cardData['numbers']['I'][3] ?? null,
-                    'i5' => $cardData['numbers']['I'][4] ?? null,
-                    'n1' => $cardData['numbers']['N'][0] ?? null,
-                    'n2' => $cardData['numbers']['N'][1] ?? null,
-                    'n3' => null, // Centro libre
-                    'n4' => $cardData['numbers']['N'][2] ?? null,
-                    'n5' => $cardData['numbers']['N'][3] ?? null,
-                    'g1' => $cardData['numbers']['G'][0] ?? null,
-                    'g2' => $cardData['numbers']['G'][1] ?? null,
-                    'g3' => $cardData['numbers']['G'][2] ?? null,
-                    'g4' => $cardData['numbers']['G'][3] ?? null,
-                    'g5' => $cardData['numbers']['G'][4] ?? null,
-                    'o1' => $cardData['numbers']['O'][0] ?? null,
-                    'o2' => $cardData['numbers']['O'][1] ?? null,
-                    'o3' => $cardData['numbers']['O'][2] ?? null,
-                    'o4' => $cardData['numbers']['O'][3] ?? null,
-                    'o5' => $cardData['numbers']['O'][4] ?? null,
-                    'card_hash' => $cardData['hash'],
-                    'status' => 'ACTIVE',
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'room_user_id'    => $roomUserId,
+                    'seller_user_id'  => $cartonData['seller_user_id'] ?? null,
+                    'seller_type'     => $cartonData['seller_type'] ?? 'USER',
+                    'currency_id'     => $cartonData['currency'],
+                    'serial_number'   => $this->generateSerialNumber(),
+                    'card_numbers'    => json_encode($cardNumbers),
+                    'card_hash'       => $cardData['hash'],
+                    'status'          => 1, // 1 = ACTIVE
+                    'is_validated'    => 0,
+                    'validated_at'    => null,
+                    'created_at'      => now(),
+                    'updated_at'      => now(),
                 ];
             }
 
             // Insertar todos los cartones en lote
-            return BingoCard::insert($cards) > 0;
+            return BingoCard::insert($cards);
         } catch (\Throwable $e) {
             Log::error('Error al generar y almacenar cartones: ' . $e->getMessage(), [
                 'cartonData' => $cartonData,
-                'lotId' => $lotId
+                'lotId' => $lotId,
+                'trace' => $e->getTraceAsString(),
             ]);
-            return false;
+            throw $e;
         }
     }
 

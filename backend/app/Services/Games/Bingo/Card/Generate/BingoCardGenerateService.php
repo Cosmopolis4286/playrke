@@ -179,6 +179,17 @@ final class BingoCardGenerateService
         // Determinar el prefijo de rol activo del usuario (ej. 'commerce', 'seller')
         $role = $this->roleUserService->getActiveUserRolePrefix($userId);
 
+        // Monedas explícitamente permitidas en la sala (JSON nullable → fallback a [])
+        $allowedCurrenciesRoom = BingoRoomConfig::where('room_id', $roomId)->value('allowed_currencies') ?? [];
+        $allowedCurrenciesRoom = array_map('strval', $allowedCurrenciesRoom);
+
+        // superadmin / admin: ven todos los países de las monedas permitidas en la sala
+        if (in_array($role, ['superadmin', 'admin'], true)) {
+            $countriesIdsAvailable = $this->currencies->getCountriesByCurrencies($allowedCurrenciesRoom);
+            $countries = $this->countries->getByIds($countriesIdsAvailable, ['id', 'name', 'iso_code_2']);
+            return ['countries' => $countries];
+        }
+
         // Obtener el ID de la entidad (commerce_id, seller_id, etc.) asociada al usuario
         $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
 
@@ -199,14 +210,11 @@ final class BingoCardGenerateService
             $managerCurrencies = $this->resolveEntityCurrencies($managerEntityId, $managerRole);
         }
 
-        // Monedas explícitamente permitidas en la sala (JSON nullable → fallback a [])
-        $allowedCurrenciesRoom = BingoRoomConfig::where('room_id', $roomId)->value('allowed_currencies') ?? [];
-
         // Construir los conjuntos a intersectar (todos como strings para evitar
         // comparaciones fallidas por tipo int vs string en los IDs)
         $sets = [
             array_map('strval', $entityCurrencies),
-            array_map('strval', $allowedCurrenciesRoom),
+            $allowedCurrenciesRoom,
         ];
 
         if ($managerCurrencies !== null) {
@@ -277,7 +285,21 @@ final class BingoCardGenerateService
     {
         // 1. Rol y entidad del usuario autenticado
         $role     = $this->roleUserService->getActiveUserRolePrefix($userId);
-        $entityId = $this->roleEntityResolver->resolveEntityId($userId, $role);
+
+        // superadmin / admin: precio base de la sala en USD (sin entidad ni tasa)
+        if (in_array($role, ['superadmin', 'admin'], true)) {
+            $currencySymbol = $this->currencies->getValueByCountry($countryId, 'symbol');
+            $room           = BingoRoom::select('id')->with('config:id,room_id,card_price_usd')->find($roomId);
+            $cardPrice      = $room?->config?->card_price_usd ?? 0;
+
+            return [
+                'card_price'        => (float) $cardPrice,
+                'currency_symbol'   => (string) ($currencySymbol ?? 'USD'),
+                'exchange_rate'     => 1.0,
+                'is_custom_price'   => false,
+                'seller_commission' => 0.0,
+            ];
+        }
 
         // 2. Commerce responsable y user_id de su creador (para filtrar bingo_card_prices)
         [$commerceId, $creatorUserId] = $this->resolveCommerceContext($userId, $role);
@@ -371,9 +393,10 @@ final class BingoCardGenerateService
     private function resolveEntityCommission(string $userId, string $role): float
     {
         $commission = match ($role) {
-            'commerce' => $this->commerceRepository->getValueByUserId($userId, 'commission'),
-            'seller'   => $this->sellerRepository->getValueByUserId($userId, 'commission'),
-            default    => throw new DomainException("Rol sin soporte de comisión: {$role}"),
+            'commerce'              => $this->commerceRepository->getValueByUserId($userId, 'commission'),
+            'seller'                => $this->sellerRepository->getValueByUserId($userId, 'commission'),
+            'superadmin', 'admin'   => 0,
+            default                 => throw new DomainException("Rol sin soporte de comisión: {$role}"),
         };
 
         return (float) ($commission ?? 0);
@@ -777,6 +800,7 @@ final class BingoCardGenerateService
             'roomId'         => $roomId,
             'creator'        => ['id' => $userId, 'type' => 'player'],
             'seller'         => null,
+            'seller_type'    => 'USER',
             'currency'       => $currencyId,
             'numOfCtns'      => $numCtns,
             'cardPrice'      => $cardPrice,
@@ -788,8 +812,8 @@ final class BingoCardGenerateService
             'cardPriceUsd'   => $priceInfo['card_price_usd'],
             'saleAmountUsd'  => round($priceInfo['card_price_usd'] * $numCtns, 3),
             'exchangeRate'   => $priceInfo['exchange_rate'],
-            'playerUser'     => null, // null para que generateCards no intente Wallet::decrement
-            'playerLink'     => true, // flag para saltar el bloque de descuento legacy
+            'playerUser'     => null,
+            'playerLink'     => true,
         ];
 
         // Generar cartones — el descuento de billetera lo hace recordCardPurchase abajo
