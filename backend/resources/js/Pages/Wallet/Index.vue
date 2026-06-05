@@ -718,6 +718,11 @@ const modalIcon = computed(() => {
               <p class="op-file-drop__hint">JPG, PNG o PDF · máx. 5 MB</p>
             </template>
           </label>
+
+          <!-- Previsualización de imagen -->
+          <div v-if="receiptPreviewUrl" class="op-receipt-preview">
+            <img :src="receiptPreviewUrl" alt="Vista previa del comprobante" class="op-receipt-preview__img" />
+          </div>
         </div>
 
         <div class="op-field">
@@ -950,6 +955,23 @@ const modalIcon = computed(() => {
             <span class="mv-detail__cell-label">Nota del equipo</span>
             <span class="mv-detail__cell-value">{{ detailMovement.admin_notes }}</span>
           </div>
+        </div>
+
+        <!-- Comprobante (solo depósitos con receipt_url) -->
+        <div v-if="detailMovement.type === 'DEPOSIT' && detailMovement.receipt_url" class="mv-detail__receipt">
+          <p class="mv-detail__cell-label">Comprobante adjunto</p>
+          <template v-if="/\.(jpg|jpeg|png|webp|gif)$/i.test(detailMovement.receipt_path ?? '')">
+            <img :src="detailMovement.receipt_url" alt="Comprobante" class="mv-detail__receipt-img" />
+          </template>
+          <template v-else>
+            <a :href="detailMovement.receipt_url" target="_blank" rel="noopener" class="mv-detail__receipt-link">
+              <i class="fas fa-file-pdf me-1"></i>
+              {{ detailMovement.receipt_path?.split('/').pop() ?? 'Ver comprobante' }}
+            </a>
+          </template>
+          <p v-if="detailMovement.reference_id" class="mv-detail__ref">
+            Ref: <span class="mv-detail__ref-value">{{ detailMovement.reference_id }}</span>
+          </p>
         </div>
 
         <!-- Timeline de progreso -->
@@ -1888,6 +1910,23 @@ const modalIcon = computed(() => {
   margin: 0;
 }
 
+/* ── Receipt preview (paso 2) ── */
+.op-receipt-preview {
+  margin-top: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid #bbf7d0;
+  background: #f0fdf4;
+  text-align: center;
+}
+.op-receipt-preview__img {
+  display: block;
+  max-width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  margin: 0 auto;
+}
+
 /* ── Textarea ── */
 .op-field__textarea {
   width: 100%;
@@ -2466,6 +2505,37 @@ const modalIcon = computed(() => {
 .mv-timeline__body { padding-top: 3px; }
 .mv-timeline__label { font-size: 0.85rem; font-weight: 600; color: #2d3748; margin: 0 0 0.1rem; }
 .mv-timeline__date  { font-size: 0.75rem; color: #a0aec0; margin: 0; }
+
+/* Comprobante en modal detalle usuario */
+.mv-detail__receipt {
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.mv-detail__receipt-img {
+  display: block;
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+.mv-detail__receipt-link {
+  font-size: 0.82rem;
+  color: #667eea;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.mv-detail__receipt-link:hover { text-decoration: underline; }
+.mv-detail__ref { font-size: 0.75rem; color: #64748b; margin: 0; }
+.mv-detail__ref-value { font-family: ui-monospace, monospace; color: #334155; }
 
 /* Feedback contextual */
 .mv-detail__feedback {

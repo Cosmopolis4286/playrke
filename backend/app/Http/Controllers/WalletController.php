@@ -125,9 +125,28 @@ class WalletController extends Controller
             $wallet    = $this->walletService->findOwnedWalletByCurrency($currencyId);
             $paginator = $this->walletService->getMovements($wallet, $perPage);
 
+            $items = collect($paginator->items())->map(fn(\App\Models\WalletMovement $m) => [
+                'id'             => (string) $m->id,
+                'wallet_id'      => (string) $m->wallet_id,
+                'user_id'        => (string) $m->user_id,
+                'type'           => $m->type,
+                'status'         => $m->status,
+                'amount'         => (float) $m->amount,
+                'balance_before' => (float) $m->balance_before,
+                'balance_after'  => (float) $m->balance_after,
+                'description'    => $m->description,
+                'reference_id'   => $m->reference_id,
+                'receipt_path'   => $m->receipt_path,
+                'receipt_url'    => $m->receipt_path ? '/storage/' . $m->receipt_path : null,
+                'admin_notes'    => $m->admin_notes,
+                'processed_at'   => $m->processed_at?->toISOString(),
+                'created_at'     => $m->created_at,
+                'updated_at'     => $m->updated_at,
+            ]);
+
             return response()->json([
                 'success' => true,
-                'data'    => $paginator->items(),
+                'data'    => $items,
                 'meta'    => [
                     'current_page' => $paginator->currentPage(),
                     'last_page'    => $paginator->lastPage(),

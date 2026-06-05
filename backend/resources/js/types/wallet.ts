@@ -89,6 +89,8 @@ export interface WalletMovement {
   balance_after: number
   description: string | null
   reference_id: string | null
+  receipt_path: string | null
+  receipt_url: string | null
   admin_notes: string | null
   processed_at: string | null
   created_at: string

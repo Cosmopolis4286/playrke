@@ -170,7 +170,7 @@ final class WalletMovementController extends Controller
             'description'    => $m->description,
             'reference_id'   => $m->reference_id,
             'receipt_path'   => $m->receipt_path,
-            'receipt_url'    => $m->receipt_path ? asset('storage/' . $m->receipt_path) : null,
+            'receipt_url'    => $m->receipt_path ? '/storage/' . $m->receipt_path : null,
             'metadata'       => $m->metadata,
             'admin_notes'    => $m->admin_notes,
             'processed_at'   => $m->processed_at?->toISOString(),
