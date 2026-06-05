@@ -219,7 +219,7 @@ function handleClick() {
 ══════════════════════ */
 .rc__thumb {
   position: relative;
-  flex: 0 0 72px; /* más estrecho */
+  flex: 0 0 62px;
   overflow: hidden;
 }
 .rc__img {
@@ -297,11 +297,11 @@ function handleClick() {
 /* Fila 1 */
 .rc__top {
   display: flex; align-items: center;
-  justify-content: space-between; gap: 8px;
+  justify-content: space-between; gap: 6px;
 }
 
 .rc__name-wrap {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; gap: 5px;
   min-width: 0; overflow: hidden;
 }
 .rc__name {
@@ -317,6 +317,10 @@ function handleClick() {
   padding-left: 6px; white-space: nowrap; flex-shrink: 0;
 }
 .rc__mode i { font-size: 8px; }
+
+.rc__top-right {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
 
 /* timer */
 .rc__timer {
@@ -387,6 +391,12 @@ function handleClick() {
   border-color: rgba(40,110,190,.14);
 }
 .rc__pill--price i { color: #3a6898; }
+
+/* cuando el pill de precio va inline junto al timer */
+.rc__pill--inline {
+  font-size: 9.5px;
+  padding: 2px 6px;
+}
 
 .rc__pill--mine {
   color: #9868e0;
