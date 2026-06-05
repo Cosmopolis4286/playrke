@@ -68,7 +68,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
      */
     private function getActiveTemplates(?array $creator): Collection
     {
-        $now       = Carbon::now('America/Caracas');
+        $now       = Carbon::now('UTC');
         $dayName   = strtolower($now->englishDayOfWeek);
         $windowEnd = $now->copy()->addMinutes(self::TIME_WINDOW_MINUTES);
 
@@ -149,10 +149,20 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
      * Construye un BingoRoomCreateDTO mínimo desde la plantilla.
      * createBaseRoom solo usa: activateRoom y roomCommission.
      */
+    private function resolveTemplateTimezone(BingoRoomAutomatic $template): string
+    {
+        $tzName = \App\Models\User::where('users.id', $template->creator_user_id)
+            ->join('time_zones', 'users.time_zone_id', '=', 'time_zones.id')
+            ->value('time_zones.name');
+
+        return $tzName ?? 'UTC';
+    }
+
     private function buildDtoFromTemplate(BingoRoomAutomatic $template): BingoRoomCreateDTO
     {
+        $creatorTz = $this->resolveTemplateTimezone($template);
         return BingoRoomCreateDTO::fromArray([
-            'date'              => Carbon::now('America/Caracas')->format('Y-m-d'),
+            'date'              => Carbon::now($creatorTz)->format('Y-m-d'),
             'time'              => $template->time ? $template->time->format('H:i') : '00:00',
             'roomType'          => $template->room_type_id,
             'gameMode'          => $template->game_mode_id,
@@ -172,10 +182,11 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
      */
     private function createRoomConfig(BingoRoom $room, BingoRoomAutomatic $template): BingoRoomConfig
     {
-        $scheduledDate = Carbon::now('America/Caracas')->format('Y-m-d');
+        $creatorTz     = $this->resolveTemplateTimezone($template);
+        $scheduledDate = Carbon::now($creatorTz)->format('Y-m-d');
         $scheduledTime = $template->time ? $template->time->format('H:i:s') : null;
         $unixDate      = $scheduledTime
-            ? Carbon::createFromFormat('Y-m-d H:i:s', "$scheduledDate $scheduledTime", 'America/Caracas')->timestamp
+            ? Carbon::createFromFormat('Y-m-d H:i:s', "$scheduledDate $scheduledTime", $creatorTz)->timestamp
             : null;
 
         return BingoRoomConfig::create([

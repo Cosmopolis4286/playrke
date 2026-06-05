@@ -79,24 +79,21 @@ final class BingoCardGenerationService
 
         $roomId = $arrCtn['roomId'];
 
-        // Cargamos la sala con su estado directamente — sin pasar por RoomValidationService
-        // para evitar silenciamiento de excepciones y problemas con select() parcial
-        $room = BingoRoom::with(['status', 'config'])
-            ->where('id', $roomId)
-            ->first();
-
-        Log::info('[generateCards] room lookup', [
-            'roomId'      => $roomId,
-            'found'       => $room ? true : false,
-            'status_code' => $room?->status?->code,
-        ]);
+        // Cargamos la sala con su estado directamente
+        try {
+            $room = BingoRoom::with(['status', 'config'])
+                ->where('id', $roomId)
+                ->first();
+        } catch (\Throwable $e) {
+            throw new \DomainException('[DEBUG] Error al cargar sala: ' . $e->getMessage());
+        }
 
         if (!$room) {
-            throw new \DomainException('Sala no encontrada.');
+            throw new \DomainException('[DEBUG] Sala no encontrada con ID: ' . $roomId);
         }
 
         if (!in_array($room->status?->code, ['ACTIVE', 'IN_PROGRESS'])) {
-            throw new \DomainException('La sala no está disponible para compras (estado: ' . ($room->status?->code ?? 'desconocido') . ').');
+            throw new \DomainException('[DEBUG] Estado inválido: "' . ($room->status?->code ?? 'NULL') . '" — status_id: ' . $room->status_id);
         }
 
         try {

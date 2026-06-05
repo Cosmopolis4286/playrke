@@ -25,9 +25,7 @@ class StartScheduledTriviaRoomsCommand extends Command
 
         try {
             // Buscar salas que deben iniciarse ahora.
-            // Comparamos en la misma zona horaria que usa el scheduler (America/Caracas)
-            // convirtiendo a UTC para la query, o simplemente usando now() que Laravel
-            // resuelve en la zona configurada en config/app.php → timezone.
+            // now() usa UTC (zona base de la app). scheduled_at debe estar almacenado en UTC.
             $rooms = TriviaRoom::where('status', 'waiting')
                 ->whereNotNull('scheduled_at')
                 ->where('scheduled_at', '<=', now())

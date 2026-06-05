@@ -349,7 +349,7 @@ class ProfileController extends Controller
         $p = $user->user_preferences ?? [];
         return [
             'language'      => $p['language']      ?? 'es',
-            'timezone'      => $p['timezone']      ?? 'America/Caracas',
+            'timezone'      => $p['timezone']      ?? 'UTC',
             'notifications' => $p['notifications'] ?? ['email' => true,  'push' => true, 'sms' => false],
             'privacy'       => $p['privacy']       ?? ['profile_visible' => true, 'show_email' => false, 'show_phone' => false],
             'game_settings' => $p['game_settings'] ?? ['sound_enabled' => true, 'music_enabled' => true, 'auto_dauber' => false, 'card_animation' => true],

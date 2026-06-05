@@ -301,10 +301,16 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             $with['players'] = fn($q) => $q->where('user_id', $userId)->select(['room_id', 'user_id', 'cards_purchased']);
         }
 
+        // Ventana ±1 día para cubrir diferencias de timezone entre servidor (UTC)
+        // y zonas de los creadores (ej. America/Caracas UTC-4).
+        // El frontend filtra visualmente por countdown expirado.
+        $from = now()->subDay()->toDateString();
+        $to   = now()->addDay()->toDateString();
+
         $query = $this->model
             ->with($with)
             ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
-            ->whereHas('config', fn($q) => $q->whereDate('date', $today))
+            ->whereHas('config', fn($q) => $q->whereBetween('date', [$from, $to]))
             ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'creator_user_id', 'status_id']);
 
         if ($isPlayer) {

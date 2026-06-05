@@ -16,7 +16,7 @@ final class CheckExpiredBingoRoomsService
 {
     public function handle(): void
     {
-        $now = Carbon::now('America/Caracas')->timestamp;
+        $now = Carbon::now('UTC')->timestamp;
 
         $inactiveId    = GameStatus::where('code', 'INACTIVE')->value('id');
         $inProgressId  = GameStatus::where('code', 'IN_PROGRESS')->value('id');

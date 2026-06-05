@@ -17,7 +17,7 @@ trait FiltersTrait
     protected function applyDateFilter($date, $query, $column = 'created_at')
     {
         // Permitir cambio de zona horaria
-        $timeZone = 'America/Caracas'; // O usar $this->getTimeZone() cuando esté disponible
+        $timeZone = config('app.user_timezone', 'UTC');
 
         // Usar métodos de Carbon para obtener fechas en la zona horaria específica
         switch ($date) {

@@ -98,8 +98,9 @@ class BingoRoomRequest extends BaseRequest
             $date = $this->input('date');
             $time = $this->input('time');
             if ($date && $time && !$validator->errors()->has('date') && !$validator->errors()->has('time')) {
-                $scheduled  = \Carbon\Carbon::createFromFormat('Y-m-d H:i', "{$date} {$time}", 'America/Caracas');
-                $minAllowed = \Carbon\Carbon::now('America/Caracas')->addMinutes(10);
+                $userTz     = auth()->user()?->timeZone?->name ?? 'UTC';
+                $scheduled  = \Carbon\Carbon::createFromFormat('Y-m-d H:i', "{$date} {$time}", $userTz);
+                $minAllowed = \Carbon\Carbon::now($userTz)->addMinutes(10);
 
                 if ($scheduled->lt($minAllowed)) {
                     $validator->errors()->add(

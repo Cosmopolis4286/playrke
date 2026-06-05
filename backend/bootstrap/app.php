@@ -44,12 +44,14 @@ return Application::configure(
          */
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            \App\Http\Middleware\SetUserTimezone::class,
         ]);
 
         /** Habiltar Middleware de Inetia*/
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\ShareNotifications::class,
+            \App\Http\Middleware\SetUserTimezone::class,
         ]);
 
         /**
