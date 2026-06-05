@@ -85,15 +85,15 @@ final class BingoCardGenerationService
                 ->where('id', $roomId)
                 ->first();
         } catch (\Throwable $e) {
-            throw new \DomainException('[DEBUG] Error al cargar sala: ' . $e->getMessage());
+            throw new \DomainException('Error al cargar sala: ' . $e->getMessage());
         }
 
         if (!$room) {
-            throw new \DomainException('[DEBUG] Sala no encontrada con ID: ' . $roomId);
+            throw new \DomainException('Sala no encontrada con ID: ' . $roomId);
         }
 
         if (!in_array($room->status?->code, ['ACTIVE', 'IN_PROGRESS'])) {
-            throw new \DomainException('[DEBUG] Estado inválido: "' . ($room->status?->code ?? 'NULL') . '" — status_id: ' . $room->status_id);
+            throw new \DomainException('Estado inválido: "' . ($room->status?->code ?? 'NULL') . '" — status_id: ' . $room->status_id);
         }
 
         try {

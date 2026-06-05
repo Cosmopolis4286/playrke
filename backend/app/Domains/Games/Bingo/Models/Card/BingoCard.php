@@ -41,6 +41,7 @@ class BingoCard extends Model
     ];
 
     protected $casts = [
+        'status'       => 'integer',
         'card_numbers' => 'array',
         'is_validated' => 'boolean',
         'validated_at' => 'datetime',

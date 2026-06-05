@@ -144,7 +144,7 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
     public function getWinnerCards(string $roomId, array $orderBy = []): Collection
     {
         $query = $this->model->where('room_id', $roomId)
-                            ->where('status', 'winner');
+                            ->where('status', \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_WINNER);
 
         // Aplicar ordenamiento
         foreach ($orderBy as $campo => $direccion) {
