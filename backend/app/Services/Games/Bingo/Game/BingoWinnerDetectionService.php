@@ -60,16 +60,16 @@ final class BingoWinnerDetectionService
         }
 
         // Obtener cartones activos del usuario en esta sala
-        $cards = BingoCard::where('room_id', $room->id)
-            ->whereHas('roomUser', fn($q) => $q->where('user_id', $userId))
-            ->where('status', 'active')
+        $cards = BingoCard::where('room_id', (string)$room->id)
+            ->whereHas('roomUser', fn($q) => $q->where('user_id', (string)$userId))
+            ->where('status', BingoCard::STATUS_ACTIVE)
             ->get();
 
         if ($cards->isEmpty()) {
             // Intentar por creator_user_id como fallback
-            $cards = BingoCard::where('room_id', $room->id)
-                ->where('creator_user_id', $userId)
-                ->where('status', 'active')
+            $cards = BingoCard::where('room_id', (string)$room->id)
+                ->where('creator_user_id', (string)$userId)
+                ->where('status', BingoCard::STATUS_ACTIVE)
                 ->get();
         }
 
@@ -78,7 +78,7 @@ final class BingoWinnerDetectionService
         foreach ($cards as $card) {
             if ($this->checkBingo($card, $drawnNumbers)) {
                 // Marcar cartón como ganador
-                $card->update(['status' => 'winner']);
+                $card->update(['status' => BingoCard::STATUS_WINNER]);
 
                 $winnerData = [
                     'user_id' => $userId,

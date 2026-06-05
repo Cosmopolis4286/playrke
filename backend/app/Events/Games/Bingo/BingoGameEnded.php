@@ -11,42 +11,43 @@ class BingoGameEnded implements ShouldBroadcastNow
 {
     use SerializesModels;
 
-    public $roomId;
-    public $drawId;
-    public $endTime;
-    public $hasWinner;
-
-    public function __construct(int $roomId, int $drawId, bool $hasWinner = false)
-    {
-        Log::info('Creando evento BingoGameEnded', [
-            'roomId' => $roomId,
-            'drawId' => $drawId,
-            'hasWinner' => $hasWinner
+    public function __construct(
+        public readonly int    $roomId,
+        public readonly int    $drawId,
+        public readonly bool   $hasWinner,
+        public readonly int    $totalDrawn,
+        public readonly array  $winners,   // [{user_id, user_name, card_id, card_serial, prize}]
+        public readonly float  $prize,
+        public readonly string $endTime,
+    ) {
+        Log::info('BingoGameEnded', [
+            'roomId'     => $roomId,
+            'hasWinner'  => $hasWinner,
+            'totalDrawn' => $totalDrawn,
+            'winners'    => count($winners),
         ]);
-
-        $this->roomId = $roomId;
-        $this->drawId = $drawId;
-        $this->hasWinner = $hasWinner;
-        $this->endTime = now()->toISOString();
     }
 
-    public function broadcastOn()
+    public function broadcastOn(): Channel
     {
         return new Channel("bingo.room.{$this->roomId}");
     }
 
-    public function broadcastAs()
+    public function broadcastAs(): string
     {
         return 'GameEnded';
     }
 
-    public function broadcastWith()
+    public function broadcastWith(): array
     {
         return [
-            'room_id' => $this->roomId,
-            'draw_id' => $this->drawId,
-            'has_winner' => $this->hasWinner,
-            'end_time' => $this->endTime,
+            'room_id'     => $this->roomId,
+            'draw_id'     => $this->drawId,
+            'has_winner'  => $this->hasWinner,
+            'total_drawn' => $this->totalDrawn,
+            'winners'     => $this->winners,
+            'prize'       => $this->prize,
+            'end_time'    => $this->endTime,
         ];
     }
 }

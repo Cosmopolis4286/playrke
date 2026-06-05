@@ -15,20 +15,38 @@ import Swal from "sweetalert2";
 useAntiDebug()
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Winner Modal State
+// End-of-Game Modal State
 // ─────────────────────────────────────────────────────────────────────────────
 interface WinnerInfo {
   id: number;
   name: string;
-  card_id: number;
+  card_id: number | string;
+  card_serial?: string;
   pattern: string;
   prize: number;
 }
 
-const showWinnerModal = ref(false);
-const winnerInfo = ref<WinnerInfo | null>(null);
-const isMyWin = ref(false);
-const checkingBingo = ref(false);
+interface GameEndData {
+  hasWinner: boolean;
+  totalDrawn: number;
+  winners: Array<{ user_id: number; user_name: string; card_id: string; card_serial: string; prize: number }>;
+  prize: number;
+  endTime: string;
+}
+
+const showWinnerModal  = ref(false);
+const gameEndData      = ref<GameEndData | null>(null);
+const winnerInfo       = ref<WinnerInfo | null>(null);   // compat: WinnerDeclared individual
+const isMyWin          = ref(false);
+const checkingBingo    = ref(false);
+
+// Posiciones fijas de confetti (evita re-render random en cada update)
+const confettiPieces = Array.from({ length: 40 }, (_, i) => ({
+  left:     `${(i * 2.618033) % 100}%`,
+  delay:    `${(i * 0.07) % 2}s`,
+  duration: `${2.5 + (i % 5) * 0.3}s`,
+  color:    ['#7b4fff','#2af598','#ffd700','#ff4466','#00c6ff','#ff8c00'][i % 6],
+}));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Props
@@ -189,6 +207,14 @@ const prizeFormatted = computed(() => {
 
 const cardCount = computed(() => props.cartons?.length ?? 0);
 
+function chipLetter(n: number): string {
+  if (n <= 15) return 'B';
+  if (n <= 30) return 'I';
+  if (n <= 45) return 'N';
+  if (n <= 60) return 'G';
+  return 'O';
+}
+
 const roomId = computed(() => props.roomId || props.room?.id?.toString() || "");
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -223,14 +249,29 @@ async function handleBingoDetected(card: BingoCard) {
 }
 
 function handleWinnerDeclared(winner: WinnerInfo) {
+  // Solo muestra si aún no se abrió el modal de fin de juego
   winnerInfo.value = winner;
   isMyWin.value = winner.id === (props as any).userId;
+}
+
+function handleGameEnded(data: { has_winner: boolean; total_drawn: number; winners: any[]; prize: number; end_time: string }) {
+  gameEndData.value = {
+    hasWinner:  data.has_winner,
+    totalDrawn: data.total_drawn,
+    winners:    data.winners ?? [],
+    prize:      data.prize ?? 0,
+    endTime:    data.end_time,
+  };
+  // Determinar si el usuario local es ganador
+  const myId = (props as any).userId;
+  if (myId && data.winners?.some((w: any) => w.user_id === myId || String(w.user_id) === String(myId))) {
+    isMyWin.value = true;
+  }
   showWinnerModal.value = true;
 }
 
 function closeWinnerModal() {
   showWinnerModal.value = false;
-  winnerInfo.value = null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -279,11 +320,14 @@ function subscribeToRoom() {
     clearDrawTimer();
   });
 
-  // Winner declared (broadcast to all players)
+  // Winner declared — individual notification
   channel.listen(".WinnerDeclared", (e: { winner: WinnerInfo }) => {
-    if (e.winner) {
-      handleWinnerDeclared(e.winner);
-    }
+    if (e.winner) handleWinnerDeclared(e.winner);
+  });
+
+  // Game ended — resumen final automático para todos
+  channel.listen(".GameEnded", (e: any) => {
+    handleGameEnded(e);
   });
 
   // Room time sync - sincroniza el contador con el tiempo del servidor
@@ -521,13 +565,10 @@ onUnmounted(() => {
             <!-- Última ficha prominente -->
             <div class="ig-last-chip-wrap">
               <div class="ig-last-chip-ring" />
-              <img
-                :src="`/img/games/bingo/chips/${liveDrawn[liveDrawn.length - 1]}.png`"
-                :alt="`Ficha ${liveDrawn[liveDrawn.length - 1]}`"
-                class="ig-last-chip"
-                draggable="false"
-                @contextmenu.prevent
-              />
+              <div class="ig-chip ig-chip--lg" :class="`ig-chip--${chipLetter(liveDrawn[liveDrawn.length-1])}`">
+                <span class="ig-chip__letter">{{ chipLetter(liveDrawn[liveDrawn.length-1]) }}</span>
+                <span class="ig-chip__num">{{ liveDrawn[liveDrawn.length-1] }}</span>
+              </div>
             </div>
             <!-- Info sorteo -->
             <div class="ig-drawn-board__info">
@@ -540,58 +581,47 @@ onUnmounted(() => {
               </div>
               <div class="ig-drawn-board__count">{{ liveDrawn.length }} <span>de 75 sorteados</span></div>
             </div>
-            <!-- Últimas 5 fichas -->
+            <!-- Últimas fichas recientes -->
             <div class="ig-recent-chips">
               <div class="ig-recent-chips__label">Recientes</div>
               <div class="ig-recent-chips__row">
-                <img
-                  v-for="n in [...liveDrawn].slice(-5).reverse().slice(1)"
+                <div
+                  v-for="n in [...liveDrawn].slice(-6).reverse().slice(1)"
                   :key="`r-${n}`"
-                  :src="`/img/games/bingo/chips/${n}.png`"
-                  :alt="`${n}`"
-                  class="ig-chip-sm"
-                  draggable="false"
-                  @contextmenu.prevent
-                />
+                  class="ig-chip ig-chip--sm"
+                  :class="`ig-chip--${chipLetter(n)}`"
+                >
+                  <span class="ig-chip__letter">{{ chipLetter(n) }}</span>
+                  <span class="ig-chip__num">{{ n }}</span>
+                </div>
               </div>
             </div>
           </div>
           <!-- Todas las fichas sorteadas -->
           <div class="ig-drawn-board__chips">
-            <img
+            <div
               v-for="n in [...liveDrawn].reverse()"
               :key="n"
-              :src="`/img/games/bingo/chips/${n}.png`"
-              :alt="`Ficha ${n}`"
-              class="ig-chip-img"
-              :class="{ 'ig-chip-img--latest': n === liveDrawn[liveDrawn.length - 1] }"
-              draggable="false"
-              @contextmenu.prevent
-            />
+              class="ig-chip ig-chip--md"
+              :class="[`ig-chip--${chipLetter(n)}`, { 'ig-chip--latest': n === liveDrawn[liveDrawn.length-1] }]"
+            >
+              <span class="ig-chip__letter">{{ chipLetter(n) }}</span>
+              <span class="ig-chip__num">{{ n }}</span>
+            </div>
           </div>
         </div>
       </Transition>
 
       <!-- ══════════════════════════════════════════
-           CARTONES — header + grid
+           CARTONES
       ══════════════════════════════════════════ -->
       <div class="ig-cards-section">
-        <!-- Encabezado de cartones -->
-        <div class="ig-cards-header">
-          <div class="ig-cards-header__title">
-            <i class="fas fa-ticket-alt" />
-            Mis Cartones
-            <span class="ig-cards-header__count">{{ cardCount }}</span>
-          </div>
-          <div v-if="cardCount > 0 && liveDrawn.length > 0" class="ig-cards-header__hint">
-            <span class="ig-hit-dot" /> Números marcados en rojo
-          </div>
-        </div>
         <BingoCartons
           :cartons="cartons ?? []"
           :customerLogo="customerLogo ?? null"
           :roomId="roomId"
           :drawnNumbers="liveDrawn"
+          :totalDrawn="liveDrawn.length"
           @bingo-detected="handleBingoDetected"
         />
       </div>
@@ -599,35 +629,104 @@ onUnmounted(() => {
     </div>
 
     <!-- ══════════════════════════════════════════
-         WINNER MODAL
+         MODAL FIN DE JUEGO
     ══════════════════════════════════════════ -->
-    <Transition name="winner-modal">
-      <div v-if="showWinnerModal" class="winner-modal-overlay" @click.self="closeWinnerModal">
-        <div class="winner-modal" :class="{ 'is-my-win': isMyWin }">
-          <div class="winner-modal__glow" />
-          <div class="winner-modal__content">
-            <div class="winner-modal__icon">🏆</div>
-            <h2 class="winner-modal__title">
-              {{ isMyWin ? '¡BINGO! ¡Has Ganado!' : '¡Tenemos un Ganador!' }}
+    <Transition name="gm-fade">
+      <div v-if="showWinnerModal" class="gm-overlay" @click.self="closeWinnerModal">
+
+        <!-- Confetti (solo si hay ganador) -->
+        <template v-if="gameEndData?.hasWinner || isMyWin">
+          <div
+            v-for="(cf, i) in confettiPieces"
+            :key="`cf-${i}`"
+            class="gm-confetti"
+            :style="{ left: cf.left, animationDelay: cf.delay, animationDuration: cf.duration, background: cf.color }"
+          />
+        </template>
+
+        <div class="gm-modal" :class="{ 'gm-modal--win': gameEndData?.hasWinner || isMyWin, 'gm-modal--no-winner': gameEndData && !gameEndData.hasWinner }">
+          <button class="gm-close" @click="closeWinnerModal"><i class="fas fa-times" /></button>
+
+          <!-- Header -->
+          <div class="gm-header">
+            <div v-if="gameEndData?.hasWinner || isMyWin" class="gm-trophy">
+              <div class="gm-trophy__ring" />
+              <span class="gm-trophy__icon">🏆</span>
+            </div>
+            <div v-else class="gm-trophy gm-trophy--end">
+              <span class="gm-trophy__icon">🎱</span>
+            </div>
+
+            <h2 class="gm-title">
+              <template v-if="isMyWin">¡BINGO! ¡Ganaste!</template>
+              <template v-else-if="gameEndData?.hasWinner">¡Tenemos Ganador!</template>
+              <template v-else>Sorteo Finalizado</template>
             </h2>
-            <div v-if="winnerInfo" class="winner-modal__details">
-              <div class="winner-detail">
-                <span class="winner-detail__label">Ganador</span>
-                <span class="winner-detail__value">{{ winnerInfo.name }}</span>
+            <p class="gm-subtitle">
+              <template v-if="gameEndData">
+                {{ gameEndData.totalDrawn }} fichas sorteadas de 75
+              </template>
+            </p>
+
+            <!-- Barra de progreso del sorteo -->
+            <div v-if="gameEndData" class="gm-progress">
+              <div class="gm-progress__bar" :style="{ width: `${(gameEndData.totalDrawn / 75) * 100}%` }" />
+              <span class="gm-progress__label">{{ gameEndData.totalDrawn }}/75</span>
+            </div>
+          </div>
+
+          <!-- Ganadores -->
+          <div v-if="gameEndData?.winners?.length" class="gm-winners">
+            <div class="gm-winners__title">
+              <i class="fas fa-star" /> {{ gameEndData.winners.length === 1 ? 'Ganador' : 'Ganadores' }}
+            </div>
+            <div
+              v-for="(w, idx) in gameEndData.winners"
+              :key="w.card_id"
+              class="gm-winner-card"
+              :class="{ 'gm-winner-card--me': String(w.user_id) === String((props as any).userId) }"
+            >
+              <div class="gm-winner-card__rank">#{{ idx + 1 }}</div>
+              <div class="gm-winner-card__info">
+                <div class="gm-winner-card__name">
+                  {{ w.user_name }}
+                  <span v-if="String(w.user_id) === String((props as any).userId)" class="gm-winner-card__you">TÚ</span>
+                </div>
+                <div class="gm-winner-card__serial">Cartón {{ w.card_serial }}</div>
               </div>
-              <div class="winner-detail">
-                <span class="winner-detail__label">Cartón</span>
-                <span class="winner-detail__value">#{{ winnerInfo.card_id }}</span>
-              </div>
-              <div class="winner-detail winner-detail--prize">
-                <span class="winner-detail__label">Premio</span>
-                <span class="winner-detail__value winner-detail__value--prize">
-                  {{ currencySym }}{{ winnerInfo.prize.toFixed(2) }}
-                </span>
+              <div class="gm-winner-card__prize">
+                <span class="gm-winner-card__sym">{{ currencySym }}</span>
+                {{ w.prize.toFixed(2) }}
               </div>
             </div>
-            <button class="winner-modal__btn" @click="closeWinnerModal">
-              {{ isMyWin ? '¡Celebrar Victoria!' : 'Continuar Juego' }}
+          </div>
+
+          <!-- Sin ganador -->
+          <div v-else-if="gameEndData && !gameEndData.hasWinner" class="gm-no-winner">
+            <i class="fas fa-info-circle" />
+            Ningún cartón completó el bingo en este sorteo.
+          </div>
+
+          <!-- Fichas del sorteo resumidas -->
+          <div v-if="liveDrawn.length > 0" class="gm-chips-summary">
+            <div class="gm-chips-summary__label">Fichas sorteadas</div>
+            <div class="gm-chips-summary__grid">
+              <div
+                v-for="n in [...liveDrawn]"
+                :key="`gs-${n}`"
+                class="ig-chip ig-chip--sm"
+                :class="`ig-chip--${chipLetter(n)}`"
+              >
+                <span class="ig-chip__letter">{{ chipLetter(n) }}</span>
+                <span class="ig-chip__num">{{ n }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CTA -->
+          <div class="gm-actions">
+            <button class="gm-btn gm-btn--primary" @click="closeWinnerModal">
+              <i class="fas fa-check" /> Cerrar
             </button>
           </div>
         </div>
@@ -649,12 +748,23 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
   background-color: #04081a !important;
   background-image: none !important;
 }
-/* ── Quitar línea negra del navbar AdminLTE ── */
+/* ── Quitar línea/borde del navbar AdminLTE ── */
 .main-header,
 .main-header.navbar,
-nav.main-header {
-  border-bottom: none !important;
+nav.main-header,
+.navbar-bg,
+.main-header .navbar-bg,
+.app-header {
+  border-bottom: 0 !important;
+  border-bottom-width: 0 !important;
   box-shadow: none !important;
+}
+.main-header::after,
+.main-header.navbar::after,
+nav.main-header::after,
+.navbar-bg::after {
+  display: none !important;
+  content: none !important;
 }
 .content-header {
   display: none !important;
@@ -1083,11 +1193,11 @@ nav.main-header {
   gap: 18px;
 }
 
-/* Last chip */
+/* Last chip wrap */
 .ig-last-chip-wrap {
   position: relative;
   flex-shrink: 0;
-  width: 80px; height: 80px;
+  width: 88px; height: 88px;
   display: flex; align-items: center; justify-content: center;
 }
 .ig-last-chip-ring {
@@ -1101,16 +1211,78 @@ nav.main-header {
   animation: ring-spin 3s linear infinite;
 }
 @keyframes ring-spin { to { transform: rotate(360deg) } }
-.ig-last-chip {
-  width: 72px; height: 72px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 16px rgba(123,79,255,0.8));
-  animation: last-chip-enter 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+
+/* ── CSS Bingo Chips ── */
+.ig-chip {
+  border-radius: 50%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  line-height: 1;
+  user-select: none;
+  position: relative;
+  flex-shrink: 0;
+}
+/* sizes */
+.ig-chip--lg {
+  width: 76px; height: 76px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6), inset 0 2px 0 rgba(255,255,255,0.28);
+  animation: chip-enter 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
   position: relative; z-index: 1;
 }
-@keyframes last-chip-enter {
-  from { transform: scale(0) rotate(-20deg); opacity: 0 }
-  to   { transform: scale(1) rotate(0deg);  opacity: 1 }
+.ig-chip--md {
+  width: 38px; height: 38px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.22);
+  animation: chip-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+  transition: transform 0.18s ease;
+  cursor: default;
+}
+.ig-chip--md:hover { transform: scale(1.18); }
+.ig-chip--sm {
+  width: 30px; height: 30px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
+  opacity: 0.72; transition: opacity 0.18s;
+}
+.ig-chip--sm:hover { opacity: 1; }
+
+/* letter colors */
+.ig-chip--B { background: linear-gradient(145deg, #2060ff 0%, #0d35b0 100%); }
+.ig-chip--I { background: linear-gradient(145deg, #ff3030 0%, #980000 100%); }
+.ig-chip--N { background: linear-gradient(145deg, #d4ba00 0%, #8a7800 100%); }
+.ig-chip--G { background: linear-gradient(145deg, #0cbb5a 0%, #067038 100%); }
+.ig-chip--O { background: linear-gradient(145deg, #a830ff 0%, #6808c0 100%); }
+
+/* latest highlight */
+.ig-chip--latest {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5), 0 0 14px rgba(255,255,255,0.35), inset 0 1px 0 rgba(255,255,255,0.22) !important;
+}
+
+/* chip text */
+.ig-chip__letter {
+  font-family: 'Anton', sans-serif;
+  color: rgba(255,255,255,0.55);
+  line-height: 1;
+}
+.ig-chip--lg .ig-chip__letter { font-size: 11px; margin-bottom: 1px; }
+.ig-chip--md .ig-chip__letter { font-size: 8px; }
+.ig-chip--sm .ig-chip__letter { font-size: 7px; }
+
+.ig-chip__num {
+  font-family: 'Anton', sans-serif;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  line-height: 1;
+}
+.ig-chip--lg .ig-chip__num { font-size: 26px; }
+.ig-chip--md .ig-chip__num { font-size: 13px; }
+.ig-chip--sm .ig-chip__num { font-size: 11px; }
+
+@keyframes chip-enter {
+  from { transform: scale(0) rotate(-20deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0deg);  opacity: 1; }
+}
+@keyframes chip-pop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 /* Draw info */
@@ -1153,12 +1325,6 @@ nav.main-header {
 .ig-recent-chips__row {
   display: flex; gap: 4px; align-items: center;
 }
-.ig-chip-sm {
-  width: 30px; height: 30px; object-fit: contain; border-radius: 50%;
-  opacity: 0.65; transition: opacity 0.2s;
-}
-.ig-chip-sm:hover { opacity: 1 }
-
 .ig-drawn-board__chips {
   display: flex;
   flex-wrap: wrap;
@@ -1166,70 +1332,14 @@ nav.main-header {
 }
 
 /* ══════════════════════════════════════
-   CARDS SECTION HEADER
+   CARDS SECTION
 ══════════════════════════════════════ */
-.ig-cards-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px; padding: 0 4px;
-}
-.ig-cards-header__title {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 13px; font-weight: 700; color: #7c9dff;
-  text-transform: uppercase; letter-spacing: 1px;
-}
-.ig-cards-header__title i { color: #7b4fff; font-size: 12px }
-.ig-cards-header__count {
-  background: rgba(123,79,255,0.18); border: 1px solid rgba(123,79,255,0.3);
-  color: #b49dff; border-radius: 20px; padding: 1px 8px;
-  font-size: 11px; font-weight: 800;
-}
-.ig-cards-header__hint {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 10px; color: #3d5280;
-}
-.ig-hit-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: linear-gradient(135deg, #d60f26, #8b0024);
-  flex-shrink: 0;
-}
 
 /* Drawn counter badge */
 .ig-badge--drawn {
   background: rgba(42,245,152,0.08);
   border-color: rgba(42,245,152,0.2);
   color: #2af598;
-}
-
-/* ── Chip images ── */
-.ig-chip-img {
-  width: 38px;
-  height: 38px;
-  object-fit: contain;
-  border-radius: 50%;
-  animation: chip-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  transition: transform 0.2s ease, filter 0.2s ease;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  -webkit-user-drag: none;
-}
-.ig-chip-img:hover { transform: scale(1.15) }
-.ig-chip-img--latest {
-  filter: drop-shadow(0 0 8px rgba(255,255,255,0.6));
-}
-
-/* Prevent image download/selection */
-.ig-last-chip {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  -webkit-user-drag: none;
-}
-@keyframes chip-pop {
-  from { transform: scale(0); opacity: 0 }
-  to   { transform: scale(1); opacity: 1 }
 }
 
 /* ══════════════════════════════════════
@@ -1249,196 +1359,241 @@ nav.main-header {
   .ig-prize__num { font-size: 28px }
   .ig-cd-unit__num { font-size: 16px }
   .ig-cd-unit { min-width: 30px }
-  .ig-chip-img { width: 30px; height: 30px }
-  .ig-last-chip { width: 52px; height: 52px }
+  .ig-chip--md { width: 30px; height: 30px }
+  .ig-chip--lg { width: 56px; height: 56px }
 }
 
 /* ══════════════════════════════════════════
-   WINNER MODAL STYLES
+   GAME-END MODAL
 ══════════════════════════════════════════ */
-.winner-modal-overlay {
+
+/* Confetti pieces */
+.gm-confetti {
   position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(4, 8, 26, 0.9);
-  backdrop-filter: blur(8px);
+  top: -12px;
+  width: 10px; height: 14px;
+  border-radius: 2px;
+  z-index: 10000;
+  animation: cf-fall linear both;
+  pointer-events: none;
+}
+@keyframes cf-fall {
+  0%   { transform: translateY(0) rotate(0deg) scaleX(1); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg) scaleX(-1); opacity: 0; }
 }
 
-.winner-modal {
+/* Overlay */
+.gm-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(4, 8, 26, 0.88);
+  backdrop-filter: blur(10px);
+  padding: 12px;
+}
+
+/* Modal box */
+.gm-modal {
   position: relative;
-  width: 90%;
-  max-width: 420px;
-  background: linear-gradient(135deg, rgba(13, 22, 51, 0.98) 0%, rgba(8, 15, 38, 0.98) 100%);
-  border: 2px solid rgba(123, 79, 255, 0.4);
+  width: 100%; max-width: 520px;
+  max-height: 90vh; overflow-y: auto;
+  background: linear-gradient(160deg, #0d1633 0%, #080f26 100%);
+  border: 1.5px solid rgba(123,79,255,0.35);
   border-radius: 24px;
-  padding: 2px;
-  overflow: hidden;
-  animation: winner-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  padding: 28px 24px 24px;
+  animation: gm-enter 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(123,79,255,0.3) transparent;
+}
+.gm-modal--win {
+  border-color: rgba(42,245,152,0.45);
+  box-shadow: 0 0 60px rgba(42,245,152,0.15), 0 0 100px rgba(123,79,255,0.1);
+}
+.gm-modal--no-winner {
+  border-color: rgba(100,140,255,0.25);
+}
+@keyframes gm-enter {
+  from { transform: scale(0.82) translateY(24px); opacity: 0; }
+  to   { transform: scale(1) translateY(0);       opacity: 1; }
 }
 
-.winner-modal.is-my-win {
-  border-color: rgba(42, 245, 152, 0.5);
-  box-shadow:
-    0 0 60px rgba(42, 245, 152, 0.3),
-    0 0 120px rgba(123, 79, 255, 0.2),
-    inset 0 0 60px rgba(42, 245, 152, 0.05);
+/* Close button */
+.gm-close {
+  position: absolute; top: 14px; right: 14px;
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: #7c9dff; font-size: 13px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s, color 0.2s;
 }
+.gm-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
 
-@keyframes winner-enter {
-  from { transform: scale(0.8) translateY(20px); opacity: 0 }
-  to { transform: scale(1) translateY(0); opacity: 1 }
-}
+/* Header */
+.gm-header { text-align: center; margin-bottom: 20px; }
 
-.winner-modal__glow {
-  position: absolute;
-  inset: -50%;
-  background:
-    radial-gradient(circle at 30% 30%, rgba(123, 79, 255, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 70% 70%, rgba(42, 245, 152, 0.1) 0%, transparent 50%);
-  animation: glow-rotate 10s linear infinite;
+.gm-trophy {
+  position: relative; display: inline-flex;
+  align-items: center; justify-content: center;
+  width: 80px; height: 80px; margin-bottom: 14px;
 }
-
-@keyframes glow-rotate {
-  from { transform: rotate(0deg) }
-  to { transform: rotate(360deg) }
+.gm-trophy__ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 2px solid transparent;
+  background: linear-gradient(135deg,#ffd700,#7b4fff,#2af598) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out; mask-composite: exclude;
+  animation: ring-spin 3s linear infinite;
 }
-
-.winner-modal__content {
-  position: relative;
-  z-index: 1;
-  padding: 32px 28px;
-  text-align: center;
-}
-
-.winner-modal__icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-  animation: trophy-bounce 1s ease-in-out infinite;
-  filter: drop-shadow(0 0 20px rgba(255, 193, 7, 0.5));
-}
+.gm-trophy__icon { font-size: 48px; animation: trophy-bounce 1.2s ease-in-out infinite; }
+.gm-trophy--end .gm-trophy__icon { animation: none; }
 
 @keyframes trophy-bounce {
-  0%, 100% { transform: scale(1) rotate(-5deg) }
-  50% { transform: scale(1.1) rotate(5deg) }
+  0%,100% { transform: scale(1) rotate(-4deg); }
+  50%      { transform: scale(1.1) rotate(4deg); }
 }
 
-.winner-modal__title {
-  font-family: 'Anton', sans-serif;
-  font-size: 28px;
-  font-weight: 400;
+.gm-title {
+  font-family: 'Anton', sans-serif; font-size: 26px; letter-spacing: 1px;
+  margin: 0 0 6px;
+  background: linear-gradient(135deg,#ffe566,#ffab00);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.gm-modal--win .gm-title {
+  background: linear-gradient(135deg,#2af598,#00c853);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.gm-modal--no-winner .gm-title {
+  background: linear-gradient(135deg,#7c9dff,#5578bb);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.gm-subtitle {
+  font-size: 13px; color: #5578bb; margin: 0 0 12px;
+}
+
+/* Progress */
+.gm-progress {
+  position: relative; height: 6px; border-radius: 6px;
+  background: rgba(100,140,255,0.1); overflow: hidden; margin: 0 auto;
+  max-width: 260px;
+}
+.gm-progress__bar {
+  height: 100%; border-radius: 6px;
+  background: linear-gradient(90deg,#7b4fff,#2af598);
+  transition: width 0.8s ease;
+}
+.gm-progress__label {
+  position: absolute; right: 0; top: -18px;
+  font-size: 10px; color: #5578bb;
+}
+
+/* Winners list */
+.gm-winners { margin: 16px 0; }
+.gm-winners__title {
+  font-size: 11px; font-weight: 700; color: #5578bb;
+  text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 6px;
+}
+.gm-winners__title i { color: #ffd700; }
+
+.gm-winner-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 14px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(100,140,255,0.1);
+  margin-bottom: 8px;
+  transition: border-color 0.2s;
+}
+.gm-winner-card--me {
+  background: rgba(42,245,152,0.06);
+  border-color: rgba(42,245,152,0.3);
+}
+
+.gm-winner-card__rank {
+  font-family: 'Anton', sans-serif; font-size: 18px;
+  color: #ffd700; min-width: 28px;
+}
+.gm-winner-card--me .gm-winner-card__rank { color: #2af598; }
+
+.gm-winner-card__info { flex: 1; }
+.gm-winner-card__name {
+  font-size: 14px; font-weight: 700; color: #e0eaff;
+  display: flex; align-items: center; gap: 6px;
+}
+.gm-winner-card__you {
+  font-size: 9px; font-weight: 800; letter-spacing: 1px;
+  background: linear-gradient(135deg,#2af598,#00c853);
+  color: #000; padding: 1px 6px; border-radius: 8px;
+}
+.gm-winner-card__serial {
+  font-size: 11px; color: #4a6aaa; margin-top: 2px;
+}
+
+.gm-winner-card__prize {
+  font-family: 'Anton', sans-serif; font-size: 20px;
+  color: #ffd060; display: flex; align-items: baseline; gap: 2px;
+}
+.gm-winner-card__sym { font-size: 12px; color: #b09040; }
+
+/* No winner */
+.gm-no-winner {
+  text-align: center; padding: 20px;
+  font-size: 13px; color: #5578bb;
+  background: rgba(100,140,255,0.04);
+  border-radius: 12px; border: 1px solid rgba(100,140,255,0.08);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 8px 0 16px;
+}
+.gm-no-winner i { color: #4a6aaa; }
+
+/* Chips summary */
+.gm-chips-summary { margin: 16px 0; }
+.gm-chips-summary__label {
+  font-size: 10px; font-weight: 700; color: #3d5280;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 8px;
+}
+.gm-chips-summary__grid {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  max-height: 120px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(123,79,255,0.2) transparent;
+}
+
+/* Actions */
+.gm-actions { display: flex; gap: 10px; margin-top: 20px; }
+.gm-btn {
+  flex: 1; padding: 13px 20px; border: none; border-radius: 12px;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.gm-btn--primary {
+  background: linear-gradient(135deg,#7b4fff,#009efd);
   color: #fff;
-  margin: 0 0 24px;
-  background: linear-gradient(135deg, #ffe566 0%, #ffab00 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: 1px;
+  box-shadow: 0 4px 16px rgba(123,79,255,0.3);
 }
-
-.is-my-win .winner-modal__title {
-  background: linear-gradient(135deg, #2af598 0%, #00c853 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.gm-modal--win .gm-btn--primary {
+  background: linear-gradient(135deg,#2af598,#00c853);
+  color: #003316;
+  box-shadow: 0 4px 16px rgba(42,245,152,0.3);
 }
+.gm-btn--primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(123,79,255,0.45); }
 
-.winner-modal__details {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 28px;
+/* Transition */
+.gm-fade-enter-active, .gm-fade-leave-active { transition: opacity 0.28s ease; }
+.gm-fade-enter-from, .gm-fade-leave-to { opacity: 0; }
+.gm-fade-enter-active .gm-modal, .gm-fade-leave-active .gm-modal {
+  transition: transform 0.32s cubic-bezier(0.34,1.56,0.64,1), opacity 0.28s ease;
 }
-
-.winner-detail {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
-  border: 1px solid rgba(100, 140, 255, 0.1);
-}
-
-.winner-detail--prize {
-  background: rgba(255, 171, 0, 0.08);
-  border-color: rgba(255, 171, 0, 0.25);
-}
-
-.winner-detail__label {
-  font-size: 12px;
-  color: #5578bb;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.winner-detail__value {
-  font-size: 15px;
-  font-weight: 700;
-  color: #e0eaff;
-}
-
-.winner-detail__value--prize {
-  font-size: 20px;
-  color: #ffd060;
-}
-
-.winner-modal__btn {
-  width: 100%;
-  padding: 16px 24px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #7b4fff 0%, #009efd 100%);
-  color: #fff;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.winner-modal__btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(123, 79, 255, 0.4);
-}
-
-.is-my-win .winner-modal__btn {
-  background: linear-gradient(135deg, #2af598 0%, #00c853 100%);
-  box-shadow: 0 8px 24px rgba(42, 245, 152, 0.3);
-}
-
-.is-my-win .winner-modal__btn:hover {
-  box-shadow: 0 8px 24px rgba(42, 245, 152, 0.5);
-}
-
-/* Modal transitions */
-.winner-modal-enter-active,
-.winner-modal-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.winner-modal-enter-from,
-.winner-modal-leave-to {
-  opacity: 0;
-}
-
-.winner-modal-enter-active .winner-modal,
-.winner-modal-leave-active .winner-modal {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
-}
-
-.winner-modal-enter-from .winner-modal,
-.winner-modal-leave-to .winner-modal {
-  transform: scale(0.9);
-  opacity: 0;
+.gm-fade-enter-from .gm-modal, .gm-fade-leave-to .gm-modal {
+  transform: scale(0.88); opacity: 0;
 }
 
 @media (max-width: 500px) {
-  .winner-modal__content { padding: 24px 20px }
-  .winner-modal__title { font-size: 22px }
-  .winner-modal__icon { font-size: 48px }
-  .winner-detail { padding: 10px 12px }
+  .gm-modal { padding: 22px 16px 18px; }
+  .gm-title { font-size: 22px; }
+  .gm-trophy__icon { font-size: 40px; }
+  .gm-winner-card__prize { font-size: 17px; }
 }
 </style>
