@@ -47,8 +47,8 @@ const timerStr = computed(() => {
   const { days, hours, minutes, seconds } = props.countdown.time
   const ss = String(seconds).padStart(2, '0')
   const mm = String(minutes).padStart(2, '0')
-  if (days > 0) return `${days}d ${String(hours).padStart(2,'0')}h ${mm}m`
-  if (hours > 0) return `${String(hours).padStart(2,'0')}:${mm}:${ss}`
+  if (days > 0) return `${days}d ${String(hours).padStart(2, '0')}h ${mm}m`
+  if (hours > 0) return `${String(hours).padStart(2, '0')}:${mm}:${ss}`
   return `${mm}:${ss}`
 })
 
@@ -69,7 +69,6 @@ function handleClick() {
     @click="handleClick"
   >
     <div class="rc__glow" />
-    <div class="rc__accent" />
     <div class="rc__shimmer" />
 
     <div class="rc__inner">
@@ -78,70 +77,64 @@ function handleClick() {
       <div class="rc__thumb">
         <img :src="bingoRoomImg" alt="" class="rc__img" />
         <div class="rc__img-veil" />
+        <!-- Acento lateral izquierdo -->
+        <div class="rc__side-accent" />
       </div>
 
       <!-- ── Body ── -->
       <div class="rc__body">
 
-        <!-- LÍNEA 1: nombre + modo · badge estado · timer -->
+        <!-- TOP: título + modo | estado + timer -->
         <div class="rc__top">
-          <div class="rc__title-block">
+          <div class="rc__title-group">
             <span class="rc__name">Bingo {{ isPublic ? 'Público' : 'Privado' }}</span>
-            <span class="rc__dot-sep">·</span>
             <span class="rc__mode">
-              <i class="fas fa-gamepad" />
-              {{ gameModeLabel }}
+              <i class="fas fa-circle-nodes" />{{ gameModeLabel }}
             </span>
           </div>
-
           <div class="rc__top-right">
-            <!-- Badge estado -->
             <span class="rc__badge"
               :class="isAvailable ? 'rc__badge--ok' : isInProgress ? 'rc__badge--live' : 'rc__badge--off'"
             >
               <span class="rc__badge-dot" />
               {{ isAvailable ? 'Disponible' : isInProgress ? 'En Juego' : 'Cerrada' }}
             </span>
-
-            <!-- Timer -->
             <div class="rc__timer" :class="{ 'rc__timer--live': !hasTime }">
               <template v-if="hasTime && timerStr">
-                <i class="far fa-clock" style="font-size:8px;opacity:.5;" />
-                <span class="rc__timer-val">{{ timerStr }}</span>
+                <i class="far fa-clock" />
+                <b>{{ timerStr }}</b>
               </template>
               <template v-else>
-                <span class="rc__blink" />
-                <span class="rc__live-txt">LIVE</span>
+                <span class="rc__blink" /><b>LIVE</b>
               </template>
             </div>
           </div>
         </div>
 
-        <!-- LÍNEA 2: premio grande -->
-        <div class="rc__prize-row">
-          <i class="fas fa-trophy rc__trophy" />
-          <span class="rc__prize-num">{{ prizeFormatted }}</span>
-          <span class="rc__prize-sym">{{ sym }}</span>
-        </div>
+        <!-- MID: premio + pills -->
+        <div class="rc__mid">
+          <!-- Premio -->
+          <div class="rc__prize">
+            <i class="fas fa-trophy rc__trophy-icon" />
+            <span class="rc__prize-num">{{ prizeFormatted }}</span>
+            <span class="rc__prize-sym">{{ sym }}</span>
+          </div>
 
-        <!-- LÍNEA 3: badges de stats -->
-        <div class="rc__pills">
-          <span class="rc__pill">
-            <i class="fas fa-ticket-alt" />
-            {{ cardPriceFormatted }} {{ sym }}
-          </span>
-          <span class="rc__pill">
-            <i class="fas fa-users" />
-            {{ room.total_players }} jug.
-          </span>
-          <span v-if="playerCtns > 0" class="rc__pill rc__pill--mine">
-            <i class="fas fa-layer-group" />
-            {{ playerCtns }} míos
-          </span>
-          <span class="rc__pill rc__pill--type">
-            <i class="fas" :class="isPublic ? 'fa-globe' : 'fa-lock'" />
-            {{ isPublic ? 'Público' : 'Privado' }}
-          </span>
+          <!-- Pills de stats -->
+          <div class="rc__pills">
+            <span class="rc__pill rc__pill--price">
+              <i class="fas fa-ticket-alt" />
+              {{ cardPriceFormatted }} {{ sym }}
+            </span>
+            <span class="rc__pill">
+              <i class="fas fa-users" />
+              {{ room.total_players }} jug.
+            </span>
+            <span v-if="playerCtns > 0" class="rc__pill rc__pill--mine">
+              <i class="fas fa-layer-group" />
+              {{ playerCtns }} míos
+            </span>
+          </div>
         </div>
 
       </div>
@@ -150,7 +143,7 @@ function handleClick() {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@800;900&display=swap');
 
 /* ══════════════════════════════
    BASE
@@ -158,215 +151,241 @@ function handleClick() {
 .rc {
   --d: 0ms;
   --accent: #2af598;
-  --glow-clr: rgba(42,245,152,.1);
+  --glow-clr: rgba(42, 245, 152, .12);
 
   position: relative;
   width: 100%;
   border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
-  background: linear-gradient(135deg, #0e1d3c 0%, #070e20 100%);
-  border: 1px solid rgba(255,255,255,.07);
-  box-shadow: 0 4px 24px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.04) inset;
-  transition: transform .22s cubic-bezier(.22,.68,0,1.2), box-shadow .22s ease, border-color .22s ease;
+  background: linear-gradient(140deg, #0f1f40 0%, #07101f 100%);
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 6px 28px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.05) inset;
+  transition: transform .22s cubic-bezier(.22,.68,0,1.2),
+              box-shadow .22s ease, border-color .22s ease;
   animation: rcIn .4s ease both;
   animation-delay: var(--d);
 }
 @keyframes rcIn {
-  from { opacity:0; transform:translateY(8px) scale(.985); }
-  to   { opacity:1; transform:translateY(0)   scale(1);    }
+  from { opacity:0; transform:translateY(10px) scale(.98); }
+  to   { opacity:1; transform:none; }
 }
 
-.rc--live   { --accent: #ff4d6d; --glow-clr: rgba(255,77,109,.1); }
+.rc--live { --accent: #ff4d6d; --glow-clr: rgba(255,77,109,.12); }
+
 .rc--active:hover {
-  transform: translateY(-3px) scale(1.004);
-  box-shadow: 0 12px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(42,245,152,.2), 0 0 20px rgba(42,245,152,.08);
-  border-color: rgba(42,245,152,.18);
+  transform: translateY(-3px) scale(1.003);
+  border-color: rgba(42,245,152,.22);
+  box-shadow: 0 14px 44px rgba(0,0,0,.65),
+              0 0 0 1px rgba(42,245,152,.18),
+              0 0 24px rgba(42,245,152,.1);
 }
-.rc--off { opacity:.28; cursor:default; filter:saturate(.12) brightness(.75); }
+.rc--live:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,77,109,.2);
+  box-shadow: 0 12px 36px rgba(0,0,0,.6), 0 0 0 1px rgba(255,77,109,.18);
+}
+.rc--off { opacity:.25; cursor:default; filter:saturate(.1) brightness(.7); pointer-events:none; }
 
-/* glow fondo */
+/* glow */
 .rc__glow {
   position:absolute; inset:0; z-index:0; pointer-events:none;
-  background: radial-gradient(ellipse 90% 70% at 20% 110%, var(--glow-clr), transparent 65%);
+  background: radial-gradient(ellipse 100% 80% at 10% 120%, var(--glow-clr), transparent 60%);
 }
 
 /* shimmer */
 .rc__shimmer {
   position:absolute; inset:0; z-index:1; pointer-events:none;
-  background: linear-gradient(108deg, transparent 35%, rgba(255,255,255,.022) 50%, transparent 65%);
-  transform: translateX(-100%);
-  transition: transform 0s;
+  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.025) 50%, transparent 70%);
+  transform: translateX(-110%);
 }
-.rc--active:hover .rc__shimmer { transform:translateX(100%); transition:transform .5s ease; }
-
-/* acento top */
-.rc__accent {
-  position:relative; z-index:2;
-  height: 2px; width:100%;
+.rc--active:hover .rc__shimmer,
+.rc--live:hover   .rc__shimmer {
+  animation: shimmer .55s ease forwards;
 }
-.rc--active .rc__accent { background:linear-gradient(90deg,#2af598,#009efd 55%,transparent); box-shadow:0 0 10px rgba(42,245,152,.3); }
-.rc--live   .rc__accent { background:linear-gradient(90deg,#ff4d6d,#ff8c42 55%,transparent); box-shadow:0 0 10px rgba(255,77,109,.3); }
-.rc--off    .rc__accent { background:rgba(255,255,255,.04); }
+@keyframes shimmer { to { transform: translateX(110%); } }
 
 /* ── Inner ── */
 .rc__inner {
-  position:relative; z-index:2;
-  display:flex; align-items:stretch;
+  position: relative; z-index: 2;
+  display: flex; align-items: stretch;
 }
 
 /* ══════════════════════════════
-   THUMBNAIL — más delgado
+   THUMBNAIL
 ══════════════════════════════ */
 .rc__thumb {
-  position:relative;
-  flex: 0 0 78px;
-  overflow:hidden;
+  position: relative;
+  flex: 0 0 88px;
+  overflow: hidden;
 }
 .rc__img {
   width:100%; height:100%;
   object-fit:cover; display:block;
-  transition: transform .45s ease;
+  transition: transform .5s ease;
 }
-.rc--active:hover .rc__img { transform:scale(1.07); }
+.rc--active:hover .rc__img,
+.rc--live:hover   .rc__img { transform: scale(1.07); }
+
 .rc__img-veil {
   position:absolute; inset:0;
-  background:linear-gradient(90deg, transparent 0%, rgba(7,14,32,.55) 55%, rgba(7,14,32,.95) 100%);
+  background: linear-gradient(90deg,
+    rgba(7,16,31,0) 0%,
+    rgba(7,16,31,.4) 50%,
+    rgba(7,16,31,.96) 100%
+  );
+}
+
+/* acento lateral — barra vertical izquierda de color */
+.rc__side-accent {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--accent) 0%, transparent 100%);
+  box-shadow: 1px 0 10px var(--glow-clr);
 }
 
 /* ══════════════════════════════
    BODY
 ══════════════════════════════ */
 .rc__body {
-  flex:1; min-width:0;
-  padding: 9px 12px 9px 9px;
-  display:flex; flex-direction:column;
-  gap: 5px;
+  flex: 1; min-width: 0;
+  padding: 10px 14px 10px 12px;
+  display: flex; flex-direction: column;
+  gap: 8px;
 }
 
-/* ── Línea 1: título + derecha ── */
+/* ── TOP ── */
 .rc__top {
-  display:flex; align-items:center;
-  justify-content:space-between;
-  gap:8px;
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 10px;
 }
 
-.rc__title-block {
-  display:flex; align-items:center; gap:5px;
-  min-width:0; overflow:hidden;
+.rc__title-group {
+  display: flex; align-items: center; gap: 8px;
+  min-width: 0; overflow: hidden;
 }
+
 .rc__name {
-  font-family:'Rajdhani',sans-serif;
-  font-size:13px; font-weight:700;
-  color:#cddeff; white-space:nowrap;
-  letter-spacing:.3px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px; font-weight: 700;
+  color: #ddeeff;
+  white-space: nowrap;
+  letter-spacing: .3px;
+  flex-shrink: 0;
 }
-.rc__dot-sep { color:#1e3050; font-size:10px; flex-shrink:0; }
+
 .rc__mode {
-  font-size:9px; color:#2e4468;
-  display:flex; align-items:center; gap:3px;
-  white-space:nowrap; flex-shrink:0;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; color: #2e4a6a;
+  white-space: nowrap;
+  border-left: 1px solid rgba(255,255,255,.07);
+  padding-left: 8px;
 }
-.rc__mode i { font-size:8px; }
+.rc__mode i { font-size: 9px; }
 
 .rc__top-right {
-  display:flex; align-items:center; gap:6px; flex-shrink:0;
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
 }
 
-/* Badge estado */
+/* badge estado */
 .rc__badge {
-  display:inline-flex; align-items:center; gap:4px;
-  padding: 2px 7px; border-radius:20px;
-  font-size:7.5px; font-weight:700; letter-spacing:.5px;
-  text-transform:uppercase; white-space:nowrap;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 9px; font-weight: 700; letter-spacing: .5px;
+  text-transform: uppercase; white-space: nowrap;
 }
 .rc__badge-dot {
-  width:4px; height:4px; border-radius:50%;
-  background:currentColor; flex-shrink:0;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
 }
-.rc__badge--ok   { background:rgba(42,245,152,.1);  border:1px solid rgba(42,245,152,.28); color:#2af598; }
-.rc__badge--live { background:rgba(255,77,109,.1);  border:1px solid rgba(255,77,109,.28); color:#ff6e8a; }
+.rc__badge--ok   { background:rgba(42,245,152,.1);  border:1px solid rgba(42,245,152,.3);  color:#2af598; }
+.rc__badge--live { background:rgba(255,77,109,.12); border:1px solid rgba(255,77,109,.3);  color:#ff6e8a; }
 .rc__badge--off  { background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);color:#253648; }
-.rc__badge--ok   .rc__badge-dot { animation:dp 2s infinite; }
-.rc__badge--live .rc__badge-dot { animation:dp 1.1s infinite; }
+.rc__badge--ok   .rc__badge-dot { animation: dp 2s infinite; }
+.rc__badge--live .rc__badge-dot { animation: dp 1.1s infinite; }
 @keyframes dp { 0%,100%{opacity:1} 50%{opacity:.1} }
 
-/* Timer */
+/* timer */
 .rc__timer {
-  display:inline-flex; align-items:center; gap:4px;
-  color:#7aacdc; white-space:nowrap;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; color: #5a8ab8;
+  white-space: nowrap;
 }
-.rc__timer-val {
-  font-family:'Orbitron',monospace;
-  font-size:11px; font-weight:700; letter-spacing:.4px;
-  color:#9ec8f0;
+.rc__timer i { font-size: 9px; opacity: .5; }
+.rc__timer b {
+  font-family: 'Orbitron', monospace;
+  font-size: 12px; font-weight: 800; letter-spacing: .5px;
+  color: #9ecaf0;
 }
-.rc__timer--live { color:#ff6e8a; }
-.rc__live-txt {
-  font-family:'Orbitron',monospace;
-  font-size:9px; font-weight:700; letter-spacing:1px; color:#ff6e8a;
-}
+.rc__timer--live { color: #ff6e8a; }
+.rc__timer--live b { color: #ff8aaa; }
+
 .rc__blink {
-  width:5px; height:5px; border-radius:50%;
-  background:currentColor; display:inline-block;
-  animation:bk 1s infinite;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; display: inline-block;
+  animation: bk 1s infinite;
 }
 @keyframes bk { 0%,100%{opacity:1} 50%{opacity:.1} }
 
-/* ── Línea 2: premio ── */
-.rc__prize-row {
-  display:flex; align-items:baseline; gap:5px;
-}
-.rc__trophy {
-  font-size:9px; color:#c8a030;
-  filter:drop-shadow(0 0 4px rgba(200,160,48,.35));
-  flex-shrink:0;
-  align-self:center;
-  margin-bottom:1px;
-}
-.rc__prize-num {
-  font-family:'Orbitron','Anton',sans-serif;
-  font-size:22px; font-weight:900; line-height:1;
-  background:linear-gradient(135deg, #ffe566 0%, #ffb820 55%, #ff8c00 100%);
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-  filter:drop-shadow(0 2px 6px rgba(255,155,0,.25));
-  letter-spacing:-.5px;
-}
-.rc__prize-sym {
-  font-family:'Rajdhani',sans-serif;
-  font-size:12px; font-weight:700;
-  color:#e0a020; -webkit-text-fill-color:#e0a020;
+/* ── MID: premio + pills en una fila ── */
+.rc__mid {
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 10px;
 }
 
-/* ── Línea 3: pills / badges ── */
+/* Premio */
+.rc__prize {
+  display: flex; align-items: baseline; gap: 5px; flex-shrink: 0;
+}
+.rc__trophy-icon {
+  font-size: 11px; color: #c8a028;
+  filter: drop-shadow(0 0 5px rgba(200,160,40,.4));
+  align-self: center; flex-shrink: 0;
+}
+.rc__prize-num {
+  font-family: 'Orbitron', 'Anton', sans-serif;
+  font-size: 24px; font-weight: 900; line-height: 1;
+  background: linear-gradient(130deg, #ffe566 0%, #ffbb20 50%, #ff8800 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  filter: drop-shadow(0 2px 8px rgba(255,150,0,.28));
+  letter-spacing: -1px;
+}
+.rc__prize-sym {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px; font-weight: 700;
+  color: #e0a020; -webkit-text-fill-color: #e0a020;
+}
+
+/* pills */
 .rc__pills {
-  display:flex; flex-wrap:wrap; gap:4px; align-items:center;
+  display: flex; align-items: center;
+  flex-wrap: wrap; gap: 5px;
+  justify-content: flex-end;
 }
 
 .rc__pill {
-  display:inline-flex; align-items:center; gap:4px;
-  padding: 2px 7px; border-radius:6px;
-  font-size:9px; font-weight:600;
-  color:#4a6a90;
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.06);
-  white-space:nowrap;
-  letter-spacing:.1px;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 7px;
+  font-size: 10.5px; font-weight: 600;
+  color: #5a8ab0;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  white-space: nowrap;
 }
-.rc__pill i { font-size:7.5px; color:#2e4a6a; }
+.rc__pill i { font-size: 9px; color: #2e4a68; }
+
+.rc__pill--price {
+  color: #7ab8e0;
+  background: rgba(40,120,200,.08);
+  border-color: rgba(40,120,200,.15);
+}
+.rc__pill--price i { color: #3a6898; }
 
 .rc__pill--mine {
-  color:#9060d8;
-  background:rgba(120,70,220,.1);
-  border-color:rgba(120,70,220,.2);
+  color: #a070e8;
+  background: rgba(120,60,220,.1);
+  border-color: rgba(120,60,220,.22);
 }
-.rc__pill--mine i { color:#7040b8; }
-
-.rc__pill--type {
-  color:#2a4860;
-  background:rgba(40,80,130,.08);
-  border-color:rgba(40,80,130,.15);
-  margin-left:auto;
-}
-.rc__pill--type i { color:#1e3a58; }
+.rc__pill--mine i { color: #7848c0; }
 </style>
