@@ -19,24 +19,22 @@ class RoomValidationService implements RoomValidationInterface
      */
     public function validateRoomAvailability(string $roomId): ?BingoRoom
     {
-        try {
-            $room = $this->getRoomDetails($roomId);
-            
-            if (!$room) {
-                Log::info('Sala no encontrada', ['roomId' => $roomId]);
-                return null;
-            }
+        $room = $this->getRoomDetails($roomId);
 
-            if (!$this->validateRoomStatus($room)) {
-                Log::info('Sala no disponible por estado', ['roomId' => $roomId, 'status' => $room->status->code ?? 'unknown']);
-                return null;
-            }
-
-            return $room;
-        } catch (\Throwable $e) {
-            Log::error('Error al validar disponibilidad de sala: ' . $e->getMessage(), ['roomId' => $roomId]);
+        if (!$room) {
+            Log::info('[validateRoomAvailability] Sala no encontrada', ['roomId' => $roomId]);
             return null;
         }
+
+        if (!$this->validateRoomStatus($room)) {
+            Log::info('[validateRoomAvailability] Estado inválido', [
+                'roomId' => $roomId,
+                'status' => $room->status?->code ?? 'unknown',
+            ]);
+            return null;
+        }
+
+        return $room;
     }
 
     /**
@@ -48,8 +46,15 @@ class RoomValidationService implements RoomValidationInterface
     public function validateRoomStatus(BingoRoom $room): bool
     {
         try {
-            // Solo permitir compras en salas con estado ACTIVE
-            return $room->status && $room->status->code === 'ACTIVE';
+            $code = $room->status?->code;
+            Log::info('[validateRoomStatus]', [
+                'room_id'     => $room->id,
+                'status_id'   => $room->status_id,
+                'status_code' => $code,
+                'valid'       => in_array($code, ['ACTIVE', 'IN_PROGRESS']),
+            ]);
+            // Permitir compras en salas ACTIVE o IN_PROGRESS
+            return $room->status && in_array($code, ['ACTIVE', 'IN_PROGRESS']);
         } catch (\Throwable $e) {
             Log::error('Error al validar estado de sala: ' . $e->getMessage());
             return false;
@@ -83,24 +88,19 @@ class RoomValidationService implements RoomValidationInterface
      */
     public function getRoomDetails(string $roomId): ?BingoRoom
     {
-        try {
-            return BingoRoom::with('Config')->select(
-                'id',
-                'total_players',
-                'total_cards',
-                'total_sales',
-                'rke_commission',
-                'room_commission',
-                'seller_commission',
-                'prize_pool',
-                'full_house_prize',
-            )->whereHas('status', function($query) {
-                $query->where('code', 'ACTIVE');
-            })->where('id', $roomId)->first();
-        } catch (\Throwable $e) {
-            Log::error('Error al obtener detalles de sala: ' . $e->getMessage(), ['roomId' => $roomId]);
-            return null;
-        }
+        // No silenciamos excepciones — si hay un error de BD, debe propagarse
+        $room = BingoRoom::with(['status', 'config'])
+            ->where('id', $roomId)
+            ->first();
+
+        Log::info('[getRoomDetails]', [
+            'roomId'      => $roomId,
+            'found'       => $room ? true : false,
+            'status_id'   => $room?->status_id,
+            'status_code' => $room?->status?->code,
+        ]);
+
+        return $room;
     }
 
     /**
@@ -114,7 +114,7 @@ class RoomValidationService implements RoomValidationInterface
         try {
             return BingoRoom::where('id', $roomId)
                 ->whereHas('status', function($query) {
-                    $query->where('code', 'ACTIVE');
+                    $query->whereIn('code', ['ACTIVE', 'IN_PROGRESS']);
                 })
                 ->exists();
         } catch (\Throwable $e) {

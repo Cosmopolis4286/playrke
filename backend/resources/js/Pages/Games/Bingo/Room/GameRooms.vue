@@ -5,6 +5,7 @@ import "@/css/games/bingo/bingo-game-rooms.css";
 
 import BingoGameRoomCard from "@js/Components/Games/Bingo/Room/GameRooms/BingoGameRoomCard.vue";
 import BingoPurchaseModal from "@js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModal.vue";
+import BingoRoomInfoModal from "@js/Components/Games/Bingo/Room/GameRooms/BingoRoomInfoModal.vue";
 
 import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
 import { useGameRoomEcho } from "@js/composables/games/bingo/room/game-rooms/useGameRoomEcho";
@@ -131,58 +132,38 @@ function spawnMeteor() {
   const m = document.createElement('div');
   m.className = 'grm-meteor';
 
-  // variedad de tamaños: pequeño / medio / grande
-  const sizeClass = Math.random();
-  const size     = sizeClass < 0.4
-    ? 140 + Math.random() * 80   // pequeño: 140–220px
-    : sizeClass < 0.75
-    ? 220 + Math.random() * 120  // medio:   220–340px
-    : 320 + Math.random() * 140; // grande:  320–460px
+  // top-left → bottom-right, ángulo variable 25°–55°
+  const angle   = 25 + Math.random() * 30;      // 25°–55°
+  const size    = 35 + Math.random() * 60;       // 35–95px (pequeño)
+  const dur     = 1.2 + Math.random() * 1.8;     // 1.2–3s (rápido)
+  const opacity = 0.18 + Math.random() * 0.28;   // 0.18–0.46 (apenas visible)
 
-  const height   = sizeClass < 0.4 ? 2 : sizeClass < 0.75 ? 3 : 4; // px
-  // lento: 4–9s
-  const duration = 4 + Math.random() * 5;
-  // ángulo ligero variación ±8°
-  const angle    = 210 + (Math.random() * 16 - 8);
-  // aparece en la franja superior (0%–110% X, -5%→5% Y)
-  const startX   = Math.random() * 110;
-  const startY   = Math.random() * 8;   // % desde top
-  const opacity  = 0.55 + Math.random() * 0.4;
+  // Origen en borde superior-izquierdo con spread
+  const startX = -5 + Math.random() * 50;  // -5 → 45vw
+  const startY = -3 + Math.random() * 8;   // -3 → 5vh
 
-  // cola: box-shadow emulando brillo detrás del meteoro
-  const glowColor = Math.random() > 0.5
-    ? 'rgba(180,210,255,0.35)'
-    : 'rgba(200,240,255,0.3)';
+  // Desplazamiento siempre abajo-derecha
+  const dx = 80 + Math.random() * 70;   // 80–150vw
+  const dy = 65 + Math.random() * 60;   // 65–125vh
 
-  m.style.cssText = `
-    left: ${startX}%;
-    top: ${startY}%;
-    width: ${size}px;
-    height: ${height}px;
-    opacity: ${opacity};
-    --angle: ${angle}deg;
-    --duration: ${duration}s;
-    --glow: ${glowColor};
-  `;
+  m.style.cssText = `left:${startX}vw;top:${startY}vh;width:${size}px;opacity:${opacity};--rot:${angle}deg;--dx:${dx}vw;--dy:${dy}vh;--dur:${dur}s;`;
 
   container.appendChild(m);
   m.addEventListener('animationend', () => m.remove(), { once: true });
 }
 
 function startMeteors() {
-  // dispara 1–4 meteoros cada 1.2–3.5s para mayor densidad
   function schedule() {
-    const delay = 1200 + Math.random() * 2300;
+    const delay = 500 + Math.random() * 1200; // 0.5–1.7s entre apariciones
     meteorTimer = setTimeout(() => {
-      const burst = 1 + Math.floor(Math.random() * 4);
-      for (let i = 0; i < burst; i++) {
-        setTimeout(spawnMeteor, i * 160);
-      }
+      spawnMeteor();
+      // 30% probabilidad de un segundo meteoro escalonado
+      if (Math.random() < 0.3) setTimeout(spawnMeteor, 80 + Math.random() * 120);
       schedule();
     }, delay) as any;
   }
-  // lanza 3 meteoros al inicio para que no se vea vacío
-  for (let i = 0; i < 3; i++) setTimeout(spawnMeteor, i * 400);
+  setTimeout(spawnMeteor, 200);
+  setTimeout(spawnMeteor, 700);
   schedule();
 }
 
@@ -259,117 +240,18 @@ onUnmounted(() => {
   </div>
 
   <!-- ══ Modal de info de sala ══ -->
-  <Teleport to="body">
-    <Transition name="modal-fade">
-      <div
-        v-if="showRoomInfoModal && selectedRoomForInfo"
-        class="grm-overlay"
-        @click.self="closeRoomInfo"
-      >
-        <div class="grm-modal">
-
-          <!-- Cierre -->
-          <button class="grm-modal__close" @click="closeRoomInfo">
-            <i class="fas fa-times" />
-          </button>
-
-          <!-- Imagen header -->
-          <div class="grm-modal__img-wrap">
-            <img :src="bingoRoomImg" alt="Sala" class="grm-modal__img" />
-            <div class="grm-modal__img-overlay" />
-
-            <!-- Countdown sobre la imagen -->
-            <div
-              class="grm-modal__timer"
-              :class="{ 'grm-modal__timer--live': isLive(selectedRoomForInfo.id) }"
-            >
-              <template v-if="isLive(selectedRoomForInfo.id)">
-                <span class="grm-live-dot" />
-                EN VIVO
-              </template>
-              <template v-else>
-                <i class="fas fa-clock mr-1" style="font-size:12px;opacity:.7;" />
-                {{ formatCountdown(selectedRoomForInfo.id) }}
-              </template>
-            </div>
-          </div>
-
-          <!-- Cuerpo -->
-          <div class="grm-modal__body">
-
-            <!-- Badges -->
-            <div class="grm-modal__badges">
-              <span class="grm-modal__badge grm-modal__badge--type">
-                <i class="fas fa-globe mr-1" />
-                {{ roomTypeMap[selectedRoomForInfo.room_type ?? ''] ?? selectedRoomForInfo.room_type ?? 'Sala' }}
-              </span>
-              <span class="grm-modal__badge grm-modal__badge--mode">
-                <i class="fas fa-gamepad mr-1" />
-                {{ gameModeMap[selectedRoomForInfo.game_mode ?? ''] ?? selectedRoomForInfo.game_mode ?? 'Online' }}
-              </span>
-            </div>
-
-            <!-- Bote -->
-            <div class="grm-modal__prize">
-              <p class="grm-modal__prize-label">Premio Acumulado</p>
-              <div class="grm-modal__prize-amount-row">
-                <span class="grm-modal__prize-amount">
-                  {{ (selectedRoomForInfo.prize_pool * (props.exchangeRate ?? 1)).toFixed(2) }}
-                </span>
-                <span class="grm-modal__prize-sym">{{ props.currencySym ?? 'USD' }}</span>
-              </div>
-            </div>
-
-            <!-- Stats -->
-            <div class="grm-modal__stats">
-              <div class="grm-modal__stat">
-                <span class="grm-modal__stat-val">
-                  {{ selectedRoomForInfo.total_players }}
-                </span>
-                <span class="grm-modal__stat-lbl">Jugadores</span>
-              </div>
-              <div class="grm-modal__stat">
-                <span class="grm-modal__stat-val">
-                  {{ selectedRoomForInfo.players_room?.[0]?.ctns ?? 0 }}
-                </span>
-                <span class="grm-modal__stat-lbl">Mis cartones</span>
-              </div>
-              <div class="grm-modal__stat">
-                <span class="grm-modal__stat-val" style="font-size:13px;">
-                  {{ selectedRoomForInfo.card_price != null
-                      ? selectedRoomForInfo.card_price.toFixed(2)
-                      : ((selectedRoomForInfo.config?.card_price_usd ?? 0) * (props.exchangeRate ?? 1)).toFixed(2)
-                  }}
-                  <small style="font-size:9px;color:#5578bb;">{{ selectedRoomForInfo.currency_symbol ?? props.currencySym }}</small>
-                </span>
-                <span class="grm-modal__stat-lbl">Precio cartón</span>
-              </div>
-            </div>
-
-            <!-- Acciones -->
-            <div class="grm-modal__actions">
-              <button
-                class="grm-modal__btn grm-modal__btn--lobby"
-                @click="goToLobby(selectedRoomForInfo.id)"
-              >
-                <i class="fas fa-sign-in-alt" />
-                Ir al Lobby
-              </button>
-              <button
-                v-if="canBuy && selectedRoomForInfo.status_code === 'ACTIVE'"
-                class="grm-modal__btn grm-modal__btn--buy"
-                @click="openPurchaseFromInfo"
-              >
-                <i class="fas fa-shopping-cart" />
-                Comprar Cartones
-              </button>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+  <BingoRoomInfoModal
+    v-if="showRoomInfoModal && selectedRoomForInfo"
+    :room="selectedRoomForInfo"
+    :countdown="getCountdown(selectedRoomForInfo.id)"
+    :exchange-rate="props.exchangeRate ?? 1"
+    :currency-sym="props.currencySym ?? 'USD'"
+    :can-buy="canBuy"
+    :bingo-room-img="bingoRoomImg"
+    @close="closeRoomInfo"
+    @go-lobby="goToLobby(selectedRoomForInfo.id)"
+    @buy="openPurchaseFromInfo"
+  />
 
   <!-- ══ Modal de compra ══ -->
   <BingoPurchaseModal
@@ -467,52 +349,28 @@ body.hold-transition,
 /* ── Meteoros ── */
 .grm-meteor {
   position: absolute;
+  height: 1px;
   border-radius: 999px;
-  /* Cabeza brillante + gradiente estela larga */
   background: linear-gradient(
     90deg,
-    rgba(255,255,255,0)     0%,
-    rgba(180,215,255,0.15) 18%,
-    rgba(200,225,255,0.45) 38%,
-    rgba(230,245,255,0.80) 62%,
-    rgba(255,255,255,1)    82%,
-    rgba(255,255,255,0.6)  100%
+    transparent             0%,
+    rgba(210,230,255,0.08) 40%,
+    rgba(240,248,255,0.55) 78%,
+    rgba(255,255,255,0.85) 92%,
+    rgba(255,255,255,0.5) 100%
   );
-  /* estela luminosa con box-shadow multi-capa */
-  box-shadow:
-    0 0 4px  1px rgba(255,255,255,0.55),
-    0 0 10px 2px rgba(180,220,255,0.35),
-    0 0 22px 4px rgba(140,200,255,0.18);
-  transform: rotate(var(--angle, 215deg));
-  transform-origin: right center;
-  animation: meteorFall var(--duration, 6s) linear forwards;
+  box-shadow: 1px 0 3px 0px rgba(255,255,255,0.4);
+  transform: rotate(var(--rot, 35deg));
+  animation: meteorFall var(--dur, 2s) linear forwards;
   pointer-events: none;
   will-change: transform, opacity;
 }
 
-/* cola extra con ::after — partícula brillante en la cabeza */
-.grm-meteor::after {
-  content: '';
-  position: absolute;
-  right: 0; top: 50%;
-  transform: translateY(-50%);
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(200,230,255,0.4) 60%, transparent 100%);
-  box-shadow: 0 0 8px 3px rgba(180,220,255,0.7);
-}
-
 @keyframes meteorFall {
-  0% {
-    transform: rotate(var(--angle, 215deg)) translateX(0);
-    opacity: 1;
-  }
-  15% { opacity: 1; }
-  80% { opacity: 0.6; }
-  100% {
-    transform: rotate(var(--angle, 215deg)) translateX(220vh);
-    opacity: 0;
-  }
+  0%   { transform:rotate(var(--rot,35deg)) translate(0,0);                          opacity:0; }
+  8%   { opacity:1; }
+  85%  { opacity:0.9; }
+  100% { transform:rotate(var(--rot,35deg)) translate(var(--dx,90vw),var(--dy,80vh)); opacity:0; }
 }
 
 /* idéntico a Game/Index.vue — sin clases dinámicas en body */
@@ -553,7 +411,7 @@ body.hold-transition,
 .game-rooms-page {
   flex: 1;
   min-height: 100vh;
-  padding: 48px 16px 80px;
+  padding: 32px 12px 60px;
   position: relative;
   isolation: isolate;
   overflow-y: auto;
@@ -572,49 +430,86 @@ body.hold-transition,
 }
 .game-rooms-page::-webkit-scrollbar-button { display: none; }
 
-/* ── Capa estrellas pequeñas (igual que ig-page::before) ── */
+/* ── Capa 1: estrellas finas — mayor densidad ── */
 .game-rooms-page::before {
   content: "";
   position: fixed; inset: 0; z-index: -2; pointer-events: none;
   background-image:
-    radial-gradient(1px 1px at  6%  8%, rgba(255,255,255,0.90) 0%, transparent 100%),
-    radial-gradient(1px 1px at 14% 22%, rgba(255,255,255,0.55) 0%, transparent 100%),
-    radial-gradient(1px 1px at 24%  4%, rgba(255,255,255,0.80) 0%, transparent 100%),
-    radial-gradient(1px 1px at 33% 38%, rgba(255,255,255,0.45) 0%, transparent 100%),
-    radial-gradient(1px 1px at 44% 16%, rgba(255,255,255,0.70) 0%, transparent 100%),
-    radial-gradient(1px 1px at 57%  7%, rgba(255,255,255,0.85) 0%, transparent 100%),
-    radial-gradient(1px 1px at 66% 30%, rgba(255,255,255,0.60) 0%, transparent 100%),
-    radial-gradient(1px 1px at 76% 12%, rgba(255,255,255,0.75) 0%, transparent 100%),
-    radial-gradient(1px 1px at 88%  5%, rgba(255,255,255,0.50) 0%, transparent 100%),
-    radial-gradient(1px 1px at 95% 22%, rgba(255,255,255,0.80) 0%, transparent 100%),
-    radial-gradient(1px 1px at  3% 45%, rgba(255,255,255,0.65) 0%, transparent 100%),
-    radial-gradient(1px 1px at 11% 60%, rgba(255,255,255,0.40) 0%, transparent 100%),
-    radial-gradient(1px 1px at 20% 75%, rgba(255,255,255,0.72) 0%, transparent 100%),
-    radial-gradient(1px 1px at 53% 48%, rgba(255,255,255,0.85) 0%, transparent 100%),
-    radial-gradient(1px 1px at 83% 70%, rgba(255,255,255,0.55) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 18% 18%, rgba(180,200,255,0.95) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 48% 10%, rgba(200,180,255,0.88) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 78% 28%, rgba(180,220,255,0.92) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 60% 58%, rgba(200,255,220,0.85) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 90% 45%, rgba(255,240,180,0.80) 0%, transparent 100%);
+    /* fila 1 */
+    radial-gradient(1px 1px at  3%  4%, rgba(255,255,255,0.92) 0%, transparent 100%),
+    radial-gradient(1px 1px at  9% 14%, rgba(255,255,255,0.60) 0%, transparent 100%),
+    radial-gradient(1px 1px at 16%  2%, rgba(255,255,255,0.82) 0%, transparent 100%),
+    radial-gradient(1px 1px at 22% 28%, rgba(255,255,255,0.48) 0%, transparent 100%),
+    radial-gradient(1px 1px at 29%  9%, rgba(255,255,255,0.74) 0%, transparent 100%),
+    radial-gradient(1px 1px at 36% 18%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1px 1px at 42%  5%, rgba(255,255,255,0.88) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 22%, rgba(255,255,255,0.66) 0%, transparent 100%),
+    radial-gradient(1px 1px at 57%  8%, rgba(255,255,255,0.80) 0%, transparent 100%),
+    radial-gradient(1px 1px at 63% 32%, rgba(255,255,255,0.52) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70%  3%, rgba(255,255,255,0.86) 0%, transparent 100%),
+    radial-gradient(1px 1px at 77% 18%, rgba(255,255,255,0.68) 0%, transparent 100%),
+    radial-gradient(1px 1px at 84%  7%, rgba(255,255,255,0.75) 0%, transparent 100%),
+    radial-gradient(1px 1px at 91% 25%, rgba(255,255,255,0.58) 0%, transparent 100%),
+    radial-gradient(1px 1px at 97% 12%, rgba(255,255,255,0.84) 0%, transparent 100%),
+    /* fila 2 */
+    radial-gradient(1px 1px at  5% 42%, rgba(255,255,255,0.62) 0%, transparent 100%),
+    radial-gradient(1px 1px at 13% 55%, rgba(255,255,255,0.44) 0%, transparent 100%),
+    radial-gradient(1px 1px at 21% 67%, rgba(255,255,255,0.78) 0%, transparent 100%),
+    radial-gradient(1px 1px at 28% 48%, rgba(255,255,255,0.50) 0%, transparent 100%),
+    radial-gradient(1px 1px at 35% 72%, rgba(255,255,255,0.70) 0%, transparent 100%),
+    radial-gradient(1px 1px at 44% 58%, rgba(255,255,255,0.42) 0%, transparent 100%),
+    radial-gradient(1px 1px at 51% 80%, rgba(255,255,255,0.82) 0%, transparent 100%),
+    radial-gradient(1px 1px at 59% 45%, rgba(255,255,255,0.64) 0%, transparent 100%),
+    radial-gradient(1px 1px at 67% 62%, rgba(255,255,255,0.56) 0%, transparent 100%),
+    radial-gradient(1px 1px at 74% 78%, rgba(255,255,255,0.74) 0%, transparent 100%),
+    radial-gradient(1px 1px at 81% 50%, rgba(255,255,255,0.48) 0%, transparent 100%),
+    radial-gradient(1px 1px at 88% 68%, rgba(255,255,255,0.80) 0%, transparent 100%),
+    radial-gradient(1px 1px at 94% 85%, rgba(255,255,255,0.52) 0%, transparent 100%),
+    /* fila 3 */
+    radial-gradient(1px 1px at  7% 88%, rgba(255,255,255,0.66) 0%, transparent 100%),
+    radial-gradient(1px 1px at 18% 93%, rgba(255,255,255,0.44) 0%, transparent 100%),
+    radial-gradient(1px 1px at 33% 87%, rgba(255,255,255,0.72) 0%, transparent 100%),
+    radial-gradient(1px 1px at 48% 95%, rgba(255,255,255,0.58) 0%, transparent 100%),
+    radial-gradient(1px 1px at 62% 90%, rgba(255,255,255,0.80) 0%, transparent 100%),
+    radial-gradient(1px 1px at 78% 96%, rgba(255,255,255,0.46) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 89%, rgba(255,255,255,0.76) 0%, transparent 100%),
+    /* estrellas coloreadas */
+    radial-gradient(1.5px 1.5px at 11% 16%, rgba(190,210,255,0.95) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 26%  6%, rgba(210,185,255,0.88) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 46% 12%, rgba(180,225,255,0.90) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 66% 19%, rgba(200,255,220,0.82) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 85% 11%, rgba(255,240,180,0.85) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 38% 60%, rgba(190,210,255,0.78) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 72% 52%, rgba(255,200,200,0.72) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 55% 76%, rgba(200,225,255,0.86) 0%, transparent 100%);
   animation: twinkle-a 7s ease-in-out infinite alternate;
 }
 
-/* ── Capa estrellas grandes + halos (igual que ig-page::after) ── */
+/* ── Capa 2: estrellas grandes con halo ── */
 .game-rooms-page::after {
   content: "";
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background-image:
-    radial-gradient(2px 2px at 10% 15%, rgba(255,255,255,0.95) 0%, transparent 100%),
-    radial-gradient(2px 2px at 45%  8%, rgba(255,255,255,0.82) 0%, transparent 100%),
-    radial-gradient(2px 2px at 65% 25%, rgba(255,240,180,0.92) 0%, transparent 100%),
-    radial-gradient(2px 2px at 82% 18%, rgba(180,200,255,0.85) 0%, transparent 100%),
-    radial-gradient(2px 2px at 23% 70%, rgba(255,255,255,0.90) 0%, transparent 100%),
-    radial-gradient(2px 2px at 55% 62%, rgba(220,200,255,0.85) 0%, transparent 100%),
-    radial-gradient(3px 3px at 37% 20%, rgba(255,255,255,1.00) 0%, transparent 100%),
-    radial-gradient(3px 3px at 70% 45%, rgba(220,200,255,0.96) 0%, transparent 100%),
-    radial-gradient(3px 3px at 15% 82%, rgba(255,255,255,0.92) 0%, transparent 100%),
-    radial-gradient(4px 4px at 62% 35%, rgba(255,255,255,1.00) 0%, rgba(200,220,255,0.3) 50%, transparent 100%);
+    radial-gradient(2px 2px at  8% 12%, rgba(255,255,255,0.96) 0%, transparent 100%),
+    radial-gradient(2px 2px at 24% 35%, rgba(200,215,255,0.88) 0%, transparent 100%),
+    radial-gradient(2px 2px at 40%  6%, rgba(255,255,255,0.84) 0%, transparent 100%),
+    radial-gradient(2px 2px at 58% 22%, rgba(255,240,180,0.92) 0%, transparent 100%),
+    radial-gradient(2px 2px at 74% 15%, rgba(180,200,255,0.86) 0%, transparent 100%),
+    radial-gradient(2px 2px at 90% 38%, rgba(255,255,255,0.78) 0%, transparent 100%),
+    radial-gradient(2px 2px at 15% 65%, rgba(200,255,240,0.82) 0%, transparent 100%),
+    radial-gradient(2px 2px at 50% 55%, rgba(220,200,255,0.88) 0%, transparent 100%),
+    radial-gradient(2px 2px at 80% 72%, rgba(255,255,255,0.90) 0%, transparent 100%),
+    radial-gradient(2px 2px at 35% 82%, rgba(200,220,255,0.80) 0%, transparent 100%),
+    radial-gradient(2px 2px at 68% 88%, rgba(255,250,200,0.84) 0%, transparent 100%),
+    /* grandes con halo */
+    radial-gradient(3px 3px at 19% 20%, rgba(255,255,255,1.00) 0%, rgba(210,230,255,0.20) 55%, transparent 100%),
+    radial-gradient(3px 3px at 44% 14%, rgba(220,200,255,0.96) 0%, rgba(185,165,255,0.18) 55%, transparent 100%),
+    radial-gradient(3px 3px at 69% 42%, rgba(255,255,255,0.94) 0%, rgba(225,245,255,0.15) 55%, transparent 100%),
+    radial-gradient(3px 3px at 88% 60%, rgba(200,240,255,0.98) 0%, rgba(160,220,255,0.15) 55%, transparent 100%),
+    radial-gradient(3px 3px at 30% 78%, rgba(255,240,160,0.90) 0%, rgba(255,220,100,0.12) 55%, transparent 100%),
+    /* especiales con halo amplio */
+    radial-gradient(4px 4px at 55% 30%, rgba(255,255,255,1.00) 0%, rgba(205,225,255,0.28) 50%, transparent 100%),
+    radial-gradient(4px 4px at 12% 45%, rgba(255,248,200,0.95) 0%, rgba(255,240,160,0.18) 50%, transparent 100%);
   animation: twinkle-b 9s ease-in-out infinite alternate-reverse;
 }
 
@@ -629,7 +524,7 @@ body.hold-transition,
 
 /* ── Contenedor de meteoros ── */
 .grm-meteors {
-  position: fixed; inset: 0; z-index: 2; pointer-events: none; overflow: hidden;
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
 }
 
 /* ═══════════════════════════════
@@ -755,224 +650,35 @@ body.hold-transition,
 }
 
 /* ═══════════════════════════════
-   GRID
+   GRID — cards horizontales responsive
 ═══════════════════════════════ */
-.game-rooms-page__grid-wrap { width: 100%; }
+.game-rooms-page__grid-wrap {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 4px;
+}
 
 .game-rooms-page__grid {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 0 -12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
 }
-
-.game-rooms-page__grid--centered { justify-content: center; }
 
 .game-rooms-page__grid-item {
-  padding: 0 12px 24px;
-  flex: 0 0 auto;
   display: flex;
-  justify-content: center;
+  width: 100%;
 }
 
-@media (max-width: 575px)  { .game-rooms-page__grid-item { width: 100%; } }
-@media (min-width: 576px)  { .game-rooms-page__grid-item { width: 50%; } }
-@media (min-width: 900px)  { .game-rooms-page__grid-item { width: 33.333%; } }
-@media (min-width: 1200px) { .game-rooms-page__grid-item { width: 25%; } }
-
-/* ═══════════════════════════════
-   MODAL OVERLAY
-═══════════════════════════════ */
-.grm-overlay {
-  position: fixed; inset: 0; z-index: 9999;
-  background: rgba(2, 5, 20, 0.88);
-  backdrop-filter: blur(10px);
-  display: flex; align-items: center; justify-content: center;
-  padding: 16px;
+/* Tablet: 2 columnas cuando hay espacio suficiente */
+@media (min-width: 680px) {
+  .game-rooms-page__grid { grid-template-columns: 1fr 1fr; }
 }
 
-.grm-modal {
-  width: 100%; max-width: 420px;
-  background: linear-gradient(160deg, #0d1635 0%, #080f28 100%);
-  border: 1px solid rgba(100, 140, 255, 0.28);
-  border-radius: 24px;
-  box-shadow:
-    0 32px 80px rgba(0,0,0,0.85),
-    0 0 0 1px rgba(80,120,255,0.1) inset;
-  overflow: hidden;
-  position: relative;
+/* Desktop: 3 columnas */
+@media (min-width: 1100px) {
+  .game-rooms-page__grid { grid-template-columns: 1fr 1fr 1fr; }
 }
 
-.grm-modal::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 200px;
-  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(123,79,255,0.35), transparent 70%);
-  pointer-events: none;
-}
-
-/* Imagen */
-.grm-modal__img-wrap {
-  position: relative;
-  height: 190px;
-  overflow: hidden;
-}
-.grm-modal__img {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-}
-.grm-modal__img-overlay {
-  position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(5,10,30,0.15) 0%, rgba(8,15,40,0.88) 100%);
-}
-
-/* Timer sobre imagen */
-.grm-modal__timer {
-  position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
-  background: rgba(8, 14, 40, 0.9);
-  border: 1px solid rgba(100,140,255,0.35);
-  backdrop-filter: blur(8px);
-  color: #c8d8ff;
-  border-radius: 30px;
-  padding: 6px 18px;
-  font-family: 'Anton', sans-serif;
-  font-size: 15px;
-  letter-spacing: 1px;
-  display: flex; align-items: center; gap: 6px;
-  white-space: nowrap;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-}
-.grm-modal__timer--live {
-  border-color: rgba(255,70,70,0.55);
-  color: #ff8080;
-  animation: pulse-live 1.8s ease-in-out infinite;
-}
-@keyframes pulse-live {
-  0%, 100% { box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
-  50%       { box-shadow: 0 4px 20px rgba(255,60,60,0.4); }
-}
-.grm-live-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: #ff4d4d;
-  box-shadow: 0 0 6px #ff4d4d;
-  animation: blink-dot 1s ease-in-out infinite;
-}
-@keyframes blink-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-/* Cierre */
-.grm-modal__close {
-  position: absolute; top: 12px; right: 12px; z-index: 20;
-  background: rgba(0,0,0,0.55);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: #fff;
-  width: 34px; height: 34px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; font-size: 13px;
-  transition: background 0.2s, transform 0.15s;
-}
-.grm-modal__close:hover {
-  background: rgba(255,255,255,0.18);
-  transform: rotate(90deg);
-}
-
-/* Body */
-.grm-modal__body {
-  padding: 20px 24px 26px;
-  position: relative; z-index: 1;
-}
-
-/* Badges */
-.grm-modal__badges {
-  display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap;
-}
-.grm-modal__badge {
-  padding: 5px 14px; border-radius: 20px;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
-  display: flex; align-items: center;
-}
-.grm-modal__badge--type {
-  background: rgba(123,79,255,0.2);
-  border: 1px solid rgba(123,79,255,0.45);
-  color: #b48fff;
-}
-.grm-modal__badge--mode {
-  background: rgba(0,158,253,0.15);
-  border: 1px solid rgba(0,158,253,0.38);
-  color: #7cd4ff;
-}
-
-/* Premio */
-.grm-modal__prize { text-align: center; margin-bottom: 20px; }
-.grm-modal__prize-label {
-  font-size: 11px; color: #7c9dff;
-  text-transform: uppercase; letter-spacing: 1.2px;
-  margin-bottom: 4px; display: block;
-}
-.grm-modal__prize-amount-row {
-  display: flex; align-items: baseline;
-  justify-content: center; gap: 6px;
-}
-.grm-modal__prize-amount {
-  font-family: 'Anton', sans-serif; font-size: 52px; line-height: 1;
-  background: linear-gradient(135deg, #ffe566, #ffab00);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  filter: drop-shadow(0 4px 14px rgba(255,180,0,0.5));
-}
-.grm-modal__prize-sym {
-  font-size: 20px; font-weight: 700; color: #ffd060; -webkit-text-fill-color: #ffd060;
-}
-
-/* Stats */
-.grm-modal__stats {
-  display: flex; gap: 10px; margin-bottom: 22px;
-}
-.grm-modal__stat {
-  flex: 1;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(100,140,255,0.13);
-  border-radius: 14px; padding: 12px 8px; text-align: center;
-  transition: border-color 0.2s;
-}
-.grm-modal__stat:hover { border-color: rgba(100,140,255,0.28); }
-.grm-modal__stat-val {
-  font-family: 'Anton', sans-serif; font-size: 20px; color: #e0eaff;
-  display: block; margin-bottom: 3px;
-}
-.grm-modal__stat-lbl {
-  font-size: 9px; color: #5578bb;
-  text-transform: uppercase; letter-spacing: 0.8px;
-}
-
-/* Acciones */
-.grm-modal__actions { display: flex; flex-direction: column; gap: 10px; }
-.grm-modal__btn {
-  width: 100%; padding: 15px; border: none; border-radius: 14px;
-  font-size: 13px; font-weight: 800; letter-spacing: 1.2px;
-  text-transform: uppercase; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  transition: filter 0.2s, transform 0.15s, box-shadow 0.2s;
-}
-.grm-modal__btn--lobby {
-  background: linear-gradient(90deg, #7b4fff 0%, #009efd 100%);
-  color: #fff;
-  box-shadow: 0 6px 24px rgba(123,79,255,0.4);
-}
-.grm-modal__btn--lobby:hover {
-  filter: brightness(1.12);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 32px rgba(123,79,255,0.55);
-}
-.grm-modal__btn--buy {
-  background: linear-gradient(90deg, #2af598 0%, #009efd 100%);
-  color: #051830;
-  box-shadow: 0 6px 24px rgba(42,245,152,0.35);
-}
-.grm-modal__btn--buy:hover {
-  filter: brightness(1.08);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 32px rgba(42,245,152,0.5);
-}
-
-/* Transition modal */
-.modal-fade-enter-active,
-.modal-fade-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
-.modal-fade-enter-from,
-.modal-fade-leave-to { opacity: 0; transform: scale(0.95); }
+/* estilos del modal de info movidos a BingoRoomInfoModal.vue */
 </style>

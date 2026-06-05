@@ -21,6 +21,7 @@ use App\Services\Games\Bingo\Room\Metrics\RoomMetricsService;
 use App\Services\Games\Bingo\Card\BingoCardManagementService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use DomainException;
 
 /**
  * Servicio especializado en la generación de cartones de bingo.
@@ -77,11 +78,25 @@ final class BingoCardGenerationService
         $this->handleBingoRooms->checkRoomClosure();
 
         $roomId = $arrCtn['roomId'];
-        $room = $this->roomValidation->getRoomDetails($roomId);
+
+        // Cargamos la sala con su estado directamente — sin pasar por RoomValidationService
+        // para evitar silenciamiento de excepciones y problemas con select() parcial
+        $room = BingoRoom::with(['status', 'config'])
+            ->where('id', $roomId)
+            ->first();
+
+        Log::info('[generateCards] room lookup', [
+            'roomId'      => $roomId,
+            'found'       => $room ? true : false,
+            'status_code' => $room?->status?->code,
+        ]);
 
         if (!$room) {
-            Log::error('Room not available', ['roomId' => $roomId]);
-            throw new \DomainException('Sala no disponible');
+            throw new \DomainException('Sala no encontrada.');
+        }
+
+        if (!in_array($room->status?->code, ['ACTIVE', 'IN_PROGRESS'])) {
+            throw new \DomainException('La sala no está disponible para compras (estado: ' . ($room->status?->code ?? 'desconocido') . ').');
         }
 
         try {
@@ -128,7 +143,9 @@ final class BingoCardGenerationService
             // Anexar atributo al array
             $arrCtn['roomUser'] = $roomUserId;
 
-            $gameMode = $room->Config->game_mode;
+            // game_mode_id es un Snowflake — usamos 1 como valor genérico legacy
+            // La lógica real de descuento de billetera depende de creator['type'], no de gameMode
+            $gameMode = 1;
 
             if ($gameMode != 1 && ($creator['type'] === 'commerce_id' || $seller)) {
                 // Calcular monto total de venta y comisiones si es un vendedor

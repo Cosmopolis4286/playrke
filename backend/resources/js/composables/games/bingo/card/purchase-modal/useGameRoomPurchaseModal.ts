@@ -21,6 +21,15 @@ function _cachedPrice(roomId: string) {
     return entry
 }
 
+/**
+ * Las rutas de /bingo-card/* usan HasHashedRouteKey (Hashids).
+ * room.encrypted contiene el hash; room.id es el Snowflake crudo.
+ * Si encrypted no está disponible se cae al id (p.ej. desde el Lobby).
+ */
+function _bingoCardKey(room: BingoGameRoom): string {
+    return room.encrypted ?? room.id
+}
+
 export function useGameRoomPurchaseModal() {
     const page = usePage()
 
@@ -69,11 +78,11 @@ export function useGameRoomPurchaseModal() {
 
     // ── Fetch privados ───────────────────────────────────────────────────────
 
-    async function _fetchCountries(roomId: string): Promise<void> {
+    async function _fetchCountries(room: BingoGameRoom): Promise<void> {
         try {
             loadingCountries.value = true
             const { data } = await backendClient.get<{ data: BingoAvailableCountry[] }>(
-                `/bingo-card/${roomId}/available-countries`,
+                `/bingo-card/${_bingoCardKey(room)}/available-countries`,
             )
             countries.value = data.data ?? []
             step.value = 'country'
@@ -85,11 +94,11 @@ export function useGameRoomPurchaseModal() {
         }
     }
 
-    async function _fetchCardPrice(roomId: string, countryId: string): Promise<void> {
+    async function _fetchCardPrice(room: BingoGameRoom, countryId: string): Promise<void> {
         try {
             loadingPrice.value = true
             const { data } = await backendClient.get<BingoCardPriceResponse>(
-                `/bingo-card/${roomId}/card-price`,
+                `/bingo-card/${_bingoCardKey(room)}/card-price`,
                 { params: { country_id: countryId } },
             )
             cardPrice.value = data.card_price
@@ -175,7 +184,7 @@ export function useGameRoomPurchaseModal() {
             cardPrice.value = 0
             step.value = 'loading'
             isOpen.value = true
-            await _fetchCountries(room.id)
+            await _fetchCountries(room)
         }
     }
 
@@ -190,7 +199,7 @@ export function useGameRoomPurchaseModal() {
     async function selectCountry(country: BingoAvailableCountry): Promise<void> {
         selectedCountry.value = country
         if (!selectedRoom.value) return
-        await _fetchCardPrice(selectedRoom.value.id, country.id)
+        await _fetchCardPrice(selectedRoom.value, country.id)
     }
 
     function nextStep(): void {

@@ -541,13 +541,14 @@ final class BingoCardGenerateService
         // 1. Resolver commerce responsable según rol
         [$commerceId, $creatorUserId] = $this->resolveCommerceContext($userId, $role);
 
-        // 2. Validar sala
+        // 2. Validar sala — permite ACTIVE o IN_PROGRESS
         $room = BingoRoom::select('id', 'status_id', 'prize_pool', 'creator_user_id')
-            ->with('config:id,room_id,card_price_usd')
+            ->with(['status:id,code', 'config:id,room_id,card_price_usd'])
+            ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
             ->where('id', $dto->roomId)
             ->first();
 
-        if (!$room || $room->status_id > 2) {
+        if (!$room) {
             throw new DomainException('Sala no encontrada o no disponible.');
         }
 
@@ -769,30 +770,33 @@ final class BingoCardGenerateService
             throw new DomainException('Saldo insuficiente en la billetera. Saldo actual: ' . $currentBalance . ', Monto requerido: ' . $totalAmount);
         }
 
-        // Preparar array para cartonStore (versión simplificada para jugadores)
+        // Preparar array para cartonStore
+        // Usamos type='player' para que generateCards omita el descuento de wallet legacy
+        // (Wallet::decrement por columna). El descuento real lo hace recordCardPurchase abajo.
         $arrCtn = [
-            'roomId'       => $roomId,
-            'creator'       => ['id' => $userId, 'type' => 'customer'], // Player actúa como customer
-            'seller'        => null, // No hay seller para jugadores
-            'currency'      => $currencyId,
-            'numOfCtns'     => $numCtns,
-            'cardPrice'     => $cardPrice,
-            'country'       => null, // No se usa país para jugadores
-            'playerPhone'   => '', // No requerido para jugadores autenticados
-            'playerName'    => 'Player', // Puede obtenerse del usuario si es necesario
-            'playerLastName' => 'User',
-            'initials'      => 'PU',
-            'cardPriceUsd'  => $priceInfo['card_price_usd'],
-            'saleAmountUsd' => round($priceInfo['card_price_usd'] * $numCtns, 3),
-            'exchangeRate'  => $priceInfo['exchange_rate'],
-            'playerUser'    => $userId, // ID del jugador
+            'roomId'         => $roomId,
+            'creator'        => ['id' => $userId, 'type' => 'player'],
+            'seller'         => null,
+            'currency'       => $currencyId,
+            'numOfCtns'      => $numCtns,
+            'cardPrice'      => $cardPrice,
+            'country'        => null,
+            'playerPhone'    => '',
+            'playerName'     => '',
+            'playerLastName' => '',
+            'initials'       => '',
+            'cardPriceUsd'   => $priceInfo['card_price_usd'],
+            'saleAmountUsd'  => round($priceInfo['card_price_usd'] * $numCtns, 3),
+            'exchangeRate'   => $priceInfo['exchange_rate'],
+            'playerUser'     => null, // null para que generateCards no intente Wallet::decrement
+            'playerLink'     => true, // flag para saltar el bloque de descuento legacy
         ];
 
-        // Ejecutar transacción atómica para generar cartones
-        $result = $this->cardGenerationService->generateInTransaction($arrCtn, $room, $totalAmount);
+        // Generar cartones — el descuento de billetera lo hace recordCardPurchase abajo
+        $this->cardGenerationService->generateInTransaction($arrCtn, $room, $totalAmount);
 
-        // Registrar el movimiento de compra en la billetera
-        $description = "Compra de {$numCtns} carton(es) - Sala {$room->id}";
+        // Descuento de billetera + movimiento — única fuente de verdad
+        $description = "Compra de {$numCtns} cartón(es) — Sala {$room->uuid_code}";
         $this->walletService->recordCardPurchase($playerWallet->id, $totalAmount, $description);
 
         // Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
@@ -801,40 +805,21 @@ final class BingoCardGenerateService
             ->find($room->id);
 
         if ($fresh) {
-            $event = new \App\Events\Games\Bingo\BingoRoomUpdated(
-                roomId: (string) $fresh->id,
-                prizePool: (float)  $fresh->prize_pool,
+            broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
+                roomId:       (string) $fresh->id,
+                prizePool:    (float)  $fresh->prize_pool,
                 totalPlayers: (int)    $fresh->total_players,
                 cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
-            );
-
-            // Debug: Log antes de emitir
-            \Log::info('BingoRoomUpdated: Emitiendo evento desde playerBuyFromGameRooms', [
-                'room_id' => $fresh->id,
-                'prize_pool' => $fresh->prize_pool,
-                'total_players' => $fresh->total_players,
-                'card_price_usd' => $fresh->config?->card_price_usd,
-                'channel' => "bingo.room.{$fresh->id}",
-                'event_name' => 'RoomUpdated'
-            ]);
-
-            // Forzar transmisión inmediata usando el driver de Reverb directamente
-            \Broadcast::driver('reverb')->broadcast([$event->broadcastOn()], $event->broadcastAs(), $event->broadcastWith());
-
-            // Debug: Log después de emitir
-            \Log::info('BingoRoomUpdated: Evento emitido correctamente desde playerBuyFromGameRooms');
-        } else {
-            \Log::warning('BingoRoomUpdated: No se encontró la sala fresca en playerBuyFromGameRooms', ['room_id' => $room->id]);
+            ))->toOthers();
         }
 
         return [
-            'message' => 'Cartones generados exitosamente',
-            'type' => 'success',
-            'ctns' => $numCtns,
-            'prize_pool' => $fresh?->prize_pool ?? $room->prize_pool,
-            'currency' => $priceInfo['currency_symbol'],
-            'exchange_rate' => $priceInfo['exchange_rate'],
-            'room_user' => $result['roomUser'] ?? null,
+            'message'        => 'Cartones generados exitosamente',
+            'type'           => 'success',
+            'ctns'           => $numCtns,
+            'prize_pool'     => $fresh?->prize_pool ?? $room->prize_pool,
+            'currency'       => $priceInfo['currency_symbol'],
+            'exchange_rate'  => $priceInfo['exchange_rate'],
             'wallet_balance' => $currentBalance - $totalAmount,
         ];
     }

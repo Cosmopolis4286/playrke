@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { usePage } from '@inertiajs/vue3'
 import { computed } from 'vue'
 import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
 import type { RoomCountdown } from '@/js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
@@ -19,37 +18,39 @@ const props = defineProps<{
   index?: number
 }>()
 
-const emit = defineEmits<{
-  (e: 'select', roomId: string): void
-  (e: 'close'): void
-  (e: 'increment'): void
-  (e: 'decrement'): void
-  (e: 'set-ctns', value: number): void
-  (e: 'purchase'): void
-}>()
+const emit = defineEmits<{ (e: 'select', roomId: string): void }>()
 
 const isAvailable  = computed(() => props.room.status_code === 'ACTIVE')
 const isInProgress = computed(() => props.room.status_code === 'IN_PROGRESS')
 const isPublic     = computed(() => props.room.room_type === 'PUBLIC')
 const playerCtns   = computed(() => props.room.players_room?.[0]?.ctns ?? 0)
 const hasTime      = computed(() => props.countdown && !props.countdown.expired)
-const animDelay    = computed(() => `${(props.index ?? 0) * 70}ms`)
+const animDelay    = computed(() => `${(props.index ?? 0) * 90}ms`)
 const bingoRoomImg = '/img/games/bingo/estelar_fd.png'
 
 const prizeFormatted = computed(() =>
   (props.room.prize_pool * props.exchangeRate).toFixed(2)
 )
-
 const cardPriceFormatted = computed(() => {
   if (props.room.card_price != null) return props.room.card_price.toFixed(2)
   return ((props.room.config?.card_price_usd ?? 0) * props.exchangeRate).toFixed(2)
 })
-
 const sym = computed(() => props.room.currency_symbol ?? props.currencySym)
 
 const gameModeLabel = computed(() => {
   const m: Record<string, string> = { ONLINE: 'Online', OFFLINE: 'Presencial', MIXED: 'Mixto' }
   return m[props.room.game_mode ?? ''] ?? props.room.game_mode ?? ''
+})
+
+// Countdown siempre muestra MM:SS, con horas/días si aplica
+const timerStr = computed(() => {
+  if (!hasTime.value || !props.countdown) return null
+  const { days, hours, minutes, seconds } = props.countdown.time
+  const ss = String(seconds).padStart(2, '0')
+  const mm = String(minutes).padStart(2, '0')
+  if (days > 0) return `${days}d ${String(hours).padStart(2,'0')}h ${mm}m`
+  if (hours > 0) return `${String(hours).padStart(2,'0')}:${mm}:${ss}`
+  return `${mm}:${ss}`
 })
 
 function handleClick() {
@@ -61,319 +62,259 @@ function handleClick() {
   <div
     class="rc"
     :class="{
-      'rc--active':   isAvailable,
-      'rc--live':     isInProgress && playerCtns === 0,
-      'rc--enter':    isInProgress && playerCtns > 0,
-      'rc--off':      !isAvailable && !isInProgress,
+      'rc--active': isAvailable,
+      'rc--live':   isInProgress,
+      'rc--off':    !isAvailable && !isInProgress,
     }"
     :style="{ '--d': animDelay }"
     @click="handleClick"
   >
-    <!-- glow ring -->
-    <div class="rc__ring" />
+    <!-- Acento top -->
+    <div class="rc__accent" />
 
-    <!-- ── IMAGE ── -->
-    <div class="rc__img-wrap">
-      <img :src="bingoRoomImg" alt="" class="rc__img" />
-      <div class="rc__img-fade" />
+    <div class="rc__inner">
 
-      <!-- timer pill -->
-      <div class="rc__timer" :class="{ 'rc__timer--live': !hasTime }">
-        <template v-if="hasTime && countdown">
-          <span v-if="countdown.time.days > 0" class="rc__t-seg">{{ countdown.time.days }}<small>d</small></span>
-          <span v-if="countdown.time.days > 0" class="rc__t-sep">:</span>
-          <span v-if="countdown.time.hours > 0" class="rc__t-seg">{{ String(countdown.time.hours).padStart(2,'0') }}<small>h</small></span>
-          <span v-if="countdown.time.hours > 0" class="rc__t-sep">:</span>
-          <span class="rc__t-seg">{{ String(countdown.time.minutes).padStart(2,'0') }}<small>m</small></span>
-          <span class="rc__t-sep">:</span>
-          <span class="rc__t-seg">{{ String(countdown.time.seconds).padStart(2,'0') }}<small>s</small></span>
-        </template>
-        <template v-else>
-          <span class="rc__dot" />LIVE
-        </template>
+      <!-- ── Thumbnail ── -->
+      <div class="rc__thumb">
+        <img :src="bingoRoomImg" alt="" class="rc__img" />
+        <div class="rc__img-veil" />
+        <span class="rc__dot"
+          :class="isAvailable ? 'rc__dot--ok' : isInProgress ? 'rc__dot--live' : 'rc__dot--dim'"
+        />
       </div>
 
-      <!-- type chip -->
-      <span class="rc__type" :class="isPublic ? 'rc__type--pub' : 'rc__type--prv'">
-        <i :class="isPublic ? 'fas fa-globe-americas' : 'fas fa-lock'" />
-        {{ isPublic ? 'Pública' : 'Privada' }}
-      </span>
+      <!-- ── Body ── -->
+      <div class="rc__body">
 
-      <!-- my-tickets badge -->
-      <span v-if="playerCtns > 0" class="rc__tickets">
-        <i class="fas fa-ticket-alt" />{{ playerCtns }}
-      </span>
-    </div>
-
-    <!-- ── BODY ── -->
-    <div class="rc__body">
-
-      <!-- mode row -->
-      <div class="rc__mode">
-        <i class="fas fa-gamepad" />
-        {{ gameModeLabel }}
-      </div>
-
-      <!-- prize -->
-      <div class="rc__prize">
-        <span class="rc__prize-lbl">PREMIO</span>
-        <div class="rc__prize-val">
-          <span class="rc__prize-num">{{ prizeFormatted }}</span>
-          <span class="rc__prize-sym">{{ sym }}</span>
+        <!-- Fila A: título + modo | estado + timer -->
+        <div class="rc__row rc__row--a">
+          <div>
+            <p class="rc__name">Bingo {{ isPublic ? 'Público' : 'Privado' }}</p>
+            <p class="rc__mode"><i class="fas fa-gamepad" /> {{ gameModeLabel }}</p>
+          </div>
+          <div class="rc__col-right">
+            <span class="rc__badge"
+              :class="isAvailable?'rc__badge--ok':isInProgress?'rc__badge--live':'rc__badge--off'"
+            >
+              <span v-if="isInProgress" class="rc__blink" />
+              {{ isAvailable ? 'Disponible' : isInProgress ? 'En Juego' : 'Cerrada' }}
+            </span>
+            <div class="rc__timer" :class="{'rc__timer--live':!hasTime}">
+              <template v-if="hasTime && timerStr">
+                <i class="far fa-clock" style="font-family:'Font Awesome 6 Free';font-size:9px;opacity:.55;" />
+                <span class="rc__timer-val">{{ timerStr }}</span>
+              </template>
+              <template v-else>
+                <span class="rc__blink" /> LIVE
+              </template>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- meta row -->
-      <div class="rc__meta">
-        <span class="rc__meta-item">
-          <i class="fas fa-tag" />{{ cardPriceFormatted }} {{ sym }}
-        </span>
-        <span class="rc__meta-item">
-          <i class="fas fa-user-friends" />{{ room.total_players }}
-        </span>
-      </div>
+        <!-- Divider -->
+        <div class="rc__sep" />
 
-      <!-- cta -->
-      <div class="rc__cta">
-        <template v-if="isAvailable">
-          <i class="fas fa-eye" /> Ver Sala
-        </template>
-        <template v-else-if="isInProgress && playerCtns > 0">
-          <i class="fas fa-sign-in-alt" /> Entrar
-        </template>
-        <template v-else-if="isInProgress">
-          <i class="fas fa-circle" style="font-size:7px;vertical-align:middle;" /> En Juego
-        </template>
-        <template v-else>
-          No disponible
-        </template>
-      </div>
+        <!-- Fila B: premio | stats -->
+        <div class="rc__row rc__row--b">
 
+          <!-- Premio -->
+          <div class="rc__prize">
+            <span class="rc__prize-lbl">PREMIO</span>
+            <div class="rc__prize-val">
+              <span class="rc__prize-num">{{ prizeFormatted }}</span>
+              <span class="rc__prize-sym">{{ sym }}</span>
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div class="rc__stats">
+            <span class="rc__stat">
+              <i class="fas fa-tag" />
+              <span>{{ cardPriceFormatted }} {{ sym }}</span>
+              <em>c/cartón</em>
+            </span>
+            <span class="rc__stat">
+              <i class="fas fa-users" />
+              <span>{{ room.total_players }}</span>
+              <em>jugadores</em>
+            </span>
+            <span v-if="playerCtns > 0" class="rc__stat rc__stat--ctns">
+              <i class="fas fa-ticket-alt" />
+              <span>{{ playerCtns }}</span>
+              <em>mis ctns</em>
+            </span>
+          </div>
+
+        </div>
+
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* ─── tokens ─── */
-:root {
-  --c-bg1:   #0b1220;
-  --c-bg2:   #060d1c;
-  --c-green: #2af598;
-  --c-blue:  #009efd;
-  --c-purple:#7b4fff;
-  --c-gold:  #ffc336;
-  --c-red:   #ff4d6d;
-  --c-text:  #cdd9f5;
-  --c-muted: #4e6491;
-}
-
-/* ─── wrapper / card ─── */
+/* ════════════════════════════════
+   CARD HORIZONTAL — full width, responsive
+════════════════════════════════ */
 .rc {
   --d: 0ms;
   position: relative;
-  width: 220px;
-  border-radius: 18px;
-  overflow: visible;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
   cursor: pointer;
-  background: linear-gradient(155deg, #0e1830 0%, #070d1e 100%);
-  border: 1px solid rgba(255,255,255,0.07);
-  box-shadow: 0 6px 28px rgba(0,0,0,0.55);
-  transition: transform .26s cubic-bezier(.22,.68,0,1.18), box-shadow .26s ease;
-  animation: rcUp .5s ease both;
+  background: linear-gradient(145deg, #101e3e 0%, #08102a 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  transition: transform .22s cubic-bezier(.22,.68,0,1.2),
+              box-shadow .22s ease, border-color .22s ease;
+  animation: rcIn .42s ease both;
   animation-delay: var(--d);
 }
-
-@keyframes rcUp {
-  from { opacity:0; transform:translateY(22px) scale(.96); }
-  to   { opacity:1; transform:translateY(0)    scale(1);   }
+@keyframes rcIn {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0);   }
 }
-
-/* hover por estado */
 .rc--active:hover {
-  transform: translateY(-8px) scale(1.025);
-  box-shadow: 0 20px 50px rgba(42,245,152,.18), 0 0 0 1px rgba(42,245,152,.22);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 36px rgba(42,245,152,.12), 0 0 0 1px rgba(42,245,152,.22);
+  border-color: rgba(42,245,152,.2);
 }
-.rc--live:hover   { transform: translateY(-5px); }
-.rc--enter {
-  border-color: rgba(42,245,152,.45);
-  box-shadow: 0 6px 28px rgba(0,0,0,.55), 0 0 18px rgba(42,245,152,.2);
-  animation: rcUp .5s ease both, enterPulse 2.8s ease-in-out infinite;
-  animation-delay: var(--d), 0s;
-}
-.rc--off  { opacity:.5; cursor:default; filter:saturate(.4); }
+.rc--off { opacity:.32; cursor:default; filter:saturate(.18); }
 
-@keyframes enterPulse {
-  0%,100% { box-shadow:0 6px 28px rgba(0,0,0,.55), 0 0 18px rgba(42,245,152,.2); }
-  50%     { box-shadow:0 8px 34px rgba(0,0,0,.55), 0 0 30px rgba(42,245,152,.38); }
-}
+/* ── Acento top ── */
+.rc__accent { height: 2px; width: 100%; flex-shrink: 0; }
+.rc--active .rc__accent { background: linear-gradient(90deg,#2af598 0%,#009efd 45%,transparent 90%); }
+.rc--live   .rc__accent { background: linear-gradient(90deg,#ff4d6d 0%,#ff8c42 45%,transparent 90%); }
+.rc--off    .rc__accent { background: rgba(255,255,255,.04); }
 
-/* glow ring on hover */
-.rc__ring {
-  position:absolute; inset:-1px; border-radius:19px;
-  background: linear-gradient(135deg, var(--c-green), var(--c-blue), var(--c-purple));
-  opacity:0; z-index:-1; filter:blur(6px);
-  transition:opacity .28s;
-}
-.rc--active:hover .rc__ring { opacity:.45; }
+/* ── Inner flex ── */
+.rc__inner { display: flex; align-items: stretch; min-height: 90px; }
 
-/* ─── image ─── */
-.rc__img-wrap {
-  position:relative;
-  border-radius:18px 18px 0 0;
-  overflow:hidden;
-  height:130px;
+/* ── Thumbnail ── */
+.rc__thumb {
+  position: relative;
+  flex: 0 0 90px;
+  overflow: hidden;
 }
 .rc__img {
-  width:100%; height:100%; object-fit:cover; display:block;
-  transition:transform .4s ease;
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  transition: transform .4s ease;
 }
-.rc--active:hover .rc__img { transform:scale(1.07); }
+.rc--active:hover .rc__img { transform: scale(1.06); }
+.rc__img-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 30%, rgba(8,16,42,.88) 100%);
+}
 
-.rc__img-fade {
-  position:absolute; inset:0;
-  background:linear-gradient(180deg,
-    rgba(5,10,28,.05) 0%,
-    rgba(5,10,28,.68) 100%);
+/* status dot */
+.rc__dot {
+  position: absolute; bottom: 8px; left: 8px;
+  width: 7px; height: 7px; border-radius: 50%;
+  border: 1.5px solid rgba(8,16,42,.9);
 }
+.rc__dot--ok   { background:#2af598; box-shadow:0 0 6px #2af598; animation:dp 2s infinite; }
+.rc__dot--live { background:#ff4d6d; box-shadow:0 0 6px #ff4d6d; animation:dp 1.1s infinite; }
+.rc__dot--dim  { background:#1a2d4a; }
+@keyframes dp { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+/* ── Body ── */
+.rc__body {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* ── Fila A: nombre + modo | badge + timer ── */
+.rc__row { display:flex; align-items:flex-start; justify-content:space-between; gap:6px; }
+
+.rc__name {
+  font-size: 12px; font-weight: 700;
+  color: #ccdaff; margin: 0 0 2px; line-height: 1.1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rc__mode {
+  font-size: 9.5px; color: #3e5878; margin: 0;
+  display: flex; align-items: center; gap: 3px;
+}
+.rc__mode i { font-size: 8px; }
+
+.rc__col-right {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 4px;
+  flex-shrink: 0;
+}
+
+/* badge estado */
+.rc__badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px; border-radius: 8px;
+  font-size: 8.5px; font-weight: 700; letter-spacing: .5px;
+  text-transform: uppercase; white-space: nowrap;
+}
+.rc__badge--ok   { background:rgba(42,245,152,.13); border:1px solid rgba(42,245,152,.28); color:#2af598; }
+.rc__badge--live { background:rgba(255,77,109,.11);  border:1px solid rgba(255,77,109,.26); color:#ff6e8a; }
+.rc__badge--off  { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); color:#2e4260; }
 
 /* timer */
 .rc__timer {
-  position:absolute; top:10px; left:50%; transform:translateX(-50%);
-  background:rgba(6,10,26,.88);
-  border:1px solid rgba(255,255,255,.13);
-  backdrop-filter:blur(8px);
-  border-radius:24px; padding:4px 12px;
-  display:flex; align-items:center; gap:3px;
-  font-size:12px; font-weight:700; color:#c8d8ff;
-  letter-spacing:.5px; white-space:nowrap;
-  font-family:'Anton',sans-serif;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: #90b0d8; white-space: nowrap;
 }
-.rc__timer--live { border-color:rgba(255,77,109,.5); color:#ff6b8a; }
-.rc__dot {
-  width:6px; height:6px; border-radius:50%;
-  background:#ff4d6d; box-shadow:0 0 5px #ff4d6d;
-  margin-right:4px;
-  animation:blink 1s infinite;
-}
-@keyframes blink { 0%,100%{opacity:1}50%{opacity:.25} }
+.rc__timer-val { font-family:'Anton',sans-serif; letter-spacing:.4px; }
+.rc__timer--live { color: #ff6e8a; font-size: 10px; }
 
-.rc__t-seg { display:inline-flex; align-items:baseline; gap:1px; }
-.rc__t-seg small { font-size:8px; color:#6880aa; margin-left:1px; }
-.rc__t-sep { color:#3a4e70; margin:0 1px; }
+.rc__blink {
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor; animation: bk 1s infinite; vertical-align: middle;
+}
+@keyframes bk { 0%,100%{opacity:1} 50%{opacity:.1} }
 
-/* type chip */
-.rc__type {
-  position:absolute; bottom:10px; left:10px;
-  font-size:10px; font-weight:700; letter-spacing:.4px;
-  padding:3px 9px; border-radius:20px;
-  display:flex; align-items:center; gap:4px;
-}
-.rc__type--pub {
-  background:rgba(42,245,152,.14);
-  border:1px solid rgba(42,245,152,.32);
-  color:#2af598;
-}
-.rc__type--prv {
-  background:rgba(255,195,54,.12);
-  border:1px solid rgba(255,195,54,.3);
-  color:#ffc336;
+/* ── Separador ── */
+.rc__sep {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(80,120,200,.15), transparent);
 }
 
-/* my tickets */
-.rc__tickets {
-  position:absolute; bottom:10px; right:10px;
-  background:rgba(0,74,204,.85);
-  border:1px solid rgba(100,160,255,.3);
-  color:#fff; font-size:10px; font-weight:700;
-  padding:3px 9px; border-radius:20px;
-  display:flex; align-items:center; gap:4px;
-}
+/* ── Fila B: premio + stats ── */
+.rc__row--b { align-items: center; flex-wrap: nowrap; }
 
-/* ─── body ─── */
-.rc__body {
-  padding:13px 14px 0;
-  display:flex; flex-direction:column; gap:8px;
-}
-
-/* mode */
-.rc__mode {
-  font-size:10px; color:#4e6491; letter-spacing:.5px;
-  text-transform:uppercase; font-weight:600;
-  display:flex; align-items:center; gap:5px;
-}
-.rc__mode i { color:#3a5580; font-size:9px; }
-
-/* prize */
-.rc__prize { text-align:center; }
+.rc__prize { display: flex; flex-direction: column; gap: 1px; flex-shrink: 0; }
 .rc__prize-lbl {
-  display:block; font-size:9px; letter-spacing:1.5px;
-  color:#4e6491; text-transform:uppercase; margin-bottom:2px;
+  font-size: 7.5px; color: #2e4260;
+  text-transform: uppercase; letter-spacing: 1.1px;
 }
-.rc__prize-val {
-  display:flex; align-items:baseline;
-  justify-content:center; gap:5px;
-}
+.rc__prize-val { display: flex; align-items: baseline; gap: 3px; }
 .rc__prize-num {
-  font-family:'Anton',sans-serif; font-size:32px; line-height:1;
-  background:linear-gradient(135deg,#ffd166,#ff9f1c);
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-  background-clip:text;
-  filter:drop-shadow(0 2px 8px rgba(255,165,0,.35));
+  font-family: 'Anton', sans-serif; font-size: 22px; line-height: 1;
+  background: linear-gradient(135deg,#ffd166,#ff9f1c);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 5px rgba(255,155,0,.26));
 }
 .rc__prize-sym {
-  font-size:13px; font-weight:700;
-  color:#ffc336; -webkit-text-fill-color:#ffc336;
+  font-size: 10px; font-weight: 700;
+  color: #ffc336; -webkit-text-fill-color: #ffc336;
 }
 
-/* meta */
-.rc__meta {
-  display:flex; justify-content:space-between;
-  padding:8px 2px;
-  border-top:1px solid rgba(255,255,255,.05);
+/* stats */
+.rc__stats {
+  display: flex; flex-direction: column; gap: 3px;
+  margin-left: auto; padding-left: 8px;
+  align-items: flex-end;
 }
-.rc__meta-item {
-  font-size:11px; color:#4e6491;
-  display:flex; align-items:center; gap:4px;
+.rc__stat {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9.5px;
 }
-.rc__meta-item i { font-size:10px; color:#2f4468; }
-
-/* cta */
-.rc__cta {
-  margin:0 -14px;
-  padding:11px 0;
-  text-align:center;
-  font-size:11px; font-weight:800; letter-spacing:1.4px;
-  text-transform:uppercase;
-  border-radius:0 0 18px 18px;
-  display:flex; align-items:center; justify-content:center; gap:7px;
-  position:relative; overflow:hidden;
-  transition:filter .2s;
-}
-/* shimmer sweep */
-.rc__cta::after {
-  content:'';
-  position:absolute; top:0; left:-80%; width:50%; height:100%;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);
-  transform:skewX(-18deg);
-  transition:left .45s ease;
-}
-.rc--active:hover .rc__cta::after { left:130%; }
-
-.rc--active   .rc__cta {
-  background:linear-gradient(90deg,#2af598,#009efd);
-  color:#031520;
-}
-.rc--live     .rc__cta {
-  background:linear-gradient(90deg,#ff4d6d,#ff6b2b);
-  color:#fff;
-}
-.rc--enter    .rc__cta {
-  background:linear-gradient(90deg,#2af598,#00c9ff);
-  color:#021a10;
-  font-weight:900;
-}
-.rc--off      .rc__cta {
-  background:rgba(255,255,255,.04);
-  color:#2f3f5a;
-}
+.rc__stat i    { font-size: 8px; color: #243654; width: 9px; text-align: center; }
+.rc__stat span { color: #607090; font-weight: 600; }
+.rc__stat em   { font-size: 7.5px; color: #2e4260; font-style: normal; }
+.rc__stat--ctns i    { color: #6040b0; }
+.rc__stat--ctns span { color: #9070d8; }
 </style>
