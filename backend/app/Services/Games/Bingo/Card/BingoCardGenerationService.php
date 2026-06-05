@@ -140,12 +140,10 @@ final class BingoCardGenerationService
             // Anexar atributo al array
             $arrCtn['roomUser'] = $roomUserId;
 
-            // game_mode_id es un Snowflake — usamos 1 como valor genérico legacy
-            // La lógica real de descuento de billetera depende de creator['type'], no de gameMode
-            $gameMode = 1;
+            // Obtener el game_mode_id real de la config de la sala (Snowflake ID)
+            $gameModeId = $room->config?->game_mode_id;
 
-            if ($gameMode != 1 && ($creator['type'] === 'commerce_id' || $seller)) {
-                // Calcular monto total de venta y comisiones si es un vendedor
+            if ($creator['type'] === 'commerce_id' || $seller) {
                 $sellerSaleCommn = $this->commissionCalculation->calculateSellerCommission($saleAmount, $seller, $roomId);
             }
 
@@ -200,31 +198,24 @@ final class BingoCardGenerationService
                 $this->createCardPayment($arrCtn, $roomUserId, $lotID);
             }
 
-            // Descuento de saldo según tipo de usuario
-            if ($gameMode != 2) {
-                // Solo los jugadores internos (creator type = 'player') pagan con wallet
-                // Los usuarios externos (con playerLink) y vendedores/comercios no pagan con wallet
-                if (($creator['type'] === 'player') && !isset($arrCtn['playerLink'])) {
-                    // Solo jugadores internos (players) sin playerLink pagan con wallet
-                    // Determinar la columna de saldo en función de la moneda
-                    $columnBalance = $currency == 1 ? 'usdt' : 'balance';
-
-                    // Descontar monto del saldo del usuario (solo para jugadores internos)
-                    $walletUpdated = Wallet::where('user_id', $playerUser)->decrement($columnBalance, $saleAmount);
-
-                    if ($walletUpdated === 0) {
-                        Log::error('Failed to discount balance', ['playerUser' => $playerUser, 'amount' => $saleAmount]);
-                        throw new DomainException('Error al descontar saldo del usuario');
-                    }
+            // Descuento legacy de wallet — solo players internos sin playerLink
+            // (playerLink=true indica que el descuento lo maneja recordCardPurchase externamente)
+            if (($creator['type'] === 'player') && !isset($arrCtn['playerLink'])) {
+                $columnBalance = $currency == 1 ? 'usdt' : 'balance';
+                $walletUpdated = Wallet::where('user_id', $playerUser)->decrement($columnBalance, $saleAmount);
+                if ($walletUpdated === 0) {
+                    Log::error('Failed to discount balance', ['playerUser' => $playerUser, 'amount' => $saleAmount]);
+                    throw new DomainException('Error al descontar saldo del usuario');
                 }
             }
 
-            // Definir variables sobre el juego
-            $game = ['name' => 'BINGO', 'game_mode' => $gameMode];
-
-            // Registrar nueva moneda en juego de ser necesario
-            if (!CurrencyGameRoom::existsCurrencyGameRoom($currency, $roomId, 'BINGO', $gameMode)) {
-                CurrencyGameRoom::createNewCurrencyInRoom($game, $roomId, $currency);
+            // Registrar moneda en la sala si aún no existe
+            if ($gameModeId && !CurrencyGameRoom::existsCurrencyGameRoom($currency, $roomId, 'BINGO', $gameModeId)) {
+                CurrencyGameRoom::createNewCurrencyInRoom(
+                    ['name' => 'BINGO', 'game_mode' => $gameModeId],
+                    $roomId,
+                    $currency
+                );
             }
 
             // Si la sala es de un cliente
