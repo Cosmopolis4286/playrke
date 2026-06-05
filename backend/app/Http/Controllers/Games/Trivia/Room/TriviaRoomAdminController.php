@@ -169,13 +169,15 @@ final class TriviaRoomAdminController extends Controller
             'max_players'        => 'required|integer|min:2|max:500',
             'question_count'     => 'required|integer|min:1|max:100',
             'time_per_question'  => 'required|integer|min:5|max:300',
-            'entry_fee'          => 'nullable|numeric|min:0',
-            'entry_currency_id'  => 'nullable|string',
-            'prize_type'         => 'nullable|in:fixed,accumulated',
-            'prize_amount'       => 'nullable|numeric|min:0',
-            'prize_currency_id'  => 'nullable|string',
-            'scheduled_at'       => 'nullable|date',
-            'settings'           => 'nullable|array',
+            'entry_fee'              => 'nullable|numeric|min:0',
+            'entry_currency_id'      => 'nullable|string',
+            'fee_by_currency'        => 'nullable|array',
+            'fee_by_currency.*'      => 'nullable|numeric|min:0',
+            'prize_type'             => 'nullable|in:fixed,accumulated',
+            'prize_amount'           => 'nullable|numeric|min:0',
+            'prize_currency_id'      => 'nullable|string',
+            'scheduled_at'           => 'nullable|date',
+            'settings'               => 'nullable|array',
         ]);
 
         // Validar que scheduled_at sea futuro (con tolerancia de 1 minuto para diferencias de timezone)
@@ -188,6 +190,18 @@ final class TriviaRoomAdminController extends Controller
                     ->with('error', 'La fecha programada debe ser futura.')
                     ->withInput();
             }
+        }
+
+        // Normalizar fee_by_currency: eliminar entradas vacías/nulas
+        $feeByCurrency = collect($validated['fee_by_currency'] ?? [])
+            ->filter(fn($v) => $v !== null && $v !== '' && (float) $v > 0)
+            ->map(fn($v) => (float) $v)
+            ->all();
+
+        // Si sólo hay una moneda en fee_by_currency, sincronizar entry_fee/entry_currency_id
+        if (count($feeByCurrency) === 1) {
+            $validated['entry_currency_id'] = array_key_first($feeByCurrency);
+            $validated['entry_fee']         = array_values($feeByCurrency)[0];
         }
 
         try {
@@ -203,6 +217,7 @@ final class TriviaRoomAdminController extends Controller
                 'time_per_question' => $validated['time_per_question'],
                 'entry_fee'         => $validated['entry_fee'] ?? 0,
                 'entry_currency_id' => $validated['entry_currency_id'] ?? null,
+                'fee_by_currency'   => empty($feeByCurrency) ? null : $feeByCurrency,
                 'prize_type'        => $validated['prize_type'] ?? 'accumulated',
                 'prize_amount'      => $validated['prize_amount'] ?? 0,
                 'prize_currency_id' => $validated['prize_currency_id'] ?? null,
@@ -272,17 +287,19 @@ final class TriviaRoomAdminController extends Controller
     public function update(Request $request, string $id)
     {
         $validated = $request->validate([
-            'title'             => 'required|string|max:255',
-            'description'       => 'nullable|string|max:1000',
-            'category'          => 'nullable|string|max:50',
-            'max_players'       => 'required|integer|min:2|max:500',
-            'entry_fee'         => 'nullable|numeric|min:0',
-            'entry_currency_id' => 'nullable|string',
-            'prize_type'        => 'nullable|in:fixed,accumulated',
-            'prize_amount'      => 'nullable|numeric|min:0',
-            'prize_currency_id' => 'nullable|string',
+            'title'              => 'required|string|max:255',
+            'description'        => 'nullable|string|max:1000',
+            'category'           => 'nullable|string|max:50',
+            'max_players'        => 'required|integer|min:2|max:500',
+            'entry_fee'          => 'nullable|numeric|min:0',
+            'entry_currency_id'  => 'nullable|string',
+            'fee_by_currency'    => 'nullable|array',
+            'fee_by_currency.*'  => 'nullable|numeric|min:0',
+            'prize_type'         => 'nullable|in:fixed,accumulated',
+            'prize_amount'       => 'nullable|numeric|min:0',
+            'prize_currency_id'  => 'nullable|string',
             'scheduled_at'       => 'nullable|date',
-            'settings'          => 'nullable|array',
+            'settings'           => 'nullable|array',
         ]);
 
         // Validar que scheduled_at sea futuro si se está actualizando (con tolerancia de 1 minuto)
@@ -297,6 +314,18 @@ final class TriviaRoomAdminController extends Controller
             }
         }
 
+        // Normalizar fee_by_currency: eliminar entradas vacías/nulas
+        $feeByCurrency = collect($validated['fee_by_currency'] ?? [])
+            ->filter(fn($v) => $v !== null && $v !== '' && (float) $v > 0)
+            ->map(fn($v) => (float) $v)
+            ->all();
+
+        // Si sólo hay una moneda, sincronizar entry_fee/entry_currency_id para compatibilidad
+        if (count($feeByCurrency) === 1) {
+            $validated['entry_currency_id'] = array_key_first($feeByCurrency);
+            $validated['entry_fee']         = array_values($feeByCurrency)[0];
+        }
+
         try {
             $this->roomService->updateRoomConfig($id, [
                 'title'             => $validated['title'],
@@ -305,6 +334,7 @@ final class TriviaRoomAdminController extends Controller
                 'max_players'       => $validated['max_players'],
                 'entry_fee'         => $validated['entry_fee'] ?? 0,
                 'entry_currency_id' => $validated['entry_currency_id'] ?? null,
+                'fee_by_currency'   => empty($feeByCurrency) ? null : $feeByCurrency,
                 'prize_type'        => $validated['prize_type'] ?? 'accumulated',
                 'prize_amount'      => $validated['prize_amount'] ?? 0,
                 'prize_currency_id' => $validated['prize_currency_id'] ?? null,

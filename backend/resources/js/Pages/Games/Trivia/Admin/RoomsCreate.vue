@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm, Link } from '@inertiajs/vue3'
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { getRoute } from '@js/routes/triviaRoutes'
 import { localInputToUtc, getMinLocalDatetime } from '@js/composables/useTimezone'
 
@@ -14,6 +14,23 @@ const props = defineProps({
   currencies: { type: Array as () => Currency[], default: () => [] },
   errors: Object,
 })
+
+// Widget de monedas múltiples para el fee de entrada
+const feeByCurrency = ref<Record<string, number>>({})
+
+function toggleCurrency(id: string) {
+  if (feeByCurrency.value[id] !== undefined) {
+    const copy = { ...feeByCurrency.value }
+    delete copy[id]
+    feeByCurrency.value = copy
+  } else {
+    feeByCurrency.value = { ...feeByCurrency.value, [id]: 0 }
+  }
+}
+
+function getCurrencyById(id: string): Currency | undefined {
+  return props.currencies.find(c => c.id === id)
+}
 
 const form = useForm({
   title: '',
@@ -90,14 +107,17 @@ watch(() => form.game_mode, (mode) => {
 const submit = () => {
   if (scheduledAtError.value) return
 
-  // Transformar la fecha de hora local a UTC antes de enviar
   form.transform((data) => ({
     ...data,
     scheduled_at: localInputToUtc(data.scheduled_at),
+    fee_by_currency: feeByCurrency.value,
   }))
 
   form.post(getRoute('roomsStore'), {
-    onSuccess: () => form.reset(),
+    onSuccess: () => {
+      form.reset()
+      feeByCurrency.value = {}
+    },
   })
 }
 </script>
@@ -360,43 +380,66 @@ const submit = () => {
 
           <!-- Entrada y Premio -->
           <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">
               💳 Entrada y Premio
             </h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <!-- Fee -->
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              Selecciona las monedas aceptadas y el precio en cada una. Sin selección = sala gratuita.
+            </p>
+
+            <div class="space-y-4">
+              <!-- Selector de monedas -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Precio de entrada
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Monedas de entrada
                 </label>
-                <div class="mt-1 flex gap-2">
-                  <input
-                    v-model.number="form.entry_fee"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    class="block w-28 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    placeholder="0"
-                  />
-                  <select
-                    v-model="form.entry_currency_id"
-                    class="block flex-1 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="c in currencies" :key="c.id"
+                    type="button"
+                    @click="toggleCurrency(c.id)"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all"
+                    :class="feeByCurrency[c.id] !== undefined
+                      ? 'bg-indigo-600 border-indigo-600 text-white shadow'
+                      : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-indigo-400'"
                   >
-                    <option value="">— Sin moneda (Gratis) —</option>
-                    <option v-for="c in currencies" :key="c.id" :value="c.id">
-                      {{ c.symbol }} — {{ c.name }}
-                    </option>
-                  </select>
+                    <span>{{ c.symbol }}</span>
+                    <span class="opacity-80">{{ c.iso_code }}</span>
+                    <span v-if="feeByCurrency[c.id] !== undefined" class="ml-0.5">✓</span>
+                  </button>
                 </div>
-                <p class="mt-1 text-xs text-gray-500">Deja en 0 para sala gratuita.</p>
               </div>
 
-              <!-- Prize -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <!-- Precios por moneda -->
+              <div v-if="Object.keys(feeByCurrency).length > 0"
+                class="rounded-xl border border-indigo-100 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 p-4">
+                <p class="text-xs font-semibold text-indigo-700 dark:text-indigo-300 mb-3 uppercase tracking-wide">
+                  💰 Precio de entrada por moneda
+                </p>
+                <div class="flex flex-wrap gap-3">
+                  <div v-for="(_, cid) in feeByCurrency" :key="cid" class="flex items-center gap-0">
+                    <span class="inline-flex items-center px-2.5 py-1.5 rounded-l-lg bg-indigo-100 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 text-xs font-bold border border-indigo-200 dark:border-indigo-700">
+                      {{ getCurrencyById(String(cid))?.symbol ?? cid }}
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      :value="feeByCurrency[cid]"
+                      @change="feeByCurrency[cid] = Number(($event.target as HTMLInputElement).value)"
+                      class="w-24 rounded-r-lg border border-l-0 border-indigo-200 dark:border-indigo-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Premio -->
+              <div class="pt-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Premio
                 </label>
-                <div class="mt-1 flex gap-2">
+                <div class="flex gap-2">
                   <input
                     v-model.number="form.prize_amount"
                     type="number"

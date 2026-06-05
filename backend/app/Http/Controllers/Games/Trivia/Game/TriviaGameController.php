@@ -388,29 +388,85 @@ final class TriviaGameController extends Controller
         $alreadyJoined = collect($initialPlayers)
             ->contains('id', (string) $user->id);
 
-        // ── Obtener símbolo de moneda de entrada ──────────────────────────────
+        // ── Resolver monedas de entrada y wallets del usuario ────────────────
+        // fee_by_currency = { currency_id => amount, ... } (multidivisa)
+        // Fallback: entry_currency_id / entry_fee (legado, una sola moneda)
         $entryCurrencySymbol = null;
-        if ($room->entry_currency_id) {
-            $currency = DB::table('currencies')->where('id', $room->entry_currency_id)->first();
-            $entryCurrencySymbol = $currency?->symbol;
+        $userWallet          = null;
+        $feeByCurrency       = $room->fee_by_currency; // array|null (cast en el modelo)
+
+        // Recopilar todos los currency_ids relevantes para la sala
+        $feeCurrencyIds = [];
+        if (!empty($feeByCurrency) && is_array($feeByCurrency)) {
+            $feeCurrencyIds = array_keys($feeByCurrency);
+        } elseif ($room->entry_currency_id) {
+            $feeCurrencyIds = [(string) $room->entry_currency_id];
         }
 
-        // ── Obtener wallet del usuario para la moneda de entrada ────────────────
-        $userWallet = null;
-        if ($room->entry_currency_id) {
-            $wallet = $user->wallets()
-                ->where('currency_id', $room->entry_currency_id)
-                ->where('status', 'ACTIVE')
-                ->with('currency')
-                ->first();
+        // Cargar monedas y wallets del usuario en una sola pasada
+        $currencies = [];
+        $walletsByCurrency = [];
+        if (!empty($feeCurrencyIds)) {
+            $feeCurrencyIds = array_map('strval', $feeCurrencyIds);
 
-            if ($wallet) {
-                $userWallet = [
-                    'balance'    => (float) $wallet->balance,
-                    'symbol'     => $wallet->currency?->symbol ?? $entryCurrencySymbol ?? '',
-                    'currencyId' => (string) $wallet->currency_id,
-                ];
+            $currencies = \App\Models\Currency::whereIn('id', $feeCurrencyIds)
+                ->get()->keyBy('id');
+
+            $userWallets = $user->wallets()
+                ->whereIn('currency_id', $feeCurrencyIds)
+                ->with('currency')
+                ->get();
+
+            foreach ($userWallets as $w) {
+                $walletsByCurrency[(string) $w->currency_id] = $w;
             }
+        }
+
+        // Construir entryCurrencySymbol (primera moneda o la única)
+        if (!empty($feeCurrencyIds)) {
+            $firstId = $feeCurrencyIds[0];
+            $entryCurrencySymbol = $currencies[$firstId]?->symbol
+                ?? $walletsByCurrency[$firstId]?->currency?->symbol
+                ?? null;
+        }
+
+        // Construir userWallet: para multidivisa se expone la primera wallet
+        // que el usuario tiene; el frontend mostrará todas cuando haya varias.
+        if (!empty($feeCurrencyIds)) {
+            // Intentar encontrar cualquier wallet del usuario para estas monedas
+            $matchedWallet   = null;
+            $matchedCurrency = null;
+            foreach ($feeCurrencyIds as $cid) {
+                if (isset($walletsByCurrency[$cid])) {
+                    $matchedWallet   = $walletsByCurrency[$cid];
+                    $matchedCurrency = $cid;
+                    break;
+                }
+            }
+
+            $entryCurrencySymbol = $currencies[$feeCurrencyIds[0]]?->symbol ?? $entryCurrencySymbol;
+
+            $userWallet = [
+                'balance'    => $matchedWallet ? (float) $matchedWallet->balance : 0.0,
+                'symbol'     => $matchedWallet?->currency?->symbol
+                                ?? $currencies[$matchedCurrency ?? $feeCurrencyIds[0]]?->symbol
+                                ?? '',
+                'currencyId' => $matchedCurrency ?? $feeCurrencyIds[0],
+                'found'      => $matchedWallet !== null,
+                // Wallets por moneda para que el frontend muestre el balance correcto
+                // cuando la sala acepta múltiples monedas.
+                'byCurrency' => collect($feeCurrencyIds)->mapWithKeys(function ($cid) use ($walletsByCurrency, $currencies, $feeByCurrency, $room) {
+                    $w    = $walletsByCurrency[$cid] ?? null;
+                    $sym  = $w?->currency?->symbol ?? $currencies[$cid]?->symbol ?? '';
+                    $fee  = $feeByCurrency ? (float) ($feeByCurrency[$cid] ?? 0) : (float) ($room->entry_fee ?? 0);
+                    return [$cid => [
+                        'balance' => $w ? (float) $w->balance : 0.0,
+                        'symbol'  => $sym,
+                        'fee'     => $fee,
+                        'found'   => $w !== null,
+                    ]];
+                })->all(),
+            ];
         }
 
         // ── Preparar datos de equipos si aplica ────────────────────────────────
@@ -442,6 +498,7 @@ final class TriviaGameController extends Controller
                 'entryFee'             => $room->entry_fee ? (float) $room->entry_fee : null,
                 'entryCurrencyId'      => $room->entry_currency_id,
                 'entryCurrencySymbol'  => $entryCurrencySymbol,
+                'feeByCurrency'        => $room->fee_by_currency ?: null,
                 'prizeAmount'          => $room->prize_amount ? (float) $room->prize_amount : null,
                 'prizeCurrencyId'      => $room->prize_currency_id,
                 'prizeType'            => $room->prize_type,

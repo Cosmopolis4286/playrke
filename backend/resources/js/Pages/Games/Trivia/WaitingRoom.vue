@@ -23,7 +23,7 @@ interface Props {
   initialPlayers: Player[]
   alreadyJoined: boolean
   currentUserId: string
-  userWallet?: { balance: number; symbol: string; currencyId: string } | null
+  userWallet?: { balance: number; symbol: string; currencyId: string; found: boolean } | null
 }
 
 const props = defineProps<Props>()
@@ -44,11 +44,28 @@ const canJoin = computed(() =>
 
 // ── Modal de confirmación (solo si hay costo) ─────────────────────────────────
 const showConfirmModal = ref(false)
+
+// La sala tiene fee pero no tiene moneda configurada (error de configuración admin)
+const feeWithoutCurrency = computed(() =>
+  !!props.room.entryFee && props.room.entryFee > 0 && !props.room.entryCurrencyId
+)
+
+// Solo es "saldo insuficiente" si: hay moneda configurada, wallet encontrada, y balance < fee
 const hasInsufficientFunds = computed(() => {
   if (!props.room.entryFee || props.room.entryFee <= 0) return false
-  if (!props.userWallet) return true
+  if (feeWithoutCurrency.value) return false         // sala mal configurada → no bloquear
+  if (!props.userWallet || !props.userWallet.found) return false
   return props.userWallet.balance < props.room.entryFee
 })
+
+// El usuario no tiene billetera en la moneda requerida (y la moneda SÍ está configurada)
+const walletNotFound = computed(() =>
+  !!props.room.entryFee &&
+  props.room.entryFee > 0 &&
+  !!props.room.entryCurrencyId &&
+  !!props.userWallet &&
+  !props.userWallet.found
+)
 
 const currentPlayer = ref<Player | null>(
   props.alreadyJoined
@@ -359,16 +376,36 @@ const statusLabel = computed(() => ({
                 </div>
 
                 <!-- Info de costo si aplica -->
-                <div v-if="room.entryFee && room.entryFee > 0" class="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-3">
+                <div v-if="room.entryFee && room.entryFee > 0" class="rounded-xl p-3 space-y-1.5"
+                  :class="feeWithoutCurrency ? 'bg-orange-50 dark:bg-orange-900/20' : 'bg-violet-50 dark:bg-violet-900/20'">
                   <div class="flex items-center justify-between text-sm">
-                    <span class="text-violet-700 dark:text-violet-300">Costo de entrada:</span>
-                    <span class="font-bold text-violet-800 dark:text-violet-200">{{ room.entryFee }} {{ room.entryCurrencySymbol || '' }}</span>
-                  </div>
-                  <div v-if="userWallet" class="flex items-center justify-between text-xs mt-1">
-                    <span class="text-gray-500 dark:text-gray-400">Tu balance:</span>
-                    <span :class="['font-medium', hasInsufficientFunds ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400']">
-                      {{ userWallet.balance }} {{ userWallet.symbol }}
+                    <span :class="feeWithoutCurrency ? 'text-orange-700 dark:text-orange-300' : 'text-violet-700 dark:text-violet-300'">
+                      Costo de entrada:
                     </span>
+                    <span :class="['font-bold', feeWithoutCurrency ? 'text-orange-800 dark:text-orange-200' : 'text-violet-800 dark:text-violet-200']">
+                      {{ room.entryCurrencySymbol || '' }} {{ room.entryFee }}
+                    </span>
+                  </div>
+                  <!-- Sala mal configurada: tiene fee pero sin moneda -->
+                  <div v-if="feeWithoutCurrency" class="flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    La sala no tiene moneda configurada — contacta al administrador
+                  </div>
+                  <!-- Balance del usuario -->
+                  <div v-else-if="userWallet && userWallet.found" class="flex items-center justify-between text-xs">
+                    <span class="text-gray-500 dark:text-gray-400">Tu balance:</span>
+                    <span :class="['font-semibold', hasInsufficientFunds ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400']">
+                      {{ userWallet.symbol }} {{ userWallet.balance.toFixed(2) }}
+                    </span>
+                  </div>
+                  <!-- Usuario sin billetera en esa moneda -->
+                  <div v-else-if="walletNotFound" class="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    No tienes billetera en <span class="font-bold ml-0.5">{{ room.entryCurrencySymbol || 'esta moneda' }}</span>
                   </div>
                 </div>
                 <div v-else class="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 text-center">
@@ -380,15 +417,20 @@ const statusLabel = computed(() => ({
                   @click="openJoinModal"
                   :disabled="hasInsufficientFunds"
                   class="w-full py-3 px-4 rounded-xl font-semibold text-white transition-colors flex items-center justify-center gap-2"
-                  :class="hasInsufficientFunds ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'"
+                  :class="hasInsufficientFunds ? 'bg-red-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800'"
                 >
-                  <span v-if="hasInsufficientFunds">Saldo insuficiente</span>
-                  <span v-else>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <template v-if="hasInsufficientFunds">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Saldo insuficiente
+                  </template>
+                  <template v-else>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                     </svg>
                     Unirme al juego
-                  </span>
+                  </template>
                 </button>
               </div>
             </div>
@@ -506,31 +548,37 @@ const statusLabel = computed(() => ({
           <div class="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-4 space-y-3">
             <div class="flex items-center justify-between">
               <span class="text-sm text-violet-700 dark:text-violet-300">Costo de entrada:</span>
-              <span class="font-bold text-violet-800 dark:text-violet-200">{{ room.entryFee || 0 }} {{ room.entryCurrencySymbol || '' }}</span>
+              <span class="font-bold text-violet-800 dark:text-violet-200">
+                {{ room.entryCurrencySymbol || '' }} {{ room.entryFee || 0 }}
+              </span>
             </div>
 
-            <div v-if="userWallet" class="border-t border-violet-200 dark:border-violet-700 pt-3 space-y-1">
+            <div v-if="userWallet && userWallet.found" class="border-t border-violet-200 dark:border-violet-700 pt-3 space-y-1">
               <div class="flex items-center justify-between text-sm">
                 <span class="text-gray-500 dark:text-gray-400">Tu balance:</span>
-                <span class="font-medium text-gray-700 dark:text-gray-300">{{ userWallet.balance }} {{ userWallet.symbol }}</span>
+                <span class="font-semibold text-gray-700 dark:text-gray-300">
+                  {{ userWallet.symbol }} {{ userWallet.balance.toFixed(2) }}
+                </span>
               </div>
               <div class="flex items-center justify-between text-sm">
                 <span class="text-gray-500 dark:text-gray-400">Balance después:</span>
                 <span :class="['font-bold', (userWallet.balance - (room.entryFee || 0)) < 0 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400']">
-                  {{ (userWallet.balance - (room.entryFee || 0)).toFixed(2) }} {{ userWallet.symbol }}
+                  {{ userWallet.symbol }} {{ (userWallet.balance - (room.entryFee || 0)).toFixed(2) }}
                 </span>
               </div>
             </div>
 
             <div v-else class="border-t border-violet-200 dark:border-violet-700 pt-2">
-              <p class="text-xs text-amber-600 dark:text-amber-400">⚠️ No se pudo cargar tu wallet</p>
+              <p class="text-xs text-amber-600 dark:text-amber-400">⚠️ No se encontró wallet para esta moneda</p>
             </div>
           </div>
 
           <!-- Alerta de saldo insuficiente -->
           <div v-if="hasInsufficientFunds" class="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 text-center">
-            <p class="text-sm text-red-600 dark:text-red-400">❌ Saldo insuficiente</p>
-            <p class="text-xs text-red-500 dark:text-red-400 mt-1">Necesitas recargar tu wallet para unirte</p>
+            <p class="text-sm font-semibold text-red-600 dark:text-red-400">Saldo insuficiente</p>
+            <p class="text-xs text-red-500 dark:text-red-400 mt-1">
+              Necesitas {{ userWallet?.symbol }} {{ ((room.entryFee || 0) - (userWallet?.balance || 0)).toFixed(2) }} más para unirte
+            </p>
           </div>
 
           <!-- Botones -->
@@ -545,7 +593,7 @@ const statusLabel = computed(() => ({
               @click="confirmAndJoin"
               :disabled="hasInsufficientFunds || isLoading"
               class="flex-1 py-2.5 px-4 rounded-xl font-semibold text-white transition-colors flex items-center justify-center gap-2"
-              :class="hasInsufficientFunds ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'"
+              :class="hasInsufficientFunds ? 'bg-red-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'"
             >
               <span v-if="isLoading" class="flex items-center">
                 <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">

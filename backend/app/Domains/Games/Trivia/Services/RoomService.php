@@ -55,6 +55,7 @@ class RoomService implements RoomServiceInterface
             'time_per_question'  => $config['time_per_question'] ?? 15,
             'entry_fee'          => $config['entry_fee'] ?? 0,
             'entry_currency_id'  => $config['entry_currency_id'] ?? null,
+            'fee_by_currency'    => $config['fee_by_currency'] ?? null,
             'prize_type'         => $config['prize_type'] ?? 'accumulated',
             'prize_amount'       => $config['prize_amount'] ?? 0,
             'prize_currency_id'  => $config['prize_currency_id'] ?? null,
@@ -366,6 +367,9 @@ class RoomService implements RoomServiceInterface
         }
         if (array_key_exists('entry_currency_id', $config)) {
             $updateData['entry_currency_id'] = $config['entry_currency_id'];
+        }
+        if (array_key_exists('fee_by_currency', $config)) {
+            $updateData['fee_by_currency'] = $config['fee_by_currency'];
         }
         if (array_key_exists('prize_type', $config)) {
             $updateData['prize_type'] = $config['prize_type'];
