@@ -12,6 +12,7 @@ import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo
 
 // Caché en módulo: sobrevive navegación dentro de la SPA pero se limpia al recargar
 const _priceCache = new Map<string, { price: number; symbol: string; ts: number }>()
+const _inflight = new Map<string, Promise<BingoCardPriceResponse>>()
 const CACHE_TTL_MS = 60_000 // 1 minuto
 
 function _cachedPrice(roomId: string) {
@@ -28,6 +29,20 @@ function _cachedPrice(roomId: string) {
  */
 function _bingoCardKey(room: BingoGameRoom): string {
     return room.encrypted ?? room.id
+}
+
+/**
+ * Petición HTTP deduplicada: si ya hay una en vuelo para el mismo roomId
+ * reutiliza la misma Promise en lugar de lanzar una segunda.
+ */
+function _fetchPlayerCardPriceHttp(roomId: string): Promise<BingoCardPriceResponse> {
+    if (_inflight.has(roomId)) return _inflight.get(roomId)!
+    const req = backendClient
+        .get<BingoCardPriceResponse>(`/bingo/game-rooms/${roomId}/player-card-price`)
+        .then(r => r.data)
+        .finally(() => _inflight.delete(roomId))
+    _inflight.set(roomId, req)
+    return req
 }
 
 export function useGameRoomPurchaseModal() {
@@ -112,7 +127,6 @@ export function useGameRoomPurchaseModal() {
     }
 
     async function _fetchPlayerCardPrice(roomId: string): Promise<void> {
-        // Servir desde caché si está vigente
         const cached = _cachedPrice(roomId)
         if (cached) {
             cardPrice.value = cached.price
@@ -123,9 +137,7 @@ export function useGameRoomPurchaseModal() {
 
         try {
             loadingPrice.value = true
-            const { data } = await backendClient.get<BingoCardPriceResponse>(
-                `/bingo/game-rooms/${roomId}/player-card-price`,
-            )
+            const data = await _fetchPlayerCardPriceHttp(roomId)
             cardPrice.value = data.card_price
             currencySymbol.value = data.currency_symbol
             step.value = 'confirm'
@@ -146,11 +158,9 @@ export function useGameRoomPurchaseModal() {
      */
     async function prefetch(room: BingoGameRoom): Promise<void> {
         if (!isPlayer.value) return
-        if (_cachedPrice(room.id)) return
+        if (_cachedPrice(room.id) || _inflight.has(room.id)) return
         try {
-            const { data } = await backendClient.get<BingoCardPriceResponse>(
-                `/bingo/game-rooms/${room.id}/player-card-price`,
-            )
+            const data = await _fetchPlayerCardPriceHttp(room.id)
             _priceCache.set(room.id, { price: data.card_price, symbol: data.currency_symbol, ts: Date.now() })
         } catch {
             // silencioso — es una optimización, no crítico
