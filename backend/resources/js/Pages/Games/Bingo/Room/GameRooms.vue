@@ -654,30 +654,31 @@ body.hold-transition,
 ═══════════════════════════════ */
 .game-rooms-page__grid-wrap {
   width: 100%;
-  max-width: 900px;
+  max-width: 860px;
   margin: 0 auto;
   padding: 0 4px;
 }
 
 .game-rooms-page__grid {
   display: grid;
-  gap: 12px;
-  grid-template-columns: 1fr;
+  gap: 10px;
+  /* auto-fill: cada card entre 280px y 1fr — nunca se estiran demasiado */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
 .game-rooms-page__grid-item {
   display: flex;
   width: 100%;
+  /* cap duro: una sola card nunca supera 420px */
+  max-width: 420px;
 }
 
-/* Tablet: 2 columnas cuando hay espacio suficiente */
-@media (min-width: 680px) {
-  .game-rooms-page__grid { grid-template-columns: 1fr 1fr; }
+/* Con pocas cards: centrar la fila */
+.game-rooms-page__grid--centered {
+  justify-content: center;
 }
-
-/* Desktop: 3 columnas */
-@media (min-width: 1100px) {
-  .game-rooms-page__grid { grid-template-columns: 1fr 1fr 1fr; }
+.game-rooms-page__grid--centered .game-rooms-page__grid-item {
+  max-width: 380px;
 }
 
 /* estilos del modal de info movidos a BingoRoomInfoModal.vue */
