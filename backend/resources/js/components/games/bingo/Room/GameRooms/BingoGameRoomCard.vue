@@ -42,6 +42,8 @@ const gameModeLabel = computed(() => {
   return m[props.room.game_mode ?? ''] ?? props.room.game_mode ?? ''
 })
 
+const roundsCount = computed(() => props.room.rounds_count ?? 1)
+
 const timerStr = computed(() => {
   if (!hasTime.value || !props.countdown) return null
   const { days, hours, minutes, seconds } = props.countdown.time
@@ -78,7 +80,7 @@ function handleClick() {
         <img :src="bingoRoomImg" alt="" class="rc__img" />
         <div class="rc__img-veil" />
 
-        <!-- Badge de estado flotando sobre la imagen -->
+        <!-- Badge de estado: top-left sobre la imagen -->
         <div
           class="rc__status-badge"
           :class="isAvailable ? 'rc__status-badge--ok' : isInProgress ? 'rc__status-badge--live' : 'rc__status-badge--off'"
@@ -89,28 +91,31 @@ function handleClick() {
 
         <!-- Acento lateral izquierdo -->
         <div class="rc__side-accent" />
+
+        <!-- Cartones del jugador: bottom-center sobre la imagen -->
+        <span v-if="playerCtns > 0" class="rc__ctns-badge">
+          <i class="fas fa-layer-group" />{{ playerCtns }}
+        </span>
       </div>
 
       <!-- ── Body ── -->
       <div class="rc__body">
 
-        <!-- Fila 1: nombre + modo | precio · timer -->
+        <!-- Fila 1: badges tipo+rondas | precio · timer -->
         <div class="rc__top">
-          <div class="rc__name-wrap">
-            <span class="rc__name">Bingo {{ isPublic ? 'Público' : 'Privado' }}</span>
-            <span class="rc__mode"><i class="fas fa-gamepad" />{{ gameModeLabel }}</span>
+          <div class="rc__badges">
+            <span class="rc__tag rc__tag--rounds">
+              <i class="fas fa-rotate" />{{ roundsCount }} Rondas
+            </span>
           </div>
 
           <div class="rc__top-right">
-            <!-- Precio del cartón -->
-            <span class="rc__pill rc__pill--price rc__pill--inline">
+            <span class="rc__pill rc__pill--price rc__pill--sm">
               <i class="fas fa-ticket-alt" />{{ cardPriceFormatted }} {{ sym }}
             </span>
-            <!-- Timer -->
             <div class="rc__timer" :class="{ 'rc__timer--live': !hasTime }">
               <template v-if="hasTime && timerStr">
-                <i class="far fa-clock" />
-                <b>{{ timerStr }}</b>
+                <i class="far fa-clock" /><b>{{ timerStr }}</b>
               </template>
               <template v-else>
                 <span class="rc__blink" /><b>LIVE</b>
@@ -119,7 +124,7 @@ function handleClick() {
           </div>
         </div>
 
-        <!-- Fila 2: premio + stats (jugadores + míos) -->
+        <!-- Fila 2: premio + jugadores/míos -->
         <div class="rc__bottom">
           <div class="rc__prize">
             <i class="fas fa-trophy rc__trophy" />
@@ -130,9 +135,6 @@ function handleClick() {
           <div class="rc__pills">
             <span class="rc__pill">
               <i class="fas fa-users" />{{ room.total_players }}
-            </span>
-            <span v-if="playerCtns > 0" class="rc__pill rc__pill--mine">
-              <i class="fas fa-layer-group" />{{ playerCtns }}
             </span>
           </div>
         </div>
@@ -211,7 +213,7 @@ function handleClick() {
 .rc__inner {
   position: relative; z-index: 2;
   display: flex; align-items: stretch;
-  min-height: 86px;
+  min-height: 96px;
 }
 
 /* ══════════════════════
@@ -219,7 +221,7 @@ function handleClick() {
 ══════════════════════ */
 .rc__thumb {
   position: relative;
-  flex: 0 0 62px;
+  flex: 0 0 96px;
   overflow: hidden;
 }
 .rc__img {
@@ -239,10 +241,10 @@ function handleClick() {
   );
 }
 
-/* badge flotante sobre imagen — centrado horizontal en el thumb */
+/* badge flotante sobre imagen — centrado superior */
 .rc__status-badge {
   position: absolute;
-  bottom: 7px; left: 50%;
+  top: 5px; left: 50%;
   transform: translateX(-50%);
   display: inline-flex; align-items: center; gap: 3px;
   padding: 2px 6px;
@@ -283,15 +285,34 @@ function handleClick() {
   box-shadow: 1px 0 8px var(--glow-clr);
 }
 
+/* badge de cartones del jugador — bottom-center sobre la imagen */
+.rc__ctns-badge {
+  position: absolute;
+  bottom: 5px; left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 8px; font-weight: 800;
+  letter-spacing: .4px;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  color: #c090ff;
+  background: rgba(110,55,210,.55);
+  border: 1px solid rgba(150,80,255,.4);
+  z-index: 3;
+}
+.rc__ctns-badge i { font-size: 7px; }
+
 /* ══════════════════════
    BODY
 ══════════════════════ */
 .rc__body {
   flex:1; min-width:0;
-  padding: 8px 12px 8px 10px;
+  padding: 6px 8px 6px 8px;
   display: flex; flex-direction: column;
   justify-content: space-between;
-  gap: 5px;
+  gap: 0;
 }
 
 /* Fila 1 */
@@ -300,23 +321,40 @@ function handleClick() {
   justify-content: space-between; gap: 6px;
 }
 
-.rc__name-wrap {
-  display: flex; align-items: center; gap: 5px;
-  min-width: 0; overflow: hidden;
+/* Badges izquierda: tipo + modo */
+.rc__badges {
+  display: flex; align-items: center; gap: 4px;
+  min-width: 0; overflow: hidden; flex-shrink: 1;
 }
-.rc__name {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 14px; font-weight: 700;
-  color: #ddeeff; white-space: nowrap; flex-shrink: 0;
-  letter-spacing: .2px;
-}
-.rc__mode {
+
+.rc__tag {
   display: inline-flex; align-items: center; gap: 3px;
-  font-size: 9.5px; color: #2a4060;
-  border-left: 1px solid rgba(255,255,255,.07);
-  padding-left: 6px; white-space: nowrap; flex-shrink: 0;
+  padding: 1.5px 6px; border-radius: 5px;
+  font-size: 9px; font-weight: 700; letter-spacing: .3px;
+  white-space: nowrap; flex-shrink: 0;
 }
-.rc__mode i { font-size: 8px; }
+.rc__tag i { font-size: 7.5px; }
+
+.rc__tag--type {
+  color: #5a9ad8;
+  background: rgba(40,100,200,.1);
+  border: 1px solid rgba(40,100,200,.18);
+}
+.rc__tag--type i { color: #4080c0; }
+
+.rc__tag--mode {
+  color: #3a5a78;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+}
+.rc__tag--mode i { font-size: 7px; color: #2a4060; }
+
+.rc__tag--rounds {
+  color: #a878e8;
+  background: rgba(130,60,220,.1);
+  border: 1px solid rgba(130,60,220,.2);
+}
+.rc__tag--rounds i { font-size: 7.5px; color: #8048c0; }
 
 .rc__top-right {
   display: flex; align-items: center; gap: 6px; flex-shrink: 0;
@@ -330,7 +368,7 @@ function handleClick() {
 .rc__timer i { font-size: 8.5px; opacity: .5; }
 .rc__timer b {
   font-family: 'Orbitron', monospace;
-  font-size: 12px; font-weight: 800; letter-spacing: .4px;
+  font-size: 10px; font-weight: 800; letter-spacing: .4px;
   color: #9ecaf0;
 }
 .rc__timer--live { color: #ff6e8a; }
@@ -392,8 +430,8 @@ function handleClick() {
 }
 .rc__pill--price i { color: #3a6898; }
 
-/* cuando el pill de precio va inline junto al timer */
-.rc__pill--inline {
+/* pill compacto para la fila del timer */
+.rc__pill--sm {
   font-size: 9.5px;
   padding: 2px 6px;
 }

@@ -60,6 +60,8 @@ export interface BingoGameRoom {
   readonly card_price?: number
   /** Símbolo de moneda del precio del cartón */
   readonly currency_symbol?: string
+  /** Cantidad de rondas de la sala */
+  readonly rounds_count?: number | null
 }
 
 /**
