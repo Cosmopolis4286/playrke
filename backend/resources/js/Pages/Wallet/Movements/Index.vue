@@ -90,6 +90,7 @@ const receiptZoom   = ref(false)
 
 // ── Columnas ───────────────────────────────────────────────────────────────
 const columns = [
+  { key: 'id',         label: 'ID',       sortable: false },
   { key: 'user',       label: 'Usuario',  sortable: false },
   { key: 'type',       label: 'Tipo',     sortable: false },
   { key: 'amount',     label: 'Monto',    sortable: false },
@@ -310,6 +311,10 @@ const currentPage = computed(() => meta.value?.current_page ?? 1)
           empty-message="No hay movimientos registrados"
           class="mt-3"
         >
+          <template #cell-id="{ row }">
+            <span class="mv-id">{{ String((row as Movement).id).slice(-8) }}</span>
+          </template>
+
           <template #cell-user="{ row }">
             <div v-if="(row as Movement).user" class="mv-user">
               <span class="mv-user__name">{{ userName((row as Movement).user) }}</span>
@@ -430,6 +435,12 @@ const currentPage = computed(() => meta.value?.current_page ?? 1)
         </template>
       </div>
 
+      <!-- ── ID de transacción ─────────────────────────────────────── -->
+      <div class="mv-txid">
+        <span class="mv-txid__label">ID transacción</span>
+        <span class="mv-txid__value">{{ detail.id }}</span>
+      </div>
+
       <!-- ── Fila: Usuario + Tipo + Estado ─────────────────────────── -->
       <div class="mv-detail__row mv-detail__row--3">
         <div class="mv-detail__section">
@@ -455,7 +466,7 @@ const currentPage = computed(() => meta.value?.current_page ?? 1)
       <div class="mv-detail__divider" />
 
       <!-- ── Montos ──────────────────────────────────────────────────── -->
-      <div class="mv-detail__row">
+      <div class="mv-detail__row mv-detail__row--3">
         <div class="mv-detail__section">
           <p class="mv-detail__label">Monto</p>
           <p
@@ -472,14 +483,21 @@ const currentPage = computed(() => meta.value?.current_page ?? 1)
           </p>
         </div>
         <div class="mv-detail__section">
-          <p class="mv-detail__label">Saldo antes / después</p>
+          <p class="mv-detail__label">Saldo antes</p>
           <p class="mv-detail__value mv-detail__value--mono">
             {{ detail.currency?.symbol }}
             {{ detail.balance_before.toLocaleString('es-VE', { minimumFractionDigits: detail.currency?.decimal_places ?? 2 }) }}
-            →
-            {{ detail.balance_after.toLocaleString('es-VE', { minimumFractionDigits: detail.currency?.decimal_places ?? 2 }) }}
           </p>
         </div>
+      </div>
+
+      <!-- Saldo después solo si ya fue procesado -->
+      <div v-if="detail.status !== 'PENDING'" class="mv-detail__section mt-2">
+        <p class="mv-detail__label">Saldo después</p>
+        <p class="mv-detail__value mv-detail__value--mono">
+          {{ detail.currency?.symbol }}
+          {{ detail.balance_after.toLocaleString('es-VE', { minimumFractionDigits: detail.currency?.decimal_places ?? 2 }) }}
+        </p>
       </div>
 
       <div class="mv-detail__divider" />
@@ -494,13 +512,22 @@ const currentPage = computed(() => meta.value?.current_page ?? 1)
               <div
                 class="mv-receipt__img-wrap"
                 :class="{ 'mv-receipt__img-wrap--zoomed': receiptZoom }"
-                @click="receiptZoom = !receiptZoom"
-                title="Clic para ampliar"
               >
-                <img :src="detail.receipt_url" alt="Comprobante" class="mv-receipt__img" />
-                <span class="mv-receipt__zoom-hint">
-                  <i :class="receiptZoom ? 'fas fa-compress-alt' : 'fas fa-expand-alt'"></i>
-                </span>
+                <img
+                  :src="detail.receipt_url"
+                  alt="Comprobante"
+                  class="mv-receipt__img"
+                  @click="receiptZoom = !receiptZoom"
+                  title="Clic para ampliar"
+                />
+                <div class="mv-receipt__toolbar">
+                  <button class="mv-receipt__btn" @click="receiptZoom = !receiptZoom" type="button" :title="receiptZoom ? 'Reducir' : 'Ampliar'">
+                    <i :class="receiptZoom ? 'fas fa-compress-alt' : 'fas fa-expand-alt'"></i>
+                  </button>
+                  <a class="mv-receipt__btn" :href="detail.receipt_url" target="_blank" title="Abrir en nueva pestaña">
+                    <i class="fas fa-external-link-alt"></i>
+                  </a>
+                </div>
               </div>
             </template>
             <!-- PDF u otro -->
@@ -668,6 +695,43 @@ const currentPage = computed(() => meta.value?.current_page ?? 1)
   font-size: 0.875rem;
 }
 
+/* ID en tabla */
+.mv-id {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* ID en modal */
+.mv-txid {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}
+.mv-txid__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.mv-txid__value {
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  color: #475569;
+  word-break: break-all;
+}
+
 /* Usuario */
 .mv-user        { display: flex; flex-direction: column; gap: 1px; }
 .mv-user__name  { font-size: 0.85rem; font-weight: 600; color: #1e293b; }
@@ -811,40 +875,54 @@ const currentPage = computed(() => meta.value?.current_page ?? 1)
 
 .mv-receipt__img-wrap {
   position: relative;
-  display: inline-block;
-  max-width: 100%;
-  cursor: pointer;
+  display: block;
+  width: 100%;
   border-radius: 8px;
   overflow: hidden;
   border: 2px solid #e2e8f0;
+  background: #f8fafc;
   transition: border-color 0.2s;
 }
 .mv-receipt__img-wrap:hover { border-color: #667eea; }
-.mv-receipt__img-wrap--zoomed { max-width: 100%; width: 100%; }
 
 .mv-receipt__img {
   display: block;
-  max-width: 280px;
-  max-height: 220px;
+  width: 100%;
+  max-height: 260px;
   object-fit: contain;
+  cursor: zoom-in;
   background: #f8fafc;
-  transition: max-width 0.3s, max-height 0.3s;
+  transition: max-height 0.3s;
 }
 .mv-receipt__img-wrap--zoomed .mv-receipt__img {
-  max-width: 100%;
-  max-height: 500px;
+  max-height: 520px;
+  cursor: zoom-out;
 }
 
-.mv-receipt__zoom-hint {
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
-  background: rgba(0,0,0,0.5);
-  color: #fff;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 0.7rem;
+.mv-receipt__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 4px 6px;
+  background: rgba(0,0,0,0.04);
+  border-top: 1px solid #e2e8f0;
 }
+.mv-receipt__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.mv-receipt__btn:hover { background: #667eea; color: #fff; border-color: #667eea; }
 
 .mv-receipt__file {
   display: flex;
