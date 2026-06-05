@@ -87,7 +87,7 @@ const grouped    = computed(() => {
 })
 const hasFilters = computed(() => search.value !== '' || category.value !== '')
 
-const joinRoom = (r: Room) => router.get(getRoute('roomWait', { code: r.code }))
+const joinRoom = (r: Room) => router.get(getRoute('roomLobby', { code: r.code }))
 </script>
 
 <template>

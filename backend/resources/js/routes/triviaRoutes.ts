@@ -26,14 +26,14 @@ export const triviaRoutes = {
 
     // ── Usuario: páginas de juego ────────────────────────
     lobby:       '/trivia/lobby',
-    roomWait:    '/trivia/room/{code}/wait',
+    roomLobby:    '/trivia/room/{code}/lobby',
     stats:       '/trivia/stats',
     leaderboard: '/trivia/leaderboard',
     gamesIndex:  '/trivia/games',
     gamesShow:   '/trivia/games/{id}',
     play:        '/trivia/play/{gameId}',
     playResults: '/trivia/play/{gameId}/results',
-    
+
     // ── Rutas nuevas El Poder del Saber ───────────────────
     triviaPlay:       '/trivia/play/{gameId}',
     triviaPlayResults:'/trivia/play/{gameId}/results',

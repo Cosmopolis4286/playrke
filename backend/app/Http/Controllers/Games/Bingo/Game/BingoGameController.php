@@ -28,6 +28,8 @@ final class BingoGameController extends Controller
         private readonly \App\Services\Games\Bingo\Game\BingoGameService $service,
         private readonly \App\Services\Games\Bingo\Game\BingoDrawService $drawService,
         private readonly \App\Services\Games\Bingo\Game\BingoWinnerDetectionService $winnerDetection,
+        private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $cardGenerateService,
+        private readonly \App\Services\Roles\RoleUserService $roleUserService,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
@@ -50,39 +52,60 @@ final class BingoGameController extends Controller
                     'config.gameMode',
                 ]);
 
-                $userCards = $room->cards()
-                    ->whereHas('roomUser', fn($q) => $q->where('user_id', $userId))
-                    ->where('status', 'active')
-                    ->count();
+                $roomUser = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', (string) $room->id)
+                    ->where('user_id', (string) $userId)
+                    ->first();
+
+                $userCards = $roomUser?->cards_purchased ?? 0;
 
                 $config = $room->config;
 
+                // Resolver precio, moneda y tasa según el rol del usuario
+                $role           = $this->roleUserService->getActiveUserRolePrefix($userId);
+                $cardPriceUsd   = (float) ($config?->card_price_usd ?? 0);
+                $cardPrice      = $cardPriceUsd;
+                $currencySymbol = 'USD';
+                $exchangeRate   = 1.0;
+
+                if ($role === 'player') {
+                    try {
+                        $priceData      = $this->cardGenerateService->getPlayerCardPrice((string) $room->id, (int) $userId);
+                        $cardPrice      = $priceData['card_price'];
+                        $currencySymbol = $priceData['currency_symbol'];
+                        $exchangeRate   = $priceData['exchange_rate'];
+                    } catch (\Throwable) {
+                        // fallback a USD si el jugador no tiene billetera configurada
+                    }
+                }
+
                 $roomData = [
-                    'id'                   => (string) $room->id,
-                    'uuid_code'            => $room->uuid_code,
-                    'status_code'          => $room->status_code,
-                    'prize_pool'           => (float) $room->prize_pool,
-                    'full_house_prize'     => (float) $room->full_house_prize,
-                    'serial_prize'         => (float) $room->serial_prize,
-                    'total_players'        => (int) $room->total_players,
-                    'total_cards'          => (int) $room->total_cards,
-                    'close_room'           => $room->is_closed,
-                    'currency_symbol'      => 'USD',
+                    'id'                    => (string) $room->id,
+                    'uuid_code'             => $room->uuid_code,
+                    'status_code'           => $room->status_code,
+                    'prize_pool'            => (float) $room->prize_pool,
+                    'full_house_prize'      => (float) $room->full_house_prize,
+                    'serial_prize'          => (float) $room->serial_prize,
+                    'total_players'         => (int) $room->total_players,
+                    'total_cards'           => (int) $room->total_cards,
+                    'close_room'            => $room->is_closed,
+                    'currency_symbol'       => $currencySymbol,
+                    'card_price'            => $cardPrice,
+                    'card_price_usd'        => $cardPriceUsd,
                     'room_type_description' => $config?->roomType?->description ?? 'Pública',
                     'game_mode_description' => $config?->gameMode?->description ?? 'Mixto',
-                    'unix_date'            => $config?->unix_date,
-                    'date'                 => $config?->date?->format('Y-m-d'),
-                    'time'                 => $config?->time,
-                    'card_price_usd'       => (float) ($config?->card_price_usd ?? 0),
-                    'time_chip'            => $config?->time_chip,
-                    'rounds'               => $config?->rounds,
-                    'in_live'              => (bool) $config?->in_live,
+                    'unix_date'             => $config?->unix_date,
+                    'date'                  => $config?->date?->format('Y-m-d'),
+                    'time'                  => $config?->time,
+                    'time_chip'             => $config?->time_chip,
+                    'rounds'                => $config?->rounds,
+                    'in_live'               => (bool) $config?->in_live,
                 ];
 
                 return Inertia::render('Games/Bingo/Lobby/Index', [
                     'room'         => $roomData,
                     'roomRouteKey' => $room->getRouteKey(),
                     'userCards'    => $userCards,
+                    'exchangeRate' => $exchangeRate,
                 ]);
             },
             'No se pudo cargar el lobby.'

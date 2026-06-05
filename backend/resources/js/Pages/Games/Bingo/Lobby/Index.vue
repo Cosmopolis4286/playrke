@@ -19,12 +19,13 @@ interface LobbyRoom {
   total_cards: number;
   close_room?: boolean;
   currency_symbol?: string;
+  card_price?: number;       // precio en moneda del jugador
+  card_price_usd?: number;   // precio base en USD
   room_type_description?: string;
   game_mode_description?: string;
   unix_date?: number | null;
   date?: string;
   time?: string;
-  card_price_usd?: number;
   time_chip?: number;
   rounds?: number;
   in_live?: boolean;
@@ -34,6 +35,7 @@ interface Props {
   room: LobbyRoom;
   roomRouteKey?: string;
   userCards?: number;
+  exchangeRate?: number;
 }
 
 const props = defineProps<Props>();
@@ -78,7 +80,7 @@ const roomAsGameRoom = computed((): BingoGameRoom => ({
   game_mode:        props.room.game_mode_description ?? null,
   status_code:      props.room.status_code ?? '',
   currency_symbol:  props.room.currency_symbol,
-  card_price:       props.room.card_price_usd,
+  card_price:       props.room.card_price ?? props.room.card_price_usd,
   players_room:     [{ ctns: liveRoom.userCards }],
   config: props.room.unix_date ? {
     room_id:         props.room.id,
@@ -115,8 +117,12 @@ const statusClass = computed(() => {
 
 const currencySymbol = computed(() => props.room?.currency_symbol ?? 'USD');
 
+const rate = computed(() => props.exchangeRate ?? 1)
+
 const formattedPrize = computed(() =>
-  typeof liveRoom.prizePool === 'number' ? liveRoom.prizePool.toFixed(2) : '0.00'
+  typeof liveRoom.prizePool === 'number'
+    ? (liveRoom.prizePool * rate.value).toFixed(2)
+    : '0.00'
 );
 
 const wsLabel = computed(() => ({
@@ -322,11 +328,11 @@ function startMeteors() {
           <div v-if="room.full_house_prize || room.serial_prize" class="lby-prize-sub">
             <div v-if="room.full_house_prize" class="lby-prize-sub__item">
               <span class="lby-prize-sub__lbl">Casa Llena</span>
-              <span class="lby-prize-sub__val">{{ Number(room.full_house_prize).toFixed(2) }}</span>
+              <span class="lby-prize-sub__val">{{ (Number(room.full_house_prize) * rate).toFixed(2) }}</span>
             </div>
             <div v-if="room.serial_prize" class="lby-prize-sub__item">
               <span class="lby-prize-sub__lbl">Serial</span>
-              <span class="lby-prize-sub__val">{{ Number(room.serial_prize).toFixed(2) }}</span>
+              <span class="lby-prize-sub__val">{{ (Number(room.serial_prize) * rate).toFixed(2) }}</span>
             </div>
           </div>
         </div>
@@ -343,10 +349,10 @@ function startMeteors() {
             <span class="lby-stat__val">{{ liveRoom.userCards }}</span>
             <span class="lby-stat__lbl">Mis cartones</span>
           </div>
-          <div v-if="room.card_price_usd" class="lby-stat">
+          <div v-if="room.card_price ?? room.card_price_usd" class="lby-stat">
             <i class="fas fa-dollar-sign lby-stat__icon" />
-            <span class="lby-stat__val">{{ Number(room.card_price_usd).toFixed(2) }}</span>
-            <span class="lby-stat__lbl">Precio</span>
+            <span class="lby-stat__val">{{ Number(room.card_price ?? room.card_price_usd).toFixed(2) }}</span>
+            <span class="lby-stat__lbl">Precio ({{ currencySymbol }})</span>
           </div>
           <div v-if="room.rounds" class="lby-stat">
             <i class="fas fa-layer-group lby-stat__icon" />
@@ -402,7 +408,7 @@ function startMeteors() {
       :total-amount="modal.totalAmount.value"
       :can-advance="modal.canAdvance.value"
       :purchasing="modal.purchasing.value"
-      :exchange-rate="1"
+      :exchange-rate="rate"
       :is-player="modal.isPlayer.value"
       @close="modal.close()"
       @select-country="modal.selectCountry($event)"

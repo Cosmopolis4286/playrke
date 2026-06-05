@@ -20,11 +20,16 @@ class BingoCard extends Model
 
     protected $table = 'bingo_cards';
 
+    public const STATUS_ACTIVE    = 1;
+    public const STATUS_INACTIVE  = 2;
+    public const STATUS_WINNER    = 3;
+    public const STATUS_CANCELLED = 4;
+
     public const CARD_STATUSES = [
-        'active'    => 'Activo',
-        'inactive'  => 'Inactivo',
-        'winner'    => 'Ganador',
-        'cancelled' => 'Cancelado',
+        1 => 'Activo',
+        2 => 'Inactivo',
+        3 => 'Ganador',
+        4 => 'Cancelado',
     ];
 
     public const COLUMNS = ['B', 'I', 'N', 'G', 'O'];
@@ -101,25 +106,25 @@ class BingoCard extends Model
 
     public function getCardStatusDescription(): string
     {
-        return self::CARD_STATUSES[$this->status] ?? $this->status;
+        return self::CARD_STATUSES[(int)$this->status] ?? (string)$this->status;
     }
 
-    public function isActive(): bool { return $this->status === 'active'; }
-    public function isWinner(): bool { return $this->status === 'winner'; }
+    public function isActive(): bool { return (int)$this->status === self::STATUS_ACTIVE; }
+    public function isWinner(): bool { return (int)$this->status === self::STATUS_WINNER; }
 
-    public function scopeActive($query) { return $query->where('status', 'active'); }
-    public function scopeWinners($query) { return $query->where('status', 'winner'); }
+    public function scopeActive($query) { return $query->where('status', self::STATUS_ACTIVE); }
+    public function scopeWinners($query) { return $query->where('status', self::STATUS_WINNER); }
     public function scopeValidated($query) { return $query->where('is_validated', true); }
 
     public function toFrontendFormat(): array
     {
         return [
-            'id'           => $this->id,
-            'roomId'       => $this->room_id,
+            'id'           => (string) $this->id,
+            'roomId'       => (string) $this->room_id,
             'userId'       => $this->roomUser?->user_id,
             'serialNumber' => $this->serial_number,
             'cardMatrix'   => $this->card_numbers ?? [],
-            'isActive'     => $this->status === 1,
+            'isActive'     => (int)$this->status === self::STATUS_ACTIVE,
             'purchaseDate' => $this->created_at,
             'price'        => 0,
             'currencyId'   => $this->currency_id,

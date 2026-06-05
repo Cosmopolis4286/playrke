@@ -34,7 +34,7 @@ final class TriviaGameController extends Controller
     {
         $user = $this->user(['id']);
         $wallet = $this->wallet($user->id);
-        
+
         $coin = DB::table('coins')->where('name', $coinSym)->first();
         if (!$coin) {
             abort(404, 'Moneda no encontrada');
@@ -195,14 +195,14 @@ final class TriviaGameController extends Controller
     {
         $user = $this->user(['id']);
         $wallet = $this->wallet($user->id);
-        
+
         $cdin = DB::table('triv_indv_cdin')->where('id_user', $user)
             ->orderBy('id', 'desc')->first();
-            
+
         if ($cdin == null || $cdin->start == 2) {
             return redirect()->route('trivia.index');
         }
-        
+
         $quest = $this->rand_quest($cdin->id);
         if ($cdin->start == 0) {
             DB::table('triv_indv_cdin')->where('id', $cdin->id)->update(['start' => 1]);
@@ -223,14 +223,14 @@ final class TriviaGameController extends Controller
         $user = auth()->user()->id;
         $answer = $request->input('answer');
         $questionId = $request->input('question_id');
-        
+
         // Lógica para verificar la respuesta
         $correctAnswer = DB::table('triv_indv_quest')
             ->where('id', $questionId)
             ->value('answer');
-            
+
         $isCorrect = strtolower($answer) === strtolower($correctAnswer);
-        
+
         return response()->json([
             'correct' => $isCorrect,
             'message' => $isCorrect ? '¡Correcto!' : 'Incorrecto, intenta de nuevo.'
@@ -263,7 +263,7 @@ final class TriviaGameController extends Controller
     public function leaveRoom($id)
     {
         $user = auth()->user()->id;
-        
+
         DB::table('triv_multi_user')
             ->where('room', $id)
             ->where('user', $user)
@@ -282,7 +282,7 @@ final class TriviaGameController extends Controller
     {
         $user = auth()->user()->id;
         $cdin = DB::table('triv_indv_cdin')->where('id_user', $user)->where('id', $id)->first();
-        
+
         // Lógica para obtener pregunta aleatoria
         $question = DB::table('triv_indv_quest')
             ->whereNotIn('id', function($query) use ($id) {
@@ -341,7 +341,7 @@ final class TriviaGameController extends Controller
 
     /**
      * Sala de espera de una sala específica (WaitingRoom).
-     * Ruta: GET /trivia/room/{code}/wait
+     * Ruta: GET /trivia/room/{code}/lobby
      */
     public function waitingRoom(string $code): Response
     {

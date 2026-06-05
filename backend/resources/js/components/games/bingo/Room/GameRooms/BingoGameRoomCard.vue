@@ -94,26 +94,32 @@ function handleClick() {
       <!-- ── Body ── -->
       <div class="rc__body">
 
-        <!-- Fila 1: nombre + modo | timer -->
+        <!-- Fila 1: nombre + modo | precio · timer -->
         <div class="rc__top">
           <div class="rc__name-wrap">
             <span class="rc__name">Bingo {{ isPublic ? 'Público' : 'Privado' }}</span>
             <span class="rc__mode"><i class="fas fa-gamepad" />{{ gameModeLabel }}</span>
           </div>
 
-          <!-- Timer -->
-          <div class="rc__timer" :class="{ 'rc__timer--live': !hasTime }">
-            <template v-if="hasTime && timerStr">
-              <i class="far fa-clock" />
-              <b>{{ timerStr }}</b>
-            </template>
-            <template v-else>
-              <span class="rc__blink" /><b>LIVE</b>
-            </template>
+          <div class="rc__top-right">
+            <!-- Precio del cartón -->
+            <span class="rc__pill rc__pill--price rc__pill--inline">
+              <i class="fas fa-ticket-alt" />{{ cardPriceFormatted }} {{ sym }}
+            </span>
+            <!-- Timer -->
+            <div class="rc__timer" :class="{ 'rc__timer--live': !hasTime }">
+              <template v-if="hasTime && timerStr">
+                <i class="far fa-clock" />
+                <b>{{ timerStr }}</b>
+              </template>
+              <template v-else>
+                <span class="rc__blink" /><b>LIVE</b>
+              </template>
+            </div>
           </div>
         </div>
 
-        <!-- Fila 2: premio + pills -->
+        <!-- Fila 2: premio + stats (jugadores + míos) -->
         <div class="rc__bottom">
           <div class="rc__prize">
             <i class="fas fa-trophy rc__trophy" />
@@ -122,9 +128,6 @@ function handleClick() {
           </div>
 
           <div class="rc__pills">
-            <span class="rc__pill rc__pill--price">
-              <i class="fas fa-ticket-alt" />{{ cardPriceFormatted }} {{ sym }}
-            </span>
             <span class="rc__pill">
               <i class="fas fa-users" />{{ room.total_players }}
             </span>
@@ -208,6 +211,7 @@ function handleClick() {
 .rc__inner {
   position: relative; z-index: 2;
   display: flex; align-items: stretch;
+  min-height: 86px;
 }
 
 /* ══════════════════════

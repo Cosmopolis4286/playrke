@@ -431,80 +431,56 @@ onUnmounted(() => {
 
         <div class="ig-panel__divider" />
 
-        <!-- Countdown -->
+        <!-- Countdown / Live -->
         <div class="ig-countdown" v-if="hasTime && cd">
           <span class="ig-countdown__label">
             <i class="fas fa-clock" /> Inicia en
           </span>
           <div class="ig-timer">
             <template v-if="cd.time.days > 0">
-              <div class="timer__unit">
-                <span class="timer__num">{{ cd.time.days }}</span>
-                <span class="timer__lbl">D</span>
-              </div>
+              <div class="timer__unit"><span class="timer__num">{{ cd.time.days }}</span><span class="timer__lbl">D</span></div>
               <span class="timer__sep">:</span>
             </template>
             <template v-if="cd.time.hours > 0">
-              <div class="timer__unit">
-                <span class="timer__num">{{ cd.time.hours }}</span>
-                <span class="timer__lbl">H</span>
-              </div>
+              <div class="timer__unit"><span class="timer__num">{{ cd.time.hours }}</span><span class="timer__lbl">H</span></div>
               <span class="timer__sep">:</span>
             </template>
-            <div class="timer__unit">
-              <span class="timer__num">{{ pad(cd.time.minutes) }}</span>
-              <span class="timer__lbl">M</span>
-            </div>
+            <div class="timer__unit"><span class="timer__num">{{ pad(cd.time.minutes) }}</span><span class="timer__lbl">M</span></div>
             <span class="timer__sep">:</span>
-            <div class="timer__unit">
-              <span class="timer__num">{{ pad(cd.time.seconds) }}</span>
-              <span class="timer__lbl">S</span>
-            </div>
+            <div class="timer__unit"><span class="timer__num">{{ pad(cd.time.seconds) }}</span><span class="timer__lbl">S</span></div>
           </div>
         </div>
-
         <div v-else class="ig-live-badge">
-          <span class="ig-live-badge__dot" />
-          EN VIVO
+          <span class="ig-live-badge__dot" /> EN VIVO
         </div>
 
         <div class="ig-panel__divider" />
 
-        <!-- Meta -->
+        <!-- Meta badges -->
         <div class="ig-meta">
-          <!-- Players -->
           <div class="ig-badge ig-badge--players" :class="{ 'ig-badge--flash': playersFlash }">
-            <i class="fas fa-users" />
-            <span>{{ livePlayers }}</span>
-            <small>jugadores</small>
+            <i class="fas fa-users" /><span>{{ livePlayers }}</span><small>jugadores</small>
           </div>
-
-          <!-- Round -->
           <div v-if="rounds" class="ig-badge ig-badge--round">
-            <i class="fas fa-sync-alt" />
-            RONDA <strong>#{{ round }}</strong>
+            <i class="fas fa-sync-alt" /> RONDA <strong>#{{ round }}</strong>
           </div>
-
-          <!-- Pattern -->
           <div v-if="bingoPattern" class="ig-badge ig-badge--pattern">
-            <i class="fas fa-th" />
-            {{ bingoPattern }}
+            <i class="fas fa-th" /> {{ bingoPattern }}
           </div>
-
-          <!-- My cards -->
           <div class="ig-badge ig-badge--cards">
             <i class="fas fa-ticket-alt" />
             {{ cardCount }} cartón{{ cardCount === 1 ? '' : 'es' }}
           </div>
-
-          <!-- Game rooms button (solo visible cuando la sala está finalizada) -->
+          <!-- Progreso de aciertos total -->
+          <div v-if="liveDrawn.length > 0" class="ig-badge ig-badge--drawn">
+            <i class="fas fa-random" /> {{ liveDrawn.length }}<small>/75</small>
+          </div>
           <Link
             v-if="String(room?.status ?? '').toUpperCase() === 'FINISHED' || String(room?.status_code ?? '').toUpperCase() === 'FINISHED'"
             href="/bingo/game-rooms"
             class="ig-badge ig-badge--rooms"
           >
-            <i class="fas fa-door-open" />
-            Salas
+            <i class="fas fa-door-open" /> Salas
           </Link>
         </div>
 
@@ -514,11 +490,7 @@ onUnmounted(() => {
            [DEV] Reset start time button
       ══════════════════════════════════════════ -->
       <div v-if="isLocal" class="ig-dev-bar">
-        <button
-          class="ig-dev-btn"
-          :disabled="devResetting"
-          @click="devResetTime"
-        >
+        <button class="ig-dev-btn" :disabled="devResetting" @click="devResetTime">
           <span v-if="devResetting" class="ig-dev-btn__spinner" />
           <i v-else class="fas fa-play-circle" />
           {{ devResetting ? 'Actualizando...' : 'Iniciar Partida (+2 min)' }}
@@ -527,7 +499,7 @@ onUnmounted(() => {
       </div>
 
       <!-- ══════════════════════════════════════════
-           PRE-DRAW BANNER (10 s antes del sorteo)
+           PRE-DRAW BANNER
       ══════════════════════════════════════════ -->
       <Transition name="ig-fade">
         <div v-if="drawStarting" class="ig-predraw-banner">
@@ -545,9 +517,10 @@ onUnmounted(() => {
       ══════════════════════════════════════════ -->
       <Transition name="ig-fade">
         <div v-if="liveDrawn.length > 0" class="ig-drawn-board">
-          <!-- Last chip (prominent) -->
-          <div class="ig-drawn-board__last">
+          <div class="ig-drawn-board__top">
+            <!-- Última ficha prominente -->
             <div class="ig-last-chip-wrap">
+              <div class="ig-last-chip-ring" />
               <img
                 :src="`/img/games/bingo/chips/${liveDrawn[liveDrawn.length - 1]}.png`"
                 :alt="`Ficha ${liveDrawn[liveDrawn.length - 1]}`"
@@ -556,13 +529,34 @@ onUnmounted(() => {
                 @contextmenu.prevent
               />
             </div>
-            <div class="ig-drawn-board__header">
-              <i class="fas fa-random" />
-              Números sorteados
-              <span class="ig-drawn-board__count">{{ liveDrawn.length }} / 75</span>
+            <!-- Info sorteo -->
+            <div class="ig-drawn-board__info">
+              <div class="ig-drawn-board__label">
+                <i class="fas fa-random" /> Último número
+              </div>
+              <div class="ig-drawn-board__num">{{ liveDrawn[liveDrawn.length - 1] }}</div>
+              <div class="ig-drawn-progress">
+                <div class="ig-drawn-progress__bar" :style="{ width: `${(liveDrawn.length / 75) * 100}%` }" />
+              </div>
+              <div class="ig-drawn-board__count">{{ liveDrawn.length }} <span>de 75 sorteados</span></div>
+            </div>
+            <!-- Últimas 5 fichas -->
+            <div class="ig-recent-chips">
+              <div class="ig-recent-chips__label">Recientes</div>
+              <div class="ig-recent-chips__row">
+                <img
+                  v-for="n in [...liveDrawn].slice(-5).reverse().slice(1)"
+                  :key="`r-${n}`"
+                  :src="`/img/games/bingo/chips/${n}.png`"
+                  :alt="`${n}`"
+                  class="ig-chip-sm"
+                  draggable="false"
+                  @contextmenu.prevent
+                />
+              </div>
             </div>
           </div>
-          <!-- All drawn chips -->
+          <!-- Todas las fichas sorteadas -->
           <div class="ig-drawn-board__chips">
             <img
               v-for="n in [...liveDrawn].reverse()"
@@ -579,9 +573,20 @@ onUnmounted(() => {
       </Transition>
 
       <!-- ══════════════════════════════════════════
-           CARDS GRID
+           CARTONES — header + grid
       ══════════════════════════════════════════ -->
       <div class="ig-cards-section">
+        <!-- Encabezado de cartones -->
+        <div class="ig-cards-header">
+          <div class="ig-cards-header__title">
+            <i class="fas fa-ticket-alt" />
+            Mis Cartones
+            <span class="ig-cards-header__count">{{ cardCount }}</span>
+          </div>
+          <div v-if="cardCount > 0 && liveDrawn.length > 0" class="ig-cards-header__hint">
+            <span class="ig-hit-dot" /> Números marcados en rojo
+          </div>
+        </div>
         <BingoCartons
           :cartons="cartons ?? []"
           :customerLogo="customerLogo ?? null"
@@ -638,14 +643,18 @@ html, body {
   min-height: 100%;
   overflow-y: auto !important;
   overflow-x: hidden !important;
+  background: #04081a !important;
 }
-body,
-body.hold-transition,
-#app-wrapper,
-.wrapper,
-.content-wrapper {
+body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
   background-color: #04081a !important;
   background-image: none !important;
+}
+/* ── Quitar línea negra del navbar AdminLTE ── */
+.main-header,
+.main-header.navbar,
+nav.main-header {
+  border-bottom: none !important;
+  box-shadow: none !important;
 }
 .content-header {
   display: none !important;
@@ -663,17 +672,11 @@ body.hold-transition,
 }
 .content-wrapper > .content > #app,
 .content-wrapper > .content > [data-page] {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: auto !important;
-  min-height: 100vh;
-  overflow: visible !important;
+  flex: 1; display: flex; flex-direction: column;
+  height: auto !important; min-height: 100vh; overflow: visible !important;
 }
 .wrapper, .content-wrapper {
-  height: auto !important;
-  min-height: 100vh;
-  overflow: visible !important;
+  height: auto !important; min-height: 100vh; overflow: visible !important;
 }
 </style>
 
@@ -1069,54 +1072,132 @@ body.hold-transition,
   padding: 16px 20px;
   backdrop-filter: blur(14px);
   box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-/* Last drawn chip */
-.ig-drawn-board__last {
+.ig-drawn-board__top {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 14px;
+  gap: 18px;
 }
+
+/* Last chip */
 .ig-last-chip-wrap {
   position: relative;
   flex-shrink: 0;
+  width: 80px; height: 80px;
+  display: flex; align-items: center; justify-content: center;
 }
+.ig-last-chip-ring {
+  position: absolute; inset: -4px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: linear-gradient(135deg, #7b4fff, #2af598) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  animation: ring-spin 3s linear infinite;
+}
+@keyframes ring-spin { to { transform: rotate(360deg) } }
 .ig-last-chip {
-  width: 72px;
-  height: 72px;
+  width: 72px; height: 72px;
   object-fit: contain;
-  filter: drop-shadow(0 0 14px rgba(123,79,255,0.7));
-  animation: last-chip-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  filter: drop-shadow(0 0 16px rgba(123,79,255,0.8));
+  animation: last-chip-enter 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  position: relative; z-index: 1;
 }
 @keyframes last-chip-enter {
   from { transform: scale(0) rotate(-20deg); opacity: 0 }
   to   { transform: scale(1) rotate(0deg);  opacity: 1 }
 }
 
-.ig-drawn-board__header {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #5578bb;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  flex: 1;
+/* Draw info */
+.ig-drawn-board__info {
+  flex: 1; display: flex; flex-direction: column; gap: 4px;
 }
-.ig-drawn-board__header i { color: #7b4fff; font-size: 11px }
+.ig-drawn-board__label {
+  font-size: 10px; font-weight: 700; color: #5578bb;
+  text-transform: uppercase; letter-spacing: 1px;
+  display: flex; align-items: center; gap: 5px;
+}
+.ig-drawn-board__label i { color: #7b4fff }
+.ig-drawn-board__num {
+  font-family: 'Anton', sans-serif; font-size: 40px; line-height: 1;
+  background: linear-gradient(135deg, #e0eaff, #7b4fff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.ig-drawn-progress {
+  height: 3px; background: rgba(100,140,255,0.12); border-radius: 3px; overflow: hidden;
+}
+.ig-drawn-progress__bar {
+  height: 100%;
+  background: linear-gradient(90deg, #7b4fff, #2af598);
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
 .ig-drawn-board__count {
-  font-size: 22px;
-  color: #e0eaff;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: 12px; font-weight: 700; color: #7c9dff;
 }
+.ig-drawn-board__count span { font-weight: 400; color: #4a6aaa; }
+
+/* Recent chips */
+.ig-recent-chips {
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+}
+.ig-recent-chips__label {
+  font-size: 9px; font-weight: 700; color: #3d5280;
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.ig-recent-chips__row {
+  display: flex; gap: 4px; align-items: center;
+}
+.ig-chip-sm {
+  width: 30px; height: 30px; object-fit: contain; border-radius: 50%;
+  opacity: 0.65; transition: opacity 0.2s;
+}
+.ig-chip-sm:hover { opacity: 1 }
+
 .ig-drawn-board__chips {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+}
+
+/* ══════════════════════════════════════
+   CARDS SECTION HEADER
+══════════════════════════════════════ */
+.ig-cards-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; padding: 0 4px;
+}
+.ig-cards-header__title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 700; color: #7c9dff;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.ig-cards-header__title i { color: #7b4fff; font-size: 12px }
+.ig-cards-header__count {
+  background: rgba(123,79,255,0.18); border: 1px solid rgba(123,79,255,0.3);
+  color: #b49dff; border-radius: 20px; padding: 1px 8px;
+  font-size: 11px; font-weight: 800;
+}
+.ig-cards-header__hint {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; color: #3d5280;
+}
+.ig-hit-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: linear-gradient(135deg, #d60f26, #8b0024);
+  flex-shrink: 0;
+}
+
+/* Drawn counter badge */
+.ig-badge--drawn {
+  background: rgba(42,245,152,0.08);
+  border-color: rgba(42,245,152,0.2);
+  color: #2af598;
 }
 
 /* ── Chip images ── */

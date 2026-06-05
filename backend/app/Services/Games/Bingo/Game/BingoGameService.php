@@ -206,8 +206,9 @@ final class BingoGameService
 
         try {
             // Obtener el room_user_id para este usuario en esta sala
-            $roomUser = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $roomId)
-                ->where('user_id', $userId)
+            // Castear a string porque room_id y user_id son Snowflake (bigint guardado como string)
+            $roomUser = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', (string) $roomId)
+                ->where('user_id', (string) $userId)
                 ->first();
 
             \Log::info('Room user lookup', [
@@ -220,9 +221,9 @@ final class BingoGameService
             if (!$roomUser) {
                 // Si no hay room_user, intentar obtener cartones directamente por creator_user_id
                 \Log::info('Trying alternative method to get cartons');
-                $cards = \App\Domains\Games\Bingo\Models\Card\BingoCard::where('room_id', $roomId)
-                    ->where('creator_user_id', $userId)
-                    ->where('status', 'active')
+                $cards = \App\Domains\Games\Bingo\Models\Card\BingoCard::where('room_id', (string)$roomId)
+                    ->where('creator_user_id', (string)$userId)
+                    ->where('status', \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE)
                     ->with(['currency', 'cardLot', 'roomUser'])
                     ->orderBy('serial_number')
                     ->get();
@@ -233,8 +234,8 @@ final class BingoGameService
                 ]);
             } else {
                 // Obtener los cartones del usuario usando el room_user_id
-                $cards = \App\Domains\Games\Bingo\Models\Card\BingoCard::where('room_user_id', $roomUser->id)
-                    ->where('status', 'active')
+                $cards = \App\Domains\Games\Bingo\Models\Card\BingoCard::where('room_user_id', (string)$roomUser->id)
+                    ->where('status', \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE)
                     ->with(['currency', 'cardLot', 'roomUser'])
                     ->orderBy('serial_number')
                     ->get();

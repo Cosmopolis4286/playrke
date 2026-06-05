@@ -57,7 +57,7 @@ final class NotificationService
         ]);
 
         $this->clearUserNotificationCache($userId);
-        
+
         Log::info('Notification created', [
             'notification_id' => $notification->id,
             'user_id' => $userId,
@@ -147,7 +147,7 @@ final class NotificationService
                 'room_code' => $roomCode,
                 'entry_fee' => $entryFee,
                 'currency_symbol' => $currencySymbol,
-                'url' => "/trivia/room/{$roomCode}/wait",
+                'url' => "/trivia/room/{$roomCode}/lobby",
             ]
         );
     }
@@ -230,7 +230,7 @@ final class NotificationService
         }
 
         $notification = $this->notificationRepository->findById($notificationId);
-        
+
         if (!$notification || $notification->user_id !== $userId) {
             Log::warning('Unauthorized notification access attempt', [
                 'notification_id' => $notificationId,
@@ -240,7 +240,7 @@ final class NotificationService
         }
 
         $result = $this->notificationRepository->markAsRead($notificationId);
-        
+
         if ($result) {
             $this->clearUserNotificationCache($userId);
         }
@@ -261,7 +261,7 @@ final class NotificationService
         }
 
         $result = $this->notificationRepository->markAllAsReadForUser($userId);
-        
+
         if ($result > 0) {
             $this->clearUserNotificationCache($userId);
         }
@@ -283,7 +283,7 @@ final class NotificationService
         }
 
         $notification = $this->notificationRepository->findById($notificationId);
-        
+
         if (!$notification || $notification->user_id !== $userId) {
             Log::warning('Unauthorized notification deletion attempt', [
                 'notification_id' => $notificationId,
@@ -293,7 +293,7 @@ final class NotificationService
         }
 
         $result = $this->notificationRepository->delete($notificationId);
-        
+
         if ($result) {
             $this->clearUserNotificationCache($userId);
         }
@@ -441,7 +441,7 @@ final class NotificationService
         $this->validateNotificationData('', $type, $title, $message);
 
         $notifications = collect();
-        
+
         foreach ($userIds as $userId) {
             try {
                 $notification = $this->create($userId, $type, $title, $message, $data);
