@@ -98,11 +98,16 @@ const movementMeta: Record<WalletMovementType, {
 function formatDate(iso: string): string {
   const date = new Date(iso)
   const now  = new Date()
-  const diffH = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-  if (diffH < 1)  return 'Hace unos minutos'
-  if (diffH < 24) return `Hoy, ${date.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`
-  if (diffH < 48) return `Ayer, ${date.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`
-  return new Intl.DateTimeFormat('es-VE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date)
+  const diffMs = now.getTime() - date.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  const diffH   = diffMs / 3600000
+  const timeStr = date.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })
+  const dateStr = new Intl.DateTimeFormat('es-VE', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
+  if (diffMin < 1)  return 'Ahora mismo'
+  if (diffMin < 60) return `Hace ${diffMin} min · ${timeStr}`
+  if (diffH < 24)   return `Hoy, ${timeStr}`
+  if (diffH < 48)   return `Ayer, ${timeStr}`
+  return `${dateStr} · ${timeStr}`
 }
 
 function formatAmount(value: number) {
@@ -160,9 +165,20 @@ const detailMeta = computed(() => {
   return movementMeta[detailMovement.value.type]
 })
 
-const detailSteps = computed(() => {
+interface TimelineStep {
+  label:    string
+  sub:      string | null
+  done:     boolean
+  active:   boolean
+  rejected: boolean
+  icon:     string
+  date:     string | null
+}
+
+const detailSteps = computed((): TimelineStep[] => {
   const mov = detailMovement.value
   if (!mov) return []
+
   const isDep  = mov.type === 'DEPOSIT'
   const isWith = mov.type === 'WITHDRAWAL'
 
@@ -170,29 +186,45 @@ const detailSteps = computed(() => {
     const done     = mov.status === 'COMPLETED'
     const rejected = mov.status === 'REJECTED'
     const pending  = mov.status === 'PENDING'
+
     return [
       {
         label:    'Solicitud recibida',
+        sub:      isDep
+          ? `Depósito de ${activeWallet.value?.currency.symbol ?? ''} ${formatAmount(mov.amount)} registrado`
+          : `Retiro de ${activeWallet.value?.currency.symbol ?? ''} ${formatAmount(mov.amount)} solicitado`,
         done:     true,
         active:   false,
         rejected: false,
-        icon:     'fa-check',
+        icon:     'fa-paper-plane',
         date:     mov.created_at,
       },
       {
-        label:    pending ? 'En revisión por el equipo' : (done ? 'Revisión completada' : 'Revisión fallida'),
+        label:    pending ? 'En revisión' : (done ? 'Revisión completada' : 'Revisión fallida'),
+        sub:      pending
+          ? 'Nuestro equipo está verificando tu solicitud'
+          : done
+            ? (isDep ? 'Comprobante verificado correctamente' : 'Solicitud de retiro aprobada')
+            : (isDep ? 'El comprobante no pudo ser verificado' : 'La solicitud fue rechazada'),
         done:     done || rejected,
         active:   pending,
         rejected: false,
         icon:     pending ? 'fa-hourglass-half' : (done ? 'fa-check' : 'fa-times'),
-        date:     (!pending && mov.processed_at) ? mov.processed_at : null,
+        date:     !pending && mov.processed_at ? mov.processed_at : null,
       },
       {
         label:    done
-          ? (isDep ? 'Fondos acreditados' : 'Retiro procesado')
-          : (rejected
-              ? (isDep ? 'Depósito rechazado' : 'Retiro rechazado — saldo reintegrado')
-              : (isDep ? 'Acreditación pendiente' : 'Procesamiento pendiente')),
+          ? (isDep ? 'Fondos acreditados' : 'Retiro enviado')
+          : rejected
+            ? (isDep ? 'Depósito rechazado' : 'Retiro cancelado')
+            : (isDep ? 'Pendiente de acreditación' : 'Pendiente de envío'),
+        sub:      done
+          ? (isDep
+              ? `+${activeWallet.value?.currency.symbol ?? ''} ${formatAmount(mov.amount)} en tu billetera`
+              : `${activeWallet.value?.currency.symbol ?? ''} ${formatAmount(mov.amount)} transferidos`)
+          : rejected
+            ? (isDep ? 'El monto no fue acreditado' : 'El saldo fue reintegrado a tu cuenta')
+            : null,
         done,
         active:   false,
         rejected,
@@ -202,9 +234,55 @@ const detailSteps = computed(() => {
     ]
   }
 
-  // PURCHASE / PRIZE: 1 paso, siempre completado
+  // PURCHASE
+  if (mov.type === 'PURCHASE') {
+    return [
+      {
+        label:    'Pago procesado',
+        sub:      `${activeWallet.value?.currency.symbol ?? ''} ${formatAmount(mov.amount)} descontados de tu saldo`,
+        done:     true, active: false, rejected: false,
+        icon:     'fa-check-circle',
+        date:     mov.created_at,
+      },
+      {
+        label:    'Cartón(es) asignados',
+        sub:      mov.description ?? 'Tu participación en la sala fue registrada',
+        done:     true, active: false, rejected: false,
+        icon:     'fa-ticket-alt',
+        date:     mov.created_at,
+      },
+    ]
+  }
+
+  // PRIZE / TRIVIA_PRIZE
+  if (mov.type === 'PRIZE' || mov.type === 'TRIVIA_PRIZE') {
+    return [
+      {
+        label:    '¡Premio ganado!',
+        sub:      mov.description ?? 'Felicitaciones por tu victoria',
+        done:     true, active: false, rejected: false,
+        icon:     'fa-trophy',
+        date:     mov.created_at,
+      },
+      {
+        label:    'Fondos acreditados',
+        sub:      `+${activeWallet.value?.currency.symbol ?? ''} ${formatAmount(mov.amount)} añadidos a tu billetera`,
+        done:     true, active: false, rejected: false,
+        icon:     'fa-check-circle',
+        date:     mov.created_at,
+      },
+    ]
+  }
+
+  // TRIVIA_ENTRY
   return [
-    { label: 'Procesado automáticamente', done: true, active: false, rejected: false, icon: 'fa-check-circle', date: mov.created_at },
+    {
+      label:    'Entrada registrada',
+      sub:      mov.description ?? 'Participación en sala de Trivia',
+      done:     true, active: false, rejected: false,
+      icon:     'fa-brain',
+      date:     mov.created_at,
+    },
   ]
 })
 
@@ -931,6 +1009,10 @@ const modalIcon = computed(() => {
 
         <!-- Info financiera -->
         <div class="mv-detail__grid">
+          <div class="mv-detail__cell mv-detail__cell--full">
+            <span class="mv-detail__cell-label">ID de transacción</span>
+            <span class="mv-detail__cell-value mv-detail__cell-value--mono">{{ detailMovement.id }}</span>
+          </div>
           <div class="mv-detail__cell">
             <span class="mv-detail__cell-label">Saldo anterior</span>
             <span class="mv-detail__cell-value">
@@ -946,6 +1028,7 @@ const modalIcon = computed(() => {
           <div class="mv-detail__cell">
             <span class="mv-detail__cell-label">Fecha</span>
             <span class="mv-detail__cell-value">{{ formatDate(detailMovement.created_at) }}</span>
+            <span class="mv-detail__cell-sub">{{ new Date(detailMovement.created_at).toLocaleString('es-VE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</span>
           </div>
           <div v-if="detailMovement.description" class="mv-detail__cell mv-detail__cell--full">
             <span class="mv-detail__cell-label">Descripción</span>
@@ -993,7 +1076,10 @@ const modalIcon = computed(() => {
               </div>
               <div class="mv-timeline__body">
                 <p class="mv-timeline__label">{{ step.label }}</p>
-                <p v-if="step.date" class="mv-timeline__date">{{ formatDate(step.date) }}</p>
+                <p v-if="step.sub" class="mv-timeline__sub">{{ step.sub }}</p>
+                <p v-if="step.date" class="mv-timeline__date">
+                  <i class="fas fa-clock mv-timeline__date-icon"></i>{{ formatDate(step.date) }}
+                </p>
               </div>
             </li>
           </ul>
@@ -2442,6 +2528,14 @@ const modalIcon = computed(() => {
 }
 .mv-detail__cell-value { font-size: 0.9rem; color: #2d3748; font-weight: 600; }
 .mv-detail__cell-value--highlight { color: #667eea; }
+.mv-detail__cell-sub { font-size: 0.72rem; color: #94a3b8; margin-top: 1px; }
+.mv-detail__cell-value--mono {
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #475569;
+  word-break: break-all;
+}
 
 /* Timeline */
 .mv-detail__timeline { margin-bottom: 1rem; }
@@ -2457,54 +2551,84 @@ const modalIcon = computed(() => {
 .mv-timeline::before {
   content: '';
   position: absolute;
-  left: 13px;
-  top: 0; bottom: 0;
+  left: 15px;
+  top: 8px;
+  bottom: 8px;
   width: 2px;
-  background: #eaecf0;
+  background: linear-gradient(to bottom, #e2e8f0, #e2e8f0);
 }
 .mv-timeline__item {
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0 0 0.85rem 0;
+  gap: 0.85rem;
+  padding: 0 0 1.1rem 0;
   position: relative;
 }
 .mv-timeline__item:last-child { padding-bottom: 0; }
+
 .mv-timeline__dot {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: #eaecf0;
-  color: #a0aec0;
+  background: #f1f5f9;
+  color: #94a3b8;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   flex-shrink: 0;
   position: relative;
   z-index: 1;
-  border: 2px solid #fff;
+  border: 2px solid #e2e8f0;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 .mv-timeline__item--done .mv-timeline__dot {
-  background: #38a169;
-  color: #fff;
+  background: #dcfce7;
+  color: #16a34a;
+  border-color: #bbf7d0;
 }
 .mv-timeline__item--active .mv-timeline__dot {
-  background: #667eea;
-  color: #fff;
-  animation: pulse-dot 1.4s ease-in-out infinite;
+  background: #ede9fe;
+  color: #7c3aed;
+  border-color: #c4b5fd;
+  animation: pulse-dot 1.6s ease-in-out infinite;
 }
 .mv-timeline__item--rejected .mv-timeline__dot {
-  background: #e53e3e;
-  color: #fff;
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
 }
 @keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(102,126,234,0.4); }
-  50%       { box-shadow: 0 0 0 6px rgba(102,126,234,0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0.25); }
+  50%       { box-shadow: 0 0 0 6px rgba(124,58,237,0); }
 }
-.mv-timeline__body { padding-top: 3px; }
-.mv-timeline__label { font-size: 0.85rem; font-weight: 600; color: #2d3748; margin: 0 0 0.1rem; }
-.mv-timeline__date  { font-size: 0.75rem; color: #a0aec0; margin: 0; }
+
+.mv-timeline__body { padding-top: 4px; flex: 1; }
+.mv-timeline__label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.15rem;
+  line-height: 1.3;
+}
+.mv-timeline__item--active .mv-timeline__label { color: #7c3aed; }
+.mv-timeline__item--rejected .mv-timeline__label { color: #dc2626; }
+
+.mv-timeline__sub {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0 0 0.2rem;
+  line-height: 1.4;
+}
+.mv-timeline__date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin: 0;
+}
+.mv-timeline__date-icon { font-size: 0.62rem; }
 
 /* Comprobante en modal detalle usuario */
 .mv-detail__receipt {
