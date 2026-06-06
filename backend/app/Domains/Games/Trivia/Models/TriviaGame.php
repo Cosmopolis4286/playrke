@@ -23,9 +23,10 @@ class TriviaGame extends BaseModel
     protected $fillable = [
         'room_id',
         'game_code',
-        'status', // 'active', 'paused', 'finished', 'cancelled'
+        'status', // 'playing', 'paused', 'finished', 'cancelled'
         'current_question_index',
         'total_questions',
+        'time_per_question',
         'player_count',
         'started_at',
         'ended_at',
@@ -33,12 +34,13 @@ class TriviaGame extends BaseModel
     ];
 
     protected $casts = [
-        'metadata' => 'array',
-        'started_at' => 'datetime',
-        'ended_at' => 'datetime',
+        'metadata'               => 'array',
+        'started_at'             => 'datetime',
+        'ended_at'               => 'datetime',
         'current_question_index' => 'integer',
-        'total_questions' => 'integer',
-        'player_count' => 'integer',
+        'total_questions'        => 'integer',
+        'time_per_question'      => 'integer',
+        'player_count'           => 'integer',
     ];
 
     public function room(): BelongsTo
@@ -61,7 +63,7 @@ class TriviaGame extends BaseModel
      */
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->whereIn('status', ['playing', 'active']);
     }
 
     /**

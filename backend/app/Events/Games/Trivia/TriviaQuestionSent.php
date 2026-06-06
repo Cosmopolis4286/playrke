@@ -10,13 +10,19 @@ class TriviaQuestionSent implements ShouldBroadcastNow
 {
     use SerializesModels;
 
+    public readonly int $serverTimestamp;
+
     public function __construct(
         public readonly string $roomId,
         public readonly string $gameId,
         public readonly int    $questionIndex,
         public readonly int    $totalQuestions,
-        public readonly array  $question,  // {id, text, options[], timeLimit, category?}
-    ) {}
+        public readonly array  $question,
+    ) {
+        // Timestamp en milisegundos — el frontend lo usa para calcular el tiempo
+        // transcurrido desde que el servidor envió la pregunta (lag de red).
+        $this->serverTimestamp = (int) round(microtime(true) * 1000);
+    }
 
     public function broadcastOn(): Channel
     {
@@ -35,6 +41,7 @@ class TriviaQuestionSent implements ShouldBroadcastNow
             'question_index'   => $this->questionIndex,
             'total_questions'  => $this->totalQuestions,
             'question'         => $this->question,
+            'server_timestamp' => $this->serverTimestamp,
         ];
     }
 }

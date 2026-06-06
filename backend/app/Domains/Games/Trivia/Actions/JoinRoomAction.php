@@ -7,7 +7,7 @@ namespace App\Domains\Games\Trivia\Actions;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\DTOs\PlayerDTO;
 use App\Domains\Games\Trivia\DTOs\RoomDTO;
-use App\Models\Games\Trivia\TriviaRoom;
+use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Models\User;
 use App\Services\WalletService;
 use App\Services\NotificationService;
@@ -163,33 +163,73 @@ class JoinRoomAction
 
     /**
      * Descuenta la tarifa de entrada de la wallet del jugador.
-     * Si entry_fee es 0 o null, no hace nada.
+     * Soporta fee_by_currency (multidivisa) y entry_fee/entry_currency_id (legado).
+     * Si no hay tarifa configurada, no hace nada.
      */
     private function chargeEntryFee(string $roomId, string $playerId): void
     {
         $room = TriviaRoom::find($roomId);
 
-        if (! $room || ! $room->entry_fee || (float) $room->entry_fee <= 0) {
+        if (! $room) {
             return;
         }
 
-        $user   = User::findOrFail($playerId);
-        $wallet = $user->wallets()
-            ->where('currency_id', $room->entry_currency_id)
-            ->where('status', 'ACTIVE')
-            ->first();
+        // ── Resolver monedas disponibles ────────────────────────────────────
+        $feeByCurrency = $room->fee_by_currency; // array|null (cast en modelo)
 
-        if (! $wallet) {
-            throw new RuntimeException('No tienes una billetera en la moneda requerida para esta sala.');
+        // Construir mapa currencyId => amount
+        $feeMap = [];
+        if (! empty($feeByCurrency) && is_array($feeByCurrency)) {
+            foreach ($feeByCurrency as $cid => $amount) {
+                if ((float) $amount > 0) {
+                    $feeMap[(string) $cid] = (float) $amount;
+                }
+            }
+        } elseif ($room->entry_currency_id && (float) ($room->entry_fee ?? 0) > 0) {
+            $feeMap[(string) $room->entry_currency_id] = (float) $room->entry_fee;
         }
 
-        if (! $wallet->hasSufficientBalance((float) $room->entry_fee)) {
-            throw new RuntimeException('Saldo insuficiente para unirte a esta sala. Se requieren ' . $room->entry_fee . '.');
+        if (empty($feeMap)) {
+            return; // Sala gratuita
+        }
+
+        // ── Buscar la primera wallet del usuario que coincida con una moneda aceptada
+        $user    = User::findOrFail($playerId);
+        $wallets = $user->wallets()
+            ->whereIn('currency_id', array_keys($feeMap))
+            ->where('status', 'ACTIVE')
+            ->with('currency')
+            ->get()
+            ->keyBy(fn($w) => (string) $w->currency_id);
+
+        $chargeWallet     = null;
+        $chargeAmount     = 0.0;
+        $chargeCurrencyId = null;
+
+        foreach ($feeMap as $cid => $amount) {
+            if (isset($wallets[$cid])) {
+                $chargeWallet     = $wallets[$cid];
+                $chargeAmount     = $amount;
+                $chargeCurrencyId = $cid;
+                break;
+            }
+        }
+
+        if (! $chargeWallet) {
+            $symbols = collect($feeMap)->keys()
+                ->map(fn($cid) => DB::table('currencies')->where('id', $cid)->value('symbol') ?? $cid)
+                ->implode(', ');
+            throw new RuntimeException("No tienes una billetera en la moneda requerida para esta sala ({$symbols}).");
+        }
+
+        if (! $chargeWallet->hasSufficientBalance($chargeAmount)) {
+            $symbol = $chargeWallet->currency?->symbol ?? $chargeCurrencyId;
+            throw new RuntimeException("Saldo insuficiente. Se requieren {$symbol} {$chargeAmount}.");
         }
 
         $this->walletService->recordTriviaEntry(
-            wallet:      $wallet,
-            amount:      (float) $room->entry_fee,
+            wallet:      $chargeWallet,
+            amount:      $chargeAmount,
             description: "Entrada sala Trivia: {$room->title} ({$room->code})",
         );
     }

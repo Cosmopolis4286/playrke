@@ -18,6 +18,7 @@ use App\Domains\Games\Trivia\Models\TriviaQuestion;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Events\Games\Trivia\TriviaGameFinished;
 use App\Events\Games\Trivia\TriviaGameStarted;
+use App\Jobs\Games\Trivia\AdvanceTriviaQuestion;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -65,7 +66,7 @@ class GameEngineService implements GameEngineInterface
         $game = TriviaGame::create([
             'room_id'         => $roomId,
             'game_code'       => strtoupper(Str::random(6)),
-            'status'          => 'active',
+            'status'          => 'playing',
             'total_questions' => $totalQuestions,
             'time_per_question'=> $room->time_per_question,
             'player_count'    => count($playerIds),
@@ -225,6 +226,12 @@ class GameEngineService implements GameEngineInterface
 
         // Evento de dominio (para listeners internos)
         event(new QuestionSent(question: $questionDto, gameId: $gameId, serverTimestamp: time()));
+
+        // Job de seguridad: si no todos responden antes del timer, avanzar igual.
+        // Delay = time_limit_seconds + 2 s de buffer.
+        $delaySeconds = $questionDto->timeLimitSeconds + 2;
+        AdvanceTriviaQuestion::dispatch($gameId, $questionDto->questionId)
+            ->delay(now()->addSeconds($delaySeconds));
 
         return $questionDto;
     }
