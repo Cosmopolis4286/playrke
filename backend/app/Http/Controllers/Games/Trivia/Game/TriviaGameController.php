@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Games\Trivia\Game;
 
 use App\Http\Controllers\Controller;
 use App\Traits\Users\UserTrait;
+use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
 use App\Domains\Games\Trivia\Services\RoomService;
 use App\Domains\Games\Trivia\Actions\JoinRoomAction;
 use Illuminate\Http\Request;
@@ -623,84 +624,76 @@ final class TriviaGameController extends Controller
 
     /**
      * Página de juego activo - "El Poder del Saber".
-     * Interfaz de juego inmersiva con el diseño visual del concurso.
      * Ruta: GET /trivia/play/{gameId}
+     *
+     * La pregunta activa se obtiene de Redis (GameStateRepository) — no de BD.
+     * La BD solo persiste datos finales; el estado en tiempo real vive en Redis.
      */
     public function play(string $gameId): Response
     {
-        $user = Auth::user();
+        $user  = Auth::user();
         $pgsql = DB::connection('pgsql_trivia');
 
-        // Obtener información del juego
         $game = $pgsql->table('trivia_games')
             ->where('id', $gameId)
+            ->whereIn('status', ['playing', 'active'])
             ->first();
 
-        if (!$game) {
+        if (! $game) {
             abort(404, 'Juego no encontrado');
         }
 
-        // Obtener información de la sala
         $room = $pgsql->table('trivia_rooms')
             ->where('id', $game->room_id)
             ->first();
 
-        // Calcular el pote total
-        $potAmount = $room->prize_amount ?? (
-            ($room->entry_fee ?? 0) * ($room->current_players ?? 0)
-        );
+        // ── Pote: prize_amount fijo o calculado desde entradas ────────────────
+        $potAmount = $room->prize_amount > 0
+            ? (float) $room->prize_amount
+            : (float) (($room->entry_fee ?? 0) * ($game->player_count ?? 0));
 
-        // Obtener la pregunta actual (si existe)
-        $currentQuestion = $pgsql->table('trivia_questions')
-            ->where('game_id', $gameId)
-            ->where('status', 'sent')
-            ->orderBy('sent_at', 'desc')
-            ->first();
+        // ── Pregunta activa desde Redis ───────────────────────────────────────
+        $stateRepo    = app(GameStateRepositoryInterface::class);
+        $questionData = $stateRepo->getCurrentQuestion($gameId);
+        $gameState    = $stateRepo->getState($gameId);
 
         $question = null;
-        if ($currentQuestion) {
-            $questionData = $pgsql->table('trivia_question_bank')
-                ->where('id', $currentQuestion->question_id)
-                ->first();
-
-            if ($questionData) {
-                $question = [
-                    'id' => $questionData->id,
-                    'text' => $questionData->question_text,
-                    'image' => $questionData->image_url ?? null,
-                    'options' => $questionData->options ?? [],
-                    'timeLimit' => $questionData->time_limit_seconds ?? $room->time_per_question ?? 20,
-                    'category' => $questionData->category ?? null,
-                ];
+        if ($questionData) {
+            $options = $questionData['options'] ?? [];
+            if (is_string($options)) {
+                $options = json_decode($options, true) ?? [];
             }
+            $question = [
+                'id'        => (string) ($questionData['question_id'] ?? $questionData['id'] ?? ''),
+                'text'      => $questionData['question_text'] ?? $questionData['text'] ?? '',
+                'image'     => $questionData['image_url'] ?? null,
+                'options'   => $options,
+                'timeLimit' => (int) ($questionData['time_limit_seconds'] ?? $room->time_per_question ?? 20),
+                'category'  => $questionData['category'] ?? null,
+            ];
         }
 
-        // Obtener posición del jugador
-        $participant = $pgsql->table('trivia_participants')
-            ->where('room_id', $game->room_id)
-            ->where('user_id', (string) $user->id)
-            ->first();
+        $currentQuestionIndex = $gameState?->currentQuestionIndex ?? ($game->current_question_index ?? 0);
+        $totalQuestions       = $gameState?->totalQuestions ?? ($room->question_count ?? 10);
 
         return Inertia::render('Games/Trivia/Play', [
             'room' => [
-                'id' => (string) $room->id,
-                'code' => $room->code,
-                'title' => $room->title,
-                'potAmount' => (float) $potAmount,
-                'currentPlayers' => $room->current_players ?? 0,
-                'maxPlayers' => $room->max_players ?? 100,
-                'cupsAvailable' => $room->cups_available ?? 0,
-                'cupsTotal' => $room->max_players ?? 0,
+                'id'             => (string) $room->id,
+                'code'           => $room->code,
+                'title'          => $room->title,
+                'potAmount'      => $potAmount,
+                'currentPlayers' => $game->player_count ?? 0,
+                'maxPlayers'     => $room->max_players ?? 100,
             ],
             'game' => [
-                'id' => $gameId,
-                'currentQuestion' => $game->current_question_index ?? 1,
-                'totalQuestions' => $room->question_count ?? 10,
+                'id'              => $gameId,
+                'currentQuestion' => $currentQuestionIndex,
+                'totalQuestions'  => $totalQuestions,
             ],
             'question' => $question,
-            'player' => [
-                'id' => (string) $user->id,
-                'name' => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador'),
+            'player'   => [
+                'id'     => (string) $user->id,
+                'name'   => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) ?: ($user->username ?? 'Jugador'),
                 'avatar' => $user->avatar ?? null,
             ],
         ]);
@@ -777,18 +770,15 @@ final class TriviaGameController extends Controller
             ];
         })->all();
 
-        // Calcular premio ganado (si aplica)
-        $wonPrize = null;
-        if ($playerRank <= 3 && $room->prize_type === 'winner_takes_all') {
-            // Lógica de premios según configuración
-            $prizeDistribution = match($playerRank) {
-                1 => 0.5,  // 50% para el primer lugar
-                2 => 0.3,  // 30% para el segundo
-                3 => 0.2,  // 20% para el tercero
-                default => 0,
-            };
-            $wonPrize = ($room->prize_amount ?? 0) * $prizeDistribution;
-        }
+        // Leer premio ganado desde trivia_participants (actualizado por PrizeDistributionService)
+        $participantData = $pgsql->table('trivia_participants')
+            ->where('room_id', $game->room_id)
+            ->where('user_id', (string) $user->id)
+            ->first();
+
+        $wonPrize = $participantData && $participantData->prize_won > 0
+            ? (float) $participantData->prize_won
+            : null;
 
         return Inertia::render('Games/Trivia/PlayResults', [
             'game' => [
