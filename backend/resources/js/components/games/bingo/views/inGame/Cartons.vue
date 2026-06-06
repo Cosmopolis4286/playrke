@@ -61,13 +61,6 @@
         <!-- animated border glow -->
         <div class="ctn-card__glow" />
 
-        <!-- hit badge -->
-        <div v-if="hits(card) > 0" class="ctn-badge" :class="{ 'ctn-badge--hot': isHot(card), 'ctn-badge--win': isWinner(card) }">
-          <i v-if="isWinner(card)" class="fas fa-trophy" />
-          <i v-else-if="isHot(card)" class="fas fa-fire" />
-          {{ hits(card) }}
-        </div>
-
         <!-- BINGO header -->
         <div class="ctn-head">
           <span v-for="l in LETTERS" :key="l" class="ctn-head__l" :class="`ctn-head__l--${l.toLowerCase()}`">{{ l }}</span>
@@ -79,7 +72,7 @@
             <div
               v-for="r in 5" :key="`${l}${r}`"
               class="ctn-cell"
-              :class="cellCls(card, l, r)"
+              :class="[`ctn-cell--col-${l.toLowerCase()}`, cellCls(card, l, r)]"
             >
               <template v-if="l === 'N' && r === 3">
                 <span class="ctn-free">★</span>
@@ -90,7 +83,9 @@
                 </div>
               </template>
               <template v-else>
-                <span class="ctn-num">{{ num(card, l, r) ?? '–' }}</span>
+                <span class="ctn-num" :class="{ 'ctn-num--invalid': !validNum(card, l, r) }">
+                  {{ num(card, l, r) ?? '–' }}
+                </span>
               </template>
             </div>
           </template>
@@ -107,9 +102,14 @@
         <!-- footer -->
         <div class="ctn-foot">
           <span class="ctn-foot__serial">{{ shortSerial(card.serialNumber) }}</span>
-          <span class="ctn-foot__hits" :class="{ 'ctn-foot__hits--hot': isHot(card) }">
+          <!-- badge hits en footer -->
+          <span v-if="hits(card) > 0" class="ctn-foot__badge"
+            :class="{ 'ctn-foot__badge--hot': isHot(card), 'ctn-foot__badge--win': isWinner(card) }">
+            <i v-if="isWinner(card)" class="fas fa-trophy" />
+            <i v-else-if="isHot(card)" class="fas fa-fire" />
             {{ hits(card) }}<small>/24</small>
           </span>
+          <span v-else class="ctn-foot__hits">0<small>/24</small></span>
         </div>
       </div>
     </TransitionGroup>
@@ -167,17 +167,53 @@
       </div>
     </Transition>
 
-    <!-- ── Empty ── -->
-    <div v-if="displayCards.length === 0" class="ctn-empty">
-      <i class="fas fa-ticket-alt" />
-      <p>Sin cartones en esta sala</p>
-    </div>
+    <!-- ── Modo espectador: sin cartones propios ── -->
+    <template v-if="displayCards.length === 0">
+
+      <!-- Si hay sorteo en curso → tablero de bolas espectador -->
+      <div v-if="totalDrawn > 0" class="ctn-spectator">
+        <div class="ctn-spectator__header">
+          <i class="fas fa-eye" />
+          <span>Modo espectador</span>
+          <span class="ctn-spectator__count">{{ totalDrawn }}<small>/75</small> sorteadas</span>
+        </div>
+
+        <!-- Grilla de las 75 bolas posibles -->
+        <div class="ctn-ball-grid">
+          <template v-for="col in (['B','I','N','G','O'] as const)" :key="col">
+            <div class="ctn-ball-col">
+              <div class="ctn-ball-col__hdr" :class="`ctn-ball-col__hdr--${col.toLowerCase()}`">{{ col }}</div>
+              <div
+                v-for="n in colNumbers(col)"
+                :key="n"
+                class="ctn-ball-cell"
+                :class="{
+                  'ctn-ball-cell--hit':    drawnSet.has(n),
+                  'ctn-ball-cell--latest': n === drawnNumbers?.[drawnNumbers.length - 1],
+                  [`ctn-ball-cell--${col.toLowerCase()}`]: true,
+                }"
+              >
+                {{ n }}
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Si aún no hay sorteo → mensaje simple -->
+      <div v-else class="ctn-empty">
+        <i class="fas fa-eye" />
+        <p>Modo espectador — el sorteo aún no ha comenzado</p>
+      </div>
+    </template>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, watch, ref } from "vue";
 import { type BingoCard } from "@js/Services/bingoService";
+import { useBingoSound } from "@js/composables/games/bingo/useBingoSound";
 
 type Filter = "all" | "hot" | "win";
 
@@ -208,6 +244,8 @@ const activeFilter = ref<Filter>("all");
 const cardSize     = ref<"sm" | "md">("md");
 const selectedId   = ref<string | null>(null);
 const bingoSet     = ref<Set<string>>(new Set());
+
+const { playSelect, playWinner } = useBingoSound();
 
 const drawnSet     = computed(() => new Set(props.drawnNumbers));
 const displayCards = computed(() => props.cartons);
@@ -240,7 +278,8 @@ function num(card: BingoCard, l: string, r: number): number | null {
 
 function drawn(card: BingoCard, l: string, r: number): boolean {
   const n = num(card, l, r);
-  return n !== null && drawnSet.value.has(n);
+  // Solo marcar como sorteada si el número está en el rango correcto de la columna
+  return n !== null && validNum(card, l, r) && drawnSet.value.has(n);
 }
 
 function cellCls(card: BingoCard, l: string, r: number) {
@@ -267,6 +306,22 @@ function getFilterCount(f: Filter): number {
   return displayCards.value.length;
 }
 
+// Rango de números por columna BINGO
+const COL_RANGES: Record<string, [number, number]> = {
+  B: [1, 15], I: [16, 30], N: [31, 45], G: [46, 60], O: [61, 75],
+};
+
+function validNum(card: BingoCard, l: string, r: number): boolean {
+  const n = num(card, l, r);
+  if (n === null) return true;
+  const [lo, hi] = COL_RANGES[l] ?? [1, 75];
+  return n >= lo && n <= hi;
+}
+function colNumbers(col: string): number[] {
+  const [lo, hi] = COL_RANGES[col] ?? [1, 15];
+  return Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
+}
+
 function shortSerial(s: string): string {
   if (!s) return "—";
   const p = s.split("-");
@@ -283,12 +338,27 @@ function fullBingo(card: BingoCard): boolean {
   return true;
 }
 
-watch(() => props.drawnNumbers, () => {
+watch(() => props.drawnNumbers, (next, prev) => {
+  // Sonido de celda marcada si el nuevo número cae en algún cartón
+  const newNums = next.filter(n => !prev?.includes(n))
+  if (newNums.length > 0) {
+    const hits = props.cartons.some(card =>
+      LETTERS.some((l, li) => {
+        const m = card.cardMatrix
+        if (!m) return false
+        const col = m[l as keyof typeof m] as number[] | undefined
+        return col?.some(n => newNums.includes(n)) ?? false
+      })
+    )
+    if (hits) playSelect()
+  }
+
   if (!props.autoCheckBingo) return;
   for (const card of props.cartons) {
     if (bingoSet.value.has(card.id)) continue;
     if (fullBingo(card)) {
       bingoSet.value.add(card.id);
+      playWinner();
       emit("bingo-detected", card);
     }
   }
@@ -411,148 +481,185 @@ watch(() => props.drawnNumbers, () => {
    CARD
 ══════════════════════════════════ */
 .ctn-card {
-  position: relative; border-radius: 14px; overflow: hidden;
-  background: linear-gradient(165deg, #0b1030 0%, #060820 100%);
-  border: 1.5px solid rgba(70,100,210,0.17);
-  box-shadow: 0 5px 22px rgba(0,0,0,0.5);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  animation: cin 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
-  animation-delay: calc(var(--i,0) * 45ms);
+  position: relative; border-radius: 12px; overflow: hidden;
+  background: #fff;
+  border: 1.5px solid rgba(180,195,240,0.6);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.8) inset;
+  transition: transform 0.22s cubic-bezier(0.22,0.68,0,1.2), box-shadow 0.22s ease, border-color 0.22s ease;
+  animation: cin 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
+  animation-delay: calc(var(--i,0) * 50ms);
   cursor: pointer;
 }
+/* shimmer al hover */
+.ctn-card::after {
+  content: '';
+  position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%);
+  transform: translateX(-110%);
+  pointer-events: none;
+  z-index: 10;
+}
+.ctn-card:hover::after { animation: shimmer 0.55s ease forwards; }
+@keyframes shimmer { to { transform: translateX(110%); } }
+
 .ctn-card:hover {
   transform: translateY(-4px) scale(1.012);
-  box-shadow: 0 16px 44px rgba(0,0,0,0.6), 0 0 18px rgba(80,130,255,0.1);
-  border-color: rgba(80,130,255,0.34);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.2), 0 0 0 2px rgba(80,130,255,0.22);
+  border-color: rgba(80,130,255,0.5);
 }
 .ctn-card--active {
-  border-color: rgba(42,245,152,0.5) !important;
-  box-shadow: 0 16px 44px rgba(0,0,0,0.6), 0 0 22px rgba(42,245,152,0.14) !important;
+  border-color: rgba(42,200,130,0.7) !important;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.2), 0 0 0 2px rgba(42,200,130,0.35) !important;
   transform: translateY(-4px) scale(1.012);
 }
-.ctn-card--hot   { border-color: rgba(255,140,30,0.35); }
+.ctn-card--hot {
+  border-color: rgba(255,140,30,0.55);
+  animation: cin 0.45s cubic-bezier(0.34,1.56,0.64,1) both, hpulse 2s ease-in-out infinite;
+  animation-delay: calc(var(--i,0) * 50ms), 0.45s;
+}
 .ctn-card--winner {
-  border-color: rgba(255,210,0,0.55) !important;
-  animation: cin 0.4s cubic-bezier(0.34,1.56,0.64,1) both, wpulse 2.4s ease-in-out infinite;
-  animation-delay: calc(var(--i,0) * 45ms), 0.4s;
+  border-color: rgba(220,170,0,0.7) !important;
+  animation: cin 0.45s cubic-bezier(0.34,1.56,0.64,1) both, wpulse 2s ease-in-out infinite;
+  animation-delay: calc(var(--i,0) * 50ms), 0.45s;
 }
 @keyframes cin {
-  from { opacity:0; transform:translateY(18px) scale(0.94) }
+  from { opacity:0; transform:translateY(20px) scale(0.93) }
   to   { opacity:1; transform:translateY(0) scale(1) }
 }
+@keyframes hpulse {
+  0%,100% { box-shadow: 0 4px 18px rgba(0,0,0,0.18), 0 0 0 1.5px rgba(255,140,30,0.35) }
+  50%     { box-shadow: 0 4px 18px rgba(0,0,0,0.18), 0 0 0 3px rgba(255,140,30,0.6) }
+}
 @keyframes wpulse {
-  0%,100% { box-shadow: 0 5px 22px rgba(0,0,0,0.5), 0 0 14px rgba(255,210,0,0.18) }
-  50%     { box-shadow: 0 5px 22px rgba(0,0,0,0.5), 0 0 32px rgba(255,210,0,0.38) }
+  0%,100% { box-shadow: 0 4px 18px rgba(0,0,0,0.18), 0 0 0 2px rgba(220,170,0,0.4) }
+  50%     { box-shadow: 0 4px 18px rgba(0,0,0,0.18), 0 0 0 4px rgba(220,170,0,0.7) }
 }
 
-/* Glow overlay */
-.ctn-card__glow {
-  position: absolute; inset: 0; border-radius: inherit;
-  background: radial-gradient(ellipse at 50% 0%, rgba(80,140,255,0.1), transparent 65%);
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.25s;
-}
-.ctn-card:hover .ctn-card__glow,
-.ctn-card--active .ctn-card__glow { opacity: 1; }
-.ctn-card--hot .ctn-card__glow {
-  background: radial-gradient(ellipse at 50% 0%, rgba(255,140,30,0.09), transparent 65%);
-  opacity: 1;
-}
-.ctn-card--winner .ctn-card__glow {
-  background: radial-gradient(ellipse at 50% 0%, rgba(255,210,0,0.12), transparent 65%);
-  opacity: 1;
-}
-
-/* Hit badge */
-.ctn-badge {
-  position: absolute; top: 6px; right: 6px; z-index: 5;
-  display: flex; align-items: center; gap: 3px;
-  padding: 2px 6px; border-radius: 8px;
-  background: rgba(255,120,30,0.85); backdrop-filter: blur(4px);
-  font-size: 9px; font-weight: 800; color: #fff; letter-spacing: 0.2px;
-}
-.ctn-badge i { font-size: 7px; }
-.ctn-badge--hot { background: rgba(255,140,30,0.88); }
-.ctn-badge--win { background: rgba(220,170,0,0.92); color: #1a1000; }
+/* Glow overlay — no aplica en diseño blanco */
+.ctn-card__glow { display: none; }
 
 /* ── BINGO Header ── */
 .ctn-head {
   display: grid; grid-template-columns: repeat(5,1fr);
-  background: linear-gradient(135deg,#0a052a 0%,#08103c 50%,#0a052a 100%);
-  border-bottom: 1px solid rgba(60,90,180,0.18);
+  position: relative;
 }
 .ctn-head__l {
   display: flex; align-items: center; justify-content: center;
-  padding: 6px 0;
-  font-family: 'Anton','Righteous',sans-serif;
-  font-size: 15px; letter-spacing: 0.3px;
+  padding: 9px 0 8px;
+  font-family: 'Anton','Impact',sans-serif;
+  font-size: 17px; letter-spacing: 1px; font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  position: relative;
 }
-.ctn-head__l--b { color: #4a9fff; }
-.ctn-head__l--i { color: #ff6464; }
-.ctn-head__l--n { color: #f0d040; }
-.ctn-head__l--g { color: #40e090; }
-.ctn-head__l--o { color: #c860ff; }
-.ctn-grid--sm .ctn-head__l { font-size: 12px; padding: 5px 0; }
+/* borde inferior decorativo por letra */
+.ctn-head__l::after {
+  content: ''; position: absolute; bottom: 0; left: 10%; right: 10%; height: 2px;
+  background: rgba(255,255,255,0.25); border-radius: 2px;
+}
+.ctn-head__l--b { background: linear-gradient(160deg,#2060ff,#1040c8); }
+.ctn-head__l--i { background: linear-gradient(160deg,#e02020,#a00000); }
+.ctn-head__l--n { background: linear-gradient(160deg,#c8a000,#906e00); }
+.ctn-head__l--g { background: linear-gradient(160deg,#0ab848,#077030); }
+.ctn-head__l--o { background: linear-gradient(160deg,#9c18e8,#6008b0); }
+.ctn-grid--sm .ctn-head__l { font-size: 13px; padding: 7px 0 6px; }
 
 /* ── Grid body ── */
 .ctn-body {
   display: grid; grid-template-columns: repeat(5,1fr);
-  background: #eef2ff;
+  background: #fff;
+  /* separadores verticales de columna usando outline del grid */
+  column-gap: 0; row-gap: 0;
 }
 .ctn-cell {
   display: flex; align-items: center; justify-content: center;
   aspect-ratio: 1;
-  border: 0.5px solid rgba(140,165,230,0.38);
-  transition: background 0.15s;
+  border-right: 1px solid #e8ecf8;
+  border-bottom: 1px solid #e8ecf8;
+  transition: background 0.12s;
+  position: relative;
 }
-.ctn-cell--hit  { background: linear-gradient(135deg,#0e0628 0%,#07092e 100%); }
-.ctn-cell--free { background: linear-gradient(135deg,#0c0424 0%,#080c38 100%); }
+/* tinte de columna en reposo — muy sutil */
+.ctn-cell--col-b { background: #f4f7ff; }
+.ctn-cell--col-i { background: #fff4f4; }
+.ctn-cell--col-n { background: #fdfaf0; }
+.ctn-cell--col-g { background: #f2fbf5; }
+.ctn-cell--col-o { background: #faf3ff; }
 
+/* celda marcada — tinte más fuerte + micro-fondo */
+.ctn-cell--hit.ctn-cell--col-b { background: rgba(32,96,255,0.1); }
+.ctn-cell--hit.ctn-cell--col-i { background: rgba(224,32,32,0.1); }
+.ctn-cell--hit.ctn-cell--col-n { background: rgba(200,160,0,0.1); }
+.ctn-cell--hit.ctn-cell--col-g { background: rgba(10,184,72,0.1); }
+.ctn-cell--hit.ctn-cell--col-o { background: rgba(156,24,232,0.1); }
+
+.ctn-cell--free { background: linear-gradient(135deg,rgba(42,245,152,0.12),rgba(0,158,253,0.08)) !important; }
+
+/* número en reposo */
 .ctn-num {
-  font-family: 'Poppins',sans-serif; font-size: 12.5px;
-  font-weight: 700; color: #19204c; line-height: 1;
+  font-family: 'Poppins','Segoe UI',sans-serif; font-size: 13.5px;
+  font-weight: 700; color: #22274a; line-height: 1;
+  letter-spacing: -0.3px;
 }
-.ctn-grid--sm .ctn-num { font-size: 10.5px; }
+.ctn-num--invalid { color: #d02020; text-decoration: underline dotted; }
+.ctn-grid--sm .ctn-num { font-size: 11px; }
 
-/* balls */
+/* ── Bolas ── */
 .ctn-ball {
-  width: 74%; height: 74%; border-radius: 50%;
+  width: 78%; height: 78%; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  animation: bpop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
-  box-shadow: 0 2px 7px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
+  box-shadow:
+    0 3px 10px rgba(0,0,0,0.3),
+    inset 0 -2px 4px rgba(0,0,0,0.2),
+    inset 0 2px 4px rgba(255,255,255,0.35);
 }
-.ctn-ball--b { background: linear-gradient(135deg,#1a60ff,#0d38b0); }
-.ctn-ball--i { background: linear-gradient(135deg,#ff3838,#9c0000); }
-.ctn-ball--n { background: linear-gradient(135deg,#d8c400,#8c7c00); }
-.ctn-ball--g { background: linear-gradient(135deg,#0ec060,#06643a); }
-.ctn-ball--o { background: linear-gradient(135deg,#b038ff,#700ec0); }
+.ctn-ball--b { background: radial-gradient(circle at 38% 32%, #6090ff, #1040d0 75%); }
+.ctn-ball--i { background: radial-gradient(circle at 38% 32%, #ff6060, #aa0000 75%); }
+.ctn-ball--n { background: radial-gradient(circle at 38% 32%, #f0d840, #9c7c00 75%); }
+.ctn-ball--g { background: radial-gradient(circle at 38% 32%, #40e888, #057838 75%); }
+.ctn-ball--o { background: radial-gradient(circle at 38% 32%, #d860ff, #7008c8 75%); }
 .ctn-ball span {
-  font-family: 'Poppins',sans-serif; font-size: 10.5px;
-  font-weight: 800; color: #fff;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.55);
+  font-family: 'Poppins',sans-serif; font-size: 11px;
+  font-weight: 900; color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.55);
+  line-height: 1;
 }
 .ctn-grid--sm .ctn-ball span { font-size: 9px; }
+
 @keyframes bpop {
-  from { transform: scale(0) rotate(-18deg); opacity: 0 }
-  to   { transform: scale(1) rotate(0deg);  opacity: 1 }
+  0%   { transform: scale(0) rotate(-20deg); opacity: 0 }
+  65%  { transform: scale(1.22) rotate(5deg); opacity: 1 }
+  82%  { transform: scale(0.95) rotate(-1deg) }
+  100% { transform: scale(1) rotate(0deg) }
+}
+@keyframes cell-flash {
+  0%   { filter: brightness(2) saturate(1.5); }
+  100% { filter: brightness(1) saturate(1); }
+}
+.ctn-cell--hit .ctn-ball {
+  animation: bpop 0.42s cubic-bezier(0.34,1.56,0.64,1) both,
+             cell-flash 0.55s ease both;
 }
 
-/* free center */
+/* estrella central */
 .ctn-free {
-  font-size: 15px; line-height: 1;
+  font-size: 18px; line-height: 1;
   background: linear-gradient(135deg,#2af598,#009efd);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
+  filter: drop-shadow(0 1px 3px rgba(42,245,152,0.4));
 }
-.ctn-grid--sm .ctn-free { font-size: 12px; }
+.ctn-grid--sm .ctn-free { font-size: 14px; }
 
-/* ── Progress strip ── */
-.ctn-prog { height: 2.5px; background: rgba(255,255,255,0.05); }
+/* ── Barra de progreso ── */
+.ctn-prog {
+  height: 3px;
+  background: #e8ecf8;
+}
 .ctn-prog__fill {
   height: 100%;
   background: linear-gradient(90deg,#4a7fff,#2af598);
-  border-radius: 2px;
-  transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  transition: width 0.55s cubic-bezier(0.4,0,0.2,1);
 }
 .ctn-prog__fill--hot { background: linear-gradient(90deg,#ff8c1a,#ffcc00); }
 .ctn-prog__fill--win { background: linear-gradient(90deg,#ffd700,#ff9800); }
@@ -560,22 +667,46 @@ watch(() => props.drawnNumbers, () => {
 /* ── Footer ── */
 .ctn-foot {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 4px 8px;
-  background: rgba(0,0,0,0.5);
-  border-top: 1px solid rgba(60,90,180,0.1);
+  padding: 5px 8px;
+  background: #fff;
+  border-top: 1px solid #e8ecf8;
+  position: relative;
+  gap: 6px;
 }
+
 .ctn-foot__serial {
-  font-size: 8px; color: #2e3e68;
-  font-family: 'Courier New',monospace; letter-spacing: 0.2px;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%;
-  display: flex; align-items: center; gap: 3px;
+  font-size: 7.5px; color: #9aa0c0;
+  font-family: 'Courier New',monospace; letter-spacing: 0.4px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1; min-width: 0;
 }
+/* badge de hits */
+.ctn-foot__badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: 20px;
+  font-size: 9.5px; font-weight: 800; color: #fff;
+  background: rgba(255,140,30,0.85);
+  border: 1px solid rgba(255,160,50,0.4);
+  flex-shrink: 0; white-space: nowrap;
+}
+.ctn-foot__badge i { font-size: 7.5px; }
+.ctn-foot__badge--hot {
+  background: linear-gradient(90deg,#ff8c1a,#ffcc00);
+  border-color: rgba(255,200,0,0.4);
+  color: #3a1a00;
+}
+.ctn-foot__badge--win {
+  background: linear-gradient(90deg,#e8b800,#ffd94a);
+  border-color: rgba(255,220,80,0.5);
+  color: #2a1800;
+}
+.ctn-foot__badge small { font-size: 7.5px; opacity: 0.6; font-weight: 500; }
+/* hits neutral (0 aciertos) */
 .ctn-foot__hits {
-  font-size: 9.5px; font-weight: 800; color: #384870;
-  font-family: 'Poppins',sans-serif; flex-shrink: 0;
+  font-size: 9px; font-weight: 700; color: #b0b8d8;
+  flex-shrink: 0;
 }
 .ctn-foot__hits small { font-size: 7.5px; opacity: 0.5; font-weight: 500; }
-.ctn-foot__hits--hot { color: #ff9c38; }
 
 /* ══════════════════════════════════
    DETAIL MODAL
@@ -688,5 +819,66 @@ watch(() => props.drawnNumbers, () => {
   .ctn-bar { gap: 6px; padding: 6px 10px; }
   .ctn-bar__filters { justify-content: flex-start; }
   .ctn-legend { display: none; }
+}
+
+/* ══════════════════════════════════
+   MODO ESPECTADOR
+══════════════════════════════════ */
+.ctn-spectator {
+  padding: 12px 0 4px;
+}
+
+.ctn-spectator__header {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; color: #4a6aaa;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 12px; padding: 0 2px;
+}
+.ctn-spectator__header i { color: #3d5280; font-size: 13px; }
+.ctn-spectator__count {
+  margin-left: auto; font-size: 12px; font-weight: 800; color: #7c9dff;
+}
+.ctn-spectator__count small { font-weight: 400; color: #4a6aaa; margin-left: 1px; }
+
+/* Grilla de bolas 5 columnas */
+.ctn-ball-grid {
+  display: flex; gap: 6px;
+}
+
+.ctn-ball-col {
+  flex: 1; display: flex; flex-direction: column; gap: 3px;
+}
+
+.ctn-ball-col__hdr {
+  text-align: center; font-family: 'Anton', sans-serif; font-size: 15px;
+  padding: 4px 0; border-radius: 6px; margin-bottom: 2px;
+}
+.ctn-ball-col__hdr--b { background: rgba(32,96,255,0.18); color: #4d8aff; }
+.ctn-ball-col__hdr--i { background: rgba(255,48,48,0.16); color: #ff6060; }
+.ctn-ball-col__hdr--n { background: rgba(212,186,0,0.16); color: #d4c400; }
+.ctn-ball-col__hdr--g { background: rgba(12,187,90,0.16); color: #0cbb5a; }
+.ctn-ball-col__hdr--o { background: rgba(168,48,255,0.16); color: #b060ff; }
+
+.ctn-ball-cell {
+  text-align: center; font-size: 12px; font-weight: 700;
+  padding: 5px 2px; border-radius: 6px;
+  color: #2c3a5a;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.18s, color 0.18s, transform 0.18s;
+}
+
+/* Sorteada */
+.ctn-ball-cell--hit.ctn-ball-cell--b { background: rgba(32,96,255,0.28); color: #8ab4ff; border-color: rgba(32,96,255,0.3); }
+.ctn-ball-cell--hit.ctn-ball-cell--i { background: rgba(255,48,48,0.25); color: #ff9090; border-color: rgba(255,48,48,0.3); }
+.ctn-ball-cell--hit.ctn-ball-cell--n { background: rgba(212,186,0,0.25); color: #e8d400; border-color: rgba(212,186,0,0.3); }
+.ctn-ball-cell--hit.ctn-ball-cell--g { background: rgba(12,187,90,0.25); color: #3fe88a; border-color: rgba(12,187,90,0.3); }
+.ctn-ball-cell--hit.ctn-ball-cell--o { background: rgba(168,48,255,0.25); color: #cc88ff; border-color: rgba(168,48,255,0.3); }
+
+/* Última sorteada */
+.ctn-ball-cell--latest {
+  transform: scale(1.12);
+  box-shadow: 0 0 8px rgba(255,255,255,0.3);
+  font-size: 13px;
 }
 </style>

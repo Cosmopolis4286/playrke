@@ -5,6 +5,7 @@ import "@/css/games/bingo/bingo-in-game.css";
 import { getEchoInstance } from "@js/plugins/echo";
 import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
 import { useAntiDebug } from "@js/composables/games/bingo/useAntiDebug";
+import { useBingoSound } from "@js/composables/games/bingo/useBingoSound";
 import BingoCartons from "@js/Components/Games/Bingo/views/inGame/Cartons.vue";
 import type { BingoRoom, BingoCard } from "@js/Services/bingoService";
 import Swal from "sweetalert2";
@@ -13,6 +14,11 @@ import Swal from "sweetalert2";
 // Anti-Debug Protection (solo en producción)
 // ─────────────────────────────────────────────────────────────────────────────
 useAntiDebug()
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Audio
+// ─────────────────────────────────────────────────────────────────────────────
+const { muted, toggleMute, playNext, playWinner, preload } = useBingoSound()
 
 // ─────────────────────────────────────────────────────────────────────────────
 // End-of-Game Modal State
@@ -311,6 +317,7 @@ function subscribeToRoom() {
   channel.listen(".BingoNumberCalled", (e: { number: number }) => {
     if (e.number && !liveDrawn.value.includes(e.number)) {
       liveDrawn.value = [...liveDrawn.value, e.number];
+      playNext();
     }
   });
 
@@ -328,6 +335,7 @@ function subscribeToRoom() {
   // Game ended — resumen final automático para todos
   channel.listen(".GameEnded", (e: any) => {
     handleGameEnded(e);
+    playWinner();
   });
 
   // Room time sync - sincroniza el contador con el tiempo del servidor
@@ -440,6 +448,7 @@ onMounted(() => {
   setTimeout(() => { revealed.value = true; }, 80);
   initCountdown([fakeRoom.value as any]);
   subscribeToRoom();
+  preload();
 });
 
 onUnmounted(() => {
@@ -460,74 +469,129 @@ onUnmounted(() => {
            HEADER PANEL
       ══════════════════════════════════════════ -->
       <div class="ig-panel">
+        <!-- línea top decorativa -->
+        <div class="ig-panel__topline" />
 
-        <!-- Prize -->
-        <div class="ig-prize" :class="{ 'ig-prize--flash': prizeFlash }">
-          <span class="ig-prize__label">
-            <i class="fas fa-trophy ig-prize__icon" />
-            {{ prizePoolType }}
-          </span>
-          <div class="ig-prize__amount">
-            <span class="ig-prize__sym">{{ currencySym }}</span>
-            <span class="ig-prize__num">{{ prizeFormatted }}</span>
+        <!-- ── Fila 1: Premio | Estado | Acciones ── -->
+        <div class="ig-panel__row ig-panel__row--top">
+
+          <!-- Premio -->
+          <div class="ig-prize" :class="{ 'ig-prize--flash': prizeFlash }">
+            <span class="ig-prize__label">
+              <i class="fas fa-trophy ig-prize__icon" /> {{ prizePoolType }}
+            </span>
+            <div class="ig-prize__amount">
+              <span class="ig-prize__sym">{{ currencySym }}</span>
+              <span class="ig-prize__num">{{ prizeFormatted }}</span>
+            </div>
           </div>
-        </div>
 
-        <div class="ig-panel__divider" />
+          <div class="ig-panel__divider" />
 
-        <!-- Countdown / Live -->
-        <div class="ig-countdown" v-if="hasTime && cd">
-          <span class="ig-countdown__label">
-            <i class="fas fa-clock" /> Inicia en
-          </span>
-          <div class="ig-timer">
-            <template v-if="cd.time.days > 0">
-              <div class="timer__unit"><span class="timer__num">{{ cd.time.days }}</span><span class="timer__lbl">D</span></div>
+          <!-- Countdown / Live -->
+          <div class="ig-countdown" v-if="hasTime && cd">
+            <span class="ig-countdown__label"><i class="fas fa-clock" /> Inicia en</span>
+            <div class="ig-timer">
+              <template v-if="cd.time.days > 0">
+                <div class="timer__unit"><span class="timer__num">{{ cd.time.days }}</span><span class="timer__lbl">D</span></div>
+                <span class="timer__sep">:</span>
+              </template>
+              <template v-if="cd.time.hours > 0">
+                <div class="timer__unit"><span class="timer__num">{{ cd.time.hours }}</span><span class="timer__lbl">H</span></div>
+                <span class="timer__sep">:</span>
+              </template>
+              <div class="timer__unit"><span class="timer__num">{{ pad(cd.time.minutes) }}</span><span class="timer__lbl">M</span></div>
               <span class="timer__sep">:</span>
-            </template>
-            <template v-if="cd.time.hours > 0">
-              <div class="timer__unit"><span class="timer__num">{{ cd.time.hours }}</span><span class="timer__lbl">H</span></div>
-              <span class="timer__sep">:</span>
-            </template>
-            <div class="timer__unit"><span class="timer__num">{{ pad(cd.time.minutes) }}</span><span class="timer__lbl">M</span></div>
-            <span class="timer__sep">:</span>
-            <div class="timer__unit"><span class="timer__num">{{ pad(cd.time.seconds) }}</span><span class="timer__lbl">S</span></div>
+              <div class="timer__unit"><span class="timer__num">{{ pad(cd.time.seconds) }}</span><span class="timer__lbl">S</span></div>
+            </div>
+          </div>
+          <div v-else class="ig-live-badge">
+            <span class="ig-live-badge__dot" /> EN VIVO
+          </div>
+
+          <!-- Spacer -->
+          <div style="flex:1" />
+
+          <!-- Mute + Salas -->
+          <div class="ig-panel__actions">
+            <Link
+              v-if="String(room?.status ?? '').toUpperCase() === 'FINISHED' || String(room?.status_code ?? '').toUpperCase() === 'FINISHED'"
+              href="/bingo/game-rooms"
+              class="ig-action-btn ig-action-btn--rooms"
+            >
+              <i class="fas fa-door-open" /> Volver a salas
+            </Link>
+            <button class="ig-action-btn ig-action-btn--mute" :class="{ 'ig-action-btn--muted': muted }" @click="toggleMute" :title="muted ? 'Activar sonido' : 'Silenciar'">
+              <i :class="muted ? 'fas fa-volume-mute' : 'fas fa-volume-up'" />
+            </button>
           </div>
         </div>
-        <div v-else class="ig-live-badge">
-          <span class="ig-live-badge__dot" /> EN VIVO
-        </div>
 
-        <div class="ig-panel__divider" />
+        <!-- separador horizontal -->
+        <div class="ig-panel__hline" />
 
-        <!-- Meta badges -->
-        <div class="ig-meta">
-          <div class="ig-badge ig-badge--players" :class="{ 'ig-badge--flash': playersFlash }">
-            <i class="fas fa-users" /><span>{{ livePlayers }}</span><small>jugadores</small>
+        <!-- ── Fila 2: Stats ── -->
+        <div class="ig-panel__row ig-panel__row--stats">
+
+          <div class="ig-stat" :class="{ 'ig-stat--flash': playersFlash }">
+            <i class="fas fa-users" />
+            <div class="ig-stat__body">
+              <span class="ig-stat__val">{{ livePlayers }}</span>
+              <span class="ig-stat__lbl">jugadores</span>
+            </div>
           </div>
-          <div v-if="rounds" class="ig-badge ig-badge--round">
-            <i class="fas fa-sync-alt" /> RONDA <strong>#{{ round }}</strong>
-          </div>
-          <div v-if="bingoPattern" class="ig-badge ig-badge--pattern">
-            <i class="fas fa-th" /> {{ bingoPattern }}
-          </div>
-          <div class="ig-badge ig-badge--cards">
+
+          <div class="ig-stat__sep" />
+
+          <div class="ig-stat">
             <i class="fas fa-ticket-alt" />
-            {{ cardCount }} cartón{{ cardCount === 1 ? '' : 'es' }}
+            <div class="ig-stat__body">
+              <span class="ig-stat__val">{{ cardCount }}</span>
+              <span class="ig-stat__lbl">cartone{{ cardCount === 1 ? '' : 's' }}</span>
+            </div>
           </div>
-          <!-- Progreso de aciertos total -->
-          <div v-if="liveDrawn.length > 0" class="ig-badge ig-badge--drawn">
-            <i class="fas fa-random" /> {{ liveDrawn.length }}<small>/75</small>
-          </div>
-          <Link
-            v-if="String(room?.status ?? '').toUpperCase() === 'FINISHED' || String(room?.status_code ?? '').toUpperCase() === 'FINISHED'"
-            href="/bingo/game-rooms"
-            class="ig-badge ig-badge--rooms"
-          >
-            <i class="fas fa-door-open" /> Salas
-          </Link>
-        </div>
 
+          <div v-if="rounds" class="ig-stat__sep" />
+          <div v-if="rounds" class="ig-stat">
+            <i class="fas fa-sync-alt" />
+            <div class="ig-stat__body">
+              <span class="ig-stat__val">{{ round }}<small>/{{ rounds }}</small></span>
+              <span class="ig-stat__lbl">ronda</span>
+            </div>
+          </div>
+
+          <div v-if="liveDrawn.length > 0" class="ig-stat__sep" />
+          <div v-if="liveDrawn.length > 0" class="ig-stat">
+            <i class="fas fa-random" />
+            <div class="ig-stat__body">
+              <span class="ig-stat__val">{{ liveDrawn.length }}<small>/75</small></span>
+              <span class="ig-stat__lbl">sorteados</span>
+            </div>
+            <!-- mini barra de progreso -->
+            <div class="ig-stat__bar">
+              <div class="ig-stat__bar-fill" :style="{ width: `${(liveDrawn.length / 75) * 100}%` }" />
+            </div>
+          </div>
+
+          <div v-if="bingoPattern" class="ig-stat__sep" />
+          <div v-if="bingoPattern" class="ig-stat">
+            <i class="fas fa-th" />
+            <div class="ig-stat__body">
+              <span class="ig-stat__val ig-stat__val--sm">{{ bingoPattern }}</span>
+              <span class="ig-stat__lbl">patrón</span>
+            </div>
+          </div>
+
+          <div v-if="cardPrice > 0" class="ig-stat__sep" />
+          <div v-if="cardPrice > 0" class="ig-stat">
+            <i class="fas fa-coins" />
+            <div class="ig-stat__body">
+              <span class="ig-stat__val ig-stat__val--sm">{{ currencySym }} {{ cardPrice.toFixed(2) }}</span>
+              <span class="ig-stat__lbl">precio cartón</span>
+            </div>
+          </div>
+
+        </div>
       </div>
 
       <!-- ══════════════════════════════════════════
@@ -561,32 +625,35 @@ onUnmounted(() => {
       ══════════════════════════════════════════ -->
       <Transition name="ig-fade">
         <div v-if="liveDrawn.length > 0" class="ig-drawn-board">
-          <div class="ig-drawn-board__top">
-            <!-- Última ficha prominente -->
-            <div class="ig-last-chip-wrap">
-              <div class="ig-last-chip-ring" />
+
+          <!-- ── Fila superior: última bola + info + recientes ── -->
+          <div class="ig-db-top">
+
+            <!-- Última bola -->
+            <div class="ig-db-last">
+              <div class="ig-db-last__ring" />
               <div class="ig-chip ig-chip--lg" :class="`ig-chip--${chipLetter(liveDrawn[liveDrawn.length-1])}`">
                 <span class="ig-chip__letter">{{ chipLetter(liveDrawn[liveDrawn.length-1]) }}</span>
                 <span class="ig-chip__num">{{ liveDrawn[liveDrawn.length-1] }}</span>
               </div>
             </div>
-            <!-- Info sorteo -->
-            <div class="ig-drawn-board__info">
-              <div class="ig-drawn-board__label">
-                <i class="fas fa-random" /> Último número
+
+            <!-- Info central -->
+            <div class="ig-db-info">
+              <span class="ig-db-info__label"><i class="fas fa-sort-amount-up-alt" /> ÚLTIMO NÚMERO</span>
+              <span class="ig-db-info__num">{{ liveDrawn[liveDrawn.length - 1] }}</span>
+              <div class="ig-db-info__progress">
+                <div class="ig-db-info__bar" :style="{ width: `${(liveDrawn.length / 75) * 100}%` }" />
+                <span class="ig-db-info__pct">{{ liveDrawn.length }}<em>/75</em></span>
               </div>
-              <div class="ig-drawn-board__num">{{ liveDrawn[liveDrawn.length - 1] }}</div>
-              <div class="ig-drawn-progress">
-                <div class="ig-drawn-progress__bar" :style="{ width: `${(liveDrawn.length / 75) * 100}%` }" />
-              </div>
-              <div class="ig-drawn-board__count">{{ liveDrawn.length }} <span>de 75 sorteados</span></div>
             </div>
-            <!-- Últimas fichas recientes -->
-            <div class="ig-recent-chips">
-              <div class="ig-recent-chips__label">Recientes</div>
-              <div class="ig-recent-chips__row">
+
+            <!-- Recientes -->
+            <div class="ig-db-recent">
+              <span class="ig-db-recent__label">RECIENTES</span>
+              <div class="ig-db-recent__row">
                 <div
-                  v-for="n in [...liveDrawn].slice(-6).reverse().slice(1)"
+                  v-for="n in [...liveDrawn].slice(-5).reverse().slice(1)"
                   :key="`r-${n}`"
                   class="ig-chip ig-chip--sm"
                   :class="`ig-chip--${chipLetter(n)}`"
@@ -596,19 +663,34 @@ onUnmounted(() => {
                 </div>
               </div>
             </div>
+
           </div>
-          <!-- Todas las fichas sorteadas -->
-          <div class="ig-drawn-board__chips">
+
+          <!-- separador -->
+          <div class="ig-db-sep" />
+
+          <!-- ── Todas las bolas sorteadas, agrupadas por columna BINGO ── -->
+          <div class="ig-db-cols">
             <div
-              v-for="n in [...liveDrawn].reverse()"
-              :key="n"
-              class="ig-chip ig-chip--md"
-              :class="[`ig-chip--${chipLetter(n)}`, { 'ig-chip--latest': n === liveDrawn[liveDrawn.length-1] }]"
+              v-for="col in (['B','I','N','G','O'] as const)"
+              :key="col"
+              class="ig-db-col"
             >
-              <span class="ig-chip__letter">{{ chipLetter(n) }}</span>
-              <span class="ig-chip__num">{{ n }}</span>
+              <div class="ig-db-col__hdr" :class="`ig-db-col__hdr--${col.toLowerCase()}`">{{ col }}</div>
+              <div class="ig-db-col__cells">
+                <div
+                  v-for="n in [...liveDrawn].filter(x => chipLetter(x) === col).reverse()"
+                  :key="n"
+                  class="ig-chip ig-chip--md"
+                  :class="[`ig-chip--${col}`, { 'ig-chip--latest': n === liveDrawn[liveDrawn.length-1] }]"
+                >
+                  <span class="ig-chip__letter">{{ col }}</span>
+                  <span class="ig-chip__num">{{ n }}</span>
+                </div>
+              </div>
             </div>
           </div>
+
         </div>
       </Transition>
 
@@ -896,191 +978,204 @@ nav.main-header::after,
 ══════════════════════════════════════ */
 .ig-panel {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0;
-  background: linear-gradient(135deg, rgba(13,22,51,0.94) 0%, rgba(8,15,38,0.94) 100%);
-  border: 1px solid rgba(100,140,255,0.18);
-  border-radius: 20px;
-  padding: 14px 20px;
-  backdrop-filter: blur(14px);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(80,120,255,0.06) inset;
-  position: relative;
+  background: linear-gradient(160deg, rgba(11,18,48,0.97) 0%, rgba(6,10,30,0.97) 100%);
+  border: 1px solid rgba(80,120,255,0.16);
+  border-radius: 18px;
   overflow: hidden;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 48px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset;
+  position: relative;
 }
-.ig-panel::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
+
+/* línea top degradada */
+.ig-panel__topline {
+  height: 2px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(80,140,255,0.6) 20%,
+    rgba(42,245,152,0.8) 50%,
+    rgba(123,79,255,0.6) 80%,
+    transparent 100%);
+  flex-shrink: 0;
+}
+
+/* separador horizontal entre filas */
+.ig-panel__hline {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(100,140,255,0.4), rgba(42,245,152,0.3), transparent);
+  background: rgba(80,120,255,0.1);
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* ── Filas ── */
+.ig-panel__row {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  gap: 0;
+}
+.ig-panel__row--top  { min-height: 72px; }
+.ig-panel__row--stats {
+  padding: 9px 20px;
+  gap: 0;
+  flex-wrap: wrap;
+  background: rgba(255,255,255,0.018);
 }
 
 /* ── Prize ── */
 .ig-prize {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: flex; flex-direction: column; gap: 1px;
   flex-shrink: 0;
   transition: transform 0.3s ease;
 }
-.ig-prize--flash { animation: prize-pop 0.6s ease }
+.ig-prize--flash { animation: prize-pop 0.65s ease }
 @keyframes prize-pop {
   0%  { transform: scale(1) }
-  40% { transform: scale(1.06) }
+  40% { transform: scale(1.07) }
   100%{ transform: scale(1) }
 }
-
 .ig-prize__label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #5578bb;
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 9.5px; font-weight: 700; color: #4a68a8;
+  text-transform: uppercase; letter-spacing: 1.3px;
 }
-.ig-prize__icon { color: #f5c518; font-size: 10px }
-.ig-prize__amount { display: flex; align-items: baseline; gap: 4px }
-.ig-prize__sym { font-size: 16px; font-weight: 700; color: #ffd060 }
+.ig-prize__icon { color: #f5c518; font-size: 9.5px; }
+.ig-prize__amount { display: flex; align-items: baseline; gap: 5px; }
+.ig-prize__sym { font-size: 15px; font-weight: 700; color: #ffc840; }
 .ig-prize__num {
   font-family: 'Anton', sans-serif;
-  font-size: 38px;
-  line-height: 1;
-  background: linear-gradient(135deg, #ffe566, #ffab00);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 40px; line-height: 1;
+  background: linear-gradient(130deg, #ffe566 0%, #ffb800 55%, #ff8800 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  filter: drop-shadow(0 2px 8px rgba(255,180,0,0.3));
 }
 
-/* ── Divider ── */
+/* ── Divider vertical ── */
 .ig-panel__divider {
-  width: 1px; height: 52px;
-  background: rgba(100,140,255,0.15);
-  margin: 0 18px;
+  width: 1px; height: 48px;
+  background: linear-gradient(180deg, transparent, rgba(80,120,255,0.2), transparent);
+  margin: 0 20px;
   flex-shrink: 0;
 }
 
 /* ── Countdown ── */
-.ig-countdown { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0 }
+.ig-countdown { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; }
 .ig-countdown__label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #5578bb;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  font-size: 9.5px; font-weight: 700; color: #4a68a8;
+  text-transform: uppercase; letter-spacing: 1px;
+  display: flex; align-items: center; gap: 4px;
 }
-.ig-timer {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
+.ig-timer { display: flex; align-items: center; gap: 2px; }
 .timer__unit {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 28px;
+  display: flex; flex-direction: column; align-items: center;
+  background: rgba(80,120,255,0.08);
+  border: 1px solid rgba(80,120,255,0.14);
+  border-radius: 6px; padding: 2px 6px; min-width: 30px;
 }
-.timer__num { font-size: 14px; font-weight: 700; color: #e0eaff; line-height: 1 }
-.timer__lbl { font-size: 8px; color: #7c9dff; text-transform: uppercase; line-height: 1 }
-.timer__sep { color: #4a6aaa; font-size: 13px; line-height: 1; margin: 0 1px; padding-bottom: 8px }
+.timer__num { font-size: 16px; font-weight: 800; color: #e0eaff; line-height: 1.1; font-family: 'Courier New', monospace; }
+.timer__lbl { font-size: 7px; color: #5a7acc; text-transform: uppercase; letter-spacing: 0.5px; }
+.timer__sep { color: #3a5080; font-size: 18px; font-weight: 300; margin: 0 2px; padding-bottom: 10px; }
 
 /* ── Live badge ── */
 .ig-live-badge {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 14px;
-  background: rgba(42,245,152,0.1);
-  border: 1px solid rgba(42,245,152,0.3);
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 16px;
+  background: rgba(42,245,152,0.08);
+  border: 1px solid rgba(42,245,152,0.25);
   border-radius: 30px;
-  font-size: 11px;
-  font-weight: 800;
-  color: #2af598;
-  letter-spacing: 1.5px;
-  flex-shrink: 0;
+  font-size: 12px; font-weight: 900; color: #2af598;
+  letter-spacing: 2px; flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(42,245,152,0.08);
 }
 .ig-live-badge__dot {
-  width: 7px; height: 7px;
-  background: #2af598;
-  border-radius: 50%;
+  width: 8px; height: 8px; background: #2af598; border-radius: 50%;
   animation: dot-pulse 1.4s ease-in-out infinite;
+  box-shadow: 0 0 6px rgba(42,245,152,0.8);
 }
 @keyframes dot-pulse {
-  0%,100% { box-shadow: 0 0 0 0 rgba(42,245,152,0.6) }
-  50%      { box-shadow: 0 0 0 6px rgba(42,245,152,0) }
+  0%,100% { box-shadow: 0 0 0 0 rgba(42,245,152,0.7); }
+  50%      { box-shadow: 0 0 0 7px rgba(42,245,152,0); }
 }
 
-/* ── Meta badges ── */
-.ig-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  align-items: center;
-}
-.ig-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  border-radius: 30px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  border: 1px solid;
-  transition: box-shadow 0.3s ease;
-}
-.ig-badge i { font-size: 10px; opacity: 0.75 }
-.ig-badge small { font-size: 9px; opacity: 0.65; font-weight: 400 }
+/* ── Acciones (mute + rooms) ── */
+.ig-panel__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
-.ig-badge--flash { animation: badge-pop 0.5s ease }
-
-/* ── Rooms badge (button) ── */
-.ig-badge--rooms {
-  background: rgba(100, 140, 255, 0.1);
-  border-color: rgba(100, 140, 255, 0.3);
+.ig-action-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; cursor: pointer;
+  transition: all 0.18s ease; border: 1px solid; text-decoration: none;
+}
+.ig-action-btn--rooms {
+  background: rgba(100,140,255,0.1);
+  border-color: rgba(100,140,255,0.25);
   color: #7c9dff;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  cursor: pointer;
 }
-.ig-badge--rooms:hover {
-  background: rgba(100, 140, 255, 0.2);
-  border-color: rgba(100, 140, 255, 0.5);
-  color: #a8bdff;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(100, 140, 255, 0.2);
+.ig-action-btn--rooms:hover {
+  background: rgba(100,140,255,0.2); color: #b0c8ff;
+  box-shadow: 0 4px 14px rgba(100,140,255,0.2);
 }
-@keyframes badge-pop {
-  0%  { transform: scale(1); box-shadow: 0 0 0 0 rgba(42,245,152,0.4) }
-  40% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(42,245,152,0) }
-  100%{ transform: scale(1) }
+.ig-action-btn--mute {
+  width: 34px; height: 34px; padding: 0;
+  justify-content: center;
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.1);
+  color: #6a88c0; font-size: 13px;
+  border-radius: 50%;
+}
+.ig-action-btn--mute:hover { background: rgba(255,255,255,0.1); color: #a0c0ff; }
+.ig-action-btn--muted { color: #2a3055; border-color: rgba(255,255,255,0.06); }
+
+/* ── Stats fila 2 ── */
+.ig-stat {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 18px 4px 0;
+  flex-shrink: 0; position: relative;
+}
+.ig-stat i {
+  font-size: 11px; color: #3a5890; flex-shrink: 0;
+}
+.ig-stat__body { display: flex; flex-direction: column; gap: 0; }
+.ig-stat__val {
+  font-size: 15px; font-weight: 800; color: #c8d8ff; line-height: 1.1;
+  font-family: 'Courier New', monospace;
+}
+.ig-stat__val small { font-size: 10px; color: #3a5080; font-weight: 500; }
+.ig-stat__val--sm { font-size: 11px; font-family: inherit; }
+.ig-stat__lbl {
+  font-size: 8.5px; font-weight: 600; color: #3a5080;
+  text-transform: uppercase; letter-spacing: 0.6px;
+}
+.ig-stat--flash .ig-stat__val { animation: stat-pop 0.5s ease; }
+@keyframes stat-pop {
+  0%  { color: #2af598; transform: scale(1); }
+  40% { color: #2af598; transform: scale(1.15); }
+  100%{ color: #c8d8ff; transform: scale(1); }
 }
 
-.ig-badge--players {
-  background: rgba(0,158,253,0.1);
-  border-color: rgba(0,158,253,0.28);
-  color: #66d4ff;
+/* barra de progreso inline */
+.ig-stat__bar {
+  position: absolute; bottom: 0; left: 0; right: 18px; height: 2px;
+  background: rgba(80,120,255,0.1); border-radius: 2px; overflow: hidden;
 }
-.ig-badge--round {
-  background: rgba(123,79,255,0.12);
-  border-color: rgba(123,79,255,0.3);
-  color: #b49dff;
+.ig-stat__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4a7fff, #2af598);
+  border-radius: 2px;
+  transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
 }
-.ig-badge--pattern {
-  background: rgba(255,171,0,0.1);
-  border-color: rgba(255,171,0,0.25);
-  color: #ffd060;
+
+/* separador vertical entre stats */
+.ig-stat__sep {
+  width: 1px; height: 28px;
+  background: rgba(80,120,255,0.1);
+  margin-right: 18px; flex-shrink: 0;
 }
-.ig-badge--cards {
-  background: rgba(42,245,152,0.08);
-  border-color: rgba(42,245,152,0.22);
-  color: #7affba;
-}
+
+/* ── Mute btn legacy (eliminado del panel, mantenido por compatibilidad) ── */
+.ig-mute-btn { display: none; }
 
 /* ══════════════════════════════════════
    CARDS SECTION
@@ -1175,160 +1270,197 @@ nav.main-header::after,
 /* ══════════════════════════════════════
    DRAWN NUMBERS BOARD
 ══════════════════════════════════════ */
+/* ══════════════════════════════════════
+   DRAWN BOARD
+══════════════════════════════════════ */
 .ig-drawn-board {
-  background: linear-gradient(135deg, rgba(13,22,51,0.94) 0%, rgba(8,15,38,0.94) 100%);
-  border: 1px solid rgba(100,140,255,0.18);
-  border-radius: 20px;
-  padding: 16px 20px;
-  backdrop-filter: blur(14px);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  background: linear-gradient(160deg, rgba(10,16,44,0.97) 0%, rgba(6,10,28,0.97) 100%);
+  border: 1px solid rgba(80,120,255,0.14);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 6px 36px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column;
 }
 
-.ig-drawn-board__top {
-  display: flex;
-  align-items: center;
-  gap: 18px;
+/* ── Fila top ── */
+.ig-db-top {
+  display: flex; align-items: center; gap: 0;
+  padding: 14px 18px;
 }
 
-/* Last chip wrap */
-.ig-last-chip-wrap {
-  position: relative;
-  flex-shrink: 0;
-  width: 88px; height: 88px;
+/* Última bola */
+.ig-db-last {
+  position: relative; flex-shrink: 0;
+  width: 70px; height: 70px;
   display: flex; align-items: center; justify-content: center;
+  margin-right: 16px;
 }
-.ig-last-chip-ring {
-  position: absolute; inset: -4px;
-  border-radius: 50%;
+.ig-db-last__ring {
+  position: absolute; inset: -5px; border-radius: 50%;
   border: 2px solid transparent;
   background: linear-gradient(135deg, #7b4fff, #2af598) border-box;
   -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: destination-out;
-  mask-composite: exclude;
-  animation: ring-spin 3s linear infinite;
+  -webkit-mask-composite: destination-out; mask-composite: exclude;
+  animation: ring-spin 4s linear infinite;
 }
-@keyframes ring-spin { to { transform: rotate(360deg) } }
+@keyframes ring-spin { to { transform: rotate(360deg); } }
+
+/* Info central */
+.ig-db-info {
+  display: flex; flex-direction: column; gap: 5px;
+  flex: 1; min-width: 0;
+}
+.ig-db-info__label {
+  font-size: 9px; font-weight: 700; color: #344870;
+  text-transform: uppercase; letter-spacing: 1.2px;
+  display: flex; align-items: center; gap: 4px;
+}
+.ig-db-info__label i { color: #5a3aaa; font-size: 9px; }
+.ig-db-info__num {
+  font-family: 'Anton', sans-serif; font-size: 36px; line-height: 1;
+  background: linear-gradient(130deg, #d8e8ff 0%, #8090ff 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  letter-spacing: -1px;
+}
+.ig-db-info__progress {
+  display: flex; align-items: center; gap: 8px;
+  height: 4px; position: relative;
+  background: rgba(80,120,255,0.1); border-radius: 4px; overflow: visible;
+}
+.ig-db-info__bar {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, #6040ff, #2af598);
+  transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 0 8px rgba(42,245,152,0.4);
+}
+.ig-db-info__pct {
+  position: absolute; right: -42px; top: 50%; transform: translateY(-50%);
+  font-size: 10px; font-weight: 800; color: #6080c0; white-space: nowrap;
+}
+.ig-db-info__pct em { font-style: normal; color: #2a3a5a; font-weight: 500; }
+
+/* Recientes */
+.ig-db-recent {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
+  flex-shrink: 0; margin-left: 52px;
+}
+.ig-db-recent__label {
+  font-size: 8px; font-weight: 700; color: #2a3a5a;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.ig-db-recent__row { display: flex; gap: 5px; align-items: center; }
+
+/* Separador horizontal */
+.ig-db-sep {
+  height: 1px; background: rgba(80,120,255,0.08); margin: 0;
+}
+
+/* ── Columnas BINGO ── */
+.ig-db-cols {
+  display: flex; gap: 0;
+  padding: 10px 14px 14px;
+}
+.ig-db-col {
+  flex: 1; display: flex; flex-direction: column; gap: 6px; align-items: center;
+}
+.ig-db-col__hdr {
+  font-family: 'Anton', sans-serif; font-size: 13px; font-weight: 900;
+  color: #fff; letter-spacing: 1px;
+  width: 100%; text-align: center;
+  padding: 3px 0;
+  border-radius: 6px;
+  margin-bottom: 2px;
+}
+.ig-db-col__hdr--b { background: linear-gradient(135deg,#2060ff,#0d35b0); }
+.ig-db-col__hdr--i { background: linear-gradient(135deg,#e02020,#900000); }
+.ig-db-col__hdr--n { background: linear-gradient(135deg,#c8aa00,#806e00); }
+.ig-db-col__hdr--g { background: linear-gradient(135deg,#0ab848,#067030); }
+.ig-db-col__hdr--o { background: linear-gradient(135deg,#9820e0,#5a08a8); }
+
+.ig-db-col__cells {
+  display: flex; flex-direction: column; gap: 4px; align-items: center; width: 100%;
+}
 
 /* ── CSS Bingo Chips ── */
 .ig-chip {
   border-radius: 50%;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  line-height: 1;
-  user-select: none;
-  position: relative;
-  flex-shrink: 0;
+  line-height: 1; user-select: none;
+  position: relative; flex-shrink: 0;
 }
-/* sizes */
+
+/* tamaños */
 .ig-chip--lg {
-  width: 76px; height: 76px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6), inset 0 2px 0 rgba(255,255,255,0.28);
+  width: 66px; height: 66px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6),
+              inset 0 2px 0 rgba(255,255,255,0.3),
+              inset 0 -2px 4px rgba(0,0,0,0.2);
   animation: chip-enter 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
-  position: relative; z-index: 1;
+  z-index: 1;
 }
 .ig-chip--md {
-  width: 38px; height: 38px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.22);
+  width: 34px; height: 34px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.45),
+              inset 0 1px 0 rgba(255,255,255,0.25),
+              inset 0 -1px 3px rgba(0,0,0,0.15);
   animation: chip-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
-  transition: transform 0.18s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
   cursor: default;
 }
-.ig-chip--md:hover { transform: scale(1.18); }
+.ig-chip--md:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
+}
 .ig-chip--sm {
-  width: 30px; height: 30px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.2);
-  opacity: 0.72; transition: opacity 0.18s;
+  width: 28px; height: 28px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.22);
+  opacity: 0.7; transition: opacity 0.18s;
 }
 .ig-chip--sm:hover { opacity: 1; }
 
-/* letter colors */
-.ig-chip--B { background: linear-gradient(145deg, #2060ff 0%, #0d35b0 100%); }
-.ig-chip--I { background: linear-gradient(145deg, #ff3030 0%, #980000 100%); }
-.ig-chip--N { background: linear-gradient(145deg, #d4ba00 0%, #8a7800 100%); }
-.ig-chip--G { background: linear-gradient(145deg, #0cbb5a 0%, #067038 100%); }
-.ig-chip--O { background: linear-gradient(145deg, #a830ff 0%, #6808c0 100%); }
+/* colores por letra — gradiente radial para esfera */
+.ig-chip--B { background: radial-gradient(circle at 38% 32%, #5080ff, #0d35b0); }
+.ig-chip--I { background: radial-gradient(circle at 38% 32%, #ff5050, #900000); }
+.ig-chip--N { background: radial-gradient(circle at 38% 32%, #f0d040, #806e00); }
+.ig-chip--G { background: radial-gradient(circle at 38% 32%, #30d870, #057030); }
+.ig-chip--O { background: radial-gradient(circle at 38% 32%, #c050ff, #5808a8); }
 
-/* latest highlight */
+/* última bola sorteada */
 .ig-chip--latest {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5), 0 0 14px rgba(255,255,255,0.35), inset 0 1px 0 rgba(255,255,255,0.22) !important;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.7),
+    0 0 18px rgba(255,255,255,0.3),
+    0 2px 6px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.3) !important;
+  animation: chip-enter 0.45s cubic-bezier(0.34,1.56,0.64,1) both !important;
 }
 
-/* chip text */
+/* texto chips */
 .ig-chip__letter {
-  font-family: 'Anton', sans-serif;
-  color: rgba(255,255,255,0.55);
-  line-height: 1;
+  font-family: 'Anton', sans-serif; line-height: 1;
+  color: rgba(255,255,255,0.5);
 }
-.ig-chip--lg .ig-chip__letter { font-size: 11px; margin-bottom: 1px; }
-.ig-chip--md .ig-chip__letter { font-size: 8px; }
-.ig-chip--sm .ig-chip__letter { font-size: 7px; }
+.ig-chip--lg .ig-chip__letter { font-size: 10px; margin-bottom: 2px; }
+.ig-chip--md .ig-chip__letter { font-size: 7.5px; }
+.ig-chip--sm .ig-chip__letter { font-size: 6.5px; }
 
 .ig-chip__num {
-  font-family: 'Anton', sans-serif;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-  line-height: 1;
+  font-family: 'Anton', sans-serif; line-height: 1; color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.55);
 }
-.ig-chip--lg .ig-chip__num { font-size: 26px; }
-.ig-chip--md .ig-chip__num { font-size: 13px; }
-.ig-chip--sm .ig-chip__num { font-size: 11px; }
+.ig-chip--lg .ig-chip__num { font-size: 24px; }
+.ig-chip--md .ig-chip__num { font-size: 12px; }
+.ig-chip--sm .ig-chip__num { font-size: 10.5px; }
 
 @keyframes chip-enter {
-  from { transform: scale(0) rotate(-20deg); opacity: 0; }
-  to   { transform: scale(1) rotate(0deg);  opacity: 1; }
+  0%   { transform: scale(0) rotate(-25deg); opacity: 0; }
+  65%  { transform: scale(1.15) rotate(4deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); }
 }
 @keyframes chip-pop {
   from { transform: scale(0); opacity: 0; }
   to   { transform: scale(1); opacity: 1; }
-}
-
-/* Draw info */
-.ig-drawn-board__info {
-  flex: 1; display: flex; flex-direction: column; gap: 4px;
-}
-.ig-drawn-board__label {
-  font-size: 10px; font-weight: 700; color: #5578bb;
-  text-transform: uppercase; letter-spacing: 1px;
-  display: flex; align-items: center; gap: 5px;
-}
-.ig-drawn-board__label i { color: #7b4fff }
-.ig-drawn-board__num {
-  font-family: 'Anton', sans-serif; font-size: 40px; line-height: 1;
-  background: linear-gradient(135deg, #e0eaff, #7b4fff);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
-.ig-drawn-progress {
-  height: 3px; background: rgba(100,140,255,0.12); border-radius: 3px; overflow: hidden;
-}
-.ig-drawn-progress__bar {
-  height: 100%;
-  background: linear-gradient(90deg, #7b4fff, #2af598);
-  border-radius: 3px;
-  transition: width 0.6s ease;
-}
-.ig-drawn-board__count {
-  font-size: 12px; font-weight: 700; color: #7c9dff;
-}
-.ig-drawn-board__count span { font-weight: 400; color: #4a6aaa; }
-
-/* Recent chips */
-.ig-recent-chips {
-  display: flex; flex-direction: column; gap: 6px; align-items: center;
-}
-.ig-recent-chips__label {
-  font-size: 9px; font-weight: 700; color: #3d5280;
-  text-transform: uppercase; letter-spacing: 0.8px;
-}
-.ig-recent-chips__row {
-  display: flex; gap: 4px; align-items: center;
-}
-.ig-drawn-board__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
 }
 
 /* ══════════════════════════════════════
@@ -1354,13 +1486,14 @@ nav.main-header::after,
    RESPONSIVE
 ══════════════════════════════════════ */
 @media (max-width: 640px) {
-  .ig-panel { gap: 10px }
-  .ig-panel__divider { display: none }
-  .ig-prize__num { font-size: 28px }
-  .ig-cd-unit__num { font-size: 16px }
-  .ig-cd-unit { min-width: 30px }
-  .ig-chip--md { width: 30px; height: 30px }
-  .ig-chip--lg { width: 56px; height: 56px }
+  .ig-panel__row--top { padding: 10px 14px; flex-wrap: wrap; gap: 10px; }
+  .ig-panel__row--stats { padding: 8px 14px; }
+  .ig-panel__divider { display: none; }
+  .ig-prize__num { font-size: 30px; }
+  .ig-stat { padding-right: 12px; }
+  .ig-stat__sep { margin-right: 12px; }
+  .ig-chip--md { width: 30px; height: 30px; }
+  .ig-chip--lg { width: 56px; height: 56px; }
 }
 
 /* ══════════════════════════════════════════
@@ -1596,4 +1729,17 @@ nav.main-header::after,
   .gm-trophy__icon { font-size: 40px; }
   .gm-winner-card__prize { font-size: 17px; }
 }
+
+/* ── Botón mute ── */
+.ig-mute-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid rgba(100,140,255,0.22);
+  background: rgba(255,255,255,0.05);
+  color: #6a8ac8; font-size: 11px;
+  cursor: pointer; flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ig-mute-btn:hover { background: rgba(100,140,255,0.12); color: #a0c0ff; border-color: rgba(100,140,255,0.4); }
+.ig-mute-btn--off { color: #3a3a5a; border-color: rgba(80,80,120,0.2); background: rgba(0,0,0,0.2); }
 </style>

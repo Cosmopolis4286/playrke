@@ -3,14 +3,17 @@
 namespace App\Services\Games\Bingo\Game;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
+use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Events\Games\Bingo\BingoGameEnded;
 use App\Events\Games\Bingo\BingoGameStarted;
 use App\Events\Games\Bingo\BingoNumberCalled;
 use App\Events\Games\Bingo\BingoWinnerDeclared;
+use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -66,22 +69,39 @@ final class BingoDrawService
 
         $roundId = (string) $round->id;
 
-        // 3. Generar y persistir secuencia
+        // 3. Cargar el patrón de la ronda (determina qué celdas deben completarse)
+        $pattern = BingoPattern::find($round->bingo_pattern_id);
+        if (!$pattern) {
+            throw new \DomainException("La ronda #{$round->round} no tiene patrón de bingo asociado.");
+        }
+
+        // Precalcular las posiciones del patrón una sola vez
+        $patternPositions = $this->resolvePatternPositions($pattern);
+
+        Log::info('[BingoDrawService] Patrón de la ronda cargado', [
+            'round_id'    => $roundId,
+            'pattern_id'  => $pattern->id,
+            'pattern'     => $pattern->name,
+            'type'        => $pattern->type_pattern,
+            'positions'   => $patternPositions,
+        ]);
+
+        // 4. Generar y persistir secuencia
         $sequence = $this->generateSequence();
         $this->persistDrawCodes($roomId, $sequence);
 
-        // 4. Primera ficha + GameStarted
+        // 5. Primera ficha + GameStarted
         $firstDraw = $this->createDrawRecord($roomId, $roundId, $sequence[0], 0);
         broadcast(new BingoGameStarted($roomId, (int) $firstDraw->id));
         broadcast(new BingoNumberCalled((int) $sequence[0], $roomId));
 
         $drawnSoFar = [$sequence[0]];
 
-        if ($result = $this->detectWinnerAndEnd($room, $drawnSoFar, $roundId, $firstDraw->id)) {
+        if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $firstDraw->id)) {
             return $result;
         }
 
-        // 5. Fichas restantes
+        // 6. Fichas restantes
         for ($i = 1, $total = count($sequence); $i < $total; $i++) {
             sleep(self::CHIP_INTERVAL_SECONDS);
 
@@ -93,13 +113,16 @@ final class BingoDrawService
 
             Log::info('[BingoDrawService] Ficha', ['chip' => $chip, 'index' => $i]);
 
-            if ($result = $this->detectWinnerAndEnd($room, $drawnSoFar, $roundId, $draw->id)) {
+            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $draw->id)) {
                 return $result;
             }
         }
 
-        // 6. Sorteo completo sin ganador
+        // 7. Sorteo completo sin ganador — cerrar ronda y sala si es la final
         $lastDraw = BingoDraw::where('room_id', (string) $roomId)->orderBy('created_at', 'desc')->first();
+
+        $this->closeRound($round);
+        $this->closeRoomIfFinalRound($room, $round);
 
         broadcast(new BingoGameEnded(
             roomId:     (int) $roomId,
@@ -111,7 +134,11 @@ final class BingoDrawService
             endTime:    now()->toISOString(),
         ));
 
-        Log::info('[BingoDrawService] Sorteo completado sin ganador', ['room_id' => $roomId, 'drawn' => count($drawnSoFar)]);
+        Log::info('[BingoDrawService] Sorteo completado sin ganador', [
+            'room_id' => $roomId,
+            'drawn'   => count($drawnSoFar),
+            'pattern' => $pattern->name,
+        ]);
 
         return ['success' => true, 'room_id' => $roomId, 'total_chips' => count($drawnSoFar), 'winner' => null];
     }
@@ -159,36 +186,95 @@ final class BingoDrawService
     }
 
     /**
-     * Verifica si algún cartón activo tiene bingo completo.
-     * Si hay ganador(es): marca cartones, emite WinnerDeclared + GameEnded y retorna resumen.
+     * Convierte las posiciones 1-25 del patrón (boxes) en los índices
+     * [col => [rowIndex, ...]] del array card_numbers del cartón.
+     *
+     * Layout del cartón:
+     *   Posición 1-5   → B[0..4]
+     *   Posición 6-10  → I[0..4]
+     *   Posición 11-15 → N[0..4]  (pos 13 = N[2] = celda libre)
+     *   Posición 16-20 → G[0..4]
+     *   Posición 21-25 → O[0..4]
+     *
+     * Retorna array de [col, rowIndex] o marca la celda libre.
+     *
+     * @param  BingoPattern $pattern
+     * @return array<int, array{col: string, row: int, free: bool}>
      */
-    private function detectWinnerAndEnd(BingoRoom $room, array $drawnNumbers, string $roundId, int $lastDrawId): ?array
+    private function resolvePatternPositions(BingoPattern $pattern): array
     {
+        $cols = ['B', 'I', 'N', 'G', 'O'];
+        $resolved = [];
+
+        foreach ($pattern->boxes_array as $pos) {
+            $pos = (int) $pos;
+            if ($pos < 1 || $pos > 25) continue;
+
+            $colIndex = (int) floor(($pos - 1) / 5);   // 0-4
+            $rowIndex = ($pos - 1) % 5;                 // 0-4
+            $col      = $cols[$colIndex];
+            $isFree   = ($col === 'N' && $rowIndex === 2);
+
+            $resolved[] = ['col' => $col, 'row' => $rowIndex, 'free' => $isFree];
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * Verifica si algún cartón activo cumple el patrón de la ronda actual.
+     * Si hay ganador(es): registra en bingo_card_prizes, marca cartones,
+     * emite WinnerDeclared + GameEnded y retorna resumen.
+     *
+     * @param BingoRoom    $room
+     * @param BingoRound   $round            Ronda activa (con bingo_pattern_id)
+     * @param BingoPattern $pattern          Patrón de la ronda
+     * @param array        $patternPositions Posiciones pre-calculadas del patrón
+     * @param int[]        $drawnNumbers     Números sorteados hasta ahora
+     * @param int          $lastDrawId       ID del último bingo_draw registrado
+     */
+    private function detectWinnerAndEnd(
+        BingoRoom    $room,
+        BingoRound   $round,
+        BingoPattern $pattern,
+        array        $patternPositions,
+        array        $drawnNumbers,
+        int          $lastDrawId
+    ): ?array {
+        // Salida rápida: si el patrón no tiene posiciones definidas no hay bingo posible
+        if (empty($patternPositions)) {
+            return null;
+        }
+
         $drawnSet = array_flip($drawnNumbers);
+        $roundId  = (string) $round->id;
 
         $cards = BingoCard::where('room_id', (string) $room->id)
             ->where('status', BingoCard::STATUS_ACTIVE)
-            ->with(['roomUser.user'])
+            ->with(['roomUser.user', 'cardLot'])
             ->get();
 
         $winners = [];
 
         foreach ($cards as $card) {
-            $matrix   = $card->card_numbers ?? [];
-            $hasBingo = true;
+            $matrix = $card->card_numbers ?? [];
 
-            foreach (['B', 'I', 'N', 'G', 'O'] as $col) {
-                foreach (($matrix[$col] ?? []) as $rowIndex => $num) {
-                    if ($col === 'N' && $rowIndex === 2) continue; // celda libre
-                    if ($num === null || !isset($drawnSet[$num])) {
-                        $hasBingo = false;
-                        break 2;
-                    }
+            $hasBingo = true;
+            foreach ($patternPositions as $cell) {
+                // Celda libre del cartón: siempre cuenta como completada
+                if ($cell['free']) continue;
+
+                $num = $matrix[$cell['col']][$cell['row']] ?? null;
+
+                if ($num === null || !isset($drawnSet[$num])) {
+                    $hasBingo = false;
+                    break;
                 }
             }
 
             if (!$hasBingo) continue;
 
+            // Marcar cartón como ganador
             $card->update(['status' => BingoCard::STATUS_WINNER]);
 
             $userId   = $card->roomUser?->user_id ?? $card->creator_user_id;
@@ -196,23 +282,63 @@ final class BingoDrawService
             $userName = $user?->name ?? ('Jugador #' . $userId);
             $prize    = (float) ($room->prize_pool ?? 0);
 
-            // Evento individual por ganador (para el jugador específico)
+            // Determinar prize_type según el patrón de la ronda
+            $prizeType = match ($pattern->name) {
+                'Cartón Lleno', 'Full House' => 'full_house',
+                'Línea Simple', 'Single Line' => 'single_line',
+                default => 'serial',
+            };
+
+            // Registrar en bingo_card_prizes con round_id de la ronda
+            $cardPrize = BingoCardPrize::create([
+                'room_id'           => (string) $room->id,
+                'creator_user_id'   => (string) ($userId ?? $card->creator_user_id),
+                'seller_user_id'    => $card->seller_user_id ? (string) $card->seller_user_id : null,
+                'seller_type'       => $card->seller_type,
+                'room_user_id'      => (string) $card->room_user_id,
+                'card_lot_id'       => (string) $card->card_lot_id,
+                'winning_card_id'   => (string) $card->id,
+                'currency_id'       => (string) $card->currency_id,
+                'round_id'          => $roundId,
+                'status'            => 'ACTIVE',
+                'prize_type'        => $prizeType,
+                'winning_pattern'   => $pattern->name,
+                'usd_amount'        => $prize,
+                'local_amount'      => $prize,
+                'prize_status'      => 'waiting',
+                'verification_code' => strtoupper(substr(md5(uniqid($card->id . $roundId, true)), 0, 8)),
+            ]);
+
+            Log::info('[BingoDrawService] Premio registrado en bingo_card_prizes', [
+                'card_prize_id'  => $cardPrize->id,
+                'card_id'        => $card->id,
+                'round_id'       => $roundId,
+                'round_number'   => $round->round,
+                'pattern'        => $pattern->name,
+                'prize_type'     => $prizeType,
+                'user_id'        => $userId,
+            ]);
+
+            // Evento WebSocket individual por ganador
             broadcast(new BingoWinnerDeclared(
                 roomId:     (int) $room->id,
                 drawId:     $lastDrawId,
                 winnerId:   (int) $userId,
                 winnerName: $userName,
                 cardId:     (int) $card->id,
-                pattern:    'Cartón Lleno',
+                pattern:    $pattern->name,
                 prize:      $prize,
             ));
 
             $winners[] = [
-                'user_id'     => (int) $userId,
-                'user_name'   => $userName,
-                'card_id'     => (string) $card->id,
-                'card_serial' => $card->serial_number,
-                'prize'       => $prize,
+                'user_id'       => (int) $userId,
+                'user_name'     => $userName,
+                'card_id'       => (string) $card->id,
+                'card_serial'   => $card->serial_number,
+                'card_prize_id' => (string) $cardPrize->id,
+                'prize'         => $prize,
+                'pattern'       => $pattern->name,
+                'round'         => $round->round,
             ];
         }
 
@@ -220,7 +346,11 @@ final class BingoDrawService
             return null;
         }
 
-        // Evento de fin de juego con resumen completo (para todos en la sala)
+        // Cerrar la ronda y la sala (si es la ronda final)
+        $this->closeRound($round);
+        $this->closeRoomIfFinalRound($room, $round);
+
+        // Evento de fin de juego para toda la sala
         broadcast(new BingoGameEnded(
             roomId:     (int) $room->id,
             drawId:     $lastDrawId,
@@ -231,10 +361,13 @@ final class BingoDrawService
             endTime:    now()->toISOString(),
         ));
 
-        Log::info('[BingoDrawService] Ganador(es) detectado(s) — sorteo detenido', [
-            'room_id' => $room->id,
-            'drawn'   => count($drawnNumbers),
-            'winners' => count($winners),
+        Log::info('[BingoDrawService] Ganador(es) — sorteo detenido', [
+            'room_id'    => $room->id,
+            'round_id'   => $roundId,
+            'round'      => $round->round,
+            'pattern'    => $pattern->name,
+            'drawn'      => count($drawnNumbers),
+            'winners'    => count($winners),
         ]);
 
         return [
@@ -243,5 +376,70 @@ final class BingoDrawService
             'total_chips' => count($drawnNumbers),
             'winners'     => $winners,
         ];
+    }
+
+    /**
+     * Marca la ronda como FINISHED y registra la última ficha.
+     */
+    private function closeRound(BingoRound $round): void
+    {
+        $round->update([
+            'status'    => 'FINISHED',
+            'last_chip' => BingoDraw::where('room_id', (string) $round->room_id)
+                ->orderBy('created_at', 'desc')
+                ->value('chip'),
+        ]);
+
+        Log::info('[BingoDrawService] Ronda cerrada', [
+            'round_id' => $round->id,
+            'round'    => $round->round,
+        ]);
+    }
+
+    /**
+     * Si la ronda que acaba de terminar es la última configurada para la sala,
+     * cambia el status de la sala a FINISHED y registra finished_at.
+     */
+    private function closeRoomIfFinalRound(BingoRoom $room, BingoRound $round): void
+    {
+        // Obtener número total de rondas desde la configuración de la sala
+        $config = $room->relationLoaded('config') ? $room->config : $room->load('config')->config;
+        $totalRounds = (int) ($config?->rounds ?? 1);
+
+        // Contar cuántas rondas están ya FINISHED (incluyendo la que acaba de cerrarse)
+        $finishedRounds = BingoRound::where('room_id', (string) $room->id)
+            ->where('status', 'FINISHED')
+            ->count();
+
+        Log::info('[BingoDrawService] Evaluando cierre de sala', [
+            'room_id'        => $room->id,
+            'round_finished' => $round->round,
+            'total_rounds'   => $totalRounds,
+            'finished_count' => $finishedRounds,
+        ]);
+
+        if ($finishedRounds < $totalRounds) {
+            // Quedan rondas pendientes — no cerrar la sala todavía
+            return;
+        }
+
+        // Es la ronda final: cambiar status de la sala a FINISHED
+        $finishedStatus = GameStatus::where('code', 'FINISHED')->first();
+
+        if (!$finishedStatus) {
+            Log::warning('[BingoDrawService] No existe GameStatus con code=FINISHED — sala no cerrada automáticamente');
+            return;
+        }
+
+        $room->update([
+            'status_id'   => (string) $finishedStatus->id,
+            'finished_at' => now(),
+        ]);
+
+        Log::info('[BingoDrawService] Sala cerrada (FINISHED)', [
+            'room_id'     => $room->id,
+            'status_id'   => $finishedStatus->id,
+            'finished_at' => now()->toISOString(),
+        ]);
     }
 }
