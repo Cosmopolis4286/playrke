@@ -37,12 +37,13 @@ const selectedAnswer   = ref<number | null>(null)
 const hasAnswered      = ref(false)
 const timeLeft         = ref(0)
 const totalTime        = ref(0)
-const gameStatus       = ref<'waiting' | 'playing' | 'answered' | 'results' | 'finished'>('waiting')
+const gameStatus       = ref<'waiting' | 'playing' | 'answered' | 'between' | 'finished'>('waiting')
 const currentScore     = ref(0)
 const answerResult     = ref<AnswerResult | null>(null)
 const isSubmitting     = ref(false)
 let   timerInterval:   ReturnType<typeof setInterval> | null = null
 let   questionStart:   number = 0
+let   betweenTimeout:  ReturnType<typeof setTimeout> | null = null
 
 // ── Echo ──────────────────────────────────────────────────────────────────────
 const echo        = getEchoInstance()
@@ -57,7 +58,19 @@ function setupEcho() {
 
     channel
       .listen('.trivia.question.sent', (data: WsQuestionSent) => {
-        loadQuestion(data.question, data.question_index, data.total_questions)
+        // Compensar latencia: si el servidor envió la pregunta hace N ms,
+        // ajustamos el tiempo restante del timer.
+        const lagMs = data.server_timestamp ? Date.now() - data.server_timestamp : 0
+        // Normalizar: el backend envía time_limit_seconds (snake_case), el tipo espera timeLimit
+        const q: Question = {
+          ...data.question,
+          id:        (data.question as any).question_id ?? data.question.id,
+          text:      (data.question as any).question_text ?? data.question.text,
+          timeLimit: (data.question as any).time_limit_seconds ?? data.question.timeLimit ?? 20,
+          points:    data.question.points ?? 100,
+          options:   data.question.options ?? [],
+        } as Question
+        loadQuestion(q, data.question_index, data.total_questions, Math.max(0, lagMs))
       })
       .listen('.trivia.game.finished', (data: WsGameFinished) => {
         stopTimer()
@@ -85,15 +98,16 @@ function setupEcho() {
 function teardownEcho() {
   try { echo.leaveChannel(roomChannel) } catch {}
   try { echo.leaveChannel(playerChannel) } catch {}
-  channel = null
-  playerCh = null
+  channel   = null
+  playerCh  = null
+  if (betweenTimeout !== null) { clearTimeout(betweenTimeout); betweenTimeout = null }
 }
 
 // ── Timer ─────────────────────────────────────────────────────────────────────
-function startTimer(limit: number) {
+function startTimer(limit: number, displayTotal?: number) {
   stopTimer()
   timeLeft.value  = limit
-  totalTime.value = limit
+  totalTime.value = displayTotal ?? limit
   questionStart   = Date.now()
 
   timerInterval = setInterval(() => {
@@ -115,13 +129,18 @@ function stopTimer() {
 }
 
 function handleTimeUp() {
-  hasAnswered.value  = true
-  gameStatus.value   = 'answered'
+  hasAnswered.value = true
+  gameStatus.value  = 'answered'
   submitAnswer(-1)
+  // Después de 2 s en "respondido sin responder", pasar a "entre preguntas"
+  betweenTimeout = setTimeout(() => {
+    if (gameStatus.value === 'answered') gameStatus.value = 'between'
+  }, 2000)
 }
 
 // ── Preguntas ─────────────────────────────────────────────────────────────────
-function loadQuestion(q: Question, index: number, total: number) {
+function loadQuestion(q: Question, index: number, total: number, lagMs = 0) {
+  if (betweenTimeout !== null) { clearTimeout(betweenTimeout); betweenTimeout = null }
   stopTimer()
   currentQuestion.value = q
   questionIndex.value   = index
@@ -130,7 +149,9 @@ function loadQuestion(q: Question, index: number, total: number) {
   hasAnswered.value     = false
   answerResult.value    = null
   gameStatus.value      = 'playing'
-  startTimer(q.timeLimit)
+  // Compensar latencia de red: descontar milisegundos transcurridos
+  const effectiveLimit = Math.max(1, q.timeLimit - Math.floor(lagMs / 1000))
+  startTimer(effectiveLimit, q.timeLimit)
 }
 
 function selectAnswer(index: number) {
@@ -139,6 +160,10 @@ function selectAnswer(index: number) {
   hasAnswered.value    = true
   gameStatus.value     = 'answered'
   submitAnswer(index)
+  // Después de 3 s mostrando el feedback, pasar a "entre preguntas"
+  betweenTimeout = setTimeout(() => {
+    if (gameStatus.value === 'answered') gameStatus.value = 'between'
+  }, 3000)
 }
 
 // ── Submit al backend ─────────────────────────────────────────────────────────
@@ -287,6 +312,22 @@ const formatCurrency = (amount: number) =>
           </svg>
         </div>
         <p class="text-blue-300 font-semibold">Esperando la primera pregunta...</p>
+      </div>
+
+      <!-- Entre preguntas: esperando que el backend envíe la siguiente -->
+      <div v-else-if="gameStatus === 'between'" class="text-center py-16 space-y-4">
+        <div class="w-16 h-16 mx-auto rounded-full bg-indigo-500/20 border border-indigo-500/50 flex items-center justify-center">
+          <svg class="w-8 h-8 text-indigo-400 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+          </svg>
+        </div>
+        <p class="text-indigo-300 font-semibold">Preparando siguiente pregunta...</p>
+        <p class="text-gray-500 text-sm">Pregunta {{ questionIndex }}/{{ totalQuestions }} completada</p>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-[#1a1f3a]/80 rounded-full border border-indigo-500/30">
+          <span class="text-sm font-bold text-indigo-400">Puntuación actual:</span>
+          <span class="text-sm font-bold text-white">{{ currentScore }} pts</span>
+        </div>
       </div>
 
       <!-- Pregunta activa -->

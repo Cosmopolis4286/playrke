@@ -138,6 +138,7 @@ export interface WsQuestionSent {
   question_index: number
   total_questions: number
   question: Question
+  server_timestamp: number  // ms epoch — para compensar latencia de red en el timer
 }
 
 export interface WsAnswerResult {
