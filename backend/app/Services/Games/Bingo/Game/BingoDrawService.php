@@ -186,33 +186,63 @@ final class BingoDrawService
     }
 
     /**
-     * Convierte las posiciones 1-25 del patrón (boxes) en los índices
-     * [col => [rowIndex, ...]] del array card_numbers del cartón.
+     * Convierte las posiciones del patrón (boxes) en los índices
+     * [col, row] del array card_numbers del cartón.
      *
-     * Layout del cartón:
-     *   Posición 1-5   → B[0..4]
-     *   Posición 6-10  → I[0..4]
-     *   Posición 11-15 → N[0..4]  (pos 13 = N[2] = celda libre)
-     *   Posición 16-20 → G[0..4]
-     *   Posición 21-25 → O[0..4]
+     * Formato boxes del seeder: 'B1;I2;N3;G4;O5' o 'ALL'
+     *   - Letra: columna (B/I/N/G/O)
+     *   - Número: fila del cartón (1-5, base-1)
      *
-     * Retorna array de [col, rowIndex] o marca la celda libre.
+     * La celda libre es N en fila 3 (N3), almacenada como null en N[2].
      *
      * @param  BingoPattern $pattern
      * @return array<int, array{col: string, row: int, free: bool}>
      */
     private function resolvePatternPositions(BingoPattern $pattern): array
     {
-        $cols = ['B', 'I', 'N', 'G', 'O'];
-        $resolved = [];
+        $validCols = ['B', 'I', 'N', 'G', 'O'];
+        $resolved  = [];
 
-        foreach ($pattern->boxes_array as $pos) {
-            $pos = (int) $pos;
-            if ($pos < 1 || $pos > 25) continue;
+        $boxes = $pattern->boxes ?? '';
 
-            $colIndex = (int) floor(($pos - 1) / 5);   // 0-4
-            $rowIndex = ($pos - 1) % 5;                 // 0-4
-            $col      = $cols[$colIndex];
+        // FULL HOUSE: todas las 25 celdas
+        if (strtoupper(trim($boxes)) === 'ALL') {
+            foreach ($validCols as $col) {
+                for ($row = 0; $row < 5; $row++) {
+                    $isFree = ($col === 'N' && $row === 2);
+                    $resolved[] = ['col' => $col, 'row' => $row, 'free' => $isFree];
+                }
+            }
+            return $resolved;
+        }
+
+        // Patrón MULTIPLE: boxes contiene num_ids de sub-patrones (ej: '2;3;4;5;6')
+        // El ganador debe cumplir TODOS los sub-patrones simultáneamente
+        if ($pattern->type_pattern === 'MULTIPLE') {
+            foreach ($pattern->boxes_array as $numId) {
+                $numId = (int) $numId;
+                if ($numId < 1) continue;
+                $subPattern = BingoPattern::where('num_id', $numId)
+                    ->whereNull('user_id')
+                    ->first();
+                if ($subPattern) {
+                    $resolved = array_merge($resolved, $this->resolvePatternPositions($subPattern));
+                }
+            }
+            return $resolved;
+        }
+
+        // Formato 'B1;I2;N3;G4;O5'
+        foreach ($pattern->boxes_array as $box) {
+            $box = strtoupper(trim((string) $box));
+            if (strlen($box) < 2) continue;
+
+            $col     = $box[0];
+            $rowNum  = (int) substr($box, 1); // 1-5 (base-1)
+
+            if (!in_array($col, $validCols, true) || $rowNum < 1 || $rowNum > 5) continue;
+
+            $rowIndex = $rowNum - 1; // convertir a base-0
             $isFree   = ($col === 'N' && $rowIndex === 2);
 
             $resolved[] = ['col' => $col, 'row' => $rowIndex, 'free' => $isFree];
