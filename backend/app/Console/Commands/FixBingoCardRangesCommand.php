@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Corrige cartones de bingo cuya columna contiene números fuera del rango estándar:
@@ -52,15 +51,19 @@ class FixBingoCardRangesCommand extends Command
                     // N tiene 5 slots pero posición [2] puede ser null (celda libre)
                     $newNums = [];
 
+                    // Números ya usados en otras columnas (rangos no solapan, pero por seguridad)
+                    $otherCols = $this->alreadyUsed($matrix, $col);
+
                     foreach ($colNums as $idx => $n) {
                         if ($isN && $idx === 2 && $n === null) {
                             $newNums[] = null;
                             continue;
                         }
                         if ($n === null || $n < $lo || $n > $hi) {
-                            // Número inválido: regenerar
-                            $newNums[] = $this->freshNumber($lo, $hi, array_merge($newNums, array_column($this->alreadyUsed($matrix, $col), null)));
-                            $changed = true;
+                            // Número inválido: regenerar con exclusión de ya-asignados en esta columna
+                            $exclude   = array_merge(array_filter($newNums, fn($x) => $x !== null), $otherCols);
+                            $newNums[] = $this->freshNumber($lo, $hi, $exclude);
+                            $changed   = true;
                         } else {
                             $newNums[] = $n;
                         }
