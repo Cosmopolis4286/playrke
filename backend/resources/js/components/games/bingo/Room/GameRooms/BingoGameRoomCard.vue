@@ -215,7 +215,7 @@ function handleClick() {
 .rc__inner {
   position: relative; z-index: 2;
   display: flex; align-items: stretch;
-  min-height: 100px;
+  min-height: 92px;
 }
 
 /* ══════════════════════
@@ -223,7 +223,7 @@ function handleClick() {
 ══════════════════════ */
 .rc__thumb {
   position: relative;
-  flex: 0 0 124px;
+  flex: 0 0 88px;
   overflow: hidden;
 }
 .rc__img {
@@ -364,12 +364,12 @@ function handleClick() {
 }
 
 .rc__tag {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 8px; border-radius: 6px;
-  font-size: 10.5px; font-weight: 700; letter-spacing: .3px;
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2.5px 7px; border-radius: 6px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .3px;
   white-space: nowrap; flex-shrink: 0;
 }
-.rc__tag i { font-size: 8.5px; }
+.rc__tag i { font-size: 8px; }
 
 .rc__tag--type {
   color: #5a9ad8;
@@ -393,8 +393,8 @@ function handleClick() {
 .rc__tag--rounds i { font-size: 7.5px; color: #8048c0; }
 
 .rc__top-right {
-  display: flex; align-items: center; gap: 7px; flex-shrink: 0;
-  padding-left: 7px;
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  padding-left: 6px;
   border-left: 1px solid rgba(255,255,255,.08);
 }
 
@@ -409,7 +409,7 @@ function handleClick() {
 .rc__bottom {
   display: flex; align-items: center;
   justify-content: space-between; gap: 8px;
-  padding-top: 6px;
+  padding-top: 5px;
   border-top: 1px solid rgba(255,255,255,.06);
 }
 
@@ -423,7 +423,7 @@ function handleClick() {
 }
 .rc__prize-num {
   font-family: 'Orbitron', 'Anton', sans-serif;
-  font-size: 23px; font-weight: 900; line-height: 1;
+  font-size: 21px; font-weight: 900; line-height: 1;
   background: linear-gradient(130deg, #ffe566 0%, #ffbb20 50%, #ff8800 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   filter: drop-shadow(0 2px 7px rgba(255,150,0,.3));
@@ -441,9 +441,9 @@ function handleClick() {
   display: flex; align-items: center; gap: 4px; flex-wrap: nowrap;
 }
 .rc__pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 8px; border-radius: 6px;
-  font-size: 10.5px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2.5px 7px; border-radius: 6px;
+  font-size: 9.5px; font-weight: 700;
   color: #6a8aac;
   background: rgba(255,255,255,.05);
   border: 1px solid rgba(255,255,255,.08);
@@ -464,10 +464,10 @@ function handleClick() {
 }
 .rc__pill--price i { color: #3a6898; }
 
-/* pill compacto para la fila del timer */
+/* pill compacto para la fila superior */
 .rc__pill--sm {
-  font-size: 9.5px;
-  padding: 2px 6px;
+  font-size: 10px;
+  padding: 3px 7px;
 }
 
 .rc__pill--mine {
