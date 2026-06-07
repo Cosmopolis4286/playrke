@@ -14,7 +14,8 @@ Schedule::command('handle:bingo-rooms')
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/schedule.log'));
 
-Schedule::command('bingo-draw:broadcast')
+Schedule::command('bingo:start-pending-draws')
+    ->timezone('UTC')
     ->everyMinute()
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/schedule.log'));

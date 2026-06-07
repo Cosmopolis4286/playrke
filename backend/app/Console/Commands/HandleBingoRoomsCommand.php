@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Games\Bingo\HandleBingoRooms;
-use App\Services\Helpers\HandleCommands;
+use App\Services\Commands\CommandService;
+use App\Services\Games\Bingo\Room\Utils\HandleBingoRoomsService;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -34,7 +34,7 @@ class HandleBingoRoomsCommand extends Command
 
         try {
             // Ejecutar la lógica principal
-            app(HandleBingoRooms::class)->checkRoomClosure();
+            app(HandleBingoRoomsService::class)->checkRoomClosure();
             $output = 'La tarea de control/manejo de salas de bingo se ha ejecutado exitosamente.';
         } catch (Throwable $e) {
             // Manejo de errores con detalles específicos
@@ -50,7 +50,7 @@ class HandleBingoRoomsCommand extends Command
         }
 
         // Guardar el registro de ejecución
-        app(HandleCommands::class)->logCommandExecution($this->signature, $output, $status);
+        app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
 
         // Imprimir resultado final
         if ($status === 'SUCCESS') {

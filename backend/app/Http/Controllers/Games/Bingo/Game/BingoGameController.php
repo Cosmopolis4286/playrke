@@ -194,19 +194,9 @@ final class BingoGameController extends Controller
             function () use ($room) {
                 $roomId = (int) $room->id;
 
-                dispatch(function () use ($roomId) {
-                    $room = BingoRoom::find($roomId);
-
-                    if (!$room) {
-                        \Log::warning('[BingoGameController] No se pudo iniciar sorteo: sala no encontrada', [
-                            'room_id' => $roomId,
-                        ]);
-
-                        return;
-                    }
-
-                    app(\App\Services\Games\Bingo\Game\BingoDrawService::class)->startDraw($room);
-                })->afterResponse();
+                // El sorteo completo (~75 fichas) tarda varios minutos — se despacha
+                // a la cola 'bingo-draw' para no bloquear el worker HTTP (ver StartBingoDrawJob).
+                \App\Jobs\Games\Bingo\StartBingoDrawJob::dispatch((string) $roomId)->onQueue('bingo-draw');
 
                 return [
                     'success' => true,

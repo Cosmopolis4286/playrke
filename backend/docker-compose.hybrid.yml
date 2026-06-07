@@ -184,7 +184,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     container_name: playrke_queue
-    command: ["php", "artisan", "queue:work", "--sleep=1", "--tries=3", "--timeout=60", "--verbose"]
+    command: ["php", "artisan", "queue:work", "--queue=default,bingo-draw", "--sleep=1", "--tries=3", "--timeout=600", "--verbose"]
     env_file: .env.dev
     volumes:
       - ./app:/var/www/app

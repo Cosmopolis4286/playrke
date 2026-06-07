@@ -131,6 +131,10 @@ const liveDrawn   = ref<number[]>([...(props.draw ?? [])]);
 const prizeFlash  = ref(false);
 const playersFlash = ref(false);
 
+// Progreso de jugadores (cuántas fichas le faltan al cartón más cerca de ganar)
+interface PlayerProgress { user_id: number; user_name: string; missing: number }
+const playersProgress = ref<PlayerProgress[]>([]);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Countdown — mismo composable que GameRooms
 // ─────────────────────────────────────────────────────────────────────────────
@@ -212,6 +216,12 @@ const prizeFormatted = computed(() => {
 });
 
 const cardCount = computed(() => props.cartons?.length ?? 0);
+
+// Mostrar el panel de "jugadores cerca de ganar" cuando quedan 10 fichas o menos
+const remainingChips = computed(() => 75 - liveDrawn.value.length);
+const showPlayersProgress = computed(() =>
+  liveDrawn.value.length > 0 && remainingChips.value <= 10 && playersProgress.value.length > 0
+);
 
 function chipLetter(n: number): string {
   if (n <= 15) return 'B';
@@ -318,6 +328,13 @@ function subscribeToRoom() {
     if (e.number && !liveDrawn.value.includes(e.number)) {
       liveDrawn.value = [...liveDrawn.value, e.number];
       playNext();
+    }
+  });
+
+  // Progreso de jugadores — cuántas fichas le faltan al más cercano de ganar
+  channel.listen(".PlayersProgress", (e: { players: PlayerProgress[] }) => {
+    if (Array.isArray(e.players)) {
+      playersProgress.value = e.players;
     }
   });
 
@@ -653,7 +670,7 @@ onUnmounted(() => {
               <span class="ig-db-recent__label">RECIENTES</span>
               <div class="ig-db-recent__row">
                 <div
-                  v-for="n in [...liveDrawn].slice(-5).reverse().slice(1)"
+                  v-for="n in [...liveDrawn].slice(-5).reverse()"
                   :key="`r-${n}`"
                   class="ig-chip ig-chip--sm"
                   :class="`ig-chip--${chipLetter(n)}`"
@@ -682,6 +699,35 @@ onUnmounted(() => {
             </div>
           </div>
 
+        </div>
+      </Transition>
+
+      <!-- ══════════════════════════════════════════
+           JUGADORES CERCA DE GANAR (≤10 fichas restantes)
+      ══════════════════════════════════════════ -->
+      <Transition name="ig-fade">
+        <div v-if="showPlayersProgress" class="ig-near-win">
+          <span class="ig-near-win__label">
+            <i class="fas fa-bullseye" /> ¡Quedan {{ remainingChips }} ficha{{ remainingChips === 1 ? '' : 's' }}! Jugadores más cerca de ganar
+          </span>
+          <div class="ig-near-win__row">
+            <div
+              v-for="p in playersProgress"
+              :key="p.user_id"
+              class="ig-near-win__player"
+              :class="{ 'ig-near-win__player--hot': p.missing <= 2 }"
+            >
+              <div class="ig-near-win__avatar">
+                <i class="fas fa-user" />
+              </div>
+              <div class="ig-near-win__body">
+                <span class="ig-near-win__name">{{ p.user_name }}</span>
+                <span class="ig-near-win__missing">
+                  {{ p.missing }} {{ p.missing === 1 ? 'ficha' : 'fichas' }}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </Transition>
 
@@ -1009,9 +1055,10 @@ nav.main-header::after,
 }
 .ig-panel__row--top  { min-height: 72px; }
 .ig-panel__row--stats {
-  padding: 9px 20px;
+  padding: 10px 20px;
   gap: 0;
   flex-wrap: wrap;
+  justify-content: space-between;
   background: rgba(255,255,255,0.018);
 }
 
@@ -1121,24 +1168,32 @@ nav.main-header::after,
 
 /* ── Stats fila 2 ── */
 .ig-stat {
-  display: flex; align-items: center; gap: 8px;
-  padding: 4px 18px 4px 0;
-  flex-shrink: 0; position: relative;
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 16px;
+  flex: 1; min-width: 0; position: relative;
 }
 .ig-stat i {
-  font-size: 11px; color: #3a5890; flex-shrink: 0;
+  width: 30px; height: 30px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: #7c9dff;
+  background: rgba(100,140,255,0.1);
+  border: 1px solid rgba(100,140,255,0.16);
+  border-radius: 50%;
+  transition: background 0.2s ease, color 0.2s ease;
 }
-.ig-stat__body { display: flex; flex-direction: column; gap: 0; }
+.ig-stat__body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .ig-stat__val {
-  font-size: 15px; font-weight: 800; color: #c8d8ff; line-height: 1.1;
+  font-size: 16px; font-weight: 800; color: #c8d8ff; line-height: 1.1;
   font-family: 'Courier New', monospace;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .ig-stat__val small { font-size: 10px; color: #3a5080; font-weight: 500; }
-.ig-stat__val--sm { font-size: 11px; font-family: inherit; }
+.ig-stat__val--sm { font-size: 12px; font-family: inherit; }
 .ig-stat__lbl {
-  font-size: 8.5px; font-weight: 600; color: #3a5080;
-  text-transform: uppercase; letter-spacing: 0.6px;
+  font-size: 8.5px; font-weight: 700; color: #3a5080;
+  text-transform: uppercase; letter-spacing: 0.8px;
 }
+.ig-stat--flash i { background: rgba(42,245,152,0.16); color: #2af598; }
 .ig-stat--flash .ig-stat__val { animation: stat-pop 0.5s ease; }
 @keyframes stat-pop {
   0%  { color: #2af598; transform: scale(1); }
@@ -1148,7 +1203,7 @@ nav.main-header::after,
 
 /* barra de progreso inline */
 .ig-stat__bar {
-  position: absolute; bottom: 0; left: 0; right: 18px; height: 2px;
+  position: absolute; bottom: 2px; left: 56px; right: 16px; height: 2px;
   background: rgba(80,120,255,0.1); border-radius: 2px; overflow: hidden;
 }
 .ig-stat__bar-fill {
@@ -1160,9 +1215,9 @@ nav.main-header::after,
 
 /* separador vertical entre stats */
 .ig-stat__sep {
-  width: 1px; height: 28px;
-  background: rgba(80,120,255,0.1);
-  margin-right: 18px; flex-shrink: 0;
+  width: 1px; align-self: stretch; margin: 4px 0;
+  background: linear-gradient(180deg, transparent, rgba(80,120,255,0.14), transparent);
+  flex-shrink: 0;
 }
 
 /* ── Mute btn legacy (eliminado del panel, mantenido por compatibilidad) ── */
@@ -1282,7 +1337,7 @@ nav.main-header::after,
 /* Última bola */
 .ig-db-last {
   position: relative; flex-shrink: 0;
-  width: 70px; height: 70px;
+  width: 56px; height: 56px;
   display: flex; align-items: center; justify-content: center;
   margin-right: 16px;
 }
@@ -1354,6 +1409,56 @@ nav.main-header::after,
   padding: 10px 16px 14px;
 }
 
+/* ── Jugadores cerca de ganar (≤10 fichas restantes) ── */
+.ig-near-win {
+  background: linear-gradient(135deg, rgba(123,79,255,0.16) 0%, rgba(42,245,152,0.10) 100%);
+  border: 1px solid rgba(123,79,255,0.30);
+  border-radius: 18px;
+  padding: 14px 18px 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.ig-near-win__label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.4px;
+  color: #d8d8ff; display: flex; align-items: center; gap: 8px;
+}
+.ig-near-win__label i { color: #2af598; }
+.ig-near-win__row {
+  display: flex; flex-wrap: wrap; gap: 12px;
+}
+.ig-near-win__player {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(10,16,44,0.55);
+  border: 1px solid rgba(80,120,255,0.18);
+  border-radius: 999px;
+  padding: 6px 16px 6px 6px;
+  flex: 0 0 auto;
+}
+.ig-near-win__player--hot {
+  border-color: rgba(42,245,152,0.55);
+  box-shadow: 0 0 14px rgba(42,245,152,0.25);
+}
+.ig-near-win__avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #7b4fff 0%, #00c6ff 100%);
+  color: #fff; font-size: 14px; flex-shrink: 0;
+}
+.ig-near-win__player--hot .ig-near-win__avatar {
+  background: linear-gradient(135deg, #2af598 0%, #00c6ff 100%);
+}
+.ig-near-win__body {
+  display: flex; flex-direction: column; line-height: 1.25;
+}
+.ig-near-win__name {
+  font-size: 13px; font-weight: 700; color: #f0f0ff;
+}
+.ig-near-win__missing {
+  font-size: 11px; font-weight: 600; color: #9aa6d4;
+}
+.ig-near-win__player--hot .ig-near-win__missing {
+  color: #2af598;
+}
+
 /* ── CSS Bingo Chips ── */
 .ig-chip {
   border-radius: 50%;
@@ -1365,7 +1470,7 @@ nav.main-header::after,
 
 /* tamaños */
 .ig-chip--lg {
-  width: 66px; height: 66px;
+  width: 52px; height: 52px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.6),
               inset 0 2px 0 rgba(255,255,255,0.3),
               inset 0 -2px 4px rgba(0,0,0,0.2);
@@ -1414,7 +1519,7 @@ nav.main-header::after,
   font-family: 'Anton', sans-serif; line-height: 1;
   color: rgba(255,255,255,0.5);
 }
-.ig-chip--lg .ig-chip__letter { font-size: 10px; margin-bottom: 2px; }
+.ig-chip--lg .ig-chip__letter { font-size: 8.5px; margin-bottom: 1px; }
 .ig-chip--md .ig-chip__letter { font-size: 7.5px; }
 .ig-chip--sm .ig-chip__letter { display: none; }
 
@@ -1422,7 +1527,7 @@ nav.main-header::after,
   font-family: 'Anton', sans-serif; line-height: 1; color: #fff;
   text-shadow: 0 1px 4px rgba(0,0,0,0.55);
 }
-.ig-chip--lg .ig-chip__num { font-size: 24px; }
+.ig-chip--lg .ig-chip__num { font-size: 19px; }
 .ig-chip--md .ig-chip__num { font-size: 12px; }
 .ig-chip--sm .ig-chip__num { font-size: 10.5px; }
 
@@ -1463,8 +1568,10 @@ nav.main-header::after,
   .ig-panel__row--stats { padding: 8px 14px; }
   .ig-panel__divider { display: none; }
   .ig-prize__num { font-size: 30px; }
-  .ig-stat { padding-right: 12px; }
-  .ig-stat__sep { margin-right: 12px; }
+  .ig-stat { padding: 6px 10px; gap: 8px; flex: 1 1 40%; }
+  .ig-stat i { width: 26px; height: 26px; font-size: 11px; }
+  .ig-stat__bar { left: 44px; }
+  .ig-stat__sep { display: none; }
   .ig-chip--md { width: 30px; height: 30px; }
   .ig-chip--lg { width: 56px; height: 56px; }
 }

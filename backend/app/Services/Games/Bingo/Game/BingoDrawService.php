@@ -113,6 +113,19 @@ final class BingoDrawService
 
             Log::info('[BingoDrawService] Ficha', ['chip' => $chip, 'index' => $i]);
 
+            // Cuando quedan 10 fichas o menos, informar a la sala qué tan cerca está cada jugador de ganar.
+            // Envuelto en try/catch: es informativo y nunca debe interrumpir el sorteo.
+            if ((self::TOTAL_CHIPS - count($drawnSoFar)) <= 10) {
+                try {
+                    $this->broadcastPlayersProgress($room, $patternPositions, $drawnSoFar);
+                } catch (\Throwable $e) {
+                    Log::warning('[BingoDrawService] Error al emitir progreso de jugadores', [
+                        'room_id' => $roomId,
+                        'error'   => $e->getMessage(),
+                    ]);
+                }
+            }
+
             if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $draw->id)) {
                 return $result;
             }
@@ -249,6 +262,74 @@ final class BingoDrawService
         }
 
         return $resolved;
+    }
+
+    /**
+     * Calcula, para cada jugador activo, cuántas fichas le faltan a su cartón
+     * más cercano de ganar (según el patrón de la ronda) y emite el resumen
+     * vía WebSocket para que la sala vea quién está más cerca de cantar bingo.
+     *
+     * @param BingoRoom $room
+     * @param array     $patternPositions Posiciones pre-calculadas del patrón de la ronda
+     * @param int[]     $drawnNumbers     Números sorteados hasta ahora
+     */
+    private function broadcastPlayersProgress(BingoRoom $room, array $patternPositions, array $drawnNumbers): void
+    {
+        if (empty($patternPositions)) {
+            return;
+        }
+
+        $drawnSet = array_flip($drawnNumbers);
+
+        $cards = BingoCard::where('room_id', (string) $room->id)
+            ->where('status', BingoCard::STATUS_ACTIVE)
+            ->with(['roomUser.user'])
+            ->get();
+
+        $playerBest = []; // user_id => ['user_name' => ..., 'missing' => int]
+
+        foreach ($cards as $card) {
+            $matrix  = $card->card_numbers ?? [];
+            $missing = 0;
+
+            foreach ($patternPositions as $cell) {
+                if ($cell['free']) continue;
+
+                $num = $matrix[$cell['col']][$cell['row']] ?? null;
+
+                if ($num === null || !isset($drawnSet[$num])) {
+                    $missing++;
+                }
+            }
+
+            $userId = $card->roomUser?->user_id ?? $card->creator_user_id;
+            if (!$userId) continue;
+
+            $userId   = (int) $userId;
+            $userName = $card->roomUser?->user?->name ?? ('Jugador #' . $userId);
+
+            if (!isset($playerBest[$userId]) || $missing < $playerBest[$userId]['missing']) {
+                $playerBest[$userId] = ['user_name' => $userName, 'missing' => $missing];
+            }
+        }
+
+        if (empty($playerBest)) {
+            return;
+        }
+
+        $players = [];
+        foreach ($playerBest as $userId => $info) {
+            $players[] = [
+                'user_id'   => $userId,
+                'user_name' => $info['user_name'],
+                'missing'   => $info['missing'],
+            ];
+        }
+
+        // Ordenar por menor cantidad de fichas faltantes (más cerca de ganar primero)
+        usort($players, fn($a, $b) => $a['missing'] <=> $b['missing']);
+
+        broadcast(new \App\Events\Games\Bingo\BingoPlayersProgress((int) $room->id, $players));
     }
 
     /**
