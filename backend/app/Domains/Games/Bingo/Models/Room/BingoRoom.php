@@ -134,6 +134,14 @@ class BingoRoom extends BaseModel
     }
 
     /**
+     * Bitácora de eventos de dominio de la sala (creación sin horario, activación manual, etc.)
+     */
+    public function audits(): HasMany
+    {
+        return $this->hasMany(BingoRoomAudit::class, 'room_id', 'id');
+    }
+
+    /**
      * Precios de cartones
      */
     public function cardPrices(): HasMany

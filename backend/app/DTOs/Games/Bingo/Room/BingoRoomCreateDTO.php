@@ -12,8 +12,9 @@ namespace App\DTOs\Games\Bingo\Room;
 final class BingoRoomCreateDTO
 {
     public function __construct(
-        public readonly string $date,
-        public readonly string $time,
+        public readonly ?string $date,
+        public readonly ?string $time,
+        public readonly string $startMode,
         public readonly string $roomType,
         public readonly string|int $gameMode,
         public readonly string|int $prizePoolType,
@@ -49,8 +50,9 @@ final class BingoRoomCreateDTO
         $useSerials = filter_var($data['useSerials'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         return new self(
-            date: $data['date'],
-            time: $data['time'],
+            date: $data['date'] ?? null,
+            time: $data['time'] ?? null,
+            startMode: $data['startMode'] ?? 'SCHEDULED',
             roomType: $data['roomType'] ?? 'PRIVATE',
             gameMode: $data['gameMode'],
             prizePoolType: $data['prizePoolType'],

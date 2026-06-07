@@ -96,4 +96,28 @@ final class BingoRoomException extends DomainException
     {
         return new self('No puedes eliminar una sala que ya tiene jugadores registrados.');
     }
+
+    /**
+     * Intento de activación manual sobre una sala con horario programado.
+     */
+    public static function activationNotAllowed(): self
+    {
+        return new self('Solo las salas sin horario programado pueden activarse manualmente.');
+    }
+
+    /**
+     * El usuario no es el creador de la sala ni tiene rol admin/superadmin.
+     */
+    public static function activationForbidden(): self
+    {
+        return new self('No tienes permiso para activar esta sala.');
+    }
+
+    /**
+     * La sala no está en un estado válido para ser activada manualmente.
+     */
+    public static function activationInvalidState(): self
+    {
+        return new self('Solo se pueden activar manualmente salas en estado ACTIVE cuyo sorteo no haya iniciado.');
+    }
 }

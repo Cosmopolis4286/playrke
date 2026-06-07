@@ -14,6 +14,7 @@ final class BingoRoomUpdateDTO
     public function __construct(
         public readonly ?string $date,
         public readonly ?string $time,
+        public readonly ?string $startMode,
         public readonly ?string $roomType,
         public readonly string|int|null $gameMode,
         public readonly string|int|null $prizePoolType,
@@ -57,6 +58,7 @@ final class BingoRoomUpdateDTO
         return new self(
             date: $data['date'] ?? null,
             time: $data['time'] ?? null,
+            startMode: $data['startMode'] ?? null,
             roomType: $data['roomType'] ?? null,
             gameMode: $data['gameMode'] ?? null,
             prizePoolType: $data['prizePoolType'] ?? null,

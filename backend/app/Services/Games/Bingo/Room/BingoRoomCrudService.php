@@ -8,6 +8,7 @@ use App\Exceptions\Domain\Games\Bingo\Room\BingoRoomException;
 use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomAudit;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Models\Round\BingoRoundPrize;
@@ -86,9 +87,15 @@ class BingoRoomCrudService
                 ['rkeCommission' => $rkeCommission, 'prizePool' => $prizePool] = $this->resolveGameConfig($dto->prizePoolType, $dto->amountAddedPrizePool);
 
                 // Unix timestamp respetando la timezone del creador
-                $dateTime = "{$dto->date} {$dto->time}";
-                $creatorTz = $this->resolveCreatorTimezone($userId);
-                $unixDate = Carbon::createFromFormat('Y-m-d H:i', $dateTime, $creatorTz)->timestamp;
+                // Las salas de inicio manual (startMode = MANUAL) no tienen horario: unix_date queda null
+                // hasta que el anfitrión/admin la active manualmente (ver activateNow()).
+                $startMode = $dto->startMode ?? ($room->loadMissing('config')->config?->start_mode ?? 'SCHEDULED');
+                $unixDate = null;
+                if ($startMode === 'SCHEDULED' && $dto->date && $dto->time) {
+                    $dateTime = "{$dto->date} {$dto->time}";
+                    $creatorTz = $this->resolveCreatorTimezone($userId);
+                    $unixDate = Carbon::createFromFormat('Y-m-d H:i', $dateTime, $creatorTz)->timestamp;
+                }
 
                 // Datos a actualizar
                 $dataToUpdate = ['prize_pool' => $prizePool];
@@ -111,6 +118,15 @@ class BingoRoomCrudService
                     ['room_id' => $room->id],
                     $configData
                 );
+
+                // Auditoría: registrar la creación de salas sin horario (requieren activación manual)
+                if ($isCreate && ($configData['start_mode'] ?? 'SCHEDULED') === 'MANUAL') {
+                    $this->recordAudit(
+                        $room,
+                        BingoRoomAudit::EVENT_CREATED_UNSCHEDULED,
+                        'Sala creada sin horario de inicio — requiere activación manual del anfitrión o un administrador.',
+                    );
+                }
 
                 // Actualizar comisión del creador y estado si es update
                 if (!$isCreate) {
@@ -248,12 +264,13 @@ class BingoRoomCrudService
         if ($isCreate) {
             $base['room_id']      = $roomId;
             $base['is_scheduled']     = 'N';
+            $base['start_mode']   = $dto->startMode ?? 'SCHEDULED';
             $base['creator_user_id'] = $userId;
             $base['in_live']      = 'N';
             // from_house = Y si el creador es admin o superadmin; N para commerce/customer
             $base['from_house']   = $this->resolveFromHouse($userId);
         }
-        // En update: from_house nunca se modifica — es inmutable tras la creación
+        // En update: from_house y start_mode nunca se modifican — son inmutables tras la creación
 
         return $base;
     }
@@ -265,9 +282,17 @@ class BingoRoomCrudService
      */
     private function resolveFromHouse(int $userId): string
     {
+        return $this->isUserAdmin($userId) ? 'Y' : 'N';
+    }
+
+    /**
+     * Determina si el usuario tiene rol admin o superadmin vigente.
+     */
+    private function isUserAdmin(int $userId): bool
+    {
         $adminRoles = ['admin', 'superadmin'];
 
-        $isAdmin = \DB::table('role_user')
+        return \DB::table('role_user')
             ->join('roles', 'role_user.role_id', '=', 'roles.id')
             ->where('role_user.user_id', $userId)
             ->whereIn('roles.prefix', $adminRoles)
@@ -276,8 +301,49 @@ class BingoRoomCrudService
                     ->orWhere('role_user.expires_at', '>', now());
             })
             ->exists();
+    }
 
-        return $isAdmin ? 'Y' : 'N';
+    /**
+     * Resuelve el rol bajo el cual el usuario actúa sobre la sala,
+     * para fines de auditoría: 'creator' | 'admin' | 'superadmin' | null
+     */
+    private function resolveActorRole(int $userId, BingoRoom $room): ?string
+    {
+        if ((string) $room->creator_user_id === (string) $userId) {
+            return 'creator';
+        }
+
+        $role = \DB::table('role_user')
+            ->join('roles', 'role_user.role_id', '=', 'roles.id')
+            ->where('role_user.user_id', $userId)
+            ->whereIn('roles.prefix', ['admin', 'superadmin'])
+            ->where(function ($q) {
+                $q->whereNull('role_user.expires_at')
+                    ->orWhere('role_user.expires_at', '>', now());
+            })
+            ->orderByRaw("FIELD(roles.prefix, 'superadmin', 'admin')")
+            ->value('roles.prefix');
+
+        return $role;
+    }
+
+    /**
+     * Registra un evento de dominio en la bitácora dedicada de la sala (bingo_room_audits).
+     */
+    private function recordAudit(BingoRoom $room, string $event, ?string $description = null, array $metadata = []): void
+    {
+        $userId = Auth::id();
+
+        BingoRoomAudit::create([
+            'room_id'     => $room->id,
+            'user_id'     => $userId,
+            'event'       => $event,
+            'actor_role'  => $userId ? $this->resolveActorRole((int) $userId, $room) : 'system',
+            'description' => $description,
+            'metadata'    => $metadata,
+            'ip_address'  => request()?->ip(),
+            'user_agent'  => request()?->userAgent(),
+        ]);
     }
 
     /**
@@ -486,8 +552,9 @@ class BingoRoomCrudService
         }
 
         // Bloquear si la fecha+hora de la sala ya expiró (comparar en UTC)
+        // Las salas sin horario (unix_date null) no expiran por tiempo — se activan manualmente.
         $room->loadMissing('config');
-        if ($room->config && $room->config->unix_date <= Carbon::now('UTC')->timestamp) {
+        if ($room->config && $room->config->unix_date !== null && $room->config->unix_date <= Carbon::now('UTC')->timestamp) {
             throw BingoRoomException::expiredRoomStatusLocked();
         }
 
@@ -526,8 +593,9 @@ class BingoRoomCrudService
         }
 
         // Bloquear si la fecha+hora de la sala ya expiró (comparar en UTC)
+        // Las salas sin horario (unix_date null) no expiran por tiempo — se activan manualmente.
         $room->loadMissing('config');
-        if ($room->config && $room->config->unix_date <= Carbon::now('UTC')->timestamp) {
+        if ($room->config && $room->config->unix_date !== null && $room->config->unix_date <= Carbon::now('UTC')->timestamp) {
             throw BingoRoomException::expiredRoomStatusLocked();
         }
 

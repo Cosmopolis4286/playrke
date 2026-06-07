@@ -32,8 +32,9 @@ class BingoRoomRequest extends BaseRequest
     {
         return [
             'activateRoom'                => ['boolean'],
-            'date'                        => ['required', 'date', 'after_or_equal:today'],
-            'time'                        => ['required', 'date_format:H:i'],
+            'startMode'                   => ['required', 'in:SCHEDULED,MANUAL'],
+            'date'                        => ['required_if:startMode,SCHEDULED', 'nullable', 'date', 'after_or_equal:today'],
+            'time'                        => ['required_if:startMode,SCHEDULED', 'nullable', 'date_format:H:i'],
             'roomType'                    => ['required', 'exists:room_types,id'],
             'gameMode'                    => ['required', 'exists:game_modes,id'],
             'prizePoolType'               => ['required', 'exists:prize_pool_types,id'],
@@ -95,9 +96,10 @@ class BingoRoomRequest extends BaseRequest
         $validator->after(function ($validator) {
 
             // Validar que fecha+hora sea al menos 10 minutos desde ahora
+            // (solo aplica a salas con horario programado; las de inicio manual no tienen date/time)
             $date = $this->input('date');
             $time = $this->input('time');
-            if ($date && $time && !$validator->errors()->has('date') && !$validator->errors()->has('time')) {
+            if ($this->input('startMode') === 'SCHEDULED' && $date && $time && !$validator->errors()->has('date') && !$validator->errors()->has('time')) {
                 $userTz     = auth()->user()?->timeZone?->name ?? 'UTC';
                 $scheduled  = \Carbon\Carbon::createFromFormat('Y-m-d H:i', "{$date} {$time}", $userTz);
                 $minAllowed = \Carbon\Carbon::now($userTz)->addMinutes(10);
@@ -209,10 +211,13 @@ class BingoRoomRequest extends BaseRequest
     public function messages(): array
     {
         return [
-            'date.required'                   => 'La fecha es obligatoria.',
+            'startMode.required'              => 'El modo de inicio es obligatorio.',
+            'startMode.in'                    => 'El modo de inicio debe ser "Programado" o "Manual".',
+
+            'date.required_if'                => 'La fecha es obligatoria para salas con horario programado.',
             'date.after_or_equal'             => 'La fecha debe ser hoy o posterior.',
 
-            'time.required'                   => 'La hora es obligatoria.',
+            'time.required_if'                => 'La hora es obligatoria para salas con horario programado.',
             'time.date_format'                => 'La hora debe tener formato HH:mm.',
 
             'roomType.required'               => 'El tipo de sala es obligatorio.',
