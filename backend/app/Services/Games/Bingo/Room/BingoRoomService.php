@@ -138,6 +138,24 @@ final class BingoRoomService
     }
 
     /**
+     * Programa la fecha/hora de inicio de una sala sin horario (start_mode = MANUAL),
+     * convirtiéndola en una sala programada (start_mode = SCHEDULED). Solo el creador
+     * de la sala o un admin/superadmin pueden ejecutarla.
+     *
+     * @param BingoRoom $room Model
+     * @param string $date Fecha en formato Y-m-d
+     * @param string $time Hora en formato H:i
+     * @return bool
+     *
+     * @throws BingoRoomException Si la sala no admite programación, el usuario no está
+     *                            autorizado, el estado no es válido, o la fecha/hora es inválida
+     */
+    public function scheduleStart(BingoRoom $room, string $date, string $time): bool
+    {
+        return $this->crudService->scheduleStart($room, $date, $time);
+    }
+
+    /**
      * Eliminar una sala de bingo permanentemente (hard delete).
      */
     public function destroy(BingoRoom $room): bool

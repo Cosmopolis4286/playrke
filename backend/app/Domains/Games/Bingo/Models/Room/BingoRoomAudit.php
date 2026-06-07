@@ -17,6 +17,7 @@ class BingoRoomAudit extends Model
 
     public const EVENT_CREATED_UNSCHEDULED = 'created_unscheduled';
     public const EVENT_MANUALLY_ACTIVATED  = 'manually_activated';
+    public const EVENT_START_MODE_CHANGED  = 'start_mode_changed';
 
     protected $table = 'bingo_room_audits';
 

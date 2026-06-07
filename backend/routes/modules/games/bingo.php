@@ -40,6 +40,7 @@ route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'multiPermission:games.manag
     'copy' => ['method' => 'post',  'uri' => '{room}/copy', 'action' => 'copy'],
     'cancel' => ['method' => 'patch',  'uri' => '{room}/cancel', 'action' => 'cancel'],
     'activate-now' => ['method' => 'patch', 'uri' => '{room}/activate-now', 'action' => 'activateNow'],
+    'schedule-start' => ['method' => 'patch', 'uri' => '{room}/schedule-start', 'action' => 'scheduleStart'],
 ]);
 
 /**

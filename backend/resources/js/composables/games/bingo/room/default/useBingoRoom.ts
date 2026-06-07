@@ -64,6 +64,9 @@ interface UseBingoRoomReturn {
 
     /** Activar manualmente el sorteo de una sala sin horario programado */
     activateRoomNow: (id: string | number) => Promise<boolean>
+
+    /** Programar fecha/hora de inicio de una sala sin horario (la convierte en programada) */
+    scheduleRoomStart: (id: string | number, date: string, time: string) => Promise<boolean>
 }
 
 /**
@@ -597,6 +600,22 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         }
     }
 
+    async function scheduleRoomStart(id: string | number, date: string, time: string): Promise<boolean> {
+        try {
+            await backendClient.patch(`/bingo-rooms/${id}/schedule-start`, { date, time })
+            showToast('Inicio programado exitosamente', 'success')
+            await fetchRooms()
+            return true
+        } catch (error: any) {
+            console.error('Error al programar inicio de sala:', error)
+            showToast(
+                error?.response?.data?.message ?? 'Error al programar el inicio de la sala',
+                'error'
+            )
+            return false
+        }
+    }
+
     return {
         roomData,
         roomFormData,
@@ -616,6 +635,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         fetchRoomDetails,
         goToRoom,
         cancelRoom,
-        activateRoomNow
+        activateRoomNow,
+        scheduleRoomStart
     }
 }

@@ -120,4 +120,12 @@ final class BingoRoomException extends DomainException
     {
         return new self('Solo se pueden activar manualmente salas en estado ACTIVE cuyo sorteo no haya iniciado.');
     }
+
+    /**
+     * La fecha/hora indicada para programar el inicio no es válida (pasada o muy próxima).
+     */
+    public static function scheduleStartInvalidDate(): self
+    {
+        return new self('La fecha y hora de inicio deben ser al menos 10 minutos posteriores al momento actual.');
+    }
 }

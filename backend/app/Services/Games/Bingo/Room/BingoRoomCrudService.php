@@ -89,7 +89,8 @@ class BingoRoomCrudService
                 // Unix timestamp respetando la timezone del creador
                 // Las salas de inicio manual (startMode = MANUAL) no tienen horario: unix_date queda null
                 // hasta que el anfitrión/admin la active manualmente (ver activateNow()).
-                $startMode = $dto->startMode ?? ($room->loadMissing('config')->config?->start_mode ?? 'SCHEDULED');
+                $previousStartMode = $room->loadMissing('config')->config?->start_mode ?? 'SCHEDULED';
+                $startMode = $dto->startMode ?? $previousStartMode;
                 $unixDate = null;
                 if ($startMode === 'SCHEDULED' && $dto->date && $dto->time) {
                     $dateTime = "{$dto->date} {$dto->time}";
@@ -125,6 +126,22 @@ class BingoRoomCrudService
                         $room,
                         BingoRoomAudit::EVENT_CREATED_UNSCHEDULED,
                         'Sala creada sin horario de inicio — requiere activación manual del anfitrión o un administrador.',
+                    );
+                }
+
+                // Auditoría: registrar el cambio de modo de inicio en una sala existente
+                // (Programado <-> Manual). El anfitrión puede alternar el modo mientras
+                // la sala no tenga jugadores registrados (la UI bloquea esa edición).
+                if (!$isCreate && $startMode !== $previousStartMode) {
+                    $description = $startMode === 'MANUAL'
+                        ? 'La sala pasó de horario programado a inicio manual — ahora requiere activación manual del anfitrión o un administrador.'
+                        : 'La sala pasó de inicio manual a horario programado — su sorteo se iniciará automáticamente según la fecha y hora configuradas.';
+
+                    $this->recordAudit(
+                        $room,
+                        BingoRoomAudit::EVENT_START_MODE_CHANGED,
+                        $description,
+                        ['from' => $previousStartMode, 'to' => $startMode],
                     );
                 }
 
@@ -261,16 +278,24 @@ class BingoRoomCrudService
             'jackpot_pct'             => $dto->jackpotPct ?? null,
         ];
 
+        // start_mode: editable tanto en creación como en actualización — el anfitrión
+        // puede alternar entre sala programada y sala manual mientras no tenga jugadores
+        // (la UI bloquea la edición de salas con jugadores registrados). En creación el
+        // DTO siempre trae un valor por defecto ('SCHEDULED'); en actualización puede
+        // venir null si el formulario no lo envía, en cuyo caso se conserva el actual.
+        if ($dto->startMode !== null) {
+            $base['start_mode'] = $dto->startMode;
+        }
+
         if ($isCreate) {
             $base['room_id']      = $roomId;
             $base['is_scheduled']     = 'N';
-            $base['start_mode']   = $dto->startMode ?? 'SCHEDULED';
             $base['creator_user_id'] = $userId;
             $base['in_live']      = 'N';
             // from_house = Y si el creador es admin o superadmin; N para commerce/customer
             $base['from_house']   = $this->resolveFromHouse($userId);
         }
-        // En update: from_house y start_mode nunca se modifican — son inmutables tras la creación
+        // En update: from_house nunca se modifica — es inmutable tras la creación
 
         return $base;
     }
@@ -655,6 +680,79 @@ class BingoRoomCrudService
                     'activated_at'   => $now->toIso8601String(),
                     'players_count'  => $room->total_players ?? 0,
                     'activated_role' => $isCreator ? 'creator' : 'admin',
+                ],
+            );
+
+            return true;
+        });
+    }
+
+    /**
+     * Programa la fecha/hora de inicio de una sala sin horario (start_mode = MANUAL),
+     * convirtiéndola en una sala programada (start_mode = SCHEDULED) que el comando
+     * autónomo (bingo:start-pending-draws) recogerá cuando llegue su hora.
+     *
+     * Reutiliza la misma autorización y validaciones de estado que activateNow():
+     * solo el creador de la sala o un admin/superadmin pueden programarla, y debe
+     * estar ACTIVE sin sorteo iniciado.
+     *
+     * @param BingoRoom $room
+     * @param string $date Fecha en formato Y-m-d
+     * @param string $time Hora en formato H:i
+     * @return bool True si la sala quedó programada exitosamente
+     *
+     * @throws BingoRoomException Si la sala no admite programación, el usuario no
+     *                            está autorizado, el estado no es válido, o la
+     *                            fecha/hora indicada no cumple el mínimo de 10 minutos
+     */
+    public function scheduleStart(BingoRoom $room, string $date, string $time): bool
+    {
+        return DB::transaction(function () use ($room, $date, $time) {
+            $room->loadMissing(['config', 'status', 'players']);
+
+            // Solo aplica a salas configuradas como inicio manual
+            if (($room->config?->start_mode ?? 'SCHEDULED') !== 'MANUAL') {
+                throw BingoRoomException::activationNotAllowed();
+            }
+
+            $userId = Auth::id();
+            $isCreator = $userId !== null && (string) $room->creator_user_id === (string) $userId;
+            $isAdmin = $userId !== null && $this->isUserAdmin((int) $userId);
+
+            if (!$isCreator && !$isAdmin) {
+                throw BingoRoomException::activationForbidden();
+            }
+
+            // Solo se programa una sala disponible (ACTIVE) cuyo sorteo no haya iniciado
+            if ($room->status?->code !== 'ACTIVE') {
+                throw BingoRoomException::activationInvalidState();
+            }
+
+            $creatorTz = $this->resolveCreatorTimezone((int) $room->creator_user_id);
+            $scheduled = Carbon::createFromFormat('Y-m-d H:i', "{$date} {$time}", $creatorTz);
+
+            if ($scheduled->lt(Carbon::now($creatorTz)->addMinutes(10))) {
+                throw BingoRoomException::scheduleStartInvalidDate();
+            }
+
+            $unixDate = $scheduled->timestamp;
+
+            $room->config?->update([
+                'date'       => $date,
+                'time'       => $time,
+                'unix_date'  => $unixDate,
+                'start_mode' => 'SCHEDULED',
+            ]);
+
+            $this->recordAudit(
+                $room,
+                BingoRoomAudit::EVENT_START_MODE_CHANGED,
+                'Inicio programado para el ' . $scheduled->format('d/m/Y H:i') . ' por ' . ($isCreator ? 'el anfitrión' : 'un administrador') . ' — la sala pasó de inicio manual a horario programado.',
+                [
+                    'from'           => 'MANUAL',
+                    'to'             => 'SCHEDULED',
+                    'scheduled_for'  => $scheduled->toIso8601String(),
+                    'scheduled_role' => $isCreator ? 'creator' : 'admin',
                 ],
             );
 

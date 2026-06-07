@@ -2,7 +2,7 @@
   /**
    * Página Juego BINGO → GameRoom/Summary
    */
-  import { computed, ref, onMounted, onUnmounted } from 'vue'
+  import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -11,6 +11,7 @@
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import BingoRoomForm from '@/js/Components/Games/Bingo/Room/Form/BingoRoomForm.vue'
   import BingoRoomDetails from '@/js/Components/Games/Bingo/Room/BingoRoomDetails.vue'
+  import BingoRoomActivateModal from '@/js/Components/Games/Bingo/Room/BingoRoomActivateModal.vue'
 
   // ==========================================================================
   // Composables
@@ -64,6 +65,7 @@
     goToRoom,
     cancelRoom,
     activateRoomNow,
+    scheduleRoomStart,
     fetchRoomDetails
   } = useBingoRoom()
 
@@ -105,6 +107,41 @@
     showDetailsModal.value = false
     selectedRoomDetails.value = null
   }
+
+  // ==========================================================================
+  // Modal de Activación / Programación de inicio (salas sin horario)
+  // ==========================================================================
+  const showActivateModal = ref(false)
+  const selectedActivateRoom = ref<BingoRoom | null>(null)
+  const isActivatingRoom = ref(false)
+  const isSchedulingRoom = ref(false)
+
+  const openActivateModal = (ids: string[]) => {
+    if (ids.length !== 1) return
+    const room = rooms.value.find(r => String(r.id) === String(ids[0]))
+    if (!room) return
+
+    selectedActivateRoom.value = room
+    showActivateModal.value = true
+  }
+
+  const handleActivateNow = async (roomId: string | number) => {
+    isActivatingRoom.value = true
+    const ok = await activateRoomNow(roomId)
+    isActivatingRoom.value = false
+    if (ok) showActivateModal.value = false
+  }
+
+  const handleScheduleStart = async (roomId: string | number, date: string, time: string) => {
+    isSchedulingRoom.value = true
+    const ok = await scheduleRoomStart(roomId, date, time)
+    isSchedulingRoom.value = false
+    if (ok) showActivateModal.value = false
+  }
+
+  watch(showActivateModal, open => {
+    if (!open) selectedActivateRoom.value = null
+  })
 
   // ==========================================================================
   // Modal + Form handler
@@ -361,13 +398,9 @@
     {
       icon: 'fas fa-play',
       class: 'btn-success text-white',
-      title: 'Activar Ahora',
+      title: 'Activar o Programar Inicio',
       show: (ids: string[]) => canActivateNow(ids),
-      onClick: (ids: string[]) => {
-        if (ids.length === 1) {
-          activateRoomNow(ids[0])
-        }
-      }
+      onClick: openActivateModal
     }
   ]
 
@@ -464,4 +497,14 @@ onUnmounted(() => {
       <button class="btn btn-sm btn-secondary" @click="closeDetailsModal">Cerrar</button>
     </template>
   </Modal>
+
+  <!-- Modal de Activación / Programación de Inicio (salas sin horario) -->
+  <BingoRoomActivateModal
+    v-model="showActivateModal"
+    :room="selectedActivateRoom"
+    :activating="isActivatingRoom"
+    :scheduling="isSchedulingRoom"
+    @activate-now="handleActivateNow"
+    @schedule-start="handleScheduleStart"
+  />
 </template>

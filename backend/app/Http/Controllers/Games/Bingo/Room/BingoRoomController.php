@@ -182,6 +182,33 @@ final class BingoRoomController extends Controller
     }
 
     /**
+     * Programar la fecha/hora de inicio de una sala sin horario (start_mode = MANUAL),
+     * convirtiéndola en una sala programada (start_mode = SCHEDULED).
+     * Solo puede ejecutarla el creador de la sala o un admin/superadmin.
+     *
+     * @param Request $request Body con date (Y-m-d) y time (H:i)
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function scheduleStart(Request $request, BingoRoom $room): JsonResponse
+    {
+        $data = $request->validate([
+            'date' => ['required', 'date', 'after_or_equal:today'],
+            'time' => ['required', 'date_format:H:i'],
+        ], [
+            'date.required'        => 'La fecha es obligatoria.',
+            'date.date'            => 'La fecha no es válida.',
+            'date.after_or_equal'  => 'La fecha debe ser hoy o posterior.',
+            'time.required'        => 'La hora es obligatoria.',
+            'time.date_format'     => 'La hora debe tener formato HH:mm.',
+        ]);
+
+        return $this->handleServiceJson(
+            fn() => $this->service->scheduleStart($room, $data['date'], $data['time'])
+        );
+    }
+
+    /**
      * Copiar una sala de bingo (status INACTIVE).
      *
      * @param BingoRoom $room
