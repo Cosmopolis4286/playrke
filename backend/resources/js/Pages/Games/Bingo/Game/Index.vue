@@ -669,25 +669,16 @@ onUnmounted(() => {
           <!-- separador -->
           <div class="ig-db-sep" />
 
-          <!-- ── Todas las bolas sorteadas, agrupadas por columna BINGO ── -->
-          <div class="ig-db-cols">
+          <!-- ── Todas las bolas sorteadas en orden cronológico ── -->
+          <div class="ig-db-chips">
             <div
-              v-for="col in (['B','I','N','G','O'] as const)"
-              :key="col"
-              class="ig-db-col"
+              v-for="n in [...liveDrawn].reverse()"
+              :key="n"
+              class="ig-chip ig-chip--sm"
+              :class="[`ig-chip--${chipLetter(n)}`, { 'ig-chip--latest': n === liveDrawn[liveDrawn.length-1] }]"
             >
-              <div class="ig-db-col__hdr" :class="`ig-db-col__hdr--${col.toLowerCase()}`">{{ col }}</div>
-              <div class="ig-db-col__cells">
-                <div
-                  v-for="n in [...liveDrawn].filter(x => chipLetter(x) === col).reverse()"
-                  :key="n"
-                  class="ig-chip ig-chip--md"
-                  :class="[`ig-chip--${col}`, { 'ig-chip--latest': n === liveDrawn[liveDrawn.length-1] }]"
-                >
-                  <span class="ig-chip__letter">{{ col }}</span>
-                  <span class="ig-chip__num">{{ n }}</span>
-                </div>
-              </div>
+              <span class="ig-chip__letter">{{ chipLetter(n) }}</span>
+              <span class="ig-chip__num">{{ n }}</span>
             </div>
           </div>
 
@@ -1355,30 +1346,12 @@ nav.main-header::after,
   height: 1px; background: rgba(80,120,255,0.08); margin: 0;
 }
 
-/* ── Columnas BINGO ── */
-.ig-db-cols {
-  display: flex; gap: 0;
-  padding: 10px 14px 14px;
-}
-.ig-db-col {
-  flex: 1; display: flex; flex-direction: column; gap: 6px; align-items: center;
-}
-.ig-db-col__hdr {
-  font-family: 'Anton', sans-serif; font-size: 13px; font-weight: 900;
-  color: #fff; letter-spacing: 1px;
-  width: 100%; text-align: center;
-  padding: 3px 0;
-  border-radius: 6px;
-  margin-bottom: 2px;
-}
-.ig-db-col__hdr--b { background: linear-gradient(135deg,#2060ff,#0d35b0); }
-.ig-db-col__hdr--i { background: linear-gradient(135deg,#e02020,#900000); }
-.ig-db-col__hdr--n { background: linear-gradient(135deg,#c8aa00,#806e00); }
-.ig-db-col__hdr--g { background: linear-gradient(135deg,#0ab848,#067030); }
-.ig-db-col__hdr--o { background: linear-gradient(135deg,#9820e0,#5a08a8); }
-
-.ig-db-col__cells {
-  display: flex; flex-direction: column; gap: 4px; align-items: center; width: 100%;
+/* ── Lista plana de bolas sorteadas ── */
+.ig-db-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 10px 16px 14px;
 }
 
 /* ── CSS Bingo Chips ── */
@@ -1413,11 +1386,11 @@ nav.main-header::after,
   box-shadow: 0 4px 14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3);
 }
 .ig-chip--sm {
-  width: 28px; height: 28px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.22);
-  opacity: 0.7; transition: opacity 0.18s;
+  width: 24px; height: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.22);
+  opacity: 0.75; transition: opacity 0.18s, transform 0.15s;
 }
-.ig-chip--sm:hover { opacity: 1; }
+.ig-chip--sm:hover { opacity: 1; transform: scale(1.18); }
 
 /* colores por letra — gradiente radial para esfera */
 .ig-chip--B { background: radial-gradient(circle at 38% 32%, #5080ff, #0d35b0); }
@@ -1443,7 +1416,7 @@ nav.main-header::after,
 }
 .ig-chip--lg .ig-chip__letter { font-size: 10px; margin-bottom: 2px; }
 .ig-chip--md .ig-chip__letter { font-size: 7.5px; }
-.ig-chip--sm .ig-chip__letter { font-size: 6.5px; }
+.ig-chip--sm .ig-chip__letter { display: none; }
 
 .ig-chip__num {
   font-family: 'Anton', sans-serif; line-height: 1; color: #fff;
