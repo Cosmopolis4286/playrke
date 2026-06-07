@@ -92,10 +92,20 @@ function handleClick() {
         <!-- Acento lateral izquierdo -->
         <div class="rc__side-accent" />
 
-        <!-- Cartones del jugador: bottom-center sobre la imagen -->
+        <!-- Cartones del jugador: bottom-left sobre la imagen -->
         <span v-if="playerCtns > 0" class="rc__ctns-badge">
           <i class="fas fa-layer-group" />{{ playerCtns }}
         </span>
+
+        <!-- Contador/timer: bottom-right sobre la imagen -->
+        <div class="rc__timer-badge" :class="{ 'rc__timer-badge--live': !hasTime }">
+          <template v-if="hasTime && timerStr">
+            <i class="far fa-clock" /><b>{{ timerStr }}</b>
+          </template>
+          <template v-else>
+            <span class="rc__blink" /><b>LIVE</b>
+          </template>
+        </div>
       </div>
 
       <!-- ── Body ── -->
@@ -113,14 +123,6 @@ function handleClick() {
             <span class="rc__pill rc__pill--price rc__pill--sm">
               <i class="fas fa-ticket-alt" />{{ cardPriceFormatted }} {{ sym }}
             </span>
-            <div class="rc__timer" :class="{ 'rc__timer--live': !hasTime }">
-              <template v-if="hasTime && timerStr">
-                <i class="far fa-clock" /><b>{{ timerStr }}</b>
-              </template>
-              <template v-else>
-                <span class="rc__blink" /><b>LIVE</b>
-              </template>
-            </div>
           </div>
         </div>
 
@@ -213,7 +215,7 @@ function handleClick() {
 .rc__inner {
   position: relative; z-index: 2;
   display: flex; align-items: stretch;
-  min-height: 96px;
+  min-height: 100px;
 }
 
 /* ══════════════════════
@@ -221,7 +223,7 @@ function handleClick() {
 ══════════════════════ */
 .rc__thumb {
   position: relative;
-  flex: 0 0 96px;
+  flex: 0 0 124px;
   overflow: hidden;
 }
 .rc__img {
@@ -244,15 +246,16 @@ function handleClick() {
 /* badge flotante sobre imagen — centrado superior */
 .rc__status-badge {
   position: absolute;
-  top: 5px; left: 50%;
+  top: 6px; left: 50%;
   transform: translateX(-50%);
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 2px 6px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2.5px 7px;
   border-radius: 20px;
   font-size: 7px; font-weight: 800;
-  letter-spacing: .6px; text-transform: uppercase;
+  letter-spacing: .7px; text-transform: uppercase;
   white-space: nowrap;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
   z-index: 3;
 }
 .rc__status-dot {
@@ -281,15 +284,15 @@ function handleClick() {
 /* acento lateral */
 .rc__side-accent {
   position: absolute; left:0; top:0; bottom:0; width:3px;
-  background: linear-gradient(180deg, var(--accent) 0%, transparent 100%);
-  box-shadow: 1px 0 8px var(--glow-clr);
+  background: linear-gradient(180deg, var(--accent) 0%, transparent 85%);
+  box-shadow: 1px 0 10px var(--glow-clr);
+  opacity: .8;
 }
 
-/* badge de cartones del jugador — bottom-center sobre la imagen */
+/* badge de cartones del jugador — bottom-left sobre la imagen */
 .rc__ctns-badge {
   position: absolute;
-  bottom: 5px; left: 50%;
-  transform: translateX(-50%);
+  bottom: 6px; left: 6px;
   display: inline-flex; align-items: center; gap: 3px;
   padding: 2px 7px;
   border-radius: 20px;
@@ -297,6 +300,7 @@ function handleClick() {
   letter-spacing: .4px;
   white-space: nowrap;
   backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
   color: #c090ff;
   background: rgba(110,55,210,.55);
   border: 1px solid rgba(150,80,255,.4);
@@ -304,21 +308,53 @@ function handleClick() {
 }
 .rc__ctns-badge i { font-size: 7px; }
 
+/* badge del contador/timer — bottom-center sobre la imagen */
+.rc__timer-badge {
+  position: absolute;
+  bottom: 6px; left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  color: #9ecaf0;
+  background: rgba(15,30,55,.6);
+  border: 1px solid rgba(120,170,230,.3);
+  z-index: 3;
+}
+.rc__timer-badge i { font-size: 8px; opacity: .6; }
+.rc__timer-badge b {
+  font-family: 'Orbitron', monospace;
+  font-size: 9px; font-weight: 800; letter-spacing: .4px;
+  color: #9ecaf0;
+}
+.rc__timer-badge--live {
+  color: #ff8aaa;
+  background: rgba(40,12,22,.6);
+  border-color: rgba(255,77,109,.35);
+}
+.rc__timer-badge--live b {
+  color: #ff8aaa;
+  text-shadow: 0 0 8px rgba(255,77,109,.45);
+}
+
 /* ══════════════════════
    BODY
 ══════════════════════ */
 .rc__body {
   flex:1; min-width:0;
-  padding: 6px 8px 6px 8px;
+  padding: 7px 10px;
   display: flex; flex-direction: column;
-  justify-content: space-between;
-  gap: 0;
+  justify-content: center;
+  gap: 5px;
 }
 
 /* Fila 1 */
 .rc__top {
   display: flex; align-items: center;
-  justify-content: space-between; gap: 6px;
+  justify-content: space-between; gap: 8px;
 }
 
 /* Badges izquierda: tipo + modo */
@@ -328,12 +364,12 @@ function handleClick() {
 }
 
 .rc__tag {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 1.5px 6px; border-radius: 5px;
-  font-size: 9px; font-weight: 700; letter-spacing: .3px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 6px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .3px;
   white-space: nowrap; flex-shrink: 0;
 }
-.rc__tag i { font-size: 7.5px; }
+.rc__tag i { font-size: 8.5px; }
 
 .rc__tag--type {
   color: #5a9ad8;
@@ -357,22 +393,11 @@ function handleClick() {
 .rc__tag--rounds i { font-size: 7.5px; color: #8048c0; }
 
 .rc__top-right {
-  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 7px; flex-shrink: 0;
+  padding-left: 7px;
+  border-left: 1px solid rgba(255,255,255,.08);
 }
 
-/* timer */
-.rc__timer {
-  display: inline-flex; align-items: center; gap: 4px;
-  color: #4a7aaa; white-space: nowrap; flex-shrink: 0;
-}
-.rc__timer i { font-size: 8.5px; opacity: .5; }
-.rc__timer b {
-  font-family: 'Orbitron', monospace;
-  font-size: 10px; font-weight: 800; letter-spacing: .4px;
-  color: #9ecaf0;
-}
-.rc__timer--live { color: #ff6e8a; }
-.rc__timer--live b { color: #ff8aaa; }
 .rc__blink {
   width:5px; height:5px; border-radius:50%;
   background:currentColor; display:inline-block;
@@ -384,28 +409,31 @@ function handleClick() {
 .rc__bottom {
   display: flex; align-items: center;
   justify-content: space-between; gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,.06);
 }
 
 /* Premio */
 .rc__prize {
-  display: flex; align-items: baseline; gap: 4px; flex-shrink: 0;
+  display: flex; align-items: baseline; gap: 5px; flex-shrink: 0;
 }
 .rc__trophy {
-  font-size: 10px; color: #c8a028; align-self: center; flex-shrink: 0;
-  filter: drop-shadow(0 0 4px rgba(200,160,40,.4));
+  font-size: 11px; color: #c8a028; align-self: center; flex-shrink: 0;
+  filter: drop-shadow(0 0 5px rgba(200,160,40,.45));
 }
 .rc__prize-num {
   font-family: 'Orbitron', 'Anton', sans-serif;
-  font-size: 22px; font-weight: 900; line-height: 1;
+  font-size: 23px; font-weight: 900; line-height: 1;
   background: linear-gradient(130deg, #ffe566 0%, #ffbb20 50%, #ff8800 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  filter: drop-shadow(0 2px 6px rgba(255,150,0,.25));
-  letter-spacing: -1px;
+  filter: drop-shadow(0 2px 7px rgba(255,150,0,.3));
+  letter-spacing: -.5px;
 }
 .rc__prize-sym {
   font-family: 'Rajdhani', sans-serif;
   font-size: 12px; font-weight: 700;
   color: #e0a020; -webkit-text-fill-color: #e0a020;
+  letter-spacing: .3px;
 }
 
 /* Pills */
@@ -413,15 +441,21 @@ function handleClick() {
   display: flex; align-items: center; gap: 4px; flex-wrap: nowrap;
 }
 .rc__pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 7px; border-radius: 6px;
-  font-size: 10px; font-weight: 600;
-  color: #4a6a8a;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 6px;
+  font-size: 10.5px; font-weight: 700;
+  color: #6a8aac;
   background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.08);
   white-space: nowrap;
+  transition: border-color .2s ease, background .2s ease;
 }
-.rc__pill i { font-size: 8px; color: #243a58; }
+.rc__pill i { font-size: 8.5px; color: #3a5a7a; }
+.rc--active:hover .rc__pill,
+.rc--live:hover   .rc__pill {
+  background: rgba(255,255,255,.07);
+  border-color: rgba(255,255,255,.12);
+}
 
 .rc__pill--price {
   color: #6aaad8;
