@@ -71,7 +71,7 @@
         <div v-if="user.wallet" class="wallet-badge">
           <i class="fas fa-wallet" />
           <span class="wallet-amount">
-            {{ user.wallet.symbol }} {{ formatCurrency(user.wallet.balance, user.wallet.currency) }}
+            {{ formatCurrency(user.wallet.balance, user.wallet.currency) }}
           </span>
         </div>
 
@@ -150,41 +150,41 @@ const kycIcon = computed(() => ({
 <style scoped>
 .profile-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 2rem 1.5rem;
+    padding: 1.25rem 1.5rem;
     border-radius: 16px 16px 0 0;
 }
 
 .header-inner {
     display: flex;
-    align-items: flex-start;
-    gap: 2rem;
+    align-items: center;
+    gap: 1.5rem;
     flex-wrap: wrap;
 }
 
 /* ── Identity ── */
-.header-identity { display: flex; align-items: flex-start; gap: 1.25rem; flex: 0 0 auto; }
+.header-identity { display: flex; align-items: center; gap: 1rem; flex: 0 0 auto; }
 
 .avatar-wrap { position: relative; flex-shrink: 0; }
-.avatar-img  { width: 90px; height: 90px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.6); object-fit: cover; box-shadow: 0 4px 16px rgba(0,0,0,0.25); transition: transform 0.2s; }
+.avatar-img  { width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.6); object-fit: cover; box-shadow: 0 4px 16px rgba(0,0,0,0.25); transition: transform 0.2s; }
 .avatar-img:hover { transform: scale(1.04); }
 
 .avatar-btn {
-    position: absolute; bottom: 2px; right: 2px;
-    width: 28px; height: 28px; border-radius: 50%; border: none;
-    background: rgba(255,255,255,0.95); color: #667eea; font-size: 0.7rem;
+    position: absolute; bottom: 0; right: 0;
+    width: 22px; height: 22px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.95); color: #667eea; font-size: 0.62rem;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
     box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: background 0.15s;
 }
 .avatar-btn:hover { background: #fff; }
 
-.identity-name     { color: #fff; font-size: 1.35rem; font-weight: 700; margin: 0 0 2px; letter-spacing: -0.02em; }
-.identity-username { color: rgba(255,255,255,0.7); font-size: 0.875rem; margin: 0 0 8px; }
-.identity-bio      { color: rgba(255,255,255,0.75); font-size: 0.8rem; margin: 6px 0 0; max-width: 320px; line-height: 1.4; }
-.identity-badges   { display: flex; gap: 5px; flex-wrap: wrap; }
+.identity-name     { color: #fff; font-size: 1.1rem; font-weight: 700; margin: 0; letter-spacing: -0.02em; line-height: 1.2; }
+.identity-username { color: rgba(255,255,255,0.7); font-size: 0.78rem; margin: 0 0 5px; }
+.identity-bio      { color: rgba(255,255,255,0.75); font-size: 0.78rem; margin: 4px 0 0; max-width: 320px; line-height: 1.35; }
+.identity-badges   { display: flex; gap: 4px; flex-wrap: wrap; }
 
 .badge-pill {
     display: inline-flex; align-items: center; gap: 4px;
-    font-size: 0.68rem; font-weight: 600; padding: 3px 9px;
+    font-size: 0.64rem; font-weight: 600; padding: 2px 8px;
     border-radius: 20px; letter-spacing: 0.01em; white-space: nowrap;
 }
 .badge-verified     { background: rgba(40,167,69,0.9);   color: #fff; }
@@ -196,23 +196,23 @@ const kycIcon = computed(() => ({
 .badge-kyc-none     { background: rgba(255,255,255,0.18); color: #fff; }
 
 /* ── Stats ── */
-.header-stats { display: flex; gap: 1.5rem; flex: 1; justify-content: center; flex-wrap: wrap; }
-.stat-item    { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.stat-value   { color: #fff; font-size: 1.6rem; font-weight: 800; line-height: 1; text-shadow: 0 2px 6px rgba(0,0,0,0.2); }
-.stat-label   { color: rgba(255,255,255,0.65); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.header-stats { display: flex; gap: 1.25rem; flex: 1; justify-content: center; flex-wrap: wrap; }
+.stat-item    { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.stat-value   { color: #fff; font-size: 1.25rem; font-weight: 800; line-height: 1; text-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+.stat-label   { color: rgba(255,255,255,0.65); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; }
 
 /* ── Actions ── */
-.header-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex: 0 0 auto; }
+.header-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: 0 0 auto; }
 
 .wallet-badge {
     display: flex; align-items: center; gap: 6px;
-    color: rgba(255,255,255,0.9); font-size: 0.875rem; font-weight: 600;
-    background: rgba(255,255,255,0.15); padding: 4px 12px; border-radius: 20px;
+    color: rgba(255,255,255,0.9); font-size: 0.8rem; font-weight: 600;
+    background: rgba(255,255,255,0.15); padding: 3px 10px; border-radius: 20px;
 }
 
 .action-btn {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 7px 18px; border-radius: 10px; font-size: 0.82rem;
+    padding: 5px 14px; border-radius: 8px; font-size: 0.76rem;
     font-weight: 600; cursor: pointer; border: none;
     transition: all 0.15s ease; white-space: nowrap;
 }
@@ -226,8 +226,8 @@ const kycIcon = computed(() => ({
 .action-btn--kyc:hover   { background: rgba(255,193,7,1); transform: translateY(-1px); }
 
 @media (max-width: 768px) {
-    .header-inner   { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
-    .header-stats   { justify-content: flex-start; }
+    .header-inner   { flex-direction: column; align-items: flex-start; gap: 1rem; }
+    .header-stats   { justify-content: flex-start; width: 100%; }
     .header-actions { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
 }
 </style>
