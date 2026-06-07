@@ -8,6 +8,7 @@ use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\DTOs\PlayerDTO;
 use App\Domains\Games\Trivia\DTOs\RoomDTO;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Models\ExchangeRate;
 use App\Models\User;
 use App\Services\WalletService;
 use App\Services\NotificationService;
@@ -190,7 +191,16 @@ class JoinRoomAction
         }
 
         if (empty($feeMap)) {
-            return; // Sala gratuita
+            // Sala sin moneda específica configurada: si tiene un costo base
+            // (entry_fee / entry_fee_usd), se cobra aplicando conversión de
+            // tasa de cambio sobre la wallet activa del jugador, igual que Bingo.
+            $baseFee = (float) ($room->entry_fee_usd ?: $room->entry_fee ?? 0);
+
+            if ($baseFee > 0) {
+                $this->chargeEntryFeeWithConversion($room, $playerId, $baseFee);
+            }
+
+            return;
         }
 
         // ── Buscar la primera wallet del usuario que coincida con una moneda aceptada
@@ -232,6 +242,52 @@ class JoinRoomAction
             amount:      $chargeAmount,
             description: "Entrada sala Trivia: {$room->title} ({$room->code})",
         );
+    }
+
+    /**
+     * Cobra la entrada cuando la sala no define una moneda específica:
+     * convierte el costo base (USD) a la moneda de la wallet activa del
+     * jugador usando la tasa de cambio global, igual que en Bingo.
+     */
+    private function chargeEntryFeeWithConversion(TriviaRoom $room, string $playerId, float $baseFeeUsd): void
+    {
+        $user   = User::findOrFail($playerId);
+        $wallet = $user->wallets()
+            ->where('status', 'ACTIVE')
+            ->with('currency')
+            ->orderByDesc('balance')
+            ->first();
+
+        if (! $wallet) {
+            throw new RuntimeException('No tienes una billetera activa para pagar la entrada de esta sala.');
+        }
+
+        $exchangeRate = $this->getPlayerExchangeRate((string) $wallet->currency_id);
+        $chargeAmount = round($baseFeeUsd * $exchangeRate, 2);
+
+        if (! $wallet->hasSufficientBalance($chargeAmount)) {
+            $symbol = $wallet->currency?->symbol ?? '';
+            throw new RuntimeException("Saldo insuficiente. Se requieren {$symbol} {$chargeAmount}.");
+        }
+
+        $this->walletService->recordTriviaEntry(
+            wallet:      $wallet,
+            amount:      $chargeAmount,
+            description: "Entrada sala Trivia: {$room->title} ({$room->code})",
+        );
+    }
+
+    /**
+     * Tasa de cambio activa más reciente para una moneda (USD → moneda local).
+     * Si no existe tasa registrada, se asume 1:1 (la moneda es la base).
+     */
+    private function getPlayerExchangeRate(string $currencyId): float
+    {
+        return (float) ExchangeRate::where('currency_id', $currencyId)
+            ->where('status', 'ACTIVE')
+            ->orderByDesc('created_at')
+            ->value('amount')
+            ?: 1.0;
     }
 
     /**

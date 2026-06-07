@@ -394,6 +394,7 @@ final class TriviaGameController extends Controller
         // Fallback: entry_currency_id / entry_fee (legado, una sola moneda)
         $entryCurrencySymbol = null;
         $userWallet          = null;
+        $displayEntryFee     = $room->entry_fee ? (float) $room->entry_fee : null;
         $feeByCurrency       = $room->fee_by_currency; // array|null (cast en el modelo)
 
         // Recopilar todos los currency_ids relevantes para la sala
@@ -468,6 +469,45 @@ final class TriviaGameController extends Controller
                     ]];
                 })->all(),
             ];
+        } else {
+            // Sala sin moneda específica configurada: si tiene un costo base
+            // (entry_fee / entry_fee_usd), se muestra convertido a la moneda
+            // de la wallet activa del jugador (igual que en Bingo).
+            $baseFeeUsd = (float) ($room->entry_fee_usd ?: $room->entry_fee ?? 0);
+
+            if ($baseFeeUsd > 0) {
+                $wallet = $user->wallets()
+                    ->where('status', 'ACTIVE')
+                    ->with('currency')
+                    ->orderByDesc('balance')
+                    ->first();
+
+                if ($wallet) {
+                    $exchangeRate = (float) \App\Models\ExchangeRate::where('currency_id', (string) $wallet->currency_id)
+                        ->where('status', 'ACTIVE')
+                        ->orderByDesc('created_at')
+                        ->value('amount') ?: 1.0;
+
+                    $convertedFee = round($baseFeeUsd * $exchangeRate, 2);
+
+                    $entryCurrencySymbol = $wallet->currency?->symbol ?? '';
+                    $displayEntryFee     = $convertedFee;
+
+                    $userWallet = [
+                        'balance'    => (float) $wallet->balance,
+                        'symbol'     => $wallet->currency?->symbol ?? '',
+                        'currencyId' => (string) $wallet->currency_id,
+                        'found'      => true,
+                    ];
+                } else {
+                    $userWallet = [
+                        'balance'    => 0.0,
+                        'symbol'     => '',
+                        'currencyId' => null,
+                        'found'      => false,
+                    ];
+                }
+            }
         }
 
         // ── Preparar datos de equipos si aplica ────────────────────────────────
@@ -496,7 +536,7 @@ final class TriviaGameController extends Controller
                 'currentPlayers'       => count($initialPlayers),
                 'questionCount'        => $room->question_count,
                 'timePerQuestion'      => $room->time_per_question,
-                'entryFee'             => $room->entry_fee ? (float) $room->entry_fee : null,
+                'entryFee'             => $displayEntryFee,
                 'entryCurrencyId'      => $room->entry_currency_id,
                 'entryCurrencySymbol'  => $entryCurrencySymbol,
                 'feeByCurrency'        => $room->fee_by_currency ?: null,

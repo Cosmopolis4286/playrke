@@ -45,24 +45,24 @@ const canJoin = computed(() =>
 // ── Modal de confirmación (solo si hay costo) ─────────────────────────────────
 const showConfirmModal = ref(false)
 
-// La sala tiene fee pero no tiene moneda configurada (error de configuración admin)
+// La sala tiene fee pero no tiene moneda configurada NI wallet convertida disponible
+// (error de configuración admin: no hay tasa de cambio / wallet para aplicar conversión)
 const feeWithoutCurrency = computed(() =>
-  !!props.room.entryFee && props.room.entryFee > 0 && !props.room.entryCurrencyId
+  !!props.room.entryFee && props.room.entryFee > 0 && !props.room.entryCurrencyId && !props.userWallet
 )
 
-// Solo es "saldo insuficiente" si: hay moneda configurada, wallet encontrada, y balance < fee
+// Solo es "saldo insuficiente" si: hay wallet encontrada (directa o por conversión) y balance < fee
 const hasInsufficientFunds = computed(() => {
   if (!props.room.entryFee || props.room.entryFee <= 0) return false
-  if (feeWithoutCurrency.value) return false         // sala mal configurada → no bloquear
   if (!props.userWallet || !props.userWallet.found) return false
   return props.userWallet.balance < props.room.entryFee
 })
 
-// El usuario no tiene billetera en la moneda requerida (y la moneda SÍ está configurada)
+// El usuario no tiene billetera utilizable para pagar la entrada
+// (ni en la moneda requerida, ni una wallet activa para aplicar conversión)
 const walletNotFound = computed(() =>
   !!props.room.entryFee &&
   props.room.entryFee > 0 &&
-  !!props.room.entryCurrencyId &&
   !!props.userWallet &&
   !props.userWallet.found
 )
