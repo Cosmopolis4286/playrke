@@ -67,8 +67,33 @@ const form = useForm({
   settings: props.room.settings || {},
 })
 
+const isEditable = computed(() => props.room.status === 'waiting')
+
 // Min datetime for scheduled_at (must be in the future)
 const minScheduledAt = computed(() => getMinLocalDatetime())
+
+// --- Validaciones de cliente (feedback inmediato, espejo de las reglas del backend) ---
+
+const titleError = computed(() => {
+  const value = (form.title || '').trim()
+  if (!value) return 'El título es obligatorio'
+  if (value.length > 255) return 'El título no puede exceder 255 caracteres'
+  return ''
+})
+
+const descriptionError = computed(() => {
+  if ((form.description || '').length > 1000) return 'La descripción no puede exceder 1000 caracteres'
+  return ''
+})
+
+const maxPlayersError = computed(() => {
+  const value = Number(form.max_players)
+  if (!form.max_players && form.max_players !== 0) return 'Debes indicar el máximo de jugadores'
+  if (!Number.isInteger(value)) return 'Debe ser un número entero'
+  if (value < 2) return 'La sala debe permitir al menos 2 jugadores'
+  if (value > 500) return 'Máximo 500 jugadores permitidos'
+  return ''
+})
 
 // Validate scheduled_at is in the future (comparando en hora local)
 const scheduledAtError = computed(() => {
@@ -79,8 +104,48 @@ const scheduledAtError = computed(() => {
   return ''
 })
 
+// Cada precio de entrada debe ser mayor a 0 si la moneda está activa
+const feeByCurrencyError = computed(() => {
+  for (const cid of Object.keys(feeByCurrency.value)) {
+    const amount = Number(feeByCurrency.value[cid])
+    if (!Number.isFinite(amount) || amount <= 0) {
+      const currency = getCurrencyById(cid)
+      return `Indica un precio de entrada mayor a 0 para ${currency?.iso_code ?? 'la moneda seleccionada'}`
+    }
+  }
+  return ''
+})
+
+// Si hay un monto de premio, se debe seleccionar la moneda del premio
+const prizeCurrencyError = computed(() => {
+  if (Number(form.prize_amount) > 0 && !form.prize_currency_id) {
+    return 'Selecciona la moneda del premio cuando indicas un monto'
+  }
+  return ''
+})
+
+const prizeAmountError = computed(() => {
+  const value = Number(form.prize_amount)
+  if (form.prize_amount !== null && form.prize_amount !== undefined && value < 0) {
+    return 'El monto del premio no puede ser negativo'
+  }
+  return ''
+})
+
+const hasClientErrors = computed(() =>
+  Boolean(
+    titleError.value ||
+    descriptionError.value ||
+    maxPlayersError.value ||
+    scheduledAtError.value ||
+    feeByCurrencyError.value ||
+    prizeCurrencyError.value ||
+    prizeAmountError.value
+  )
+)
+
 const submit = () => {
-  if (scheduledAtError.value) return
+  if (!isEditable.value || hasClientErrors.value) return
 
   form.transform((data) => ({
     ...data,
@@ -88,7 +153,9 @@ const submit = () => {
     fee_by_currency: feeByCurrency.value,
   }))
 
-  form.put(getRoute('roomsUpdate', { id: props.room.id }))
+  form.put(getRoute('roomsUpdate', { id: props.room.id }), {
+    preserveScroll: true,
+  })
 }
 </script>
 
@@ -114,14 +181,32 @@ const submit = () => {
       </div>
 
       <!-- Alerta si no es editable -->
-      <div v-if="room.status !== 'waiting'" class="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-        <p class="text-sm text-yellow-800 dark:text-yellow-300">
-          ⚠️ Esta sala ya no está en estado "esperando". Algunos campos no se pueden modificar.
+      <div v-if="!isEditable" class="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-start gap-3">
+        <span class="text-xl leading-none">⚠️</span>
+        <div>
+          <p class="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+            Esta sala no se puede editar
+          </p>
+          <p class="text-sm text-yellow-700 dark:text-yellow-400 mt-0.5">
+            Sólo es posible modificar salas en estado <strong>"esperando"</strong>. El estado actual es
+            <strong>"{{ room.status }}"</strong>, por lo que todos los campos están bloqueados.
+          </p>
+        </div>
+      </div>
+
+      <!-- Resumen de errores del servidor -->
+      <div v-if="Object.keys(form.errors).length > 0" class="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+        <p class="text-sm font-medium text-red-800 dark:text-red-300 mb-1">
+          Revisa los siguientes campos antes de guardar:
         </p>
+        <ul class="list-disc list-inside text-sm text-red-700 dark:text-red-400 space-y-0.5">
+          <li v-for="(message, field) in form.errors" :key="field">{{ message }}</li>
+        </ul>
       </div>
 
       <!-- Form -->
       <form @submit.prevent="submit" class="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden">
+        <fieldset :disabled="!isEditable" class="contents">
         <div class="p-6 space-y-6">
           <!-- Título -->
           <div>
@@ -132,10 +217,13 @@ const submit = () => {
               v-model="form.title"
               type="text"
               required
-              :disabled="room.status !== 'waiting'"
-              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
+              maxlength="255"
+              :aria-invalid="Boolean(titleError || form.errors.title)"
+              class="mt-1 block w-full rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="(titleError || form.errors.title) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
             />
-            <p v-if="form.errors.title" class="mt-1 text-sm text-red-600">{{ form.errors.title }}</p>
+            <p v-if="titleError" class="mt-1 text-sm text-red-600">{{ titleError }}</p>
+            <p v-else-if="form.errors.title" class="mt-1 text-sm text-red-600">{{ form.errors.title }}</p>
           </div>
 
           <!-- Descripción -->
@@ -146,9 +234,17 @@ const submit = () => {
             <textarea
               v-model="form.description"
               rows="3"
-              :disabled="room.status !== 'waiting'"
-              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
+              maxlength="1000"
+              :aria-invalid="Boolean(descriptionError || form.errors.description)"
+              class="mt-1 block w-full rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="(descriptionError || form.errors.description) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
             />
+            <div class="mt-1 flex items-center justify-between">
+              <p v-if="descriptionError" class="text-sm text-red-600">{{ descriptionError }}</p>
+              <p v-else-if="form.errors.description" class="text-sm text-red-600">{{ form.errors.description }}</p>
+              <span v-else></span>
+              <span class="text-xs text-gray-400">{{ (form.description || '').length }}/1000</span>
+            </div>
           </div>
 
           <!-- Categoría -->
@@ -161,13 +257,15 @@ const submit = () => {
               type="text"
               list="category-list-edit"
               maxlength="50"
-              :disabled="room.status !== 'waiting'"
-              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
+              :aria-invalid="Boolean(form.errors.category)"
+              class="mt-1 block w-full rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="form.errors.category ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
               placeholder="Ej: Ciencias, Historia, Deportes..."
             />
             <datalist id="category-list-edit">
               <option v-for="cat in categories" :key="cat" :value="cat" />
             </datalist>
+            <p v-if="form.errors.category" class="mt-1 text-sm text-red-600">{{ form.errors.category }}</p>
           </div>
 
           <!-- Max Players -->
@@ -181,9 +279,14 @@ const submit = () => {
               required
               min="2"
               max="500"
-              :disabled="room.status !== 'waiting'"
-              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
+              step="1"
+              :aria-invalid="Boolean(maxPlayersError || form.errors.max_players)"
+              class="mt-1 block w-full rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              :class="(maxPlayersError || form.errors.max_players) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
             />
+            <p v-if="maxPlayersError" class="mt-1 text-sm text-red-600">{{ maxPlayersError }}</p>
+            <p v-else-if="form.errors.max_players" class="mt-1 text-sm text-red-600">{{ form.errors.max_players }}</p>
+            <p v-else class="mt-1 text-xs text-gray-400">Entre 2 y 500 jugadores. Jugadores actuales: {{ room.current_players ?? 0 }}.</p>
           </div>
 
           <!-- Entrada y Premio -->
@@ -205,7 +308,6 @@ const submit = () => {
                   <button
                     v-for="c in currencies" :key="c.id"
                     type="button"
-                    :disabled="room.status !== 'waiting'"
                     @click="toggleCurrency(c.id)"
                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     :class="feeByCurrency[c.id] !== undefined
@@ -233,16 +335,17 @@ const submit = () => {
                     </span>
                     <input
                       type="number"
-                      min="0"
+                      min="0.01"
                       step="0.01"
-                      :disabled="room.status !== 'waiting'"
                       :value="feeByCurrency[cid]"
-                      @change="feeByCurrency[cid] = Number(($event.target as HTMLInputElement).value)"
+                      @input="feeByCurrency[cid] = Math.max(0, Number(($event.target as HTMLInputElement).value))"
                       class="w-24 rounded-r-lg border border-l-0 border-indigo-200 dark:border-indigo-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 disabled:opacity-50"
                       placeholder="0.00"
                     />
                   </div>
                 </div>
+                <p v-if="feeByCurrencyError" class="mt-2 text-sm text-red-600">{{ feeByCurrencyError }}</p>
+                <p v-else-if="form.errors.fee_by_currency" class="mt-2 text-sm text-red-600">{{ form.errors.fee_by_currency }}</p>
               </div>
 
               <!-- Premio -->
@@ -256,14 +359,16 @@ const submit = () => {
                     type="number"
                     min="0"
                     step="0.01"
-                    :disabled="room.status !== 'waiting'"
-                    class="block w-28 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
+                    :aria-invalid="Boolean(prizeAmountError || form.errors.prize_amount)"
+                    class="block w-28 rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    :class="(prizeAmountError || form.errors.prize_amount) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
                     placeholder="0"
                   />
                   <select
                     v-model="form.prize_currency_id"
-                    :disabled="room.status !== 'waiting'"
-                    class="block flex-1 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
+                    :aria-invalid="Boolean(prizeCurrencyError || form.errors.prize_currency_id)"
+                    class="block flex-1 rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    :class="(prizeCurrencyError || form.errors.prize_currency_id) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
                   >
                     <option value="">— Sin moneda —</option>
                     <option v-for="c in currencies" :key="c.id" :value="c.id">
@@ -271,16 +376,23 @@ const submit = () => {
                     </option>
                   </select>
                 </div>
+                <p v-if="prizeAmountError" class="mt-1 text-sm text-red-600">{{ prizeAmountError }}</p>
+                <p v-else-if="form.errors.prize_amount" class="mt-1 text-sm text-red-600">{{ form.errors.prize_amount }}</p>
+                <p v-if="prizeCurrencyError" class="mt-1 text-sm text-red-600">{{ prizeCurrencyError }}</p>
+                <p v-else-if="form.errors.prize_currency_id" class="mt-1 text-sm text-red-600">{{ form.errors.prize_currency_id }}</p>
                 <div class="mt-2 flex gap-4 text-sm">
                   <label class="flex items-center gap-1.5 cursor-pointer">
-                    <input v-model="form.prize_type" type="radio" value="accumulated" :disabled="room.status !== 'waiting'" class="text-indigo-600" />
+                    <input v-model="form.prize_type" type="radio" value="accumulated" class="text-indigo-600" />
                     <span class="text-gray-700 dark:text-gray-300">Acumulado</span>
                   </label>
                   <label class="flex items-center gap-1.5 cursor-pointer">
-                    <input v-model="form.prize_type" type="radio" value="fixed" :disabled="room.status !== 'waiting'" class="text-indigo-600" />
+                    <input v-model="form.prize_type" type="radio" value="fixed" class="text-indigo-600" />
                     <span class="text-gray-700 dark:text-gray-300">Fijo</span>
                   </label>
                 </div>
+                <p class="mt-1.5 text-xs text-gray-400">
+                  <strong>Acumulado:</strong> el premio crece con las entradas pagadas. <strong>Fijo:</strong> se reparte un monto fijo definido aquí.
+                </p>
               </div>
             </div>
           </div>
@@ -300,12 +412,21 @@ const submit = () => {
                 v-model="form.scheduled_at"
                 type="datetime-local"
                 :min="minScheduledAt"
-                :disabled="room.status !== 'waiting'"
-                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:opacity-50"
+                :aria-invalid="Boolean(scheduledAtError || form.errors.scheduled_at)"
+                class="mt-1 block w-full rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                :class="(scheduledAtError || form.errors.scheduled_at) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
               />
               <p class="mt-1 text-xs text-gray-500">Deja vacío para inicio manual. Si especificas fecha y hora, la sala se iniciará automáticamente.</p>
               <p v-if="scheduledAtError" class="mt-1 text-sm text-red-600">{{ scheduledAtError }}</p>
-              <p v-if="form.errors.scheduled_at" class="mt-1 text-sm text-red-600">{{ form.errors.scheduled_at }}</p>
+              <p v-else-if="form.errors.scheduled_at" class="mt-1 text-sm text-red-600">{{ form.errors.scheduled_at }}</p>
+              <button
+                v-if="form.scheduled_at"
+                type="button"
+                @click="form.scheduled_at = ''"
+                class="mt-2 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                Quitar fecha (inicio manual)
+              </button>
             </div>
           </div>
 
@@ -338,6 +459,7 @@ const submit = () => {
             </div>
           </div>
         </div>
+        </fieldset>
 
         <!-- Footer -->
         <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700 flex items-center justify-end gap-3">
@@ -348,11 +470,16 @@ const submit = () => {
             Cancelar
           </Link>
           <button
-            v-if="room.status === 'waiting'"
+            v-if="isEditable"
             type="submit"
-            :disabled="form.processing"
-            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50"
+            :disabled="form.processing || hasClientErrors"
+            :title="hasClientErrors ? 'Corrige los errores señalados antes de guardar' : ''"
+            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
           >
+            <svg v-if="form.processing" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
             <span v-if="form.processing">Guardando...</span>
             <span v-else>Guardar Cambios</span>
           </button>

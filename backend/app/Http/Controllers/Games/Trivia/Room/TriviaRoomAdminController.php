@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Games\Trivia\Room;
 use App\Domains\Games\Trivia\Contracts\RoomServiceInterface;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Trivia\UpdateRoomRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -284,46 +285,31 @@ final class TriviaRoomAdminController extends Controller
     /**
      * Actualizar sala.
      */
-    public function update(Request $request, string $id)
+    public function update(UpdateRoomRequest $request, string $id)
     {
-        $validated = $request->validate([
-            'title'              => 'required|string|max:255',
-            'description'        => 'nullable|string|max:1000',
-            'category'           => 'nullable|string|max:50',
-            'max_players'        => 'required|integer|min:2|max:500',
-            'entry_fee'          => 'nullable|numeric|min:0',
-            'entry_currency_id'  => 'nullable|string',
-            'fee_by_currency'    => 'nullable|array',
-            'fee_by_currency.*'  => 'nullable|numeric|min:0',
-            'prize_type'         => 'nullable|in:fixed,accumulated',
-            'prize_amount'       => 'nullable|numeric|min:0',
-            'prize_currency_id'  => 'nullable|string',
-            'scheduled_at'       => 'nullable|date',
-            'settings'           => 'nullable|array',
-        ]);
+        $room = TriviaRoom::findOrFail($id);
 
-        // Validar que scheduled_at sea futuro si se está actualizando (con tolerancia de 1 minuto)
-        if (!empty($validated['scheduled_at'])) {
-            $scheduledTime = new \DateTime($validated['scheduled_at']);
-            $now = new \DateTime('now', new \DateTimeZone('UTC'));
-            if ($scheduledTime <= $now->modify('-1 minute')) {
-                return redirect()
-                    ->back()
-                    ->with('error', 'La fecha programada debe ser futura.')
-                    ->withInput();
-            }
+        if ($room->status !== 'waiting') {
+            return redirect()
+                ->route('trivia-rooms-admin.index')
+                ->with('error', 'No se puede editar una sala que ya inició o cerró.');
         }
 
-        // Normalizar fee_by_currency: eliminar entradas vacías/nulas
+        $validated = $request->validated();
+
+        // Normalizar fee_by_currency: eliminar entradas vacías/nulas/cero
         $feeByCurrency = collect($validated['fee_by_currency'] ?? [])
-            ->filter(fn($v) => $v !== null && $v !== '' && (float) $v > 0)
-            ->map(fn($v) => (float) $v)
+            ->filter(fn ($v) => $v !== null && $v !== '' && (float) $v > 0)
+            ->map(fn ($v) => (float) $v)
             ->all();
 
         // Si sólo hay una moneda, sincronizar entry_fee/entry_currency_id para compatibilidad
         if (count($feeByCurrency) === 1) {
             $validated['entry_currency_id'] = array_key_first($feeByCurrency);
             $validated['entry_fee']         = array_values($feeByCurrency)[0];
+        } elseif (empty($feeByCurrency)) {
+            $validated['entry_currency_id'] = null;
+            $validated['entry_fee']         = 0;
         }
 
         try {
