@@ -2,7 +2,6 @@
 
 namespace App\Jobs\Games\Bingo;
 
-use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Services\Games\Bingo\Game\BingoDrawService;
 use Illuminate\Bus\Queueable;
@@ -48,15 +47,11 @@ final class StartBingoDrawJob implements ShouldQueue
             return;
         }
 
-        // Evitar doble inicio si otro worker ya lo arrancó (carrera entre despachos).
-        if (BingoDraw::where('room_id', (string) $room->id)->exists()) {
-            Log::info('[StartBingoDrawJob] El sorteo ya fue iniciado para esta sala — se omite', [
-                'room_id' => $room->id,
-            ]);
-            return;
-        }
-
-        Log::info('[StartBingoDrawJob] Iniciando sorteo autónomo', ['room_id' => $room->id]);
+        // Si ya hay fichas cantadas pero la sala sigue activa, es un sorteo interrumpido
+        // (p.ej. el worker se reinició a mitad del sorteo) — BingoDrawService::startDraw()
+        // detecta este caso y retoma desde la última ficha persistida en vez de reiniciar.
+        // Solo omitimos si la sala ya no está en un estado válido (otro proceso la cerró).
+        Log::info('[StartBingoDrawJob] Iniciando/retomando sorteo autónomo', ['room_id' => $room->id]);
 
         $drawService->startDraw($room);
     }

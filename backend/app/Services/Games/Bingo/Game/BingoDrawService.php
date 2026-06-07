@@ -32,13 +32,7 @@ final class BingoDrawService
 
         Log::info('[BingoDrawService] Iniciando sorteo', ['room_id' => $roomId]);
 
-        // 1. Limpiar sorteos previos
-        DB::transaction(function () use ($roomId) {
-            BingoDraw::where('room_id', $roomId)->delete();
-            BingoDrawCode::where('room_id', $roomId)->delete();
-        });
-
-        // 2. Resolver ronda activa, crear si no existe
+        // 1. Resolver ronda activa, crear si no existe
         $round = BingoRound::where('room_id', (string) $roomId)
             ->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])
             ->orderBy('round')
@@ -86,23 +80,67 @@ final class BingoDrawService
             'positions'   => $patternPositions,
         ]);
 
-        // 4. Generar y persistir secuencia
-        $sequence = $this->generateSequence();
-        $this->persistDrawCodes($roomId, $sequence);
+        // 2. ¿Hay un sorteo previo interrumpido para esta sala/ronda? (p.ej. el worker
+        // se reinició a mitad del sorteo). Si la secuencia ya fue persistida y quedan
+        // fichas por cantar, retomamos desde ahí en vez de reiniciar desde cero.
+        $existingSequence = BingoDrawCode::where('room_id', (string) $roomId)
+            ->orderBy('num')
+            ->pluck('sym')
+            ->map(fn ($sym) => (int) $sym)
+            ->all();
 
-        // 5. Primera ficha + GameStarted
-        $firstDraw = $this->createDrawRecord($roomId, $roundId, $sequence[0], 0);
-        broadcast(new BingoGameStarted($roomId, (int) $firstDraw->id));
-        broadcast(new BingoNumberCalled((int) $sequence[0], $roomId));
+        $alreadyDrawn = BingoDraw::where('room_id', (string) $roomId)
+            ->where('round_id', $roundId)
+            ->orderBy('time')
+            ->orderBy('created_at')
+            ->get();
 
-        $drawnSoFar = [$sequence[0]];
+        $resuming = !empty($existingSequence) && $alreadyDrawn->isNotEmpty() && $alreadyDrawn->count() < count($existingSequence);
 
-        if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $firstDraw->id)) {
-            return $result;
+        if ($resuming) {
+            $sequence   = $existingSequence;
+            $drawnSoFar = $alreadyDrawn->pluck('chip')->map(fn ($chip) => (int) $chip)->all();
+            $lastDraw   = $alreadyDrawn->last();
+            $startIndex = count($drawnSoFar);
+
+            Log::warning('[BingoDrawService] Retomando sorteo interrumpido', [
+                'room_id'       => $roomId,
+                'round_id'      => $roundId,
+                'ya_cantadas'   => $startIndex,
+                'total'         => count($sequence),
+            ]);
+
+            broadcast(new BingoNumberCalled((int) $lastDraw->chip, $roomId));
+
+            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, (int) $lastDraw->id)) {
+                return $result;
+            }
+        } else {
+            // Limpiar sorteos previos (de una sala/ronda distinta o ya finalizada)
+            DB::transaction(function () use ($roomId) {
+                BingoDraw::where('room_id', $roomId)->delete();
+                BingoDrawCode::where('room_id', $roomId)->delete();
+            });
+
+            // 4. Generar y persistir secuencia
+            $sequence = $this->generateSequence();
+            $this->persistDrawCodes($roomId, $sequence);
+
+            // 5. Primera ficha + GameStarted
+            $firstDraw = $this->createDrawRecord($roomId, $roundId, $sequence[0], 0);
+            broadcast(new BingoGameStarted($roomId, (int) $firstDraw->id));
+            broadcast(new BingoNumberCalled((int) $sequence[0], $roomId));
+
+            $drawnSoFar = [$sequence[0]];
+            $startIndex = 1;
+
+            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $firstDraw->id)) {
+                return $result;
+            }
         }
 
         // 6. Fichas restantes
-        for ($i = 1, $total = count($sequence); $i < $total; $i++) {
+        for ($i = $startIndex, $total = count($sequence); $i < $total; $i++) {
             sleep(self::CHIP_INTERVAL_SECONDS);
 
             $chip = $sequence[$i];

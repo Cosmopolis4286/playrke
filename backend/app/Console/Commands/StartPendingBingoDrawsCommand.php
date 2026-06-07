@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
+use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Jobs\Games\Bingo\StartBingoDrawJob;
@@ -47,11 +48,17 @@ class StartPendingBingoDrawsCommand extends Command
                 ->get();
 
             foreach ($rooms as $room) {
-                // Sorteo ya iniciado (otra instancia del comando o un cliente lo disparó antes).
-                if (BingoDraw::where('room_id', (string) $room->id)->exists()) {
+                $drawnCount = BingoDraw::where('room_id', (string) $room->id)->count();
+                $sequenceCount = BingoDrawCode::where('room_id', (string) $room->id)->count();
+
+                // Sorteo ya completo (todas las fichas de la secuencia fueron cantadas) — nada que hacer.
+                if ($sequenceCount > 0 && $drawnCount >= $sequenceCount) {
                     continue;
                 }
 
+                // Sin sorteo iniciado, o interrumpido a mitad (p.ej. el worker se reinició):
+                // despachamos — BingoDrawService::startDraw() detecta el caso interrumpido
+                // y retoma desde la última ficha persistida en vez de reiniciar.
                 StartBingoDrawJob::dispatch((string) $room->id)->onQueue('bingo-draw');
                 $started++;
 
