@@ -27,6 +27,11 @@ import { SelectOption } from '@/js/types/common/form/form'
     (e: 'update:roomCommn', value: string | number): void
   }>()
 
+  const START_MODE_OPTIONS: SelectOption[] = [
+    { value: 'SCHEDULED', label: 'Programado' },
+    { value: 'MANUAL', label: 'Manual (sin horario fijo)' }
+  ]
+
   const DAYS_OPTIONS: { value: DayOfWeek; label: string }[] = [
     { value: 'monday', label: 'Lunes' },
     { value: 'tuesday', label: 'Martes' },
@@ -53,13 +58,47 @@ import { SelectOption } from '@/js/types/common/form/form'
     const min15 = new Date(Date.now() + 15 * 60 * 1000)
     return `${String(min15.getHours()).padStart(2, '0')}:${String(min15.getMinutes()).padStart(2, '0')}`
   })
+
+  const isManualStart = computed(
+    () => !props.automaticRoom && (props.modelValue as BingoRoomFormData).startMode === 'MANUAL'
+  )
+
+  /* ==========================================================================
+   * Handlers
+   * ========================================================================== */
+
+  function onStartModeChange(value: string | number | (string | number)[] | null): void {
+    const startMode = value as 'SCHEDULED' | 'MANUAL'
+
+    emit('update:modelValue', {
+      ...props.modelValue,
+      startMode,
+      ...(startMode === 'MANUAL' ? { date: null, time: null } : {})
+    } as BingoRoomFormData)
+  }
 </script>
 
 <template>
   <div style="display: contents">
-    <!-- Fecha (solo salas normales) -->
-    <FormInput
+    <!-- Modo de inicio (solo salas normales) -->
+    <FormSelect
       v-if="!automaticRoom"
+      label="Modo de Inicio"
+      name="start_mode"
+      :error="(errors as any).startMode"
+      required
+      placeholder="Selecciona modo de inicio"
+      :options="START_MODE_OPTIONS"
+      optionValue="value"
+      optionLabel="label"
+      col="col-sm-6 col-md-4 col-lg-3"
+      :modelValue="(modelValue as BingoRoomFormData).startMode ?? 'SCHEDULED'"
+      @update:modelValue="onStartModeChange"
+    />
+
+    <!-- Fecha (solo salas normales programadas) -->
+    <FormInput
+      v-if="!automaticRoom && !isManualStart"
       label="Fecha"
       name="date"
       :error="errors.date"
@@ -90,8 +129,9 @@ import { SelectOption } from '@/js/types/common/form/form'
       "
     />
 
-    <!-- Hora -->
+    <!-- Hora (salas automáticas siempre; salas normales solo si están programadas) -->
     <FormInput
+      v-if="!isManualStart"
       label="Hora"
       name="time"
       :error="errors.time"

@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\Games\Bingo\Room;
 
+use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class BingoRoomResource extends JsonResource
@@ -9,10 +11,12 @@ class BingoRoomResource extends JsonResource
     public function toArray($request): array
     {
         $config  = $this->config;
+        $userId  = $request->user()?->id;
 
         return [
             'id'                 => $this->hashed_id,
             'status'             => $this->status->code,
+            'can_activate_now'   => $this->resolveCanActivateNow($request, $config, $userId),
             'paid_prizes'        => $this->paid_prizes,
             'prize_pool'         => $this->prize_pool,
             'total_players'      => $this->total_players,
@@ -63,6 +67,7 @@ class BingoRoomResource extends JsonResource
 
             'config' => $config ? [
                 'room_type_id'            => $config->room_type_id,
+                'start_mode'              => $config->start_mode,
                 'date'                    => $config->date?->format('Y-m-d'),
                 'time'                    => $config->time,
                 'game_mode_id'            => $config->game_mode_id,
@@ -83,5 +88,27 @@ class BingoRoomResource extends JsonResource
                 'in_live'                 => $config->in_live,
             ] : null,
         ];
+    }
+
+    /**
+     * Determina si el usuario autenticado puede activar manualmente esta sala:
+     * solo aplica a salas sin horario (start_mode = MANUAL), en estado ACTIVE,
+     * y solo para el creador de la sala o un admin/superadmin.
+     */
+    private function resolveCanActivateNow(Request $request, ?BingoRoomConfig $config, mixed $userId): bool
+    {
+        $user = $request->user();
+
+        if (!$user || !$config || $config->start_mode !== 'MANUAL') {
+            return false;
+        }
+
+        if ($this->status?->code !== 'ACTIVE') {
+            return false;
+        }
+
+        $isCreator = (string) $this->creator_user_id === (string) $userId;
+
+        return $isCreator || $user->hasRole(['admin', 'superadmin']);
     }
 }

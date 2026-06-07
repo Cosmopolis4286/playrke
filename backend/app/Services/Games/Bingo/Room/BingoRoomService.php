@@ -124,6 +124,20 @@ final class BingoRoomService
     }
 
     /**
+     * Activar manualmente el sorteo de una sala sin horario programado (start_mode = MANUAL).
+     * Solo el creador de la sala o un admin/superadmin pueden ejecutarla.
+     *
+     * @param BingoRoom $room Model
+     * @return bool
+     *
+     * @throws BingoRoomException Si la sala no admite activación manual o el usuario no está autorizado
+     */
+    public function activateNow(BingoRoom $room): bool
+    {
+        return $this->crudService->activateNow($room);
+    }
+
+    /**
      * Eliminar una sala de bingo permanentemente (hard delete).
      */
     public function destroy(BingoRoom $room): bool

@@ -14,6 +14,13 @@ export type BingoPrizesPaid = 'Y' | 'N'
 export type BingoRoomStatus = 'ACTIVE' | 'INACTIVE' | 'DELETED'
 
 /**
+ * Modo de inicio de la sala:
+ * - SCHEDULED: inicia automáticamente según fecha/hora programada
+ * - MANUAL: sin horario; requiere activación manual del anfitrión o un admin
+ */
+export type BingoRoomStartMode = 'SCHEDULED' | 'MANUAL'
+
+/**
  * Relación: estado de la sala
  */
 export interface BingoRoomGameStatus {
@@ -67,6 +74,9 @@ export interface BingoRoom {
     readonly is_closed: boolean
     readonly total_commissions: number
 
+    // Resuelto en el resource: si el usuario autenticado puede activar manualmente esta sala
+    readonly can_activate_now?: boolean
+
     // Campo meta: unix timestamp de la fecha+hora programada (desde config)
     readonly unix_date?: number | null
 
@@ -114,6 +124,7 @@ export interface RoundConfig {
 export interface BingoRoomFormData {
     date?: string | null
     time?: string | null
+    startMode?: BingoRoomStartMode
     roomType?: BingoRoomType | null
     gameMode?: number | string | null
     prizePoolType?: number | string | null

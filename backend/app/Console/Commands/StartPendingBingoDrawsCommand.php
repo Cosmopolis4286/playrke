@@ -35,7 +35,9 @@ class StartPendingBingoDrawsCommand extends Command
 
             $rooms = BingoRoom::query()
                 ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
-                ->whereHas('config', fn($q) => $q->where('unix_date', '<=', $now))
+                // Las salas sin horario (start_mode = MANUAL, unix_date null) quedan fuera:
+                // su sorteo solo se dispara vía activación manual (BingoRoomCrudService::activateNow).
+                ->whereHas('config', fn($q) => $q->whereNotNull('unix_date')->where('unix_date', '<=', $now))
                 ->whereHas('players', fn($q) => $q->whereIn('role', [
                     BingoRoomUser::ROLE_PLAYER,
                     BingoRoomUser::ROLE_PLAYER_SELLER,

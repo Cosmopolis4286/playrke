@@ -168,6 +168,20 @@ final class BingoRoomController extends Controller
     }
 
     /**
+     * Activar manualmente el sorteo de una sala sin horario programado.
+     * Solo puede ejecutarla el creador de la sala o un admin/superadmin.
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function activateNow(BingoRoom $room): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->activateNow($room)
+        );
+    }
+
+    /**
      * Copiar una sala de bingo (status INACTIVE).
      *
      * @param BingoRoom $room

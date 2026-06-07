@@ -61,6 +61,9 @@ interface UseBingoRoomReturn {
 
     /** Cancelar sala */
     cancelRoom: (id: string | number) => Promise<boolean>
+
+    /** Activar manualmente el sorteo de una sala sin horario programado */
+    activateRoomNow: (id: string | number) => Promise<boolean>
 }
 
 /**
@@ -75,6 +78,7 @@ const emptyBingoRoom = (): Partial<BingoRoom> =>
 const emptyFormData = (): BingoRoomFormData => ({
     date: null,
     time: null,
+    startMode: 'SCHEDULED',
     roomType: null,
     gameMode: null,
     prizePoolType: null,
@@ -285,6 +289,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             roomFormData.value = {
                 date: config.date ?? null,
                 time: config.time ?? null,
+                startMode: config.start_mode ?? 'SCHEDULED',
                 roomType: config.room_type_id ?? null,
                 gameMode: config.game_mode_id ?? null,
                 prizePoolType: config.prize_pool_type_id ?? null,
@@ -561,6 +566,37 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         }
     }
 
+    /**
+     * Activar manualmente el sorteo de una sala sin horario programado.
+     * Solo disponible para el creador de la sala o un admin/superadmin (resuelto en backend).
+     */
+    async function activateRoomNow(id: string | number): Promise<boolean> {
+        const room = rooms.value.find(c => c.id === id)
+        const roomCode = room?.uuid_code ?? ''
+
+        const confirm = await showToastConfirmAction({
+            html: `¿Quieres activar ahora la sala "<b>${roomCode}</b>"? El sorteo iniciará de inmediato.`,
+            icon: 'warning',
+            confirmButtonText: 'Sí, activar ahora'
+        })
+
+        if (!confirm) return false
+
+        try {
+            await backendClient.patch(`/bingo-rooms/${id}/activate-now`)
+            showToast('Sala activada exitosamente', 'success')
+            await fetchRooms()
+            return true
+        } catch (error: any) {
+            console.error('Error al activar sala:', error)
+            showToast(
+                error?.response?.data?.message ?? 'Error al activar la sala',
+                'error'
+            )
+            return false
+        }
+    }
+
     return {
         roomData,
         roomFormData,
@@ -579,6 +615,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
         fetchRooms,
         fetchRoomDetails,
         goToRoom,
-        cancelRoom
+        cancelRoom,
+        activateRoomNow
     }
 }

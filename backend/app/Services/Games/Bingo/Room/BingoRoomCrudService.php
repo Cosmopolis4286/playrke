@@ -604,6 +604,65 @@ class BingoRoomCrudService
     }
 
     /**
+     * Activa manualmente el sorteo de una sala de bingo sin horario programado
+     * (start_mode = MANUAL). Solo puede ejecutarla el creador de la sala o un
+     * usuario con rol admin/superadmin. Registra el evento en bingo_room_audits.
+     *
+     * @param BingoRoom $room
+     * @return bool True si la activación fue despachada exitosamente
+     *
+     * @throws BingoRoomException Si la sala no admite activación manual, el usuario
+     *                            no está autorizado, o la sala no está en un estado válido
+     */
+    public function activateNow(BingoRoom $room): bool
+    {
+        return DB::transaction(function () use ($room) {
+            $room->loadMissing(['config', 'status', 'players']);
+
+            // Solo aplica a salas configuradas como inicio manual
+            if (($room->config?->start_mode ?? 'SCHEDULED') !== 'MANUAL') {
+                throw BingoRoomException::activationNotAllowed();
+            }
+
+            $userId = Auth::id();
+            $isCreator = $userId !== null && (string) $room->creator_user_id === (string) $userId;
+            $isAdmin = $userId !== null && $this->isUserAdmin((int) $userId);
+
+            if (!$isCreator && !$isAdmin) {
+                throw BingoRoomException::activationForbidden();
+            }
+
+            // Solo se activa una sala disponible (ACTIVE) cuyo sorteo no haya iniciado
+            if ($room->status?->code !== 'ACTIVE') {
+                throw BingoRoomException::activationInvalidState();
+            }
+
+            $now = Carbon::now('UTC');
+
+            $room->config?->update([
+                'date'      => $now->toDateString(),
+                'time'      => $now->format('H:i'),
+                'unix_date' => $now->timestamp,
+            ]);
+
+            \App\Jobs\Games\Bingo\StartBingoDrawJob::dispatch((string) $room->id)->onQueue('bingo-draw');
+
+            $this->recordAudit(
+                $room,
+                BingoRoomAudit::EVENT_MANUALLY_ACTIVATED,
+                'Sala activada manualmente por ' . ($isCreator ? 'el anfitrión' : 'un administrador') . '.',
+                [
+                    'activated_at'   => $now->toIso8601String(),
+                    'players_count'  => $room->total_players ?? 0,
+                    'activated_role' => $isCreator ? 'creator' : 'admin',
+                ],
+            );
+
+            return true;
+        });
+    }
+
+    /**
      * Copia una sala de bingo existente (status INACTIVE).
      * Replica configuración, precios de cartones y rondas.
      *

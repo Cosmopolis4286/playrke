@@ -63,6 +63,7 @@
     submit,
     goToRoom,
     cancelRoom,
+    activateRoomNow,
     fetchRoomDetails
   } = useBingoRoom()
 
@@ -287,6 +288,13 @@
     return ids.length === 1 && hasPlayers(ids) && hasActiveStatus(ids)
   }
 
+  const canActivateNow = (ids: string[]): boolean =>
+    ids.length === 1 &&
+    ids.some(id => {
+      const room = rooms.value.find(r => String(r.id) === String(id))
+      return room != null && room.can_activate_now === true
+    })
+
   const extraButtons: ExtraButton[] = [
     {
       label: 'Salas Automáticas',
@@ -347,6 +355,17 @@
       onClick: (ids: string[]) => {
         if (ids.length === 1) {
           cancelRoom(ids[0])
+        }
+      }
+    },
+    {
+      icon: 'fas fa-play',
+      class: 'btn-success text-white',
+      title: 'Activar Ahora',
+      show: (ids: string[]) => canActivateNow(ids),
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          activateRoomNow(ids[0])
         }
       }
     }
