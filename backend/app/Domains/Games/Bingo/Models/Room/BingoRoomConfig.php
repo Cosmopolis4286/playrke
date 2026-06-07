@@ -25,6 +25,7 @@ class BingoRoomConfig extends Model
         'template_id',
         'parent_automatic_id',
         'is_scheduled',
+        'start_mode',
         'from_house',
         'room_type_id',
         'creator_user_id',
@@ -55,6 +56,7 @@ class BingoRoomConfig extends Model
         'template_id'             => 'string',
         'parent_automatic_id'     => 'string',
         'is_scheduled'            => 'string',
+        'start_mode'              => 'string',
         'from_house'              => 'string',
         'room_type_id'            => 'string',
         'creator_user_id'         => 'string',
@@ -135,5 +137,21 @@ class BingoRoomConfig extends Model
     public function scopeOfType($query, string $type)
     {
         return $query->where('room_type', $type);
+    }
+
+    /**
+     * Salas que requieren activación manual del anfitrión/admin (sin horario).
+     */
+    public function scopeUnscheduled($query)
+    {
+        return $query->where('start_mode', 'MANUAL');
+    }
+
+    /**
+     * Salas que inician por horario programado.
+     */
+    public function scopeScheduled($query)
+    {
+        return $query->where('start_mode', 'SCHEDULED');
     }
 }
