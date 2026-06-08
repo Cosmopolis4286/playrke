@@ -15,6 +15,7 @@ final class BingoRoomUpdateDTO
         public readonly ?string $date,
         public readonly ?string $time,
         public readonly ?string $startMode,
+        public readonly ?int $minCardsToStart,
         public readonly ?string $roomType,
         public readonly string|int|null $gameMode,
         public readonly string|int|null $prizePoolType,
@@ -59,6 +60,9 @@ final class BingoRoomUpdateDTO
             date: $data['date'] ?? null,
             time: $data['time'] ?? null,
             startMode: $data['startMode'] ?? null,
+            minCardsToStart: array_key_exists('minCardsToStart', $data)
+                ? (isset($data['minCardsToStart']) ? (int) $data['minCardsToStart'] : null)
+                : null,
             roomType: $data['roomType'] ?? null,
             gameMode: $data['gameMode'] ?? null,
             prizePoolType: $data['prizePoolType'] ?? null,

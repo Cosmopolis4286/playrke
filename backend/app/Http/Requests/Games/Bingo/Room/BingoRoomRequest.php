@@ -35,6 +35,9 @@ class BingoRoomRequest extends BaseRequest
             'startMode'                   => ['required', 'in:SCHEDULED,MANUAL'],
             'date'                        => ['required_if:startMode,SCHEDULED', 'nullable', 'date', 'after_or_equal:today'],
             'time'                        => ['required_if:startMode,SCHEDULED', 'nullable', 'date_format:H:i'],
+
+            // Cantidad mínima de cartones vendidos para permitir el inicio del sorteo (opcional)
+            'minCardsToStart'             => ['nullable', 'integer', 'min:1', 'max:10000'],
             'roomType'                    => ['required', 'exists:room_types,id'],
             'gameMode'                    => ['required', 'exists:game_modes,id'],
             'prizePoolType'               => ['required', 'exists:prize_pool_types,id'],
@@ -219,6 +222,10 @@ class BingoRoomRequest extends BaseRequest
 
             'time.required_if'                => 'La hora es obligatoria para salas con horario programado.',
             'time.date_format'                => 'La hora debe tener formato HH:mm.',
+
+            'minCardsToStart.integer'         => 'La cantidad mínima de cartones debe ser un número entero.',
+            'minCardsToStart.min'             => 'La cantidad mínima de cartones debe ser al menos 1.',
+            'minCardsToStart.max'             => 'La cantidad mínima de cartones no puede superar 10000.',
 
             'roomType.required'               => 'El tipo de sala es obligatorio.',
             'roomType.exists'                 => 'El tipo de sala seleccionado no es válido.',

@@ -26,6 +26,7 @@ class BingoRoomConfig extends Model
         'parent_automatic_id',
         'is_scheduled',
         'start_mode',
+        'min_cards_to_start',
         'from_house',
         'room_type_id',
         'creator_user_id',
@@ -76,6 +77,7 @@ class BingoRoomConfig extends Model
         'jackpot_pct'             => 'decimal:2',
         'unix_date'               => 'integer',
         'num_serials'             => 'integer',
+        'min_cards_to_start'      => 'integer',
     ];
 
     /**

@@ -46,10 +46,17 @@ class StartPendingBingoDrawsCommand extends Command
                     BingoRoomUser::ROLE_PLAYER,
                     BingoRoomUser::ROLE_PLAYER_SELLER,
                 ])])
-                ->with('config:id,room_id,unix_date')
+                ->with('config:id,room_id,unix_date,min_cards_to_start')
                 ->get();
 
             foreach ($rooms as $room) {
+                // Condición opcional: la sala exige una cantidad mínima de cartones
+                // vendidos antes de poder iniciar su sorteo (ver min_cards_to_start).
+                $minCards = $room->config?->min_cards_to_start;
+                if ($minCards !== null && ($room->total_cards ?? 0) < $minCards) {
+                    continue;
+                }
+
                 $drawnCount = BingoDraw::where('room_id', (string) $room->id)->count();
                 $sequenceCount = BingoDrawCode::where('room_id', (string) $room->id)->count();
 

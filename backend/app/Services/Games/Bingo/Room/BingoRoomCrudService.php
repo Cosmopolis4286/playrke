@@ -287,6 +287,10 @@ class BingoRoomCrudService
             $base['start_mode'] = $dto->startMode;
         }
 
+        // min_cards_to_start: condición opcional para permitir el inicio del sorteo
+        // (autónomo o manual). null = sin condición. Editable en creación y actualización.
+        $base['min_cards_to_start'] = $dto->minCardsToStart;
+
         if ($isCreate) {
             $base['room_id']      = $roomId;
             $base['is_scheduled']     = 'N';
@@ -660,6 +664,11 @@ class BingoRoomCrudService
             // Solo se activa una sala disponible (ACTIVE) cuyo sorteo no haya iniciado
             if ($room->status?->code !== 'ACTIVE') {
                 throw BingoRoomException::activationInvalidState();
+            }
+
+            $minCards = $room->config?->min_cards_to_start;
+            if ($minCards !== null && ($room->total_cards ?? 0) < $minCards) {
+                throw BingoRoomException::minCardsNotReached($minCards, $room->total_cards ?? 0);
             }
 
             $now = Carbon::now('UTC');

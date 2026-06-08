@@ -128,4 +128,13 @@ final class BingoRoomException extends DomainException
     {
         return new self('La fecha y hora de inicio deben ser al menos 10 minutos posteriores al momento actual.');
     }
+
+    /**
+     * La sala tiene configurada una cantidad mínima de cartones a vender
+     * y aún no se ha alcanzado, por lo que el sorteo no puede iniciar.
+     */
+    public static function minCardsNotReached(int $required, int $current): self
+    {
+        return new self("La sala requiere al menos {$required} cartones vendidos para iniciar (actualmente tiene {$current}).");
+    }
 }
