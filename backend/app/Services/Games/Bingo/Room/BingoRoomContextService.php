@@ -56,8 +56,8 @@ final class BingoRoomContextService
      */
     private function resolveSummaryGameRooms(?int $userId): array
     {
-        $labels  = ['Código', 'Tipo', 'Modo', 'Tipo Bote', 'Jugadores', 'Premio', 'Creación', 'Estado'];
-        $rowKeys = ['id', 'config.roomType.label', 'config.gameMode.label', 'config.prizePoolType.label', 'total_players', 'prize_pool', 'created_at', 'status_badge'];
+        $labels  = ['Código', 'Tipo', 'Modo', 'Tipo Bote', 'Jugadores', 'Premio', 'Inicio', 'Creación', 'Estado'];
+        $rowKeys = ['id', 'config.roomType.label', 'config.gameMode.label', 'config.prizePoolType.label', 'total_players', 'prize_pool', 'start_info', 'created_at', 'status_badge'];
 
         // Superadmin y admin ven todas las salas; commerce/customer solo las suyas
         $isGlobalAdmin = $this->userContext->userHasRole('superadmin')

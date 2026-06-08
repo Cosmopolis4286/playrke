@@ -227,6 +227,28 @@ class BingoRoom extends BaseModel
     }
 
     /**
+     * Texto descriptivo del inicio de la sala para listados:
+     * fecha y hora programadas, o "Sin horario (manual)" si requiere activación manual.
+     */
+    public function getStartInfoAttribute(): string
+    {
+        $config = $this->getRelationValue('config');
+
+        if (($config?->start_mode ?? 'SCHEDULED') === 'MANUAL') {
+            return '<span class="text-muted">Sin horario (manual)</span>';
+        }
+
+        $date = $config?->date?->format('Y-m-d');
+        $time = $config?->time;
+
+        if (!$date || !$time) {
+            return '<span class="text-muted">—</span>';
+        }
+
+        return "{$date} {$time}";
+    }
+
+    /**
      * Badge HTML del estado
      */
     public function getStatusBadgeAttribute(): string
