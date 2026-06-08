@@ -124,6 +124,7 @@ route_group('bingo', 'bingo.', ['auth'], BingoGameController::class, [
     'game'        => ['method' => 'get',  'uri' => '{room}/game',              'action' => 'inGame'],
     'user-cards'  => ['method' => 'get',  'uri' => '{room}/user-cards',  'action' => 'getUserCards'],
     'check-bingo' => ['method' => 'post', 'uri' => '{room}/check-bingo', 'action' => 'checkBingo'],
+    'view-card'   => ['method' => 'get',  'uri' => '{room}/card/{card}',  'action' => 'viewCard'],
 ]);
 
 // Solo disponible en entorno local — utilidades de desarrollo

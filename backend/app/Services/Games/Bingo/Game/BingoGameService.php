@@ -2,6 +2,7 @@
 
 namespace App\Services\Games\Bingo\Game;
 
+use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\ExchangeRate;
@@ -88,6 +89,30 @@ final class BingoGameService
             'drawn_numbers' => $drawnNumbers
         ]);
 
+        // Para salas finalizadas, cargar los ganadores históricos desde BingoCardPrize
+        $initialWinners = [];
+        $roomStatusCode = $bingoRoom->getRelationValue('status')?->code
+            ?? $bingoRoom->status?->code
+            ?? '';
+        if (strtoupper($roomStatusCode) === 'FINISHED') {
+            $initialWinners = BingoCardPrize::where('room_id', $bingoRoom->id)
+                ->with(['round:id,round', 'winningCard:id,serial_number', 'roomUser.user:id,name'])
+                ->get()
+                ->map(function (BingoCardPrize $cp) use ($bingoRoom) {
+                    return [
+                        'user_id'     => (string) ($cp->roomUser?->user_id ?? ''),
+                        'user_name'   => $cp->roomUser?->user?->name ?? '—',
+                        'card_id'     => (string) ($cp->winning_card_id ?? ''),
+                        'card_serial' => $cp->winningCard?->serial_number ?? '',
+                        'prize'       => (float) ($cp->usd_amount ?? 0),
+                        'pattern'     => $cp->winning_pattern ?? '',
+                        'round'       => $cp->round?->round ?? 1,
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
         $gameData = [
             'title' => 'Juego de Bingo',
             'room' => $bingoRoom,
@@ -117,6 +142,7 @@ final class BingoGameService
             'cardPrice' => (float) $cardPrice,
             'startTime' => (int) ($config?->unix_date ?? $bingoRoom->published_at?->timestamp ?? now()->timestamp),
             'closingRoute' => route('bingo-rooms.index'),
+            'initialWinners' => $initialWinners,
         ];
 
         // Forzar la serialización correcta para Inertia

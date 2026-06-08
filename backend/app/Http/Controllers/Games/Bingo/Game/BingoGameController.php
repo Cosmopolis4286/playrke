@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Games\Bingo\Game;
 
 use App\Http\Controllers\Controller;
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
@@ -167,6 +168,19 @@ final class BingoGameController extends Controller
             },
             'No se pudieron obtener los cartones del usuario.'
         );
+    }
+
+    public function viewCard(BingoRoom $room, BingoCard $card): JsonResponse
+    {
+        return $this->handleServiceJson(function () use ($room, $card) {
+            if ((string) $card->room_id !== (string) $room->id) {
+                abort(404);
+            }
+            return [
+                'success' => true,
+                'card'    => $card->toFrontendFormat(),
+            ];
+        }, 'No se pudo obtener el cartón.');
     }
 
     /**
