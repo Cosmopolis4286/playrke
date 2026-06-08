@@ -668,9 +668,10 @@ final class WalletService
         }
 
         // 2. Notificación persistente en DB para cada admin/superadmin
-        $admins = \App\Models\User::withRole('admin')
-            ->orWhereHas('roles', fn($q) => $q->where('name', 'superadmin'))
-            ->get();
+        $admins = \App\Models\User::whereHas(
+            'roles',
+            fn($q) => $q->whereIn('name', ['admin', 'superadmin'])
+        )->get();
 
         $typeLabel = $type === WalletMovement::TYPE_DEPOSIT ? 'depósito' : 'retiro';
         $symbol    = $currency?->symbol ?? '';

@@ -43,11 +43,23 @@ const pendingAction = ref<'deposit' | 'withdraw' | null>(null)
 
 async function handleTosAccept() {
   const ok = await acceptTos()
-  if (ok && pendingAction.value) {
+  if (!ok) return
+
+  tosModalOpen.value = false
+
+  if (pendingAction.value) {
     const action = pendingAction.value
     pendingAction.value = null
-    tosModalOpen.value  = false
     openModal(action)
+    return
+  }
+
+  // El modal de operación ya estaba abierto y el envío fue rechazado por
+  // falta de aceptación de TOS: reintentamos automáticamente para que el
+  // usuario no tenga que volver a llenar el formulario.
+  if (modalOpen.value && step.value === 2) {
+    errorMsg.value = null
+    await submit()
   }
 }
 
