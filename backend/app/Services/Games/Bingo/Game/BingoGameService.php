@@ -96,12 +96,12 @@ final class BingoGameService
             ?? '';
         if (strtoupper($roomStatusCode) === 'FINISHED') {
             $initialWinners = BingoCardPrize::where('room_id', $bingoRoom->id)
-                ->with(['round:id,round', 'winningCard:id,serial_number', 'roomUser.user:id,name'])
+                ->with(['round:id,round', 'winningCard:id,serial_number', 'roomUser.user:id,username,first_name,last_name'])
                 ->get()
                 ->map(function (BingoCardPrize $cp) use ($bingoRoom) {
                     return [
                         'user_id'     => (string) ($cp->roomUser?->user_id ?? ''),
-                        'user_name'   => $cp->roomUser?->user?->name ?? '—',
+                        'user_name'   => $cp->roomUser?->user?->full_name ?? $cp->roomUser?->user?->username ?? '—',
                         'card_id'     => (string) ($cp->winning_card_id ?? ''),
                         'card_serial' => $cp->winningCard?->serial_number ?? '',
                         'prize'       => (float) ($cp->usd_amount ?? 0),
