@@ -42,11 +42,16 @@
                             <ul class="nav nav-treeview">
                                 @foreach($item['submenu'] as $subkey => $subitem)
                                     <li class="nav-item">
-                                        <a href="{{ route($subitem['route']) }}" 
+                                        <a href="{{ route($subitem['route']) }}"
                                            title="{{ $subitem['title'] }}"
                                            class="{{ $menuService->getMenuItemClasses($subitem['route']) }}">
                                             <i class="fa-solid fa-caret-right nav-icon"></i>
-                                            <p>{{ $subitem['title'] }}</p>
+                                            <p>
+                                                {{ $subitem['title'] }}
+                                                @if(!empty($subitem['badge']))
+                                                    <span class="badge badge-danger right">{{ $subitem['badge'] }}</span>
+                                                @endif
+                                            </p>
                                         </a>
                                     </li>
                                 @endforeach

@@ -2,6 +2,7 @@
 
 namespace App\Services\Menu;
 
+use App\Models\WalletMovement;
 use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
 
@@ -293,6 +294,12 @@ class SidebarMenuService
                             return empty($subitem['permission'])
                                 || in_array($subitem['permission'], $userPermissions);
                         })
+                        ->map(function ($subitem) {
+                            if ($subitem['route'] === 'wallet-movements.index') {
+                                $subitem['badge'] = $this->pendingWalletMovementsCount();
+                            }
+                            return $subitem;
+                        })
                         ->values()
                         ->toArray();
                 }
@@ -408,5 +415,15 @@ class SidebarMenuService
         });
 
         return $roles->implode(', ');
+    }
+
+    /**
+     * Cuenta los movimientos de billetera (depósitos/retiros) pendientes de revisión.
+     */
+    private function pendingWalletMovementsCount(): int
+    {
+        return WalletMovement::whereIn('type', [WalletMovement::TYPE_DEPOSIT, WalletMovement::TYPE_WITHDRAWAL])
+            ->where('status', WalletMovement::STATUS_PENDING)
+            ->count();
     }
 }
