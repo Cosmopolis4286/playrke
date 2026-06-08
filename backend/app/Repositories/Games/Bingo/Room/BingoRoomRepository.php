@@ -309,10 +309,10 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
 
         $query = $this->model
             ->with($with)
-            ->withCount('rounds')
             ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
             ->whereHas('config', fn($q) => $q->whereBetween('date', [$from, $to]))
-            ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'total_cards', 'creator_user_id', 'status_id']);
+            ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'total_cards', 'creator_user_id', 'status_id'])
+            ->withCount('rounds');
 
         if ($isPlayer) {
             // Players: solo salas públicas

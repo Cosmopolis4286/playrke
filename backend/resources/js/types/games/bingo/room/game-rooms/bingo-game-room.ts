@@ -123,4 +123,8 @@ export interface BingoGameRoomsPageProps {
   readonly creatorUser?: string | null
   /** Precios del cartón por sala (para jugadores) */
   readonly cardPrices?: Record<string, { card_price: number; currency_symbol: string }> | null
+  /** Texto del reglamento del bingo (HTML, configurable por admin) */
+  readonly bingoRules?: string | null
+  /** Path relativo de la imagen del reglamento del bingo */
+  readonly imageBingoRules?: string | null
 }
