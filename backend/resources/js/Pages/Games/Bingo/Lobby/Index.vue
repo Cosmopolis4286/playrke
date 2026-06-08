@@ -29,6 +29,7 @@ interface LobbyRoom {
   time_chip?: number;
   rounds?: number;
   in_live?: boolean;
+  min_cards_to_start?: number | null;
 }
 
 interface Props {
@@ -44,6 +45,7 @@ const props = defineProps<Props>();
 const liveRoom = reactive({
   prizePool:    props.room?.prize_pool    ?? 0,
   totalPlayers: props.room?.total_players ?? 0,
+  totalCards:   props.room?.total_cards   ?? 0,
   userCards:    props.userCards           ?? 0,
 });
 
@@ -132,6 +134,22 @@ const wsLabel = computed(() => ({
   error:        'Error',
 }[wsStatus.value]));
 
+// ── Progreso de cartones mínimos para iniciar (realtime) ──
+const minCardsToStart = computed(() => props.room?.min_cards_to_start ?? null);
+
+const showCardsProgress = computed(() =>
+  minCardsToStart.value != null && minCardsToStart.value > 0
+);
+
+const cardsProgressPct = computed(() => {
+  if (!minCardsToStart.value) return 0;
+  return Math.min(100, Math.round((liveRoom.totalCards / minCardsToStart.value) * 100));
+});
+
+const cardsProgressReady = computed(() =>
+  minCardsToStart.value != null && liveRoom.totalCards >= minCardsToStart.value
+);
+
 // ── Lifecycle ──
 onMounted(() => {
   startMeteors();
@@ -195,6 +213,7 @@ function setupEcho() {
       const playersChanged = liveRoom.totalPlayers !== event.total_players;
       liveRoom.prizePool    = event.prize_pool    ?? liveRoom.prizePool;
       liveRoom.totalPlayers = event.total_players ?? liveRoom.totalPlayers;
+      liveRoom.totalCards   = event.total_cards   ?? liveRoom.totalCards;
       if (prizeChanged)   flash(prizeFlash);
       if (playersChanged) flash(playersFlash);
     });
@@ -334,6 +353,24 @@ function startMeteors() {
               <span class="lby-prize-sub__lbl">Serial</span>
               <span class="lby-prize-sub__val">{{ (Number(room.serial_prize) * rate).toFixed(2) }}</span>
             </div>
+          </div>
+        </div>
+
+        <!-- ── PROGRESO DE CARTONES MÍNIMOS (realtime) ── -->
+        <div
+          v-if="showCardsProgress"
+          class="lby-cards-progress"
+          :class="{ 'lby-cards-progress--ready': cardsProgressReady }"
+        >
+          <div class="lby-cards-progress__top">
+            <span class="lby-cards-progress__label">
+              <i class="fas fa-layer-group" />
+              {{ cardsProgressReady ? '¡Listo para iniciar!' : 'Cartones para iniciar' }}
+            </span>
+            <span class="lby-cards-progress__count">{{ liveRoom.totalCards }} / {{ minCardsToStart }}</span>
+          </div>
+          <div class="lby-cards-progress__track">
+            <div class="lby-cards-progress__fill" :style="{ width: cardsProgressPct + '%' }" />
           </div>
         </div>
 
@@ -563,9 +600,14 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 ═══════════════════════════════════ */
 .lby-banner {
   position: relative; border-radius: 18px; overflow: hidden;
-  border: 1px solid rgba(100,140,255,.22);
-  box-shadow: 0 20px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(80,120,255,.08) inset;
+  border: 1px solid rgba(120,150,255,.28);
+  box-shadow: 0 20px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(80,120,255,.1) inset, 0 0 40px rgba(80,80,255,.08);
   height: 164px;
+  transition: box-shadow .3s, border-color .3s;
+}
+.lby-banner:hover {
+  border-color: rgba(140,170,255,.4);
+  box-shadow: 0 24px 70px rgba(0,0,0,.75), 0 0 0 1px rgba(100,140,255,.16) inset, 0 0 56px rgba(100,100,255,.14);
 }
 .lby-banner__img {
   width: 100%; height: 100%; object-fit: cover; display: block;
@@ -619,10 +661,10 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 }
 .lby-banner__title {
   font-family: 'Anton', sans-serif; font-size: clamp(18px,3.5vw,26px);
-  letter-spacing: 3px; margin: 0;
-  background: linear-gradient(135deg, #e0eaff 0%, #a8c4ff 55%, #7b4fff 100%);
+  letter-spacing: 3.5px; margin: 0;
+  background: linear-gradient(135deg, #ffffff 0%, #c4d6ff 45%, #8f7bff 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  text-shadow: none;
+  filter: drop-shadow(0 2px 16px rgba(120,120,255,.35));
 }
 
 /* Timer pill */
@@ -682,17 +724,22 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
    PRIZE ROW — número grande + sub
 ═══════════════════════════════════ */
 .lby-prize-row {
-  background: linear-gradient(160deg, #0d1635 0%, #080f28 100%);
-  border: 1px solid rgba(100,140,255,.2);
+  background: linear-gradient(160deg, #101a3e 0%, #080f28 100%);
+  border: 1px solid rgba(120,150,255,.24);
   border-radius: 16px;
-  padding: 12px 18px;
+  padding: 13px 18px;
   display: flex; align-items: center; justify-content: space-between;
-  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  box-shadow: 0 10px 36px rgba(0,0,0,.55), 0 0 0 1px rgba(255,200,80,.04) inset;
   position: relative; overflow: hidden;
 }
 .lby-prize-row::before {
-  content: ''; position: absolute; top: -30px; left: 0; right: 0; height: 80px;
-  background: radial-gradient(ellipse 70% 60% at 30% 0%, rgba(123,79,255,.2), transparent 70%);
+  content: ''; position: absolute; top: -30px; left: 0; right: 0; height: 90px;
+  background: radial-gradient(ellipse 70% 60% at 28% 0%, rgba(123,79,255,.24), transparent 70%);
+  pointer-events: none;
+}
+.lby-prize-row::after {
+  content: ''; position: absolute; bottom: -40px; right: -20px; width: 140px; height: 100px;
+  background: radial-gradient(ellipse, rgba(255,180,0,.12), transparent 70%);
   pointer-events: none;
 }
 
@@ -703,10 +750,10 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 }
 .lby-prize-main__val { display: flex; align-items: baseline; gap: 6px; }
 .lby-prize-main__num {
-  font-family: 'Anton', sans-serif; font-size: 42px; line-height: 1;
-  background: linear-gradient(135deg, #ffe566, #ffab00);
+  font-family: 'Anton', sans-serif; font-size: 42px; line-height: 1; letter-spacing: .5px;
+  background: linear-gradient(135deg, #fff3c4 0%, #ffe566 35%, #ffab00 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  filter: drop-shadow(0 3px 10px rgba(255,180,0,.45));
+  filter: drop-shadow(0 3px 14px rgba(255,180,0,.5));
 }
 .lby-prize-main__sym { font-size: 15px; font-weight: 800; color: #ffd060; -webkit-text-fill-color: #ffd060; }
 
@@ -724,6 +771,62 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 @keyframes lbyFlash { 0%,100%{filter:none} 40%{filter:drop-shadow(0 0 10px rgba(42,245,152,.8)) brightness(1.3)} }
 
 /* ═══════════════════════════════════
+   PROGRESO DE CARTONES MÍNIMOS (realtime)
+═══════════════════════════════════ */
+.lby-cards-progress {
+  background: linear-gradient(160deg, #0d1635 0%, #080f28 100%);
+  border: 1px solid rgba(100,140,255,.18);
+  border-radius: 14px;
+  padding: 10px 14px 12px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0,0,0,.4);
+  transition: border-color .3s, box-shadow .3s;
+}
+.lby-cards-progress::before {
+  content: ''; position: absolute; top: -24px; right: -10px; width: 120px; height: 80px;
+  background: radial-gradient(ellipse, rgba(0,158,253,.18), transparent 70%);
+  pointer-events: none;
+}
+.lby-cards-progress__top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 7px; position: relative; z-index: 1;
+}
+.lby-cards-progress__label {
+  font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  color: #7c9dff; display: inline-flex; align-items: center; gap: 6px;
+}
+.lby-cards-progress__label i { font-size: 10px; opacity: .8; }
+.lby-cards-progress__count {
+  font-family: 'Anton', sans-serif; font-size: 14px; letter-spacing: .5px; color: #d8e4ff;
+}
+.lby-cards-progress__track {
+  height: 8px; border-radius: 20px; overflow: hidden;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(100,140,255,.1);
+  position: relative; z-index: 1;
+}
+.lby-cards-progress__fill {
+  height: 100%; border-radius: 20px;
+  background: linear-gradient(90deg, #2a6ad8 0%, #2af598 100%);
+  box-shadow: 0 0 12px rgba(42,160,255,.45);
+  transition: width .6s cubic-bezier(.22,1,.36,1);
+}
+
+.lby-cards-progress--ready {
+  border-color: rgba(42,245,152,.4);
+  box-shadow: 0 6px 28px rgba(42,245,152,.18);
+}
+.lby-cards-progress--ready .lby-cards-progress__label { color: #2af598; }
+.lby-cards-progress--ready .lby-cards-progress__fill {
+  background: linear-gradient(90deg, #2af598 0%, #00ffd0 100%);
+  animation: lbyCpReadyPulse 1.6s ease-in-out infinite;
+}
+@keyframes lbyCpReadyPulse {
+  0%,100% { box-shadow: 0 0 10px rgba(42,245,152,.5); }
+  50%     { box-shadow: 0 0 20px rgba(42,245,152,.85); }
+}
+
+/* ═══════════════════════════════════
    STATS — fila horizontal compacta
 ═══════════════════════════════════ */
 .lby-stats {
@@ -731,14 +834,20 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 }
 .lby-stat {
   flex: 1;
-  background: rgba(8,12,32,.7); border: 1px solid rgba(100,140,255,.12);
+  background: linear-gradient(160deg, rgba(14,20,46,.85) 0%, rgba(8,12,32,.7) 100%);
+  border: 1px solid rgba(100,140,255,.12);
   border-radius: 12px; padding: 10px 6px;
   display: flex; flex-direction: column; align-items: center; gap: 3px;
-  transition: border-color .2s;
+  transition: border-color .2s, transform .2s, box-shadow .2s;
 }
-.lby-stat:hover { border-color: rgba(100,140,255,.28); }
-.lby-stat__icon { font-size: 13px; color: #3d5280; margin-bottom: 1px; }
-.lby-stat__val  { font-family: 'Anton', sans-serif; font-size: 17px; color: #d8e4ff; line-height: 1; }
+.lby-stat:hover {
+  border-color: rgba(100,140,255,.32);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+.lby-stat__icon { font-size: 13px; color: #3d5280; margin-bottom: 1px; transition: color .2s; }
+.lby-stat:hover .lby-stat__icon { color: #7c9dff; }
+.lby-stat__val  { font-family: 'Anton', sans-serif; font-size: 17px; color: #d8e4ff; line-height: 1; letter-spacing: .3px; }
 .lby-stat__lbl  { font-size: 8px; color: #3d5280; text-transform: uppercase; letter-spacing: .6px; text-align: center; }
 
 /* ═══════════════════════════════════
@@ -762,15 +871,15 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 
 .lby-btn--play {
   background: linear-gradient(90deg, #7b4fff 0%, #009efd 100%);
-  color: #fff; box-shadow: 0 5px 20px rgba(123,79,255,.38);
+  color: #fff; box-shadow: 0 6px 24px rgba(123,79,255,.4), 0 0 0 1px rgba(255,255,255,.06) inset;
 }
-.lby-btn--play:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(123,79,255,.52); }
+.lby-btn--play:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 10px 32px rgba(123,79,255,.55), 0 0 0 1px rgba(255,255,255,.1) inset; }
 
 .lby-btn--buy {
   background: linear-gradient(90deg, #2af598 0%, #009efd 100%);
-  color: #031a10; box-shadow: 0 5px 20px rgba(42,245,152,.3);
+  color: #031a10; box-shadow: 0 6px 24px rgba(42,245,152,.32), 0 0 0 1px rgba(255,255,255,.08) inset;
 }
-.lby-btn--buy:hover { filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(42,245,152,.44); }
+.lby-btn--buy:hover { filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 10px 32px rgba(42,245,152,.46), 0 0 0 1px rgba(255,255,255,.12) inset; }
 
 .lby-btn--disabled {
   background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07);
