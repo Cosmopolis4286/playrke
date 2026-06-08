@@ -96,6 +96,27 @@ import { SelectOption } from '@/js/types/common/form/form'
       @update:modelValue="onStartModeChange"
     />
 
+    <!-- Cartones mínimos para iniciar (opcional, aplica a cualquier modo de inicio) -->
+    <FormInput
+      v-if="!automaticRoom"
+      label="Cartones mínimos para iniciar"
+      name="min_cards_to_start"
+      :error="(errors as any).minCardsToStart"
+      type="number"
+      placeholder="Sin condición"
+      :step="1"
+      :min="1"
+      :max="10000"
+      col="col-sm-6 col-md-4 col-lg-3"
+      :modelValue="(modelValue as BingoRoomFormData).minCardsToStart ?? null"
+      @update:modelValue="
+        emit('update:modelValue', {
+          ...modelValue,
+          minCardsToStart: $event === '' || $event === null ? null : Number($event)
+        } as BingoRoomFormData)
+      "
+    />
+
     <!-- Fecha (solo salas normales programadas) -->
     <FormInput
       v-if="!automaticRoom && !isManualStart"

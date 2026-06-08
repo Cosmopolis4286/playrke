@@ -125,6 +125,7 @@ export interface BingoRoomFormData {
     date?: string | null
     time?: string | null
     startMode?: BingoRoomStartMode
+    minCardsToStart?: number | null
     roomType?: BingoRoomType | null
     gameMode?: number | string | null
     prizePoolType?: number | string | null
