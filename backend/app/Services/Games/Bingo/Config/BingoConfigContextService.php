@@ -99,7 +99,7 @@ final class BingoConfigContextService
     /**
      * Retorna el path relativo de la imagen de reglas del bingo para un usuario.
      */
-    private function getImageBingoRules(int $userId): string
+    public function getImageBingoRules(int $userId): string
     {
         $gameId = Game::where('name', 'BINGO')->value('id');
         $game   = $gameId ? $this->gameRule->getByUserAndGame($userId, $gameId) : null;

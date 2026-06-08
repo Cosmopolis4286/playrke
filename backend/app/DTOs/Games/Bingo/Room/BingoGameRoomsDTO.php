@@ -24,6 +24,10 @@ final class BingoGameRoomsDTO implements ContextDTO
         public readonly ?array $dateTimeRooms,
         /** Precios del cartón para jugadores (por sala) */
         public readonly ?array $cardPrices,
+        /** Texto del reglamento del bingo (HTML, configurable por admin) */
+        public readonly string $bingoRules = '',
+        /** Path relativo de la imagen del reglamento del bingo */
+        public readonly string $imageBingoRules = '',
     ) {}
 
     public function toView(): array
@@ -62,6 +66,8 @@ final class BingoGameRoomsDTO implements ContextDTO
             'userToken'     => $this->userToken,
             'dateTimeRooms' => $this->dateTimeRooms,
             'cardPrices'    => $this->cardPrices,
+            'bingoRules'      => $this->bingoRules,
+            'imageBingoRules' => $this->imageBingoRules,
         ];
     }
 }

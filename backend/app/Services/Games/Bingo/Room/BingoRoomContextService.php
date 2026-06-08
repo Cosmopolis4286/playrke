@@ -26,6 +26,7 @@ final class BingoRoomContextService
         private readonly \App\Contracts\UserRepositoryInterface $userRepository,
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencyRepository,
         private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $generateService,
+        private readonly \App\Services\Games\Bingo\Config\BingoConfigContextService $bingoConfigContext,
     ) {}
 
     /**
@@ -210,6 +211,8 @@ final class BingoRoomContextService
             userToken: null,
             dateTimeRooms: $dateTimeRooms,
             cardPrices: $isPlayer ? $this->getPlayerCardPriceForContext($userId) : null,
+            bingoRules: $this->bingoConfigContext->getBingoRules($userId),
+            imageBingoRules: $this->bingoConfigContext->getImageBingoRules($userId),
         );
     }
 
