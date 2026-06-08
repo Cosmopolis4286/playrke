@@ -32,10 +32,20 @@ interface WinnerInfo {
   prize: number;
 }
 
+interface WinnerEntry {
+  user_id: number | string;
+  user_name: string;
+  card_id: string;
+  card_serial: string;
+  prize: number;
+  pattern?: string;
+  round?: number;
+}
+
 interface GameEndData {
   hasWinner: boolean;
   totalDrawn: number;
-  winners: Array<{ user_id: number; user_name: string; card_id: string; card_serial: string; prize: number }>;
+  winners: WinnerEntry[];
   prize: number;
   endTime: string;
 }
@@ -45,6 +55,12 @@ const gameEndData      = ref<GameEndData | null>(null);
 const winnerInfo       = ref<WinnerInfo | null>(null);   // compat: WinnerDeclared individual
 const isMyWin          = ref(false);
 const checkingBingo    = ref(false);
+
+// Players/winners modal
+const showPlayersModal = ref(false);
+// Card viewer within the players modal
+const viewingCard      = ref<null | { serialNumber: string; cardMatrix: number[][]; loading?: boolean }>(null);
+const viewingCardOwner = ref('');
 
 // Posiciones fijas de confetti (evita re-render random en cada update)
 const confettiPieces = Array.from({ length: 40 }, (_, i) => ({
@@ -89,6 +105,7 @@ interface Props {
   isLocal?: boolean;
   roomId?: string;
   roomRouteKey?: string;
+  initialWinners?: WinnerEntry[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -210,6 +227,15 @@ function scheduleDrawStart() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Computed
 // ─────────────────────────────────────────────────────────────────────────────
+// Sala finalizada: basado en la prop inicial O en gameEndData recibido vía WebSocket
+const isFinished = computed(() =>
+  gameEndData.value !== null ||
+  String(props.room?.status ?? '').toUpperCase() === 'FINISHED' ||
+  String((props.room as any)?.status_code ?? '').toUpperCase() === 'FINISHED'
+);
+
+const totalWinners = computed(() => gameEndData.value?.winners?.length ?? 0);
+
 const prizeFormatted = computed(() => {
   const convertedPrize = livePrize.value * liveExchangeRate.value;
   return convertedPrize % 1 === 0 ? convertedPrize.toFixed(0) : convertedPrize.toFixed(2);
@@ -274,11 +300,18 @@ function handleGameEnded(data: { has_winner: boolean; total_drawn: number; winne
   gameEndData.value = {
     hasWinner:  data.has_winner,
     totalDrawn: data.total_drawn,
-    winners:    data.winners ?? [],
+    winners:    (data.winners ?? []).map((w: any) => ({
+      user_id:     w.user_id,
+      user_name:   w.user_name,
+      card_id:     String(w.card_id ?? ''),
+      card_serial: w.card_serial ?? '',
+      prize:       Number(w.prize ?? 0),
+      pattern:     w.pattern ?? '',
+      round:       w.round ?? 1,
+    })),
     prize:      data.prize ?? 0,
     endTime:    data.end_time,
   };
-  // Determinar si el usuario local es ganador
   const myId = (props as any).userId;
   if (myId && data.winners?.some((w: any) => w.user_id === myId || String(w.user_id) === String(myId))) {
     isMyWin.value = true;
@@ -288,6 +321,38 @@ function handleGameEnded(data: { has_winner: boolean; total_drawn: number; winne
 
 function closeWinnerModal() {
   showWinnerModal.value = false;
+}
+
+async function openCardViewer(winner: WinnerEntry) {
+  if (!winner.card_id) return;
+  viewingCardOwner.value = winner.user_name;
+  viewingCard.value = { serialNumber: winner.card_serial, cardMatrix: [], loading: true };
+  try {
+    const routeKey = props.roomRouteKey || roomId.value;
+    const res = await fetch(`/bingo/${routeKey}/card/${winner.card_id}`, {
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    });
+    const data = await res.json();
+    if (data.success && data.card) {
+      viewingCard.value = {
+        serialNumber: data.card.serialNumber ?? winner.card_serial,
+        cardMatrix:   data.card.cardMatrix ?? [],
+        loading: false,
+      };
+    } else {
+      viewingCard.value = null;
+    }
+  } catch {
+    viewingCard.value = null;
+  }
+}
+
+function closeCardViewer() {
+  viewingCard.value = null;
+  viewingCardOwner.value = '';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -466,6 +531,21 @@ onMounted(() => {
   initCountdown([fakeRoom.value as any]);
   subscribeToRoom();
   preload();
+
+  // Para salas ya finalizadas en el momento de cargar la página
+  if (props.initialWinners && props.initialWinners.length > 0 && gameEndData.value === null) {
+    gameEndData.value = {
+      hasWinner:  true,
+      totalDrawn: liveDrawn.value.length,
+      winners:    props.initialWinners,
+      prize:      props.prizePool ?? 0,
+      endTime:    '',
+    };
+    const myId = (props as any).userId;
+    if (myId && props.initialWinners.some(w => String(w.user_id) === String(myId))) {
+      isMyWin.value = true;
+    }
+  }
 });
 
 onUnmounted(() => {
@@ -480,6 +560,8 @@ onUnmounted(() => {
 
 <template>
   <div class="ig-page" :class="{ 'ig-page--revealed': revealed }">
+    <!-- Cubre el viewport completo incluyendo el gap del navbar (mismo patrón que GameRooms) -->
+    <div class="ig-spacecover" />
     <div class="ig-inner">
 
       <!-- ══════════════════════════════════════════
@@ -522,6 +604,9 @@ onUnmounted(() => {
               <div class="timer__unit"><span class="timer__num">{{ pad(cd.time.seconds) }}</span><span class="timer__lbl">S</span></div>
             </div>
           </div>
+          <div v-else-if="isFinished" class="ig-live-badge ig-live-badge--finished">
+            <i class="fas fa-flag-checkered" /> FINALIZADA
+          </div>
           <div v-else class="ig-live-badge">
             <span class="ig-live-badge__dot" /> EN VIVO
           </div>
@@ -532,7 +617,7 @@ onUnmounted(() => {
           <!-- Mute + Salas -->
           <div class="ig-panel__actions">
             <Link
-              v-if="String(room?.status ?? '').toUpperCase() === 'FINISHED' || String(room?.status_code ?? '').toUpperCase() === 'FINISHED'"
+              v-if="isFinished"
               href="/bingo/game-rooms"
               class="ig-action-btn ig-action-btn--rooms"
             >
@@ -550,10 +635,20 @@ onUnmounted(() => {
         <!-- ── Fila 2: Stats ── -->
         <div class="ig-panel__row ig-panel__row--stats">
 
-          <div class="ig-stat" :class="{ 'ig-stat--flash': playersFlash }">
+          <div
+            class="ig-stat ig-stat--clickable"
+            :class="{ 'ig-stat--flash': playersFlash }"
+            @click="showPlayersModal = true"
+            title="Ver lista de jugadores / ganadores"
+          >
             <i class="fas fa-users" />
             <div class="ig-stat__body">
-              <span class="ig-stat__val">{{ livePlayers }}</span>
+              <span class="ig-stat__val">
+                {{ livePlayers }}
+                <small v-if="totalWinners > 0" class="ig-stat__winners-badge">
+                  <i class="fas fa-trophy" /> {{ totalWinners }}
+                </small>
+              </span>
               <span class="ig-stat__lbl">jugadores</span>
             </div>
           </div>
@@ -596,15 +691,6 @@ onUnmounted(() => {
             <div class="ig-stat__body">
               <span class="ig-stat__val ig-stat__val--sm">{{ bingoPattern }}</span>
               <span class="ig-stat__lbl">patrón</span>
-            </div>
-          </div>
-
-          <div v-if="cardPrice > 0" class="ig-stat__sep" />
-          <div v-if="cardPrice > 0" class="ig-stat">
-            <i class="fas fa-coins" />
-            <div class="ig-stat__body">
-              <span class="ig-stat__val ig-stat__val--sm">{{ currencySym }} {{ cardPrice.toFixed(2) }}</span>
-              <span class="ig-stat__lbl">precio cartón</span>
             </div>
           </div>
 
@@ -748,6 +834,135 @@ onUnmounted(() => {
     </div>
 
     <!-- ══════════════════════════════════════════
+         MODAL JUGADORES / GANADORES
+    ══════════════════════════════════════════ -->
+    <Transition name="gm-fade">
+      <div v-if="showPlayersModal" class="gm-overlay" @click.self="showPlayersModal = false">
+        <div class="gm-modal pm-modal">
+          <button class="gm-close" @click="showPlayersModal = false"><i class="fas fa-times" /></button>
+
+          <div class="gm-header">
+            <h2 class="gm-title" style="-webkit-text-fill-color:inherit;background:none;color:#e0eaff">
+              <i class="fas fa-users" style="font-size:22px;margin-right:8px;color:#7c9dff" />
+              Jugadores
+            </h2>
+            <p class="gm-subtitle">
+              {{ livePlayers }} jugador{{ livePlayers === 1 ? '' : 'es' }}
+              <template v-if="totalWinners > 0"> · <i class="fas fa-trophy" style="color:#ffd700" /> {{ totalWinners }} ganador{{ totalWinners === 1 ? '' : 'es' }}</template>
+            </p>
+          </div>
+
+          <!-- Ganadores -->
+          <template v-if="totalWinners > 0">
+            <div class="gm-winners">
+              <div class="gm-winners__title"><i class="fas fa-star" /> Ganadores</div>
+              <div
+                v-for="(w, idx) in gameEndData?.winners ?? []"
+                :key="`pm-w-${w.card_id}-${idx}`"
+                class="gm-winner-card pm-winner-row"
+                :class="{ 'gm-winner-card--me': String(w.user_id) === String((props as any).userId) }"
+              >
+                <div class="gm-winner-card__rank">#{{ idx + 1 }}</div>
+                <div class="gm-winner-card__info">
+                  <div class="gm-winner-card__name">
+                    {{ w.user_name }}
+                    <span v-if="String(w.user_id) === String((props as any).userId)" class="gm-winner-card__you">TÚ</span>
+                  </div>
+                  <div class="gm-winner-card__serial">
+                    Cartón {{ w.card_serial }}
+                    <span v-if="w.round" class="pm-round-badge">Ronda {{ w.round }}</span>
+                    <span v-if="w.pattern" class="pm-pattern-badge">{{ w.pattern }}</span>
+                  </div>
+                </div>
+                <div class="gm-winner-card__prize">
+                  <span class="gm-winner-card__sym">{{ currencySym }}</span>
+                  {{ Number(w.prize).toFixed(2) }}
+                </div>
+                <button
+                  v-if="w.card_id"
+                  class="pm-view-card-btn"
+                  title="Ver cartón ganador"
+                  @click="openCardViewer(w)"
+                >
+                  <i class="fas fa-th" />
+                </button>
+              </div>
+            </div>
+          </template>
+          <div v-else class="gm-no-winner">
+            <i class="fas fa-info-circle" /> Aún no hay ganadores registrados.
+          </div>
+
+          <div class="gm-actions">
+            <button class="gm-btn gm-btn--primary" @click="showPlayersModal = false">
+              <i class="fas fa-check" /> Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ══════════════════════════════════════════
+         MODAL VER CARTÓN GANADOR
+    ══════════════════════════════════════════ -->
+    <Transition name="gm-fade">
+      <div v-if="viewingCard" class="gm-overlay" @click.self="closeCardViewer">
+        <div class="gm-modal pm-card-modal">
+          <button class="gm-close" @click="closeCardViewer"><i class="fas fa-times" /></button>
+          <div class="gm-header">
+            <h2 class="gm-title" style="-webkit-text-fill-color:inherit;background:none;color:#e0eaff">
+              <i class="fas fa-th" style="font-size:20px;margin-right:8px;color:#7c9dff" />
+              Cartón Ganador
+            </h2>
+            <p class="gm-subtitle">
+              {{ viewingCardOwner }} · Serie {{ viewingCard.serialNumber }}
+            </p>
+          </div>
+
+          <div v-if="viewingCard.loading" class="pm-card-loading">
+            <div class="pm-card-spinner" /> Cargando cartón…
+          </div>
+          <template v-else-if="viewingCard.cardMatrix && viewingCard.cardMatrix.length">
+            <div class="pm-bingo-card">
+              <!-- Cabecera B I N G O -->
+              <div class="pm-bingo-header">
+                <span v-for="l in ['B','I','N','G','O']" :key="l" class="pm-bingo-header__letter">{{ l }}</span>
+              </div>
+              <!-- Filas de la matriz -->
+              <div
+                v-for="(row, r) in viewingCard.cardMatrix"
+                :key="`row-${r}`"
+                class="pm-bingo-row"
+              >
+                <div
+                  v-for="(num, c) in row"
+                  :key="`cell-${r}-${c}`"
+                  class="pm-bingo-cell"
+                  :class="{
+                    'pm-bingo-cell--drawn': num > 0 && liveDrawn.includes(num),
+                    'pm-bingo-cell--free': num === 0
+                  }"
+                >
+                  <template v-if="num === 0">★</template>
+                  <template v-else>{{ num }}</template>
+                </div>
+              </div>
+            </div>
+          </template>
+          <div v-else class="gm-no-winner">
+            <i class="fas fa-exclamation-triangle" /> No se pudo cargar el cartón.
+          </div>
+
+          <div class="gm-actions">
+            <button class="gm-btn gm-btn--primary" @click="closeCardViewer">
+              <i class="fas fa-arrow-left" /> Volver
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ══════════════════════════════════════════
          MODAL FIN DE JUEGO
     ══════════════════════════════════════════ -->
     <Transition name="gm-fade">
@@ -866,6 +1081,14 @@ html, body {
 body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
   background-color: #04081a !important;
   background-image: none !important;
+}
+/* Capa fija que cubre TODO el viewport incluyendo el gap del navbar de AdminLTE */
+.ig-spacecover {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background: #04081a;
 }
 /* ── Quitar línea/borde del navbar AdminLTE ── */
 .main-header,
@@ -1135,6 +1358,13 @@ nav.main-header::after,
 @keyframes dot-pulse {
   0%,100% { box-shadow: 0 0 0 0 rgba(42,245,152,0.7); }
   50%      { box-shadow: 0 0 0 7px rgba(42,245,152,0); }
+}
+.ig-live-badge--finished {
+  background: rgba(100,120,160,0.10);
+  border-color: rgba(100,120,160,0.25);
+  color: #7a90b8;
+  box-shadow: none;
+  letter-spacing: 1.5px;
 }
 
 /* ── Acciones (mute + rooms) ── */
@@ -1808,6 +2038,110 @@ nav.main-header::after,
   .gm-title { font-size: 22px; }
   .gm-trophy__icon { font-size: 40px; }
   .gm-winner-card__prize { font-size: 17px; }
+}
+
+/* ══════════════════════════════════════
+   PLAYERS / WINNERS MODAL
+══════════════════════════════════════ */
+.pm-modal { max-width: 480px; }
+.pm-card-modal { max-width: 400px; }
+
+.pm-winner-row { gap: 10px; }
+
+.pm-round-badge, .pm-pattern-badge {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+  padding: 1px 6px; border-radius: 8px;
+}
+.pm-round-badge {
+  background: rgba(100,140,255,0.15);
+  border: 1px solid rgba(100,140,255,0.25);
+  color: #7c9dff;
+}
+.pm-pattern-badge {
+  background: rgba(123,79,255,0.15);
+  border: 1px solid rgba(123,79,255,0.25);
+  color: #c4aaff;
+  text-transform: uppercase;
+}
+
+.pm-view-card-btn {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(100,140,255,0.25);
+  background: rgba(100,140,255,0.08);
+  color: #7c9dff; font-size: 12px;
+  cursor: pointer; transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+.pm-view-card-btn:hover {
+  background: rgba(100,140,255,0.2); color: #b0c8ff;
+  transform: scale(1.1);
+}
+
+/* ── Stat clickable ── */
+.ig-stat--clickable {
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+.ig-stat--clickable:hover {
+  background: rgba(100,140,255,0.08);
+}
+.ig-stat__winners-badge {
+  font-size: 11px; font-weight: 700;
+  color: #ffd700; margin-left: 6px;
+  font-family: inherit;
+}
+.ig-stat__winners-badge i { font-size: 9px; }
+
+/* ── Card viewer loading ── */
+.pm-card-loading {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 32px; font-size: 13px; color: #5578bb;
+}
+.pm-card-spinner {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid rgba(100,140,255,0.2);
+  border-top-color: #7c9dff;
+  animation: dev-spin 0.7s linear infinite; flex-shrink: 0;
+}
+
+/* ── Bingo card grid ── */
+.pm-bingo-card {
+  margin: 8px auto 16px;
+  max-width: 320px;
+  border-radius: 14px; overflow: hidden;
+  border: 1px solid rgba(80,120,255,0.18);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.pm-bingo-header {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  background: linear-gradient(135deg, rgba(123,79,255,0.5) 0%, rgba(0,158,253,0.4) 100%);
+}
+.pm-bingo-header__letter {
+  text-align: center; padding: 8px 0;
+  font-family: 'Anton', sans-serif; font-size: 16px; color: #fff;
+  letter-spacing: 1px;
+}
+.pm-bingo-row {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+}
+.pm-bingo-row:nth-child(even) { background: rgba(255,255,255,0.025); }
+.pm-bingo-cell {
+  text-align: center; padding: 10px 4px;
+  font-size: 14px; font-weight: 700; color: #8090c0;
+  border: 1px solid rgba(80,120,255,0.06);
+  transition: background 0.2s, color 0.2s;
+}
+.pm-bingo-cell--drawn {
+  background: rgba(42,245,152,0.18);
+  color: #2af598;
+  border-color: rgba(42,245,152,0.25);
+}
+.pm-bingo-cell--free {
+  background: rgba(123,79,255,0.15);
+  color: #c4aaff; font-size: 16px;
 }
 
 /* ── Botón mute ── */
