@@ -59,8 +59,15 @@ class BingoPattern extends Model
         };
     }
 
-    public function getBoxesArrayAttribute(): array { return $this->boxes ? array_filter(explode(';', $this->boxes)) : []; }
-    public function getBoxesCountAttribute(): int { return count($this->boxes_array); }
+    public function getBoxesArrayAttribute(): array {
+        if (!$this->boxes) return [];
+        if (strtoupper(trim($this->boxes)) === 'ALL') return [];
+        return array_filter(explode(';', $this->boxes));
+    }
+    public function getBoxesCountAttribute(): int {
+        if (strtoupper(trim($this->boxes ?? '')) === 'ALL') return 24;
+        return count($this->boxes_array);
+    }
     public function getIsActiveAttribute(): bool { return $this->status === self::STATUS_ACTIVE; }
     public function getIsInactiveAttribute(): bool { return $this->status === self::STATUS_INACTIVE; }
     public function getIsUniqueAttribute(): bool { return $this->type_pattern === self::TYPE_UNIQUE; }

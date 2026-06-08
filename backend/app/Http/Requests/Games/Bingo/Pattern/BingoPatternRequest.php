@@ -19,7 +19,7 @@ class BingoPatternRequest extends BaseRequest
 {
     public function authorize(): bool
     {
-        return PermissionService::checkPrefix(['admin', 'commerce', 'customer']);
+        return PermissionService::checkPrefix(['admin', 'superadmin', 'commerce', 'customer']);
     }
 
     public function rules(): array
