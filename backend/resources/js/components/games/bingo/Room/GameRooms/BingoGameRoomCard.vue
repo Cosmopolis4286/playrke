@@ -44,6 +44,19 @@ const gameModeLabel = computed(() => {
 
 const roundsCount = computed(() => props.room.rounds_count ?? 1)
 
+const minCardsToStart = computed(() => props.room.config?.min_cards_to_start ?? null)
+const totalCards      = computed(() => props.room.total_cards ?? 0)
+const showCardsProgress = computed(() =>
+  minCardsToStart.value != null && minCardsToStart.value > 0
+)
+const cardsProgressPct = computed(() => {
+  if (!minCardsToStart.value) return 0
+  return Math.min(100, Math.round((totalCards.value / minCardsToStart.value) * 100))
+})
+const cardsProgressReady = computed(() =>
+  minCardsToStart.value != null && totalCards.value >= minCardsToStart.value
+)
+
 const timerStr = computed(() => {
   if (!hasTime.value || !props.countdown) return null
   const { days, hours, minutes, seconds } = props.countdown.time
@@ -123,6 +136,20 @@ function handleClick() {
             <span class="rc__pill rc__pill--price rc__pill--sm">
               <i class="fas fa-ticket-alt" />{{ cardPriceFormatted }} {{ sym }}
             </span>
+          </div>
+        </div>
+
+        <!-- Barra de progreso: cartones vendidos / mínimo requerido para iniciar -->
+        <div v-if="showCardsProgress" class="rc__cards-progress" :class="{ 'rc__cards-progress--ready': cardsProgressReady }">
+          <div class="rc__cards-progress__top">
+            <span class="rc__cards-progress__label">
+              <i class="fas fa-layer-group" />
+              {{ cardsProgressReady ? '¡Listo para iniciar!' : 'Cartones para iniciar' }}
+            </span>
+            <span class="rc__cards-progress__count">{{ totalCards }} / {{ minCardsToStart }}</span>
+          </div>
+          <div class="rc__cards-progress__track">
+            <div class="rc__cards-progress__fill" :style="{ width: cardsProgressPct + '%' }" />
           </div>
         </div>
 
@@ -360,7 +387,7 @@ function handleClick() {
 /* Badges izquierda: tipo + modo */
 .rc__badges {
   display: flex; align-items: center; gap: 4px;
-  min-width: 0; overflow: hidden; flex-shrink: 1;
+  min-width: 0; flex-shrink: 1;
 }
 
 .rc__tag {
@@ -396,6 +423,53 @@ function handleClick() {
   display: flex; align-items: center; gap: 6px; flex-shrink: 0;
   padding-left: 6px;
   border-left: 1px solid rgba(255,255,255,.08);
+}
+
+/* Barra de progreso: cartones vendidos / mínimo para iniciar */
+.rc__cards-progress {
+  display: flex; flex-direction: column; gap: 3px;
+}
+.rc__cards-progress__top {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+}
+.rc__cards-progress__label {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 8.5px; font-weight: 700; letter-spacing: .3px;
+  color: #6a8aac; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rc__cards-progress__label i { font-size: 7.5px; color: #3a5a7a; }
+.rc__cards-progress__count {
+  font-family: 'Orbitron', monospace;
+  font-size: 9px; font-weight: 800; letter-spacing: .3px;
+  color: #9ecaf0; flex-shrink: 0; white-space: nowrap;
+}
+.rc__cards-progress__track {
+  position: relative;
+  height: 5px; border-radius: 4px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.06);
+  overflow: hidden;
+}
+.rc__cards-progress__fill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, #2a6ad8 0%, #2af598 100%);
+  box-shadow: 0 0 8px rgba(42,245,152,.35);
+  transition: width .5s cubic-bezier(.22,.68,0,1.1);
+}
+
+.rc__cards-progress--ready .rc__cards-progress__label {
+  color: #2af598;
+}
+.rc__cards-progress--ready .rc__cards-progress__label i { color: #2af598; }
+.rc__cards-progress--ready .rc__cards-progress__count { color: #2af598; }
+.rc__cards-progress--ready .rc__cards-progress__fill {
+  background: linear-gradient(90deg, #2af598 0%, #7bffc0 100%);
+  box-shadow: 0 0 10px rgba(42,245,152,.55);
+  animation: cpReadyPulse 1.6s ease-in-out infinite;
+}
+@keyframes cpReadyPulse {
+  0%,100% { filter: brightness(1); }
+  50%     { filter: brightness(1.25); }
 }
 
 .rc__blink {
@@ -466,8 +540,8 @@ function handleClick() {
 
 /* pill compacto para la fila superior */
 .rc__pill--sm {
-  font-size: 10px;
-  padding: 3px 7px;
+  font-size: 9.5px;
+  padding: 2.5px 7px;
 }
 
 .rc__pill--mine {

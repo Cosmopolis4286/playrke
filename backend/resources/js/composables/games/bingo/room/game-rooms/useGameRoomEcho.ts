@@ -12,12 +12,14 @@ import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo
  * Emitido por BingoRoomUpdated en el servidor tras cada generación de cartones.
  */
 interface RoomUpdatedPayload {
-  /** ID real (Snowflake) de la sala */
+  /** ID Snowflake de la sala (coincide con BingoGameRoom.id) */
   room_id: string
   /** Bote acumulado actualizado */
   prize_pool: number
   /** Total de jugadores en la sala */
   total_players: number
+  /** Total de cartones vendidos en la sala */
+  total_cards: number
   /** Precio base del cartón en USD */
   card_price_usd: number
 }
@@ -30,8 +32,8 @@ interface RoomUpdatedPayload {
  * Composable que suscribe a los canales públicos de Reverb/Echo para cada sala
  * y actualiza el estado reactivo de `rooms` en tiempo real sin recargar la página.
  *
- * Eventos escuchados por sala (canal `bingo.room.{id}`):
- *  - `RoomUpdated`  → actualiza prize_pool, total_players y card_price_usd
+ * Eventos escuchados por sala (canal `bingo.room.{id}`, id = Snowflake):
+ *  - `RoomUpdated`  → actualiza prize_pool, total_players, total_cards y card_price_usd
  *
  * Uso:
  * ```ts
@@ -49,57 +51,32 @@ export function useGameRoomEcho(rooms: Ref<BingoGameRoom[]>): void {
    * Solo actualiza los campos que llegan en el payload para no perder otros datos locales.
    */
   function patchRoom(payload: RoomUpdatedPayload): void {
-    console.log(`🔄 Actualizando sala ${payload.room_id} con:`, payload)
-    
     const idx = rooms.value.findIndex(r => r.id === payload.room_id)
-    if (idx === -1) {
-      console.warn(`⚠️ No se encontró la sala ${payload.room_id} en la lista local`)
-      return
-    }
+    if (idx === -1) return
 
     const room = rooms.value[idx]
-    console.log(`📊 Sala antes de actualizar:`, room)
 
     rooms.value[idx] = {
       ...room,
       prize_pool:    payload.prize_pool,
       total_players: payload.total_players,
+      total_cards:   payload.total_cards,
       // Actualizar card_price_usd dentro de config si existe
       config: room.config
         ? { ...room.config, card_price_usd: payload.card_price_usd }
         : room.config,
     }
-    
-    console.log(`✅ Sala después de actualizar:`, rooms.value[idx])
   }
 
-  // Suscribir a cada sala al montarse
+  // Suscribir a cada sala al montarse (canal identificado por ID Snowflake,
+  // igual que BingoRoomUpdated::broadcastOn())
   for (const room of rooms.value) {
-    const channelName = `bingo.room.${room.uuid_code}`
-
-    console.log(`🔌 Suscribiendo al canal: ${channelName}`)
-
+    const channelName = `bingo.room.${room.id}`
     const channel = echo.channel(channelName)
-    
-    // Escuchar todos los eventos del canal para debug
-    channel.listen('*', (event: any, data: any) => {
-      console.log(`📨 CUALQUIER EVENTO recibido en ${channelName}:`, { event, data })
-    })
-    
-    // Escuchar específicamente el evento RoomUpdated
-    channel.listen('.RoomUpdated', (payload: RoomUpdatedPayload) => {
-      console.log(`📨 Evento RoomUpdated recibido en canal ${channelName}:`, payload)
-      patchRoom(payload)
-    })
-    
-    // También intentar con el nombre sin prefijo
-    channel.listen('RoomUpdated', (payload: RoomUpdatedPayload) => {
-      console.log(`📨 Evento RoomUpdated (sin prefijo) recibido en canal ${channelName}:`, payload)
-      patchRoom(payload)
-    })
 
-    // Debug: verificar estado del canal
-    console.log(`📡 Estado del canal ${channelName}:`, channel)
+    channel.listen('.RoomUpdated', (payload: RoomUpdatedPayload) => {
+      patchRoom(payload)
+    })
 
     subscribedChannels.push(channelName)
   }

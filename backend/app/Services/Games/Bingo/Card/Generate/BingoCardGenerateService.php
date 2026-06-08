@@ -530,7 +530,7 @@ final class BingoCardGenerateService
 
         // 8. Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
         //    Recarga los datos frescos después del commit para garantizar consistencia.
-        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players')
+        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players', 'total_cards')
             ->with('config:id,room_id,card_price_usd')
             ->find($room->id);
 
@@ -540,6 +540,7 @@ final class BingoCardGenerateService
                 prizePool: (float)  $fresh->prize_pool,
                 totalPlayers: (int)    $fresh->total_players,
                 cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
+                totalCards: (int) $fresh->total_cards,
             ));
         }
 
@@ -642,16 +643,17 @@ final class BingoCardGenerateService
         });
 
         // Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
-        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players')
+        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players', 'total_cards')
             ->with('config:id,room_id,card_price_usd')
             ->find($room->id);
 
         if ($fresh) {
             broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
-                roomId: (string) $fresh->uuid_code,
+                roomId: (string) $fresh->id,
                 prizePool: (float)  $fresh->prize_pool,
                 totalPlayers: (int)    $fresh->total_players,
                 cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
+                totalCards: (int) $fresh->total_cards,
             ));
         } else {
             \Log::warning('BingoRoomUpdated: No se encontró la sala fresca en buyFromGameRooms', ['room_id' => $room->id]);
@@ -824,7 +826,7 @@ final class BingoCardGenerateService
         $this->walletService->recordCardPurchase($playerWallet->id, $totalAmount, $description);
 
         // Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
-        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players')
+        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players', 'total_cards')
             ->with('config:id,room_id,card_price_usd')
             ->find($room->id);
 
@@ -834,6 +836,7 @@ final class BingoCardGenerateService
                 prizePool:    (float)  $fresh->prize_pool,
                 totalPlayers: (int)    $fresh->total_players,
                 cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
+                totalCards:   (int)    $fresh->total_cards,
             ))->toOthers();
         }
 

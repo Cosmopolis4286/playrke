@@ -289,7 +289,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
     public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false): Collection
     {
         $with = [
-            'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id,game_mode_id',
+            'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id,game_mode_id,min_cards_to_start',
             'config.prizePoolType:id,code,label',
             'config.roomType:id,code,label',
             'config.gameMode:id,code,label',
@@ -312,7 +312,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             ->withCount('rounds')
             ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
             ->whereHas('config', fn($q) => $q->whereBetween('date', [$from, $to]))
-            ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'creator_user_id', 'status_id']);
+            ->select(['id', 'uuid_code', 'prize_pool', 'total_players', 'total_cards', 'creator_user_id', 'status_id']);
 
         if ($isPlayer) {
             // Players: solo salas públicas

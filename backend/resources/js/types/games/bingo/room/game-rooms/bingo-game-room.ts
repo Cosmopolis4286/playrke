@@ -14,6 +14,8 @@ export interface BingoGameRoomConfig {
   readonly date: string
   /** Hora en formato HH:mm */
   readonly time: string
+  /** Cantidad mínima de cartones vendidos para iniciar el sorteo (si aplica) */
+  readonly min_cards_to_start?: number | null
 }
 
 /**
@@ -62,6 +64,8 @@ export interface BingoGameRoom {
   readonly currency_symbol?: string
   /** Cantidad de rondas de la sala */
   readonly rounds_count?: number | null
+  /** Total de cartones vendidos en la sala (todos los jugadores) */
+  readonly total_cards?: number
 }
 
 /**
