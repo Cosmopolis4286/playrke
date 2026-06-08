@@ -45,7 +45,9 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
     const errors = computed<Record<string, string | Record<string, string>>>(() => {
         const e: Record<string, string | Record<string, string>> = {}
 
-        if (!automaticRoom()) {
+        const isManualStart = !automaticRoom() && (form.value as BingoRoomFormData).startMode === 'MANUAL'
+
+        if (!automaticRoom() && !isManualStart) {
             if (!form.value.date) {
                 e.date = 'La fecha es requerida.'
             } else {
@@ -62,9 +64,9 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
             e.days = 'Debe seleccionar al menos un día.'
         }
 
-        if (!form.value.time) {
+        if (!isManualStart && !form.value.time) {
             e.time = 'La hora es requerida.'
-        } else if (!automaticRoom() && form.value.date) {
+        } else if (!isManualStart && !automaticRoom() && form.value.date) {
             const now = new Date()
             // Use local date string instead of UTC to avoid timezone issues
             const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`

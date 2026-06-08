@@ -244,5 +244,6 @@ import { SelectOption } from '@/js/types/common/form/form'
         <span class="input-group-text">SEG</span>
       </template>
     </FormInput>
+
   </div>
 </template>
