@@ -105,9 +105,9 @@ function handleClick() {
         <!-- Acento lateral izquierdo -->
         <div class="rc__side-accent" />
 
-        <!-- Cartones del jugador: bottom-left sobre la imagen -->
-        <span v-if="playerCtns > 0" class="rc__ctns-badge">
-          <i class="fas fa-layer-group" />{{ playerCtns }}
+        <!-- Cartones del jugador: bottom-left sobre la imagen (indica participación) -->
+        <span v-if="playerCtns > 0" class="rc__ctns-badge" title="Estás participando en esta sala">
+          <i class="fas fa-check-circle" />{{ playerCtns }} mío{{ playerCtns === 1 ? '' : 's' }}
         </span>
 
         <!-- Contador/timer: bottom-right sobre la imagen -->
@@ -162,6 +162,9 @@ function handleClick() {
           </div>
 
           <div class="rc__pills">
+            <span v-if="playerCtns > 0" class="rc__pill rc__pill--mine" title="Estás participando en esta sala">
+              <i class="fas fa-check-circle" />{{ playerCtns }} {{ playerCtns === 1 ? 'cartón' : 'cartones' }}
+            </span>
             <span class="rc__pill">
               <i class="fas fa-users" />{{ room.total_players }}
             </span>

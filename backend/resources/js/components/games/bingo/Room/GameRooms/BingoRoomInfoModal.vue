@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { BingoGameRoom } from '@js/types/games/bingo/room/game-rooms/bingo-game-room'
 import type { RoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
 
@@ -39,6 +40,23 @@ const cardPrice = () => {
 const prize = () => (props.room.prize_pool * props.exchangeRate).toFixed(2)
 const myCtns = () => props.room.players_room?.[0]?.ctns ?? 0
 const priceSym = () => props.room.currency_symbol ?? props.currencySym ?? 'USD'
+
+// ── Progreso de cartones mínimos para iniciar (realtime, igual que la card/lobby) ──
+const minCardsToStart = computed(() => props.room.config?.min_cards_to_start ?? null)
+const totalCards      = computed(() => props.room.total_cards ?? 0)
+
+const showCardsProgress = computed(() =>
+  minCardsToStart.value != null && minCardsToStart.value > 0
+)
+
+const cardsProgressPct = computed(() => {
+  if (!minCardsToStart.value) return 0
+  return Math.min(100, Math.round((totalCards.value / minCardsToStart.value) * 100))
+})
+
+const cardsProgressReady = computed(() =>
+  minCardsToStart.value != null && totalCards.value >= minCardsToStart.value
+)
 </script>
 
 <template>
@@ -75,6 +93,9 @@ const priceSym = () => props.room.currency_symbol ?? props.currencySym ?? 'USD'
               <span class="rim-chip rim-chip--mode">
                 {{ gameModeMap[room.game_mode ?? ''] ?? room.game_mode ?? 'Online' }}
               </span>
+              <span v-if="room.rounds_count" class="rim-chip rim-chip--rounds">
+                <i class="fas fa-layer-group" /> {{ room.rounds_count }} {{ room.rounds_count === 1 ? 'Ronda' : 'Rondas' }}
+              </span>
             </div>
           </div>
 
@@ -83,10 +104,34 @@ const priceSym = () => props.room.currency_symbol ?? props.currencySym ?? 'USD'
 
             <!-- Premio -->
             <div class="rim-prize">
+              <span v-if="myCtns() > 0" class="rim-my-ctns" title="Tus cartones en esta sala">
+                <i class="fas fa-ticket-alt" /> {{ myCtns() }} {{ myCtns() === 1 ? 'cartón' : 'cartones' }}
+              </span>
               <span class="rim-prize__lbl">Premio acumulado</span>
               <div class="rim-prize__val">
                 <span class="rim-prize__num">{{ prize() }}</span>
                 <span class="rim-prize__sym">{{ currencySym }}</span>
+              </div>
+              <span v-if="myCtns() > 0" class="rim-participating">
+                <i class="fas fa-check-circle" /> Ya estás participando en esta sala
+              </span>
+            </div>
+
+            <!-- Progreso de cartones mínimos para iniciar (realtime) -->
+            <div
+              v-if="showCardsProgress"
+              class="rim-cards-progress"
+              :class="{ 'rim-cards-progress--ready': cardsProgressReady }"
+            >
+              <div class="rim-cards-progress__top">
+                <span class="rim-cards-progress__label">
+                  <i class="fas fa-layer-group" />
+                  {{ cardsProgressReady ? '¡Listo para iniciar!' : 'Cartones para iniciar' }}
+                </span>
+                <span class="rim-cards-progress__count">{{ totalCards }} / {{ minCardsToStart }}</span>
+              </div>
+              <div class="rim-cards-progress__track">
+                <div class="rim-cards-progress__fill" :style="{ width: cardsProgressPct + '%' }" />
               </div>
             </div>
 
@@ -209,8 +254,10 @@ const priceSym = () => props.room.currency_symbol ?? props.currencySym ?? 'USD'
   font-size: 10px; font-weight: 700; letter-spacing: .3px;
   display: inline-flex; align-items: center; gap: 4px;
 }
-.rim-chip--type { background: rgba(123,79,255,.2); border: 1px solid rgba(123,79,255,.38); color: #b490ff; }
-.rim-chip--mode { background: rgba(0,158,253,.15); border: 1px solid rgba(0,158,253,.32); color: #7cd4ff; }
+.rim-chip--type   { background: rgba(123,79,255,.2);  border: 1px solid rgba(123,79,255,.38);  color: #b490ff; }
+.rim-chip--mode   { background: rgba(0,158,253,.15);  border: 1px solid rgba(0,158,253,.32);   color: #7cd4ff; }
+.rim-chip--rounds { background: rgba(42,245,152,.14); border: 1px solid rgba(42,245,152,.32);  color: #7be8b8; }
+.rim-chip--rounds i { font-size: 9px; opacity: .85; }
 
 /* ── Body ── */
 .rim-body {
@@ -220,11 +267,31 @@ const priceSym = () => props.room.currency_symbol ?? props.currencySym ?? 'USD'
 }
 
 /* Premio */
-.rim-prize { text-align: center; }
+.rim-prize { text-align: center; position: relative; }
 .rim-prize__lbl {
   font-size: 9px; color: #5578bb;
   text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 3px;
 }
+/* Badge de cartones propios — esquina superior derecha del bloque de premio */
+.rim-my-ctns {
+  position: absolute; right: 0; top: -2px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 20px;
+  font-size: 10px; font-weight: 800; letter-spacing: .3px;
+  background: rgba(42,245,152,.14); border: 1px solid rgba(42,245,152,.34);
+  color: #7be8b8; white-space: nowrap;
+}
+.rim-my-ctns i { font-size: 9px; opacity: .85; }
+
+.rim-participating {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 6px; padding: 3px 11px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; letter-spacing: .3px;
+  background: rgba(42,245,152,.1); border: 1px solid rgba(42,245,152,.26);
+  color: #7be8b8;
+}
+.rim-participating i { font-size: 10px; color: #2af598; }
+
 .rim-prize__val { display: flex; align-items: baseline; justify-content: center; gap: 6px; }
 .rim-prize__num {
   font-family: 'Anton', sans-serif; font-size: 38px; line-height: 1;
@@ -233,6 +300,50 @@ const priceSym = () => props.room.currency_symbol ?? props.currencySym ?? 'USD'
   filter: drop-shadow(0 3px 10px rgba(255,180,0,.4));
 }
 .rim-prize__sym { font-size: 14px; font-weight: 800; color: #ffd060; -webkit-text-fill-color: #ffd060; }
+
+/* Progreso de cartones mínimos (realtime) */
+.rim-cards-progress {
+  background: rgba(255,255,255,.03); border: 1px solid rgba(100,140,255,.12);
+  border-radius: 12px; padding: 9px 12px 11px;
+  position: relative; overflow: hidden;
+  transition: border-color .3s, box-shadow .3s;
+}
+.rim-cards-progress__top {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 7px;
+}
+.rim-cards-progress__label {
+  font-size: 9px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  color: #7c9dff; display: inline-flex; align-items: center; gap: 6px;
+}
+.rim-cards-progress__label i { font-size: 9px; opacity: .8; }
+.rim-cards-progress__count {
+  font-family: 'Anton', sans-serif; font-size: 13px; letter-spacing: .5px; color: #d8e4ff;
+}
+.rim-cards-progress__track {
+  height: 7px; border-radius: 20px; overflow: hidden;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(100,140,255,.1);
+}
+.rim-cards-progress__fill {
+  height: 100%; border-radius: 20px;
+  background: linear-gradient(90deg, #2a6ad8 0%, #2af598 100%);
+  box-shadow: 0 0 10px rgba(42,160,255,.45);
+  transition: width .6s cubic-bezier(.22,1,.36,1);
+}
+.rim-cards-progress--ready {
+  border-color: rgba(42,245,152,.4);
+  box-shadow: 0 4px 22px rgba(42,245,152,.16);
+}
+.rim-cards-progress--ready .rim-cards-progress__label { color: #2af598; }
+.rim-cards-progress--ready .rim-cards-progress__fill {
+  background: linear-gradient(90deg, #2af598 0%, #00ffd0 100%);
+  animation: rimCpReadyPulse 1.6s ease-in-out infinite;
+}
+@keyframes rimCpReadyPulse {
+  0%,100% { box-shadow: 0 0 8px rgba(42,245,152,.5); }
+  50%     { box-shadow: 0 0 16px rgba(42,245,152,.85); }
+}
 
 /* Stats */
 .rim-stats { display: flex; gap: 8px; }

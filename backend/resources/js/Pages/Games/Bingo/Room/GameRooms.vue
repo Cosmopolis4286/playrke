@@ -6,6 +6,7 @@ import "@/css/games/bingo/bingo-game-rooms.css";
 import BingoGameRoomCard from "@js/Components/Games/Bingo/Room/GameRooms/BingoGameRoomCard.vue";
 import BingoPurchaseModal from "@js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModal.vue";
 import BingoRoomInfoModal from "@js/Components/Games/Bingo/Room/GameRooms/BingoRoomInfoModal.vue";
+import BingoRulesModal from "@js/Pages/Games/Bingo/Config/Rules/BingoRulesModal.vue";
 
 import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
 import { useGameRoomEcho } from "@js/composables/games/bingo/room/game-rooms/useGameRoomEcho";
@@ -58,14 +59,24 @@ const { init: initCountdown, getCountdown } = useGameRoomCountdown(
 
 const modal = useGameRoomPurchaseModal();
 
+// ── Modal de reglamento ──
+const showRulesModal = ref(false);
+
 // ── Modal intermedio de sala ──
-const selectedRoomForInfo = ref<BingoGameRoom | null>(null);
+// Se guarda solo el id; la sala se resuelve de forma reactiva desde `rooms`
+// para que el modal refleje las actualizaciones en tiempo real (WebSockets).
+const selectedRoomId = ref<string | null>(null);
 const showRoomInfoModal = ref(false);
+
+const selectedRoomForInfo = computed<BingoGameRoom | null>(() => {
+  if (!selectedRoomId.value) return null;
+  return rooms.value.find((r) => r.id === selectedRoomId.value) ?? null;
+});
 
 function openRoomInfo(roomId: string): void {
   const room = filteredRooms.value.find((r) => r.id === roomId);
   if (!room) return;
-  selectedRoomForInfo.value = room;
+  selectedRoomId.value = roomId;
   showRoomInfoModal.value = true;
   // Pre-carga el precio en segundo plano mientras el usuario lee la info de la sala
   modal.prefetch(room);
@@ -73,7 +84,7 @@ function openRoomInfo(roomId: string): void {
 
 function closeRoomInfo(): void {
   showRoomInfoModal.value = false;
-  selectedRoomForInfo.value = null;
+  selectedRoomId.value = null;
 }
 
 function goToLobby(roomId: string): void {
@@ -186,6 +197,17 @@ onUnmounted(() => {
     <!-- ── Meteoros ── -->
     <div id="grm-meteors" class="grm-meteors" aria-hidden="true" />
 
+    <!-- ── Botón flotante: reglamento del bingo ── -->
+    <button
+      type="button"
+      class="grp-rules-fab"
+      title="Ver reglamento del Bingo"
+      aria-label="Ver reglamento del Bingo"
+      @click="showRulesModal = true"
+    >
+      <i class="fas fa-book" />
+    </button>
+
     <!-- ── Encabezado ── -->
     <div class="game-rooms-page__header">
       <div class="grp-header-glow" />
@@ -238,6 +260,13 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
+
+  <!-- ══ Modal de reglamento del bingo ══ -->
+  <BingoRulesModal
+    v-model="showRulesModal"
+    :rules="props.bingoRules"
+    :image="props.imageBingoRules"
+  />
 
   <!-- ══ Modal de info de sala ══ -->
   <BingoRoomInfoModal
@@ -525,6 +554,54 @@ body.hold-transition,
 /* ── Contenedor de meteoros ── */
 .grm-meteors {
   position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+}
+
+/* ── Botón flotante: reglamento del bingo ── */
+.grp-rules-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 28px;
+  z-index: 50;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 1px solid rgba(123,79,255,0.35);
+  background: linear-gradient(135deg, #2a1f5e 0%, #1a2a52 100%);
+  color: #cdd8ff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.45), 0 0 0 0 rgba(123,79,255,0.5);
+  transition: transform .2s ease, box-shadow .2s ease, color .2s ease, border-color .2s ease;
+  animation: rulesFabPulse 3s ease-in-out infinite;
+}
+
+.grp-rules-fab:hover {
+  transform: translateY(-2px) scale(1.06);
+  color: #fff;
+  border-color: rgba(42,245,152,0.6);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.5), 0 0 18px rgba(42,245,152,0.35);
+}
+
+.grp-rules-fab:active {
+  transform: translateY(0) scale(0.97);
+}
+
+@keyframes rulesFabPulse {
+  0%, 100% { box-shadow: 0 4px 18px rgba(0,0,0,0.45), 0 0 0 0 rgba(123,79,255,0.45); }
+  50%      { box-shadow: 0 4px 18px rgba(0,0,0,0.45), 0 0 0 8px rgba(123,79,255,0); }
+}
+
+@media (max-width: 576px) {
+  .grp-rules-fab {
+    right: 14px;
+    bottom: 18px;
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
+  }
 }
 
 /* ═══════════════════════════════
