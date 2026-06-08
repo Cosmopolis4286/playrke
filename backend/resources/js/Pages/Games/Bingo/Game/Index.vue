@@ -62,6 +62,26 @@ const showPlayersModal = ref(false);
 const viewingCard      = ref<null | { serialNumber: string; cardMatrix: number[][]; loading?: boolean }>(null);
 const viewingCardOwner = ref('');
 
+function toRowMatrix(cardNumbers: Record<string, number[]> | number[][]): number[][] {
+  if (Array.isArray(cardNumbers)) return cardNumbers as number[][];
+  const obj = cardNumbers as Record<string, number[]>;
+  const cols = ['B', 'I', 'N', 'G', 'O'];
+  // Normalize each column to 5 slots, inserting 0 (free space) at index 2 for N
+  const normalized: Record<string, number[]> = {};
+  for (const c of cols) {
+    const nums = [...(obj[c] ?? [])];
+    if (c === 'N' && nums.length === 4) {
+      nums.splice(2, 0, 0); // free space at center
+    }
+    normalized[c] = nums;
+  }
+  const rows: number[][] = [];
+  for (let r = 0; r < 5; r++) {
+    rows.push(cols.map(c => normalized[c]?.[r] ?? 0));
+  }
+  return rows;
+}
+
 // Posiciones fijas de confetti (evita re-render random en cada update)
 const confettiPieces = Array.from({ length: 40 }, (_, i) => ({
   left:     `${(i * 2.618033) % 100}%`,
@@ -339,7 +359,7 @@ async function openCardViewer(winner: WinnerEntry) {
     if (data.success && data.card) {
       viewingCard.value = {
         serialNumber: data.card.serialNumber ?? winner.card_serial,
-        cardMatrix:   data.card.cardMatrix ?? [],
+        cardMatrix:   toRowMatrix(data.card.cardMatrix ?? {}),
         loading: false,
       };
     } else {

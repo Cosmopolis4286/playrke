@@ -170,15 +170,20 @@ final class BingoGameController extends Controller
         );
     }
 
-    public function viewCard(BingoRoom $room, BingoCard $card): JsonResponse
+    public function viewCard(BingoRoom $room, string $card): JsonResponse
     {
         return $this->handleServiceJson(function () use ($room, $card) {
-            if ((string) $card->room_id !== (string) $room->id) {
-                abort(404);
+            $bingoCard = BingoCard::where('id', $card)
+                ->where('room_id', (string) $room->id)
+                ->first();
+
+            if (!$bingoCard) {
+                abort(404, 'Cartón no encontrado en esta sala.');
             }
+
             return [
                 'success' => true,
-                'card'    => $card->toFrontendFormat(),
+                'card'    => $bingoCard->toFrontendFormat(),
             ];
         }, 'No se pudo obtener el cartón.');
     }
