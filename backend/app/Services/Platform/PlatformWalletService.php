@@ -1,0 +1,156 @@
+<?php
+
+namespace App\Services\Platform;
+
+use App\Contracts\WalletMovementRepositoryInterface;
+use App\Contracts\WalletRepositoryInterface;
+use App\Models\User;
+use App\Models\Wallet;
+use App\Models\WalletMovement;
+use Database\Seeders\PlatformUserSeeder;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Gestiona la billetera de la plataforma (usuario sistema playrke_platform).
+ *
+ * Responsabilidades:
+ * - Resolver la wallet de plataforma por moneda (con caché corto)
+ * - Acreditar comisiones RKE en tiempo real
+ * - Exponer saldo + movimientos para el dashboard del superadmin
+ */
+final class PlatformWalletService
+{
+    private const CACHE_TTL = 300; // 5 min
+
+    public function __construct(
+        private readonly WalletRepositoryInterface         $walletRepository,
+        private readonly WalletMovementRepositoryInterface $movementRepository,
+    ) {}
+
+    // -------------------------------------------------------------------------
+    // Acreditación de comisión RKE
+    // -------------------------------------------------------------------------
+
+    /**
+     * Acredita una comisión RKE a la wallet de plataforma en la moneda indicada.
+     * Se ejecuta dentro de la transacción de venta de cartones.
+     *
+     * @param  string $currencyId  ID de la moneda de la venta
+     * @param  float  $amount      Monto en USD de la comisión
+     * @param  string $description Referencia (ej: "RKE – Sala #abc123")
+     */
+    public function creditRke(string $currencyId, float $amount, string $description = 'Comisión RKE'): void
+    {
+        if ($amount <= 0) {
+            return;
+        }
+
+        $wallet = $this->resolveWallet($currencyId);
+
+        if (! $wallet) {
+            // Si aún no existe la wallet de plataforma para esta moneda, no bloqueamos la venta
+            return;
+        }
+
+        $balanceBefore = (float) $wallet->balance;
+
+        $this->walletRepository->incrementBalance((string) $wallet->id, $amount);
+        $wallet->refresh();
+
+        $this->movementRepository->record([
+            'wallet_id'      => (string) $wallet->id,
+            'user_id'        => (string) $wallet->user_id,
+            'type'           => WalletMovement::TYPE_RKE_COMMISSION,
+            'status'         => WalletMovement::STATUS_COMPLETED,
+            'amount'         => $amount,
+            'balance_before' => $balanceBefore,
+            'balance_after'  => (float) $wallet->refresh()->balance,
+            'description'    => $description,
+        ]);
+
+        // Invalidar caché de saldo
+        Cache::forget($this->cacheKey($currencyId));
+    }
+
+    // -------------------------------------------------------------------------
+    // Consultas para el dashboard
+    // -------------------------------------------------------------------------
+
+    /**
+     * Devuelve todas las wallets de la plataforma con su saldo actual.
+     *
+     * @return array<int, array{id: string, currency_id: string, currency_code: string, currency_symbol: string, balance: float, status: string}>
+     */
+    public function getWallets(): array
+    {
+        $user = $this->resolvePlatformUser();
+        if (! $user) {
+            return [];
+        }
+
+        return $this->walletRepository
+            ->getActiveWalletsByUser((string) $user->id)
+            ->load('currency')
+            ->map(fn(Wallet $w) => [
+                'id'             => (string) $w->id,
+                'currency_id'    => (string) $w->currency_id,
+                'currency_code'  => $w->currency->iso_code ?? '—',
+                'currency_symbol'=> $w->currency->symbol   ?? '$',
+                'balance'        => (float) $w->balance,
+                'status'         => $w->status,
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Movimientos paginados de la wallet de plataforma para una moneda dada.
+     */
+    public function getMovements(string $currencyId, int $perPage = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    {
+        $wallet = $this->resolveWallet($currencyId);
+
+        if (! $wallet) {
+            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
+        }
+
+        return $this->movementRepository->getByWallet((string) $wallet->id, $perPage);
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    /** Resuelve la wallet de plataforma para la moneda dada (con caché corto). */
+    public function resolveWallet(string $currencyId): ?Wallet
+    {
+        return Cache::remember(
+            $this->cacheKey($currencyId),
+            self::CACHE_TTL,
+            function () use ($currencyId): ?Wallet {
+                $user = $this->resolvePlatformUser();
+                if (! $user) {
+                    return null;
+                }
+
+                return $this->walletRepository->findWalletByUserAndCurrency(
+                    (string) $user->id,
+                    $currencyId
+                );
+            }
+        );
+    }
+
+    private function resolvePlatformUser(): ?User
+    {
+        return Cache::remember('platform_user_id', self::CACHE_TTL, function (): ?User {
+            return User::where('email', PlatformUserSeeder::PLATFORM_EMAIL)->first();
+        });
+    }
+
+    private function cacheKey(string $currencyId): string
+    {
+        return "platform_wallet_{$currencyId}";
+    }
+}
