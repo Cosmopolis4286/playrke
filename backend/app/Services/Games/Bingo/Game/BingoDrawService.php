@@ -14,6 +14,7 @@ use App\Events\Games\Bingo\BingoGameEnded;
 use App\Events\Games\Bingo\BingoGameStarted;
 use App\Events\Games\Bingo\BingoNumberCalled;
 use App\Events\Games\Bingo\BingoWinnerDeclared;
+use App\Events\LiveWinEvent;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\ExchangeRate;
 use App\Models\User;
@@ -452,7 +453,7 @@ final class BingoDrawService
                 'user_id'        => $userId,
             ]);
 
-            // Evento WebSocket individual por ganador
+            // Evento WebSocket individual por ganador (canal de sala)
             broadcast(new BingoWinnerDeclared(
                 roomId:     (int) $room->id,
                 drawId:     $lastDrawId,
@@ -461,6 +462,24 @@ final class BingoDrawService
                 cardId:     (int) $card->id,
                 pattern:    $pattern->name,
                 prize:      $prize,
+            ));
+
+            // Evento global para el feed de ganadores en vivo
+            $cardPrize->loadMissing('currency');
+            $localAmount  = $cardPrize->local_amount;
+            $currency     = $cardPrize->currency;
+            $isoCode      = $currency?->iso_code ?? 'USD';
+            broadcast(new LiveWinEvent(
+                game:          'Bingo',
+                gameSlug:      'bingo',
+                winnerName:    $userName,
+                amount:        $prize,
+                currency:      $isoCode,
+                currencySymbol:$currency?->symbol ?? '$',
+                isUsd:         $isoCode === 'USD',
+                localAmount:   (float) $localAmount,
+                decimalPlaces: $currency?->decimal_places ?? 2,
+                timestamp:     now()->toISOString(),
             ));
 
             $winners[] = [

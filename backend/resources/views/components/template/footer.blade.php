@@ -2,12 +2,14 @@
 <footer class="main-footer footer-app">
     <div class="footer-inner">
         <span class="footer-copy">
-            <i class="fas fa-copyright footer-copy-icon"></i>
-            PlayRKE {{ date('Y') }}
-            <span class="footer-version d-none d-sm-inline">· V {{ config('app.version') }}</span>
+            <span class="footer-brand">
+                <i class="fas fa-dice footer-brand-icon"></i>
+                <span class="footer-brand-name">PlayRKE</span>
+            </span>
+            <span class="footer-copy-sep">·</span>
+            <span class="footer-year">{{ date('Y') }}</span>
+            <span class="footer-version d-none d-sm-inline">· v{{ config('app.version') }}</span>
         </span>
-
-        <span class="footer-divider d-none d-md-inline"></span>
 
         <nav class="footer-links">
             <a href="{{ route('info.about') }}" class="footer-link">Quiénes Somos</a>

@@ -12874,9 +12874,9 @@ a.text-dark:focus {
 }
 
 .footer-app {
-  background: linear-gradient(90deg, #04011a 0%, #060324 50%, #04011a 100%);
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 0 0 0.3rem !important;
+  background: linear-gradient(90deg, #03010f 0%, #070328 50%, #03010f 100%);
+  border-top: 1px solid rgba(111, 63, 255, 0.18);
+  padding: 0 !important;
   height: auto;
 }
 
@@ -12884,8 +12884,8 @@ a.text-dark:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.30rem 1.25rem 0;
-  gap: 0.75rem;
+  padding: 0.5rem 1.5rem;
+  gap: 1rem;
 }
 
 @media (max-width: 576px) {
@@ -12898,67 +12898,81 @@ a.text-dark:focus {
     align-items: center;
     justify-content: center;
     height: auto;
-    padding: 0.5rem 1rem;
-    gap: 0.35rem;
+    padding: 0.6rem 1rem;
+    gap: 0.4rem;
     text-align: center;
-  }
-
-  .footer-divider {
-    display: none;
   }
 }
 
 .footer-copy {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.35);
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
-.footer-copy-icon {
-  font-size: 9px;
+.footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.footer-brand-icon {
+  font-size: 11px;
+  color: #7c5cfc;
+  opacity: 0.85;
+}
+
+.footer-brand-name {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+
+.footer-copy-sep {
+  color: rgba(255, 255, 255, 0.15);
+}
+
+.footer-year {
   color: rgba(255, 255, 255, 0.25);
 }
 
 .footer-version {
-  color: rgba(255, 255, 255, 0.22);
-}
-
-.footer-divider {
-  width: 1px;
-  height: 12px;
-  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.18);
+  font-size: 10px;
 }
 
 .footer-links {
   display: flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.1rem;
 }
 
 .footer-link {
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.3);
   text-decoration: none;
   font-size: 11px;
   letter-spacing: 0.02em;
-  padding: 0.2rem 0.6rem;
+  padding: 0.2rem 0.55rem;
   border-radius: 4px;
   transition: color 0.18s, background 0.18s;
   white-space: nowrap;
 }
 
 .footer-link:hover {
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(124, 92, 252, 0.12);
   text-decoration: none;
 }
 
 .footer-link + .footer-link::before {
   content: '·';
-  color: rgba(255, 255, 255, 0.15);
-  margin-right: 0.15rem;
+  color: rgba(255, 255, 255, 0.12);
+  margin-right: 0.1rem;
   pointer-events: none;
 }

@@ -15,6 +15,7 @@
   import DashboardSection       from '@/js/Components/Common/Dashboard/DashboardSection.vue'
   import DashboardActivityFeed  from '@/js/Components/Common/Dashboard/DashboardActivityFeed.vue'
   import DashboardQuickLinks    from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
+  import LiveWinsFeed           from '@/js/Components/Common/Platform/LiveWinsFeed.vue'
   import type { QuickLink }     from '@/js/Components/Common/Dashboard/DashboardQuickLinks.vue'
 
   // ==========================================================================
@@ -112,14 +113,27 @@
         <DashboardQuickLinks :links="quickLinks" :columns="3" />
       </DashboardSection>
 
-      <!-- Actividad reciente -->
-      <DashboardSection
-        title="Mis cartones recientes"
-        icon="fas fa-th"
-        subtitle="Últimos cartones adquiridos"
-      >
-        <DashboardActivityFeed :items="sortedActivity" :maxItems="8" :columns="2" />
-      </DashboardSection>
+      <!-- Ganadores en vivo + Actividad reciente -->
+      <div class="row g-3">
+        <div class="col-12 col-lg-5">
+          <DashboardSection
+            title="Ganadores en vivo"
+            icon="fas fa-trophy"
+            subtitle="Tiempo real"
+          >
+            <LiveWinsFeed />
+          </DashboardSection>
+        </div>
+        <div class="col-12 col-lg-7">
+          <DashboardSection
+            title="Mis cartones recientes"
+            icon="fas fa-th"
+            subtitle="Últimos cartones adquiridos"
+          >
+            <DashboardActivityFeed :items="sortedActivity" :maxItems="8" :columns="1" />
+          </DashboardSection>
+        </div>
+      </div>
 
     </div>
   </div>
