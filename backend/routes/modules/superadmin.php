@@ -26,6 +26,8 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
             Route::get('rke-summary', 'rkeSummary')->name('rke-summary');
             Route::get('platform-wallets', 'platformWallets')->name('platform-wallets');
             Route::get('platform-movements', 'platformMovements')->name('platform-movements');
+            Route::post('platform-deposit', 'platformDeposit')->name('platform-deposit');
+            Route::post('platform-withdraw', 'platformWithdraw')->name('platform-withdraw');
         });
 
 });

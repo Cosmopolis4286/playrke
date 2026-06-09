@@ -155,6 +155,46 @@
     await loadPlatformMovements(1)
   }
 
+  // ==========================================================================
+  // Depósito / Retiro
+  // ==========================================================================
+
+  const cashModal = ref<{ mode: 'deposit' | 'withdraw'; amount: string; description: string; loading: boolean; error: string | null } | null>(null)
+
+  function openCashModal(mode: 'deposit' | 'withdraw') {
+    cashModal.value = { mode, amount: '', description: '', loading: false, error: null }
+  }
+
+  function closeCashModal() {
+    cashModal.value = null
+  }
+
+  async function submitCash() {
+    if (!cashModal.value || !activePlatformWallet.value) return
+    const m = cashModal.value
+    const amount = parseFloat(m.amount)
+    if (isNaN(amount) || amount <= 0) {
+      m.error = 'Ingresa un monto válido mayor a cero.'
+      return
+    }
+    m.loading = true
+    m.error   = null
+    try {
+      const endpoint = m.mode === 'deposit' ? '/superadmin/platform-deposit' : '/superadmin/platform-withdraw'
+      await axios.post(endpoint, {
+        currency_id: activePlatformWallet.value.currency_id,
+        amount,
+        description: m.description || undefined,
+      })
+      closeCashModal()
+      await loadPlatformWallets()
+    } catch (e: any) {
+      m.error = e?.response?.data?.message ?? 'No se pudo completar la operación.'
+    } finally {
+      if (cashModal.value) cashModal.value.loading = false
+    }
+  }
+
   onMounted(() => {
     loadRkeSummary()
     loadPlatformWallets()
@@ -380,6 +420,14 @@
               <p class="pw-balance-card__stat-val" v-if="rkeSummary">
                 $ {{ formatUsd(rkeSummary.totals.total_rke) }}
               </p>
+              <div class="pw-cash-actions">
+                <button class="pw-cash-btn pw-cash-btn--deposit" @click="openCashModal('deposit')">
+                  <i class="fas fa-arrow-down"></i> Depositar
+                </button>
+                <button class="pw-cash-btn pw-cash-btn--withdraw" @click="openCashModal('withdraw')">
+                  <i class="fas fa-arrow-up"></i> Retirar
+                </button>
+              </div>
             </div>
           </div>
 
@@ -437,6 +485,69 @@
         </div>
 
       </div>
+
+      <!-- ══ MODAL DEPÓSITO / RETIRO ══════════════════════════════════ -->
+      <Teleport to="body">
+        <div v-if="cashModal" class="pw-modal-backdrop" @click.self="closeCashModal">
+          <div class="pw-modal">
+            <div class="pw-modal__header">
+              <div class="pw-modal__icon" :class="cashModal.mode === 'deposit' ? 'pw-modal__icon--deposit' : 'pw-modal__icon--withdraw'">
+                <i :class="cashModal.mode === 'deposit' ? 'fas fa-arrow-down' : 'fas fa-arrow-up'"></i>
+              </div>
+              <div>
+                <h3 class="pw-modal__title">{{ cashModal.mode === 'deposit' ? 'Depositar fondos' : 'Retirar fondos' }}</h3>
+                <p class="pw-modal__subtitle">{{ activePlatformWallet?.currency_code }} — saldo actual: {{ activePlatformWallet?.currency_symbol }} {{ formatUsd(activePlatformWallet?.balance ?? 0) }}</p>
+              </div>
+              <button class="pw-modal__close" @click="closeCashModal"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div class="pw-modal__body">
+              <div class="pw-modal__field">
+                <label class="pw-modal__label">Monto *</label>
+                <div class="pw-modal__input-wrap">
+                  <span class="pw-modal__prefix">{{ activePlatformWallet?.currency_symbol }}</span>
+                  <input
+                    v-model="cashModal.amount"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="0.00"
+                    class="pw-modal__input"
+                    @keyup.enter="submitCash"
+                  />
+                </div>
+              </div>
+              <div class="pw-modal__field">
+                <label class="pw-modal__label">Descripción (opcional)</label>
+                <input
+                  v-model="cashModal.description"
+                  type="text"
+                  maxlength="255"
+                  :placeholder="cashModal.mode === 'deposit' ? 'Depósito manual' : 'Retiro manual'"
+                  class="pw-modal__input pw-modal__input--full"
+                  @keyup.enter="submitCash"
+                />
+              </div>
+              <div v-if="cashModal.error" class="pw-modal__error">
+                <i class="fas fa-exclamation-circle"></i> {{ cashModal.error }}
+              </div>
+            </div>
+
+            <div class="pw-modal__footer">
+              <button class="pw-modal__cancel" :disabled="cashModal.loading" @click="closeCashModal">Cancelar</button>
+              <button
+                class="pw-modal__confirm"
+                :class="cashModal.mode === 'deposit' ? 'pw-modal__confirm--deposit' : 'pw-modal__confirm--withdraw'"
+                :disabled="cashModal.loading"
+                @click="submitCash"
+              >
+                <span v-if="cashModal.loading"><span class="rke-spinner rke-spinner--sm"></span> Procesando...</span>
+                <span v-else><i :class="cashModal.mode === 'deposit' ? 'fas fa-arrow-down' : 'fas fa-arrow-up'"></i> {{ cashModal.mode === 'deposit' ? 'Confirmar depósito' : 'Confirmar retiro' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
 
       <!-- ══ COMISIONES RKE POR SALA ════════════════════════════════════ -->
       <div class="rke-section">
@@ -852,6 +963,226 @@
 }
 .pw-page-btn:hover { background: #e0f2fe; border-color: #7dd3fc; }
 .pw-page-btn--active { background: #0ea5e9; border-color: #0ea5e9; color: #fff; }
+
+/* Botones de caja en la balance card */
+.pw-cash-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  justify-content: flex-end;
+}
+
+.pw-cash-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.pw-cash-btn:active { transform: scale(0.97); }
+.pw-cash-btn--deposit  { background: rgba(255,255,255,0.25); color: #fff; }
+.pw-cash-btn--deposit:hover  { background: rgba(255,255,255,0.38); }
+.pw-cash-btn--withdraw { background: rgba(220,38,38,0.75); color: #fff; }
+.pw-cash-btn--withdraw:hover { background: rgba(220,38,38,0.9); }
+
+/* Modal depósito / retiro */
+.pw-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 1rem;
+}
+
+.pw-modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+}
+
+.pw-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f0f2f7;
+  position: relative;
+}
+
+.pw-modal__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.pw-modal__icon--deposit  { background: #dcfce7; color: #16a34a; }
+.pw-modal__icon--withdraw { background: #fee2e2; color: #dc2626; }
+
+.pw-modal__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 2px;
+}
+
+.pw-modal__subtitle {
+  font-size: 0.75rem;
+  color: #718096;
+  margin: 0;
+}
+
+.pw-modal__close {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #718096;
+  font-size: 0.8rem;
+  transition: background 0.12s;
+}
+.pw-modal__close:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+
+.pw-modal__body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.pw-modal__field { display: flex; flex-direction: column; gap: 5px; }
+
+.pw-modal__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.pw-modal__input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.pw-modal__input-wrap:focus-within { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,0.12); }
+
+.pw-modal__prefix {
+  padding: 0 10px;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  color: #718096;
+  font-size: 0.85rem;
+  font-weight: 600;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
+.pw-modal__input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 9px 12px;
+  font-size: 0.9rem;
+  color: #1a202c;
+  background: transparent;
+}
+.pw-modal__input--full {
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 0.875rem;
+  color: #1a202c;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.pw-modal__input--full:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14,165,233,0.12); }
+
+.pw-modal__error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.pw-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #f0f2f7;
+  background: #fafbfc;
+}
+
+.pw-modal__cancel {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #718096;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.pw-modal__cancel:hover:not(:disabled) { background: #f3f4f6; }
+.pw-modal__cancel:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pw-modal__confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.pw-modal__confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+.pw-modal__confirm--deposit  { background: #16a34a; }
+.pw-modal__confirm--deposit:hover:not(:disabled)  { background: #15803d; }
+.pw-modal__confirm--withdraw { background: #dc2626; }
+.pw-modal__confirm--withdraw:hover:not(:disabled) { background: #b91c1c; }
+
+.rke-spinner--sm {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
 
 /* ── Sección RKE ── */
 .rke-section {

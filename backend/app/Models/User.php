@@ -103,6 +103,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'kyc_status',
         'kyc_verified_at',
         'kyc_rejection_reason',
+        'is_system_account',
     ];
 
     /**
@@ -120,8 +121,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'country_id' => 'string',
         'time_zone_id' => 'string',
         'birth_date' => 'date',
-        'is_demo_user' => 'boolean',
-        'email_verified_at' => 'datetime',
+        'is_demo_user'       => 'boolean',
+        'is_system_account'  => 'boolean',
+        'email_verified_at'  => 'datetime',
         'last_login_at' => 'datetime',
         'is_email_notifications_enabled' => 'boolean',
         'is_two_factor_enabled' => 'boolean',

@@ -4,6 +4,7 @@ namespace App\Services\Platform;
 
 use App\Contracts\WalletMovementRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
+use App\Models\Currency;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletMovement;
@@ -70,6 +71,107 @@ final class PlatformWalletService
         ]);
 
         // Invalidar caché de saldo
+        Cache::forget($this->cacheKey($currencyId));
+    }
+
+    // -------------------------------------------------------------------------
+    // Gestión de wallets (depósito / retiro / auto-creación)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Garantiza que exista una wallet de plataforma para la moneda indicada.
+     * Si no existe, la crea. Útil cuando se activa una nueva moneda en el sistema.
+     */
+    public function ensureWallet(string $currencyId): ?Wallet
+    {
+        $user = $this->resolvePlatformUser();
+        if (! $user) {
+            return null;
+        }
+
+        $wallet = Wallet::firstOrCreate(
+            ['user_id' => $user->id, 'currency_id' => $currencyId],
+            ['balance' => 0.00, 'status' => 'ACTIVE']
+        );
+
+        Cache::forget($this->cacheKey($currencyId));
+
+        return $wallet;
+    }
+
+    /**
+     * Registra un depósito manual en la wallet de plataforma (ej. recarga de caja).
+     *
+     * @throws \RuntimeException si la wallet no existe para la moneda dada
+     */
+    public function deposit(string $currencyId, float $amount, string $description = 'Depósito manual'): void
+    {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('El monto del depósito debe ser mayor a cero.');
+        }
+
+        $wallet = $this->ensureWallet($currencyId);
+
+        if (! $wallet) {
+            throw new \RuntimeException("No se encontró wallet de plataforma para la moneda {$currencyId}.");
+        }
+
+        $balanceBefore = (float) $wallet->balance;
+
+        $this->walletRepository->incrementBalance((string) $wallet->id, $amount);
+        $wallet->refresh();
+
+        $this->movementRepository->record([
+            'wallet_id'      => (string) $wallet->id,
+            'user_id'        => (string) $wallet->user_id,
+            'type'           => WalletMovement::TYPE_DEPOSIT,
+            'status'         => WalletMovement::STATUS_COMPLETED,
+            'amount'         => $amount,
+            'balance_before' => $balanceBefore,
+            'balance_after'  => (float) $wallet->balance,
+            'description'    => $description,
+        ]);
+
+        Cache::forget($this->cacheKey($currencyId));
+    }
+
+    /**
+     * Registra un retiro manual de la wallet de plataforma (ej. extracción de fondos).
+     *
+     * @throws \RuntimeException si la wallet no existe o fondos insuficientes
+     */
+    public function withdraw(string $currencyId, float $amount, string $description = 'Retiro manual'): void
+    {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('El monto del retiro debe ser mayor a cero.');
+        }
+
+        $wallet = $this->resolveWallet($currencyId);
+
+        if (! $wallet) {
+            throw new \RuntimeException("No se encontró wallet de plataforma para la moneda {$currencyId}.");
+        }
+
+        if ((float) $wallet->balance < $amount) {
+            throw new \RuntimeException('Fondos insuficientes en la wallet de plataforma.');
+        }
+
+        $balanceBefore = (float) $wallet->balance;
+
+        $this->walletRepository->decrementBalance((string) $wallet->id, $amount);
+        $wallet->refresh();
+
+        $this->movementRepository->record([
+            'wallet_id'      => (string) $wallet->id,
+            'user_id'        => (string) $wallet->user_id,
+            'type'           => WalletMovement::TYPE_WITHDRAWAL,
+            'status'         => WalletMovement::STATUS_COMPLETED,
+            'amount'         => $amount,
+            'balance_before' => $balanceBefore,
+            'balance_after'  => (float) $wallet->balance,
+            'description'    => $description,
+        ]);
+
         Cache::forget($this->cacheKey($currencyId));
     }
 

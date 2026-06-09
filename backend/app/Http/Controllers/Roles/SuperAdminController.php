@@ -8,6 +8,7 @@ use App\Services\Roles\SuperAdmin\Dashboard\SuperAdminDashboardContextService;
 use App\Services\Roles\SuperAdmin\Rke\RkeSummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -76,5 +77,57 @@ class SuperAdminController extends Controller
         $paginator = $this->platformWallet->getMovements($currencyId, $perPage);
 
         return response()->json($paginator);
+    }
+
+    /**
+     * Deposita fondos manualmente en la wallet de plataforma
+     */
+    public function platformDeposit(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'currency_id' => ['required', 'string'],
+            'amount'      => ['required', 'numeric', 'min:0.01'],
+            'description' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $this->platformWallet->deposit(
+                $validated['currency_id'],
+                (float) $validated['amount'],
+                $validated['description'] ?? 'Depósito manual'
+            );
+
+            return response()->json(['message' => 'Depósito registrado correctamente.']);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'No se pudo registrar el depósito.'], 500);
+        }
+    }
+
+    /**
+     * Retira fondos manualmente de la wallet de plataforma
+     */
+    public function platformWithdraw(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'currency_id' => ['required', 'string'],
+            'amount'      => ['required', 'numeric', 'min:0.01'],
+            'description' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $this->platformWallet->withdraw(
+                $validated['currency_id'],
+                (float) $validated['amount'],
+                $validated['description'] ?? 'Retiro manual'
+            );
+
+            return response()->json(['message' => 'Retiro registrado correctamente.']);
+        } catch (\InvalidArgumentException|\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'No se pudo registrar el retiro.'], 500);
+        }
     }
 }

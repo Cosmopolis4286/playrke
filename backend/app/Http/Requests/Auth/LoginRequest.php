@@ -48,6 +48,12 @@ class LoginRequest extends FormRequest
         // Verificar si el usuario existe y está activo antes de intentar autenticar
         $user = User::where($field, $login)->first();
 
+        if ($user && $user->is_system_account) {
+            throw ValidationException::withMessages([
+                'login' => 'Esta cuenta no puede iniciar sesión.',
+            ]);
+        }
+
         if ($user && !$user->isActive()) {
             RateLimiter::hit($this->throttleKey());
 

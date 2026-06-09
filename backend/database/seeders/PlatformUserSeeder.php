@@ -30,13 +30,17 @@ class PlatformUserSeeder extends Seeder
                 'password'              => Hash::make(\Str::random(64)),
                 'status'                => 'ACTIVE',
                 'email_verified_at'     => now(),
+                'is_system_account'     => true,
             ]
         );
 
-        // Asignar rol superadmin para que pueda acceder a endpoints protegidos
-        if (! $user->hasRole('superadmin')) {
-            $user->assignRole('superadmin');
+        // Asegurar que is_system_account esté marcado aunque el usuario ya existiera
+        if (! $user->is_system_account) {
+            $user->update(['is_system_account' => true]);
         }
+
+        // Revocar cualquier rol que hubiera sido asignado previamente
+        $user->syncRoles([]);
 
         // Crear una wallet por cada moneda activa
         $currencies = Currency::where('status', true)->get();
