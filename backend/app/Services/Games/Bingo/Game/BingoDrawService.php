@@ -15,6 +15,7 @@ use App\Events\Games\Bingo\BingoGameStarted;
 use App\Events\Games\Bingo\BingoNumberCalled;
 use App\Events\Games\Bingo\BingoWinnerDeclared;
 use App\Models\Games\Common\Utils\GameStatus;
+use App\Models\ExchangeRate;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -436,7 +437,7 @@ final class BingoDrawService
                 'prize_type'        => $prizeType,
                 'winning_pattern'   => $pattern->name,
                 'usd_amount'        => $prize,
-                'local_amount'      => $prize,
+                'local_amount'      => $this->convertToLocal($prize, (string) $card->currency_id),
                 'prize_status'      => 'waiting',
                 'verification_code' => strtoupper(substr(md5(uniqid($card->id . $roundId, true)), 0, 8)),
             ]);
@@ -573,5 +574,18 @@ final class BingoDrawService
             'status_id'   => $finishedStatus->id,
             'finished_at' => now()->toISOString(),
         ]);
+    }
+
+    /**
+     * Convierte un monto USD a moneda local usando el exchange rate de la moneda del cartón.
+     * Si no hay tasa o la moneda es USD, devuelve el monto original.
+     */
+    private function convertToLocal(float $usdAmount, string $currencyId): float
+    {
+        $rate = ExchangeRate::where('currency_id', $currencyId)->value('amount');
+        if (!$rate || $rate <= 0) {
+            return $usdAmount;
+        }
+        return round($usdAmount * (float) $rate, 4);
     }
 }

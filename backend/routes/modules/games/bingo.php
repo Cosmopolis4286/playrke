@@ -111,6 +111,10 @@ Route::get('bingo/my-games', [PlayerGameHistoryController::class, 'index'])
     ->middleware(['auth', 'multiPermission:games.bingo,games.bingo.game_rooms'])
     ->name('bingo.my-games');
 
+Route::get('bingo/my-games/{roomId}/detail', [PlayerGameHistoryController::class, 'detail'])
+    ->middleware(['auth', 'multiPermission:games.bingo,games.bingo.game_rooms'])
+    ->name('bingo.my-games.detail');
+
 /**
  * ====================================
  * SALAS DE JUEGO

@@ -36,4 +36,11 @@ final class PlayerGameHistoryController extends Controller
             ],
         ]);
     }
+
+    public function detail(Request $request, string $roomId): \Illuminate\Http\JsonResponse
+    {
+        $userId = (string) Auth::id();
+        $detail = $this->historyService->getDetail($userId, $roomId);
+        return response()->json(['data' => $detail]);
+    }
 }
