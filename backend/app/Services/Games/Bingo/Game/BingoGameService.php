@@ -118,6 +118,7 @@ final class BingoGameService
             'room' => $bingoRoom,
             'roomId'       => (string) $bingoRoom->id,
             'roomRouteKey' => $bingoRoom->getRouteKey(),
+            'gameVariant'  => $config?->game_variant ?? \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75,
             'cartons' => $cartons,
             'customerLogo' => null, // Se puede configurar según necesidad
             'currencySym' => $currencySym,

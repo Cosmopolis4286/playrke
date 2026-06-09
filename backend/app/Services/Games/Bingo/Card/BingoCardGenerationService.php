@@ -174,6 +174,9 @@ final class BingoCardGenerationService
             // Usar el usuario autenticado como seller_user_id
             $arrCtn['seller_user_id'] = $authenticatedUserId;
 
+            // Inyectar variante de juego desde la config de la sala
+            $arrCtn['gameVariant'] = $room->config?->game_variant ?? \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75;
+
             // Crear lote de cartones
             $lotID = $this->cardManagement->createCtnsLot($arrCtn, $saleAmount);
 

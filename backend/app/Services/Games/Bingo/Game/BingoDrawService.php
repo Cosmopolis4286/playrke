@@ -9,6 +9,7 @@ use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
 use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
+use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Events\Games\Bingo\BingoGameEnded;
 use App\Events\Games\Bingo\BingoGameStarted;
 use App\Events\Games\Bingo\BingoNumberCalled;
@@ -20,7 +21,6 @@ use Illuminate\Support\Facades\Log;
 
 final class BingoDrawService
 {
-    private const TOTAL_CHIPS         = 75;
     private const CHIP_INTERVAL_SECONDS = 5;
 
     public function startDraw(BingoRoom $room): array
@@ -28,9 +28,17 @@ final class BingoDrawService
         @set_time_limit(0);
         ignore_user_abort(true);
 
-        $roomId = $room->id;
+        $roomId  = $room->id;
 
-        Log::info('[BingoDrawService] Iniciando sorteo', ['room_id' => $roomId]);
+        // Asegurar que config esté cargada
+        if (!$room->relationLoaded('config')) {
+            $room->load('config');
+        }
+
+        $variant    = $room->config?->game_variant ?? BingoVariant::BINGO_75;
+        $totalChips = BingoVariant::totalChips($variant);
+
+        Log::info('[BingoDrawService] Iniciando sorteo', ['room_id' => $roomId, 'variant' => $variant]);
 
         // 1. Resolver ronda activa, crear si no existe
         $round = BingoRound::where('room_id', (string) $roomId)
@@ -70,7 +78,7 @@ final class BingoDrawService
         }
 
         // Precalcular las posiciones del patrón una sola vez
-        $patternPositions = $this->resolvePatternPositions($pattern);
+        $patternPositions = $this->resolvePatternPositions($pattern, $variant);
 
         Log::info('[BingoDrawService] Patrón de la ronda cargado', [
             'round_id'    => $roundId,
@@ -112,7 +120,7 @@ final class BingoDrawService
 
             broadcast(new BingoNumberCalled((int) $lastDraw->chip, $roomId));
 
-            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, (int) $lastDraw->id)) {
+            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, (int) $lastDraw->id, $variant)) {
                 return $result;
             }
         } else {
@@ -123,18 +131,18 @@ final class BingoDrawService
             });
 
             // 4. Generar y persistir secuencia
-            $sequence = $this->generateSequence();
+            $sequence = $this->generateSequence($totalChips);
             $this->persistDrawCodes($roomId, $sequence);
 
             // 5. Primera ficha + GameStarted
-            $firstDraw = $this->createDrawRecord($roomId, $roundId, $sequence[0], 0);
+            $firstDraw = $this->createDrawRecord($roomId, $roundId, $sequence[0], 0, $variant);
             broadcast(new BingoGameStarted($roomId, (int) $firstDraw->id));
             broadcast(new BingoNumberCalled((int) $sequence[0], $roomId));
 
             $drawnSoFar = [$sequence[0]];
             $startIndex = 1;
 
-            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $firstDraw->id)) {
+            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $firstDraw->id, $variant)) {
                 return $result;
             }
         }
@@ -144,18 +152,16 @@ final class BingoDrawService
             sleep(self::CHIP_INTERVAL_SECONDS);
 
             $chip = $sequence[$i];
-            $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * self::CHIP_INTERVAL_SECONDS);
+            $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * self::CHIP_INTERVAL_SECONDS, $variant);
 
             broadcast(new BingoNumberCalled((int) $chip, $roomId));
             $drawnSoFar[] = $chip;
 
             Log::info('[BingoDrawService] Ficha', ['chip' => $chip, 'index' => $i]);
 
-            // Cuando quedan 10 fichas o menos, informar a la sala qué tan cerca está cada jugador de ganar.
-            // Envuelto en try/catch: es informativo y nunca debe interrumpir el sorteo.
-            if ((self::TOTAL_CHIPS - count($drawnSoFar)) <= 10) {
+            if (($totalChips - count($drawnSoFar)) <= 10) {
                 try {
-                    $this->broadcastPlayersProgress($room, $patternPositions, $drawnSoFar);
+                    $this->broadcastPlayersProgress($room, $patternPositions, $drawnSoFar, $variant);
                 } catch (\Throwable $e) {
                     Log::warning('[BingoDrawService] Error al emitir progreso de jugadores', [
                         'room_id' => $roomId,
@@ -164,7 +170,7 @@ final class BingoDrawService
                 }
             }
 
-            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $draw->id)) {
+            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $draw->id, $variant)) {
                 return $result;
             }
         }
@@ -194,9 +200,9 @@ final class BingoDrawService
         return ['success' => true, 'room_id' => $roomId, 'total_chips' => count($drawnSoFar), 'winner' => null];
     }
 
-    private function generateSequence(): array
+    private function generateSequence(int $totalChips): array
     {
-        $numbers = range(1, self::TOTAL_CHIPS);
+        $numbers = range(1, $totalChips);
         shuffle($numbers);
         return $numbers;
     }
@@ -212,89 +218,86 @@ final class BingoDrawService
         }
     }
 
-    private function createDrawRecord(string $roomId, string $roundId, int $chip, int $time): BingoDraw
+    private function createDrawRecord(string $roomId, string $roundId, int $chip, int $time, string $variant): BingoDraw
     {
         return BingoDraw::create([
             'room_id'  => $roomId,
             'round_id' => $roundId,
             'chip'     => (string) $chip,
-            'code'     => $this->generateBingoCode($chip),
+            'code'     => BingoVariant::chipCode($variant, $chip),
             'time'     => $time,
             'status'   => 'FINISHED',
         ]);
     }
 
-    private function generateBingoCode(int $chip): string
-    {
-        $letter = match (true) {
-            $chip <= 15 => 'B',
-            $chip <= 30 => 'I',
-            $chip <= 45 => 'N',
-            $chip <= 60 => 'G',
-            default     => 'O',
-        };
-        return "{$letter}-{$chip}";
-    }
-
     /**
-     * Convierte las posiciones del patrón (boxes) en los índices
-     * [col, row] del array card_numbers del cartón.
+     * Convierte las posiciones del patrón (boxes) en los índices [col, row]
+     * del array card_numbers del cartón para la variante dada.
      *
-     * Formato boxes del seeder: 'B1;I2;N3;G4;O5' o 'ALL'
-     *   - Letra: columna (B/I/N/G/O)
-     *   - Número: fila del cartón (1-5, base-1)
+     * Para BINGO_75 (5×5, letras B/I/N/G/O):
+     *   boxes = 'B1;I2;N3;G4;O5' — letra+fila (base-1). Casilla libre: N3 → N[2].
      *
-     * La celda libre es N en fila 3 (N3), almacenada como null en N[2].
+     * Para BINGO_90/80/30 (numérico):
+     *   Todas las celdas del cartón (ALL) o formato 'col{n};row{m}' futuro.
+     *   Por ahora solo se soporta ALL para variantes no-75.
      *
-     * @param  BingoPattern $pattern
      * @return array<int, array{col: string, row: int, free: bool}>
      */
-    private function resolvePatternPositions(BingoPattern $pattern): array
+    private function resolvePatternPositions(BingoPattern $pattern, string $variant = BingoVariant::BINGO_75): array
     {
-        $validCols = ['B', 'I', 'N', 'G', 'O'];
-        $resolved  = [];
+        $colDefs  = BingoVariant::columns($variant);
+        $labels   = array_column($colDefs, 'label');
+        $numRows  = BingoVariant::rows($variant);
+        $resolved = [];
 
         $boxes = $pattern->boxes ?? '';
 
-        // FULL HOUSE: todas las 25 celdas
+        // FULL HOUSE: todas las celdas del cartón según la variante
         if (strtoupper(trim($boxes)) === 'ALL') {
-            foreach ($validCols as $col) {
-                for ($row = 0; $row < 5; $row++) {
-                    $isFree = ($col === 'N' && $row === 2);
-                    $resolved[] = ['col' => $col, 'row' => $row, 'free' => $isFree];
+            foreach ($colDefs as $col) {
+                for ($row = 0; $row < $numRows; $row++) {
+                    $isFree = ($col['freeRow'] !== null && $row === $col['freeRow']);
+                    $resolved[] = ['col' => $col['label'], 'row' => $row, 'free' => $isFree];
                 }
             }
             return $resolved;
         }
 
-        // Patrón MULTIPLE: boxes contiene num_ids de sub-patrones (ej: '2;3;4;5;6')
-        // El ganador debe cumplir TODOS los sub-patrones simultáneamente
+        // Patrón MULTIPLE: boxes contiene num_ids de sub-patrones
         if ($pattern->type_pattern === 'MULTIPLE') {
             foreach ($pattern->boxes_array as $numId) {
                 $numId = (int) $numId;
                 if ($numId < 1) continue;
-                $subPattern = BingoPattern::where('num_id', $numId)
-                    ->whereNull('user_id')
-                    ->first();
+                $subPattern = BingoPattern::where('num_id', $numId)->whereNull('user_id')->first();
                 if ($subPattern) {
-                    $resolved = array_merge($resolved, $this->resolvePatternPositions($subPattern));
+                    $resolved = array_merge($resolved, $this->resolvePatternPositions($subPattern, $variant));
                 }
             }
             return $resolved;
         }
 
-        // Formato 'B1;I2;N3;G4;O5'
+        // Formato 'B1;I2;N3;G4;O5' (75 bolas) o genérico 'col;row' (base-1)
         foreach ($pattern->boxes_array as $box) {
             $box = strtoupper(trim((string) $box));
             if (strlen($box) < 2) continue;
 
-            $col     = $box[0];
-            $rowNum  = (int) substr($box, 1); // 1-5 (base-1)
+            // Detectar si la primera parte es una letra de columna o un índice numérico
+            // Ej: 'B1', 'N3' para 75-ball; posibles extensiones futuras para otras variantes
+            $col    = $box[0];
+            $rowNum = (int) substr($box, 1); // fila base-1
 
-            if (!in_array($col, $validCols, true) || $rowNum < 1 || $rowNum > 5) continue;
+            if (!in_array($col, $labels, true) || $rowNum < 1 || $rowNum > $numRows) continue;
 
-            $rowIndex = $rowNum - 1; // convertir a base-0
-            $isFree   = ($col === 'N' && $rowIndex === 2);
+            $rowIndex = $rowNum - 1;
+
+            // Determinar si es casilla libre (buscar en colDefs)
+            $isFree = false;
+            foreach ($colDefs as $colDef) {
+                if ($colDef['label'] === $col && $colDef['freeRow'] !== null && $colDef['freeRow'] === $rowIndex) {
+                    $isFree = true;
+                    break;
+                }
+            }
 
             $resolved[] = ['col' => $col, 'row' => $rowIndex, 'free' => $isFree];
         }
@@ -302,16 +305,7 @@ final class BingoDrawService
         return $resolved;
     }
 
-    /**
-     * Calcula, para cada jugador activo, cuántas fichas le faltan a su cartón
-     * más cercano de ganar (según el patrón de la ronda) y emite el resumen
-     * vía WebSocket para que la sala vea quién está más cerca de cantar bingo.
-     *
-     * @param BingoRoom $room
-     * @param array     $patternPositions Posiciones pre-calculadas del patrón de la ronda
-     * @param int[]     $drawnNumbers     Números sorteados hasta ahora
-     */
-    private function broadcastPlayersProgress(BingoRoom $room, array $patternPositions, array $drawnNumbers): void
+    private function broadcastPlayersProgress(BingoRoom $room, array $patternPositions, array $drawnNumbers, string $variant = BingoVariant::BINGO_75): void
     {
         if (empty($patternPositions)) {
             return;
@@ -370,25 +364,14 @@ final class BingoDrawService
         broadcast(new \App\Events\Games\Bingo\BingoPlayersProgress((int) $room->id, $players));
     }
 
-    /**
-     * Verifica si algún cartón activo cumple el patrón de la ronda actual.
-     * Si hay ganador(es): registra en bingo_card_prizes, marca cartones,
-     * emite WinnerDeclared + GameEnded y retorna resumen.
-     *
-     * @param BingoRoom    $room
-     * @param BingoRound   $round            Ronda activa (con bingo_pattern_id)
-     * @param BingoPattern $pattern          Patrón de la ronda
-     * @param array        $patternPositions Posiciones pre-calculadas del patrón
-     * @param int[]        $drawnNumbers     Números sorteados hasta ahora
-     * @param int          $lastDrawId       ID del último bingo_draw registrado
-     */
     private function detectWinnerAndEnd(
         BingoRoom    $room,
         BingoRound   $round,
         BingoPattern $pattern,
         array        $patternPositions,
         array        $drawnNumbers,
-        int          $lastDrawId
+        int          $lastDrawId,
+        string       $variant = BingoVariant::BINGO_75
     ): ?array {
         // Salida rápida: si el patrón no tiene posiciones definidas no hay bingo posible
         if (empty($patternPositions)) {

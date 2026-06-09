@@ -4,7 +4,8 @@ namespace App\Services\Games\Bingo\Card;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
-use App\Domains\Games\Bingo\Models\Card\BingoCardPayment;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
+use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -59,30 +60,20 @@ class BingoCardManagementService
     {
         try {
             $cards = [];
-            $numOfCtns = $cartonData['numOfCtns'];
-            $roomId = $cartonData['roomId'];
+            $numOfCtns  = $cartonData['numOfCtns'];
+            $roomId     = $cartonData['roomId'];
             $roomUserId = $cartonData['roomUser'];
-            $userId = $cartonData['creator']['id'];
+            $userId     = $cartonData['creator']['id'];
+            $variant    = $cartonData['gameVariant'] ?? BingoVariant::BINGO_75;
 
-            // Generar todos los IDs Snowflake de una vez (más eficiente)
             $cardIds = [];
             for ($i = 0; $i < $numOfCtns; $i++) {
                 $cardIds[] = BingoCard::generateSnowflakeId();
             }
 
-            // Generar cartones únicos
             for ($i = 0; $i < $numOfCtns; $i++) {
-                $cardData = $this->generateSingleCard($roomId, $roomUserId);
-
-                // card_numbers incluye centro libre (N[2] = null)
-                $numbers = $cardData['numbers'];
-                $cardNumbers = [
-                    'B' => $numbers['B'],
-                    'I' => $numbers['I'],
-                    'N' => [$numbers['N'][0], $numbers['N'][1], null, $numbers['N'][2], $numbers['N'][3]],
-                    'G' => $numbers['G'],
-                    'O' => $numbers['O'],
-                ];
+                $cardNumbers = BingoVariant::generateCardMatrix($variant);
+                $hash        = $this->generateCardHash($roomId, $roomUserId, $cardNumbers);
 
                 $cards[] = [
                     'id'              => $cardIds[$i],
@@ -95,8 +86,8 @@ class BingoCardManagementService
                     'currency_id'     => $cartonData['currency'],
                     'serial_number'   => $this->generateSerialNumber(),
                     'card_numbers'    => json_encode($cardNumbers),
-                    'card_hash'       => $cardData['hash'],
-                    'status'          => 1, // 1 = ACTIVE
+                    'card_hash'       => $hash,
+                    'status'          => 1,
                     'is_validated'    => 0,
                     'validated_at'    => null,
                     'created_at'      => now(),
@@ -104,13 +95,12 @@ class BingoCardManagementService
                 ];
             }
 
-            // Insertar todos los cartones en lote
             return BingoCard::insert($cards);
         } catch (\Throwable $e) {
             Log::error('Error al generar y almacenar cartones: ' . $e->getMessage(), [
                 'cartonData' => $cartonData,
-                'lotId' => $lotId,
-                'trace' => $e->getTraceAsString(),
+                'lotId'      => $lotId,
+                'trace'      => $e->getTraceAsString(),
             ]);
             throw $e;
         }
@@ -152,80 +142,11 @@ class BingoCardManagementService
         }
     }
 
-    /**
-     * Generar número de serie único para el cartón
-     *
-     * @return string Número de serie único
-     */
     private function generateSerialNumber(): string
     {
         return 'BINGO-' . strtoupper(uniqid()) . '-' . rand(1000, 9999);
     }
 
-    /**
-     * Generar un solo cartón de bingo
-     *
-     * @param string $roomId ID de la sala
-     * @param string $roomUserId ID del usuario en la sala
-     * @return array Datos del cartón generado
-     */
-    private function generateSingleCard(string $roomId, string $roomUserId): array
-    {
-        // Generar números aleatorios para el cartón
-        $cardNumbers = $this->generateCardNumbers();
-        
-        // Generar hash único para el cartón
-        $hash = $this->generateCardHash($roomId, $roomUserId, $cardNumbers);
-
-        return [
-            'numbers' => $cardNumbers,
-            'hash' => $hash,
-            'generated_at' => now()->toISOString(),
-        ];
-    }
-
-    /**
-     * Generar números para un cartón de bingo
-     *
-     * @return array Array con los números del cartón
-     */
-    private function generateCardNumbers(): array
-    {
-        // B: 1-15, I: 16-30, N: 31-45, G: 46-60, O: 61-75
-        $card = [
-            'B' => $this->generateUniqueNumbers(1, 15, 5),
-            'I' => $this->generateUniqueNumbers(16, 30, 5),
-            'N' => $this->generateUniqueNumbers(31, 45, 4), // Centro libre
-            'G' => $this->generateUniqueNumbers(46, 60, 5),
-            'O' => $this->generateUniqueNumbers(61, 75, 5),
-        ];
-
-        return $card;
-    }
-
-    /**
-     * Generar números únicos en un rango
-     *
-     * @param int $min Valor mínimo
-     * @param int $max Valor máximo
-     * @param int $count Cantidad de números
-     * @return array Array de números únicos
-     */
-    private function generateUniqueNumbers(int $min, int $max, int $count): array
-    {
-        $numbers = range($min, $max);
-        shuffle($numbers);
-        return array_slice($numbers, 0, $count);
-    }
-
-    /**
-     * Generar hash único para el cartón
-     *
-     * @param string $roomId ID de la sala
-     * @param string $roomUserId ID del usuario
-     * @param array $numbers Números del cartón
-     * @return string Hash único
-     */
     private function generateCardHash(string $roomId, string $roomUserId, array $numbers): string
     {
         $data = $roomId . $roomUserId . json_encode($numbers) . microtime();

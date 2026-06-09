@@ -126,6 +126,7 @@ interface Props {
   roomId?: string;
   roomRouteKey?: string;
   initialWinners?: WinnerEntry[];
+  gameVariant?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -156,6 +157,7 @@ const props = withDefaults(defineProps<Props>(), {
   isLocal: false,
   roomId: "",
   roomRouteKey: "",
+  gameVariant: "BINGO_75",
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -263,18 +265,55 @@ const prizeFormatted = computed(() => {
 
 const cardCount = computed(() => props.cartons?.length ?? 0);
 
+// ── Variante de juego — determina totalChips y etiqueta de columna ──
+const VARIANT_CHIPS: Record<string, number> = {
+  BINGO_75: 75, BINGO_90: 90, BINGO_80: 80, BINGO_30: 30,
+};
+const VARIANT_COLS: Record<string, { min: number; max: number; label: string }[]> = {
+  BINGO_75: [
+    { min: 1,  max: 15, label: 'B' },
+    { min: 16, max: 30, label: 'I' },
+    { min: 31, max: 45, label: 'N' },
+    { min: 46, max: 60, label: 'G' },
+    { min: 61, max: 75, label: 'O' },
+  ],
+  BINGO_90: [
+    { min:  1, max:  9, label: '1' },
+    { min: 10, max: 19, label: '2' },
+    { min: 20, max: 29, label: '3' },
+    { min: 30, max: 39, label: '4' },
+    { min: 40, max: 49, label: '5' },
+    { min: 50, max: 59, label: '6' },
+    { min: 60, max: 69, label: '7' },
+    { min: 70, max: 79, label: '8' },
+    { min: 80, max: 90, label: '9' },
+  ],
+  BINGO_80: [
+    { min:  1, max: 20, label: '1' },
+    { min: 21, max: 40, label: '2' },
+    { min: 41, max: 60, label: '3' },
+    { min: 61, max: 80, label: '4' },
+  ],
+  BINGO_30: [
+    { min:  1, max: 10, label: '1' },
+    { min: 11, max: 20, label: '2' },
+    { min: 21, max: 30, label: '3' },
+  ],
+};
+const totalChips = computed(() => VARIANT_CHIPS[props.gameVariant ?? 'BINGO_75'] ?? 75);
+const variantCols = computed(() => VARIANT_COLS[props.gameVariant ?? 'BINGO_75'] ?? VARIANT_COLS.BINGO_75);
+
 // Mostrar el panel de "jugadores cerca de ganar" cuando quedan 10 fichas o menos
-const remainingChips = computed(() => 75 - liveDrawn.value.length);
+const remainingChips = computed(() => totalChips.value - liveDrawn.value.length);
 const showPlayersProgress = computed(() =>
   liveDrawn.value.length > 0 && remainingChips.value <= 10 && playersProgress.value.length > 0
 );
 
 function chipLetter(n: number): string {
-  if (n <= 15) return 'B';
-  if (n <= 30) return 'I';
-  if (n <= 45) return 'N';
-  if (n <= 60) return 'G';
-  return 'O';
+  for (const col of variantCols.value) {
+    if (n >= col.min && n <= col.max) return col.label;
+  }
+  return '?';
 }
 
 const roomId = computed(() => props.roomId || props.room?.id?.toString() || "");
@@ -696,12 +735,12 @@ onUnmounted(() => {
           <div v-if="liveDrawn.length > 0" class="ig-stat">
             <i class="fas fa-random" />
             <div class="ig-stat__body">
-              <span class="ig-stat__val">{{ liveDrawn.length }}<small>/75</small></span>
+              <span class="ig-stat__val">{{ liveDrawn.length }}<small>/{{ totalChips }}</small></span>
               <span class="ig-stat__lbl">sorteados</span>
             </div>
             <!-- mini barra de progreso -->
             <div class="ig-stat__bar">
-              <div class="ig-stat__bar-fill" :style="{ width: `${(liveDrawn.length / 75) * 100}%` }" />
+              <div class="ig-stat__bar-fill" :style="{ width: `${(liveDrawn.length / totalChips) * 100}%` }" />
             </div>
           </div>
 
@@ -766,8 +805,8 @@ onUnmounted(() => {
               <span class="ig-db-info__label"><i class="fas fa-sort-amount-up-alt" /> ÚLTIMO NÚMERO</span>
               <span class="ig-db-info__num">{{ liveDrawn[liveDrawn.length - 1] }}</span>
               <div class="ig-db-info__progress">
-                <div class="ig-db-info__bar" :style="{ width: `${(liveDrawn.length / 75) * 100}%` }" />
-                <span class="ig-db-info__pct">{{ liveDrawn.length }}<em>/75</em></span>
+                <div class="ig-db-info__bar" :style="{ width: `${(liveDrawn.length / totalChips) * 100}%` }" />
+                <span class="ig-db-info__pct">{{ liveDrawn.length }}<em>/{{ totalChips }}</em></span>
               </div>
             </div>
 
@@ -1018,14 +1057,14 @@ onUnmounted(() => {
             </h2>
             <p class="gm-subtitle">
               <template v-if="gameEndData">
-                {{ gameEndData.totalDrawn }} fichas sorteadas de 75
+                {{ gameEndData.totalDrawn }} fichas sorteadas de {{ totalChips }}
               </template>
             </p>
 
             <!-- Barra de progreso del sorteo -->
             <div v-if="gameEndData" class="gm-progress">
-              <div class="gm-progress__bar" :style="{ width: `${(gameEndData.totalDrawn / 75) * 100}%` }" />
-              <span class="gm-progress__label">{{ gameEndData.totalDrawn }}/75</span>
+              <div class="gm-progress__bar" :style="{ width: `${(gameEndData.totalDrawn / totalChips) * 100}%` }" />
+              <span class="gm-progress__label">{{ gameEndData.totalDrawn }}/{{ totalChips }}</span>
             </div>
           </div>
 

@@ -11,7 +11,7 @@
         </div>
 
         <!-- Componente que muestra el tablero visual de números -->
-        <BingoBoard :calledNumbers="numbers" :currentNumber="currentNumber" />
+        <BingoBoard :calledNumbers="numbers" :currentNumber="currentNumber" :variant="data.gameVariant ?? 'BINGO_75'" />
 
         <div class="col-12 d-flex justify-content-center">
           <!-- Componente que permite llamar números -->
