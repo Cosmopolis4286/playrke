@@ -10,6 +10,7 @@ use App\Http\Controllers\Roles\Admin\AdminUserController;
 use App\Http\Controllers\Roles\AdministratorController;
 use App\Http\Controllers\Roles\PermissionController;
 use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
+use App\Http\Controllers\Audit\AuditController;
 
 /*
 |--------------------------------------------------------------------------
@@ -180,4 +181,15 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin')
         ->post('admin/customer/generate-key', [AdminCustomerController::class, 'generateKey'])
         ->name('admin.customer.generate-key');
+
+    /**
+     * =========================================================
+     * AUDITORÍA (SuperAdmin y Admin)
+     * =========================================================
+     */
+    role_protected_routes(['role:superadmin,admin'], 'audit', AuditController::class, [
+        'index'     => ['method' => 'get', 'uri' => '',            'action' => 'index'],
+        'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',  'action' => 'fetchList'],
+        'show'      => ['method' => 'get', 'uri' => '{id}/show',   'action' => 'show'],
+    ]);
 });

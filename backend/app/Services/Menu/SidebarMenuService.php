@@ -137,6 +137,13 @@ class SidebarMenuService
                 ],
             ],
         ],
+        'audit' => [
+            'title'         => 'Auditoría',
+            'icon'          => 'fas fa-history',
+            'permission'    => 'audit.view',
+            'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
+            'route'         => 'audit.index',
+        ],
         'games_trivia' => [
             'title' => 'Trivia',
             'icon' => 'fas fa-brain',
