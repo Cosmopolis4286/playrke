@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { BingoRoom } from '@/js/types/games/bingo/room/bingo-room'
 
 interface Props {
@@ -11,6 +11,103 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+// ── Ganadores / Card viewer ────────────────────────────────────────────────
+
+const PRIZE_STATUS_LABELS: Record<string, string> = {
+  waiting:   'Pendiente',
+  claimed:   'Pagado',
+  cancelled: 'Cancelado',
+  suspended: 'Suspendido',
+}
+
+type WinnerEntry = NonNullable<BingoRoom['winners']>[number]
+
+const loadingCard    = ref<string | null>(null)
+const cardViewerOpen = ref(false)
+const cardViewerData = ref<{ serialNumber: string; cardMatrix: Record<string, (number | null)[]> } | null>(null)
+const cardViewerOwner = ref('')
+
+// Variant column defs (reused from game page — mirror of BingoVariant.php)
+const CARD_VIEWER_COLS: Record<string, { label: string; min: number; max: number; freeRow: number | null; bg: string }[]> = {
+  BINGO_75: [
+    { label: 'B', min:  1, max: 15, freeRow: null, bg: '#1a5fff' },
+    { label: 'I', min: 16, max: 30, freeRow: null, bg: '#cc1010' },
+    { label: 'N', min: 31, max: 45, freeRow: 2,    bg: '#b08000' },
+    { label: 'G', min: 46, max: 60, freeRow: null, bg: '#0a8040' },
+    { label: 'O', min: 61, max: 75, freeRow: null, bg: '#8010d0' },
+  ],
+  BINGO_90: [
+    { label: '1', min:  1, max:  9, freeRow: null, bg: '#1a5fff' },
+    { label: '2', min: 10, max: 19, freeRow: null, bg: '#cc1010' },
+    { label: '3', min: 20, max: 29, freeRow: null, bg: '#b08000' },
+    { label: '4', min: 30, max: 39, freeRow: null, bg: '#0a8040' },
+    { label: '5', min: 40, max: 49, freeRow: null, bg: '#8010d0' },
+    { label: '6', min: 50, max: 59, freeRow: null, bg: '#1a5fff' },
+    { label: '7', min: 60, max: 69, freeRow: null, bg: '#cc1010' },
+    { label: '8', min: 70, max: 79, freeRow: null, bg: '#b08000' },
+    { label: '9', min: 80, max: 90, freeRow: null, bg: '#0a8040' },
+  ],
+  BINGO_80: [
+    { label: '1', min:  1, max: 20, freeRow: null, bg: '#1a5fff' },
+    { label: '2', min: 21, max: 40, freeRow: null, bg: '#cc1010' },
+    { label: '3', min: 41, max: 60, freeRow: null, bg: '#b08000' },
+    { label: '4', min: 61, max: 80, freeRow: null, bg: '#0a8040' },
+  ],
+  BINGO_30: [
+    { label: '1', min:  1, max: 10, freeRow: null, bg: '#1a5fff' },
+    { label: '2', min: 11, max: 20, freeRow: null, bg: '#cc1010' },
+    { label: '3', min: 21, max: 30, freeRow: null, bg: '#b08000' },
+  ],
+}
+const CARD_VIEWER_ROWS: Record<string, number> = { BINGO_75: 5, BINGO_90: 3, BINGO_80: 4, BINGO_30: 3 }
+
+const cardViewerVariant = computed(() => props.room.config?.game_variant ?? 'BINGO_75')
+const cardViewerCols = computed(() => CARD_VIEWER_COLS[cardViewerVariant.value] ?? CARD_VIEWER_COLS.BINGO_75)
+const cardViewerRows = computed(() => CARD_VIEWER_ROWS[cardViewerVariant.value] ?? 5)
+
+function isFreeViewerCell(col: { freeRow: number | null }, r: number): boolean {
+  return col.freeRow !== null && col.freeRow === r - 1
+}
+
+function viewerNum(colLabel: string, r: number): number | null {
+  const m = cardViewerData.value?.cardMatrix
+  if (!m) return null
+  const val = m[colLabel]?.[r - 1]
+  return (val === undefined || val === null) ? null : val
+}
+
+async function openCardViewer(w: WinnerEntry): Promise<void> {
+  loadingCard.value = w.id
+  cardViewerOpen.value = true
+  cardViewerData.value = null
+  cardViewerOwner.value = w.user_name
+
+  try {
+    // room.id as route key — the controller uses route model binding
+    const routeKey = props.room.id
+    const res = await fetch(`/bingo/${routeKey}/card/${w.winning_card_id}`, {
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    if (!res.ok) throw new Error('Error cargando cartón')
+    const json = await res.json()
+    const card = json.card ?? json.data?.card
+    if (card) {
+      cardViewerData.value = { serialNumber: card.serialNumber, cardMatrix: card.cardMatrix }
+    }
+  } catch {
+    cardViewerOpen.value = false
+  } finally {
+    loadingCard.value = null
+  }
+}
+
+const VARIANT_LABELS: Record<string, string> = {
+  BINGO_75: 'Bingo 75 bolas (5×5)',
+  BINGO_90: 'Bingo 90 bolas (3×9)',
+  BINGO_80: 'Bingo 80 bolas (4×4)',
+  BINGO_30: 'Speed Bingo 30 bolas (3×3)',
+}
 
 const fmt = {
   date(dateStr?: string | null, timeStr?: string | null): string {
@@ -101,13 +198,14 @@ const roundPrizeLabel = (round: typeof roundsConfig.value[0]) => {
   return fmt.currency(round.prizeValue)
 }
 
+// El %RKE lo cobra la plataforma sobre el bote bruto antes de distribuir.
+// El 100% distribuible es solo: %Sala + %Jackpot + %Seriales + %Rondas.
 const totalPct = computed(() => {
-  const commn = parseFloat(String(props.room.config?.room_commission ?? 0)) || 0
-  const rke = parseFloat(String(props.room.config?.rke_commission ?? 0)) || 0
-  const jk = parseFloat(String(props.room.config?.jackpot_pct ?? 0)) || 0
-  const ser = props.room.config?.use_serials ? (parseFloat(String(props.room.config?.serials_pct ?? 0)) || 0) : 0
+  const commn  = parseFloat(String(props.room.config?.room_commission ?? 0)) || 0
+  const jk     = parseFloat(String(props.room.config?.jackpot_pct ?? 0)) || 0
+  const ser    = props.room.config?.use_serials ? (parseFloat(String(props.room.config?.serials_pct ?? 0)) || 0) : 0
   const rounds = parseFloat(String(props.room.config?.rounds_pct ?? 0)) || 0
-  return Math.round((commn + rke + jk + ser + rounds) * 100) / 100
+  return Math.round((commn + jk + ser + rounds) * 100) / 100
 })
 </script>
 
@@ -136,6 +234,10 @@ const totalPct = computed(() => {
         <div class="detail-item">
           <span class="detail-label">Modo de Juego</span>
           <span class="detail-value">{{ resolveOption(gameModeOptions, room.config?.game_mode_id) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Variante</span>
+          <span class="detail-value">{{ VARIANT_LABELS[room.config?.game_variant ?? 'BINGO_75'] ?? room.config?.game_variant ?? 'Bingo 75' }}</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Tipo de Bote</span>
@@ -254,8 +356,8 @@ const totalPct = computed(() => {
           <span class="detail-value">{{ fmt.pct(room.config?.serials_pct) }}</span>
         </div>
         <div class="detail-item" :class="totalPct > 100 ? 'highlight-danger' : 'highlight'">
-          <span class="detail-label">Total distribuido</span>
-          <span class="detail-value font-weight-bold" :class="totalPct > 100 ? 'text-danger' : ''">{{ totalPct }}%</span>
+          <span class="detail-label">Total distribuido <small class="text-muted">(sin RKE)</small></span>
+          <span class="detail-value font-weight-bold" :class="totalPct > 100 ? 'text-danger' : 'text-success'">{{ totalPct }}%</span>
         </div>
       </div>
     </div>
@@ -303,6 +405,82 @@ const totalPct = computed(() => {
         </div>
       </div>
     </div>
+
+    <!-- ── Ganadores ─────────────────────────────────── -->
+    <div v-if="room.winners && room.winners.length" class="details-section">
+      <h6 class="section-title">Ganadores ({{ room.winners.length }})</h6>
+      <div class="winners-list">
+        <div v-for="w in room.winners" :key="w.id" class="winner-item">
+          <div class="winner-main">
+            <span class="winner-badge"><i class="fas fa-trophy" /></span>
+            <div class="winner-info">
+              <span class="winner-name">{{ w.user_name }}</span>
+              <span class="winner-meta">
+                <span v-if="w.round_number">Ronda {{ w.round_number }}</span>
+                <span v-if="w.winning_pattern"> · {{ w.winning_pattern }}</span>
+              </span>
+            </div>
+            <div class="winner-prize">
+              <span class="winner-amount">${{ w.usd_amount.toFixed(2) }}</span>
+              <span class="winner-status" :class="`winner-status--${w.prize_status}`">{{ PRIZE_STATUS_LABELS[w.prize_status] ?? w.prize_status }}</span>
+            </div>
+            <button
+              class="winner-card-btn"
+              :class="{ 'winner-card-btn--loading': loadingCard === w.id }"
+              title="Ver cartón ganador"
+              @click="openCardViewer(w)"
+            >
+              <i v-if="loadingCard === w.id" class="fas fa-spinner fa-spin" />
+              <i v-else class="fas fa-id-card" />
+            </button>
+          </div>
+          <div v-if="w.serial_number" class="winner-serial">{{ w.serial_number }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Modal Cartón Ganador ──────────────────────── -->
+    <Teleport to="body">
+      <Transition name="wd-modal">
+        <div v-if="cardViewerOpen" class="wd-overlay" @click.self="cardViewerOpen = false">
+          <div class="wd-modal">
+            <div class="wd-modal__header">
+              <span class="wd-modal__title"><i class="fas fa-id-card" /> Cartón Ganador</span>
+              <button class="wd-modal__close" @click="cardViewerOpen = false"><i class="fas fa-times" /></button>
+            </div>
+            <div v-if="cardViewerData" class="wd-modal__body">
+              <div class="wd-card-owner">{{ cardViewerOwner }}</div>
+              <div class="wd-card-serial">{{ cardViewerData.serialNumber }}</div>
+              <!-- card grid -->
+              <div class="wd-card">
+                <div class="wd-card__head" :style="{ gridTemplateColumns: `repeat(${cardViewerCols.length}, 1fr)` }">
+                  <span v-for="col in cardViewerCols" :key="col.label" class="wd-col-hdr" :style="{ background: col.bg }">{{ col.label }}</span>
+                </div>
+                <div class="wd-card__body" :style="{ gridTemplateColumns: `repeat(${cardViewerCols.length}, 1fr)` }">
+                  <template v-for="col in cardViewerCols" :key="col.label">
+                    <div
+                      v-for="r in cardViewerRows" :key="`${col.label}${r}`"
+                      class="wd-cell"
+                      :class="{
+                        'wd-cell--free': isFreeViewerCell(col, r),
+                        'wd-cell--num': !isFreeViewerCell(col, r) && viewerNum(col.label, r) !== null,
+                        'wd-cell--empty': viewerNum(col.label, r) === null && !isFreeViewerCell(col, r),
+                      }"
+                    >
+                      <span v-if="isFreeViewerCell(col, r)" class="wd-free">★</span>
+                      <span v-else-if="viewerNum(col.label, r) !== null">{{ viewerNum(col.label, r) }}</span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+            <div v-else class="wd-modal__body wd-modal__body--loading">
+              <i class="fas fa-spinner fa-spin fa-2x" />
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
   </div>
 </template>
@@ -455,4 +633,108 @@ const totalPct = computed(() => {
 .room-details::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
 .room-details::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
 .room-details::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+/* ── Ganadores ── */
+.winners-list { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.winner-item {
+  background: #f8f9fa;
+  border-radius: 0.375rem;
+  border-left: 3px solid #ffc107;
+  padding: 0.45rem 0.6rem;
+}
+
+.winner-main { display: flex; align-items: center; gap: 0.6rem; }
+
+.winner-badge {
+  font-size: 0.85rem; color: #ffc107; flex-shrink: 0;
+  width: 1.5rem; text-align: center;
+}
+
+.winner-info { flex: 1; min-width: 0; }
+.winner-name { display: block; font-size: 0.82rem; font-weight: 600; color: #212529; }
+.winner-meta { font-size: 0.7rem; color: #6c757d; }
+
+.winner-prize { text-align: right; flex-shrink: 0; }
+.winner-amount { display: block; font-size: 0.85rem; font-weight: 700; color: #28a745; }
+.winner-status {
+  font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+  padding: 1px 5px; border-radius: 3px;
+}
+.winner-status--waiting   { background: #fff3cd; color: #856404; }
+.winner-status--claimed   { background: #d1e7dd; color: #0f5132; }
+.winner-status--cancelled { background: #f8d7da; color: #842029; }
+.winner-status--suspended { background: #e2e3e5; color: #41464b; }
+
+.winner-card-btn {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 6px;
+  border: 1px solid #dee2e6; background: #fff;
+  color: #6c757d; font-size: 0.8rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.14s;
+}
+.winner-card-btn:hover { border-color: #007bff; color: #007bff; background: #e7f1ff; }
+.winner-card-btn--loading { opacity: 0.6; pointer-events: none; }
+
+.winner-serial { font-size: 0.65rem; color: #adb5bd; margin-top: 2px; font-family: monospace; }
+
+/* ── Card viewer modal ── */
+.wd-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.wd-modal {
+  width: 100%; max-width: 380px;
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  overflow: hidden;
+}
+.wd-modal__header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  background: #212529; color: #fff;
+}
+.wd-modal__title { font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.wd-modal__close {
+  width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2);
+  background: transparent; color: #adb5bd; font-size: 0.75rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.wd-modal__close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+.wd-modal__body { padding: 14px; }
+.wd-modal__body--loading { display: flex; justify-content: center; align-items: center; min-height: 120px; color: #6c757d; }
+
+.wd-card-owner { font-size: 0.8rem; font-weight: 600; color: #212529; margin-bottom: 2px; }
+.wd-card-serial { font-size: 0.65rem; color: #adb5bd; font-family: monospace; margin-bottom: 10px; }
+
+.wd-card { border-radius: 8px; overflow: hidden; border: 1px solid #dee2e6; }
+.wd-card__head { display: grid; }
+.wd-col-hdr {
+  padding: 7px 4px; text-align: center;
+  font-family: 'Anton','Impact',sans-serif; font-size: 14px; font-weight: 900;
+  color: #fff; letter-spacing: 0.5px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.wd-card__body { display: grid; background: #fff; }
+.wd-cell {
+  display: flex; align-items: center; justify-content: center;
+  aspect-ratio: 1;
+  border: 0.5px solid #e9ecef;
+  font-size: 12px; font-weight: 700; color: #212529;
+}
+.wd-cell--free { background: linear-gradient(135deg,rgba(42,245,152,0.18),rgba(0,158,253,0.12)); }
+.wd-cell--empty { background: #f8f9fa; }
+.wd-free {
+  font-size: 16px;
+  background: linear-gradient(135deg,#2af598,#009efd);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+/* Modal transition */
+.wd-modal-enter-active { transition: opacity 0.18s ease, transform 0.18s ease; }
+.wd-modal-enter-from  { opacity: 0; transform: scale(0.95); }
+.wd-modal-leave-active { transition: opacity 0.14s ease; }
+.wd-modal-leave-to    { opacity: 0; }
 </style>

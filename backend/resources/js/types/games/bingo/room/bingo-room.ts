@@ -77,6 +77,9 @@ export interface BingoRoom {
     // Resuelto en el resource: si el usuario autenticado puede activar manualmente esta sala
     readonly can_activate_now?: boolean
 
+    // Campo meta: modo de inicio (MANUAL | SCHEDULED), expuesto en el listado
+    readonly start_mode?: 'MANUAL' | 'SCHEDULED' | null
+
     // Campo meta: unix timestamp de la fecha+hora programada (desde config)
     readonly unix_date?: number | null
 
@@ -123,6 +126,22 @@ export interface BingoRoom {
 
     // Precios por moneda (cargados en show)
     readonly card_price_by_currency?: Record<string, number>
+
+    // Ganadores de la sala (cargados en show, solo para salas finalizadas)
+    readonly winners?: Array<{
+        id: string
+        user_id: string
+        user_name: string
+        round_id: string
+        round_number: number | null
+        winning_card_id: string
+        serial_number: string | null
+        winning_pattern: string | null
+        prize_type: string | null
+        usd_amount: number
+        prize_status: string
+        created_at: string | null
+    }>
 
     // Configuración de rondas (cargada en show)
     readonly rounds_config?: Array<{

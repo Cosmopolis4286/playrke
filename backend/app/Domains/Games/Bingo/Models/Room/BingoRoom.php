@@ -165,6 +165,11 @@ class BingoRoom extends BaseModel
         return $this->hasMany(BingoCard::class, 'room_id', 'id');
     }
 
+    public function cardPrizes(): HasMany
+    {
+        return $this->hasMany(\App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize::class, 'room_id', 'id');
+    }
+
     /**
      * Ventas del creador
      */
@@ -235,14 +240,14 @@ class BingoRoom extends BaseModel
         $config = $this->getRelationValue('config');
 
         if (($config?->start_mode ?? 'SCHEDULED') === 'MANUAL') {
-            return '<span class="text-muted">Sin horario (manual)</span>';
+            return 'Sin horario (manual)';
         }
 
         $date = $config?->date?->format('Y-m-d');
         $time = $config?->time;
 
         if (!$date || !$time) {
-            return '<span class="text-muted">—</span>';
+            return '—';
         }
 
         return "{$date} {$time}";

@@ -65,6 +65,24 @@ class BingoRoomResource extends JsonResource
                 })->values();
             }),
 
+            'winners' => $this->when(
+                $this->relationLoaded('cardPrizes'),
+                fn() => $this->cardPrizes->map(fn($cp) => [
+                    'id'              => (string) $cp->id,
+                    'user_id'         => (string) $cp->creator_user_id,
+                    'user_name'       => $cp->creatorUser?->name ?? ('Jugador #' . $cp->creator_user_id),
+                    'round_id'        => (string) $cp->round_id,
+                    'round_number'    => $cp->round?->round ?? null,
+                    'winning_card_id' => (string) $cp->winning_card_id,
+                    'serial_number'   => $cp->winningCard?->serial_number ?? null,
+                    'winning_pattern' => $cp->winning_pattern,
+                    'prize_type'      => $cp->prize_type,
+                    'usd_amount'      => (float) $cp->usd_amount,
+                    'prize_status'    => $cp->prize_status,
+                    'created_at'      => $cp->created_at?->toISOString(),
+                ])->values()
+            ),
+
             'config' => $config ? [
                 'room_type_id'            => $config->room_type_id,
                 'start_mode'              => $config->start_mode,

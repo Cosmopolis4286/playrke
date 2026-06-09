@@ -54,7 +54,11 @@ class BingoRoomCrudService
         }
 
         $room->refresh();
-        $room->load(['config', 'status', 'cardPrices', 'rounds.prizes', 'rounds.prizes.prize']);
+        $room->load([
+            'config', 'status', 'cardPrices',
+            'rounds.prizes', 'rounds.prizes.prize',
+            'cardPrizes.creatorUser', 'cardPrizes.winningCard', 'cardPrizes.round',
+        ]);
 
         return new BingoRoomResource($room);
     }
@@ -253,7 +257,7 @@ class BingoRoomCrudService
      *
      * @return array Array de datos para crear o actualizar BingoRoomConfig
      */
-    private function buildConfigData($dto, int $userId, float $rkeCommission, int $unixDate, int $roomId, bool $isCreate): array
+    private function buildConfigData($dto, int $userId, float $rkeCommission, ?int $unixDate, int $roomId, bool $isCreate): array
     {
         $base = [
             'room_type_id'            => $dto->roomType,
