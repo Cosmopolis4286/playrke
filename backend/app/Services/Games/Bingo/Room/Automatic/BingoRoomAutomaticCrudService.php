@@ -81,6 +81,8 @@ final class BingoRoomAutomaticCrudService
                 'default_currency_id'     => $dto->defaultCurrencyId ?? null,
                 'auto_create_room'        => $dto->autoCreateRoom ?? true,
                 'max_rooms_per_day'       => $dto->maxRoomsPerDay ?? null,
+                'min_cards_to_start'      => $dto->minCardsToStart ?? null,
+                'sales_start_offset_days' => $dto->salesStartOffsetDays ?? null,
             ];
 
             if ($isCreate) {

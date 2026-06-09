@@ -95,6 +95,8 @@ export interface BingoRoomAutomatic {
     readonly default_currency_id?: string | null
     readonly auto_create_room?: boolean
     readonly max_rooms_per_day?: number | null
+    readonly min_cards_to_start?: number | null
+    readonly sales_start_offset_days?: number | null
     readonly rooms_created?: number
     readonly last_room_created_at?: string | null
     // Campos consolidados de bingo_rounds_automatic (JSON)
@@ -124,4 +126,7 @@ export interface BingoRoomAutomaticFormData extends BingoRoomFormData {
     defaultCurrencyId?: string | null
     autoCreateRoom?: boolean
     maxRoomsPerDay?: number | null
+    // Ventana de ventas / mínimo cartones
+    minCardsToStart?: number | null
+    salesStartOffsetDays?: number | null
 }

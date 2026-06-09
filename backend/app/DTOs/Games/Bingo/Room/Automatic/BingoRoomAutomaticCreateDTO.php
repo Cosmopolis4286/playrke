@@ -41,7 +41,9 @@ final class BingoRoomAutomaticCreateDTO
         public readonly ?float        $defaultCardPrice  = null,
         public readonly ?string       $defaultCurrencyId = null,
         public readonly bool          $autoCreateRoom    = true,
-        public readonly ?int          $maxRoomsPerDay    = null,
+        public readonly ?int          $maxRoomsPerDay        = null,
+        public readonly ?int          $minCardsToStart       = null,
+        public readonly ?int          $salesStartOffsetDays  = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -89,6 +91,8 @@ final class BingoRoomAutomaticCreateDTO
             defaultCurrencyId: $data['defaultCurrencyId'] ?? null,
             autoCreateRoom: (bool) ($data['autoCreateRoom'] ?? true),
             maxRoomsPerDay: isset($data['maxRoomsPerDay']) ? (int) $data['maxRoomsPerDay'] : null,
+            minCardsToStart: isset($data['minCardsToStart']) ? (int) $data['minCardsToStart'] : null,
+            salesStartOffsetDays: isset($data['salesStartOffsetDays']) ? (int) $data['salesStartOffsetDays'] : null,
         );
     }
 }

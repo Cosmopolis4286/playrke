@@ -85,7 +85,9 @@ const emptyFormData = (): BingoRoomAutomaticFormData => ({
     usdExchangeRoundStep: null,
     cardPriceByCurrency: {},
     roundsConfig: [],
-    activateRoom: false
+    activateRoom: false,
+    minCardsToStart: null,
+    salesStartOffsetDays: null,
 })
 
 /**
@@ -233,6 +235,8 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
                     ...(r.prizeType === 'prize' ? { prizeId: r.prizeId ?? null, prizeName: r.prizeName ?? null } : {}),
                 })),
                 activateRoom: room.status === 'ACTIVE',
+                minCardsToStart: room.min_cards_to_start ?? null,
+                salesStartOffsetDays: room.sales_start_offset_days ?? null,
             }
 
             return true

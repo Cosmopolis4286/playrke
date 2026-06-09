@@ -72,6 +72,8 @@ class BingoRoomAutomatic extends Model
         'serials_pct',
         'num_serials',
         'jackpot_pct',
+        'min_cards_to_start',
+        'sales_start_offset_days',
         'creator_user_id',
         'status',
         // Nuevos campos de programación avanzada
@@ -128,6 +130,8 @@ class BingoRoomAutomatic extends Model
         'rounds_pct'              => 'decimal:2',
         'serials_pct'             => 'decimal:2',
         'jackpot_pct'             => 'decimal:2',
+        'min_cards_to_start'      => 'integer',
+        'sales_start_offset_days' => 'integer',
         'time_chip'               => 'string',
         'use_serials'             => 'boolean',
         'auto_create_room'        => 'boolean',

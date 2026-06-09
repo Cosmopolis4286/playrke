@@ -95,6 +95,13 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'defaultCurrencyId'            => ['nullable', 'exists:currencies,id'],
             'autoCreateRoom'             => ['boolean'],
             'maxRoomsPerDay'             => ['nullable', 'integer', 'min:1', 'max:100'],
+
+            // Mínimo de cartones para iniciar el juego
+            'minCardsToStart'            => ['nullable', 'integer', 'min:1', 'max:10000'],
+
+            // Días de anticipación para publicar la sala antes del inicio del juego
+            // null = mismo día; 1..30 = la sala se publica N días antes
+            'salesStartOffsetDays'       => ['nullable', 'integer', 'min:1', 'max:30'],
         ];
     }
 
@@ -255,6 +262,14 @@ class BingoRoomAutomaticRequest extends BaseRequest
 
             'numSerials.required_if'          => 'El número de seriales es obligatorio cuando se usan seriales.',
             'numSerials.min'                  => 'El número de seriales debe ser al menos 1.',
+
+            'minCardsToStart.integer'         => 'El mínimo de cartones debe ser un número entero.',
+            'minCardsToStart.min'             => 'El mínimo de cartones debe ser al menos 1.',
+            'minCardsToStart.max'             => 'El mínimo de cartones no puede superar 10.000.',
+
+            'salesStartOffsetDays.integer'    => 'Los días de anticipación deben ser un número entero.',
+            'salesStartOffsetDays.min'        => 'Los días de anticipación deben ser al menos 1.',
+            'salesStartOffsetDays.max'        => 'Los días de anticipación no pueden superar 30.',
         ];
     }
 }

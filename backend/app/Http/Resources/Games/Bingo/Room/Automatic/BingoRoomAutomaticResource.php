@@ -9,9 +9,11 @@ class BingoRoomAutomaticResource extends JsonResource
     public function toArray($request): array
     {
         return [
-            'id'     => $this->hashed_id,
-            'status' => $this->status->code,
-            'days'   => $this->days ?? [],
+            'id'                    => $this->hashed_id,
+            'status'                => $this->status->code,
+            'days'                  => $this->days ?? [],
+            'min_cards_to_start'    => $this->min_cards_to_start,
+            'sales_start_offset_days' => $this->sales_start_offset_days,
 
             'allowed_currencies' => $this->allowed_currencies ?? [],
 
