@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Roles;
 
 use App\Http\Controllers\Controller;
+use App\Services\Platform\PlatformWalletService;
 use App\Services\Roles\SuperAdmin\Dashboard\SuperAdminDashboardContextService;
 use App\Services\Roles\SuperAdmin\Rke\RkeSummaryService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,6 +25,7 @@ class SuperAdminController extends Controller
     public function __construct(
         protected SuperAdminDashboardContextService $dashboardContextService,
         protected RkeSummaryService $rkeSummaryService,
+        protected PlatformWalletService $platformWallet,
     ) {}
 
     /**
@@ -48,5 +51,30 @@ class SuperAdminController extends Controller
     public function rkeSummary(): JsonResponse
     {
         return response()->json($this->rkeSummaryService->getSummary());
+    }
+
+    /**
+     * Saldos de la billetera de plataforma (todas las monedas)
+     */
+    public function platformWallets(): JsonResponse
+    {
+        return response()->json($this->platformWallet->getWallets());
+    }
+
+    /**
+     * Movimientos paginados de la billetera de plataforma para una moneda
+     */
+    public function platformMovements(Request $request): JsonResponse
+    {
+        $currencyId = $request->query('currency_id', '');
+        $perPage    = (int) $request->query('per_page', 20);
+
+        if (! $currencyId) {
+            return response()->json(['data' => [], 'total' => 0]);
+        }
+
+        $paginator = $this->platformWallet->getMovements($currencyId, $perPage);
+
+        return response()->json($paginator);
     }
 }
