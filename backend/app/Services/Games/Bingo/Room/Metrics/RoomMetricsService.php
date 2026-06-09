@@ -4,6 +4,7 @@ namespace App\Services\Games\Bingo\Room\Metrics;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Services\Games\Bingo\Contracts\RoomMetricsInterface;
+use App\Services\Platform\PlatformWalletService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -248,6 +249,27 @@ class RoomMetricsService implements RoomMetricsInterface
                     'prize_pool' => ($room->prize_pool ?? 0) + $prizePool,
                     'full_house_prize' => ($room->full_house_prize ?? 0) + $prizePool,
                 ];
+
+                // Acreditar RKE a la billetera de plataforma
+                if ($rkeCommission > 0) {
+                    try {
+                        $currencyId = $saleData['currency'] ?? null;
+                        if ($currencyId) {
+                            app(PlatformWalletService::class)->creditRke(
+                                (string) $currencyId,
+                                $rkeCommission,
+                                'Comisión RKE – Sala #' . $room->uuid_code
+                            );
+                        }
+                    } catch (\Throwable $e) {
+                        // No interrumpir la venta si la billetera de plataforma falla
+                        Log::warning('PlatformWallet: no se pudo acreditar RKE', [
+                            'roomId' => $room->id,
+                            'amount' => $rkeCommission,
+                            'error'  => $e->getMessage(),
+                        ]);
+                    }
+                }
             }
 
             // Actualizar métricas generales
