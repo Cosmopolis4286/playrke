@@ -38,6 +38,7 @@ final class BingoReportController extends Controller
      */
     public function cardsSold(string $currency = null, string $dateFilter = null): Response
     {
+        abort_if($this->userContext->userHasRole('player'), 403);
         // TODO: Implement actual data fetching logic
         // This is a placeholder implementation
         $cardsData = [

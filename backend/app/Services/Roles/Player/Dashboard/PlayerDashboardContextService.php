@@ -5,6 +5,7 @@ namespace App\Services\Roles\Player\Dashboard;
 use App\DTOs\Roles\Player\Dashboard\PlayerDashboardContextDTO;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Models\Wallet;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -55,6 +56,17 @@ final class PlayerDashboardContextService
         // Total cartones del jugador
         $totalCards = BingoCard::where('creator_user_id', $userId)->count();
 
+        // Partidas jugadas (salas en las que participó como jugador)
+        $gamesPlayed = BingoRoomUser::where('user_id', $userId)
+            ->whereIn('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
+            ->count();
+
+        // Partidas ganadas
+        $gamesWon = BingoRoomUser::where('user_id', $userId)
+            ->whereIn('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
+            ->where('winner', 'Y')
+            ->count();
+
         return [
             'walletBalance' => [
                 'label'       => 'Saldo disponible',
@@ -75,6 +87,14 @@ final class PlayerDashboardContextService
                 'icon'        => 'fas fa-ticket-alt',
                 'variant'     => 'info',
                 'description' => "{$totalCards} en total",
+            ],
+            'gamesPlayed' => [
+                'label'       => 'Partidas jugadas',
+                'value'       => $gamesPlayed,
+                'icon'        => 'fas fa-history',
+                'variant'     => 'warning',
+                'description' => "{$gamesWon} victorias",
+                'href'        => '/bingo/my-games',
             ],
         ];
     }

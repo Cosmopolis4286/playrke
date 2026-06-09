@@ -67,6 +67,13 @@
       href:        '/directory',
       variant:     'info',
     },
+    {
+      label:       'Mis Partidas',
+      description: 'Historial de partidas jugadas',
+      icon:        'fas fa-history',
+      href:        '/bingo/my-games',
+      variant:     'warning',
+    },
   ]
 </script>
 

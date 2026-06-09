@@ -118,12 +118,19 @@ class SidebarMenuService
                 'game_rooms' => [
                     'title' => 'Salas de Bingo',
                     'route' => 'bingo-game-rooms.index',
-                    'permission' => 'games.bingo.game_rooms', // Acceso específico a juegos de bingo
+                    'permission' => 'games.bingo.game_rooms',
+                ],
+                'my_games' => [
+                    'title'         => 'Mis Partidas',
+                    'route'         => 'bingo.my-games',
+                    'permission'    => null,
+                    'exclude_roles' => ['seller', 'commerce', 'customer'],
                 ],
                 'bingo_cards_sold' => [
                     'title' => 'Cartones',
                     'route' => 'bingo.cards-sold',
-                    'permission' => null, // Acceso específico a juegos de bingo
+                    'permission' => null,
+                    'exclude_roles' => ['player'],
                 ],
                 'bingo_winners' => [
                     'title' => 'Ganadores',

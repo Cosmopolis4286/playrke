@@ -8,6 +8,7 @@ use App\Http\Controllers\Games\Bingo\Game\BingoGameController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomAutomaticController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomController;
 use App\Http\Controllers\Games\Bingo\Testing\BingoTestingController;
+use App\Http\Controllers\Games\Bingo\History\PlayerGameHistoryController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -100,6 +101,15 @@ route_group('bingo-card', 'bingo-card.', ['auth', 'multiPermission:games.bingo,g
     'available-countries' => ['method' => 'get', 'uri' => '{room}/available-countries', 'action' => 'availableCountries'],
     'card-price'          => ['method' => 'get', 'uri' => '{room}/card-price',           'action' => 'cardPrice'],
 ]);
+
+/**
+ * ====================================
+ * HISTORIAL DE PARTIDAS (JUGADOR)
+ * ====================================
+ */
+Route::get('bingo/my-games', [PlayerGameHistoryController::class, 'index'])
+    ->middleware(['auth', 'multiPermission:games.bingo,games.bingo.game_rooms'])
+    ->name('bingo.my-games');
 
 /**
  * ====================================
