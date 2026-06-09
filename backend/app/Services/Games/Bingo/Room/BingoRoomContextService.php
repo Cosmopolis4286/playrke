@@ -93,16 +93,33 @@ final class BingoRoomContextService
 
         $rooms = $this->processCollectionTableData($collection, $labels, $rowKeys);
 
+        $authUser  = \Illuminate\Support\Facades\Auth::user();
+        $authUserId = $authUser ? (string) $authUser->id : null;
+        $isAdmin    = $authUser && $authUser->hasRole(['admin', 'superadmin']);
+
         // Enriquecer cada row con campos meta para filtros client-side
         foreach ($rooms['rows'] as $i => &$row) {
             $model = $collection->values()->get($i);
-            $row['unix_date']   = $model?->config?->unix_date ?? null;
-            $row['from_house']  = $model?->config?->from_house ?? 'N';
-            $row['status']      = $model?->status?->code ?? null;
-            $row['can_activate_now'] = false;
+            $config = $model?->config;
+
+            $row['unix_date']  = $config?->unix_date ?? null;
+            $row['from_house'] = $config?->from_house ?? 'N';
+            $row['status']     = $model?->status?->code ?? null;
+            $row['start_mode'] = $config?->start_mode ?? 'SCHEDULED';
+
+            // can_activate_now: sala MANUAL + ACTIVE + (creador o admin)
+            $isManual   = ($config?->start_mode ?? 'SCHEDULED') === 'MANUAL';
+            $isActive   = ($model?->status?->code ?? '') === 'ACTIVE';
+            $isCreator  = $authUserId && (string) $model?->creator_user_id === $authUserId;
+            $row['can_activate_now'] = $isManual && $isActive && ($isCreator || $isAdmin);
+
+            // Quitar prefijo "Bote " del tipo de bote
+            if (isset($row['config.prizePoolType.label'])) {
+                $row['config.prizePoolType.label'] = preg_replace('/^Bote\s+/i', '', $row['config.prizePoolType.label']);
+            }
 
             // Formatear columna Cartones: vendidos + mínimo si aplica
-            $minCards = $model?->config?->min_cards_to_start;
+            $minCards = $config?->min_cards_to_start;
             if ($minCards !== null && $minCards > 0) {
                 $row['total_cards'] = ($row['total_cards'] ?? 0) . ' / mín: ' . $minCards;
             }

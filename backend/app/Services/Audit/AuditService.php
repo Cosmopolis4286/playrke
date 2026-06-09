@@ -3,7 +3,6 @@
 namespace App\Services\Audit;
 
 use App\Models\Audit;
-use Illuminate\Support\Facades\DB;
 
 class AuditService
 {
@@ -80,7 +79,7 @@ class AuditService
         return [
             'id'             => $audit->id,
             'date'           => $audit->created_at?->format('d/m/Y H:i:s'),
-            'actor'          => $audit->user?->name ?? 'Sistema',
+            'actor'          => $audit->user?->full_name ?? 'Sistema',
             'actor_type'     => $audit->actor_type,
             'event'          => $audit->event,
             'entity'         => $audit->auditable_name,
@@ -133,7 +132,7 @@ class AuditService
     private function buildQuery(array $filters): \Illuminate\Database\Eloquent\Builder
     {
         $query = Audit::query()
-            ->with('user:id,name,email')
+            ->with('user:id,first_name,last_name,email')
             ->select('audits.*');
 
         if (!empty($filters['event'])) {
@@ -168,7 +167,7 @@ class AuditService
         return [
             'id'         => (string) $audit->id,
             'date'       => $audit->created_at?->format('d/m/Y H:i:s') ?? '—',
-            'actor'      => $audit->user?->name ?? 'Sistema',
+            'actor'      => $audit->user?->full_name ?? 'Sistema',
             'actor_type' => $audit->actor_type,
             'event'      => $audit->event,
             'entity'     => $audit->auditable_name,

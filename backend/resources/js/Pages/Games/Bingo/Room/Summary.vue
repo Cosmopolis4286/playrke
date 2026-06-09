@@ -328,6 +328,13 @@
       return room != null && room.can_activate_now === true
     })
 
+  const isManualRoom = (ids: string[]): boolean =>
+    ids.length === 1 &&
+    ids.some(id => {
+      const room = rooms.value.find(r => String(r.id) === String(id))
+      return room != null && room.start_mode === 'MANUAL'
+    })
+
   const extraButtons: ExtraButton[] = [
     {
       label: 'Salas Automáticas',
@@ -392,9 +399,16 @@
       }
     },
     {
+      icon: 'fas fa-calendar-alt',
+      class: 'btn-warning text-white',
+      title: 'Programar Horario',
+      show: (ids: string[]) => isManualRoom(ids) && !canActivateNow(ids),
+      onClick: openActivateModal
+    },
+    {
       icon: 'fas fa-play',
       class: 'btn-success text-white',
-      title: 'Activar o Programar Inicio',
+      title: 'Activar Ahora',
       show: (ids: string[]) => canActivateNow(ids),
       onClick: openActivateModal
     }
