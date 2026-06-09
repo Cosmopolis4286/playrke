@@ -72,6 +72,7 @@ class BingoRoomResource extends JsonResource
                 'date'                    => $config->date?->format('Y-m-d'),
                 'time'                    => $config->time,
                 'game_mode_id'            => $config->game_mode_id,
+                'game_variant'            => $config->game_variant ?? 'BINGO_75',
                 'prize_pool_type_id'      => $config->prize_pool_type_id,
                 'amount_added_prize_pool' => $config->amount_added_prize_pool,
                 'room_commission'         => $config->room_commission,

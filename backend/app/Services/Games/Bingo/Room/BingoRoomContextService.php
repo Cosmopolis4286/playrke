@@ -57,8 +57,8 @@ final class BingoRoomContextService
      */
     private function resolveSummaryGameRooms(?int $userId): array
     {
-        $labels  = ['Código', 'Tipo', 'Modo', 'Tipo Bote', 'Jugadores', 'Premio', 'Inicio', 'Creación', 'Estado'];
-        $rowKeys = ['id', 'config.roomType.label', 'config.gameMode.label', 'config.prizePoolType.label', 'total_players', 'prize_pool', 'start_info', 'created_at', 'status_badge'];
+        $labels  = ['Código', 'Tipo', 'Modo', 'Tipo Bote', 'Jugadores', 'Cartones', 'Premio', 'Inicio', 'Creación', 'Estado'];
+        $rowKeys = ['id', 'config.roomType.label', 'config.gameMode.label', 'config.prizePoolType.label', 'total_players', 'total_cards', 'prize_pool', 'start_info', 'created_at', 'status_badge'];
 
         // Superadmin y admin ven todas las salas; commerce/customer solo las suyas
         $isGlobalAdmin = $this->userContext->userHasRole('superadmin')
@@ -73,7 +73,7 @@ final class BingoRoomContextService
             page: 1,
             relations: ['config', 'config.roomType', 'config.gameMode', 'config.prizePoolType', 'status'],
             conditions: $conditions,
-            fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'prize_pool', 'created_at']
+            fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'total_cards', 'prize_pool', 'created_at']
         );
 
         $collection = $source instanceof LengthAwarePaginator
@@ -96,9 +96,16 @@ final class BingoRoomContextService
         // Enriquecer cada row con campos meta para filtros client-side
         foreach ($rooms['rows'] as $i => &$row) {
             $model = $collection->values()->get($i);
-            $row['unix_date'] = $model?->config?->unix_date ?? null;
-            $row['from_house'] = $model?->config?->from_house ?? 'N';
-            $row['status']     = $model?->status?->code ?? null;
+            $row['unix_date']   = $model?->config?->unix_date ?? null;
+            $row['from_house']  = $model?->config?->from_house ?? 'N';
+            $row['status']      = $model?->status?->code ?? null;
+            $row['can_activate_now'] = false;
+
+            // Formatear columna Cartones: vendidos + mínimo si aplica
+            $minCards = $model?->config?->min_cards_to_start;
+            if ($minCards !== null && $minCards > 0) {
+                $row['total_cards'] = ($row['total_cards'] ?? 0) . ' / mín: ' . $minCards;
+            }
         }
         unset($row);
 

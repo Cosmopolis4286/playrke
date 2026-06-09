@@ -258,6 +258,7 @@ class BingoRoomCrudService
         $base = [
             'room_type_id'            => $dto->roomType,
             'game_mode_id'            => $dto->gameMode,
+            'game_variant'            => $dto->gameVariant ?? 'BINGO_75',
             'date'                    => $dto->date,
             'time'                    => $dto->time,
             'unix_date'               => $unixDate,
@@ -825,6 +826,7 @@ class BingoRoomCrudService
             'time'                  => $config->time,
             'roomType'              => $config->room_type_id,
             'gameMode'              => $config->game_mode_id,
+            'gameVariant'           => $config->game_variant ?? 'BINGO_75',
             'prizePoolType'         => $config->prize_pool_type_id,
             'allowedCurrencies'     => $config->allowed_currencies ?? [],
             'amountAddedPrizePool'  => $config->amount_added_prize_pool ? (float) $config->amount_added_prize_pool : null,

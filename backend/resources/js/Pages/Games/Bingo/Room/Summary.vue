@@ -89,16 +89,12 @@
     if (!ids || ids.length !== 1) return
 
     const roomId = ids[0]
+    selectedRoomDetails.value = null
     loadingDetails.value = true
     showDetailsModal.value = true
 
     const roomDetails = await fetchRoomDetails(roomId)
-
-    if (roomDetails) {
-      selectedRoomDetails.value = roomDetails
-    } else {
-      showDetailsModal.value = false
-    }
+    selectedRoomDetails.value = roomDetails ?? null
 
     loadingDetails.value = false
   }
@@ -484,8 +480,20 @@ onUnmounted(() => {
     title="Detalles de Sala"
     size="lg"
   >
+    <!-- Loader mientras se cargan los detalles -->
+    <div v-if="loadingDetails" class="d-flex flex-column align-items-center justify-content-center py-5">
+      <span class="spinner-border text-primary mb-3" role="status" aria-hidden="true" style="width:2.5rem;height:2.5rem;"></span>
+      <p class="text-muted mb-0">Cargando detalles de la sala...</p>
+    </div>
+
+    <!-- Error si no cargó -->
+    <div v-else-if="!selectedRoomDetails" class="d-flex flex-column align-items-center justify-content-center py-5">
+      <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
+      <p class="text-muted mb-0">No se pudieron cargar los detalles. Intenta de nuevo.</p>
+    </div>
+
     <BingoRoomDetails
-      v-if="selectedRoomDetails"
+      v-else
       :room="selectedRoomDetails"
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"

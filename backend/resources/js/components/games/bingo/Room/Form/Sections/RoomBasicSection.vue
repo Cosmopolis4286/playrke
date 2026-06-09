@@ -27,6 +27,13 @@ import { SelectOption } from '@/js/types/common/form/form'
     (e: 'update:roomCommn', value: string | number): void
   }>()
 
+  const GAME_VARIANT_OPTIONS: SelectOption[] = [
+    { value: 'BINGO_75', label: 'Bingo 75 bolas (5×5, B·I·N·G·O)' },
+    { value: 'BINGO_90', label: 'Bingo 90 bolas (3×9, líneas)' },
+    { value: 'BINGO_80', label: 'Bingo 80 bolas (4×4)' },
+    { value: 'BINGO_30', label: 'Speed Bingo 30 bolas (3×3)' },
+  ]
+
   const START_MODE_OPTIONS: SelectOption[] = [
     { value: 'SCHEDULED', label: 'Programado' },
     { value: 'MANUAL', label: 'Manual (sin horario fijo)' }
@@ -94,27 +101,6 @@ import { SelectOption } from '@/js/types/common/form/form'
       col="col-sm-6 col-md-4 col-lg-3"
       :modelValue="(modelValue as BingoRoomFormData).startMode ?? 'SCHEDULED'"
       @update:modelValue="onStartModeChange"
-    />
-
-    <!-- Cartones mínimos para iniciar (opcional, aplica a cualquier modo de inicio) -->
-    <FormInput
-      v-if="!automaticRoom"
-      label="Cartones mínimos para iniciar"
-      name="min_cards_to_start"
-      :error="(errors as any).minCardsToStart"
-      type="number"
-      placeholder="Sin condición"
-      :step="1"
-      :min="1"
-      :max="10000"
-      col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="(modelValue as BingoRoomFormData).minCardsToStart ?? null"
-      @update:modelValue="
-        emit('update:modelValue', {
-          ...modelValue,
-          minCardsToStart: $event === '' || $event === null ? null : Number($event)
-        } as BingoRoomFormData)
-      "
     />
 
     <!-- Fecha (solo salas normales programadas) -->
@@ -195,6 +181,21 @@ import { SelectOption } from '@/js/types/common/form/form'
       @update:modelValue="emit('update:modelValue', { ...modelValue, gameMode: $event })"
     />
 
+    <!-- Variante de Bingo -->
+    <FormSelect
+      label="Variante de Bingo"
+      name="game_variant"
+      :error="(errors as any).gameVariant"
+      required
+      placeholder="Selecciona variante"
+      :options="GAME_VARIANT_OPTIONS"
+      optionValue="value"
+      optionLabel="label"
+      col="col-sm-6 col-md-4 col-lg-3"
+      :modelValue="(modelValue as any).gameVariant ?? 'BINGO_75'"
+      @update:modelValue="emit('update:modelValue', { ...modelValue, gameVariant: $event } as any)"
+    />
+
     <!-- Tipo Bote -->
     <FormSelect
       label="Tipo Bote"
@@ -242,6 +243,52 @@ import { SelectOption } from '@/js/types/common/form/form'
     >
       <template #append>
         <span class="input-group-text">SEG</span>
+      </template>
+    </FormInput>
+
+    <!-- Min. Cartones — aplica a salas normales y automáticas -->
+    <FormInput
+      label="Min. Cartones"
+      name="min_cards_to_start"
+      :error="(errors as any).minCardsToStart"
+      type="number"
+      placeholder="Sin condición"
+      :step="1"
+      :min="1"
+      :max="10000"
+      col="col-sm-6 col-md-4 col-lg-3"
+      :modelValue="(modelValue as any).minCardsToStart ?? null"
+      @update:modelValue="
+        emit('update:modelValue', {
+          ...modelValue,
+          minCardsToStart: $event === '' || $event === null ? null : Number($event)
+        } as any)
+      "
+    />
+
+    <!-- Días de Anticipación de Ventas (solo salas automáticas) -->
+    <FormInput
+      v-if="automaticRoom"
+      label="Días de Anticipación"
+      name="sales_start_offset_days"
+      :error="(errors as any).salesStartOffsetDays"
+      type="number"
+      placeholder="Mismo día"
+      :step="1"
+      :min="1"
+      :max="30"
+      col="col-sm-6 col-md-4 col-lg-3"
+      inputGroup
+      :modelValue="(modelValue as BingoRoomAutomaticFormData).salesStartOffsetDays ?? null"
+      @update:modelValue="
+        emit('update:modelValue', {
+          ...modelValue,
+          salesStartOffsetDays: $event === '' || $event === null ? null : Number($event)
+        } as BingoRoomAutomaticFormData)
+      "
+    >
+      <template #append>
+        <span class="input-group-text" title="La sala se publica este número de días antes de que inicie el juego">DÍAS</span>
       </template>
     </FormInput>
 

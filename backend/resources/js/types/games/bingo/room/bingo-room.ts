@@ -94,6 +94,46 @@ export interface BingoRoom {
     readonly other_currencies?: (number | string)[]
     readonly allowed_games?: (number | string)[]
 
+    // Configuración completa (cargada en show)
+    readonly config?: {
+        room_type_id?: string | number | null
+        start_mode?: string | null
+        min_cards_to_start?: number | null
+        date?: string | null
+        time?: string | null
+        game_mode_id?: string | number | null
+        prize_pool_type_id?: string | number | null
+        amount_added_prize_pool?: number | string | null
+        room_commission?: number | string | null
+        rke_commission?: number | string | null
+        use_base_usd?: boolean
+        card_price_usd?: number | string | null
+        usd_exchange_round_step?: number | string | null
+        jackpot_pct?: number | string | null
+        game_variant?: string | null
+        time_chip?: number | string | null
+        rounds?: number | string | null
+        rounds_pct?: number | string | null
+        use_serials?: boolean
+        serials_pct?: number | string | null
+        num_serials?: number | string | null
+        in_live?: string | null
+        unix_date?: number | null
+    } | null
+
+    // Precios por moneda (cargados en show)
+    readonly card_price_by_currency?: Record<string, number>
+
+    // Configuración de rondas (cargada en show)
+    readonly rounds_config?: Array<{
+        prizeType: string
+        bingoPattern: number | string | null
+        prizeValue: number | string | null
+        prizeValueByCurrency?: Record<string, number | null>
+        prizeId?: number | string | null
+        prizeName?: string | null
+    }>
+
     // Relaciones opcionales
     readonly country?: BingoRoomCountry | null
     readonly user?: BingoRoomUser | null
@@ -121,6 +161,8 @@ export interface RoundConfig {
  * Campos del formulario de creación/edición de sala
  * Basado en: bingo_rooms_config + bingo_rooms_automatic
  */
+export type BingoGameVariant = 'BINGO_75' | 'BINGO_90' | 'BINGO_80' | 'BINGO_30'
+
 export interface BingoRoomFormData {
     date?: string | null
     time?: string | null
@@ -128,6 +170,7 @@ export interface BingoRoomFormData {
     minCardsToStart?: number | null
     roomType?: BingoRoomType | null
     gameMode?: number | string | null
+    gameVariant?: BingoGameVariant | null
     prizePoolType?: number | string | null
     allowedCurrencies?: (number | string)[]
     amountAddedPrizePool?: number | null
