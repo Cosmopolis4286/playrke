@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Roles;
 
 use App\Http\Controllers\Controller;
 use App\Services\Roles\SuperAdmin\Dashboard\SuperAdminDashboardContextService;
+use App\Services\Roles\SuperAdmin\Rke\RkeSummaryService;
+use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,7 +21,8 @@ class SuperAdminController extends Controller
      * Constructor con inyección de dependencias
      */
     public function __construct(
-        protected SuperAdminDashboardContextService $dashboardContextService
+        protected SuperAdminDashboardContextService $dashboardContextService,
+        protected RkeSummaryService $rkeSummaryService,
     ) {}
 
     /**
@@ -37,5 +40,13 @@ class SuperAdminController extends Controller
             },
             'No se pudo cargar el dashboard de superadministrador.'
         );
+    }
+
+    /**
+     * Resumen de comisiones RKE por sala (JSON para el dashboard superadmin)
+     */
+    public function rkeSummary(): JsonResponse
+    {
+        return response()->json($this->rkeSummaryService->getSummary());
     }
 }

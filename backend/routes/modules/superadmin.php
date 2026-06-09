@@ -23,6 +23,7 @@ Route::middleware(['auth', 'role:superadmin'])->group(function () {
         ->controller(SuperAdminController::class)
         ->group(function () {
             Route::get('', 'dashboard')->name('dashboard');
+            Route::get('rke-summary', 'rkeSummary')->name('rke-summary');
         });
 
 });
