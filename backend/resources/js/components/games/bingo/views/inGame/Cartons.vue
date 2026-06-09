@@ -12,7 +12,7 @@
         </span>
         <span class="ctn-bar__count">{{ displayCards.length }}</span>
         <span v-if="totalDrawn > 0" class="ctn-bar__drawn">
-          <i class="fas fa-random" />{{ totalDrawn }}<em>/75</em>
+          <i class="fas fa-random" />{{ totalDrawn }}<em>/{{ totalChips }}</em>
         </span>
       </div>
 
@@ -34,7 +34,7 @@
       <!-- Right: size toggle + color legend -->
       <div class="ctn-bar__right">
         <div v-if="totalDrawn > 0" class="ctn-legend">
-          <span v-for="l in LETTERS" :key="l" class="ctn-legend__dot" :class="`ctn-legend__dot--${l.toLowerCase()}`" :title="l">{{ l }}</span>
+          <span v-for="col in variantDef.columns" :key="col.label" class="ctn-legend__dot" :class="`ctn-legend__dot--col${col.colorIdx}`" :title="col.label">{{ col.label }}</span>
         </div>
         <div class="ctn-sizebar">
           <button class="ctn-sz" :class="{ 'ctn-sz--on': cardSize === 'sm' }" @click="cardSize = 'sm'" title="Compacto"><i class="fas fa-th" /></button>
@@ -61,30 +61,30 @@
         <!-- animated border glow -->
         <div class="ctn-card__glow" />
 
-        <!-- BINGO header -->
-        <div class="ctn-head">
-          <span v-for="l in LETTERS" :key="l" class="ctn-head__l" :class="`ctn-head__l--${l.toLowerCase()}`">{{ l }}</span>
+        <!-- header columns -->
+        <div class="ctn-head" :style="{ gridTemplateColumns: `repeat(${variantDef.columns.length}, 1fr)` }">
+          <span v-for="col in variantDef.columns" :key="col.label" class="ctn-head__l" :class="`ctn-head__l--col${col.colorIdx}`">{{ col.label }}</span>
         </div>
 
         <!-- grid body -->
-        <div class="ctn-body">
-          <template v-for="l in LETTERS" :key="l">
+        <div class="ctn-body" :style="{ gridTemplateColumns: `repeat(${variantDef.columns.length}, 1fr)` }">
+          <template v-for="col in variantDef.columns" :key="col.label">
             <div
-              v-for="r in 5" :key="`${l}${r}`"
+              v-for="r in variantDef.numRows" :key="`${col.label}${r}`"
               class="ctn-cell"
-              :class="[`ctn-cell--col-${l.toLowerCase()}`, cellCls(card, l, r)]"
+              :class="[`ctn-cell--col${col.colorIdx}`, cellCls(card, col.label, r)]"
             >
-              <template v-if="l === 'N' && r === 3">
+              <template v-if="isFreeCell(col, r)">
                 <span class="ctn-free">★</span>
               </template>
-              <template v-else-if="drawn(card, l, r)">
-                <div class="ctn-ball" :class="`ctn-ball--${l.toLowerCase()}`">
-                  <span>{{ num(card, l, r) }}</span>
+              <template v-else-if="drawn(card, col.label, r)">
+                <div class="ctn-ball" :class="`ctn-ball--col${col.colorIdx}`">
+                  <span>{{ num(card, col.label, r) }}</span>
                 </div>
               </template>
               <template v-else>
-                <span class="ctn-num" :class="{ 'ctn-num--invalid': !validNum(card, l, r) }">
-                  {{ num(card, l, r) ?? '–' }}
+                <span class="ctn-num" :class="{ 'ctn-num--empty': num(card, col.label, r) === null }">
+                  {{ num(card, col.label, r) ?? '' }}
                 </span>
               </template>
             </div>
@@ -95,21 +95,20 @@
         <div class="ctn-prog">
           <div class="ctn-prog__fill"
             :class="{ 'ctn-prog__fill--hot': isHot(card), 'ctn-prog__fill--win': isWinner(card) }"
-            :style="{ width: `${(hits(card)/24)*100}%` }"
+            :style="{ width: `${(hits(card)/variantDef.totalCells)*100}%` }"
           />
         </div>
 
         <!-- footer -->
         <div class="ctn-foot">
           <span class="ctn-foot__serial">{{ shortSerial(card.serialNumber) }}</span>
-          <!-- badge hits en footer -->
           <span v-if="hits(card) > 0" class="ctn-foot__badge"
             :class="{ 'ctn-foot__badge--hot': isHot(card), 'ctn-foot__badge--win': isWinner(card) }">
             <i v-if="isWinner(card)" class="fas fa-trophy" />
             <i v-else-if="isHot(card)" class="fas fa-fire" />
-            {{ hits(card) }}<small>/24</small>
+            {{ hits(card) }}<small>/{{ variantDef.totalCells }}</small>
           </span>
-          <span v-else class="ctn-foot__hits">0<small>/24</small></span>
+          <span v-else class="ctn-foot__hits">0<small>/{{ variantDef.totalCells }}</small></span>
         </div>
       </div>
     </TransitionGroup>
@@ -124,22 +123,22 @@
 
           <!-- big card -->
           <div class="ctn-dcard">
-            <div class="ctn-dcard__head">
-              <span v-for="l in LETTERS" :key="l" class="ctn-head__l" :class="`ctn-head__l--${l.toLowerCase()}`">{{ l }}</span>
+            <div class="ctn-dcard__head" :style="{ gridTemplateColumns: `repeat(${variantDef.columns.length}, 1fr)` }">
+              <span v-for="col in variantDef.columns" :key="col.label" class="ctn-head__l" :class="`ctn-head__l--col${col.colorIdx}`">{{ col.label }}</span>
             </div>
-            <div class="ctn-dcard__body">
-              <template v-for="l in LETTERS" :key="l">
-                <div v-for="r in 5" :key="`d${l}${r}`" class="ctn-dcell" :class="cellCls(selectedCard, l, r)">
-                  <template v-if="l === 'N' && r === 3">
+            <div class="ctn-dcard__body" :style="{ gridTemplateColumns: `repeat(${variantDef.columns.length}, 1fr)` }">
+              <template v-for="col in variantDef.columns" :key="col.label">
+                <div v-for="r in variantDef.numRows" :key="`d${col.label}${r}`" class="ctn-dcell" :class="cellCls(selectedCard, col.label, r)">
+                  <template v-if="isFreeCell(col, r)">
                     <span class="ctn-dfree">★</span>
                   </template>
-                  <template v-else-if="drawn(selectedCard, l, r)">
-                    <div class="ctn-ball ctn-dball" :class="`ctn-ball--${l.toLowerCase()}`">
-                      <span>{{ num(selectedCard, l, r) }}</span>
+                  <template v-else-if="drawn(selectedCard, col.label, r)">
+                    <div class="ctn-ball ctn-dball" :class="`ctn-ball--col${col.colorIdx}`">
+                      <span>{{ num(selectedCard, col.label, r) }}</span>
                     </div>
                   </template>
                   <template v-else>
-                    <span class="ctn-dnum">{{ num(selectedCard, l, r) ?? '–' }}</span>
+                    <span class="ctn-dnum">{{ num(selectedCard, col.label, r) ?? '' }}</span>
                   </template>
                 </div>
               </template>
@@ -153,7 +152,7 @@
               <span class="ctn-stat__l">marcados</span>
             </div>
             <div class="ctn-stat">
-              <span class="ctn-stat__v">{{ 24 - hits(selectedCard) }}</span>
+              <span class="ctn-stat__v">{{ variantDef.totalCells - hits(selectedCard) }}</span>
               <span class="ctn-stat__l">faltan</span>
             </div>
             <div class="ctn-stat">
@@ -175,14 +174,14 @@
         <div class="ctn-spectator__header">
           <i class="fas fa-eye" />
           <span>Modo espectador</span>
-          <span class="ctn-spectator__count">{{ totalDrawn }}<small>/75</small> sorteadas</span>
+          <span class="ctn-spectator__count">{{ totalDrawn }}<small>/{{ totalChips }}</small> sorteadas</span>
         </div>
 
-        <!-- Grilla de las 75 bolas posibles -->
+        <!-- Grilla de bolas por columna -->
         <div class="ctn-ball-grid">
-          <template v-for="col in (['B','I','N','G','O'] as const)" :key="col">
+          <template v-for="col in variantDef.columns" :key="col.label">
             <div class="ctn-ball-col">
-              <div class="ctn-ball-col__hdr" :class="`ctn-ball-col__hdr--${col.toLowerCase()}`">{{ col }}</div>
+              <div class="ctn-ball-col__hdr" :class="`ctn-ball-col__hdr--col${col.colorIdx}`">{{ col.label }}</div>
               <div
                 v-for="n in colNumbers(col)"
                 :key="n"
@@ -190,7 +189,7 @@
                 :class="{
                   'ctn-ball-cell--hit':    drawnSet.has(n),
                   'ctn-ball-cell--latest': n === drawnNumbers?.[drawnNumbers.length - 1],
-                  [`ctn-ball-cell--${col.toLowerCase()}`]: true,
+                  [`ctn-ball-cell--col${col.colorIdx}`]: true,
                 }"
               >
                 {{ n }}
@@ -218,15 +217,67 @@ import { useBingoSound } from "@js/composables/games/bingo/useBingoSound";
 type Filter = "all" | "hot" | "win";
 
 const HOT = 10;
-const LETTERS = ["B", "I", "N", "G", "O"] as const;
+
+// ── Variant definitions (mirrors BingoVariant.php) ──────────────────────────
+interface ColDef { label: string; min: number; max: number; freeRow: number | null; colorIdx: number }
+interface VariantDef { columns: ColDef[]; numRows: number; totalChips: number; totalCells: number }
+
+const VARIANT_DEFS: Record<string, VariantDef> = {
+  BINGO_75: {
+    numRows: 5, totalChips: 75,
+    totalCells: 24, // 25 - 1 free
+    columns: [
+      { label: 'B', min:  1, max: 15, freeRow: null, colorIdx: 0 },
+      { label: 'I', min: 16, max: 30, freeRow: null, colorIdx: 1 },
+      { label: 'N', min: 31, max: 45, freeRow: 2,    colorIdx: 2 },
+      { label: 'G', min: 46, max: 60, freeRow: null, colorIdx: 3 },
+      { label: 'O', min: 61, max: 75, freeRow: null, colorIdx: 4 },
+    ],
+  },
+  BINGO_90: {
+    numRows: 3, totalChips: 90,
+    totalCells: 15, // 3 rows × 5 numbers per row
+    columns: [
+      { label: '1', min:  1, max:  9, freeRow: null, colorIdx: 0 },
+      { label: '2', min: 10, max: 19, freeRow: null, colorIdx: 1 },
+      { label: '3', min: 20, max: 29, freeRow: null, colorIdx: 2 },
+      { label: '4', min: 30, max: 39, freeRow: null, colorIdx: 3 },
+      { label: '5', min: 40, max: 49, freeRow: null, colorIdx: 4 },
+      { label: '6', min: 50, max: 59, freeRow: null, colorIdx: 0 },
+      { label: '7', min: 60, max: 69, freeRow: null, colorIdx: 1 },
+      { label: '8', min: 70, max: 79, freeRow: null, colorIdx: 2 },
+      { label: '9', min: 80, max: 90, freeRow: null, colorIdx: 3 },
+    ],
+  },
+  BINGO_80: {
+    numRows: 4, totalChips: 80,
+    totalCells: 16,
+    columns: [
+      { label: '1', min:  1, max: 20, freeRow: null, colorIdx: 0 },
+      { label: '2', min: 21, max: 40, freeRow: null, colorIdx: 1 },
+      { label: '3', min: 41, max: 60, freeRow: null, colorIdx: 2 },
+      { label: '4', min: 61, max: 80, freeRow: null, colorIdx: 3 },
+    ],
+  },
+  BINGO_30: {
+    numRows: 3, totalChips: 30,
+    totalCells: 9,
+    columns: [
+      { label: '1', min:  1, max: 10, freeRow: null, colorIdx: 0 },
+      { label: '2', min: 11, max: 20, freeRow: null, colorIdx: 1 },
+      { label: '3', min: 21, max: 30, freeRow: null, colorIdx: 2 },
+    ],
+  },
+};
 
 interface Props {
-  cartons?:      BingoCard[];
-  customerLogo?: string;
-  roomId?:       string;
-  drawnNumbers?: number[];
-  totalDrawn?:   number;
+  cartons?:        BingoCard[];
+  customerLogo?:   string;
+  roomId?:         string;
+  drawnNumbers?:   number[];
+  totalDrawn?:     number;
   autoCheckBingo?: boolean;
+  gameVariant?:    string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -236,9 +287,13 @@ const props = withDefaults(defineProps<Props>(), {
   drawnNumbers:   () => [],
   totalDrawn:     0,
   autoCheckBingo: true,
+  gameVariant:    "BINGO_75",
 });
 
 const emit = defineEmits<{ (e: "bingo-detected", card: BingoCard): void }>();
+
+const variantDef = computed<VariantDef>(() => VARIANT_DEFS[props.gameVariant ?? 'BINGO_75'] ?? VARIANT_DEFS.BINGO_75);
+const totalChips = computed(() => variantDef.value.totalChips);
 
 const activeFilter = ref<Filter>("all");
 const cardSize     = ref<"sm" | "md">("md");
@@ -254,7 +309,6 @@ const selectedCard = computed(() =>
   selectedId.value ? displayCards.value.find(c => c.id === selectedId.value) ?? null : null
 );
 
-// Filters — only show "hot" and "win" tabs when there are candidates
 const visibleFilters = computed(() => {
   const base: { value: Filter; label: string; icon: string }[] = [
     { value: "all", label: "Todos",    icon: "fas fa-border-all" },
@@ -270,33 +324,41 @@ const filteredCards = computed(() => {
   return displayCards.value;
 });
 
-function num(card: BingoCard, l: string, r: number): number | null {
-  const m = card.cardMatrix;
-  if (!m || !m[l as keyof typeof m]) return null;
-  return (m[l as keyof typeof m] as number[])[r - 1] ?? null;
+function isFreeCell(col: ColDef, r: number): boolean {
+  return col.freeRow !== null && col.freeRow === r - 1;
 }
 
-function drawn(card: BingoCard, l: string, r: number): boolean {
-  const n = num(card, l, r);
-  // Solo marcar como sorteada si el número está en el rango correcto de la columna
-  return n !== null && validNum(card, l, r) && drawnSet.value.has(n);
+function num(card: BingoCard, colLabel: string, r: number): number | null {
+  const m = card.cardMatrix as Record<string, (number | null)[]> | null;
+  if (!m) return null;
+  const val = m[colLabel]?.[r - 1];
+  return (val === undefined || val === null) ? null : val;
 }
 
-function cellCls(card: BingoCard, l: string, r: number) {
-  if (l === "N" && r === 3) return "ctn-cell--free";
-  if (drawn(card, l, r))    return "ctn-cell--hit";
+function drawn(card: BingoCard, colLabel: string, r: number): boolean {
+  const n = num(card, colLabel, r);
+  return n !== null && drawnSet.value.has(n);
+}
+
+function cellCls(card: BingoCard, colLabel: string, r: number) {
+  const col = variantDef.value.columns.find(c => c.label === colLabel);
+  if (col && isFreeCell(col, r)) return "ctn-cell--free";
+  if (drawn(card, colLabel, r)) return "ctn-cell--hit";
   return "";
 }
 
 function hits(card: BingoCard): number {
   let h = 0;
-  for (const l of LETTERS)
-    for (let r = 1; r <= 5; r++)
-      if (!(l === "N" && r === 3) && drawn(card, l, r)) h++;
+  for (const col of variantDef.value.columns) {
+    for (let r = 1; r <= variantDef.value.numRows; r++) {
+      if (isFreeCell(col, r)) continue;
+      if (drawn(card, col.label, r)) h++;
+    }
+  }
   return h;
 }
 
-function pct(card: BingoCard) { return Math.round((hits(card) / 24) * 100); }
+function pct(card: BingoCard) { return Math.round((hits(card) / variantDef.value.totalCells) * 100); }
 function isHot(card: BingoCard)    { return hits(card) >= HOT; }
 function isWinner(card: BingoCard) { return bingoSet.value.has(card.id); }
 
@@ -306,20 +368,8 @@ function getFilterCount(f: Filter): number {
   return displayCards.value.length;
 }
 
-// Rango de números por columna BINGO
-const COL_RANGES: Record<string, [number, number]> = {
-  B: [1, 15], I: [16, 30], N: [31, 45], G: [46, 60], O: [61, 75],
-};
-
-function validNum(card: BingoCard, l: string, r: number): boolean {
-  const n = num(card, l, r);
-  if (n === null) return true;
-  const [lo, hi] = COL_RANGES[l] ?? [1, 75];
-  return n >= lo && n <= hi;
-}
-function colNumbers(col: string): number[] {
-  const [lo, hi] = COL_RANGES[col] ?? [1, 15];
-  return Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
+function colNumbers(col: ColDef): number[] {
+  return Array.from({ length: col.max - col.min + 1 }, (_, i) => col.min + i);
 }
 
 function shortSerial(s: string): string {
@@ -329,28 +379,26 @@ function shortSerial(s: string): string {
 }
 
 function fullBingo(card: BingoCard): boolean {
-  for (const l of LETTERS)
-    for (let r = 1; r <= 5; r++) {
-      if (l === "N" && r === 3) continue;
-      const n = num(card, l, r);
+  for (const col of variantDef.value.columns) {
+    for (let r = 1; r <= variantDef.value.numRows; r++) {
+      if (isFreeCell(col, r)) continue;
+      const n = num(card, col.label, r);
       if (n === null || !drawnSet.value.has(n)) return false;
     }
+  }
   return true;
 }
 
 watch(() => props.drawnNumbers, (next, prev) => {
-  // Sonido de celda marcada si el nuevo número cae en algún cartón
-  const newNums = next.filter(n => !prev?.includes(n))
+  const newNums = next.filter(n => !prev?.includes(n));
   if (newNums.length > 0) {
-    const hits = props.cartons.some(card =>
-      LETTERS.some((l, li) => {
-        const m = card.cardMatrix
-        if (!m) return false
-        const col = m[l as keyof typeof m] as number[] | undefined
-        return col?.some(n => newNums.includes(n)) ?? false
+    const anyHit = props.cartons.some(card =>
+      variantDef.value.columns.some(col => {
+        const m = card.cardMatrix as Record<string, (number | null)[]> | null;
+        return m?.[col.label]?.some(n => n !== null && newNums.includes(n)) ?? false;
       })
-    )
-    if (hits) playSelect()
+    );
+    if (anyHit) playSelect();
   }
 
   if (!props.autoCheckBingo) return;
@@ -450,11 +498,11 @@ watch(() => props.drawnNumbers, (next, prev) => {
   text-shadow: 0 1px 2px rgba(0,0,0,0.6);
   box-shadow: 0 1px 4px rgba(0,0,0,0.4);
 }
-.ctn-legend__dot--b { background: linear-gradient(135deg,#1a5fff,#0e3ab0); }
-.ctn-legend__dot--i { background: linear-gradient(135deg,#ff3a3a,#a00000); }
-.ctn-legend__dot--n { background: linear-gradient(135deg,#d4b800,#8c7a00); }
-.ctn-legend__dot--g { background: linear-gradient(135deg,#10c060,#067040); }
-.ctn-legend__dot--o { background: linear-gradient(135deg,#b040ff,#7010c0); }
+.ctn-legend__dot--col0 { background: linear-gradient(135deg,#1a5fff,#0e3ab0); }
+.ctn-legend__dot--col1 { background: linear-gradient(135deg,#ff3a3a,#a00000); }
+.ctn-legend__dot--col2 { background: linear-gradient(135deg,#d4b800,#8c7a00); }
+.ctn-legend__dot--col3 { background: linear-gradient(135deg,#10c060,#067040); }
+.ctn-legend__dot--col4 { background: linear-gradient(135deg,#b040ff,#7010c0); }
 
 .ctn-sizebar { display: flex; gap: 3px; }
 .ctn-sz {
@@ -538,9 +586,9 @@ watch(() => props.drawnNumbers, (next, prev) => {
 /* Glow overlay — no aplica en diseño blanco */
 .ctn-card__glow { display: none; }
 
-/* ── BINGO Header ── */
+/* ── Header columns ── */
 .ctn-head {
-  display: grid; grid-template-columns: repeat(5,1fr);
+  display: grid;
   position: relative;
 }
 .ctn-head__l {
@@ -552,23 +600,21 @@ watch(() => props.drawnNumbers, (next, prev) => {
   text-shadow: 0 2px 6px rgba(0,0,0,0.35);
   position: relative;
 }
-/* borde inferior decorativo por letra */
 .ctn-head__l::after {
   content: ''; position: absolute; bottom: 0; left: 10%; right: 10%; height: 2px;
   background: rgba(255,255,255,0.25); border-radius: 2px;
 }
-.ctn-head__l--b { background: linear-gradient(160deg,#2060ff,#1040c8); }
-.ctn-head__l--i { background: linear-gradient(160deg,#e02020,#a00000); }
-.ctn-head__l--n { background: linear-gradient(160deg,#c8a000,#906e00); }
-.ctn-head__l--g { background: linear-gradient(160deg,#0ab848,#077030); }
-.ctn-head__l--o { background: linear-gradient(160deg,#9c18e8,#6008b0); }
+.ctn-head__l--col0 { background: linear-gradient(160deg,#2060ff,#1040c8); }
+.ctn-head__l--col1 { background: linear-gradient(160deg,#e02020,#a00000); }
+.ctn-head__l--col2 { background: linear-gradient(160deg,#c8a000,#906e00); }
+.ctn-head__l--col3 { background: linear-gradient(160deg,#0ab848,#077030); }
+.ctn-head__l--col4 { background: linear-gradient(160deg,#9c18e8,#6008b0); }
 .ctn-grid--sm .ctn-head__l { font-size: 13px; padding: 7px 0 6px; }
 
 /* ── Grid body ── */
 .ctn-body {
-  display: grid; grid-template-columns: repeat(5,1fr);
+  display: grid;
   background: #fff;
-  /* separadores verticales de columna usando outline del grid */
   column-gap: 0; row-gap: 0;
 }
 .ctn-cell {
@@ -579,19 +625,19 @@ watch(() => props.drawnNumbers, (next, prev) => {
   transition: background 0.12s;
   position: relative;
 }
-/* tinte de columna en reposo — muy sutil */
-.ctn-cell--col-b { background: #f4f7ff; }
-.ctn-cell--col-i { background: #fff4f4; }
-.ctn-cell--col-n { background: #fdfaf0; }
-.ctn-cell--col-g { background: #f2fbf5; }
-.ctn-cell--col-o { background: #faf3ff; }
+/* tinte de columna en reposo — indexed colors */
+.ctn-cell--col0 { background: #f4f7ff; }
+.ctn-cell--col1 { background: #fff4f4; }
+.ctn-cell--col2 { background: #fdfaf0; }
+.ctn-cell--col3 { background: #f2fbf5; }
+.ctn-cell--col4 { background: #faf3ff; }
 
-/* celda marcada — tinte más fuerte + micro-fondo */
-.ctn-cell--hit.ctn-cell--col-b { background: rgba(32,96,255,0.1); }
-.ctn-cell--hit.ctn-cell--col-i { background: rgba(224,32,32,0.1); }
-.ctn-cell--hit.ctn-cell--col-n { background: rgba(200,160,0,0.1); }
-.ctn-cell--hit.ctn-cell--col-g { background: rgba(10,184,72,0.1); }
-.ctn-cell--hit.ctn-cell--col-o { background: rgba(156,24,232,0.1); }
+/* celda marcada */
+.ctn-cell--hit.ctn-cell--col0 { background: rgba(32,96,255,0.1); }
+.ctn-cell--hit.ctn-cell--col1 { background: rgba(224,32,32,0.1); }
+.ctn-cell--hit.ctn-cell--col2 { background: rgba(200,160,0,0.1); }
+.ctn-cell--hit.ctn-cell--col3 { background: rgba(10,184,72,0.1); }
+.ctn-cell--hit.ctn-cell--col4 { background: rgba(156,24,232,0.1); }
 
 .ctn-cell--free { background: linear-gradient(135deg,rgba(42,245,152,0.12),rgba(0,158,253,0.08)) !important; }
 
@@ -601,7 +647,7 @@ watch(() => props.drawnNumbers, (next, prev) => {
   font-weight: 700; color: #22274a; line-height: 1;
   letter-spacing: -0.3px;
 }
-.ctn-num--invalid { color: #d02020; text-decoration: underline dotted; }
+.ctn-num--empty { opacity: 0; pointer-events: none; }
 .ctn-grid--sm .ctn-num { font-size: 11px; }
 
 /* ── Bolas ── */
@@ -613,11 +659,11 @@ watch(() => props.drawnNumbers, (next, prev) => {
     inset 0 -2px 4px rgba(0,0,0,0.2),
     inset 0 2px 4px rgba(255,255,255,0.35);
 }
-.ctn-ball--b { background: radial-gradient(circle at 38% 32%, #6090ff, #1040d0 75%); }
-.ctn-ball--i { background: radial-gradient(circle at 38% 32%, #ff6060, #aa0000 75%); }
-.ctn-ball--n { background: radial-gradient(circle at 38% 32%, #f0d840, #9c7c00 75%); }
-.ctn-ball--g { background: radial-gradient(circle at 38% 32%, #40e888, #057838 75%); }
-.ctn-ball--o { background: radial-gradient(circle at 38% 32%, #d860ff, #7008c8 75%); }
+.ctn-ball--col0 { background: radial-gradient(circle at 38% 32%, #6090ff, #1040d0 75%); }
+.ctn-ball--col1 { background: radial-gradient(circle at 38% 32%, #ff6060, #aa0000 75%); }
+.ctn-ball--col2 { background: radial-gradient(circle at 38% 32%, #f0d840, #9c7c00 75%); }
+.ctn-ball--col3 { background: radial-gradient(circle at 38% 32%, #40e888, #057838 75%); }
+.ctn-ball--col4 { background: radial-gradient(circle at 38% 32%, #d860ff, #7008c8 75%); }
 .ctn-ball span {
   font-family: 'Poppins',sans-serif; font-size: 11px;
   font-weight: 900; color: #fff;
@@ -853,11 +899,11 @@ watch(() => props.drawnNumbers, (next, prev) => {
   text-align: center; font-family: 'Anton', sans-serif; font-size: 15px;
   padding: 4px 0; border-radius: 6px; margin-bottom: 2px;
 }
-.ctn-ball-col__hdr--b { background: rgba(32,96,255,0.18); color: #4d8aff; }
-.ctn-ball-col__hdr--i { background: rgba(255,48,48,0.16); color: #ff6060; }
-.ctn-ball-col__hdr--n { background: rgba(212,186,0,0.16); color: #d4c400; }
-.ctn-ball-col__hdr--g { background: rgba(12,187,90,0.16); color: #0cbb5a; }
-.ctn-ball-col__hdr--o { background: rgba(168,48,255,0.16); color: #b060ff; }
+.ctn-ball-col__hdr--col0 { background: rgba(32,96,255,0.18); color: #4d8aff; }
+.ctn-ball-col__hdr--col1 { background: rgba(255,48,48,0.16); color: #ff6060; }
+.ctn-ball-col__hdr--col2 { background: rgba(212,186,0,0.16); color: #d4c400; }
+.ctn-ball-col__hdr--col3 { background: rgba(12,187,90,0.16); color: #0cbb5a; }
+.ctn-ball-col__hdr--col4 { background: rgba(168,48,255,0.16); color: #b060ff; }
 
 .ctn-ball-cell {
   text-align: center; font-size: 12px; font-weight: 700;
@@ -869,11 +915,11 @@ watch(() => props.drawnNumbers, (next, prev) => {
 }
 
 /* Sorteada */
-.ctn-ball-cell--hit.ctn-ball-cell--b { background: rgba(32,96,255,0.28); color: #8ab4ff; border-color: rgba(32,96,255,0.3); }
-.ctn-ball-cell--hit.ctn-ball-cell--i { background: rgba(255,48,48,0.25); color: #ff9090; border-color: rgba(255,48,48,0.3); }
-.ctn-ball-cell--hit.ctn-ball-cell--n { background: rgba(212,186,0,0.25); color: #e8d400; border-color: rgba(212,186,0,0.3); }
-.ctn-ball-cell--hit.ctn-ball-cell--g { background: rgba(12,187,90,0.25); color: #3fe88a; border-color: rgba(12,187,90,0.3); }
-.ctn-ball-cell--hit.ctn-ball-cell--o { background: rgba(168,48,255,0.25); color: #cc88ff; border-color: rgba(168,48,255,0.3); }
+.ctn-ball-cell--hit.ctn-ball-cell--col0 { background: rgba(32,96,255,0.28); color: #8ab4ff; border-color: rgba(32,96,255,0.3); }
+.ctn-ball-cell--hit.ctn-ball-cell--col1 { background: rgba(255,48,48,0.25); color: #ff9090; border-color: rgba(255,48,48,0.3); }
+.ctn-ball-cell--hit.ctn-ball-cell--col2 { background: rgba(212,186,0,0.25); color: #e8d400; border-color: rgba(212,186,0,0.3); }
+.ctn-ball-cell--hit.ctn-ball-cell--col3 { background: rgba(12,187,90,0.25); color: #3fe88a; border-color: rgba(12,187,90,0.3); }
+.ctn-ball-cell--hit.ctn-ball-cell--col4 { background: rgba(168,48,255,0.25); color: #cc88ff; border-color: rgba(168,48,255,0.3); }
 
 /* Última sorteada */
 .ctn-ball-cell--latest {

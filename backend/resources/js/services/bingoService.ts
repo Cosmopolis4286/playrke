@@ -59,13 +59,7 @@ export interface BingoCard {
   roomId: string;
   userId: string;
   serialNumber: string;
-  cardMatrix: {
-    B: [number, number, number, number, number];
-    I: [number, number, number, number, number];
-    N: [number, number, number, number, number];
-    G: [number, number, number, number, number];
-    O: [number, number, number, number, number];
-  };
+  cardMatrix: Record<string, (number | null)[]>;
   isActive: boolean;
   purchaseDate: Date;
   price: number;

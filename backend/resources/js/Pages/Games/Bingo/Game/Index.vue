@@ -62,22 +62,18 @@ const showPlayersModal = ref(false);
 const viewingCard      = ref<null | { serialNumber: string; cardMatrix: number[][]; loading?: boolean }>(null);
 const viewingCardOwner = ref('');
 
-function toRowMatrix(cardNumbers: Record<string, number[]> | number[][]): number[][] {
+function toRowMatrix(cardNumbers: Record<string, (number | null)[]> | number[][], variant?: string): number[][] {
   if (Array.isArray(cardNumbers)) return cardNumbers as number[][];
-  const obj = cardNumbers as Record<string, number[]>;
-  const cols = ['B', 'I', 'N', 'G', 'O'];
-  // Normalize each column to 5 slots, inserting 0 (free space) at index 2 for N
-  const normalized: Record<string, number[]> = {};
-  for (const c of cols) {
-    const nums = [...(obj[c] ?? [])];
-    if (c === 'N' && nums.length === 4) {
-      nums.splice(2, 0, 0); // free space at center
-    }
-    normalized[c] = nums;
-  }
+
+  const obj  = cardNumbers as Record<string, (number | null)[]>;
+  const cols = variantCols.value.map(c => c.label);
+
+  // Number of rows = length of first column array (already normalized by backend)
+  const numRows = cols.length > 0 ? (obj[cols[0]]?.length ?? 0) : 0;
+
   const rows: number[][] = [];
-  for (let r = 0; r < 5; r++) {
-    rows.push(cols.map(c => normalized[c]?.[r] ?? 0));
+  for (let r = 0; r < numRows; r++) {
+    rows.push(cols.map(c => (obj[c]?.[r] ?? null) as number));
   }
   return rows;
 }
@@ -886,6 +882,7 @@ onUnmounted(() => {
           :roomId="roomId"
           :drawnNumbers="liveDrawn"
           :totalDrawn="liveDrawn.length"
+          :gameVariant="gameVariant"
           @bingo-detected="handleBingoDetected"
         />
       </div>
