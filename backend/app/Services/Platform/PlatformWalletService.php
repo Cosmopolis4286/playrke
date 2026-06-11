@@ -4,13 +4,14 @@ namespace App\Services\Platform;
 
 use App\Contracts\WalletMovementRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
-use App\Models\Currency;
+use App\Models\Audit;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletMovement;
 use Database\Seeders\PlatformUserSeeder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Request;
 
 /**
  * Gestiona la billetera de la plataforma (usuario sistema playrke_platform).
@@ -38,7 +39,7 @@ final class PlatformWalletService
      * Se ejecuta dentro de la transacción de venta de cartones.
      *
      * @param  string $currencyId  ID de la moneda de la venta
-     * @param  float  $amount      Monto en USD de la comisión
+     * @param  float  $amount      Monto de la comisión en la moneda indicada por $currencyId
      * @param  string $description Referencia (ej: "RKE – Sala #abc123")
      */
     public function creditRke(string $currencyId, float $amount, string $description = 'Comisión RKE'): void
@@ -133,6 +134,8 @@ final class PlatformWalletService
         ]);
 
         Cache::forget($this->cacheKey($currencyId));
+
+        $this->logCashAudit('deposit', $wallet, $amount, $balanceBefore, (float) $wallet->balance, $description);
     }
 
     /**
@@ -173,6 +176,8 @@ final class PlatformWalletService
         ]);
 
         Cache::forget($this->cacheKey($currencyId));
+
+        $this->logCashAudit('withdraw', $wallet, $amount, $balanceBefore, (float) $wallet->balance, $description);
     }
 
     // -------------------------------------------------------------------------
@@ -254,5 +259,35 @@ final class PlatformWalletService
     private function cacheKey(string $currencyId): string
     {
         return "platform_wallet_{$currencyId}";
+    }
+
+    /**
+     * Registra en auditoría un depósito o retiro manual de la wallet de plataforma,
+     * dejando constancia de qué superadmin ejecutó la operación.
+     */
+    private function logCashAudit(
+        string $action,
+        Wallet $wallet,
+        float $amount,
+        float $balanceBefore,
+        float $balanceAfter,
+        string $description
+    ): void {
+        Audit::create([
+            'user_id'        => Auth::id(),
+            'actor_type'     => Auth::check() ? 'user' : 'system',
+            'auditable_type' => Wallet::class,
+            'auditable_id'   => (string) $wallet->id,
+            'event'          => "platform_wallet_{$action}",
+            'old_values'     => json_encode(['balance' => $balanceBefore], JSON_THROW_ON_ERROR),
+            'new_values'     => json_encode([
+                'balance'     => $balanceAfter,
+                'amount'      => $amount,
+                'description' => $description,
+            ], JSON_THROW_ON_ERROR),
+            'url'        => Request::instance()?->fullUrl(),
+            'ip_address' => Request::instance()?->ip(),
+            'user_agent' => Request::instance()?->userAgent(),
+        ]);
     }
 }

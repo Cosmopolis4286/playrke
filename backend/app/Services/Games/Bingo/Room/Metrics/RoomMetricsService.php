@@ -250,14 +250,16 @@ class RoomMetricsService implements RoomMetricsInterface
                     'full_house_prize' => ($room->full_house_prize ?? 0) + $prizePool,
                 ];
 
-                // Acreditar RKE a la billetera de plataforma
+                // Acreditar RKE a la billetera de plataforma (convertida a la moneda local de la venta)
                 if ($rkeCommission > 0) {
                     try {
                         $currencyId = $saleData['currency'] ?? null;
                         if ($currencyId) {
+                            $rkeCommissionLocal = round($rkeCommission * $exchangeRate, 2);
+
                             app(PlatformWalletService::class)->creditRke(
                                 (string) $currencyId,
-                                $rkeCommission,
+                                $rkeCommissionLocal,
                                 'Comisión RKE – Sala #' . $room->uuid_code
                             );
                         }
