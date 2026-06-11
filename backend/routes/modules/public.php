@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\Api\UserLevelController;
+use App\Http\Controllers\Platform\LiveWinsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -24,4 +25,7 @@ Route::prefix('api')->group(function () {
     // Sistema de Niveles - Rutas Públicas
     Route::get('/leaderboard', [UserLevelController::class, 'getLeaderboard'])->name('api.leaderboard');
     Route::post('/calculate-reward', [UserLevelController::class, 'calculateXpReward'])->name('api.calculate-reward');
+
+    // Feed de ganadores en vivo (seed inicial para el ticker)
+    Route::get('/live-wins/recent', [LiveWinsController::class, 'recent'])->name('api.live-wins.recent');
 });

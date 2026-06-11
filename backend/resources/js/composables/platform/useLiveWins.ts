@@ -1,4 +1,5 @@
-import { ref, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import axios from 'axios'
 import echo from '@/js/plugins/echo'
 
 export interface LiveWin {
@@ -27,6 +28,18 @@ export function useLiveWins(maxItems = 8) {
       id: `${Date.now()}-${Math.random()}`,
     }
     wins.value = [win, ...wins.value].slice(0, MAX_WINS)
+  })
+
+  onMounted(async () => {
+    try {
+      const { data } = await axios.get<{ wins: Omit<LiveWin, 'id'>[] }>('/api/live-wins/recent')
+      wins.value = (data.wins ?? []).map((win, i) => ({
+        ...win,
+        id: `seed-${i}-${win.timestamp}`,
+      }))
+    } catch (err) {
+      console.error('❌ Error cargando ganadores recientes:', err)
+    }
   })
 
   onUnmounted(() => {

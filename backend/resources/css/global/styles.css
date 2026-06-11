@@ -12921,8 +12921,9 @@ a.text-dark:focus {
 }
 
 .footer-brand-icon {
-  font-size: 11px;
-  color: #7c5cfc;
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
   opacity: 0.85;
 }
 

@@ -3,7 +3,7 @@
     <div class="footer-inner">
         <span class="footer-copy">
             <span class="footer-brand">
-                <i class="fas fa-dice footer-brand-icon"></i>
+                <img src="{{ asset('img/rke.png') }}" alt="" class="footer-brand-icon" />
                 <span class="footer-brand-name">PlayRKE</span>
             </span>
             <span class="footer-copy-sep">·</span>
