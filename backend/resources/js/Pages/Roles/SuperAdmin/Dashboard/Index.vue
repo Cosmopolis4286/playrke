@@ -487,10 +487,10 @@
           </div>
         </template>
 
-        <!-- Sin configurar -->
+        <!-- Sin monedas activas -->
         <div v-else class="rke-state rke-state--empty">
           <i class="fas fa-exclamation-circle"></i>
-          Billetera de plataforma no configurada. Ejecuta <code>php artisan platform:setup-user</code>
+          No hay monedas activas configuradas para la billetera de plataforma.
         </div>
 
       </div>

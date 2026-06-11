@@ -5,13 +5,16 @@ namespace App\Services\Platform;
 use App\Contracts\WalletMovementRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\Models\Audit;
+use App\Models\Currency;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletMovement;
 use Database\Seeders\PlatformUserSeeder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Str;
 
 /**
  * Gestiona la billetera de la plataforma (usuario sistema playrke_platform).
@@ -196,6 +199,14 @@ final class PlatformWalletService
             return [];
         }
 
+        // Garantiza una wallet por cada moneda activa (ej: monedas dadas de alta después).
+        foreach (Currency::where('status', true)->get() as $currency) {
+            Wallet::firstOrCreate(
+                ['user_id' => $user->id, 'currency_id' => $currency->id],
+                ['balance' => 0.00, 'status' => 'ACTIVE']
+            );
+        }
+
         return $this->walletRepository
             ->getActiveWalletsByUser((string) $user->id)
             ->load('currency')
@@ -249,10 +260,26 @@ final class PlatformWalletService
         );
     }
 
+    /**
+     * Resuelve el usuario sistema de la plataforma, creándolo si aún no existe.
+     * Garantiza que la billetera de plataforma esté siempre disponible sin
+     * requerir la ejecución manual de `php artisan platform:setup-user`.
+     */
     private function resolvePlatformUser(): ?User
     {
         return Cache::remember('platform_user_id', self::CACHE_TTL, function (): ?User {
-            return User::where('email', PlatformUserSeeder::PLATFORM_EMAIL)->first();
+            return User::firstOrCreate(
+                ['email' => PlatformUserSeeder::PLATFORM_EMAIL],
+                [
+                    'username'          => PlatformUserSeeder::PLATFORM_USERNAME,
+                    'first_name'        => 'Playrke',
+                    'last_name'         => 'Platform',
+                    'password'          => Hash::make(Str::random(64)),
+                    'status'            => 'ACTIVE',
+                    'email_verified_at' => now(),
+                    'is_system_account' => true,
+                ]
+            );
         });
     }
 
