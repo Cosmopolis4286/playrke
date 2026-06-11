@@ -39,7 +39,7 @@ final class SuperAdminDashboardContextService
 
     private function buildStats(): array
     {
-        $totalUsers      = User::count();
+        $totalUsers      = User::excludeSystemAccounts()->count();
         $totalAdmins     = Admin::count();
         $activeSystems   = $this->countActiveSystems();
         $totalPermissions = Permission::count();
@@ -97,6 +97,7 @@ final class SuperAdminDashboardContextService
     private function buildRecentActivity(): array
     {
         return User::with('roles:id,name')
+            ->excludeSystemAccounts()
             ->latest()
             ->limit(10)
             ->get(['id', 'first_name', 'last_name', 'username', 'status', 'created_at'])

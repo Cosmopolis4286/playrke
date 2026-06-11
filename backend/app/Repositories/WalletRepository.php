@@ -252,10 +252,15 @@ class WalletRepository extends BaseRepository implements WalletRepositoryInterfa
 
     /**
      * Obtiene estadísticas generales de wallets
+     *
+     * Excluye las wallets de cuentas internas del sistema (ej. playrke_platform)
+     * para que los totales reflejen solo el dinero de usuarios reales.
      */
     public function getGeneralWalletStats(): array
     {
-        $stats = $this->model->selectRaw('
+        $stats = $this->model
+            ->whereHas('user', fn($q) => $q->where('is_system_account', false))
+            ->selectRaw('
                                 COUNT(*) as total_wallets,
                                 SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active_wallets,
                                 SUM(CASE WHEN status = "BLOCKED" THEN 1 ELSE 0 END) as blocked_wallets,

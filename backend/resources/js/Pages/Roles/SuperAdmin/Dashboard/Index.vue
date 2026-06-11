@@ -159,14 +159,19 @@
   // Depósito / Retiro
   // ==========================================================================
 
-  const cashModal = ref<{ mode: 'deposit' | 'withdraw'; amount: string; description: string; loading: boolean; error: string | null } | null>(null)
+  const cashModal = ref<{ mode: 'deposit' | 'withdraw'; amount: string; confirmAmount: string; description: string; loading: boolean; error: string | null } | null>(null)
 
   function openCashModal(mode: 'deposit' | 'withdraw') {
-    cashModal.value = { mode, amount: '', description: '', loading: false, error: null }
+    cashModal.value = { mode, amount: '', confirmAmount: '', description: '', loading: false, error: null }
   }
 
   function closeCashModal() {
     cashModal.value = null
+  }
+
+  function withdrawConfirmed(m: NonNullable<typeof cashModal.value>): boolean {
+    if (m.mode !== 'withdraw') return true
+    return m.confirmAmount.trim() !== '' && parseFloat(m.confirmAmount) === parseFloat(m.amount)
   }
 
   async function submitCash() {
@@ -175,6 +180,10 @@
     const amount = parseFloat(m.amount)
     if (isNaN(amount) || amount <= 0) {
       m.error = 'Ingresa un monto válido mayor a cero.'
+      return
+    }
+    if (!withdrawConfirmed(m)) {
+      m.error = 'El monto de confirmación no coincide.'
       return
     }
     m.loading = true
@@ -528,6 +537,18 @@
                   @keyup.enter="submitCash"
                 />
               </div>
+              <div v-if="cashModal.mode === 'withdraw'" class="pw-modal__field">
+                <label class="pw-modal__label">Para confirmar, escribe el monto a retirar *</label>
+                <input
+                  v-model="cashModal.confirmAmount"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  placeholder="0.00"
+                  class="pw-modal__input pw-modal__input--full"
+                  @keyup.enter="submitCash"
+                />
+              </div>
               <div v-if="cashModal.error" class="pw-modal__error">
                 <i class="fas fa-exclamation-circle"></i> {{ cashModal.error }}
               </div>
@@ -538,7 +559,7 @@
               <button
                 class="pw-modal__confirm"
                 :class="cashModal.mode === 'deposit' ? 'pw-modal__confirm--deposit' : 'pw-modal__confirm--withdraw'"
-                :disabled="cashModal.loading"
+                :disabled="cashModal.loading || !withdrawConfirmed(cashModal)"
                 @click="submitCash"
               >
                 <span v-if="cashModal.loading"><span class="rke-spinner rke-spinner--sm"></span> Procesando...</span>

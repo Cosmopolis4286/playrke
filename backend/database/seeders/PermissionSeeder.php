@@ -136,6 +136,10 @@ class PermissionSeeder extends Seeder
             ['name' => 'wallet.movements.view', 'guard_name' => 'web', 'description' => 'Ver todos los movimientos de billetera (admin)'],
             ['name' => 'wallet.movements.manage', 'guard_name' => 'web', 'description' => 'Gestionar movimientos de billetera (admin)'],
 
+            // Billetera de plataforma (caja interna del sistema)
+            ['name' => 'platform.wallet.view', 'guard_name' => 'web', 'description' => 'Ver billetera de plataforma'],
+            ['name' => 'platform.wallet.manage', 'guard_name' => 'web', 'description' => 'Depositar/retirar en la billetera de plataforma'],
+
             // Permisos de SuperAdmin (acceso total)
             ['name' => 'superadmin.access', 'guard_name' => 'web', 'description' => 'Acceso total al sistema'],
         ];

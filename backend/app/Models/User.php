@@ -457,6 +457,18 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Scope para excluir cuentas internas del sistema (ej. playrke_platform)
+     * de listados administrativos y reportes.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeExcludeSystemAccounts($query)
+    {
+        return $query->where('is_system_account', false);
+    }
+
+    /**
      * Scope para obtener usuarios por país
      *
      * @param \Illuminate\Database\Eloquent\Builder $query

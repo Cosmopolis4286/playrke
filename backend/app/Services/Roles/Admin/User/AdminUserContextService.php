@@ -36,6 +36,7 @@ final class AdminUserContextService
                 'country:id,name',
                 'roles:id,name,prefix',
             ])
+            ->excludeSystemAccounts()
             ->paginate(15);
 
         $collection = $source->getCollection()->map(function (User $user) {
