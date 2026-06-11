@@ -8,6 +8,7 @@ export interface GameHistoryPrize {
   decimal_places: number
   is_usd: boolean
   status: string
+  status_label: string
   card_id: string | null
   card_serial: string | null
   card_matrix: Record<string, (number | null)[]>
@@ -56,6 +57,7 @@ export interface GameHistoryDetail {
   game_mode: string | null
   prize_pool_type: string | null
   prize_pool: number
+  prize_pool_local: number
   game_variant: string
   cards_purchased: number
   won: boolean

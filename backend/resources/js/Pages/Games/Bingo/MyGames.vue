@@ -99,6 +99,16 @@ function roundStatusCls(s: string): string {
   return s === 'FINISHED' ? 'badge bg-dark' : s === 'ACTIVE' ? 'badge bg-success' : 'badge bg-secondary'
 }
 
+function prizeStatusCls(s: string): string {
+  const map: Record<string, string> = {
+    waiting:   'badge bg-warning text-dark',
+    claimed:   'badge bg-success',
+    cancelled: 'badge bg-danger',
+    suspended: 'badge bg-secondary',
+  }
+  return map[s] ?? 'badge bg-secondary'
+}
+
 function formatAmount(amount: number, isUsd: boolean, localAmount: number, symbol: string, decimals: number): string {
   if (isUsd) {
     return `${amount.toFixed(2)} USD`
@@ -383,7 +393,11 @@ async function openDetail(row: GameHistoryRow) {
           <div v-if="detail.prize_pool > 0" class="col-6 col-md-3">
             <div class="detail-info-card">
               <div class="detail-info-card__label">Bote</div>
-              <div class="detail-info-card__value text-success fw-bold">{{ detail.prize_pool.toFixed(2) }} USD</div>
+              <div class="detail-info-card__value text-success fw-bold">
+                <template v-if="detail.is_usd">{{ detail.prize_pool.toFixed(2) }} USD</template>
+                <template v-else>{{ detail.currency_symbol }}{{ detail.prize_pool_local.toFixed(detail.decimal_places) }}</template>
+              </div>
+              <div v-if="!detail.is_usd" class="detail-info-card__sub">({{ detail.prize_pool.toFixed(2) }} USD)</div>
             </div>
           </div>
         </div>
@@ -400,8 +414,8 @@ async function openDetail(row: GameHistoryRow) {
               class="prize-item"
             >
               <div class="prize-item__left">
-                <span class="badge bg-warning text-dark me-2">{{ prize.type }}</span>
-                <span class="small text-muted">{{ prize.status }}</span>
+                <span class="badge bg-info text-dark me-2">{{ prize.type }}</span>
+                <span :class="prizeStatusCls(prize.status)">{{ prize.status_label }}</span>
               </div>
               <div class="prize-item__right">
                 <span v-if="prize.usd_amount > 0" class="fw-bold text-success me-2">
@@ -565,6 +579,7 @@ async function openDetail(row: GameHistoryRow) {
 }
 .detail-info-card__label { font-size: 10px; text-transform: uppercase; color: #999; letter-spacing: .4px; margin-bottom: 2px; }
 .detail-info-card__value { font-weight: 600; font-size: 13px; color: #333; }
+.detail-info-card__sub   { font-size: 10px; color: #999; margin-top: 1px; }
 
 /* ── Prize list ─────────────────────────────────────────── */
 .prize-list {

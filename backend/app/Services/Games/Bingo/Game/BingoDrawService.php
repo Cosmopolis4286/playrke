@@ -601,10 +601,15 @@ final class BingoDrawService
      */
     private function convertToLocal(float $usdAmount, string $currencyId): float
     {
-        $rate = ExchangeRate::where('currency_id', $currencyId)->value('amount');
-        if (!$rate || $rate <= 0) {
+        $rate = (float) ExchangeRate::where('currency_id', $currencyId)
+            ->where('status', 'ACTIVE')
+            ->orderBy('created_at', 'desc')
+            ->value('amount');
+
+        if ($rate <= 0) {
             return $usdAmount;
         }
-        return round($usdAmount * (float) $rate, 4);
+
+        return round($usdAmount * $rate, 4);
     }
 }

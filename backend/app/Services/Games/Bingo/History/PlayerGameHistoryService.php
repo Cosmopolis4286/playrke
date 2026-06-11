@@ -7,6 +7,7 @@ use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
+use App\Models\ExchangeRate;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 final class PlayerGameHistoryService
@@ -64,10 +65,13 @@ final class PlayerGameHistoryService
         }
 
         // Cartones del jugador en esta sala
-        $playerCards = BingoCard::where('room_id', $roomId)
+        $playerCardModels = BingoCard::where('room_id', $roomId)
             ->where('creator_user_id', $userId)
+            ->with('currency')
             ->orderBy('status', 'desc') // ganadores primero
-            ->get()
+            ->get();
+
+        $playerCards = $playerCardModels
             ->map(fn(BingoCard $c) => [
                 'id'           => (string) $c->id,
                 'serial'       => $c->serial_number,
@@ -79,10 +83,12 @@ final class PlayerGameHistoryService
             ->all();
 
         // Premios del jugador
-        $prizes = BingoCardPrize::where('room_id', $roomId)
+        $prizeModels = BingoCardPrize::where('room_id', $roomId)
             ->where('creator_user_id', $userId)
             ->with(['currency', 'winningCard'])
-            ->get()
+            ->get();
+
+        $prizes = $prizeModels
             ->map(fn(BingoCardPrize $p) => [
                 'type'           => $p->prize_type_description,
                 'prize_type'     => $p->prize_type,
@@ -93,6 +99,7 @@ final class PlayerGameHistoryService
                 'decimal_places' => $p->currency?->decimal_places ?? 2,
                 'is_usd'         => ($p->currency?->iso_code ?? 'USD') === 'USD',
                 'status'         => $p->prize_status,
+                'status_label'   => $p->prize_status_description,
                 'card_id'        => $p->winning_card_id ? (string) $p->winning_card_id : null,
                 'card_serial'    => $p->winningCard?->serial_number,
                 'card_matrix'    => $p->winningCard?->card_numbers ?? [],
@@ -120,6 +127,31 @@ final class PlayerGameHistoryService
             $dateStr = $d . ' ' . ($config->time ?? '00:00');
         }
 
+        // Moneda del jugador: prioriza la del primer premio, si no, la de sus cartones
+        $firstPrizeModel = $prizeModels->first();
+        $firstCardModel  = $playerCardModels->first();
+        $playerCurrencyModel = $firstPrizeModel?->currency ?? $firstCardModel?->currency;
+
+        $playerCurrency       = $playerCurrencyModel?->iso_code ?? 'USD';
+        $playerCurrencySymbol = $playerCurrencyModel?->symbol ?? '$';
+        $playerDecimalPlaces  = $playerCurrencyModel?->decimal_places ?? 2;
+        $playerIsUsd          = $playerCurrency === 'USD';
+
+        // Bote convertido a la moneda del jugador (si no es USD)
+        $prizePoolUsd   = (float) $room->prize_pool;
+        $prizePoolLocal = $prizePoolUsd;
+
+        if (!$playerIsUsd && $playerCurrencyModel) {
+            $rate = (float) ExchangeRate::where('currency_id', (string) $playerCurrencyModel->id)
+                ->where('status', 'ACTIVE')
+                ->orderBy('created_at', 'desc')
+                ->value('amount');
+
+            if ($rate > 0) {
+                $prizePoolLocal = round($prizePoolUsd * $rate, 2);
+            }
+        }
+
         return [
             'room_id'         => (string) $room->id,
             'room_code'       => $room->uuid_code,
@@ -130,16 +162,17 @@ final class PlayerGameHistoryService
             'prize_pool_type' => $config?->prizePoolType?->label
                 ? preg_replace('/^Bote\s+/i', '', $config->prizePoolType->label)
                 : null,
-            'prize_pool'      => (float) $room->prize_pool,
+            'prize_pool'       => $prizePoolUsd,
+            'prize_pool_local' => $prizePoolLocal,
             'game_variant'    => $config?->game_variant ?? 'BINGO_75',
             'cards_purchased'  => (int) $ru->cards_purchased,
             'won'              => $ru->winner === 'Y' || count($prizes) > 0,
             'total_usd'        => round((float) collect($prizes)->sum('usd_amount'), 2),
             'total_local'      => round((float) collect($prizes)->sum('local_amount'), 4),
-            'currency'         => collect($prizes)->first()['currency'] ?? 'USD',
-            'currency_symbol'  => collect($prizes)->first()['currency_symbol'] ?? '$',
-            'decimal_places'   => collect($prizes)->first()['decimal_places'] ?? 2,
-            'is_usd'           => (collect($prizes)->first()['currency'] ?? 'USD') === 'USD',
+            'currency'         => $playerCurrency,
+            'currency_symbol'  => $playerCurrencySymbol,
+            'decimal_places'   => $playerDecimalPlaces,
+            'is_usd'           => $playerIsUsd,
             'rounds'           => $rounds,
             'player_cards'     => $playerCards,
             'prizes'           => $prizes,
