@@ -42,7 +42,7 @@
   /** Verifica si el usuario es admin o superadmin usando props de Inertia */
   const isAdmin = computed(() => {
     const userRoles = page.props.auth?.user?.userRoles || [];
-    return userRoles.some((ur: any) => 
+    return userRoles.some((ur: any) =>
       ur.role?.prefix === 'admin' || ur.role?.prefix === 'superadmin'
     );
   });
@@ -356,7 +356,7 @@
     },
     {
       icon: 'fas fa-info-circle',
-      class: 'btn-info text-white',
+      class: 'btn-warning text-white',
       title: 'Ver Detalles',
       show: (ids: string[]) => ids.length === 1 && hasPlayers(ids),
       onClick: openRoomDetails
