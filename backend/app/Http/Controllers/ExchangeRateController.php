@@ -320,23 +320,20 @@ class ExchangeRateController extends Controller
      */
     public function getBcvRate(Request $request): JsonResponse
     {
-        return $this->handleServiceJson(
-            function () {
-                $rate = $this->service->getBcvRate();
+        $rate = $this->service->getBcvRate();
 
-                if ($rate === null) {
-                    return response()->json([
-                        'message' => 'No se pudo obtener la tasa del BCV. Intente más tarde.',
-                    ], 422);
-                }
+        if ($rate === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo obtener la tasa del BCV. Intente más tarde.',
+            ], 422);
+        }
 
-                return [
-                    'message' => 'Tasa BCV obtenida correctamente.',
-                    'data' => ['rate' => $rate],
-                ];
-            },
-            'No se pudo obtener la tasa del BCV.'
-        );
+        return response()->json([
+            'success' => true,
+            'message' => 'Tasa BCV obtenida correctamente.',
+            'data' => ['rate' => $rate],
+        ]);
     }
 
     /**
