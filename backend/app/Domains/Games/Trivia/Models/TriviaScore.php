@@ -27,6 +27,9 @@ class TriviaScore extends BaseModel
         'average_response_time_ms',
         'position',
         'max_streak',
+        'is_winner',
+        'total_questions',
+        'total_response_time_ms',
         'metadata', // JSON con historial detallado
     ];
 
@@ -37,6 +40,9 @@ class TriviaScore extends BaseModel
         'average_response_time_ms' => 'float',
         'position' => 'integer',
         'max_streak' => 'integer',
+        'is_winner' => 'boolean',
+        'total_questions' => 'integer',
+        'total_response_time_ms' => 'integer',
         'metadata' => 'array',
     ];
 

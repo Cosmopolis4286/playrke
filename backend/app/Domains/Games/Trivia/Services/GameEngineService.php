@@ -320,6 +320,83 @@ class GameEngineService implements GameEngineInterface
     }
 
     /**
+     * Construye el ranking final a partir de los datos reales en PostgreSQL
+     * (trivia_scores + trivia_answers), ya que el gameplay real
+     * (TriviaAnswerController) persiste ahí y no en el leaderboard de Redis.
+     *
+     * Orden anti-fraude: respuestas correctas desc → tiempo promedio asc → racha máxima desc.
+     *
+     * @return array<int, array{playerId: string, position: int, totalScore: int,
+     *   correctAnswers: int, wrongAnswers: int, avgTimeMs: float, totalQuestions: int,
+     *   totalResponseTimeMs: int, maxStreak: int}>
+     */
+    private function buildFinalLeaderboard(string $gameId, int $defaultTotalQuestions): array
+    {
+        $scores = DB::connection('pgsql_trivia')
+            ->table('trivia_scores')
+            ->where('game_id', $gameId)
+            ->get();
+
+        if ($scores->isEmpty()) {
+            return [];
+        }
+
+        // Rachas máximas calculadas desde el historial de respuestas, ordenado cronológicamente.
+        $answers = DB::connection('pgsql_trivia')
+            ->table('trivia_answers')
+            ->where('game_id', $gameId)
+            ->orderBy('created_at')
+            ->get(['player_id', 'is_correct']);
+
+        $maxStreaks = [];
+        foreach ($answers->groupBy('player_id') as $playerId => $playerAnswers) {
+            $streak = 0;
+            $max    = 0;
+            foreach ($playerAnswers as $answer) {
+                if ($answer->is_correct) {
+                    $streak++;
+                    $max = max($max, $streak);
+                } else {
+                    $streak = 0;
+                }
+            }
+            $maxStreaks[$playerId] = $max;
+        }
+
+        $ranked = $scores->map(function ($row) use ($maxStreaks, $defaultTotalQuestions) {
+            $correctAnswers = (int) $row->correct_answers;
+            $wrongAnswers   = (int) $row->wrong_answers;
+            $totalAnswered  = $correctAnswers + $wrongAnswers;
+
+            return [
+                'playerId'            => $row->player_id,
+                'totalScore'          => (int) $row->final_score,
+                'correctAnswers'      => $correctAnswers,
+                'wrongAnswers'        => $wrongAnswers,
+                'avgTimeMs'           => (float) $row->average_response_time_ms,
+                'totalQuestions'      => $totalAnswered > 0 ? $totalAnswered : $defaultTotalQuestions,
+                'totalResponseTimeMs' => (int) round($row->average_response_time_ms * max(1, $totalAnswered)),
+                'maxStreak'           => $maxStreaks[$row->player_id] ?? (int) $row->max_streak,
+            ];
+        })->all();
+
+        usort($ranked, function ($a, $b) {
+            if ($b['correctAnswers'] !== $a['correctAnswers']) {
+                return $b['correctAnswers'] <=> $a['correctAnswers'];
+            }
+            if ($a['avgTimeMs'] !== $b['avgTimeMs']) {
+                return $a['avgTimeMs'] <=> $b['avgTimeMs'];
+            }
+            return $b['maxStreak'] <=> $a['maxStreak'];
+        });
+
+        return array_map(function ($rank, $index) {
+            $rank['position'] = $index + 1;
+            return $rank;
+        }, $ranked, array_keys($ranked));
+    }
+
+    /**
      * Finalizar juego.
      * Sincroniza trivia_participants, actualiza skill ratings, distribuye premios
      * y emite el evento broadcast a todos los jugadores.
@@ -339,45 +416,30 @@ class GameEngineService implements GameEngineInterface
         $finalState = $state->withStatus('finished');
         $this->stateRepository->saveState($gameId, $finalState);
 
-        $leaderboard = $this->scoreService->getLeaderboard($gameId);
-        $game        = TriviaGame::findOrFail($gameId);
-        $room        = TriviaRoom::findOrFail($state->roomId);
+        $game = TriviaGame::findOrFail($gameId);
+        $room = TriviaRoom::findOrFail($state->roomId);
 
-        // ── 1. Ranking skill-first ──────────────────────────────────────────
-        $sortedScores = $leaderboard->scores;
-        usort($sortedScores, function ($a, $b) {
-            if ($b->correctAnswers !== $a->correctAnswers) {
-                return $b->correctAnswers <=> $a->correctAnswers;
-            }
-            if ($a->averageResponseTimeMs !== $b->averageResponseTimeMs) {
-                return $a->averageResponseTimeMs <=> $b->averageResponseTimeMs;
-            }
-            return $b->maxStreak <=> $a->maxStreak;
-        });
-
-        $finalRanks = array_map(fn($s, $i) => [
-            'playerId'       => $s->playerId,
-            'position'       => $i + 1,
-            'correctAnswers' => $s->correctAnswers,
-            'totalQuestions' => $state->totalQuestions,
-            'avgTimeMs'      => $s->averageResponseTimeMs,
-            'maxStreak'      => $s->maxStreak,
-        ], $sortedScores, array_keys($sortedScores));
+        // ── 1. Construir leaderboard final desde PostgreSQL (trivia_scores + trivia_answers) ──
+        $finalRanks = $this->buildFinalLeaderboard($gameId, $state->totalQuestions);
 
         // ── 2. Persistir scores finales en BD ───────────────────────────────
-        $game->finish($leaderboard->toArray());
+        $game->finish($finalRanks);
 
-        foreach ($leaderboard->scores as $scoreDto) {
-            \App\Domains\Games\Trivia\Models\TriviaScore::create([
-                'game_id'                  => $gameId,
-                'player_id'                => $scoreDto->playerId,
-                'final_score'              => $scoreDto->totalScore,
-                'correct_answers'          => $scoreDto->correctAnswers,
-                'wrong_answers'            => $scoreDto->wrongAnswers,
-                'average_response_time_ms' => $scoreDto->averageResponseTimeMs,
-                'position'                 => $scoreDto->position,
-                'max_streak'               => $scoreDto->maxStreak,
-            ]);
+        foreach ($finalRanks as $rank) {
+            \App\Domains\Games\Trivia\Models\TriviaScore::updateOrCreate(
+                ['game_id' => $gameId, 'player_id' => $rank['playerId']],
+                [
+                    'final_score'              => $rank['totalScore'],
+                    'correct_answers'          => $rank['correctAnswers'],
+                    'wrong_answers'            => $rank['wrongAnswers'],
+                    'average_response_time_ms' => (int) round($rank['avgTimeMs']),
+                    'position'                 => $rank['position'],
+                    'max_streak'               => $rank['maxStreak'],
+                    'total_questions'          => $rank['totalQuestions'],
+                    'total_response_time_ms'   => $rank['totalResponseTimeMs'],
+                    'is_winner'                => $rank['position'] === 1,
+                ]
+            );
         }
 
         // ── 3. Sincronizar trivia_participants ──────────────────────────────
@@ -390,9 +452,10 @@ class GameEngineService implements GameEngineInterface
                     ->where('user_id', $rank['playerId'])
                     ->update([
                         'final_rank'      => $rank['position'],
-                        'total_score'     => collect($leaderboard->scores)
-                            ->firstWhere('playerId', $rank['playerId'])?->totalScore ?? 0,
+                        'total_score'     => $rank['totalScore'],
                         'correct_answers' => $rank['correctAnswers'],
+                        'wrong_answers'   => $rank['wrongAnswers'],
+                        'total_time'      => round($rank['totalResponseTimeMs'] / 1000, 3),
                         'status'          => 'playing', // se actualizará a 'winner' en prizeService
                         'updated_at'      => now(),
                     ]);
@@ -440,8 +503,7 @@ class GameEngineService implements GameEngineInterface
         $broadcastLeaderboard = array_map(fn($rank) => [
             'player_id' => $rank['playerId'],
             'position'  => $rank['position'],
-            'score'     => collect($leaderboard->scores)
-                ->firstWhere('playerId', $rank['playerId'])?->totalScore ?? 0,
+            'score'     => $rank['totalScore'],
             'name'      => '',   // el frontend resuelve nombre desde la lista de jugadores
         ], array_slice($finalRanks, 0, 10));
 
@@ -450,16 +512,33 @@ class GameEngineService implements GameEngineInterface
             'total_players'    => count($state->playerIds),
             'total_questions'  => $state->totalQuestions,
             'duration_seconds' => time() - ($state->startTime ?? time()),
-            'average_score'    => array_sum(array_map(fn($s) => $s->totalScore, $leaderboard->scores))
-                                  / max(1, count($leaderboard->scores)),
+            'average_score'    => array_sum(array_map(fn($r) => $r['totalScore'], $finalRanks))
+                                  / max(1, count($finalRanks)),
             'prizes_paid'      => count($prizeResults),
             'teams'            => $teamLeaderboard,
         ];
 
         // ── 9. Eventos ──────────────────────────────────────────────────────
+        $finalLeaderboard = new \App\Domains\Games\Trivia\DTOs\LeaderboardDTO(
+            gameId: $gameId,
+            scores: array_map(fn($rank) => \App\Domains\Games\Trivia\DTOs\ScoreDTO::fromArray([
+                'player_id'                => $rank['playerId'],
+                'game_id'                  => $gameId,
+                'total_score'              => $rank['totalScore'],
+                'correct_answers'          => $rank['correctAnswers'],
+                'wrong_answers'            => $rank['wrongAnswers'],
+                'average_response_time_ms' => $rank['avgTimeMs'],
+                'position'                 => $rank['position'],
+                'max_streak'               => $rank['maxStreak'],
+            ]), $finalRanks),
+            totalPlayers: count($finalRanks),
+            updatedAt: time(),
+            isFinal: true,
+        );
+
         event(new GameFinished(
             gameState:        $finalState,
-            finalLeaderboard: $leaderboard,
+            finalLeaderboard: $finalLeaderboard,
             winners:          $winners,
             statistics:       $statistics,
         ));
