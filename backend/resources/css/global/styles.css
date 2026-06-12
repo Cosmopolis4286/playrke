@@ -483,6 +483,14 @@ aside.main-sidebar .sidebar {
   overflow-y: auto;
 }
 
+/* ── Drawer móvil: el sidebar no debe tapar el navbar (1038 > 1034) ── */
+@media (max-width: 767.98px) {
+  .main-sidebar {
+    top: 54px;
+    height: calc(100vh - 54px);
+  }
+}
+
 .menu-image-play.cold .brand-image {
   max-height: 50.7px;
 }

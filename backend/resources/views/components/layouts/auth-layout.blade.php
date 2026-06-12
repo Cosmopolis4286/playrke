@@ -15,7 +15,7 @@
     <x-shared.app-loader />
 
     {{-- Contenedor principal, oculto hasta que la app esté lista --}}
-    <div id="app-wrapper" class="d-flex flex-column vh-100">
+    <div id="app-wrapper" class="wrapper d-flex flex-column vh-100">
 
         {{-- Barra de navegación --}}
         <x-template.navbar />
