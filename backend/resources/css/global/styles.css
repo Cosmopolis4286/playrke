@@ -133,9 +133,36 @@ body::-webkit-scrollbar-thumb {
   min-height: 54px !important;
 }
 
-/* Compensar la altura del navbar custom (54px) sobre el valor por defecto de AdminLTE (57px) */
+/* Compensar la altura del navbar custom (54px) + ticker de ganadores (36px) sobre el valor por defecto de AdminLTE (57px) */
 .layout-fixed .wrapper .content-wrapper {
-  margin-top: 54px;
+  margin-top: 90px;
+}
+
+/* ── Ticker de ganadores en vivo: fijo bajo el navbar, respeta el ancho del sidebar ── */
+#live-wins-ticker {
+  position: fixed;
+  top: 54px;
+  left: 0;
+  right: 0;
+  z-index: 1027; /* por debajo del sidebar (zindex-main-sidebar) y encima del contenido */
+}
+
+@media (min-width: 768px) {
+  #live-wins-ticker {
+    left: 250px;
+    transition: left .3s ease-in-out;
+  }
+
+  body.sidebar-collapse #live-wins-ticker {
+    left: 0;
+  }
+}
+
+/* A partir de lg (992px), .sidebar-mini colapsa a modo ícono (80px) en vez de ocultarse */
+@media (min-width: 992px) {
+  body.sidebar-collapse #live-wins-ticker {
+    left: 80px;
+  }
 }
 
 .user-img {
