@@ -155,6 +155,11 @@ export interface WsGameFinished {
   leaderboard: Array<{ player_id: string; name: string; score: number; position: number }>
 }
 
+export interface WsGameCancelled {
+  game_id: string
+  reason: string
+}
+
 // ── API response helpers ──────────────────────────────────────────────────────
 export interface ApiResponse<T> {
   data: T

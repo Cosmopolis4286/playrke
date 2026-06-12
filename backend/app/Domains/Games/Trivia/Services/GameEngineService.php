@@ -16,6 +16,7 @@ use App\Domains\Games\Trivia\Events\ScoreUpdated;
 use App\Domains\Games\Trivia\Models\TriviaGame;
 use App\Domains\Games\Trivia\Models\TriviaQuestion;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Events\Games\Trivia\TriviaGameCancelled;
 use App\Events\Games\Trivia\TriviaGameFinished;
 use App\Events\Games\Trivia\TriviaGameStarted;
 use App\Jobs\Games\Trivia\AdvanceTriviaQuestion;
@@ -601,6 +602,10 @@ class GameEngineService implements GameEngineInterface
         ]);
 
         // Notificar a jugadores
-        // (Implementar evento específico si es necesario)
+        try {
+            broadcast(new TriviaGameCancelled($state->roomId, $gameId, $reason));
+        } catch (\Throwable $e) {
+            Log::warning('[GameEngine] broadcast TriviaGameCancelled falló: ' . $e->getMessage());
+        }
     }
 }

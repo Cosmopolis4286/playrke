@@ -2,7 +2,7 @@
 
 namespace App\Events\Games\Trivia;
 
-use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Queue\SerializesModels;
 
@@ -23,9 +23,9 @@ class TriviaAnswerResult implements ShouldBroadcastNow
         public readonly int    $currentScore,
     ) {}
 
-    public function broadcastOn(): Channel
+    public function broadcastOn(): PrivateChannel
     {
-        return new Channel("trivia.player.{$this->playerId}");
+        return new PrivateChannel("trivia.player.{$this->playerId}");
     }
 
     public function broadcastAs(): string

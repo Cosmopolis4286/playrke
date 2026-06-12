@@ -33,6 +33,11 @@ Broadcast::channel('admins.wallet-movements', function ($user) {
     return $user->hasRole(['admin', 'superadmin']);
 });
 
+// Canal privado de resultados individuales de Trivia (solo el propio jugador)
+Broadcast::channel('trivia.player.{userId}', function ($user, $userId) {
+    return (string) $user->id === (string) $userId;
+});
+
 // Presence Channel for Bingo Room (shows who's online)
 Broadcast::channel('bingo.room.{roomId}.presence', function ($user, $roomId) {
     // Return user info if they can join this room

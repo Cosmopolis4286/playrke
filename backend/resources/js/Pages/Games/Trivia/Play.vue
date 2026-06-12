@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import { getEchoInstance } from '@js/plugins/echo'
 import { getRoute } from '@js/routes/triviaRoutes'
-import type { WsQuestionSent, WsAnswerResult, WsGameFinished, Question, AnswerResult } from '@js/types/trivia'
+import type { WsQuestionSent, WsAnswerResult, WsGameFinished, WsGameCancelled, Question, AnswerResult } from '@js/types/trivia'
 
 interface Props {
   room: {
@@ -37,10 +37,11 @@ const selectedAnswer   = ref<number | null>(null)
 const hasAnswered      = ref(false)
 const timeLeft         = ref(0)
 const totalTime        = ref(0)
-const gameStatus       = ref<'waiting' | 'playing' | 'answered' | 'between' | 'finished'>('waiting')
+const gameStatus       = ref<'waiting' | 'playing' | 'answered' | 'between' | 'finished' | 'cancelled'>('waiting')
 const currentScore     = ref(0)
 const answerResult     = ref<AnswerResult | null>(null)
 const isSubmitting     = ref(false)
+const cancelledReason  = ref<string | null>(null)
 let   timerInterval:   ReturnType<typeof setInterval> | null = null
 let   questionStart:   number = 0
 let   betweenTimeout:  ReturnType<typeof setTimeout> | null = null
@@ -77,8 +78,13 @@ function setupEcho() {
         gameStatus.value = 'finished'
         window.location.href = getRoute('playResults', { gameId: props.game.id })
       })
+      .listen('.trivia.game.cancelled', (data: WsGameCancelled) => {
+        stopTimer()
+        gameStatus.value    = 'cancelled'
+        cancelledReason.value = data.reason
+      })
 
-    playerCh = echo.channel(playerChannel)
+    playerCh = echo.private(playerChannel)
     playerCh.listen('.trivia.answer.result', (data: WsAnswerResult) => {
       answerResult.value  = {
         success:              true,
@@ -97,7 +103,7 @@ function setupEcho() {
 
 function teardownEcho() {
   try { echo.leaveChannel(roomChannel) } catch {}
-  try { echo.leaveChannel(playerChannel) } catch {}
+  try { echo.leave(playerChannel) } catch {}
   channel   = null
   playerCh  = null
   if (betweenTimeout !== null) { clearTimeout(betweenTimeout); betweenTimeout = null }
@@ -303,8 +309,21 @@ const formatCurrency = (amount: number) =>
     <!-- Área de pregunta -->
     <main class="max-w-2xl mx-auto px-4 pb-8">
 
+      <!-- Partida cancelada -->
+      <div v-if="gameStatus === 'cancelled'" class="text-center py-16 space-y-4">
+        <div class="w-16 h-16 mx-auto rounded-full bg-red-500/20 border border-red-500/50 flex items-center justify-center">
+          <span class="text-3xl">⚠️</span>
+        </div>
+        <p class="text-red-300 font-semibold text-lg">La partida ha sido cancelada</p>
+        <p v-if="cancelledReason" class="text-gray-400 text-sm">{{ cancelledReason }}</p>
+        <a :href="getRoute('lobby')"
+           class="inline-block mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold transition-colors">
+          Volver al lobby
+        </a>
+      </div>
+
       <!-- Esperando primera pregunta -->
-      <div v-if="gameStatus === 'waiting'" class="text-center py-16 space-y-4">
+      <div v-else-if="gameStatus === 'waiting'" class="text-center py-16 space-y-4">
         <div class="w-16 h-16 mx-auto rounded-full bg-blue-500/20 border border-blue-500/50 flex items-center justify-center">
           <svg class="w-8 h-8 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
