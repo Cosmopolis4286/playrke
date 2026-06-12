@@ -25,6 +25,10 @@ route_group(
         'enableCronjob'  => ['method' => 'post', 'uri' => 'cronjob/enable'],
         'disableCronjob' => ['method' => 'post', 'uri' => 'cronjob/disable'],
         'getAutoUpdateStatus' => ['method' => 'get', 'uri' => 'cronjob/status'],
+        'getBcvRate' => ['method' => 'get', 'uri' => 'bcv-rate'],
+        'enableBcvAutoUpdate'  => ['method' => 'post', 'uri' => 'bcv-cronjob/enable'],
+        'disableBcvAutoUpdate' => ['method' => 'post', 'uri' => 'bcv-cronjob/disable'],
+        'getBcvAutoUpdateStatus' => ['method' => 'get', 'uri' => 'bcv-cronjob/status'],
     ]
 );
 

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\UserPreference;
+use App\Services\ExchangeRate\BcvExchangeRateService;
 use App\Services\ExchangeRate\ExchangeRateApiService;
 use App\Services\ExchangeRate\ExchangeRateUpdaterService;
 use Illuminate\Console\Command;
@@ -16,6 +17,7 @@ class HandleExchangeRatesCommand extends Command
 
     public function __construct(
         private readonly ExchangeRateApiService $apiService,
+        private readonly BcvExchangeRateService $bcvApiService,
         private readonly ExchangeRateUpdaterService $updaterService,
     ) {
         parent::__construct();
@@ -28,29 +30,88 @@ class HandleExchangeRatesCommand extends Command
             ->where('key', 'auto_update_enabled')
             ->where('value', 'true')
             ->whereNotNull('user_id')
-            ->pluck('user_id');
+            ->pluck('user_id')
+            ->map(fn($id) => (int) $id)
+            ->all();
 
-        if ($userIds->isEmpty()) {
+        $bcvUserIds = UserPreference::query()
+            ->where('category', UserPreference::CATEGORY_EXCHANGE_RATE)
+            ->where('key', 'bcv_auto_update_enabled')
+            ->where('value', 'true')
+            ->whereNotNull('user_id')
+            ->pluck('user_id')
+            ->map(fn($id) => (int) $id)
+            ->all();
+
+        // Usuarios que solo activaron BCV (VES) sin la actualización general (Binance).
+        $bcvOnlyUserIds = array_values(array_diff($bcvUserIds, $userIds));
+
+        if (empty($userIds) && empty($bcvOnlyUserIds)) {
             $this->info('Ningún usuario tiene la actualización automática habilitada.');
             return;
         }
 
-        $rates = $this->apiService->fetch();
+        $rates = !empty($userIds) ? $this->apiService->fetch() : null;
+        $ratesFetchFailed = !empty($userIds) && empty($rates);
 
-        if (empty($rates)) {
+        if ($ratesFetchFailed) {
             $this->error('No se pudieron obtener las tasas desde la API externa.');
+        }
+
+        $bcvRate = !empty($bcvUserIds) ? $this->bcvApiService->fetch() : null;
+        $bcvFetchFailed = !empty($bcvUserIds) && $bcvRate === null;
+
+        if ($bcvFetchFailed) {
+            $this->error('No se pudo obtener la tasa oficial del BCV.');
+        }
+
+        if ($ratesFetchFailed && empty($bcvOnlyUserIds)) {
+            $this->comm->logCommandExecution(
+                $this->signature,
+                'No se pudieron obtener las tasas desde la API externa.',
+                'ERROR'
+            );
             return;
         }
 
+        if (empty($rates) && $bcvFetchFailed) {
+            $this->comm->logCommandExecution(
+                $this->signature,
+                'No se pudieron obtener las tasas desde la API externa ni la tasa del BCV.',
+                'ERROR'
+            );
+            return;
+        }
+
+        $updatedCount = 0;
         $status = 'SUCCESS';
 
         try {
-            foreach ($userIds as $userId) {
-                $this->updaterService->updateRates((int) $userId, $rates);
-                $this->info("Tasas actualizadas para usuario #{$userId}.");
+            // Usuarios con actualización general (Binance), sustituyendo VES por BCV si aplica.
+            if (!empty($rates)) {
+                foreach ($userIds as $userId) {
+                    $userRates = $rates;
+
+                    if ($bcvRate !== null && in_array($userId, $bcvUserIds, true)) {
+                        $userRates['VES'] = $bcvRate;
+                    }
+
+                    $this->updaterService->updateRates($userId, $userRates);
+                    $this->info("Tasas actualizadas para usuario #{$userId}.");
+                    $updatedCount++;
+                }
             }
 
-            $output = "Tasas actualizadas para {$userIds->count()} usuario(s).";
+            // Usuarios que solo activaron BCV: solo se actualiza VES.
+            if ($bcvRate !== null) {
+                foreach ($bcvOnlyUserIds as $userId) {
+                    $this->updaterService->updateRates($userId, ['VES' => $bcvRate]);
+                    $this->info("Tasa VES (BCV) actualizada para usuario #{$userId}.");
+                    $updatedCount++;
+                }
+            }
+
+            $output = "Tasas actualizadas para {$updatedCount} usuario(s).";
         } catch (Throwable $e) {
             $status = 'ERROR';
             $output = sprintf(

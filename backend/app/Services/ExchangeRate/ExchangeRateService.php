@@ -7,6 +7,7 @@ use App\DTOs\ExchangeRate\ExchangeRateDTO;
 use App\Http\Resources\ExchangeRate\ExchangeRateResource;
 use App\Http\Resources\ExchangeRate\AdminExchangeRateResource;
 use App\Contracts\Roles\Admin\AdminExchangeRateRepositoryInterface;
+use App\Models\UserPreference;
 use App\Services\Roles\RoleEntityResolver;
 use App\Services\Roles\RoleUserService;
 use App\Services\Security\UserContextService;
@@ -34,6 +35,7 @@ final class ExchangeRateService
         private readonly ExchangeRateCrudService $crud,
         private readonly ExchangeRateUpdaterService $updater,
         private readonly ExchangeRateApiService $api,
+        private readonly BcvExchangeRateService $bcvApi,
         private readonly AdminExchangeRateRepositoryInterface $adminExchangeRate,
         private readonly CommerceCurrencyRepositoryInterface $commerceCurrencyRepository,
     ) {}
@@ -177,7 +179,7 @@ final class ExchangeRateService
                 )
                 ->toArray();
 
-            return $filteredRates;
+            return $this->overrideVesWithBcvIfEnabled($filteredRates, $userId);
         } elseif ($role === 'commerce') {
 
             $commerceId = $this->roleEntityResolver->resolveEntityId($userId, $role);
@@ -194,10 +196,45 @@ final class ExchangeRateService
                 )
                 ->toArray();
 
-            return $filteredRates;
+            return $this->overrideVesWithBcvIfEnabled($filteredRates, $userId);
         }
 
         return null;
+    }
+
+    /**
+     * Si el usuario tiene activada la actualización automática vía BCV
+     * y la tasa contiene la moneda VES, sustituye su valor por la tasa
+     * oficial publicada por el BCV.
+     *
+     * @param array $rates Tasas a ajustar (iso_code => value)
+     * @param int $userId ID del usuario resuelto
+     * @return array Tasas ajustadas
+     */
+    private function overrideVesWithBcvIfEnabled(array $rates, int $userId): array
+    {
+        if (!array_key_exists('VES', $rates)) {
+            return $rates;
+        }
+
+        $bcvEnabled = (bool) UserPreference::getPreference(
+            $userId,
+            UserPreference::CATEGORY_EXCHANGE_RATE,
+            'bcv_auto_update_enabled',
+            false
+        );
+
+        if (!$bcvEnabled) {
+            return $rates;
+        }
+
+        $bcvRate = $this->bcvApi->fetch();
+
+        if ($bcvRate !== null) {
+            $rates['VES'] = $bcvRate;
+        }
+
+        return $rates;
     }
 
     /**
@@ -252,5 +289,69 @@ final class ExchangeRateService
     public function historicalContext(string $currencyId, ?string $publicToken = null): array
     {
         return $this->context->resolveHistorical($currencyId, $publicToken);
+    }
+
+    /**
+     * Obtener la tasa oficial USD/VES publicada por el BCV.
+     *
+     * @return float|null Tasa USD/VES o null si no se pudo obtener.
+     */
+    public function getBcvRate(): ?float
+    {
+        return $this->bcvApi->fetch();
+    }
+
+    /**
+     * Activar la actualización automática de la tasa VES usando el BCV.
+     *
+     * @param string|null $publicToken Token público opcional
+     * @return void
+     */
+    public function enableBcvAutoUpdate(?string $publicToken = null): void
+    {
+        $userId = $this->userContext->resolveUserId($publicToken);
+
+        UserPreference::setPreference(
+            $userId,
+            UserPreference::CATEGORY_EXCHANGE_RATE,
+            'bcv_auto_update_enabled',
+            'true'
+        );
+    }
+
+    /**
+     * Desactivar la actualización automática de la tasa VES usando el BCV.
+     *
+     * @param string|null $publicToken Token público opcional
+     * @return void
+     */
+    public function disableBcvAutoUpdate(?string $publicToken = null): void
+    {
+        $userId = $this->userContext->resolveUserId($publicToken);
+
+        UserPreference::setPreference(
+            $userId,
+            UserPreference::CATEGORY_EXCHANGE_RATE,
+            'bcv_auto_update_enabled',
+            'false'
+        );
+    }
+
+    /**
+     * Obtener el estado actual de la actualización automática vía BCV.
+     *
+     * @param string|null $publicToken Token público opcional
+     * @return bool
+     */
+    public function getBcvAutoUpdateStatus(?string $publicToken = null): bool
+    {
+        $userId = $this->userContext->resolveUserId($publicToken);
+
+        return (bool) UserPreference::getPreference(
+            $userId,
+            UserPreference::CATEGORY_EXCHANGE_RATE,
+            'bcv_auto_update_enabled',
+            false
+        );
     }
 }

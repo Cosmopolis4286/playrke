@@ -45,6 +45,12 @@ interface UseExchangeRateReturn {
 
     /** Maneja el cambio del switch de actualización automática */
     toggleAutoUpdate: (enabled: boolean) => Promise<boolean>
+
+    /** Consulta la tasa oficial USD/VES publicada por el BCV */
+    fetchBcvRate: () => Promise<number | null>
+
+    /** Maneja el cambio del switch de actualización automática vía BCV (solo VES) */
+    toggleBcvAutoUpdate: (enabled: boolean) => Promise<boolean>
 }
 
 /**
@@ -338,6 +344,47 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         }
     }
 
+    /**
+     * Consulta la tasa oficial USD/VES publicada por el BCV.
+     *
+     * @returns {Promise<number | null>} Tasa obtenida o null si falló la consulta.
+     */
+    async function fetchBcvRate(): Promise<number | null> {
+        try {
+            const response = await backendClient.get<{
+                success: boolean
+                data: { rate: number }
+            }>('/exchange-rate/bcv-rate')
+
+            return response.data?.data?.rate ?? null
+        } catch (error: any) {
+            console.error('Error al consultar la tasa BCV:', error)
+            showToast(error?.response?.data?.message ?? 'Error al consultar la tasa del BCV', 'error')
+            return null
+        }
+    }
+
+    /**
+     * Maneja el cambio del switch de actualización automática vía BCV (solo VES)
+     *
+     * @param enabled Estado del switch (true para activar, false para desactivar)
+     * @returns {Promise<boolean>}
+     */
+    async function toggleBcvAutoUpdate(enabled: boolean): Promise<boolean> {
+        try {
+            const endpoint = enabled ? '/exchange-rate/bcv-cronjob/enable' : '/exchange-rate/bcv-cronjob/disable'
+
+            const response = await backendClient.post(endpoint)
+
+            showToast(response.data.message, 'success')
+            return true
+        } catch (error: any) {
+            console.error('Error al cambiar estado del cronjob BCV:', error)
+            showToast(error?.response?.data?.message || 'Error al cambiar estado del cronjob BCV', 'error')
+            return false
+        }
+    }
+
     return {
         exchangeRateData,
         exchangeRates,
@@ -350,5 +397,7 @@ export function useExchangeRate(tokenId: string = ''): UseExchangeRateReturn {
         updateExchangeRates,
         fetchExchangeRates,
         toggleAutoUpdate,
+        fetchBcvRate,
+        toggleBcvAutoUpdate,
     }
 }

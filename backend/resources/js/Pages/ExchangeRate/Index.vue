@@ -76,6 +76,21 @@
   const autoUpdateEnabled = ref(props.autoUpdateEnabled)
 
   /**
+   * Estado de la actualización automática vía BCV (solo VES)
+   */
+  const bcvAutoUpdateEnabled = ref(props.bcvAutoUpdateEnabled)
+
+  /**
+   * Indica si el usuario tiene registrada una tasa para VES (Bolívar venezolano)
+   */
+  const hasVesRate = computed(() =>
+    exchangeRates.value.some(rate => {
+      const currency = currencies.find(c => c.id === rate.currency_id)
+      return currency?.iso_code === 'VES'
+    })
+  )
+
+  /**
    * Genera las monedas usadas en las tasas para presentación
    */
   watch(
@@ -207,6 +222,15 @@
           v-model="autoUpdateEnabled"
           @update:modelValue="handleAutoUpdateToggle"
         />
+
+        <!-- Feedback: VES se actualiza vía BCV en lugar de la tasa general -->
+        <div v-if="autoUpdateEnabled && hasVesRate && bcvAutoUpdateEnabled" class="col-12">
+          <div class="alert alert-info py-2 mb-2">
+            <i class="fa-solid fa-circle-info"></i>
+            El Bolívar venezolano (VES) tiene activada su propia actualización automática con la tasa
+            oficial del <strong>BCV</strong> y no se verá afectado por esta opción.
+          </div>
+        </div>
       </div>
 
       <hr class="mt-n2" />
@@ -301,6 +325,8 @@
       :currencies="currencies"
       :usedCurrencies="usedCurrencies"
       :has-privileged-role="hasPrivilegedRole"
+      :bcv-auto-update-enabled="bcvAutoUpdateEnabled"
+      @update:bcv-auto-update-enabled="bcvAutoUpdateEnabled = $event"
     />
   </Modal>
 </template>

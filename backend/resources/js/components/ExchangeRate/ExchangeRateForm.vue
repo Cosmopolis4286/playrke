@@ -1,6 +1,7 @@
 <script setup lang="ts" name="ExchangeRateForm">
-  import { computed } from 'vue'
+  import { computed, ref } from 'vue'
   import { useExchangeRateForm } from '@/js/composables/exchange-rate/useExchangeRateForm'
+  import { useExchangeRate } from '@/js/composables/exchange-rate/useExchangeRate'
   import type { Currency } from '@/js/types/currency'
   import type { ExchangeRate, AdminExchangeRate, UsedCurrency } from '@/js/types/exchange-rate'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
@@ -15,6 +16,7 @@
     currencies: Currency[]
     hasPrivilegedRole: boolean
     modelValue: Partial<ExchangeRate> | Partial<AdminExchangeRate>
+    bcvAutoUpdateEnabled?: boolean
   }>()
 
   /**
@@ -23,6 +25,7 @@
   const emit = defineEmits<{
     (e: 'submit'): void
     (e: 'update:modelValue', value: any): void
+    (e: 'update:bcvAutoUpdateEnabled', value: boolean): void
   }>()
 
   /**
@@ -33,9 +36,29 @@
     emit
   )
 
+  /**
+   * Composable de tasas de cambio (para consulta y auto-actualización BCV)
+   */
+  const { fetchBcvRate, toggleBcvAutoUpdate } = useExchangeRate()
+
+  /**
+   * Estado del switch de actualización automática vía BCV (solo VES)
+   */
+  const bcvAutoUpdate = ref(props.bcvAutoUpdateEnabled ?? false)
+
+  /**
+   * Loading exclusivo para la consulta de la tasa BCV
+   */
+  const loadingBcvRate = ref(false)
+
   /* =======================
    * Computed
    * ======================= */
+
+  /**
+   * Indica si la divisa seleccionada es el Bolívar venezolano (VES)
+   */
+  const isVes = computed(() => form.value.currency_id === 'VES')
 
   /**
    * Monedas disponibles:
@@ -98,6 +121,38 @@
    * ======================= */
 
   /**
+   * Consulta la tasa oficial USD/VES publicada por el BCV
+   * y la asigna al campo "Valor de Cambio"
+   */
+  async function handleFetchBcvRate(): Promise<void> {
+    if (loadingBcvRate.value) return
+
+    loadingBcvRate.value = true
+    try {
+      const rate = await fetchBcvRate()
+      if (rate !== null) {
+        form.value.amount = rate
+        validate()
+      }
+    } finally {
+      loadingBcvRate.value = false
+    }
+  }
+
+  /**
+   * Maneja el cambio del switch de actualización automática vía BCV
+   */
+  async function handleBcvAutoUpdateToggle(enabled: boolean): Promise<void> {
+    const success = await toggleBcvAutoUpdate(enabled)
+    if (!success) {
+      bcvAutoUpdate.value = !enabled
+      return
+    }
+
+    emit('update:bcvAutoUpdateEnabled', enabled)
+  }
+
+  /**
    * Submit interno del formulario
    */
   const submit = (): boolean => {
@@ -137,6 +192,34 @@
 
       <!-- Valor de cambio -->
       <FormInput
+        v-if="isVes"
+        name="amount"
+        label="Valor de Cambio"
+        col="col-md-6"
+        :required="true"
+        placeholder="0.00"
+        :mask="maskOptions"
+        :error="errors.amount"
+        :modelValue="form.amount"
+        @update:modelValue="form.amount = $event"
+        @blur="validate"
+      >
+        <template #append>
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            title="Consultar tasa oficial del BCV"
+            :disabled="loadingBcvRate"
+            @click="handleFetchBcvRate"
+          >
+            <span v-if="loadingBcvRate" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            <i v-else class="fa-solid fa-landmark"></i>
+            BCV
+          </button>
+        </template>
+      </FormInput>
+      <FormInput
+        v-else
         name="amount"
         label="Valor de Cambio"
         col="col-md-6"
@@ -156,6 +239,16 @@
         col="col-12"
         :modelValue="form.status"
         @update:modelValue="form.status = $event"
+      />
+
+      <!-- Switch actualización automática vía BCV (solo VES) -->
+      <FormSwitch
+        v-if="isVes"
+        name="bcv-auto-update"
+        label="¿Actualizar automáticamente con la tasa del BCV?"
+        col="col-12"
+        v-model="bcvAutoUpdate"
+        @update:modelValue="handleBcvAutoUpdateToggle"
       />
 
       <div class="col-12">

@@ -21,6 +21,7 @@ export interface ExchangeRatePageProps {
     roleUser: string
     tokenId?: string
     autoUpdateEnabled: boolean
+    bcvAutoUpdateEnabled: boolean
 }
 
 export interface ExchangeRateHistoricalPageProps {

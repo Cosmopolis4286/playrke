@@ -303,12 +303,97 @@ class ExchangeRateController extends Controller
                     'auto_update_enabled',
                     false
                 );
-                
+
                 return [
                     'enabled' => (bool) $enabled
                 ];
             },
             'No se pudo obtener el estado del cronjob de actualización automática.'
+        );
+    }
+
+    /**
+     * Consultar la tasa oficial USD/VES publicada por el BCV.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getBcvRate(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () {
+                $rate = $this->service->getBcvRate();
+
+                if ($rate === null) {
+                    return response()->json([
+                        'message' => 'No se pudo obtener la tasa del BCV. Intente más tarde.',
+                    ], 422);
+                }
+
+                return [
+                    'message' => 'Tasa BCV obtenida correctamente.',
+                    'data' => ['rate' => $rate],
+                ];
+            },
+            'No se pudo obtener la tasa del BCV.'
+        );
+    }
+
+    /**
+     * Activar la actualización automática de la tasa VES usando el BCV.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function enableBcvAutoUpdate(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request) {
+                $this->service->enableBcvAutoUpdate($this->resolveToken($request));
+
+                return [
+                    'message' => 'Actualización automática vía BCV activada.',
+                    'enabled' => true,
+                ];
+            },
+            'No se pudo activar la actualización automática vía BCV.'
+        );
+    }
+
+    /**
+     * Desactivar la actualización automática de la tasa VES usando el BCV.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function disableBcvAutoUpdate(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            function () use ($request) {
+                $this->service->disableBcvAutoUpdate($this->resolveToken($request));
+
+                return [
+                    'message' => 'Actualización automática vía BCV desactivada.',
+                    'enabled' => false,
+                ];
+            },
+            'No se pudo desactivar la actualización automática vía BCV.'
+        );
+    }
+
+    /**
+     * Obtener el estado actual de la actualización automática vía BCV.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getBcvAutoUpdateStatus(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => [
+                'enabled' => $this->service->getBcvAutoUpdateStatus($this->resolveToken($request)),
+            ],
+            'No se pudo obtener el estado de la actualización automática vía BCV.'
         );
     }
 }

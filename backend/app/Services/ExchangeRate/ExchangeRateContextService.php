@@ -61,6 +61,13 @@ final class ExchangeRateContextService
             false
         );
 
+        $bcvAutoUpdateEnabled = (bool) UserPreference::getPreference(
+            $userId,
+            UserPreference::CATEGORY_EXCHANGE_RATE,
+            'bcv_auto_update_enabled',
+            false
+        );
+
         return new ExchangeRateContextDTO(
             currencies: $isLogged
                 ? $this->currency->getAvailableCurrencies($userId, true, true)
@@ -77,6 +84,8 @@ final class ExchangeRateContextService
             tokenId: $isLogged ? '' : (string) $userId,
 
             autoUpdateEnabled: $autoUpdateEnabled,
+
+            bcvAutoUpdateEnabled: $bcvAutoUpdateEnabled,
         );
     }
 
