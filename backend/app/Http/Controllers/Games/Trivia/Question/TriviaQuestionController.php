@@ -145,19 +145,6 @@ final class TriviaQuestionController extends Controller
     }
 
     /**
-     * Ver detalle de una pregunta.
-     */
-    public function show(string $roomId, string $questionId): Response
-    {
-        $question = TriviaQuestion::findOrFail($questionId);
-
-        return Inertia::render('Games/Trivia/Admin/QuestionsShow', [
-            'question' => $question,
-            'roomId'   => $roomId,
-        ]);
-    }
-
-    /**
      * Formulario de edición.
      */
     public function edit(string $roomId, string $questionId): Response

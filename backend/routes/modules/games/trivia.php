@@ -18,18 +18,6 @@ use App\Http\Controllers\Games\Trivia\Question\TriviaQuestionController;
 use Illuminate\Support\Facades\Route;
 
 // ====================================
-// RUTAS DE REPORTES Y ESTADÍSTICAS (ADMIN)
-// ====================================
-Route::prefix('trivia')->name('trivia.')->middleware(['auth', 'role:admin,superadmin'])->group(function () {
-    Route::get('/', [TriviaReportController::class, 'index'])->name('index');
-    Route::get('/winners', [TriviaReportController::class, 'winners'])->name('winners');
-    Route::get('/winners-room/{coin}', [TriviaReportController::class, 'winnersRoom'])->name('winners-room');
-    Route::get('/cards-sold', [TriviaReportController::class, 'cardsSold'])->name('cards-sold');
-    Route::get('/sales-report', [TriviaReportController::class, 'salesReport'])->name('sales-report');
-    Route::get('/sales-report-room/{coin}', [TriviaReportController::class, 'salesReportRoom'])->name('sales-report-room');
-});
-
-// ====================================
 // RUTAS DE SALAS MULTIUSUARIO (ADMIN)
 // ====================================
 // Nuevo sistema Domain-Driven (TriviaRoom en PostgreSQL + Redis)
@@ -52,7 +40,6 @@ Route::prefix('trivia-questions')->name('trivia-questions.')->middleware(['auth'
     Route::get('/room/{roomId}',                          [TriviaQuestionController::class, 'index'])->name('index');
     Route::get('/room/{roomId}/create',                   [TriviaQuestionController::class, 'create'])->name('create');
     Route::post('/room/{roomId}',                         [TriviaQuestionController::class, 'store'])->name('store');
-    Route::get('/room/{roomId}/{questionId}/show',        [TriviaQuestionController::class, 'show'])->name('show');
     Route::get('/room/{roomId}/{questionId}/edit',        [TriviaQuestionController::class, 'edit'])->name('edit');
     Route::put('/room/{roomId}/{questionId}',             [TriviaQuestionController::class, 'update'])->name('update');
     Route::delete('/room/{roomId}/{questionId}',          [TriviaQuestionController::class, 'destroy'])->name('destroy');
