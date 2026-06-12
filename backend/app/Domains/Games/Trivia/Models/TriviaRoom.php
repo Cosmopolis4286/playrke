@@ -47,6 +47,11 @@ class TriviaRoom extends BaseModel
         'prize_amount',
         'prize_currency_id',
         'commission_percent',
+        'prize_model',
+        'prize_payouts',
+        'platform_rake_percent',
+        'sponsor_prize',
+        'pool_accumulated',
     ];
 
     protected $casts = [
@@ -54,6 +59,7 @@ class TriviaRoom extends BaseModel
         'metadata'           => 'array',
         'teams_config'       => 'array',
         'fee_by_currency'    => 'array',
+        'prize_payouts'      => 'array',
         'scheduled_at'       => 'datetime',
         'started_at'         => 'datetime',
         'ended_at'           => 'datetime',
@@ -61,6 +67,9 @@ class TriviaRoom extends BaseModel
         'question_count'     => 'integer',
         'time_per_question'  => 'integer',
         'current_players'    => 'integer',
+        'platform_rake_percent' => 'decimal:2',
+        'sponsor_prize'         => 'decimal:8',
+        'pool_accumulated'      => 'decimal:8',
     ];
 
     /**

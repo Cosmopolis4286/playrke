@@ -32,6 +32,24 @@ function getCurrencyById(id: string): Currency | undefined {
   return props.currencies.find(c => c.id === id)
 }
 
+// Distribución por posición para el modelo de premio "pool"
+const prizePayouts = ref<{ rank: number; percent: number }[]>([
+  { rank: 1, percent: 0.60 },
+  { rank: 2, percent: 0.25 },
+  { rank: 3, percent: 0.15 },
+])
+
+function addPrizePayout() {
+  const nextRank = prizePayouts.value.length > 0
+    ? Math.max(...prizePayouts.value.map(p => p.rank)) + 1
+    : 1
+  prizePayouts.value.push({ rank: nextRank, percent: 0 })
+}
+
+function removePrizePayout(index: number) {
+  prizePayouts.value.splice(index, 1)
+}
+
 const form = useForm({
   title: '',
   description: '',
@@ -51,6 +69,9 @@ const form = useForm({
   prize_type: 'accumulated' as 'accumulated' | 'fixed',
   prize_amount: 0,
   prize_currency_id: '' as string,
+  prize_model: 'guaranteed' as 'guaranteed' | 'pool',
+  sponsor_prize: 0,
+  platform_rake_percent: 0,
   scheduled_at: '' as string,
   settings: {
     allow_late_join: false,
@@ -74,6 +95,34 @@ const scheduledAtError = computed(() => {
   if (!form.scheduled_at) return ''
   if (new Date(form.scheduled_at) <= new Date()) {
     return 'La fecha y hora de inicio debe ser futura'
+  }
+  return ''
+})
+
+// Si hay aporte de sponsor, se debe seleccionar la moneda del premio
+const sponsorPrizeError = computed(() => {
+  const value = Number(form.sponsor_prize)
+  if (value < 0) return 'El aporte del sponsor no puede ser negativo'
+  if (value > 0 && !form.prize_currency_id) {
+    return 'Selecciona la moneda del premio cuando defines un aporte de sponsor'
+  }
+  return ''
+})
+
+const platformRakeError = computed(() => {
+  const value = Number(form.platform_rake_percent)
+  if (!Number.isFinite(value) || value < 0) return 'La comisión no puede ser negativa'
+  if (value > 30) return 'La comisión de la plataforma no puede superar 30%'
+  return ''
+})
+
+// La suma de porcentajes de prize_payouts debe ser ≈ 100% cuando el modelo es 'pool'
+const prizePayoutsError = computed(() => {
+  if (form.prize_model !== 'pool') return ''
+  if (prizePayouts.value.length === 0) return ''
+  const total = prizePayouts.value.reduce((sum, p) => sum + (Number(p.percent) || 0), 0)
+  if (Math.abs(total - 1) > 0.01) {
+    return `La suma de los porcentajes debe ser 100% (actual: ${Math.round(total * 100)}%)`
   }
   return ''
 })
@@ -105,12 +154,13 @@ watch(() => form.game_mode, (mode) => {
 })
 
 const submit = () => {
-  if (scheduledAtError.value) return
+  if (scheduledAtError.value || sponsorPrizeError.value || platformRakeError.value || prizePayoutsError.value) return
 
   form.transform((data) => ({
     ...data,
     scheduled_at: localInputToUtc(data.scheduled_at),
     fee_by_currency: feeByCurrency.value,
+    prize_payouts: data.prize_model === 'pool' ? prizePayouts.value : null,
   }))
 
   form.post(getRoute('roomsStore'), {
@@ -468,6 +518,122 @@ const submit = () => {
                     <span class="text-gray-700 dark:text-gray-300">Fijo</span>
                   </label>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuración de Premios -->
+          <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">
+              🏆 Configuración de Premios
+            </h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              Define cómo se reparte el premio final entre los ganadores.
+            </p>
+
+            <div class="space-y-4">
+              <!-- Modelo de premio -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Modelo de premio
+                </label>
+                <div class="flex gap-4 text-sm">
+                  <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input v-model="form.prize_model" type="radio" value="guaranteed" class="text-indigo-600" />
+                    <span class="text-gray-700 dark:text-gray-300">Garantizado</span>
+                  </label>
+                  <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input v-model="form.prize_model" type="radio" value="pool" class="text-indigo-600" />
+                    <span class="text-gray-700 dark:text-gray-300">Pozo (entradas + sponsor)</span>
+                  </label>
+                </div>
+                <p class="mt-1.5 text-xs text-gray-400">
+                  <strong>Garantizado:</strong> se reparte el monto del premio + sponsor, sin importar cuántos jugadores haya.
+                  <strong>Pozo:</strong> el premio se forma con las entradas pagadas + sponsor, menos la comisión de la plataforma.
+                </p>
+              </div>
+
+              <!-- Aporte de sponsor -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Aporte de sponsor (opcional)
+                </label>
+                <input
+                  v-model.number="form.sponsor_prize"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="mt-1 block w-40 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="0"
+                />
+                <p v-if="sponsorPrizeError" class="mt-1 text-sm text-red-600">{{ sponsorPrizeError }}</p>
+                <p v-else-if="form.errors.sponsor_prize" class="mt-1 text-sm text-red-600">{{ form.errors.sponsor_prize }}</p>
+                <p v-else class="mt-1 text-xs text-gray-400">Monto adicional aportado por un sponsor, en la moneda del premio.</p>
+              </div>
+
+              <!-- Comisión de la plataforma (solo modelo pool) -->
+              <div v-if="form.prize_model === 'pool'">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Comisión de la plataforma (%)
+                </label>
+                <input
+                  v-model.number="form.platform_rake_percent"
+                  type="number"
+                  min="0"
+                  max="30"
+                  step="0.01"
+                  class="mt-1 block w-32 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="0"
+                />
+                <p v-if="platformRakeError" class="mt-1 text-sm text-red-600">{{ platformRakeError }}</p>
+                <p v-else-if="form.errors.platform_rake_percent" class="mt-1 text-sm text-red-600">{{ form.errors.platform_rake_percent }}</p>
+                <p v-else class="mt-1 text-xs text-gray-400">Porcentaje del pozo que retiene la plataforma (máx. 30%).</p>
+              </div>
+
+              <!-- Distribución por posición (solo modelo pool) -->
+              <div v-if="form.prize_model === 'pool'">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Distribución por posición
+                </label>
+                <div class="space-y-2">
+                  <div v-for="(payout, index) in prizePayouts" :key="index" class="flex items-center gap-2">
+                    <span class="text-sm text-gray-500 dark:text-gray-400 w-16">Puesto</span>
+                    <input
+                      v-model.number="payout.rank"
+                      type="number"
+                      min="1"
+                      class="w-20 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                    <span class="text-sm text-gray-500 dark:text-gray-400">→</span>
+                    <input
+                      :value="Math.round(payout.percent * 100)"
+                      @input="payout.percent = Math.max(0, Number(($event.target as HTMLInputElement).value)) / 100"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      class="w-20 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                    <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
+                    <button
+                      type="button"
+                      @click="removePrizePayout(index)"
+                      class="ml-auto text-xs text-red-600 hover:underline"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  @click="addPrizePayout"
+                  class="mt-2 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  + Añadir posición
+                </button>
+                <p v-if="prizePayoutsError" class="mt-1 text-sm text-red-600">{{ prizePayoutsError }}</p>
+                <p v-else-if="form.errors.prize_payouts" class="mt-1 text-sm text-red-600">{{ form.errors.prize_payouts }}</p>
+                <p v-else class="mt-1.5 text-xs text-gray-400">La suma de los porcentajes debe ser 100%. Por defecto: 1° 60%, 2° 25%, 3° 15%.</p>
               </div>
             </div>
           </div>

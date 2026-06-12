@@ -59,6 +59,10 @@ class RoomService implements RoomServiceInterface
             'prize_type'         => $config['prize_type'] ?? 'accumulated',
             'prize_amount'       => $config['prize_amount'] ?? 0,
             'prize_currency_id'  => $config['prize_currency_id'] ?? null,
+            'prize_model'        => $config['prize_model'] ?? 'guaranteed',
+            'prize_payouts'      => $config['prize_payouts'] ?? null,
+            'platform_rake_percent' => $config['platform_rake_percent'] ?? 0,
+            'sponsor_prize'      => $config['sponsor_prize'] ?? 0,
             'scheduled_at'       => $config['scheduled_at'] ?? null,
             'settings'           => $config['settings'] ?? [],
             'current_players'    => 0,
@@ -379,6 +383,18 @@ class RoomService implements RoomServiceInterface
         }
         if (array_key_exists('prize_currency_id', $config)) {
             $updateData['prize_currency_id'] = $config['prize_currency_id'];
+        }
+        if (array_key_exists('prize_model', $config)) {
+            $updateData['prize_model'] = $config['prize_model'];
+        }
+        if (array_key_exists('prize_payouts', $config)) {
+            $updateData['prize_payouts'] = $config['prize_payouts'];
+        }
+        if (array_key_exists('platform_rake_percent', $config)) {
+            $updateData['platform_rake_percent'] = $config['platform_rake_percent'];
+        }
+        if (array_key_exists('sponsor_prize', $config)) {
+            $updateData['sponsor_prize'] = $config['sponsor_prize'];
         }
         if (array_key_exists('scheduled_at', $config)) {
             $updateData['scheduled_at'] = $config['scheduled_at'];

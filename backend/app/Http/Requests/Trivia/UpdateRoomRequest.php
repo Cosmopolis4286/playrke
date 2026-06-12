@@ -29,6 +29,12 @@ class UpdateRoomRequest extends FormRequest
             'prize_type'         => ['nullable', 'in:fixed,accumulated'],
             'prize_amount'       => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
             'prize_currency_id'  => ['nullable', 'string', 'exists:currencies,id'],
+            'prize_model'           => ['nullable', 'in:guaranteed,pool'],
+            'sponsor_prize'         => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
+            'platform_rake_percent' => ['nullable', 'numeric', 'min:0', 'max:30'],
+            'prize_payouts'                 => ['nullable', 'array'],
+            'prize_payouts.*.rank'          => ['required_with:prize_payouts', 'integer', 'min:1'],
+            'prize_payouts.*.percent'       => ['required_with:prize_payouts', 'numeric', 'min:0', 'max:1'],
             'scheduled_at'       => ['nullable', 'date', 'after:now'],
             'settings'           => ['nullable', 'array'],
             'settings.allow_powerups'   => ['nullable', 'boolean'],
@@ -53,6 +59,14 @@ class UpdateRoomRequest extends FormRequest
             'prize_amount.numeric' => 'El monto del premio debe ser un número.',
             'prize_amount.min' => 'El monto del premio no puede ser negativo.',
             'prize_currency_id.exists' => 'La moneda del premio seleccionada no es válida.',
+            'prize_model.in' => 'El modelo de premio debe ser "garantizado" o "pozo".',
+            'sponsor_prize.numeric' => 'El aporte del sponsor debe ser un número.',
+            'sponsor_prize.min' => 'El aporte del sponsor no puede ser negativo.',
+            'platform_rake_percent.numeric' => 'La comisión de la plataforma debe ser un número.',
+            'platform_rake_percent.max' => 'La comisión de la plataforma no puede superar 30%.',
+            'prize_payouts.*.rank.required_with' => 'Cada posición de premio debe indicar el puesto.',
+            'prize_payouts.*.percent.required_with' => 'Cada posición de premio debe indicar el porcentaje.',
+            'prize_payouts.*.percent.max' => 'El porcentaje por posición no puede superar 100%.',
             'scheduled_at.date' => 'La fecha de inicio no es válida.',
             'scheduled_at.after' => 'La fecha y hora de inicio debe ser futura.',
         ];
@@ -102,6 +116,31 @@ class UpdateRoomRequest extends FormRequest
                     'prize_currency_id',
                     'Selecciona la moneda del premio cuando indicas un monto.'
                 );
+            }
+
+            // Si se define un aporte de sponsor, exigir moneda de premio
+            $sponsorPrize = (float) $this->input('sponsor_prize', 0);
+            if ($sponsorPrize > 0 && !$this->filled('prize_currency_id')) {
+                $validator->errors()->add(
+                    'prize_currency_id',
+                    'Selecciona la moneda del premio cuando defines un aporte de sponsor.'
+                );
+            }
+
+            // La suma de porcentajes de prize_payouts debe ser ≈ 100% (tolerancia ±1%)
+            $prizePayouts = $this->input('prize_payouts');
+            if (is_array($prizePayouts) && count($prizePayouts) > 0) {
+                $totalPercent = array_sum(array_map(
+                    fn ($p) => (float) ($p['percent'] ?? 0),
+                    $prizePayouts
+                ));
+
+                if (abs($totalPercent - 1.0) > 0.01) {
+                    $validator->errors()->add(
+                        'prize_payouts',
+                        'La suma de los porcentajes de premio debe ser 100%.'
+                    );
+                }
             }
         });
     }
