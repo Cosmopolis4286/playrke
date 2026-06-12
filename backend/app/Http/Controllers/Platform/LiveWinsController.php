@@ -18,7 +18,7 @@ class LiveWinsController extends Controller
     public function recent(): JsonResponse
     {
         $prizes = BingoCardPrize::query()
-            ->with(['creatorUser:id,name', 'currency:id,iso_code,symbol,decimal_places'])
+            ->with(['creatorUser:id,first_name,last_name,username', 'currency:id,iso_code,symbol,decimal_places'])
             ->latest('created_at')
             ->limit(10)
             ->get();
@@ -31,7 +31,7 @@ class LiveWinsController extends Controller
                 'id'             => (string) $prize->id,
                 'game'           => 'Bingo',
                 'game_slug'      => 'bingo',
-                'winner_name'    => $prize->creatorUser?->name ?? 'Jugador',
+                'winner_name'    => $prize->creatorUser?->full_name ?: $prize->creatorUser?->username ?? 'Jugador',
                 'amount'         => (float) $prize->usd_amount,
                 'currency'       => $isoCode,
                 'currency_symbol'=> $currency?->symbol ?? '$',

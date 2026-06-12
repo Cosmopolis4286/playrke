@@ -2,9 +2,11 @@
 
 namespace App\Services\Platform;
 
+use App\Contracts\UserRepositoryInterface;
 use App\Contracts\WalletMovementRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\Models\Audit;
+use App\Models\Country;
 use App\Models\Currency;
 use App\Models\User;
 use App\Models\Wallet;
@@ -274,6 +276,8 @@ final class PlatformWalletService
                     'username'          => PlatformUserSeeder::PLATFORM_USERNAME,
                     'first_name'        => 'Playrke',
                     'last_name'         => 'Platform',
+                    'country_id'        => Country::where('iso_code_2', 'VE')->first()?->id,
+                    'referral_code'     => app(UserRepositoryInterface::class)->generateUniqueReferralCode(),
                     'password'          => Hash::make(Str::random(64)),
                     'status'            => 'ACTIVE',
                     'email_verified_at' => now(),

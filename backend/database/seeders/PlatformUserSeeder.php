@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Contracts\UserRepositoryInterface;
+use App\Models\Country;
 use App\Models\Currency;
 use App\Models\User;
 use App\Models\Wallet;
@@ -21,12 +23,16 @@ class PlatformUserSeeder extends Seeder
 
     public function run(): void
     {
+        $venezuela = Country::where('iso_code_2', 'VE')->first();
+
         $user = User::firstOrCreate(
             ['email' => self::PLATFORM_EMAIL],
             [
                 'username'              => self::PLATFORM_USERNAME,
                 'first_name'            => 'Playrke',
                 'last_name'             => 'Platform',
+                'country_id'            => $venezuela?->id,
+                'referral_code'         => app(UserRepositoryInterface::class)->generateUniqueReferralCode(),
                 'password'              => Hash::make(\Str::random(64)),
                 'status'                => 'ACTIVE',
                 'email_verified_at'     => now(),
