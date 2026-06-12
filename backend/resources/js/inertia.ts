@@ -2,7 +2,6 @@ import '@/css/app.css'
 import { createApp, h, type DefineComponent } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
 import { createHead } from '@vueuse/head'
-import { InertiaProgress } from '@inertiajs/progress'
 import VueImaskPlugin from './plugins/vue-imask-plugin'
 import FloatingVue from 'floating-vue'
 import Toast, { type PluginOptions, POSITION } from 'vue-toastification'
@@ -10,16 +9,6 @@ import Toast, { type PluginOptions, POSITION } from 'vue-toastification'
 import '@vueform/multiselect/themes/default.css'
 import 'floating-vue/dist/style.css'
 import 'vue-toastification/dist/index.css'
-
-/**
- * Inertia Progress (navegación interna)
- */
-InertiaProgress.init({
-    delay: 150,
-    color: '#0d6efd',
-    includeCSS: true,
-    showSpinner: false,
-})
 
 const pages = import.meta.glob<{ default: DefineComponent }>('/resources/js/Pages/**/*.vue')
 
