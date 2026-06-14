@@ -19,6 +19,7 @@ class LiveWinsController extends Controller
     {
         $prizes = BingoCardPrize::query()
             ->with(['creatorUser:id,first_name,last_name,username', 'currency:id,iso_code,symbol,decimal_places'])
+            ->where('created_at', '>=', now()->subSeconds(15))
             ->latest('created_at')
             ->limit(10)
             ->get();

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watchEffect } from 'vue'
 import { useLiveWins } from '@/js/composables/platform/useLiveWins'
 
 const GAME_IMAGES: Record<string, string> = {
@@ -12,6 +13,8 @@ const GAME_ICONS: Record<string, string> = {
   trivia:    'fas fa-question-circle',
 }
 
+const COLLAPSE_STORAGE_KEY = 'lwt-collapsed'
+
 function gameImage(slug: string): string | null {
   return GAME_IMAGES[slug] ?? null
 }
@@ -21,10 +24,28 @@ function gameIcon(slug: string): string {
 }
 
 const { wins, formatWinAmount, maskName } = useLiveWins()
+
+const collapsed = ref(localStorage.getItem(COLLAPSE_STORAGE_KEY) === '1')
+
+// El espacio reservado bajo el navbar solo tiene sentido si hay algo que mostrar
+watchEffect(() => {
+  document.body.classList.toggle('lwt-collapsed', collapsed.value || wins.value.length === 0)
+})
+
+function collapse(): void {
+  collapsed.value = true
+  localStorage.setItem(COLLAPSE_STORAGE_KEY, '1')
+}
+
+function expand(): void {
+  collapsed.value = false
+  localStorage.removeItem(COLLAPSE_STORAGE_KEY)
+}
 </script>
 
 <template>
-  <div class="lwt" v-if="wins.length > 0">
+  <Transition name="lwt-fade">
+  <div class="lwt" v-if="wins.length > 0 && !collapsed" :key="'panel'">
     <div class="lwt__label">
       <span class="lwt__dot"></span>
       <span class="lwt__label-text">En vivo</span>
@@ -81,7 +102,25 @@ const { wins, formatWinAmount, maskName } = useLiveWins()
         </template>
       </div>
     </div>
+
+    <button type="button" class="lwt__close" title="Ocultar ticker" aria-label="Ocultar ticker de ganadores" @click="collapse">
+      <i class="fas fa-times"></i>
+    </button>
   </div>
+
+  <button
+    v-else-if="wins.length > 0 && collapsed"
+    type="button"
+    class="lwt-reopen"
+    title="Mostrar ganadores en vivo"
+    aria-label="Mostrar ganadores en vivo"
+    :key="'reopen'"
+    @click="expand"
+  >
+    <span class="lwt-reopen__dot"></span>
+    <i class="fas fa-trophy"></i>
+  </button>
+  </Transition>
 </template>
 
 <style scoped>
@@ -89,7 +128,8 @@ const { wins, formatWinAmount, maskName } = useLiveWins()
   display: flex;
   align-items: center;
   gap: 12px;
-  background: linear-gradient(90deg, #0d0829 0%, #120a38 50%, #0d0829 100%);
+  /* El primer color coincide con el borde del degradado del sidebar para que no se note la unión */
+  background: linear-gradient(90deg, #181b50 0%, #0d0829 8%, #120a38 50%, #0d0829 100%);
   border-bottom: 1px solid rgba(124, 92, 252, 0.18);
   padding: 6px 14px;
   overflow: hidden;
@@ -209,5 +249,64 @@ const { wins, formatWinAmount, maskName } = useLiveWins()
 @media (max-width: 576px) {
   .lwt__label-text { display: none; }
   .lwt__label { padding-right: 6px; }
+}
+
+/* ── Botón cerrar ─────────────────────────────────────── */
+.lwt__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.45);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.lwt__close:hover {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.85);
+}
+
+/* ── Pestaña para volver a mostrar el ticker ─────────────── */
+.lwt-reopen {
+  position: fixed;
+  top: 54px;
+  right: 14px;
+  z-index: 1027;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(124, 92, 252, 0.25);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background: linear-gradient(90deg, #0d0829 0%, #120a38 50%, #0d0829 100%);
+  color: #fbbf24;
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.lwt-reopen__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  animation: lwt-pulse 1.8s ease-in-out infinite;
+}
+
+/* ── Transición de entrada/salida del ticker ─────────────── */
+.lwt-fade-enter-active,
+.lwt-fade-leave-active {
+  transition: opacity .25s ease, transform .25s ease;
+}
+.lwt-fade-enter-from,
+.lwt-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 </style>

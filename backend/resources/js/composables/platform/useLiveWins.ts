@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import echo from '@/js/plugins/echo'
 
@@ -18,22 +18,32 @@ export interface LiveWin {
 
 const MAX_WINS = 20
 
+/** Tiempo máximo (ms) que un premio permanece visible en el ticker. */
+const TTL_MS = 15_000
+/** Frecuencia (ms) con la que se revisa si hay premios vencidos. */
+const TICK_MS = 1_000
+
 export function useLiveWins(maxItems = 8) {
-  const wins = ref<LiveWin[]>([])
+  const allWins = ref<LiveWin[]>([])
+  const now = ref(Date.now())
   const channel = echo.channel('live-wins')
+
+  const wins = computed(() =>
+    allWins.value.filter((win) => now.value - new Date(win.timestamp).getTime() < TTL_MS)
+  )
 
   channel.listen('.NewWin', (payload: Omit<LiveWin, 'id'>) => {
     const win: LiveWin = {
       ...payload,
       id: `${Date.now()}-${Math.random()}`,
     }
-    wins.value = [win, ...wins.value].slice(0, MAX_WINS)
+    allWins.value = [win, ...allWins.value].slice(0, MAX_WINS)
   })
 
   onMounted(async () => {
     try {
       const { data } = await axios.get<{ wins: Omit<LiveWin, 'id'>[] }>('/api/live-wins/recent')
-      wins.value = (data.wins ?? []).map((win, i) => ({
+      allWins.value = (data.wins ?? []).map((win, i) => ({
         ...win,
         id: `seed-${i}-${win.timestamp}`,
       }))
@@ -42,8 +52,13 @@ export function useLiveWins(maxItems = 8) {
     }
   })
 
+  const tick = window.setInterval(() => {
+    now.value = Date.now()
+  }, TICK_MS)
+
   onUnmounted(() => {
     echo.leaveChannel('live-wins')
+    window.clearInterval(tick)
   })
 
   function formatWinAmount(win: LiveWin): string {

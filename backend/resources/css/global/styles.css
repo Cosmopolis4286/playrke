@@ -127,7 +127,8 @@ body::-webkit-scrollbar-thumb {
 }
 
 .navbar-bg {
-  background: linear-gradient(90deg, #060324 0%, #0a0535 50%, #060324 100%);
+  /* El primer color coincide con el borde del degradado del sidebar para que no se note la unión */
+  background: linear-gradient(90deg, #181b50 0%, #060324 8%, #0a0535 50%, #060324 100%);
   border-bottom: 1px solid rgba(102,126,234,.18);
   box-shadow: 0 2px 16px rgba(0,0,0,.4);
   min-height: 54px !important;
@@ -136,6 +137,12 @@ body::-webkit-scrollbar-thumb {
 /* Compensar la altura del navbar custom (54px) + ticker de ganadores (36px) sobre el valor por defecto de AdminLTE (57px) */
 .layout-fixed .wrapper .content-wrapper {
   margin-top: 90px;
+  transition: margin-top .2s ease-in-out;
+}
+
+/* Ticker de ganadores ocultado manualmente por el usuario */
+body.lwt-collapsed.layout-fixed .wrapper .content-wrapper {
+  margin-top: 54px;
 }
 
 /* ── Ticker de ganadores en vivo: fijo bajo el navbar, respeta el ancho del sidebar ── */
