@@ -35,19 +35,22 @@
         {{-- Contenido principal --}}
         <main class="content-wrapper flex-grow-1 d-flex flex-column">
 
-            {{-- Header del contenido --}}
-            @isset($contentHeader)
-                <section class="content-header">
-                    {{ $contentHeader }}
-                </section>
-            @endisset
-
             {{-- Contenido de la página --}}
             <section id="content-scrollable" @class([
                 'content flex-grow-1 overflow-auto',
-                'mt-2' => !$contentHeader,
             ])>
-                {{ $slot }}
+
+                {{-- Header del contenido --}}
+                @isset($contentHeader)
+                    <section class="content-header">
+                        {{ $contentHeader }}
+                    </section>
+                @endisset
+
+                <div @class(['mt-2' => !$contentHeader])>
+                    {{ $slot }}
+                </div>
+
             </section>
 
         </main>

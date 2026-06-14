@@ -434,10 +434,40 @@ class SidebarMenuService
     /**
      * Cuenta los movimientos de billetera (depósitos/retiros) pendientes de revisión.
      */
-    private function pendingWalletMovementsCount(): int
+    public function pendingWalletMovementsCount(): int
     {
         return WalletMovement::whereIn('type', [WalletMovement::TYPE_DEPOSIT, WalletMovement::TYPE_WITHDRAWAL])
             ->where('status', WalletMovement::STATUS_PENDING)
             ->count();
+    }
+
+    /**
+     * Construye el rastro de breadcrumbs según la ruta activa.
+     */
+    public function getBreadcrumb(): array
+    {
+        $breadcrumb = [
+            ['title' => 'Tablero', 'route' => 'dashboard'],
+        ];
+
+        foreach ($this->menuStructure as $item) {
+            if (isset($item['submenu'])) {
+                foreach ($item['submenu'] as $subitem) {
+                    if (!empty($subitem['route']) && $this->isActive($subitem['route'])) {
+                        $breadcrumb[] = ['title' => $item['title'], 'route' => null];
+                        $breadcrumb[] = ['title' => $subitem['title'], 'route' => $subitem['route']];
+                        return $breadcrumb;
+                    }
+                }
+                continue;
+            }
+
+            if (!empty($item['route']) && $this->isActive($item['route']) && $item['route'] !== 'dashboard') {
+                $breadcrumb[] = ['title' => $item['title'], 'route' => $item['route']];
+                return $breadcrumb;
+            }
+        }
+
+        return $breadcrumb;
     }
 }

@@ -15,10 +15,6 @@
         <img src="{{ asset('img/stam.png') }}" alt="Logo PlayRKE" class="brand-image">
     </a>
 
-    <div class="container-role-user">
-        <span>{{ $userRoleDisplay }}</span>
-    </div>
-
     <section class="sidebar mt-2" role="navigation" aria-label="Menú lateral">
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu"
@@ -45,7 +41,6 @@
                                         <a href="{{ route($subitem['route']) }}"
                                            title="{{ $subitem['title'] }}"
                                            class="{{ $menuService->getMenuItemClasses($subitem['route']) }}">
-                                            <i class="fa-solid fa-caret-right nav-icon"></i>
                                             <p>
                                                 {{ $subitem['title'] }}
                                                 @if(!empty($subitem['badge']))
@@ -85,7 +80,7 @@
 
     {{-- Pie del sidebar: info del usuario + cerrar sesión --}}
     <div class="sidebar-user-footer">
-        <div class="sidebar-user-footer__info">
+        <a href="{{ route('profile.index') }}" class="sidebar-user-footer__info" title="Ver mi perfil">
             <div class="sidebar-user-footer__avatar">
                 @if($sidebarPhoto)
                     <img src="{{ $sidebarPhoto }}" alt="{{ $sidebarName }}" class="sidebar-user-footer__photo">
@@ -97,7 +92,7 @@
                 <span class="sidebar-user-footer__name">{{ $sidebarName }}</span>
                 <span class="sidebar-user-footer__role">{{ $userRoleDisplay }}</span>
             </div>
-        </div>
+        </a>
         <button type="button"
                 class="sidebar-user-footer__logout logout-btn"
                 data-logout-url="{{ route('logout') }}"

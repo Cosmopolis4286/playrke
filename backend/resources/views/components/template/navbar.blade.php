@@ -1,7 +1,7 @@
 {{-- $navWallet y $navUser son inyectados por NavbarComposer vía AppServiceProvider --}}
 <nav class="main-header navbar navbar-expand navbar-bg justify-content-between">
 
-    {{-- ── Izquierda: toggle + billetera ──────────────────── --}}
+    {{-- ── Izquierda: toggle + marca + billetera ───────────── --}}
     <ul class="navbar-nav align-items-center" style="gap:.25rem;">
 
         {{-- Toggle sidebar --}}
@@ -11,24 +11,64 @@
             </a>
         </li>
 
-        {{-- Billetera --}}
-        <li class="nav-item">
-            <a class="nb-wallet-pill" href="{{ route('wallet.index') }}" title="Mi billetera">
-                <span class="nb-wallet-icon"><i class="fas fa-wallet"></i></span>
-                @if ($navWallet)
-                    <span id="navbar-balance" class="nb-wallet-balance">
-                        <span class="nb-wallet-symbol">{{ $navWallet->currency->symbol }}</span>{{ number_format($navWallet->balance, $navWallet->currency->decimal_places ?? 2, ',', '.') }}
-                    </span>
-                @else
-                    <span class="nb-wallet-empty">Sin billetera</span>
-                @endif
+        {{-- Marca PlayRKE: visible solo cuando el sidebar está oculto (móvil) --}}
+        <li class="nav-item d-md-none">
+            <a href="{{ url('/dashboard') }}" class="nb-brand" aria-label="Ir al dashboard">
+                <img src="{{ asset('img/logo.png') }}" alt="PlayRKE" class="nb-brand-img">
             </a>
         </li>
 
+        {{-- Billetera (solo si el usuario tiene una activa) --}}
+        @if ($navWallet)
+            <li class="nav-item">
+                <a class="nb-wallet-pill" href="{{ route('wallet.index') }}" title="Mi billetera">
+                    <span class="nb-wallet-icon"><i class="fas fa-wallet"></i></span>
+                    <span id="navbar-balance" class="nb-wallet-balance">
+                        <span class="nb-wallet-symbol">{{ $navWallet->currency->symbol }}</span>{{ number_format($navWallet->balance, $navWallet->currency->decimal_places ?? 2, ',', '.') }}
+                    </span>
+                </a>
+            </li>
+        @endif
+
     </ul>
 
-    {{-- ── Derecha: notificaciones + usuario ───────────────── --}}
+    {{-- ── Centro: breadcrumb de navegación ─────────────────── --}}
+    @if (!empty($navBreadcrumb) && count($navBreadcrumb) > 1)
+        <nav class="nb-breadcrumb d-none d-md-flex" aria-label="Ruta de navegación">
+            @foreach ($navBreadcrumb as $index => $crumb)
+                @if ($index > 0)
+                    <i class="fas fa-chevron-right nb-breadcrumb__sep"></i>
+                @endif
+                @if (!$loop->last && $crumb['route'])
+                    <a href="{{ route($crumb['route']) }}" class="nb-breadcrumb__link">{{ $crumb['title'] }}</a>
+                @else
+                    <span class="nb-breadcrumb__current">{{ $crumb['title'] }}</span>
+                @endif
+            @endforeach
+        </nav>
+    @endif
+
+    {{-- ── Derecha: pendientes + notificaciones + usuario ──── --}}
     <ul class="navbar-nav align-items-center" style="gap:.5rem;">
+
+        {{-- 🟠 Acciones pendientes (depósitos/retiros): solo admin, superadmin y tesorero --}}
+        @if ($navPendingCount > 0)
+            <li class="nav-item d-none d-sm-block">
+                <a class="nb-pending-pill" href="{{ route('wallet-movements.index') }}"
+                   title="Movimientos pendientes por revisar">
+                    <i class="fas fa-clock"></i>
+                    <span>{{ $navPendingCount }} pendiente{{ $navPendingCount === 1 ? '' : 's' }}</span>
+                </a>
+            </li>
+            {{-- Versión compacta para pantallas muy pequeñas --}}
+            <li class="nav-item d-sm-none">
+                <a class="nb-icon-btn position-relative" href="{{ route('wallet-movements.index') }}"
+                   title="Movimientos pendientes por revisar">
+                    <i class="fas fa-clock"></i>
+                    <span class="nb-badge nb-badge--warning">{{ $navPendingCount > 99 ? '99+' : $navPendingCount }}</span>
+                </a>
+            </li>
+        @endif
 
         {{-- 🔔 Notificaciones --}}
         <li class="nav-item dropdown">
@@ -210,7 +250,8 @@
     function incBadge() { setBadge(notifCount + 1); }
 
     // ── Construir <li> ────────────────────────────────────────
-    function buildListItem(meta, bodyHtml, time, url, notifId) {
+    // variant: 'admin' (acción pendiente para admin/tesorero) | 'result' (depósito/retiro resuelto) | '' (movimiento normal)
+    function buildListItem(meta, bodyHtml, time, url, notifId, variant) {
         var inner =
             '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1"' +
                  ' style="width:32px;height:32px;background:' + meta.color + '22">' +
@@ -220,7 +261,7 @@
             '<small class="text-muted flex-shrink-0" style="font-size:10px">' + time + '</small>';
 
         var li = document.createElement('li');
-        li.className = 'border-bottom notif-entry';
+        li.className = 'border-bottom notif-entry' + (variant ? ' notif-entry--' + variant : '');
         if (notifId) li.setAttribute('data-notification-id', notifId);
         li.innerHTML = url
             ? '<a href="' + url + '" class="d-flex align-items-start px-3 py-2 text-decoration-none text-dark" style="gap:10px">' + inner + '</a>'
@@ -254,7 +295,8 @@
             '<p class="mb-0 text-muted" style="font-size:11px">' + detail + '</p>',
             new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
             isResult ? (meta.url || '/wallet') : null,
-            null
+            null,
+            isResult ? 'result' : ''
         );
         incBadge();
     }
@@ -275,7 +317,8 @@
             '</p>',
             new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
             data.url || '/wallet-movements',
-            null
+            null,
+            'admin'
         );
         incBadge();
 
@@ -316,7 +359,8 @@
             '<p class="mb-0 text-muted" style="font-size:11px">' + notification.message + '</p>',
             new Date(notification.created_at).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
             url,
-            notification.id
+            notification.id,
+            isAdminAlert ? 'admin' : (isResult ? 'result' : '')
         );
     }
 

@@ -134,15 +134,16 @@ body::-webkit-scrollbar-thumb {
   min-height: 54px !important;
 }
 
-/* Compensar la altura del navbar custom (54px) + ticker de ganadores (36px) sobre el valor por defecto de AdminLTE (57px) */
-.layout-fixed .wrapper .content-wrapper {
-  margin-top: 90px;
-  transition: margin-top .2s ease-in-out;
+/* Compensar la altura del navbar custom (54px) + ticker de ganadores (36px): se aplica como
+   padding-top al área scrolleable para no restar espacio al footer dentro del wrapper vh-100 */
+.layout-fixed .wrapper .content-wrapper #content-scrollable {
+  padding-top: 90px;
+  transition: padding-top .2s ease-in-out;
 }
 
 /* Ticker de ganadores ocultado manualmente por el usuario */
-body.lwt-collapsed.layout-fixed .wrapper .content-wrapper {
-  margin-top: 54px;
+body.lwt-collapsed.layout-fixed .wrapper .content-wrapper #content-scrollable {
+  padding-top: 54px;
 }
 
 /* ── Ticker de ganadores en vivo: fijo bajo el navbar, respeta el ancho del sidebar ── */
@@ -172,6 +173,41 @@ body.lwt-collapsed.layout-fixed .wrapper .content-wrapper {
   }
 }
 
+/* ── Breadcrumb dinámico dentro del navbar oscuro ─────────── */
+.nb-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12.5px;
+  margin: 0 auto;
+  padding: 0 12px;
+  min-width: 0;
+  overflow: hidden;
+}
+.nb-breadcrumb__link {
+  color: rgba(255,255,255,.55);
+  text-decoration: none;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color .15s;
+}
+.nb-breadcrumb__link:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+.nb-breadcrumb__current {
+  color: #fff;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nb-breadcrumb__sep {
+  font-size: 9px;
+  color: rgba(255,255,255,.3);
+}
+
 .user-img {
   border-radius: 50% !important;
   object-fit: cover !important;
@@ -194,6 +230,19 @@ body.lwt-collapsed.layout-fixed .wrapper .content-wrapper {
   background: rgba(102,126,234,.2);
   color: #fff;
   text-decoration: none;
+}
+
+/* ── Navbar: marca PlayRKE (solo móvil, sidebar oculto) ───── */
+.nb-brand {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 4px;
+}
+.nb-brand-img {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
 }
 
 /* ── Navbar: pill billetera ───────────────────────────────── */
@@ -235,9 +284,31 @@ body.lwt-collapsed.layout-fixed .wrapper .content-wrapper {
   color: #34d399;
   margin-right: 2px;
 }
-.nb-wallet-empty {
+
+/* ── Navbar: pill acciones pendientes (depósitos/retiros) ─── */
+.nb-pending-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, .12);
+  border: 1px solid rgba(245, 158, 11, .35);
+  border-radius: 99px;
+  padding: 5px 12px;
   font-size: 12px;
-  color: rgba(255,255,255,.4);
+  font-weight: 600;
+  color: #fbbf24;
+  text-decoration: none;
+  transition: background .2s, border-color .2s;
+  white-space: nowrap;
+}
+.nb-pending-pill:hover {
+  background: rgba(245, 158, 11, .22);
+  border-color: rgba(245, 158, 11, .55);
+  color: #fcd34d;
+  text-decoration: none;
+}
+.nb-pending-pill i {
+  font-size: 11px;
 }
 
 /* ── Navbar: badge notificaciones ────────────────────────── */
@@ -257,6 +328,9 @@ body.lwt-collapsed.layout-fixed .wrapper .content-wrapper {
   justify-content: center;
   padding: 0 4px;
   border: 1.5px solid #060324;
+}
+.nb-badge--warning {
+  background: #f59e0b;
 }
 
 /* ── Navbar: menú notificaciones ─────────────────────────── */
@@ -473,9 +547,15 @@ body.lwt-collapsed.layout-fixed .wrapper .content-wrapper {
   animation: notifSlide .2s ease;
   cursor: pointer;
   transition: background .15s;
+  border-left: 3px solid transparent;
 }
 .notif-entry:hover > div { background: #f8f9fc; }
 .notif-entry.read { opacity: .65; border-left: 3px solid #34d399 !important; }
+
+/* Alerta para admin/tesorero: depósito o retiro pendiente por revisar */
+.notif-entry--admin { border-left-color: #f59e0b; }
+/* Resultado de un depósito/retiro ya procesado */
+.notif-entry--result { border-left-color: #34d399; }
 
 aside.main-sidebar {
   background-image: radial-gradient(circle at 50% -20.71%, #352e72 0, #181b50 25%, #02002f 50%, #000011 75%, #000000 100%);
@@ -490,6 +570,42 @@ aside.main-sidebar .sidebar {
   overflow-y: auto;
 }
 
+/* ── Separación entre el logo y el menú de navegación ── */
+aside.main-sidebar .sidebar.mt-2 {
+  margin-top: 0.75rem !important;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── Contraste de items de navegación inactivos ── */
+.nav-sidebar > .nav-item > .nav-link:not(.active) p,
+.nav-sidebar > .nav-item > .nav-link:not(.active) .nav-icon {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ── Chevron único: transición suave de la rotación que ya aplica AdminLTE en .menu-open ── */
+.nav-sidebar .nav-item.has-treeview > .nav-link > .right.fa-angle-left {
+  transition: transform 0.2s ease;
+}
+
+/* ── Línea guía de jerarquía para los submenús ── */
+.nav-sidebar .nav-treeview {
+  margin-left: 1.6rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.nav-sidebar .nav-treeview > .nav-item > .nav-link {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Submenú activo: mismo acento azul que el padre, con menor intensidad ── */
+.nav-sidebar .nav-treeview > .nav-item > .nav-link.active {
+  background: rgba(0, 123, 255, 0.25);
+  color: #fff;
+  box-shadow: none;
+}
+
 /* ── Drawer móvil: el sidebar no debe tapar el navbar (1038 > 1034) ── */
 @media (max-width: 767.98px) {
   .main-sidebar {
@@ -500,32 +616,6 @@ aside.main-sidebar .sidebar {
 
 .menu-image-play.cold .brand-image {
   max-height: 50.7px;
-}
-
-.container-role-user {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #020025;
-  letter-spacing: 0.8px;
-  padding-right: 5.5px;
-}
-
-.container-role-user span {
-  text-transform: uppercase;
-  font-size: 100%;
-  color: #e6e3e3;
-}
-
-/* Ocultar etiqueta de rol cuando el sidebar está colapsado (modo mini) */
-body.sidebar-mini.sidebar-collapse .container-role-user {
-  display: none !important;
-}
-
-/* Volver a mostrar en hover: .container-role-user es hijo directo de .main-sidebar */
-body.sidebar-mini.sidebar-collapse .main-sidebar:not(.sidebar-no-expand):hover .container-role-user {
-  display: flex !important;
 }
 
 /* ── Sidebar User Footer ── */
@@ -546,6 +636,18 @@ body.sidebar-mini.sidebar-collapse .main-sidebar:not(.sidebar-no-expand):hover .
   gap: 0.6rem;
   overflow: hidden;
   min-width: 0;
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 6px;
+  padding: 0.25rem 0.35rem;
+  margin: -0.25rem -0.35rem;
+  transition: background 0.2s;
+}
+
+.sidebar-user-footer__info:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
 }
 
 .sidebar-user-footer__avatar {
