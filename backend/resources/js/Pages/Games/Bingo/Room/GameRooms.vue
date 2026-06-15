@@ -229,6 +229,7 @@ onUnmounted(() => {
       </div>
       <p class="grp-empty-title">No hay salas disponibles</p>
       <p class="grp-empty-sub">Vuelve más tarde para ver las salas activas de hoy</p>
+      <div class="grp-empty-line" />
     </div>
 
     <!-- ── Grid de tarjetas ── -->
@@ -313,16 +314,11 @@ onUnmounted(() => {
 
 <style>
 /* ══════════════════════════════════════════════════════
-   RESET LAYOUT — idéntico a Game/Index.vue
+   RESET LAYOUT — la página vive DENTRO de #content-scrollable,
+   que ya es el único contenedor con scroll (overflow-auto) del
+   layout AdminLTE. No tocar html/body ni forzar 100vh aquí,
+   o se rompe el wrapper vh-100 y aparece scroll a nivel de página.
 ══════════════════════════════════════════════════════ */
-html, body {
-  height: auto !important;
-  min-height: 100%;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  /* Fondo base que cubre el gap del navbar */
-  background: #04081a !important;
-}
 body,
 body.hold-transition,
 #app-wrapper,
@@ -356,23 +352,13 @@ body.hold-transition,
   padding: 0 !important;
   display: flex;
   flex-direction: column;
-  overflow: visible !important;
-  height: auto !important;
-  min-height: 100vh;
 }
 .content-wrapper > .content > #app,
 .content-wrapper > .content > [data-page] {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: auto !important;
-  min-height: 100vh;
-  overflow: visible !important;
-}
-.wrapper, .content-wrapper {
-  height: auto !important;
-  min-height: 100vh;
-  overflow: visible !important;
+  min-height: 100%;
 }
 
 /* ── Meteoros ── */
@@ -402,35 +388,6 @@ body.hold-transition,
   100% { transform:rotate(var(--rot,35deg)) translate(var(--dx,90vw),var(--dy,80vh)); opacity:0; }
 }
 
-/* idéntico a Game/Index.vue — sin clases dinámicas en body */
-.content-header {
-  display: none !important;
-  padding: 0 !important;
-  min-height: 0 !important;
-  height: 0 !important;
-}
-.content-wrapper > .content {
-  padding: 0 !important;
-  display: flex;
-  flex-direction: column;
-  overflow: visible !important;
-  height: auto !important;
-  min-height: 100vh;
-}
-.content-wrapper > .content > #app,
-.content-wrapper > .content > [data-page] {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: auto !important;
-  min-height: 100vh;
-  overflow: visible !important;
-}
-.wrapper, .content-wrapper {
-  height: auto !important;
-  min-height: 100vh;
-  overflow: visible !important;
-}
 </style>
 
 <style scoped>
@@ -439,25 +396,12 @@ body.hold-transition,
 ═══════════════════════════════════════════════════════ */
 .game-rooms-page {
   flex: 1;
-  min-height: 100vh;
-  padding: 32px 12px 60px;
+  min-height: 100%;
+  padding: 28px 12px 48px;
   position: relative;
   isolation: isolate;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: #7b4fff rgba(255,255,255,0.03);
-
   background: transparent;
 }
-
-.game-rooms-page::-webkit-scrollbar { width: 4px; }
-.game-rooms-page::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 10px; }
-.game-rooms-page::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #7b4fff 0%, #2af598 45%, #009efd 100%);
-  border-radius: 10px;
-}
-.game-rooms-page::-webkit-scrollbar-button { display: none; }
 
 /* ── Capa 1: estrellas finas — mayor densidad ── */
 .game-rooms-page::before {
@@ -666,7 +610,7 @@ body.hold-transition,
 
 .game-rooms-page__subtitle {
   font-size: 13px;
-  color: #4a6696;
+  color: #7a96c8;
   letter-spacing: 0.8px;
   margin: 0 0 16px;
 }
@@ -690,40 +634,92 @@ body.hold-transition,
 }
 
 /* ═══════════════════════════════
-   EMPTY STATE
+   EMPTY STATE — tarjeta promo con borde degradado
 ═══════════════════════════════ */
 .game-rooms-page__empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 100px 0;
+  gap: 14px;
+  max-width: 420px;
+  margin: 48px auto;
+  padding: 56px 32px;
+  position: relative;
+  border-radius: 24px;
+  text-align: center;
+  background:
+    linear-gradient(160deg, rgba(123,79,255,0.08) 0%, rgba(0,158,253,0.05) 50%, rgba(42,245,152,0.06) 100%),
+    rgba(12,18,40,0.55);
+  border: 1px solid rgba(123,79,255,0.18);
+  box-shadow:
+    0 18px 50px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(255,255,255,0.02) inset,
+    0 0 60px rgba(42,245,152,0.05) inset;
+  backdrop-filter: blur(6px);
   animation: fadeSlideDown 0.6s ease both;
+  overflow: hidden;
+}
+
+/* halo giratorio sutil detrás del icono */
+.game-rooms-page__empty::before {
+  content: '';
+  position: absolute;
+  top: -90px; left: 50%; transform: translateX(-50%);
+  width: 280px; height: 280px;
+  background: radial-gradient(ellipse, rgba(123,79,255,0.20) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .grp-empty-icon {
-  width: 80px; height: 80px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(100,140,255,0.15);
+  width: 84px; height: 84px;
+  background: linear-gradient(135deg, rgba(42,245,152,0.12) 0%, rgba(0,158,253,0.12) 50%, rgba(123,79,255,0.12) 100%);
+  border: 1px solid rgba(123,79,255,0.28);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 32px;
-  color: #2e4068;
-  margin-bottom: 8px;
+  font-size: 34px;
+  color: #8fb4ff;
+  margin-bottom: 4px;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 30px rgba(42,245,152,0.12), 0 4px 18px rgba(0,0,0,0.35);
+  animation: emptyIconFloat 3.4s ease-in-out infinite;
+}
+
+@keyframes emptyIconFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
 }
 
 .grp-empty-title {
   font-family: "Anton", sans-serif;
-  font-size: 20px;
-  color: #3a5080;
-  letter-spacing: 1px;
+  font-size: 21px;
+  letter-spacing: 1.5px;
   margin: 0;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(135deg, #e0eaff 0%, #a8c4ff 50%, #7b4fff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .grp-empty-sub {
   font-size: 13px;
-  color: #2a3a5a;
+  color: #6a85b8;
+  letter-spacing: 0.2px;
   margin: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.grp-empty-line {
+  width: 60px;
+  height: 2px;
+  margin: 4px auto 0;
+  background: linear-gradient(90deg, transparent, #2af598, #009efd, #7b4fff, transparent);
+  border-radius: 2px;
+  position: relative;
+  z-index: 1;
 }
 
 /* ═══════════════════════════════
