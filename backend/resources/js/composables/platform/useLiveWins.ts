@@ -14,6 +14,8 @@ export interface LiveWin {
   local_amount: number
   decimal_places: number
   timestamp: string
+  /** Momento (epoch ms) en que el cliente recibió/cargó este ganador, usado para el TTL del ticker. */
+  addedAt: number
 }
 
 const MAX_WINS = 20
@@ -29,23 +31,26 @@ export function useLiveWins(maxItems = 8) {
   const channel = echo.channel('live-wins')
 
   const wins = computed(() =>
-    allWins.value.filter((win) => now.value - new Date(win.timestamp).getTime() < TTL_MS)
+    allWins.value.filter((win) => now.value - win.addedAt < TTL_MS)
   )
 
-  channel.listen('.NewWin', (payload: Omit<LiveWin, 'id'>) => {
+  channel.listen('.NewWin', (payload: Omit<LiveWin, 'id' | 'addedAt'>) => {
     const win: LiveWin = {
       ...payload,
       id: `${Date.now()}-${Math.random()}`,
+      addedAt: Date.now(),
     }
     allWins.value = [win, ...allWins.value].slice(0, MAX_WINS)
   })
 
   onMounted(async () => {
     try {
-      const { data } = await axios.get<{ wins: Omit<LiveWin, 'id'>[] }>('/api/live-wins/recent')
+      const { data } = await axios.get<{ wins: Omit<LiveWin, 'id' | 'addedAt'>[] }>('/api/live-wins/recent')
+      const addedAt = Date.now()
       allWins.value = (data.wins ?? []).map((win, i) => ({
         ...win,
         id: `seed-${i}-${win.timestamp}`,
+        addedAt,
       }))
     } catch (err) {
       console.error('❌ Error cargando ganadores recientes:', err)
