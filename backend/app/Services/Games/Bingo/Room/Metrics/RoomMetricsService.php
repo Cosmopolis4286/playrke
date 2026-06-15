@@ -214,6 +214,15 @@ class RoomMetricsService implements RoomMetricsInterface
                 return false;
             }
             
+            // Montos en moneda local de la venta, antes de normalizar a USD
+            // (usados para el desglose por moneda en `metrics_by_currency`).
+            $saleAmountLocal = isset($saleData['saleAmountUsd'])
+                ? round((float) $saleData['saleAmountUsd'] * $exchangeRate, 3)
+                : round($saleAmount, 3);
+            $sellerCommissionLocal = isset($saleData['sellerCommissionUsd'])
+                ? round((float) $saleData['sellerCommissionUsd'] * $exchangeRate, 3)
+                : round($sellerCommission, 3);
+
             $saleAmount = isset($saleData['saleAmountUsd'])
                 ? round((float) $saleData['saleAmountUsd'], 3)
                 : round($saleAmount / $exchangeRate, 3);
@@ -233,6 +242,11 @@ class RoomMetricsService implements RoomMetricsInterface
 
             $prizePoolType = $bingoConfig->prize_pool_type_id;
             $updateData = [];
+
+            // Equivalentes en moneda local, para el desglose por moneda.
+            $creatorCommissionLocal = round(($saleAmountLocal * $bingoConfig->room_commission) / 100, 3);
+            $rkeCommissionLocal = round(($saleAmountLocal * $bingoConfig->rke_commission) / 100, 3);
+            $prizePoolLocal = $saleAmountLocal - $rkeCommissionLocal - $creatorCommissionLocal - $sellerCommissionLocal;
 
             // Si el bote acumulado no es tipo "Premio"
             if ($prizePoolType != 2) {
@@ -282,6 +296,38 @@ class RoomMetricsService implements RoomMetricsInterface
 
             if (isset($saleData['seller'])) {
                 $updateData['seller_commission'] = ($room->seller_commission ?? 0) + $sellerCommission;
+            }
+
+            // Desglose por moneda (en moneda local de la venta)
+            $currencyId = (string) ($saleData['currency'] ?? '');
+            if ($currencyId !== '') {
+                $metricsByCurrency = $room->metrics_by_currency ?? [];
+                $current = $metricsByCurrency[$currencyId] ?? [
+                    'total_sales' => 0,
+                    'total_cards' => 0,
+                    'prize_pool' => 0,
+                    'full_house_prize' => 0,
+                    'rke_commission' => 0,
+                    'room_commission' => 0,
+                    'seller_commission' => 0,
+                ];
+
+                $current['total_sales'] = round($current['total_sales'] + $saleAmountLocal, 3);
+                $current['total_cards'] += $saleData['numOfCtns'];
+
+                if ($prizePoolType != 2) {
+                    $current['prize_pool'] = round($current['prize_pool'] + $prizePoolLocal, 3);
+                    $current['full_house_prize'] = round($current['full_house_prize'] + $prizePoolLocal, 3);
+                    $current['rke_commission'] = round($current['rke_commission'] + $rkeCommissionLocal, 3);
+                    $current['room_commission'] = round($current['room_commission'] + $creatorCommissionLocal, 3);
+                }
+
+                if (isset($saleData['seller'])) {
+                    $current['seller_commission'] = round($current['seller_commission'] + $sellerCommissionLocal, 3);
+                }
+
+                $metricsByCurrency[$currencyId] = $current;
+                $updateData['metrics_by_currency'] = $metricsByCurrency;
             }
 
             return $room->update($updateData);

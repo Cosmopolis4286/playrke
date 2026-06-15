@@ -24,6 +24,7 @@ class BingoRoomResource extends JsonResource
             'total_sales'        => $this->total_sales,
             'is_closed'          => $this->is_closed,
             'total_commissions'  => $this->total_commissions,
+            'metrics_by_currency' => $this->metrics_by_currency ?? [],
 
             'allowed_currencies' => $config?->allowed_currencies ?? [],
 

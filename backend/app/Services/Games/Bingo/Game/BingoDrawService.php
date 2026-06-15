@@ -414,7 +414,9 @@ final class BingoDrawService
             $userId   = $card->roomUser?->user_id ?? $card->creator_user_id;
             $user     = $card->roomUser?->user ?? User::find($userId);
             $userName = $user?->name ?? ('Jugador #' . $userId);
-            $prize    = (float) ($room->prize_pool ?? 0);
+
+            $prizeAmounts = $this->resolvePrizeAmounts($room, $round, $card);
+            $prize        = $prizeAmounts['usd_amount'];
 
             // Determinar prize_type según el patrón de la ronda
             $prizeType = match ($pattern->name) {
@@ -437,8 +439,8 @@ final class BingoDrawService
                 'status'            => 'ACTIVE',
                 'prize_type'        => $prizeType,
                 'winning_pattern'   => $pattern->name,
-                'usd_amount'        => $prize,
-                'local_amount'      => $this->convertToLocal($prize, (string) $card->currency_id),
+                'usd_amount'        => $prizeAmounts['usd_amount'],
+                'local_amount'      => $prizeAmounts['local_amount'],
                 'prize_status'      => 'waiting',
                 'verification_code' => strtoupper(substr(md5(uniqid($card->id . $roundId, true)), 0, 8)),
             ]);
@@ -596,20 +598,59 @@ final class BingoDrawService
     }
 
     /**
+     * Obtiene la tasa de cambio activa más reciente para una moneda.
+     */
+    private function getActiveRate(string $currencyId): float
+    {
+        return (float) ExchangeRate::where('currency_id', $currencyId)
+            ->where('status', 'ACTIVE')
+            ->orderBy('created_at', 'desc')
+            ->value('amount');
+    }
+
+    /**
      * Convierte un monto USD a moneda local usando el exchange rate de la moneda del cartón.
      * Si no hay tasa o la moneda es USD, devuelve el monto original.
      */
     private function convertToLocal(float $usdAmount, string $currencyId): float
     {
-        $rate = (float) ExchangeRate::where('currency_id', $currencyId)
-            ->where('status', 'ACTIVE')
-            ->orderBy('created_at', 'desc')
-            ->value('amount');
+        $rate = $this->getActiveRate($currencyId);
 
         if ($rate <= 0) {
             return $usdAmount;
         }
 
         return round($usdAmount * $rate, 4);
+    }
+
+    /**
+     * Resuelve el monto del premio (USD y moneda local) para un cartón ganador.
+     *
+     * Si la ronda es de tipo FIXED y existe un valor configurado por moneda
+     * (`bingo_round_prizes`) para la moneda del cartón, se usa ese valor
+     * (en moneda local), derivando el equivalente en USD mediante la tasa activa.
+     * En cualquier otro caso, se usa el bote de la sala (`prize_pool`, en USD).
+     */
+    private function resolvePrizeAmounts(BingoRoom $room, BingoRound $round, BingoCard $card): array
+    {
+        if ($round->prize_type === 'FIXED') {
+            if (!$round->relationLoaded('prizes')) {
+                $round->load('prizes');
+            }
+
+            $fixedPrize = $round->prizes->firstWhere('currency_id', (string) $card->currency_id);
+
+            if ($fixedPrize) {
+                $localAmount = (float) $fixedPrize->prize_value;
+                $rate = $this->getActiveRate((string) $card->currency_id);
+                $usdAmount = $rate > 0 ? round($localAmount / $rate, 4) : $localAmount;
+
+                return ['usd_amount' => $usdAmount, 'local_amount' => $localAmount];
+            }
+        }
+
+        $usdAmount = (float) ($room->prize_pool ?? 0);
+
+        return ['usd_amount' => $usdAmount, 'local_amount' => $this->convertToLocal($usdAmount, (string) $card->currency_id)];
     }
 }
