@@ -46,9 +46,12 @@ trait Auditable
         });
 
         /**
-         * Evento disponible solo si el modelo usa SoftDeletes.
+         * El evento "restored" solo existe si el modelo usa SoftDeletes;
+         * registrarlo incondicionalmente revienta el boot de modelos que no lo usan.
          */
-        static::restored(fn($model) => $model->auditChanges('restored'));
+        if (in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive(static::class), true)) {
+            static::restored(fn($model) => $model->auditChanges('restored'));
+        }
     }
 
     /**
