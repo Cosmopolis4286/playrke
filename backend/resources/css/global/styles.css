@@ -131,8 +131,10 @@ body::-webkit-scrollbar-thumb {
   background: linear-gradient(90deg, #181b50 0%, #060324 8%, #0a0535 50%, #060324 100%);
   border-bottom: 2px solid rgba(102,126,234,.18);
   box-shadow: 0 2px 16px rgba(0,0,0,.4);
-  min-height: 64px !important;
-  padding: 0.5rem 1rem !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  padding: 0 1rem !important;
+  box-sizing: border-box;
 }
 
 /* AdminLTE aplica un margin-top: -0.5% (relativo al ancho del viewport) al .wrapper,
@@ -144,28 +146,46 @@ body::-webkit-scrollbar-thumb {
 }
 
 /* AdminLTE fija un min-height asumiendo navbar+footer de 3.5rem cada uno; con nuestro
-   navbar (64px) y footer (auto, ~37px) eso deja hueco vacío bajo el footer dentro del
+   navbar (56px) y footer (auto, ~37px) eso deja hueco vacío bajo el footer dentro del
    wrapper vh-100. Anulamos el min-height para que flex-grow dimensione el área real. */
 .layout-fixed .wrapper .content-wrapper {
   min-height: 0;
 }
 
-/* Compensar la altura del navbar custom (64px) + ticker de ganadores (36px): se aplica como
+/* Compensar la altura del navbar custom (56px) + ticker de ganadores (36px): se aplica como
    padding-top al área scrolleable para no restar espacio al footer dentro del wrapper vh-100 */
 .layout-fixed .wrapper .content-wrapper #content-scrollable {
-  padding-top: 100px;
+  padding-top: 92px;
   transition: padding-top .2s ease-in-out;
 }
 
 /* Ticker de ganadores ocultado manualmente por el usuario */
 body.lwt-collapsed.layout-fixed .wrapper .content-wrapper #content-scrollable {
-  padding-top: 64px;
+  padding-top: 56px;
 }
+
+/* ── Scrollbar del área de contenido: degradado cósmico (verde → azul → violeta) ── */
+#content-scrollable {
+  scrollbar-width: thin;
+  scrollbar-color: #7b4fff rgba(255,255,255,0.03);
+}
+#content-scrollable::-webkit-scrollbar { width: 6px; }
+#content-scrollable::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.03);
+}
+#content-scrollable::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #2af598 0%, #009efd 50%, #7b4fff 100%);
+  border-radius: 10px;
+}
+#content-scrollable::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #4dffb3 0%, #33b3ff 50%, #9a78ff 100%);
+}
+#content-scrollable::-webkit-scrollbar-button { display: none; }
 
 /* ── Ticker de ganadores en vivo: fijo bajo el navbar, respeta el ancho del sidebar ── */
 #live-wins-ticker {
   position: fixed;
-  top: 60px;
+  top: 56px;
   left: 0;
   right: 0;
   z-index: 1027; /* por debajo del sidebar (zindex-main-sidebar) y encima del contenido */
@@ -252,11 +272,12 @@ body.lwt-collapsed.layout-fixed .wrapper .content-wrapper #content-scrollable {
 .nb-brand {
   display: flex;
   align-items: center;
-  height: 36px;
-  padding: 0 4px;
+  height: 56px;
+  padding: 6px 4px;
+  box-sizing: border-box;
 }
 .nb-brand-img {
-  height: 28px;
+  height: 100%;
   width: auto;
   object-fit: contain;
 }
@@ -437,6 +458,24 @@ body.lwt-collapsed.layout-fixed .wrapper .content-wrapper #content-scrollable {
   background: #34d399;
   border: 1.5px solid #060324;
 }
+.nb-avatar-level {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 99px;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border: 1.5px solid #060324;
+  line-height: 1;
+}
 .nb-username {
   font-size: 13px;
   font-weight: 600;
@@ -466,14 +505,15 @@ body.lwt-collapsed.layout-fixed .wrapper .content-wrapper #content-scrollable {
   align-items: center;
   gap: 10px;
   padding: 14px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #181b50 0%, #060324 60%, #0a0535 100%);
+  border-bottom: 1px solid rgba(102,126,234,.25);
 }
 .nb-user-header-avatar {
   width: 40px !important;
   height: 40px !important;
   border-radius: 50% !important;
   object-fit: cover !important;
-  border: 2px solid rgba(255,255,255,.5) !important;
+  border: 2px solid rgba(102,126,234,.6) !important;
   flex-shrink: 0;
 }
 .nb-user-header-info { flex: 1; min-width: 0; }
@@ -485,13 +525,52 @@ body.lwt-collapsed.layout-fixed .wrapper .content-wrapper #content-scrollable {
   align-items: center;
   gap: 5px;
 }
-.nb-verified-icon { font-size: 11px; color: #a7f3d0; }
+.nb-verified-icon { font-size: 11px; color: #34d399; }
 .nb-user-header-email {
   font-size: 11px;
-  color: rgba(255,255,255,.7);
+  color: rgba(255,255,255,.55);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ── Navbar: nivel y progreso de experiencia ──────────────── */
+.nb-user-level {
+  padding: 10px 16px;
+  background: #f8f9fc;
+  border-bottom: 1px solid #eaecf0;
+}
+.nb-user-level-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.nb-user-level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #f59e0b;
+}
+.nb-user-level-badge i { font-size: 10px; }
+.nb-user-level-xp {
+  font-size: 10.5px;
+  color: #6b7280;
+}
+.nb-user-level-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 99px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+.nb-user-level-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #667eea, #34d399);
+  transition: width .3s ease-in-out;
 }
 .nb-user-menu-body { padding: 6px 0; }
 .nb-menu-item {
@@ -505,8 +584,8 @@ body.lwt-collapsed.layout-fixed .wrapper .content-wrapper #content-scrollable {
   transition: background .15s;
 }
 .nb-menu-item:hover {
-  background: #f3f4f6;
-  color: #111827;
+  background: rgba(102,126,234,.08);
+  color: #181b50;
   text-decoration: none;
 }
 .nb-menu-icon {
@@ -519,7 +598,7 @@ body.lwt-collapsed.layout-fixed .wrapper .content-wrapper #content-scrollable {
   font-size: 12px;
   flex-shrink: 0;
 }
-.nb-icon-profile { background: #eef2ff; color: #667eea; }
+.nb-icon-profile { background: rgba(102,126,234,.12); color: #667eea; }
 .nb-icon-wallet  { background: #ecfdf5; color: #10b981; }
 .nb-menu-divider {
   height: 1px;
@@ -625,13 +704,42 @@ aside.main-sidebar .sidebar.mt-2 {
 /* ── Drawer móvil: el sidebar no debe tapar el navbar (1038 > 1034) ── */
 @media (max-width: 767.98px) {
   .main-sidebar {
-    top: 64px;
-    height: calc(100vh - 64px);
+    top: 56px;
+    height: calc(100vh - 56px);
   }
 }
 
-.brand-image {
-  max-width:100%
+/* ── Logo del sidebar: misma altura que el navbar (56px), abierto y colapsado ── */
+.menu-image-play.cold {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 56px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.menu-image-play.cold .brand-image {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Sidebar colapsado (modo ícono): el logo se ajusta al ancho disponible en vez de a la altura,
+   para que no se recorte por los lados dentro de la franja angosta */
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .menu-image-play.cold {
+  padding: 8px 4px;
+}
+
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .menu-image-play.cold .brand-image {
+  max-width: 100%;
+  max-height: none;
+  width: 100%;
+  height: auto;
 }
 
 /* ── Sidebar User Footer ── */
@@ -667,10 +775,7 @@ aside.main-sidebar .sidebar.mt-2 {
 }
 
 .sidebar-user-footer__avatar {
-  font-size: 2rem;
-  color: rgba(255, 255, 255, 0.7);
   flex-shrink: 0;
-  line-height: 1;
   width: 32px;
   height: 32px;
   display: flex;
@@ -729,10 +834,17 @@ aside.main-sidebar .sidebar.mt-2 {
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* Colapsado: ocultar texto, mostrar solo avatar e ícono logout */
+/* Colapsado: ocultar texto, mostrar solo avatar centrado e ícono logout */
 body.sidebar-mini.sidebar-collapse .sidebar-user-footer {
   justify-content: center;
   padding: 0.75rem 0.5rem;
+}
+
+body.sidebar-mini.sidebar-collapse .sidebar-user-footer__info {
+  flex: 0 0 auto;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
 }
 
 body.sidebar-mini.sidebar-collapse .sidebar-user-footer__details,
@@ -744,6 +856,13 @@ body.sidebar-mini.sidebar-collapse .sidebar-user-footer__logout {
 body.sidebar-mini.sidebar-collapse .main-sidebar:not(.sidebar-no-expand):hover .sidebar-user-footer {
   justify-content: space-between;
   padding: 0.75rem 1rem;
+}
+
+body.sidebar-mini.sidebar-collapse .main-sidebar:not(.sidebar-no-expand):hover .sidebar-user-footer__info {
+  flex: 1;
+  justify-content: flex-start;
+  margin: -0.25rem -0.35rem;
+  padding: 0.25rem 0.35rem;
 }
 
 body.sidebar-mini.sidebar-collapse .main-sidebar:not(.sidebar-no-expand):hover .sidebar-user-footer__details,

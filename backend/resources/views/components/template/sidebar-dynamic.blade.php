@@ -6,7 +6,7 @@
     $userRoleDisplay = $menuService->getUserRoleDisplay();
     $authUser     = auth()->user();
     $sidebarPhoto = $authUser?->profile_photo_url
-        ?? ($authUser?->foto ? asset('img/users/' . $authUser->foto) : null);
+        ?? ($authUser?->foto ? asset('img/users/' . $authUser->foto) : asset('img/fav.ico'));
     $sidebarName  = $authUser?->username ?? $authUser?->name ?? 'Usuario';
 @endphp
 
@@ -82,11 +82,7 @@
     <div class="sidebar-user-footer">
         <a href="{{ route('profile.index') }}" class="sidebar-user-footer__info" title="Ver mi perfil">
             <div class="sidebar-user-footer__avatar">
-                @if($sidebarPhoto)
-                    <img src="{{ $sidebarPhoto }}" alt="{{ $sidebarName }}" class="sidebar-user-footer__photo">
-                @else
-                    <i class="fas fa-user-circle"></i>
-                @endif
+                <img src="{{ $sidebarPhoto }}" alt="{{ $sidebarName }}" class="sidebar-user-footer__photo">
             </div>
             <div class="sidebar-user-footer__details">
                 <span class="sidebar-user-footer__name">{{ $sidebarName }}</span>

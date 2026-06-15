@@ -36,10 +36,12 @@ class NavbarComposer
             ->first();
 
         $user = Auth::user();
+        $user->loadMissing('userLevel');
 
         $view->with([
             'navWallet'       => $wallet,
             'navUser'         => $user,
+            'navUserLevel'    => $user->userLevel,
             'navBreadcrumb'   => $this->menuService->getBreadcrumb(),
             'navPendingCount' => $user->hasRole(self::ROLES_PENDING_MOVEMENTS)
                 ? $this->menuService->pendingWalletMovementsCount()

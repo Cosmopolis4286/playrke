@@ -107,6 +107,9 @@
                          src="{{ $navUser->profile_photo_url ?? ($navUser->foto ? asset('img/users/' . $navUser->foto) : asset('img/fav.ico')) }}"
                          alt="{{ $navUser->username }}">
                     <span class="nb-avatar-online"></span>
+                    @if ($navUserLevel)
+                        <span class="nb-avatar-level" title="Nivel {{ $navUserLevel->current_level }}">{{ $navUserLevel->current_level }}</span>
+                    @endif
                 </span>
                 <i class="fas fa-chevron-down nb-chevron"></i>
             </button>
@@ -129,6 +132,19 @@
                         <div class="nb-user-header-email">{{ $navUser->email ?? '' }}</div>
                     </div>
                 </div>
+
+                {{-- Nivel y progreso de experiencia --}}
+                @if ($navUserLevel)
+                    <div class="nb-user-level">
+                        <div class="nb-user-level-row">
+                            <span class="nb-user-level-badge"><i class="fas fa-star"></i> Nivel {{ $navUserLevel->current_level }}</span>
+                            <span class="nb-user-level-xp">{{ $navUserLevel->current_xp }} / {{ $navUserLevel->xp_to_next_level }} XP</span>
+                        </div>
+                        <div class="nb-user-level-bar">
+                            <div class="nb-user-level-bar-fill" style="width: {{ $navUserLevel->progress_percentage }}%"></div>
+                        </div>
+                    </div>
+                @endif
 
                 {{-- Opciones --}}
                 <div class="nb-user-menu-body">
