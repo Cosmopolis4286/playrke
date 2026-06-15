@@ -58,6 +58,7 @@ class BingoRoom extends BaseModel
         'serial_prize',
         'finished_at',
         'uuid_code',
+        'metrics_by_currency',
     ];
 
     // ========================
@@ -80,6 +81,7 @@ class BingoRoom extends BaseModel
         'total_players' => 'integer',
         'total_cards' => 'integer',
         'paid_prizes' => 'string',
+        'metrics_by_currency' => 'array',
     ];
 
     // ========================
