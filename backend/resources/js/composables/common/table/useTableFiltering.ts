@@ -42,6 +42,12 @@ export function useTableFiltering<T extends Record<string, any>>(
             if (val) {
                 result = result.filter(row => {
                     const rowVal = getNestedValue(row, key)
+                    // Soporte para campos con múltiples valores (arrays)
+                    if (Array.isArray(rowVal)) {
+                        return rowVal
+                            .map(v => String(v).toLowerCase())
+                            .includes(String(val).toLowerCase())
+                    }
                     // Comparación case-insensitive para campos string
                     return String(rowVal).toLowerCase() === String(val).toLowerCase()
                 })

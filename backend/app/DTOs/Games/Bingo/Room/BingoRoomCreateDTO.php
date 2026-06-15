@@ -37,6 +37,8 @@ final class BingoRoomCreateDTO
         public readonly bool $activateRoom = false,
         public readonly ?string $fromHouse = null,
         public readonly string $gameVariant = 'BINGO_75',
+        public readonly bool $roomsPerCurrency = false,
+        public readonly bool $isSplitRoom = false,
     ) {}
 
     public static function fromArray(array $data): self
@@ -77,6 +79,8 @@ final class BingoRoomCreateDTO
             activateRoom: (bool) ($data['activateRoom'] ?? false),
             fromHouse: isset($data['fromHouse']) ? (string) $data['fromHouse'] : null,
             gameVariant: $data['gameVariant'] ?? 'BINGO_75',
+            roomsPerCurrency: (bool) ($data['roomsPerCurrency'] ?? false),
+            isSplitRoom: (bool) ($data['isSplitRoom'] ?? false),
         );
     }
 }

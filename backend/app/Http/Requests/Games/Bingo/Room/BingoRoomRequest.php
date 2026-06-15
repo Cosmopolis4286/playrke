@@ -56,6 +56,9 @@ class BingoRoomRequest extends BaseRequest
             'allowedCurrencies'           => ['required', 'array', 'min:1'],
             'allowedCurrencies.*'         => ['required', 'exists:currencies,id'],
 
+            // Si hay 2+ monedas permitidas: crear una sala independiente por cada moneda
+            'roomsPerCurrency'            => ['sometimes', 'boolean'],
+
             // Precios por moneda
             // NOTA: la validación fuerte se hace en withValidator()
             'cardPriceByCurrency'          => ['required_if:useBaseUsd,false', 'nullable', 'array'],

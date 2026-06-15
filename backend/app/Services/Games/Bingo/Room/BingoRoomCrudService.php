@@ -187,6 +187,81 @@ class BingoRoomCrudService
     }
 
     /**
+     * Guarda una sala, o si `roomsPerCurrency` está activo y hay 2+ monedas permitidas,
+     * crea una sala independiente por cada moneda (cada una con `allowed_currencies = [moneda]`
+     * y sus precios/premios filtrados a esa moneda).
+     *
+     * @param BingoRoomCreateDTO $dto
+     * @return bool
+     */
+    public function saveRoomOrSplit(BingoRoomCreateDTO $dto): bool
+    {
+        if (!$dto->roomsPerCurrency || count($dto->allowedCurrencies) <= 1) {
+            return $this->saveRoom($dto);
+        }
+
+        return DB::transaction(function () use ($dto) {
+            foreach ($dto->allowedCurrencies as $currencyId) {
+                $perCurrencyDto = $this->sliceDtoForCurrency($dto, $currencyId);
+                $this->saveRoom($perCurrencyDto);
+            }
+            return true;
+        });
+    }
+
+    /**
+     * Construye un nuevo DTO a partir de `$dto`, limitando `allowedCurrencies`,
+     * `cardPriceByCurrency` y `prizeValueByCurrency` (rondas FIXED) a una sola moneda.
+     *
+     * @param BingoRoomCreateDTO $dto
+     * @param string $currencyId
+     * @return BingoRoomCreateDTO
+     */
+    private function sliceDtoForCurrency(BingoRoomCreateDTO $dto, string $currencyId): BingoRoomCreateDTO
+    {
+        $cardPriceByCurrency = isset($dto->cardPriceByCurrency[$currencyId])
+            ? [$currencyId => $dto->cardPriceByCurrency[$currencyId]]
+            : [];
+
+        $roundsConfig = array_map(function ($round) use ($currencyId) {
+            if (($round['prizeType'] ?? null) === 'fixed' && isset($round['prizeValueByCurrency'][$currencyId])) {
+                $round['prizeValueByCurrency'] = [$currencyId => $round['prizeValueByCurrency'][$currencyId]];
+            }
+            return $round;
+        }, $dto->roundsConfig ?? []);
+
+        return BingoRoomCreateDTO::fromArray([
+            'date'                  => $dto->date,
+            'time'                  => $dto->time,
+            'startMode'             => $dto->startMode,
+            'minCardsToStart'       => $dto->minCardsToStart,
+            'roomType'              => $dto->roomType,
+            'gameMode'              => $dto->gameMode,
+            'gameVariant'           => $dto->gameVariant,
+            'prizePoolType'         => $dto->prizePoolType,
+            'allowedCurrencies'     => [$currencyId],
+            'amountAddedPrizePool'  => $dto->amountAddedPrizePool,
+            'roomCommn'             => $dto->roomCommission,
+            'jackpotPct'            => $dto->jackpotPct,
+            'timeChip'              => $dto->timeChip,
+            'rounds'                => $dto->rounds,
+            'roundsPct'             => $dto->roundsPct,
+            'useSerials'            => $dto->useSerials,
+            'serialsPct'            => $dto->serialsPct,
+            'numSerials'            => $dto->numSerials,
+            'roundsConfig'          => $roundsConfig,
+            'useBaseUsd'            => $dto->useBaseUsd,
+            'cardPriceUsd'          => $dto->cardPriceUsd,
+            'usdExchangeRoundStep'  => $dto->usdExchangeRoundStep,
+            'cardPriceByCurrency'   => $cardPriceByCurrency,
+            'activateRoom'          => $dto->activateRoom,
+            'fromHouse'             => $dto->fromHouse,
+            'roomsPerCurrency'      => false,
+            'isSplitRoom'           => true,
+        ]);
+    }
+
+    /**
      * Crear sala base para create
      * - Crea registro en BingoRoom con estado ACTIVE y prize_pool 0
      * - Crea registro en BingoCreator para asociar creador con sala
@@ -267,6 +342,7 @@ class BingoRoomCrudService
             'time'                    => $dto->time,
             'unix_date'               => $unixDate,
             'allowed_currencies'      => $dto->allowedCurrencies,
+            'rooms_per_currency_split' => $dto->isSplitRoom ?? false,
             'rke_commission'          => $rkeCommission,
             'room_commission'         => $dto->roomCommission,
             'use_base_usd'            => $dto->useBaseUsd ?? false,

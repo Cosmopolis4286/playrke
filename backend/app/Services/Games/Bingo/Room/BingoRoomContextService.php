@@ -4,6 +4,7 @@ namespace App\Services\Games\Bingo\Room;
 
 use App\DTOs\Games\Bingo\Room\BingoGameRoomsDTO;
 use App\DTOs\Games\Bingo\Room\BingoRoomSummaryDTO;
+use App\Models\ExchangeRate;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -57,8 +58,8 @@ final class BingoRoomContextService
      */
     private function resolveSummaryGameRooms(?int $userId): array
     {
-        $labels  = ['Código', 'Tipo', 'Modo', 'Tipo Bote', 'Jugadores', 'Cartones', 'Premio', 'Inicio', 'Creación', 'Estado'];
-        $rowKeys = ['id', 'config.roomType.label', 'config.gameMode.label', 'config.prizePoolType.label', 'total_players', 'total_cards', 'prize_pool', 'start_info', 'created_at', 'status_badge'];
+        $labels  = ['Código', 'Tipo', 'Modo', 'Tipo Bote', 'Moneda(s)', 'Jugadores', 'Cartones', 'Premio', 'Inicio', 'Creación', 'Estado'];
+        $rowKeys = ['id', 'config.roomType.label', 'config.gameMode.label', 'config.prizePoolType.label', 'config.allowed_currencies', 'total_players', 'total_cards', 'prize_pool', 'start_info', 'created_at', 'status_badge'];
 
         // Superadmin y admin ven todas las salas; commerce/customer solo las suyas
         $isGlobalAdmin = $this->userContext->userHasRole('superadmin')
@@ -97,6 +98,10 @@ final class BingoRoomContextService
         $authUserId = $authUser ? (string) $authUser->id : null;
         $isAdmin    = $authUser && $authUser->hasRole(['admin', 'superadmin']);
 
+        $currencyMap = $userId
+            ? collect($this->currencyService->getAvailableCurrencies($userId, true))->pluck('iso_code', 'id')
+            : collect();
+
         // Enriquecer cada row con campos meta para filtros client-side
         foreach ($rooms['rows'] as $i => &$row) {
             $model = $collection->values()->get($i);
@@ -123,6 +128,13 @@ final class BingoRoomContextService
             if ($minCards !== null && $minCards > 0) {
                 $row['total_cards'] = ($row['total_cards'] ?? 0) . ' / mín: ' . $minCards;
             }
+
+            // Columna "Moneda(s)": mostrar iso_codes; campo separado con ids para filtrar
+            $currencyIds = (array) ($row['config_allowed_currencies'] ?? []);
+            $isoCodes = array_values(array_map(fn($id) => $currencyMap[$id] ?? $id, $currencyIds));
+
+            $row['config_allowed_currencies'] = implode(', ', $isoCodes);
+            $row['currency_ids'] = $currencyIds;
         }
         unset($row);
 
@@ -154,10 +166,18 @@ final class BingoRoomContextService
 
         $currencies = $this->currencyService->getAvailableCurrencies($userId, true);
 
+        $currenciesWithActiveRate = ExchangeRate::active()
+            ->whereIn('currency_id', collect($currencies)->pluck('id'))
+            ->pluck('currency_id')
+            ->unique()
+            ->values()
+            ->all();
+
         return new BingoRoomSummaryDTO(
             rooms: $commerceData['rooms'],
             pagination: $commerceData['pagination'],
             currencies: $currencies,
+            currenciesWithActiveRate: $currenciesWithActiveRate,
             bingoPatterns: $this->bingoPatterns->getByUserAndDefault($userId, ['id', 'name'], 'ACTIVE'),
             prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
             gameModes: $this->gameModes->getActiveGameModes(),

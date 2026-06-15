@@ -88,6 +88,7 @@ const emptyFormData = (): BingoRoomFormData => ({
     gameVariant: 'BINGO_75',
     prizePoolType: null,
     allowedCurrencies: [],
+    roomsPerCurrency: false,
     amountAddedPrizePool: null,
     roomCommn: 20,
     jackpotPct: null,

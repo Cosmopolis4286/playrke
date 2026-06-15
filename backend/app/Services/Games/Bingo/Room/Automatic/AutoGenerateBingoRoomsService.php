@@ -108,11 +108,37 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
     }
 
     /**
-     * Genera un BingoRoom real a partir de una plantilla automática.
-     * Delega la creación de sala base, precios y rondas a los métodos
-     * protegidos de BingoRoomCrudService.
+     * Genera el/los BingoRoom reales a partir de una plantilla automática.
+     *
+     * Si la plantilla tiene `rooms_per_currency` activo y permite 2+ monedas,
+     * genera una sala independiente por cada moneda permitida. En caso
+     * contrario, genera una única sala con todas las monedas permitidas.
      */
     private function generateRoomFromTemplate(BingoRoomAutomatic $template): void
+    {
+        $currencies = $template->allowed_currencies ?? [];
+
+        if ($template->rooms_per_currency && count($currencies) > 1) {
+            foreach ($currencies as $currencyId) {
+                $this->generateSingleRoomFromTemplate($template, [$currencyId]);
+            }
+            return;
+        }
+
+        $this->generateSingleRoomFromTemplate($template, null);
+    }
+
+    /**
+     * Genera un único BingoRoom a partir de una plantilla automática.
+     * Delega la creación de sala base, precios y rondas a los métodos
+     * protegidos de BingoRoomCrudService.
+     *
+     * @param BingoRoomAutomatic $template
+     * @param array|null $currencyOverride Si se indica, limita la sala generada
+     *        (allowed_currencies, precios de cartón y premios fijos) a esta(s)
+     *        moneda(s) — usado por el modo "salas por moneda".
+     */
+    private function generateSingleRoomFromTemplate(BingoRoomAutomatic $template, ?array $currencyOverride = null): BingoRoom
     {
         // 1. Construir DTO mínimo para createBaseRoom (solo usa activateRoom y roomCommission)
         $dto = $this->buildDtoFromTemplate($template);
@@ -131,18 +157,20 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
         ]);
 
         // 3. Crear configuración de sala (is_scheduled='Y' para automática)
-        $config = $this->createRoomConfig($room, $template);
+        $config = $this->createRoomConfig($room, $template, $currencyOverride);
 
         // 4. Sincronizar precios de cartones (reutiliza syncCardPrices del padre)
-        $this->syncCardPricesFromTemplate($room, $template);
+        $this->syncCardPricesFromTemplate($room, $template, $currencyOverride);
 
         // 5. Sincronizar rondas con sus premios (reutiliza syncRounds del padre)
-        $this->syncRoundsFromTemplate($room, $config->id, $template);
+        $this->syncRoundsFromTemplate($room, $config->id, $template, $currencyOverride);
 
         Log::info('[AutoGenerateBingoRooms] Sala generada.', [
             'room_id'     => $room->id,
             'template_id' => $template->id,
         ]);
+
+        return $room;
     }
 
     /**
@@ -179,8 +207,11 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
 
     /**
      * Crea la BingoRoomConfig con is_scheduled='Y' (automática).
+     *
+     * @param array|null $currencyOverride Si se indica, limita `allowed_currencies`
+     *        a esta(s) moneda(s) y marca `rooms_per_currency_split = true`.
      */
-    private function createRoomConfig(BingoRoom $room, BingoRoomAutomatic $template): BingoRoomConfig
+    private function createRoomConfig(BingoRoom $room, BingoRoomAutomatic $template, ?array $currencyOverride = null): BingoRoomConfig
     {
         $creatorTz     = $this->resolveTemplateTimezone($template);
         $scheduledDate = Carbon::now($creatorTz)->format('Y-m-d');
@@ -206,7 +237,8 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             'use_base_usd'            => $template->use_base_usd,
             'card_price_usd'          => $template->card_price_usd,
             'usd_exchange_round_step' => $template->usd_exchange_round_step,
-            'allowed_currencies'      => $template->allowed_currencies,
+            'allowed_currencies'      => $currencyOverride ?? $template->allowed_currencies,
+            'rooms_per_currency_split' => $currencyOverride !== null,
             'prize_pool_type_id'      => $template->prize_pool_type_id,
             'amount_added_prize_pool' => $template->amount_added_prize_pool,
             'time_chip'               => $template->time_chip,
@@ -232,8 +264,11 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
      * Usa los campos consolidados de bingo_rooms_automatic:
      * - card_currencies (monedas)
      * - card_prices (precios por moneda)
+     *
+     * @param array|null $currencyOverride Si se indica, limita los precios sincronizados
+     *        a esta(s) moneda(s).
      */
-    private function syncCardPricesFromTemplate(BingoRoom $room, BingoRoomAutomatic $template): void
+    private function syncCardPricesFromTemplate(BingoRoom $room, BingoRoomAutomatic $template, ?array $currencyOverride = null): void
     {
         // Obtener precios de los campos consolidados
         $pricesConfig = $template->getCardPricesConfig();
@@ -247,6 +282,10 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             $cardPrices,
             fn($price) => $price !== null && $price !== ''
         );
+
+        if ($currencyOverride !== null) {
+            $prices = array_intersect_key($prices, array_flip($currencyOverride));
+        }
 
         if (empty($prices)) {
             return;
@@ -280,8 +319,11 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
      * - prize_types (tipos de premios)
      * - bingo_patterns (patrones)
      * - prize_values (valores de premios)
+     *
+     * @param array|null $currencyOverride Si se indica, limita los premios fijos
+     *        (`prizeValueByCurrency`) a esta(s) moneda(s).
      */
-    private function syncRoundsFromTemplate(BingoRoom $room, string $roomConfigId, BingoRoomAutomatic $template): void
+    private function syncRoundsFromTemplate(BingoRoom $room, string $roomConfigId, BingoRoomAutomatic $template, ?array $currencyOverride = null): void
     {
         // Obtener configuración de rondas de los campos consolidados
         $roundsConfig = $template->getRoundsConfig();
@@ -316,7 +358,9 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             if ($prizeType === 'PCT') {
                 $config['prizeValue'] = $value !== null ? (float) $value : null;
             } elseif ($prizeType === 'FIXED' && is_array($value)) {
-                $config['prizeValueByCurrency'] = $value;
+                $config['prizeValueByCurrency'] = $currencyOverride !== null
+                    ? array_intersect_key($value, array_flip($currencyOverride))
+                    : $value;
             } elseif ($prizeType === 'OTHER' && is_array($value)) {
                 $config['prizeId']   = $value['prizeId'] ?? null;
                 $config['prizeName'] = $value['prizeName'] ?? '';

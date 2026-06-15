@@ -16,6 +16,7 @@ class BingoRoomAutomaticResource extends JsonResource
             'sales_start_offset_days' => $this->sales_start_offset_days,
 
             'allowed_currencies' => $this->allowed_currencies ?? [],
+            'rooms_per_currency' => (bool) $this->rooms_per_currency,
 
             'card_price_by_currency' => collect($this->getCardPricesConfig()['card_prices'] ?? [])->map(fn($v) => (float) $v)->toArray(),
 

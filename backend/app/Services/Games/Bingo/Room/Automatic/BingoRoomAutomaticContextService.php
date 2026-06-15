@@ -3,6 +3,7 @@
 namespace App\Services\Games\Bingo\Room\Automatic;
 
 use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticSummaryDTO;
+use App\Models\ExchangeRate;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -50,8 +51,8 @@ final class BingoRoomAutomaticContextService
      */
     private function resolveGameRooms(?int $userId): array
     {
-        $labels  = ['Código', 'Días', 'Hora', 'Tipo de Sala', 'Modo de Juego', 'Tipo Bote', 'Estado'];
-        $rowKeys = ['id', 'days_description', 'formatted_time', 'roomType.label', 'gameMode.label', 'prizePoolType.label', 'status_badge'];
+        $labels  = ['Código', 'Días', 'Hora', 'Tipo de Sala', 'Modo de Juego', 'Tipo Bote', 'Moneda(s)', 'Estado'];
+        $rowKeys = ['id', 'days_description', 'formatted_time', 'roomType.label', 'gameMode.label', 'prizePoolType.label', 'allowed_currencies', 'status_badge'];
 
         $conditions = $userId
             ? ['creator_user_id' => $userId]
@@ -62,7 +63,7 @@ final class BingoRoomAutomaticContextService
             page: 1,
             relations: ['roomType:id,label', 'gameMode:id,label', 'prizePoolType:id,label'],
             conditions: $conditions,
-            fields: ['id', 'room_type_id', 'game_mode_id', 'prize_pool_type_id', 'days', 'time', 'creator_user_id', 'created_at', 'status']
+            fields: ['id', 'room_type_id', 'game_mode_id', 'prize_pool_type_id', 'days', 'time', 'allowed_currencies', 'creator_user_id', 'created_at', 'status']
         );
 
         $collection = $source instanceof LengthAwarePaginator
@@ -81,6 +82,20 @@ final class BingoRoomAutomaticContextService
             : null;
 
         $rooms = $this->processCollectionTableData($collection, $labels, $rowKeys);
+
+        $currencyMap = $userId
+            ? collect($this->currencyService->getAvailableCurrencies($userId, true))->pluck('iso_code', 'id')
+            : collect();
+
+        // Columna "Moneda(s)": mostrar iso_codes; campo separado con ids para filtrar
+        foreach ($rooms['rows'] as &$row) {
+            $currencyIds = (array) ($row['allowed_currencies'] ?? []);
+            $isoCodes = array_values(array_map(fn($id) => $currencyMap[$id] ?? $id, $currencyIds));
+
+            $row['allowed_currencies'] = implode(', ', $isoCodes);
+            $row['currency_ids'] = $currencyIds;
+        }
+        unset($row);
 
         return ['rooms' => $rooms, 'pagination' => $pagination];
     }
@@ -110,10 +125,18 @@ final class BingoRoomAutomaticContextService
 
         $currencies = $this->currencyService->getAvailableCurrencies($userId, true);
 
+        $currenciesWithActiveRate = ExchangeRate::active()
+            ->whereIn('currency_id', collect($currencies)->pluck('id'))
+            ->pluck('currency_id')
+            ->unique()
+            ->values()
+            ->all();
+
         return new BingoRoomAutomaticSummaryDTO(
             rooms: $commerceData['rooms'],
             pagination: $commerceData['pagination'],
             currencies: $currencies,
+            currenciesWithActiveRate: $currenciesWithActiveRate,
             bingoPatterns: $this->bingoPatterns->getByUserAndDefault($userId, ['id', 'name'], 'ACTIVE'),
             prizePoolTypes: $this->prizePoolTypes->getActiveTypes(),
             gameModes: $this->gameModes->getActiveGameModes(),

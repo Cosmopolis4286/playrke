@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import { computed } from 'vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   import { updateCtnPriceForCurrency, getCurrencyLabel } from '../Composables/useRoomCurrency'
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
@@ -12,6 +13,7 @@
     cardPriceByCurrencyActive: boolean
     canAdjustCtnPriceByCurrency: boolean
     hasCardPriceByCurrencyErrors: boolean
+    currenciesWithActiveRate?: string[]
   }>()
 
   const emit = defineEmits<{
@@ -33,6 +35,27 @@
   function label(id: string | number) {
     return getCurrencyLabel(id, props.allowedCurrenciesOptions)
   }
+
+  /**
+   * Si hay 2+ monedas permitidas, se puede elegir entre crear una sala única
+   * (multi-moneda) o una sala independiente por cada moneda.
+   */
+  const canChooseRoomMode = computed(() => (props.modelValue.allowedCurrencies?.length ?? 0) > 1)
+
+  /**
+   * Monedas permitidas que no cuentan con una tasa de cambio activa.
+   * Sin esta tasa, el precio base en USD no puede convertirse a esas monedas.
+   */
+  const currenciesWithoutActiveRate = computed(() => {
+    const activeRates = props.currenciesWithActiveRate ?? []
+    return (props.modelValue.allowedCurrencies ?? []).filter(
+      cur => !activeRates.includes(String(cur))
+    )
+  })
+
+  const currenciesWithoutActiveRateLabel = computed(() =>
+    currenciesWithoutActiveRate.value.map(cur => label(cur)).join(', ')
+  )
 </script>
 
 <template>
@@ -82,6 +105,27 @@
     </template>
   </FormSelect>
 
+  <!-- Switch: Sala única / Salas por moneda -->
+  <div class="col-12" v-show="canChooseRoomMode" style="margin-bottom: 1rem">
+    <div class="d-flex align-items-center" style="gap: 0.5rem">
+      <div class="custom-control custom-switch" style="padding-left: 2.1rem">
+        <input
+          type="checkbox"
+          class="custom-control-input"
+          id="roomsPerCurrencySwitch"
+          :checked="modelValue.roomsPerCurrency ?? false"
+          @change="emit('update:modelValue', { ...modelValue, roomsPerCurrency: ($event.target as HTMLInputElement).checked })"
+        />
+        <label class="custom-control-label" for="roomsPerCurrencySwitch" style="cursor: pointer">
+          Salas por moneda
+        </label>
+      </div>
+    </div>
+    <small class="text-muted d-block" style="font-size: 0.78rem">
+      Se creará una sala independiente por cada moneda seleccionada.
+    </small>
+  </div>
+
   <!-- Panel de precios de cartones -->
   <div class="col-12" v-show="cardPriceByCurrencyActive" style="margin-bottom: 1rem">
     <div style="border: 1px solid #dee2e6; border-radius: 0.3rem; padding: 0.6rem 0.85rem">
@@ -118,6 +162,18 @@
       </div>
 
       <div style="border-top: 1px solid #e9ecef; margin: 0.4rem 0 0.55rem" />
+
+      <div
+        v-if="useBaseUsd && currenciesWithoutActiveRate.length > 0"
+        class="d-flex align-items-start"
+        style="gap: 0.35rem; font-size: 0.74rem; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 0.25rem; padding: 0.35rem 0.5rem; margin-bottom: 0.5rem"
+      >
+        <i class="fa-solid fa-triangle-exclamation" style="margin-top: 0.1rem"></i>
+        <span>
+          No hay tasa de cambio activa para: <strong>{{ currenciesWithoutActiveRateLabel }}</strong>.
+          El precio en USD no podrá convertirse correctamente para esa(s) moneda(s).
+        </span>
+      </div>
 
       <div class="d-flex align-items-start flex-wrap" style="gap: 0.5rem">
         <template v-if="useBaseUsd">

@@ -57,7 +57,7 @@ final class BingoRoomService
      */
     public function create(BingoRoomCreateDTO $dto): bool
     {
-        return $this->crudService->saveRoom($dto);
+        return $this->crudService->saveRoomOrSplit($dto);
     }
 
     /**

@@ -264,6 +264,12 @@
       options: prizePoolTypeOptions.value
     },
     {
+      key: 'currency_ids',
+      label: 'moneda',
+      placeholder: 'Filtrar por moneda',
+      options: allowedCurrenciesOptions.value
+    },
+    {
       key: 'status',
       label: 'Estado',
       placeholder: 'Filtrar por estado',
@@ -463,6 +469,7 @@ onUnmounted(() => {
       :prize-pool-type-options="prizePoolTypeOptions"
       :allowed-currencies-options="allowedCurrenciesOptions"
       :bingo-pattern-options="bingoPatternOptions"
+      :currencies-with-active-rate="props.currenciesWithActiveRate"
     />
 
     <template #footer>

@@ -62,6 +62,7 @@ final class BingoRoomAutomaticCrudService
                 'card_price_usd'          => $dto->cardPriceUsd,
                 'usd_exchange_round_step' => $dto->usdExchangeRoundStep ?? null,
                 'allowed_currencies'      => $dto->allowedCurrencies,
+                'rooms_per_currency'      => $dto->roomsPerCurrency ?? false,
                 'use_serials'             => $dto->useSerials ?? false,
                 'time_chip'               => $dto->timeChip,
                 'rounds'                  => $dto->rounds,

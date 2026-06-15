@@ -34,6 +34,7 @@
     prizePoolTypeOptions: SelectOption[]
     allowedCurrenciesOptions: SelectOption[]
     bingoPatternOptions: SelectOption[]
+    currenciesWithActiveRate?: string[]
     modelValue: BingoRoomFormData | BingoRoomAutomaticFormData
   }>()
 
@@ -100,6 +101,8 @@
     const allowed = form.value.allowedCurrencies
     return Array.isArray(allowed) && allowed.length >= 1
   })
+
+  const canChooseRoomMode = computed(() => (form.value.allowedCurrencies?.length ?? 0) > 1)
 
   const hasCardPriceByCurrencyErrors = computed(() => {
     if (cardPriceByCurrencyActive.value) return false
@@ -193,6 +196,13 @@
     if (!can) cardPriceByCurrencyActive.value = false
   })
 
+  // Resetear "Salas por moneda" si las monedas bajan a 1 (ya no aplica)
+  watch(canChooseRoomMode, can => {
+    if (!can && form.value.roomsPerCurrency) {
+      form.value = { ...form.value, roomsPerCurrency: false }
+    }
+  })
+
   // Sincronizar claves de cardPriceByCurrency cuando cambian las monedas (modo !useBaseUsd)
   watch(
     () => form.value.allowedCurrencies,
@@ -257,6 +267,7 @@
         :cardPriceByCurrencyActive="cardPriceByCurrencyActive"
         :canAdjustCtnPriceByCurrency="canAdjustCtnPriceByCurrency"
         :hasCardPriceByCurrencyErrors="hasCardPriceByCurrencyErrors"
+        :currenciesWithActiveRate="currenciesWithActiveRate ?? []"
         @update:modelValue="form = $event"
         @update:useBaseUsd="useBaseUsd = $event"
         @update:cardPriceByCurrencyActive="cardPriceByCurrencyActive = $event"

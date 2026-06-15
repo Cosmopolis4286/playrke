@@ -83,6 +83,15 @@ export interface BingoRoom {
     // Campo meta: unix timestamp de la fecha+hora programada (desde config)
     readonly unix_date?: number | null
 
+    // Columna "Moneda(s)" del listado: códigos ISO separados por coma (ej. "VES, COP")
+    readonly config_allowed_currencies?: string
+
+    // Campo meta (no visible): IDs de monedas permitidas, para filtrado client-side
+    readonly currency_ids?: (string | number)[]
+
+    // Columna "Moneda(s)" del listado de salas automáticas (mismo formato que config_allowed_currencies)
+    readonly allowed_currencies?: string
+
     // Campos del servicio (summary / listado)
     readonly name?: string
     readonly phone?: string
@@ -192,6 +201,7 @@ export interface BingoRoomFormData {
     gameVariant?: BingoGameVariant | null
     prizePoolType?: number | string | null
     allowedCurrencies?: (number | string)[]
+    roomsPerCurrency?: boolean
     amountAddedPrizePool?: number | null
     roomCommn?: number | null
     jackpotPct?: number | null
