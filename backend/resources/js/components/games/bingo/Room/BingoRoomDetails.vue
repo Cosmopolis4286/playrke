@@ -176,6 +176,22 @@ const cardPricesList = computed(() => {
   })
 })
 
+const metricsByCurrencyList = computed(() => {
+  const metrics = props.room.metrics_by_currency
+  if (!metrics || !Object.keys(metrics).length) return null
+  return Object.entries(metrics).map(([currencyId, m]) => {
+    const label = props.allowedCurrenciesOptions.find(c => String(c.value) === String(currencyId))?.label ?? currencyId
+    return {
+      currencyId,
+      label,
+      totalSales: fmt.currency(m.total_sales),
+      totalCards: fmt.number(m.total_cards),
+      prizePool: fmt.currency(m.prize_pool),
+      totalCommissions: fmt.currency(m.rke_commission + m.room_commission + m.seller_commission),
+    }
+  })
+})
+
 const prizePoolTypeCode = computed(() => {
   const id = props.room.config?.prize_pool_type_id
   return id ? (props.prizePoolTypeOptions as any[]).find(o => String(o.value) === String(id))?.code : null
@@ -326,6 +342,34 @@ const totalPct = computed(() => {
             <span v-for="cp in cardPricesList" :key="cp.label" class="badge badge-light border">
               {{ cp.label }}: {{ cp.price }}
             </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Desglose por Moneda ───────────────────────── -->
+    <div v-if="metricsByCurrencyList" class="details-section">
+      <h6 class="section-title">Desglose por Moneda</h6>
+      <div class="currency-breakdown">
+        <div v-for="m in metricsByCurrencyList" :key="m.currencyId" class="currency-breakdown-item">
+          <div class="currency-breakdown-header">{{ m.label }}</div>
+          <div class="currency-breakdown-grid">
+            <div class="detail-item">
+              <span class="detail-label">Ventas</span>
+              <span class="detail-value">{{ m.totalSales }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Cartones</span>
+              <span class="detail-value">{{ m.totalCards }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Bote</span>
+              <span class="detail-value">{{ m.prizePool }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Comisiones</span>
+              <span class="detail-value">{{ m.totalCommissions }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -524,6 +568,32 @@ const totalPct = computed(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   gap: 0.6rem;
+}
+
+/* Desglose por Moneda */
+.currency-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.currency-breakdown-item {
+  border: 1px solid #e9ecef;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.6rem;
+}
+
+.currency-breakdown-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #495057;
+  margin-bottom: 0.4rem;
+}
+
+.currency-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.5rem;
 }
 
 .detail-item {

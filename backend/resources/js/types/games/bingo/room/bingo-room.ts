@@ -46,6 +46,20 @@ export interface BingoRoomUser {
 }
 
 /**
+ * Desglose por moneda de las métricas monetarias de una sala (en moneda local).
+ * Claves = currency_id.
+ */
+export type BingoRoomMetricsByCurrency = Record<string, {
+    total_sales: number
+    total_cards: number
+    prize_pool: number
+    full_house_prize: number
+    rke_commission: number
+    room_commission: number
+    seller_commission: number
+}>
+
+/**
  * Modelo BingoRoom
  * Basado en: 2024_06_14_04_create_bingo_rooms_table
  */
@@ -73,6 +87,9 @@ export interface BingoRoom {
     // Appended accessors
     readonly is_closed: boolean
     readonly total_commissions: number
+
+    // Desglose de métricas por moneda (en moneda local de cada currency_id)
+    readonly metrics_by_currency?: BingoRoomMetricsByCurrency
 
     // Resuelto en el resource: si el usuario autenticado puede activar manualmente esta sala
     readonly can_activate_now?: boolean
