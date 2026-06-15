@@ -129,27 +129,43 @@ body::-webkit-scrollbar-thumb {
 .navbar-bg {
   /* El primer color coincide con el borde del degradado del sidebar para que no se note la unión */
   background: linear-gradient(90deg, #181b50 0%, #060324 8%, #0a0535 50%, #060324 100%);
-  border-bottom: 1px solid rgba(102,126,234,.18);
+  border-bottom: 2px solid rgba(102,126,234,.18);
   box-shadow: 0 2px 16px rgba(0,0,0,.4);
-  min-height: 54px !important;
+  min-height: 64px !important;
+  padding: 0.5rem 1rem !important;
 }
 
-/* Compensar la altura del navbar custom (54px) + ticker de ganadores (36px): se aplica como
+/* AdminLTE aplica un margin-top: -0.5% (relativo al ancho del viewport) al .wrapper,
+   pensado para compensar su navbar de altura fija. Con nuestro layout flex + vh-100 esto
+   desplaza todo el wrapper hacia arriba: el navbar queda cortado en su borde superior y
+   el footer no llega al borde inferior de la ventana. Lo anulamos. */
+.layout-fixed .wrapper {
+  margin-top: 0 !important;
+}
+
+/* AdminLTE fija un min-height asumiendo navbar+footer de 3.5rem cada uno; con nuestro
+   navbar (64px) y footer (auto, ~37px) eso deja hueco vacío bajo el footer dentro del
+   wrapper vh-100. Anulamos el min-height para que flex-grow dimensione el área real. */
+.layout-fixed .wrapper .content-wrapper {
+  min-height: 0;
+}
+
+/* Compensar la altura del navbar custom (64px) + ticker de ganadores (36px): se aplica como
    padding-top al área scrolleable para no restar espacio al footer dentro del wrapper vh-100 */
 .layout-fixed .wrapper .content-wrapper #content-scrollable {
-  padding-top: 90px;
+  padding-top: 100px;
   transition: padding-top .2s ease-in-out;
 }
 
 /* Ticker de ganadores ocultado manualmente por el usuario */
 body.lwt-collapsed.layout-fixed .wrapper .content-wrapper #content-scrollable {
-  padding-top: 54px;
+  padding-top: 64px;
 }
 
 /* ── Ticker de ganadores en vivo: fijo bajo el navbar, respeta el ancho del sidebar ── */
 #live-wins-ticker {
   position: fixed;
-  top: 54px;
+  top: 60px;
   left: 0;
   right: 0;
   z-index: 1027; /* por debajo del sidebar (zindex-main-sidebar) y encima del contenido */
@@ -177,10 +193,10 @@ body.lwt-collapsed.layout-fixed .wrapper .content-wrapper #content-scrollable {
 .nb-breadcrumb {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  justify-content: center;
+  flex: 1;
   gap: 6px;
   font-size: 12.5px;
-  margin: 0 auto;
   padding: 0 12px;
   min-width: 0;
   overflow: hidden;
@@ -609,13 +625,13 @@ aside.main-sidebar .sidebar.mt-2 {
 /* ── Drawer móvil: el sidebar no debe tapar el navbar (1038 > 1034) ── */
 @media (max-width: 767.98px) {
   .main-sidebar {
-    top: 54px;
-    height: calc(100vh - 54px);
+    top: 64px;
+    height: calc(100vh - 64px);
   }
 }
 
-.menu-image-play.cold .brand-image {
-  max-height: 50.7px;
+.brand-image {
+  max-width:100%
 }
 
 /* ── Sidebar User Footer ── */
@@ -13021,13 +13037,16 @@ a.text-dark:focus {
   background: linear-gradient(90deg, #03010f 0%, #070328 50%, #03010f 100%);
   border-top: 1px solid rgba(111, 63, 255, 0.18);
   padding: 0 !important;
-  height: auto;
+  height: auto !important;
+  display: flex;
+  align-items: center;
 }
 
 .footer-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   padding: 0.5rem 1.5rem;
   gap: 1rem;
 }

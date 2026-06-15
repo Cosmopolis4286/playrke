@@ -50,7 +50,6 @@
                 <div @class(['mt-2' => !$contentHeader])>
                     {{ $slot }}
                 </div>
-
             </section>
 
         </main>
