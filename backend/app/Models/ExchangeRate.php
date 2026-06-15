@@ -76,6 +76,17 @@ class ExchangeRate extends BaseModel
     }
 
     /**
+     * Scope para filtrar tasas activas.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'ACTIVE');
+    }
+
+    /**
      * Scope para filtrar por rango de valores.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
