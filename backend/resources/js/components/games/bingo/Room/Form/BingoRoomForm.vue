@@ -29,6 +29,7 @@
 
   const props = defineProps<{
     automaticRoom?: boolean
+    isEdit?: boolean
     roomTypeOptions: SelectOption[]
     gameModeOptions: SelectOption[]
     prizePoolTypeOptions: SelectOption[]
@@ -66,7 +67,8 @@
     () => props.modelValue,
     emit,
     () => props.automaticRoom ?? false,
-    () => useBaseUsd.value
+    () => useBaseUsd.value,
+    () => props.isEdit ?? false
   )
 
   /* ==========================================================================

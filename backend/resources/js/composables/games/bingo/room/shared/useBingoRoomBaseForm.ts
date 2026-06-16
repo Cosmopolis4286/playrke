@@ -27,7 +27,8 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
     modelValueGetter: () => T,
     emit: (event: 'update:modelValue', value: T) => void,
     automaticRoom: () => boolean,
-    useBaseUsd: () => boolean = () => true
+    useBaseUsd: () => boolean = () => true,
+    isEdit: () => boolean = () => false
 ) {
     /* =======================
      * v-model computado
@@ -50,7 +51,7 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
         if (!automaticRoom() && !isManualStart) {
             if (!form.value.date) {
                 e.date = 'La fecha es requerida.'
-            } else {
+            } else if (!isEdit()) {
                 const today = new Date()
                 today.setHours(0, 0, 0, 0)
                 const selected = new Date(form.value.date + 'T00:00:00')
@@ -66,9 +67,8 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
 
         if (!isManualStart && !form.value.time) {
             e.time = 'La hora es requerida.'
-        } else if (!isManualStart && !automaticRoom() && form.value.date) {
+        } else if (!isEdit() && !isManualStart && !automaticRoom() && form.value.date) {
             const now = new Date()
-            // Use local date string instead of UTC to avoid timezone issues
             const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
             const minDateTime = new Date(now.getTime() + 10 * 60 * 1000)
             const selectedDateTime = new Date(`${form.value.date}T${form.value.time}:00`)

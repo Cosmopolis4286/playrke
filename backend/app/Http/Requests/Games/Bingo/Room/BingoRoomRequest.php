@@ -33,7 +33,7 @@ class BingoRoomRequest extends BaseRequest
         return [
             'activateRoom'                => ['boolean'],
             'startMode'                   => ['required', 'in:SCHEDULED,MANUAL'],
-            'date'                        => ['required_if:startMode,SCHEDULED', 'nullable', 'date', 'after_or_equal:today'],
+            'date'                        => array_filter(['required_if:startMode,SCHEDULED', 'nullable', 'date', $this->route('room') ? null : 'after_or_equal:today']),
             'time'                        => ['required_if:startMode,SCHEDULED', 'nullable', 'date_format:H:i'],
 
             // Cantidad mínima de cartones vendidos para permitir el inicio del sorteo (opcional)
@@ -103,10 +103,12 @@ class BingoRoomRequest extends BaseRequest
         $validator->after(function ($validator) {
 
             // Validar que fecha+hora sea al menos 10 minutos desde ahora
-            // (solo aplica a salas con horario programado; las de inicio manual no tienen date/time)
+            // Solo aplica a creación; en edición el usuario no puede cambiar una fecha pasada
+            // pero sí debe poder guardar otros cambios sin que la fecha existente lo bloquee.
+            $isCreate = $this->route('room') === null;
             $date = $this->input('date');
             $time = $this->input('time');
-            if ($this->input('startMode') === 'SCHEDULED' && $date && $time && !$validator->errors()->has('date') && !$validator->errors()->has('time')) {
+            if ($isCreate && $this->input('startMode') === 'SCHEDULED' && $date && $time && !$validator->errors()->has('date') && !$validator->errors()->has('time')) {
                 $userTz     = auth()->user()?->timeZone?->name ?? 'UTC';
                 $scheduled  = \Carbon\Carbon::createFromFormat('Y-m-d H:i', "{$date} {$time}", $userTz);
                 $minAllowed = \Carbon\Carbon::now($userTz)->addMinutes(10);

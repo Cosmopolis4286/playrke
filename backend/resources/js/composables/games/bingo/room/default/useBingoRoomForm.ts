@@ -5,7 +5,8 @@ export function useBingoRoomForm(
     modelValueGetter: () => BingoRoomFormData,
     emit: (event: 'update:modelValue', value: BingoRoomFormData) => void,
     automaticRoom: () => boolean,
-    useBaseUsd: () => boolean = () => true
+    useBaseUsd: () => boolean = () => true,
+    isEdit: () => boolean = () => false
 ) {
-    return useBingoRoomBaseForm(modelValueGetter, emit, automaticRoom, useBaseUsd)
+    return useBingoRoomBaseForm(modelValueGetter, emit, automaticRoom, useBaseUsd, isEdit)
 }
