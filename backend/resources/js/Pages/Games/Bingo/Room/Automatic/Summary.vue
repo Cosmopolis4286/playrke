@@ -168,10 +168,22 @@
 
   const filters = computed<readonly TableFilterInterface[]>(() => [
     {
-      key: 'room_type_description',
+      key: 'roomtype_label',
       label: 'tipo',
       placeholder: 'Filtrar por tipo',
       options: roomTypeOptions.value
+    },
+    {
+      key: 'gamemode_label',
+      label: 'modo',
+      placeholder: 'Filtrar por modo',
+      options: gameModeOptions.value
+    },
+    {
+      key: 'prizepooltype_label',
+      label: 'tipo bote',
+      placeholder: 'Filtrar por tipo bote',
+      options: prizePoolTypeOptions.value
     },
     {
       key: 'currency_ids',
@@ -235,7 +247,7 @@
     :columns="props.rooms.columns"
     :rows="rooms"
     :filters="filters"
-    search-placeholder="Buscar por código, tipo..."
+    search-placeholder="Buscar por código, tipo, modo, tipo bote..."
     showCreateButton
     showEditButton
     showDeleteButton
@@ -255,6 +267,7 @@
       ref="gameBingoRoomFormRef"
       v-model="roomFormData"
       :automatic-room="true"
+      :is-edit="!!roomData.id"
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"

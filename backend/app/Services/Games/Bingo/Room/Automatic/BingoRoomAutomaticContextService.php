@@ -51,8 +51,8 @@ final class BingoRoomAutomaticContextService
      */
     private function resolveGameRooms(?int $userId): array
     {
-        $labels  = ['Código', 'Días', 'Hora', 'Tipo de Sala', 'Modo de Juego', 'Tipo Bote', 'Moneda(s)', 'Estado'];
-        $rowKeys = ['id', 'days_description', 'formatted_time', 'roomType.label', 'gameMode.label', 'prizePoolType.label', 'allowed_currencies', 'status_badge'];
+        $labels  = ['Código', 'Estado', 'Días', 'Hora', 'Tipo de Sala', 'Modo de Juego', 'Tipo Bote', 'Moneda(s)'];
+        $rowKeys = ['id', 'status_badge', 'days_description', 'formatted_time', 'roomType.label', 'gameMode.label', 'prizePoolType.label', 'allowed_currencies'];
 
         $conditions = $userId
             ? ['creator_user_id' => $userId]

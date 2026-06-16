@@ -246,19 +246,19 @@
   const filters = computed<readonly TableFilterInterface[]>(() => {
   const baseFilters = [
     {
-      key: 'room_type_description',
+      key: 'config_roomtype_label',
       label: 'tipo',
       placeholder: 'Filtrar por tipo',
       options: roomTypeOptions.value
     },
     {
-      key: 'game_mode_description',
+      key: 'config_gamemode_label',
       label: 'modo',
       placeholder: 'Filtrar por modo',
       options: gameModeOptions.value
     },
     {
-      key: 'prize_pool_type_description',
+      key: 'config_prizepooltype_label',
       label: 'tipo bote',
       placeholder: 'Filtrar por tipo bote',
       options: prizePoolTypeOptions.value
@@ -464,6 +464,7 @@ onUnmounted(() => {
     <BingoRoomForm
       ref="gameBingoRoomFormRef"
       v-model="roomFormData"
+      :is-edit="!!roomData.id"
       :room-type-options="roomTypeOptions"
       :game-mode-options="gameModeOptions"
       :prize-pool-type-options="prizePoolTypeOptions"
