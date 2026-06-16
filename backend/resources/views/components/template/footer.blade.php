@@ -1,4 +1,27 @@
 {{-- resources/views/components/footer.blade.php --}}
+<style>
+/* Footer: override AdminLTE's fixed height (25.5px) — inline so it always wins regardless of Vite injection order */
+.main-footer.footer-app {
+    height: auto !important;
+    min-height: 44px !important;
+    padding: 0 !important;
+    background: linear-gradient(90deg, rgba(42,245,152,0.10) 0%, rgba(7,3,40,0.97) 20%, rgba(7,3,40,0.97) 80%, rgba(123,79,255,0.14) 100%), #070120 !important;
+    border-top: 1px solid rgba(123,79,255,0.35) !important;
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.35), 0 -1px 0 rgba(42,245,152,0.08) inset !important;
+    display: flex !important;
+    align-items: center !important;
+    color: rgba(255,255,255,0.55) !important;
+}
+.main-footer.footer-app .footer-inner {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    padding: 0.55rem 1.5rem !important;
+    gap: 1rem !important;
+}
+</style>
+
 <footer class="main-footer footer-app">
     <div class="footer-inner">
         <span class="footer-copy">

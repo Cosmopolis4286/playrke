@@ -12,7 +12,7 @@
 
 <aside class="main-sidebar sidebar-dark-primary elevation-3" role="complementary" aria-label="Sidebar principal">
     <a href="{{ url('/dashboard') }}" class="menu-image-play cold" aria-label="Ir al dashboard">
-        <img src="{{ asset('img/stam.png') }}" alt="Logo PlayRKE" class="brand-image">
+        <img src="{{ asset('img/prke.png') }}" alt="Logo PlayRKE" class="brand-image">
     </a>
 
     <section class="sidebar mt-2" role="navigation" aria-label="Menú lateral">
