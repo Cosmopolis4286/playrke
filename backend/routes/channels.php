@@ -23,6 +23,12 @@ Broadcast::channel('bingo.room.{roomId}', function () {
     return true; // Public channel - anyone can listen
 });
 
+// Public Bingo Lobby Channel (no authentication required)
+// Notifica activación/desactivación de salas para la vista de game-rooms.
+Broadcast::channel('bingo.lobby', function () {
+    return true; // Public channel - anyone can listen
+});
+
 // Private Bingo Player Channel (authenticated users only)
 Broadcast::channel('bingo.player.{userId}', function ($user, $userId) {
     return (int) $user->id === (int) $userId;

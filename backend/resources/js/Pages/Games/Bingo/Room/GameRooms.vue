@@ -46,16 +46,21 @@ const filteredRooms = computed(() => {
   return rooms.value;
 });
 
-useGameRoomEcho(rooms);
-
 const serverTimestampMs = props.dateTimeRooms?.timestamp
   ? Number(props.dateTimeRooms.timestamp)
   : Date.now();
 
-const { init: initCountdown, getCountdown } = useGameRoomCountdown(
+const { init: initCountdown, getCountdown, updateRoomTime } = useGameRoomCountdown(
   serverTimestampMs,
   (_roomId) => {}
 );
+
+useGameRoomEcho(rooms, {
+  userId: page.props.auth?.user?.id ?? null,
+  onRoomAdded: (room) => {
+    if (room.config?.unix_date) updateRoomTime(room.id, room.config.unix_date);
+  },
+});
 
 const modal = useGameRoomPurchaseModal();
 
@@ -327,10 +332,10 @@ body.hold-transition,
   background-color: #04081a !important;
   background-image: none !important;
 }
-/* Capa fija que cubre TODO el viewport incluyendo el gap del navbar (margin-top de AdminLTE) */
+/* Capa fija que cubre el viewport hasta el borde superior del footer */
 .game-rooms-spacecover {
   position: fixed;
-  inset: 0;
+  inset: 0 0 41px 0;
   z-index: -10;
   pointer-events: none;
   background:
@@ -406,7 +411,7 @@ body.hold-transition,
 /* ── Capa 1: estrellas finas — mayor densidad ── */
 .game-rooms-page::before {
   content: "";
-  position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  position: fixed; inset: 0 0 41px 0; z-index: -2; pointer-events: none;
   background-image:
     /* fila 1 */
     radial-gradient(1px 1px at  3%  4%, rgba(255,255,255,0.92) 0%, transparent 100%),
@@ -461,7 +466,7 @@ body.hold-transition,
 /* ── Capa 2: estrellas grandes con halo ── */
 .game-rooms-page::after {
   content: "";
-  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  position: fixed; inset: 0 0 41px 0; z-index: -1; pointer-events: none;
   background-image:
     radial-gradient(2px 2px at  8% 12%, rgba(255,255,255,0.96) 0%, transparent 100%),
     radial-gradient(2px 2px at 24% 35%, rgba(200,215,255,0.88) 0%, transparent 100%),
@@ -497,14 +502,14 @@ body.hold-transition,
 
 /* ── Contenedor de meteoros ── */
 .grm-meteors {
-  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  position: fixed; inset: 0 0 41px 0; z-index: 0; pointer-events: none; overflow: hidden;
 }
 
 /* ── Botón flotante: reglamento del bingo ── */
 .grp-rules-fab {
   position: fixed;
   right: 20px;
-  bottom: 28px;
+  bottom: 69px;
   z-index: 50;
   width: 50px;
   height: 50px;

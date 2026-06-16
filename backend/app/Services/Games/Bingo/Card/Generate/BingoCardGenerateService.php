@@ -659,6 +659,22 @@ final class BingoCardGenerateService
             \Log::warning('BingoRoomUpdated: No se encontró la sala fresca en buyFromGameRooms', ['room_id' => $room->id]);
         }
 
+        // Notificar al usuario propietario de los cartones (canal privado) su nuevo total en esta sala,
+        // junto con el precio y símbolo actualizados para que el frontend no requiera recarga.
+        $totalCtns = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $room->id)
+            ->where('user_id', $creatorUserId)
+            ->value('cards_purchased');
+
+        if ($totalCtns !== null) {
+            broadcast(new \App\Events\Games\Bingo\BingoPlayerRoomCardsUpdated(
+                userId:         (string) $creatorUserId,
+                roomId:         (string) $room->id,
+                ctns:           (int) $totalCtns,
+                cardPrice:      (float) $cardPrice,
+                currencySymbol: (string) $currencySymbol,
+            ));
+        }
+
         return array_merge($result, [
             'prize_pool' => $fresh?->prize_pool ?? $room->prize_pool,
             'currency' => $currencySymbol,
@@ -838,6 +854,22 @@ final class BingoCardGenerateService
                 cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
                 totalCards:   (int)    $fresh->total_cards,
             ))->toOthers();
+        }
+
+        // Notificar al jugador (canal privado) su nuevo total de cartones en esta sala,
+        // junto con el precio y símbolo actualizados para que el frontend no requiera recarga.
+        $totalCtns = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $roomId)
+            ->where('user_id', $userId)
+            ->value('cards_purchased');
+
+        if ($totalCtns !== null) {
+            broadcast(new \App\Events\Games\Bingo\BingoPlayerRoomCardsUpdated(
+                userId:         (string) $userId,
+                roomId:         (string) $roomId,
+                ctns:           (int) $totalCtns,
+                cardPrice:      (float) $priceInfo['card_price'],
+                currencySymbol: (string) $priceInfo['currency_symbol'],
+            ));
         }
 
         return [

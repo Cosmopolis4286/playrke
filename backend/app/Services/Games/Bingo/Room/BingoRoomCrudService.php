@@ -83,6 +83,7 @@ class BingoRoomCrudService
                 // Definir ID del estado de la sala
                 $statusCode = $dto->activateRoom ? 'ACTIVE' : 'INACTIVE';
                 $statusId = GameStatus::where('code', $statusCode)->value('id');
+                $activeStatusId = GameStatus::where('code', 'ACTIVE')->value('id');
 
                 // Sala base (crear o usar existente)
                 $room = $isCreate ? $this->createBaseRoom($userId, $dto, $statusId) : $roomOrDto;
@@ -101,6 +102,10 @@ class BingoRoomCrudService
                     $creatorTz = $this->resolveCreatorTimezone($userId);
                     $unixDate = Carbon::createFromFormat('Y-m-d H:i', $dateTime, $creatorTz)->timestamp;
                 }
+
+                // Estado previo de la sala (para detectar transición de/hacia ACTIVE)
+                // En creación, la sala aún no tenía estado: se considera "no activa".
+                $wasActive = !$isCreate && (string) $room->status_id === (string) $activeStatusId;
 
                 // Datos a actualizar
                 $dataToUpdate = ['prize_pool' => $prizePool];
@@ -178,6 +183,11 @@ class BingoRoomCrudService
                         cardPriceUsd: (float) ($freshRoom->config?->card_price_usd ?? 0),
                     ));
                 }
+
+                // Broadcast al lobby (bingo.lobby): notifica a clientes en /bingo/game-rooms
+                // que la sala pasó a estar disponible, dejó de estarlo, o cambió mientras
+                // estaba activa (para que aparezca/desaparezca/se actualice sin recargar).
+                $this->broadcastLobbyStatusChange($room, $statusCode === 'ACTIVE', $wasActive);
 
                 return true;
             } catch (\Exception $e) {
@@ -457,6 +467,36 @@ class BingoRoomCrudService
     }
 
     /**
+     * Emite el evento BingoLobbyRoomChanged (canal bingo.lobby) según la
+     * transición de disponibilidad de la sala, para que la vista
+     * /bingo/game-rooms la agregue, actualice o quite en tiempo real.
+     *
+     * @param BingoRoom $room     Sala (se recarga fresca con sus relaciones públicas)
+     * @param bool      $isActive Si la sala queda ACTIVE tras el cambio
+     * @param bool      $wasActive Si la sala estaba ACTIVE antes del cambio
+     */
+    private function broadcastLobbyStatusChange(BingoRoom $room, bool $isActive, bool $wasActive): void
+    {
+        $action = match (true) {
+            $isActive && !$wasActive => \App\Events\Games\Bingo\BingoLobbyRoomChanged::ACTION_ACTIVATED,
+            !$isActive && $wasActive => \App\Events\Games\Bingo\BingoLobbyRoomChanged::ACTION_DEACTIVATED,
+            $isActive                => \App\Events\Games\Bingo\BingoLobbyRoomChanged::ACTION_UPDATED,
+            default                  => null,
+        };
+
+        if ($action === null) {
+            return;
+        }
+
+        $freshRoom = $room->fresh(['config.roomType', 'config.gameMode', 'status']);
+        if (!$freshRoom) {
+            return;
+        }
+
+        broadcast(new \App\Events\Games\Bingo\BingoLobbyRoomChanged($freshRoom, $action));
+    }
+
+    /**
      * Sincroniza los precios de cartones por monedas usando upsert
      * - Inserta o actualiza precios según monedas permitidas
      * - Elimina precios de monedas que ya no están permitidas
@@ -669,11 +709,16 @@ class BingoRoomCrudService
         }
 
         // Definir nuevo estado alternando entre ACTIVE y INACTIVE
-        $newStatus = $room->status?->code === 'ACTIVE'
-            ? 'INACTIVE'
-            : 'ACTIVE';
+        $wasActive = $room->status?->code === 'ACTIVE';
+        $newStatus = $wasActive ? 'INACTIVE' : 'ACTIVE';
 
-        return $this->bingoRooms->changeGameStatus($room->id, $newStatus);
+        $result = $this->bingoRooms->changeGameStatus($room->id, $newStatus);
+
+        if ($result) {
+            $this->broadcastLobbyStatusChange($room, $newStatus === 'ACTIVE', $wasActive);
+        }
+
+        return $result;
     }
 
     /**
@@ -710,7 +755,13 @@ class BingoRoomCrudService
         }
 
         // Cambiar estado a CANCELLED
-        return $this->bingoRooms->changeGameStatus($room->id, 'CANCELLED');
+        $result = $this->bingoRooms->changeGameStatus($room->id, 'CANCELLED');
+
+        if ($result) {
+            $this->broadcastLobbyStatusChange($room, false, true);
+        }
+
+        return $result;
     }
 
     /**
