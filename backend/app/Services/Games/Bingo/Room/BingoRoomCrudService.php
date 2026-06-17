@@ -367,6 +367,9 @@ class BingoRoomCrudService
             'serials_pct'             => $dto->serialsPct ?? null,
             'num_serials'             => $dto->numSerials ?? null,
             'jackpot_pct'             => $dto->jackpotPct ?? null,
+            'allow_custom_card'       => $dto->allowCustomCard ?? false,
+            'custom_card_price'       => $dto->customCardPrice ?? null,
+            'max_custom_cards'        => $dto->maxCustomCards ?? null,
         ];
 
         // start_mode: editable tanto en creación como en actualización — el anfitrión
@@ -493,7 +496,19 @@ class BingoRoomCrudService
             return;
         }
 
+        // Notifica a los clientes en /bingo/game-rooms (lobby global)
         broadcast(new \App\Events\Games\Bingo\BingoLobbyRoomChanged($freshRoom, $action));
+
+        // Notifica también a los clientes en el lobby individual de la sala
+        // (bingo.room.{id}) para que actualicen el status_code en tiempo real.
+        broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
+            roomId:       (string) $freshRoom->id,
+            prizePool:    (float)  $freshRoom->prize_pool,
+            totalPlayers: (int)    $freshRoom->total_players,
+            cardPriceUsd: (float) ($freshRoom->config?->card_price_usd ?? 0),
+            totalCards:   (int)    $freshRoom->total_cards,
+            statusCode:   $freshRoom->status?->code,
+        ));
     }
 
     /**

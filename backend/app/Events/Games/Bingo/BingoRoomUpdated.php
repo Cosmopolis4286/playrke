@@ -30,15 +30,17 @@ final class BingoRoomUpdated implements ShouldBroadcast
 
     public function __construct(
         /** ID Snowflake de la sala (coincide con BingoGameRoom.id en el frontend) */
-        public readonly string $roomId,
+        public readonly string  $roomId,
         /** Bote acumulado actualizado */
-        public readonly float  $prizePool,
+        public readonly float   $prizePool,
         /** Total de jugadores en la sala */
-        public readonly int    $totalPlayers,
+        public readonly int     $totalPlayers,
         /** Precio base del cartón en USD */
-        public readonly float  $cardPriceUsd,
+        public readonly float   $cardPriceUsd,
         /** Total de cartones vendidos en la sala */
-        public readonly int    $totalCards = 0,
+        public readonly int     $totalCards = 0,
+        /** Código de estado de la sala (null = sin cambio de estado) */
+        public readonly ?string $statusCode = null,
     ) {}
 
     public function broadcastOn(): Channel
@@ -53,13 +55,19 @@ final class BingoRoomUpdated implements ShouldBroadcast
 
     public function broadcastWith(): array
     {
-        return [
+        $payload = [
             'room_id'        => $this->roomId,
             'prize_pool'     => $this->prizePool,
             'total_players'  => $this->totalPlayers,
             'total_cards'    => $this->totalCards,
             'card_price_usd' => $this->cardPriceUsd,
         ];
+
+        if ($this->statusCode !== null) {
+            $payload['status_code'] = $this->statusCode;
+        }
+
+        return $payload;
     }
 
     /**

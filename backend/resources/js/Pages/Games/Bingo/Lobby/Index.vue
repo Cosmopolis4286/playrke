@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, reactive } from "vue";
-import { Link } from "@inertiajs/vue3";
+import { Link, usePage } from "@inertiajs/vue3";
 import { BingoService } from "@js/Services/bingoService";
-import { getEchoInstance } from "@js/plugins/echo";
 import BingoPurchaseModal from "@js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModal.vue";
 import { useGameRoomPurchaseModal } from "@js/composables/games/bingo/card/purchase-modal/useGameRoomPurchaseModal";
+import { useLobbyEcho } from "@js/composables/games/bingo/room/lobby/useLobbyEcho";
 import type { BingoGameRoom } from "@js/types/games/bingo/room/game-rooms/bingo-game-room";
 
 // ── Props ──
@@ -19,8 +19,8 @@ interface LobbyRoom {
   total_cards: number;
   close_room?: boolean;
   currency_symbol?: string;
-  card_price?: number;       // precio en moneda del jugador
-  card_price_usd?: number;   // precio base en USD
+  card_price?: number;
+  card_price_usd?: number;
   room_type_description?: string;
   game_mode_description?: string;
   unix_date?: number | null;
@@ -40,50 +40,97 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const page  = usePage();
 
-// ── Reactive live state ──
-const liveRoom = reactive({
-  prizePool:    props.room?.prize_pool    ?? 0,
-  totalPlayers: props.room?.total_players ?? 0,
-  totalCards:   props.room?.total_cards   ?? 0,
-  userCards:    props.userCards           ?? 0,
+// ── Live state (mutable, parcheado por WebSocket) ──
+const live = reactive({
+  prizePool:      props.room?.prize_pool    ?? 0,
+  totalPlayers:   props.room?.total_players ?? 0,
+  totalCards:     props.room?.total_cards   ?? 0,
+  userCards:      props.userCards           ?? 0,
+  statusCode:     props.room?.status_code   ?? '',
+  cardPrice:      props.room?.card_price    ?? props.room?.card_price_usd ?? 0,
+  currencySymbol: props.room?.currency_symbol ?? 'USD',
 });
-
-// ── WS status ──
-type WsStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
-const wsStatus = ref<WsStatus>('connecting');
 
 // ── Flash animations ──
 const prizeFlash   = ref(false);
 const playersFlash = ref(false);
+
+function flash(target: ReturnType<typeof ref<boolean>>) {
+  target.value = true;
+  setTimeout(() => { target.value = false; }, 1800);
+}
 
 // ── Countdown ──
 const countdown = ref('');
 const isLive    = ref(false);
 const isUrgent  = ref(false);
 let countdownTimer: ReturnType<typeof setInterval> | null = null;
-let echoChannel: any = null;
 
-// ── Purchase modal (reutiliza el mismo composable que GameRooms) ──
+function startCountdown() {
+  if (!props.room?.unix_date) return;
+  updateCountdown();
+  countdownTimer = setInterval(updateCountdown, 1000);
+}
+
+function updateCountdown() {
+  const unixDate = props.room?.unix_date;
+  if (!unixDate) { countdown.value = ''; return; }
+  const diff = unixDate - Math.floor(Date.now() / 1000);
+  if (diff <= 0) {
+    isLive.value = true;
+    isUrgent.value = false;
+    countdown.value = 'EN VIVO';
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+    return;
+  }
+  isLive.value   = false;
+  isUrgent.value = diff < 300;
+  const h = Math.floor(diff / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  const s = diff % 60;
+  countdown.value = h > 0
+    ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+    : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// ── WebSocket (composable limpio) ──
+const userId = computed(() => page.props.auth?.user?.id ?? null);
+
+const { wsStatus } = useLobbyEcho(
+  props.room.id,
+  userId.value,
+  live,
+  {
+    onPrizeChanged:   () => flash(prizeFlash),
+    onPlayersChanged: () => flash(playersFlash),
+    onCardsUpdated: (cardPrice, currencySymbol) => {
+      if (cardPrice      !== null) live.cardPrice      = cardPrice;
+      if (currencySymbol !== null) live.currencySymbol = currencySymbol;
+    },
+  },
+);
+
+// ── Purchase modal ──
 const modal = useGameRoomPurchaseModal();
 
 const bingoRoomImg = '/img/games/bingo/estelar_fd.png';
 
-// ── Adaptador LobbyRoom → BingoGameRoom (para el modal) ──
+// Adaptador LobbyRoom → BingoGameRoom para el modal (reactivo a live)
 const roomAsGameRoom = computed((): BingoGameRoom => ({
-  id:               props.room.id,
-  // encrypted = hash Hashids que usan las rutas /bingo-card/*
-  encrypted:        props.roomRouteKey ?? undefined,
-  uuid_code:        props.room.uuid_code ?? null,
-  prize_pool:       liveRoom.prizePool,
-  total_players:    liveRoom.totalPlayers,
-  creator_user_id:  '',
-  room_type:        'PUBLIC',
-  game_mode:        props.room.game_mode_description ?? null,
-  status_code:      props.room.status_code ?? '',
-  currency_symbol:  props.room.currency_symbol,
-  card_price:       props.room.card_price ?? props.room.card_price_usd,
-  players_room:     [{ ctns: liveRoom.userCards }],
+  id:              props.room.id,
+  encrypted:       props.roomRouteKey ?? undefined,
+  uuid_code:       props.room.uuid_code ?? null,
+  prize_pool:      live.prizePool,
+  total_players:   live.totalPlayers,
+  creator_user_id: '',
+  room_type:       'PUBLIC',
+  game_mode:       props.room.game_mode_description ?? null,
+  status_code:     live.statusCode,
+  currency_symbol: live.currencySymbol,
+  card_price:      live.cardPrice,
+  players_room:    [{ ctns: live.userCards }],
   config: props.room.unix_date ? {
     room_id:         props.room.id,
     card_price_usd:  props.room.card_price_usd ?? 0,
@@ -102,28 +149,27 @@ const roomRouteKey = computed(() =>
 const canNavigateGame = computed(() => Boolean(props.roomRouteKey?.trim()));
 
 const roomStatusText = computed(() =>
-  BingoService.getRoomStatusText(props.room?.status_code ?? '')
+  BingoService.getRoomStatusText(live.statusCode || (props.room?.status_code ?? ''))
 );
 
 const isRoomLoading = computed(() => !props.room);
 
-const canPurchaseCards = computed(() => {
-  if (!props.room) return false;
-  return props.room.status_code?.toUpperCase() === 'ACTIVE' && !props.room.close_room;
-});
+const canPurchaseCards = computed(() =>
+  props.room != null &&
+  live.statusCode?.toUpperCase() === 'ACTIVE' &&
+  !props.room.close_room
+);
 
 const statusClass = computed(() => {
-  const c = props.room?.status_code?.toLowerCase() ?? 'desconocido';
+  const c = (live.statusCode || (props.room?.status_code ?? 'desconocido')).toLowerCase();
   return `lby-status--${c}`;
 });
 
-const currencySymbol = computed(() => props.room?.currency_symbol ?? 'USD');
-
-const rate = computed(() => props.exchangeRate ?? 1)
+const rate = computed(() => props.exchangeRate ?? 1);
 
 const formattedPrize = computed(() =>
-  typeof liveRoom.prizePool === 'number'
-    ? (liveRoom.prizePool * rate.value).toFixed(2)
+  typeof live.prizePool === 'number'
+    ? (live.prizePool * rate.value).toFixed(2)
     : '0.00'
 );
 
@@ -134,7 +180,7 @@ const wsLabel = computed(() => ({
   error:        'Error',
 }[wsStatus.value]));
 
-// ── Progreso de cartones mínimos para iniciar (realtime) ──
+// ── Progreso de cartones mínimos ──
 const minCardsToStart = computed(() => props.room?.min_cards_to_start ?? null);
 
 const showCardsProgress = computed(() =>
@@ -143,116 +189,52 @@ const showCardsProgress = computed(() =>
 
 const cardsProgressPct = computed(() => {
   if (!minCardsToStart.value) return 0;
-  return Math.min(100, Math.round((liveRoom.totalCards / minCardsToStart.value) * 100));
+  return Math.min(100, Math.round((live.totalCards / minCardsToStart.value) * 100));
 });
 
 const cardsProgressReady = computed(() =>
-  minCardsToStart.value != null && liveRoom.totalCards >= minCardsToStart.value
+  minCardsToStart.value != null && live.totalCards >= minCardsToStart.value
 );
 
 // ── Lifecycle ──
 onMounted(() => {
   startMeteors();
-  setupEcho();
   startCountdown();
 });
 
 onUnmounted(() => {
-  echoChannel?.stopListening('.RoomUpdated');
   if (countdownTimer) clearInterval(countdownTimer);
   if (meteorTimer) clearTimeout(meteorTimer);
 });
 
-// ── Countdown ──
-function startCountdown() {
-  if (!props.room?.unix_date) return;
-  updateCountdown();
-  countdownTimer = setInterval(updateCountdown, 1000);
-}
-
-function updateCountdown() {
-  const unixDate = props.room?.unix_date;
-  if (!unixDate) { countdown.value = ''; return; }
-  const diff = unixDate - Math.floor(Date.now() / 1000);
-  if (diff <= 0) {
-    isLive.value = true;
-    isUrgent.value = false;
-    countdown.value = 'EN VIVO';
-    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
-    return;
-  }
-  isLive.value = false;
-  isUrgent.value = diff < 300;
-  const h = Math.floor(diff / 3600);
-  const m = Math.floor((diff % 3600) / 60);
-  const s = diff % 60;
-  if (h > 0) {
-    countdown.value = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  } else {
-    countdown.value = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  }
-}
-
-// ── Echo WebSocket ──
-function setupEcho() {
-  if (!props.room?.id) return;
-  wsStatus.value = 'connecting';
-  try {
-    const echo = getEchoInstance();
-    const pusher = echo.connector.pusher;
-    const state = pusher.connection.state;
-    if (state === 'connected') wsStatus.value = 'connected';
-    pusher.connection.bind('connected',    () => { wsStatus.value = 'connected'; });
-    pusher.connection.bind('disconnected', () => { wsStatus.value = 'disconnected'; });
-    pusher.connection.bind('error',        () => { wsStatus.value = 'error'; });
-    pusher.connection.bind('connecting',   () => { wsStatus.value = 'connecting'; });
-
-    echoChannel = echo.channel(`bingo.room.${props.room.id}`);
-    echoChannel.listen('.RoomUpdated', (event: any) => {
-      const prizeChanged   = liveRoom.prizePool    !== event.prize_pool;
-      const playersChanged = liveRoom.totalPlayers !== event.total_players;
-      liveRoom.prizePool    = event.prize_pool    ?? liveRoom.prizePool;
-      liveRoom.totalPlayers = event.total_players ?? liveRoom.totalPlayers;
-      liveRoom.totalCards   = event.total_cards   ?? liveRoom.totalCards;
-      if (prizeChanged)   flash(prizeFlash);
-      if (playersChanged) flash(playersFlash);
-    });
-  } catch { /* echo no disponible aún */ }
-}
-
-function flash(target: ReturnType<typeof ref<boolean>>) {
-  target.value = true;
-  setTimeout(() => { target.value = false; }, 1800);
-}
-
-// ── Purchase ──
+// ── Purchase handlers ──
 function openPurchase() {
   if (!canPurchaseCards.value) return;
   modal.open(roomAsGameRoom.value);
 }
 
 function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: number }) {
-  liveRoom.prizePool  = result.prizePool;
-  liveRoom.userCards += result.ctns;
+  live.prizePool  = result.prizePool;
+  live.userCards += result.ctns;
   flash(prizeFlash);
 }
 
-// ── Meteoros (idéntico a GameRooms.vue) ──
+// ── Meteoros ──
 let meteorTimer: ReturnType<typeof setTimeout> | null = null;
 
 function spawnMeteor() {
   const container = document.getElementById('lby-meteors');
   if (!container || container.children.length >= 22) return;
-  const m = document.createElement('div');
-  m.className = 'lby-meteor';
+  const m        = document.createElement('div');
+  m.className    = 'lby-meteor';
   const fromRight = Math.random() > 0.5;
-  const size     = 110 + Math.random() * 130;
-  const duration = 5  + Math.random() * 5;
-  const opacity  = 0.5 + Math.random() * 0.4;
-  const startX   = fromRight ? 50 + Math.random() * 60 : -10 + Math.random() * 60;
-  const startY   = -5 + Math.random() * 10;
-  const dx       = fromRight ? -(80 + Math.random() * 60) : (80 + Math.random() * 60);
-  const dy       = 80 + Math.random() * 40;
+  const size      = 110 + Math.random() * 130;
+  const duration  = 5   + Math.random() * 5;
+  const opacity   = 0.5 + Math.random() * 0.4;
+  const startX    = fromRight ? 50 + Math.random() * 60 : -10 + Math.random() * 60;
+  const startY    = -5 + Math.random() * 10;
+  const dx        = fromRight ? -(80 + Math.random() * 60) : (80 + Math.random() * 60);
+  const dy        = 80 + Math.random() * 40;
   m.style.cssText = `
     left:${startX}vw; top:${startY}vh; width:${size}px; opacity:${opacity};
     --dx:${dx}vw; --dy:${dy}vh; --duration:${duration}s; --rot:${fromRight ? 145 : 35}deg;
@@ -290,12 +272,12 @@ function startMeteors() {
     <template v-else>
       <div class="lby-shell">
 
-        <!-- ── BANNER compacto ── -->
+        <!-- ── BANNER ── -->
         <div class="lby-banner">
           <img :src="bingoRoomImg" alt="Sala" class="lby-banner__img" />
           <div class="lby-banner__overlay" />
 
-          <!-- Nav row sobre imagen -->
+          <!-- Nav row -->
           <div class="lby-banner__nav">
             <Link href="/bingo/game-rooms" class="lby-back">
               <i class="fas fa-chevron-left" /> Salas
@@ -306,7 +288,7 @@ function startMeteors() {
             </div>
           </div>
 
-          <!-- Título + timer centrado -->
+          <!-- Título + timer -->
           <div class="lby-banner__center">
             <h1 class="lby-banner__title">Sala de Bingo</h1>
             <div
@@ -319,7 +301,7 @@ function startMeteors() {
             </div>
           </div>
 
-          <!-- Chips + status en fila inferior -->
+          <!-- Chips + status -->
           <div class="lby-banner__foot">
             <span class="lby-chip lby-chip--type">
               <i class="fas fa-globe" /> {{ room.room_type_description ?? 'Pública' }}
@@ -334,13 +316,13 @@ function startMeteors() {
           </div>
         </div>
 
-        <!-- ── PRIZE ROW ── -->
+        <!-- ── PREMIO ── -->
         <div class="lby-prize-row">
           <div class="lby-prize-main" :class="{ 'lby-flash': prizeFlash }">
             <span class="lby-prize-main__lbl">Premio</span>
             <div class="lby-prize-main__val">
               <span class="lby-prize-main__num">{{ formattedPrize }}</span>
-              <span class="lby-prize-main__sym">{{ currencySymbol }}</span>
+              <span class="lby-prize-main__sym">{{ live.currencySymbol }}</span>
             </div>
           </div>
 
@@ -356,7 +338,7 @@ function startMeteors() {
           </div>
         </div>
 
-        <!-- ── PROGRESO DE CARTONES MÍNIMOS (realtime) ── -->
+        <!-- ── PROGRESO CARTONES MÍNIMOS ── -->
         <div
           v-if="showCardsProgress"
           class="lby-cards-progress"
@@ -367,29 +349,29 @@ function startMeteors() {
               <i class="fas fa-layer-group" />
               {{ cardsProgressReady ? '¡Listo para iniciar!' : 'Cartones para iniciar' }}
             </span>
-            <span class="lby-cards-progress__count">{{ liveRoom.totalCards }} / {{ minCardsToStart }}</span>
+            <span class="lby-cards-progress__count">{{ live.totalCards }} / {{ minCardsToStart }}</span>
           </div>
           <div class="lby-cards-progress__track">
             <div class="lby-cards-progress__fill" :style="{ width: cardsProgressPct + '%' }" />
           </div>
         </div>
 
-        <!-- ── STATS ROW ── -->
+        <!-- ── STATS ── -->
         <div class="lby-stats">
           <div class="lby-stat" :class="{ 'lby-flash': playersFlash }">
             <i class="fas fa-users lby-stat__icon" />
-            <span class="lby-stat__val">{{ liveRoom.totalPlayers }}</span>
+            <span class="lby-stat__val">{{ live.totalPlayers }}</span>
             <span class="lby-stat__lbl">Jugadores</span>
           </div>
           <div class="lby-stat">
             <i class="fas fa-ticket-alt lby-stat__icon" />
-            <span class="lby-stat__val">{{ liveRoom.userCards }}</span>
+            <span class="lby-stat__val">{{ live.userCards }}</span>
             <span class="lby-stat__lbl">Mis cartones</span>
           </div>
-          <div v-if="room.card_price ?? room.card_price_usd" class="lby-stat">
+          <div v-if="live.cardPrice" class="lby-stat">
             <i class="fas fa-dollar-sign lby-stat__icon" />
-            <span class="lby-stat__val">{{ Number(room.card_price ?? room.card_price_usd).toFixed(2) }}</span>
-            <span class="lby-stat__lbl">Precio ({{ currencySymbol }})</span>
+            <span class="lby-stat__val">{{ Number(live.cardPrice).toFixed(2) }}</span>
+            <span class="lby-stat__lbl">Precio ({{ live.currencySymbol }})</span>
           </div>
           <div v-if="room.rounds" class="lby-stat">
             <i class="fas fa-layer-group lby-stat__icon" />
@@ -418,7 +400,7 @@ function startMeteors() {
 
           <button v-if="canPurchaseCards" class="lby-btn lby-btn--buy" @click="openPurchase">
             <i class="fas fa-shopping-cart" />
-            {{ liveRoom.userCards > 0 ? 'Más cartones' : 'Comprar Cartones' }}
+            {{ live.userCards > 0 ? 'Más cartones' : 'Comprar Cartones' }}
           </button>
         </div>
 
@@ -429,7 +411,7 @@ function startMeteors() {
       </div>
     </template>
 
-    <!-- Modal de compra (el mismo de GameRooms) -->
+    <!-- Modal de compra -->
     <BingoPurchaseModal
       v-if="modal.isOpen.value"
       :is-open="modal.isOpen.value"
@@ -475,13 +457,12 @@ body {
 body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
   background-color: #04081a !important; background-image: none !important;
 }
-/* AdminLTE wrappers — deben propagar la altura sin cortar */
 .wrapper {
   height: 100% !important; min-height: 100% !important;
   overflow: hidden !important; display: flex; flex-direction: column;
 }
 .content-wrapper {
-  flex: 1 !important; height: 0 !important; /* flex-child: crece sin desbordarse */
+  flex: 1 !important; height: 0 !important;
   overflow: hidden !important; display: flex; flex-direction: column;
 }
 .content-header { display: none !important; min-height: 0 !important; height: 0 !important; }
@@ -523,14 +504,13 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   position: relative; isolation: isolate;
   overflow-x: hidden;
-  overflow-y: auto;         /* scroll solo si el contenido no cabe */
-  scrollbar-width: none;    /* scrollbar invisible */
+  overflow-y: auto;
+  scrollbar-width: none;
   background: transparent;
   padding: 16px 0;
 }
 .lby-page::-webkit-scrollbar { display: none; }
 
-/* Fondo nebula fijo */
 .lby-page::before {
   content: ""; position: fixed; inset: 0; z-index: -10; pointer-events: none;
   background:
@@ -541,7 +521,6 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
     linear-gradient(160deg, #04081a 0%, #060d2a 45%, #030812 100%);
 }
 
-/* Estrellas capa 1 */
 .lby-page::after {
   content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
   background-image:
@@ -563,7 +542,6 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 }
 @keyframes lbyTwinkle { 0%{opacity:.55} 50%{opacity:.95} 100%{opacity:.70} }
 
-/* Meteoros */
 .lby-meteors { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 
 /* ═══════════════════════════════════
@@ -581,7 +559,7 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ═══════════════════════════════════
-   SHELL — contenedor central compacto
+   SHELL
 ═══════════════════════════════════ */
 .lby-shell {
   position: relative; z-index: 1;
@@ -596,7 +574,7 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 }
 
 /* ═══════════════════════════════════
-   BANNER — compacto con todo encima
+   BANNER
 ═══════════════════════════════════ */
 .lby-banner {
   position: relative; border-radius: 18px; overflow: hidden;
@@ -619,7 +597,6 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
   background: linear-gradient(180deg, rgba(4,8,26,.55) 0%, rgba(4,8,26,.82) 60%, rgba(4,8,26,.96) 100%);
 }
 
-/* Nav row: back + ws */
 .lby-banner__nav {
   position: absolute; top: 0; left: 0; right: 0; z-index: 2;
   display: flex; align-items: center; justify-content: space-between;
@@ -634,7 +611,6 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 .lby-back:hover { color: #a8c4ff; }
 .lby-back i { font-size: 9px; }
 
-/* WS pill */
 .lby-ws {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 3px 9px; border-radius: 20px;
@@ -653,7 +629,6 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 @keyframes dotPulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 @keyframes dotBlink  { 0%,100%{opacity:1} 50%{opacity:.1}  }
 
-/* Título + timer — centro del banner */
 .lby-banner__center {
   position: absolute; inset: 0; z-index: 2;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -667,7 +642,6 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
   filter: drop-shadow(0 2px 16px rgba(120,120,255,.35));
 }
 
-/* Timer pill */
 .lby-timer {
   background: rgba(8,14,40,.85); border: 1px solid rgba(100,140,255,.35);
   backdrop-filter: blur(8px); color: #c8d8ff;
@@ -682,7 +656,6 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 @keyframes lbyPulseLive   { 0%,100%{box-shadow:0 0 0 0 rgba(255,60,60,0)}  50%{box-shadow:0 0 0 4px rgba(255,60,60,.2)} }
 @keyframes lbyPulseUrgent { 0%,100%{box-shadow:0 0 0 0 rgba(255,195,54,0)} 50%{box-shadow:0 0 0 4px rgba(255,195,54,.2)} }
 
-/* Live dot */
 .lby-live-dot {
   width: 7px; height: 7px; border-radius: 50%;
   background: #ff4d4d; box-shadow: 0 0 5px #ff4d4d;
@@ -691,7 +664,6 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 .lby-live-dot--sm { width: 5px; height: 5px; }
 @keyframes lbyBlinkDot { 0%,100%{opacity:1} 50%{opacity:.25} }
 
-/* Fila inferior del banner: chips + status */
 .lby-banner__foot {
   position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
   display: flex; align-items: center; gap: 6px;
@@ -721,7 +693,7 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 .lby-status--desconocido { background: rgba(100,140,255,.10);border: 1px solid rgba(100,140,255,.2); color: #7c9dff; }
 
 /* ═══════════════════════════════════
-   PRIZE ROW — número grande + sub
+   PRIZE ROW
 ═══════════════════════════════════ */
 .lby-prize-row {
   background: linear-gradient(160deg, #101a3e 0%, #080f28 100%);
@@ -766,12 +738,11 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 .lby-prize-sub__lbl { display: block; font-size: 8px; color: #3d5280; text-transform: uppercase; letter-spacing: .6px; }
 .lby-prize-sub__val { font-family: 'Anton', sans-serif; font-size: 13px; color: #8090b0; }
 
-/* Flash */
 .lby-flash { animation: lbyFlash 1.8s ease-in-out; }
 @keyframes lbyFlash { 0%,100%{filter:none} 40%{filter:drop-shadow(0 0 10px rgba(42,245,152,.8)) brightness(1.3)} }
 
 /* ═══════════════════════════════════
-   PROGRESO DE CARTONES MÍNIMOS (realtime)
+   PROGRESO CARTONES MÍNIMOS
 ═══════════════════════════════════ */
 .lby-cards-progress {
   background: linear-gradient(160deg, #0d1635 0%, #080f28 100%);
@@ -811,7 +782,6 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
   box-shadow: 0 0 12px rgba(42,160,255,.45);
   transition: width .6s cubic-bezier(.22,1,.36,1);
 }
-
 .lby-cards-progress--ready {
   border-color: rgba(42,245,152,.4);
   box-shadow: 0 6px 28px rgba(42,245,152,.18);
@@ -827,11 +797,9 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 }
 
 /* ═══════════════════════════════════
-   STATS — fila horizontal compacta
+   STATS
 ═══════════════════════════════════ */
-.lby-stats {
-  display: flex; gap: 6px;
-}
+.lby-stats { display: flex; gap: 6px; }
 .lby-stat {
   flex: 1;
   background: linear-gradient(160deg, rgba(14,20,46,.85) 0%, rgba(8,12,32,.7) 100%);
@@ -851,7 +819,7 @@ body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
 .lby-stat__lbl  { font-size: 8px; color: #3d5280; text-transform: uppercase; letter-spacing: .6px; text-align: center; }
 
 /* ═══════════════════════════════════
-   ACCIONES — 2 botones en fila
+   ACCIONES
 ═══════════════════════════════════ */
 .lby-actions { display: flex; gap: 8px; }
 
