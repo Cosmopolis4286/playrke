@@ -266,6 +266,69 @@ import { SelectOption } from '@/js/types/common/form/form'
       "
     />
 
+    <!-- Cartón personalizado -->
+    <FormInput
+      label="Permitir cartón personalizado"
+      name="allow_custom_card"
+      type="checkbox"
+      col="col-sm-6 col-md-4 col-lg-3"
+      :modelValue="(modelValue as any).allowCustomCard ?? false"
+      @update:modelValue="
+        emit('update:modelValue', {
+          ...modelValue,
+          allowCustomCard: $event,
+          ...(!$event ? { customCardPrice: null, maxCustomCards: null } : {})
+        } as any)
+      "
+    />
+
+    <!-- Precio cartón personalizado -->
+    <FormInput
+      v-if="(modelValue as any).allowCustomCard"
+      label="Precio cartón personalizado"
+      name="custom_card_price"
+      :error="(errors as any).customCardPrice"
+      type="number"
+      required
+      :step="0.01"
+      :min="1"
+      :max="10"
+      col="col-sm-6 col-md-4 col-lg-3"
+      inputGroup
+      :modelValue="(modelValue as any).customCardPrice ?? null"
+      @update:modelValue="
+        emit('update:modelValue', {
+          ...modelValue,
+          customCardPrice: $event === '' || $event === null ? null : Number($event)
+        } as any)
+      "
+    >
+      <template #prepend>
+        <span class="input-group-text">$</span>
+      </template>
+    </FormInput>
+
+    <!-- Máx. cartones personalizados -->
+    <FormInput
+      v-if="(modelValue as any).allowCustomCard"
+      label="Máx. cartones personalizados"
+      name="max_custom_cards"
+      :error="(errors as any).maxCustomCards"
+      type="number"
+      required
+      :step="1"
+      :min="1"
+      :max="5"
+      col="col-sm-6 col-md-4 col-lg-3"
+      :modelValue="(modelValue as any).maxCustomCards ?? null"
+      @update:modelValue="
+        emit('update:modelValue', {
+          ...modelValue,
+          maxCustomCards: $event === '' || $event === null ? null : Number($event)
+        } as any)
+      "
+    />
+
     <!-- Días de Anticipación de Ventas (solo salas automáticas) -->
     <FormInput
       v-if="automaticRoom"

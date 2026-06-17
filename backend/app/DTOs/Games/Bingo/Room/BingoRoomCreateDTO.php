@@ -39,6 +39,9 @@ final class BingoRoomCreateDTO
         public readonly string $gameVariant = 'BINGO_75',
         public readonly bool $roomsPerCurrency = false,
         public readonly bool $isSplitRoom = false,
+        public readonly bool $allowCustomCard = false,
+        public readonly ?float $customCardPrice = null,
+        public readonly ?int $maxCustomCards = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -81,6 +84,9 @@ final class BingoRoomCreateDTO
             gameVariant: $data['gameVariant'] ?? 'BINGO_75',
             roomsPerCurrency: (bool) ($data['roomsPerCurrency'] ?? false),
             isSplitRoom: (bool) ($data['isSplitRoom'] ?? false),
+            allowCustomCard: (bool) ($data['allowCustomCard'] ?? false),
+            customCardPrice: isset($data['customCardPrice']) ? (float) $data['customCardPrice'] : null,
+            maxCustomCards: isset($data['maxCustomCards']) ? (int) $data['maxCustomCards'] : null,
         );
     }
 }

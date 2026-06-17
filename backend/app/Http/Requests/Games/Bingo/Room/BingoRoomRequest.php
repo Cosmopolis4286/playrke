@@ -79,6 +79,11 @@ class BingoRoomRequest extends BaseRequest
             'serialsPct'                  => ['required_if:useSerials,true', 'nullable', 'numeric', 'min:2', 'max:35'],
             'numSerials'                  => ['required_if:useSerials,true', 'nullable', 'integer', 'min:1', 'max:30'],
 
+            // Cartón personalizado
+            'allowCustomCard'             => ['boolean'],
+            'customCardPrice'             => ['nullable', 'numeric', 'min:1', 'max:10'],
+            'maxCustomCards'              => ['nullable', 'integer', 'min:1', 'max:5'],
+
             // Configuración de rondas
             'roundsConfig'                                  => ['nullable', 'array'],
             'roundsConfig.*.prizeType'                      => ['required_with:roundsConfig', 'in:percentage,fixed,prize'],

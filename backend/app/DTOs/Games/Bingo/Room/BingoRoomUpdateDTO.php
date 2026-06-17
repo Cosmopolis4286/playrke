@@ -37,6 +37,9 @@ final class BingoRoomUpdateDTO
         public readonly ?bool $activateRoom,
         public readonly ?string $fromHouse = null,
         public readonly ?string $gameVariant = null,
+        public readonly ?bool $allowCustomCard = null,
+        public readonly ?float $customCardPrice = null,
+        public readonly ?int $maxCustomCards = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -87,6 +90,9 @@ final class BingoRoomUpdateDTO
             activateRoom: isset($data['activateRoom']) ? (bool) $data['activateRoom'] : null,
             fromHouse: isset($data['fromHouse']) ? (string) $data['fromHouse'] : null,
             gameVariant: $data['gameVariant'] ?? null,
+            allowCustomCard: isset($data['allowCustomCard']) ? (bool) $data['allowCustomCard'] : null,
+            customCardPrice: isset($data['customCardPrice']) ? (float) $data['customCardPrice'] : null,
+            maxCustomCards: isset($data['maxCustomCards']) ? (int) $data['maxCustomCards'] : null,
         );
     }
 }

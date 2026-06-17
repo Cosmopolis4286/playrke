@@ -103,7 +103,10 @@ const emptyFormData = (): BingoRoomFormData => ({
     usdExchangeRoundStep: null,
     cardPriceByCurrency: {},
     roundsConfig: [],
-    activateRoom: false
+    activateRoom: false,
+    allowCustomCard: false,
+    customCardPrice: null,
+    maxCustomCards: null,
 })
 
 /**
@@ -323,6 +326,9 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                     ...(r.prizeType === 'prize' ? { prizeId: r.prizeId ?? null, prizeName: r.prizeName ?? null } : {}),
                 })),
                 activateRoom: room.status === 'ACTIVE',
+                allowCustomCard: config.allow_custom_card === true,
+                customCardPrice: config.custom_card_price != null ? Number(config.custom_card_price) : null,
+                maxCustomCards: config.max_custom_cards != null ? Number(config.max_custom_cards) : null,
             }
 
             return true
