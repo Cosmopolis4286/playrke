@@ -1,26 +1,26 @@
-// ======================================================
+﻿// ======================================================
 // Archivo: resources/js/routes/walletRoutes.ts
-// Descripción: Rutas del módulo walletRoutes
-// Fecha de actualización (GMT): 2025-09-14T05:40:45Z
-// Generado automáticamente con make:ts-routes-modules
+// DescripciÃ³n: Rutas del mÃ³dulo walletRoutes
+// Fecha de actualizaciÃ³n (GMT): 2025-09-14T05:40:45Z
+// Generado automÃ¡ticamente con make:ts-routes-modules
 // ======================================================
 
-import { route as baseRoute } from './helper.js';
+import { buildRoute as baseRoute } from './helper';
 
 export const walletRoutes = {
     "index": "/wallet"
 } as const;
 
 /**
- * Retorna la URL de la ruta especificada usando las rutas del módulo.
+ * Retorna la URL de la ruta especificada usando las rutas del mÃ³dulo.
  */
 export function route(name, params) {
     return baseRoute(walletRoutes, name, params);
 }
 
 /**
- * Retorna la URL de una ruta específica dentro de walletRoutes.
- * Reemplaza los placeholders con los parámetros proporcionados.
+ * Retorna la URL de una ruta especÃ­fica dentro de walletRoutes.
+ * Reemplaza los placeholders con los parÃ¡metros proporcionados.
  * Elimina los opcionales que no tengan valor.
  */
 export function getRoute(name, params) {

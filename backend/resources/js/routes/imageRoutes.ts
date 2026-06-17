@@ -1,11 +1,11 @@
-// ======================================================
+﻿// ======================================================
 // Archivo: resources/js/routes/imageRoutes.ts
-// Descripción: Rutas del módulo imageRoutes
-// Fecha de actualización (GMT): 2025-09-14T05:40:45Z
-// Generado automáticamente con make:ts-routes-modules
+// DescripciÃ³n: Rutas del mÃ³dulo imageRoutes
+// Fecha de actualizaciÃ³n (GMT): 2025-09-14T05:40:45Z
+// Generado automÃ¡ticamente con make:ts-routes-modules
 // ======================================================
 
-import { route as baseRoute } from './helper.js';
+import { buildRoute as baseRoute } from './helper';
 
 export const imageRoutes = {
     "payment-prizes": "/image/payments/prizes/{filename}",
@@ -13,15 +13,15 @@ export const imageRoutes = {
 } as const;
 
 /**
- * Retorna la URL de la ruta especificada usando las rutas del módulo.
+ * Retorna la URL de la ruta especificada usando las rutas del mÃ³dulo.
  */
 export function route(name, params) {
     return baseRoute(imageRoutes, name, params);
 }
 
 /**
- * Retorna la URL de una ruta específica dentro de imageRoutes.
- * Reemplaza los placeholders con los parámetros proporcionados.
+ * Retorna la URL de una ruta especÃ­fica dentro de imageRoutes.
+ * Reemplaza los placeholders con los parÃ¡metros proporcionados.
  * Elimina los opcionales que no tengan valor.
  */
 export function getRoute(name, params) {

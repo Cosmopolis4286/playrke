@@ -1,11 +1,11 @@
-// ======================================================
+﻿// ======================================================
 // Archivo: resources/js/routes/customerRoutes.ts
-// Descripción: Rutas del módulo customerRoutes
-// Fecha de actualización (GMT): 2025-12-29T00:05:30Z
-// Generado automáticamente con make:ts-routes-modules
+// DescripciÃ³n: Rutas del mÃ³dulo customerRoutes
+// Fecha de actualizaciÃ³n (GMT): 2025-12-29T00:05:30Z
+// Generado automÃ¡ticamente con make:ts-routes-modules
 // ======================================================
 
-import { route as baseRoute } from './helper.js';
+import { buildRoute as baseRoute } from './helper';
 
 export const customerRoutes = {
     "store": "/customer",
@@ -17,15 +17,15 @@ export const customerRoutes = {
 } as const;
 
 /**
- * Retorna la URL de la ruta especificada usando las rutas del módulo.
+ * Retorna la URL de la ruta especificada usando las rutas del mÃ³dulo.
  */
 export function route(name, params) {
     return baseRoute(customerRoutes, name, params);
 }
 
 /**
- * Retorna la URL de una ruta específica dentro de customerRoutes.
- * Reemplaza los placeholders con los parámetros proporcionados.
+ * Retorna la URL de una ruta especÃ­fica dentro de customerRoutes.
+ * Reemplaza los placeholders con los parÃ¡metros proporcionados.
  * Elimina los opcionales que no tengan valor.
  */
 export function getRoute(name, params) {
@@ -42,3 +42,4 @@ export function getRoute(name, params) {
 
     return url;
 }
+

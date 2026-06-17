@@ -1,11 +1,11 @@
-// ======================================================
+﻿// ======================================================
 // Archivo: resources/js/routes/binanceRoutes.ts
-// Descripción: Rutas del módulo binanceRoutes
-// Fecha de actualización (GMT): 2025-09-14T05:40:44Z
-// Generado automáticamente con make:ts-routes-modules
+// DescripciÃ³n: Rutas del mÃ³dulo binanceRoutes
+// Fecha de actualizaciÃ³n (GMT): 2025-09-14T05:40:44Z
+// Generado automÃ¡ticamente con make:ts-routes-modules
 // ======================================================
 
-import { route as baseRoute } from './helper.js';
+import { buildRoute as baseRoute } from './helper';
 
 export const binanceRoutes = {
     "create": "/binance",
@@ -15,15 +15,15 @@ export const binanceRoutes = {
 } as const;
 
 /**
- * Retorna la URL de la ruta especificada usando las rutas del módulo.
+ * Retorna la URL de la ruta especificada usando las rutas del mÃ³dulo.
  */
 export function route(name, params) {
     return baseRoute(binanceRoutes, name, params);
 }
 
 /**
- * Retorna la URL de una ruta específica dentro de binanceRoutes.
- * Reemplaza los placeholders con los parámetros proporcionados.
+ * Retorna la URL de una ruta especÃ­fica dentro de binanceRoutes.
+ * Reemplaza los placeholders con los parÃ¡metros proporcionados.
  * Elimina los opcionales que no tengan valor.
  */
 export function getRoute(name, params) {

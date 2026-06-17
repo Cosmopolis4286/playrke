@@ -46,3 +46,11 @@ export const bingoRoutes = {
   sessionKey: "/bingo/k3yg4m3/play-rke",
   testRegenerateDraw: "/bingo/test/regenerate-draw",
 } as const;
+
+export function getRoute(key: keyof typeof bingoRoutes, params: Record<string, string | number> = {}): string {
+    let path: string = bingoRoutes[key]
+    for (const [k, v] of Object.entries(params)) {
+        path = path.replace(`{${k}}`, String(v)).replace(`{${k}?}`, String(v))
+    }
+    return path.replace(/\{[^}]+\?\}/g, '').replace(/\/+$/, '')
+}
