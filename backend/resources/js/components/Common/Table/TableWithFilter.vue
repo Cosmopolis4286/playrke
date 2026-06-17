@@ -31,6 +31,7 @@
     disableEditReason?: string
     disableDelete?: boolean
     disableDeleteReason?: string
+    loading?: boolean
   }>()
 
   /**
@@ -79,7 +80,15 @@
 </script>
 
 <template>
-  <div class="card">
+  <div class="card" style="position: relative;">
+    <!-- Overlay de carga -->
+    <div
+      v-if="props.loading"
+      style="position:absolute;inset:0;z-index:10;background:rgba(255,255,255,0.6);display:flex;align-items:center;justify-content:center;border-radius:inherit;"
+    >
+      <span class="spinner-border text-primary" role="status" aria-hidden="true" style="width:2rem;height:2rem;"></span>
+    </div>
+
     <!-- Header -->
     <CardHeader :title="title" :subtitle="subtitle" />
 

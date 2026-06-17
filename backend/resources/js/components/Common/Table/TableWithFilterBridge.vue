@@ -28,6 +28,7 @@
     disableDelete?: boolean | ((selectedIds: string[]) => boolean)
     disableDeleteReason?: string | ((selectedIds: string[]) => string)
     extraButtons?: ExtraButton[]
+    loading?: boolean
   }>()
 
   /**
@@ -215,6 +216,7 @@
     :disable-edit-reason="resolvedDisableEditReason"
     :disable-delete="resolvedDisableDelete"
     :disable-delete-reason="resolvedDisableDeleteReason"
+    :loading="props.loading"
     @create="actionHandlers.create"
     @edit="actionHandlers.edit"
     @delete="actionHandlers.delete"

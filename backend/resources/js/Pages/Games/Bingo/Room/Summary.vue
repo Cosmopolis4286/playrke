@@ -450,6 +450,7 @@ onUnmounted(() => {
     :disable-delete="hasPlayers"
     disable-delete-reason="No se puede eliminar una sala con jugadores registrados"
     :extra-buttons="extraButtons"
+    :loading="loading"
   />
 
   <Modal
