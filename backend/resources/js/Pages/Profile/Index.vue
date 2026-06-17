@@ -91,7 +91,7 @@ export default { name: 'ProfileIndex' }
       />
 
       <div class="profile-card">
-        <ProfileTabs v-model="activeTab" />
+        <ProfileTabs v-model="activeTab" :user="user" />
 
         <div class="tab-content">
           <Transition name="tab-fade" mode="out-in">

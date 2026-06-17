@@ -32,21 +32,75 @@
 
     </ul>
 
-    {{-- ── Centro: breadcrumb de navegación ─────────────────── --}}
-    @if (!empty($navBreadcrumb) && count($navBreadcrumb) > 1)
-        <nav class="nb-breadcrumb d-none d-md-flex" aria-label="Ruta de navegación">
-            @foreach ($navBreadcrumb as $index => $crumb)
-                @if ($index > 0)
-                    <i class="fas fa-chevron-right nb-breadcrumb__sep"></i>
-                @endif
-                @if (!$loop->last && $crumb['route'])
-                    <a href="{{ route($crumb['route']) }}" class="nb-breadcrumb__link">{{ $crumb['title'] }}</a>
-                @else
-                    <span class="nb-breadcrumb__current">{{ $crumb['title'] }}</span>
-                @endif
-            @endforeach
-        </nav>
-    @endif
+    {{-- ── Centro: breadcrumb + widgets contextuales ─────────── --}}
+    <div class="nb-center-zone d-none d-md-flex align-items-center" style="flex:1; justify-content:center; gap:1rem; min-width:0; padding:0 12px;">
+
+        @if (!empty($navBreadcrumb) && count($navBreadcrumb) > 1)
+            {{-- Breadcrumb de navegación --}}
+            <nav class="nb-breadcrumb" aria-label="Ruta de navegación">
+                @foreach ($navBreadcrumb as $index => $crumb)
+                    @if ($index > 0)
+                        <i class="fas fa-chevron-right nb-breadcrumb__sep"></i>
+                    @endif
+                    @if (!$loop->last && $crumb['route'])
+                        <a href="{{ route($crumb['route']) }}" class="nb-breadcrumb__link">{{ $crumb['title'] }}</a>
+                    @else
+                        <span class="nb-breadcrumb__current">{{ $crumb['title'] }}</span>
+                    @endif
+                @endforeach
+            </nav>
+        @endif
+
+        {{-- Buscador global rápido (visible en md+) --}}
+        <div class="nb-search-wrap">
+            <form action="{{ url('/search') }}" method="GET" class="nb-search-form" onsubmit="return nbGlobalSearch(event, this)">
+                <i class="fas fa-search nb-search-icon"></i>
+                <input
+                    type="search"
+                    name="q"
+                    placeholder="Buscar usuario, sala, transacción…"
+                    class="nb-search-input"
+                    autocomplete="off"
+                    maxlength="80"
+                >
+                <kbd class="nb-search-kbd">⌘K</kbd>
+            </form>
+        </div>
+
+        {{-- Chips de acceso rápido según rol --}}
+        <div class="nb-quick-chips d-none d-lg-flex">
+            @if (auth()->user()?->hasAnyRole(['admin','superadmin']))
+                <a href="{{ route('wallet-movements.index') }}" class="nb-qchip nb-qchip--finance" title="Movimientos pendientes">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>Movimientos</span>
+                </a>
+                <a href="{{ route('directory.index') }}" class="nb-qchip nb-qchip--rooms" title="Salas de bingo">
+                    <i class="fas fa-door-open"></i>
+                    <span>Salas</span>
+                </a>
+                <a href="{{ route('admin.users') }}" class="nb-qchip nb-qchip--users" title="Gestión de usuarios">
+                    <i class="fas fa-users"></i>
+                    <span>Usuarios</span>
+                </a>
+            @elseif (auth()->user()?->hasRole('treasurer'))
+                <a href="{{ route('wallet-movements.index') }}" class="nb-qchip nb-qchip--finance" title="Movimientos">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>Movimientos</span>
+                </a>
+            @elseif (auth()->user()?->hasRole('seller'))
+                <a href="{{ route('directory.index') }}" class="nb-qchip nb-qchip--rooms" title="Salas de bingo">
+                    <i class="fas fa-door-open"></i>
+                    <span>Salas</span>
+                </a>
+            @endif
+            {{-- Hora del servidor --}}
+            <span class="nb-qchip nb-qchip--clock" title="Hora del servidor">
+                <i class="fas fa-clock"></i>
+                <span id="nb-server-clock">{{ now()->format('H:i') }}</span>
+            </span>
+        </div>
+
+    </div>
 
     {{-- ── Derecha: pendientes + notificaciones + usuario ──── --}}
     <ul class="navbar-nav align-items-center" style="gap:.5rem;">
@@ -490,3 +544,31 @@
 })();
 </script>
 @endauth
+
+{{-- ── Reloj del servidor (navbar centro) ── --}}
+<script>
+(function () {
+    var el = document.getElementById('nb-server-clock');
+    if (!el) return;
+    function tick() {
+        var now = new Date();
+        el.textContent = now.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+    }
+    setInterval(tick, 30000);
+})();
+
+function nbGlobalSearch(e, form) {
+    var q = form.querySelector('input[name=q]').value.trim();
+    if (!q) { e.preventDefault(); return false; }
+    return true;
+}
+
+// Atajo de teclado ⌘K / Ctrl+K
+document.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        var inp = document.querySelector('.nb-search-input');
+        if (inp) inp.focus();
+    }
+});
+</script>

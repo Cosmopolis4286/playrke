@@ -231,11 +231,26 @@
       </div>
 
       <div class="info-card mt-3">
-        <h4 class="info-card-title"><i class="fas fa-user-tag me-2" />Roles</h4>
+        <h4 class="info-card-title"><i class="fas fa-user-tag me-2" />Roles y Acceso</h4>
         <div class="roles-list">
           <div v-for="role in user.roles" :key="role.id" class="role-item">
-            <span class="role-name">{{ role.name }}</span>
-            <span class="role-desc">{{ role.description ?? 'Usuario del sistema' }}</span>
+            <div class="role-item-header">
+              <span class="role-dot" :class="`role-dot--${roleColorKey(role.name)}`" />
+              <span class="role-name">{{ roleLabel(role.name) }}</span>
+            </div>
+            <span class="role-desc">{{ role.description ?? roleDefaultDesc(role.name) }}</span>
+          </div>
+        </div>
+
+        <!-- Acciones rápidas según rol -->
+        <div v-if="roleQuickLinks.length" class="role-quick-links mt-2">
+          <p class="role-quick-title">Acceso rápido</p>
+          <div class="role-quick-grid">
+            <a v-for="link in roleQuickLinks" :key="link.href" :href="link.href"
+               class="role-quick-item" :title="link.label">
+              <i :class="link.icon" />
+              <span>{{ link.label }}</span>
+            </a>
           </div>
         </div>
       </div>
@@ -270,6 +285,65 @@ const kycColorKey = computed(() => ({
     REJECTED: 'rejected',
     NONE:     'none',
 }[props.user.kyc_status] ?? 'none'))
+
+// ── Utilidades de rol ────────────────────────────────────────
+const ROLE_COLORS: Record<string, string> = {
+    superadmin: 'gold', admin: 'purple', treasurer: 'green',
+    seller: 'pink', customer: 'blue', player: 'gray', vip_player: 'gold',
+}
+const ROLE_LABELS: Record<string, string> = {
+    superadmin: 'Super Administrador', admin: 'Administrador',
+    treasurer: 'Tesorero', seller: 'Vendedor', customer: 'Asesor',
+    player: 'Jugador', vip_player: 'Jugador VIP',
+}
+const ROLE_DESCS: Record<string, string> = {
+    superadmin: 'Acceso total al sistema sin restricciones.',
+    admin: 'Gestión de usuarios, salas y configuración general.',
+    treasurer: 'Gestión de depósitos, retiros y movimientos financieros.',
+    seller: 'Venta de cartones y atención a jugadores.',
+    customer: 'Soporte y atención al cliente.',
+    player: 'Jugador registrado en la plataforma.',
+    vip_player: 'Jugador con beneficios VIP y límites ampliados.',
+}
+
+function roleColorKey(name: string) { return ROLE_COLORS[name] ?? 'gray' }
+function roleLabel(name: string)    { return ROLE_LABELS[name] ?? name }
+function roleDefaultDesc(name: string) { return ROLE_DESCS[name] ?? 'Usuario del sistema.' }
+
+const ROLE_LINKS: Record<string, Array<{href: string; icon: string; label: string}>> = {
+    superadmin: [
+        { href: '/users',           icon: 'fas fa-users',      label: 'Usuarios' },
+        { href: '/wallet-movements',icon: 'fas fa-exchange-alt',label: 'Movimientos' },
+        { href: '/directory',       icon: 'fas fa-door-open',  label: 'Salas' },
+        { href: '/audit-logs',      icon: 'fas fa-history',    label: 'Auditoría' },
+    ],
+    admin: [
+        { href: '/users',           icon: 'fas fa-users',      label: 'Usuarios' },
+        { href: '/directory',       icon: 'fas fa-door-open',  label: 'Salas' },
+        { href: '/rewards',         icon: 'fas fa-trophy',     label: 'Premios' },
+    ],
+    treasurer: [
+        { href: '/wallet-movements',icon: 'fas fa-exchange-alt',label: 'Movimientos' },
+        { href: '/wallet',          icon: 'fas fa-wallet',     label: 'Billetera' },
+    ],
+    seller: [
+        { href: '/directory',       icon: 'fas fa-door-open',  label: 'Salas' },
+        { href: '/wallet',          icon: 'fas fa-wallet',     label: 'Billetera' },
+    ],
+    player: [
+        { href: '/directory',       icon: 'fas fa-door-open',  label: 'Salas de juego' },
+        { href: '/wallet',          icon: 'fas fa-wallet',     label: 'Mi billetera' },
+    ],
+    vip_player: [
+        { href: '/directory',       icon: 'fas fa-door-open',  label: 'Salas VIP' },
+        { href: '/wallet',          icon: 'fas fa-wallet',     label: 'Mi billetera' },
+    ],
+}
+
+const roleQuickLinks = computed(() => {
+    const primaryRole = props.user.roles?.[0]?.name ?? 'player'
+    return ROLE_LINKS[primaryRole] ?? ROLE_LINKS['player']
+})
 
 const kycIcon = computed(() => ({
     VERIFIED: 'fas fa-shield-check',
@@ -385,10 +459,34 @@ const kycDescription = computed(() => ({
 .status-badge--muted   { background: #e9ecef; color: #495057; }
 .status-badge--danger  { background: #f8d7da; color: #721c24; }
 
-.roles-list { display: flex; flex-direction: column; gap: 6px; }
-.role-item  { display: flex; flex-direction: column; gap: 1px; }
-.role-name  { font-size: 0.78rem; font-weight: 700; color: #667eea; }
-.role-desc  { font-size: 0.72rem; color: #8892a4; }
+.roles-list { display: flex; flex-direction: column; gap: 8px; }
+.role-item  { display: flex; flex-direction: column; gap: 2px; }
+.role-item-header { display: flex; align-items: center; gap: 7px; }
+
+.role-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.role-dot--gold   { background: #f59e0b; }
+.role-dot--purple { background: #667eea; }
+.role-dot--green  { background: #10b981; }
+.role-dot--pink   { background: #ec4899; }
+.role-dot--blue   { background: #3b82f6; }
+.role-dot--gray   { background: #94a3b8; }
+
+.role-name  { font-size: 0.8rem; font-weight: 700; color: #2d3a52; }
+.role-desc  { font-size: 0.72rem; color: #8892a4; padding-left: 15px; }
+
+/* Acceso rápido por rol */
+.role-quick-links { border-top: 1px solid #eaecf0; padding-top: 0.6rem; }
+.role-quick-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: #94a3b8; font-weight: 700; margin-bottom: 0.5rem; }
+.role-quick-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.role-quick-item  {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 8px; border-radius: 7px;
+    font-size: 0.75rem; font-weight: 600; color: #4a5568;
+    background: #f1f5f9; text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+.role-quick-item:hover { background: #e0e7ff; color: #4338ca; text-decoration: none; }
+.role-quick-item i { font-size: 10px; color: #667eea; }
 
 .mt-3 { margin-top: 0.75rem; }
 .fw-bold { font-weight: 700; }
