@@ -404,6 +404,39 @@ final class WalletService
         return $movement;
     }
 
+    /**
+     * Acredita un premio de Bingo al ganador.
+     * La wallet se recibe ya resuelta — nunca acepta un ID externo.
+     */
+    public function recordBingoPrize(Wallet $wallet, float $amount, string $description = 'Premio Bingo'): WalletMovement
+    {
+        $movement = null;
+
+        DB::transaction(function () use ($wallet, $amount, $description, &$movement) {
+            $walletId = (string) $wallet->id;
+
+            $balanceBefore = (float) $wallet->balance;
+
+            $this->walletRepository->incrementBalance($walletId, $amount);
+            $wallet->refresh();
+
+            $movement = $this->movementRepository->record([
+                'wallet_id'      => $walletId,
+                'user_id'        => (string) $wallet->user_id,
+                'type'           => WalletMovement::TYPE_PRIZE,
+                'status'         => WalletMovement::STATUS_COMPLETED,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => (float) $wallet->balance,
+                'description'    => $description,
+            ]);
+        });
+
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PRIZE, $amount);
+
+        return $movement;
+    }
+
     public function recordCardPurchase(string $walletId, float $amount, string $description = 'Compra de cartones'): Wallet
     {
         $wallet = DB::transaction(function () use ($walletId, $amount, $description) {
@@ -718,10 +751,15 @@ final class WalletService
 
     /**
      * Obtiene una wallet del usuario autenticado por su ID (uso interno / admin).
+     *
+     * Siempre se llama dentro de un DB::transaction() (deposit/withdraw/recordCardPurchase)
+     * — lockForUpdate() evita que dos operaciones concurrentes sobre la misma wallet
+     * (p.ej. dos compras de cartones a la vez) lean el mismo balance antes de que la
+     * primera haga commit, lo que permitiría dejar el balance en negativo.
      */
     private function findOwnedWallet(string $walletId): Wallet
     {
-        $wallet = Wallet::with(['currency', 'user'])->findOrFail($walletId);
+        $wallet = Wallet::with(['currency', 'user'])->lockForUpdate()->findOrFail($walletId);
 
         if ((string) $wallet->user_id !== (string) Auth::id()) {
             abort(403, 'No autorizado.');
