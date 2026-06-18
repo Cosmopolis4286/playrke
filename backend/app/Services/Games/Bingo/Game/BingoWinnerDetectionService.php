@@ -8,12 +8,22 @@ use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
-use App\Events\Games\Bingo\BingoWinnerDeclared;
-use App\Models\User;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Verifica si un jugador completó su cartón cuando lo solicita explícitamente
+ * (botón "Bingo" en el frontend). La persistencia del premio y los broadcasts
+ * se delegan siempre a BingoDrawService::claimCardWin() — el mismo punto único
+ * que usa el sorteo automático — para que ambos caminos no puedan marcar el
+ * mismo cartón como ganador dos veces ni dejar premios sin registrar.
+ */
 final class BingoWinnerDetectionService
 {
+    public function __construct(
+        private readonly BingoDrawService $drawService,
+        private readonly BingoPatternPositionResolver $patternResolver = new BingoPatternPositionResolver()
+    ) {}
+
     /**
      * Verifica si un cartón cumple el patrón activo de la ronda.
      *
@@ -77,7 +87,7 @@ final class BingoWinnerDetectionService
             return null;
         }
 
-        $patternPositions = $this->resolvePatternPositions($pattern, $variant);
+        $patternPositions = $this->patternResolver->resolve($pattern, $variant);
 
         // Cartones activos del usuario
         $cards = BingoCard::where('room_id', (string) $room->id)
@@ -92,114 +102,33 @@ final class BingoWinnerDetectionService
                 ->get();
         }
 
-        $user = User::find($userId);
+        $lastDraw   = BingoDraw::where('room_id', $room->id)->orderBy('created_at', 'desc')->first();
+        $lastDrawId = (int) ($lastDraw?->id ?? 0);
 
         foreach ($cards as $card) {
-            if ($this->checkBingo($card, $drawnNumbers, $patternPositions)) {
-                $card->update(['status' => BingoCard::STATUS_WINNER]);
-
-                $winnerData = [
-                    'user_id'     => $userId,
-                    'user_name'   => $user?->name ?? 'Jugador #' . $userId,
-                    'card_id'     => $card->id,
-                    'card_serial' => $card->serial_number,
-                    'pattern'     => $pattern->name,
-                    'prize'       => (float) $room->prize_pool,
-                ];
-
-                Log::info('[BingoWinnerDetection] Bingo detectado', [
-                    'room_id'  => $room->id,
-                    'variant'  => $variant,
-                    'pattern'  => $pattern->name,
-                    'winner'   => $winnerData,
-                ]);
-
-                return $winnerData;
+            if (!$this->checkBingo($card, $drawnNumbers, $patternPositions)) {
+                continue;
             }
+
+            // Persistencia + broadcasts bajo lock: si el sorteo automático ya reclamó
+            // este cartón en paralelo, claimCardWin devuelve null y seguimos buscando
+            // (aunque en la práctica solo puede haber un cartón ganador por usuario aquí).
+            $winnerData = $this->drawService->claimCardWin($room, $round, $pattern, (string) $card->id, $lastDrawId);
+
+            if ($winnerData === null) {
+                continue;
+            }
+
+            Log::info('[BingoWinnerDetection] Bingo detectado (verificación manual)', [
+                'room_id' => $room->id,
+                'variant' => $variant,
+                'pattern' => $pattern->name,
+                'winner'  => $winnerData,
+            ]);
+
+            return $winnerData;
         }
 
         return null;
-    }
-
-    public function declareWinner(BingoRoom $room, array $winnerData): void
-    {
-        $lastDraw = BingoDraw::where('room_id', $room->id)
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        broadcast(new BingoWinnerDeclared(
-            roomId:     (int) $room->id,
-            drawId:     (int) ($lastDraw?->id ?? 0),
-            winnerId:   $winnerData['user_id'],
-            winnerName: $winnerData['user_name'],
-            cardId:     (int) $winnerData['card_id'],
-            pattern:    $winnerData['pattern'],
-            prize:      $winnerData['prize']
-        ));
-
-        Log::info('[BingoWinnerDetection] Evento WinnerDeclared disparado', [
-            'room_id' => $room->id,
-            'winner'  => $winnerData,
-        ]);
-    }
-
-    /**
-     * Idéntico al resolvePatternPositions del BingoDrawService pero standalone
-     * para que este servicio no dependa de él.
-     *
-     * @return array<int, array{col: string, row: int, free: bool}>
-     */
-    private function resolvePatternPositions(BingoPattern $pattern, string $variant): array
-    {
-        $colDefs  = BingoVariant::columns($variant);
-        $numRows  = BingoVariant::rows($variant);
-        $labels   = array_column($colDefs, 'label');
-        $resolved = [];
-
-        $boxes = $pattern->boxes ?? '';
-
-        if (strtoupper(trim($boxes)) === 'ALL') {
-            foreach ($colDefs as $col) {
-                for ($row = 0; $row < $numRows; $row++) {
-                    $isFree     = ($col['freeRow'] !== null && $row === $col['freeRow']);
-                    $resolved[] = ['col' => $col['label'], 'row' => $row, 'free' => $isFree];
-                }
-            }
-            return $resolved;
-        }
-
-        if ($pattern->type_pattern === 'MULTIPLE') {
-            foreach ($pattern->boxes_array as $numId) {
-                $numId = (int) $numId;
-                if ($numId < 1) continue;
-                $subPattern = BingoPattern::where('num_id', $numId)->whereNull('user_id')->first();
-                if ($subPattern) {
-                    $resolved = array_merge($resolved, $this->resolvePatternPositions($subPattern, $variant));
-                }
-            }
-            return $resolved;
-        }
-
-        foreach ($pattern->boxes_array as $box) {
-            $box    = strtoupper(trim((string) $box));
-            $col    = $box[0] ?? '';
-            $rowNum = (int) substr($box, 1);
-
-            if (!in_array($col, $labels, true) || $rowNum < 1 || $rowNum > $numRows) continue;
-
-            $rowIndex = $rowNum - 1;
-            $isFree   = false;
-
-            foreach ($colDefs as $colDef) {
-                if ($colDef['label'] === $col && $colDef['freeRow'] !== null && $colDef['freeRow'] === $rowIndex) {
-                    $isFree = true;
-                    break;
-                }
-            }
-
-            $resolved[] = ['col' => $col, 'row' => $rowIndex, 'free' => $isFree];
-        }
-
-        return $resolved;
     }
 }

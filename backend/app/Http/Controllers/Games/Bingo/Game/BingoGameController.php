@@ -242,7 +242,6 @@ final class BingoGameController extends Controller
                 $winner = $this->winnerDetection->checkWinnerForUser($room, $userId);
 
                 if ($winner) {
-                    $this->winnerDetection->declareWinner($room, $winner);
                     return [
                         'success' => true,
                         'hasBingo' => true,

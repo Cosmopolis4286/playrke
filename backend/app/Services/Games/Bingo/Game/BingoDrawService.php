@@ -18,12 +18,21 @@ use App\Events\LiveWinEvent;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\ExchangeRate;
 use App\Models\User;
+use App\Services\Games\Bingo\Winner\BingoPrizePayoutService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 final class BingoDrawService
 {
     private const CHIP_INTERVAL_SECONDS = 5;
+
+    /** Cache de tasas de cambio activas resuelta por moneda durante la corrida actual. */
+    private array $rateCache = [];
+
+    public function __construct(
+        private readonly BingoPrizePayoutService $prizePayoutService,
+        private readonly BingoPatternPositionResolver $patternResolver = new BingoPatternPositionResolver(),
+    ) {}
 
     public function startDraw(BingoRoom $room): array
     {
@@ -80,7 +89,7 @@ final class BingoDrawService
         }
 
         // Precalcular las posiciones del patrón una sola vez
-        $patternPositions = $this->resolvePatternPositions($pattern, $variant);
+        $patternPositions = $this->patternResolver->resolve($pattern, $variant);
 
         Log::info('[BingoDrawService] Patrón de la ronda cargado', [
             'round_id'    => $roundId,
@@ -211,13 +220,21 @@ final class BingoDrawService
 
     private function persistDrawCodes(string $roomId, array $sequence): void
     {
-        foreach ($sequence as $index => $number) {
-            BingoDrawCode::create([
-                'room_id' => $roomId,
-                'num'     => $index + 1,
-                'sym'     => (string) $number,
-            ]);
-        }
+        $now = now();
+
+        $rows = array_map(
+            fn ($index, $number) => [
+                'room_id'    => $roomId,
+                'num'        => $index + 1,
+                'sym'        => (string) $number,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            array_keys($sequence),
+            $sequence
+        );
+
+        BingoDrawCode::insert($rows);
     }
 
     private function createDrawRecord(string $roomId, string $roundId, int $chip, int $time, string $variant): BingoDraw
@@ -230,81 +247,6 @@ final class BingoDrawService
             'time'     => $time,
             'status'   => 'FINISHED',
         ]);
-    }
-
-    /**
-     * Convierte las posiciones del patrón (boxes) en los índices [col, row]
-     * del array card_numbers del cartón para la variante dada.
-     *
-     * Para BINGO_75 (5×5, letras B/I/N/G/O):
-     *   boxes = 'B1;I2;N3;G4;O5' — letra+fila (base-1). Casilla libre: N3 → N[2].
-     *
-     * Para BINGO_90/80/30 (numérico):
-     *   Todas las celdas del cartón (ALL) o formato 'col{n};row{m}' futuro.
-     *   Por ahora solo se soporta ALL para variantes no-75.
-     *
-     * @return array<int, array{col: string, row: int, free: bool}>
-     */
-    private function resolvePatternPositions(BingoPattern $pattern, string $variant = BingoVariant::BINGO_75): array
-    {
-        $colDefs  = BingoVariant::columns($variant);
-        $labels   = array_column($colDefs, 'label');
-        $numRows  = BingoVariant::rows($variant);
-        $resolved = [];
-
-        $boxes = $pattern->boxes ?? '';
-
-        // FULL HOUSE: todas las celdas del cartón según la variante
-        if (strtoupper(trim($boxes)) === 'ALL') {
-            foreach ($colDefs as $col) {
-                for ($row = 0; $row < $numRows; $row++) {
-                    $isFree = ($col['freeRow'] !== null && $row === $col['freeRow']);
-                    $resolved[] = ['col' => $col['label'], 'row' => $row, 'free' => $isFree];
-                }
-            }
-            return $resolved;
-        }
-
-        // Patrón MULTIPLE: boxes contiene num_ids de sub-patrones
-        if ($pattern->type_pattern === 'MULTIPLE') {
-            foreach ($pattern->boxes_array as $numId) {
-                $numId = (int) $numId;
-                if ($numId < 1) continue;
-                $subPattern = BingoPattern::where('num_id', $numId)->whereNull('user_id')->first();
-                if ($subPattern) {
-                    $resolved = array_merge($resolved, $this->resolvePatternPositions($subPattern, $variant));
-                }
-            }
-            return $resolved;
-        }
-
-        // Formato 'B1;I2;N3;G4;O5' (75 bolas) o genérico 'col;row' (base-1)
-        foreach ($pattern->boxes_array as $box) {
-            $box = strtoupper(trim((string) $box));
-            if (strlen($box) < 2) continue;
-
-            // Detectar si la primera parte es una letra de columna o un índice numérico
-            // Ej: 'B1', 'N3' para 75-ball; posibles extensiones futuras para otras variantes
-            $col    = $box[0];
-            $rowNum = (int) substr($box, 1); // fila base-1
-
-            if (!in_array($col, $labels, true) || $rowNum < 1 || $rowNum > $numRows) continue;
-
-            $rowIndex = $rowNum - 1;
-
-            // Determinar si es casilla libre (buscar en colDefs)
-            $isFree = false;
-            foreach ($colDefs as $colDef) {
-                if ($colDef['label'] === $col && $colDef['freeRow'] !== null && $colDef['freeRow'] === $rowIndex) {
-                    $isFree = true;
-                    break;
-                }
-            }
-
-            $resolved[] = ['col' => $col, 'row' => $rowIndex, 'free' => $isFree];
-        }
-
-        return $resolved;
     }
 
     private function broadcastPlayersProgress(BingoRoom $room, array $patternPositions, array $drawnNumbers, string $variant = BingoVariant::BINGO_75): void
@@ -381,7 +323,6 @@ final class BingoDrawService
         }
 
         $drawnSet = array_flip($drawnNumbers);
-        $roundId  = (string) $round->id;
 
         $cards = BingoCard::where('room_id', (string) $room->id)
             ->where('status', BingoCard::STATUS_ACTIVE)
@@ -408,92 +349,10 @@ final class BingoDrawService
 
             if (!$hasBingo) continue;
 
-            // Marcar cartón como ganador
-            $card->update(['status' => BingoCard::STATUS_WINNER]);
-
-            $userId   = $card->roomUser?->user_id ?? $card->creator_user_id;
-            $user     = $card->roomUser?->user ?? User::find($userId);
-            $userName = $user?->name ?? ('Jugador #' . $userId);
-
-            $prizeAmounts = $this->resolvePrizeAmounts($room, $round, $card);
-            $prize        = $prizeAmounts['usd_amount'];
-
-            // Determinar prize_type según el patrón de la ronda
-            $prizeType = match ($pattern->name) {
-                'Cartón Lleno', 'Full House' => 'full_house',
-                'Línea Simple', 'Single Line' => 'single_line',
-                default => 'serial',
-            };
-
-            // Registrar en bingo_card_prizes con round_id de la ronda
-            $cardPrize = BingoCardPrize::create([
-                'room_id'           => (string) $room->id,
-                'creator_user_id'   => (string) ($userId ?? $card->creator_user_id),
-                'seller_user_id'    => $card->seller_user_id ? (string) $card->seller_user_id : null,
-                'seller_type'       => $card->seller_type,
-                'room_user_id'      => (string) $card->room_user_id,
-                'card_lot_id'       => (string) $card->card_lot_id,
-                'winning_card_id'   => (string) $card->id,
-                'currency_id'       => (string) $card->currency_id,
-                'round_id'          => $roundId,
-                'status'            => 'ACTIVE',
-                'prize_type'        => $prizeType,
-                'winning_pattern'   => $pattern->name,
-                'usd_amount'        => $prizeAmounts['usd_amount'],
-                'local_amount'      => $prizeAmounts['local_amount'],
-                'prize_status'      => 'waiting',
-                'verification_code' => strtoupper(substr(md5(uniqid($card->id . $roundId, true)), 0, 8)),
-            ]);
-
-            Log::info('[BingoDrawService] Premio registrado en bingo_card_prizes', [
-                'card_prize_id'  => $cardPrize->id,
-                'card_id'        => $card->id,
-                'round_id'       => $roundId,
-                'round_number'   => $round->round,
-                'pattern'        => $pattern->name,
-                'prize_type'     => $prizeType,
-                'user_id'        => $userId,
-            ]);
-
-            // Evento WebSocket individual por ganador (canal de sala)
-            broadcast(new BingoWinnerDeclared(
-                roomId:     (int) $room->id,
-                drawId:     $lastDrawId,
-                winnerId:   (int) $userId,
-                winnerName: $userName,
-                cardId:     (int) $card->id,
-                pattern:    $pattern->name,
-                prize:      $prize,
-            ));
-
-            // Evento global para el feed de ganadores en vivo
-            $cardPrize->loadMissing('currency');
-            $localAmount  = $cardPrize->local_amount;
-            $currency     = $cardPrize->currency;
-            $isoCode      = $currency?->iso_code ?? 'USD';
-            broadcast(new LiveWinEvent(
-                game:          'Bingo',
-                gameSlug:      'bingo',
-                winnerName:    $userName,
-                amount:        $prize,
-                currency:      $isoCode,
-                currencySymbol:$currency?->symbol ?? '$',
-                isUsd:         $isoCode === 'USD',
-                localAmount:   (float) $localAmount,
-                decimalPlaces: $currency?->decimal_places ?? 2,
-                timestamp:     now()->toISOString(),
-            ));
-
-            $winners[] = [
-                'user_id'       => (int) $userId,
-                'user_name'     => $userName,
-                'card_id'       => (string) $card->id,
-                'card_serial'   => $card->serial_number,
-                'card_prize_id' => (string) $cardPrize->id,
-                'prize'         => $prize,
-                'pattern'       => $pattern->name,
-                'round'         => $round->round,
-            ];
+            $winnerData = $this->claimCardWin($room, $round, $pattern, $card->id, $lastDrawId);
+            if ($winnerData !== null) {
+                $winners[] = $winnerData;
+            }
         }
 
         if (empty($winners)) {
@@ -517,7 +376,7 @@ final class BingoDrawService
 
         Log::info('[BingoDrawService] Ganador(es) — sorteo detenido', [
             'room_id'    => $room->id,
-            'round_id'   => $roundId,
+            'round_id'   => (string) $round->id,
             'round'      => $round->round,
             'pattern'    => $pattern->name,
             'drawn'      => count($drawnNumbers),
@@ -530,6 +389,128 @@ final class BingoDrawService
             'total_chips' => count($drawnNumbers),
             'winners'     => $winners,
         ];
+    }
+
+    /**
+     * Punto único de persistencia para un cartón ganador: bajo lock + transacción,
+     * vuelve a verificar que el cartón siga ACTIVE (evita doble marcado si el sorteo
+     * automático y una verificación manual del jugador caen al mismo tiempo sobre el
+     * mismo cartón), lo marca como WINNER, registra el premio y emite los broadcasts.
+     *
+     * Devuelve null si el cartón ya no estaba ACTIVE (otro proceso lo reclamó primero).
+     */
+    public function claimCardWin(
+        BingoRoom    $room,
+        BingoRound   $round,
+        BingoPattern $pattern,
+        string       $cardId,
+        int          $lastDrawId
+    ): ?array {
+        $roundId = (string) $round->id;
+        $cardPrize = null;
+
+        $winnerData = DB::transaction(function () use ($room, $round, $roundId, $pattern, $cardId, $lastDrawId, &$cardPrize) {
+            $card = BingoCard::where('id', $cardId)
+                ->lockForUpdate()
+                ->with(['roomUser.user', 'cardLot'])
+                ->first();
+
+            if (!$card || (int) $card->status !== BingoCard::STATUS_ACTIVE) {
+                // Ya fue reclamado por otro proceso (sorteo automático vs. check manual) o no existe.
+                return null;
+            }
+
+            $card->update(['status' => BingoCard::STATUS_WINNER]);
+
+            $userId   = $card->roomUser?->user_id ?? $card->creator_user_id;
+            $user     = $card->roomUser?->user ?? User::find($userId);
+            $userName = $user?->name ?? ('Jugador #' . $userId);
+
+            $prizeAmounts = $this->resolvePrizeAmounts($room, $round, $card);
+            $prize        = $prizeAmounts['usd_amount'];
+
+            $prizeType = match ($pattern->name) {
+                'Cartón Lleno', 'Full House' => 'full_house',
+                'Línea Simple', 'Single Line' => 'single_line',
+                default => 'serial',
+            };
+
+            $cardPrize = BingoCardPrize::create([
+                'room_id'           => (string) $room->id,
+                'creator_user_id'   => (string) ($userId ?? $card->creator_user_id),
+                'seller_user_id'    => $card->seller_user_id ? (string) $card->seller_user_id : null,
+                'seller_type'       => $card->seller_type,
+                'room_user_id'      => (string) $card->room_user_id,
+                'card_lot_id'       => (string) $card->card_lot_id,
+                'winning_card_id'   => (string) $card->id,
+                'currency_id'       => (string) $card->currency_id,
+                'round_id'          => $roundId,
+                'status'            => 'ACTIVE',
+                'prize_type'        => $prizeType,
+                'winning_pattern'   => $pattern->name,
+                'usd_amount'        => $prizeAmounts['usd_amount'],
+                'local_amount'      => $prizeAmounts['local_amount'],
+                'prize_status'      => 'waiting',
+                'verification_code' => strtoupper(substr(md5(uniqid($card->id . $roundId, true)), 0, 8)),
+            ]);
+
+            Log::info('[BingoDrawService] Premio registrado en bingo_card_prizes', [
+                'card_prize_id' => $cardPrize->id,
+                'card_id'       => $card->id,
+                'round_id'      => $roundId,
+                'round_number'  => $round->round,
+                'pattern'       => $pattern->name,
+                'prize_type'    => $prizeType,
+                'user_id'       => $userId,
+            ]);
+
+            broadcast(new BingoWinnerDeclared(
+                roomId:     (int) $room->id,
+                drawId:     $lastDrawId,
+                winnerId:   (int) $userId,
+                winnerName: $userName,
+                cardId:     (int) $card->id,
+                pattern:    $pattern->name,
+                prize:      $prize,
+            ));
+
+            $cardPrize->loadMissing('currency');
+            $localAmount = $cardPrize->local_amount;
+            $currency    = $cardPrize->currency;
+            $isoCode     = $currency?->iso_code ?? 'USD';
+            broadcast(new LiveWinEvent(
+                game:           'Bingo',
+                gameSlug:       'bingo',
+                winnerName:     $userName,
+                amount:         $prize,
+                currency:       $isoCode,
+                currencySymbol: $currency?->symbol ?? '$',
+                isUsd:          $isoCode === 'USD',
+                localAmount:    (float) $localAmount,
+                decimalPlaces:  $currency?->decimal_places ?? 2,
+                timestamp:      now()->toISOString(),
+            ));
+
+            return [
+                'user_id'       => (int) $userId,
+                'user_name'     => $userName,
+                'card_id'       => (string) $card->id,
+                'card_serial'   => $card->serial_number,
+                'card_prize_id' => (string) $cardPrize->id,
+                'prize'         => $prize,
+                'pattern'       => $pattern->name,
+                'round'         => $round->round,
+            ];
+        });
+
+        // Acreditar el premio a la wallet del ganador FUERA de la transacción de lock:
+        // si el pago falla, el registro del premio ya confirmado no debe revertirse —
+        // queda en prize_status = 'waiting' y puede reintentarse más tarde.
+        if ($winnerData !== null && $cardPrize !== null) {
+            $this->prizePayoutService->payout($cardPrize);
+        }
+
+        return $winnerData;
     }
 
     /**
@@ -599,10 +580,17 @@ final class BingoDrawService
 
     /**
      * Obtiene la tasa de cambio activa más reciente para una moneda.
+     * Cacheada en memoria por moneda durante la corrida actual del servicio:
+     * un sorteo puede tener decenas de cartones ganadores y todos comparten
+     * la misma tasa vigente en ese instante.
      */
     private function getActiveRate(string $currencyId): float
     {
-        return (float) ExchangeRate::where('currency_id', $currencyId)
+        if (array_key_exists($currencyId, $this->rateCache)) {
+            return $this->rateCache[$currencyId];
+        }
+
+        return $this->rateCache[$currencyId] = (float) ExchangeRate::where('currency_id', $currencyId)
             ->where('status', 'ACTIVE')
             ->orderBy('created_at', 'desc')
             ->value('amount');
