@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { Link } from "@inertiajs/vue3";
 import "@/css/games/bingo/bingo-in-game.css";
-import { getEchoInstance } from "@js/plugins/echo";
+import echo from "@js/plugins/echo";
 import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
 import { useAntiDebug } from "@js/composables/games/bingo/useAntiDebug";
 import { useBingoSound } from "@js/composables/games/bingo/useBingoSound";
@@ -94,6 +94,7 @@ interface Player { ctns: number }
 interface Props {
   title?: string;
   room: BingoRoom & { Config: { rounds?: number; bingo_patterns?: boolean } };
+  userId?: string | null;
   cartons?: BingoCard[];
   customerLogo?: string;
   currencySym?: string;
@@ -348,7 +349,7 @@ async function handleBingoDetected(card: BingoCard) {
 function handleWinnerDeclared(winner: WinnerInfo) {
   // Solo muestra si aún no se abrió el modal de fin de juego
   winnerInfo.value = winner;
-  isMyWin.value = winner.id === (props as any).userId;
+  isMyWin.value = String(winner.id) === String(props.userId);
 }
 
 function handleGameEnded(data: { has_winner: boolean; total_drawn: number; winners: any[]; prize: number; end_time: string }) {
@@ -367,8 +368,8 @@ function handleGameEnded(data: { has_winner: boolean; total_drawn: number; winne
     prize:      data.prize ?? 0,
     endTime:    data.end_time,
   };
-  const myId = (props as any).userId;
-  if (myId && data.winners?.some((w: any) => w.user_id === myId || String(w.user_id) === String(myId))) {
+  const myId = props.userId;
+  if (myId && data.winners?.some((w: any) => String(w.user_id) === String(myId))) {
     isMyWin.value = true;
   }
   showWinnerModal.value = true;
@@ -413,7 +414,12 @@ function closeCardViewer() {
 // ─────────────────────────────────────────────────────────────────────────────
 // WebSocket
 // ─────────────────────────────────────────────────────────────────────────────
-let channel: any = null;
+const ROOM_EVENTS = [
+  '.RoomUpdated', '.PlayerJoined', '.BingoNumberCalled', '.PlayersProgress',
+  '.GameStarted', '.WinnerDeclared', '.GameEnded', '.RoomTimeSync',
+] as const;
+
+let roomChannelName: string | null = null;
 
 function flash(target: Ref<boolean>) {
   target.value = true;
@@ -422,24 +428,25 @@ function flash(target: Ref<boolean>) {
 
 function subscribeToRoom() {
   if (!roomId.value) return;
-  const echo = getEchoInstance();
-  channel = echo.channel(`bingo.room.${roomId.value}`);
+
+  roomChannelName = `bingo.room.${roomId.value}`;
+  const channel = echo.channel(roomChannelName);
 
   // Prize pool / players count updated
-  channel.listen(".RoomUpdated", (e: { prizePool: number; totalPlayers: number }) => {
-    if (e.prizePool !== undefined) {
-      livePrize.value = e.prizePool;
+  channel.listen(".RoomUpdated", (e: { prize_pool: number; total_players: number }) => {
+    if (e.prize_pool !== undefined) {
+      livePrize.value = e.prize_pool;
       flash(prizeFlash);
     }
-    if (e.totalPlayers !== undefined) {
-      livePlayers.value = e.totalPlayers;
+    if (e.total_players !== undefined) {
+      livePlayers.value = e.total_players;
       flash(playersFlash);
     }
   });
 
   // Player joined
-  channel.listen(".PlayerJoined", (e: { currentPlayers: number }) => {
-    livePlayers.value = e.currentPlayers;
+  channel.listen(".PlayerJoined", (e: { current_players: number }) => {
+    livePlayers.value = e.current_players;
     flash(playersFlash);
   });
 
@@ -491,6 +498,14 @@ function subscribeToRoom() {
       console.log('[WebSocket] Tiempo sincronizado con servidor:', new Date(serverTimeMs).toISOString());
     }
   });
+}
+
+function unsubscribeFromRoom() {
+  if (!roomChannelName) return;
+  const channel = echo.channel(roomChannelName);
+  for (const event of ROOM_EVENTS) channel.stopListening(event);
+  echo.leaveChannel(roomChannelName);
+  roomChannelName = null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -596,7 +611,7 @@ onMounted(() => {
       prize:      props.prizePool ?? 0,
       endTime:    '',
     };
-    const myId = (props as any).userId;
+    const myId = props.userId;
     if (myId && props.initialWinners.some(w => String(w.user_id) === String(myId))) {
       isMyWin.value = true;
     }
@@ -606,10 +621,7 @@ onMounted(() => {
 onUnmounted(() => {
   stopCountdown();
   clearDrawTimer();
-  if (channel && roomId.value) {
-    const echo = getEchoInstance();
-    echo.leaveChannel(`bingo.room.${roomId.value}`);
-  }
+  unsubscribeFromRoom();
 });
 </script>
 
@@ -916,13 +928,13 @@ onUnmounted(() => {
                 v-for="(w, idx) in gameEndData?.winners ?? []"
                 :key="`pm-w-${w.card_id}-${idx}`"
                 class="gm-winner-card pm-winner-row"
-                :class="{ 'gm-winner-card--me': String(w.user_id) === String((props as any).userId) }"
+                :class="{ 'gm-winner-card--me': String(w.user_id) === String(props.userId) }"
               >
                 <div class="gm-winner-card__rank">#{{ idx + 1 }}</div>
                 <div class="gm-winner-card__info">
                   <div class="gm-winner-card__name">
                     {{ w.user_name }}
-                    <span v-if="String(w.user_id) === String((props as any).userId)" class="gm-winner-card__you">TÚ</span>
+                    <span v-if="String(w.user_id) === String(props.userId)" class="gm-winner-card__you">TÚ</span>
                   </div>
                   <div class="gm-winner-card__serial">
                     Cartón {{ w.card_serial }}
@@ -1074,13 +1086,13 @@ onUnmounted(() => {
               v-for="(w, idx) in gameEndData.winners"
               :key="w.card_id"
               class="gm-winner-card"
-              :class="{ 'gm-winner-card--me': String(w.user_id) === String((props as any).userId) }"
+              :class="{ 'gm-winner-card--me': String(w.user_id) === String(props.userId) }"
             >
               <div class="gm-winner-card__rank">#{{ idx + 1 }}</div>
               <div class="gm-winner-card__info">
                 <div class="gm-winner-card__name">
                   {{ w.user_name }}
-                  <span v-if="String(w.user_id) === String((props as any).userId)" class="gm-winner-card__you">TÚ</span>
+                  <span v-if="String(w.user_id) === String(props.userId)" class="gm-winner-card__you">TÚ</span>
                 </div>
                 <div class="gm-winner-card__serial">Cartón {{ w.card_serial }}</div>
               </div>

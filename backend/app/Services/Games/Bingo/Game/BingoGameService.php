@@ -116,6 +116,7 @@ final class BingoGameService
         $gameData = [
             'title' => 'Juego de Bingo',
             'room' => $bingoRoom,
+            'userId'       => $userId !== null ? (string) $userId : null,
             'roomId'       => (string) $bingoRoom->id,
             'roomRouteKey' => $bingoRoom->getRouteKey(),
             'gameVariant'  => $config?->game_variant ?? \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75,
