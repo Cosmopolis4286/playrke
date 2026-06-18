@@ -6,7 +6,6 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Models\Currency;
 use App\Models\Games\Common\GameRoom\CurrencyGameRoom;
-use App\Models\Wallet;
 use App\Services\Games\Bingo\Room\Utils\HandleBingoRoomsService;
 use App\Services\Games\Bingo\Room\Utils\RoomClosureService;
 use App\Services\Games\Bingo\Room\Utils\FinishedRoomService;
@@ -201,16 +200,13 @@ final class BingoCardGenerationService
                 $this->createCardPayment($arrCtn, $roomUserId, $lotID);
             }
 
-            // Descuento legacy de wallet — solo players internos sin playerLink
-            // (playerLink=true indica que el descuento lo maneja recordCardPurchase externamente)
-            if (($creator['type'] === 'player') && !isset($arrCtn['playerLink'])) {
-                $columnBalance = $currency == 1 ? 'usdt' : 'balance';
-                $walletUpdated = Wallet::where('user_id', $playerUser)->decrement($columnBalance, $saleAmount);
-                if ($walletUpdated === 0) {
-                    Log::error('Failed to discount balance', ['playerUser' => $playerUser, 'amount' => $saleAmount]);
-                    throw new DomainException('Error al descontar saldo del usuario');
-                }
-            }
+            // El descuento de billetera para jugadores internos NO ocurre aquí: el único
+            // caller que usa creator.type='player' (BingoCardGenerateService::playerBuyFromGameRooms)
+            // siempre marca playerLink=true y descuenta vía WalletService::recordCardPurchase()
+            // — que ya valida saldo y hace lockForUpdate() sobre la wallet dentro de su propia
+            // transacción. La columna 'usdt'/'saldo' del esquema legacy ya no existe en la
+            // tabla wallets actual (solo tiene 'balance'), así que ese descuento aquí nunca
+            // se ejecuta en la práctica y se eliminó para no mantener una ruta muerta.
 
             // Registrar moneda en la sala si aún no existe
             if ($gameModeId && !CurrencyGameRoom::existsCurrencyGameRoom($currency, $roomId, 'BINGO', $gameModeId)) {

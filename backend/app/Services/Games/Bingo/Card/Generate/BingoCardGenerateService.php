@@ -530,19 +530,7 @@ final class BingoCardGenerateService
 
         // 8. Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
         //    Recarga los datos frescos después del commit para garantizar consistencia.
-        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players', 'total_cards')
-            ->with('config:id,room_id,card_price_usd')
-            ->find($room->id);
-
-        if ($fresh) {
-            broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
-                roomId: (string) $fresh->id,
-                prizePool: (float)  $fresh->prize_pool,
-                totalPlayers: (int)    $fresh->total_players,
-                cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
-                totalCards: (int) $fresh->total_cards,
-            ));
-        }
+        $this->broadcastRoomUpdated((string) $room->id);
 
         return $result;
     }
@@ -643,42 +631,72 @@ final class BingoCardGenerateService
         });
 
         // Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
-        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players', 'total_cards')
-            ->with('config:id,room_id,card_price_usd')
-            ->find($room->id);
-
-        if ($fresh) {
-            broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
-                roomId: (string) $fresh->id,
-                prizePool: (float)  $fresh->prize_pool,
-                totalPlayers: (int)    $fresh->total_players,
-                cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
-                totalCards: (int) $fresh->total_cards,
-            ));
-        } else {
-            \Log::warning('BingoRoomUpdated: No se encontró la sala fresca en buyFromGameRooms', ['room_id' => $room->id]);
-        }
+        $fresh = $this->broadcastRoomUpdated((string) $room->id);
 
         // Notificar al usuario propietario de los cartones (canal privado) su nuevo total en esta sala,
         // junto con el precio y símbolo actualizados para que el frontend no requiera recarga.
-        $totalCtns = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $room->id)
-            ->where('user_id', $creatorUserId)
-            ->value('cards_purchased');
-
-        if ($totalCtns !== null) {
-            broadcast(new \App\Events\Games\Bingo\BingoPlayerRoomCardsUpdated(
-                userId:         (string) $creatorUserId,
-                roomId:         (string) $room->id,
-                ctns:           (int) $totalCtns,
-                cardPrice:      (float) $cardPrice,
-                currencySymbol: (string) $currencySymbol,
-            ));
-        }
+        $this->broadcastPlayerCardsUpdated((string) $room->id, $creatorUserId, (float) $cardPrice, (string) $currencySymbol);
 
         return array_merge($result, [
             'prize_pool' => $fresh?->prize_pool ?? $room->prize_pool,
             'currency' => $currencySymbol,
         ]);
+    }
+
+    /**
+     * Recarga la sala con sus métricas frescas tras una compra de cartones y emite el
+     * broadcast `BingoRoomUpdated` (canal público de la sala). Devuelve la sala fresca
+     * para que el caller pueda usar su prize_pool actualizado en la respuesta HTTP.
+     *
+     * Se llama siempre fuera de la transacción de compra, para garantizar que el commit
+     * ya ocurrió y los datos emitidos por WebSocket coinciden con lo persistido.
+     */
+    private function broadcastRoomUpdated(string $roomId, bool $toOthers = false): ?BingoRoom
+    {
+        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players', 'total_cards')
+            ->with('config:id,room_id,card_price_usd')
+            ->find($roomId);
+
+        if (!$fresh) {
+            \Log::warning('BingoRoomUpdated: No se encontró la sala fresca tras la compra', ['room_id' => $roomId]);
+            return null;
+        }
+
+        $event = new \App\Events\Games\Bingo\BingoRoomUpdated(
+            roomId:       (string) $fresh->id,
+            prizePool:    (float)  $fresh->prize_pool,
+            totalPlayers: (int)    $fresh->total_players,
+            cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
+            totalCards:   (int)    $fresh->total_cards,
+        );
+
+        $toOthers ? broadcast($event)->toOthers() : broadcast($event);
+
+        return $fresh;
+    }
+
+    /**
+     * Notifica al comprador (canal privado `bingo.player.{userId}`) su nuevo total de
+     * cartones en la sala, junto con el precio/moneda vigentes, para que el frontend
+     * actualice sin recargar la página.
+     */
+    private function broadcastPlayerCardsUpdated(string $roomId, int|string $userId, float $cardPrice, string $currencySymbol): void
+    {
+        $totalCtns = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $roomId)
+            ->where('user_id', $userId)
+            ->value('cards_purchased');
+
+        if ($totalCtns === null) {
+            return;
+        }
+
+        broadcast(new \App\Events\Games\Bingo\BingoPlayerRoomCardsUpdated(
+            userId:         (string) $userId,
+            roomId:         (string) $roomId,
+            ctns:           (int) $totalCtns,
+            cardPrice:      $cardPrice,
+            currencySymbol: $currencySymbol,
+        ));
     }
 
     /**
@@ -811,9 +829,8 @@ final class BingoCardGenerateService
             throw new DomainException('Saldo insuficiente en la billetera. Saldo actual: ' . $currentBalance . ', Monto requerido: ' . $totalAmount);
         }
 
-        // Preparar array para cartonStore
-        // Usamos type='player' para que generateCards omita el descuento de wallet legacy
-        // (Wallet::decrement por columna). El descuento real lo hace recordCardPurchase abajo.
+        // Preparar array para cartonStore. El descuento de billetera no ocurre en
+        // generateCards() — lo hace recordCardPurchase() abajo, con lock sobre la wallet.
         $arrCtn = [
             'roomId'         => $roomId,
             'creator'        => ['id' => $userId, 'type' => 'player'],
@@ -842,35 +859,11 @@ final class BingoCardGenerateService
         $this->walletService->recordCardPurchase($playerWallet->id, $totalAmount, $description);
 
         // Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
-        $fresh = BingoRoom::select('id', 'prize_pool', 'total_players', 'total_cards')
-            ->with('config:id,room_id,card_price_usd')
-            ->find($room->id);
-
-        if ($fresh) {
-            broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
-                roomId:       (string) $fresh->id,
-                prizePool:    (float)  $fresh->prize_pool,
-                totalPlayers: (int)    $fresh->total_players,
-                cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
-                totalCards:   (int)    $fresh->total_cards,
-            ))->toOthers();
-        }
+        $fresh = $this->broadcastRoomUpdated($roomId, toOthers: true);
 
         // Notificar al jugador (canal privado) su nuevo total de cartones en esta sala,
         // junto con el precio y símbolo actualizados para que el frontend no requiera recarga.
-        $totalCtns = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $roomId)
-            ->where('user_id', $userId)
-            ->value('cards_purchased');
-
-        if ($totalCtns !== null) {
-            broadcast(new \App\Events\Games\Bingo\BingoPlayerRoomCardsUpdated(
-                userId:         (string) $userId,
-                roomId:         (string) $roomId,
-                ctns:           (int) $totalCtns,
-                cardPrice:      (float) $priceInfo['card_price'],
-                currencySymbol: (string) $priceInfo['currency_symbol'],
-            ));
-        }
+        $this->broadcastPlayerCardsUpdated($roomId, $userId, (float) $priceInfo['card_price'], (string) $priceInfo['currency_symbol']);
 
         return [
             'message'        => 'Cartones generados exitosamente',
