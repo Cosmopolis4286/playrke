@@ -83,7 +83,8 @@ final class BingoPrizePayoutService
 
     /**
      * Deja constancia del intento fallido sin tocar prize_status — el premio
-     * sigue en 'waiting' y puede reintentarse (ver comando de reintento).
+     * sigue en 'waiting' y se reintenta vía bingo:retry-failed-prize-payouts
+     * (programado cada 5 minutos en routes/console.php).
      */
     private function recordFailedPayment(BingoCardPrize $cardPrize, string $reason): void
     {

@@ -26,6 +26,12 @@ Schedule::command('validate:transactions')
     ->everyFiveMinutes()
     ->appendOutputTo(storage_path('logs/schedule.log'));
 
+Schedule::command('bingo:retry-failed-prize-payouts')
+    ->timezone('UTC')
+    ->withoutOverlapping()
+    ->everyFiveMinutes()
+    ->appendOutputTo(storage_path('logs/schedule.log'));
+
 Schedule::command('generate:bingo-rooms')
     ->timezone('UTC')
     ->hourly()
