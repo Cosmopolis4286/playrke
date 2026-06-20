@@ -15,7 +15,6 @@ use App\Http\Controllers\Controller;
 use App\Models\BingoCreator;
 use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
 use App\Models\BingoCtnsPayment;
-use App\Models\BingoPrizeCtns;
 use App\Models\Currency;
 use App\Models\Commerce;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
@@ -180,19 +179,6 @@ class SellerController extends Controller
             // Manejar cualquier excepción que ocurra y retornar un error del servidor
             return response()->json(['error' => 'Ha ocurrido un error al procesar la solicitud.'], 500);
         }
-    }
-
-    public function getWinnerInfoForCtn($ctnId)
-    {
-        $ctnId = decrypt($ctnId);
-        $roomUser = BingoPrizeCtns::getValueById($ctnId, 'room_user');
-        $player = ExternalPlayers::getByRoomUser('BINGO', $roomUser, ['name', 'lastname', 'phone']);
-
-        return json_encode(array(
-            'name' => $player->name,
-            'lastname' => $player->lastname,
-            'phone' => $player->phone
-        ));
     }
 
     public function getPlayerInfo($playerLink) // Obtención de la información jugador

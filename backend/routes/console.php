@@ -8,12 +8,6 @@ Schedule::command('check:expired-bingo-rooms')
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/schedule.log'));
 
-Schedule::command('handle:bingo-rooms')
-    ->timezone('UTC')
-    ->everyMinute()
-    ->withoutOverlapping()
-    ->appendOutputTo(storage_path('logs/schedule.log'));
-
 Schedule::command('bingo:start-pending-draws')
     ->timezone('UTC')
     ->everyMinute()

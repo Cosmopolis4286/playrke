@@ -6,13 +6,6 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Models\Currency;
 use App\Models\Games\Common\GameRoom\CurrencyGameRoom;
-use App\Services\Games\Bingo\Room\Utils\HandleBingoRoomsService;
-use App\Services\Games\Bingo\Room\Utils\RoomClosureService;
-use App\Services\Games\Bingo\Room\Utils\FinishedRoomService;
-use App\Services\Games\Bingo\Round\RoundsService;
-use App\Services\Games\Bingo\Card\PrizeCartonService;
-use App\Services\Games\Bingo\Round\RoundsService as BingoRoundsService;
-use App\Services\Games\Bingo\Card\Customer\CustomerCartonService;
 use App\Services\Games\Bingo\Room\User\RoomUserRegistrationService;
 use App\Services\Games\Bingo\Room\Validation\RoomValidationService;
 use App\Services\Games\Bingo\Payment\CommissionCalculationService;
@@ -34,7 +27,6 @@ use DomainException;
  */
 final class BingoCardGenerationService
 {
-    private HandleBingoRoomsService $handleBingoRooms;
     private RoomUserRegistrationService $roomUserRegistration;
     private RoomValidationService $roomValidation;
     private CommissionCalculationService $commissionCalculation;
@@ -42,19 +34,12 @@ final class BingoCardGenerationService
     private BingoCardManagementService $cardManagement;
 
     public function __construct(
-        BingoRoundsService $roundsService,
-        PrizeCartonService $prizeCartonService,
-        CustomerCartonService $customerCartonService,
         RoomUserRegistrationService $roomUserRegistration,
         RoomValidationService $roomValidation,
         CommissionCalculationService $commissionCalculation,
         RoomMetricsService $roomMetrics,
         BingoCardManagementService $cardManagement
     ) {
-        $closureService = new RoomClosureService($roundsService, $prizeCartonService);
-        // Temporalmente sin BingoWinnerService hasta resolver autocarga
-        $finishedService = new FinishedRoomService($roundsService, $customerCartonService, null);
-        $this->handleBingoRooms = new HandleBingoRoomsService($closureService, $finishedService);
         $this->roomUserRegistration = $roomUserRegistration;
         $this->roomValidation = $roomValidation;
         $this->commissionCalculation = $commissionCalculation;
@@ -72,9 +57,6 @@ final class BingoCardGenerationService
     public function generateCards(array $arrCtn): array
     {
         Log::info('generateCards started', ['arrCtn' => $arrCtn]);
-        
-        // Validar cierre de sala
-        $this->handleBingoRooms->checkRoomClosure();
 
         $roomId = $arrCtn['roomId'];
 

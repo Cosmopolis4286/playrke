@@ -154,15 +154,6 @@ if (app()->environment('local')) {
 
 /**
  * ====================================
- * TESTING Y DESARROLLO
- * ====================================
- */
-route_group('bingo-test', 'bingo-test.', ['auth', 'multiPermission:superadmin.access'], BingoTestingController::class, [
-    'generate-draw' => ['method' => 'get', 'uri' => 'generate-draw', 'action' => 'generateDraw']
-]);
-
-/**
- * ====================================
  * REPORTES Y ESTADÍSTICAS
  * ====================================
  */
