@@ -69,7 +69,7 @@
 
         {{-- Chips de acceso rápido según rol --}}
         <div class="nb-quick-chips d-none d-lg-flex">
-            @if (auth()->user()?->hasAnyRole(['admin','superadmin']))
+            @if (auth()->user()?->hasRole(['admin','superadmin']))
                 <a href="{{ route('wallet-movements.index') }}" class="nb-qchip nb-qchip--finance" title="Movimientos pendientes">
                     <i class="fas fa-exchange-alt"></i>
                     <span>Movimientos</span>

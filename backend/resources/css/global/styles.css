@@ -166,16 +166,16 @@ body::-webkit-scrollbar-thumb {
   min-height: 0;
 }
 
-/* Compensar la altura del navbar custom (56px) + ticker de ganadores (36px): se aplica como
-   padding-top al área scrolleable para no restar espacio al footer dentro del wrapper vh-100 */
+/* Compensar la altura del navbar custom (56px); el ticker de ganadores es fixed y solo
+   suma su propia altura cuando está realmente visible (clase añadida por Vue al montar). */
 .layout-fixed .wrapper .content-wrapper #content-scrollable {
-  padding-top: 92px;
+  padding-top: 56px;
   transition: padding-top .2s ease-in-out;
 }
 
-/* Ticker de ganadores ocultado manualmente por el usuario */
-body.lwt-collapsed.layout-fixed .wrapper .content-wrapper #content-scrollable {
-  padding-top: 56px;
+/* Ticker de ganadores visible: reserva el espacio bajo el navbar para que no tape el contenido */
+body.lwt-active.layout-fixed .wrapper .content-wrapper #content-scrollable {
+  padding-top: 92px;
 }
 
 /* ── Scrollbar del área de contenido: degradado cósmico (verde → azul → violeta) ── */
@@ -831,11 +831,11 @@ aside.main-sidebar .sidebar {
   overflow-y: auto;
 }
 
-/* ── Separación entre el logo y el menú de navegación ── */
+/* ── Separación entre el logo y el menú de navegación: solo el acento de color, sin hr gris ni espacio extra ── */
 aside.main-sidebar .sidebar.mt-2 {
-  margin-top: 0.75rem !important;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 0 !important;
+  padding-top: 0;
+  border-top: none;
 }
 
 /* ── Contraste de items de navegación inactivos ── */
@@ -886,17 +886,24 @@ aside.main-sidebar .sidebar.mt-2 {
   flex-shrink: 0;
   overflow: hidden;
   position: relative;
-  /* Fondo space: nebulosa profunda */
+  /* Fondo space: nebulosa profunda + campo de estrellas */
   background:
-    radial-gradient(ellipse at 20% 50%, rgba(123,79,255,0.22) 0%, transparent 55%),
-    radial-gradient(ellipse at 80% 20%, rgba(0,158,253,0.18) 0%, transparent 50%),
-    radial-gradient(ellipse at 60% 90%, rgba(42,245,152,0.10) 0%, transparent 45%),
+    radial-gradient(1.5px 1.5px at 15% 25%, rgba(255,255,255,0.9) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30% 70%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 50% 20%, rgba(255,255,255,0.8) 0%, transparent 100%),
+    radial-gradient(1px 1px at 68% 60%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 82% 35%, rgba(255,255,255,0.9) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 75%, rgba(255,255,255,0.65) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 85%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1px 1px at 8% 55%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(ellipse at 20% 50%, rgba(123,79,255,0.28) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 20%, rgba(0,158,253,0.22) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 90%, rgba(42,245,152,0.14) 0%, transparent 45%),
     linear-gradient(160deg, #0d0b2b 0%, #0a0535 50%, #050220 100%);
-  /* Borde inferior tipo acento degradado */
   border-bottom: none;
 }
 
-/* Borde inferior con degradado luminoso */
+/* Borde inferior con degradado luminoso (único separador visible) */
 .menu-image-play.cold::after {
   content: '';
   position: absolute;
@@ -905,27 +912,18 @@ aside.main-sidebar .sidebar.mt-2 {
   bottom: 0;
   height: 2px;
   background: linear-gradient(90deg, transparent 0%, #7b4fff 20%, #2af598 50%, #009efd 80%, transparent 100%);
-  opacity: 0.7;
+  opacity: 0.8;
+  box-shadow: 0 0 8px rgba(42,245,152,0.4);
 }
 
-/* Partículas/estrellas decorativas (pseudoelemento) */
-.menu-image-play.cold::before {
-  content: '· · ✦ · · ✧ · ✦ · · ✧ · · ✦ ·';
-  position: absolute;
-  top: 4px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 7px;
-  color: rgba(255,255,255,0.12);
-  letter-spacing: 2px;
-  pointer-events: none;
-  animation: starTwinkle 4s ease-in-out infinite;
+/* Twinkle del campo de estrellas */
+.menu-image-play.cold {
+  animation: starsTwinkle 5s ease-in-out infinite;
 }
 
-@keyframes starTwinkle {
-  0%, 100% { opacity: 0.12; }
-  50%       { opacity: 0.28; }
+@keyframes starsTwinkle {
+  0%, 100% { background-position: 0 0; filter: brightness(1); }
+  50%       { background-position: 0 0; filter: brightness(1.15); }
 }
 
 .menu-image-play.cold .brand-image {

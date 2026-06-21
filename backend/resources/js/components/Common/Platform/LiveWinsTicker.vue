@@ -27,9 +27,10 @@ const { wins, formatWinAmount, maskName } = useLiveWins()
 
 const collapsed = ref(localStorage.getItem(COLLAPSE_STORAGE_KEY) === '1')
 
-// El espacio reservado bajo el navbar solo tiene sentido si hay algo que mostrar
+// El espacio bajo el navbar solo se reserva cuando el panel está realmente visible.
+// Por defecto (antes de montar, sin datos, o colapsado) no debe quedar hueco en blanco.
 watchEffect(() => {
-  document.body.classList.toggle('lwt-collapsed', collapsed.value || wins.value.length === 0)
+  document.body.classList.toggle('lwt-active', wins.value.length > 0 && !collapsed.value)
 })
 
 function collapse(): void {

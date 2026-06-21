@@ -76,6 +76,8 @@ export interface DashboardSectionProps {
 export interface WelcomeBannerProps {
     userName: string
     roleName?: string
+    /** Clave de rol para variar el acento de color del banner (superadmin, admin, treasurer, seller, commerce, player) */
+    roleKey?: string
     message?: string
     /** Acciones rápidas */
     actions?: WelcomeBannerAction[]
