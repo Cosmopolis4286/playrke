@@ -148,16 +148,15 @@ body::-webkit-scrollbar-thumb:hover {
   min-height: 0;
 }
 
-/* Compensar la altura del navbar custom (56px); el ticker de ganadores es fixed y solo
-   suma su propia altura cuando está realmente visible (clase añadida por Vue al montar). */
-.layout-fixed .wrapper .content-wrapper #content-scrollable {
-  padding-top: 56px;
-  transition: padding-top .2s ease-in-out;
+/* Compensar la altura del navbar custom (56px) + la altura real medida del ticker de
+   ganadores (--lwt-height, fijada por LiveWinsTicker.vue; es '0px' cuando no hay panel
+   visible, así que nunca se reserva espacio de más). */
+:root {
+  --lwt-height: 0px;
 }
-
-/* Ticker de ganadores visible: reserva el espacio bajo el navbar para que no tape el contenido */
-body.lwt-active.layout-fixed .wrapper .content-wrapper #content-scrollable {
-  padding-top: 92px;
+.layout-fixed .wrapper .content-wrapper #content-scrollable {
+  padding-top: calc(56px + var(--lwt-height));
+  transition: padding-top .2s ease-in-out;
 }
 
 /* ── Scrollbar del área de contenido: degradado cósmico (verde → azul → violeta) ── */
@@ -811,6 +810,29 @@ aside.main-sidebar .sidebar {
   flex: 1;
   height: auto !important;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 130, 255, 0.45) transparent;
+}
+
+aside.main-sidebar .sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+aside.main-sidebar .sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+aside.main-sidebar .sidebar::-webkit-scrollbar-thumb {
+  background: rgba(168, 130, 255, 0.45);
+  border-radius: 999px;
+}
+
+aside.main-sidebar .sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(190, 155, 255, 0.7);
+}
+
+aside.main-sidebar .sidebar::-webkit-scrollbar-button {
+  display: none;
 }
 
 /* ── Separación entre el logo y el menú de navegación: solo el acento de color, sin hr gris ni espacio extra ── */
