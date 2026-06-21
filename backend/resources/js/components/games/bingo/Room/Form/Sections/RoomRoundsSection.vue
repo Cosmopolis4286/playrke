@@ -185,6 +185,122 @@
       @update:modelValue="emit('update:roundsPct', $event)"
     />
 
+    <!-- Cartón personalizado -->
+    <div class="col-12">
+      <hr style="margin: 0.25rem 0 0.75rem" />
+      <div class="d-flex align-items-center flex-wrap" style="gap: 1.25rem">
+        <!-- Toggle -->
+        <div class="custom-control custom-switch" style="padding-left: 2.25rem; flex-shrink: 0">
+          <input
+            id="allow_custom_card"
+            name="allow_custom_card"
+            type="checkbox"
+            class="custom-control-input"
+            :checked="(modelValue as any).allowCustomCard ?? false"
+            @change="
+              emit('update:modelValue', {
+                ...modelValue,
+                allowCustomCard: ($event.target as HTMLInputElement).checked,
+                ...(!($event.target as HTMLInputElement).checked ? { customCardPricePct: null } : {})
+              } as any)
+            "
+          />
+          <label class="custom-control-label" for="allow_custom_card" style="font-weight: 500">
+            Permitir cartón personalizado
+          </label>
+        </div>
+
+        <template v-if="(modelValue as any).allowCustomCard">
+          <!-- Precio cartón personalizado -->
+          <div>
+            <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
+              Precio cartón personalizado <span class="text-danger">*</span>
+            </label>
+            <div class="input-group input-group-sm" style="width: 130px">
+              <input
+                name="custom_card_price_pct"
+                type="number"
+                :class="['form-control', { 'is-invalid': (errors as any).customCardPricePct }]"
+                placeholder="Ej: 5"
+                :step="0.25"
+                :min="1"
+                :max="10"
+                :value="(modelValue as any).customCardPricePct ?? ''"
+                @change="
+                  emit('update:modelValue', {
+                    ...modelValue,
+                    customCardPricePct: ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)
+                  } as any)
+                "
+              />
+              <div class="input-group-append">
+                <span class="input-group-text">%</span>
+              </div>
+            </div>
+            <small v-if="(errors as any).customCardPricePct" class="text-danger" style="font-size: 0.72rem">
+              {{ (errors as any).customCardPricePct }}
+            </small>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- Cartón especial -->
+    <div class="col-12">
+      <hr style="margin: 0.25rem 0 0.75rem" />
+      <div class="d-flex align-items-center flex-wrap" style="gap: 1.25rem">
+        <!-- Toggle -->
+        <div class="custom-control custom-switch" style="padding-left: 2.25rem; flex-shrink: 0">
+          <input
+            id="allow_special_card"
+            name="allow_special_card"
+            type="checkbox"
+            class="custom-control-input"
+            :checked="(modelValue as any).allowSpecialCard ?? false"
+            @change="
+              emit('update:modelValue', {
+                ...modelValue,
+                allowSpecialCard: ($event.target as HTMLInputElement).checked,
+                ...(!($event.target as HTMLInputElement).checked ? { maxSpecialCards: null } : {})
+              } as any)
+            "
+          />
+          <label class="custom-control-label" for="allow_special_card" style="font-weight: 500">
+            Permitir cartón especial
+          </label>
+        </div>
+
+        <template v-if="(modelValue as any).allowSpecialCard">
+          <!-- Máx. cartones especiales -->
+          <div>
+            <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
+              Máx. cartones especiales <span class="text-danger">*</span>
+            </label>
+            <input
+              name="max_special_cards"
+              type="number"
+              :class="['form-control form-control-sm', { 'is-invalid': (errors as any).maxSpecialCards }]"
+              placeholder="Ej: 3"
+              :step="1"
+              :min="1"
+              :max="5"
+              style="width: 110px"
+              :value="(modelValue as any).maxSpecialCards ?? ''"
+              @change="
+                emit('update:modelValue', {
+                  ...modelValue,
+                  maxSpecialCards: ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)
+                } as any)
+              "
+            />
+            <small v-if="(errors as any).maxSpecialCards" class="text-danger" style="font-size: 0.72rem">
+              {{ (errors as any).maxSpecialCards }}
+            </small>
+          </div>
+        </template>
+      </div>
+    </div>
+
     <!-- Configuración avanzada de rondas -->
     <div class="col-12" v-show="roundsConfigActive" style="margin-top: 0.5rem; margin-bottom: 1rem">
       <div
