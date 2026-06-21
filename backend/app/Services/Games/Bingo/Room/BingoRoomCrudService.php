@@ -368,8 +368,8 @@ class BingoRoomCrudService
             'num_serials'             => $dto->numSerials ?? null,
             'jackpot_pct'             => $dto->jackpotPct ?? null,
             'allow_custom_card'       => $dto->allowCustomCard ?? false,
-            'custom_card_price'       => $dto->customCardPrice ?? null,
-            'max_custom_cards'        => $dto->maxCustomCards ?? null,
+            'custom_card_price_pct'   => $dto->customCardPricePct ?? null,
+            'max_special_cards'       => $dto->maxSpecialCards ?? null,
         ];
 
         // start_mode: editable tanto en creación como en actualización — el anfitrión

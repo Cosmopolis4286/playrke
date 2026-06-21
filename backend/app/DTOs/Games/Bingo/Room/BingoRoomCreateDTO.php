@@ -40,8 +40,8 @@ final class BingoRoomCreateDTO
         public readonly bool $roomsPerCurrency = false,
         public readonly bool $isSplitRoom = false,
         public readonly bool $allowCustomCard = false,
-        public readonly ?float $customCardPrice = null,
-        public readonly ?int $maxCustomCards = null,
+        public readonly ?float $customCardPricePct = null,
+        public readonly ?int $maxSpecialCards = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -85,8 +85,8 @@ final class BingoRoomCreateDTO
             roomsPerCurrency: (bool) ($data['roomsPerCurrency'] ?? false),
             isSplitRoom: (bool) ($data['isSplitRoom'] ?? false),
             allowCustomCard: (bool) ($data['allowCustomCard'] ?? false),
-            customCardPrice: isset($data['customCardPrice']) ? (float) $data['customCardPrice'] : null,
-            maxCustomCards: isset($data['maxCustomCards']) ? (int) $data['maxCustomCards'] : null,
+            customCardPricePct: isset($data['customCardPricePct']) ? (float) $data['customCardPricePct'] : null,
+            maxSpecialCards: isset($data['maxSpecialCards']) ? (int) $data['maxSpecialCards'] : null,
         );
     }
 }

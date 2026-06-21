@@ -149,8 +149,8 @@ export interface BingoRoom {
         in_live?: string | null
         unix_date?: number | null
         allow_custom_card?: boolean
-        custom_card_price?: number | string | null
-        max_custom_cards?: number | null
+        custom_card_price_pct?: number | string | null
+        max_special_cards?: number | null
     } | null
 
     // Precios por moneda (cargados en show)
@@ -238,6 +238,6 @@ export interface BingoRoomFormData {
     cardPriceByCurrency?: Record<string, number | null>
     activateRoom?: boolean
     allowCustomCard?: boolean
-    customCardPrice?: number | null
-    maxCustomCards?: number | null
+    customCardPricePct?: number | null
+    maxSpecialCards?: number | null
 }

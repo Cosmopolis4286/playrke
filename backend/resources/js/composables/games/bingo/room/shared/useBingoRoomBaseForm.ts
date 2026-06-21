@@ -190,13 +190,13 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
         }
 
         if ((form.value as any).allowCustomCard) {
-            const price = Number((form.value as any).customCardPrice)
-            if (!price || price < 1 || price > 10) {
-                e.customCardPrice = 'El precio del cartón personalizado debe estar entre 1 y 10.'
+            const pricePct = Number((form.value as any).customCardPricePct)
+            if (!pricePct || pricePct < 1 || pricePct > 10) {
+                e.customCardPricePct = 'El % del precio del cartón personalizado debe estar entre 1 y 10.'
             }
-            const maxCards = Number((form.value as any).maxCustomCards)
-            if (!maxCards || !Number.isInteger(maxCards) || maxCards < 1 || maxCards > 5) {
-                e.maxCustomCards = 'La cantidad de cartones personalizados debe ser un entero entre 1 y 5.'
+            const maxSpecialCards = Number((form.value as any).maxSpecialCards)
+            if (!maxSpecialCards || !Number.isInteger(maxSpecialCards) || maxSpecialCards < 1 || maxSpecialCards > 5) {
+                e.maxSpecialCards = 'La cantidad de cartones especiales debe ser un entero entre 1 y 5.'
             }
         }
 

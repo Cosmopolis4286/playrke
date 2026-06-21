@@ -81,8 +81,8 @@ class BingoRoomRequest extends BaseRequest
 
             // Cartón personalizado
             'allowCustomCard'             => ['boolean'],
-            'customCardPrice'             => ['nullable', 'numeric', 'min:1', 'max:10'],
-            'maxCustomCards'              => ['nullable', 'integer', 'min:1', 'max:5'],
+            'customCardPricePct'          => ['nullable', 'numeric', 'min:1', 'max:10'],
+            'maxSpecialCards'             => ['nullable', 'integer', 'min:1', 'max:5'],
 
             // Configuración de rondas
             'roundsConfig'                                  => ['nullable', 'array'],

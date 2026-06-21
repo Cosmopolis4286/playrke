@@ -53,8 +53,8 @@ class BingoRoomConfig extends Model
         'num_serials',
         'jackpot_pct',
         'allow_custom_card',
-        'custom_card_price',
-        'max_custom_cards',
+        'custom_card_price_pct',
+        'max_special_cards',
     ];
 
     protected $casts = [
@@ -86,8 +86,8 @@ class BingoRoomConfig extends Model
         'num_serials'             => 'integer',
         'min_cards_to_start'      => 'integer',
         'allow_custom_card'       => 'boolean',
-        'custom_card_price'       => 'decimal:2',
-        'max_custom_cards'        => 'integer',
+        'custom_card_price_pct'   => 'decimal:2',
+        'max_special_cards'       => 'integer',
     ];
 
     /**

@@ -108,8 +108,8 @@ class BingoRoomResource extends JsonResource
                 'num_serials'             => $config->num_serials,
                 'in_live'                 => $config->in_live,
                 'allow_custom_card'       => $config->allow_custom_card,
-                'custom_card_price'       => $config->custom_card_price,
-                'max_custom_cards'        => $config->max_custom_cards,
+                'custom_card_price_pct'   => $config->custom_card_price_pct,
+                'max_special_cards'       => $config->max_special_cards,
             ] : null,
         ];
     }

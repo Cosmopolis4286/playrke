@@ -3,6 +3,7 @@
 
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
+  import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
 
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
   import type {
@@ -267,27 +268,26 @@ import { SelectOption } from '@/js/types/common/form/form'
     />
 
     <!-- Cartón personalizado -->
-    <FormInput
+    <FormSwitch
       label="Permitir cartón personalizado"
       name="allow_custom_card"
-      type="checkbox"
       col="col-sm-6 col-md-4 col-lg-3"
       :modelValue="(modelValue as any).allowCustomCard ?? false"
       @update:modelValue="
         emit('update:modelValue', {
           ...modelValue,
           allowCustomCard: $event,
-          ...(!$event ? { customCardPrice: null, maxCustomCards: null } : {})
+          ...(!$event ? { customCardPricePct: null, maxSpecialCards: null } : {})
         } as any)
       "
     />
 
-    <!-- Precio cartón personalizado -->
+    <!-- % adicional sobre el precio base de la moneda, aplicado al comprar el cartón personalizado -->
     <FormInput
       v-if="(modelValue as any).allowCustomCard"
       label="Precio cartón personalizado"
-      name="custom_card_price"
-      :error="(errors as any).customCardPrice"
+      name="custom_card_price_pct"
+      :error="(errors as any).customCardPricePct"
       type="number"
       required
       :step="0.01"
@@ -295,36 +295,36 @@ import { SelectOption } from '@/js/types/common/form/form'
       :max="10"
       col="col-sm-6 col-md-4 col-lg-3"
       inputGroup
-      :modelValue="(modelValue as any).customCardPrice ?? null"
+      :modelValue="(modelValue as any).customCardPricePct ?? null"
       @update:modelValue="
         emit('update:modelValue', {
           ...modelValue,
-          customCardPrice: $event === '' || $event === null ? null : Number($event)
+          customCardPricePct: $event === '' || $event === null ? null : Number($event)
         } as any)
       "
     >
-      <template #prepend>
-        <span class="input-group-text">$</span>
+      <template #append>
+        <span class="input-group-text">%</span>
       </template>
     </FormInput>
 
-    <!-- Máx. cartones personalizados -->
+    <!-- Máx. cartones especiales -->
     <FormInput
       v-if="(modelValue as any).allowCustomCard"
-      label="Máx. cartones personalizados"
-      name="max_custom_cards"
-      :error="(errors as any).maxCustomCards"
+      label="Máx. cartones especiales"
+      name="max_special_cards"
+      :error="(errors as any).maxSpecialCards"
       type="number"
       required
       :step="1"
       :min="1"
       :max="5"
       col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="(modelValue as any).maxCustomCards ?? null"
+      :modelValue="(modelValue as any).maxSpecialCards ?? null"
       @update:modelValue="
         emit('update:modelValue', {
           ...modelValue,
-          maxCustomCards: $event === '' || $event === null ? null : Number($event)
+          maxSpecialCards: $event === '' || $event === null ? null : Number($event)
         } as any)
       "
     />
