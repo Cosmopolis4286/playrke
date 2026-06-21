@@ -63,3 +63,12 @@ Broadcast::channel('bingo.room.{roomId}.presence', function ($user, $roomId) {
         'username' => $user->username,
     ];
 });
+
+// Presence Channel global: cualquier usuario autenticado se une al cargar la SPA,
+// permite que los dashboards de Admin/SuperAdmin cuenten usuarios en línea en vivo.
+Broadcast::channel('online-users', function ($user) {
+    return [
+        'id'       => (string) $user->id,
+        'username' => $user->username,
+    ];
+});

@@ -26,6 +26,7 @@
   import axios                         from 'axios'
   import { useSuperAdminDashboard }   from '@/js/composables/roles/superadmin/dashboard/useSuperAdminDashboard'
   import { useAdminActivityRealtime } from '@/js/composables/common/dashboard/useAdminActivityRealtime'
+  import { onlineCount, isPresenceLive } from '@/js/composables/realtime/useOnlinePresence'
 
   // ==========================================================================
   // Types
@@ -326,13 +327,16 @@
         <template #highlights>
           <div class="wb-stat">
             <span class="wb-stat__label">
-              Usuarios
-              <span v-if="isLive" class="wb-live-dot" title="Escuchando en vivo"></span>
+              En línea
+              <span v-if="isPresenceLive" class="wb-live-dot" title="Conteo en vivo"></span>
             </span>
-            <span class="wb-stat__value">{{ entityCounts?.reduce((sum, e) => sum + e.value, 0) ?? '—' }}</span>
+            <span class="wb-stat__value wb-stat__value--success">{{ onlineCount }}</span>
           </div>
           <div class="wb-stat">
-            <span class="wb-stat__label">Nuevos hoy</span>
+            <span class="wb-stat__label">
+              Nuevos hoy
+              <span v-if="isLive" class="wb-live-dot" title="Escuchando en vivo"></span>
+            </span>
             <span class="wb-stat__value wb-stat__value--accent">{{ newUsersToday }}</span>
           </div>
           <div class="wb-stat" v-if="rkeSummary">
@@ -693,7 +697,7 @@
 /* Highlights del welcome banner */
 .wb-stat { display: flex; flex-direction: column; gap: 1px; }
 .wb-stat__label { font-size: 0.68rem; color: #8a94a6; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
-.wb-stat__value { font-size: 0.95rem; font-weight: 700; color: #1a202c; transition: color 0.2s; }
+.wb-stat__value { font-size: 0.8rem; font-weight: 700; color: #1a202c; transition: color 0.2s; }
 .wb-stat__value--accent  { color: #7c3aed; }
 .wb-stat__value--success { color: #16a34a; }
 

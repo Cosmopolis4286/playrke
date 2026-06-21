@@ -99,6 +99,7 @@ class HandleInertiaRequests extends Middleware
                     'id'                  => $user->id,
                     'name'                => $user->name,
                     'email'               => $user->email,
+                    'avatar_url'          => $user->profile_photo_url ?: asset('img/fav.ico'),
                     'kyc_level'           => (int) ($user->kyc_level ?? 0),
                     'kyc_status'          => $user->kyc_status ?? 'NONE',
                     'tos_needs_acceptance'=> $this->tosService->needsAcceptance($user),

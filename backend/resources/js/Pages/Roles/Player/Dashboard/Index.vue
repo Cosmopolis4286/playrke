@@ -149,7 +149,7 @@
 <style scoped>
 .wb-stat { display: flex; flex-direction: column; gap: 1px; }
 .wb-stat__label { font-size: 0.68rem; color: #8a94a6; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
-.wb-stat__value { font-size: 0.95rem; font-weight: 700; color: #1a202c; transition: color 0.2s; }
+.wb-stat__value { font-size: 0.8rem; font-weight: 700; color: #1a202c; transition: color 0.2s; }
 .wb-stat__value--accent { color: #7c3aed; }
 
 .wb-live-dot {

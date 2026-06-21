@@ -1,5 +1,6 @@
 <script setup lang="ts" name="DashboardWelcomeBanner">
-  import { computed } from 'vue'
+  import { computed, ref, watch } from 'vue'
+  import { usePage } from '@inertiajs/vue3'
   import type { WelcomeBannerProps } from '@/js/types/common/dashboard/dashboard'
 
   const props = withDefaults(defineProps<WelcomeBannerProps>(), {
@@ -7,6 +8,15 @@
     actions: () => [],
     roleKey: 'default',
   })
+
+  const page = usePage()
+
+  /** URL de avatar del usuario autenticado, con el mismo fallback que usa el navbar */
+  const avatarUrl = computed<string | null>(() => (page.props.auth as any)?.user?.avatar_url ?? null)
+
+  /** Si la imagen falla al cargar, se cae a las iniciales (igual que el navbar cae a fav.ico) */
+  const avatarFailed = ref(false)
+  watch(avatarUrl, () => { avatarFailed.value = false })
 
   const greeting = computed<string>(() => {
     const hour = new Date().getHours()
@@ -37,9 +47,16 @@
 <template>
   <div class="wb" :class="`wb--${accentKey}`">
     <div class="wb__body">
-      <!-- Avatar con anillo de acento -->
+      <!-- Avatar con anillo de acento: foto real del usuario, o iniciales si no hay/falla -->
       <div class="wb__avatar-ring">
-        <div class="wb__avatar" aria-hidden="true">{{ initials }}</div>
+        <img
+          v-if="avatarUrl && !avatarFailed"
+          :src="avatarUrl"
+          :alt="userName"
+          class="wb__avatar wb__avatar--img"
+          @error="avatarFailed = true"
+        />
+        <div v-else class="wb__avatar" aria-hidden="true">{{ initials }}</div>
         <span class="wb__avatar-dot" aria-hidden="true"></span>
       </div>
 
@@ -89,7 +106,7 @@
 .wb {
   position: relative;
   background: #fff;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid #eef0f4;
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
   overflow: hidden;
@@ -113,11 +130,14 @@
 
 .wb__body {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.wb__body::-webkit-scrollbar { display: none; }
 
 /* ── Avatar ── */
 .wb__avatar-ring {
@@ -129,72 +149,82 @@
 }
 
 .wb__avatar {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: #fff;
   color: #2d3748;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.92rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: .02em;
   user-select: none;
+}
+
+.wb__avatar--img {
+  object-fit: cover;
+  display: block;
 }
 
 .wb__avatar-dot {
   position: absolute;
   bottom: -1px;
   right: -1px;
-  width: 11px;
-  height: 11px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #22c55e;
   border: 2px solid #fff;
 }
 
 /* ── Texto ── */
-.wb__text { flex: 1; min-width: 0; }
+.wb__text { flex-shrink: 0; min-width: 0; }
 
 .wb__greeting-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .wb__greeting {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: #1a202c;
-  line-height: 1.3;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 .wb__greeting strong { font-weight: 700; }
 
 .wb__badge {
   display: inline-block;
-  padding: 2px 9px;
+  padding: 1px 8px;
   border-radius: 20px;
   background: #f1f3f9;
   color: #4a5568;
-  font-size: 0.66rem;
+  font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .04em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .wb__sub {
-  margin: 3px 0 0;
-  font-size: 0.78rem;
+  margin: 1px 0 0;
+  font-size: 0.68rem;
   color: #8a94a6;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.3rem;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  white-space: nowrap;
 }
-.wb__sub-icon { font-size: 0.7rem; color: #b0b8c5; }
+.wb__sub-icon { font-size: 0.62rem; color: #b0b8c5; }
 .wb__date { text-transform: capitalize; }
 .wb__sep { color: #d1d5db; }
 
@@ -202,33 +232,30 @@
 .wb__highlights {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 1rem;
   flex-shrink: 0;
-  padding: 0 1rem;
+  padding: 0 0.85rem;
   border-left: 1px solid #f0f2f7;
-  border-right: 1px solid #f0f2f7;
-}
-
-@media (max-width: 920px) {
-  .wb__highlights { border: none; padding: 0; width: 100%; order: 3; justify-content: flex-start; }
+  white-space: nowrap;
 }
 
 /* ── Acciones ── */
 .wb__actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
   margin-left: auto;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .wb__action {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: 9px;
-  font-size: 0.8rem;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 7px;
+  font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
@@ -265,8 +292,6 @@
 .wb__action--outline-secondary:hover{ background: #f8fafc; }
 
 @media (max-width: 576px) {
-  .wb__body { padding: 0.875rem 1rem; }
-  .wb__actions { width: 100%; margin-left: 0; }
-  .wb__action { flex: 1; justify-content: center; }
+  .wb__body { padding: 0.6rem 0.85rem; }
 }
 </style>

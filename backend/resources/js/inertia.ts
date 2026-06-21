@@ -5,6 +5,7 @@ import { createHead } from '@vueuse/head'
 import VueImaskPlugin from './plugins/vue-imask-plugin'
 import FloatingVue from 'floating-vue'
 import Toast, { type PluginOptions, POSITION } from 'vue-toastification'
+import { joinOnlinePresence } from '@/js/composables/realtime/useOnlinePresence'
 
 import '@vueform/multiselect/themes/default.css'
 import 'floating-vue/dist/style.css'
@@ -33,6 +34,12 @@ createInertiaApp({
 
     setup({ el, App, props, plugin }) {
         const app = createApp({ render: () => h(App, props) })
+
+        // Presencia global: si hay usuario autenticado, se une una sola vez
+        // por sesión de SPA al canal `online-users` (dashboards admin la consumen).
+        if ((props.initialPage?.props as any)?.auth?.user) {
+            joinOnlinePresence()
+        }
 
         const toastOptions: PluginOptions = {
             position: POSITION.BOTTOM_RIGHT,
