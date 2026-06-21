@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Contracts\SettingRepositoryInterface;
+use App\Events\Admin\UserRegistered as UserRegisteredBroadcast;
 use App\Http\Controllers\Controller;
 use App\Models\Currency;
 use App\Models\User;
@@ -99,6 +100,14 @@ class RegisteredUserController extends Controller
             DB::commit();
 
             event(new Registered($user));
+
+            broadcast(new UserRegisteredBroadcast(
+                userId: (string) $user->id,
+                username: $user->username,
+                email: $user->email,
+                roleName: 'player',
+                createdAt: $user->created_at->toISOString(),
+            ));
 
             Auth::login($user);
 

@@ -39,6 +39,16 @@ Broadcast::channel('admins.wallet-movements', function ($user) {
     return $user->hasRole(['admin', 'superadmin']);
 });
 
+// Canal privado para admins/superadmins: actividad general del sistema (altas de usuario, ventas)
+Broadcast::channel('admins.activity', function ($user) {
+    return $user->hasRole(['admin', 'superadmin']);
+});
+
+// Canal privado de actividad propia de un seller/commerce (ventas de cartones de sus salas)
+Broadcast::channel('creators.activity.{userId}', function ($user, $userId) {
+    return (string) $user->id === (string) $userId || $user->hasRole(['admin', 'superadmin']);
+});
+
 // Canal privado de resultados individuales de Trivia (solo el propio jugador)
 Broadcast::channel('trivia.player.{userId}', function ($user, $userId) {
     return (string) $user->id === (string) $userId;

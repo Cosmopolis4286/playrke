@@ -5,6 +5,7 @@ namespace App\Services\Roles\Admin\Customer;
 use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Customer\AdminCustomerDTO;
+use App\Events\Admin\UserRegistered;
 use App\Exceptions\Domain\Roles\Admin\Customer\AdminCustomerException;
 use App\Http\Resources\Roles\Admin\Customer\AdminCustomerResource;
 use App\Models\Game;
@@ -83,6 +84,14 @@ final class AdminCustomerCrudService
                 'user_id'     => $user->id,
                 'currency_id' => $dto->currency,
             ]);
+
+            broadcast(new UserRegistered(
+                userId: (string) $user->id,
+                username: $user->username,
+                email: $user->email,
+                roleName: 'customer',
+                createdAt: $user->created_at->toISOString(),
+            ));
 
             return $plainPassword;
         });

@@ -5,6 +5,7 @@ namespace App\Services\Roles\Admin\Commerce;
 use App\Contracts\Roles\Commerce\CommerceRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Commerce\AdminCommerceDTO;
+use App\Events\Admin\UserRegistered;
 use App\Exceptions\Domain\Roles\Admin\Commerce\AdminCommerceException;
 use App\Http\Resources\Roles\Admin\Commerce\AdminCommerceResource;
 use App\Models\Game;
@@ -79,6 +80,14 @@ final class AdminCommerceCrudService
                 'user_id'     => $user->id,
                 'currency_id' => $dto->currency,
             ]);
+
+            broadcast(new UserRegistered(
+                userId: (string) $user->id,
+                username: $user->username,
+                email: $user->email,
+                roleName: 'commerce',
+                createdAt: $user->created_at->toISOString(),
+            ));
 
             return $plainPassword;
         });

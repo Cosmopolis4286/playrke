@@ -17,7 +17,7 @@ const DEFAULT_HEALTH: SystemHealth = {
 }
 
 export function useSuperAdminDashboard(props: DashboardSuperAdminPageProps) {
-    const { sortedActivity } = useDashboard(undefined, props.recentActivity as ActivityItem[])
+    const { sortedActivity, prependActivity } = useDashboard(undefined, props.recentActivity as ActivityItem[])
 
     const statCards = computed<StatCardData[]>(() => {
         if (!props.stats) return DEFAULT_STATS
@@ -31,5 +31,5 @@ export function useSuperAdminDashboard(props: DashboardSuperAdminPageProps) {
 
     const adminActivity = computed<ActivityItem[]>(() => props.adminActivity ?? [])
 
-    return { statCards, sortedActivity, entityCounts, systemHealth, adminActivity }
+    return { statCards, sortedActivity, entityCounts, systemHealth, adminActivity, prependActivity }
 }

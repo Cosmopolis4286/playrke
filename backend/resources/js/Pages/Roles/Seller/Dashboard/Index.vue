@@ -23,7 +23,8 @@
   // Composables
   // ==========================================================================
 
-  import { useDashboard } from '@/js/composables/common/dashboard/useDashboard'
+  import { useDashboard }             from '@/js/composables/common/dashboard/useDashboard'
+  import { useCreatorSalesRealtime }  from '@/js/composables/common/dashboard/useCreatorSalesRealtime'
 
   // ==========================================================================
   // Types
@@ -42,7 +43,8 @@
   // Composable
   // ==========================================================================
 
-  const { sortedActivity } = useDashboard(undefined, props.recentActivity)
+  const { sortedActivity, prependActivity } = useDashboard(undefined, props.recentActivity)
+  const { isLive, cardsSoldToday, amountSoldToday } = useCreatorSalesRealtime(prependActivity)
 
   // ==========================================================================
   // Stats — placeholder estático cuando el backend aún no los envía
@@ -137,11 +139,34 @@
       <DashboardWelcomeBanner
         :userName="userName ?? 'Vendedor'"
         roleName="Vendedor"
+        roleKey="seller"
         :message="period ? `Período: ${period}` : undefined"
         :actions="[
           { label: 'Generar cartón', icon: 'fas fa-plus', href: '/bingo/generate-card', variant: 'primary' },
         ]"
-      />
+      >
+        <template #highlights>
+          <div class="wb-stat">
+            <span class="wb-stat__label">
+              Vendidos hoy
+              <span v-if="isLive" class="wb-live-dot" title="Escuchando en vivo"></span>
+            </span>
+            <span class="wb-stat__value">{{ statCards[0]?.value ?? '—' }}</span>
+          </div>
+          <div class="wb-stat" v-if="cardsSoldToday > 0">
+            <span class="wb-stat__label">Vendidos (sesión)</span>
+            <span class="wb-stat__value wb-stat__value--accent">{{ cardsSoldToday }} · ${{ amountSoldToday.toFixed(2) }}</span>
+          </div>
+          <div class="wb-stat">
+            <span class="wb-stat__label">Comisión (mes)</span>
+            <span class="wb-stat__value wb-stat__value--accent">{{ statCards[2]?.value ?? '—' }}</span>
+          </div>
+          <div class="wb-stat">
+            <span class="wb-stat__label">Ganadores hoy</span>
+            <span class="wb-stat__value">{{ statCards[3]?.value ?? '—' }}</span>
+          </div>
+        </template>
+      </DashboardWelcomeBanner>
 
       <!-- Stats -->
       <div class="row g-3 mt-0">
@@ -194,6 +219,22 @@
 </template>
 
 <style scoped>
+.wb-stat { display: flex; flex-direction: column; gap: 1px; }
+.wb-stat__label { font-size: 0.68rem; color: #8a94a6; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.wb-stat__value { font-size: 0.95rem; font-weight: 700; color: #1a202c; transition: color 0.2s; }
+.wb-stat__value--accent { color: #db2777; }
+
+.wb-live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #22c55e; box-shadow: 0 0 5px #22c55e;
+  animation: wbLivePulse 1.8s ease-in-out infinite;
+  display: inline-block;
+}
+@keyframes wbLivePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
 .ds-page {
   width: 100%;
   min-height: 100%;

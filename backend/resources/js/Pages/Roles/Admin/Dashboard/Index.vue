@@ -22,7 +22,8 @@
   // Composables
   // ==========================================================================
 
-  import { useAdminDashboard } from '@/js/composables/roles/admin/dashboard/useAdminDashboard'
+  import { useAdminDashboard }        from '@/js/composables/roles/admin/dashboard/useAdminDashboard'
+  import { useAdminActivityRealtime } from '@/js/composables/common/dashboard/useAdminActivityRealtime'
 
   // ==========================================================================
   // Types
@@ -40,7 +41,8 @@
   // Composable
   // ==========================================================================
 
-  const { statCards, sortedActivity, entityCounts } = useAdminDashboard(props)
+  const { statCards, sortedActivity, entityCounts, prependActivity } = useAdminDashboard(props)
+  const { isLive, newUsersToday, cardsSoldToday } = useAdminActivityRealtime(prependActivity)
 
   // ==========================================================================
   // Accesos rápidos
@@ -100,11 +102,30 @@
       <DashboardWelcomeBanner
         :userName="props.userName ?? 'Admin'"
         roleName="Administrador"
+        roleKey="admin"
         :message="props.period ? `Período: ${props.period}` : undefined"
         :actions="[
-          { label: 'Ver usuarios', icon: 'fas fa-users', href: '/admin/users', variant: 'primary' },
+          { label: 'Usuarios', icon: 'fas fa-users', href: '/admin/users', variant: 'outline-primary' },
         ]"
-      />
+      >
+        <template #highlights>
+          <div class="wb-stat" v-for="item in entityCounts?.slice(0, 2)" :key="item.label">
+            <span class="wb-stat__label">{{ item.label }}</span>
+            <span class="wb-stat__value">{{ item.value }}</span>
+          </div>
+          <div class="wb-stat">
+            <span class="wb-stat__label">
+              Nuevos hoy
+              <span v-if="isLive" class="wb-live-dot" title="Escuchando en vivo"></span>
+            </span>
+            <span class="wb-stat__value wb-stat__value--accent">{{ newUsersToday }}</span>
+          </div>
+          <div class="wb-stat">
+            <span class="wb-stat__label">Cartones vendidos (sesión)</span>
+            <span class="wb-stat__value">{{ cardsSoldToday }}</span>
+          </div>
+        </template>
+      </DashboardWelcomeBanner>
 
       <!-- Stats principales -->
       <div class="row g-3 mt-0">
@@ -157,6 +178,22 @@
 </template>
 
 <style scoped>
+.wb-stat { display: flex; flex-direction: column; gap: 1px; }
+.wb-stat__label { font-size: 0.68rem; color: #8a94a6; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.wb-stat__value { font-size: 0.95rem; font-weight: 700; color: #1a202c; transition: color 0.2s; }
+.wb-stat__value--accent { color: #667eea; }
+
+.wb-live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #22c55e; box-shadow: 0 0 5px #22c55e;
+  animation: wbLivePulse 1.8s ease-in-out infinite;
+  display: inline-block;
+}
+@keyframes wbLivePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.8); }
+}
+
 .ds-page {
   width: 100%;
   min-height: 100%;

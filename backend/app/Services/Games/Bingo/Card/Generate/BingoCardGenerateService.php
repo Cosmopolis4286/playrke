@@ -3,6 +3,8 @@
 namespace App\Services\Games\Bingo\Card\Generate;
 
 use App\DTOs\Games\Bingo\Card\Generate\{BingoCardGenerateContexDTO, BingoCardGenerateDTO};
+use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
+use App\Events\Games\Bingo\BingoCardSold;
 use App\Events\Wallet\WalletUpdated;
 use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
@@ -554,7 +556,7 @@ final class BingoCardGenerateService
         [$commerceId, $creatorUserId] = $this->resolveCommerceContext($userId, $role);
 
         // 2. Validar sala — permite ACTIVE o IN_PROGRESS
-        $room = BingoRoom::select('id', 'status_id', 'prize_pool', 'creator_user_id')
+        $room = BingoRoom::select('id', 'uuid_code', 'status_id', 'prize_pool', 'creator_user_id')
             ->with(['status:id,code', 'config:id,room_id,card_price_usd'])
             ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
             ->where('id', $dto->roomId)
@@ -636,6 +638,15 @@ final class BingoCardGenerateService
         // Notificar al usuario propietario de los cartones (canal privado) su nuevo total en esta sala,
         // junto con el precio y símbolo actualizados para que el frontend no requiera recarga.
         $this->broadcastPlayerCardsUpdated((string) $room->id, $creatorUserId, (float) $cardPrice, (string) $currencySymbol);
+
+        // Notificar la venta a dashboards de admin/superadmin y al vendedor/comercio propietario.
+        broadcast(new BingoCardSold(
+            roomId: (string) $room->id,
+            roomName: (string) $room->uuid_code,
+            quantity: (int) $arrCtn['numOfCtns'],
+            amountUsd: (float) $arrCtn['saleAmountUsd'],
+            creatorUserId: (string) $creatorUserId,
+        ));
 
         return array_merge($result, [
             'prize_pool' => $fresh?->prize_pool ?? $room->prize_pool,
@@ -793,11 +804,14 @@ final class BingoCardGenerateService
     /**
      * Compra de cartones para jugadores (flujo simplificado).
      *
-     * @param string $roomId ID de la sala
-     * @param int    $numCtns Número de cartones
+     * @param string     $roomId            ID de la sala
+     * @param int        $numCtns           Número de cartones
+     * @param array|null $customCardNumbers Matriz de números elegidos manualmente por el
+     *   jugador (mismo shape que BingoVariant::generateCardMatrix). Solo se admite cuando
+     *   $numCtns === 1; se valida contra la variante de la sala antes de generar el cartón.
      * @return array
      */
-    public function playerBuyFromGameRooms(string $roomId, int $numCtns): array
+    public function playerBuyFromGameRooms(string $roomId, int $numCtns, ?array $customCardNumbers = null): array
     {
         $userId = $this->userContext->resolveUserId();
 
@@ -806,7 +820,20 @@ final class BingoCardGenerateService
             throw new DomainException('Acceso no autorizado para esta operación');
         }
 
-        $room = BingoRoom::findOrFail($roomId);
+        $room = BingoRoom::with('config')->findOrFail($roomId);
+
+        if ($customCardNumbers !== null) {
+            if ($numCtns !== 1) {
+                throw new DomainException('Solo se puede personalizar el cartón al comprar exactamente 1.');
+            }
+
+            $variant = $room->config?->game_variant ?? BingoVariant::BINGO_75;
+            $error = BingoVariant::validateCustomMatrix($variant, $customCardNumbers);
+
+            if ($error !== null) {
+                throw new DomainException($error);
+            }
+        }
 
         // Obtener precio para jugador
         $priceInfo = $this->getPlayerCardPrice($roomId, $userId);
@@ -849,6 +876,8 @@ final class BingoCardGenerateService
             'exchangeRate'   => $priceInfo['exchange_rate'],
             'playerUser'     => null,
             'playerLink'     => true,
+            'gameVariant'    => $room->config?->game_variant ?? BingoVariant::BINGO_75,
+            'customCardNumbers' => $customCardNumbers,
         ];
 
         // Generar cartones — el descuento de billetera lo hace recordCardPurchase abajo
@@ -864,6 +893,14 @@ final class BingoCardGenerateService
         // Notificar al jugador (canal privado) su nuevo total de cartones en esta sala,
         // junto con el precio y símbolo actualizados para que el frontend no requiera recarga.
         $this->broadcastPlayerCardsUpdated($roomId, $userId, (float) $priceInfo['card_price'], (string) $priceInfo['currency_symbol']);
+
+        // Notificar la venta a dashboards de admin/superadmin (compra directa del jugador, sin vendedor).
+        broadcast(new BingoCardSold(
+            roomId: (string) $room->id,
+            roomName: (string) $room->uuid_code,
+            quantity: $numCtns,
+            amountUsd: (float) $arrCtn['saleAmountUsd'],
+        ));
 
         return [
             'message'        => 'Cartones generados exitosamente',

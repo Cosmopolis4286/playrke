@@ -5,6 +5,7 @@ namespace App\Services\Roles\Admin\Treasurer;
 use App\Contracts\Roles\Treasurer\TreasurerRepositoryInterface;
 use App\Contracts\WalletRepositoryInterface;
 use App\DTOs\Roles\Admin\Treasurer\AdminTreasurerDTO;
+use App\Events\Admin\UserRegistered;
 use App\Exceptions\Domain\Roles\Admin\Treasurer\AdminTreasurerException;
 use App\Http\Resources\Roles\Admin\Treasurer\AdminTreasurerResource;
 use App\Models\Pivots\Roles\Treasurer\TreasurerCurrency;
@@ -79,6 +80,14 @@ final class AdminTreasurerCrudService
                 'user_id'     => $user->id,
                 'currency_id' => $dto->currency,
             ]);
+
+            broadcast(new UserRegistered(
+                userId: (string) $user->id,
+                username: $user->username,
+                email: $user->email,
+                roleName: 'treasurer',
+                createdAt: $user->created_at->toISOString(),
+            ));
 
             return $plainPassword;
         });

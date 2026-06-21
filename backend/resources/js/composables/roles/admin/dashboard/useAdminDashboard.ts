@@ -11,7 +11,7 @@ const DEFAULT_STATS: StatCardData[] = [
 ]
 
 export function useAdminDashboard(props: DashboardAdminPageProps) {
-    const { sortedActivity } = useDashboard(undefined, props.recentActivity as ActivityItem[])
+    const { sortedActivity, prependActivity } = useDashboard(undefined, props.recentActivity as ActivityItem[])
 
     const statCards = computed<StatCardData[]>(() => {
         if (!props.stats) return DEFAULT_STATS
@@ -21,5 +21,5 @@ export function useAdminDashboard(props: DashboardAdminPageProps) {
 
     const entityCounts = computed<EntityCount[]>(() => props.entityCounts ?? [])
 
-    return { statCards, sortedActivity, entityCounts }
+    return { statCards, sortedActivity, entityCounts, prependActivity }
 }

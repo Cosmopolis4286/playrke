@@ -3,6 +3,7 @@
 namespace App\Services\Roles\Admin\Player;
 
 use App\DTOs\Roles\Admin\Player\AdminPlayerDTO;
+use App\Events\Admin\UserRegistered;
 use App\Exceptions\Domain\Roles\Admin\Player\AdminPlayerException;
 use App\Models\User;
 use App\Services\UserService;
@@ -35,6 +36,14 @@ final class AdminPlayerCrudService
             if (! $user) {
                 throw AdminPlayerException::creationFailed();
             }
+
+            broadcast(new UserRegistered(
+                userId: (string) $user->id,
+                username: $user->username,
+                email: $user->email,
+                roleName: 'player',
+                createdAt: $user->created_at->toISOString(),
+            ));
 
             return $plainPassword;
         });
