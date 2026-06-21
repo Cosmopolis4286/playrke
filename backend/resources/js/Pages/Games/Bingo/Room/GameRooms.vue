@@ -306,6 +306,10 @@ onUnmounted(() => {
     :purchasing="modal.purchasing.value"
     :exchange-rate="props.exchangeRate ?? 1"
     :is-player="modal.isPlayer.value"
+    :can-customize="modal.canCustomize.value"
+    :customize-card="modal.customizeCard.value"
+    :custom-card-numbers="modal.customCardNumbers.value"
+    :confirm-incomplete-custom-card="modal.confirmIncompleteCustomCard"
     @close="modal.close()"
     @select-country="modal.selectCountry($event)"
     @next="modal.nextStep()"
@@ -313,6 +317,8 @@ onUnmounted(() => {
     @increment="modal.increment()"
     @decrement="modal.decrement()"
     @set-ctns="modal.setNumCtns($event)"
+    @toggle-customize="modal.toggleCustomize()"
+    @update:custom-card-numbers="modal.customCardNumbers.value = $event"
     @purchase="modal.purchase(result => onPurchaseSuccess(modal.selectedRoom.value!.id, result))"
   />
 </template>

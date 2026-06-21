@@ -52,7 +52,10 @@ class BingoCardManagementService
     /**
      * Generar y almacenar cartones de bingo
      *
-     * @param array $cartonData Datos del cartón
+     * @param array $cartonData Datos del cartón. Si incluye `customCardNumbers`
+     *   (matriz ya validada por BingoVariant::validateCustomMatrix) y numOfCtns
+     *   es 1, ese cartón usa los números elegidos por el jugador en vez de
+     *   generarlos al azar.
      * @param string $lotId ID del lote
      * @return bool True si se generaron correctamente
      */
@@ -65,6 +68,7 @@ class BingoCardManagementService
             $roomUserId = $cartonData['roomUser'];
             $userId     = $cartonData['creator']['id'];
             $variant    = $cartonData['gameVariant'] ?? BingoVariant::BINGO_75;
+            $customCardNumbers = ($numOfCtns === 1) ? ($cartonData['customCardNumbers'] ?? null) : null;
 
             $cardIds = [];
             for ($i = 0; $i < $numOfCtns; $i++) {
@@ -72,7 +76,7 @@ class BingoCardManagementService
             }
 
             for ($i = 0; $i < $numOfCtns; $i++) {
-                $cardNumbers = BingoVariant::generateCardMatrix($variant);
+                $cardNumbers = $customCardNumbers ?? BingoVariant::generateCardMatrix($variant);
                 $hash        = $this->generateCardHash($roomId, $roomUserId, $cardNumbers);
 
                 $cards[] = [

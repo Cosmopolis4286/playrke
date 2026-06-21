@@ -1,7 +1,9 @@
 import { ref, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
+import Swal from 'sweetalert2'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
+import { getBingoVariantDef } from '@/js/modules/games/bingo/utils/bingoVariants'
 import type {
     BingoAvailableCountry,
     BingoCardPriceResponse,
@@ -9,6 +11,18 @@ import type {
     PurchaseModalStep,
 } from '@/js/types/games/bingo/card/purchase-modal/bingo-purchase-modal'
 import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
+
+type CardMatrix = Record<string, (number | null)[]>
+
+/** Matriz vacía (todo null, salvo que no exista casilla libre) para una variante dada. */
+function emptyMatrix(variant?: string | null): CardMatrix {
+    const def = getBingoVariantDef(variant)
+    const matrix: CardMatrix = {}
+    for (const col of def.columns) {
+        matrix[col.label] = Array(def.numRows).fill(null)
+    }
+    return matrix
+}
 
 // Caché en módulo: sobrevive navegación dentro de la SPA pero se limpia al recargar
 const _priceCache = new Map<string, { price: number; symbol: string; ts: number }>()
@@ -75,6 +89,12 @@ export function useGameRoomPurchaseModal() {
     const numCtns = ref(1)
     const MIN_CTNS = 1
     const MAX_CTNS = 40
+
+    // ── Personalización de cartón (solo jugador, solo si numCtns === 1) ──────
+    const customizeCard = ref(false)
+    const customCardNumbers = ref<CardMatrix>({})
+
+    const canCustomize = computed(() => isPlayer.value && numCtns.value === 1)
 
     // ── Estado de compra ─────────────────────────────────────────────────────
     const purchasing = ref(false)
@@ -175,6 +195,8 @@ export function useGameRoomPurchaseModal() {
         selectedRoom.value = room
         selectedCountry.value = null
         numCtns.value = 1
+        customizeCard.value = false
+        customCardNumbers.value = emptyMatrix(room.config?.game_variant)
 
         if (isPlayer.value) {
             // Precio en caché → paso inmediato; si no → fetch único
@@ -204,6 +226,47 @@ export function useGameRoomPurchaseModal() {
         selectedRoom.value = null
         selectedCountry.value = null
         countries.value = []
+        customizeCard.value = false
+        customCardNumbers.value = {}
+    }
+
+    /** Activa/desactiva el modo de personalización. Solo permitido con numCtns === 1. */
+    function toggleCustomize(): void {
+        if (!canCustomize.value) return
+        customizeCard.value = !customizeCard.value
+        if (customizeCard.value && selectedRoom.value) {
+            customCardNumbers.value = emptyMatrix(selectedRoom.value.config?.game_variant)
+        }
+    }
+
+    /**
+     * Si el cartón personalizado quedó incompleto, pregunta al usuario si desea
+     * autocompletar las casillas faltantes o cancelar para seguir editando.
+     * Devuelve true si la compra puede continuar (completo o ya autocompletado).
+     */
+    async function confirmIncompleteCustomCard(
+        missingCount: number,
+        autoFill: () => void,
+    ): Promise<boolean> {
+        if (!customizeCard.value || missingCount === 0) return true
+
+        const result = await Swal.fire({
+            title: 'Cartón incompleto',
+            text: `Faltan ${missingCount} casilla${missingCount === 1 ? '' : 's'} por elegir. ¿Deseas autocompletarlas al azar o seguir editando?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Autocompletar',
+            cancelButtonText: 'Seguir editando',
+            confirmButtonColor: '#2af598',
+            cancelButtonColor: '#6c757d',
+            background: '#1a1f3a',
+            color: '#fff',
+        })
+
+        if (!result.isConfirmed) return false
+
+        autoFill()
+        return true
     }
 
     async function selectCountry(country: BingoAvailableCountry): Promise<void> {
@@ -222,14 +285,17 @@ export function useGameRoomPurchaseModal() {
 
     function increment(): void {
         if (numCtns.value < MAX_CTNS) numCtns.value++
+        if (numCtns.value !== 1) customizeCard.value = false
     }
 
     function decrement(): void {
         if (numCtns.value > MIN_CTNS) numCtns.value--
+        if (numCtns.value !== 1) customizeCard.value = false
     }
 
     function setNumCtns(value: number): void {
         numCtns.value = Math.min(MAX_CTNS, Math.max(MIN_CTNS, Math.floor(value) || MIN_CTNS))
+        if (numCtns.value !== 1) customizeCard.value = false
     }
 
     async function purchase(
@@ -250,7 +316,12 @@ export function useGameRoomPurchaseModal() {
                 : `/bingo/game-rooms/${selectedRoom.value.id}/buy`
 
             const payload = isPlayer.value
-                ? { num_ctns: numCtns.value }
+                ? {
+                    num_ctns: numCtns.value,
+                    ...(canCustomize.value && customizeCard.value
+                        ? { custom_numbers: customCardNumbers.value }
+                        : {}),
+                }
                 : { num_ctns: numCtns.value, country_id: selectedCountry.value!.id }
 
             const { data } = await backendClient.post<BingoCardPurchaseResponse>(endpoint, payload)
@@ -286,6 +357,11 @@ export function useGameRoomPurchaseModal() {
         canAdvance,
         isPlayer,
         // checkingRole eliminado — rol viene de Inertia
+        customizeCard,
+        customCardNumbers,
+        canCustomize,
+        toggleCustomize,
+        confirmIncompleteCustomCard,
         open,
         prefetch,
         close,

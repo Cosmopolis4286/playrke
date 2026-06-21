@@ -30,6 +30,7 @@ interface LobbyRoom {
   rounds?: number;
   in_live?: boolean;
   min_cards_to_start?: number | null;
+  game_variant?: string | null;
 }
 
 interface Props {
@@ -138,6 +139,7 @@ const roomAsGameRoom = computed((): BingoGameRoom => ({
     unix_date:       props.room.unix_date,
     date:            props.room.date ?? '',
     time:            props.room.time ?? '',
+    game_variant:    props.room.game_variant ?? null,
   } : null,
 }));
 
@@ -429,6 +431,10 @@ function startMeteors() {
       :purchasing="modal.purchasing.value"
       :exchange-rate="rate"
       :is-player="modal.isPlayer.value"
+      :can-customize="modal.canCustomize.value"
+      :customize-card="modal.customizeCard.value"
+      :custom-card-numbers="modal.customCardNumbers.value"
+      :confirm-incomplete-custom-card="modal.confirmIncompleteCustomCard"
       @close="modal.close()"
       @select-country="modal.selectCountry($event)"
       @next="modal.nextStep()"
@@ -436,6 +442,8 @@ function startMeteors() {
       @increment="modal.increment()"
       @decrement="modal.decrement()"
       @set-ctns="modal.setNumCtns($event)"
+      @toggle-customize="modal.toggleCustomize()"
+      @update:custom-card-numbers="modal.customCardNumbers.value = $event"
       @purchase="modal.purchase(result => onPurchaseSuccess(modal.selectedRoom.value!.id, result))"
     />
 

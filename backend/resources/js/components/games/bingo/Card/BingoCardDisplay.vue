@@ -5,61 +5,9 @@
  * Muestra el cartón con colores por columna; las celdas "ganadoras" se resaltan si se pasa drawnNumbers.
  */
 import { computed } from 'vue'
+import { getBingoVariantDef, BINGO_COL_COLORS, type BingoVariantDef, type BingoVariantColumn } from '@/js/modules/games/bingo/utils/bingoVariants'
 
-interface ColDef { label: string; min: number; max: number; freeRow: number | null; colorIdx: number }
-interface VariantDef { columns: ColDef[]; numRows: number }
-
-const VARIANT_DEFS: Record<string, VariantDef> = {
-  BINGO_75: {
-    numRows: 5,
-    columns: [
-      { label: 'B', min:  1, max: 15, freeRow: null, colorIdx: 0 },
-      { label: 'I', min: 16, max: 30, freeRow: null, colorIdx: 1 },
-      { label: 'N', min: 31, max: 45, freeRow: 2,    colorIdx: 2 },
-      { label: 'G', min: 46, max: 60, freeRow: null, colorIdx: 3 },
-      { label: 'O', min: 61, max: 75, freeRow: null, colorIdx: 4 },
-    ],
-  },
-  BINGO_90: {
-    numRows: 3,
-    columns: [
-      { label: '1', min:  1, max:  9, freeRow: null, colorIdx: 0 },
-      { label: '2', min: 10, max: 19, freeRow: null, colorIdx: 1 },
-      { label: '3', min: 20, max: 29, freeRow: null, colorIdx: 2 },
-      { label: '4', min: 30, max: 39, freeRow: null, colorIdx: 3 },
-      { label: '5', min: 40, max: 49, freeRow: null, colorIdx: 4 },
-      { label: '6', min: 50, max: 59, freeRow: null, colorIdx: 0 },
-      { label: '7', min: 60, max: 69, freeRow: null, colorIdx: 1 },
-      { label: '8', min: 70, max: 79, freeRow: null, colorIdx: 2 },
-      { label: '9', min: 80, max: 90, freeRow: null, colorIdx: 3 },
-    ],
-  },
-  BINGO_80: {
-    numRows: 4,
-    columns: [
-      { label: '1', min:  1, max: 20, freeRow: null, colorIdx: 0 },
-      { label: '2', min: 21, max: 40, freeRow: null, colorIdx: 1 },
-      { label: '3', min: 41, max: 60, freeRow: null, colorIdx: 2 },
-      { label: '4', min: 61, max: 80, freeRow: null, colorIdx: 3 },
-    ],
-  },
-  BINGO_30: {
-    numRows: 3,
-    columns: [
-      { label: '1', min:  1, max: 10, freeRow: null, colorIdx: 0 },
-      { label: '2', min: 11, max: 20, freeRow: null, colorIdx: 1 },
-      { label: '3', min: 21, max: 30, freeRow: null, colorIdx: 2 },
-    ],
-  },
-}
-
-const COL_COLORS = [
-  { bg: '#3b82f6', text: '#fff' }, // 0 blue
-  { bg: '#8b5cf6', text: '#fff' }, // 1 violet
-  { bg: '#ec4899', text: '#fff' }, // 2 pink
-  { bg: '#f59e0b', text: '#000' }, // 3 amber
-  { bg: '#10b981', text: '#fff' }, // 4 emerald
-]
+const COL_COLORS = BINGO_COL_COLORS
 
 const props = defineProps<{
   cardMatrix: Record<string, (number | null)[]>
@@ -69,10 +17,10 @@ const props = defineProps<{
   drawnNumbers?: number[]
 }>()
 
-const variantDef = computed<VariantDef>(() => VARIANT_DEFS[props.variant ?? 'BINGO_75'] ?? VARIANT_DEFS.BINGO_75)
+const variantDef = computed<BingoVariantDef>(() => getBingoVariantDef(props.variant))
 const drawnSet   = computed(() => new Set(props.drawnNumbers ?? []))
 
-function isFree(col: ColDef, rowIdx: number): boolean {
+function isFree(col: BingoVariantColumn, rowIdx: number): boolean {
   return col.freeRow !== null && col.freeRow === rowIdx
 }
 

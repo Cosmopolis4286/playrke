@@ -8,8 +8,9 @@
    *
    * El jugador ya está autenticado — no se requieren sus datos.
    */
-  import { computed } from 'vue'
+  import { computed, ref } from 'vue'
   import { router } from '@inertiajs/vue3'
+  import BingoCardNumberPicker from './BingoCardNumberPicker.vue'
   import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
   import type {
     BingoAvailableCountry,
@@ -36,6 +37,11 @@
     purchasing: boolean
     exchangeRate: number
     isPlayer: boolean | null
+    canCustomize: boolean
+    customizeCard: boolean
+    customCardNumbers: Record<string, (number | null)[]>
+    /** Pregunta al usuario si autocompletar o seguir editando; resuelve true si puede continuar la compra. */
+    confirmIncompleteCustomCard: (missingCount: number, autoFill: () => void) => Promise<boolean>
   }>()
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -50,8 +56,23 @@
     (e: 'increment'): void
     (e: 'decrement'): void
     (e: 'set-ctns', value: number): void
+    (e: 'toggle-customize'): void
+    (e: 'update:custom-card-numbers', value: Record<string, (number | null)[]>): void
     (e: 'purchase'): void
   }>()
+
+  const numberPicker = ref<InstanceType<typeof BingoCardNumberPicker> | null>(null)
+
+  async function handlePurchaseClick(): Promise<void> {
+    if (props.customizeCard && numberPicker.value) {
+      const canContinue = await props.confirmIncompleteCustomCard(
+        numberPicker.value.missingCount,
+        numberPicker.value.autoFillRemaining,
+      )
+      if (!canContinue) return
+    }
+    emit('purchase')
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Computed
@@ -252,6 +273,30 @@
                     </button>
                   </div>
 
+                  <!-- Toggle personalizar cartón (solo si numCtns === 1) -->
+                  <button
+                    v-if="canCustomize"
+                    type="button"
+                    class="pm-customize-toggle"
+                    :class="{ 'pm-customize-toggle--on': customizeCard }"
+                    @click="emit('toggle-customize')"
+                  >
+                    <i class="fas fa-pen" />
+                    {{ customizeCard ? 'Personalizando mi cartón' : 'Elegir mis números' }}
+                    <i class="fas fa-chevron-down pm-customize-toggle__chevron" :class="{ 'pm-customize-toggle__chevron--open': customizeCard }" />
+                  </button>
+
+                  <!-- Selector de números personalizados -->
+                  <Transition name="fade">
+                    <BingoCardNumberPicker
+                      v-if="customizeCard"
+                      ref="numberPicker"
+                      :model-value="customCardNumbers"
+                      :variant="selectedRoom?.config?.game_variant"
+                      @update:model-value="emit('update:custom-card-numbers', $event)"
+                    />
+                  </Transition>
+
                   <!-- Resumen -->
                   <div class="pm-summary">
                     <div v-if="!isPlayer && isPlayer !== null" class="pm-summary__row">
@@ -316,7 +361,7 @@
                 v-else
                 class="pm-btn pm-btn--buy"
                 :disabled="purchasing || isPlayer === null"
-                @click="emit('purchase')"
+                @click="handlePurchaseClick"
               >
                 <span v-if="purchasing" class="pm-spinner pm-spinner--sm mr-1" />
                 <i v-else class="fas fa-lock mr-1" />
@@ -737,6 +782,41 @@
   }
   .pm-qty-input:focus {
     border-color: rgba(100, 140, 255, 0.55);
+  }
+
+  /* ── Toggle personalizar cartón ── */
+  .pm-customize-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px 14px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(100, 140, 255, 0.25);
+    background: rgba(255, 255, 255, 0.03);
+    color: #7c9dff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+  }
+  .pm-customize-toggle:hover {
+    border-color: rgba(100, 140, 255, 0.5);
+    background: rgba(100, 140, 255, 0.08);
+  }
+  .pm-customize-toggle--on {
+    border-color: rgba(42, 245, 152, 0.4);
+    background: rgba(42, 245, 152, 0.08);
+    color: #7affba;
+  }
+  .pm-customize-toggle__chevron {
+    margin-left: auto;
+    font-size: 10px;
+    transition: transform 0.2s;
+  }
+  .pm-customize-toggle__chevron--open {
+    transform: rotate(180deg);
   }
 
   /* ── Summary ── */

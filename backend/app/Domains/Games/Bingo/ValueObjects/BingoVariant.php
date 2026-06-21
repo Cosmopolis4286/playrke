@@ -313,25 +313,41 @@ final class BingoVariant
         }
 
         // Paso 3: Distribuir en filas (3 filas, 5 números por fila)
-        // Para cada fila, decidir qué columnas tienen número
-        // Restricción: cada fila debe tener exactamente 5 columnas con número
+        // Para cada fila, decidir qué columnas tienen número.
+        // Cada columna tiene como máximo $numRows números (uno por fila), así que
+        // sus números pendientes deben repartirse en las filas restantes — si una
+        // columna tiene tantos números pendientes como filas quedan, es obligatorio
+        // colocarla ahora o se quedará sin espacio para todos sus números.
+        // Priorizamos por "urgencia" (pendientes / filas restantes) para garantizar
+        // que cada fila cierre con exactamente 5 números, sin números huérfanos.
         $grid = array_fill(0, $numRows, array_fill(0, $numCols, null)); // [fila][col] = null|número
         $colPointers = array_fill(0, $numCols, 0); // puntero de siguiente número disponible por col
 
-        // Construir para cada fila qué columnas tienen número
         for ($row = 0; $row < $numRows; $row++) {
-            // Columnas que AÚN tienen números disponibles para esta fila
+            $rowsLeftIncludingThis = $numRows - $row;
+
             $available = [];
             foreach ($cols as $i => $col) {
-                if ($colPointers[$i] < count($selectedByCol[$i])) {
+                $pending = count($selectedByCol[$i]) - $colPointers[$i];
+                if ($pending > 0) {
                     $available[] = $i;
                 }
             }
 
-            // Necesitamos exactamente $numbersPerRow columnas con número en esta fila
-            // Shuffle y tomamos las primeras $numbersPerRow
-            shuffle($available);
-            $chosenCols = array_slice($available, 0, $numbersPerRow);
+            // Obligatorias: su cantidad pendiente exige usar TODAS las filas restantes.
+            $mandatory = array_values(array_filter($available, function ($i) use ($selectedByCol, $colPointers, $rowsLeftIncludingThis) {
+                $pending = count($selectedByCol[$i]) - $colPointers[$i];
+                return $pending >= $rowsLeftIncludingThis;
+            }));
+
+            $optional = array_values(array_diff($available, $mandatory));
+            shuffle($optional);
+
+            $chosenCols = array_slice(
+                array_merge($mandatory, $optional),
+                0,
+                $numbersPerRow,
+            );
 
             foreach ($chosenCols as $ci) {
                 $grid[$row][$ci] = $selectedByCol[$ci][$colPointers[$ci]];
@@ -385,5 +401,95 @@ final class BingoVariant
         $pool = range($min, $max);
         shuffle($pool);
         return array_slice($pool, 0, $count);
+    }
+
+    /**
+     * Valida que una matriz de cartón elegida manualmente por el jugador
+     * respete exactamente las reglas estructurales de la variante:
+     *  - Mismas columnas (labels) que la definición
+     *  - Cada columna con la longitud correcta (rows de la variante)
+     *  - Números dentro del rango [min, max] de su columna
+     *  - Sin duplicados dentro de la misma columna
+     *  - Celda libre (freeRow) en null para variantes con freeCellExists
+     *  - Para BINGO_90: exactamente 5 números no-null por fila (las demás null)
+     *
+     * No exige unicidad entre cartones ni entre jugadores — solo estructura interna.
+     *
+     * @param string $variant
+     * @param array<string, array<int, int|null>> $matrix Mismo shape que generateCardMatrix()
+     * @return string|null Mensaje de error si es inválida, null si es válida
+     */
+    public static function validateCustomMatrix(string $variant, array $matrix): ?string
+    {
+        $columns = self::columns($variant);
+        $rows    = self::rows($variant);
+
+        // array_keys() devuelve int para claves que parecen enteros (p.ej. '1', '2')
+        // aunque la matriz se haya construido con labels string — normalizamos a
+        // string antes de comparar para no falsear el chequeo de estructura.
+        $expectedLabels = array_column($columns, 'label');
+        $givenLabels    = array_map('strval', array_keys($matrix));
+
+        if ($expectedLabels !== $givenLabels) {
+            return 'La estructura de columnas del cartón no coincide con la variante de la sala.';
+        }
+
+        $seenNumbers = [];
+
+        foreach ($columns as $col) {
+            $values = $matrix[$col['label']] ?? null;
+
+            if (!is_array($values) || count($values) !== $rows) {
+                return "La columna {$col['label']} debe tener exactamente {$rows} casillas.";
+            }
+
+            $nonNullCount = 0;
+
+            foreach ($values as $row => $value) {
+                $isFreeRow = $col['freeRow'] !== null && $col['freeRow'] === $row;
+
+                if ($value === null) {
+                    if (!$isFreeRow && $variant !== self::BINGO_90) {
+                        return "Falta un número en la columna {$col['label']}, fila " . ($row + 1) . '.';
+                    }
+                    continue;
+                }
+
+                if ($isFreeRow) {
+                    return "La casilla libre de la columna {$col['label']} debe estar vacía.";
+                }
+
+                if (!is_int($value) || $value < $col['min'] || $value > $col['max']) {
+                    return "El número {$value} en la columna {$col['label']} está fuera del rango permitido ({$col['min']}-{$col['max']}).";
+                }
+
+                if (isset($seenNumbers[$value])) {
+                    return "El número {$value} está repetido en el cartón.";
+                }
+                $seenNumbers[$value] = true;
+
+                $nonNullCount++;
+            }
+
+            if ($variant !== self::BINGO_90 && $col['freeRow'] === null && $nonNullCount !== $rows) {
+                return "La columna {$col['label']} debe tener {$rows} números.";
+            }
+        }
+
+        if ($variant === self::BINGO_90) {
+            for ($row = 0; $row < $rows; $row++) {
+                $filled = 0;
+                foreach ($columns as $col) {
+                    if (($matrix[$col['label']][$row] ?? null) !== null) {
+                        $filled++;
+                    }
+                }
+                if ($filled !== 5) {
+                    return 'Cada fila debe tener exactamente 5 números — la fila ' . ($row + 1) . " tiene {$filled}.";
+                }
+            }
+        }
+
+        return null;
     }
 }

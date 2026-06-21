@@ -270,23 +270,33 @@ final class BingoRoomController extends Controller
      * Compra de cartones para jugadores (player role).
      *
      * Flujo simplificado para jugadores que ya tienen billetera configurada.
-     * Solo se requiere la cantidad de cartones.
+     * Acepta opcionalmente `custom_numbers` (matriz elegida manualmente por el
+     * jugador) cuando num_ctns es exactamente 1 — se valida contra la variante
+     * de la sala en BingoCardGenerateService::playerBuyFromGameRooms().
      *
      * @param BingoRoom $room    Sala decodificada por route model binding.
-     * @param Request    $request Body con num_ctns.
+     * @param Request    $request Body con num_ctns y, opcionalmente, custom_numbers.
      * @return JsonResponse
      */
     public function playerBuyFromGameRooms(BingoRoom $room, Request $request): JsonResponse
     {
         \Log::info('playerBuyFromGameRooms: Iniciando compra de jugador', [
             'room_id' => $room->id,
-            'num_ctns' => $request->input('num_ctns')
+            'num_ctns' => $request->input('num_ctns'),
+            'has_custom_numbers' => $request->has('custom_numbers'),
         ]);
-        
-        $request->validate(['num_ctns' => 'required|integer|min:1|max:40']);
+
+        $request->validate([
+            'num_ctns'       => 'required|integer|min:1|max:40',
+            'custom_numbers' => 'sometimes|nullable|array',
+        ]);
 
         return $this->handleServiceJson(
-            fn() => $this->generateService->playerBuyFromGameRooms($room->id, (int) $request->input('num_ctns'))
+            fn() => $this->generateService->playerBuyFromGameRooms(
+                $room->id,
+                (int) $request->input('num_ctns'),
+                $request->input('custom_numbers'),
+            )
         );
     }
 
