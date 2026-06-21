@@ -194,6 +194,9 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
             if (!pricePct || pricePct < 1 || pricePct > 10) {
                 e.customCardPricePct = 'El % del precio del cartón personalizado debe estar entre 1 y 10.'
             }
+        }
+
+        if ((form.value as any).allowSpecialCard) {
             const maxSpecialCards = Number((form.value as any).maxSpecialCards)
             if (!maxSpecialCards || !Number.isInteger(maxSpecialCards) || maxSpecialCards < 1 || maxSpecialCards > 5) {
                 e.maxSpecialCards = 'La cantidad de cartones especiales debe ser un entero entre 1 y 5.'

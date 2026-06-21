@@ -3,7 +3,6 @@
 
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
-  import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
 
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
   import type {
@@ -20,12 +19,17 @@ import { SelectOption } from '@/js/types/common/form/form'
     gameModeOptions: SelectOption[]
     prizePoolTypeOptions: SelectOption[]
     roomCommn: string | number
-    percentageLimits: { roomCommn: { min: number; max: number } }
+    jackpotPct: string | number
+    percentageLimits: {
+      roomCommn: { min: number; max: number }
+      jackpotPct: { min: number; max: number }
+    }
   }>()
 
   const emit = defineEmits<{
     (e: 'update:modelValue', value: BingoRoomFormData | BingoRoomAutomaticFormData): void
     (e: 'update:roomCommn', value: string | number): void
+    (e: 'update:jackpotPct', value: string | number): void
   }>()
 
   const GAME_VARIANT_OPTIONS: SelectOption[] = [
@@ -267,67 +271,136 @@ import { SelectOption } from '@/js/types/common/form/form'
       "
     />
 
+    <!-- %Jackpot -->
+    <FormInput
+      label="%Jackpot"
+      name="jackpot_pct"
+      id="jackpot-pct"
+      type="number"
+      :step="0.5"
+      :min="percentageLimits.jackpotPct.min"
+      :max="percentageLimits.jackpotPct.max"
+      placeholder="Opcional"
+      col="col-sm-6 col-md-4 col-lg-3"
+      :modelValue="jackpotPct"
+      @update:modelValue="emit('update:jackpotPct', $event)"
+    />
+
     <!-- Cartón personalizado -->
-    <FormSwitch
-      label="Permitir cartón personalizado"
-      name="allow_custom_card"
-      col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="(modelValue as any).allowCustomCard ?? false"
-      @update:modelValue="
-        emit('update:modelValue', {
-          ...modelValue,
-          allowCustomCard: $event,
-          ...(!$event ? { customCardPricePct: null, maxSpecialCards: null } : {})
-        } as any)
-      "
-    />
+    <div class="col-12">
+      <hr style="margin: 0.25rem 0 0.75rem" />
+      <div class="d-flex align-items-center flex-wrap" style="gap: 1.25rem">
+        <!-- Toggle -->
+        <div class="custom-control custom-switch" style="padding-left: 2.25rem; flex-shrink: 0">
+          <input
+            id="allow_custom_card"
+            name="allow_custom_card"
+            type="checkbox"
+            class="custom-control-input"
+            :checked="(modelValue as any).allowCustomCard ?? false"
+            @change="
+              emit('update:modelValue', {
+                ...modelValue,
+                allowCustomCard: ($event.target as HTMLInputElement).checked,
+                ...(!($event.target as HTMLInputElement).checked ? { customCardPricePct: null } : {})
+              } as any)
+            "
+          />
+          <label class="custom-control-label" for="allow_custom_card" style="font-weight: 500">
+            Permitir cartón personalizado
+          </label>
+        </div>
 
-    <!-- % adicional sobre el precio base de la moneda, aplicado al comprar el cartón personalizado -->
-    <FormInput
-      v-if="(modelValue as any).allowCustomCard"
-      label="Precio cartón personalizado"
-      name="custom_card_price_pct"
-      :error="(errors as any).customCardPricePct"
-      type="number"
-      required
-      :step="0.01"
-      :min="1"
-      :max="10"
-      col="col-sm-6 col-md-4 col-lg-3"
-      inputGroup
-      :modelValue="(modelValue as any).customCardPricePct ?? null"
-      @update:modelValue="
-        emit('update:modelValue', {
-          ...modelValue,
-          customCardPricePct: $event === '' || $event === null ? null : Number($event)
-        } as any)
-      "
-    >
-      <template #append>
-        <span class="input-group-text">%</span>
-      </template>
-    </FormInput>
+        <template v-if="(modelValue as any).allowCustomCard">
+          <!-- Precio cartón personalizado -->
+          <div>
+            <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
+              Precio cartón personalizado <span class="text-danger">*</span>
+            </label>
+            <div class="input-group input-group-sm" style="width: 130px">
+              <input
+                name="custom_card_price_pct"
+                type="number"
+                :class="['form-control', { 'is-invalid': (errors as any).customCardPricePct }]"
+                placeholder="Ej: 5"
+                :step="0.25"
+                :min="1"
+                :max="10"
+                :value="(modelValue as any).customCardPricePct ?? ''"
+                @change="
+                  emit('update:modelValue', {
+                    ...modelValue,
+                    customCardPricePct: ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)
+                  } as any)
+                "
+              />
+              <div class="input-group-append">
+                <span class="input-group-text">%</span>
+              </div>
+            </div>
+            <small v-if="(errors as any).customCardPricePct" class="text-danger" style="font-size: 0.72rem">
+              {{ (errors as any).customCardPricePct }}
+            </small>
+          </div>
+        </template>
+      </div>
+    </div>
 
-    <!-- Máx. cartones especiales -->
-    <FormInput
-      v-if="(modelValue as any).allowCustomCard"
-      label="Máx. cartones especiales"
-      name="max_special_cards"
-      :error="(errors as any).maxSpecialCards"
-      type="number"
-      required
-      :step="1"
-      :min="1"
-      :max="5"
-      col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="(modelValue as any).maxSpecialCards ?? null"
-      @update:modelValue="
-        emit('update:modelValue', {
-          ...modelValue,
-          maxSpecialCards: $event === '' || $event === null ? null : Number($event)
-        } as any)
-      "
-    />
+    <!-- Cartón especial -->
+    <div class="col-12">
+      <hr style="margin: 0.25rem 0 0.75rem" />
+      <div class="d-flex align-items-center flex-wrap" style="gap: 1.25rem">
+        <!-- Toggle -->
+        <div class="custom-control custom-switch" style="padding-left: 2.25rem; flex-shrink: 0">
+          <input
+            id="allow_special_card"
+            name="allow_special_card"
+            type="checkbox"
+            class="custom-control-input"
+            :checked="(modelValue as any).allowSpecialCard ?? false"
+            @change="
+              emit('update:modelValue', {
+                ...modelValue,
+                allowSpecialCard: ($event.target as HTMLInputElement).checked,
+                ...(!($event.target as HTMLInputElement).checked ? { maxSpecialCards: null } : {})
+              } as any)
+            "
+          />
+          <label class="custom-control-label" for="allow_special_card" style="font-weight: 500">
+            Permitir cartón especial
+          </label>
+        </div>
+
+        <template v-if="(modelValue as any).allowSpecialCard">
+          <!-- Máx. cartones especiales -->
+          <div>
+            <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
+              Máx. cartones especiales <span class="text-danger">*</span>
+            </label>
+            <input
+              name="max_special_cards"
+              type="number"
+              :class="['form-control form-control-sm', { 'is-invalid': (errors as any).maxSpecialCards }]"
+              placeholder="Ej: 3"
+              :step="1"
+              :min="1"
+              :max="5"
+              style="width: 110px"
+              :value="(modelValue as any).maxSpecialCards ?? ''"
+              @change="
+                emit('update:modelValue', {
+                  ...modelValue,
+                  maxSpecialCards: ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)
+                } as any)
+              "
+            />
+            <small v-if="(errors as any).maxSpecialCards" class="text-danger" style="font-size: 0.72rem">
+              {{ (errors as any).maxSpecialCards }}
+            </small>
+          </div>
+        </template>
+      </div>
+    </div>
 
     <!-- Días de Anticipación de Ventas (solo salas automáticas) -->
     <FormInput

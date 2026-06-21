@@ -39,6 +39,7 @@ final class BingoRoomUpdateDTO
         public readonly ?string $gameVariant = null,
         public readonly ?bool $allowCustomCard = null,
         public readonly ?float $customCardPricePct = null,
+        public readonly ?bool $allowSpecialCard = null,
         public readonly ?int $maxSpecialCards = null,
     ) {}
 
@@ -92,6 +93,7 @@ final class BingoRoomUpdateDTO
             gameVariant: $data['gameVariant'] ?? null,
             allowCustomCard: isset($data['allowCustomCard']) ? (bool) $data['allowCustomCard'] : null,
             customCardPricePct: isset($data['customCardPricePct']) ? (float) $data['customCardPricePct'] : null,
+            allowSpecialCard: isset($data['allowSpecialCard']) ? (bool) $data['allowSpecialCard'] : null,
             maxSpecialCards: isset($data['maxSpecialCards']) ? (int) $data['maxSpecialCards'] : null,
         );
     }

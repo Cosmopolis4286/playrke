@@ -41,6 +41,7 @@ final class BingoRoomCreateDTO
         public readonly bool $isSplitRoom = false,
         public readonly bool $allowCustomCard = false,
         public readonly ?float $customCardPricePct = null,
+        public readonly bool $allowSpecialCard = false,
         public readonly ?int $maxSpecialCards = null,
     ) {}
 
@@ -86,6 +87,7 @@ final class BingoRoomCreateDTO
             isSplitRoom: (bool) ($data['isSplitRoom'] ?? false),
             allowCustomCard: (bool) ($data['allowCustomCard'] ?? false),
             customCardPricePct: isset($data['customCardPricePct']) ? (float) $data['customCardPricePct'] : null,
+            allowSpecialCard: (bool) ($data['allowSpecialCard'] ?? false),
             maxSpecialCards: isset($data['maxSpecialCards']) ? (int) $data['maxSpecialCards'] : null,
         );
     }

@@ -106,6 +106,7 @@ const emptyFormData = (): BingoRoomFormData => ({
     activateRoom: false,
     allowCustomCard: false,
     customCardPricePct: null,
+    allowSpecialCard: false,
     maxSpecialCards: null,
 })
 
@@ -328,6 +329,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 activateRoom: room.status === 'ACTIVE',
                 allowCustomCard: config.allow_custom_card === true,
                 customCardPricePct: config.custom_card_price_pct != null ? Number(config.custom_card_price_pct) : null,
+                allowSpecialCard: config.allow_special_card === true,
                 maxSpecialCards: config.max_special_cards != null ? Number(config.max_special_cards) : null,
             }
 

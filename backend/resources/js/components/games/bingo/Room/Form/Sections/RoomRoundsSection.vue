@@ -27,18 +27,15 @@
     availablePct: number
     percentageLimits: {
       roundsPct: { min: number; max: number }
-      jackpotPct: { min: number; max: number }
     }
     totalRoundValues: number
     isRoundValuesValid: boolean
     roundsPct: string | number
-    jackpotPct: string | number
   }>()
 
   const emit = defineEmits<{
     (e: 'update:modelValue', value: BingoRoomFormData): void
     (e: 'update:roundsPct', value: string | number): void
-    (e: 'update:jackpotPct', value: string | number): void
     (e: 'open-prize-modal', index: number): void
   }>()
 
@@ -385,19 +382,5 @@
       </div>
     </div>
 
-    <!-- %Jackpot -->
-    <FormInput
-      label="%Jackpot"
-      name="jackpot_pct"
-      id="jackpot-pct"
-      type="number"
-      :step="0.5"
-      :min="percentageLimits.jackpotPct.min"
-      :max="percentageLimits.jackpotPct.max"
-      placeholder="Opcional"
-      col="col-sm-6 col-md-4 col-lg-3"
-      :modelValue="jackpotPct"
-      @update:modelValue="emit('update:jackpotPct', $event)"
-    />
   </div>
 </template>

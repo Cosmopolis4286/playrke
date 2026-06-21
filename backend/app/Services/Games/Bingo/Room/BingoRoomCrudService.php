@@ -369,6 +369,7 @@ class BingoRoomCrudService
             'jackpot_pct'             => $dto->jackpotPct ?? null,
             'allow_custom_card'       => $dto->allowCustomCard ?? false,
             'custom_card_price_pct'   => $dto->customCardPricePct ?? null,
+            'allow_special_card'      => $dto->allowSpecialCard ?? false,
             'max_special_cards'       => $dto->maxSpecialCards ?? null,
         ];
 

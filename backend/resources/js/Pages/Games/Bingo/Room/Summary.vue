@@ -239,6 +239,27 @@
     }))
   })
 
+  /**
+   * true si la sala en edición es programada (no manual) y su fecha/hora ya pasó.
+   * En edición, useBingoRoomBaseForm omite la validación de fecha pasada (el usuario
+   * no puede cambiar una fecha ya vencida, pero sí otros campos), así que sin este
+   * chequeo se podía activar una sala cuyo horario programado ya no tiene sentido.
+   */
+  const isScheduledDateInPast = computed(() => {
+    if (roomFormData.value.startMode !== 'SCHEDULED') return false
+    const { date, time } = roomFormData.value
+    if (!date || !time) return false
+    return new Date(`${date}T${time}:00`) < new Date()
+  })
+
+  // Si la fecha/hora programada de la sala en edición queda vencida (o ya lo estaba
+  // al abrir el modal), evita que quede marcada para activarse.
+  watch(isScheduledDateInPast, isPast => {
+    if (isPast && roomFormData.value.activateRoom) {
+      roomFormData.value = { ...roomFormData.value, activateRoom: false }
+    }
+  })
+
   // ==========================================================================
   // Filtros
   // ==========================================================================
@@ -475,15 +496,22 @@ onUnmounted(() => {
     />
 
     <template #footer>
-      <div class="custom-control custom-switch mr-auto">
-        <input
-          type="checkbox"
-          class="custom-control-input"
-          id="activateRoom"
-          :checked="roomFormData.activateRoom ?? false"
-          @change="roomFormData.activateRoom = ($event.target as HTMLInputElement).checked"
-        />
-        <label class="custom-control-label" for="activateRoom">¿Activar sala?</label>
+      <div class="mr-auto">
+        <div class="custom-control custom-switch">
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            id="activateRoom"
+            :disabled="isScheduledDateInPast"
+            :checked="roomFormData.activateRoom ?? false"
+            @change="roomFormData.activateRoom = ($event.target as HTMLInputElement).checked"
+          />
+          <label class="custom-control-label" for="activateRoom">¿Activar sala?</label>
+        </div>
+        <small v-if="isScheduledDateInPast" class="text-danger d-block mt-1">
+          <i class="fas fa-exclamation-triangle mr-1"></i>
+          La fecha/hora programada ya pasó. Actualízala antes de activar la sala.
+        </small>
       </div>
       <button class="btn btn-sm btn-secondary" :disabled="isSubmitting" @click="showModalForm = false">Cerrar</button>
       <button

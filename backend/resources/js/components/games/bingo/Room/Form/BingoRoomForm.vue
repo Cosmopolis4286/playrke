@@ -255,9 +255,11 @@
         :gameModeOptions="gameModeOptions"
         :prizePoolTypeOptions="prizePoolTypeOptions"
         :roomCommn="roomCommn"
+        :jackpotPct="jackpotPct"
         :percentageLimits="percentageLimits"
         @update:modelValue="form = $event"
         @update:roomCommn="roomCommn = $event"
+        @update:jackpotPct="jackpotPct = $event"
       />
 
       <!-- Sección monedas: monedas permitidas + panel precios cartones -->
@@ -295,7 +297,7 @@
         </template>
       </FormInput>
 
-      <!-- Sección rondas: rondas + config avanzada + %Jackpot -->
+      <!-- Sección rondas: rondas + config avanzada -->
       <RoomRoundsSection
         :modelValue="form"
         :errors="errors"
@@ -308,10 +310,8 @@
         :totalRoundValues="totalRoundValues"
         :isRoundValuesValid="isRoundValuesValid"
         :roundsPct="roundsPct"
-        :jackpotPct="jackpotPct"
         @update:modelValue="form = $event"
         @update:roundsPct="roundsPct = $event"
-        @update:jackpotPct="jackpotPct = $event"
         @open-prize-modal="openPrizeModal"
       />
 

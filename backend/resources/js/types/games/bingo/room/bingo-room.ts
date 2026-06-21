@@ -150,6 +150,7 @@ export interface BingoRoom {
         unix_date?: number | null
         allow_custom_card?: boolean
         custom_card_price_pct?: number | string | null
+        allow_special_card?: boolean
         max_special_cards?: number | null
     } | null
 
@@ -239,5 +240,6 @@ export interface BingoRoomFormData {
     activateRoom?: boolean
     allowCustomCard?: boolean
     customCardPricePct?: number | null
+    allowSpecialCard?: boolean
     maxSpecialCards?: number | null
 }

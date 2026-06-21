@@ -54,6 +54,7 @@ class BingoRoomConfig extends Model
         'jackpot_pct',
         'allow_custom_card',
         'custom_card_price_pct',
+        'allow_special_card',
         'max_special_cards',
     ];
 
@@ -87,6 +88,7 @@ class BingoRoomConfig extends Model
         'min_cards_to_start'      => 'integer',
         'allow_custom_card'       => 'boolean',
         'custom_card_price_pct'   => 'decimal:2',
+        'allow_special_card'      => 'boolean',
         'max_special_cards'       => 'integer',
     ];
 
