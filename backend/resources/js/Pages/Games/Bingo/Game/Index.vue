@@ -627,8 +627,6 @@ onUnmounted(() => {
 
 <template>
   <div class="ig-page" :class="{ 'ig-page--revealed': revealed }">
-    <!-- Cubre el viewport completo incluyendo el gap del navbar (mismo patrón que GameRooms) -->
-    <div class="ig-spacecover" />
     <div class="ig-inner">
 
       <!-- ══════════════════════════════════════════
@@ -1138,67 +1136,6 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style>
-html, body {
-  height: auto !important;
-  min-height: 100%;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  background: #04081a !important;
-}
-body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
-  background-color: #04081a !important;
-  background-image: none !important;
-}
-/* Capa fija que cubre TODO el viewport incluyendo el gap del navbar de AdminLTE */
-.ig-spacecover {
-  position: fixed;
-  inset: 0;
-  z-index: -10;
-  pointer-events: none;
-  background: #04081a;
-}
-/* ── Quitar línea/borde del navbar AdminLTE ── */
-.main-header,
-.main-header.navbar,
-nav.main-header,
-.navbar-bg,
-.main-header .navbar-bg,
-.app-header {
-  border-bottom: 0 !important;
-  border-bottom-width: 0 !important;
-  box-shadow: none !important;
-}
-.main-header::after,
-.main-header.navbar::after,
-nav.main-header::after,
-.navbar-bg::after {
-  display: none !important;
-  content: none !important;
-}
-.content-header {
-  display: none !important;
-  padding: 0 !important;
-  min-height: 0 !important;
-  height: 0 !important;
-}
-.content-wrapper > .content {
-  padding: 0 !important;
-  display: flex;
-  flex-direction: column;
-  overflow: visible !important;
-  height: auto !important;
-  min-height: 100vh;
-}
-.content-wrapper > .content > #app,
-.content-wrapper > .content > [data-page] {
-  flex: 1; display: flex; flex-direction: column;
-  height: auto !important; min-height: 100vh; overflow: visible !important;
-}
-.wrapper, .content-wrapper {
-  height: auto !important; min-height: 100vh; overflow: visible !important;
-}
-</style>
 
 <style scoped>
 /* ══════════════════════════════════════

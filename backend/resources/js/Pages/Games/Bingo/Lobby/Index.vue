@@ -451,40 +451,6 @@ function startMeteors() {
 </template>
 
 <style>
-/* ══ RESET LAYOUT ══ */
-html {
-  height: 100% !important;
-  overflow: hidden !important;
-  background: #04081a !important;
-}
-body {
-  height: 100% !important;
-  overflow: hidden !important;
-  background: #04081a !important;
-}
-body, body.hold-transition, #app-wrapper, .wrapper, .content-wrapper {
-  background-color: #04081a !important; background-image: none !important;
-}
-.wrapper {
-  height: 100% !important; min-height: 100% !important;
-  overflow: hidden !important; display: flex; flex-direction: column;
-}
-.content-wrapper {
-  flex: 1 !important; height: 0 !important;
-  overflow: hidden !important; display: flex; flex-direction: column;
-}
-.content-header { display: none !important; min-height: 0 !important; height: 0 !important; }
-.content-wrapper > .content {
-  flex: 1 !important; padding: 0 !important;
-  display: flex; flex-direction: column;
-  overflow: hidden !important; height: 100% !important;
-}
-.content-wrapper > .content > #app,
-.content-wrapper > .content > [data-page] {
-  flex: 1; display: flex; flex-direction: column;
-  height: 100% !important; overflow: hidden !important;
-}
-
 /* ── Meteoros ── */
 .lby-meteor {
   position: absolute; height: 1px; border-radius: 999px;

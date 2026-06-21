@@ -2,6 +2,11 @@
    APP LOADER — premium dark splash screen
 ===================================================== */
 
+html.is-loading,
+html:has(.app-loader:not(.is-hidden)) {
+    overflow: hidden;
+}
+
 .app-loader {
     position: fixed;
     inset: 0;

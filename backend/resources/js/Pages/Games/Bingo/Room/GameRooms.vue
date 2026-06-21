@@ -196,9 +196,6 @@ onUnmounted(() => {
 <template>
   <div class="game-rooms-page">
 
-    <!-- Cubre el viewport completo incluyendo el gap del navbar -->
-    <div class="game-rooms-spacecover" />
-
     <!-- ── Meteoros ── -->
     <div id="grm-meteors" class="grm-meteors" aria-hidden="true" />
 
@@ -324,54 +321,6 @@ onUnmounted(() => {
 </template>
 
 <style>
-/* ══════════════════════════════════════════════════════
-   RESET LAYOUT — la página vive DENTRO de #content-scrollable,
-   que ya es el único contenedor con scroll (overflow-auto) del
-   layout AdminLTE. No tocar html/body ni forzar 100vh aquí,
-   o se rompe el wrapper vh-100 y aparece scroll a nivel de página.
-══════════════════════════════════════════════════════ */
-body,
-body.hold-transition,
-#app-wrapper,
-.wrapper,
-.content-wrapper {
-  background-color: #04081a !important;
-  background-image: none !important;
-}
-/* Capa fija que cubre el viewport hasta el borde superior del footer */
-.game-rooms-spacecover {
-  position: fixed;
-  inset: 0 0 41px 0;
-  z-index: -10;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 90% 55% at 15%  5%, rgba( 80,  0,200,0.30) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 85% 12%, rgba(  0, 60,220,0.24) 0%, transparent 58%),
-    radial-gradient(ellipse 60% 45% at 50% 85%, rgba(  0,150,110,0.16) 0%, transparent 62%),
-    radial-gradient(ellipse 55% 65% at 92% 68%, rgba(130,  0,210,0.20) 0%, transparent 58%),
-    radial-gradient(ellipse 45% 38% at  8% 58%, rgba(  0, 90,255,0.14) 0%, transparent 52%),
-    radial-gradient(ellipse 35% 30% at 40% 40%, rgba(  0,180,255,0.08) 0%, transparent 50%),
-    linear-gradient(160deg, #04081a 0%, #060d2a 45%, #030812 100%);
-}
-.content-header {
-  display: none !important;
-  padding: 0 !important;
-  min-height: 0 !important;
-  height: 0 !important;
-}
-.content-wrapper > .content {
-  padding: 0 !important;
-  display: flex;
-  flex-direction: column;
-}
-.content-wrapper > .content > #app,
-.content-wrapper > .content > [data-page] {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-}
-
 /* ── Meteoros ── */
 .grm-meteor {
   position: absolute;

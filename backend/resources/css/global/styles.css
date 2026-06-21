@@ -39,43 +39,25 @@ body {
 }
 
 body::-webkit-scrollbar {
-  width: 14.5px;
+  width: 8px;
 }
 
 body::-webkit-scrollbar-button {
-  background-color: #cccccc;
-  display: block;
-  border-style: solid;
-  height: 10px;
-}
-
-/* Up */
-::-webkit-scrollbar-button:single-button:vertical:decrement {
-  border-width: 0 7px 7px 7px;
-  border-color: transparent transparent #555555 transparent;
-}
-
-::-webkit-scrollbar-button:single-button:vertical:decrement:hover {
-  border-color: transparent transparent #777777 transparent;
-}
-
-/* Down */
-::-webkit-scrollbar-button:single-button:vertical:increment {
-  border-width: 7px 7px 0 7px;
-  border-color: #555555 transparent transparent transparent;
-}
-
-::-webkit-scrollbar-button:vertical:single-button:increment:hover {
-  border-color: #777777 transparent transparent transparent;
+  display: none;
 }
 
 body::-webkit-scrollbar-track {
-  background-color: #c5c5c5 !important;
+  background-color: transparent !important;
 }
 
 body::-webkit-scrollbar-thumb {
-  background: #000d74 !important;
-  border: color #00138f solid 2px !important;
+  background: #7c3aed !important;
+  border: none !important;
+  border-radius: 999px !important;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: #8b5cf6 !important;
 }
 
 .grid-dashboard {
@@ -183,16 +165,16 @@ body.lwt-active.layout-fixed .wrapper .content-wrapper #content-scrollable {
   scrollbar-width: thin;
   scrollbar-color: #7b4fff rgba(255,255,255,0.03);
 }
-#content-scrollable::-webkit-scrollbar { width: 6px; }
+#content-scrollable::-webkit-scrollbar { width: 8px; }
 #content-scrollable::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.03);
+  background: transparent;
 }
 #content-scrollable::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #2af598 0%, #009efd 50%, #7b4fff 100%);
-  border-radius: 10px;
+  background: #7c3aed;
+  border-radius: 999px;
 }
 #content-scrollable::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #4dffb3 0%, #33b3ff 50%, #9a78ff 100%);
+  background: #8b5cf6;
 }
 #content-scrollable::-webkit-scrollbar-button { display: none; }
 
