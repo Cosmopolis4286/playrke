@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { usePage } from "@inertiajs/vue3";
 import "@/css/games/bingo/bingo-game-rooms.css";
 
@@ -137,67 +137,13 @@ const roomTypeMap: Record<string, string> = {
   PUBLIC: "Pública", PRIVATE: "Privada",
 };
 
-// ── Meteoros ──
-let meteorTimer: ReturnType<typeof setInterval> | null = null;
-
-function spawnMeteor() {
-  const container = document.getElementById('grm-meteors');
-  if (!container) return;
-  if (container.children.length >= 22) return;
-
-  const m = document.createElement('div');
-  m.className = 'grm-meteor';
-
-  // top-left → bottom-right, ángulo variable 25°–55°
-  const angle   = 25 + Math.random() * 30;      // 25°–55°
-  const size    = 35 + Math.random() * 60;       // 35–95px (pequeño)
-  const dur     = 1.2 + Math.random() * 1.8;     // 1.2–3s (rápido)
-  const opacity = 0.18 + Math.random() * 0.28;   // 0.18–0.46 (apenas visible)
-
-  // Origen en borde superior-izquierdo con spread
-  const startX = -5 + Math.random() * 50;  // -5 → 45vw
-  const startY = -3 + Math.random() * 8;   // -3 → 5vh
-
-  // Desplazamiento siempre abajo-derecha
-  const dx = 80 + Math.random() * 70;   // 80–150vw
-  const dy = 65 + Math.random() * 60;   // 65–125vh
-
-  m.style.cssText = `left:${startX}vw;top:${startY}vh;width:${size}px;opacity:${opacity};--rot:${angle}deg;--dx:${dx}vw;--dy:${dy}vh;--dur:${dur}s;`;
-
-  container.appendChild(m);
-  m.addEventListener('animationend', () => m.remove(), { once: true });
-}
-
-function startMeteors() {
-  function schedule() {
-    const delay = 500 + Math.random() * 1200; // 0.5–1.7s entre apariciones
-    meteorTimer = setTimeout(() => {
-      spawnMeteor();
-      // 30% probabilidad de un segundo meteoro escalonado
-      if (Math.random() < 0.3) setTimeout(spawnMeteor, 80 + Math.random() * 120);
-      schedule();
-    }, delay) as any;
-  }
-  setTimeout(spawnMeteor, 200);
-  setTimeout(spawnMeteor, 700);
-  schedule();
-}
-
 onMounted(() => {
   initCountdown(props.rooms);
-  startMeteors();
-});
-
-onUnmounted(() => {
-  if (meteorTimer) clearTimeout(meteorTimer);
 });
 </script>
 
 <template>
   <div class="game-rooms-page">
-
-    <!-- ── Meteoros ── -->
-    <div id="grm-meteors" class="grm-meteors" aria-hidden="true" />
 
     <!-- ── Botón flotante: reglamento del bingo ── -->
     <button
@@ -226,12 +172,8 @@ onUnmounted(() => {
 
     <!-- ── Sin salas ── -->
     <div v-if="!filteredRooms.length" class="game-rooms-page__empty">
-      <div class="grp-empty-icon">
-        <i class="fas fa-door-closed" />
-      </div>
+      <i class="fas fa-door-closed grp-empty-icon" />
       <p class="grp-empty-title">No hay salas disponibles</p>
-      <p class="grp-empty-sub">Vuelve más tarde para ver las salas activas de hoy</p>
-      <div class="grp-empty-line" />
     </div>
 
     <!-- ── Grid de tarjetas ── -->
@@ -320,53 +262,24 @@ onUnmounted(() => {
   />
 </template>
 
-<style>
-/* ── Meteoros ── */
-.grm-meteor {
-  position: absolute;
-  height: 1px;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    transparent             0%,
-    rgba(210,230,255,0.08) 40%,
-    rgba(240,248,255,0.55) 78%,
-    rgba(255,255,255,0.85) 92%,
-    rgba(255,255,255,0.5) 100%
-  );
-  box-shadow: 1px 0 3px 0px rgba(255,255,255,0.4);
-  transform: rotate(var(--rot, 35deg));
-  animation: meteorFall var(--dur, 2s) linear forwards;
-  pointer-events: none;
-  will-change: transform, opacity;
-}
-
-@keyframes meteorFall {
-  0%   { transform:rotate(var(--rot,35deg)) translate(0,0);                          opacity:0; }
-  8%   { opacity:1; }
-  85%  { opacity:0.9; }
-  100% { transform:rotate(var(--rot,35deg)) translate(var(--dx,90vw),var(--dy,80vh)); opacity:0; }
-}
-
-</style>
-
 <style scoped>
 /* ═══════════════════════════════════════════════════════
    PÁGINA — fondo estelar directo (igual que Game/Index)
 ═══════════════════════════════════════════════════════ */
 .game-rooms-page {
   flex: 1;
-  min-height: 100%;
+  min-height: calc(100vh - 56px - 41px + 0.5rem);
+  margin: -0.5rem -0.5rem 0;
   padding: 28px 12px 48px;
   position: relative;
   isolation: isolate;
-  background: transparent;
+  background: linear-gradient(160deg, #0a0f24 0%, #0c1230 45%, #060a18 100%);
 }
 
 /* ── Capa 1: estrellas finas — mayor densidad ── */
 .game-rooms-page::before {
   content: "";
-  position: fixed; inset: 0 0 41px 0; z-index: -2; pointer-events: none;
+  position: absolute; inset: 0; z-index: -2; pointer-events: none;
   background-image:
     /* fila 1 */
     radial-gradient(1px 1px at  3%  4%, rgba(255,255,255,0.92) 0%, transparent 100%),
@@ -421,7 +334,7 @@ onUnmounted(() => {
 /* ── Capa 2: estrellas grandes con halo ── */
 .game-rooms-page::after {
   content: "";
-  position: fixed; inset: 0 0 41px 0; z-index: -1; pointer-events: none;
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background-image:
     radial-gradient(2px 2px at  8% 12%, rgba(255,255,255,0.96) 0%, transparent 100%),
     radial-gradient(2px 2px at 24% 35%, rgba(200,215,255,0.88) 0%, transparent 100%),
@@ -453,11 +366,6 @@ onUnmounted(() => {
 @keyframes twinkle-b {
   0%   { opacity: 0.70; } 35%  { opacity: 0.50; }
   65%  { opacity: 1.00; } 100% { opacity: 0.65; }
-}
-
-/* ── Contenedor de meteoros ── */
-.grm-meteors {
-  position: fixed; inset: 0 0 41px 0; z-index: 0; pointer-events: none; overflow: hidden;
 }
 
 /* ── Botón flotante: reglamento del bingo ── */
@@ -594,92 +502,35 @@ onUnmounted(() => {
 }
 
 /* ═══════════════════════════════
-   EMPTY STATE — tarjeta promo con borde degradado
+   EMPTY STATE — compacto y minimalista
 ═══════════════════════════════ */
 .game-rooms-page__empty {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  max-width: 420px;
-  margin: 48px auto;
-  padding: 56px 32px;
-  position: relative;
-  border-radius: 24px;
-  text-align: center;
-  background:
-    linear-gradient(160deg, rgba(123,79,255,0.08) 0%, rgba(0,158,253,0.05) 50%, rgba(42,245,152,0.06) 100%),
-    rgba(12,18,40,0.55);
-  border: 1px solid rgba(123,79,255,0.18);
-  box-shadow:
-    0 18px 50px rgba(0,0,0,0.45),
-    0 0 0 1px rgba(255,255,255,0.02) inset,
-    0 0 60px rgba(42,245,152,0.05) inset;
-  backdrop-filter: blur(6px);
-  animation: fadeSlideDown 0.6s ease both;
-  overflow: hidden;
-}
-
-/* halo giratorio sutil detrás del icono */
-.game-rooms-page__empty::before {
-  content: '';
-  position: absolute;
-  top: -90px; left: 50%; transform: translateX(-50%);
-  width: 280px; height: 280px;
-  background: radial-gradient(ellipse, rgba(123,79,255,0.20) 0%, transparent 70%);
-  pointer-events: none;
+  justify-content: center;
+  gap: 10px;
+  max-width: 360px;
+  margin: 32px auto;
+  padding: 14px 20px;
+  border-radius: 999px;
+  text-align: left;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  animation: fadeSlideDown 0.5s ease both;
 }
 
 .grp-empty-icon {
-  width: 84px; height: 84px;
-  background: linear-gradient(135deg, rgba(42,245,152,0.12) 0%, rgba(0,158,253,0.12) 50%, rgba(123,79,255,0.12) 100%);
-  border: 1px solid rgba(123,79,255,0.28);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 34px;
-  color: #8fb4ff;
-  margin-bottom: 4px;
-  position: relative;
-  z-index: 1;
-  box-shadow: 0 0 30px rgba(42,245,152,0.12), 0 4px 18px rgba(0,0,0,0.35);
-  animation: emptyIconFloat 3.4s ease-in-out infinite;
-}
-
-@keyframes emptyIconFloat {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-6px); }
+  font-size: 14px;
+  color: #6a85b8;
+  flex-shrink: 0;
 }
 
 .grp-empty-title {
-  font-family: "Anton", sans-serif;
-  font-size: 21px;
-  letter-spacing: 1.5px;
-  margin: 0;
-  position: relative;
-  z-index: 1;
-  background: linear-gradient(135deg, #e0eaff 0%, #a8c4ff 50%, #7b4fff 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.grp-empty-sub {
   font-size: 13px;
-  color: #6a85b8;
+  font-weight: 600;
   letter-spacing: 0.2px;
+  color: #9fb3da;
   margin: 0;
-  position: relative;
-  z-index: 1;
-}
-
-.grp-empty-line {
-  width: 60px;
-  height: 2px;
-  margin: 4px auto 0;
-  background: linear-gradient(90deg, transparent, #2af598, #009efd, #7b4fff, transparent);
-  border-radius: 2px;
-  position: relative;
-  z-index: 1;
 }
 
 /* ═══════════════════════════════
