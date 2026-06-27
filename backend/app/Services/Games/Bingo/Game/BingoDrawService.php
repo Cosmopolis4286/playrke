@@ -55,10 +55,23 @@ final class BingoDrawService
         $round = BingoRound::where('room_id', (string) $roomId)
             ->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])
             ->orderBy('round')
-            ->first()
-            ?? BingoRound::where('room_id', (string) $roomId)
+            ->first();
+
+        // Si no hay ronda ACTIVE/IN_PROGRESS pero ya existen rondas FINISHED, la sala
+        // completó su sorteo (con o sin ganador) y no debe volver a sortear — esto
+        // pasaba cuando el cron bingo:start-pending-draws seguía despachando la sala
+        // porque closeRoomIfFinalRound() no logró cerrarla (p.ej. falta el GameStatus
+        // 'FINISHED'), generando un BingoCardPrize y un pago nuevos en cada corrida.
+        if (!$round && BingoRound::where('room_id', (string) $roomId)->where('status', 'FINISHED')->exists()) {
+            Log::warning('[BingoDrawService] Sorteo ya completado — se omite re-sorteo', ['room_id' => $roomId]);
+            return ['success' => true, 'room_id' => $roomId, 'total_chips' => 0, 'winner' => null, 'alreadyFinished' => true];
+        }
+
+        if (!$round) {
+            $round = BingoRound::where('room_id', (string) $roomId)
                 ->orderBy('round')
                 ->first();
+        }
 
         if (!$round) {
             $config = $room->relationLoaded('config') ? $room->config : $room->load('config')->config;

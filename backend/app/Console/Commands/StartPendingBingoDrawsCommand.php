@@ -6,6 +6,7 @@ use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
+use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Jobs\Games\Bingo\StartBingoDrawJob;
 use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
@@ -62,6 +63,21 @@ class StartPendingBingoDrawsCommand extends Command
 
                 // Sorteo ya completo (todas las fichas de la secuencia fueron cantadas) — nada que hacer.
                 if ($sequenceCount > 0 && $drawnCount >= $sequenceCount) {
+                    continue;
+                }
+
+                // La sala ya tiene una ronda FINISHED sin ronda activa siguiente: el sorteo
+                // ya se resolvió (con o sin ganador). Si sigue ACTIVE/IN_PROGRESS es porque
+                // closeRoomIfFinalRound() no pudo cerrarla — no debe volver a sortearse cada
+                // minuto (eso generaba un BingoCardPrize y un pago nuevos en cada corrida).
+                $hasActiveRound = BingoRound::where('room_id', (string) $room->id)
+                    ->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])
+                    ->exists();
+                $hasFinishedRound = BingoRound::where('room_id', (string) $room->id)
+                    ->where('status', 'FINISHED')
+                    ->exists();
+
+                if (!$hasActiveRound && $hasFinishedRound) {
                     continue;
                 }
 

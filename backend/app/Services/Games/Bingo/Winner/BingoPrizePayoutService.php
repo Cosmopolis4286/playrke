@@ -26,6 +26,13 @@ final class BingoPrizePayoutService
 
     public function payout(BingoCardPrize $cardPrize): void
     {
+        // Idempotencia: si ya fue acreditado (p.ej. el comando de reintento o un
+        // segundo disparo de claimCardWin lo invoca de nuevo sobre el mismo
+        // registro), no volver a incrementar la wallet del ganador.
+        if (!$cardPrize->isWaiting()) {
+            return;
+        }
+
         $userId = $cardPrize->creator_user_id;
 
         try {
@@ -41,10 +48,11 @@ final class BingoPrizePayoutService
 
             $amount = (float) $cardPrize->local_amount;
 
-            $movement = $this->walletService->recordBingoPrize(
-                $wallet,
-                $amount,
-                "Premio Bingo — Sala #{$cardPrize->room_id}",
+            $movement = $this->walletService->recordPrize(
+                wallet:      $wallet,
+                amount:      $amount,
+                gameId:      (string) $cardPrize->room_id,
+                description: "Premio Bingo — Sala #{$cardPrize->room_id}",
             );
 
             BingoCardPrizePayment::create([
