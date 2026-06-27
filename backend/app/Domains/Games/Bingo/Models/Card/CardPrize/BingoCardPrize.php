@@ -95,7 +95,7 @@ class BingoCardPrize extends Model
     }
 
     public function getFormattedUsdAmount(): string { return number_format($this->usd_amount, 2); }
-    public function getFormattedLocalAmount(): string { return number_format($this->local_amount, 4); }
+    public function getFormattedLocalAmount(): string { return $this->currency?->formatAmount((float) $this->local_amount, 4) ?? number_format($this->local_amount, 4, ',', '.'); }
 
     public function scopeActive($query) { return $query->where('status', 'ACTIVE'); }
     public function scopeInactive($query) { return $query->where('status', 'INACTIVE'); }

@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace App\Domains\Games\Trivia\Services;
 
 use App\Domains\Games\Trivia\Models\TriviaRoom;
+use App\Events\LiveWinEvent;
+use App\Models\Currency;
+use App\Models\ExchangeRate;
 use App\Models\Games\Trivia\TriviaParticipant;
+use App\Models\User;
 use App\Models\Wallet;
 use App\Services\WalletService;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +36,7 @@ use RuntimeException;
  *   → racha máxima. Nunca por azar.
  * • Un jugador solo puede ganar si contestó ≥ 1 pregunta correcta.
  * • Los pagos son atómicos: o todos se acreditan o ninguno (transacción).
- * • Se registra un movimiento TRIVIA_PRIZE en la wallet de cada ganador.
+ * • Se registra un movimiento PRIZE (prize_type=DIGITAL) en la wallet de cada ganador.
  */
 final class PrizeDistributionService
 {
@@ -110,9 +114,10 @@ final class PrizeDistributionService
                 }
 
                 // Acreditar premio
-                $movement = $this->walletService->recordTriviaPrize(
+                $movement = $this->walletService->recordPrize(
                     wallet:      $wallet,
                     amount:      $amount,
+                    gameId:      (string) $room->id,
                     description: "Premio Trivia #{$payout['rank']}° — {$room->title} ({$room->code})",
                 );
 
@@ -141,7 +146,68 @@ final class PrizeDistributionService
             'payouts' => $results,
         ]);
 
+        // Anunciar al ganador principal en el ticker de la plataforma. Fuera de la
+        // transacción de pago: si el broadcast falla, el premio ya quedó acreditado.
+        $this->announceTopWinner($room, $results);
+
         return $results;
+    }
+
+    /**
+     * Emite LiveWinEvent para el ganador en 1° posición, si hubo pago.
+     *
+     * Sigue el mismo patrón USD/local que BingoDrawService::resolvePrizeAmounts():
+     * el monto acreditado por recordTriviaPrize() ya está en la moneda del premio
+     * (local), así que aquí se deriva el equivalente en USD con la tasa activa de
+     * esa moneda — igual que Bingo deriva su local_amount a partir del USD.
+     */
+    private function announceTopWinner(TriviaRoom $room, array $results): void
+    {
+        $topWin = collect($results)->firstWhere('position', 1);
+        if (! $topWin) {
+            return;
+        }
+
+        try {
+            $user        = User::find($topWin['playerId']);
+            $currency    = Currency::find($topWin['currencyId']);
+            $isoCode     = $currency?->iso_code ?? 'USD';
+            $localAmount = (float) $topWin['prizeAmount'];
+            $usdAmount   = $this->convertToUsd($localAmount, (string) $topWin['currencyId']);
+
+            broadcast(new LiveWinEvent(
+                game:           'Trivia',
+                gameSlug:       'trivia',
+                winnerName:     $user?->full_name ?: ($user?->username ?? 'Jugador'),
+                amount:         $usdAmount,
+                currency:       $isoCode,
+                currencySymbol: $currency?->symbol ?? '$',
+                isUsd:          $isoCode === 'USD',
+                localAmount:    $localAmount,
+                decimalPlaces:  $currency?->decimal_places ?? 2,
+                timestamp:      now()->toISOString(),
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('[PrizeDistribution] No se pudo emitir LiveWinEvent: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Convierte un monto en moneda local a USD usando la tasa de cambio activa
+     * de esa moneda. Si no hay tasa o la moneda ya es USD, devuelve el mismo monto.
+     */
+    private function convertToUsd(float $localAmount, string $currencyId): float
+    {
+        $rate = (float) ExchangeRate::where('currency_id', $currencyId)
+            ->where('status', 'ACTIVE')
+            ->orderByDesc('created_at')
+            ->value('amount');
+
+        if ($rate <= 0) {
+            return $localAmount;
+        }
+
+        return round($localAmount / $rate, 4);
     }
 
     /**

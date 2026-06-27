@@ -41,7 +41,6 @@ class WalletMovement extends Model
     public const TYPE_PURCHASE       = 'PURCHASE';
     public const TYPE_PRIZE          = 'PRIZE';
     public const TYPE_TRIVIA_ENTRY   = 'TRIVIA_ENTRY';
-    public const TYPE_TRIVIA_PRIZE   = 'TRIVIA_PRIZE';
     public const TYPE_RKE_COMMISSION = 'RKE_COMMISSION';
 
     public const STATUS_PENDING    = 'PENDING';
@@ -49,13 +48,21 @@ class WalletMovement extends Model
     public const STATUS_CANCELLED  = 'CANCELLED';
     public const STATUS_REJECTED   = 'REJECTED';
 
+    /** Naturaleza del premio, guardada en metadata.prize_type para movimientos TYPE_PRIZE. */
+    public const PRIZE_TYPE_DIGITAL  = 'DIGITAL';
+    public const PRIZE_TYPE_PHYSICAL = 'PHYSICAL';
+
+    public const PRIZE_TYPES = [
+        self::PRIZE_TYPE_DIGITAL  => 'Premio digital',
+        self::PRIZE_TYPE_PHYSICAL => 'Premio físico',
+    ];
+
     public const TYPES = [
         self::TYPE_DEPOSIT        => 'Depósito',
         self::TYPE_WITHDRAWAL     => 'Retiro',
         self::TYPE_PURCHASE       => 'Compra de cartón',
         self::TYPE_PRIZE          => 'Premio ganado',
         self::TYPE_TRIVIA_ENTRY   => 'Entrada Trivia',
-        self::TYPE_TRIVIA_PRIZE   => 'Premio Trivia',
         self::TYPE_RKE_COMMISSION => 'Comisión RKE',
     ];
 
@@ -111,9 +118,20 @@ class WalletMovement extends Model
         return in_array($this->type, [
             self::TYPE_DEPOSIT,
             self::TYPE_PRIZE,
-            self::TYPE_TRIVIA_PRIZE,
             self::TYPE_RKE_COMMISSION,
         ]);
+    }
+
+    /** Naturaleza del premio (DIGITAL|PHYSICAL) guardada en metadata, solo aplica a TYPE_PRIZE. */
+    public function getPrizeTypeAttribute(): ?string
+    {
+        return $this->metadata['prize_type'] ?? null;
+    }
+
+    /** ID del juego/sala que originó el premio, guardado en metadata, solo aplica a TYPE_PRIZE. */
+    public function getGameIdAttribute(): ?string
+    {
+        return $this->metadata['game_id'] ?? null;
     }
 
     /** El movimiento resta fondos (retiro o compra). */

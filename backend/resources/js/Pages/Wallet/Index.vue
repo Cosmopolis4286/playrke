@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import { useWallet }   from '@js/composables/wallet/useWallet'
 import { useTos }      from '@js/composables/useTos'
@@ -104,8 +104,50 @@ const movementMeta: Record<WalletMovementType, {
   PURCHASE:     { icon: 'fas fa-ticket-alt',      label: 'Compra de cartón', colorClass: 'meta--purchase',     sign: '-', description: 'Cartón de bingo adquirido' },
   WITHDRAWAL:   { icon: 'fas fa-arrow-up',        label: 'Retiro',           colorClass: 'meta--withdrawal',   sign: '-', description: 'Fondos retirados de tu cuenta' },
   TRIVIA_ENTRY: { icon: 'fas fa-brain',           label: 'Entrada Trivia',   colorClass: 'meta--trivia-entry', sign: '-', description: 'Entrada a sala de Trivia' },
-  TRIVIA_PRIZE: { icon: 'fas fa-brain',           label: 'Premio Trivia',    colorClass: 'meta--trivia-prize', sign: '+', description: 'Premio ganado en Trivia' },
 }
+
+// ─── Agrupación visual para la sección "Tipos de movimiento" ───────────────
+// El premio (type === 'PRIZE') se clasifica por su naturaleza (prize_type
+// en metadata: DIGITAL | PHYSICAL), no por el juego que lo originó.
+interface MovementTypeGroup {
+  icon: string
+  label: string
+  colorClass: string
+  sign: '+' | '-'
+  description: string
+  children?: { icon: string; label: string; colorClass: string; description: string }[]
+}
+
+const movementTypeGroups: MovementTypeGroup[] = [
+  {
+    icon: movementMeta.DEPOSIT.icon, label: movementMeta.DEPOSIT.label,
+    colorClass: movementMeta.DEPOSIT.colorClass, sign: movementMeta.DEPOSIT.sign,
+    description: movementMeta.DEPOSIT.description,
+  },
+  {
+    icon: movementMeta.WITHDRAWAL.icon, label: movementMeta.WITHDRAWAL.label,
+    colorClass: movementMeta.WITHDRAWAL.colorClass, sign: movementMeta.WITHDRAWAL.sign,
+    description: movementMeta.WITHDRAWAL.description,
+  },
+  {
+    icon: movementMeta.PRIZE.icon, label: movementMeta.PRIZE.label, colorClass: movementMeta.PRIZE.colorClass, sign: movementMeta.PRIZE.sign,
+    description: movementMeta.PRIZE.description,
+    children: [
+      { icon: 'fas fa-coins',  label: 'Premio digital', colorClass: 'meta--prize', description: 'Acreditado como saldo en tu billetera' },
+      { icon: 'fas fa-gift',   label: 'Premio físico',  colorClass: 'meta--prize', description: 'Objeto a entregar, no acredita saldo automáticamente' },
+    ],
+  },
+  {
+    icon: movementMeta.PURCHASE.icon, label: movementMeta.PURCHASE.label,
+    colorClass: movementMeta.PURCHASE.colorClass, sign: movementMeta.PURCHASE.sign,
+    description: movementMeta.PURCHASE.description,
+  },
+  {
+    icon: movementMeta.TRIVIA_ENTRY.icon, label: movementMeta.TRIVIA_ENTRY.label,
+    colorClass: movementMeta.TRIVIA_ENTRY.colorClass, sign: movementMeta.TRIVIA_ENTRY.sign,
+    description: movementMeta.TRIVIA_ENTRY.description,
+  },
+]
 
 function formatDate(iso: string): string {
   const date = new Date(iso)
@@ -139,14 +181,69 @@ const hasMoreMovements = () =>
   movementsMeta.value !== null &&
   movementsMeta.value.current_page < movementsMeta.value.last_page
 
+// ─── Sincroniza la altura máxima de "Tipos de movimiento" con "Resumen" ────
+const summaryCardRef    = ref<HTMLElement | null>(null)
+const movementTypesRef  = ref<HTMLElement | null>(null)
+const movementTypesMaxHeight = ref<number | null>(null)
+let resizeObserver: ResizeObserver | null = null
+
+function syncMovementTypesHeight() {
+  if (summaryCardRef.value) {
+    movementTypesMaxHeight.value = summaryCardRef.value.offsetHeight
+  }
+}
+
+onMounted(async () => {
+  await nextTick()
+  syncMovementTypesHeight()
+
+  if (typeof ResizeObserver !== 'undefined' && summaryCardRef.value) {
+    resizeObserver = new ResizeObserver(syncMovementTypesHeight)
+    resizeObserver.observe(summaryCardRef.value)
+  }
+  window.addEventListener('resize', syncMovementTypesHeight)
+})
+
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
+  window.removeEventListener('resize', syncMovementTypesHeight)
+})
+
+// ─── Filtro de período del resumen de actividad ─────────────────────────────
+const summaryPeriodOptions = [
+  { value: '24h',  label: 'Últimas 24 horas' },
+  { value: '7d',   label: 'Últimos 7 días' },
+  { value: '30d',  label: 'Últimos 30 días' },
+  { value: 'all',  label: 'Todo el historial' },
+] as const
+
+type SummaryPeriod = typeof summaryPeriodOptions[number]['value']
+
+const summaryPeriod = ref<SummaryPeriod>('24h')
+
+const summaryPeriodHours: Record<SummaryPeriod, number | null> = {
+  '24h': 24,
+  '7d':  24 * 7,
+  '30d': 24 * 30,
+  'all': null,
+}
+
+const summaryMovements = computed(() => {
+  const hours = summaryPeriodHours[summaryPeriod.value]
+  if (hours === null) return movements.value
+
+  const threshold = Date.now() - hours * 3600000
+  return movements.value.filter(m => new Date(m.created_at).getTime() >= threshold)
+})
+
 const totalDeposits = computed(() =>
-  movements.value.filter(m => m.type === 'DEPOSIT').reduce((s, m) => s + m.amount, 0)
+  summaryMovements.value.filter(m => m.type === 'DEPOSIT').reduce((s, m) => s + m.amount, 0)
 )
 const totalPrizes = computed(() =>
-  movements.value.filter(m => m.type === 'PRIZE').reduce((s, m) => s + m.amount, 0)
+  summaryMovements.value.filter(m => m.type === 'PRIZE').reduce((s, m) => s + m.amount, 0)
 )
 const totalWithdrawals = computed(() =>
-  movements.value.filter(m => m.type === 'WITHDRAWAL').reduce((s, m) => s + m.amount, 0)
+  summaryMovements.value.filter(m => m.type === 'WITHDRAWAL').reduce((s, m) => s + m.amount, 0)
 )
 
 function selectQuickAmount(value: number) {
@@ -266,8 +363,8 @@ const detailSteps = computed((): TimelineStep[] => {
     ]
   }
 
-  // PRIZE / TRIVIA_PRIZE
-  if (mov.type === 'PRIZE' || mov.type === 'TRIVIA_PRIZE') {
+  // PRIZE
+  if (mov.type === 'PRIZE') {
     return [
       {
         label:    '¡Premio ganado!',
@@ -431,11 +528,18 @@ const modalIcon = computed(() => {
         <div class="wallet-grid">
 
           <!-- ── Resumen de actividad ──────────────────────────────── -->
-          <div class="wallet-card">
-            <h3 class="wallet-card__title">
-              <i class="fas fa-chart-line"></i> Resumen de actividad
-              <span class="live-dot" title="Actualización en tiempo real"></span>
-            </h3>
+          <div ref="summaryCardRef" class="wallet-card">
+            <div class="summary-header">
+              <h3 class="wallet-card__title">
+                <i class="fas fa-chart-line"></i> Resumen de actividad
+                <span class="live-dot" title="Actualización en tiempo real"></span>
+              </h3>
+              <select v-model="summaryPeriod" class="summary-period-select">
+                <option v-for="opt in summaryPeriodOptions" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
+              </select>
+            </div>
             <div class="summary-list">
               <div class="summary-item summary-item--deposit">
                 <div class="summary-item__icon"><i class="fas fa-arrow-down"></i></div>
@@ -473,27 +577,44 @@ const modalIcon = computed(() => {
           </div>
 
           <!-- ── Tipos de movimiento ────────────────────────────────── -->
-          <div class="wallet-card">
+          <div
+            class="wallet-card"
+            :style="movementTypesMaxHeight ? { maxHeight: movementTypesMaxHeight + 'px' } : undefined"
+          >
             <h3 class="wallet-card__title">
               <i class="fas fa-info-circle"></i> Tipos de movimiento
             </h3>
-            <div class="movement-types">
-              <div
-                v-for="(meta, key) in movementMeta"
-                :key="key"
-                class="movement-type-item"
-                :class="meta.colorClass"
-              >
-                <div class="movement-type-item__icon">
-                  <i :class="meta.icon"></i>
+            <div ref="movementTypesRef" class="movement-types movement-types--scroll">
+              <div v-for="group in movementTypeGroups" :key="group.label" class="movement-type-group">
+                <div class="movement-type-item" :class="group.colorClass">
+                  <div class="movement-type-item__icon">
+                    <i :class="group.icon"></i>
+                  </div>
+                  <div class="movement-type-item__info">
+                    <p class="movement-type-item__label">{{ group.label }}</p>
+                    <p class="movement-type-item__desc">{{ group.description }}</p>
+                  </div>
+                  <span class="movement-type-item__sign" :class="group.sign === '+' ? 'sign--positive' : 'sign--negative'">
+                    {{ group.sign }}
+                  </span>
                 </div>
-                <div class="movement-type-item__info">
-                  <p class="movement-type-item__label">{{ meta.label }}</p>
-                  <p class="movement-type-item__desc">{{ meta.description }}</p>
+
+                <div v-if="group.children" class="movement-type-children">
+                  <div
+                    v-for="child in group.children"
+                    :key="child.label"
+                    class="movement-type-item movement-type-item--child"
+                    :class="child.colorClass"
+                  >
+                    <div class="movement-type-item__icon movement-type-item__icon--sm">
+                      <i :class="child.icon"></i>
+                    </div>
+                    <div class="movement-type-item__info">
+                      <p class="movement-type-item__label">{{ child.label }}</p>
+                      <p class="movement-type-item__desc">{{ child.description }}</p>
+                    </div>
+                  </div>
                 </div>
-                <span class="movement-type-item__sign" :class="meta.sign === '+' ? 'sign--positive' : 'sign--negative'">
-                  {{ meta.sign }}
-                </span>
               </div>
             </div>
           </div>
@@ -1391,6 +1512,7 @@ const modalIcon = computed(() => {
 .wallet-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  align-items: start;
   gap: 0 1px;
   background: #fff;
   border-bottom: 1px solid #eaecf0;
@@ -1400,6 +1522,9 @@ const modalIcon = computed(() => {
 .wallet-card {
   background: #fff;
   padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .kyc-card {
@@ -1428,6 +1553,31 @@ const modalIcon = computed(() => {
 .wallet-card__title i { color: #667eea; }
 
 /* ── Resumen ── */
+.summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.summary-header .wallet-card__title { margin: 0; }
+
+.summary-period-select {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4a5568;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.summary-period-select:hover,
+.summary-period-select:focus { border-color: #667eea; }
+
 .summary-list { display: flex; flex-direction: column; gap: 10px; }
 
 .summary-item {
@@ -1487,6 +1637,15 @@ const modalIcon = computed(() => {
 /* ── Tipos de movimiento ── */
 .movement-types { display: flex; flex-direction: column; gap: 8px; }
 
+.movement-types--scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  padding-right: 4px;
+}
+
 .movement-type-item {
   display: flex;
   align-items: center;
@@ -1543,6 +1702,33 @@ const modalIcon = computed(() => {
   font-size: 0.85rem;
   font-weight: 700;
   flex-shrink: 0;
+}
+
+/* ── Grupo con subtipos (ej: Premio → Premio Bingo / Premio Trivia) ── */
+.movement-type-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.movement-type-children {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: 20px;
+  padding-left: 14px;
+  border-left: 2px solid #e2e8f0;
+}
+
+.movement-type-item--child {
+  padding: 7px 10px;
+  background: #fcfcfd;
+}
+
+.movement-type-item__icon--sm {
+  width: 30px;
+  height: 30px;
+  font-size: 0.78rem;
 }
 
 .sign--positive { background: #dcfce7; color: #16a34a; }

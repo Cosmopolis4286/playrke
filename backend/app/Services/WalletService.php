@@ -372,47 +372,22 @@ final class WalletService
     }
 
     /**
-     * Acredita el premio de Trivia al ganador.
+     * Acredita un premio (Bingo, Trivia o cualquier juego futuro) al ganador.
      * La wallet se recibe ya resuelta — nunca acepta un ID externo.
+     *
+     * @param string $gameId    ID de la sala/juego que originó el premio.
+     * @param string $prizeType WalletMovement::PRIZE_TYPE_DIGITAL | PRIZE_TYPE_PHYSICAL.
      */
-    public function recordTriviaPrize(Wallet $wallet, float $amount, string $description = 'Premio Trivia'): WalletMovement
-    {
+    public function recordPrize(
+        Wallet $wallet,
+        float $amount,
+        string $gameId,
+        string $description = 'Premio ganado',
+        string $prizeType = WalletMovement::PRIZE_TYPE_DIGITAL,
+    ): WalletMovement {
         $movement = null;
 
-        DB::transaction(function () use ($wallet, $amount, $description, &$movement) {
-            $walletId = (string) $wallet->id;
-
-            $balanceBefore = (float) $wallet->balance;
-
-            $this->walletRepository->incrementBalance($walletId, $amount);
-            $wallet->refresh();
-
-            $movement = $this->movementRepository->record([
-                'wallet_id'      => $walletId,
-                'user_id'        => (string) $wallet->user_id,
-                'type'           => WalletMovement::TYPE_TRIVIA_PRIZE,
-                'status'         => WalletMovement::STATUS_COMPLETED,
-                'amount'         => $amount,
-                'balance_before' => $balanceBefore,
-                'balance_after'  => (float) $wallet->balance,
-                'description'    => $description,
-            ]);
-        });
-
-        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_TRIVIA_PRIZE, $amount);
-
-        return $movement;
-    }
-
-    /**
-     * Acredita un premio de Bingo al ganador.
-     * La wallet se recibe ya resuelta — nunca acepta un ID externo.
-     */
-    public function recordBingoPrize(Wallet $wallet, float $amount, string $description = 'Premio Bingo'): WalletMovement
-    {
-        $movement = null;
-
-        DB::transaction(function () use ($wallet, $amount, $description, &$movement) {
+        DB::transaction(function () use ($wallet, $amount, $description, $gameId, $prizeType, &$movement) {
             $walletId = (string) $wallet->id;
 
             $balanceBefore = (float) $wallet->balance;
@@ -429,6 +404,7 @@ final class WalletService
                 'balance_before' => $balanceBefore,
                 'balance_after'  => (float) $wallet->balance,
                 'description'    => $description,
+                'metadata'       => ['game_id' => $gameId, 'prize_type' => $prizeType],
             ]);
         });
 

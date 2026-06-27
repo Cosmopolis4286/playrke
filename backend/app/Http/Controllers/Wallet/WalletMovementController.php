@@ -172,6 +172,8 @@ final class WalletMovementController extends Controller
             'receipt_path'   => $m->receipt_path,
             'receipt_url'    => $m->receipt_path ? route('wallet.receipt', ['filename' => basename($m->receipt_path)]) : null,
             'metadata'       => $m->metadata,
+            'prize_type'     => $m->prize_type,
+            'game_id'        => $m->game_id,
             'admin_notes'    => $m->admin_notes,
             'processed_at'   => $m->processed_at?->toISOString(),
             'processed_by'   => $m->processedBy ? [

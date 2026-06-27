@@ -46,7 +46,7 @@ interface MovementMetadata {
 
 interface Movement {
   id:             string
-  type:           'DEPOSIT' | 'WITHDRAWAL' | 'PURCHASE' | 'PRIZE'
+  type:           'DEPOSIT' | 'WITHDRAWAL' | 'PURCHASE' | 'PRIZE' | 'TRIVIA_ENTRY'
   status:         'PENDING' | 'COMPLETED' | 'CANCELLED' | 'REJECTED'
   amount:         number
   balance_before: number
@@ -56,6 +56,8 @@ interface Movement {
   receipt_path:   string | null
   receipt_url:    string | null
   metadata:       MovementMetadata | null
+  prize_type:     'DIGITAL' | 'PHYSICAL' | null
+  game_id:        string | null
   admin_notes:    string | null
   processed_at:   string | null
   processed_by:   MovementAdmin | null
@@ -223,7 +225,11 @@ const typeConfig: Record<string, { label: string; cls: string; icon: string }> =
   PURCHASE:     { label: 'Compra',         cls: 'mv-badge mv-badge--purchase',     icon: 'fas fa-ticket-alt'  },
   PRIZE:        { label: 'Premio',         cls: 'mv-badge mv-badge--prize',        icon: 'fas fa-trophy'      },
   TRIVIA_ENTRY: { label: 'Entrada Trivia', cls: 'mv-badge mv-badge--trivia-entry', icon: 'fas fa-brain'       },
-  TRIVIA_PRIZE: { label: 'Premio Trivia',  cls: 'mv-badge mv-badge--trivia-prize', icon: 'fas fa-brain'       },
+}
+
+const prizeTypeConfig: Record<'DIGITAL' | 'PHYSICAL', { label: string; icon: string }> = {
+  DIGITAL:  { label: 'Digital', icon: 'fas fa-coins' },
+  PHYSICAL: { label: 'Físico',  icon: 'fas fa-gift'  },
 }
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
@@ -327,6 +333,10 @@ const currentPage = computed(() => meta.value?.current_page ?? 1)
             <span :class="typeConfig[(row as Movement).type]?.cls ?? 'mv-badge'">
               <i :class="typeConfig[(row as Movement).type]?.icon"></i>
               {{ typeConfig[(row as Movement).type]?.label ?? (row as Movement).type }}
+            </span>
+            <span v-if="(row as Movement).type === 'PRIZE' && (row as Movement).prize_type" class="mv-badge mv-badge--prize-sub">
+              <i :class="prizeTypeConfig[(row as Movement).prize_type!].icon"></i>
+              {{ prizeTypeConfig[(row as Movement).prize_type!].label }}
             </span>
           </template>
 
@@ -454,6 +464,17 @@ const currentPage = computed(() => meta.value?.current_page ?? 1)
             <i :class="typeConfig[detail.type]?.icon"></i>
             {{ typeConfig[detail.type]?.label ?? detail.type }}
           </span>
+        </div>
+        <div v-if="detail.type === 'PRIZE' && detail.prize_type" class="mv-detail__section">
+          <p class="mv-detail__label">Naturaleza del premio</p>
+          <span class="mv-badge mv-badge--prize-sub">
+            <i :class="prizeTypeConfig[detail.prize_type].icon"></i>
+            {{ prizeTypeConfig[detail.prize_type].label }}
+          </span>
+        </div>
+        <div v-if="detail.type === 'PRIZE' && detail.game_id" class="mv-detail__section">
+          <p class="mv-detail__label">ID del juego/sala</p>
+          <p class="mv-detail__value mv-detail__value--mono">{{ detail.game_id }}</p>
         </div>
         <div class="mv-detail__section">
           <p class="mv-detail__label">Estado</p>
@@ -752,8 +773,8 @@ const currentPage = computed(() => meta.value?.current_page ?? 1)
 .mv-badge--withdrawal   { background: #fef3c7; color: #d97706; }
 .mv-badge--purchase     { background: #ffe4e6; color: #e11d48; }
 .mv-badge--prize        { background: #fef9c3; color: #ca8a04; }
+.mv-badge--prize-sub    { background: #f3f4f6; color: #4b5563; margin-left: 6px; }
 .mv-badge--trivia-entry { background: #ede9fe; color: #7c3aed; }
-.mv-badge--trivia-prize { background: #ede9fe; color: #7c3aed; }
 
 /* Monto */
 .mv-amount           { font-size: 0.875rem; font-weight: 700; white-space: nowrap; }

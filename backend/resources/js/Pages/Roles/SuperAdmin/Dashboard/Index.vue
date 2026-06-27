@@ -237,7 +237,6 @@
     PURCHASE:       { label: 'Compra',          sign: '-', color: '#e11d48' },
     PRIZE:          { label: 'Premio',          sign: '+', color: '#d97706' },
     TRIVIA_ENTRY:   { label: 'Trivia entrada',  sign: '-', color: '#7c3aed' },
-    TRIVIA_PRIZE:   { label: 'Premio trivia',   sign: '+', color: '#7c3aed' },
     RKE_COMMISSION: { label: 'Comisión RKE',    sign: '+', color: '#667eea' },
   }
 

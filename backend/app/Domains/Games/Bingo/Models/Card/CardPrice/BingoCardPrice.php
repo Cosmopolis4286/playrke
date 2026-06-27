@@ -42,7 +42,7 @@ class BingoCardPrice extends BaseModel
 
     public function getFormattedPrice(): string
     {
-        return $this->currency->symbol . ' ' . number_format($this->card_price, 2);
+        return trim($this->currency->symbol . ' ' . $this->currency->formatAmount((float) $this->card_price));
     }
 
     public function isGreaterThan(float $amount): bool { return $this->card_price > $amount; }

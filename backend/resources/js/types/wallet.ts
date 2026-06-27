@@ -76,7 +76,10 @@ export interface PendingOperationResponse {
 export type WalletOperation = 'deposit' | 'withdraw'
 
 // ─── Movimientos ───────────────────────────────────────────────────────────
-export type WalletMovementType = 'DEPOSIT' | 'WITHDRAWAL' | 'PURCHASE' | 'PRIZE' | 'TRIVIA_ENTRY' | 'TRIVIA_PRIZE'
+export type WalletMovementType = 'DEPOSIT' | 'WITHDRAWAL' | 'PURCHASE' | 'PRIZE' | 'TRIVIA_ENTRY'
+
+// Naturaleza del premio, guardada en metadata.prize_type (solo aplica a type === 'PRIZE')
+export type PrizeType = 'DIGITAL' | 'PHYSICAL'
 
 export interface WalletMovement {
   id: string
@@ -93,6 +96,9 @@ export interface WalletMovement {
   receipt_url: string | null
   admin_notes: string | null
   processed_at: string | null
+  // Solo presentes cuando type === 'PRIZE' (derivados de metadata en backend)
+  prize_type?: PrizeType | null
+  game_id?: string | null
   created_at: string
   updated_at: string
 }
