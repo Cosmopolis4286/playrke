@@ -42,8 +42,12 @@ final class PlayerDashboardContextService
             ->first();
 
         $balance       = $wallet ? (float) $wallet->balance : 0.0;
-        $currencySymbol = $wallet?->currency?->symbol ?? '';
-        $currencyCode   = $wallet?->currency?->iso_code ?? '';
+        $currency       = $wallet?->currency;
+        $currencySymbol = $currency?->symbol ?? '';
+        $currencyCode   = $currency?->iso_code ?? '';
+        $formattedBalance = $currency
+            ? $currency->formatAmount($balance)
+            : number_format($balance, 2, ',', '.');
 
         // Salas activas disponibles
         $activeRooms = BingoRoom::active()->count();
@@ -70,7 +74,7 @@ final class PlayerDashboardContextService
         return [
             'walletBalance' => [
                 'label'       => 'Saldo disponible',
-                'value'       => $currencySymbol . ' ' . number_format($balance, 2),
+                'value'       => trim($currencySymbol . ' ' . $formattedBalance),
                 'icon'        => 'fas fa-wallet',
                 'variant'     => 'primary',
                 'description' => $currencyCode ?: 'Sin billetera activa',
@@ -119,7 +123,8 @@ final class PlayerDashboardContextService
                 // Obtener precio desde la sala (card_prices)
                 $cardPrice = $card->room?->cardPrices?->first();
                 $price = $cardPrice?->card_price;
-                $priceCurrency = $cardPrice?->currency?->iso_code ?? $card->currency?->iso_code ?? '';
+                $cardCurrency = $cardPrice?->currency ?? $card->currency;
+                $priceCurrency = $cardCurrency?->iso_code ?? '';
 
                 return [
                     'id'          => (string) $card->getKey(),
@@ -130,7 +135,7 @@ final class PlayerDashboardContextService
                     'actor'       => $card->serial_number,
                     'meta'        => [
                         'status'   => $card->status,
-                        'price'    => $price ? number_format($price, 2) : null,
+                        'price'    => $price ? ($cardCurrency?->formatAmount((float) $price) ?? number_format((float) $price, 2, ',', '.')) : null,
                         'currency' => $priceCurrency,
                     ],
                 ];

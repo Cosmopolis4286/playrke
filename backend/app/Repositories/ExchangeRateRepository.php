@@ -204,8 +204,8 @@ class ExchangeRateRepository extends BaseRepository implements ExchangeRateRepos
         $result = [];
 
         foreach ($rates as $rate) {
-            $currencyCode = $rate->currency?->code ?? 'Sin moneda';
-            $value = number_format($rate->value, 4);
+            $currencyCode = $rate->currency?->iso_code ?? 'Sin moneda';
+            $value = $rate->currency?->formatAmount((float) $rate->amount, 4) ?? number_format($rate->amount, 4, ',', '.');
             $result[$rate->id] = "{$currencyCode} - {$value}";
         }
 

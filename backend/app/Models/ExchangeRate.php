@@ -174,7 +174,7 @@ class ExchangeRate extends BaseModel
      */
     public function getFormattedValue(): string
     {
-        return number_format($this->amount, 4);
+        return $this->currency?->formatAmount((float) $this->amount, 4) ?? number_format($this->amount, 4, ',', '.');
     }
 
     /**

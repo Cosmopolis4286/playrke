@@ -47,6 +47,8 @@ class Currency extends Model
         'type',
         'country_id',
         'decimal_places',
+        'decimal_separator',
+        'thousands_separator',
         'status',
     ];
 
@@ -60,6 +62,8 @@ class Currency extends Model
         'type' => 'string',
         'country_id' => 'string',
         'decimal_places' => 'integer',
+        'decimal_separator' => 'string',
+        'thousands_separator' => 'string',
         'status' => 'string',
     ];
 
@@ -156,9 +160,14 @@ class Currency extends Model
     /**
      * Formatear valor con decimales correctos
      */
-    public function formatAmount(float $amount): string
+    public function formatAmount(float $amount, ?int $decimals = null): string
     {
-        return number_format($amount, $this->decimal_places, '.', ',');
+        return number_format(
+            $amount,
+            $decimals ?? $this->decimal_places ?? 2,
+            $this->decimal_separator ?? ',',
+            $this->thousands_separator ?? '.',
+        );
     }
 
     // ========================
