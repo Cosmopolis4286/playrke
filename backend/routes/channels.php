@@ -29,6 +29,11 @@ Broadcast::channel('bingo.lobby', function () {
     return true; // Public channel - anyone can listen
 });
 
+// Canal público del ticker de ganadores en vivo (toda la plataforma, todos los juegos).
+Broadcast::channel('live-wins', function () {
+    return true; // Public channel - anyone can listen
+});
+
 // Private Bingo Player Channel (authenticated users only)
 Broadcast::channel('bingo.player.{userId}', function ($user, $userId) {
     return (int) $user->id === (int) $userId;

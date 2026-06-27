@@ -1,16 +1,21 @@
 <script setup lang="ts">
-import { ref, watchEffect } from 'vue'
+import { ref, watchEffect, nextTick, onBeforeUnmount } from 'vue'
 import { useLiveWins } from '@/js/composables/platform/useLiveWins'
 
 const GAME_IMAGES: Record<string, string> = {
   bingo: '/img/games/bingo/estelar.png',
 }
 
+/**
+ * Iconos de respaldo cuando no hay imagen en GAME_IMAGES. bingo y trivia
+ * emiten LiveWinEvent realmente (ver BingoDrawService y PrizeDistributionService);
+ * blackjack y plinko quedan listados para cuando esos motores de juego existan.
+ */
 const GAME_ICONS: Record<string, string> = {
   bingo:     'fas fa-dice',
+  trivia:    'fas fa-question-circle',
   blackjack: 'fas fa-playing-card',
   plinko:    'fas fa-circle-dot',
-  trivia:    'fas fa-question-circle',
 }
 
 const COLLAPSE_STORAGE_KEY = 'lwt-collapsed'
@@ -26,11 +31,29 @@ function gameIcon(slug: string): string {
 const { wins, formatWinAmount, maskName } = useLiveWins()
 
 const collapsed = ref(localStorage.getItem(COLLAPSE_STORAGE_KEY) === '1')
+const panelEl = ref<HTMLElement | null>(null)
 
-// El espacio bajo el navbar solo se reserva cuando el panel está realmente visible.
-// Por defecto (antes de montar, sin datos, o colapsado) no debe quedar hueco en blanco.
+/**
+ * En vez de depender de una clase estática en <body> (que puede desincronizarse
+ * con caché de CSS o builds desfasados), se mide la altura real del panel y se
+ * empuja el contenido con esa medida exacta vía CSS custom property. Si el panel
+ * no está visible, la variable es '0px' y no se reserva ningún espacio.
+ */
+function syncReservedSpace(): void {
+  const height = panelEl.value?.offsetHeight ?? 0
+  document.documentElement.style.setProperty('--lwt-height', `${height}px`)
+}
+
 watchEffect(() => {
-  document.body.classList.toggle('lwt-active', wins.value.length > 0 && !collapsed.value)
+  // Se re-ejecuta cuando cambian wins/collapsed; nextTick asegura que el DOM
+  // ya refleje el v-if antes de medir.
+  void wins.value.length
+  void collapsed.value
+  nextTick(syncReservedSpace)
+})
+
+onBeforeUnmount(() => {
+  document.documentElement.style.setProperty('--lwt-height', '0px')
 })
 
 function collapse(): void {
@@ -46,7 +69,7 @@ function expand(): void {
 
 <template>
   <Transition name="lwt-fade">
-  <div class="lwt" v-if="wins.length > 0 && !collapsed" :key="'panel'">
+  <div ref="panelEl" class="lwt" v-if="wins.length > 0 && !collapsed" :key="'panel'">
     <div class="lwt__label">
       <span class="lwt__dot"></span>
       <span class="lwt__label-text">En vivo</span>

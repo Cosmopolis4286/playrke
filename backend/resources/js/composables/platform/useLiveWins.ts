@@ -75,7 +75,8 @@ export function useLiveWins(maxItems = 8) {
   }
 
   function maskName(name: string): string {
-    if (!name || name.length <= 3) return `${name}***`
+    if (!name) return '***'
+    if (name.length <= 3) return `${name.slice(0, 1)}***`
     return `${name.slice(0, 3)}${'*'.repeat(Math.min(name.length - 3, 4))}`
   }
 
