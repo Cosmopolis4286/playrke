@@ -879,13 +879,13 @@ aside.main-sidebar .sidebar.mt-2 {
   }
 }
 
-/* ── Logo del sidebar: header tipo "space" con altura expandida ── */
+/* ── Logo del sidebar: header tipo "space", misma altura que el footer de usuario (66px) ── */
 .menu-image-play.cold {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 80px;
-  padding: 10px 18px;
+  height: 66px;
+  padding: 6px 18px;
   box-sizing: border-box;
   flex-shrink: 0;
   overflow: hidden;
@@ -956,7 +956,7 @@ aside.main-sidebar .sidebar.mt-2 {
 /* Badge de versión flotante sobre el logo */
 .sidebar-brand-version {
   position: absolute;
-  bottom: 8px;
+  bottom: 5px;
   right: 12px;
   font-size: 9px;
   font-weight: 700;
@@ -985,8 +985,8 @@ body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .sidebar-brand-vers
 
 /* Al expandir el sidebar en hover (sidebar-mini collapsed) restaurar altura */
 body.sidebar-mini.sidebar-collapse .main-sidebar:hover .menu-image-play.cold {
-  height: 80px;
-  padding: 10px 18px;
+  height: 66px;
+  padding: 6px 18px;
 }
 
 /* ── Sidebar User Footer ── */
@@ -995,10 +995,12 @@ body.sidebar-mini.sidebar-collapse .main-sidebar:hover .menu-image-play.cold {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  height: 66px;
+  padding: 0 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.25);
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .sidebar-user-footer__info {
@@ -1023,16 +1025,16 @@ body.sidebar-mini.sidebar-collapse .main-sidebar:hover .menu-image-play.cold {
 
 .sidebar-user-footer__avatar {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .sidebar-user-footer__photo {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.2);
