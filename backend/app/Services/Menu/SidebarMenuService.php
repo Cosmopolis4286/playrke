@@ -39,8 +39,13 @@ class SidebarMenuService
                     'route' => 'wallet-movements.index',
                     'permission' => 'wallet.movements.view',
                 ],
+                'movement_types' => [
+                    'title' => 'Tipos de Movimiento',
+                    'route' => 'movement-types.index',
+                    'permission' => 'movement-types.view',
+                ],
             ],
-        ], 
+        ],
         'exchange_rates' => [
             'title' => 'Tasa de Cambio',
             'icon' => 'fas fa-exchange-alt',
@@ -150,6 +155,13 @@ class SidebarMenuService
             'permission'    => 'audit.view',
             'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
             'route'         => 'audit.index',
+        ],
+        'win_events' => [
+            'title'         => 'Eventos de Ganancia',
+            'icon'          => 'fas fa-gift',
+            'permission'    => 'win-events.manage',
+            'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
+            'route'         => 'admin.win-event.index',
         ],
         'games_trivia' => [
             'title' => 'Trivia',
@@ -432,11 +444,17 @@ class SidebarMenuService
     }
 
     /**
-     * Cuenta los movimientos de billetera (depósitos/retiros) pendientes de revisión.
+     * Cuenta los movimientos de billetera pendientes de revisión: cualquier
+     * tipo con requires_approval=true en el catálogo MovementType (incluye
+     * DEPOSIT/WITHDRAWAL y cualquier tipo custom aprobable creado por admin).
      */
     public function pendingWalletMovementsCount(): int
     {
-        return WalletMovement::whereIn('type', [WalletMovement::TYPE_DEPOSIT, WalletMovement::TYPE_WITHDRAWAL])
+        $approvableTypes = \App\Models\MovementType::catalog()
+            ->filter(fn ($type) => $type->requires_approval)
+            ->pluck('code');
+
+        return WalletMovement::whereIn('type', $approvableTypes)
             ->where('status', WalletMovement::STATUS_PENDING)
             ->count();
     }

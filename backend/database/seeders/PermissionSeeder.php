@@ -118,6 +118,9 @@ class PermissionSeeder extends Seeder
             ['name' => 'audit.view', 'guard_name' => 'web', 'description' => 'Ver auditoría'],
             ['name' => 'audit.export', 'guard_name' => 'web', 'description' => 'Exportar auditoría'],
 
+            // Eventos de ganancia (ticker de la plataforma)
+            ['name' => 'win-events.manage', 'guard_name' => 'web', 'description' => 'Registrar y ver eventos de ganancia manuales'],
+
             // Opciones independientes del menú
             ['name' => 'directory.view', 'guard_name' => 'web', 'description' => 'Ver directorio de comercios'],
             ['name' => 'directory.search', 'guard_name' => 'web', 'description' => 'Buscar en directorio'],
@@ -135,6 +138,8 @@ class PermissionSeeder extends Seeder
             ['name' => 'wallet.movements', 'guard_name' => 'web', 'description' => 'Ver movimientos de billetera'],
             ['name' => 'wallet.movements.view', 'guard_name' => 'web', 'description' => 'Ver todos los movimientos de billetera (admin)'],
             ['name' => 'wallet.movements.manage', 'guard_name' => 'web', 'description' => 'Gestionar movimientos de billetera (admin)'],
+            ['name' => 'movement-types.view', 'guard_name' => 'web', 'description' => 'Ver catálogo de tipos de movimiento'],
+            ['name' => 'movement-types.manage', 'guard_name' => 'web', 'description' => 'Gestionar catálogo de tipos de movimiento (crear/editar/desactivar)'],
 
             // Billetera de plataforma (caja interna del sistema)
             ['name' => 'platform.wallet.view', 'guard_name' => 'web', 'description' => 'Ver billetera de plataforma'],

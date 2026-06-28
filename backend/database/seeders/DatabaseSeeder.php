@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             CountrySeeder::class,
             AmericanTimeZoneSeeder::class,
             CurrencySeeder::class,
+            MovementTypeSeeder::class,
             BankVenezuelaSeeder::class,
             DocumentTypeSeeder::class,
             RoomTypeSeeder::class,

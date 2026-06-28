@@ -422,6 +422,43 @@ final class NotificationService
     }
 
     /**
+     * Notificación genérica al usuario cuando un movimiento de tipo custom
+     * (catálogo MovementType, fuera de DEPOSIT/WITHDRAWAL) es aprobado o
+     * rechazado.
+     */
+    public function createMovementResultNotification(
+        string $userId,
+        string $movementType,
+        string $status,       // COMPLETED | REJECTED
+        float  $amount,
+        string $currencySymbol,
+        string $typeLabel,
+        ?string $adminNotes = null,
+    ): Notification {
+        $approved = $status === 'COMPLETED';
+
+        $title   = $approved ? "✅ {$typeLabel} aprobado"   : "❌ {$typeLabel} rechazado";
+        $message = $approved
+            ? "Tu movimiento de {$currencySymbol}{$amount} ({$typeLabel}) fue procesado exitosamente."
+            : "Tu movimiento de {$currencySymbol}{$amount} ({$typeLabel}) fue rechazado." . ($adminNotes ? " Motivo: {$adminNotes}" : '');
+
+        return $this->create(
+            userId:  $userId,
+            type:    'WALLET_UPDATED',
+            title:   $title,
+            message: $message,
+            data:    [
+                'movement_type'   => $movementType,
+                'movement_status' => $status,
+                'amount'          => $amount,
+                'currency_symbol' => $currencySymbol,
+                'admin_notes'     => $adminNotes,
+                'url'             => '/wallet',
+            ]
+        );
+    }
+
+    /**
      * Crear notificaciones masivas para múltiples usuarios
      *
      * @param array $userIds
