@@ -149,13 +149,13 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 /* Compensar la altura del navbar custom (56px) + la altura real medida del ticker de
-   ganadores (--lwt-height, fijada por LiveWinsTicker.vue; es '0px' cuando no hay panel
-   visible, así que nunca se reserva espacio de más). */
+   ganancias (--pwt-height, fijada por PlatformWinTicker.vue; es '0px' cuando no hay
+   panel visible, así que nunca se reserva espacio de más). */
 :root {
-  --lwt-height: 0px;
+  --pwt-height: 0px;
 }
 .layout-fixed .wrapper .content-wrapper #content-scrollable {
-  padding-top: calc(56px + var(--lwt-height));
+  padding-top: calc(56px + var(--pwt-height));
   transition: padding-top .2s ease-in-out;
 }
 
@@ -177,8 +177,8 @@ body::-webkit-scrollbar-thumb:hover {
 }
 #content-scrollable::-webkit-scrollbar-button { display: none; }
 
-/* ── Ticker de ganadores en vivo: fijo bajo el navbar, respeta el ancho del sidebar ── */
-#live-wins-ticker {
+/* ── Ticker de ganancias en vivo: fijo bajo el navbar, respeta el ancho del sidebar ── */
+#platform-win-ticker {
   position: fixed;
   top: 56px;
   left: 0;
@@ -187,19 +187,19 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 @media (min-width: 768px) {
-  #live-wins-ticker {
+  #platform-win-ticker {
     left: 250px;
     transition: left .3s ease-in-out;
   }
 
-  body.sidebar-collapse #live-wins-ticker {
+  body.sidebar-collapse #platform-win-ticker {
     left: 0;
   }
 }
 
 /* A partir de lg (992px), .sidebar-mini colapsa a modo ícono (80px) en vez de ocultarse */
 @media (min-width: 992px) {
-  body.sidebar-collapse #live-wins-ticker {
+  body.sidebar-collapse #platform-win-ticker {
     left: 80px;
   }
 }

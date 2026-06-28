@@ -5,7 +5,7 @@ import { showToast } from './toastNotify'
 import { initLogout } from '../helpers/user/logout'
 import { initModalFocus } from '@js/helpers/modal/modals'
 import ScrollToTop from '@js/Components/ui/ScrollToTop.vue'
-import LiveWinsTicker from '@js/Components/Common/Platform/LiveWinsTicker.vue'
+import PlatformWinTicker from '@js/Components/Common/Platform/PlatformWinTicker.vue'
 
 /**
  * Inicializa el bloqueo de arrastre de imágenes
@@ -54,14 +54,14 @@ function mountScrollToTop(): void {
 }
 
 /**
- * Monta el ticker de ganadores en vivo debajo del navbar.
+ * Monta el ticker de ganancias en vivo debajo del navbar.
  * Solo existe en el layout autenticado (auth-layout.blade.php).
  */
-function mountLiveWinsTicker(): void {
-  const el = document.getElementById('live-wins-ticker')
+function mountPlatformWinTicker(): void {
+  const el = document.getElementById('platform-win-ticker')
   if (!el) return
 
-  createApp(LiveWinsTicker).mount(el)
+  createApp(PlatformWinTicker).mount(el)
 }
 
 /**
@@ -81,8 +81,8 @@ export async function initGlobal(): Promise<void> {
     // 🔹 Botón volver al inicio
     mountScrollToTop()
 
-    // 🔹 Ticker de ganadores en vivo
-    mountLiveWinsTicker()
+    // 🔹 Ticker de ganancias en vivo
+    mountPlatformWinTicker()
 
     // 🔹 Mostrar mensajes flash de sesión
     if (window.Session?.message?.trim()) {

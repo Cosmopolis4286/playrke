@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace App\Domains\Games\Trivia\Services;
 
 use App\Domains\Games\Trivia\Models\TriviaRoom;
-use App\Events\LiveWinEvent;
-use App\Models\Currency;
+use App\Domains\Platform\WinEvent\Services\WinEventService;
 use App\Models\ExchangeRate;
 use App\Models\Games\Trivia\TriviaParticipant;
-use App\Models\User;
 use App\Models\Wallet;
 use App\Services\WalletService;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +46,7 @@ final class PrizeDistributionService
 
     public function __construct(
         private readonly WalletService $walletService,
+        private readonly WinEventService $winEventService,
     ) {}
 
     /**
@@ -154,12 +153,10 @@ final class PrizeDistributionService
     }
 
     /**
-     * Emite LiveWinEvent para el ganador en 1° posición, si hubo pago.
-     *
-     * Sigue el mismo patrón USD/local que BingoDrawService::resolvePrizeAmounts():
-     * el monto acreditado por recordTriviaPrize() ya está en la moneda del premio
-     * (local), así que aquí se deriva el equivalente en USD con la tasa activa de
-     * esa moneda — igual que Bingo deriva su local_amount a partir del USD.
+     * Reporta al feed de ganancias de la plataforma el ganador en 1° posición,
+     * si hubo pago. El monto acreditado por recordPrize() ya está en la moneda
+     * del premio (local); aquí se deriva el equivalente en USD con la tasa
+     * activa de esa moneda — mismo patrón que BingoDrawService.
      */
     private function announceTopWinner(TriviaRoom $room, array $results): void
     {
@@ -168,28 +165,20 @@ final class PrizeDistributionService
             return;
         }
 
-        try {
-            $user        = User::find($topWin['playerId']);
-            $currency    = Currency::find($topWin['currencyId']);
-            $isoCode     = $currency?->iso_code ?? 'USD';
-            $localAmount = (float) $topWin['prizeAmount'];
-            $usdAmount   = $this->convertToUsd($localAmount, (string) $topWin['currencyId']);
+        $localAmount = (float) $topWin['prizeAmount'];
+        $usdAmount   = $this->convertToUsd($localAmount, (string) $topWin['currencyId']);
 
-            broadcast(new LiveWinEvent(
-                game:           'Trivia',
-                gameSlug:       'trivia',
-                winnerName:     $user?->full_name ?: ($user?->username ?? 'Jugador'),
-                amount:         $usdAmount,
-                currency:       $isoCode,
-                currencySymbol: $currency?->symbol ?? '$',
-                isUsd:          $isoCode === 'USD',
-                localAmount:    $localAmount,
-                decimalPlaces:  $currency?->decimal_places ?? 2,
-                timestamp:      now()->toISOString(),
-            ));
-        } catch (\Throwable $e) {
-            Log::warning('[PrizeDistribution] No se pudo emitir LiveWinEvent: ' . $e->getMessage());
-        }
+        $this->winEventService->reportMoney(
+            userId: (string) $topWin['playerId'],
+            winnerNameOverride: null,
+            gameSlug: 'trivia',
+            gameName: 'Trivia',
+            amountUsd: $usdAmount,
+            amountLocal: $localAmount,
+            currencyId: $topWin['currencyId'],
+            sourceReference: $topWin['movementId'] ?? null,
+            metadata: ['room_id' => (string) $room->id, 'room_code' => $room->code],
+        );
     }
 
     /**

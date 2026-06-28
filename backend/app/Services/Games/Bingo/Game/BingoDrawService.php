@@ -14,7 +14,7 @@ use App\Events\Games\Bingo\BingoGameEnded;
 use App\Events\Games\Bingo\BingoGameStarted;
 use App\Events\Games\Bingo\BingoNumberCalled;
 use App\Events\Games\Bingo\BingoWinnerDeclared;
-use App\Events\LiveWinEvent;
+use App\Domains\Platform\WinEvent\Services\WinEventService;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\ExchangeRate;
 use App\Models\User;
@@ -31,6 +31,7 @@ final class BingoDrawService
 
     public function __construct(
         private readonly BingoPrizePayoutService $prizePayoutService,
+        private readonly WinEventService $winEventService,
         private readonly BingoPatternPositionResolver $patternResolver = new BingoPatternPositionResolver(),
     ) {}
 
@@ -488,21 +489,17 @@ final class BingoDrawService
             ));
 
             $cardPrize->loadMissing('currency');
-            $localAmount = $cardPrize->local_amount;
-            $currency    = $cardPrize->currency;
-            $isoCode     = $currency?->iso_code ?? 'USD';
-            broadcast(new LiveWinEvent(
-                game:           'Bingo',
-                gameSlug:       'bingo',
-                winnerName:     $userName,
-                amount:         $prize,
-                currency:       $isoCode,
-                currencySymbol: $currency?->symbol ?? '$',
-                isUsd:          $isoCode === 'USD',
-                localAmount:    (float) $localAmount,
-                decimalPlaces:  $currency?->decimal_places ?? 2,
-                timestamp:      now()->toISOString(),
-            ));
+            $this->winEventService->reportMoney(
+                userId: $userId ? (string) $userId : null,
+                winnerNameOverride: $userId ? null : $userName,
+                gameSlug: 'bingo',
+                gameName: 'Bingo',
+                amountUsd: $prize,
+                amountLocal: (float) $cardPrize->local_amount,
+                currencyId: $cardPrize->currency_id,
+                sourceReference: (string) $cardPrize->id,
+                metadata: ['room_id' => (string) $room->id, 'pattern' => $pattern->name],
+            );
 
             return [
                 'user_id'       => (int) $userId,

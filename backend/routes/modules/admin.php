@@ -11,6 +11,7 @@ use App\Http\Controllers\Roles\AdministratorController;
 use App\Http\Controllers\Roles\PermissionController;
 use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
 use App\Http\Controllers\Audit\AuditController;
+use App\Http\Controllers\Roles\Admin\AdminWinEventController;
 
 /*
 |--------------------------------------------------------------------------
@@ -191,5 +192,16 @@ Route::middleware('auth')->group(function () {
         'index'     => ['method' => 'get', 'uri' => '',            'action' => 'index'],
         'fetchList' => ['method' => 'get', 'uri' => 'fetch-list',  'action' => 'fetchList'],
         'show'      => ['method' => 'get', 'uri' => '{id}/show',   'action' => 'show'],
+    ]);
+
+    /**
+     * =========================================================
+     * EVENTOS DE GANANCIA — registro manual (premios físicos/objetos/servicios)
+     * =========================================================
+     */
+    role_protected_routes(['role:superadmin,admin'], 'admin/win-event', AdminWinEventController::class, [
+        'index'     => ['method' => 'get',  'uri' => '',            'action' => 'index'],
+        'store'     => ['method' => 'post', 'uri' => '',            'action' => 'store'],
+        'fetchList' => ['method' => 'get',  'uri' => 'fetch-list',  'action' => 'fetchList'],
     ]);
 });

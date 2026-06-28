@@ -20,8 +20,8 @@
         {{-- Barra de navegación --}}
         <x-template.navbar />
 
-        {{-- Ticker de ganadores en vivo (montado por Vue) --}}
-        <div id="live-wins-ticker"></div>
+        {{-- Ticker de ganancias en vivo (montado por Vue) --}}
+        <div id="platform-win-ticker"></div>
 
         {{-- Sidebar dinámico --}}
         <x-template.sidebar-dynamic />

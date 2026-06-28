@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\Api\UserLevelController;
-use App\Http\Controllers\Platform\LiveWinsController;
+use App\Http\Controllers\Platform\WinEventController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -26,6 +26,11 @@ Route::prefix('api')->group(function () {
     Route::get('/leaderboard', [UserLevelController::class, 'getLeaderboard'])->name('api.leaderboard');
     Route::post('/calculate-reward', [UserLevelController::class, 'calculateXpReward'])->name('api.calculate-reward');
 
-    // Feed de ganadores en vivo (seed inicial para el ticker)
-    Route::get('/live-wins/recent', [LiveWinsController::class, 'recent'])->name('api.live-wins.recent');
+    // Feed de ganancias en vivo (seed inicial para el ticker, cualquier juego/premio)
+    Route::get('/win-events/recent', [WinEventController::class, 'recent'])->name('api.win-events.recent');
+});
+
+// API externa para integraciones (POS físico, proveedores externos) — requiere token con scope 'win-events.report'
+Route::middleware('publicToken:win-events.report')->prefix('api/external')->group(function () {
+    Route::post('/win-events', [WinEventController::class, 'reportExternal'])->name('api.external.win-events.report');
 });

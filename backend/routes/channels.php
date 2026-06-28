@@ -29,8 +29,8 @@ Broadcast::channel('bingo.lobby', function () {
     return true; // Public channel - anyone can listen
 });
 
-// Canal público del ticker de ganadores en vivo (toda la plataforma, todos los juegos).
-Broadcast::channel('live-wins', function () {
+// Canal público del feed de ganancias en vivo (toda la plataforma, cualquier juego/premio).
+Broadcast::channel('platform.win-events', function () {
     return true; // Public channel - anyone can listen
 });
 
