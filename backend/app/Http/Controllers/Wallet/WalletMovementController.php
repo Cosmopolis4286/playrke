@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Wallet;
 
 use App\Http\Controllers\Controller;
+use App\Models\MovementType;
 use App\Models\WalletMovement;
 use App\Services\WalletService;
 use Illuminate\Http\JsonResponse;
@@ -28,9 +29,10 @@ final class WalletMovementController extends Controller
         ->paginate(20);
 
         return Inertia::render('Wallet/Movements/Index', [
-            'title'     => 'Movimientos de Billetera',
-            'movements' => collect($paginator->items())->map(fn(WalletMovement $m) => $this->mapMovement($m)),
-            'meta'      => [
+            'title'         => 'Movimientos de Billetera',
+            'movements'     => collect($paginator->items())->map(fn(WalletMovement $m) => $this->mapMovement($m)),
+            'movementTypes' => MovementType::orderBy('label')->get(['code', 'label', 'description', 'icon', 'color', 'is_credit']),
+            'meta'          => [
                 'current_page' => $paginator->currentPage(),
                 'last_page'    => $paginator->lastPage(),
                 'per_page'     => $paginator->perPage(),
@@ -101,7 +103,9 @@ final class WalletMovementController extends Controller
 
     /**
      * POST /wallet-movements/{movement}/approve
-     * Aprueba un DEPOSIT o WITHDRAWAL PENDING.
+     * Aprueba un movimiento PENDING. DEPOSIT/WITHDRAWAL usan su lógica
+     * específica; cualquier otro tipo con requires_approval=true en el
+     * catálogo MovementType usa el flujo genérico.
      */
     public function approve(Request $request, WalletMovement $movement): JsonResponse
     {
@@ -110,10 +114,15 @@ final class WalletMovementController extends Controller
         return $this->handleServiceJson(function () use ($request, $movement) {
             $adminNotes = $request->input('admin_notes');
 
+            $type = \App\Models\MovementType::catalog()->get($movement->type);
+            if (! $type || ! $type->requires_approval) {
+                throw new \DomainException("El tipo {$movement->type} no requiere aprobación.");
+            }
+
             $updated = match ($movement->type) {
                 WalletMovement::TYPE_DEPOSIT    => $this->walletService->approveDeposit($movement, $adminNotes),
                 WalletMovement::TYPE_WITHDRAWAL => $this->walletService->approveWithdrawal($movement, $adminNotes),
-                default => throw new \DomainException("No se puede aprobar un movimiento de tipo {$movement->type}."),
+                default => $this->walletService->approveGeneric($movement, $adminNotes),
             };
 
             $updated->load([
@@ -129,8 +138,10 @@ final class WalletMovementController extends Controller
 
     /**
      * POST /wallet-movements/{movement}/reject
-     * Rechaza un DEPOSIT o WITHDRAWAL PENDING.
-     * En retiros: devuelve el saldo al usuario.
+     * Rechaza un movimiento PENDING. DEPOSIT/WITHDRAWAL usan su lógica
+     * específica; cualquier otro tipo con requires_approval=true en el
+     * catálogo MovementType usa el flujo genérico (reintegra saldo si
+     * is_credit=false).
      */
     public function reject(Request $request, WalletMovement $movement): JsonResponse
     {
@@ -139,10 +150,15 @@ final class WalletMovementController extends Controller
         return $this->handleServiceJson(function () use ($request, $movement) {
             $adminNotes = $request->input('admin_notes');
 
+            $type = \App\Models\MovementType::catalog()->get($movement->type);
+            if (! $type || ! $type->requires_approval) {
+                throw new \DomainException("El tipo {$movement->type} no requiere aprobación.");
+            }
+
             $updated = match ($movement->type) {
                 WalletMovement::TYPE_DEPOSIT    => $this->walletService->rejectDeposit($movement, $adminNotes),
                 WalletMovement::TYPE_WITHDRAWAL => $this->walletService->rejectWithdrawal($movement, $adminNotes),
-                default => throw new \DomainException("No se puede rechazar un movimiento de tipo {$movement->type}."),
+                default => $this->walletService->rejectGeneric($movement, $adminNotes),
             };
 
             $updated->load([

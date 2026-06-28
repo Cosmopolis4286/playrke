@@ -57,6 +57,7 @@ class WalletMovement extends Model
         self::PRIZE_TYPE_PHYSICAL => 'Premio físico',
     ];
 
+    /** @deprecated Usar MovementType::catalog() — se mantiene mientras el frontend termina de migrar. */
     public const TYPES = [
         self::TYPE_DEPOSIT        => 'Depósito',
         self::TYPE_WITHDRAWAL     => 'Retiro',
@@ -112,14 +113,10 @@ class WalletMovement extends Model
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    /** El movimiento suma fondos (depósito, premio o comisión de plataforma). */
+    /** El movimiento suma fondos a la wallet, según el catálogo MovementType. */
     public function isCredit(): bool
     {
-        return in_array($this->type, [
-            self::TYPE_DEPOSIT,
-            self::TYPE_PRIZE,
-            self::TYPE_RKE_COMMISSION,
-        ]);
+        return (bool) (MovementType::catalog()->get($this->type)?->is_credit ?? false);
     }
 
     /** Naturaleza del premio (DIGITAL|PHYSICAL) guardada en metadata, solo aplica a TYPE_PRIZE. */
@@ -134,10 +131,10 @@ class WalletMovement extends Model
         return $this->metadata['game_id'] ?? null;
     }
 
-    /** El movimiento resta fondos (retiro o compra). */
+    /** El movimiento resta fondos de la wallet, según el catálogo MovementType. */
     public function isDebit(): bool
     {
-        return in_array($this->type, [self::TYPE_WITHDRAWAL, self::TYPE_PURCHASE]);
+        return MovementType::catalog()->get($this->type)?->is_credit === false;
     }
 
     public function getTypeLabel(): string

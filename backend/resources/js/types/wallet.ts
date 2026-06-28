@@ -13,8 +13,18 @@ export interface Wallet {
   currency: WalletCurrency
 }
 
+export interface WalletPageMovementType {
+  code: string
+  label: string
+  description: string | null
+  icon: string
+  color: string
+  is_credit: boolean
+}
+
 export interface WalletPageProps {
   wallets: Wallet[]
+  movementTypes: WalletPageMovementType[]
 }
 
 // ─── Directorio de retiro ──────────────────────────────────────────────────
@@ -61,7 +71,7 @@ export type WalletMovementStatus = 'PENDING' | 'COMPLETED' | 'CANCELLED' | 'REJE
 
 export interface PendingOperation {
   id: string
-  type: 'DEPOSIT' | 'WITHDRAWAL'
+  type: string
   status: WalletMovementStatus
   amount: number
   description: string | null
@@ -76,7 +86,9 @@ export interface PendingOperationResponse {
 export type WalletOperation = 'deposit' | 'withdraw'
 
 // ─── Movimientos ───────────────────────────────────────────────────────────
-export type WalletMovementType = 'DEPOSIT' | 'WITHDRAWAL' | 'PURCHASE' | 'PRIZE' | 'TRIVIA_ENTRY'
+// String libre: el catálogo de tipos válidos vive en MovementType (backend),
+// gestionable por admin/superadmin vía CRUD — ya no es un union fijo.
+export type WalletMovementType = string
 
 // Naturaleza del premio, guardada en metadata.prize_type (solo aplica a type === 'PRIZE')
 export type PrizeType = 'DIGITAL' | 'PHYSICAL'

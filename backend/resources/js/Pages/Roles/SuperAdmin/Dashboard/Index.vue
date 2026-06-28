@@ -26,6 +26,7 @@
   import axios                         from 'axios'
   import { useSuperAdminDashboard }   from '@/js/composables/roles/superadmin/dashboard/useSuperAdminDashboard'
   import { useAdminActivityRealtime } from '@/js/composables/common/dashboard/useAdminActivityRealtime'
+  import { useMovementTypeCatalog }   from '@/js/composables/wallet/useMovementTypeCatalog'
   import { onlineCount, isPresenceLive } from '@/js/composables/realtime/useOnlinePresence'
 
   // ==========================================================================
@@ -210,6 +211,7 @@
   onMounted(() => {
     loadRkeSummary()
     loadPlatformWallets()
+    fetchMovementTypes()
   })
 
   // ==========================================================================
@@ -231,18 +233,10 @@
     }).format(new Date(iso))
   }
 
-  const MOV_META: Record<string, { label: string; sign: '+' | '-'; color: string }> = {
-    DEPOSIT:        { label: 'Depósito',       sign: '+', color: '#16a34a' },
-    WITHDRAWAL:     { label: 'Retiro',          sign: '-', color: '#dc2626' },
-    PURCHASE:       { label: 'Compra',          sign: '-', color: '#e11d48' },
-    PRIZE:          { label: 'Premio',          sign: '+', color: '#d97706' },
-    TRIVIA_ENTRY:   { label: 'Trivia entrada',  sign: '-', color: '#7c3aed' },
-    RKE_COMMISSION: { label: 'Comisión RKE',    sign: '+', color: '#667eea' },
-  }
-
-  function movMeta(type: string) {
-    return MOV_META[type] ?? { label: type, sign: '+' as const, color: '#718096' }
-  }
+  // Catálogo de tipos de movimiento (MovementType), gestionable por admin/
+  // superadmin vía CRUD — esta página no recibe el catálogo por props
+  // Inertia, así que lo obtiene con su propio fetch.
+  const { metaFor: movMeta, fetchMovementTypes } = useMovementTypeCatalog()
 
   // ==========================================================================
   // Accesos rápidos

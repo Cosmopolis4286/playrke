@@ -575,6 +575,77 @@ final class WalletService
     }
 
     /**
+     * Aprobar un movimiento PENDING de tipo custom (catálogo MovementType,
+     * requires_approval=true) sin lógica específica propia: si is_credit es
+     * true el saldo aún no se tocó al crearse (igual que DEPOSIT) y se
+     * acredita ahora; si es false ya fue descontado al solicitarse (igual
+     * que WITHDRAWAL) y aquí solo se marca COMPLETED.
+     */
+    public function approveGeneric(WalletMovement $movement, ?string $adminNotes = null): WalletMovement
+    {
+        if ($movement->status !== WalletMovement::STATUS_PENDING) {
+            throw new \DomainException('Solo se pueden aprobar movimientos en estado PENDING.');
+        }
+
+        $isCredit = $movement->isCredit();
+
+        $updated = DB::transaction(function () use ($movement, $adminNotes, $isCredit) {
+            if ($isCredit) {
+                $this->walletRepository->incrementBalance((string) $movement->wallet_id, (float) $movement->amount);
+                $movement->wallet->refresh();
+            }
+
+            $movement->update([
+                'status'        => WalletMovement::STATUS_COMPLETED,
+                'balance_after' => (float) $movement->wallet->balance,
+                'admin_notes'   => $adminNotes,
+                'processed_by'  => (string) Auth::id(),
+                'processed_at'  => now(),
+            ]);
+
+            return $movement->fresh(['wallet', 'wallet.currency']);
+        });
+
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_COMPLETED, $adminNotes);
+
+        return $updated;
+    }
+
+    /**
+     * Rechazar un movimiento PENDING de tipo custom: si is_credit es false el
+     * saldo fue descontado al solicitarse y se reintegra aquí (igual que
+     * WITHDRAWAL); si es true nunca se tocó el saldo y no hay nada que revertir.
+     */
+    public function rejectGeneric(WalletMovement $movement, ?string $adminNotes = null): WalletMovement
+    {
+        if ($movement->status !== WalletMovement::STATUS_PENDING) {
+            throw new \DomainException('Solo se pueden rechazar movimientos en estado PENDING.');
+        }
+
+        $isCredit = $movement->isCredit();
+
+        $updated = DB::transaction(function () use ($movement, $adminNotes, $isCredit) {
+            if (! $isCredit) {
+                $this->walletRepository->incrementBalance((string) $movement->wallet_id, (float) $movement->amount);
+                $movement->wallet->refresh();
+            }
+
+            $movement->update([
+                'status'       => WalletMovement::STATUS_REJECTED,
+                'admin_notes'  => $adminNotes,
+                'processed_by' => (string) Auth::id(),
+                'processed_at' => now(),
+            ]);
+
+            return $movement->fresh(['wallet', 'wallet.currency']);
+        });
+
+        $this->broadcastAndNotifyResult($updated, WalletMovement::STATUS_REJECTED, $adminNotes);
+
+        return $updated;
+    }
+
+    /**
      * Broadcast WebSocket + notificación persistente al usuario tras aprobar/rechazar.
      */
     private function broadcastAndNotifyResult(WalletMovement $movement, string $status, ?string $adminNotes): void
@@ -609,12 +680,23 @@ final class WalletService
                 currencySymbol: $currencySymbol,
                 adminNotes:     $adminNotes,
             );
-        } else {
+        } elseif ($movement->type === WalletMovement::TYPE_WITHDRAWAL) {
             $this->notificationService->createWithdrawalResultNotification(
                 userId:         $userId,
                 status:         $status,
                 amount:         $amount,
                 currencySymbol: $currencySymbol,
+                adminNotes:     $adminNotes,
+            );
+        } else {
+            $type = \App\Models\MovementType::catalog()->get($movement->type);
+            $this->notificationService->createMovementResultNotification(
+                userId:         $userId,
+                movementType:   $movement->type,
+                status:         $status,
+                amount:         $amount,
+                currencySymbol: $currencySymbol,
+                typeLabel:      $type?->label ?? $movement->type,
                 adminNotes:     $adminNotes,
             );
         }

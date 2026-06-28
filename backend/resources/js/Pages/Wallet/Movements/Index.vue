@@ -8,11 +8,13 @@ import TableFooterInfo from '@js/Components/Common/Table/TableFooterInfo.vue'
 import Modal           from '@js/Components/Common/Modal/Modal.vue'
 import backendClient   from '@js/plugins/axios'
 import type { TableFilterInterface } from '@js/types/common/table/table-filter'
+import type { MovementType } from '@js/types/movementType'
 
 interface Props {
-  title:     string
-  movements: Movement[]
-  meta:      Meta
+  title:         string
+  movements:     Movement[]
+  movementTypes: MovementType[]
+  meta:          Meta
 }
 const props = defineProps<Props>()
 
@@ -46,7 +48,7 @@ interface MovementMetadata {
 
 interface Movement {
   id:             string
-  type:           'DEPOSIT' | 'WITHDRAWAL' | 'PURCHASE' | 'PRIZE' | 'TRIVIA_ENTRY'
+  type:           string
   status:         'PENDING' | 'COMPLETED' | 'CANCELLED' | 'REJECTED'
   amount:         number
   balance_before: number
@@ -103,17 +105,12 @@ const columns = [
 ]
 
 // ── Filtros para TableFilter ───────────────────────────────────────────────
-const tableFilters: TableFilterInterface[] = [
+const tableFilters = computed<TableFilterInterface[]>(() => [
   {
     key: 'type',
     label: 'Tipo',
     placeholder: 'Todos los tipos',
-    options: [
-      { value: 'DEPOSIT',    label: 'Depósito'  },
-      { value: 'WITHDRAWAL', label: 'Retiro'    },
-      { value: 'PURCHASE',   label: 'Compra'    },
-      { value: 'PRIZE',      label: 'Premio'    },
-    ],
+    options: props.movementTypes.map(t => ({ value: t.code, label: t.label })),
   },
   {
     key: 'status',
@@ -126,7 +123,7 @@ const tableFilters: TableFilterInterface[] = [
       { value: 'REJECTED',  label: 'Rechazado'  },
     ],
   },
-]
+])
 
 // ── Fetch lista ────────────────────────────────────────────────────────────
 async function fetchMovements(page = 1) {
@@ -218,14 +215,29 @@ async function handleReject() {
   }
 }
 
-// ── Helpers visuales ───────────────────────────────────────────────────────
-const typeConfig: Record<string, { label: string; cls: string; icon: string }> = {
-  DEPOSIT:      { label: 'Depósito',       cls: 'mv-badge mv-badge--deposit',      icon: 'fas fa-arrow-down'  },
-  WITHDRAWAL:   { label: 'Retiro',         cls: 'mv-badge mv-badge--withdrawal',   icon: 'fas fa-arrow-up'    },
-  PURCHASE:     { label: 'Compra',         cls: 'mv-badge mv-badge--purchase',     icon: 'fas fa-ticket-alt'  },
-  PRIZE:        { label: 'Premio',         cls: 'mv-badge mv-badge--prize',        icon: 'fas fa-trophy'      },
-  TRIVIA_ENTRY: { label: 'Entrada Trivia', cls: 'mv-badge mv-badge--trivia-entry', icon: 'fas fa-brain'       },
+// ── Helpers visuales, derivados del catálogo MovementType recibido por props
+// (admin/superadmin lo gestionan vía CRUD) ─────────────────────────────────
+const KNOWN_TYPE_CLASSES: Record<string, string> = {
+  DEPOSIT:      'mv-badge--deposit',
+  WITHDRAWAL:   'mv-badge--withdrawal',
+  PURCHASE:     'mv-badge--purchase',
+  PRIZE:        'mv-badge--prize',
+  TRIVIA_ENTRY: 'mv-badge--trivia-entry',
 }
+
+const typeConfig = computed<Record<string, { label: string; cls: string; style?: string; icon: string }>>(() => {
+  const map: Record<string, { label: string; cls: string; style?: string; icon: string }> = {}
+  for (const type of props.movementTypes) {
+    const knownClass = KNOWN_TYPE_CLASSES[type.code]
+    map[type.code] = {
+      label: type.label,
+      cls:   knownClass ? `mv-badge ${knownClass}` : 'mv-badge',
+      style: knownClass ? undefined : `background: ${type.color}1a; color: ${type.color}`,
+      icon:  type.icon,
+    }
+  }
+  return map
+})
 
 const prizeTypeConfig: Record<'DIGITAL' | 'PHYSICAL', { label: string; icon: string }> = {
   DIGITAL:  { label: 'Digital', icon: 'fas fa-coins' },
@@ -330,7 +342,10 @@ const currentPage = computed(() => meta.value?.current_page ?? 1)
           </template>
 
           <template #cell-type="{ row }">
-            <span :class="typeConfig[(row as Movement).type]?.cls ?? 'mv-badge'">
+            <span
+              :class="typeConfig[(row as Movement).type]?.cls ?? 'mv-badge'"
+              :style="typeConfig[(row as Movement).type]?.style"
+            >
               <i :class="typeConfig[(row as Movement).type]?.icon"></i>
               {{ typeConfig[(row as Movement).type]?.label ?? (row as Movement).type }}
             </span>
@@ -460,7 +475,7 @@ const currentPage = computed(() => meta.value?.current_page ?? 1)
         </div>
         <div class="mv-detail__section">
           <p class="mv-detail__label">Tipo</p>
-          <span :class="typeConfig[detail.type]?.cls ?? 'mv-badge'">
+          <span :class="typeConfig[detail.type]?.cls ?? 'mv-badge'" :style="typeConfig[detail.type]?.style">
             <i :class="typeConfig[detail.type]?.icon"></i>
             {{ typeConfig[detail.type]?.label ?? detail.type }}
           </span>

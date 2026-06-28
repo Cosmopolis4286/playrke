@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\WalletDepositRequest;
 use App\Http\Requests\WalletWithdrawRequest;
+use App\Models\MovementType;
 use App\Services\WalletService;
 use App\Services\WithdrawalLimitService;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +28,8 @@ class WalletController extends Controller
     public function index(): Response
     {
         return Inertia::render('Wallet/Index', [
-            'wallets' => $this->walletService->getPlayerWallets(),
+            'wallets'       => $this->walletService->getPlayerWallets(),
+            'movementTypes' => MovementType::active()->get(['code', 'label', 'description', 'icon', 'color', 'is_credit']),
         ]);
     }
 

@@ -8,9 +8,20 @@ import Modal           from '@js/Components/Common/Modal/Modal.vue'
 import TosModal        from '@js/Components/Common/TosModal.vue'
 import KycBanner       from '@js/Components/Common/KycBanner.vue'
 import KycUploadModal  from '@js/Components/Common/KycUploadModal.vue'
-import type { WalletPageProps, WalletMovementType } from '@js/types/wallet'
+import type { WalletPageProps } from '@js/types/wallet'
 
 const props = defineProps<WalletPageProps>()
+
+// ─── Mapeo code -> clase CSS de color para los tipos conocidos del sistema.
+// Tipos custom nuevos creados desde el CRUD caen al fallback de color hex
+// inline del catálogo (sin necesitar tocar este archivo).
+const KNOWN_COLOR_CLASSES: Record<string, string> = {
+  DEPOSIT:      'meta--deposit',
+  WITHDRAWAL:   'meta--withdrawal',
+  PURCHASE:     'meta--purchase',
+  PRIZE:        'meta--prize',
+  TRIVIA_ENTRY: 'meta--trivia-entry',
+}
 
 const page   = usePage()
 const userId = computed(() => (page.props.auth as any)?.user?.id as string | undefined)
@@ -95,15 +106,30 @@ function openWithdrawModal() {
 
 const quickAmounts = [10, 25, 50, 100, 200, 500]
 
-// ─── helpers visuales para movimientos ─────────────────────────────────────
-const movementMeta: Record<WalletMovementType, {
-  icon: string; label: string; colorClass: string; sign: '+' | '-'; description: string
-}> = {
-  DEPOSIT:      { icon: 'fas fa-arrow-down',      label: 'Depósito',        colorClass: 'meta--deposit',      sign: '+', description: 'Fondos añadidos a tu cuenta' },
-  PRIZE:        { icon: 'fas fa-trophy',          label: 'Premio ganado',    colorClass: 'meta--prize',        sign: '+', description: 'Premio por juego ganado' },
-  PURCHASE:     { icon: 'fas fa-ticket-alt',      label: 'Compra de cartón', colorClass: 'meta--purchase',     sign: '-', description: 'Cartón de bingo adquirido' },
-  WITHDRAWAL:   { icon: 'fas fa-arrow-up',        label: 'Retiro',           colorClass: 'meta--withdrawal',   sign: '-', description: 'Fondos retirados de tu cuenta' },
-  TRIVIA_ENTRY: { icon: 'fas fa-brain',           label: 'Entrada Trivia',   colorClass: 'meta--trivia-entry', sign: '-', description: 'Entrada a sala de Trivia' },
+// ─── helpers visuales para movimientos, derivados del catálogo MovementType
+// recibido por props (admin/superadmin lo gestionan vía CRUD) ──────────────
+interface MovementMetaEntry {
+  icon: string; label: string; colorClass: string; colorStyle?: string; sign: '+' | '-'; description: string
+}
+
+const movementMeta = computed<Record<string, MovementMetaEntry>>(() => {
+  const map: Record<string, MovementMetaEntry> = {}
+  for (const type of props.movementTypes) {
+    const colorClass = KNOWN_COLOR_CLASSES[type.code]
+    map[type.code] = {
+      icon: type.icon,
+      label: type.label,
+      colorClass: colorClass ?? '',
+      colorStyle: colorClass ? undefined : `color: ${type.color}`,
+      sign: type.is_credit ? '+' : '-',
+      description: type.description ?? '',
+    }
+  }
+  return map
+})
+
+function movMeta(type: string): MovementMetaEntry {
+  return movementMeta.value[type] ?? { icon: 'fas fa-circle', label: type, colorClass: '', sign: '+', description: '' }
 }
 
 // ─── Agrupación visual para la sección "Tipos de movimiento" ───────────────
@@ -113,41 +139,45 @@ interface MovementTypeGroup {
   icon: string
   label: string
   colorClass: string
+  colorStyle?: string
   sign: '+' | '-'
   description: string
   children?: { icon: string; label: string; colorClass: string; description: string }[]
 }
 
-const movementTypeGroups: MovementTypeGroup[] = [
-  {
-    icon: movementMeta.DEPOSIT.icon, label: movementMeta.DEPOSIT.label,
-    colorClass: movementMeta.DEPOSIT.colorClass, sign: movementMeta.DEPOSIT.sign,
-    description: movementMeta.DEPOSIT.description,
-  },
-  {
-    icon: movementMeta.WITHDRAWAL.icon, label: movementMeta.WITHDRAWAL.label,
-    colorClass: movementMeta.WITHDRAWAL.colorClass, sign: movementMeta.WITHDRAWAL.sign,
-    description: movementMeta.WITHDRAWAL.description,
-  },
-  {
-    icon: movementMeta.PRIZE.icon, label: movementMeta.PRIZE.label, colorClass: movementMeta.PRIZE.colorClass, sign: movementMeta.PRIZE.sign,
-    description: movementMeta.PRIZE.description,
-    children: [
-      { icon: 'fas fa-coins',  label: 'Premio digital', colorClass: 'meta--prize', description: 'Acreditado como saldo en tu billetera' },
-      { icon: 'fas fa-gift',   label: 'Premio físico',  colorClass: 'meta--prize', description: 'Objeto a entregar, no acredita saldo automáticamente' },
-    ],
-  },
-  {
-    icon: movementMeta.PURCHASE.icon, label: movementMeta.PURCHASE.label,
-    colorClass: movementMeta.PURCHASE.colorClass, sign: movementMeta.PURCHASE.sign,
-    description: movementMeta.PURCHASE.description,
-  },
-  {
-    icon: movementMeta.TRIVIA_ENTRY.icon, label: movementMeta.TRIVIA_ENTRY.label,
-    colorClass: movementMeta.TRIVIA_ENTRY.colorClass, sign: movementMeta.TRIVIA_ENTRY.sign,
-    description: movementMeta.TRIVIA_ENTRY.description,
-  },
+// Orden de presentación preferido para los tipos de sistema conocidos;
+// cualquier tipo custom nuevo del catálogo se añade al final.
+const PREFERRED_ORDER = ['DEPOSIT', 'WITHDRAWAL', 'PRIZE', 'PURCHASE', 'TRIVIA_ENTRY']
+
+const PRIZE_CHILDREN = [
+  { icon: 'fas fa-coins', label: 'Premio digital', colorClass: 'meta--prize', description: 'Acreditado como saldo en tu billetera' },
+  { icon: 'fas fa-gift',  label: 'Premio físico',  colorClass: 'meta--prize', description: 'Objeto a entregar, no acredita saldo automáticamente' },
 ]
+
+const movementTypeGroups = computed<MovementTypeGroup[]>(() => {
+  const codes = [...props.movementTypes.map(t => t.code)]
+  codes.sort((a, b) => {
+    const ia = PREFERRED_ORDER.indexOf(a)
+    const ib = PREFERRED_ORDER.indexOf(b)
+    if (ia === -1 && ib === -1) return a.localeCompare(b)
+    if (ia === -1) return 1
+    if (ib === -1) return -1
+    return ia - ib
+  })
+
+  return codes.map(code => {
+    const meta = movMeta(code)
+    return {
+      icon: meta.icon,
+      label: meta.label,
+      colorClass: meta.colorClass,
+      colorStyle: meta.colorStyle,
+      sign: meta.sign,
+      description: meta.description,
+      children: code === 'PRIZE' ? PRIZE_CHILDREN : undefined,
+    }
+  })
+})
 
 function formatDate(iso: string): string {
   const date = new Date(iso)
@@ -271,7 +301,7 @@ function openMovementDetail(mov: import('@js/types/wallet').WalletMovement) {
 
 const detailMeta = computed(() => {
   if (!detailMovement.value) return null
-  return movementMeta[detailMovement.value.type]
+  return movMeta(detailMovement.value.type)
 })
 
 interface TimelineStep {
@@ -587,7 +617,7 @@ const modalIcon = computed(() => {
             <div ref="movementTypesRef" class="movement-types movement-types--scroll">
               <div v-for="group in movementTypeGroups" :key="group.label" class="movement-type-group">
                 <div class="movement-type-item" :class="group.colorClass">
-                  <div class="movement-type-item__icon">
+                  <div class="movement-type-item__icon" :style="group.colorStyle">
                     <i :class="group.icon"></i>
                   </div>
                   <div class="movement-type-item__info">
@@ -678,14 +708,15 @@ const modalIcon = computed(() => {
               >
                 <div
                   class="movement-row__icon"
-                  :class="movementMeta[mov.type].colorClass"
+                  :class="movMeta(mov.type).colorClass"
+                  :style="movMeta(mov.type).colorStyle"
                 >
-                  <i :class="movementMeta[mov.type].icon"></i>
+                  <i :class="movMeta(mov.type).icon"></i>
                 </div>
 
                 <div class="movement-row__info">
                   <div class="movement-row__title-row">
-                    <p class="movement-row__label">{{ movementMeta[mov.type].label }}</p>
+                    <p class="movement-row__label">{{ movMeta(mov.type).label }}</p>
                     <span v-if="index === 0" class="badge-recent">Más reciente</span>
                     <span
                       v-if="mov.status"
@@ -706,7 +737,7 @@ const modalIcon = computed(() => {
                       {{ mov.status === 'PENDING' ? 'Pendiente' : mov.status === 'COMPLETED' ? 'Completado' : mov.status === 'REJECTED' ? 'Rechazado' : 'Cancelado' }}
                     </span>
                   </div>
-                  <p class="movement-row__desc">{{ mov.description ?? movementMeta[mov.type].description }}</p>
+                  <p class="movement-row__desc">{{ mov.description ?? movMeta(mov.type).description }}</p>
                   <p class="movement-row__date">
                     <i class="fas fa-clock"></i>
                     {{ formatDate(mov.created_at) }}
@@ -716,9 +747,9 @@ const modalIcon = computed(() => {
                 <div class="movement-row__amounts">
                   <p
                     class="movement-row__amount"
-                    :class="movementMeta[mov.type].sign === '+' ? 'amount--positive' : 'amount--negative'"
+                    :class="movMeta(mov.type).sign === '+' ? 'amount--positive' : 'amount--negative'"
                   >
-                    {{ movementMeta[mov.type].sign }}{{ activeWallet?.currency.symbol }}&nbsp;{{ formatAmount(mov.amount) }}
+                    {{ movMeta(mov.type).sign }}{{ activeWallet?.currency.symbol }}&nbsp;{{ formatAmount(mov.amount) }}
                   </p>
                   <p class="movement-row__balance">
                     Saldo: {{ activeWallet?.currency.symbol }}&nbsp;{{ formatAmount(mov.balance_after) }}
@@ -1105,7 +1136,7 @@ const modalIcon = computed(() => {
 
         <!-- Encabezado: ícono + tipo + monto -->
         <div class="mv-detail__header">
-          <div class="mv-detail__icon" :class="detailMeta.colorClass">
+          <div class="mv-detail__icon" :class="detailMeta.colorClass" :style="detailMeta.colorStyle">
             <i :class="detailMeta.icon + ' fa-lg'"></i>
           </div>
           <div class="mv-detail__header-info">
