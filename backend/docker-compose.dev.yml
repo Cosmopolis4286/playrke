@@ -36,7 +36,7 @@ services:
         php artisan migrate --path=database/migrations/bingo --force &&
         php artisan migrate --path=database/migrations/trivia --force || true &&
         php artisan db:seed --force &&
-        php artisan serve --host=0.0.0.0 --port=8080
+        php artisan serve --host=0.0.0.0 --port=8080 --no-reload
       "
     env_file: .env.dev
     ports:
