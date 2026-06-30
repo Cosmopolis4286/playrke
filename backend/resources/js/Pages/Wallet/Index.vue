@@ -135,7 +135,9 @@ function movMeta(type: string): MovementMetaEntry {
 // ─── Agrupación visual para la sección "Tipos de movimiento" ───────────────
 // El premio (type === 'PRIZE') se clasifica por su naturaleza (prize_type
 // en metadata: DIGITAL | PHYSICAL), no por el juego que lo originó.
-interface MovementTypeGroup {
+// El orden y la agrupación temática (game_group) vienen del catálogo
+// MovementType, gestionable desde el CRUD de Admin — sin listas hardcodeadas.
+interface MovementTypeItem {
   icon: string
   label: string
   colorClass: string
@@ -145,38 +147,52 @@ interface MovementTypeGroup {
   children?: { icon: string; label: string; colorClass: string; description: string }[]
 }
 
-// Orden de presentación preferido para los tipos de sistema conocidos;
-// cualquier tipo custom nuevo del catálogo se añade al final.
-const PREFERRED_ORDER = ['DEPOSIT', 'WITHDRAWAL', 'PRIZE', 'PURCHASE', 'TRIVIA_ENTRY']
+interface MovementTypeSection {
+  group: string | null
+  groupLabel: string
+  items: MovementTypeItem[]
+}
+
+const GAME_GROUP_LABELS: Record<string, string> = {
+  BINGO:  'Bingo',
+  TRIVIA: 'Trivia',
+}
 
 const PRIZE_CHILDREN = [
   { icon: 'fas fa-coins', label: 'Premio digital', colorClass: 'meta--prize', description: 'Acreditado como saldo en tu billetera' },
   { icon: 'fas fa-gift',  label: 'Premio físico',  colorClass: 'meta--prize', description: 'Objeto a entregar, no acredita saldo automáticamente' },
 ]
 
-const movementTypeGroups = computed<MovementTypeGroup[]>(() => {
-  const codes = [...props.movementTypes.map(t => t.code)]
-  codes.sort((a, b) => {
-    const ia = PREFERRED_ORDER.indexOf(a)
-    const ib = PREFERRED_ORDER.indexOf(b)
-    if (ia === -1 && ib === -1) return a.localeCompare(b)
-    if (ia === -1) return 1
-    if (ib === -1) return -1
-    return ia - ib
-  })
+const movementTypeSections = computed<MovementTypeSection[]>(() => {
+  const sorted = [...props.movementTypes].sort((a, b) =>
+    (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.label.localeCompare(b.label)
+  )
 
-  return codes.map(code => {
-    const meta = movMeta(code)
-    return {
+  const sections: MovementTypeSection[] = []
+  const sectionByGroup = new Map<string | null, MovementTypeSection>()
+
+  for (const type of sorted) {
+    const group = type.game_group ?? null
+    let section = sectionByGroup.get(group)
+    if (!section) {
+      section = { group, groupLabel: group ? (GAME_GROUP_LABELS[group] ?? group) : 'General', items: [] }
+      sectionByGroup.set(group, section)
+      sections.push(section)
+    }
+
+    const meta = movMeta(type.code)
+    section.items.push({
       icon: meta.icon,
       label: meta.label,
       colorClass: meta.colorClass,
       colorStyle: meta.colorStyle,
       sign: meta.sign,
       description: meta.description,
-      children: code === 'PRIZE' ? PRIZE_CHILDREN : undefined,
-    }
-  })
+      children: type.code === 'PRIZE' ? PRIZE_CHILDREN : undefined,
+    })
+  }
+
+  return sections
 })
 
 function formatDate(iso: string): string {
@@ -241,10 +257,10 @@ onBeforeUnmount(() => {
 
 // ─── Filtro de período del resumen de actividad ─────────────────────────────
 const summaryPeriodOptions = [
-  { value: '24h',  label: 'Últimas 24 horas' },
-  { value: '7d',   label: 'Últimos 7 días' },
-  { value: '30d',  label: 'Últimos 30 días' },
-  { value: 'all',  label: 'Todo el historial' },
+  { value: '24h',  label: '24 horas' },
+  { value: '7d',   label: '7 días' },
+  { value: '15d',  label: '15 días' },
+  { value: '30d',  label: '30 días' },
 ] as const
 
 type SummaryPeriod = typeof summaryPeriodOptions[number]['value']
@@ -254,8 +270,8 @@ const summaryPeriod = ref<SummaryPeriod>('24h')
 const summaryPeriodHours: Record<SummaryPeriod, number | null> = {
   '24h': 24,
   '7d':  24 * 7,
+  '15d': 24 * 15,
   '30d': 24 * 30,
-  'all': null,
 }
 
 const summaryMovements = computed(() => {
@@ -615,33 +631,37 @@ const modalIcon = computed(() => {
               <i class="fas fa-info-circle"></i> Tipos de movimiento
             </h3>
             <div ref="movementTypesRef" class="movement-types movement-types--scroll">
-              <div v-for="group in movementTypeGroups" :key="group.label" class="movement-type-group">
-                <div class="movement-type-item" :class="group.colorClass">
-                  <div class="movement-type-item__icon" :style="group.colorStyle">
-                    <i :class="group.icon"></i>
-                  </div>
-                  <div class="movement-type-item__info">
-                    <p class="movement-type-item__label">{{ group.label }}</p>
-                    <p class="movement-type-item__desc">{{ group.description }}</p>
-                  </div>
-                  <span class="movement-type-item__sign" :class="group.sign === '+' ? 'sign--positive' : 'sign--negative'">
-                    {{ group.sign }}
-                  </span>
-                </div>
+              <div v-for="section in movementTypeSections" :key="section.group ?? 'general'" class="movement-type-section">
+                <p v-if="movementTypeSections.length > 1" class="movement-type-section__title">{{ section.groupLabel }}</p>
 
-                <div v-if="group.children" class="movement-type-children">
-                  <div
-                    v-for="child in group.children"
-                    :key="child.label"
-                    class="movement-type-item movement-type-item--child"
-                    :class="child.colorClass"
-                  >
-                    <div class="movement-type-item__icon movement-type-item__icon--sm">
-                      <i :class="child.icon"></i>
+                <div v-for="item in section.items" :key="item.label" class="movement-type-group">
+                  <div class="movement-type-item" :class="item.colorClass">
+                    <div class="movement-type-item__icon" :style="item.colorStyle">
+                      <i :class="item.icon"></i>
                     </div>
                     <div class="movement-type-item__info">
-                      <p class="movement-type-item__label">{{ child.label }}</p>
-                      <p class="movement-type-item__desc">{{ child.description }}</p>
+                      <p class="movement-type-item__label">{{ item.label }}</p>
+                      <p class="movement-type-item__desc">{{ item.description }}</p>
+                    </div>
+                    <span class="movement-type-item__sign" :class="item.sign === '+' ? 'sign--positive' : 'sign--negative'">
+                      {{ item.sign }}
+                    </span>
+                  </div>
+
+                  <div v-if="item.children" class="movement-type-children">
+                    <div
+                      v-for="child in item.children"
+                      :key="child.label"
+                      class="movement-type-item movement-type-item--child"
+                      :class="child.colorClass"
+                    >
+                      <div class="movement-type-item__icon movement-type-item__icon--sm">
+                        <i :class="child.icon"></i>
+                      </div>
+                      <div class="movement-type-item__info">
+                        <p class="movement-type-item__label">{{ child.label }}</p>
+                        <p class="movement-type-item__desc">{{ child.description }}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1666,7 +1686,18 @@ const modalIcon = computed(() => {
 .summary-item__amount--withdrawal { color: #2563eb; }
 
 /* ── Tipos de movimiento ── */
-.movement-types { display: flex; flex-direction: column; gap: 8px; }
+.movement-types { display: flex; flex-direction: column; gap: 14px; }
+
+.movement-type-section { display: flex; flex-direction: column; gap: 8px; }
+
+.movement-type-section__title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
 
 .movement-types--scroll {
   flex: 1;

@@ -20,6 +20,8 @@ export interface WalletPageMovementType {
   icon: string
   color: string
   is_credit: boolean
+  game_group: string | null
+  sort_order: number
 }
 
 export interface WalletPageProps {

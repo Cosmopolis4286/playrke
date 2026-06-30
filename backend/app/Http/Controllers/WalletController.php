@@ -27,9 +27,14 @@ class WalletController extends Controller
      */
     public function index(): Response
     {
+        $rolePrefix = Auth::user()?->roles?->first()?->prefix;
+
         return Inertia::render('Wallet/Index', [
             'wallets'       => $this->walletService->getPlayerWallets(),
-            'movementTypes' => MovementType::active()->get(['code', 'label', 'description', 'icon', 'color', 'is_credit']),
+            'movementTypes' => MovementType::active()
+                ->visibleTo($rolePrefix)
+                ->orderBy('sort_order')
+                ->get(['code', 'label', 'description', 'icon', 'color', 'is_credit', 'game_group', 'sort_order']),
         ]);
     }
 
