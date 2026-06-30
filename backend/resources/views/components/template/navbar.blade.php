@@ -320,7 +320,7 @@
 
     // ── Construir <li> ────────────────────────────────────────
     // variant: 'admin' (acción pendiente para admin/tesorero) | 'result' (depósito/retiro resuelto) | '' (movimiento normal)
-    function buildListItem(meta, bodyHtml, time, url, notifId, variant) {
+    function buildListItem(meta, bodyHtml, time, url, notifId, variant, isRead) {
         var inner =
             '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1"' +
                  ' style="width:32px;height:32px;background:' + meta.color + '22">' +
@@ -330,7 +330,7 @@
             '<small class="text-muted flex-shrink-0" style="font-size:10px">' + time + '</small>';
 
         var li = document.createElement('li');
-        li.className = 'border-bottom notif-entry' + (variant ? ' notif-entry--' + variant : '');
+        li.className = 'border-bottom notif-entry' + (variant ? ' notif-entry--' + variant : '') + (isRead ? ' read' : '');
         if (notifId) li.setAttribute('data-notification-id', notifId);
         li.innerHTML = url
             ? '<a href="' + url + '" class="d-flex align-items-start px-3 py-2 text-decoration-none text-dark" style="gap:10px">' + inner + '</a>'
@@ -429,7 +429,8 @@
             new Date(notification.created_at).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
             url,
             notification.id,
-            isAdminAlert ? 'admin' : (isResult ? 'result' : '')
+            isAdminAlert ? 'admin' : (isResult ? 'result' : ''),
+            !!notification.is_read
         );
     }
 
@@ -437,19 +438,22 @@
     var panelLoaded = false; // se cargaron datos desde API al menos una vez
     var panelOpen   = false; // panel actualmente abierto
 
-    // ── Cargar no leídas desde API (lazy: solo al abrir) ──────
+    // ── Cargar recientes (leídas + no leídas) desde API (lazy: solo al abrir) ──
+    // Usa /notifications (no /notifications/unread) para que el panel no
+    // quede vacío solo porque ya se marcaron como leídas en una sesión previa.
     function loadNotificationsFromAPI(callback) {
-        apiFetch('/notifications/unread?limit=25')
+        apiFetch('/notifications?limit=25')
             .then(function(r) { return r.ok ? r.json() : null; })
             .then(function(json) {
                 if (!json) return;
                 $list.querySelectorAll('.notif-entry').forEach(function(el) { el.remove(); });
-                if ($empty) $empty.style.display = '';
-                setBadge(0);
                 if (json.data && json.data.length > 0) {
+                    if ($empty) $empty.style.display = 'none';
                     json.data.slice().reverse().forEach(addPersistentNotification);
-                    setBadge(json.unread_count || json.data.length);
+                } else if ($empty) {
+                    $empty.style.display = '';
                 }
+                setBadge(json.unread_count || 0);
                 panelLoaded = true;
                 if (callback) callback();
             })
