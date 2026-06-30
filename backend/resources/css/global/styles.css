@@ -141,21 +141,30 @@ body::-webkit-scrollbar-thumb:hover {
   margin-top: 0 !important;
 }
 
-/* AdminLTE fija un min-height asumiendo navbar+footer de 3.5rem cada uno; con nuestro
-   navbar (56px) y footer (auto, ~37px) eso deja hueco vacío bajo el footer dentro del
-   wrapper vh-100. Anulamos el min-height para que flex-grow dimensione el área real. */
+/* AdminLTE (adminlte.js, Layout.fixLayoutHeight) escribe un min-height INLINE en
+   .content-wrapper calculado en window.load, basado en las alturas de navbar/sidebar/
+   footer en ESE momento. Nunca se recalcula al navegar entre páginas de Inertia (SPA,
+   sin recargar el documento), así que ese valor queda fijo y desactualizado: si el
+   contenido real de la página actual es más bajo que el de la página donde se calculó,
+   queda un hueco en blanco debajo del navbar. Se anula con !important — un inline style
+   sin !important no puede vencer una regla de hoja de estilos que sí lo tiene — para que
+   flex-grow dimensione el área real del contenido en vez del valor fijo de AdminLTE. */
 .layout-fixed .wrapper .content-wrapper {
-  min-height: 0;
+  min-height: 0 !important;
 }
 
-/* Compensar la altura del navbar custom (56px) + la altura real medida del ticker de
-   ganancias (--pwt-height, fijada por PlatformWinTicker.vue; es '0px' cuando no hay
-   panel visible, así que nunca se reserva espacio de más). */
+/* El navbar es position:relative dentro de .wrapper (flex-column), así que el
+   contenido siguiente en el flujo (#content-scrollable) ya queda naturalmente
+   debajo de él — sin necesitar padding-top de compensación. El único elemento
+   que sí necesita compensarse es el ticker de ganancias, que es position:fixed
+   (flota fuera del flujo, ver #platform-win-ticker más abajo): su altura real
+   medida (--pwt-height, fijada por PlatformWinTicker.vue; '0px' si no hay panel
+   visible) es lo único que debe empujar el contenido hacia abajo. */
 :root {
   --pwt-height: 0px;
 }
 .layout-fixed .wrapper .content-wrapper #content-scrollable {
-  padding-top: calc(56px + var(--pwt-height));
+  padding-top: var(--pwt-height);
   transition: padding-top .2s ease-in-out;
 }
 

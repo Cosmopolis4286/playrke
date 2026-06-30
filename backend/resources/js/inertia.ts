@@ -6,6 +6,7 @@ import VueImaskPlugin from './plugins/vue-imask-plugin'
 import FloatingVue from 'floating-vue'
 import Toast, { type PluginOptions, POSITION } from 'vue-toastification'
 import { joinOnlinePresence } from '@/js/composables/realtime/useOnlinePresence'
+import { hideAppLoader } from '@js/utils/loader/loaderApp'
 
 import '@vueform/multiselect/themes/default.css'
 import 'floating-vue/dist/style.css'
@@ -61,6 +62,10 @@ createInertiaApp({
         app.use(Toast, toastOptions)
 
         app.mount(el)
+
+        // El contenido real ya está montado — ocultar el loader ahora, sin
+        // esperar a `window.load` (imágenes/recursos externos no relacionados).
+        hideAppLoader()
     },
 
     title: (title) => (title ? `PlayRKE - ${title}` : 'PlayRKE'),

@@ -7,7 +7,7 @@
 ])
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="is-loading">
 <x-template.head :title="$title" :inertia="$inertia" />
 
 <body class="hold-transition sidebar-mini layout-fixed overflow-hidden">
