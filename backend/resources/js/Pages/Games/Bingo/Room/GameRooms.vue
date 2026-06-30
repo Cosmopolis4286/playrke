@@ -268,7 +268,10 @@ onMounted(() => {
 ═══════════════════════════════════════════════════════ */
 .game-rooms-page {
   flex: 1;
-  min-height: calc(100vh - 56px - 41px + 0.5rem);
+  /* navbar 56px + footer 44px (ver footer.blade.php min-height: 44px !important).
+     El margin -0.5rem de abajo ya cancela el mt-2 del wrapper padre, así que no
+     se resta/suma aparte aquí — sumarlo duplicaba ese espacio y generaba scroll. */
+  min-height: calc(100vh - 56px - 44px);
   margin: -0.5rem -0.5rem 0;
   padding: 28px 12px 48px;
   position: relative;

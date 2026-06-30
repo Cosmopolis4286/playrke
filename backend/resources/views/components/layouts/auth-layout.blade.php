@@ -35,10 +35,11 @@
         {{-- Contenido principal --}}
         <main class="content-wrapper flex-grow-1 d-flex flex-column">
 
-            {{-- Contenido de la página --}}
-            <section id="content-scrollable" @class([
-                'content flex-grow-1 overflow-auto',
-            ])>
+            {{-- Contenido de la página: contenedor de scroll propio, separado de
+                 .content-wrapper para que el min-height inline que AdminLTE le
+                 fuerza a .content-wrapper (ver styles.css) no se mezcle con el
+                 cálculo de 100vh de páginas como GameRooms/Lobby. --}}
+            <section id="content-scrollable" class="content flex-grow-1 overflow-auto">
 
                 {{-- Header del contenido --}}
                 @isset($contentHeader)

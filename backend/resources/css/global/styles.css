@@ -154,12 +154,12 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 /* El navbar es position:relative dentro de .wrapper (flex-column), así que el
-   contenido siguiente en el flujo (#content-scrollable) ya queda naturalmente
-   debajo de él — sin necesitar padding-top de compensación. El único elemento
-   que sí necesita compensarse es el ticker de ganancias, que es position:fixed
-   (flota fuera del flujo, ver #platform-win-ticker más abajo): su altura real
-   medida (--pwt-height, fijada por PlatformWinTicker.vue; '0px' si no hay panel
-   visible) es lo único que debe empujar el contenido hacia abajo. */
+   contenido siguiente en el flujo (.content-wrapper → #content-scrollable) ya
+   queda naturalmente debajo de él — sin necesitar padding-top de compensación.
+   El único elemento que sí necesita compensarse es el ticker de ganancias, que es
+   position:fixed (flota fuera del flujo, ver #platform-win-ticker más abajo): su
+   altura real medida (--pwt-height, fijada por PlatformWinTicker.vue; '0px' si no
+   hay panel visible) es lo único que debe empujar el contenido hacia abajo. */
 :root {
   --pwt-height: 0px;
 }
@@ -172,6 +172,15 @@ body::-webkit-scrollbar-thumb:hover {
 #content-scrollable {
   scrollbar-width: thin;
   scrollbar-color: #7b4fff rgba(255,255,255,0.03);
+}
+/* Páginas con fondo de estrellas a pantalla completa (game-rooms, lobby): el
+   gradiente vive en .game-rooms-page/.lby-page, que no cubre la franja del
+   scrollbar track (8px) a su derecha — se ve el fondo gris claro de AdminLTE
+   detrás. Igualamos el fondo del contenedor scrollable al mismo gradiente
+   para que no haya corte de color visible bajo el scrollbar. */
+#content-scrollable:has(> .mt-2 > #app > .game-rooms-page),
+#content-scrollable:has(> .mt-2 > #app > .lby-page) {
+  background: linear-gradient(160deg, #0a0f24 0%, #0c1230 45%, #060a18 100%);
 }
 #content-scrollable::-webkit-scrollbar { width: 8px; }
 #content-scrollable::-webkit-scrollbar-track {
