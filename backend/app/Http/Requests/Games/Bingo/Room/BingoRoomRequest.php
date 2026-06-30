@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Games\Bingo\Room;
 
 use App\Http\Requests\BaseRequest;
+use App\Models\ExchangeRate;
 use App\Services\Auth\PermissionService;
 
 /**
@@ -146,6 +147,33 @@ class BingoRoomRequest extends BaseRequest
 
             if (!is_array($allowedCurrencies)) {
                 $allowedCurrencies = [];
+            }
+
+            // Con 2+ monedas permitidas, todas necesitan tasa de cambio activa: la
+            // compra de cartones siempre deriva el equivalente en USD a partir de la
+            // tasa, sin importar si el precio se definió en USD base o manualmente
+            // por moneda (useBaseUsd false). Defensa en profundidad: el frontend ya
+            // bloquea/advierte esto, pero el backend es la fuente de verdad final.
+            if (count($allowedCurrencies) > 1) {
+                $currenciesWithActiveRate = ExchangeRate::active()
+                    ->whereIn('currency_id', $allowedCurrencies)
+                    ->pluck('currency_id')
+                    ->map(fn ($id) => (string) $id)
+                    ->unique()
+                    ->all();
+
+                $missingRate = array_filter(
+                    $allowedCurrencies,
+                    fn ($currencyId) => !in_array((string) $currencyId, $currenciesWithActiveRate, true)
+                );
+
+                if (!empty($missingRate)) {
+                    $validator->errors()->add(
+                        'allowedCurrencies',
+                        'Las siguientes monedas no tienen tasa de cambio activa: ' . implode(', ', $missingRate) . '.'
+                    );
+                    return;
+                }
             }
 
             // Si hay más de una moneda Y no usa base USD, cardPriceByCurrency es obligatorio

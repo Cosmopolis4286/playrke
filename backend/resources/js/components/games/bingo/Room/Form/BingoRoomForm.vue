@@ -62,13 +62,15 @@
     roundsPct,
     serialsPct,
     availablePct,
+    currenciesMissingRate,
     percentageLimits
   } = useBingoRoomForm(
     () => props.modelValue,
     emit,
     () => props.automaticRoom ?? false,
     () => useBaseUsd.value,
-    () => props.isEdit ?? false
+    () => props.isEdit ?? false,
+    () => props.currenciesWithActiveRate ?? []
   )
 
   /* ==========================================================================
@@ -103,6 +105,18 @@
     const allowed = form.value.allowedCurrencies
     return Array.isArray(allowed) && allowed.length >= 1
   })
+
+  /**
+   * Monedas seleccionadas sin tasa de cambio activa (sin importar cuántas haya
+   * seleccionadas) — usado para bloquear "Usar Base USD", ya que ese modo
+   * siempre necesita la tasa para convertir el precio USD a cada moneda local.
+   */
+  const currenciesWithoutAnyRate = computed(() => {
+    const activeRates = props.currenciesWithActiveRate ?? []
+    return (form.value.allowedCurrencies ?? []).filter(cur => !activeRates.includes(String(cur)))
+  })
+
+  const canUseBaseUsd = computed(() => currenciesWithoutAnyRate.value.length === 0)
 
   const canChooseRoomMode = computed(() => (form.value.allowedCurrencies?.length ?? 0) > 1)
 
@@ -205,6 +219,15 @@
     }
   })
 
+  // Forzar a "Usar Base USD" = false si alguna moneda seleccionada se queda sin
+  // tasa activa (ej. el admin desactivó la tasa mientras editaba la sala) — ese
+  // modo no puede convertir el precio USD a esa moneda sin la tasa.
+  watch(canUseBaseUsd, can => {
+    if (!can && useBaseUsd.value) {
+      useBaseUsd.value = false
+    }
+  })
+
   // Sincronizar claves de cardPriceByCurrency cuando cambian las monedas (modo !useBaseUsd)
   watch(
     () => form.value.allowedCurrencies,
@@ -240,7 +263,21 @@
     return true
   }
 
-  defineExpose({ submit, isValid })
+  /**
+   * Quita del formulario las monedas seleccionadas sin tasa de cambio activa
+   * (usado por el modal "Continuar sin esas monedas" en la página padre).
+   */
+  const removeCurrenciesMissingRate = (): void => {
+    const missing = new Set(currenciesMissingRate.value)
+    if (missing.size === 0) return
+
+    form.value = {
+      ...form.value,
+      allowedCurrencies: (form.value.allowedCurrencies ?? []).filter(cur => !missing.has(String(cur)))
+    }
+  }
+
+  defineExpose({ submit, isValid, currenciesMissingRate, removeCurrenciesMissingRate })
 </script>
 
 <template>
@@ -268,6 +305,7 @@
         :errors="errors"
         :allowedCurrenciesOptions="allowedCurrenciesOptions"
         :useBaseUsd="useBaseUsd"
+        :canUseBaseUsd="canUseBaseUsd"
         :cardPriceByCurrencyActive="cardPriceByCurrencyActive"
         :canAdjustCtnPriceByCurrency="canAdjustCtnPriceByCurrency"
         :hasCardPriceByCurrencyErrors="hasCardPriceByCurrencyErrors"

@@ -8,6 +8,10 @@ export interface ModalFormExpose {
     isValid: boolean
     isActive?: boolean
     reset?: () => void
+    /** IDs de monedas seleccionadas sin tasa de cambio activa (formularios que lo soporten, ej. BingoRoomForm). */
+    currenciesMissingRate?: string[]
+    /** Quita del formulario las monedas sin tasa activa (ver currenciesMissingRate). */
+    removeCurrenciesMissingRate?: () => void
 }
 
 /**

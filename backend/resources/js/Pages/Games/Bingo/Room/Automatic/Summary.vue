@@ -3,7 +3,8 @@
    * Página Salas de Bingo Automaticas (Autogenerables) → Bingo/Room/Automatic/Summary
    */
 
-  import { computed, watch } from 'vue'
+  import { computed, ref, watch } from 'vue'
+  import { router } from '@inertiajs/vue3'
 
   // ==========================================================================
   // Componentes
@@ -74,6 +75,47 @@
       gameBingoRoomFormRef.value?.reset?.()
       create()
     }
+  })
+
+  // ==========================================================================
+  // Modal: monedas sin tasa de cambio activa
+  // ==========================================================================
+  const showMissingRateModal = ref(false)
+
+  const currenciesMissingRateLabels = computed(() => {
+    const missing = gameBingoRoomFormRef.value?.currenciesMissingRate ?? []
+    return missing
+      .map(id => allowedCurrenciesOptions.value.find(opt => String(opt.value) === id)?.label ?? id)
+      .join(', ')
+  })
+
+  /**
+   * Intercepta el click de "Guardar": si la única razón de invalidez es que
+   * hay monedas seleccionadas sin tasa de cambio activa, en vez de dejar el
+   * botón simplemente deshabilitado se ofrece al usuario decidir cómo seguir
+   * (quitar esas monedas o ir a configurar la tasa) antes de continuar.
+   */
+  const onSaveClick = () => {
+    const missing = gameBingoRoomFormRef.value?.currenciesMissingRate ?? []
+    if (missing.length > 0) {
+      showMissingRateModal.value = true
+      return
+    }
+    handleSubmit()
+  }
+
+  const goToExchangeRates = () => {
+    router.visit('/exchange-rate')
+  }
+
+  const continueWithoutMissingCurrencies = () => {
+    gameBingoRoomFormRef.value?.removeCurrenciesMissingRate?.()
+    showMissingRateModal.value = false
+  }
+
+  const canAttemptSave = computed(() => {
+    if (gameBingoRoomFormRef.value?.isValid) return true
+    return (gameBingoRoomFormRef.value?.currenciesMissingRate?.length ?? 0) > 0
   })
 
   // ==========================================================================
@@ -259,9 +301,6 @@
     :title="modalTitle"
     size="lg"
     static
-    show-confirm
-    :on-submit="handleSubmit"
-    :confirm-disabled="!(gameBingoRoomFormRef?.isValid ?? false)"
   >
     <BingoRoomForm
       ref="gameBingoRoomFormRef"
@@ -287,11 +326,34 @@
       <button class="btn btn-sm btn-secondary" @click="showModalForm = false">Cerrar</button>
       <button
         class="btn btn-sm btn-primary"
-        :disabled="!(gameBingoRoomFormRef?.isValid ?? false)"
-        @click="handleSubmit"
+        :disabled="!canAttemptSave"
+        @click="onSaveClick"
       >
         Guardar
       </button>
+    </template>
+  </Modal>
+
+  <!-- Modal: monedas sin tasa de cambio activa -->
+  <Modal
+    v-model="showMissingRateModal"
+    title="Monedas sin tasa de cambio activa"
+    size="sm"
+  >
+    <div class="py-2">
+      <i class="fas fa-exclamation-triangle text-warning fa-2x d-block mb-3 text-center"></i>
+      <p class="mb-2">
+        Las siguientes monedas no tienen tasa de cambio activa: <strong>{{ currenciesMissingRateLabels }}</strong>.
+      </p>
+      <p class="mb-0 text-muted" style="font-size: 0.85rem">
+        Sin la tasa, el sistema no puede registrar correctamente el equivalente en USD para esas monedas.
+        Puedes continuar sin ellas, o ir a configurar la tasa antes de guardar la sala.
+      </p>
+    </div>
+    <template #footer>
+      <button class="btn btn-sm btn-secondary" @click="showMissingRateModal = false">Cancelar</button>
+      <button class="btn btn-sm btn-warning" @click="goToExchangeRates">Ir a Tasas de Cambio</button>
+      <button class="btn btn-sm btn-primary" @click="continueWithoutMissingCurrencies">Continuar sin esas monedas</button>
     </template>
   </Modal>
 </template>

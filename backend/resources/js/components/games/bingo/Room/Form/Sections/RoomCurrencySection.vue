@@ -10,6 +10,7 @@
     errors: Record<string, any>
     allowedCurrenciesOptions: SelectOption[]
     useBaseUsd: boolean
+    canUseBaseUsd?: boolean
     cardPriceByCurrencyActive: boolean
     canAdjustCtnPriceByCurrency: boolean
     hasCardPriceByCurrencyErrors: boolean
@@ -136,7 +137,7 @@
           <span style="font-size: 0.75rem; color: #6c757d">— Base USD + ajuste por moneda</span>
         </div>
         <div class="d-flex align-items-center" style="gap: 0.75rem">
-          <div class="d-flex align-items-center" style="gap: 0.35rem">
+          <div class="d-flex align-items-center" style="gap: 0.35rem" :title="canUseBaseUsd === false ? 'No disponible: hay monedas seleccionadas sin tasa de cambio activa' : undefined">
             <span style="font-size: 0.74rem; color: #6c757d; white-space: nowrap">Usar Base USD</span>
             <div class="custom-control custom-switch" style="padding-left: 2.1rem; margin-bottom: 0">
               <input
@@ -144,6 +145,7 @@
                 class="custom-control-input"
                 id="useBaseUsdSwitch"
                 :checked="useBaseUsd"
+                :disabled="canUseBaseUsd === false"
                 @change="emit('update:useBaseUsd', ($event.target as HTMLInputElement).checked)"
               />
               <label class="custom-control-label" for="useBaseUsdSwitch" style="cursor: pointer" />
@@ -164,14 +166,18 @@
       <div style="border-top: 1px solid #e9ecef; margin: 0.4rem 0 0.55rem" />
 
       <div
-        v-if="useBaseUsd && currenciesWithoutActiveRate.length > 0"
+        v-if="currenciesWithoutActiveRate.length > 0"
         class="d-flex align-items-start"
         style="gap: 0.35rem; font-size: 0.74rem; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 0.25rem; padding: 0.35rem 0.5rem; margin-bottom: 0.5rem"
       >
         <i class="fa-solid fa-triangle-exclamation" style="margin-top: 0.1rem"></i>
-        <span>
+        <span v-if="useBaseUsd">
           No hay tasa de cambio activa para: <strong>{{ currenciesWithoutActiveRateLabel }}</strong>.
           El precio en USD no podrá convertirse correctamente para esa(s) moneda(s).
+        </span>
+        <span v-else>
+          No hay tasa de cambio activa para: <strong>{{ currenciesWithoutActiveRateLabel }}</strong>.
+          Aunque el precio se ingrese manualmente, se necesita la tasa para registrar el equivalente en USD.
         </span>
       </div>
 

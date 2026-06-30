@@ -28,7 +28,8 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
     emit: (event: 'update:modelValue', value: T) => void,
     automaticRoom: () => boolean,
     useBaseUsd: () => boolean = () => true,
-    isEdit: () => boolean = () => false
+    isEdit: () => boolean = () => false,
+    currenciesWithActiveRate: () => string[] = () => []
 ) {
     /* =======================
      * v-model computado
@@ -37,6 +38,20 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
     const form = computed<T>({
         get: () => modelValueGetter(),
         set: value => emit('update:modelValue', value)
+    })
+
+    /**
+     * Monedas seleccionadas sin tasa de cambio activa. Solo relevante cuando
+     * hay 2+ monedas permitidas: la compra de cartones siempre deriva
+     * cardPriceUsd a partir de la tasa activa, sin importar si el precio se
+     * definió en USD base o manualmente por moneda (useBaseUsd false).
+     */
+    const currenciesMissingRate = computed<string[]>(() => {
+        const allowed = form.value.allowedCurrencies ?? []
+        if (allowed.length <= 1) return []
+
+        const activeRates = currenciesWithActiveRate()
+        return allowed.filter(cur => !activeRates.includes(String(cur))).map(String)
     })
 
     /* =======================
@@ -94,6 +109,11 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
 
         if (!form.value.allowedCurrencies || form.value.allowedCurrencies.length === 0) {
             e.allowedCurrencies = 'Debe seleccionar al menos una moneda.'
+        } else if (currenciesMissingRate.value.length > 0) {
+            // Con 2+ monedas, todas necesitan tasa de cambio activa: la compra de
+            // cartones siempre deriva cardPriceUsd a partir de la tasa, sin importar
+            // si el precio se definió en USD base o manualmente por moneda.
+            e.allowedCurrencies = 'Hay monedas seleccionadas sin tasa de cambio activa.'
         }
 
         if (!form.value.roomCommn) {
@@ -261,6 +281,7 @@ export function useBingoRoomBaseForm<T extends BingoRoomFormData>(
         roundsPct,
         serialsPct,
         availablePct,
+        currenciesMissingRate,
         percentageLimits: BINGO_ROOM_PERCENTAGE_LIMITS,
     }
 }
