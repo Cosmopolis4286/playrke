@@ -81,10 +81,13 @@ RUN mkdir -p \
     storage/logs \
     bootstrap/cache \
  && chown -R www-data:www-data storage bootstrap/cache \
- && chmod -R 775 storage bootstrap/cache
+ && chmod -R 775 storage bootstrap/cache \
+ && chown www-data:www-data vendor/bradietilley/php-snowflake vendor/bradietilley/php-snowflake/sequence.json \
+ && chmod 775 vendor/bradietilley/php-snowflake \
+ && chmod 664 vendor/bradietilley/php-snowflake/sequence.json
 
 # Entrypoint: solo permisos, sin cp lento
-RUN printf '#!/bin/sh\nset -e\nchown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true\nchmod -R 775 /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true\nexec "$@"\n' \
+RUN printf '#!/bin/sh\nset -e\nchown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true\nchmod -R 775 /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true\nchown www-data:www-data /var/www/vendor/bradietilley/php-snowflake /var/www/vendor/bradietilley/php-snowflake/sequence.json 2>/dev/null || true\nchmod 775 /var/www/vendor/bradietilley/php-snowflake 2>/dev/null || true\nchmod 664 /var/www/vendor/bradietilley/php-snowflake/sequence.json 2>/dev/null || true\nexec "$@"\n' \
     > /usr/local/bin/entrypoint.sh \
  && chmod +x /usr/local/bin/entrypoint.sh
 
