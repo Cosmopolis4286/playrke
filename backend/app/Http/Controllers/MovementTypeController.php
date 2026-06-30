@@ -15,7 +15,7 @@ class MovementTypeController extends Controller
      */
     public function index(Request $request): Response
     {
-        $movementTypes = MovementType::orderBy('label')->get();
+        $movementTypes = MovementType::orderBy('sort_order')->orderBy('label')->get();
 
         return Inertia::render('MovementTypes/Index', [
             'movementTypes' => $movementTypes,
@@ -37,6 +37,10 @@ class MovementTypeController extends Controller
             'is_credit'         => 'required|boolean',
             'requires_approval' => 'required|boolean',
             'status'            => 'required|in:ACTIVE,INACTIVE',
+            'visible_roles'     => 'nullable|array',
+            'visible_roles.*'   => 'string|max:30',
+            'game_group'        => 'nullable|string|max:40',
+            'sort_order'        => 'nullable|integer|min:0',
         ]);
 
         $movementType = MovementType::create($validated + ['is_system' => false]);
@@ -83,6 +87,10 @@ class MovementTypeController extends Controller
             'is_credit'         => 'required|boolean',
             'requires_approval' => 'required|boolean',
             'status'            => 'required|in:ACTIVE,INACTIVE',
+            'visible_roles'     => 'nullable|array',
+            'visible_roles.*'   => 'string|max:30',
+            'game_group'        => 'nullable|string|max:40',
+            'sort_order'        => 'nullable|integer|min:0',
         ]);
 
         $movementType->update($validated);
@@ -135,6 +143,7 @@ class MovementTypeController extends Controller
         $movementTypes = MovementType::when($request->get('status'), function ($query, $status) {
                 $query->where('status', $status);
             })
+            ->orderBy('sort_order')
             ->orderBy('label')
             ->get();
 

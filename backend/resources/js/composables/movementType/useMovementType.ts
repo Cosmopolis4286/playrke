@@ -135,7 +135,10 @@ export function useMovementType(tokenId: string = ''): UseMovementTypeReturn {
             color: '#718096',
             is_credit: true,
             requires_approval: false,
-            status: 'ACTIVE'
+            status: 'ACTIVE',
+            visible_roles: null,
+            game_group: null,
+            sort_order: 0
         }
     }
 
@@ -166,7 +169,10 @@ export function useMovementType(tokenId: string = ''): UseMovementTypeReturn {
                 is_credit: data.is_credit,
                 requires_approval: data.requires_approval,
                 is_system: data.is_system,
-                status: data.status
+                status: data.status,
+                visible_roles: data.visible_roles,
+                game_group: data.game_group,
+                sort_order: data.sort_order
             }
 
             return true

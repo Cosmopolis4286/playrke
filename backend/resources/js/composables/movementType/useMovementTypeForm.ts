@@ -22,7 +22,10 @@ export function useMovementTypeForm(
         color: '#718096',
         is_credit: true,
         requires_approval: false,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        visible_roles: null,
+        game_group: null,
+        sort_order: 0
     })
 
     const movementTypeId = ref(modelValue.id)
@@ -85,7 +88,10 @@ export function useMovementTypeForm(
             color: '#718096',
             is_credit: true,
             requires_approval: false,
-            status: 'ACTIVE'
+            status: 'ACTIVE',
+            visible_roles: null,
+            game_group: null,
+            sort_order: 0
         }
         errors.value = {}
     }
@@ -111,7 +117,10 @@ export function useMovementTypeForm(
                 is_credit: value.is_credit ?? true,
                 requires_approval: value.requires_approval ?? false,
                 is_system: value.is_system,
-                status: value.status ?? 'ACTIVE'
+                status: value.status ?? 'ACTIVE',
+                visible_roles: value.visible_roles ?? null,
+                game_group: value.game_group ?? null,
+                sort_order: value.sort_order ?? 0
             }
         },
         { immediate: true, deep: true }

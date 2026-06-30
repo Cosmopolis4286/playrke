@@ -13,6 +13,9 @@ export interface MovementType {
     requires_approval: boolean // true = flujo PENDING -> approve/reject
     readonly is_system: boolean // true = tipo original protegido (DEPOSIT, WITHDRAWAL, etc)
     status: 'ACTIVE' | 'INACTIVE'
+    visible_roles: string[] | null // prefijos de Role (admin, superadmin, commerce...) que ven este tipo; null/[] = todos
+    game_group: string | null // agrupación temática en UI (BINGO, TRIVIA...); null = genérico de billetera
+    sort_order: number // orden de presentación ascendente
     readonly created_at?: string
     readonly updated_at?: string
 }

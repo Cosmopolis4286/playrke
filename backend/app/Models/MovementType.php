@@ -37,6 +37,9 @@ class MovementType extends Model
         'is_credit',
         'requires_approval',
         'status',
+        'visible_roles',
+        'game_group',
+        'sort_order',
     ];
 
     protected $casts = [
@@ -44,6 +47,7 @@ class MovementType extends Model
         'is_credit' => 'boolean',
         'requires_approval' => 'boolean',
         'is_system' => 'boolean',
+        'visible_roles' => 'array',
     ];
 
     public function movements(): HasMany
@@ -54,6 +58,19 @@ class MovementType extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'ACTIVE');
+    }
+
+    /**
+     * Filtra por tipos visibles para un prefijo de rol dado (Role.prefix).
+     * visible_roles null/[] significa visible para todos los roles.
+     */
+    public function scopeVisibleTo($query, ?string $rolePrefix)
+    {
+        return $query->where(function ($q) use ($rolePrefix) {
+            $q->whereNull('visible_roles')
+                ->orWhereJsonLength('visible_roles', 0)
+                ->when($rolePrefix, fn ($q2) => $q2->orWhereJsonContains('visible_roles', $rolePrefix));
+        });
     }
 
     /**

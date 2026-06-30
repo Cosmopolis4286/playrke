@@ -30,6 +30,28 @@
     form.value.code = value.toUpperCase().replace(/[^A-Z_]/g, '').slice(0, 30)
   }
 
+  /** Roles disponibles para restringir visibilidad (prefix de Role) */
+  const AVAILABLE_ROLES = [
+    { value: 'superadmin', label: 'SuperAdmin' },
+    { value: 'admin',      label: 'Admin' },
+    { value: 'commerce',   label: 'Comercio' },
+    { value: 'subsidiary', label: 'Sucursal' },
+    { value: 'seller',     label: 'Vendedor' },
+    { value: 'provider',   label: 'Proveedor' },
+    { value: 'customer',   label: 'Cliente' },
+    { value: 'treasurer',  label: 'Tesorero' },
+  ]
+
+  function isRoleChecked(role: string): boolean {
+    return !!form.value.visible_roles?.includes(role)
+  }
+
+  function toggleRole(role: string, checked: boolean) {
+    const current = form.value.visible_roles ?? []
+    const next = checked ? [...current, role] : current.filter(r => r !== role)
+    form.value.visible_roles = next.length ? next : null
+  }
+
   /**
    * API pública para el modal
    */
@@ -111,6 +133,52 @@
         :modelValue="form.description ?? ''"
         @update:modelValue="form.description = $event || null"
       />
+
+      <!-- Grupo de juego -->
+      <FormInput
+        name="game_group"
+        label="Grupo de juego"
+        col="col-md-6"
+        placeholder="Ej: BINGO, TRIVIA (vacío = genérico)"
+        :maxlength="40"
+        :modelValue="form.game_group ?? ''"
+        @update:modelValue="form.game_group = $event ? $event.toUpperCase() : null"
+      >
+        <template #hint>Agrupa visualmente este tipo bajo un juego en la billetera</template>
+      </FormInput>
+
+      <!-- Orden de presentación -->
+      <FormInput
+        name="sort_order"
+        label="Orden"
+        type="number"
+        col="col-md-6"
+        min="0"
+        :modelValue="form.sort_order ?? 0"
+        @update:modelValue="form.sort_order = Number($event) || 0"
+      >
+        <template #hint>Menor valor aparece primero en los listados</template>
+      </FormInput>
+
+      <!-- Visibilidad por rol -->
+      <div class="col-12">
+        <label class="form-label d-block">Visible para roles</label>
+        <small class="text-muted d-block mb-2">Sin selección = visible para todos los roles</small>
+        <div class="d-flex flex-wrap gap-3">
+          <div v-for="role in AVAILABLE_ROLES" :key="role.value" class="custom-control custom-checkbox">
+            <input
+              :id="`visible-role-${role.value}`"
+              type="checkbox"
+              class="custom-control-input"
+              :checked="isRoleChecked(role.value)"
+              @change="toggleRole(role.value, ($event.target as HTMLInputElement).checked)"
+            />
+            <label class="custom-control-label" :for="`visible-role-${role.value}`">
+              {{ role.label }}
+            </label>
+          </div>
+        </div>
+      </div>
 
       <!-- Suma saldo -->
       <FormSwitch
