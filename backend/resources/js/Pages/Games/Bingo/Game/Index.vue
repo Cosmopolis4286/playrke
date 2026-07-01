@@ -774,19 +774,7 @@ onUnmounted(() => {
         <span class="ig-dev-label">DEV · solo visible en local</span>
       </div>
 
-      <!-- ══════════════════════════════════════════
-           PRE-DRAW BANNER
-      ══════════════════════════════════════════ -->
-      <Transition name="ig-fade">
-        <div v-if="drawStarting" class="ig-predraw-banner">
-          <span class="ig-predraw-banner__icon">🎱</span>
-          <span class="ig-predraw-banner__text">
-            El sorteo inicia en
-            <strong class="ig-predraw-banner__secs">{{ drawStartingSecs }}</strong>
-            segundo{{ drawStartingSecs === 1 ? '' : 's' }}…
-          </span>
-        </div>
-      </Transition>
+      <!-- Pre-draw: replaced by full-screen modal (Teleport below) -->
 
       <!-- ══════════════════════════════════════════
            DRAWN NUMBERS BOARD
@@ -858,25 +846,26 @@ onUnmounted(() => {
       ══════════════════════════════════════════ -->
       <Transition name="ig-fade">
         <div v-if="showPlayersProgress" class="ig-near-win">
-          <span class="ig-near-win__label">
-            <i class="fas fa-bullseye" /> ¡Quedan {{ remainingChips }} ficha{{ remainingChips === 1 ? '' : 's' }}! Jugadores más cerca de ganar
-          </span>
+          <div class="ig-near-win__header">
+            <i class="fas fa-fire ig-near-win__fire" />
+            <span class="ig-near-win__chips-badge">{{ remainingChips }}</span>
+            <span class="ig-near-win__title">ficha{{ remainingChips === 1 ? '' : 's' }} restantes</span>
+          </div>
           <div class="ig-near-win__row">
             <div
-              v-for="p in playersProgress"
+              v-for="(p, idx) in playersProgress"
               :key="p.user_id"
               class="ig-near-win__player"
-              :class="{ 'ig-near-win__player--hot': p.missing <= 2 }"
+              :class="{
+                'ig-near-win__player--hot':  p.missing <= 2,
+                'ig-near-win__player--warn': p.missing <= 5 && p.missing > 2,
+              }"
             >
-              <div class="ig-near-win__avatar">
-                <i class="fas fa-user" />
-              </div>
-              <div class="ig-near-win__body">
-                <span class="ig-near-win__name">{{ p.user_name }}</span>
-                <span class="ig-near-win__missing">
-                  {{ p.missing }} {{ p.missing === 1 ? 'ficha' : 'fichas' }}
-                </span>
-              </div>
+              <span class="ig-near-win__rank">#{{ idx + 1 }}</span>
+              <span class="ig-near-win__name">{{ p.user_name }}</span>
+              <span class="ig-near-win__miss-badge" :class="{ 'ig-near-win__miss-badge--hot': p.missing <= 2 }">
+                {{ p.missing === 0 ? '¡BINGO!' : p.missing }}
+              </span>
             </div>
           </div>
         </div>
@@ -1027,6 +1016,46 @@ onUnmounted(() => {
         </div>
       </div>
     </Transition>
+
+    <!-- ══════════════════════════════════════════
+         PRE-DRAW MODAL (bloqueante, se cierra con primera ficha)
+    ══════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="pdm">
+        <div v-if="drawStarting" class="pdm-overlay">
+          <div class="pdm-box">
+            <!-- Partículas decorativas -->
+            <div class="pdm-particles">
+              <span v-for="i in 12" :key="i" class="pdm-particle" :style="{ '--i': i }" />
+            </div>
+
+            <!-- Bola animada -->
+            <div class="pdm-ball">
+              <span class="pdm-ball__letter">🎱</span>
+            </div>
+
+            <!-- Texto principal -->
+            <div class="pdm-title">¡El sorteo comienza!</div>
+            <div class="pdm-subtitle">Prepara tus cartones</div>
+
+            <!-- Countdown circular -->
+            <div class="pdm-countdown">
+              <svg class="pdm-countdown__ring" viewBox="0 0 64 64">
+                <circle class="pdm-countdown__track" cx="32" cy="32" r="28" />
+                <circle
+                  class="pdm-countdown__fill"
+                  cx="32" cy="32" r="28"
+                  :style="{ strokeDashoffset: 175.9 - (175.9 * (10 - drawStartingSecs) / 10) }"
+                />
+              </svg>
+              <span class="pdm-countdown__num">{{ drawStartingSecs }}</span>
+            </div>
+
+            <div class="pdm-hint">Las fichas aparecerán automáticamente</div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- ══════════════════════════════════════════
          MODAL FIN DE JUEGO
@@ -1638,52 +1667,82 @@ onUnmounted(() => {
 
 /* ── Jugadores cerca de ganar (≤10 fichas restantes) ── */
 .ig-near-win {
-  background: linear-gradient(135deg, rgba(123,79,255,0.16) 0%, rgba(42,245,152,0.10) 100%);
-  border: 1px solid rgba(123,79,255,0.30);
-  border-radius: 18px;
-  padding: 14px 18px 16px;
-  display: flex; flex-direction: column; gap: 12px;
+  background: linear-gradient(135deg, rgba(10,14,36,0.96) 0%, rgba(6,10,26,0.96) 100%);
+  border: 1px solid rgba(123,79,255,0.22);
+  border-radius: 14px;
+  padding: 10px 14px;
+  display: flex; flex-direction: column; gap: 8px;
 }
-.ig-near-win__label {
-  font-size: 12px; font-weight: 700; letter-spacing: 0.4px;
-  color: #d8d8ff; display: flex; align-items: center; gap: 8px;
+
+.ig-near-win__header {
+  display: flex; align-items: center; gap: 7px;
 }
-.ig-near-win__label i { color: #2af598; }
+.ig-near-win__fire {
+  font-size: 12px; color: #ff8c00;
+  animation: fire-flicker 1.2s ease-in-out infinite alternate;
+}
+@keyframes fire-flicker {
+  from { color: #ff6600; text-shadow: 0 0 6px rgba(255,100,0,0.6); }
+  to   { color: #ffcc00; text-shadow: 0 0 10px rgba(255,200,0,0.8); }
+}
+.ig-near-win__chips-badge {
+  font-family: 'Anton', sans-serif; font-size: 18px; line-height: 1;
+  color: #fff; min-width: 20px; text-align: center;
+}
+.ig-near-win__title {
+  font-size: 10px; font-weight: 700; color: #4a5a88;
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+
 .ig-near-win__row {
-  display: flex; flex-wrap: wrap; gap: 12px;
+  display: flex; flex-wrap: wrap; gap: 6px;
 }
+
 .ig-near-win__player {
-  display: flex; align-items: center; gap: 10px;
-  background: rgba(10,16,44,0.55);
-  border: 1px solid rgba(80,120,255,0.18);
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(80,100,200,0.15);
   border-radius: 999px;
-  padding: 6px 16px 6px 6px;
-  flex: 0 0 auto;
+  padding: 4px 10px 4px 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.ig-near-win__player--warn {
+  border-color: rgba(255,171,0,0.3);
 }
 .ig-near-win__player--hot {
-  border-color: rgba(42,245,152,0.55);
-  box-shadow: 0 0 14px rgba(42,245,152,0.25);
+  border-color: rgba(42,245,152,0.45);
+  box-shadow: 0 0 10px rgba(42,245,152,0.18);
+  background: rgba(42,245,152,0.04);
 }
-.ig-near-win__avatar {
-  width: 34px; height: 34px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #7b4fff 0%, #00c6ff 100%);
-  color: #fff; font-size: 14px; flex-shrink: 0;
-}
-.ig-near-win__player--hot .ig-near-win__avatar {
-  background: linear-gradient(135deg, #2af598 0%, #00c6ff 100%);
-}
-.ig-near-win__body {
-  display: flex; flex-direction: column; line-height: 1.25;
+
+.ig-near-win__rank {
+  font-size: 9px; font-weight: 800; color: #3a4a70;
+  letter-spacing: 0.3px; flex-shrink: 0;
 }
 .ig-near-win__name {
-  font-size: 13px; font-weight: 700; color: #f0f0ff;
+  font-size: 12px; font-weight: 700; color: #c0d0f0;
+  letter-spacing: 0.2px;
 }
-.ig-near-win__missing {
-  font-size: 11px; font-weight: 600; color: #9aa6d4;
+.ig-near-win__player--hot .ig-near-win__name { color: #e0fff0; }
+
+.ig-near-win__miss-badge {
+  font-size: 10px; font-weight: 800;
+  background: rgba(80,100,200,0.15);
+  border: 1px solid rgba(80,100,200,0.2);
+  color: #5a7acc;
+  padding: 1px 7px; border-radius: 999px;
+  flex-shrink: 0; min-width: 20px; text-align: center;
+  font-family: 'Courier New', monospace;
 }
-.ig-near-win__player--hot .ig-near-win__missing {
+.ig-near-win__miss-badge--hot {
+  background: rgba(42,245,152,0.18);
+  border-color: rgba(42,245,152,0.45);
   color: #2af598;
+  animation: miss-pulse 0.8s ease-in-out infinite alternate;
+}
+@keyframes miss-pulse {
+  from { box-shadow: 0 0 0 0 rgba(42,245,152,0.3); }
+  to   { box-shadow: 0 0 0 4px rgba(42,245,152,0); }
 }
 
 /* ── CSS Bingo Chips ── */
@@ -2225,4 +2284,136 @@ onUnmounted(() => {
 }
 .ig-mute-btn:hover { background: rgba(100,140,255,0.12); color: #a0c0ff; border-color: rgba(100,140,255,0.4); }
 .ig-mute-btn--off { color: #3a3a5a; border-color: rgba(80,80,120,0.2); background: rgba(0,0,0,0.2); }
+</style>
+
+<!-- Pre-draw modal: estilos globales (Teleport vive en body, scoped no alcanza) -->
+<style>
+/* ══════════════════════════════════════════
+   PRE-DRAW MODAL
+══════════════════════════════════════════ */
+.pdm-overlay {
+  position: fixed; inset: 0; z-index: 10001;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(3, 6, 20, 0.92);
+  backdrop-filter: blur(18px);
+}
+
+.pdm-box {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 18px;
+  padding: 40px 44px 36px;
+  background: linear-gradient(160deg, rgba(14,20,52,0.98) 0%, rgba(8,12,32,0.98) 100%);
+  border: 1.5px solid rgba(123,79,255,0.4);
+  border-radius: 28px;
+  box-shadow:
+    0 0 0 1px rgba(42,245,152,0.06) inset,
+    0 30px 80px rgba(0,0,0,0.7),
+    0 0 60px rgba(123,79,255,0.15);
+  animation: pdm-box-enter 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  text-align: center;
+  min-width: 280px; max-width: 380px;
+}
+@keyframes pdm-box-enter {
+  from { transform: scale(0.78) translateY(20px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Partículas orbitales */
+.pdm-particles {
+  position: absolute; inset: 0; border-radius: 28px;
+  pointer-events: none; overflow: hidden;
+}
+.pdm-particle {
+  position: absolute;
+  width: 4px; height: 4px; border-radius: 50%;
+  top: 50%; left: 50%;
+  background: rgba(42,245,152,0.7);
+  animation: pdm-orbit calc(2s + var(--i) * 0.2s) linear infinite;
+  transform-origin: calc(100px * sin(calc(var(--i) * 30deg))) calc(100px * cos(calc(var(--i) * 30deg)));
+}
+@keyframes pdm-orbit {
+  from { transform: rotate(0deg) translateX(90px) rotate(0deg); opacity: 0.8; }
+  50%  { opacity: 0.3; }
+  to   { transform: rotate(360deg) translateX(90px) rotate(-360deg); opacity: 0.8; }
+}
+
+/* Bola central */
+.pdm-ball {
+  width: 80px; height: 80px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 38% 32%, rgba(123,79,255,0.6), rgba(0,60,180,0.8));
+  border: 2px solid rgba(123,79,255,0.5);
+  box-shadow: 0 0 40px rgba(123,79,255,0.4), 0 0 80px rgba(42,245,152,0.1);
+  animation: pdm-ball-float 3s ease-in-out infinite;
+}
+@keyframes pdm-ball-float {
+  0%,100% { transform: translateY(0) scale(1); box-shadow: 0 0 40px rgba(123,79,255,0.4), 0 8px 20px rgba(0,0,0,0.4); }
+  50%      { transform: translateY(-8px) scale(1.04); box-shadow: 0 0 60px rgba(123,79,255,0.6), 0 14px 28px rgba(0,0,0,0.5); }
+}
+.pdm-ball__letter { font-size: 38px; }
+
+/* Título */
+.pdm-title {
+  font-family: 'Anton', sans-serif; font-size: 26px; letter-spacing: 1.5px;
+  background: linear-gradient(135deg, #fff 0%, #c4aaff 60%, #7b4fff 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  line-height: 1.1; margin: 0;
+}
+
+.pdm-subtitle {
+  font-size: 13px; font-weight: 600; color: #6a8acc; letter-spacing: 0.4px; margin-top: -8px;
+}
+
+/* Countdown circular */
+.pdm-countdown {
+  position: relative; width: 80px; height: 80px;
+  display: flex; align-items: center; justify-content: center;
+}
+.pdm-countdown__ring {
+  position: absolute; inset: 0; transform: rotate(-90deg);
+  width: 80px; height: 80px;
+}
+.pdm-countdown__track {
+  fill: none;
+  stroke: rgba(100,140,255,0.1);
+  stroke-width: 5;
+}
+.pdm-countdown__fill {
+  fill: none;
+  stroke: #2af598;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 175.9;
+  transition: stroke-dashoffset 0.95s linear;
+  filter: drop-shadow(0 0 6px rgba(42,245,152,0.5));
+}
+.pdm-countdown__num {
+  font-family: 'Anton', sans-serif; font-size: 30px; color: #fff;
+  line-height: 1; position: relative; z-index: 1;
+  text-shadow: 0 0 20px rgba(42,245,152,0.6);
+  animation: pdm-num-tick 1s ease-in-out infinite;
+}
+@keyframes pdm-num-tick {
+  0%,100% { transform: scale(1); }
+  10%     { transform: scale(1.2); }
+  30%     { transform: scale(0.95); }
+}
+
+/* Hint */
+.pdm-hint {
+  font-size: 11px; color: #3a4a70; letter-spacing: 0.3px;
+}
+
+/* Transición del overlay */
+.pdm-enter-active { transition: opacity 0.3s ease; }
+.pdm-leave-active { transition: opacity 0.5s ease; }
+.pdm-enter-from, .pdm-leave-to { opacity: 0; }
+.pdm-leave-active .pdm-box {
+  animation: pdm-box-leave 0.5s cubic-bezier(0.4,0,0.2,1) both;
+}
+@keyframes pdm-box-leave {
+  from { transform: scale(1); opacity: 1; }
+  to   { transform: scale(1.1) translateY(-10px); opacity: 0; filter: blur(4px); }
+}
 </style>

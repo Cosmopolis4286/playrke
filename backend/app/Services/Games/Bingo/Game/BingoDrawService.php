@@ -238,6 +238,7 @@ final class BingoDrawService
 
         $rows = array_map(
             fn ($index, $number) => [
+                'id'         => BingoDrawCode::generateSnowflakeId(),
                 'room_id'    => $roomId,
                 'num'        => $index + 1,
                 'sym'        => (string) $number,
@@ -296,7 +297,8 @@ final class BingoDrawService
             if (!$userId) continue;
 
             $userId   = (int) $userId;
-            $userName = $card->roomUser?->user?->name ?? ('Jugador #' . $userId);
+            $rawName  = $card->roomUser?->user?->name ?? '';
+            $userName = $rawName !== '' ? $this->maskName($rawName) : ('Jugador #' . substr((string) $userId, -4));
 
             if (!isset($playerBest[$userId]) || $missing < $playerBest[$userId]['missing']) {
                 $playerBest[$userId] = ['user_name' => $userName, 'missing' => $missing];
@@ -629,6 +631,15 @@ final class BingoDrawService
      * (en moneda local), derivando el equivalente en USD mediante la tasa activa.
      * En cualquier otro caso, se usa el bote de la sala (`prize_pool`, en USD).
      */
+    private function maskName(string $name): string
+    {
+        $parts = preg_split('/\s+/', trim($name));
+        $first = $parts[0] ?? '';
+        $visible = mb_substr($first, 0, 4);
+        return $visible . str_repeat('*', max(0, mb_strlen($first) - 4))
+            . (isset($parts[1]) ? ' ' . mb_substr($parts[1], 0, 1) . '.' : '');
+    }
+
     private function resolvePrizeAmounts(BingoRoom $room, BingoRound $round, BingoCard $card): array
     {
         if ($round->prize_type === 'FIXED') {

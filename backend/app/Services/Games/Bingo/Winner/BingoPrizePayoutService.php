@@ -65,6 +65,7 @@ final class BingoPrizePayoutService
                 'user_id'                => $userId,
                 'currency_id'            => $cardPrize->currency_id,
                 'payment_amount'         => $amount,
+                'payment_proof'          => null,
                 'payment_status'         => 'completed',
                 'processed_at'           => now(),
                 'transaction_reference'  => (string) $movement->id,
@@ -106,6 +107,7 @@ final class BingoPrizePayoutService
             'user_id'         => $cardPrize->creator_user_id,
             'currency_id'     => $cardPrize->currency_id,
             'payment_amount'  => $cardPrize->local_amount,
+            'payment_proof'   => null,
             'payment_status'  => 'failed',
             'payment_notes'   => $reason,
         ]);
