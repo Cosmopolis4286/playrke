@@ -31,6 +31,7 @@ final class BingoGameController extends Controller
         private readonly \App\Services\Games\Bingo\Game\BingoWinnerDetectionService $winnerDetection,
         private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $cardGenerateService,
         private readonly \App\Services\Roles\RoleUserService $roleUserService,
+        private readonly \App\Services\Games\Bingo\Config\BingoConfigContextService $bingoConfigContext,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
@@ -105,14 +106,35 @@ final class BingoGameController extends Controller
                 ];
 
                 return Inertia::render('Games/Bingo/Lobby/Index', [
-                    'room'         => $roomData,
-                    'roomRouteKey' => $room->getRouteKey(),
-                    'userCards'    => $userCards,
-                    'exchangeRate' => $exchangeRate,
+                    'room'             => $roomData,
+                    'roomRouteKey'     => $room->getRouteKey(),
+                    'userCards'        => $userCards,
+                    'exchangeRate'     => $exchangeRate,
+                    'bingoRules'       => $this->bingoConfigContext->getBingoRules((int) $userId),
+                    'imageBingoRules'  => $this->bingoConfigContext->getImageBingoRules((int) $userId),
                 ]);
             },
             'No se pudo cargar el lobby.'
         );
+    }
+
+    /**
+     * Lista de jugadores de la sala (para el modal del lobby).
+     */
+    public function lobbyPlayers(BingoRoom $room): \Illuminate\Http\JsonResponse
+    {
+        $players = $room->players()
+            ->with('user:id,name')
+            ->orderByDesc('cards_purchased')
+            ->get()
+            ->map(fn ($ru) => [
+                'user_id'         => (string) $ru->user_id,
+                'name'            => $ru->user?->name ?? '—',
+                'cards_purchased' => (int) $ru->cards_purchased,
+                'role'            => $ru->role,
+            ]);
+
+        return response()->json(['players' => $players]);
     }
 
     /**

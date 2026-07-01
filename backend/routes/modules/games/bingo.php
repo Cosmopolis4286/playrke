@@ -134,11 +134,12 @@ route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'multiPermission:g
  * ====================================
  */
 route_group('bingo', 'bingo.', ['auth'], BingoGameController::class, [
-    'lobby'       => ['method' => 'get',  'uri' => '{room}/lobby',              'action' => 'lobby'],
-    'game'        => ['method' => 'get',  'uri' => '{room}/game',              'action' => 'inGame'],
-    'user-cards'  => ['method' => 'get',  'uri' => '{room}/user-cards',  'action' => 'getUserCards'],
-    'check-bingo' => ['method' => 'post', 'uri' => '{room}/check-bingo', 'action' => 'checkBingo'],
-    'view-card'   => ['method' => 'get',  'uri' => '{room}/card/{card}',  'action' => 'viewCard'],
+    'lobby'         => ['method' => 'get',  'uri' => '{room}/lobby',         'action' => 'lobby'],
+    'lobby-players' => ['method' => 'get',  'uri' => '{room}/lobby-players', 'action' => 'lobbyPlayers'],
+    'game'          => ['method' => 'get',  'uri' => '{room}/game',          'action' => 'inGame'],
+    'user-cards'    => ['method' => 'get',  'uri' => '{room}/user-cards',    'action' => 'getUserCards'],
+    'check-bingo'   => ['method' => 'post', 'uri' => '{room}/check-bingo',   'action' => 'checkBingo'],
+    'view-card'     => ['method' => 'get',  'uri' => '{room}/card/{card}',   'action' => 'viewCard'],
 ]);
 
 // Solo disponible en entorno local — utilidades de desarrollo

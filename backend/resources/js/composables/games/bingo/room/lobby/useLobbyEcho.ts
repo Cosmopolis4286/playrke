@@ -49,6 +49,7 @@ export function useLobbyEcho(
   callbacks?: {
     onPrizeChanged?: () => void
     onPlayersChanged?: () => void
+    onCardsChanged?: (totalCards: number) => void
     onCardsUpdated?: (cardPrice: number | null, currencySymbol: string | null) => void
   },
 ): { wsStatus: ReturnType<typeof ref<WsStatus>> } {
@@ -72,6 +73,7 @@ export function useLobbyEcho(
   echo.channel(roomChannelName).listen('.RoomUpdated', (payload: RoomUpdatedPayload) => {
     const prizeChanged   = live.prizePool    !== payload.prize_pool
     const playersChanged = live.totalPlayers !== payload.total_players
+    const cardsChanged   = live.totalCards   !== payload.total_cards
 
     live.prizePool    = payload.prize_pool    ?? live.prizePool
     live.totalPlayers = payload.total_players ?? live.totalPlayers
@@ -80,6 +82,7 @@ export function useLobbyEcho(
 
     if (prizeChanged)   callbacks?.onPrizeChanged?.()
     if (playersChanged) callbacks?.onPlayersChanged?.()
+    if (cardsChanged)   callbacks?.onCardsChanged?.(live.totalCards)
   })
 
   // ── Canal privado del jugador ──
