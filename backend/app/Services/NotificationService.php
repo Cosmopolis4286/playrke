@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\NotificationRepositoryInterface;
+use App\Events\Notifications\NotificationCreated;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -57,6 +58,8 @@ final class NotificationService
         ]);
 
         $this->clearUserNotificationCache($userId);
+
+        broadcast(new NotificationCreated($notification));
 
         Log::info('Notification created', [
             'notification_id' => $notification->id,

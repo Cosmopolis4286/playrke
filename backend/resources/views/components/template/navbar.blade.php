@@ -243,15 +243,15 @@
     // ── Metadatos por tipo de movimiento ─────────────────────
     var TYPE_META = {
         DEPOSIT:      { label: 'Depósito',        icon: 'fa-arrow-down',  color: '#28a745', sign: '+' },
-        WITHDRAWAL:   { label: 'Retiro',           icon: 'fa-arrow-up',    color: '#ffc107', sign: '-' },
-        PURCHASE:     { label: 'Compra cartón',    icon: 'fa-ticket-alt',  color: '#dc3545', sign: '-' },
-        PRIZE:        { label: '¡Premio! 🎉',      icon: 'fa-trophy',      color: '#fd7e14', sign: '+' },
-        TRIVIA_ENTRY: { label: 'Entrada Trivia',   icon: 'fa-brain',       color: '#7c3aed', sign: '-' },
+        WITHDRAWAL:   { label: 'Retiro',               icon: 'fa-arrow-up',    color: '#ffc107', sign: '-' },
+        PURCHASE:     { label: 'Compra cartón',   icon: 'fa-ticket-alt',  color: '#dc3545', sign: '-' },
+        PRIZE:        { label: '¡Premio! 🎉', icon: 'fa-trophy', color: '#fd7e14', sign: '+' },
+        TRIVIA_ENTRY: { label: 'Entrada Trivia',        icon: 'fa-brain',       color: '#7c3aed', sign: '-' },
     };
 
     var ADMIN_META = {
         DEPOSIT:    { label: '💰 Depósito pendiente', icon: 'fa-arrow-down', color: '#28a745', sign: '+' },
-        WITHDRAWAL: { label: '💸 Retiro pendiente',   icon: 'fa-arrow-up',   color: '#ffc107', sign: '-' },
+        WITHDRAWAL: { label: '💸 Retiro pendiente',        icon: 'fa-arrow-up',   color: '#ffc107', sign: '-' },
     };
 
     function resolveResultMeta(type, status) {
@@ -260,8 +260,8 @@
             ? { label: '✅ Depósito aprobado',               icon: 'fa-check-circle', color: '#28a745', sign: '+', url: '/wallet' }
             : { label: '❌ Depósito rechazado',               icon: 'fa-times-circle', color: '#dc3545', sign: '',  url: '/wallet' };
         if (type === 'WITHDRAWAL') return ok
-            ? { label: '✅ Retiro procesado',                 icon: 'fa-check-circle', color: '#28a745', sign: '-', url: '/wallet' }
-            : { label: '↩️ Retiro rechazado — saldo devuelto', icon: 'fa-undo',        color: '#ffc107', sign: '',  url: '/wallet' };
+            ? { label: '✅ Retiro procesado',                      icon: 'fa-check-circle', color: '#28a745', sign: '-', url: '/wallet' }
+            : { label: '↩️ Retiro rechazado — saldo devuelto', icon: 'fa-undo', color: '#ffc107', sign: '', url: '/wallet' };
         return { label: 'Movimiento actualizado', icon: 'fa-exchange-alt', color: '#6c757d', sign: '', url: '/wallet' };
     }
 
@@ -272,7 +272,6 @@
     var $balanceEl = document.getElementById('navbar-balance');
     var $clearBtn  = document.getElementById('notif-clear');
     var notifCount = 0;
-    var panelOpened = false;
 
     // ── Helpers ───────────────────────────────────────────────
     function csrfToken() {
@@ -290,7 +289,7 @@
         });
     }
     function fmt(symbol, n) {
-        return symbol + '\u00a0' + parseFloat(n).toLocaleString('es-VE', {
+        return symbol + ' ' + parseFloat(n).toLocaleString('es-VE', {
             minimumFractionDigits: 2, maximumFractionDigits: 2
         });
     }
@@ -299,7 +298,7 @@
     function updateBalance(data) {
         if (!$balanceEl) return;
         $balanceEl.innerHTML =
-            '<span class="text-success font-weight-bold">' + data.currency_symbol + '</span>\u00a0' +
+            '<span class="text-success font-weight-bold">' + data.currency_symbol + '</span> ' +
             parseFloat(data.balance).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         $balanceEl.style.transition = 'opacity .15s';
         $balanceEl.style.opacity = '0.2';
@@ -319,8 +318,10 @@
     function incBadge() { setBadge(notifCount + 1); }
 
     // ── Construir <li> ────────────────────────────────────────
-    // variant: 'admin' (acción pendiente para admin/tesorero) | 'result' (depósito/retiro resuelto) | '' (movimiento normal)
     function buildListItem(meta, bodyHtml, time, url, notifId, variant, isRead) {
+        // Deduplicar: si ya existe un <li> con el mismo notif-id, ignorar
+        if (notifId && $list.querySelector('[data-notification-id="' + notifId + '"]')) return null;
+
         var inner =
             '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-1"' +
                  ' style="width:32px;height:32px;background:' + meta.color + '22">' +
@@ -339,59 +340,54 @@
         $list.insertBefore(li, $list.firstChild);
         var all = $list.querySelectorAll('.notif-entry');
         if (all.length > 25) all[all.length - 1].remove();
+        return li;
     }
 
-    // ── Notificación en tiempo real (WebSocket wallet) ────────
-    function addRealtimeWalletNotif(data) {
-        var isResult = data.movement_status === 'COMPLETED' || data.movement_status === 'REJECTED';
-        var meta = isResult
-            ? resolveResultMeta(data.movement_type, data.movement_status)
-            : (TYPE_META[data.movement_type] || { label: 'Movimiento', icon: 'fa-exchange-alt', color: '#6c757d', sign: '' });
+    // ── Notificación en tiempo real desde WS (.notification.created) ──
+    // El backend emite la notificación completa con ID real de DB.
+    // Se inserta directamente sin API call de recarga.
+    function addRealtimeNotification(notification) {
+        var isAdminAlert = notification.type === 'WALLET_ADMIN_ALERT';
+        var mvType   = notification.data && notification.data.movement_type;
+        var mvStatus = notification.data && notification.data.movement_status;
+        var isResult = mvStatus === 'COMPLETED' || mvStatus === 'REJECTED';
+        var url      = (notification.data && notification.data.url) || (isResult ? '/wallet' : null);
+
+        var meta;
+        if (isAdminAlert) {
+            meta = ADMIN_META[mvType] || { label: notification.title, icon: 'fa-bell', color: '#6c757d' };
+        } else if (isResult) {
+            meta = resolveResultMeta(mvType, mvStatus);
+        } else {
+            meta = TYPE_META[mvType] || { label: notification.title || 'Notificación', icon: 'fa-bell', color: '#6c757d' };
+        }
 
         if ($empty) $empty.style.display = 'none';
 
-        var detail = isResult
-            ? (meta.sign
-                ? '<span style="color:' + meta.color + ';font-weight:600">' + meta.sign + fmt(data.currency_symbol, data.amount) + '</span>'
-                  + ' &middot; Saldo: ' + fmt(data.currency_symbol, data.balance)
-                : 'El monto será devuelto a tu saldo disponible')
-            : '<span style="color:' + meta.color + ';font-weight:600">' + meta.sign + fmt(data.currency_symbol, data.amount) + '</span>'
-              + ' &middot; Saldo: ' + fmt(data.currency_symbol, data.balance);
-
-        buildListItem(
+        var inserted = buildListItem(
             meta,
-            '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + meta.label + '</p>' +
-            '<p class="mb-0 text-muted" style="font-size:11px">' + detail + '</p>',
-            new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
-            isResult ? (meta.url || '/wallet') : null,
-            null,
-            isResult ? 'result' : ''
+            '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + (notification.title || meta.label) + '</p>' +
+            '<p class="mb-0 text-muted" style="font-size:11px">' + notification.message + '</p>',
+            new Date(notification.created_at).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
+            url,
+            notification.id,
+            isAdminAlert ? 'admin' : (isResult ? 'result' : ''),
+            false
         );
-        incBadge();
+
+        if (inserted) {
+            incBadge();
+            // Animación de entrada sutil
+            inserted.style.transition = 'background .4s';
+            inserted.style.background = meta.color + '18';
+            setTimeout(function () { inserted.style.background = ''; }, 800);
+        }
     }
 
-    // ── Notificación en tiempo real (WebSocket admin) ─────────
+    // ── Notificación admin (canal admins.wallet-movements) ──────────
+    // Solo dispara el sonido de alerta inmediata. La notificación persistida
+    // llega por .notification.created con su ID real.
     function addRealtimeAdminNotif(data) {
-        var meta  = ADMIN_META[data.movement_type] || { label: 'Movimiento pendiente', icon: 'fa-exchange-alt', color: '#6c757d', sign: '' };
-        var label = data.movement_type === 'DEPOSIT' ? 'depósito' : 'retiro';
-
-        if ($empty) $empty.style.display = 'none';
-
-        buildListItem(
-            meta,
-            '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + meta.label + '</p>' +
-            '<p class="mb-0 text-muted" style="font-size:11px">' +
-              '<strong>' + (data.user_name || 'Usuario') + '</strong> solicita un ' + label + ' de ' +
-              '<span style="color:' + meta.color + ';font-weight:600">' + meta.sign + fmt(data.currency_symbol, data.amount) + '</span>' +
-            '</p>',
-            new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
-            data.url || '/wallet-movements',
-            null,
-            'admin'
-        );
-        incBadge();
-
-        // Sonido sutil
         try {
             var ctx = new (window.AudioContext || window.webkitAudioContext)();
             var osc = ctx.createOscillator(); var gain = ctx.createGain();
@@ -403,7 +399,7 @@
         } catch(e) {}
     }
 
-    // ── Notificación persistente (desde DB) ───────────────────
+    // ── Notificación persistente (desde API al abrir panel) ──────────
     function addPersistentNotification(notification) {
         if ($empty) $empty.style.display = 'none';
 
@@ -435,23 +431,22 @@
     }
 
     // ── Estado del panel ──────────────────────────────────────
-    var panelLoaded = false; // se cargaron datos desde API al menos una vez
-    var panelOpen   = false; // panel actualmente abierto
+    var panelLoaded = false;
+    var panelOpen   = false;
 
-    // ── Cargar recientes (leídas + no leídas) desde API (lazy: solo al abrir) ──
-    // Usa /notifications (no /notifications/unread) para que el panel no
-    // quede vacío solo porque ya se marcaron como leídas en una sesión previa.
+    // ── Cargar recientes (leídas + no leídas) desde API ──────────────
     function loadNotificationsFromAPI(callback) {
         apiFetch('/notifications?limit=25')
             .then(function(r) { return r.ok ? r.json() : null; })
             .then(function(json) {
                 if (!json) return;
+                // Limpiar lista completa y re-renderizar desde DB (deduplicación via ID)
                 $list.querySelectorAll('.notif-entry').forEach(function(el) { el.remove(); });
                 if (json.data && json.data.length > 0) {
                     if ($empty) $empty.style.display = 'none';
                     json.data.slice().reverse().forEach(addPersistentNotification);
-                } else if ($empty) {
-                    $empty.style.display = '';
+                } else if (!$list.querySelector('.notif-entry')) {
+                    if ($empty) $empty.style.display = '';
                 }
                 setBadge(json.unread_count || 0);
                 panelLoaded = true;
@@ -460,9 +455,15 @@
             .catch(function() { if (callback) callback(); });
     }
 
-    // ── Marcar leídas (sin borrar) ────────────────────────────
+    // ── Marcar leídas (sin borrar) ─────────────────────────────
     function markAllReadInAPI() {
-        apiFetch('/notifications/mark-all-read', 'POST').catch(function() {});
+        apiFetch('/notifications/mark-all-read', 'POST')
+            .then(function() {
+                $list.querySelectorAll('.notif-entry:not(.read)').forEach(function(el) {
+                    el.classList.add('read');
+                });
+            })
+            .catch(function() {});
     }
 
     // ── "Limpiar todo": borrar de DB ──────────────────────────
@@ -475,29 +476,26 @@
                     $list.querySelectorAll('.notif-entry').forEach(function(el) { el.remove(); });
                     if ($empty) $empty.style.display = '';
                     setBadge(0);
-                    panelLoaded = false; // forzar recarga la próxima vez
+                    panelLoaded = false;
                 }
             })
             .catch(function() {});
     });
 
-    // ── Abrir panel: lazy load + marcar leídas ────────────────
+    // ── Abrir panel: lazy load + marcar leídas ─────────────────
     document.getElementById('notifToggle').addEventListener('click', function () {
         if (panelOpen) { panelOpen = false; return; }
         panelOpen = true;
 
-        // Primera apertura: cargar desde DB, luego marcar leídas
         if (!panelLoaded) {
             loadNotificationsFromAPI(function () {
                 if (notifCount > 0) { markAllReadInAPI(); setBadge(0); }
             });
         } else if (notifCount > 0) {
-            // Panel ya cargado: solo marcar leídas
             markAllReadInAPI();
             setBadge(0);
         }
 
-        // Resetear flag cuando el dropdown se cierra
         document.addEventListener('click', function onOutside(ev) {
             if (!ev.target.closest('.nb-notif-menu') && !ev.target.closest('#notifToggle')) {
                 panelOpen = false;
@@ -506,7 +504,7 @@
         });
     });
 
-    // ── wallet:updated desde Vue ──────────────────────────────
+    // ── wallet:updated desde Vue (solo saldo) ─────────────────
     window.addEventListener('wallet:updated', function (e) {
         updateBalance({ balance: e.detail.balance, currency_symbol: e.detail.currency_symbol });
     });
@@ -515,15 +513,19 @@
     function boot() {
         if (!window.Echo) { setTimeout(boot, 250); return; }
 
-        // Canal privado del usuario (wallet events)
         window.Echo.private('App.Models.User.' + USER_ID)
+            // Actualiza saldo del navbar en tiempo real
             .listen('.wallet.updated', function (data) {
                 if (WALLET_ID && data.wallet_id !== WALLET_ID) return;
                 if (WALLET_ID) updateBalance(data);
-                addRealtimeWalletNotif(data);
+            })
+            // Recibe notificación completa con ID real de DB → renderiza sin API call
+            .listen('.notification.created', function (data) {
+                addRealtimeNotification(data);
             });
 
-        // Canal de admins (movimientos pendientes)
+        // Canal de admins: solo sonido de alerta inmediata
+        // La notificación persistida llega por .notification.created
         if (IS_ADMIN) {
             window.Echo.private('admins.wallet-movements')
                 .listen('.wallet.movement.requested', function (data) {
@@ -532,12 +534,12 @@
         }
     }
 
-    // ── Badge inicial desde PHP — sin ninguna petición HTTP ───
+    // ── Badge inicial desde PHP ───────────────────────────────
     var serverCount = window.notificationsData && window.notificationsData.unreadCount
         ? parseInt(window.notificationsData.unreadCount, 10) : 0;
     if (serverCount > 0) setBadge(serverCount);
 
-    // ── Init: solo WebSocket, nada de fetch al cargar ─────────
+    // ── Init ──────────────────────────────────────────────────
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', boot);
     } else {
