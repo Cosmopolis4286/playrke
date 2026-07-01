@@ -98,7 +98,8 @@ class BingoRoomCrudService
                 $startMode = $dto->startMode ?? $previousStartMode;
                 $unixDate = null;
                 if ($startMode === 'SCHEDULED' && $dto->date && $dto->time) {
-                    $dateTime = "{$dto->date} {$dto->time}";
+                    $normalizedTime = substr($dto->time, 0, 5); // strip seconds if present (H:i:s → H:i)
+                    $dateTime = "{$dto->date} {$normalizedTime}";
                     $creatorTz = $this->resolveCreatorTimezone($userId);
                     $unixDate = Carbon::createFromFormat('Y-m-d H:i', $dateTime, $creatorTz)->timestamp;
                 }
@@ -970,7 +971,7 @@ class BingoRoomCrudService
 
         $dto = BingoRoomCreateDTO::fromArray([
             'date'                  => Carbon::parse($config->getRawOriginal('date'))->format('Y-m-d'),
-            'time'                  => $config->time,
+            'time'                  => substr((string) $config->time, 0, 5),
             'roomType'              => $config->room_type_id,
             'gameMode'              => $config->game_mode_id,
             'gameVariant'           => $config->game_variant ?? 'BINGO_75',

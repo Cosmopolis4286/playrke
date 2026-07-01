@@ -124,12 +124,12 @@ final class BingoGameController extends Controller
     public function lobbyPlayers(BingoRoom $room): \Illuminate\Http\JsonResponse
     {
         $players = $room->players()
-            ->with('user:id,name')
+            ->with('user:id,first_name,last_name')
             ->orderByDesc('cards_purchased')
             ->get()
             ->map(fn ($ru) => [
                 'user_id'         => (string) $ru->user_id,
-                'name'            => $ru->user?->name ?? '—',
+                'name'            => $ru->user ? trim("{$ru->user->first_name} {$ru->user->last_name}") : '—',
                 'cards_purchased' => (int) $ru->cards_purchased,
                 'role'            => $ru->role,
             ]);
