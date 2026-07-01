@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, reactive, watch } from "vue";
-import { Link, usePage } from "@inertiajs/vue3";
+import { Link, usePage, router } from "@inertiajs/vue3";
 import { BingoService } from "@js/Services/bingoService";
 import BingoPurchaseModal from "@js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModal.vue";
 import BingoRulesModal from "@js/Pages/Games/Bingo/Config/Rules/BingoRulesModal.vue";
@@ -147,7 +147,7 @@ async function openPlayersModal() {
   if (playersList.value.length > 0) return; // ya cargado
   playersLoading.value = true;
   try {
-    const res = await fetch(`/bingo/${props.room.id}/lobby-players`, {
+    const res = await fetch(`/bingo/${props.roomRouteKey}/lobby-players`, {
       headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
     });
     const data = await res.json();
@@ -248,13 +248,37 @@ const cardsProgressReady = computed(() =>
   minCardsToStart.value != null && live.totalCards >= minCardsToStart.value
 );
 
-// ── Lifecycle ──
+// ── Redirección automática si el sorteo inicia ──
+const redirecting = ref(false);
+let redirectTimer: ReturnType<typeof setTimeout> | null = null;
+
+function triggerGameRedirect(fromWs = false) {
+  if (redirecting.value || !props.roomRouteKey) return;
+  redirecting.value = true;
+  const delay = fromWs ? 3000 : 1500;
+  redirectTimer = setTimeout(() => {
+    router.visit(`/bingo/${props.roomRouteKey}/game`);
+  }, delay);
+}
+
+// Al montar: si la sala ya está en progreso, redirigir de inmediato
 onMounted(() => {
   startCountdown();
+  if (live.statusCode?.toUpperCase() === 'IN_PROGRESS') {
+    triggerGameRedirect(false);
+  }
 });
 
 onUnmounted(() => {
   if (countdownTimer) clearInterval(countdownTimer);
+  if (redirectTimer)  clearTimeout(redirectTimer);
+});
+
+// WS: cuando el status cambia a IN_PROGRESS dar feedback y redirigir
+watch(() => live.statusCode, (next) => {
+  if (next?.toUpperCase() === 'IN_PROGRESS') {
+    triggerGameRedirect(true);
+  }
 });
 
 // ── Purchase handlers ──
@@ -426,10 +450,21 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
               <span class="lby-stat__val">{{ live.userCards }}</span>
               <span class="lby-stat__lbl">Mis cartones</span>
             </div>
-            <div class="lby-stat">
-              <div class="lby-stat__icon-wrap"><i class="fas fa-layer-group" /></div>
-              <span class="lby-stat__val">{{ live.totalCards }}</span>
-              <span class="lby-stat__lbl">Total emitidos</span>
+            <div class="lby-stat" :class="{ 'lby-stat--ready': cardsProgressReady, 'lby-stat--closed': room.close_room }">
+              <div class="lby-stat__icon-wrap">
+                <i :class="minCardsToStart ? (cardsProgressReady ? 'fas fa-check-circle' : 'fas fa-hourglass-half') : (room.close_room ? 'fas fa-lock' : 'fas fa-lock-open')" />
+              </div>
+              <span class="lby-stat__val lby-stat__val--sm">
+                <template v-if="minCardsToStart">
+                  {{ cardsProgressReady ? '¡Listo!' : minCardsToStart! - live.totalCards }}
+                </template>
+                <template v-else>
+                  {{ room.close_room ? 'Cerrada' : 'Abierta' }}
+                </template>
+              </span>
+              <span class="lby-stat__lbl">
+                {{ minCardsToStart ? (cardsProgressReady ? 'Meta alcanzada' : 'Faltan') : 'Sala' }}
+              </span>
             </div>
             <div v-if="live.cardPrice" class="lby-stat">
               <div class="lby-stat__icon-wrap"><i class="fas fa-tag" /></div>
@@ -557,6 +592,19 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
                 </div>
               </div>
             </template>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Banner: sorteo iniciado → redirigiendo -->
+    <Transition name="lby-redirect">
+      <div v-if="redirecting" class="lby-redirect-banner">
+        <div class="lby-redirect-banner__inner">
+          <div class="lby-redirect-banner__spinner" />
+          <div>
+            <p class="lby-redirect-banner__title">¡El sorteo ha comenzado!</p>
+            <p class="lby-redirect-banner__sub">Entrando al juego…</p>
           </div>
         </div>
       </div>
@@ -984,6 +1032,12 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
   background: rgba(42,245,152,.04);
 }
 .lby-stat--mine:hover { border-color: rgba(42,245,152,.32); }
+.lby-stat--ready { border-color: rgba(42,245,152,.2); background: rgba(42,245,152,.04); }
+.lby-stat--ready .lby-stat__icon-wrap { color: #2af598; border-color: rgba(42,245,152,.25); background: rgba(42,245,152,.1); }
+.lby-stat--ready .lby-stat__val { color: #2af598; }
+.lby-stat--closed { border-color: rgba(255,77,109,.15); background: rgba(255,77,109,.03); }
+.lby-stat--closed .lby-stat__icon-wrap { color: #ff6e8a; border-color: rgba(255,77,109,.2); background: rgba(255,77,109,.08); }
+.lby-stat--closed .lby-stat__val { color: #ff6e8a; }
 
 .lby-stat__icon-wrap {
   width: 22px; height: 22px; border-radius: 6px;
@@ -998,6 +1052,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
 .lby-stat--mine .lby-stat__icon-wrap { color: #2af598; border-color: rgba(42,245,152,.2); background: rgba(42,245,152,.08); }
 
 .lby-stat__val { font-family: 'Anton', sans-serif; font-size: 16px; color: #c8d8f0; line-height: 1; }
+.lby-stat__val--sm { font-size: 12px; }
 .lby-stat--mine .lby-stat__val { color: #2af598; }
 .lby-stat__lbl { font-size: 7px; color: #2a3f58; text-transform: uppercase; letter-spacing: .6px; text-align: center; white-space: nowrap; }
 
@@ -1254,6 +1309,43 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
 .lby-toast-leave-active { transition: opacity .3s ease, transform .3s ease; }
 .lby-toast-enter-from   { opacity: 0; transform: translateX(-16px) scale(.95); }
 .lby-toast-leave-to     { opacity: 0; transform: translateX(-8px) scale(.97); }
+
+/* ═══════════════════════════════════
+   BANNER REDIRECCIÓN — sorteo iniciado
+═══════════════════════════════════ */
+.lby-redirect-banner {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(2,5,16,.82); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+}
+.lby-redirect-banner__inner {
+  display: flex; align-items: center; gap: 18px;
+  background: linear-gradient(135deg, #0d1a10 0%, #081510 100%);
+  border: 1px solid rgba(42,245,152,.35);
+  border-radius: 18px; padding: 24px 32px;
+  box-shadow: 0 0 60px rgba(42,245,152,.12), 0 24px 60px rgba(0,0,0,.7);
+  animation: lbyRedirectPop .35s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes lbyRedirectPop {
+  from { opacity: 0; transform: scale(.9) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.lby-redirect-banner__spinner {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border: 3px solid rgba(42,245,152,.15); border-top-color: #2af598;
+  border-radius: 50%; animation: lbySpin 1s linear infinite;
+}
+.lby-redirect-banner__title {
+  margin: 0 0 3px; font-size: 15px; font-weight: 700; color: #2af598;
+}
+.lby-redirect-banner__sub {
+  margin: 0; font-size: 11px; color: #3a6050;
+}
+
+.lby-redirect-enter-active { transition: opacity .25s ease; }
+.lby-redirect-leave-active { transition: opacity .2s ease; }
+.lby-redirect-enter-from,
+.lby-redirect-leave-to { opacity: 0; }
 
 /* ═══════════════════════════════════
    RESPONSIVE

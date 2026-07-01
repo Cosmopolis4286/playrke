@@ -1,344 +1,629 @@
-<!-- BingoBoard.vue -->
+<!-- BingoBoard.vue — Spectator board: dark theme, draw position + timestamp -->
 <template>
-  <div ref="boardRef" class="container d-flex justify-content-center">
-    <div class="bingo-content">
-      <div
-        v-for="(group, index) in bingoGroups"
-        :key="index"
-        class="bingo-row d-flex align-items-stretch my-1"
-      >
-        <!-- Etiqueta izquierda -->
-        <div
-          class="bingo-letter-box d-flex align-items-center justify-content-center me-3"
-          :class="letterBgClass(index)"
-          :style="{
-            width: boxSize + 'px',
-            height: letterHeight + 'px',
-            fontSize: fontSize + 'rem',
-            transition: 'height 0.3s ease',
-          }"
-        >
-          {{ colLabels[index] }}
-        </div>
+  <div class="bb-root">
 
-        <!-- Números -->
-        <div
-          class="bingo-numbers"
-          :style="{ gridTemplateColumns: gridTemplateColumnsStyle }"
-        >
+    <!-- ═══════════════════════════════
+         STATS BAR
+    ═══════════════════════════════ -->
+    <div class="bb-stats">
+      <div class="bb-stat">
+        <span class="bb-stat__val">{{ calledNumbers.length }}</span>
+        <span class="bb-stat__lbl">sorteados</span>
+      </div>
+      <div class="bb-stat__sep" />
+      <div class="bb-stat">
+        <span class="bb-stat__val">{{ totalNumbers - calledNumbers.length }}</span>
+        <span class="bb-stat__lbl">restantes</span>
+      </div>
+      <div class="bb-stat__sep" />
+      <div class="bb-stat">
+        <span class="bb-stat__val">{{ pct }}%</span>
+        <span class="bb-stat__lbl">completado</span>
+      </div>
+      <!-- progress bar -->
+      <div class="bb-stat__bar">
+        <div class="bb-stat__bar-fill" :style="{ width: pct + '%' }" />
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         LAST DRAWN CHIP
+    ═══════════════════════════════ -->
+    <Transition name="bb-pop">
+      <div v-if="currentNumber !== null" class="bb-last">
+        <div class="bb-last__ring" />
+        <div class="bb-last__chip" :class="`bb-last__chip--${colLabel(currentNumber)}`">
+          <span class="bb-last__letter">{{ colLabel(currentNumber) }}</span>
+          <span class="bb-last__num">{{ currentNumber }}</span>
+        </div>
+        <div class="bb-last__meta">
+          <span class="bb-last__pos-badge">#{{ calledNumbers.length }}</span>
+          <span class="bb-last__label">ÚLTIMO SORTEADO</span>
+          <span v-if="lastCalledAt" class="bb-last__time">{{ lastCalledAt }}</span>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ═══════════════════════════════
+         BOARD GRID
+    ═══════════════════════════════ -->
+    <div ref="boardRef" class="bb-wrap">
+      <!-- Legend -->
+      <div class="bb-legend">
+        <span class="bb-legend__item"><span class="bb-dot bb-dot--pending" />Pendiente</span>
+        <span class="bb-legend__item"><span class="bb-dot bb-dot--called" />Sorteado</span>
+        <span class="bb-legend__item"><span class="bb-dot bb-dot--last" />Último</span>
+        <span class="bb-legend__hint">Pasa el cursor sobre un número para ver su posición y hora</span>
+      </div>
+
+      <div class="bb-board">
+        <div v-for="(group, colIdx) in bingoGroups" :key="colIdx" class="bb-col">
+          <!-- Column header -->
+          <div class="bb-col__hdr" :class="`bb-col__hdr--${colLabels[colIdx]}`">
+            {{ colLabels[colIdx] }}
+          </div>
+
+          <!-- Cells -->
           <div
             v-for="number in group"
             :key="number"
-            class="bingo-number d-flex align-items-center justify-content-center"
+            class="bb-cell"
             :class="{
-              'called-number': number !== null && calledNumbers.includes(number),
-              'last-called': number === currentNumber,
+              'bb-cell--called': calledNumbers.includes(number),
+              'bb-cell--last':   number === currentNumber,
+              'bb-cell--new':    number === newestNumber,
             }"
-            :style="{
-              width: boxSize + 'px',
-              height: boxSize + 'px',
-              fontSize: fontSize + 'rem',
-              transition: 'width 0.3s ease, height 0.3s ease',
-            }"
+            :style="{ width: boxSize + 'px', height: boxSize + 'px' }"
+            @mouseenter="showTooltip(number, $event)"
+            @mouseleave="hideTooltip"
           >
-            {{ number }}
+            <span class="bb-cell__n">{{ number }}</span>
+            <!-- position micro-badge, only on called cells -->
+            <span v-if="calledNumbers.includes(number)" class="bb-cell__badge"
+              :class="{ 'bb-cell__badge--last': number === currentNumber }">
+              #{{ drawPos(number) }}
+            </span>
           </div>
-        </div>
-
-        <!-- Etiqueta derecha (opcional) -->
-        <div
-          v-if="showRightLetters"
-          class="bingo-letter-box d-flex align-items-center justify-content-center ms-3"
-          :class="letterBgClass(index)"
-          :style="{
-            width: boxSize + 'px',
-            height: letterHeight + 'px',
-            fontSize: fontSize + 'rem',
-            transition: 'height 0.3s ease',
-          }"
-        >
-          {{ colLabels[index] }}
         </div>
       </div>
     </div>
+
+    <!-- ═══════════════════════════════
+         HISTORY RIBBON (last 10)
+    ═══════════════════════════════ -->
+    <div v-if="calledNumbers.length > 0" class="bb-history">
+      <span class="bb-history__label">Historial</span>
+      <div class="bb-history__scroll">
+        <TransitionGroup name="bb-chip-slide" tag="div" class="bb-history__inner">
+          <div
+            v-for="(n, idx) in recentChips"
+            :key="n"
+            class="bb-hchip"
+            :class="[`bb-hchip--${colLabel(n)}`, { 'bb-hchip--first': idx === 0 }]"
+            :title="`#${drawPos(n)} · ${drawTime(n)}`"
+          >
+            <span class="bb-hchip__letter">{{ colLabel(n) }}</span>
+            <span class="bb-hchip__num">{{ n }}</span>
+            <span class="bb-hchip__pos">#{{ drawPos(n) }}</span>
+          </div>
+        </TransitionGroup>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         TOOLTIP
+    ═══════════════════════════════ -->
+    <Transition name="bb-tt">
+      <div
+        v-if="tooltip.visible && tooltip.number !== null && calledNumbers.includes(tooltip.number)"
+        class="bb-tooltip"
+        :style="{ top: tooltip.y + 'px', left: tooltip.x + 'px' }"
+      >
+        <div class="bb-tooltip__chip" :class="`bb-tooltip__chip--${colLabel(tooltip.number)}`">
+          {{ colLabel(tooltip.number) }}{{ tooltip.number }}
+        </div>
+        <div class="bb-tooltip__row">
+          <i class="fas fa-list-ol" />
+          <span>Posición <strong>#{{ drawPos(tooltip.number) }}</strong></span>
+        </div>
+        <div class="bb-tooltip__row">
+          <i class="fas fa-clock" />
+          <span>{{ drawTime(tooltip.number) }}</span>
+        </div>
+      </div>
+    </Transition>
+
   </div>
 </template>
 
 <script setup>
 import {
-  ref,
-  computed,
-  onMounted,
-  onBeforeUnmount,
-  nextTick,
-  watch,
+  ref, reactive, computed,
+  onMounted, onBeforeUnmount,
+  nextTick, watch,
 } from "vue";
 
+// ── Props ─────────────────────────────────────────────────────────────────────
 const props = defineProps({
-  calledNumbers: {
-    type: Array,
-    default: () => [],
-  },
-  currentNumber: {
-    type: Number,
-    default: null,
-  },
-  variant: {
-    type: String,
-    default: "BINGO_75",
-  },
+  calledNumbers:  { type: Array,  default: () => [] },
+  currentNumber:  { type: Number, default: null },
+  variant:        { type: String, default: "BINGO_75" },
+  // Map of number → ISO timestamp string (populated by parent when chip arrives)
+  drawTimestamps: { type: Object, default: () => ({}) },
 });
 
-// ── Definiciones de variante ──────────────────────────────────────────────────
+// ── Variant definitions ───────────────────────────────────────────────────────
 const VARIANT_DEFS = {
-  BINGO_75: {
-    columns: [
-      { label: "B", min: 1,  max: 15,  numbersPerGroup: 15 },
-      { label: "I", min: 16, max: 30,  numbersPerGroup: 15 },
-      { label: "N", min: 31, max: 45,  numbersPerGroup: 15 },
-      { label: "G", min: 46, max: 60,  numbersPerGroup: 15 },
-      { label: "O", min: 61, max: 75,  numbersPerGroup: 15 },
-    ],
-    bgClasses: [
-      "bg-primary text-white",
-      "bg-danger text-white",
-      "bg-success text-white",
-      "bg-warning text-dark",
-      "bg-purple text-white",
-    ],
-  },
-  BINGO_90: {
-    columns: [
-      { label: "1",  min: 1,  max: 9,  numbersPerGroup: 9 },
-      { label: "2",  min: 10, max: 19, numbersPerGroup: 10 },
-      { label: "3",  min: 20, max: 29, numbersPerGroup: 10 },
-      { label: "4",  min: 30, max: 39, numbersPerGroup: 10 },
-      { label: "5",  min: 40, max: 49, numbersPerGroup: 10 },
-      { label: "6",  min: 50, max: 59, numbersPerGroup: 10 },
-      { label: "7",  min: 60, max: 69, numbersPerGroup: 10 },
-      { label: "8",  min: 70, max: 79, numbersPerGroup: 10 },
-      { label: "9",  min: 80, max: 90, numbersPerGroup: 11 },
-    ],
-    bgClasses: [
-      "bg-primary text-white",
-      "bg-danger text-white",
-      "bg-success text-white",
-      "bg-warning text-dark",
-      "bg-purple text-white",
-      "bg-info text-white",
-      "bg-dark text-white",
-      "bg-secondary text-white",
-      "bg-orange text-white",
-    ],
-  },
-  BINGO_80: {
-    columns: [
-      { label: "1", min: 1,  max: 20, numbersPerGroup: 20 },
-      { label: "2", min: 21, max: 40, numbersPerGroup: 20 },
-      { label: "3", min: 41, max: 60, numbersPerGroup: 20 },
-      { label: "4", min: 61, max: 80, numbersPerGroup: 20 },
-    ],
-    bgClasses: [
-      "bg-primary text-white",
-      "bg-danger text-white",
-      "bg-success text-white",
-      "bg-warning text-dark",
-    ],
-  },
-  BINGO_30: {
-    columns: [
-      { label: "1", min: 1,  max: 10, numbersPerGroup: 10 },
-      { label: "2", min: 11, max: 20, numbersPerGroup: 10 },
-      { label: "3", min: 21, max: 30, numbersPerGroup: 10 },
-    ],
-    bgClasses: [
-      "bg-primary text-white",
-      "bg-danger text-white",
-      "bg-success text-white",
-    ],
-  },
+  BINGO_75: { columns: [
+    { label: "B", min: 1,  max: 15 },
+    { label: "I", min: 16, max: 30 },
+    { label: "N", min: 31, max: 45 },
+    { label: "G", min: 46, max: 60 },
+    { label: "O", min: 61, max: 75 },
+  ]},
+  BINGO_90: { columns: [
+    { label: "1", min: 1,  max: 9  }, { label: "2", min: 10, max: 19 },
+    { label: "3", min: 20, max: 29 }, { label: "4", min: 30, max: 39 },
+    { label: "5", min: 40, max: 49 }, { label: "6", min: 50, max: 59 },
+    { label: "7", min: 60, max: 69 }, { label: "8", min: 70, max: 79 },
+    { label: "9", min: 80, max: 90 },
+  ]},
+  BINGO_80: { columns: [
+    { label: "1", min: 1,  max: 20 }, { label: "2", min: 21, max: 40 },
+    { label: "3", min: 41, max: 60 }, { label: "4", min: 61, max: 80 },
+  ]},
+  BINGO_30: { columns: [
+    { label: "1", min: 1,  max: 10 }, { label: "2", min: 11, max: 20 },
+    { label: "3", min: 21, max: 30 },
+  ]},
 };
 
-const variantDef = computed(() => VARIANT_DEFS[props.variant] ?? VARIANT_DEFS.BINGO_75);
-const colLabels  = computed(() => variantDef.value.columns.map((c) => c.label));
+const variantDef   = computed(() => VARIANT_DEFS[props.variant] ?? VARIANT_DEFS.BINGO_75);
+const colLabels    = computed(() => variantDef.value.columns.map(c => c.label));
+const totalNumbers = computed(() => variantDef.value.columns.at(-1).max);
+const pct          = computed(() => totalNumbers.value > 0
+  ? Math.round((props.calledNumbers.length / totalNumbers.value) * 100)
+  : 0
+);
 
-const letterBgClass = (index) => variantDef.value.bgClasses[index] ?? "bg-secondary text-white";
+const bingoGroups = computed(() =>
+  variantDef.value.columns.map(col => {
+    const g = [];
+    for (let n = col.min; n <= col.max; n++) g.push(n);
+    return g;
+  })
+);
 
-const bingoGroups = computed(() => {
-  return variantDef.value.columns.map((col) => {
-    const group = [];
-    for (let n = col.min; n <= col.max; n++) {
-      group.push(n);
-    }
-    return group;
-  });
+function colLabel(n) {
+  for (const col of variantDef.value.columns) {
+    if (n >= col.min && n <= col.max) return col.label;
+  }
+  return '?';
+}
+
+// ── Draw metadata ─────────────────────────────────────────────────────────────
+function drawPos(n) {
+  const idx = props.calledNumbers.indexOf(n);
+  return idx === -1 ? '-' : idx + 1;
+}
+
+function drawTime(n) {
+  const ts = props.drawTimestamps?.[n];
+  if (!ts) return '—';
+  const d = new Date(ts);
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  const s = String(d.getSeconds()).padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+const lastCalledAt = computed(() => props.currentNumber !== null ? drawTime(props.currentNumber) : null);
+
+// ── Newest number (triggers entrance animation) ───────────────────────────────
+const newestNumber = ref(null);
+let newestTimer = null;
+watch(() => props.currentNumber, (n) => {
+  if (n === null) return;
+  newestNumber.value = n;
+  clearTimeout(newestTimer);
+  newestTimer = setTimeout(() => { newestNumber.value = null; }, 800);
 });
 
-// ── Layout ────────────────────────────────────────────────────────────────────
+// ── Recent chips (last 10, newest first) ─────────────────────────────────────
+const recentChips = computed(() => [...props.calledNumbers].reverse().slice(0, 10));
+
+// ── Tooltip ───────────────────────────────────────────────────────────────────
+const tooltip = reactive({ visible: false, number: null, x: 0, y: 0 });
+let tooltipTimer = null;
+
+function showTooltip(number, event) {
+  clearTimeout(tooltipTimer);
+  if (!props.calledNumbers.includes(number)) return;
+  const rect = event.target.getBoundingClientRect();
+  const rootRect = event.target.closest('.bb-root')?.getBoundingClientRect() ?? rect;
+  tooltip.number  = number;
+  tooltip.x       = rect.left - rootRect.left + rect.width / 2;
+  tooltip.y       = rect.top  - rootRect.top  - 8;
+  tooltip.visible = true;
+}
+function hideTooltip() {
+  tooltipTimer = setTimeout(() => { tooltip.visible = false; }, 120);
+}
+
+// ── Responsive layout ─────────────────────────────────────────────────────────
 const boardRef = ref(null);
-const gridTemplateColumnsStyle = ref("");
-const boxSize  = ref(40);
-const fontSize = ref(1);
-
-const minBoxSize       = 40;
-const maxBoxSize       = 58;
-const cellGap          = 4;
-const letterBoxMargin  = 12;
-
-const showRightLetters = ref(false);
-
-const maxGroupSize = computed(() =>
-  Math.max(...variantDef.value.columns.map((c) => c.max - c.min + 1))
-);
+const boxSize  = ref(38);
 
 const updateLayout = () => {
   if (!boardRef.value) return;
-  const containerWidth = boardRef.value.getBoundingClientRect().width;
-  const totalLetterBoxes = 1 + (showRightLetters.value ? 1 : 0);
-  const colCount = maxGroupSize.value;
-
-  const sizeN =
-    (containerWidth -
-      totalLetterBoxes * (maxBoxSize + letterBoxMargin) -
-      (colCount - 1) * cellGap) /
-    colCount;
-
-  if (sizeN >= minBoxSize) {
-    const finalSize = Math.min(sizeN, maxBoxSize);
-    boxSize.value = finalSize;
-    gridTemplateColumnsStyle.value = `repeat(${colCount}, ${finalSize}px)`;
-    fontSize.value = Math.min(2, finalSize / 40);
-  } else {
-    const fallbackCols = Math.ceil(colCount / 3);
-    const sizeF =
-      (containerWidth -
-        totalLetterBoxes * (maxBoxSize + letterBoxMargin) -
-        (fallbackCols - 1) * cellGap) /
-      fallbackCols;
-    const finalSize = Math.max(minBoxSize, Math.min(sizeF, maxBoxSize));
-    boxSize.value = finalSize;
-    gridTemplateColumnsStyle.value = `repeat(${fallbackCols}, ${finalSize}px)`;
-    fontSize.value = Math.min(2, finalSize / 40);
-  }
+  const w       = boardRef.value.getBoundingClientRect().width;
+  const numCols = variantDef.value.columns.length;
+  const gaps    = (numCols - 1) * 4; // gap between columns
+  const colW    = (w - gaps) / numCols;
+  // Each column header is fixed; cell width = column width
+  const cw = Math.min(52, Math.max(26, colW));
+  boxSize.value = cw;
 };
 
-const isMultiRow = computed(() => {
-  const m = gridTemplateColumnsStyle.value.match(/repeat\((\d+)/);
-  if (!m) return false;
-  return parseInt(m[1]) < maxGroupSize.value;
-});
-
-const letterHeight = computed(() => {
-  if (!isMultiRow.value) return boxSize.value;
-  const m = gridTemplateColumnsStyle.value.match(/repeat\((\d+)/);
-  const cols = m ? parseInt(m[1]) : maxGroupSize.value;
-  const rows = Math.ceil(maxGroupSize.value / cols);
-  return boxSize.value * rows + cellGap * (rows - 1);
-});
-
-onMounted(() => {
-  nextTick(() => updateLayout());
-  window.addEventListener("resize", updateLayout);
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("resize", updateLayout);
-});
-
-watch(showRightLetters, () => {
-  nextTick(() => updateLayout());
-});
-
-watch(() => props.variant, () => {
-  nextTick(() => updateLayout());
-});
+onMounted(() => { nextTick(updateLayout); window.addEventListener("resize", updateLayout); });
+onBeforeUnmount(() => { window.removeEventListener("resize", updateLayout); clearTimeout(newestTimer); });
+watch(() => props.variant, () => nextTick(updateLayout));
 </script>
 
 <style scoped>
-.bingo-row {
-  margin-bottom: 0;
-  gap: 4px;
+/* ═══ Root ═══════════════════════════════════════════════════════════════════ */
+.bb-root {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(145deg, #0b0f27 0%, #060a1c 100%);
+  border: 1px solid rgba(123,79,255,0.20);
+  border-radius: 14px;
+  overflow: hidden;
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ═══ Stats bar ══════════════════════════════════════════════════════════════ */
+.bb-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bb-stat { display: flex; flex-direction: column; align-items: center; }
+.bb-stat__val { font-size: 15px; font-weight: 900; color: #e0eaff; line-height: 1; font-family: 'Anton', sans-serif; }
+.bb-stat__lbl { font-size: 8px; font-weight: 700; color: #3a4a70; text-transform: uppercase; letter-spacing: 0.6px; }
+.bb-stat__sep { width: 1px; height: 22px; background: rgba(255,255,255,0.07); margin: 0 4px; }
+.bb-stat__bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-left: 6px;
+}
+.bb-stat__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7b4fff, #2af598);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* ═══ Last drawn chip ════════════════════════════════════════════════════════ */
+.bb-last {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255,215,0,0.05);
+  border: 1px solid rgba(255,215,0,0.18);
+  border-radius: 10px;
+  padding: 8px 14px;
+  position: relative;
+  overflow: hidden;
+}
+.bb-last::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 0% 50%, rgba(255,215,0,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.bb-last__ring {
+  position: absolute;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,215,0,0.20);
+  left: 6px; top: 50%; transform: translateY(-50%);
+  animation: bb-ring-pulse 2s ease-in-out infinite;
+}
+@keyframes bb-ring-pulse {
+  0%,100% { transform: translateY(-50%) scale(1); opacity: 0.4; }
+  50%     { transform: translateY(-50%) scale(1.15); opacity: 0.1; }
+}
+
+.bb-last__chip {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 0; flex-shrink: 0; z-index: 1;
+  font-weight: 900;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+}
+.bb-last__letter { font-size: 10px; line-height: 1; }
+.bb-last__num    { font-size: 18px; line-height: 1; font-family: 'Anton', sans-serif; }
+
+.bb-last__chip--B { background: linear-gradient(135deg, #1d4ed8, #3b82f6); color: #fff; }
+.bb-last__chip--I { background: linear-gradient(135deg, #b91c1c, #ef4444); color: #fff; }
+.bb-last__chip--N { background: linear-gradient(135deg, #15803d, #22c55e); color: #fff; }
+.bb-last__chip--G { background: linear-gradient(135deg, #a16207, #eab308); color: #fff; }
+.bb-last__chip--O { background: linear-gradient(135deg, #7e22ce, #a855f7); color: #fff; }
+.bb-last__chip--1,.bb-last__chip--2,.bb-last__chip--3,
+.bb-last__chip--4,.bb-last__chip--5,.bb-last__chip--6,
+.bb-last__chip--7,.bb-last__chip--8,.bb-last__chip--9 {
+  background: linear-gradient(135deg, #4338ca, #6366f1); color: #fff;
+}
+
+.bb-last__meta {
+  display: flex; flex-direction: column; gap: 2px; z-index: 1;
+}
+.bb-last__pos-badge {
+  display: inline-block;
+  background: rgba(255,215,0,0.18);
+  border: 1px solid rgba(255,215,0,0.35);
+  color: #ffd700;
+  font-size: 10px; font-weight: 800;
+  border-radius: 4px; padding: 1px 6px;
+  width: fit-content;
+}
+.bb-last__label {
+  font-size: 8px; font-weight: 800; color: #4a5a88;
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.bb-last__time {
+  font-size: 12px; font-weight: 700; color: #a0b0d0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══ Board wrap ═════════════════════════════════════════════════════════════ */
+.bb-wrap {
   width: 100%;
 }
 
-.bingo-letter-box {
-  font-weight: bold;
-  border-radius: 0.25rem;
-  text-transform: uppercase;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
+/* Legend */
+.bb-legend {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 8px; margin-bottom: 8px;
 }
+.bb-legend__item {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9px; color: #4a5a88; letter-spacing: 0.3px;
+}
+.bb-legend__hint {
+  margin-left: auto;
+  font-size: 8px; color: #2a3455; font-style: italic;
+}
+.bb-dot {
+  width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+}
+.bb-dot--pending { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); }
+.bb-dot--called  { background: #ff4d6d; }
+.bb-dot--last    { background: #ffd700; box-shadow: 0 0 5px #ffd700; }
 
-.bingo-numbers {
-  display: grid;
+/* Board grid */
+.bb-board {
+  display: flex;
   gap: 4px;
-  flex-grow: 0;
-}
-
-.bingo-number {
-  background: #f1f1f1;
-  border-radius: 0.25rem;
-  font-weight: bold;
-  user-select: none;
-  display: flex;
-  align-items: center;
+  width: 100%;
   justify-content: center;
+}
+
+.bb-col {
+  display: flex; flex-direction: column; gap: 2px; align-items: center;
+  flex: 1;
+}
+
+/* Column header */
+.bb-col__hdr {
+  width: 100%; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 900; letter-spacing: 1.5px;
+  border-radius: 5px; margin-bottom: 3px; user-select: none;
+}
+.bb-col__hdr--B { background: rgba(59,130,246,0.20); color: #60a5fa; border: 1px solid rgba(59,130,246,0.30); }
+.bb-col__hdr--I { background: rgba(239,68,68,0.18);  color: #f87171; border: 1px solid rgba(239,68,68,0.30); }
+.bb-col__hdr--N { background: rgba(34,197,94,0.16);  color: #4ade80; border: 1px solid rgba(34,197,94,0.28); }
+.bb-col__hdr--G { background: rgba(234,179,8,0.16);  color: #facc15; border: 1px solid rgba(234,179,8,0.25); }
+.bb-col__hdr--O { background: rgba(168,85,247,0.16); color: #c084fc; border: 1px solid rgba(168,85,247,0.28); }
+.bb-col__hdr--1,.bb-col__hdr--2,.bb-col__hdr--3,
+.bb-col__hdr--4,.bb-col__hdr--5,.bb-col__hdr--6,
+.bb-col__hdr--7,.bb-col__hdr--8,.bb-col__hdr--9 {
+  background: rgba(99,102,241,0.16); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.26);
+}
+
+/* ── Cell ── */
+.bb-cell {
   position: relative;
-  color: black;
-  z-index: 0;
+  width: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  border-radius: 5px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.25);
+  font-size: 0.78rem; font-weight: 700;
+  user-select: none; cursor: default;
+  transition: background 0.3s, border-color 0.3s, box-shadow 0.3s, color 0.3s, transform 0.15s;
+  overflow: visible;
 }
 
-.bingo-number.called-number {
-  color: white !important;
-  z-index: 10;
+.bb-cell:hover {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
 }
 
-.bingo-number.called-number:not(.last-called)::before {
-  content: "";
+.bb-cell__n { line-height: 1; }
+
+/* Called */
+.bb-cell--called {
+  background: radial-gradient(circle at 40% 40%, rgba(220,38,38,0.28) 0%, rgba(150,0,30,0.16) 100%);
+  border-color: rgba(220,38,38,0.35);
+  color: rgba(252,165,165,0.95);
+}
+.bb-cell--called:hover {
+  background: radial-gradient(circle at 40% 40%, rgba(220,38,38,0.38) 0%, rgba(150,0,30,0.24) 100%);
+  border-color: rgba(220,38,38,0.55);
+  cursor: help;
+}
+
+/* Last drawn */
+.bb-cell--last {
+  background: radial-gradient(circle at 40% 40%, rgba(255,215,0,0.32) 0%, rgba(180,130,0,0.20) 100%) !important;
+  border-color: rgba(255,215,0,0.65) !important;
+  color: #ffd700 !important;
+  box-shadow: 0 0 14px rgba(255,215,0,0.30), inset 0 0 8px rgba(255,215,0,0.10);
+  animation: bb-last-glow 1.6s ease-in-out infinite alternate;
+}
+@keyframes bb-last-glow {
+  from { box-shadow: 0 0 8px rgba(255,215,0,0.25); }
+  to   { box-shadow: 0 0 22px rgba(255,215,0,0.55); }
+}
+
+/* New entrance animation */
+.bb-cell--new {
+  animation: bb-pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes bb-pop-in {
+  0%   { transform: scale(0.6); opacity: 0.3; }
+  60%  { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Draw-position micro-badge */
+.bb-cell__badge {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 76%;
-  height: 76%;
-  background: radial-gradient(circle at center, #ff4d4d, #b30000);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
-  z-index: -1;
-  transition: background 0.3s ease;
-  animation: pulseIn 0.3s ease-out;
+  bottom: -2px; right: -2px;
+  font-size: 6px; font-weight: 900;
+  color: rgba(255,120,130,0.9);
+  background: rgba(180,0,30,0.55);
+  border-radius: 3px;
+  padding: 0 2px;
+  line-height: 10px;
+  z-index: 2;
+  pointer-events: none;
+  letter-spacing: 0;
+}
+.bb-cell__badge--last {
+  background: rgba(180,130,0,0.80);
+  color: #fff8c0;
 }
 
-.bingo-number.last-called::before {
-  content: "";
+/* ═══ History ribbon ═════════════════════════════════════════════════════════ */
+.bb-history {
+  display: flex; align-items: flex-start; gap: 8px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 10px;
+}
+.bb-history__label {
+  font-size: 8px; font-weight: 800; color: #2a3455;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  padding-top: 6px; flex-shrink: 0;
+}
+.bb-history__scroll {
+  overflow-x: auto; flex: 1;
+  scrollbar-width: none;
+}
+.bb-history__scroll::-webkit-scrollbar { display: none; }
+.bb-history__inner {
+  display: flex; gap: 5px; align-items: center;
+  padding-bottom: 2px;
+}
+
+/* History chip */
+.bb-hchip {
+  position: relative;
+  display: inline-flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  width: 32px; min-width: 32px; height: 38px;
+  border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.05);
+  flex-shrink: 0;
+  cursor: default;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bb-hchip:hover { transform: translateY(-2px); }
+
+.bb-hchip__letter { font-size: 7px; font-weight: 800; line-height: 1; opacity: 0.75; }
+.bb-hchip__num    { font-size: 13px; font-weight: 900; line-height: 1; font-family: 'Anton', sans-serif; }
+.bb-hchip__pos    { font-size: 6px; font-weight: 700; opacity: 0.6; line-height: 1; }
+
+.bb-hchip--B { background: rgba(59,130,246,0.16);  border-color: rgba(59,130,246,0.30);  color: #93c5fd; }
+.bb-hchip--I { background: rgba(239,68,68,0.14);   border-color: rgba(239,68,68,0.30);   color: #fca5a5; }
+.bb-hchip--N { background: rgba(34,197,94,0.12);   border-color: rgba(34,197,94,0.25);   color: #86efac; }
+.bb-hchip--G { background: rgba(234,179,8,0.12);   border-color: rgba(234,179,8,0.23);   color: #fde047; }
+.bb-hchip--O { background: rgba(168,85,247,0.14);  border-color: rgba(168,85,247,0.26);  color: #d8b4fe; }
+.bb-hchip--1,.bb-hchip--2,.bb-hchip--3,
+.bb-hchip--4,.bb-hchip--5,.bb-hchip--6,
+.bb-hchip--7,.bb-hchip--8,.bb-hchip--9 {
+  background: rgba(99,102,241,0.14); border-color: rgba(99,102,241,0.24); color: #c7d2fe;
+}
+
+/* newest chip in ribbon */
+.bb-hchip--first {
+  border-color: rgba(255,215,0,0.45) !important;
+  box-shadow: 0 0 10px rgba(255,215,0,0.25);
+}
+.bb-hchip--first .bb-hchip__num { color: #ffd700 !important; }
+
+/* ═══ Tooltip ════════════════════════════════════════════════════════════════ */
+.bb-tooltip {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 85%;
-  height: 85%;
-  background: radial-gradient(circle at center, #ff4d4d, #b30000);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 6px rgba(255, 0, 0, 0.5);
-  border: 2px solid gold;
-  z-index: -1;
-  animation: glowPulse 0.6s ease-out;
+  transform: translate(-50%, -100%);
+  background: rgba(15,20,48,0.97);
+  border: 1px solid rgba(123,79,255,0.35);
+  border-radius: 8px;
+  padding: 8px 11px;
+  min-width: 130px;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  display: flex; flex-direction: column; gap: 5px;
 }
-
-@keyframes pulseIn {
-  0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-  100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+.bb-tooltip::after {
+  content: '';
+  position: absolute; bottom: -5px; left: 50%;
+  transform: translateX(-50%);
+  width: 8px; height: 8px;
+  background: rgba(15,20,48,0.97);
+  border-right: 1px solid rgba(123,79,255,0.35);
+  border-bottom: 1px solid rgba(123,79,255,0.35);
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  rotate: -45deg;
 }
-
-@keyframes glowPulse {
-  0%   { transform: translate(-50%, -50%) scale(1.3); opacity: 0.6; }
-  50%  { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+.bb-tooltip__chip {
+  font-size: 11px; font-weight: 900;
+  color: #e0eaff; letter-spacing: 0.5px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
+.bb-tooltip__row {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; color: #8090b8;
+}
+.bb-tooltip__row i { font-size: 9px; color: #5a6a90; width: 12px; text-align: center; }
+.bb-tooltip__row strong { color: #e0eaff; }
 
-.bg-purple  { background-color: rebeccapurple !important; }
-.bg-orange  { background-color: #e8720c !important; }
+/* ═══ Chip slide animation (history ribbon) ══════════════════════════════════ */
+.bb-chip-slide-enter-active { transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.bb-chip-slide-enter-from   { opacity: 0; transform: translateX(-16px) scale(0.7); }
+
+/* ═══ Last-chip pop ══════════════════════════════════════════════════════════ */
+.bb-pop-enter-active { transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.bb-pop-enter-from   { opacity: 0; transform: scale(0.85); }
+.bb-pop-leave-active { transition: all 0.25s ease; }
+.bb-pop-leave-to     { opacity: 0; transform: scale(0.9); }
+
+/* ═══ Tooltip fade ═══════════════════════════════════════════════════════════ */
+.bb-tt-enter-active, .bb-tt-leave-active { transition: opacity 0.15s, transform 0.15s; }
+.bb-tt-enter-from, .bb-tt-leave-to { opacity: 0; transform: translate(-50%, calc(-100% + 4px)); }
 </style>

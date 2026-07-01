@@ -706,13 +706,14 @@ onUnmounted(() => {
             @click="showPlayersModal = true"
             title="Ver lista de jugadores / ganadores"
           >
-            <i class="fas fa-users" />
+            <div class="ig-stat__icons">
+              <i class="fas fa-users" />
+              <i v-if="totalWinners > 0" class="fas fa-trophy ig-stat__trophy-overlay" />
+            </div>
             <div class="ig-stat__body">
               <span class="ig-stat__val">
                 {{ livePlayers }}
-                <small v-if="totalWinners > 0" class="ig-stat__winners-badge">
-                  <i class="fas fa-trophy" /> {{ totalWinners }}
-                </small>
+                <small v-if="totalWinners > 0" class="ig-stat__winners-badge">· {{ totalWinners }} <i class="fas fa-trophy" /></small>
               </span>
               <span class="ig-stat__lbl">jugadores</span>
             </div>
@@ -762,18 +763,6 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- ══════════════════════════════════════════
-           [DEV] Reset start time button
-      ══════════════════════════════════════════ -->
-      <div v-if="isLocal" class="ig-dev-bar">
-        <button class="ig-dev-btn" :disabled="devResetting" @click="devResetTime">
-          <span v-if="devResetting" class="ig-dev-btn__spinner" />
-          <i v-else class="fas fa-play-circle" />
-          {{ devResetting ? 'Actualizando...' : 'Iniciar Partida (+2 min)' }}
-        </button>
-        <span class="ig-dev-label">DEV · solo visible en local</span>
-      </div>
-
       <!-- Pre-draw: replaced by full-screen modal (Teleport below) -->
 
       <!-- ══════════════════════════════════════════
@@ -782,7 +771,7 @@ onUnmounted(() => {
       <Transition name="ig-fade">
         <div v-if="liveDrawn.length > 0" class="ig-drawn-board">
 
-          <!-- ── Fila superior: última bola + info + recientes ── -->
+          <!-- ── Fila superior: última bola + recientes + info ── -->
           <div class="ig-db-top">
 
             <!-- Última bola -->
@@ -794,6 +783,22 @@ onUnmounted(() => {
               </div>
             </div>
 
+            <!-- Recientes (al lado de la última bola, izquierda) -->
+            <div class="ig-db-recent">
+              <span class="ig-db-recent__label">RECIENTES</span>
+              <div class="ig-db-recent__row">
+                <div
+                  v-for="n in [...liveDrawn].slice(-7).reverse().slice(1)"
+                  :key="`r-${n}`"
+                  class="ig-chip ig-chip--md"
+                  :class="`ig-chip--${chipLetter(n)}`"
+                >
+                  <span class="ig-chip__letter">{{ chipLetter(n) }}</span>
+                  <span class="ig-chip__num">{{ n }}</span>
+                </div>
+              </div>
+            </div>
+
             <!-- Info central -->
             <div class="ig-db-info">
               <span class="ig-db-info__label"><i class="fas fa-sort-amount-up-alt" /> ÚLTIMO NÚMERO</span>
@@ -801,22 +806,6 @@ onUnmounted(() => {
               <div class="ig-db-info__progress">
                 <div class="ig-db-info__bar" :style="{ width: `${(liveDrawn.length / totalChips) * 100}%` }" />
                 <span class="ig-db-info__pct">{{ liveDrawn.length }}<em>/{{ totalChips }}</em></span>
-              </div>
-            </div>
-
-            <!-- Recientes -->
-            <div class="ig-db-recent">
-              <span class="ig-db-recent__label">RECIENTES</span>
-              <div class="ig-db-recent__row">
-                <div
-                  v-for="n in [...liveDrawn].slice(-5).reverse()"
-                  :key="`r-${n}`"
-                  class="ig-chip ig-chip--sm"
-                  :class="`ig-chip--${chipLetter(n)}`"
-                >
-                  <span class="ig-chip__letter">{{ chipLetter(n) }}</span>
-                  <span class="ig-chip__num">{{ n }}</span>
-                </div>
               </div>
             </div>
 
@@ -1016,6 +1005,25 @@ onUnmounted(() => {
         </div>
       </div>
     </Transition>
+
+    <!-- ══════════════════════════════════════════
+         [DEV] Botón flotante — esquina inferior izquierda
+    ══════════════════════════════════════════ -->
+    <Teleport to="body">
+      <Transition name="ig-fade">
+        <button
+          v-if="isLocal"
+          class="ig-dev-fab"
+          :class="{ 'ig-dev-fab--busy': devResetting }"
+          :disabled="devResetting"
+          @click="devResetTime"
+          title="DEV: Iniciar partida (+2 min)"
+        >
+          <span v-if="devResetting" class="ig-dev-fab__spinner" />
+          <i v-else class="fas fa-play" />
+        </button>
+      </Transition>
+    </Teleport>
 
     <!-- ══════════════════════════════════════════
          PRE-DRAW MODAL (bloqueante, se cierra con primera ficha)
@@ -1299,12 +1307,12 @@ onUnmounted(() => {
 .ig-panel__row {
   display: flex;
   align-items: center;
-  padding: 10px 18px;
+  padding: 10px 20px;
   gap: 0;
 }
-.ig-panel__row--top  { min-height: 60px; }
+.ig-panel__row--top  { min-height: 64px; }
 .ig-panel__row--stats {
-  padding: 8px 18px;
+  padding: 0 20px;
   gap: 0;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -1313,7 +1321,7 @@ onUnmounted(() => {
 
 /* ── Prize ── */
 .ig-prize {
-  display: flex; flex-direction: column; gap: 1px;
+  display: flex; flex-direction: column; gap: 0;
   flex-shrink: 0;
   transition: transform 0.3s ease;
 }
@@ -1324,19 +1332,20 @@ onUnmounted(() => {
   100%{ transform: scale(1) }
 }
 .ig-prize__label {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 9.5px; font-weight: 700; color: #4a68a8;
-  text-transform: uppercase; letter-spacing: 1.3px;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 8.5px; font-weight: 700; color: #4a68a8;
+  text-transform: uppercase; letter-spacing: 1.2px;
 }
-.ig-prize__icon { color: #f5c518; font-size: 9.5px; }
-.ig-prize__amount { display: flex; align-items: baseline; gap: 5px; }
-.ig-prize__sym { font-size: 15px; font-weight: 700; color: #ffc840; }
+.ig-prize__icon { color: #f5c518; font-size: 8.5px; }
+.ig-prize__amount { display: flex; align-items: baseline; gap: 4px; }
+.ig-prize__sym { font-size: 16px; font-weight: 700; color: #ffc840; }
 .ig-prize__num {
   font-family: 'Anton', sans-serif;
-  font-size: 32px; line-height: 1;
+  font-size: 42px; line-height: 1;
   background: linear-gradient(130deg, #ffe566 0%, #ffb800 55%, #ff8800 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  filter: drop-shadow(0 2px 8px rgba(255,180,0,0.3));
+  filter: drop-shadow(0 2px 12px rgba(255,180,0,0.4));
+  letter-spacing: -1px;
 }
 
 /* ── Divider vertical ── */
@@ -1424,32 +1433,62 @@ onUnmounted(() => {
 
 /* ── Stats fila 2 ── */
 .ig-stat {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 7px;
   padding: 5px 14px;
   flex: 1; min-width: 0; position: relative;
+  height: 38px;
 }
-.ig-stat i {
-  width: 26px; height: 26px; flex-shrink: 0;
+
+/* Contenedor de icono — permite apilar sin superposición */
+.ig-stat__icons {
+  position: relative; flex-shrink: 0;
+  width: 22px; height: 22px;
+}
+.ig-stat__icons > i {
+  position: absolute; inset: 0;
+  width: 22px !important; height: 22px !important;
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; color: #7c9dff;
+  font-size: 10px; color: #7c9dff;
   background: rgba(100,140,255,0.1);
   border: 1px solid rgba(100,140,255,0.16);
   border-radius: 50%;
   transition: background 0.2s ease, color 0.2s ease;
 }
+.ig-stat__trophy-overlay {
+  font-size: 7px !important;
+  bottom: -6px !important; left: 10px !important;
+  inset: auto !important;
+  width: 14px !important; height: 14px !important;
+  background: rgba(255,200,0,0.18) !important;
+  border-color: rgba(255,200,0,0.35) !important;
+  color: #ffd700 !important;
+}
+
+/* Icono simple (stats sin ganadores) */
+.ig-stat > i {
+  width: 22px; height: 22px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #7c9dff;
+  background: rgba(100,140,255,0.1);
+  border: 1px solid rgba(100,140,255,0.16);
+  border-radius: 50%;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
 .ig-stat__body { display: flex; flex-direction: column; gap: 0; min-width: 0; }
 .ig-stat__val {
-  font-size: 14px; font-weight: 800; color: #c8d8ff; line-height: 1.1;
+  font-size: 13px; font-weight: 800; color: #c8d8ff; line-height: 1.1;
   font-family: 'Courier New', monospace;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .ig-stat__val small { font-size: 9px; color: #3a5080; font-weight: 500; }
 .ig-stat__val--sm { font-size: 11px; font-family: inherit; }
 .ig-stat__lbl {
-  font-size: 8px; font-weight: 700; color: #3a5080;
-  text-transform: uppercase; letter-spacing: 0.7px;
+  font-size: 7.5px; font-weight: 700; color: #3a5080;
+  text-transform: uppercase; letter-spacing: 0.6px;
 }
-.ig-stat--flash i { background: rgba(42,245,152,0.16); color: #2af598; }
+.ig-stat--flash > i,
+.ig-stat--flash .ig-stat__icons > i:first-child { background: rgba(42,245,152,0.16); color: #2af598; }
 .ig-stat--flash .ig-stat__val { animation: stat-pop 0.5s ease; }
 @keyframes stat-pop {
   0%  { color: #2af598; transform: scale(1); }
@@ -1457,9 +1496,16 @@ onUnmounted(() => {
   100%{ color: #c8d8ff; transform: scale(1); }
 }
 
+/* badge ganadores inline */
+.ig-stat__winners-badge {
+  font-size: 10px; font-weight: 700; color: #ffd700;
+  font-family: inherit; margin-left: 3px;
+}
+.ig-stat__winners-badge i { font-size: 8px; }
+
 /* barra de progreso inline */
 .ig-stat__bar {
-  position: absolute; bottom: 2px; left: 48px; right: 14px; height: 2px;
+  position: absolute; bottom: 0; left: 44px; right: 14px; height: 2px;
   background: rgba(80,120,255,0.1); border-radius: 2px; overflow: hidden;
 }
 .ig-stat__bar-fill {
@@ -1471,12 +1517,12 @@ onUnmounted(() => {
 
 /* separador vertical entre stats */
 .ig-stat__sep {
-  width: 1px; align-self: stretch; margin: 4px 0;
+  width: 1px; align-self: stretch; margin: 6px 0;
   background: linear-gradient(180deg, transparent, rgba(80,120,255,0.14), transparent);
   flex-shrink: 0;
 }
 
-/* ── Mute btn legacy (eliminado del panel, mantenido por compatibilidad) ── */
+/* ── Mute btn legacy ── */
 .ig-mute-btn { display: none; }
 
 /* ══════════════════════════════════════
@@ -1485,53 +1531,8 @@ onUnmounted(() => {
 .ig-cards-section { width: 100% }
 
 /* ══════════════════════════════════════
-   DEV BAR
+   DEV FAB — botón flotante esquina inferior izquierda
 ══════════════════════════════════════ */
-.ig-dev-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: rgba(255, 171, 0, 0.06);
-  border: 1px dashed rgba(255, 171, 0, 0.3);
-  border-radius: 12px;
-}
-.ig-dev-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 18px;
-  border-radius: 30px;
-  border: 1px solid rgba(255, 171, 0, 0.4);
-  background: rgba(255, 171, 0, 0.12);
-  color: #ffd060;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  transition: background 0.2s, transform 0.15s;
-}
-.ig-dev-btn:not(:disabled):hover {
-  background: rgba(255, 171, 0, 0.22);
-  transform: translateY(-1px);
-}
-.ig-dev-btn:disabled { opacity: 0.5; cursor: not-allowed }
-.ig-dev-btn i { font-size: 13px }
-.ig-dev-btn__spinner {
-  width: 12px; height: 12px;
-  border: 2px solid rgba(255,171,0,0.3);
-  border-top-color: #ffd060;
-  border-radius: 50%;
-  animation: dev-spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes dev-spin { to { transform: rotate(360deg) } }
-.ig-dev-label {
-  font-size: 10px;
-  color: rgba(255,171,0,0.45);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
 
 /* ══════════════════════════════════════
    PRE-DRAW BANNER
@@ -1643,14 +1644,14 @@ onUnmounted(() => {
 
 /* Recientes */
 .ig-db-recent {
-  display: flex; flex-direction: column; align-items: flex-end; gap: 5px;
-  flex-shrink: 0; margin-left: 52px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+  flex-shrink: 0; margin-left: 14px; margin-right: 4px;
 }
 .ig-db-recent__label {
   font-size: 8px; font-weight: 700; color: #2a3a5a;
   text-transform: uppercase; letter-spacing: 1px;
 }
-.ig-db-recent__row { display: flex; gap: 5px; align-items: center; }
+.ig-db-recent__row { display: flex; gap: 5px; align-items: center; flex-wrap: nowrap; }
 
 /* Separador horizontal */
 .ig-db-sep {
@@ -1854,8 +1855,9 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .ig-inner { gap: 10px; }
   .ig-panel__row--top { padding: 10px 14px; }
-  .ig-stat { padding: 5px 10px; }
+  .ig-stat { padding: 5px 10px; height: 36px; }
   .ig-stat__sep { display: none; }
+  .ig-prize__num { font-size: 36px; }
 }
 
 /* ── Mobile ── */
@@ -1888,22 +1890,26 @@ onUnmounted(() => {
 
   /* Stats: grid 2×2 en lugar de fila horizontal */
   .ig-panel__row--stats {
-    padding: 6px 10px;
+    padding: 0 10px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0;
   }
   .ig-stat__sep { display: none; }
   .ig-stat {
-    padding: 6px 8px;
+    padding: 5px 8px;
+    height: auto;
     flex: none;
     border-bottom: 1px solid rgba(80,120,255,0.07);
   }
   .ig-stat:nth-child(odd)  { border-right: 1px solid rgba(80,120,255,0.07); }
-  .ig-stat i { width: 22px; height: 22px; font-size: 10px; }
-  .ig-stat__val { font-size: 13px; }
-  .ig-stat__lbl { font-size: 7.5px; }
-  .ig-stat__bar { left: 36px; right: 8px; }
+  .ig-stat > i, .ig-stat__icons { width: 20px; height: 20px; }
+  .ig-stat > i { font-size: 9px; }
+  .ig-stat__icons > i { font-size: 9px !important; width: 20px !important; height: 20px !important; }
+  .ig-stat__val { font-size: 12px; }
+  .ig-stat__lbl { font-size: 7px; }
+  .ig-stat__bar { left: 34px; right: 8px; }
+  .ig-prize__num { font-size: 28px; }
 
   /* Chips board */
   .ig-db-top { padding: 10px 12px; gap: 0; flex-wrap: wrap; }
@@ -1911,10 +1917,13 @@ onUnmounted(() => {
   .ig-chip--lg { width: 44px; height: 44px; }
   .ig-chip--lg .ig-chip__num { font-size: 15px; }
   .ig-db-info__num { font-size: 28px; }
-  .ig-db-recent { margin-left: 0; margin-top: 8px; width: 100%; align-items: flex-start; }
+  .ig-db-recent { margin-left: 0; margin-right: 0; margin-top: 8px; width: 100%; align-items: flex-start; }
   .ig-db-recent__row { flex-wrap: wrap; gap: 4px; }
   .ig-chip--sm { width: 22px; height: 22px; }
   .ig-chip--sm .ig-chip__num { font-size: 9px; }
+  .ig-chip--md { width: 28px; height: 28px; }
+  .ig-chip--md .ig-chip__num { font-size: 10px; }
+  .ig-chip--md .ig-chip__letter { font-size: 6px; }
   .ig-db-chips { padding: 8px 12px 10px; gap: 4px; }
 
   /* Dev bar */
@@ -2288,6 +2297,43 @@ onUnmounted(() => {
 
 <!-- Pre-draw modal: estilos globales (Teleport vive en body, scoped no alcanza) -->
 <style>
+/* ══════════════════════════════════════════
+   DEV FAB
+══════════════════════════════════════════ */
+.ig-dev-fab {
+  position: fixed;
+  bottom: 24px; right: 20px;
+  z-index: 8000;
+  width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,171,0,0.18);
+  border: 1.5px solid rgba(255,171,0,0.45);
+  color: #ffd060;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.5), 0 0 0 0 rgba(255,171,0,0.4);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+  backdrop-filter: blur(8px);
+}
+.ig-dev-fab:not(:disabled):hover {
+  background: rgba(255,171,0,0.30);
+  transform: scale(1.1);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5), 0 0 0 6px rgba(255,171,0,0.12);
+}
+.ig-dev-fab:disabled { opacity: 0.5; cursor: not-allowed; }
+.ig-dev-fab--busy { animation: dev-fab-pulse 1s ease-in-out infinite; }
+@keyframes dev-fab-pulse {
+  0%,100% { box-shadow: 0 4px 18px rgba(0,0,0,0.5), 0 0 0 0 rgba(255,171,0,0.4); }
+  50%      { box-shadow: 0 4px 18px rgba(0,0,0,0.5), 0 0 0 8px rgba(255,171,0,0); }
+}
+.ig-dev-fab__spinner {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid rgba(255,171,0,0.3);
+  border-top-color: #ffd060;
+  animation: dev-spin 0.7s linear infinite;
+}
+@keyframes dev-spin { to { transform: rotate(360deg) } }
+
 /* ══════════════════════════════════════════
    PRE-DRAW MODAL
 ══════════════════════════════════════════ */
