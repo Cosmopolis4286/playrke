@@ -1139,21 +1139,18 @@ onUnmounted(() => {
 
 <style scoped>
 /* ══════════════════════════════════════
-   PAGE — fondo estelar
+   PAGE — fondo estelar (igual que game-rooms/lobby)
 ══════════════════════════════════════ */
 .ig-page {
-  flex: 1;
-  min-height: 100vh;
-  padding: 24px 16px 64px;
+  min-height: calc(100vh - 56px - 44px);
+  margin: -0.5rem -0.5rem 0;
+  padding: 20px 16px;
   position: relative;
   isolation: isolate;
-  overflow-y: auto;
   overflow-x: hidden;
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 0.4s ease, transform 0.4s ease;
-  scrollbar-width: thin;
-  scrollbar-color: #7b4fff rgba(255,255,255,0.03);
   background:
     radial-gradient(ellipse 90% 55% at 15%  5%,  rgba(80,  0, 200, 0.30) 0%, transparent 60%),
     radial-gradient(ellipse 70% 50% at 85% 12%,  rgba( 0, 60, 220, 0.24) 0%, transparent 58%),
@@ -1164,14 +1161,6 @@ onUnmounted(() => {
     linear-gradient(160deg, #04081a 0%, #060d2a 45%, #030812 100%);
 }
 .ig-page--revealed { opacity: 1; transform: translateY(0) }
-
-.ig-page::-webkit-scrollbar { width: 4px }
-.ig-page::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 10px }
-.ig-page::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #7b4fff 0%, #2af598 45%, #009efd 100%);
-  border-radius: 10px;
-}
-.ig-page::-webkit-scrollbar-button { display: none }
 
 .ig-page::before {
   content: "";
@@ -1231,11 +1220,13 @@ onUnmounted(() => {
 .ig-inner {
   position: relative;
   z-index: 1;
-  max-width: 960px;
+  max-width: 1100px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
+  min-width: 0;
 }
 
 /* ══════════════════════════════════════
@@ -1252,6 +1243,7 @@ onUnmounted(() => {
   backdrop-filter: blur(20px);
   box-shadow: 0 8px 48px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset;
   position: relative;
+  min-width: 0;
 }
 
 /* línea top degradada */
@@ -1278,12 +1270,12 @@ onUnmounted(() => {
 .ig-panel__row {
   display: flex;
   align-items: center;
-  padding: 12px 20px;
+  padding: 10px 18px;
   gap: 0;
 }
-.ig-panel__row--top  { min-height: 72px; }
+.ig-panel__row--top  { min-height: 60px; }
 .ig-panel__row--stats {
-  padding: 10px 20px;
+  padding: 8px 18px;
   gap: 0;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -1312,7 +1304,7 @@ onUnmounted(() => {
 .ig-prize__sym { font-size: 15px; font-weight: 700; color: #ffc840; }
 .ig-prize__num {
   font-family: 'Anton', sans-serif;
-  font-size: 40px; line-height: 1;
+  font-size: 32px; line-height: 1;
   background: linear-gradient(130deg, #ffe566 0%, #ffb800 55%, #ff8800 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   filter: drop-shadow(0 2px 8px rgba(255,180,0,0.3));
@@ -1320,9 +1312,9 @@ onUnmounted(() => {
 
 /* ── Divider vertical ── */
 .ig-panel__divider {
-  width: 1px; height: 48px;
+  width: 1px; height: 38px;
   background: linear-gradient(180deg, transparent, rgba(80,120,255,0.2), transparent);
-  margin: 0 20px;
+  margin: 0 16px;
   flex-shrink: 0;
 }
 
@@ -1403,30 +1395,30 @@ onUnmounted(() => {
 
 /* ── Stats fila 2 ── */
 .ig-stat {
-  display: flex; align-items: center; gap: 10px;
-  padding: 6px 16px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 14px;
   flex: 1; min-width: 0; position: relative;
 }
 .ig-stat i {
-  width: 30px; height: 30px; flex-shrink: 0;
+  width: 26px; height: 26px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; color: #7c9dff;
+  font-size: 11px; color: #7c9dff;
   background: rgba(100,140,255,0.1);
   border: 1px solid rgba(100,140,255,0.16);
   border-radius: 50%;
   transition: background 0.2s ease, color 0.2s ease;
 }
-.ig-stat__body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ig-stat__body { display: flex; flex-direction: column; gap: 0; min-width: 0; }
 .ig-stat__val {
-  font-size: 16px; font-weight: 800; color: #c8d8ff; line-height: 1.1;
+  font-size: 14px; font-weight: 800; color: #c8d8ff; line-height: 1.1;
   font-family: 'Courier New', monospace;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.ig-stat__val small { font-size: 10px; color: #3a5080; font-weight: 500; }
-.ig-stat__val--sm { font-size: 12px; font-family: inherit; }
+.ig-stat__val small { font-size: 9px; color: #3a5080; font-weight: 500; }
+.ig-stat__val--sm { font-size: 11px; font-family: inherit; }
 .ig-stat__lbl {
-  font-size: 8.5px; font-weight: 700; color: #3a5080;
-  text-transform: uppercase; letter-spacing: 0.8px;
+  font-size: 8px; font-weight: 700; color: #3a5080;
+  text-transform: uppercase; letter-spacing: 0.7px;
 }
 .ig-stat--flash i { background: rgba(42,245,152,0.16); color: #2af598; }
 .ig-stat--flash .ig-stat__val { animation: stat-pop 0.5s ease; }
@@ -1438,7 +1430,7 @@ onUnmounted(() => {
 
 /* barra de progreso inline */
 .ig-stat__bar {
-  position: absolute; bottom: 2px; left: 56px; right: 16px; height: 2px;
+  position: absolute; bottom: 2px; left: 48px; right: 14px; height: 2px;
   background: rgba(80,120,255,0.1); border-radius: 2px; overflow: hidden;
 }
 .ig-stat__bar-fill {
@@ -1798,17 +1790,89 @@ onUnmounted(() => {
 /* ══════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════ */
-@media (max-width: 640px) {
-  .ig-panel__row--top { padding: 10px 14px; flex-wrap: wrap; gap: 10px; }
-  .ig-panel__row--stats { padding: 8px 14px; }
-  .ig-panel__divider { display: none; }
-  .ig-prize__num { font-size: 30px; }
-  .ig-stat { padding: 6px 10px; gap: 8px; flex: 1 1 40%; }
-  .ig-stat i { width: 26px; height: 26px; font-size: 11px; }
-  .ig-stat__bar { left: 44px; }
+
+/* ── Tablet ── */
+@media (max-width: 768px) {
+  .ig-inner { gap: 10px; }
+  .ig-panel__row--top { padding: 10px 14px; }
+  .ig-stat { padding: 5px 10px; }
   .ig-stat__sep { display: none; }
-  .ig-chip--md { width: 30px; height: 30px; }
-  .ig-chip--lg { width: 56px; height: 56px; }
+}
+
+/* ── Mobile ── */
+@media (max-width: 540px) {
+  .ig-page { padding: 12px 10px; }
+  .ig-inner { gap: 8px; }
+
+  /* Header: prize arriba-izq, badge/countdown centro, mute arriba-der */
+  .ig-panel__row--top {
+    padding: 10px 12px;
+    min-height: auto;
+    flex-wrap: nowrap;
+    gap: 0;
+    align-items: center;
+  }
+  .ig-panel__divider { display: none; }
+  .ig-prize { flex-direction: row; align-items: center; gap: 6px; }
+  .ig-prize__label { display: none; }
+  .ig-prize__sym { font-size: 12px; }
+  .ig-prize__num { font-size: 24px; }
+
+  /* Countdown/badge más compacto */
+  .ig-countdown { gap: 1px; }
+  .ig-countdown__label { font-size: 8px; }
+  .timer__unit { min-width: 24px; padding: 2px 4px; }
+  .timer__num { font-size: 13px; }
+  .timer__lbl { font-size: 6px; }
+  .timer__sep { font-size: 14px; margin: 0 1px; padding-bottom: 8px; }
+  .ig-live-badge { padding: 4px 10px; font-size: 10px; letter-spacing: 1px; }
+
+  /* Stats: grid 2×2 en lugar de fila horizontal */
+  .ig-panel__row--stats {
+    padding: 6px 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .ig-stat__sep { display: none; }
+  .ig-stat {
+    padding: 6px 8px;
+    flex: none;
+    border-bottom: 1px solid rgba(80,120,255,0.07);
+  }
+  .ig-stat:nth-child(odd)  { border-right: 1px solid rgba(80,120,255,0.07); }
+  .ig-stat i { width: 22px; height: 22px; font-size: 10px; }
+  .ig-stat__val { font-size: 13px; }
+  .ig-stat__lbl { font-size: 7.5px; }
+  .ig-stat__bar { left: 36px; right: 8px; }
+
+  /* Chips board */
+  .ig-db-top { padding: 10px 12px; gap: 0; flex-wrap: wrap; }
+  .ig-db-last { width: 44px; height: 44px; margin-right: 10px; }
+  .ig-chip--lg { width: 44px; height: 44px; }
+  .ig-chip--lg .ig-chip__num { font-size: 15px; }
+  .ig-db-info__num { font-size: 28px; }
+  .ig-db-recent { margin-left: 0; margin-top: 8px; width: 100%; align-items: flex-start; }
+  .ig-db-recent__row { flex-wrap: wrap; gap: 4px; }
+  .ig-chip--sm { width: 22px; height: 22px; }
+  .ig-chip--sm .ig-chip__num { font-size: 9px; }
+  .ig-db-chips { padding: 8px 12px 10px; gap: 4px; }
+
+  /* Dev bar */
+  .ig-dev-bar { padding: 8px 10px; gap: 8px; flex-wrap: wrap; }
+  .ig-dev-btn { padding: 7px 14px; font-size: 11px; }
+  .ig-dev-label { font-size: 9px; }
+}
+
+/* ── Mobile XS (≤360px) ── */
+@media (max-width: 360px) {
+  .ig-page { padding: 10px 8px; }
+  .ig-prize__num { font-size: 20px; }
+  .ig-panel__row--top { padding: 8px 10px; }
+  .timer__unit { min-width: 20px; padding: 1px 3px; }
+  .timer__num { font-size: 11px; }
+  .ig-stat { padding: 5px 6px; }
+  .ig-stat__val { font-size: 12px; }
 }
 
 /* ══════════════════════════════════════════

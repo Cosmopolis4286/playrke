@@ -1,13 +1,5 @@
 <script setup lang="ts">
-/**
- * Selector interactivo de números para personalizar un cartón de bingo.
- *
- * El usuario hace clic en cada casilla y elige un número del rango permitido
- * para esa columna; los números ya usados en otras columnas quedan
- * deshabilitados para evitar duplicados. Respeta la casilla libre fija
- * (BINGO_75) y, para BINGO_90, exige exactamente 5 números por fila.
- */
-import { computed, ref } from 'vue'
+import { computed, ref, nextTick, onMounted, onUnmounted } from 'vue'
 import { getBingoVariantDef, BINGO_COL_COLORS, type BingoVariantColumn } from '@/js/modules/games/bingo/utils/bingoVariants'
 
 type Matrix = Record<string, (number | null)[]>
@@ -21,8 +13,10 @@ const modelValue = defineModel<Matrix>({ required: true })
 const variantDef = computed(() => getBingoVariantDef(props.variant))
 const isBingo90 = computed(() => (props.variant ?? 'BINGO_75') === 'BINGO_90')
 
-// ── Casilla actualmente abierta para elegir número ──
+// ── Casilla activa y posición del popover ──
 const openCell = ref<{ col: string; row: number } | null>(null)
+const popoverStyle = ref<Record<string, string>>({})
+const pickerEl = ref<HTMLElement | null>(null)
 
 function isFreeCell(col: BingoVariantColumn, row: number): boolean {
   return col.freeRow !== null && col.freeRow === row
@@ -32,7 +26,6 @@ function valueAt(col: string, row: number): number | null {
   return modelValue.value[col]?.[row] ?? null
 }
 
-/** Números ya usados en cualquier otra casilla del cartón (para deshabilitar duplicados). */
 const usedNumbers = computed(() => {
   const set = new Set<number>()
   for (const col of variantDef.value.columns) {
@@ -43,7 +36,6 @@ const usedNumbers = computed(() => {
   return set
 })
 
-/** Cuántas casillas no-null tiene cada fila (solo relevante para BINGO_90: máx. 5). */
 const rowFillCount = computed(() => {
   const counts: number[] = Array(variantDef.value.numRows).fill(0)
   for (const col of variantDef.value.columns) {
@@ -57,12 +49,10 @@ function rowIsFull(row: number): boolean {
   return isBingo90.value && rowFillCount.value[row] >= 5
 }
 
-/** Opciones disponibles para la casilla abierta: dentro de rango, sin duplicar, fila no llena. */
 const cellOptions = computed<number[]>(() => {
   if (!openCell.value) return []
   const col = variantDef.value.columns.find(c => c.label === openCell.value!.col)
   if (!col) return []
-
   const current = valueAt(openCell.value.col, openCell.value.row)
   const options: number[] = []
   for (let n = col.min; n <= col.max; n++) {
@@ -71,14 +61,45 @@ const cellOptions = computed<number[]>(() => {
   return options
 })
 
-function toggleCell(col: BingoVariantColumn, row: number): void {
+async function toggleCell(col: BingoVariantColumn, row: number, event: MouseEvent): Promise<void> {
   if (isFreeCell(col, row)) return
-
-  // BINGO_90: si la celda está vacía y la fila ya tiene 5 números, no permite abrir
   if (isBingo90.value && valueAt(col.label, row) === null && rowIsFull(row)) return
 
   const same = openCell.value?.col === col.label && openCell.value?.row === row
-  openCell.value = same ? null : { col: col.label, row }
+  if (same) { openCell.value = null; return }
+
+  openCell.value = { col: col.label, row }
+
+  await nextTick()
+  positionPopover(event.currentTarget as HTMLElement)
+}
+
+function positionPopover(cellEl: HTMLElement): void {
+  if (!pickerEl.value) return
+
+  const cellRect = cellEl.getBoundingClientRect()
+  const pickerH = pickerEl.value.offsetHeight || 200
+  const pickerW = Math.max(pickerEl.value.offsetWidth || 200, 180)
+  const margin = 6
+  const vw = window.innerWidth
+
+  // Centro horizontal sobre la casilla, clampeado al viewport
+  let left = cellRect.left + cellRect.width / 2 - pickerW / 2
+  left = Math.max(8, Math.min(left, vw - pickerW - 8))
+
+  // Debajo por defecto; arriba si no cabe
+  let top = cellRect.bottom + margin
+  const wouldExceedBottom = cellRect.bottom + margin + pickerH > window.innerHeight - 8
+  if (wouldExceedBottom) {
+    top = cellRect.top - pickerH - margin
+  }
+
+  popoverStyle.value = {
+    position: 'fixed',
+    top: `${top}px`,
+    left: `${left}px`,
+    width: `${pickerW}px`,
+  }
 }
 
 function pickNumber(n: number): void {
@@ -99,14 +120,23 @@ function clearCell(): void {
   openCell.value = null
 }
 
-/** Casillas que aún faltan por completar (excluye libres y, en BINGO_90, las que deben quedar vacías). */
+function onOutsideClick(e: MouseEvent): void {
+  if (!openCell.value) return
+  if (pickerEl.value?.contains(e.target as Node)) return
+  if ((e.target as HTMLElement).closest('.ncp-cell')) return
+  openCell.value = null
+}
+
+onMounted(() => document.addEventListener('mousedown', onOutsideClick, true))
+onUnmounted(() => document.removeEventListener('mousedown', onOutsideClick, true))
+
 const missingCount = computed(() => {
   let missing = 0
   for (const col of variantDef.value.columns) {
     for (let row = 0; row < variantDef.value.numRows; row++) {
       if (isFreeCell(col, row)) continue
       if (valueAt(col.label, row) === null) {
-        if (isBingo90.value && rowIsFull(row)) continue // fila ya completa, esta celda queda vacía a propósito
+        if (isBingo90.value && rowIsFull(row)) continue
         missing++
       }
     }
@@ -116,33 +146,28 @@ const missingCount = computed(() => {
 
 const isComplete = computed(() => missingCount.value === 0)
 
-/** Autocompleta únicamente las casillas vacías con números válidos al azar. */
 function autoFillRemaining(): void {
   const next: Matrix = {}
   for (const col of variantDef.value.columns) {
     next[col.label] = [...(modelValue.value[col.label] ?? Array(variantDef.value.numRows).fill(null))]
   }
-
   const used = new Set(usedNumbers.value)
-  const rowCounts = [...rowFillCount.value] // copia local mutable (rowFillCount es computed)
+  const rowCounts = [...rowFillCount.value]
 
   for (const col of variantDef.value.columns) {
     for (let row = 0; row < variantDef.value.numRows; row++) {
       if (isFreeCell(col, row)) continue
       if (next[col.label][row] !== null) continue
       if (isBingo90.value && rowCounts[row] >= 5) continue
-
       const pool: number[] = []
       for (let n = col.min; n <= col.max; n++) if (!used.has(n)) pool.push(n)
       if (pool.length === 0) continue
-
       const chosen = pool[Math.floor(Math.random() * pool.length)]
       next[col.label][row] = chosen
       used.add(chosen)
       if (isBingo90.value) rowCounts[row]++
     }
   }
-
   modelValue.value = next
   openCell.value = null
 }
@@ -152,6 +177,7 @@ defineExpose({ isComplete, missingCount, autoFillRemaining })
 
 <template>
   <div class="ncp-wrap">
+    <!-- Cabecera de columnas -->
     <div class="ncp-head" :style="{ gridTemplateColumns: `repeat(${variantDef.columns.length}, 1fr)` }">
       <span
         v-for="col in variantDef.columns"
@@ -161,10 +187,11 @@ defineExpose({ isComplete, missingCount, autoFillRemaining })
       >{{ col.label }}</span>
     </div>
 
+    <!-- Grid de casillas — itera fila×columna para que el grid fluya en orden row-first -->
     <div class="ncp-body" :style="{ gridTemplateColumns: `repeat(${variantDef.columns.length}, 1fr)` }">
-      <template v-for="col in variantDef.columns" :key="col.label">
+      <template v-for="row in variantDef.numRows" :key="row">
         <button
-          v-for="row in variantDef.numRows"
+          v-for="col in variantDef.columns"
           :key="`${col.label}${row}`"
           type="button"
           class="ncp-cell"
@@ -175,7 +202,7 @@ defineExpose({ isComplete, missingCount, autoFillRemaining })
             'ncp-cell--disabled': isBingo90 && valueAt(col.label, row - 1) === null && rowIsFull(row - 1),
           }"
           :disabled="isFreeCell(col, row - 1)"
-          @click="toggleCell(col, row - 1)"
+          @click="toggleCell(col, row - 1, $event)"
         >
           <span v-if="isFreeCell(col, row - 1)" class="ncp-free">★</span>
           <span v-else-if="valueAt(col.label, row - 1) !== null">{{ valueAt(col.label, row - 1) }}</span>
@@ -184,35 +211,50 @@ defineExpose({ isComplete, missingCount, autoFillRemaining })
       </template>
     </div>
 
-    <!-- Panel de selección de número para la casilla abierta -->
-    <Transition name="ncp-fade">
-      <div v-if="openCell" class="ncp-picker">
+    <!-- Popover flotante de selección de número (teleportado al body para escapar overflow:hidden del modal) -->
+    <Teleport to="body">
+      <Transition name="ncp-pop">
+        <div
+          v-if="openCell"
+          ref="pickerEl"
+          class="ncp-picker"
+          :style="popoverStyle"
+        >
+        <!-- Header minimalista -->
         <div class="ncp-picker__head">
-          <span>Elige un número para {{ openCell.col }}{{ openCell.row + 1 }}</span>
-          <button type="button" class="ncp-picker__close" @click="openCell = null">
-            <i class="fas fa-times" />
-          </button>
+          <span class="ncp-picker__col-label">{{ openCell.col }}{{ openCell.row + 1 }}</span>
+          <div class="ncp-picker__head-actions">
+            <button
+              v-if="valueAt(openCell.col, openCell.row) !== null"
+              type="button"
+              class="ncp-picker__erase"
+              title="Vaciar casilla"
+              @click="clearCell"
+            >
+              <i class="fas fa-eraser" />
+            </button>
+            <button type="button" class="ncp-picker__close" @click="openCell = null">
+              <i class="fas fa-times" />
+            </button>
+          </div>
         </div>
+
+        <!-- Grid de números -->
         <div class="ncp-picker__grid">
           <button
             v-for="n in cellOptions"
             :key="n"
             type="button"
             class="ncp-picker__btn"
+            :class="{ 'ncp-picker__btn--current': n === valueAt(openCell.col, openCell.row) }"
             @click="pickNumber(n)"
           >{{ n }}</button>
         </div>
-        <button
-          v-if="valueAt(openCell.col, openCell.row) !== null"
-          type="button"
-          class="ncp-picker__clear"
-          @click="clearCell"
-        >
-          <i class="fas fa-eraser mr-1" />Vaciar casilla
-        </button>
-      </div>
-    </Transition>
+        </div>
+      </Transition>
+    </Teleport>
 
+    <!-- Estado: faltan / completo -->
     <div class="ncp-status" :class="{ 'ncp-status--ok': isComplete }">
       <i :class="isComplete ? 'fas fa-check-circle' : 'fas fa-info-circle'" />
       <span v-if="isComplete">Cartón completo</span>
@@ -225,144 +267,169 @@ defineExpose({ isComplete, missingCount, autoFillRemaining })
 .ncp-wrap {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  position: relative; /* ancla el popover */
 }
 
+/* ── Cabecera columnas ── */
 .ncp-head, .ncp-body {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .ncp-head__cell {
   text-align: center;
   font-weight: 800;
-  font-size: 13px;
-  padding: 5px 2px;
-  border-radius: 6px;
+  font-size: 11px;
+  padding: 3px 2px;
+  border-radius: 4px;
+  letter-spacing: .3px;
 }
 
+/* ── Casillas ── */
 .ncp-cell {
   aspect-ratio: 1;
-  border-radius: 8px;
-  border: 1.5px solid rgba(100, 140, 255, 0.2);
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
+  border: 1.5px solid rgba(100, 140, 255, 0.18);
+  background: rgba(255, 255, 255, 0.03);
   color: #c0d0f0;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  transition: border-color 0.12s, background 0.12s, transform 0.1s;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .ncp-cell:not(:disabled):hover {
-  border-color: rgba(100, 140, 255, 0.55);
-  background: rgba(100, 140, 255, 0.1);
+  border-color: rgba(100, 140, 255, 0.5);
+  background: rgba(100, 140, 255, 0.09);
 }
 .ncp-cell--filled {
-  border-color: rgba(42, 245, 152, 0.45);
-  background: rgba(42, 245, 152, 0.1);
+  border-color: rgba(42, 245, 152, 0.4);
+  background: rgba(42, 245, 152, 0.09);
   color: #7affba;
 }
 .ncp-cell--active {
   border-color: #2af598 !important;
-  box-shadow: 0 0 0 2px rgba(42, 245, 152, 0.3);
-  transform: scale(1.05);
+  box-shadow: 0 0 0 2px rgba(42, 245, 152, 0.28);
+  transform: scale(1.06);
+  z-index: 1;
 }
 .ncp-cell--free {
   cursor: default;
-  background: rgba(255, 215, 0, 0.08);
-  border-color: rgba(255, 215, 0, 0.3);
+  background: rgba(255, 215, 0, 0.07);
+  border-color: rgba(255, 215, 0, 0.28);
   color: #ffd700;
 }
 .ncp-cell--disabled {
-  opacity: 0.3;
+  opacity: 0.28;
   cursor: not-allowed;
 }
 .ncp-empty {
-  opacity: 0.5;
-  font-size: 14px;
-}
-
-/* ── Panel selector de número ── */
-.ncp-picker {
-  background: rgba(0, 10, 40, 0.6);
-  border: 1px solid rgba(100, 140, 255, 0.2);
-  border-radius: 12px;
-  padding: 10px;
-}
-.ncp-picker__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  opacity: 0.35;
   font-size: 11px;
-  color: #7c9dff;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-}
-.ncp-picker__close {
-  background: none;
-  border: none;
-  color: #7c9dff;
-  cursor: pointer;
-  font-size: 12px;
-}
-.ncp-picker__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
-  gap: 5px;
-  max-height: 160px;
-  overflow-y: auto;
-}
-.ncp-picker__btn {
-  padding: 7px 0;
-  border-radius: 7px;
-  border: 1px solid rgba(100, 140, 255, 0.25);
-  background: rgba(255, 255, 255, 0.04);
-  color: #e0e8ff;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-.ncp-picker__btn:hover {
-  background: rgba(42, 245, 152, 0.18);
-  border-color: rgba(42, 245, 152, 0.5);
-  color: #7affba;
-}
-.ncp-picker__clear {
-  margin-top: 8px;
-  width: 100%;
-  padding: 6px 0;
-  background: rgba(255, 80, 80, 0.1);
-  border: 1px solid rgba(255, 80, 80, 0.25);
-  border-radius: 8px;
-  color: #ff8080;
-  font-size: 11px;
-  cursor: pointer;
-}
-.ncp-picker__clear:hover {
-  background: rgba(255, 80, 80, 0.18);
 }
 
 /* ── Status ── */
 .ncp-status {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 5px;
+  font-size: 10.5px;
   color: #ffc336;
   justify-content: center;
+  opacity: .85;
 }
 .ncp-status--ok {
   color: #7affba;
 }
+</style>
 
-.ncp-fade-enter-active, .ncp-fade-leave-active {
-  transition: opacity 0.15s ease;
+<!-- Estilos globales del picker (Teleport vive en <body>, scoped no alcanza) -->
+<style>
+.ncp-picker {
+  position: fixed;
+  z-index: 9999;
+  background: #0b1535;
+  border: 1px solid rgba(100, 140, 255, 0.28);
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(42, 245, 152, 0.06) inset;
+  min-width: 180px;
 }
-.ncp-fade-enter-from, .ncp-fade-leave-to {
-  opacity: 0;
+.ncp-picker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
 }
+.ncp-picker__col-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #4a6aff;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+.ncp-picker__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ncp-picker__erase,
+.ncp-picker__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: background 0.15s, color 0.15s;
+}
+.ncp-picker__erase { color: #ff8080; }
+.ncp-picker__erase:hover { background: rgba(255, 80, 80, 0.14); }
+.ncp-picker__close { color: #556080; }
+.ncp-picker__close:hover { background: rgba(255, 255, 255, 0.08); color: #c0d0f0; }
+
+.ncp-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(28px, 1fr));
+  gap: 3px;
+  max-height: 150px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #3a4a80 transparent;
+}
+.ncp-picker__btn {
+  padding: 5px 0;
+  border-radius: 5px;
+  border: 1px solid rgba(100, 140, 255, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+  color: #c8d8ff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  text-align: center;
+}
+.ncp-picker__btn:hover {
+  background: rgba(42, 245, 152, 0.16);
+  border-color: rgba(42, 245, 152, 0.45);
+  color: #7affba;
+}
+.ncp-picker__btn--current {
+  background: rgba(42, 245, 152, 0.2);
+  border-color: #2af598;
+  color: #7affba;
+}
+
+/* Transición del popover */
+.ncp-pop-enter-active { transition: opacity 0.12s ease, transform 0.12s ease; }
+.ncp-pop-leave-active { transition: opacity 0.08s ease, transform 0.08s ease; }
+.ncp-pop-enter-from,
+.ncp-pop-leave-to { opacity: 0; transform: translateY(-4px) scale(0.97); }
 </style>

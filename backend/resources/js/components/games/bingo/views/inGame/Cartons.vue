@@ -808,12 +808,25 @@ watch(() => props.drawnNumbers, (next, prev) => {
 /* ══════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════ */
-@media (max-width: 540px) {
+@media (max-width: 600px) {
   .ctn-grid--md { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .ctn-grid--sm { grid-template-columns: repeat(2, 1fr); gap: 7px; }
-  .ctn-bar { gap: 6px; padding: 6px 10px; }
+  .ctn-grid--sm { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .ctn-bar { gap: 5px; padding: 6px 10px; flex-wrap: wrap; }
   .ctn-bar__filters { justify-content: flex-start; }
   .ctn-legend { display: none; }
+  .ctn-bar__title { font-size: 10px; }
+}
+
+@media (max-width: 380px) {
+  .ctn-grid--md { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .ctn-grid--sm { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+  .ctn-head__l { font-size: 12px; padding: 6px 0 5px; }
+  .ctn-num { font-size: 11px; }
+  .ctn-ball span { font-size: 9px; }
+  .ctn-bar { padding: 5px 8px; }
+  .ctn-bar__left { gap: 5px; }
+  .ctn-sizebar { gap: 2px; }
+  .ctn-sz { width: 22px; height: 22px; font-size: 10px; }
 }
 
 /* ══════════════════════════════════

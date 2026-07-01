@@ -179,7 +179,8 @@ body::-webkit-scrollbar-thumb:hover {
    detrás. Igualamos el fondo del contenedor scrollable al mismo gradiente
    para que no haya corte de color visible bajo el scrollbar. */
 #content-scrollable:has(> .mt-2 > #app > .game-rooms-page),
-#content-scrollable:has(> .mt-2 > #app > .lby-page) {
+#content-scrollable:has(> .mt-2 > #app > .lby-page),
+#content-scrollable:has(> .mt-2 > #app > .ig-page) {
   background: linear-gradient(160deg, #0a0f24 0%, #0c1230 45%, #060a18 100%);
 }
 #content-scrollable::-webkit-scrollbar { width: 8px; }

@@ -22,7 +22,6 @@ const emit = defineEmits<{ (e: 'select', roomId: string): void }>()
 
 const isAvailable  = computed(() => props.room.status_code === 'ACTIVE')
 const isInProgress = computed(() => props.room.status_code === 'IN_PROGRESS')
-const isPublic     = computed(() => props.room.room_type === 'PUBLIC')
 const playerCtns   = computed(() => props.room.players_room?.[0]?.ctns ?? 0)
 const hasTime      = computed(() => props.countdown && !props.countdown.expired)
 const animDelay    = computed(() => `${(props.index ?? 0) * 70}ms`)
@@ -37,19 +36,12 @@ const cardPriceFormatted = computed(() => {
 })
 const sym = computed(() => props.room.currency_symbol ?? props.currencySym)
 
-const gameModeLabel = computed(() => {
-  const m: Record<string, string> = { ONLINE: 'Online', OFFLINE: 'Presencial', MIXED: 'Mixto' }
-  return m[props.room.game_mode ?? ''] ?? props.room.game_mode ?? ''
-})
-
 const roundsCount = computed(() => props.room.rounds_count ?? 1)
 
-const minCardsToStart = computed(() => props.room.config?.min_cards_to_start ?? null)
-const totalCards      = computed(() => props.room.total_cards ?? 0)
-const showCardsProgress = computed(() =>
-  minCardsToStart.value != null && minCardsToStart.value > 0
-)
-const cardsProgressPct = computed(() => {
+const minCardsToStart   = computed(() => props.room.config?.min_cards_to_start ?? null)
+const totalCards        = computed(() => props.room.total_cards ?? 0)
+const showCardsProgress = computed(() => minCardsToStart.value != null && minCardsToStart.value > 0)
+const cardsProgressPct  = computed(() => {
   if (!minCardsToStart.value) return 0
   return Math.min(100, Math.round((totalCards.value / minCardsToStart.value) * 100))
 })
@@ -62,8 +54,8 @@ const timerStr = computed(() => {
   const { days, hours, minutes, seconds } = props.countdown.time
   const ss = String(seconds).padStart(2, '0')
   const mm = String(minutes).padStart(2, '0')
-  if (days > 0) return `${days}d ${String(hours).padStart(2, '0')}h ${mm}m`
-  if (hours > 0) return `${String(hours).padStart(2, '0')}:${mm}:${ss}`
+  if (days > 0) return `${days}d ${String(hours).padStart(2,'0')}h ${mm}m`
+  if (hours > 0) return `${String(hours).padStart(2,'0')}:${mm}:${ss}`
   return `${mm}:${ss}`
 })
 
@@ -88,12 +80,13 @@ function handleClick() {
 
     <div class="rc__inner">
 
-      <!-- ── Thumbnail + badge encima ── -->
+      <!-- ── Thumbnail ── -->
       <div class="rc__thumb">
         <img :src="bingoRoomImg" alt="" class="rc__img" />
         <div class="rc__img-veil" />
+        <div class="rc__side-accent" />
 
-        <!-- Badge de estado: top-left sobre la imagen -->
+        <!-- Estado: top centrado -->
         <div
           class="rc__status-badge"
           :class="isAvailable ? 'rc__status-badge--ok' : isInProgress ? 'rc__status-badge--live' : 'rc__status-badge--off'"
@@ -102,15 +95,7 @@ function handleClick() {
           {{ isAvailable ? 'ACTIVA' : isInProgress ? 'EN JUEGO' : 'CERRADA' }}
         </div>
 
-        <!-- Acento lateral izquierdo -->
-        <div class="rc__side-accent" />
-
-        <!-- Cartones del jugador: bottom-left sobre la imagen (indica participación) -->
-        <span v-if="playerCtns > 0" class="rc__ctns-badge" title="Estás participando en esta sala">
-          <i class="fas fa-check-circle" />{{ playerCtns }} mío{{ playerCtns === 1 ? '' : 's' }}
-        </span>
-
-        <!-- Contador/timer: bottom-right sobre la imagen -->
+        <!-- Timer: bottom centrado -->
         <div class="rc__timer-badge" :class="{ 'rc__timer-badge--live': !hasTime }">
           <template v-if="hasTime && timerStr">
             <i class="far fa-clock" /><b>{{ timerStr }}</b>
@@ -124,49 +109,52 @@ function handleClick() {
       <!-- ── Body ── -->
       <div class="rc__body">
 
-        <!-- Fila 1: badges tipo+rondas | precio · timer -->
-        <div class="rc__top">
-          <div class="rc__badges">
-            <span class="rc__tag rc__tag--rounds">
-              <i class="fas fa-rotate" />{{ roundsCount }} Rondas
-            </span>
-          </div>
-
-          <div class="rc__top-right">
-            <span class="rc__pill rc__pill--price rc__pill--sm">
-              <i class="fas fa-ticket-alt" />{{ cardPriceFormatted }} {{ sym }}
-            </span>
-          </div>
+        <!-- Fila 1: rondas | precio -->
+        <div class="rc__row rc__row--top">
+          <span class="rc__tag rc__tag--rounds">
+            <i class="fas fa-rotate" />{{ roundsCount }} Ronda{{ roundsCount !== 1 ? 's' : '' }}
+          </span>
+          <span class="rc__tag rc__tag--price">
+            <i class="fas fa-ticket-alt" />{{ cardPriceFormatted }} {{ sym }}
+          </span>
         </div>
 
-        <!-- Barra de progreso: cartones vendidos / mínimo requerido para iniciar -->
-        <div v-if="showCardsProgress" class="rc__cards-progress" :class="{ 'rc__cards-progress--ready': cardsProgressReady }">
-          <div class="rc__cards-progress__top">
-            <span class="rc__cards-progress__label">
+        <!-- Barra de progreso cartones -->
+        <div
+          v-if="showCardsProgress"
+          class="rc__progress"
+          :class="{ 'rc__progress--ready': cardsProgressReady }"
+        >
+          <div class="rc__progress__header">
+            <span class="rc__progress__label">
               <i class="fas fa-layer-group" />
-              {{ cardsProgressReady ? '¡Listo para iniciar!' : 'Cartones para iniciar' }}
+              {{ cardsProgressReady ? '¡Listo!' : 'Cartones para iniciar' }}
             </span>
-            <span class="rc__cards-progress__count">{{ totalCards }} / {{ minCardsToStart }}</span>
+            <span class="rc__progress__count">{{ totalCards }} / {{ minCardsToStart }}</span>
           </div>
-          <div class="rc__cards-progress__track">
-            <div class="rc__cards-progress__fill" :style="{ width: cardsProgressPct + '%' }" />
+          <div class="rc__progress__track">
+            <div class="rc__progress__fill" :style="{ width: cardsProgressPct + '%' }" />
           </div>
         </div>
 
-        <!-- Fila 2: premio + jugadores/míos -->
-        <div class="rc__bottom">
+        <!-- Fila 2: premio | stats -->
+        <div class="rc__row rc__row--bottom">
+          <!-- Premio -->
           <div class="rc__prize">
             <i class="fas fa-trophy rc__trophy" />
             <span class="rc__prize-num">{{ prizeFormatted }}</span>
             <span class="rc__prize-sym">{{ sym }}</span>
           </div>
 
-          <div class="rc__pills">
-            <span v-if="playerCtns > 0" class="rc__pill rc__pill--mine" title="Estás participando en esta sala">
-              <i class="fas fa-check-circle" />{{ playerCtns }} {{ playerCtns === 1 ? 'cartón' : 'cartones' }}
+          <!-- Stats: jugadores + mis cartones -->
+          <div class="rc__stats">
+            <span class="rc__stat" :class="{ 'rc__stat--mine': playerCtns > 0 }">
+              <i class="fas fa-users" />
+              <span>{{ room.total_players }}</span>
             </span>
-            <span class="rc__pill">
-              <i class="fas fa-users" />{{ room.total_players }}
+            <span v-if="playerCtns > 0" class="rc__stat rc__stat--ctns">
+              <i class="fas fa-check-circle" />
+              <span>{{ playerCtns }}</span>
             </span>
           </div>
         </div>
@@ -177,380 +165,286 @@ function handleClick() {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@800;900&display=swap');
-
-/* ══════════════════════
+/* ══════════════════════════════════
    BASE
-══════════════════════ */
+══════════════════════════════════ */
 .rc {
+  --accent:   #2af598;
+  --glow-clr: rgba(42,245,152,.1);
   --d: 0ms;
-  --accent: #2af598;
-  --glow-clr: rgba(42,245,152,.12);
 
   position: relative;
   width: 100%;
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  background: linear-gradient(140deg, #0f1e3a 0%, #070d1c 100%);
-  border: 1px solid rgba(255,255,255,.08);
-  box-shadow: 0 4px 20px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.05) inset;
-  transition: transform .2s cubic-bezier(.22,.68,0,1.2),
-              box-shadow .2s ease, border-color .2s ease;
-  animation: rcIn .38s ease both;
+  background: linear-gradient(145deg, #0d1b36 0%, #070c1a 100%);
+  border: 1px solid rgba(255,255,255,.07);
+  box-shadow: 0 4px 22px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.04) inset;
+  transition: transform .22s cubic-bezier(.22,.68,0,1.2),
+              box-shadow .22s ease, border-color .22s ease;
+  animation: rcIn .36s ease both;
   animation-delay: var(--d);
 }
 @keyframes rcIn {
-  from { opacity:0; transform:translateY(8px) scale(.98); }
-  to   { opacity:1; transform:none; }
+  from { opacity: 0; transform: translateY(6px) scale(.99); }
+  to   { opacity: 1; transform: none; }
 }
 
-.rc--live   { --accent: #ff4d6d; --glow-clr: rgba(255,77,109,.12); }
+.rc--live { --accent: #ff4d6d; --glow-clr: rgba(255,77,109,.1); }
 
 .rc--active:hover {
-  transform: translateY(-3px) scale(1.003);
-  border-color: rgba(42,245,152,.2);
-  box-shadow: 0 10px 36px rgba(0,0,0,.6),
-              0 0 0 1px rgba(42,245,152,.16),
-              0 0 18px rgba(42,245,152,.08);
+  transform: translateY(-3px) scale(1.002);
+  border-color: rgba(42,245,152,.18);
+  box-shadow: 0 12px 38px rgba(0,0,0,.6),
+              0 0 0 1px rgba(42,245,152,.14),
+              0 0 20px rgba(42,245,152,.07);
 }
 .rc--live:hover {
   transform: translateY(-2px);
-  border-color: rgba(255,77,109,.2);
-  box-shadow: 0 10px 32px rgba(0,0,0,.6), 0 0 0 1px rgba(255,77,109,.16);
+  border-color: rgba(255,77,109,.18);
+  box-shadow: 0 10px 34px rgba(0,0,0,.6), 0 0 0 1px rgba(255,77,109,.14);
 }
 .rc--off {
-  opacity: .22; cursor: default;
-  filter: saturate(.1) brightness(.65);
+  opacity: .2; cursor: default;
+  filter: saturate(.08) brightness(.6);
   pointer-events: none;
 }
 
-/* glow fondo */
+/* glow de fondo */
 .rc__glow {
-  position:absolute; inset:0; z-index:0; pointer-events:none;
-  background: radial-gradient(ellipse 100% 80% at 5% 120%, var(--glow-clr), transparent 60%);
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse 90% 70% at 5% 115%, var(--glow-clr), transparent 60%);
 }
 
-/* shimmer */
+/* shimmer en hover */
 .rc__shimmer {
-  position:absolute; inset:0; z-index:1; pointer-events:none;
-  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.02) 50%, transparent 70%);
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.025) 50%, transparent 70%);
   transform: translateX(-110%);
 }
 .rc--active:hover .rc__shimmer,
-.rc--live:hover   .rc__shimmer { animation: shimmer .5s ease forwards; }
+.rc--live:hover   .rc__shimmer { animation: shimmer .48s ease forwards; }
 @keyframes shimmer { to { transform: translateX(110%); } }
 
 /* inner */
 .rc__inner {
   position: relative; z-index: 2;
   display: flex; align-items: stretch;
-  min-height: 92px;
+  min-height: 88px;
 }
 
-/* ══════════════════════
+/* ══════════════════════════════════
    THUMBNAIL
-══════════════════════ */
+══════════════════════════════════ */
 .rc__thumb {
   position: relative;
-  flex: 0 0 88px;
+  flex: 0 0 82px;
   overflow: hidden;
 }
 .rc__img {
-  width:100%; height:100%;
-  object-fit:cover; display:block;
-  transition: transform .45s ease;
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+  transition: transform .5s ease;
 }
 .rc--active:hover .rc__img,
-.rc--live:hover   .rc__img { transform: scale(1.08); }
+.rc--live:hover   .rc__img { transform: scale(1.07); }
 
 .rc__img-veil {
-  position:absolute; inset:0;
+  position: absolute; inset: 0;
   background: linear-gradient(90deg,
-    rgba(7,13,28,.1) 0%,
-    rgba(7,13,28,.5) 55%,
-    rgba(7,13,28,.97) 100%
-  );
+    rgba(7,12,26,.05) 0%,
+    rgba(7,12,26,.45) 55%,
+    rgba(7,12,26,.96) 100%);
 }
-
-/* badge flotante sobre imagen — centrado superior */
-.rc__status-badge {
-  position: absolute;
-  top: 6px; left: 50%;
-  transform: translateX(-50%);
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2.5px 7px;
-  border-radius: 20px;
-  font-size: 7px; font-weight: 800;
-  letter-spacing: .7px; text-transform: uppercase;
-  white-space: nowrap;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(0,0,0,.35);
-  z-index: 3;
-}
-.rc__status-dot {
-  width: 4px; height: 4px; border-radius: 50%;
-  background: currentColor; flex-shrink: 0;
-}
-.rc__status-badge--ok {
-  background: rgba(10,30,20,.75);
-  border: 1px solid rgba(42,245,152,.35);
-  color: #2af598;
-}
-.rc__status-badge--ok .rc__status-dot { animation: dp 2s infinite; }
-.rc__status-badge--live {
-  background: rgba(30,10,18,.75);
-  border: 1px solid rgba(255,77,109,.35);
-  color: #ff6e8a;
-}
-.rc__status-badge--live .rc__status-dot { animation: dp 1.1s infinite; }
-.rc__status-badge--off {
-  background: rgba(10,15,28,.75);
-  border: 1px solid rgba(255,255,255,.1);
-  color: #3a5068;
-}
-@keyframes dp { 0%,100%{opacity:1} 50%{opacity:.1} }
 
 /* acento lateral */
 .rc__side-accent {
-  position: absolute; left:0; top:0; bottom:0; width:3px;
-  background: linear-gradient(180deg, var(--accent) 0%, transparent 85%);
-  box-shadow: 1px 0 10px var(--glow-clr);
-  opacity: .8;
+  position: absolute; left: 0; top: 0; bottom: 0; width: 2.5px;
+  background: linear-gradient(180deg, var(--accent) 0%, transparent 90%);
+  opacity: .75;
 }
 
-/* badge de cartones del jugador — bottom-left sobre la imagen */
-.rc__ctns-badge {
-  position: absolute;
-  bottom: 6px; left: 6px;
+/* badge estado — top centrado */
+.rc__status-badge {
+  position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
   display: inline-flex; align-items: center; gap: 3px;
-  padding: 2px 7px;
-  border-radius: 20px;
-  font-size: 8px; font-weight: 800;
-  letter-spacing: .4px;
-  white-space: nowrap;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0,0,0,.35);
-  color: #c090ff;
-  background: rgba(110,55,210,.55);
-  border: 1px solid rgba(150,80,255,.4);
-  z-index: 3;
+  padding: 2px 6px; border-radius: 20px;
+  font-size: 6.5px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase;
+  white-space: nowrap; backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0,0,0,.4); z-index: 3;
 }
-.rc__ctns-badge i { font-size: 7px; }
+.rc__status-dot {
+  width: 3.5px; height: 3.5px; border-radius: 50%;
+  background: currentColor; flex-shrink: 0;
+}
+.rc__status-badge--ok   { background: rgba(8,28,18,.8); border: 1px solid rgba(42,245,152,.35); color: #2af598; }
+.rc__status-badge--live { background: rgba(28,8,16,.8); border: 1px solid rgba(255,77,109,.35); color: #ff6e8a; }
+.rc__status-badge--off  { background: rgba(8,12,24,.8); border: 1px solid rgba(255,255,255,.1);  color: #3a5068; }
+.rc__status-badge--ok   .rc__status-dot { animation: dp 2s infinite; }
+.rc__status-badge--live .rc__status-dot { animation: dp 1s infinite; }
+@keyframes dp { 0%,100%{opacity:1} 50%{opacity:.08} }
 
-/* badge del contador/timer — bottom-center sobre la imagen */
+/* timer — bottom centrado */
 .rc__timer-badge {
-  position: absolute;
-  bottom: 6px; left: 50%;
-  transform: translateX(-50%);
+  position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 7px;
-  border-radius: 20px;
-  white-space: nowrap;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0,0,0,.35);
-  color: #9ecaf0;
-  background: rgba(15,30,55,.6);
-  border: 1px solid rgba(120,170,230,.3);
-  z-index: 3;
+  padding: 2px 8px; border-radius: 20px;
+  white-space: nowrap; backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0,0,0,.4);
+  color: #9ecaf0; background: rgba(10,22,48,.65);
+  border: 1px solid rgba(100,160,230,.25); z-index: 3;
 }
-.rc__timer-badge i { font-size: 8px; opacity: .6; }
+.rc__timer-badge i { font-size: 7.5px; opacity: .55; }
 .rc__timer-badge b {
-  font-family: 'Orbitron', monospace;
-  font-size: 9px; font-weight: 800; letter-spacing: .4px;
-  color: #9ecaf0;
+  font-family: 'Orbitron', 'Anton', monospace;
+  font-size: 8.5px; font-weight: 800; letter-spacing: .5px; color: #9ecaf0;
 }
-.rc__timer-badge--live {
-  color: #ff8aaa;
-  background: rgba(40,12,22,.6);
-  border-color: rgba(255,77,109,.35);
-}
-.rc__timer-badge--live b {
-  color: #ff8aaa;
-  text-shadow: 0 0 8px rgba(255,77,109,.45);
-}
+.rc__timer-badge--live { color: #ff8aaa; background: rgba(36,10,20,.65); border-color: rgba(255,77,109,.3); }
+.rc__timer-badge--live b { color: #ff8aaa; text-shadow: 0 0 8px rgba(255,77,109,.4); }
 
-/* ══════════════════════
+.rc__blink {
+  width: 4.5px; height: 4.5px; border-radius: 50%;
+  background: currentColor; display: inline-block;
+  animation: bk 1s infinite;
+}
+@keyframes bk { 0%,100%{opacity:1} 50%{opacity:.06} }
+
+/* ══════════════════════════════════
    BODY
-══════════════════════ */
+══════════════════════════════════ */
 .rc__body {
-  flex:1; min-width:0;
-  padding: 7px 10px;
-  display: flex; flex-direction: column;
-  justify-content: center;
+  flex: 1; min-width: 0;
+  padding: 8px 11px;
+  display: flex; flex-direction: column; justify-content: space-between;
   gap: 5px;
 }
 
-/* Fila 1 */
-.rc__top {
+/* ── Fila genérica ── */
+.rc__row {
   display: flex; align-items: center;
-  justify-content: space-between; gap: 8px;
+  justify-content: space-between; gap: 6px;
 }
 
-/* Badges izquierda: tipo + modo */
-.rc__badges {
-  display: flex; align-items: center; gap: 4px;
-  min-width: 0; flex-shrink: 1;
-}
+/* Fila 1: rondas | precio */
+.rc__row--top { flex-shrink: 0; }
 
 .rc__tag {
   display: inline-flex; align-items: center; gap: 3px;
-  padding: 2.5px 7px; border-radius: 6px;
-  font-size: 9.5px; font-weight: 700; letter-spacing: .3px;
+  padding: 2px 7px; border-radius: 5px;
+  font-size: 9px; font-weight: 700; letter-spacing: .25px;
   white-space: nowrap; flex-shrink: 0;
 }
-.rc__tag i { font-size: 8px; }
-
-.rc__tag--type {
-  color: #5a9ad8;
-  background: rgba(40,100,200,.1);
-  border: 1px solid rgba(40,100,200,.18);
-}
-.rc__tag--type i { color: #4080c0; }
-
-.rc__tag--mode {
-  color: #3a5a78;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.07);
-}
-.rc__tag--mode i { font-size: 7px; color: #2a4060; }
-
+.rc__tag i { font-size: 7.5px; }
 .rc__tag--rounds {
   color: #a878e8;
-  background: rgba(130,60,220,.1);
-  border: 1px solid rgba(130,60,220,.2);
+  background: rgba(130,60,220,.1); border: 1px solid rgba(130,60,220,.22);
 }
-.rc__tag--rounds i { font-size: 7.5px; color: #8048c0; }
+.rc__tag--rounds i { color: #7a50c0; }
+.rc__tag--price {
+  color: #6aaad8;
+  background: rgba(40,110,190,.1); border: 1px solid rgba(40,110,190,.2);
+}
+.rc__tag--price i { color: #3a80b8; }
 
-.rc__top-right {
-  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
-  padding-left: 6px;
-  border-left: 1px solid rgba(255,255,255,.08);
-}
-
-/* Barra de progreso: cartones vendidos / mínimo para iniciar */
-.rc__cards-progress {
-  display: flex; flex-direction: column; gap: 3px;
-}
-.rc__cards-progress__top {
+/* ── Progreso cartones ── */
+.rc__progress { display: flex; flex-direction: column; gap: 3px; flex-shrink: 0; }
+.rc__progress__header {
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
 }
-.rc__cards-progress__label {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 8.5px; font-weight: 700; letter-spacing: .3px;
-  color: #6a8aac; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+.rc__progress__label {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 8px; font-weight: 700; letter-spacing: .25px;
+  color: #4a6080; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.rc__cards-progress__label i { font-size: 7.5px; color: #3a5a7a; }
-.rc__cards-progress__count {
-  font-family: 'Orbitron', monospace;
-  font-size: 9px; font-weight: 800; letter-spacing: .3px;
-  color: #9ecaf0; flex-shrink: 0; white-space: nowrap;
+.rc__progress__label i { font-size: 7px; }
+.rc__progress__count {
+  font-size: 8.5px; font-weight: 800; color: #6a8aac;
+  flex-shrink: 0; white-space: nowrap;
 }
-.rc__cards-progress__track {
-  position: relative;
-  height: 5px; border-radius: 4px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.06);
-  overflow: hidden;
+.rc__progress__track {
+  height: 4px; border-radius: 4px; overflow: hidden;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.05);
 }
-.rc__cards-progress__fill {
+.rc__progress__fill {
   height: 100%; border-radius: 4px;
-  background: linear-gradient(90deg, #2a6ad8 0%, #2af598 100%);
-  box-shadow: 0 0 8px rgba(42,245,152,.35);
+  background: linear-gradient(90deg, #2260c0 0%, #2af598 100%);
+  box-shadow: 0 0 7px rgba(42,245,152,.3);
   transition: width .5s cubic-bezier(.22,.68,0,1.1);
 }
-
-.rc__cards-progress--ready .rc__cards-progress__label {
-  color: #2af598;
+.rc__progress--ready .rc__progress__label { color: #2af598; }
+.rc__progress--ready .rc__progress__count { color: #2af598; }
+.rc__progress--ready .rc__progress__fill {
+  background: linear-gradient(90deg, #2af598 0%, #7bffcc 100%);
+  animation: cpPulse 1.5s ease-in-out infinite;
 }
-.rc__cards-progress--ready .rc__cards-progress__label i { color: #2af598; }
-.rc__cards-progress--ready .rc__cards-progress__count { color: #2af598; }
-.rc__cards-progress--ready .rc__cards-progress__fill {
-  background: linear-gradient(90deg, #2af598 0%, #7bffc0 100%);
-  box-shadow: 0 0 10px rgba(42,245,152,.55);
-  animation: cpReadyPulse 1.6s ease-in-out infinite;
-}
-@keyframes cpReadyPulse {
-  0%,100% { filter: brightness(1); }
-  50%     { filter: brightness(1.25); }
+@keyframes cpPulse {
+  0%,100% { box-shadow: 0 0 6px rgba(42,245,152,.35); }
+  50%     { box-shadow: 0 0 12px rgba(42,245,152,.7); }
 }
 
-.rc__blink {
-  width:5px; height:5px; border-radius:50%;
-  background:currentColor; display:inline-block;
-  animation: bk 1s infinite;
-}
-@keyframes bk { 0%,100%{opacity:1} 50%{opacity:.08} }
-
-/* Fila 2 */
-.rc__bottom {
-  display: flex; align-items: center;
-  justify-content: space-between; gap: 8px;
+/* ── Fila 2: premio + stats ── */
+.rc__row--bottom {
   padding-top: 5px;
-  border-top: 1px solid rgba(255,255,255,.06);
+  border-top: 1px solid rgba(255,255,255,.055);
+  flex-shrink: 0;
 }
 
 /* Premio */
 .rc__prize {
-  display: flex; align-items: baseline; gap: 5px; flex-shrink: 0;
+  display: flex; align-items: baseline; gap: 4px;
+  flex-shrink: 1; min-width: 0; overflow: hidden;
 }
 .rc__trophy {
-  font-size: 11px; color: #c8a028; align-self: center; flex-shrink: 0;
-  filter: drop-shadow(0 0 5px rgba(200,160,40,.45));
+  font-size: 10px; color: #c8a028; align-self: center; flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(200,160,40,.4));
 }
 .rc__prize-num {
   font-family: 'Orbitron', 'Anton', sans-serif;
-  font-size: 21px; font-weight: 900; line-height: 1;
+  font-size: 19px; font-weight: 900; line-height: 1; letter-spacing: -.3px;
   background: linear-gradient(130deg, #ffe566 0%, #ffbb20 50%, #ff8800 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  filter: drop-shadow(0 2px 7px rgba(255,150,0,.3));
-  letter-spacing: -.5px;
+  filter: drop-shadow(0 2px 6px rgba(255,150,0,.28));
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .rc__prize-sym {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 12px; font-weight: 700;
+  font-size: 11px; font-weight: 700;
   color: #e0a020; -webkit-text-fill-color: #e0a020;
-  letter-spacing: .3px;
+  flex-shrink: 0;
 }
 
-/* Pills */
-.rc__pills {
-  display: flex; align-items: center; gap: 4px; flex-wrap: nowrap;
+/* Stats: jugadores + cartones míos */
+.rc__stats {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
 }
-.rc__pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2.5px 7px; border-radius: 6px;
-  font-size: 9.5px; font-weight: 700;
-  color: #6a8aac;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.08);
+.rc__stat {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2.5px 7px; border-radius: 5px;
+  font-size: 9px; font-weight: 700;
+  color: #4a6080;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
   white-space: nowrap;
-  transition: border-color .2s ease, background .2s ease;
+  transition: border-color .2s, background .2s;
 }
-.rc__pill i { font-size: 8.5px; color: #3a5a7a; }
-.rc--active:hover .rc__pill,
-.rc--live:hover   .rc__pill {
-  background: rgba(255,255,255,.07);
-  border-color: rgba(255,255,255,.12);
+.rc__stat i { font-size: 8px; color: #2a4058; }
+
+.rc--active:hover .rc__stat,
+.rc--live:hover   .rc__stat {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.11);
 }
 
-.rc__pill--price {
-  color: #6aaad8;
-  background: rgba(40,110,190,.08);
-  border-color: rgba(40,110,190,.14);
-}
-.rc__pill--price i { color: #3a6898; }
-
-/* pill compacto para la fila superior */
-.rc__pill--sm {
-  font-size: 9.5px;
-  padding: 2.5px 7px;
+/* jugadores cuando el jugador participa en la sala */
+.rc__stat--mine {
+  color: #6a8aac;
 }
 
-.rc__pill--mine {
-  color: #9868e0;
+/* mis cartones */
+.rc__stat--ctns {
+  color: #a070e0;
   background: rgba(110,55,210,.1);
-  border-color: rgba(110,55,210,.2);
+  border-color: rgba(110,55,210,.22);
 }
-.rc__pill--mine i { color: #7040b8; }
+.rc__stat--ctns i { color: #7840c0; }
 </style>
