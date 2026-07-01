@@ -367,6 +367,7 @@ final class NotificationService
         float  $amount,
         string $currencySymbol,
         ?string $adminNotes = null,
+        ?string $movementId = null,
     ): Notification {
         $approved = $status === 'COMPLETED';
 
@@ -386,7 +387,8 @@ final class NotificationService
                 'amount'          => $amount,
                 'currency_symbol' => $currencySymbol,
                 'admin_notes'     => $adminNotes,
-                'url'             => '/wallet',
+                'movement_id'     => $movementId,
+                'url'             => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
             ]
         );
     }
@@ -400,6 +402,7 @@ final class NotificationService
         float  $amount,
         string $currencySymbol,
         ?string $adminNotes = null,
+        ?string $movementId = null,
     ): Notification {
         $approved = $status === 'COMPLETED';
 
@@ -419,7 +422,8 @@ final class NotificationService
                 'amount'          => $amount,
                 'currency_symbol' => $currencySymbol,
                 'admin_notes'     => $adminNotes,
-                'url'             => '/wallet',
+                'movement_id'     => $movementId,
+                'url'             => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
             ]
         );
     }
@@ -437,6 +441,7 @@ final class NotificationService
         string $currencySymbol,
         string $typeLabel,
         ?string $adminNotes = null,
+        ?string $movementId = null,
     ): Notification {
         $approved = $status === 'COMPLETED';
 
@@ -456,7 +461,8 @@ final class NotificationService
                 'amount'          => $amount,
                 'currency_symbol' => $currencySymbol,
                 'admin_notes'     => $adminNotes,
-                'url'             => '/wallet',
+                'movement_id'     => $movementId,
+                'url'             => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
             ]
         );
     }

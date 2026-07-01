@@ -172,6 +172,48 @@ class WalletController extends Controller
     }
 
     /**
+     * GET /wallet/movements/{id}
+     * Devuelve un movimiento específico del usuario autenticado.
+     */
+    public function showMovement(string $id): JsonResponse
+    {
+        try {
+            $m = \App\Models\WalletMovement::where('id', $id)
+                ->where('user_id', Auth::id())
+                ->firstOrFail();
+
+            return response()->json([
+                'success' => true,
+                'data'    => [
+                    'id'             => (string) $m->id,
+                    'wallet_id'      => (string) $m->wallet_id,
+                    'user_id'        => (string) $m->user_id,
+                    'type'           => $m->type,
+                    'status'         => $m->status,
+                    'amount'         => (float) $m->amount,
+                    'balance_before' => (float) $m->balance_before,
+                    'balance_after'  => (float) $m->balance_after,
+                    'description'    => $m->description,
+                    'reference_id'   => $m->reference_id,
+                    'receipt_path'   => $m->receipt_path,
+                    'receipt_url'    => $m->receipt_path ? route('wallet.receipt', ['filename' => basename($m->receipt_path)]) : null,
+                    'admin_notes'    => $m->admin_notes,
+                    'prize_type'     => $m->prize_type,
+                    'game_id'        => $m->game_id,
+                    'processed_at'   => $m->processed_at?->toISOString(),
+                    'created_at'     => $m->created_at,
+                    'updated_at'     => $m->updated_at,
+                ],
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json(['success' => false, 'message' => 'Movimiento no encontrado.'], 404);
+        } catch (\Throwable $e) {
+            Log::error('[WalletController@showMovement] ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno.'], 500);
+        }
+    }
+
+    /**
      * GET /wallet/directories?currency_id=xxx
      */
     public function userDirectories(Request $request): JsonResponse

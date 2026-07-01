@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { usePage } from '@inertiajs/vue3'
+import backendClient   from '@js/plugins/axios'
 import { useWallet }   from '@js/composables/wallet/useWallet'
 import { useTos }      from '@js/composables/useTos'
 import { useKyc }      from '@js/composables/useKyc'
@@ -239,6 +240,37 @@ function syncMovementTypesHeight() {
   }
 }
 
+// ─── Abrir modal de detalle desde hash de URL (#movement/{id}) ─────────────
+// Usado cuando se llega desde una notificación con link /wallet#movement/{id}
+async function openMovementFromHash() {
+  const hash = window.location.hash
+  const match = hash.match(/^#movement\/(.+)$/)
+  if (!match) return
+
+  const movementId = match[1]
+
+  // Limpiar el hash para que no se reabra en futuras navegaciones internas
+  history.replaceState(null, '', window.location.pathname + window.location.search)
+
+  // Buscar primero en los movimientos ya cargados
+  const found = movements.value.find(m => m.id === movementId)
+  if (found) {
+    openMovementDetail(found)
+    return
+  }
+
+  // No está en la lista (puede ser un movimiento antiguo o aún cargando):
+  // fetch individual al endpoint del usuario
+  try {
+    const { data } = await backendClient.get(`wallet/movements/${movementId}`)
+    if (data.success && data.data) {
+      openMovementDetail(data.data)
+    }
+  } catch {
+    // ignorar silenciosamente
+  }
+}
+
 onMounted(async () => {
   await nextTick()
   syncMovementTypesHeight()
@@ -248,6 +280,19 @@ onMounted(async () => {
     resizeObserver.observe(summaryCardRef.value)
   }
   window.addEventListener('resize', syncMovementTypesHeight)
+
+  // Abrir modal si la URL tiene #movement/{id} (deep-link desde notificación).
+  // Si los movimientos aún están cargando, esperar a que terminen antes de buscar.
+  if (movementsLoading.value) {
+    const stop = watch(movementsLoading, (loading) => {
+      if (!loading) {
+        stop()
+        openMovementFromHash()
+      }
+    })
+  } else {
+    openMovementFromHash()
+  }
 })
 
 onBeforeUnmount(() => {

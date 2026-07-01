@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'multiPermission:wallet.view,wallet.deposit,wallet.withdraw,wallet.movements'])->group(function () {
     Route::get('wallet',                        [WalletController::class, 'index'])            ->name('wallet.index');
     Route::get('wallet/movements',              [WalletController::class, 'movements'])        ->name('wallet.movements');
+    Route::get('wallet/movements/{id}',         [WalletController::class, 'showMovement'])     ->name('wallet.movements.show');
     Route::get('wallet/directories',            [WalletController::class, 'userDirectories'])  ->name('wallet.directories');
     Route::get('wallet/pending-operation',      [WalletController::class, 'pendingOperation']) ->name('wallet.pending-operation');
     Route::get('wallet/limits',                 [WalletController::class, 'limits'])           ->name('wallet.limits');

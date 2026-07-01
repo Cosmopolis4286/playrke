@@ -672,6 +672,8 @@ final class WalletService
         }
 
         // Notificación persistente en tabla notifications
+        $movementId = (string) $movement->id;
+
         if ($movement->type === WalletMovement::TYPE_DEPOSIT) {
             $this->notificationService->createDepositResultNotification(
                 userId:         $userId,
@@ -679,6 +681,7 @@ final class WalletService
                 amount:         $amount,
                 currencySymbol: $currencySymbol,
                 adminNotes:     $adminNotes,
+                movementId:     $movementId,
             );
         } elseif ($movement->type === WalletMovement::TYPE_WITHDRAWAL) {
             $this->notificationService->createWithdrawalResultNotification(
@@ -687,6 +690,7 @@ final class WalletService
                 amount:         $amount,
                 currencySymbol: $currencySymbol,
                 adminNotes:     $adminNotes,
+                movementId:     $movementId,
             );
         } else {
             $type = \App\Models\MovementType::catalog()->get($movement->type);
@@ -698,7 +702,22 @@ final class WalletService
                 currencySymbol: $currencySymbol,
                 typeLabel:      $type?->label ?? $movement->type,
                 adminNotes:     $adminNotes,
+                movementId:     $movementId,
             );
+        }
+
+        // Notifica a los admins que el pendiente fue procesado para que
+        // actualicen su contador en tiempo real sin recargar la página.
+        try {
+            $pendingCount = WalletMovement::where('status', WalletMovement::STATUS_PENDING)->count();
+            broadcast(new \App\Events\Wallet\WalletMovementProcessed(
+                movementId:   (string) $movement->id,
+                movementType: $movement->type,
+                status:       $status,
+                pendingCount: $pendingCount,
+            ));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('[WalletService] WalletMovementProcessed broadcast falló: ' . $e->getMessage());
         }
     }
 
