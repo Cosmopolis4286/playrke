@@ -3,7 +3,7 @@
     {{-- Las notificaciones se cargan desde la API en el navbar para garantizar datos frescos --}}
     <script>
         window.notificationsData = {
-            unreadCount: {{ $unreadCount ?? 0 }},
+            unreadCount: {{ $navUnreadCount ?? 0 }},
             userId: {{ auth()->id() }}
         };
     </script>

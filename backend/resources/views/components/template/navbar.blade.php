@@ -106,23 +106,21 @@
     <ul class="navbar-nav align-items-center" style="gap:.5rem;">
 
         {{-- 🟠 Acciones pendientes (depósitos/retiros): solo admin, superadmin y tesorero --}}
-        @if ($navPendingCount > 0)
-            <li class="nav-item d-none d-sm-block">
-                <a class="nb-pending-pill" href="{{ route('wallet-movements.index') }}"
-                   title="Movimientos pendientes por revisar">
-                    <i class="fas fa-clock"></i>
-                    <span>{{ $navPendingCount }} pendiente{{ $navPendingCount === 1 ? '' : 's' }}</span>
-                </a>
-            </li>
-            {{-- Versión compacta para pantallas muy pequeñas --}}
-            <li class="nav-item d-sm-none">
-                <a class="nb-icon-btn position-relative" href="{{ route('wallet-movements.index') }}"
-                   title="Movimientos pendientes por revisar">
-                    <i class="fas fa-clock"></i>
-                    <span class="nb-badge nb-badge--warning">{{ $navPendingCount > 99 ? '99+' : $navPendingCount }}</span>
-                </a>
-            </li>
-        @endif
+        <li class="nav-item d-none d-sm-block" id="nb-pending-pill-wrap" style="{{ $navPendingCount > 0 ? '' : 'display:none!important' }}">
+            <a class="nb-pending-pill" href="{{ route('wallet-movements.index') }}"
+               title="Movimientos pendientes por revisar">
+                <i class="fas fa-clock"></i>
+                <span id="nb-pending-label">{{ $navPendingCount }} pendiente{{ $navPendingCount === 1 ? '' : 's' }}</span>
+            </a>
+        </li>
+        {{-- Versión compacta para pantallas muy pequeñas --}}
+        <li class="nav-item d-sm-none" id="nb-pending-pill-wrap-sm" style="{{ $navPendingCount > 0 ? '' : 'display:none!important' }}">
+            <a class="nb-icon-btn position-relative" href="{{ route('wallet-movements.index') }}"
+               title="Movimientos pendientes por revisar">
+                <i class="fas fa-clock"></i>
+                <span id="nb-pending-badge" class="nb-badge nb-badge--warning">{{ $navPendingCount > 99 ? '99+' : $navPendingCount }}</span>
+            </a>
+        </li>
 
         {{-- 🔔 Notificaciones --}}
         <li class="nav-item dropdown">
@@ -130,7 +128,7 @@
                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                title="Notificaciones">
                 <i class="fas fa-bell"></i>
-                <span id="notif-badge" class="nb-badge d-none">0</span>
+                <span id="notif-badge" class="nb-badge{{ ($navUnreadCount ?? 0) > 0 ? '' : ' d-none' }}">{{ ($navUnreadCount ?? 0) > 99 ? '99+' : ($navUnreadCount ?? 0) }}</span>
             </a>
 
             <div class="dropdown-menu dropdown-menu-right p-0 nb-notif-menu"
@@ -142,10 +140,14 @@
                 </div>
 
                 <ul id="notif-list" class="list-unstyled mb-0 nb-notif-list">
-                    <li id="notif-empty" class="nb-notif-empty">
-                        <i class="fas fa-check-circle"></i>
-                        <span>Sin notificaciones nuevas</span>
-                    </li>
+                    @if(empty($navNotifications))
+                        <li id="notif-empty" class="nb-notif-empty">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Sin notificaciones nuevas</span>
+                        </li>
+                    @else
+                        <li id="notif-empty" class="nb-notif-empty" style="display:none"></li>
+                    @endif
                 </ul>
             </div>
         </li>
@@ -240,28 +242,31 @@
     var WALLET_ID = @json($navWallet ? (string) $navWallet->id : null);
     var IS_ADMIN  = @json(Auth::user()->hasRole(['admin', 'superadmin']));
 
+    // Notificaciones pre-cargadas desde PHP (sin API call al primer abrir)
+    var INITIAL_NOTIFICATIONS = @json(array_reverse($navNotifications ?? []));
+
     // ── Metadatos por tipo de movimiento ─────────────────────
     var TYPE_META = {
-        DEPOSIT:      { label: 'Depósito',        icon: 'fa-arrow-down',  color: '#28a745', sign: '+' },
-        WITHDRAWAL:   { label: 'Retiro',               icon: 'fa-arrow-up',    color: '#ffc107', sign: '-' },
-        PURCHASE:     { label: 'Compra cartón',   icon: 'fa-ticket-alt',  color: '#dc3545', sign: '-' },
-        PRIZE:        { label: '¡Premio! 🎉', icon: 'fa-trophy', color: '#fd7e14', sign: '+' },
-        TRIVIA_ENTRY: { label: 'Entrada Trivia',        icon: 'fa-brain',       color: '#7c3aed', sign: '-' },
+        DEPOSIT:      { label: 'Depósito',      icon: 'fa-arrow-down',  color: '#28a745', sign: '+' },
+        WITHDRAWAL:   { label: 'Retiro',         icon: 'fa-arrow-up',    color: '#ffc107', sign: '-' },
+        PURCHASE:     { label: 'Compra cartón',  icon: 'fa-ticket-alt',  color: '#dc3545', sign: '-' },
+        PRIZE:        { label: '¡Premio! 🎉',    icon: 'fa-trophy',      color: '#fd7e14', sign: '+' },
+        TRIVIA_ENTRY: { label: 'Entrada Trivia', icon: 'fa-brain',       color: '#7c3aed', sign: '-' },
     };
 
     var ADMIN_META = {
         DEPOSIT:    { label: '💰 Depósito pendiente', icon: 'fa-arrow-down', color: '#28a745', sign: '+' },
-        WITHDRAWAL: { label: '💸 Retiro pendiente',        icon: 'fa-arrow-up',   color: '#ffc107', sign: '-' },
+        WITHDRAWAL: { label: '💸 Retiro pendiente',   icon: 'fa-arrow-up',   color: '#ffc107', sign: '-' },
     };
 
     function resolveResultMeta(type, status) {
         var ok = status === 'COMPLETED';
-        if (type === 'DEPOSIT')    return ok
+        if (type === 'DEPOSIT') return ok
             ? { label: '✅ Depósito aprobado',               icon: 'fa-check-circle', color: '#28a745', sign: '+', url: '/wallet' }
             : { label: '❌ Depósito rechazado',               icon: 'fa-times-circle', color: '#dc3545', sign: '',  url: '/wallet' };
         if (type === 'WITHDRAWAL') return ok
-            ? { label: '✅ Retiro procesado',                      icon: 'fa-check-circle', color: '#28a745', sign: '-', url: '/wallet' }
-            : { label: '↩️ Retiro rechazado — saldo devuelto', icon: 'fa-undo', color: '#ffc107', sign: '', url: '/wallet' };
+            ? { label: '✅ Retiro procesado',                 icon: 'fa-check-circle', color: '#28a745', sign: '-', url: '/wallet' }
+            : { label: '↩️ Retiro rechazado — saldo devuelto', icon: 'fa-undo',        color: '#ffc107', sign: '',  url: '/wallet' };
         return { label: 'Movimiento actualizado', icon: 'fa-exchange-alt', color: '#6c757d', sign: '', url: '/wallet' };
     }
 
@@ -305,11 +310,12 @@
         setTimeout(function () { $balanceEl.style.opacity = '1'; }, 160);
     }
 
-    // ── Badge ─────────────────────────────────────────────────
+    // ── Badge de notificaciones ───────────────────────────────
     function setBadge(n) {
         notifCount = Math.max(0, n);
         if (notifCount === 0) {
             $badge.classList.add('d-none');
+            $badge.textContent = '0';
         } else {
             $badge.textContent = notifCount > 99 ? '99+' : String(notifCount);
             $badge.classList.remove('d-none');
@@ -317,9 +323,30 @@
     }
     function incBadge() { setBadge(notifCount + 1); }
 
+    // ── Badge / pill de pendientes (admins) ───────────────────
+    var pendingWrap   = document.getElementById('nb-pending-pill-wrap');
+    var pendingWrapSm = document.getElementById('nb-pending-pill-wrap-sm');
+    var pendingLabel  = document.getElementById('nb-pending-label');
+    var pendingBadge  = document.getElementById('nb-pending-badge');
+
+    function setPendingCount(n) {
+        n = Math.max(0, n);
+        var show = n > 0;
+        var label = n + ' pendiente' + (n === 1 ? '' : 's');
+        var badgeTxt = n > 99 ? '99+' : String(n);
+
+        if (pendingWrap)   { pendingWrap.style.display   = show ? '' : 'none'; }
+        if (pendingWrapSm) { pendingWrapSm.style.display = show ? '' : 'none'; }
+        if (pendingLabel)  { pendingLabel.textContent  = label; }
+        if (pendingBadge)  { pendingBadge.textContent  = badgeTxt; }
+    }
+    function incPending()  {
+        var cur = pendingLabel ? parseInt(pendingLabel.textContent, 10) || 0 : 0;
+        setPendingCount(cur + 1);
+    }
+
     // ── Construir <li> ────────────────────────────────────────
     function buildListItem(meta, bodyHtml, time, url, notifId, variant, isRead) {
-        // Deduplicar: si ya existe un <li> con el mismo notif-id, ignorar
         if (notifId && $list.querySelector('[data-notification-id="' + notifId + '"]')) return null;
 
         var inner =
@@ -331,7 +358,9 @@
             '<small class="text-muted flex-shrink-0" style="font-size:10px">' + time + '</small>';
 
         var li = document.createElement('li');
-        li.className = 'border-bottom notif-entry' + (variant ? ' notif-entry--' + variant : '') + (isRead ? ' read' : '');
+        li.className = 'border-bottom notif-entry' +
+            (variant ? ' notif-entry--' + variant : '') +
+            (isRead  ? ' read' : '');
         if (notifId) li.setAttribute('data-notification-id', notifId);
         li.innerHTML = url
             ? '<a href="' + url + '" class="d-flex align-items-start px-3 py-2 text-decoration-none text-dark" style="gap:10px">' + inner + '</a>'
@@ -343,51 +372,59 @@
         return li;
     }
 
-    // ── Notificación en tiempo real desde WS (.notification.created) ──
-    // El backend emite la notificación completa con ID real de DB.
-    // Se inserta directamente sin API call de recarga.
-    function addRealtimeNotification(notification) {
+    // ── Resolución de meta a partir de una notificación ────────
+    function resolveMeta(notification) {
         var isAdminAlert = notification.type === 'WALLET_ADMIN_ALERT';
         var mvType   = notification.data && notification.data.movement_type;
         var mvStatus = notification.data && notification.data.movement_status;
         var isResult = mvStatus === 'COMPLETED' || mvStatus === 'REJECTED';
-        var url      = (notification.data && notification.data.url) || (isResult ? '/wallet' : null);
 
-        var meta;
-        if (isAdminAlert) {
-            meta = ADMIN_META[mvType] || { label: notification.title, icon: 'fa-bell', color: '#6c757d' };
-        } else if (isResult) {
-            meta = resolveResultMeta(mvType, mvStatus);
-        } else {
-            meta = TYPE_META[mvType] || { label: notification.title || 'Notificación', icon: 'fa-bell', color: '#6c757d' };
-        }
+        if (isAdminAlert)  return { meta: ADMIN_META[mvType] || { label: notification.title, icon: 'fa-bell', color: '#6c757d' }, isResult: false, isAdmin: true };
+        if (isResult)      return { meta: resolveResultMeta(mvType, mvStatus), isResult: true,  isAdmin: false };
+        return { meta: TYPE_META[mvType] || { label: notification.title || 'Notificación', icon: 'fa-bell', color: '#6c757d' }, isResult: false, isAdmin: false };
+    }
 
+    // ── Renderizar una notificación (desde PHP o desde API) ────
+    function renderNotification(notification, prepend) {
         if ($empty) $empty.style.display = 'none';
 
-        var inserted = buildListItem(
-            meta,
-            '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + (notification.title || meta.label) + '</p>' +
+        var r   = resolveMeta(notification);
+        var url = (notification.data && notification.data.url) || (r.isResult ? '/wallet' : null);
+
+        var li = buildListItem(
+            r.meta,
+            '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + (notification.title || r.meta.label) + '</p>' +
             '<p class="mb-0 text-muted" style="font-size:11px">' + notification.message + '</p>',
             new Date(notification.created_at).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
             url,
             notification.id,
-            isAdminAlert ? 'admin' : (isResult ? 'result' : ''),
-            false
+            r.isAdmin ? 'admin' : (r.isResult ? 'result' : ''),
+            !!notification.is_read
         );
 
-        if (inserted) {
-            incBadge();
-            // Animación de entrada sutil
-            inserted.style.transition = 'background .4s';
-            inserted.style.background = meta.color + '18';
-            setTimeout(function () { inserted.style.background = ''; }, 800);
+        if (li && prepend) {
+            // Animación de entrada
+            li.style.transition = 'background .4s';
+            li.style.background = r.meta.color + '18';
+            setTimeout(function () { li.style.background = ''; }, 800);
         }
+        return li;
     }
 
-    // ── Notificación admin (canal admins.wallet-movements) ──────────
-    // Solo dispara el sonido de alerta inmediata. La notificación persistida
-    // llega por .notification.created con su ID real.
-    function addRealtimeAdminNotif(data) {
+    // ── Cargar notificaciones iniciales desde PHP (sin API call) ─
+    function renderInitial() {
+        if (!INITIAL_NOTIFICATIONS || !INITIAL_NOTIFICATIONS.length) return;
+        INITIAL_NOTIFICATIONS.forEach(function (n) { renderNotification(n, false); });
+    }
+
+    // ── WS: nueva notificación con ID real de DB ───────────────
+    function addRealtimeNotification(notification) {
+        var li = renderNotification(notification, true);
+        if (li) incBadge();
+    }
+
+    // ── WS: sonido para admin cuando llega movimiento pendiente ─
+    function playAdminSound() {
         try {
             var ctx = new (window.AudioContext || window.webkitAudioContext)();
             var osc = ctx.createOscillator(); var gain = ctx.createGain();
@@ -399,99 +436,39 @@
         } catch(e) {}
     }
 
-    // ── Notificación persistente (desde API al abrir panel) ──────────
-    function addPersistentNotification(notification) {
-        if ($empty) $empty.style.display = 'none';
-
-        var isAdminAlert = notification.type === 'WALLET_ADMIN_ALERT';
-        var mvType   = notification.data && notification.data.movement_type;
-        var mvStatus = notification.data && notification.data.movement_status;
-        var isResult = mvStatus === 'COMPLETED' || mvStatus === 'REJECTED';
-        var url      = (notification.data && notification.data.url) || (isResult ? '/wallet' : null);
-
-        var meta;
-        if (isAdminAlert) {
-            meta = ADMIN_META[mvType] || { label: notification.title, icon: 'fa-bell', color: '#6c757d' };
-        } else if (isResult) {
-            meta = resolveResultMeta(mvType, mvStatus);
-        } else {
-            meta = TYPE_META[mvType] || { label: notification.title || 'Notificación', icon: 'fa-bell', color: '#6c757d' };
-        }
-
-        buildListItem(
-            meta,
-            '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + (meta.label || notification.title) + '</p>' +
-            '<p class="mb-0 text-muted" style="font-size:11px">' + notification.message + '</p>',
-            new Date(notification.created_at).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
-            url,
-            notification.id,
-            isAdminAlert ? 'admin' : (isResult ? 'result' : ''),
-            !!notification.is_read
-        );
-    }
-
-    // ── Estado del panel ──────────────────────────────────────
-    var panelLoaded = false;
-    var panelOpen   = false;
-
-    // ── Cargar recientes (leídas + no leídas) desde API ──────────────
-    function loadNotificationsFromAPI(callback) {
-        apiFetch('/notifications?limit=25')
-            .then(function(r) { return r.ok ? r.json() : null; })
-            .then(function(json) {
-                if (!json) return;
-                // Limpiar lista completa y re-renderizar desde DB (deduplicación via ID)
-                $list.querySelectorAll('.notif-entry').forEach(function(el) { el.remove(); });
-                if (json.data && json.data.length > 0) {
-                    if ($empty) $empty.style.display = 'none';
-                    json.data.slice().reverse().forEach(addPersistentNotification);
-                } else if (!$list.querySelector('.notif-entry')) {
-                    if ($empty) $empty.style.display = '';
-                }
-                setBadge(json.unread_count || 0);
-                panelLoaded = true;
-                if (callback) callback();
-            })
-            .catch(function() { if (callback) callback(); });
-    }
-
-    // ── Marcar leídas (sin borrar) ─────────────────────────────
+    // ── Marcar leídas en DOM y API ─────────────────────────────
     function markAllReadInAPI() {
         apiFetch('/notifications/mark-all-read', 'POST')
-            .then(function() {
-                $list.querySelectorAll('.notif-entry:not(.read)').forEach(function(el) {
+            .then(function () {
+                $list.querySelectorAll('.notif-entry:not(.read)').forEach(function (el) {
                     el.classList.add('read');
                 });
             })
-            .catch(function() {});
+            .catch(function () {});
     }
 
     // ── "Limpiar todo": borrar de DB ──────────────────────────
     $clearBtn.addEventListener('click', function (e) {
         e.stopPropagation();
         apiFetch('/notifications', 'DELETE')
-            .then(function(r) { return r.ok ? r.json() : null; })
-            .then(function(json) {
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (json) {
                 if (json !== null) {
-                    $list.querySelectorAll('.notif-entry').forEach(function(el) { el.remove(); });
+                    $list.querySelectorAll('.notif-entry').forEach(function (el) { el.remove(); });
                     if ($empty) $empty.style.display = '';
                     setBadge(0);
-                    panelLoaded = false;
                 }
             })
-            .catch(function() {});
+            .catch(function () {});
     });
 
-    // ── Abrir panel: lazy load + marcar leídas ─────────────────
+    // ── Abrir panel: marcar leídas (sin reload — ya están renderizadas) ──
+    var panelOpen = false;
     document.getElementById('notifToggle').addEventListener('click', function () {
         if (panelOpen) { panelOpen = false; return; }
         panelOpen = true;
 
-        if (!panelLoaded) {
-            loadNotificationsFromAPI(function () {
-                if (notifCount > 0) { markAllReadInAPI(); setBadge(0); }
-            });
-        } else if (notifCount > 0) {
+        if (notifCount > 0) {
             markAllReadInAPI();
             setBadge(0);
         }
@@ -514,37 +491,38 @@
         if (!window.Echo) { setTimeout(boot, 250); return; }
 
         window.Echo.private('App.Models.User.' + USER_ID)
-            // Actualiza saldo del navbar en tiempo real
+            // Saldo en tiempo real
             .listen('.wallet.updated', function (data) {
                 if (WALLET_ID && data.wallet_id !== WALLET_ID) return;
                 if (WALLET_ID) updateBalance(data);
             })
-            // Recibe notificación completa con ID real de DB → renderiza sin API call
+            // Nueva notificación con ID real → insertar sin API call
             .listen('.notification.created', function (data) {
                 addRealtimeNotification(data);
             });
 
-        // Canal de admins: solo sonido de alerta inmediata
-        // La notificación persistida llega por .notification.created
         if (IS_ADMIN) {
             window.Echo.private('admins.wallet-movements')
-                .listen('.wallet.movement.requested', function (data) {
-                    addRealtimeAdminNotif(data);
+                // Nuevo movimiento pendiente → incrementar contador + sonido
+                .listen('.wallet.movement.requested', function () {
+                    incPending();
+                    playAdminSound();
+                })
+                // Movimiento procesado → actualizar contador con valor exacto del server
+                .listen('.wallet.movement.processed', function (data) {
+                    setPendingCount(data.pending_count);
                 });
         }
     }
 
-    // ── Badge inicial desde PHP ───────────────────────────────
-    var serverCount = window.notificationsData && window.notificationsData.unreadCount
-        ? parseInt(window.notificationsData.unreadCount, 10) : 0;
-    if (serverCount > 0) setBadge(serverCount);
+    // ── Badge inicial desde PHP (ya renderizado en HTML, solo sincronizar JS) ─
+    setBadge({{ $navUnreadCount ?? 0 }});
 
-    // ── Init ──────────────────────────────────────────────────
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', boot);
-    } else {
+    // ── Renderizar notificaciones iniciales desde PHP ──────────
+    document.addEventListener('DOMContentLoaded', function () {
+        renderInitial();
         boot();
-    }
+    });
 
 })();
 </script>

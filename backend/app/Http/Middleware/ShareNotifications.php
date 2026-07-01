@@ -24,19 +24,8 @@ class ShareNotifications
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Las notificaciones se cargan desde la API en el navbar (datos siempre frescos).
-        // Solo compartimos el unread_count para el badge inicial antes de que cargue JS.
-        if (auth()->check()) {
-            try {
-                $unreadCount = $this->notificationService->getUnreadCount();
-                View::share('unreadCount', $unreadCount);
-            } catch (\Exception $e) {
-                View::share('unreadCount', 0);
-            }
-        } else {
-            View::share('unreadCount', 0);
-        }
-
+        // navNotifications y navUnreadCount son inyectados por NotificationServiceProvider.
+        // Este middleware es un no-op mantenido por compatibilidad.
         return $next($request);
     }
 }

@@ -21,40 +21,23 @@ class NotificationServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Compartir notificaciones globalmente en todas las vistas
+        // Inyecta en todas las vistas las últimas 25 notificaciones (leídas + no leídas)
+        // y el unread_count. El navbar las renderiza inline sin API call al primer abrir.
         View::composer('*', function ($view) {
-            // Solo para usuarios autenticados
-            if (auth()->check()) {
-                try {
-                    $notificationService = app(NotificationService::class);
-                    
-                    // Obtener notificaciones no leídas
-                    $unreadNotifications = $notificationService->getUnreadNotifications(10);
-                    $unreadCount = $notificationService->getUnreadCount();
-                    $formattedNotifications = $notificationService->formatNotifications($unreadNotifications);
+            if (! auth()->check()) {
+                $view->with('navNotifications', []);
+                $view->with('navUnreadCount', 0);
+                return;
+            }
 
-                    // Compartir con la vista
-                    $view->with('unreadNotifications', $unreadNotifications);
-                    $view->with('unreadCount', $unreadCount);
-                    $view->with('formattedNotifications', $formattedNotifications);
-
-                } catch (\Exception $e) {
-                    \Log::error('NotificationServiceProvider: Error al cargar notificaciones', [
-                        'view' => $view->getName(),
-                        'error' => $e->getMessage(),
-                        'user_id' => auth()->id(),
-                    ]);
-
-                    // Compartir valores vacíos en caso de error
-                    $view->with('unreadNotifications', collect([]));
-                    $view->with('unreadCount', 0);
-                    $view->with('formattedNotifications', []);
-                }
-            } else {
-                // Usuario no autenticado
-                $view->with('unreadNotifications', collect([]));
-                $view->with('unreadCount', 0);
-                $view->with('formattedNotifications', []);
+            try {
+                $notificationService    = app(NotificationService::class);
+                $recent                 = $notificationService->getUserNotifications([], 25);
+                $view->with('navNotifications', $notificationService->formatNotifications($recent));
+                $view->with('navUnreadCount',   $notificationService->getUnreadCount());
+            } catch (\Exception $e) {
+                $view->with('navNotifications', []);
+                $view->with('navUnreadCount', 0);
             }
         });
     }
