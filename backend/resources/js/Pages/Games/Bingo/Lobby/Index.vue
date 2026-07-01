@@ -419,7 +419,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
      se resta/suma aparte aquí — sumarlo duplicaba ese espacio y generaba scroll. */
   min-height: calc(100vh - 56px - 44px);
   margin: -0.5rem -0.5rem 0;
-  padding: 24px 20px 48px;
+  padding: 18px 20px 36px;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -479,7 +479,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
   width: 100%; max-width: 1440px;
   margin: auto auto 0;
   flex: 1;
-  display: flex; flex-direction: column; justify-content: center; gap: 18px;
+  display: flex; flex-direction: column; justify-content: center; gap: 12px;
   animation: lbyFadeUp .5s cubic-bezier(.22,1,.36,1) both;
 }
 @keyframes lbyFadeUp {
@@ -491,50 +491,24 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
    ENCABEZADO
 ═══════════════════════════════════ */
 .lby-page__header {
-  position: relative;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 4px;
 }
 
 .lby-back {
-  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
   display: inline-flex; align-items: center; gap: 6px;
   color: rgba(255,255,255,.55); font-size: 12px; font-weight: 700;
   text-decoration: none; letter-spacing: .3px; transition: color .2s;
-  z-index: 2;
 }
 .lby-back:hover { color: #a8c4ff; }
 .lby-back i { font-size: 10px; }
 
-.lby-title-wrap {
-  display: flex; align-items: center; justify-content: center; gap: 14px;
-}
-.lby-dice {
-  font-size: 20px;
-  filter: drop-shadow(0 0 8px rgba(42,245,152,0.35));
-  animation: lbySpinDice 9s linear infinite;
-  color: #6a8aac;
-  opacity: .8;
-}
-.lby-dice--2 { animation-direction: reverse; animation-duration: 11s; }
-@keyframes lbySpinDice { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-.lby-page__title {
-  font-family: "Anton", sans-serif;
-  font-size: clamp(20px, 3.2vw, 27px);
-  letter-spacing: 3px; margin: 0;
-  color: #e0eaff;
-  text-shadow: 0 0 30px rgba(42,245,152,0.1);
-}
-
 .lby-ws {
-  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
   display: inline-flex; align-items: center; gap: 5px;
   padding: 4px 11px; border-radius: 20px;
   font-size: 10px; font-weight: 700;
   background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
   backdrop-filter: blur(6px);
-  z-index: 2;
 }
 .lby-ws__dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .lby-ws__label { color: #5578bb; }
@@ -615,12 +589,13 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
 .lby-status--desconocido { background: rgba(255,255,255,.04);border: 1px solid rgba(255,255,255,.1); color: #6a8aac; }
 
 .lby-chip {
-  padding: 4px 11px; border-radius: 7px;
-  font-size: 11px; font-weight: 700; letter-spacing: .3px;
-  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: .3px;
+  display: inline-flex; align-items: center; gap: 4px;
   white-space: nowrap;
   backdrop-filter: blur(8px);
 }
+.lby-chip i { font-size: 9px; }
 .lby-chip--type   { background: rgba(40,110,190,.14); border: 1px solid rgba(40,110,190,.28); color: #6aaad8; }
 .lby-chip--mode   { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: #9fb3da; }
 .lby-chip--rounds { background: rgba(130,60,220,.12); border: 1px solid rgba(130,60,220,.26); color: #a878e8; }
@@ -628,109 +603,109 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
 .lby-hero__bottom {
   position: relative; z-index: 2;
   display: flex; align-items: flex-end; justify-content: space-between;
-  gap: 24px; flex-wrap: wrap;
-  padding: 20px 26px 26px;
+  gap: 20px; flex-wrap: wrap;
+  padding: 12px 18px 16px;
 }
 
 .lby-prize { display: flex; flex-direction: column; }
 
 .lby-prize__lbl {
-  font-size: 11px; color: #c8a028;
-  text-transform: uppercase; letter-spacing: 1.6px;
-  display: inline-flex; align-items: center; gap: 6px;
-  margin-bottom: 6px;
+  font-size: 9.5px; color: #c8a028;
+  text-transform: uppercase; letter-spacing: 1.4px;
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-bottom: 2px;
 }
-.lby-prize__lbl i { font-size: 11px; }
-.lby-prize__val { display: flex; align-items: baseline; gap: 8px; }
+.lby-prize__lbl i { font-size: 9.5px; }
+.lby-prize__val { display: flex; align-items: baseline; gap: 6px; }
 .lby-prize__num {
-  font-family: 'Anton', sans-serif; font-size: clamp(40px, 5.5vw, 64px); line-height: 1; letter-spacing: .5px;
+  font-family: 'Anton', sans-serif; font-size: clamp(28px, 3.6vw, 40px); line-height: 1; letter-spacing: .5px;
   background: linear-gradient(130deg, #ffe566 0%, #ffbb20 50%, #ff8800 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  filter: drop-shadow(0 3px 16px rgba(255,150,0,.35));
+  filter: drop-shadow(0 2px 12px rgba(255,150,0,.3));
 }
-.lby-prize__sym { font-size: 18px; font-weight: 800; color: #e0a020; }
+.lby-prize__sym { font-size: 14px; font-weight: 800; color: #e0a020; }
 
 .lby-prize-sub {
-  display: flex; gap: 26px;
-  padding-bottom: 6px;
+  display: flex; gap: 18px;
+  padding-bottom: 2px;
 }
 .lby-prize-sub__item { text-align: right; }
-.lby-prize-sub__lbl { display: block; font-size: 9px; color: #6a8aac; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 2px; }
-.lby-prize-sub__val { font-family: 'Anton', sans-serif; font-size: 18px; color: #d8e4ff; }
+.lby-prize-sub__lbl { display: block; font-size: 8px; color: #6a8aac; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 1px; }
+.lby-prize-sub__val { font-family: 'Anton', sans-serif; font-size: 14px; color: #d8e4ff; }
 
 .lby-flash { animation: lbyFlash 1.8s ease-in-out; }
 @keyframes lbyFlash { 0%,100%{filter:none} 40%{filter:drop-shadow(0 0 12px rgba(42,245,152,.8)) brightness(1.25)} }
 
 /* ═══════════════════════════════════
-   PROGRESO CARTONES MÍNIMOS
+   PANEL INFERIOR — agrupa progreso + stats + acciones en un solo bloque
 ═══════════════════════════════════ */
-.lby-cards-progress {
+.lby-panel {
   background: linear-gradient(140deg, #0f1e3a 0%, #070d1c 100%);
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 14px;
-  padding: 14px 20px 16px;
-  position: relative;
+  padding: 14px 18px;
+  display: flex; flex-direction: column; gap: 12px;
   box-shadow: 0 4px 20px rgba(0,0,0,.4);
-  transition: border-color .3s, box-shadow .3s;
 }
-.lby-cards-progress__top {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 9px; position: relative; z-index: 1;
+
+/* ── Progreso cartones: una sola fila ── */
+.lby-cards-progress {
+  display: flex; align-items: center; gap: 12px;
 }
 .lby-cards-progress__label {
-  font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
-  color: #6a8aac; display: inline-flex; align-items: center; gap: 7px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  color: #6a8aac; display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap; flex-shrink: 0;
 }
-.lby-cards-progress__label i { font-size: 11px; opacity: .8; }
+.lby-cards-progress__label i { font-size: 10.5px; opacity: .8; }
 .lby-cards-progress__count {
-  font-family: 'Anton', sans-serif; font-size: 16px; letter-spacing: .5px; color: #9ecaf0;
+  font-family: 'Anton', sans-serif; font-size: 13px; letter-spacing: .4px; color: #9ecaf0;
+  flex-shrink: 0;
 }
 .lby-cards-progress__track {
-  height: 9px; border-radius: 20px; overflow: hidden;
+  flex: 1;
+  height: 7px; border-radius: 20px; overflow: hidden;
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.06);
-  position: relative; z-index: 1;
+  position: relative;
 }
 .lby-cards-progress__fill {
   height: 100%; border-radius: 20px;
   background: linear-gradient(90deg, #2a6ad8 0%, #2af598 100%);
-  box-shadow: 0 0 12px rgba(42,245,152,.35);
+  box-shadow: 0 0 10px rgba(42,245,152,.3);
   transition: width .6s cubic-bezier(.22,1,.36,1);
 }
-.lby-cards-progress--ready {
-  border-color: rgba(42,245,152,.35);
-  box-shadow: 0 6px 24px rgba(42,245,152,.14);
-}
 .lby-cards-progress--ready .lby-cards-progress__label { color: #2af598; }
+.lby-cards-progress--ready .lby-cards-progress__count { color: #2af598; }
 .lby-cards-progress--ready .lby-cards-progress__fill {
   background: linear-gradient(90deg, #2af598 0%, #00ffd0 100%);
   animation: lbyCpReadyPulse 1.6s ease-in-out infinite;
 }
 @keyframes lbyCpReadyPulse {
-  0%,100% { box-shadow: 0 0 10px rgba(42,245,152,.5); }
-  50%     { box-shadow: 0 0 20px rgba(42,245,152,.85); }
+  0%,100% { box-shadow: 0 0 8px rgba(42,245,152,.45); }
+  50%     { box-shadow: 0 0 16px rgba(42,245,152,.8); }
 }
 
 /* ═══════════════════════════════════
-   FILA INFERIOR — stats + acciones, ancho completo
+   FILA INFERIOR — stats + acciones
 ═══════════════════════════════════ */
 .lby-bottom {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 16px;
+  gap: 12px;
   align-items: stretch;
 }
 
 .lby-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 8px;
 }
 .lby-stat {
-  background: linear-gradient(140deg, #0f1e3a 0%, #070d1c 100%);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 12px; padding: 14px 8px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 10px; padding: 8px 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   transition: border-color .2s, transform .2s, box-shadow .2s;
 }
 .lby-stat:hover {
@@ -738,23 +713,23 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
   transform: translateY(-2px);
   box-shadow: 0 8px 22px rgba(0,0,0,.4);
 }
-.lby-stat__icon { font-size: 15px; color: #3a5068; margin-bottom: 2px; transition: color .2s; }
+.lby-stat__icon { font-size: 13px; color: #3a5068; transition: color .2s; }
 .lby-stat:hover .lby-stat__icon { color: #2af598; }
-.lby-stat__val  { font-family: 'Anton', sans-serif; font-size: 19px; color: #d8e4ff; line-height: 1; letter-spacing: .3px; }
-.lby-stat__lbl  { font-size: 9px; color: #3a5068; text-transform: uppercase; letter-spacing: .6px; text-align: center; }
+.lby-stat__val  { font-family: 'Anton', sans-serif; font-size: 16px; color: #d8e4ff; line-height: 1; letter-spacing: .3px; }
+.lby-stat__lbl  { font-size: 8px; color: #3a5068; text-transform: uppercase; letter-spacing: .5px; text-align: center; }
 
 /* ═══════════════════════════════════
    ACCIONES
 ═══════════════════════════════════ */
-.lby-actions { display: flex; gap: 10px; }
+.lby-actions { display: flex; gap: 8px; }
 
 .lby-btn {
-  padding: 0 26px; border: none; border-radius: 14px;
-  font-size: 13px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase;
-  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px;
+  padding: 0 20px; border: none; border-radius: 11px;
+  font-size: 12px; font-weight: 800; letter-spacing: .9px; text-transform: uppercase;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
   text-decoration: none; transition: filter .2s, transform .15s, box-shadow .2s;
   position: relative; white-space: nowrap;
-  min-width: 168px;
+  min-width: 0;
 }
 /* El brillo deslizante se recorta con clip-path (no overflow:hidden en el botón):
    overflow:hidden en el propio elemento también recortaría su box-shadow, dejando
@@ -763,7 +738,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
   content: ''; position: absolute; top: 0; left: -80%; width: 50%; height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
   transform: skewX(-18deg); transition: left .5s ease;
-  clip-path: inset(0 round 14px);
+  clip-path: inset(0 round 11px);
   pointer-events: none;
 }
 .lby-btn:hover::after { left: 130%; }
@@ -798,19 +773,19 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
 @media (max-width: 768px) {
   .lby-bottom { grid-template-columns: 1fr; }
   .lby-actions { flex-direction: column; }
-  .lby-btn { width: 100%; padding: 15px 14px; }
-  .lby-hero__bottom { align-items: flex-start; flex-direction: column; gap: 14px; }
+  .lby-btn { width: 100%; padding: 13px 14px; }
+  .lby-hero__bottom { align-items: flex-start; flex-direction: column; gap: 10px; }
   .lby-prize-sub { gap: 18px; }
   .lby-prize-sub__item { text-align: left; }
+  .lby-cards-progress { flex-wrap: wrap; }
+  .lby-cards-progress__track { flex-basis: 100%; order: 3; }
 }
 
 @media (max-width: 480px) {
-  .lby-page { padding: 18px 12px 40px; }
-  .lby-page__header { flex-direction: column; gap: 10px; }
-  .lby-back, .lby-ws { position: static; transform: none; }
-  .lby-hero { min-height: 240px; }
-  .lby-hero__top, .lby-hero__bottom { padding-left: 16px; padding-right: 16px; }
-  .lby-prize__num { font-size: 38px; }
+  .lby-page { padding: 14px 10px 32px; }
+  .lby-hero__top, .lby-hero__bottom { padding-left: 12px; padding-right: 12px; }
+  .lby-prize__num { font-size: 28px; }
   .lby-stats { grid-template-columns: repeat(2, 1fr); }
+  .lby-panel { padding: 12px 14px; }
 }
 </style>
