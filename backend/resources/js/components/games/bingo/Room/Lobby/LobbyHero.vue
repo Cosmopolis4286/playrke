@@ -2,11 +2,11 @@
 import { computed } from 'vue'
 import { BingoService } from '@js/Services/bingoService'
 import type { WsStatus } from '@js/composables/games/bingo/room/lobby/useLobbyEcho'
-import type { LobbyRoom, LobbyLive } from './types'
+import type { LobbyRoom, LobbyLiveState } from './types'
 
 const props = defineProps<{
   room: LobbyRoom
-  live: LobbyLive
+  live: LobbyLiveState
   wsStatus: WsStatus
   countdown: string
   isLive: boolean
@@ -22,17 +22,21 @@ const isActiveAndConnected = computed(() =>
   props.live.statusCode?.toUpperCase() === 'ACTIVE'
 )
 
-const wsLabel = computed(() => ({
-  connected:    'En vivo',
-  connecting:   'Conectando…',
-  disconnected: 'Sin conexión',
-  error:        'Error',
-}[props.wsStatus]))
+const wsLabel = computed(() => {
+  if (props.wsStatus === 'connected') {
+    return props.live.statusCode?.toUpperCase() === 'ACTIVE' ? 'En vivo' : 'Conectado'
+  }
+  return ({
+    connecting:   'Conectando…',
+    disconnected: 'Sin conexión',
+    error:        'Error',
+  } as Record<string, string>)[props.wsStatus] ?? props.wsStatus
+})
 
 const fmt = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const formatAmount = (val: number) => fmt.format(val * props.rate)
+const formatAmount = computed(() => (val: number) => fmt.format(val * props.rate))
 
-const formattedPrize = computed(() => formatAmount(props.live.prizePool))
+const formattedPrize = computed(() => formatAmount.value(props.live.prizePool))
 
 const statusClass = computed(() => {
   const c = (props.live.statusCode || 'desconocido').toLowerCase()
@@ -110,14 +114,14 @@ const roomStatusText = computed(() =>
             <div v-if="room.full_house_prize" class="lby-prize-sub__item">
               <span class="lby-prize-sub__lbl">Casa Llena</span>
               <span class="lby-prize-sub__val">
-                {{ formatAmount(Number(room.full_house_prize)) }}
+                {{ formatAmount.value(Number(room.full_house_prize)) }}
                 <em class="lby-prize-sub__sym">{{ live.currencySymbol }}</em>
               </span>
             </div>
             <div v-if="room.serial_prize" class="lby-prize-sub__item">
               <span class="lby-prize-sub__lbl">Serial</span>
               <span class="lby-prize-sub__val">
-                {{ formatAmount(Number(room.serial_prize)) }}
+                {{ formatAmount.value(Number(room.serial_prize)) }}
                 <em class="lby-prize-sub__sym">{{ live.currencySymbol }}</em>
               </span>
             </div>

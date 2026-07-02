@@ -63,7 +63,7 @@ const { countdown, isLive, isUrgent } = useLobbyCountdown(() => props.room?.unix
 const userId = computed(() => page.props.auth?.user?.id ?? null)
 const { wsStatus } = useLobbyEcho(props.room.id, () => userId.value, live, {
   onPrizeChanged:   () => flash(prizeFlash),
-  onPlayersChanged: () => flash(playersFlash),
+  onPlayersChanged: (prev, next) => { if (next > prev) flash(playersFlash) },
   onCardsChanged:   (total) => pushSaleToast(total),
   onCardsUpdated:   (price, symbol) => {
     if (price  !== null) live.cardPrice      = price
@@ -88,7 +88,7 @@ const rate = computed(() => props.exchangeRate ?? 1)
 
 const roomRouteKey = computed(() => props.roomRouteKey?.trim() ?? '')
 
-const canNavigateGame = computed(() => Boolean(props.roomRouteKey?.trim()))
+const canNavigateGame = computed(() => roomRouteKey.value.length > 0)
 
 const canPurchaseCards = computed(() =>
   props.room != null &&
@@ -198,6 +198,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
           :room-route-key="roomRouteKey"
           :can-navigate-game="canNavigateGame"
           :can-purchase-cards="canPurchaseCards"
+          :redirecting="redirecting"
           :players-flash="playersFlash"
           :min-cards-to-start="minCardsToStart"
           :cards-progress-ready="cardsProgressReady"
@@ -217,6 +218,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
       :fetch-error="players.fetchError.value"
       :current-user-id="userId"
       @close="players.close()"
+      @retry="players.open()"
     />
 
     <LobbyRedirectBanner :show="redirecting" :secs="redirectSecs" />

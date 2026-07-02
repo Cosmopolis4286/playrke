@@ -10,7 +10,7 @@ defineProps<{
   currentUserId: string | number | null | undefined
 }>()
 
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; retry: [] }>()
 </script>
 
 <template>
@@ -34,7 +34,13 @@ const emit = defineEmits<{ close: [] }>()
           <div class="lby-spinner" /> Cargando…
         </div>
         <div v-else-if="fetchError" class="lby-modal__empty lby-modal__empty--error">
-          <i class="fas fa-exclamation-circle" /> Error al cargar jugadores — intenta de nuevo
+          <div class="lby-modal__error-content">
+            <i class="fas fa-exclamation-circle" />
+            <span>Error al cargar jugadores</span>
+            <button class="lby-modal__retry" @click="emit('retry')">
+              <i class="fas fa-redo" /> Reintentar
+            </button>
+          </div>
         </div>
         <div v-else-if="players.length === 0" class="lby-modal__empty">
           <i class="fas fa-user-slash" /> Sin jugadores registrados
@@ -80,9 +86,9 @@ const emit = defineEmits<{ close: [] }>()
                   <i class="fas fa-ticket-alt" /> {{ p.cards_purchased }}
                 </span>
               </div>
-              <div class="lby-modal__rest-label">
+              <div v-if="players.length > 13" class="lby-modal__rest-label">
                 <i class="fas fa-ellipsis-h" />
-                {{ players.length - 10 }} jugador{{ players.length - 10 === 1 ? '' : 'es' }} más
+                {{ players.length - 13 }} jugador{{ players.length - 13 === 1 ? '' : 'es' }} más
               </div>
             </div>
           </template>
@@ -139,6 +145,18 @@ const emit = defineEmits<{ close: [] }>()
   padding: 28px 18px; text-align: center; color: #3a5068; font-size: 11px;
   display: flex; align-items: center; justify-content: center; gap: 8px;
 }
+.lby-modal__error-content {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.lby-modal__error-content i { font-size: 20px; }
+.lby-modal__retry {
+  padding: 6px 16px; border-radius: 8px; font-size: 10px; font-weight: 700;
+  letter-spacing: .5px; cursor: pointer;
+  background: rgba(255,77,109,.12); border: 1px solid rgba(255,77,109,.3); color: #ff6e8a;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background .2s, border-color .2s;
+}
+.lby-modal__retry:hover { background: rgba(255,77,109,.22); border-color: rgba(255,77,109,.5); }
 .lby-modal__list { overflow-y: auto; flex: 1; padding: 8px 0; }
 .lby-modal__list::-webkit-scrollbar       { width: 3px; }
 .lby-modal__list::-webkit-scrollbar-track { background: transparent; }
