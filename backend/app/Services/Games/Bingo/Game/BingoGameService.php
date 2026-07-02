@@ -4,12 +4,15 @@ namespace App\Services\Games\Bingo\Game;
 
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
+use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\ExchangeRate;
 use App\Models\Games\Bingo\ExternalPlayers;
+use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Games\Bingo\Room\Utils\CheckExpiredBingoRoomsService;
+use Illuminate\Support\Facades\DB;
 
 final class BingoGameService
 {
@@ -30,7 +33,7 @@ final class BingoGameService
         $this->checkExpired->handle();
 
         // La sala ya viene del route binding, solo necesitamos cargar las relaciones
-        $bingoRoom = $room->load(['config', 'creator', 'cardPrices', 'rounds']);
+        $bingoRoom = $room->load(['config', 'creator', 'cardPrices', 'rounds', 'status']);
 
         // Verificar si la sala está eliminada (soft delete)
         if ($bingoRoom->trashed()) {
@@ -309,26 +312,35 @@ final class BingoGameService
         $newTime   = now()->addMinutes(2);
         $unixDate  = $newTime->timestamp;
 
-        // Verificar si existe un sorteo previo
-        $hasExistingDraw = \App\Domains\Games\Bingo\Models\Draw\BingoDraw::where('room_id', $room->id)->exists();
+        $hasExistingDraw = BingoDraw::where('room_id', $room->id)->exists();
+        $hasExistingCode = BingoDrawCode::where('room_id', $room->id)->exists();
+        $hadData = $hasExistingDraw || $hasExistingCode;
 
-        if ($hasExistingDraw) {
-            // Resetear estados de las rondas
+        // Full DEV reset: clear all draw data, prizes, rounds and room status
+        DB::transaction(function () use ($room) {
+            BingoDraw::where('room_id', $room->id)->delete();
+            BingoDrawCode::where('room_id', $room->id)->delete();
+            BingoCardPrize::where('room_id', $room->id)->delete();
+
             $room->rounds()->update(['status' => 'ACTIVE']);
 
-            // Limpiar sorteos anteriores
-            \App\Domains\Games\Bingo\Models\Draw\BingoDraw::where('room_id', $room->id)->delete();
-
-            \Log::info('[DEV] Sorteo previo regenerado', [
-                'room_id' => $room->id,
-                'room_uuid' => $room->uuid_code,
-            ]);
-        }
+            // Restore room to ACTIVE so the game can be re-drawn
+            $activeStatus = GameStatus::where('code', 'ACTIVE')->first()
+                ?? GameStatus::where('code', 'IN_PROGRESS')->first();
+            if ($activeStatus) {
+                $room->update(['status_id' => $activeStatus->id, 'finished_at' => null]);
+            }
+        });
 
         $room->config()->update([
             'unix_date' => $unixDate,
             'date'      => $newTime->toDateString(),
             'time'      => $newTime->format('H:i:s'),
+        ]);
+
+        \Log::info('[DEV] Sala reseteada para nuevo sorteo', [
+            'room_id'  => $room->id,
+            'had_data' => $hadData,
         ]);
 
         // Emitir evento para sincronizar el tiempo con todos los clientes conectados
@@ -337,8 +349,8 @@ final class BingoGameService
         return [
             'startTime'       => $unixDate,
             'humanTime'       => $newTime->format('H:i:s'),
-            'hasExistingDraw' => $hasExistingDraw,
-            'message'         => $hasExistingDraw ? 'Sorteo regenerado exitosamente' : 'Nuevo sorteo iniciado',
+            'hasExistingDraw' => $hadData,
+            'message'         => $hadData ? 'Sorteo regenerado exitosamente' : 'Nuevo sorteo iniciado',
         ];
     }
 

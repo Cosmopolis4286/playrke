@@ -2,7 +2,9 @@
 
 namespace App\Services\Games\Bingo\Room\Metrics;
 
+use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Services\Games\Bingo\Contracts\RoomMetricsInterface;
 use App\Services\Platform\PlatformWalletService;
 use Illuminate\Support\Facades\Log;
@@ -231,7 +233,7 @@ class RoomMetricsService implements RoomMetricsInterface
                 : round($sellerCommission / $exchangeRate, 3);
 
             // Obtener configuración de la sala
-            $bingoConfig = \App\Domains\Games\Bingo\Models\Room\BingoRoomConfig::where('room_id', $room->id)
+            $bingoConfig = BingoRoomConfig::where('room_id', $room->id)
                 ->select(['rke_commission', 'room_commission', 'prize_pool_type_id'])
                 ->first();
             
@@ -330,7 +332,55 @@ class RoomMetricsService implements RoomMetricsInterface
                 $updateData['metrics_by_currency'] = $metricsByCurrency;
             }
 
-            return $room->update($updateData);
+            $result = $room->update($updateData);
+
+            // Registrar venta por sala/creador/moneda para el panel de Comisiones RKE
+            if ($prizePoolType != 2) {
+                try {
+                    $creatorUserId = (string) ($saleData['creator']['id'] ?? null);
+                    $currencyIdStr = (string) ($saleData['currency'] ?? '');
+
+                    if ($creatorUserId && $currencyIdStr) {
+                        // $rkeCommissionLocal puede haber sido sobreescrito en el bloque
+                        // de PlatformWallet (línea ~274) con un valor recalculado desde USD.
+                        // Recalcular prize_pool con ese valor final para que la integridad
+                        // sale_amount == rke + room + seller + prize_pool se mantenga.
+                        $finalRkeLocal    = $rkeCommissionLocal;
+                        $finalPrizeLocal  = round($saleAmountLocal - $finalRkeLocal - $creatorCommissionLocal - $sellerCommissionLocal, 3);
+
+                        $existing = BingoCreatorSale::where('room_id', $room->id)
+                            ->where('creator_user_id', $creatorUserId)
+                            ->where('currency_id', $currencyIdStr)
+                            ->first();
+
+                        if ($existing) {
+                            $existing->increment('sale_amount',      $saleAmountLocal);
+                            $existing->increment('rke_commission',   $finalRkeLocal);
+                            $existing->increment('room_commission',  $creatorCommissionLocal);
+                            $existing->increment('seller_commission',$sellerCommissionLocal);
+                            $existing->increment('prize_pool_amount',$finalPrizeLocal);
+                        } else {
+                            BingoCreatorSale::create([
+                                'room_id'           => $room->id,
+                                'creator_user_id'   => $creatorUserId,
+                                'currency_id'       => $currencyIdStr,
+                                'sale_amount'       => $saleAmountLocal,
+                                'rke_commission'    => $finalRkeLocal,
+                                'room_commission'   => $creatorCommissionLocal,
+                                'seller_commission' => $sellerCommissionLocal,
+                                'prize_pool_amount' => $finalPrizeLocal,
+                            ]);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('No se pudo registrar BingoCreatorSale', [
+                        'roomId' => $room->id,
+                        'error'  => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            return $result;
         } catch (\Throwable $e) {
             Log::error('Error al actualizar métricas con comisiones: ' . $e->getMessage(), [
                 'roomId' => $room->id,

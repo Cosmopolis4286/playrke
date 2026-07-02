@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Log;
 final class BingoDrawService
 {
     private const CHIP_INTERVAL_SECONDS = 5;
+    private const CHIP_INTERVAL_DEV     = 0; // sin espera en entorno local
 
     /** Cache de tasas de cambio activas resuelta por moneda durante la corrida actual. */
     private array $rateCache = [];
@@ -174,7 +175,8 @@ final class BingoDrawService
 
         // 6. Fichas restantes
         for ($i = $startIndex, $total = count($sequence); $i < $total; $i++) {
-            sleep(self::CHIP_INTERVAL_SECONDS);
+            $interval = app()->environment('local') ? self::CHIP_INTERVAL_DEV : self::CHIP_INTERVAL_SECONDS;
+            if ($interval > 0) sleep($interval);
 
             $chip = $sequence[$i];
             $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * self::CHIP_INTERVAL_SECONDS, $variant);

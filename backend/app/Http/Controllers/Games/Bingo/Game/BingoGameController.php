@@ -237,9 +237,15 @@ final class BingoGameController extends Controller
             function () use ($room) {
                 $roomId = (int) $room->id;
 
-                // El sorteo completo (~75 fichas) tarda varios minutos — se despacha
-                // a la cola 'bingo-draw' para no bloquear el worker HTTP (ver StartBingoDrawJob).
-                \App\Jobs\Games\Bingo\StartBingoDrawJob::dispatch((string) $roomId)->onQueue('bingo-draw');
+                if (app()->environment('local')) {
+                    // En local no hay queue worker fiable — ejecutar sincrónico.
+                    // BingoDrawService usa CHIP_INTERVAL_DEV = 0 en local, así que
+                    // el sorteo completo termina en segundos sin bloquear mucho.
+                    @set_time_limit(120);
+                    \App\Jobs\Games\Bingo\StartBingoDrawJob::dispatchSync((string) $roomId);
+                } else {
+                    \App\Jobs\Games\Bingo\StartBingoDrawJob::dispatch((string) $roomId)->onQueue('bingo-draw');
+                }
 
                 return [
                     'success' => true,
