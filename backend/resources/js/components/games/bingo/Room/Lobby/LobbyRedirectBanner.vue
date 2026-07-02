@@ -11,7 +11,7 @@ defineProps<{ show: boolean; secs?: number }>()
         <div>
           <p class="lby-redirect-banner__title">¡El sorteo ha comenzado!</p>
           <p class="lby-redirect-banner__sub">
-            Entrando al juego{{ secs ? ` en ${secs}s` : '…' }}
+            Entrando al juego{{ (secs != null && secs > 0) ? ` en ${secs}s` : '…' }}
           </p>
         </div>
       </div>

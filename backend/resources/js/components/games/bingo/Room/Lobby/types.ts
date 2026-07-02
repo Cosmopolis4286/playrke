@@ -23,7 +23,10 @@ export interface LobbyRoom {
   game_variant?: string | null
 }
 
-export interface LobbyLive {
+/** @deprecated Use LobbyLiveState */
+export type LobbyLive = LobbyLiveState
+
+export interface LobbyLiveState {
   prizePool: number
   totalPlayers: number
   totalCards: number

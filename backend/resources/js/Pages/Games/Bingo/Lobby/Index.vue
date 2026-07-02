@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, reactive, ref } from 'vue'
+import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 import type { Ref } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import BingoPurchaseModal from '@js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModal.vue'
@@ -45,11 +45,14 @@ const live = reactive({
 // ── Flash ──
 const prizeFlash   = ref(false)
 const playersFlash = ref(false)
-const flashTimers: ReturnType<typeof setTimeout>[] = []
+const flashTimers = new Set<ReturnType<typeof setTimeout>>()
 function flash(target: Ref<boolean>) {
   target.value = true
-  const t = setTimeout(() => { target.value = false }, 1800)
-  flashTimers.push(t)
+  const t = setTimeout(() => {
+    target.value = false
+    flashTimers.delete(t)
+  }, 1800)
+  flashTimers.add(t)
 }
 onUnmounted(() => { flashTimers.forEach(clearTimeout) })
 
@@ -74,6 +77,11 @@ const { redirecting, redirectSecs } = useLobbyRedirect(props.roomRouteKey, () =>
 // ── Modals ──
 const showRulesModal = ref(false)
 const modal = useGameRoomPurchaseModal()
+
+// Cierra el modal de compra si el sorteo arranca mientras está abierto
+watch(() => live.statusCode, (code) => {
+  if (code?.toUpperCase() === 'IN_PROGRESS' && modal.isOpen.value) modal.close()
+})
 
 // ── Computed ──
 const rate = computed(() => props.exchangeRate ?? 1)
@@ -206,6 +214,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
       :total-players="live.totalPlayers"
       :players="players.playersList.value"
       :loading="players.loading.value"
+      :fetch-error="players.fetchError.value"
       :current-user-id="userId"
       @close="players.close()"
     />

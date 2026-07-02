@@ -19,7 +19,7 @@ const bingoRoomImg = '/img/games/bingo/estelar_fd.png'
 
 const isActiveAndConnected = computed(() =>
   props.wsStatus === 'connected' &&
-  (props.live.statusCode || props.room?.status_code)?.toUpperCase() === 'ACTIVE'
+  props.live.statusCode?.toUpperCase() === 'ACTIVE'
 )
 
 const wsLabel = computed(() => ({
@@ -29,17 +29,18 @@ const wsLabel = computed(() => ({
   error:        'Error',
 }[props.wsStatus]))
 
-const formattedPrize = computed(() =>
-  (props.live.prizePool * props.rate).toFixed(2)
-)
+const fmt = new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const formatAmount = (val: number) => fmt.format(val * props.rate)
+
+const formattedPrize = computed(() => formatAmount(props.live.prizePool))
 
 const statusClass = computed(() => {
-  const c = (props.live.statusCode || (props.room?.status_code ?? 'desconocido')).toLowerCase()
+  const c = (props.live.statusCode || 'desconocido').toLowerCase()
   return `lby-status--${c}`
 })
 
 const roomStatusText = computed(() =>
-  BingoService.getRoomStatusText(props.live.statusCode || (props.room?.status_code ?? ''))
+  BingoService.getRoomStatusText(props.live.statusCode)
 )
 </script>
 
@@ -109,14 +110,14 @@ const roomStatusText = computed(() =>
             <div v-if="room.full_house_prize" class="lby-prize-sub__item">
               <span class="lby-prize-sub__lbl">Casa Llena</span>
               <span class="lby-prize-sub__val">
-                {{ (Number(room.full_house_prize) * rate).toFixed(2) }}
+                {{ formatAmount(Number(room.full_house_prize)) }}
                 <em class="lby-prize-sub__sym">{{ live.currencySymbol }}</em>
               </span>
             </div>
             <div v-if="room.serial_prize" class="lby-prize-sub__item">
               <span class="lby-prize-sub__lbl">Serial</span>
               <span class="lby-prize-sub__val">
-                {{ (Number(room.serial_prize) * rate).toFixed(2) }}
+                {{ formatAmount(Number(room.serial_prize)) }}
                 <em class="lby-prize-sub__sym">{{ live.currencySymbol }}</em>
               </span>
             </div>

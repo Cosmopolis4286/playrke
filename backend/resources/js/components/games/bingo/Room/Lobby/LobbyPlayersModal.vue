@@ -6,6 +6,7 @@ defineProps<{
   totalPlayers: number
   players: LobbyPlayer[]
   loading: boolean
+  fetchError: boolean
   currentUserId: string | number | null | undefined
 }>()
 
@@ -31,6 +32,9 @@ const emit = defineEmits<{ close: [] }>()
 
         <div v-if="loading" class="lby-modal__loading">
           <div class="lby-spinner" /> Cargando…
+        </div>
+        <div v-else-if="fetchError" class="lby-modal__empty lby-modal__empty--error">
+          <i class="fas fa-exclamation-circle" /> Error al cargar jugadores — intenta de nuevo
         </div>
         <div v-else-if="players.length === 0" class="lby-modal__empty">
           <i class="fas fa-user-slash" /> Sin jugadores registrados
@@ -129,6 +133,8 @@ const emit = defineEmits<{ close: [] }>()
   display: flex; align-items: center; gap: 10px;
   padding: 28px 18px; color: #4a6080; font-size: 11px;
 }
+.lby-modal__empty--error { color: #ff6e8a !important; }
+.lby-modal__empty--error i { color: #ff4d6d; }
 .lby-modal__empty {
   padding: 28px 18px; text-align: center; color: #3a5068; font-size: 11px;
   display: flex; align-items: center; justify-content: center; gap: 8px;
