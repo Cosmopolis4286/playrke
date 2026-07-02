@@ -30,16 +30,32 @@
          LAST DRAWN CHIP
     ═══════════════════════════════ -->
     <Transition name="bb-pop">
-      <div v-if="currentNumber !== null" class="bb-last">
-        <div class="bb-last__ring" />
-        <div class="bb-last__chip" :class="`bb-last__chip--${colLabel(currentNumber)}`">
-          <span class="bb-last__letter">{{ colLabel(currentNumber) }}</span>
-          <span class="bb-last__num">{{ currentNumber }}</span>
+      <div v-if="currentNumber !== null" class="bb-last" :class="`bb-last--${colLabel(currentNumber)}`">
+        <!-- glow backdrop -->
+        <div class="bb-last__glow" :class="`bb-last__glow--${colLabel(currentNumber)}`" />
+
+        <!-- left: bola estilo bingo -->
+        <div class="bb-last__ball" :class="`bb-last__ball--${colLabel(currentNumber)}`">
+          <div class="bb-last__ball-inner">
+            <span class="bb-last__ball-letter">{{ colLabel(currentNumber) }}</span>
+            <span class="bb-last__ball-num">{{ currentNumber }}</span>
+          </div>
+          <div class="bb-last__ball-shine" />
         </div>
-        <div class="bb-last__meta">
-          <span class="bb-last__pos-badge">#{{ calledNumbers.length }}</span>
-          <span class="bb-last__label">ÚLTIMO SORTEADO</span>
-          <span v-if="lastCalledAt" class="bb-last__time">{{ lastCalledAt }}</span>
+
+        <!-- center: info -->
+        <div class="bb-last__info">
+          <div class="bb-last__tag">ÚLTIMO SORTEADO</div>
+          <div class="bb-last__pos">#{{ calledNumbers.length }}</div>
+          <div v-if="lastCalledAt" class="bb-last__time">
+            <i class="fas fa-clock" />{{ lastCalledAt }}
+          </div>
+        </div>
+
+        <!-- right: pulse rings -->
+        <div class="bb-last__rings">
+          <div class="bb-last__ring bb-last__ring--1" :class="`bb-last__ring--c-${colLabel(currentNumber)}`" />
+          <div class="bb-last__ring bb-last__ring--2" :class="`bb-last__ring--c-${colLabel(currentNumber)}`" />
         </div>
       </div>
     </Transition>
@@ -69,7 +85,7 @@
             :key="number"
             class="bb-cell"
             :class="{
-              'bb-cell--called': calledNumbers.includes(number),
+              'bb-cell--called': calledNumbers.includes(number) && number !== currentNumber,
               'bb-cell--last':   number === currentNumber,
               'bb-cell--new':    number === newestNumber,
             }"
@@ -78,11 +94,11 @@
             @mouseleave="hideTooltip"
           >
             <span class="bb-cell__n">{{ number }}</span>
-            <!-- position micro-badge, only on called cells -->
-            <span v-if="calledNumbers.includes(number)" class="bb-cell__badge"
-              :class="{ 'bb-cell__badge--last': number === currentNumber }">
-              #{{ drawPos(number) }}
-            </span>
+            <!-- badge solo en celdas llamadas que NO son la última -->
+            <span
+              v-if="calledNumbers.includes(number) && number !== currentNumber"
+              class="bb-cell__badge"
+            >#{{ drawPos(number) }}</span>
           </div>
         </div>
       </div>
@@ -312,76 +328,138 @@ watch(() => props.variant, () => nextTick(updateLayout));
 
 /* ═══ Last drawn chip ════════════════════════════════════════════════════════ */
 .bb-last {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: rgba(255,215,0,0.05);
-  border: 1px solid rgba(255,215,0,0.18);
-  border-radius: 10px;
-  padding: 8px 14px;
-  position: relative;
+  gap: 14px;
+  border-radius: 12px;
+  padding: 10px 16px 10px 12px;
+  background: rgba(10,14,32,0.80);
+  border: 1px solid rgba(255,255,255,0.08);
   overflow: hidden;
+  min-height: 64px;
 }
-.bb-last::before {
-  content: '';
+
+/* glow backdrop — color por letra */
+.bb-last__glow {
   position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 0% 50%, rgba(255,215,0,0.08) 0%, transparent 70%);
+  opacity: 0.18;
   pointer-events: none;
+  border-radius: inherit;
+}
+.bb-last__glow--B { background: radial-gradient(ellipse at 15% 50%, #3b82f6 0%, transparent 65%); }
+.bb-last__glow--I { background: radial-gradient(ellipse at 15% 50%, #ef4444 0%, transparent 65%); }
+.bb-last__glow--N { background: radial-gradient(ellipse at 15% 50%, #22c55e 0%, transparent 65%); }
+.bb-last__glow--G { background: radial-gradient(ellipse at 15% 50%, #eab308 0%, transparent 65%); }
+.bb-last__glow--O { background: radial-gradient(ellipse at 15% 50%, #a855f7 0%, transparent 65%); }
+.bb-last__glow--1,.bb-last__glow--2,.bb-last__glow--3,
+.bb-last__glow--4,.bb-last__glow--5,.bb-last__glow--6,
+.bb-last__glow--7,.bb-last__glow--8,.bb-last__glow--9 {
+  background: radial-gradient(ellipse at 15% 50%, #6366f1 0%, transparent 65%);
+}
+
+/* ── Bola ── */
+.bb-last__ball {
+  position: relative;
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  z-index: 2;
+}
+.bb-last__ball--B { background: radial-gradient(circle at 35% 30%, #60a5fa, #1d4ed8 70%); box-shadow: 0 4px 18px rgba(59,130,246,0.55), 0 0 30px rgba(59,130,246,0.20); }
+.bb-last__ball--I { background: radial-gradient(circle at 35% 30%, #f87171, #b91c1c 70%); box-shadow: 0 4px 18px rgba(239,68,68,0.55),  0 0 30px rgba(239,68,68,0.20); }
+.bb-last__ball--N { background: radial-gradient(circle at 35% 30%, #4ade80, #15803d 70%); box-shadow: 0 4px 18px rgba(34,197,94,0.55),  0 0 30px rgba(34,197,94,0.20); }
+.bb-last__ball--G { background: radial-gradient(circle at 35% 30%, #fde047, #a16207 70%); box-shadow: 0 4px 18px rgba(234,179,8,0.55),  0 0 30px rgba(234,179,8,0.20); }
+.bb-last__ball--O { background: radial-gradient(circle at 35% 30%, #d8b4fe, #7e22ce 70%); box-shadow: 0 4px 18px rgba(168,85,247,0.55), 0 0 30px rgba(168,85,247,0.20); }
+.bb-last__ball--1,.bb-last__ball--2,.bb-last__ball--3,
+.bb-last__ball--4,.bb-last__ball--5,.bb-last__ball--6,
+.bb-last__ball--7,.bb-last__ball--8,.bb-last__ball--9 {
+  background: radial-gradient(circle at 35% 30%, #a5b4fc, #4338ca 70%);
+  box-shadow: 0 4px 18px rgba(99,102,241,0.55), 0 0 30px rgba(99,102,241,0.20);
+}
+
+/* brillo superior */
+.bb-last__ball-shine {
+  position: absolute;
+  top: 8px; left: 9px;
+  width: 22px; height: 14px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.30);
+  filter: blur(3px);
+  pointer-events: none;
+}
+
+.bb-last__ball-inner {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 0;
+  z-index: 1;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+.bb-last__ball-letter {
+  font-size: 9px; font-weight: 900; line-height: 1;
+  color: rgba(255,255,255,0.85); letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.bb-last__ball-num {
+  font-size: 22px; font-weight: 900; line-height: 1;
+  color: #fff;
+  font-family: 'Anton', sans-serif;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+
+/* ── Info central ── */
+.bb-last__info {
+  display: flex; flex-direction: column; gap: 3px;
+  z-index: 2; flex: 1;
+}
+.bb-last__tag {
+  font-size: 8px; font-weight: 800; letter-spacing: 1px;
+  text-transform: uppercase; color: #3a4a70;
+}
+.bb-last__pos {
+  font-size: 26px; font-weight: 900; line-height: 1;
+  color: #e0eaff;
+  font-family: 'Anton', sans-serif;
+}
+.bb-last__time {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700; color: #5a6a8a;
+  font-variant-numeric: tabular-nums;
+}
+.bb-last__time i { font-size: 9px; }
+
+/* ── Anillos de pulso (derecha) ── */
+.bb-last__rings {
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  width: 44px; height: 44px;
+  pointer-events: none; z-index: 1;
 }
 .bb-last__ring {
   position: absolute;
-  width: 56px; height: 56px;
+  inset: 0;
   border-radius: 50%;
-  border: 1px solid rgba(255,215,0,0.20);
-  left: 6px; top: 50%; transform: translateY(-50%);
-  animation: bb-ring-pulse 2s ease-in-out infinite;
+  border: 1.5px solid;
+  opacity: 0;
 }
-@keyframes bb-ring-pulse {
-  0%,100% { transform: translateY(-50%) scale(1); opacity: 0.4; }
-  50%     { transform: translateY(-50%) scale(1.15); opacity: 0.1; }
-}
+.bb-last__ring--1 { animation: bb-ring-out 2s ease-out infinite; }
+.bb-last__ring--2 { animation: bb-ring-out 2s ease-out 0.7s infinite; }
 
-.bb-last__chip {
-  width: 44px; height: 44px; border-radius: 10px;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 0; flex-shrink: 0; z-index: 1;
-  font-weight: 900;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-}
-.bb-last__letter { font-size: 10px; line-height: 1; }
-.bb-last__num    { font-size: 18px; line-height: 1; font-family: 'Anton', sans-serif; }
+.bb-last__ring--c-B { border-color: #3b82f6; }
+.bb-last__ring--c-I { border-color: #ef4444; }
+.bb-last__ring--c-N { border-color: #22c55e; }
+.bb-last__ring--c-G { border-color: #eab308; }
+.bb-last__ring--c-O { border-color: #a855f7; }
+.bb-last__ring--c-1,.bb-last__ring--c-2,.bb-last__ring--c-3,
+.bb-last__ring--c-4,.bb-last__ring--c-5,.bb-last__ring--c-6,
+.bb-last__ring--c-7,.bb-last__ring--c-8,.bb-last__ring--c-9 { border-color: #6366f1; }
 
-.bb-last__chip--B { background: linear-gradient(135deg, #1d4ed8, #3b82f6); color: #fff; }
-.bb-last__chip--I { background: linear-gradient(135deg, #b91c1c, #ef4444); color: #fff; }
-.bb-last__chip--N { background: linear-gradient(135deg, #15803d, #22c55e); color: #fff; }
-.bb-last__chip--G { background: linear-gradient(135deg, #a16207, #eab308); color: #fff; }
-.bb-last__chip--O { background: linear-gradient(135deg, #7e22ce, #a855f7); color: #fff; }
-.bb-last__chip--1,.bb-last__chip--2,.bb-last__chip--3,
-.bb-last__chip--4,.bb-last__chip--5,.bb-last__chip--6,
-.bb-last__chip--7,.bb-last__chip--8,.bb-last__chip--9 {
-  background: linear-gradient(135deg, #4338ca, #6366f1); color: #fff;
-}
-
-.bb-last__meta {
-  display: flex; flex-direction: column; gap: 2px; z-index: 1;
-}
-.bb-last__pos-badge {
-  display: inline-block;
-  background: rgba(255,215,0,0.18);
-  border: 1px solid rgba(255,215,0,0.35);
-  color: #ffd700;
-  font-size: 10px; font-weight: 800;
-  border-radius: 4px; padding: 1px 6px;
-  width: fit-content;
-}
-.bb-last__label {
-  font-size: 8px; font-weight: 800; color: #4a5a88;
-  text-transform: uppercase; letter-spacing: 0.8px;
-}
-.bb-last__time {
-  font-size: 12px; font-weight: 700; color: #a0b0d0;
-  font-variant-numeric: tabular-nums;
+@keyframes bb-ring-out {
+  0%   { transform: scale(0.6); opacity: 0.7; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 
 /* ═══ Board wrap ═════════════════════════════════════════════════════════════ */
