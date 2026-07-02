@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
-import type { LobbyRoom, LobbyLive } from './types'
+import type { LobbyRoom, LobbyLiveState } from './types'
 
 defineProps<{
   room: LobbyRoom
-  live: LobbyLive
+  live: LobbyLiveState
   roomRouteKey: string
   canNavigateGame: boolean
   canPurchaseCards: boolean
+  redirecting: boolean
   playersFlash: boolean
   minCardsToStart: number | null
   cardsProgressReady: boolean
@@ -80,17 +81,23 @@ const emit = defineEmits<{
     <!-- Acciones -->
     <div class="lby-actions">
       <Link
-        v-if="canNavigateGame"
+        v-if="canNavigateGame && !redirecting"
         :href="`/bingo/${roomRouteKey}/game`"
         class="lby-btn lby-btn--play"
       >
         <i class="fas fa-play" /> Entrar al Juego
       </Link>
       <button v-else class="lby-btn lby-btn--disabled" disabled>
-        <i class="fas fa-play" /> Entrar al Juego
+        <i :class="redirecting ? 'fas fa-spinner fa-spin' : 'fas fa-play'" />
+        {{ redirecting ? 'Redirigiendo…' : 'Entrar al Juego' }}
       </button>
 
-      <button v-if="canPurchaseCards" class="lby-btn lby-btn--buy" @click="emit('openPurchase')">
+      <button
+        v-show="canPurchaseCards"
+        class="lby-btn lby-btn--buy"
+        :aria-hidden="!canPurchaseCards"
+        @click="emit('openPurchase')"
+      >
         <i class="fas fa-plus" />
         {{ live.userCards > 0 ? 'Más cartones' : 'Comprar cartones' }}
       </button>

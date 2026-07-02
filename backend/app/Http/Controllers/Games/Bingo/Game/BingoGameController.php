@@ -97,7 +97,6 @@ final class BingoGameController extends Controller
                     'time'                  => $config?->time,
                     'time_chip'             => $config?->time_chip,
                     'rounds'                => $config?->rounds,
-                    'in_live'               => (bool) $config?->in_live,
                     'min_cards_to_start'    => $config?->min_cards_to_start,
                     'game_variant'          => $config?->game_variant,
                 ];

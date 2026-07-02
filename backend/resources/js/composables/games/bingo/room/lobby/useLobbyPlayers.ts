@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 
 export interface LobbyPlayer {
   user_id: string
@@ -12,6 +12,7 @@ export function useLobbyPlayers(roomRouteKey: string | undefined, totalPlayers: 
   const playersList = ref<LobbyPlayer[]>([])
   const loading     = ref(false)
   const fetchError  = ref(false)
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
   async function open() {
     showModal.value  = true
@@ -40,8 +41,15 @@ export function useLobbyPlayers(roomRouteKey: string | undefined, totalPlayers: 
 
   watch(totalPlayers, () => {
     playersList.value = []
-    if (showModal.value) open()
+    if (!showModal.value) return
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null
+      open()
+    }, 400)
   })
+
+  onUnmounted(() => { if (debounceTimer) clearTimeout(debounceTimer) })
 
   return { showModal, playersList, loading, fetchError, open, close }
 }
