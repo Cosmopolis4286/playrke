@@ -10,7 +10,7 @@ export function useLobbyCountdown(getUnixDate: (() => number | null | undefined)
 
   function update() {
     const unixDate = resolve()
-    if (!unixDate) { countdown.value = ''; return }
+    if (unixDate == null) { countdown.value = ''; return }
     const diff = unixDate - Math.floor(Date.now() / 1000)
     if (diff <= 0) {
       isLive.value    = true
@@ -32,7 +32,7 @@ export function useLobbyCountdown(getUnixDate: (() => number | null | undefined)
   function start() {
     if (timer) { clearInterval(timer); timer = null }
     update()
-    if (resolve()) timer = setInterval(update, 1000)
+    if (resolve() != null) timer = setInterval(update, 1000)
   }
 
   // Reacciona si la fecha cambia (ej. backend la actualiza)

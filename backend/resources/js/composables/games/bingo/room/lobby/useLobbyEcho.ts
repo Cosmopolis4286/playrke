@@ -1,17 +1,9 @@
-import { onUnmounted, ref } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import echo from '@/js/plugins/echo'
+import type { LobbyLiveState } from '@js/Components/Games/Bingo/Room/Lobby/types'
 
 export type WsStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
-
-export interface LobbyLiveState {
-  prizePool: number
-  totalPlayers: number
-  totalCards: number
-  userCards: number
-  statusCode: string
-  cardPrice: number
-  currencySymbol: string
-}
+export type { LobbyLiveState }
 
 interface RoomUpdatedPayload {
   room_id: string
@@ -19,7 +11,6 @@ interface RoomUpdatedPayload {
   total_players: number
   total_cards: number
   card_price_usd: number
-  /** Presente solo cuando cambia el estado de la sala */
   status_code?: string
 }
 
@@ -30,20 +21,6 @@ interface PlayerCardsUpdatedPayload {
   currency_symbol: string | null
 }
 
-/**
- * Gestiona todas las suscripciones WebSocket del lobby de una sala.
- *
- * Canales:
- *  - `bingo.room.{roomId}` (público) → `.RoomUpdated`: prize_pool, total_players, total_cards
- *  - `bingo.player.{userId}` (privado) → `.PlayerCardsUpdated`: cartones del usuario actual
- *
- * @param roomId   - ID Snowflake de la sala
- * @param userId   - ID del usuario autenticado (null → no suscribe canal privado)
- * @param live     - Estado reactivo mutable del lobby (se parchea in-place)
- * @param onPrizeChanged   - Callback cuando cambia el prize_pool (para flash)
- * @param onPlayersChanged - Callback cuando cambia total_players (para flash)
- * @param onCardsUpdated   - Callback cuando se actualiza el precio/moneda del usuario
- */
 export function useLobbyEcho(
   roomId: string,
   userId: (() => string | number | null | undefined) | string | number | null | undefined,
@@ -95,11 +72,26 @@ export function useLobbyEcho(
     }
   })
 
-  // ── Canal privado del jugador ──
-  const resolvedUserId = typeof userId === 'function' ? userId() : userId
-  const privateChannelName = resolvedUserId ? `bingo.player.${resolvedUserId}` : null
-  if (privateChannelName) {
-    echo.private(privateChannelName).listen('.PlayerCardsUpdated', (payload: PlayerCardsUpdatedPayload) => {
+  // ── Canal privado del jugador — reactivo al userId ──
+  // userId puede llegar null en el primer render (auth aún cargando).
+  // watch lo suscribe en cuanto el valor esté disponible.
+  const getUserId = typeof userId === 'function' ? userId : () => userId
+  let currentPrivateChannel: string | null = null
+
+  function subscribePrivate(id: string | number | null | undefined) {
+    const channelName = id ? `bingo.player.${id}` : null
+
+    if (channelName === currentPrivateChannel) return
+
+    if (currentPrivateChannel) {
+      echo.leaveChannel(currentPrivateChannel)
+      currentPrivateChannel = null
+    }
+
+    if (!channelName) return
+
+    currentPrivateChannel = channelName
+    echo.private(channelName).listen('.PlayerCardsUpdated', (payload: PlayerCardsUpdatedPayload) => {
       if (payload.room_id !== roomId) return
       live.userCards = payload.ctns
       ownPurchasePending = true
@@ -107,9 +99,11 @@ export function useLobbyEcho(
     })
   }
 
+  watch(getUserId, subscribePrivate, { immediate: true })
+
   onUnmounted(() => {
     echo.leaveChannel(roomChannelName)
-    if (privateChannelName) echo.leaveChannel(privateChannelName)
+    if (currentPrivateChannel) echo.leaveChannel(currentPrivateChannel)
 
     pusher.connection.unbind('connected',    onConnected)
     pusher.connection.unbind('disconnected', onDisconnected)

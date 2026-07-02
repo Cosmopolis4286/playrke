@@ -8,12 +8,14 @@ export interface LobbyPlayer {
 }
 
 export function useLobbyPlayers(roomRouteKey: string | undefined, totalPlayers: () => number) {
-  const showModal    = ref(false)
-  const playersList  = ref<LobbyPlayer[]>([])
-  const loading      = ref(false)
+  const showModal   = ref(false)
+  const playersList = ref<LobbyPlayer[]>([])
+  const loading     = ref(false)
+  const fetchError  = ref(false)
 
   async function open() {
-    showModal.value = true
+    showModal.value  = true
+    fetchError.value = false
     if (playersList.value.length > 0) return
     loading.value = true
     try {
@@ -25,22 +27,21 @@ export function useLobbyPlayers(roomRouteKey: string | undefined, totalPlayers: 
       playersList.value = data.players ?? []
     } catch {
       playersList.value = []
+      fetchError.value  = true
     } finally {
       loading.value = false
     }
   }
 
-  function close() { showModal.value = false }
+  function close() {
+    showModal.value  = false
+    fetchError.value = false
+  }
 
-  // Recarga automática si el modal está abierto; si está cerrado, solo invalida caché
   watch(totalPlayers, () => {
-    if (showModal.value) {
-      playersList.value = []
-      open()
-    } else {
-      playersList.value = []
-    }
+    playersList.value = []
+    if (showModal.value) open()
   })
 
-  return { showModal, playersList, loading, open, close }
+  return { showModal, playersList, loading, fetchError, open, close }
 }
