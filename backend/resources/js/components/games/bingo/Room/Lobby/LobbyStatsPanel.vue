@@ -1,0 +1,199 @@
+<script setup lang="ts">
+import { Link } from '@inertiajs/vue3'
+import type { LobbyRoom, LobbyLive } from './types'
+
+defineProps<{
+  room: LobbyRoom
+  live: LobbyLive
+  roomRouteKey: string
+  canNavigateGame: boolean
+  canPurchaseCards: boolean
+  playersFlash: boolean
+  minCardsToStart: number | null
+  cardsProgressReady: boolean
+}>()
+
+const emit = defineEmits<{
+  openPlayers: []
+  openPurchase: []
+}>()
+</script>
+
+<template>
+  <div class="lby-panel">
+    <!-- Stats -->
+    <div class="lby-stats">
+      <div
+        class="lby-stat lby-stat--clickable"
+        :class="{ 'lby-flash': playersFlash }"
+        title="Ver lista de jugadores"
+        @click="emit('openPlayers')"
+      >
+        <div class="lby-stat__icon-wrap"><i class="fas fa-users" /></div>
+        <span class="lby-stat__val">{{ live.totalPlayers }}</span>
+        <span class="lby-stat__lbl">Jugadores</span>
+      </div>
+
+      <div class="lby-stat lby-stat--mine">
+        <div class="lby-stat__icon-wrap"><i class="fas fa-ticket-alt" /></div>
+        <span class="lby-stat__val">{{ live.userCards }}</span>
+        <span class="lby-stat__lbl">Mis cartones</span>
+      </div>
+
+      <div
+        class="lby-stat"
+        :class="{ 'lby-stat--ready': cardsProgressReady, 'lby-stat--closed': room.close_room }"
+      >
+        <div class="lby-stat__icon-wrap">
+          <i :class="minCardsToStart
+            ? (cardsProgressReady ? 'fas fa-check-circle' : 'fas fa-hourglass-half')
+            : (room.close_room ? 'fas fa-lock' : 'fas fa-lock-open')" />
+        </div>
+        <span class="lby-stat__val lby-stat__val--sm">
+          <template v-if="minCardsToStart">
+            {{ cardsProgressReady ? '¡Listo!' : minCardsToStart - live.totalCards }}
+          </template>
+          <template v-else>
+            {{ room.close_room ? 'Cerrada' : 'Abierta' }}
+          </template>
+        </span>
+        <span class="lby-stat__lbl">
+          {{ minCardsToStart ? (cardsProgressReady ? 'Meta alcanzada' : 'Faltan') : 'Sala' }}
+        </span>
+      </div>
+
+      <div v-if="live.cardPrice" class="lby-stat">
+        <div class="lby-stat__icon-wrap"><i class="fas fa-tag" /></div>
+        <span class="lby-stat__val">{{ Number(live.cardPrice).toFixed(2) }}</span>
+        <span class="lby-stat__lbl">Precio / cartón</span>
+      </div>
+
+      <div v-if="room.time_chip" class="lby-stat">
+        <div class="lby-stat__icon-wrap"><i class="fas fa-stopwatch" /></div>
+        <span class="lby-stat__val">{{ room.time_chip }}s</span>
+        <span class="lby-stat__lbl">Tiempo ficha</span>
+      </div>
+    </div>
+
+    <div class="lby-divider" />
+
+    <!-- Acciones -->
+    <div class="lby-actions">
+      <Link
+        v-if="canNavigateGame"
+        :href="`/bingo/${roomRouteKey}/game`"
+        class="lby-btn lby-btn--play"
+      >
+        <i class="fas fa-play" /> Entrar al Juego
+      </Link>
+      <button v-else class="lby-btn lby-btn--disabled" disabled>
+        <i class="fas fa-play" /> Entrar al Juego
+      </button>
+
+      <button v-if="canPurchaseCards" class="lby-btn lby-btn--buy" @click="emit('openPurchase')">
+        <i class="fas fa-plus" />
+        {{ live.userCards > 0 ? 'Más cartones' : 'Comprar cartones' }}
+      </button>
+    </div>
+
+    <p v-if="!canNavigateGame" class="lby-warn">
+      <i class="fas fa-exclamation-triangle" /> Sala sin clave válida — recarga la página.
+    </p>
+  </div>
+</template>
+
+<style scoped>
+.lby-panel {
+  background: rgba(255,255,255,.022); border: 1px solid rgba(255,255,255,.07);
+  border-radius: 13px; padding: 10px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.45); backdrop-filter: blur(6px);
+}
+.lby-stats { display: flex; gap: 6px; align-items: stretch; }
+.lby-stat {
+  flex: 1; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
+  border-radius: 9px; padding: 6px 5px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transition: border-color .2s, transform .18s, background .2s; min-width: 0;
+}
+.lby-stat:hover { border-color: rgba(42,245,152,.2); background: rgba(42,245,152,.03); transform: translateY(-1px); }
+.lby-stat--mine  { border-color: rgba(42,245,152,.15); background: rgba(42,245,152,.04); }
+.lby-stat--mine:hover { border-color: rgba(42,245,152,.32); }
+.lby-stat--ready { border-color: rgba(42,245,152,.2); background: rgba(42,245,152,.04); }
+.lby-stat--ready .lby-stat__icon-wrap { color: #2af598; border-color: rgba(42,245,152,.25); background: rgba(42,245,152,.1); }
+.lby-stat--ready .lby-stat__val { color: #2af598; }
+.lby-stat--closed { border-color: rgba(255,77,109,.15); background: rgba(255,77,109,.03); }
+.lby-stat--closed .lby-stat__icon-wrap { color: #ff6e8a; border-color: rgba(255,77,109,.2); background: rgba(255,77,109,.08); }
+.lby-stat--closed .lby-stat__val { color: #ff6e8a; }
+
+.lby-stat__icon-wrap {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #3a5068;
+  transition: background .2s, color .2s, border-color .2s;
+}
+.lby-stat:hover .lby-stat__icon-wrap { background: rgba(42,245,152,.1); border-color: rgba(42,245,152,.25); color: #2af598; }
+.lby-stat--mine .lby-stat__icon-wrap { color: #2af598; border-color: rgba(42,245,152,.2); background: rgba(42,245,152,.08); }
+
+.lby-stat__val     { font-family: 'Anton', sans-serif; font-size: 16px; color: #c8d8f0; line-height: 1; }
+.lby-stat__val--sm { font-size: 12px; }
+.lby-stat--mine .lby-stat__val { color: #2af598; }
+.lby-stat__lbl { font-size: 7px; color: #2a3f58; text-transform: uppercase; letter-spacing: .6px; text-align: center; white-space: nowrap; }
+
+.lby-stat--clickable { cursor: pointer; }
+.lby-stat--clickable:hover { border-color: rgba(100,170,216,.3) !important; background: rgba(40,110,190,.06) !important; }
+.lby-stat--clickable:hover .lby-stat__icon-wrap { background: rgba(40,110,190,.15) !important; border-color: rgba(40,110,190,.3) !important; color: #6aaad8 !important; }
+
+.lby-divider { height: 1px; background: rgba(255,255,255,.05); margin: 0 -2px; }
+
+.lby-actions { display: flex; gap: 8px; }
+.lby-btn {
+  height: 38px; padding: 0 18px; border: none; border-radius: 10px;
+  font-size: 11px; font-weight: 800; letter-spacing: .9px; text-transform: uppercase;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+  text-decoration: none; white-space: nowrap; min-width: 0; flex: 1;
+  position: relative; overflow: hidden;
+  transition: transform .15s, box-shadow .2s, filter .2s;
+}
+.lby-btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.1) 50%, transparent 100%);
+  transform: translateX(-100%); transition: transform .5s ease;
+}
+.lby-btn:hover::after { transform: translateX(100%); }
+.lby-btn--play {
+  background: linear-gradient(100deg, #14804e 0%, #2af598 100%); color: #021a0c;
+  box-shadow: 0 6px 24px rgba(42,245,152,.24), inset 0 1px 0 rgba(255,255,255,.12);
+}
+.lby-btn--play:hover {
+  filter: brightness(1.08); transform: translateY(-2px);
+  box-shadow: 0 10px 32px rgba(42,245,152,.38), inset 0 1px 0 rgba(255,255,255,.15);
+}
+.lby-btn--buy {
+  background: rgba(200,150,0,.08); border: 1px solid rgba(255,191,0,.22); color: #c89020;
+  box-shadow: 0 3px 14px rgba(0,0,0,.3);
+}
+.lby-btn--buy:hover {
+  background: rgba(255,191,0,.12); border-color: rgba(255,191,0,.42);
+  transform: translateY(-2px); box-shadow: 0 7px 22px rgba(0,0,0,.38);
+}
+.lby-btn--disabled {
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05);
+  color: #2a3f58; cursor: not-allowed;
+}
+.lby-btn--disabled::after { display: none; }
+.lby-warn {
+  font-size: 10px; color: #907020; text-align: center; margin: 0;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.lby-flash { animation: lbyFlash 1.8s ease-in-out; }
+@keyframes lbyFlash { 0%,100%{filter:none} 40%{filter:drop-shadow(0 0 12px rgba(42,245,152,.7)) brightness(1.2)} }
+
+@media (max-width: 640px) { .lby-actions { flex-direction: column; } }
+@media (max-width: 480px) {
+  .lby-panel { padding: 10px 12px; }
+  .lby-stats { flex-wrap: wrap; }
+  .lby-stat  { min-width: calc(50% - 3px); }
+}
+</style>
