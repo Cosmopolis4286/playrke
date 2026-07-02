@@ -13,6 +13,7 @@ const emit = defineEmits<{ close: [] }>()
 </script>
 
 <template>
+  <Teleport to="body">
   <Transition name="lby-modal">
     <div v-if="show" class="lby-overlay" @click.self="emit('close')">
       <div class="lby-modal">
@@ -85,11 +86,12 @@ const emit = defineEmits<{ close: [] }>()
       </div>
     </div>
   </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
 .lby-overlay {
-  position: fixed; inset: 0; z-index: 400;
+  position: fixed; inset: 0; z-index: 9000;
   background: rgba(2,5,16,.78); backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }

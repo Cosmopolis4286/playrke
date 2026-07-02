@@ -1,24 +1,28 @@
 <script setup lang="ts">
-defineProps<{ show: boolean }>()
+defineProps<{ show: boolean; secs?: number }>()
 </script>
 
 <template>
+  <Teleport to="body">
   <Transition name="lby-redirect">
     <div v-if="show" class="lby-redirect-banner">
       <div class="lby-redirect-banner__inner">
         <div class="lby-redirect-banner__spinner" />
         <div>
           <p class="lby-redirect-banner__title">¡El sorteo ha comenzado!</p>
-          <p class="lby-redirect-banner__sub">Entrando al juego…</p>
+          <p class="lby-redirect-banner__sub">
+            Entrando al juego{{ secs ? ` en ${secs}s` : '…' }}
+          </p>
         </div>
       </div>
     </div>
   </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
 .lby-redirect-banner {
-  position: fixed; inset: 0; z-index: 500;
+  position: fixed; inset: 0; z-index: 9000;
   background: rgba(2,5,16,.82); backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center;
 }

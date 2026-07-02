@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, onUnmounted, reactive, ref } from 'vue'
+import type { Ref } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import { BingoService } from '@js/Services/bingoService'
 import BingoPurchaseModal from '@js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModal.vue'
 import BingoRulesModal   from '@js/Pages/Games/Bingo/Config/Rules/BingoRulesModal.vue'
 import LobbyHero          from '@js/Components/Games/Bingo/Room/Lobby/LobbyHero.vue'
@@ -16,7 +16,6 @@ import { useLobbyCountdown } from '@js/composables/games/bingo/room/lobby/useLob
 import { useLobbyToasts }    from '@js/composables/games/bingo/room/lobby/useLobbyToasts'
 import { useLobbyPlayers }   from '@js/composables/games/bingo/room/lobby/useLobbyPlayers'
 import { useLobbyRedirect }  from '@js/composables/games/bingo/room/lobby/useLobbyRedirect'
-import { ref } from 'vue'
 import type { LobbyRoom } from '@js/Components/Games/Bingo/Room/Lobby/types'
 import type { BingoGameRoom } from '@js/types/games/bingo/room/game-rooms/bingo-game-room'
 
@@ -46,17 +45,20 @@ const live = reactive({
 // ── Flash ──
 const prizeFlash   = ref(false)
 const playersFlash = ref(false)
-function flash(target: ReturnType<typeof ref<boolean>>) {
+const flashTimers: ReturnType<typeof setTimeout>[] = []
+function flash(target: Ref<boolean>) {
   target.value = true
-  setTimeout(() => { target.value = false }, 1800)
+  const t = setTimeout(() => { target.value = false }, 1800)
+  flashTimers.push(t)
 }
+onUnmounted(() => { flashTimers.forEach(clearTimeout) })
 
 // ── Composables ──
 const { saleToasts, pushSaleToast } = useLobbyToasts()
-const { countdown, isLive, isUrgent } = useLobbyCountdown(props.room?.unix_date)
+const { countdown, isLive, isUrgent } = useLobbyCountdown(() => props.room?.unix_date)
 
 const userId = computed(() => page.props.auth?.user?.id ?? null)
-const { wsStatus } = useLobbyEcho(props.room.id, userId.value, live, {
+const { wsStatus } = useLobbyEcho(props.room.id, () => userId.value, live, {
   onPrizeChanged:   () => flash(prizeFlash),
   onPlayersChanged: () => flash(playersFlash),
   onCardsChanged:   (total) => pushSaleToast(total),
@@ -67,7 +69,7 @@ const { wsStatus } = useLobbyEcho(props.room.id, userId.value, live, {
 })
 
 const players = useLobbyPlayers(props.roomRouteKey, () => live.totalPlayers)
-const { redirecting } = useLobbyRedirect(props.roomRouteKey, () => live.statusCode)
+const { redirecting, redirectSecs } = useLobbyRedirect(props.roomRouteKey, () => live.statusCode)
 
 // ── Modals ──
 const showRulesModal = ref(false)
@@ -76,9 +78,7 @@ const modal = useGameRoomPurchaseModal()
 // ── Computed ──
 const rate = computed(() => props.exchangeRate ?? 1)
 
-const roomRouteKey = computed(() =>
-  props.roomRouteKey?.trim() || props.room?.id?.toString() || ''
-)
+const roomRouteKey = computed(() => props.roomRouteKey?.trim() ?? '')
 
 const canNavigateGame = computed(() => Boolean(props.roomRouteKey?.trim()))
 
@@ -87,26 +87,6 @@ const canPurchaseCards = computed(() =>
   live.statusCode?.toUpperCase() === 'ACTIVE' &&
   !props.room.close_room
 )
-
-const statusClass = computed(() => {
-  const c = (live.statusCode || (props.room?.status_code ?? 'desconocido')).toLowerCase()
-  return `lby-status--${c}`
-})
-
-const roomStatusText = computed(() =>
-  BingoService.getRoomStatusText(live.statusCode || (props.room?.status_code ?? ''))
-)
-
-const formattedPrize = computed(() =>
-  typeof live.prizePool === 'number' ? (live.prizePool * rate.value).toFixed(2) : '0.00'
-)
-
-const wsLabel = computed(() => ({
-  connected:    'En vivo',
-  connecting:   'Conectando…',
-  disconnected: 'Sin conexión',
-  error:        'Error',
-}[wsStatus.value]))
 
 const minCardsToStart = computed(() => props.room?.min_cards_to_start ?? null)
 
@@ -124,33 +104,35 @@ const cardsProgressReady = computed(() =>
 )
 
 // ── Purchase ──
-const roomAsGameRoom = computed((): BingoGameRoom => ({
-  id:              props.room.id,
-  encrypted:       props.roomRouteKey ?? undefined,
-  uuid_code:       props.room.uuid_code ?? null,
-  prize_pool:      live.prizePool,
-  total_players:   live.totalPlayers,
-  creator_user_id: '',
-  room_type:       'PUBLIC',
-  game_mode:       props.room.game_mode_description ?? null,
-  status_code:     live.statusCode,
-  currency_symbol: live.currencySymbol,
-  card_price:      live.cardPrice,
-  players_room:    [{ ctns: live.userCards }],
-  config: props.room.unix_date ? {
-    room_id:         props.room.id,
-    card_price_usd:  props.room.card_price_usd ?? 0,
-    prize_pool_type: 1,
-    unix_date:       props.room.unix_date,
-    date:            props.room.date ?? '',
-    time:            props.room.time ?? '',
-    game_variant:    props.room.game_variant ?? null,
-  } : null,
-}))
+function buildRoomSnapshot(): BingoGameRoom {
+  return {
+    id:              props.room.id,
+    encrypted:       props.roomRouteKey ?? undefined,
+    uuid_code:       props.room.uuid_code ?? null,
+    prize_pool:      live.prizePool,
+    total_players:   live.totalPlayers,
+    creator_user_id: '',
+    room_type:       'PUBLIC',
+    game_mode:       props.room.game_mode_description ?? null,
+    status_code:     live.statusCode,
+    currency_symbol: live.currencySymbol,
+    card_price:      live.cardPrice,
+    players_room:    [{ ctns: live.userCards }],
+    config: props.room.unix_date ? {
+      room_id:         props.room.id,
+      card_price_usd:  props.room.card_price_usd ?? 0,
+      prize_pool_type: 1,
+      unix_date:       props.room.unix_date,
+      date:            props.room.date ?? '',
+      time:            props.room.time ?? '',
+      game_variant:    props.room.game_variant ?? null,
+    } : null,
+  }
+}
 
 function openPurchase() {
   if (!canPurchaseCards.value) return
-  modal.open(roomAsGameRoom.value)
+  modal.open(buildRoomSnapshot())
 }
 
 function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: number }) {
@@ -163,16 +145,18 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
 <template>
   <div class="lby-page">
 
-    <!-- FAB: reglamento -->
-    <button
-      type="button"
-      class="lby-rules-fab"
-      title="Ver reglamento del Bingo"
-      aria-label="Ver reglamento del Bingo"
-      @click="showRulesModal = true"
-    >
-      <i class="fas fa-book-open" />
-    </button>
+    <!-- FAB: reglamento — Teleport para salir de isolation:isolate y superar z-index del sidebar -->
+    <Teleport to="body">
+      <button
+        type="button"
+        class="lby-rules-fab"
+        title="Ver reglamento del Bingo"
+        aria-label="Ver reglamento del Bingo"
+        @click="showRulesModal = true"
+      >
+        <i class="fas fa-book-open" />
+      </button>
+    </Teleport>
 
     <!-- Loading -->
     <div v-if="!room" class="lby-loading">
@@ -185,21 +169,17 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
           :room="room"
           :live="live"
           :ws-status="wsStatus"
-          :ws-label="wsLabel"
           :countdown="countdown"
           :is-live="isLive"
           :is-urgent="isUrgent"
           :prize-flash="prizeFlash"
-          :formatted-prize="formattedPrize"
           :rate="rate"
-          :status-class="statusClass"
-          :room-status-text="roomStatusText"
         />
 
         <LobbyCardsProgress
           v-if="showCardsProgress"
           :total-cards="live.totalCards"
-          :min-cards-to-start="minCardsToStart!"
+          :min-cards-to-start="minCardsToStart"
           :progress-pct="cardsProgressPct"
           :ready="cardsProgressReady"
         />
@@ -230,7 +210,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
       @close="players.close()"
     />
 
-    <LobbyRedirectBanner :show="redirecting" />
+    <LobbyRedirectBanner :show="redirecting" :secs="redirectSecs" />
 
     <BingoRulesModal
       v-model="showRulesModal"

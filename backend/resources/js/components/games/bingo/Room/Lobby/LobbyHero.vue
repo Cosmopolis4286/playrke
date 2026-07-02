@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { BingoService } from '@js/Services/bingoService'
 import type { WsStatus } from '@js/composables/games/bingo/room/lobby/useLobbyEcho'
 import type { LobbyRoom, LobbyLive } from './types'
 
@@ -6,22 +8,39 @@ const props = defineProps<{
   room: LobbyRoom
   live: LobbyLive
   wsStatus: WsStatus
-  wsLabel: string
   countdown: string
   isLive: boolean
   isUrgent: boolean
   prizeFlash: boolean
-  formattedPrize: string
   rate: number
-  statusClass: string
-  roomStatusText: string
 }>()
 
 const bingoRoomImg = '/img/games/bingo/estelar_fd.png'
 
-const isActiveAndConnected = () =>
+const isActiveAndConnected = computed(() =>
   props.wsStatus === 'connected' &&
   (props.live.statusCode || props.room?.status_code)?.toUpperCase() === 'ACTIVE'
+)
+
+const wsLabel = computed(() => ({
+  connected:    'En vivo',
+  connecting:   'Conectando…',
+  disconnected: 'Sin conexión',
+  error:        'Error',
+}[props.wsStatus]))
+
+const formattedPrize = computed(() =>
+  (props.live.prizePool * props.rate).toFixed(2)
+)
+
+const statusClass = computed(() => {
+  const c = (props.live.statusCode || (props.room?.status_code ?? 'desconocido')).toLowerCase()
+  return `lby-status--${c}`
+})
+
+const roomStatusText = computed(() =>
+  BingoService.getRoomStatusText(props.live.statusCode || (props.room?.status_code ?? ''))
+)
 </script>
 
 <template>
@@ -48,7 +67,7 @@ const isActiveAndConnected = () =>
         </div>
 
         <div
-          v-if="isActiveAndConnected()"
+          v-if="isActiveAndConnected"
           class="lby-ws lby-ws--connected lby-ws--live-active"
         >
           <span class="lby-ws__dot" />
@@ -81,7 +100,7 @@ const isActiveAndConnected = () =>
             <i class="fas fa-clock" /> {{ countdown }}
           </div>
           <span
-            v-if="!isActiveAndConnected()"
+            v-if="!isActiveAndConnected"
             class="lby-status-chip"
             :class="statusClass"
           >{{ roomStatusText }}</span>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   totalCards: number
-  minCardsToStart: number
+  minCardsToStart: number | null
   progressPct: number
   ready: boolean
 }>()
@@ -28,7 +28,7 @@ defineProps<{
 
     <div v-if="!ready" class="lby-progress-panel__hint">
       <i class="fas fa-hourglass-half" />
-      Faltan <strong>{{ minCardsToStart - totalCards }}</strong> cartones para iniciar
+      Faltan <strong>{{ (props.minCardsToStart ?? 0) - props.totalCards }}</strong> cartones para iniciar
     </div>
   </div>
 </template>

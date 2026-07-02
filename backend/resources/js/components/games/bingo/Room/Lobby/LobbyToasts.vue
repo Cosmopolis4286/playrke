@@ -4,19 +4,21 @@ defineProps<{ toasts: SaleToast[] }>()
 </script>
 
 <template>
-  <div class="lby-toasts">
-    <TransitionGroup name="lby-toast">
-      <div v-for="t in toasts" :key="t.id" class="lby-toast">
-        <i class="fas fa-ticket-alt lby-toast__icon" />
-        <span>{{ t.text }}</span>
-      </div>
-    </TransitionGroup>
-  </div>
+  <Teleport to="body">
+    <div class="lby-toasts">
+      <TransitionGroup name="lby-toast">
+        <div v-for="t in toasts" :key="t.id" class="lby-toast">
+          <i class="fas fa-ticket-alt lby-toast__icon" />
+          <span>{{ t.text }}</span>
+        </div>
+      </TransitionGroup>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
 .lby-toasts {
-  position: fixed; left: 20px; bottom: 74px; z-index: 300;
+  position: fixed; left: 20px; bottom: 74px; z-index: 8000;
   display: flex; flex-direction: column-reverse; gap: 6px; pointer-events: none;
 }
 .lby-toast {
