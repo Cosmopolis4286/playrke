@@ -1,31 +1,44 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 
+const REDIRECT_DELAY = 2000
+
 export function useLobbyRedirect(
   roomRouteKey: string | undefined,
   statusCode: () => string,
 ) {
-  const redirecting = ref(false)
-  let timer: ReturnType<typeof setTimeout> | null = null
+  const redirecting  = ref(false)
+  const redirectSecs = ref(0)
+  let redirectTimer: ReturnType<typeof setTimeout>  | null = null
+  let tickTimer:     ReturnType<typeof setInterval> | null = null
 
-  function trigger(fromWs = false) {
+  function trigger() {
     if (redirecting.value || !roomRouteKey) return
-    redirecting.value = true
-    const delay = fromWs ? 3000 : 1500
-    timer = setTimeout(() => {
+    redirecting.value  = true
+    redirectSecs.value = Math.round(REDIRECT_DELAY / 1000)
+
+    tickTimer = setInterval(() => {
+      redirectSecs.value = Math.max(0, redirectSecs.value - 1)
+    }, 1000)
+
+    redirectTimer = setTimeout(() => {
+      if (tickTimer) clearInterval(tickTimer)
       router.visit(`/bingo/${roomRouteKey}/game`)
-    }, delay)
+    }, REDIRECT_DELAY)
   }
 
   onMounted(() => {
-    if (statusCode()?.toUpperCase() === 'IN_PROGRESS') trigger(false)
+    if (statusCode()?.toUpperCase() === 'IN_PROGRESS') trigger()
   })
 
-  onUnmounted(() => { if (timer) clearTimeout(timer) })
+  onUnmounted(() => {
+    if (redirectTimer) clearTimeout(redirectTimer)
+    if (tickTimer)     clearInterval(tickTimer)
+  })
 
   watch(statusCode, (next) => {
-    if (next?.toUpperCase() === 'IN_PROGRESS') trigger(true)
+    if (next?.toUpperCase() === 'IN_PROGRESS') trigger()
   })
 
-  return { redirecting }
+  return { redirecting, redirectSecs }
 }

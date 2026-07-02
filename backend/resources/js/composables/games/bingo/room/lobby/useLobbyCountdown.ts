@@ -1,12 +1,15 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 
-export function useLobbyCountdown(unixDate: number | null | undefined) {
+export function useLobbyCountdown(getUnixDate: (() => number | null | undefined) | number | null | undefined) {
   const countdown = ref('')
   const isLive    = ref(false)
   const isUrgent  = ref(false)
   let timer: ReturnType<typeof setInterval> | null = null
 
+  const resolve = typeof getUnixDate === 'function' ? getUnixDate : () => getUnixDate
+
   function update() {
+    const unixDate = resolve()
     if (!unixDate) { countdown.value = ''; return }
     const diff = unixDate - Math.floor(Date.now() / 1000)
     if (diff <= 0) {
@@ -26,11 +29,18 @@ export function useLobbyCountdown(unixDate: number | null | undefined) {
       : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
   }
 
-  onMounted(() => {
-    if (!unixDate) return
+  function start() {
+    if (timer) { clearInterval(timer); timer = null }
     update()
-    timer = setInterval(update, 1000)
-  })
+    if (resolve()) timer = setInterval(update, 1000)
+  }
+
+  // Reacciona si la fecha cambia (ej. backend la actualiza)
+  if (typeof getUnixDate === 'function') {
+    watch(getUnixDate, start, { immediate: true })
+  } else {
+    start()
+  }
 
   onUnmounted(() => { if (timer) clearInterval(timer) })
 

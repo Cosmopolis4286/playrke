@@ -17,9 +17,10 @@ export function useLobbyPlayers(roomRouteKey: string | undefined, totalPlayers: 
     if (playersList.value.length > 0) return
     loading.value = true
     try {
-      const res  = await fetch(`/bingo/${roomRouteKey}/lobby-players`, {
+      const res = await fetch(`/bingo/${roomRouteKey}/lobby-players`, {
         headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       playersList.value = data.players ?? []
     } catch {
@@ -31,9 +32,14 @@ export function useLobbyPlayers(roomRouteKey: string | undefined, totalPlayers: 
 
   function close() { showModal.value = false }
 
-  // Invalida la caché cuando entra un jugador nuevo (fuerza recarga en próxima apertura)
+  // Recarga automática si el modal está abierto; si está cerrado, solo invalida caché
   watch(totalPlayers, () => {
-    if (showModal.value) playersList.value = []
+    if (showModal.value) {
+      playersList.value = []
+      open()
+    } else {
+      playersList.value = []
+    }
   })
 
   return { showModal, playersList, loading, open, close }

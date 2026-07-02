@@ -9,6 +9,8 @@ export interface LobbyLiveState {
   totalCards: number
   userCards: number
   statusCode: string
+  cardPrice: number
+  currencySymbol: string
 }
 
 interface RoomUpdatedPayload {
@@ -44,7 +46,7 @@ interface PlayerCardsUpdatedPayload {
  */
 export function useLobbyEcho(
   roomId: string,
-  userId: string | number | null | undefined,
+  userId: (() => string | number | null | undefined) | string | number | null | undefined,
   live: LobbyLiveState,
   callbacks?: {
     onPrizeChanged?: () => void
@@ -57,18 +59,23 @@ export function useLobbyEcho(
 
   // ── Conexión Pusher/Reverb ──
   const pusher = (echo as any).connector.pusher
-  const bindConnection = () => {
-    const state = pusher.connection.state
-    if (state === 'connected') wsStatus.value = 'connected'
 
-    pusher.connection.bind('connected',    () => { wsStatus.value = 'connected' })
-    pusher.connection.bind('disconnected', () => { wsStatus.value = 'disconnected' })
-    pusher.connection.bind('error',        () => { wsStatus.value = 'error' })
-    pusher.connection.bind('connecting',   () => { wsStatus.value = 'connecting' })
-  }
-  bindConnection()
+  const onConnected    = () => { wsStatus.value = 'connected' }
+  const onDisconnected = () => { wsStatus.value = 'disconnected' }
+  const onError        = () => { wsStatus.value = 'error' }
+  const onConnecting   = () => { wsStatus.value = 'connecting' }
+
+  if (pusher.connection.state === 'connected') wsStatus.value = 'connected'
+  pusher.connection.bind('connected',    onConnected)
+  pusher.connection.bind('disconnected', onDisconnected)
+  pusher.connection.bind('error',        onError)
+  pusher.connection.bind('connecting',   onConnecting)
 
   // ── Canal público de sala ──
+  // Flag: si acabamos de recibir una actualización propia por canal privado,
+  // suprimimos el toast "otro compró" para el siguiente evento público.
+  let ownPurchasePending = false
+
   const roomChannelName = `bingo.room.${roomId}`
   echo.channel(roomChannelName).listen('.RoomUpdated', (payload: RoomUpdatedPayload) => {
     const prizeChanged   = live.prizePool    !== payload.prize_pool
@@ -82,15 +89,20 @@ export function useLobbyEcho(
 
     if (prizeChanged)   callbacks?.onPrizeChanged?.()
     if (playersChanged) callbacks?.onPlayersChanged?.()
-    if (cardsChanged)   callbacks?.onCardsChanged?.(live.totalCards)
+    if (cardsChanged) {
+      if (!ownPurchasePending) callbacks?.onCardsChanged?.(live.totalCards)
+      ownPurchasePending = false
+    }
   })
 
   // ── Canal privado del jugador ──
-  const privateChannelName = userId ? `bingo.player.${userId}` : null
+  const resolvedUserId = typeof userId === 'function' ? userId() : userId
+  const privateChannelName = resolvedUserId ? `bingo.player.${resolvedUserId}` : null
   if (privateChannelName) {
     echo.private(privateChannelName).listen('.PlayerCardsUpdated', (payload: PlayerCardsUpdatedPayload) => {
       if (payload.room_id !== roomId) return
       live.userCards = payload.ctns
+      ownPurchasePending = true
       callbacks?.onCardsUpdated?.(payload.card_price, payload.currency_symbol)
     })
   }
@@ -99,10 +111,10 @@ export function useLobbyEcho(
     echo.leaveChannel(roomChannelName)
     if (privateChannelName) echo.leaveChannel(privateChannelName)
 
-    pusher.connection.unbind('connected')
-    pusher.connection.unbind('disconnected')
-    pusher.connection.unbind('error')
-    pusher.connection.unbind('connecting')
+    pusher.connection.unbind('connected',    onConnected)
+    pusher.connection.unbind('disconnected', onDisconnected)
+    pusher.connection.unbind('error',        onError)
+    pusher.connection.unbind('connecting',   onConnecting)
   })
 
   return { wsStatus }
