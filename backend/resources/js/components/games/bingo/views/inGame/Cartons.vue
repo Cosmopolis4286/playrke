@@ -2,11 +2,11 @@
   <div class="ctn-root">
 
     <!-- ── Toolbar ── -->
-    <div class="ctn-bar" v-if="displayCards.length > 0 || totalDrawn > 0">
+    <div class="ctn-bar" v-if="cartons.length > 0 || totalDrawn > 0">
       <div class="ctn-bar__left">
         <i class="fas fa-ticket-alt ctn-bar__icon" />
         <span class="ctn-bar__title">CARTONES</span>
-        <span class="ctn-bar__count">{{ displayCards.length }}</span>
+        <span class="ctn-bar__count">{{ cartons.length }}</span>
         <span v-if="totalDrawn > 0" class="ctn-bar__drawn">
           <i class="fas fa-shuffle" />{{ totalDrawn }}<em>/{{ totalChips }}</em>
         </span>
@@ -59,8 +59,6 @@
         translate="no"
         @click="selectedId = selectedId === card.id ? null : card.id"
       >
-        <div class="ctn-card__glow" />
-
         <!-- Header -->
         <div class="ctn-head" :style="{ gridTemplateColumns: `repeat(${variantDef.columns.length}, 1fr)` }">
           <span v-for="col in variantDef.columns" :key="col.label" class="ctn-head__l" :class="`ctn-head__l--col${col.colorIdx}`">{{ col.label }}</span>
@@ -182,7 +180,7 @@
     </Transition>
 
     <!-- ── Spectator / empty states ── -->
-    <template v-if="displayCards.length === 0">
+    <template v-if="cartons.length === 0">
 
       <div v-if="totalDrawn > 0" class="ctn-spectator">
         <div class="ctn-spectator__hdr">
@@ -262,11 +260,11 @@ const bingoSet     = ref<Set<string>>(new Set());
 
 const { playSelect, playWinner } = useBingoSound();
 
-const drawnSet     = computed(() => new Set(props.drawnNumbers));
-const displayCards = computed(() => props.cartons);
+// Ref estable: se muta en lugar de recrear un Set completo en cada render
+const drawnSet = ref(new Set<number>(props.drawnNumbers));
 
 const selectedCard = computed(() =>
-  selectedId.value ? displayCards.value.find(c => c.id === selectedId.value) ?? null : null
+  selectedId.value ? props.cartons.find(c => c.id === selectedId.value) ?? null : null
 );
 
 const visibleFilters = computed(() => {
@@ -279,9 +277,9 @@ const visibleFilters = computed(() => {
 });
 
 const filteredCards = computed(() => {
-  if (activeFilter.value === "win") return displayCards.value.filter(c => isWinner(c));
-  if (activeFilter.value === "hot") return displayCards.value.filter(c => isHot(c) && !isWinner(c));
-  return displayCards.value;
+  if (activeFilter.value === "win") return props.cartons.filter(c => isWinner(c));
+  if (activeFilter.value === "hot") return props.cartons.filter(c => isHot(c) && !isWinner(c));
+  return props.cartons;
 });
 
 function isFreeCell(col: BingoVariantColumn, r: number): boolean {
@@ -307,7 +305,7 @@ function cellCls(card: BingoCard, colLabel: string, r: number) {
   return "";
 }
 
-function hits(card: BingoCard): number {
+function computeHits(card: BingoCard): number {
   let h = 0;
   for (const col of variantDef.value.columns) {
     for (let r = 1; r <= variantDef.value.numRows; r++) {
@@ -318,14 +316,23 @@ function hits(card: BingoCard): number {
   return h;
 }
 
+// Memoiza hits por cartón: se recalcula solo cuando cambian los cartones o las fichas sorteadas,
+// en vez de recalcular en cada llamada desde el template (footer, progreso, filtros).
+const hitsMap = computed(() => {
+  const map = new Map<string, number>();
+  for (const card of props.cartons) map.set(card.id, computeHits(card));
+  return map;
+});
+
+function hits(card: BingoCard): number { return hitsMap.value.get(card.id) ?? computeHits(card); }
 function pct(card: BingoCard) { return Math.round((hits(card) / variantDef.value.totalCells) * 100); }
 function isHot(card: BingoCard)    { return hits(card) >= HOT; }
 function isWinner(card: BingoCard) { return bingoSet.value.has(card.id); }
 
 function getFilterCount(f: Filter): number {
-  if (f === "win") return displayCards.value.filter(c => isWinner(c)).length;
-  if (f === "hot") return displayCards.value.filter(c => isHot(c) && !isWinner(c)).length;
-  return displayCards.value.length;
+  if (f === "win") return props.cartons.filter(c => isWinner(c)).length;
+  if (f === "hot") return props.cartons.filter(c => isHot(c) && !isWinner(c)).length;
+  return props.cartons.length;
 }
 
 function colNumbers(col: BingoVariantColumn): number[] {
@@ -350,12 +357,25 @@ function fullBingo(card: BingoCard): boolean {
 }
 
 watch(() => props.drawnNumbers, (next, prev) => {
-  const newNums = next.filter(n => !prev?.includes(n));
+  // Actualizar drawnSet reactivo
+  drawnSet.value = new Set(next);
+
+  // Reset state cuando el sorteo se reinicia
+  if (next.length === 0) {
+    bingoSet.value = new Set();
+    return;
+  }
+
+  // O(1) lookup en lugar de O(n²) includes
+  const prevSet  = new Set(prev ?? []);
+  const newNums  = next.filter(n => !prevSet.has(n));
+
   if (newNums.length > 0) {
+    const newNumSet = new Set(newNums);
     const anyHit = props.cartons.some(card =>
       variantDef.value.columns.some(col => {
         const m = card.cardMatrix as Record<string, (number | null)[]> | null;
-        return m?.[col.label]?.some(n => n !== null && newNums.includes(n)) ?? false;
+        return m?.[col.label]?.some(n => n !== null && newNumSet.has(n)) ?? false;
       })
     );
     if (anyHit) playSelect();
@@ -370,7 +390,7 @@ watch(() => props.drawnNumbers, (next, prev) => {
       emit("bingo-detected", card);
     }
   }
-}, { deep: true });
+});
 </script>
 
 <style scoped>
@@ -510,8 +530,6 @@ watch(() => props.drawnNumbers, (next, prev) => {
 @keyframes cin    { from { opacity:0; transform:translateY(22px) scale(0.92) } to { opacity:1; transform:translateY(0) scale(1) } }
 @keyframes hpulse { 0%,100% { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 1.5px rgba(255,140,30,0.3) } 50% { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 3.5px rgba(255,140,30,0.6) } }
 @keyframes wpulse { 0%,100% { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 2px rgba(220,170,0,0.38) } 50% { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 4px rgba(220,170,0,0.7) } }
-
-.ctn-card__glow { display: none; }
 
 /* ── Header ── */
 .ctn-head { display: grid; }

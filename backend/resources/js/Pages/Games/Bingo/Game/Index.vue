@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue'
 import '@/css/games/bingo/bingo-in-game.css'
 import echo from '@js/plugins/echo'
 import { useGameRoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
@@ -14,6 +14,7 @@ import PreDrawModal  from '@js/Components/Games/Bingo/views/inGame/PreDrawModal.
 import GameEndModal  from '@js/Components/Games/Bingo/views/inGame/GameEndModal.vue'
 import type { WinnerEntry, GameEndData, PlayerProgress } from '@js/Components/Games/Bingo/views/inGame/types'
 import type { BingoRoom, BingoCard } from '@js/Services/bingoService'
+import { getBingoVariantDef } from '@js/modules/games/bingo/utils/bingoVariants'
 import Swal from 'sweetalert2'
 
 useAntiDebug()
@@ -72,40 +73,13 @@ function getCsrfToken(): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Variante de juego
+// Variante de juego — single source of truth via bingoVariants.ts
 // ─────────────────────────────────────────────────────────────────────────────
-const VARIANT_CHIPS: Record<string, number> = {
-  BINGO_75: 75, BINGO_90: 90, BINGO_80: 80, BINGO_30: 30,
-}
-const VARIANT_COLS: Record<string, { min: number; max: number; label: string }[]> = {
-  BINGO_75: [
-    { min: 1,  max: 15, label: 'B' },
-    { min: 16, max: 30, label: 'I' },
-    { min: 31, max: 45, label: 'N' },
-    { min: 46, max: 60, label: 'G' },
-    { min: 61, max: 75, label: 'O' },
-  ],
-  BINGO_90: [
-    { min:  1, max:  9, label: '1' }, { min: 10, max: 19, label: '2' },
-    { min: 20, max: 29, label: '3' }, { min: 30, max: 39, label: '4' },
-    { min: 40, max: 49, label: '5' }, { min: 50, max: 59, label: '6' },
-    { min: 60, max: 69, label: '7' }, { min: 70, max: 79, label: '8' },
-    { min: 80, max: 90, label: '9' },
-  ],
-  BINGO_80: [
-    { min:  1, max: 20, label: '1' }, { min: 21, max: 40, label: '2' },
-    { min: 41, max: 60, label: '3' }, { min: 61, max: 80, label: '4' },
-  ],
-  BINGO_30: [
-    { min:  1, max: 10, label: '1' }, { min: 11, max: 20, label: '2' }, { min: 21, max: 30, label: '3' },
-  ],
-}
-
-const totalChips  = computed(() => VARIANT_CHIPS[props.gameVariant ?? 'BINGO_75'] ?? 75)
-const variantCols = computed(() => VARIANT_COLS[props.gameVariant ?? 'BINGO_75'] ?? VARIANT_COLS.BINGO_75)
+const variantDef  = computed(() => getBingoVariantDef(props.gameVariant ?? 'BINGO_75'))
+const totalChips  = computed(() => variantDef.value.totalChips)
 
 function chipLetter(n: number): string {
-  for (const col of variantCols.value) {
+  for (const col of variantDef.value.columns) {
     if (n >= col.min && n <= col.max) return col.label
   }
   return '?'
@@ -126,7 +100,6 @@ const playersProgress  = ref<PlayerProgress[]>([])
 const showWinnerModal  = ref(false)
 const gameEndData      = ref<GameEndData | null>(null)
 const isMyWin          = ref(false)
-const checkingBingo    = ref(false)
 const showPlayersModal = ref(false)
 
 const revealed = ref(false)
@@ -140,7 +113,7 @@ const routeKey = computed(() => props.roomRouteKey || roomId.value)
 const isFinished = computed(() =>
   gameEndData.value !== null ||
   String(props.room?.status ?? '').toUpperCase() === 'FINISHED' ||
-  String((props.room as any)?.status_code ?? '').toUpperCase() === 'FINISHED'
+  String(props.room?.status_code ?? '').toUpperCase() === 'FINISHED'
 )
 
 const totalWinners = computed(() => gameEndData.value?.winners?.length ?? 0)
@@ -222,17 +195,19 @@ function scheduleDrawStart() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Bingo detection & winner handling
 // ─────────────────────────────────────────────────────────────────────────────
-async function handleBingoDetected(_card: BingoCard) {
-  if (checkingBingo.value) return
-  checkingBingo.value = true
+async function handleBingoDetected(card: BingoCard) {
+  // No bloquear multi-card: cada carton verifica independientemente
+  if (isMyWin.value) return
   try {
     const res  = await fetch(`/bingo/${routeKey.value}/check-bingo`, {
       method: 'POST',
       headers: {
         'X-CSRF-TOKEN': getCsrfToken(),
         Accept: 'application/json',
+        'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
       },
+      body: JSON.stringify({ card_id: card.id }),
     })
     const data = await res.json()
     if (data.success && data.hasBingo && data.winner) {
@@ -241,8 +216,6 @@ async function handleBingoDetected(_card: BingoCard) {
     }
   } catch (e) {
     console.error('[Bingo] Error verificando bingo:', e)
-  } finally {
-    checkingBingo.value = false
   }
 }
 
@@ -270,17 +243,16 @@ function handleGameEnded(data: { has_winner: boolean; total_drawn: number; winne
 
 function closeWinnerModal() {
   showWinnerModal.value = false
-  // Limpiar estado para que al reabrir (sin reset) no aparezcan datos obsoletos
-  // Solo si ya está finalizado permanentemente (no en cierre manual mid-game)
-  if (isFinished.value) return
-  isMyWin.value = false
+  // Si el juego terminó definitivamente, conservar isMyWin para la sesión
+  // Si fue cierre manual mid-game, limpiar para no bloquear futuras detecciones
+  if (!isFinished.value) {
+    isMyWin.value = false
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // WebSocket
 // ─────────────────────────────────────────────────────────────────────────────
-type Ref<T> = ReturnType<typeof ref<T>>
-
 const ROOM_EVENTS = [
   '.RoomUpdated', '.PlayerJoined', '.BingoNumberCalled', '.PlayersProgress',
   '.GameStarted', '.WinnerDeclared', '.GameEnded', '.RoomTimeSync',
@@ -427,6 +399,7 @@ onMounted(() => {
     if (props.userId && props.initialWinners.some(w => String(w.user_id) === String(props.userId))) {
       isMyWin.value = true
     }
+    showWinnerModal.value = true
   }
 })
 

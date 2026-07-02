@@ -16,11 +16,25 @@ const pct        = computed(() => Math.round((props.drawnNumbers.length / props.
 // Grid chips en orden cronológico inverso, sin incluir el último (ya destacado arriba)
 const historyChips = computed(() => [...props.drawnNumbers].reverse().slice(1))
 
-// Agrupar por letra para el mini resumen de columnas
+// Agrupar por letra — dinámico, no hardcodeado a BINGO_75
 const colCounts = computed(() => {
-  const counts: Record<string, number> = { B: 0, I: 0, N: 0, G: 0, O: 0 }
-  for (const n of props.drawnNumbers) counts[props.chipLetter(n)]++
+  const counts: Record<string, number> = {}
+  for (const n of props.drawnNumbers) {
+    const ltr = props.chipLetter(n)
+    counts[ltr] = (counts[ltr] ?? 0) + 1
+  }
   return counts
+})
+
+// Letras únicas en orden de aparición del sorteo (para las pills)
+const colLetters = computed(() => {
+  const seen = new Set<string>()
+  const order: string[] = []
+  for (const n of props.drawnNumbers) {
+    const ltr = props.chipLetter(n)
+    if (!seen.has(ltr)) { seen.add(ltr); order.push(ltr) }
+  }
+  return order.sort()
 })
 
 // Tooltip hover sobre chip
@@ -53,13 +67,13 @@ const hoveredChip = ref<number | null>(null)
             <span class="db-hero__big-num" :class="`db-num--${lastLetter}`">{{ last }}</span>
             <div class="db-hero__col-pills">
               <div
-                v-for="l in ['B','I','N','G','O']"
+                v-for="l in colLetters"
                 :key="l"
                 class="db-col-pill"
                 :class="`db-col-pill--${l}`"
               >
                 <span class="db-col-pill__letter">{{ l }}</span>
-                <span class="db-col-pill__count">{{ colCounts[l] }}</span>
+                <span class="db-col-pill__count">{{ colCounts[l] ?? 0 }}</span>
               </div>
             </div>
           </div>
