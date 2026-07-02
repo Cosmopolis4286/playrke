@@ -14,11 +14,12 @@
 }
 .main-footer.footer-app .footer-inner {
     display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
     width: 100% !important;
-    padding: 0.55rem 1.5rem !important;
-    gap: 1rem !important;
+}
+@media (max-width: 576px) {
+    .main-footer.footer-app {
+        min-height: 0 !important;
+    }
 }
 </style>
 
