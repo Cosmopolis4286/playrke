@@ -30,6 +30,20 @@ final class BingoDrawService
     /** Cache de tasas de cambio activas resuelta por moneda durante la corrida actual. */
     private array $rateCache = [];
 
+    /**
+     * Cache de cartones ACTIVE de la sala durante la corrida actual del sorteo.
+     * Evita recargar la colección completa (con eager loading) en cada ficha cantada.
+     * Se invalida explícitamente cuando un cartón cambia de estado (claimCardWin) y,
+     * además, se refresca automáticamente si el COUNT(status=ACTIVE) de la sala no
+     * coincide con el tamaño cacheado — cubre compras de cartones mid-sorteo, ya que
+     * las salas ACTIVE/IN_PROGRESS siguen aceptando compras mientras el sorteo corre
+     * (ver BingoCardGenerateService::generateCardStore).
+     *
+     * @var \Illuminate\Support\Collection<int, BingoCard>|null
+     */
+    private ?\Illuminate\Support\Collection $activeCardsCache = null;
+    private ?string $activeCardsCacheRoomId = null;
+
     public function __construct(
         private readonly BingoPrizePayoutService $prizePayoutService,
         private readonly WinEventService $winEventService,
@@ -227,6 +241,39 @@ final class BingoDrawService
         return ['success' => true, 'room_id' => $roomId, 'total_chips' => count($drawnSoFar), 'winner' => null];
     }
 
+    /**
+     * Cartones ACTIVE de la sala, cacheados en memoria durante la corrida del sorteo.
+     * Se recarga solo si aún no hay cache para esta sala o tras invalidarCartones().
+     */
+    private function activeCards(BingoRoom $room, array $with): \Illuminate\Support\Collection
+    {
+        $roomId = (string) $room->id;
+
+        $currentCount = BingoCard::where('room_id', $roomId)
+            ->where('status', BingoCard::STATUS_ACTIVE)
+            ->count();
+
+        $stale = $this->activeCardsCache === null
+            || $this->activeCardsCacheRoomId !== $roomId
+            || $this->activeCardsCache->count() !== $currentCount;
+
+        if ($stale) {
+            $this->activeCardsCache = BingoCard::where('room_id', $roomId)
+                ->where('status', BingoCard::STATUS_ACTIVE)
+                ->with($with)
+                ->get();
+            $this->activeCardsCacheRoomId = $roomId;
+        }
+
+        return $this->activeCardsCache;
+    }
+
+    /** Invalida el cache de cartones activos — usar tras cambiar el status de un cartón. */
+    private function invalidateActiveCardsCache(): void
+    {
+        $this->activeCardsCache = null;
+    }
+
     private function generateSequence(int $totalChips): array
     {
         $numbers = range(1, $totalChips);
@@ -274,10 +321,7 @@ final class BingoDrawService
 
         $drawnSet = array_flip($drawnNumbers);
 
-        $cards = BingoCard::where('room_id', (string) $room->id)
-            ->where('status', BingoCard::STATUS_ACTIVE)
-            ->with(['roomUser.user'])
-            ->get();
+        $cards = $this->activeCards($room, ['roomUser.user']);
 
         $playerBest = []; // user_id => ['user_name' => ..., 'missing' => int]
 
@@ -342,10 +386,7 @@ final class BingoDrawService
 
         $drawnSet = array_flip($drawnNumbers);
 
-        $cards = BingoCard::where('room_id', (string) $room->id)
-            ->where('status', BingoCard::STATUS_ACTIVE)
-            ->with(['roomUser.user', 'cardLot'])
-            ->get();
+        $cards = $this->activeCards($room, ['roomUser.user', 'cardLot']);
 
         $winners = [];
 
@@ -439,6 +480,7 @@ final class BingoDrawService
             }
 
             $card->update(['status' => BingoCard::STATUS_WINNER]);
+            $this->invalidateActiveCardsCache();
 
             $userId   = $card->roomUser?->user_id ?? $card->creator_user_id;
             $user     = $card->roomUser?->user ?? User::find($userId);

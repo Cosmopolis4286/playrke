@@ -48,14 +48,6 @@ final class BingoGameService
         // Obtener cartones del jugador
         $cartons = $this->getUserCartons((int) $bingoRoom->id, $userId);
 
-        // Debug logging para verificar los cartones obtenidos
-        \Log::info('User cartons loaded', [
-            'room_id' => $bingoRoom->id,
-            'user_id' => $userId,
-            'cartons_count' => count($cartons),
-            'cartons_data' => $cartons
-        ]);
-
         // Obtener la wallet del usuario y la moneda asociada (si existe)
         $wallet = $this->resolveUserWallet($userId);
         $walletCurrencyId = $wallet?->currency_id ? (int) $wallet->currency_id : null;
@@ -69,15 +61,6 @@ final class BingoGameService
         $config = $bingoRoom->config;
         $rounds = $bingoRoom->rounds;
 
-        // Debug logging para verificar la configuración y rondas
-        \Log::info('BingoRoom data', [
-            'room_id' => $bingoRoom->id,
-            'config_exists' => !is_null($config),
-            'rounds_count' => $rounds->count(),
-            'rounds_data' => $rounds->toArray(),
-            'config_rounds' => $config?->rounds ?? 'NOT_FOUND'
-        ]);
-
         // Cargar números sorteados desde la base de datos
         $drawnNumbers = BingoDraw::where('room_id', $bingoRoom->id)
             ->orderBy('time')
@@ -85,12 +68,6 @@ final class BingoGameService
             ->pluck('chip')
             ->map(fn($chip) => (int) $chip)
             ->toArray();
-
-        \Log::info('Drawn numbers loaded', [
-            'room_id' => $bingoRoom->id,
-            'drawn_count' => count($drawnNumbers),
-            'drawn_numbers' => $drawnNumbers
-        ]);
 
         // Para salas finalizadas, cargar los ganadores históricos desde BingoCardPrize
         $initialWinners = [];
@@ -152,14 +129,6 @@ final class BingoGameService
 
         // Forzar la serialización correcta para Inertia
         $gameData['rounds'] = (int) $gameData['rounds'];
-
-        // Debug final para verificar los datos que se envían
-        \Log::info('Final game data for Inertia', [
-            'data_keys' => array_keys($gameData),
-            'rounds_value' => $gameData['rounds'],
-            'rounds_type' => gettype($gameData['rounds']),
-            'rounds_forced' => (int) $gameData['rounds']
-        ]);
 
         return $gameData;
     }
@@ -242,27 +211,14 @@ final class BingoGameService
                 ->where('user_id', (string) $userId)
                 ->first();
 
-            \Log::info('Room user lookup', [
-                'room_id' => $roomId,
-                'user_id' => $userId,
-                'room_user_found' => $roomUser ? true : false,
-                'room_user_id' => $roomUser?->id
-            ]);
-
             if (!$roomUser) {
                 // Si no hay room_user, intentar obtener cartones directamente por creator_user_id
-                \Log::info('Trying alternative method to get cartons');
                 $cards = \App\Domains\Games\Bingo\Models\Card\BingoCard::where('room_id', (string)$roomId)
                     ->where('creator_user_id', (string)$userId)
                     ->where('status', \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE)
                     ->with(['currency', 'cardLot', 'roomUser'])
                     ->orderBy('serial_number')
                     ->get();
-
-                \Log::info('Alternative carton search result', [
-                    'cards_count' => $cards->count(),
-                    'cards_data' => $cards->toArray()
-                ]);
             } else {
                 // Obtener los cartones del usuario usando el room_user_id
                 $cards = \App\Domains\Games\Bingo\Models\Card\BingoCard::where('room_user_id', (string)$roomUser->id)
@@ -270,25 +226,10 @@ final class BingoGameService
                     ->with(['currency', 'cardLot', 'roomUser'])
                     ->orderBy('serial_number')
                     ->get();
-
-                \Log::info('Standard carton search result', [
-                    'room_user_id' => $roomUser->id,
-                    'cards_count' => $cards->count(),
-                    'cards_data' => $cards->toArray()
-                ]);
             }
 
             // Transformar los cartones al formato esperado por el frontend
-            $formattedCards = $cards->map(function ($card) {
-                return $card->toFrontendFormat();
-            })->toArray();
-
-            \Log::info('Final formatted cartons', [
-                'formatted_count' => count($formattedCards),
-                'formatted_data' => $formattedCards
-            ]);
-
-            return $formattedCards;
+            return $cards->map(fn ($card) => $card->toFrontendFormat())->toArray();
         } catch (\Exception $e) {
             \Log::error('Error getting user cartons', [
                 'room_id' => $roomId,

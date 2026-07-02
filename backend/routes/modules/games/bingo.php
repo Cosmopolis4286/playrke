@@ -193,8 +193,3 @@ route_group('bingo', 'bingo.', [], BingoReportController::class, [
 // Route::get('bingo/{roomType}/{creatorType}/{creatorId?}/{currency?}', [BingoReportController::class, 'handleGameRoomSummary'])->name('bingo-rooms.index');
 // Route::get('{customer}/{userToken}/room/{room}', [BingoReportController::class, 'inGameCustomer'])->name('bingo.game-customer');
 // Route::get('game/{customer}/room/{room}/{currency}', [BingoReportController::class, 'outGameCustomer'])->name('bingo.out-game-customer');
-
-// Ruta especial de sesión
-Route::get('bingo/k3yg4m3/play-rke', function () {
-    return response()->json(['key' => session('r4m60nk3y')]);
-})->name('bingo.session-key');

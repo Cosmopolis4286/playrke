@@ -52,13 +52,10 @@ final class BingoGameController extends Controller
                     'status',
                     'config.roomType',
                     'config.gameMode',
+                    'players' => fn ($q) => $q->where('user_id', (string) $userId)->limit(1),
                 ]);
 
-                $roomUser = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', (string) $room->id)
-                    ->where('user_id', (string) $userId)
-                    ->first();
-
-                $userCards = $roomUser?->cards_purchased ?? 0;
+                $userCards = $room->players->first()?->cards_purchased ?? 0;
 
                 $config = $room->config;
 
@@ -85,8 +82,8 @@ final class BingoGameController extends Controller
                     'uuid_code'             => $room->uuid_code,
                     'status_code'           => $room->status_code,
                     'prize_pool'            => (float) $room->prize_pool,
-                    'full_house_prize'      => (float) $room->full_house_prize,
-                    'serial_prize'          => (float) $room->serial_prize,
+                    'full_house_prize'      => $room->full_house_prize !== null ? (float) $room->full_house_prize : null,
+                    'serial_prize'          => $room->serial_prize   !== null ? (float) $room->serial_prize   : null,
                     'total_players'         => (int) $room->total_players,
                     'total_cards'           => (int) $room->total_cards,
                     'close_room'            => $room->is_closed,
@@ -123,6 +120,8 @@ final class BingoGameController extends Controller
      */
     public function lobbyPlayers(BingoRoom $room): \Illuminate\Http\JsonResponse
     {
+        $this->authorize('view', $room);
+
         $players = $room->players()
             ->with('user:id,first_name,last_name')
             ->orderByDesc('cards_purchased')
@@ -149,20 +148,8 @@ final class BingoGameController extends Controller
             function () use ($room) {
                 $userId = $this->userContext->resolveUserId();
 
-                \Log::info('[BingoGameController] inGame loaded', [
-                    'room_id' => $room->id,
-                    'user_id' => $userId,
-                    'auth_check' => auth()->check(),
-                    'auth_id' => auth()->id(),
-                ]);
-
                 $response = $this->service->getInGameData($room, $userId);
                 $response['isLocal'] = app()->environment('local');
-
-                \Log::info('[BingoGameController] inGame response', [
-                    'cartons_count' => count($response['cartons'] ?? []),
-                    'cartons_data' => $response['cartons'] ?? [],
-                ]);
 
                 return Inertia::render('Games/Bingo/Game/Index', $response);
             },
