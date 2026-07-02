@@ -1,7 +1,7 @@
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 
-const REDIRECT_DELAY = 2000
+const REDIRECT_DELAY = 3000
 
 export function useLobbyRedirect(
   roomRouteKey: string | undefined,

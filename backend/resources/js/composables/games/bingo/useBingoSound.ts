@@ -42,7 +42,11 @@ function play(key: SoundKey, volumeOverride?: number) {
     a.volume = Math.max(0, Math.min(1, volumeOverride ?? _volume.value))
     // Si ya está sonando, reinicia desde el principio
     a.currentTime = 0
-    a.play().catch(() => { /* autoplay blocked — silencioso */ })
+    a.play().catch((err: unknown) => {
+      // NotAllowedError = política de autoplay del navegador — esperado
+      if (err instanceof DOMException && err.name === 'NotAllowedError') return
+      console.warn('[BingoSound]', key, err)
+    })
   } catch { /* ignore */ }
 }
 

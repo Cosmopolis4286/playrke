@@ -52,7 +52,7 @@ final class BingoGameController extends Controller
                     'status',
                     'config.roomType',
                     'config.gameMode',
-                    'players' => fn ($q) => $q->where('user_id', (string) $userId)->limit(1),
+                    'players' => fn ($q) => $q->where('user_id', (int) $userId)->limit(1),
                 ]);
 
                 $userCards = $room->players->first()?->cards_purchased ?? 0;

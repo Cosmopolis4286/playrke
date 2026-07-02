@@ -27,7 +27,7 @@ export function useLobbyEcho(
   live: LobbyLiveState,
   callbacks?: {
     onPrizeChanged?: () => void
-    onPlayersChanged?: () => void
+    onPlayersChanged?: (prev: number, next: number) => void
     onCardsChanged?: (totalCards: number) => void
     onCardsUpdated?: (cardPrice: number | null, currencySymbol: string | null) => void
   },
@@ -56,6 +56,7 @@ export function useLobbyEcho(
   const roomChannelName = `bingo.room.${roomId}`
   echo.channel(roomChannelName).listen('.RoomUpdated', (payload: RoomUpdatedPayload) => {
     const prizeChanged   = live.prizePool    !== payload.prize_pool
+    const prevPlayers    = live.totalPlayers
     const playersChanged = live.totalPlayers !== payload.total_players
     const cardsChanged   = live.totalCards   !== payload.total_cards
 
@@ -65,7 +66,7 @@ export function useLobbyEcho(
     if (payload.status_code) live.statusCode = payload.status_code
 
     if (prizeChanged)   callbacks?.onPrizeChanged?.()
-    if (playersChanged) callbacks?.onPlayersChanged?.()
+    if (playersChanged) callbacks?.onPlayersChanged?.(prevPlayers, live.totalPlayers)
     if (cardsChanged) {
       if (!ownPurchasePending) callbacks?.onCardsChanged?.(live.totalCards)
       ownPurchasePending = false

@@ -41,7 +41,7 @@ export function useAntiDebug() {
     const target = e.target as HTMLElement
     if (
       target.tagName === 'IMG' ||
-      target.closest('.ig-drawn-board') ||
+      target.closest('.db-root') ||
       target.closest('.ig-cards-section')
     ) {
       e.preventDefault()
