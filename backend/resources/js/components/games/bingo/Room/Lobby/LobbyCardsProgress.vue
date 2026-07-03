@@ -1,14 +1,30 @@
 <script setup lang="ts">
+import { watch, ref } from 'vue'
+
 const props = defineProps<{
   totalCards: number
   minCardsToStart: number | null
   progressPct: number
   ready: boolean
 }>()
+
+const showConfetti = ref(false)
+
+watch(() => props.ready, (isReady, wasReady) => {
+  if (isReady && !wasReady) {
+    showConfetti.value = true
+    setTimeout(() => { showConfetti.value = false }, 2800)
+  }
+})
 </script>
 
 <template>
   <div class="lby-progress-panel" :class="{ 'lby-progress-panel--ready': ready }">
+    <Transition name="lby-confetti-fade">
+      <div v-if="showConfetti" class="lby-confetti" aria-hidden="true">
+        <span v-for="i in 18" :key="i" class="lby-confetti__piece" :style="{ '--i': i }" />
+      </div>
+    </Transition>
     <div class="lby-progress-panel__head">
       <span class="lby-progress-panel__title">
         <i class="fas fa-layer-group" />
@@ -35,6 +51,7 @@ const props = defineProps<{
 
 <style scoped>
 .lby-progress-panel {
+  position: relative; overflow: hidden;
   background: rgba(255,255,255,.022); border: 1px solid rgba(255,255,255,.07);
   border-radius: 13px; padding: 9px 14px;
   display: flex; flex-direction: column; gap: 6px;
@@ -86,6 +103,24 @@ const props = defineProps<{
 }
 .lby-progress-panel__hint i      { font-size: 8px; opacity: .6; }
 .lby-progress-panel__hint strong { color: #9ecaf0; font-weight: 700; }
+
+.lby-confetti {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: inherit;
+}
+.lby-confetti__piece {
+  position: absolute; top: -8px;
+  left: calc(var(--i) * 5.5% + 2%);
+  width: 5px; height: 9px; border-radius: 2px;
+  background: hsl(calc(var(--i) * 20deg), 80%, 60%);
+  animation: lbyConfettiFall calc(.9s + var(--i) * .07s) ease-in calc(var(--i) * .04s) both;
+}
+@keyframes lbyConfettiFall {
+  0%   { transform: translateY(0) rotate(0deg) scaleX(1);  opacity: 1; }
+  60%  { transform: translateY(60px) rotate(200deg) scaleX(.6); opacity: .9; }
+  100% { transform: translateY(110px) rotate(400deg) scaleX(.4); opacity: 0; }
+}
+.lby-confetti-fade-leave-active { transition: opacity .3s ease; }
+.lby-confetti-fade-leave-to     { opacity: 0; }
 
 @media (max-width: 480px) {
   .lby-progress-panel { padding: 10px 12px; }

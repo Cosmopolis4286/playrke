@@ -13,7 +13,10 @@ const props = defineProps<{
   isUrgent: boolean
   prizeFlash: boolean
   rate: number
+  shareCopied: boolean
 }>()
+
+const emit = defineEmits<{ share: [] }>()
 
 const bingoRoomImg = '/img/games/bingo/estelar_fd.png'
 
@@ -71,18 +74,29 @@ const roomStatusText = computed(() =>
           </span>
         </div>
 
-        <div
-          v-if="isActiveAndConnected"
-          class="lby-ws lby-ws--connected lby-ws--live-active"
-        >
-          <span class="lby-ws__dot" />
-          <span class="lby-ws__label">En vivo</span>
-          <span class="lby-ws__sep">·</span>
-          <span class="lby-ws__status">Disponible</span>
-        </div>
-        <div v-else class="lby-ws" :class="`lby-ws--${wsStatus}`">
-          <span class="lby-ws__dot" />
-          <span class="lby-ws__label">{{ wsLabel }}</span>
+        <div class="lby-hero__nav-right">
+          <button
+            class="lby-share-btn"
+            :class="{ 'lby-share-btn--copied': shareCopied }"
+            :title="shareCopied ? '¡Enlace copiado!' : 'Compartir sala'"
+            @click="emit('share')"
+          >
+            <i :class="shareCopied ? 'fas fa-check' : 'fas fa-share-alt'" />
+          </button>
+
+          <div
+            v-if="isActiveAndConnected"
+            class="lby-ws lby-ws--connected lby-ws--live-active"
+          >
+            <span class="lby-ws__dot" />
+            <span class="lby-ws__label">En vivo</span>
+            <span class="lby-ws__sep">·</span>
+            <span class="lby-ws__status">Disponible</span>
+          </div>
+          <div v-else class="lby-ws" :class="`lby-ws--${wsStatus}`">
+            <span class="lby-ws__dot" />
+            <span class="lby-ws__label">{{ wsLabel }}</span>
+          </div>
         </div>
       </div>
 
@@ -110,15 +124,15 @@ const roomStatusText = computed(() =>
             :class="statusClass"
           >{{ roomStatusText }}</span>
 
-          <div v-if="room.full_house_prize || room.serial_prize" class="lby-prize-sub">
-            <div v-if="room.full_house_prize" class="lby-prize-sub__item">
+          <div v-if="room.full_house_prize != null || room.serial_prize != null" class="lby-prize-sub">
+            <div v-if="room.full_house_prize != null" class="lby-prize-sub__item">
               <span class="lby-prize-sub__lbl">Casa Llena</span>
               <span class="lby-prize-sub__val">
                 {{ formatAmount.value(Number(room.full_house_prize)) }}
                 <em class="lby-prize-sub__sym">{{ live.currencySymbol }}</em>
               </span>
             </div>
-            <div v-if="room.serial_prize" class="lby-prize-sub__item">
+            <div v-if="room.serial_prize != null" class="lby-prize-sub__item">
               <span class="lby-prize-sub__lbl">Serial</span>
               <span class="lby-prize-sub__val">
                 {{ formatAmount.value(Number(room.serial_prize)) }}
@@ -180,6 +194,19 @@ const roomStatusText = computed(() =>
 .lby-chip--mode    { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #9fb3da; }
 .lby-chip--rounds  { background: rgba(130,60,220,.15); border: 1px solid rgba(130,60,220,.32); color: #a878e8; }
 .lby-chip--variant { background: rgba(255,150,0,.1); border: 1px solid rgba(255,150,0,.25); color: #e09020; }
+
+.lby-hero__nav-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.lby-share-btn {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.14); background: rgba(4,8,20,.6);
+  color: rgba(255,255,255,.45); font-size: 10px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: background .2s, color .2s, border-color .2s, transform .15s;
+}
+.lby-share-btn:hover { background: rgba(40,110,190,.2); border-color: rgba(40,110,190,.5); color: #6aaad8; transform: scale(1.1); }
+.lby-share-btn--copied { background: rgba(42,245,152,.15); border-color: rgba(42,245,152,.4); color: #2af598; }
 
 .lby-ws {
   display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;

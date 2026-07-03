@@ -11,11 +11,14 @@ import LobbyPlayersModal  from '@js/Components/Games/Bingo/Room/Lobby/LobbyPlaye
 import LobbyToasts        from '@js/Components/Games/Bingo/Room/Lobby/LobbyToasts.vue'
 import LobbyRedirectBanner from '@js/Components/Games/Bingo/Room/Lobby/LobbyRedirectBanner.vue'
 import { useGameRoomPurchaseModal } from '@js/composables/games/bingo/card/purchase-modal/useGameRoomPurchaseModal'
-import { useLobbyEcho }      from '@js/composables/games/bingo/room/lobby/useLobbyEcho'
-import { useLobbyCountdown } from '@js/composables/games/bingo/room/lobby/useLobbyCountdown'
-import { useLobbyToasts }    from '@js/composables/games/bingo/room/lobby/useLobbyToasts'
-import { useLobbyPlayers }   from '@js/composables/games/bingo/room/lobby/useLobbyPlayers'
-import { useLobbyRedirect }  from '@js/composables/games/bingo/room/lobby/useLobbyRedirect'
+import { useLobbyEcho }          from '@js/composables/games/bingo/room/lobby/useLobbyEcho'
+import { useLobbyCountdown }     from '@js/composables/games/bingo/room/lobby/useLobbyCountdown'
+import { useLobbyToasts }        from '@js/composables/games/bingo/room/lobby/useLobbyToasts'
+import { useLobbyPlayers }       from '@js/composables/games/bingo/room/lobby/useLobbyPlayers'
+import { useLobbyRedirect }      from '@js/composables/games/bingo/room/lobby/useLobbyRedirect'
+import { useLobbyShare }         from '@js/composables/games/bingo/room/lobby/useLobbyShare'
+import { useLobbyNotification }  from '@js/composables/games/bingo/room/lobby/useLobbyNotification'
+import { useLobbyLastSale }      from '@js/composables/games/bingo/room/lobby/useLobbyLastSale'
 import type { LobbyRoom } from '@js/Components/Games/Bingo/Room/Lobby/types'
 import type { BingoGameRoom } from '@js/types/games/bingo/room/game-rooms/bingo-game-room'
 
@@ -64,15 +67,23 @@ const userId = computed(() => page.props.auth?.user?.id ?? null)
 const { wsStatus } = useLobbyEcho(props.room.id, () => userId.value, live, {
   onPrizeChanged:   () => flash(prizeFlash),
   onPlayersChanged: (prev, next) => { if (next > prev) flash(playersFlash) },
-  onCardsChanged:   (total) => pushSaleToast(total),
+  onCardsChanged:   (total) => { pushSaleToast(total); recordSale() },
   onCardsUpdated:   (price, symbol) => {
     if (price  !== null) live.cardPrice      = price
     if (symbol !== null) live.currencySymbol = symbol
   },
+  onGameStarted: () => notification.notify(),
 })
 
 const players = useLobbyPlayers(props.roomRouteKey, () => live.totalPlayers)
 const { redirecting, redirectSecs } = useLobbyRedirect(props.roomRouteKey, () => live.statusCode)
+
+const { share, copied } = useLobbyShare(props.room?.uuid_code ?? 'Bingo')
+
+const gameUrl    = computed(() => `/bingo/${roomRouteKey.value}/game`)
+const notification = useLobbyNotification(props.room?.uuid_code ?? 'Bingo', gameUrl.value)
+
+const { recordSale, lastSaleLabel } = useLobbyLastSale()
 
 // ── Modals ──
 const showRulesModal = ref(false)
@@ -182,6 +193,8 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
           :is-urgent="isUrgent"
           :prize-flash="prizeFlash"
           :rate="rate"
+          :share-copied="copied"
+          @share="share()"
         />
 
         <LobbyCardsProgress
@@ -202,8 +215,11 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
           :players-flash="playersFlash"
           :min-cards-to-start="minCardsToStart"
           :cards-progress-ready="cardsProgressReady"
+          :last-sale-label="lastSaleLabel"
+          :notification-permission="notification.permission.value"
           @open-players="players.open()"
           @open-purchase="openPurchase"
+          @request-notification="notification.requestPermission()"
         />
       </div>
     </template>

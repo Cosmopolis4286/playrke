@@ -12,11 +12,14 @@ defineProps<{
   playersFlash: boolean
   minCardsToStart: number | null
   cardsProgressReady: boolean
+  lastSaleLabel: string | null
+  notificationPermission: 'default' | 'granted' | 'denied' | 'unsupported'
 }>()
 
 const emit = defineEmits<{
   openPlayers: []
   openPurchase: []
+  requestNotification: []
 }>()
 </script>
 
@@ -101,6 +104,30 @@ const emit = defineEmits<{
         <i class="fas fa-plus" />
         {{ live.userCards > 0 ? 'Más cartones' : 'Comprar cartones' }}
       </button>
+    </div>
+
+    <!-- Modo espectador -->
+    <div v-if="room.close_room && live.userCards === 0" class="lby-spectator">
+      <i class="fas fa-eye" />
+      <span>Sala cerrada — modo espectador</span>
+    </div>
+
+    <!-- Última compra -->
+    <div v-if="lastSaleLabel" class="lby-last-sale">
+      <i class="fas fa-bolt" />
+      Última compra <strong>{{ lastSaleLabel }}</strong>
+    </div>
+
+    <!-- Notificación de escritorio -->
+    <button
+      v-if="notificationPermission === 'default'"
+      class="lby-notify-btn"
+      @click="emit('requestNotification')"
+    >
+      <i class="fas fa-bell" /> Avisarme cuando empiece
+    </button>
+    <div v-else-if="notificationPermission === 'granted'" class="lby-notify-active">
+      <i class="fas fa-bell" /> Notificación activada
     </div>
 
     <p v-if="!canNavigateGame" class="lby-warn">
@@ -194,6 +221,38 @@ const emit = defineEmits<{
   font-size: 10px; color: #907020; text-align: center; margin: 0;
   display: flex; align-items: center; justify-content: center; gap: 5px;
 }
+.lby-spectator {
+  display: flex; align-items: center; gap: 6px; justify-content: center;
+  font-size: 9.5px; color: #5a7090; padding: 5px 8px; border-radius: 8px;
+  background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.05);
+}
+.lby-spectator i { font-size: 9px; opacity: .7; }
+
+.lby-last-sale {
+  font-size: 9px; color: #3a5068; text-align: center;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  animation: lbyFadeIn .3s ease;
+}
+.lby-last-sale i { color: #ffc336; font-size: 8px; }
+.lby-last-sale strong { color: #9ecaf0; }
+@keyframes lbyFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.lby-notify-btn {
+  width: 100%; padding: 6px 0; border-radius: 8px; font-size: 9.5px; font-weight: 700;
+  letter-spacing: .4px; cursor: pointer; border: 1px dashed rgba(255,195,54,.25);
+  background: rgba(255,195,54,.04); color: #7a6020;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background .2s, border-color .2s, color .2s;
+}
+.lby-notify-btn:hover { background: rgba(255,195,54,.1); border-color: rgba(255,195,54,.4); color: #ffc336; }
+.lby-notify-btn i { font-size: 9px; }
+
+.lby-notify-active {
+  font-size: 9px; color: #2a7040; text-align: center;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.lby-notify-active i { color: #2af598; font-size: 9px; }
+
 .lby-flash { animation: lbyFlash 1.8s ease-in-out; }
 @keyframes lbyFlash { 0%,100%{filter:none} 40%{filter:drop-shadow(0 0 12px rgba(42,245,152,.7)) brightness(1.2)} }
 
