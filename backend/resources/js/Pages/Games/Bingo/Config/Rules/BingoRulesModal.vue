@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  import { computed } from 'vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import BingoRulesDefault from '@/js/Components/Games/Bingo/Config/Rules/Default.vue'
 
@@ -11,6 +12,26 @@
   const emit = defineEmits<{
     (e: 'update:modelValue', value: boolean): void
   }>()
+
+  // BUG-03: sanitizar HTML antes de v-html. Usa DOMParser nativo (sin dependencias).
+  // Elimina scripts, iframes, event handlers y hrefs javascript:.
+  // El contenido lo generan solo admins, pero una XSS stored sería crítica.
+  const sanitizedRules = computed(() => {
+    if (!props.rules) return null
+    const doc = new DOMParser().parseFromString(props.rules, 'text/html')
+    doc.querySelectorAll('script,style,iframe,object,embed,form').forEach(el => el.remove())
+    doc.querySelectorAll('*').forEach(el => {
+      for (const attr of Array.from(el.attributes)) {
+        if (
+          attr.name.startsWith('on') ||
+          (attr.name === 'href' && attr.value.trimStart().toLowerCase().startsWith('javascript'))
+        ) {
+          el.removeAttribute(attr.name)
+        }
+      }
+    })
+    return doc.body.innerHTML
+  })
 </script>
 
 <template>
@@ -30,8 +51,8 @@
       />
     </div>
 
-    <!-- Reglamento personalizado como HTML -->
-    <div v-if="rules" class="bingo-rules-content" v-html="rules" />
+    <!-- Reglamento personalizado como HTML (sanitizado) -->
+    <div v-if="sanitizedRules" class="bingo-rules-content" v-html="sanitizedRules" />
 
     <!-- Reglamento por defecto como componente -->
     <div v-else class="bingo-rules-content">
