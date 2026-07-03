@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Games\Bingo\Game;
 
 use App\Http\Controllers\Controller;
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
@@ -124,6 +125,7 @@ final class BingoGameController extends Controller
         $players = $room->players()
             ->with('user:id,first_name,last_name')
             ->orderByDesc('cards_purchased')
+            ->limit(50)
             ->get()
             ->map(fn ($ru) => [
                 'user_id'         => (string) $ru->user_id,
@@ -132,7 +134,9 @@ final class BingoGameController extends Controller
                 'role'            => $ru->role,
             ]);
 
-        return response()->json(['players' => $players]);
+        return response()
+            ->json(['players' => $players])
+            ->header('Cache-Control', 'no-store');
     }
 
     /**
@@ -179,9 +183,25 @@ final class BingoGameController extends Controller
         );
     }
 
+    /**
+     * Ver el detalle de un cartón GANADOR (usado por PlayersModal/GameEndModal
+     * para mostrar la disposición del cartón que hizo BINGO).
+     *
+     * Restringido a cartones con premio registrado en esta sala — sin esto,
+     * cualquier usuario con acceso a la sala podía consultar la disposición
+     * de números de CUALQUIER cartón (ganador o no) adivinando su id.
+     */
     public function viewCard(BingoRoom $room, string $card): JsonResponse
     {
         return $this->handleServiceJson(function () use ($room, $card) {
+            $isWinningCard = BingoCardPrize::where('room_id', (string) $room->id)
+                ->where('winning_card_id', $card)
+                ->exists();
+
+            if (!$isWinningCard) {
+                abort(404, 'Cartón no encontrado en esta sala.');
+            }
+
             $bingoCard = BingoCard::where('id', $card)
                 ->where('room_id', (string) $room->id)
                 ->first();

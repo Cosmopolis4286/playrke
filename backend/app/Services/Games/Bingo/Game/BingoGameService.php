@@ -125,6 +125,10 @@ final class BingoGameService
             'startTime' => (int) ($config?->unix_date ?? $bingoRoom->published_at?->timestamp ?? now()->timestamp),
             'closingRoute' => route('bingo-rooms.index'),
             'initialWinners' => $initialWinners,
+            // Explícito e independiente de si hubo ganador: initialWinners queda vacío
+            // cuando el sorteo terminó sin BINGO, y el frontend no debe seguir mostrando
+            // "EN VIVO" en ese caso al recargar la página de una sala ya finalizada.
+            'roomFinished' => strtoupper($roomStatusCode) === 'FINISHED',
         ];
 
         // Forzar la serialización correcta para Inertia

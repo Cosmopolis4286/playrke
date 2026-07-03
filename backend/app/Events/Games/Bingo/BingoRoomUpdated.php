@@ -41,6 +41,10 @@ final class BingoRoomUpdated implements ShouldBroadcast
         public readonly int     $totalCards = 0,
         /** Código de estado de la sala (null = sin cambio de estado) */
         public readonly ?string $statusCode = null,
+        /** Premio casa llena (null = sin cambio) */
+        public readonly ?float  $fullHousePrize = null,
+        /** Premio serial (null = sin cambio) */
+        public readonly ?float  $serialPrize = null,
     ) {}
 
     public function broadcastOn(): Channel
@@ -65,6 +69,14 @@ final class BingoRoomUpdated implements ShouldBroadcast
 
         if ($this->statusCode !== null) {
             $payload['status_code'] = $this->statusCode;
+        }
+
+        if ($this->fullHousePrize !== null) {
+            $payload['full_house_prize'] = $this->fullHousePrize;
+        }
+
+        if ($this->serialPrize !== null) {
+            $payload['serial_prize'] = $this->serialPrize;
         }
 
         return $payload;
