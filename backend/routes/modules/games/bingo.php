@@ -133,7 +133,11 @@ route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'multiPermission:g
  * JUEGO DE BINGO
  * ====================================
  */
-route_group('bingo', 'bingo.', ['auth'], BingoGameController::class, [
+// NOTA: 'game' (inGame) no está cubierto por authorizeResource() en el controlador
+// -- resourceAbilityMap() solo mapea index/show/create/store/edit/update/destroy,
+// no 'inGame' -- así que sin este middleware cualquier usuario autenticado podía
+// ver la sala de juego de CUALQUIER sala, sin importar si jugaba en ella.
+route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoGameController::class, [
     'lobby'         => ['method' => 'get',  'uri' => '{room}/lobby',         'action' => 'lobby'],
     'lobby-players' => ['method' => 'get',  'uri' => '{room}/lobby-players', 'action' => 'lobbyPlayers'],
     'game'          => ['method' => 'get',  'uri' => '{room}/game',          'action' => 'inGame'],

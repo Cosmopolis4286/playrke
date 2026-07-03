@@ -24,9 +24,16 @@ const emit = defineEmits<{
   close: []
 }>()
 
-const viewingCard      = ref<null | { serialNumber: string; cardMatrix: number[][]; colLabels?: string[]; loading?: boolean }>(null)
+type ViewedCard = { serialNumber: string; cardMatrix: number[][]; colLabels?: string[]; loading?: boolean }
+
+const viewingCard      = ref<ViewedCard | null>(null)
 const viewingCardOwner = ref('')
 const loadingCardId    = ref<string | null>(null)
+
+// Cache de cartones ya consultados en esta sesión del modal — evita refetch al
+// reabrir el mismo cartón ganador (los datos de un cartón no cambian una vez
+// declarado ganador, así que no hay riesgo de servir datos obsoletos).
+const cardCache = new Map<string, ViewedCard>()
 
 // O(1) lookup en template para evitar includes() O(n) en cada celda
 const drawnSet = computed(() => new Set(props.drawnNumbers))
@@ -52,6 +59,14 @@ function toRowMatrix(cardNumbers: Record<string, (number | null)[]> | number[][]
 
 async function openCardViewer(winner: WinnerEntry) {
   if (!winner.card_id || loadingCardId.value === winner.card_id) return
+
+  const cached = cardCache.get(winner.card_id)
+  if (cached) {
+    viewingCardOwner.value = winner.user_name
+    viewingCard.value      = cached
+    return
+  }
+
   loadingCardId.value    = winner.card_id
   viewingCardOwner.value = winner.user_name
   viewingCard.value      = { serialNumber: winner.card_serial, cardMatrix: [], loading: true }
@@ -63,12 +78,14 @@ async function openCardViewer(winner: WinnerEntry) {
     const data = await res.json()
     if (data.success && data.card) {
       const { matrix, cols } = toRowMatrix(data.card.cardMatrix ?? {})
-      viewingCard.value = {
+      const resolved: ViewedCard = {
         serialNumber: data.card.serialNumber ?? winner.card_serial,
         cardMatrix:   matrix,
         colLabels:    cols,
         loading:      false,
       }
+      cardCache.set(winner.card_id, resolved)
+      viewingCard.value = resolved
     } else {
       viewingCard.value = null
     }

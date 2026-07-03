@@ -4,8 +4,8 @@ export interface LobbyRoom {
   status_code?: string
   image_url?: string | null
   prize_pool: number
-  full_house_prize?: number
-  serial_prize?: number
+  full_house_prize?: number | null
+  serial_prize?: number | null
   total_players: number
   total_cards: number
   close_room?: boolean
