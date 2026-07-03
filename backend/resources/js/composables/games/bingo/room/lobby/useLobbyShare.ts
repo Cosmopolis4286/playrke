@@ -8,8 +8,9 @@ export function useLobbyShare(roomName: string) {
 
   async function share() {
     const url   = window.location.href
-    const title = `Sala de Bingo — ${roomName}`
-    const text  = `¡Únete a la sala de Bingo! 🎱`
+    const label = roomName || 'Bingo'
+    const title = `Sala de Bingo — ${label}`
+    const text  = `¡Te invito a jugar Bingo! 🎱 Únete a la sala "${label}" y gana premios.`
 
     if (navigator.share) {
       try {

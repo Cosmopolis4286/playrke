@@ -2,7 +2,7 @@ import { ref, readonly } from 'vue'
 
 type PermissionState = 'default' | 'granted' | 'denied' | 'unsupported'
 
-export function useLobbyNotification(roomName: string, gameUrl: string) {
+export function useLobbyNotification(roomName: string, getGameUrl: string | (() => string)) {
   const supported  = 'Notification' in window
   const permission = ref<PermissionState>(
     supported ? (Notification.permission as PermissionState) : 'unsupported'
@@ -17,6 +17,7 @@ export function useLobbyNotification(roomName: string, gameUrl: string) {
 
   function notify() {
     if (!supported || Notification.permission !== 'granted') return
+    const url = typeof getGameUrl === 'function' ? getGameUrl() : getGameUrl
     const n = new Notification(`¡El Bingo ha comenzado! 🎱`, {
       body: `La sala "${roomName}" está en juego. Haz clic para entrar.`,
       icon: '/img/games/bingo/estelar_fd.png',
@@ -25,7 +26,7 @@ export function useLobbyNotification(roomName: string, gameUrl: string) {
     n.onclick = () => {
       window.focus()
       n.close()
-      window.location.href = gameUrl
+      window.location.href = url
     }
   }
 

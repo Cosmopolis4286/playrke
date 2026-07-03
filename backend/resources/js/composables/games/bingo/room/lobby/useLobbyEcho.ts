@@ -12,6 +12,8 @@ interface RoomUpdatedPayload {
   total_cards: number
   card_price_usd: number
   status_code?: string
+  full_house_prize?: number
+  serial_prize?: number
 }
 
 interface PlayerCardsUpdatedPayload {
@@ -31,6 +33,7 @@ export function useLobbyEcho(
     onCardsChanged?: (totalCards: number) => void
     onCardsUpdated?: (cardPrice: number | null, currencySymbol: string | null) => void
     onGameStarted?: () => void
+    onSubPrizesChanged?: (fullHousePrize: number | undefined, serialPrize: number | undefined) => void
   },
 ): { wsStatus: ReturnType<typeof ref<WsStatus>> } {
   const wsStatus = ref<WsStatus>('connecting')
@@ -56,7 +59,17 @@ export function useLobbyEcho(
   // ── Canal público de sala ──
   // Flag: si acabamos de recibir una actualización propia por canal privado,
   // suprimimos el toast "otro compró" para el siguiente evento público.
-  let ownPurchasePending = false
+  let ownPurchasePending      = false
+  let ownPurchaseResetTimer: ReturnType<typeof setTimeout> | null = null
+
+  function setOwnPurchasePending() {
+    ownPurchasePending = true
+    if (ownPurchaseResetTimer) clearTimeout(ownPurchaseResetTimer)
+    ownPurchaseResetTimer = setTimeout(() => {
+      ownPurchasePending    = false
+      ownPurchaseResetTimer = null
+    }, 10_000)
+  }
 
   interface GameStartedPayload { room_id: string | number; draw_id: number; start_time: string }
 
@@ -84,6 +97,9 @@ export function useLobbyEcho(
       if (!ownPurchasePending) callbacks?.onCardsChanged?.(live.totalCards)
       ownPurchasePending = false
     }
+    if (payload.full_house_prize !== undefined || payload.serial_prize !== undefined) {
+      callbacks?.onSubPrizesChanged?.(payload.full_house_prize, payload.serial_prize)
+    }
   })
 
   // ── Canal privado del jugador — reactivo al userId ──
@@ -108,7 +124,7 @@ export function useLobbyEcho(
     echo.private(channelName).listen('.PlayerCardsUpdated', (payload: PlayerCardsUpdatedPayload) => {
       if (payload.room_id !== roomId) return
       live.userCards = payload.ctns
-      ownPurchasePending = true
+      setOwnPurchasePending()
       callbacks?.onCardsUpdated?.(payload.card_price, payload.currency_symbol)
     })
   }
@@ -116,6 +132,7 @@ export function useLobbyEcho(
   watch(getUserId, subscribePrivate, { immediate: true })
 
   onUnmounted(() => {
+    if (ownPurchaseResetTimer) clearTimeout(ownPurchaseResetTimer)
     echo.leaveChannel(roomChannelName)
     if (currentPrivateChannel) echo.leaveChannel(currentPrivateChannel)
 

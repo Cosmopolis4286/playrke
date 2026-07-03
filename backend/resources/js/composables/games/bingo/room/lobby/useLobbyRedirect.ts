@@ -31,14 +31,20 @@ export function useLobbyRedirect(
     if (statusCode()?.toUpperCase() === 'IN_PROGRESS') trigger()
   })
 
-  onUnmounted(() => {
+  function cancel() {
     if (redirectTimer) clearTimeout(redirectTimer)
     if (tickTimer)     clearInterval(tickTimer)
-  })
+    redirectTimer      = null
+    tickTimer          = null
+    redirecting.value  = false
+    redirectSecs.value = 0
+  }
+
+  onUnmounted(cancel)
 
   watch(statusCode, (next) => {
     if (next?.toUpperCase() === 'IN_PROGRESS') trigger()
   })
 
-  return { redirecting, redirectSecs }
+  return { redirecting, redirectSecs, cancel }
 }

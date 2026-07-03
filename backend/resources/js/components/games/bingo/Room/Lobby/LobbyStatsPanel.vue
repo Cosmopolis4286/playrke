@@ -34,13 +34,21 @@ const emit = defineEmits<{
         @click="emit('openPlayers')"
       >
         <div class="lby-stat__icon-wrap"><i class="fas fa-users" /></div>
-        <span class="lby-stat__val">{{ live.totalPlayers }}</span>
+        <span class="lby-stat__val" aria-live="polite" aria-atomic="true">{{ live.totalPlayers }}</span>
         <span class="lby-stat__lbl">Jugadores</span>
       </div>
 
-      <div class="lby-stat lby-stat--mine">
+      <div
+        class="lby-stat lby-stat--mine"
+        :class="{ 'lby-stat--clickable': canPurchaseCards }"
+        :title="canPurchaseCards ? 'Comprar cartones' : undefined"
+        :role="canPurchaseCards ? 'button' : undefined"
+        :tabindex="canPurchaseCards ? 0 : undefined"
+        @click="canPurchaseCards && emit('openPurchase')"
+        @keydown.enter="canPurchaseCards && emit('openPurchase')"
+      >
         <div class="lby-stat__icon-wrap"><i class="fas fa-ticket-alt" /></div>
-        <span class="lby-stat__val">{{ live.userCards }}</span>
+        <span class="lby-stat__val" aria-live="polite" aria-atomic="true">{{ live.userCards }}</span>
         <span class="lby-stat__lbl">Mis cartones</span>
       </div>
 

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 defineProps<{ show: boolean; secs?: number }>()
+defineEmits<{ cancel: [] }>()
 </script>
 
 <template>
   <Teleport to="body">
   <Transition name="lby-redirect">
-    <div v-if="show" class="lby-redirect-banner">
+    <div v-if="show" class="lby-redirect-banner" role="alertdialog" aria-modal="true" aria-label="Redirigiendo al juego">
       <div class="lby-redirect-banner__inner">
         <div class="lby-redirect-banner__spinner" />
         <div>
@@ -14,6 +15,9 @@ defineProps<{ show: boolean; secs?: number }>()
             Entrando al juego{{ (secs != null && secs > 0) ? ` en ${secs}s` : '…' }}
           </p>
         </div>
+        <button class="lby-redirect-banner__cancel" @click="$emit('cancel')" aria-label="Cancelar redirección">
+          <i class="fas fa-times" />
+        </button>
       </div>
     </div>
   </Transition>
@@ -43,8 +47,17 @@ defineProps<{ show: boolean; secs?: number }>()
   border-radius: 50%; animation: lbySpin 1s linear infinite;
 }
 @keyframes lbySpin { to { transform: rotate(360deg); } }
-.lby-redirect-banner__title { margin: 0 0 3px; font-size: 15px; font-weight: 700; color: #2af598; }
-.lby-redirect-banner__sub   { margin: 0; font-size: 11px; color: #3a6050; }
+.lby-redirect-banner__title  { margin: 0 0 3px; font-size: 15px; font-weight: 700; color: #2af598; }
+.lby-redirect-banner__sub    { margin: 0; font-size: 11px; color: #3a6050; }
+.lby-redirect-banner__cancel {
+  margin-left: 8px; width: 28px; height: 28px; flex-shrink: 0;
+  border-radius: 50%; border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04); color: rgba(255,255,255,.35);
+  font-size: 11px; cursor: pointer; align-self: flex-start;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s, color .2s, border-color .2s;
+}
+.lby-redirect-banner__cancel:hover { background: rgba(255,77,109,.12); border-color: rgba(255,77,109,.3); color: #ff6e8a; }
 
 .lby-redirect-enter-active { transition: opacity .25s ease; }
 .lby-redirect-leave-active { transition: opacity .2s ease; }

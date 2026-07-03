@@ -2,6 +2,7 @@ export interface LobbyRoom {
   id: string
   uuid_code?: string
   status_code?: string
+  image_url?: string | null
   prize_pool: number
   full_house_prize?: number
   serial_prize?: number

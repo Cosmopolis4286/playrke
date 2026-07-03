@@ -2,7 +2,7 @@
 import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 import type { Ref } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import BingoPurchaseModal from '@js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModal.vue'
+import BingoPurchaseModalWrapper from '@js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModalWrapper.vue'
 import BingoRulesModal   from '@js/Pages/Games/Bingo/Config/Rules/BingoRulesModal.vue'
 import LobbyHero          from '@js/Components/Games/Bingo/Room/Lobby/LobbyHero.vue'
 import LobbyCardsProgress from '@js/Components/Games/Bingo/Room/Lobby/LobbyCardsProgress.vue'
@@ -45,6 +45,9 @@ const live = reactive({
   currencySymbol: props.room?.currency_symbol ?? 'USD',
 })
 
+const liveFullHousePrize = ref<number | null>(props.room?.full_house_prize ?? null)
+const liveSerialPrize    = ref<number | null>(props.room?.serial_prize    ?? null)
+
 // ── Flash ──
 const prizeFlash   = ref(false)
 const playersFlash = ref(false)
@@ -59,9 +62,24 @@ function flash(target: Ref<boolean>) {
 }
 onUnmounted(() => { flashTimers.forEach(clearTimeout) })
 
+// ── Computed (deben ir antes de los composables que los usen) ──
+const rate         = computed(() => props.exchangeRate ?? 1)
+const roomRouteKey = computed(() => props.roomRouteKey?.trim() ?? '')
+
 // ── Composables ──
-const { saleToasts, pushSaleToast } = useLobbyToasts()
-const { countdown, isLive, isUrgent } = useLobbyCountdown(() => props.room?.unix_date)
+const { saleToasts, pushSaleToast }    = useLobbyToasts()
+const { countdown, isLive, isUrgent }  = useLobbyCountdown(() => props.room?.unix_date)
+const { recordSale, lastSaleLabel }    = useLobbyLastSale()
+const shareName = computed(() =>
+  props.room?.game_mode_description
+    ? `${props.room.game_mode_description} · ${props.room.uuid_code ?? ''}`
+    : (props.room?.uuid_code ?? 'Bingo')
+)
+const { share, copied }                = useLobbyShare(shareName.value)
+const notification                     = useLobbyNotification(
+  props.room?.uuid_code ?? 'Bingo',
+  () => `/bingo/${roomRouteKey.value}/game`,
+)
 
 const userId = computed(() => page.props.auth?.user?.id ?? null)
 const { wsStatus } = useLobbyEcho(props.room.id, () => userId.value, live, {
@@ -73,17 +91,14 @@ const { wsStatus } = useLobbyEcho(props.room.id, () => userId.value, live, {
     if (symbol !== null) live.currencySymbol = symbol
   },
   onGameStarted: () => notification.notify(),
+  onSubPrizesChanged: (fhp, sp) => {
+    if (fhp !== undefined) liveFullHousePrize.value = fhp
+    if (sp  !== undefined) liveSerialPrize.value    = sp
+  },
 })
 
 const players = useLobbyPlayers(props.roomRouteKey, () => live.totalPlayers)
-const { redirecting, redirectSecs } = useLobbyRedirect(props.roomRouteKey, () => live.statusCode)
-
-const { share, copied } = useLobbyShare(props.room?.uuid_code ?? 'Bingo')
-
-const gameUrl    = computed(() => `/bingo/${roomRouteKey.value}/game`)
-const notification = useLobbyNotification(props.room?.uuid_code ?? 'Bingo', gameUrl.value)
-
-const { recordSale, lastSaleLabel } = useLobbyLastSale()
+const { redirecting, redirectSecs, cancel: cancelRedirect } = useLobbyRedirect(props.roomRouteKey, () => live.statusCode)
 
 // ── Modals ──
 const showRulesModal = ref(false)
@@ -93,11 +108,6 @@ const modal = useGameRoomPurchaseModal()
 watch(() => live.statusCode, (code) => {
   if (code?.toUpperCase() === 'IN_PROGRESS' && modal.isOpen.value) modal.close()
 })
-
-// ── Computed ──
-const rate = computed(() => props.exchangeRate ?? 1)
-
-const roomRouteKey = computed(() => props.roomRouteKey?.trim() ?? '')
 
 const canNavigateGame = computed(() => roomRouteKey.value.length > 0)
 
@@ -194,6 +204,8 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
           :prize-flash="prizeFlash"
           :rate="rate"
           :share-copied="copied"
+          :full-house-prize="liveFullHousePrize"
+          :serial-prize="liveSerialPrize"
           @share="share()"
         />
 
@@ -237,7 +249,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
       @retry="players.open()"
     />
 
-    <LobbyRedirectBanner :show="redirecting" :secs="redirectSecs" />
+    <LobbyRedirectBanner :show="redirecting" :secs="redirectSecs" @cancel="cancelRedirect" />
 
     <BingoRulesModal
       v-model="showRulesModal"
@@ -245,37 +257,10 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
       :image="props.imageBingoRules"
     />
 
-    <BingoPurchaseModal
-      v-if="modal.isOpen.value"
-      :is-open="modal.isOpen.value"
-      :step="modal.step.value"
-      :selected-room="modal.selectedRoom.value"
-      :countries="modal.countries.value"
-      :loading-countries="modal.loadingCountries.value"
-      :selected-country="modal.selectedCountry.value"
-      :card-price="modal.cardPrice.value"
-      :currency-symbol="modal.currencySymbol.value"
-      :loading-price="modal.loadingPrice.value"
-      :num-ctns="modal.numCtns.value"
-      :total-amount="modal.totalAmount.value"
-      :can-advance="modal.canAdvance.value"
-      :purchasing="modal.purchasing.value"
+    <BingoPurchaseModalWrapper
+      :modal="modal"
       :exchange-rate="rate"
-      :is-player="modal.isPlayer.value"
-      :can-customize="modal.canCustomize.value"
-      :customize-card="modal.customizeCard.value"
-      :custom-card-numbers="modal.customCardNumbers.value"
-      :confirm-incomplete-custom-card="modal.confirmIncompleteCustomCard"
-      @close="modal.close()"
-      @select-country="modal.selectCountry($event)"
-      @next="modal.nextStep()"
-      @prev="modal.prevStep()"
-      @increment="modal.increment()"
-      @decrement="modal.decrement()"
-      @set-ctns="modal.setNumCtns($event)"
-      @toggle-customize="modal.toggleCustomize()"
-      @update:custom-card-numbers="modal.customCardNumbers.value = $event"
-      @purchase="modal.purchase(result => onPurchaseSuccess(modal.selectedRoom.value!.id, result))"
+      @success="onPurchaseSuccess"
     />
 
   </div>

@@ -14,11 +14,14 @@ const props = defineProps<{
   prizeFlash: boolean
   rate: number
   shareCopied: boolean
+  fullHousePrize?: number | null
+  serialPrize?: number | null
 }>()
 
 const emit = defineEmits<{ share: [] }>()
 
-const bingoRoomImg = '/img/games/bingo/estelar_fd.png'
+const FALLBACK_IMG = '/img/games/bingo/estelar_fd.png'
+const bingoRoomImg = computed(() => props.room.image_url || FALLBACK_IMG)
 
 const isActiveAndConnected = computed(() =>
   props.wsStatus === 'connected' &&
@@ -54,7 +57,7 @@ const roomStatusText = computed(() =>
 <template>
   <div class="lby-hero">
     <div class="lby-hero__clip">
-      <img :src="bingoRoomImg" alt="Sala" class="lby-hero__img" />
+      <img :src="bingoRoomImg" alt="Sala" class="lby-hero__img" @error="($event.target as HTMLImageElement).src = FALLBACK_IMG" />
       <div class="lby-hero__overlay" />
 
       <!-- Nav: chips + WS badge -->
@@ -105,7 +108,7 @@ const roomStatusText = computed(() =>
         <div class="lby-prize" :class="{ 'lby-flash': prizeFlash }">
           <span class="lby-prize__lbl"><i class="fas fa-trophy" /> Premio Acumulado</span>
           <div class="lby-prize__val">
-            <span class="lby-prize__num">{{ formattedPrize }}</span>
+            <span class="lby-prize__num" aria-live="polite" aria-atomic="true">{{ formattedPrize }}</span>
             <span class="lby-prize__sym">{{ live.currencySymbol }}</span>
           </div>
         </div>
@@ -124,18 +127,21 @@ const roomStatusText = computed(() =>
             :class="statusClass"
           >{{ roomStatusText }}</span>
 
-          <div v-if="room.full_house_prize != null || room.serial_prize != null" class="lby-prize-sub">
-            <div v-if="room.full_house_prize != null" class="lby-prize-sub__item">
+          <div
+            v-if="(fullHousePrize ?? room.full_house_prize) != null || (serialPrize ?? room.serial_prize) != null"
+            class="lby-prize-sub"
+          >
+            <div v-if="(fullHousePrize ?? room.full_house_prize) != null" class="lby-prize-sub__item">
               <span class="lby-prize-sub__lbl">Casa Llena</span>
-              <span class="lby-prize-sub__val">
-                {{ formatAmount.value(Number(room.full_house_prize)) }}
+              <span class="lby-prize-sub__val" aria-live="polite" aria-atomic="true">
+                {{ formatAmount(Number(fullHousePrize ?? room.full_house_prize)) }}
                 <em class="lby-prize-sub__sym">{{ live.currencySymbol }}</em>
               </span>
             </div>
-            <div v-if="room.serial_prize != null" class="lby-prize-sub__item">
+            <div v-if="(serialPrize ?? room.serial_prize) != null" class="lby-prize-sub__item">
               <span class="lby-prize-sub__lbl">Serial</span>
-              <span class="lby-prize-sub__val">
-                {{ formatAmount.value(Number(room.serial_prize)) }}
+              <span class="lby-prize-sub__val" aria-live="polite" aria-atomic="true">
+                {{ formatAmount(Number(serialPrize ?? room.serial_prize)) }}
                 <em class="lby-prize-sub__sym">{{ live.currencySymbol }}</em>
               </span>
             </div>

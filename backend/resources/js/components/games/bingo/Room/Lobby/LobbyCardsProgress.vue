@@ -11,7 +11,7 @@ const props = defineProps<{
 const showConfetti = ref(false)
 
 watch(() => props.ready, (isReady, wasReady) => {
-  if (isReady && !wasReady) {
+  if (isReady && wasReady === false) {
     showConfetti.value = true
     setTimeout(() => { showConfetti.value = false }, 2800)
   }
