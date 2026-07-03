@@ -1,20 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
-import type { RoomCountdown } from '@/js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
-import type { BingoGameRoomDetail } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
+import type { BingoGameRoom } from '@js/types/games/bingo/room/game-rooms/bingo-game-room'
+import type { RoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
+import { formatCountdown, BINGO_ROOM_IMG } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
 
+// DEAD-02: eliminadas props muertas (isPurchasing, roomDetail, numCtns, totalAmount, prizePoolLabel, loading)
 const props = defineProps<{
   room: BingoGameRoom
   exchangeRate: number
   currencySym: string
   countdown: RoomCountdown | undefined
-  isPurchasing: boolean
-  roomDetail: BingoGameRoomDetail | null
-  numCtns: number
-  totalAmount: number
-  prizePoolLabel: string
-  loading: boolean
   index?: number
 }>()
 
@@ -25,7 +20,6 @@ const isInProgress = computed(() => props.room.status_code === 'IN_PROGRESS')
 const playerCtns   = computed(() => props.room.players_room?.[0]?.ctns ?? 0)
 const hasTime      = computed(() => props.countdown && !props.countdown.expired)
 const animDelay    = computed(() => `${(props.index ?? 0) * 70}ms`)
-const bingoRoomImg = '/img/games/bingo/estelar_fd.png'
 
 const prizeFormatted = computed(() =>
   (props.room.prize_pool * props.exchangeRate).toFixed(2)
@@ -49,18 +43,11 @@ const cardsProgressReady = computed(() =>
   minCardsToStart.value != null && totalCards.value >= minCardsToStart.value
 )
 
-const timerStr = computed(() => {
-  if (!hasTime.value || !props.countdown) return null
-  const { days, hours, minutes, seconds } = props.countdown.time
-  const ss = String(seconds).padStart(2, '0')
-  const mm = String(minutes).padStart(2, '0')
-  if (days > 0) return `${days}d ${String(hours).padStart(2,'0')}h ${mm}m`
-  if (hours > 0) return `${String(hours).padStart(2,'0')}:${mm}:${ss}`
-  return `${mm}:${ss}`
-})
+// BUG-02: reemplazado timerStr local por formatCountdown importado de gameRoomUtils
+// BUG-04: reemplazado bingoRoomImg local por BINGO_ROOM_IMG importado de gameRoomUtils
 
 function handleClick() {
-  if (!props.loading) emit('select', props.room.id)
+  emit('select', props.room.id)
 }
 </script>
 
@@ -80,9 +67,14 @@ function handleClick() {
 
     <div class="rc__inner">
 
+      <!-- UX-02: etiqueta "Cerrada" cuando la sala no está activa ni en progreso -->
+      <div v-if="!isAvailable && !isInProgress" class="rc__closed-label">
+        <i class="fas fa-lock" /> Cerrada
+      </div>
+
       <!-- ── Thumbnail ── -->
       <div class="rc__thumb">
-        <img :src="bingoRoomImg" alt="" class="rc__img" />
+        <img :src="BINGO_ROOM_IMG" alt="" class="rc__img" />
         <div class="rc__img-veil" />
         <div class="rc__side-accent" />
 
@@ -97,8 +89,8 @@ function handleClick() {
 
         <!-- Timer: bottom centrado -->
         <div class="rc__timer-badge" :class="{ 'rc__timer-badge--live': !hasTime }">
-          <template v-if="hasTime && timerStr">
-            <i class="far fa-clock" /><b>{{ timerStr }}</b>
+          <template v-if="hasTime">
+            <i class="far fa-clock" /><b>{{ formatCountdown(props.countdown) }}</b>
           </template>
           <template v-else>
             <span class="rc__blink" /><b>LIVE</b>
@@ -447,4 +439,17 @@ function handleClick() {
   border-color: rgba(110,55,210,.22);
 }
 .rc__stat--ctns i { color: #7840c0; }
+
+/* UX-02: etiqueta "Cerrada" para salas rc--off */
+.rc__closed-label {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 5; pointer-events: none;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 10px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase;
+  background: rgba(8,12,28,.8); border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.35); white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+.rc__closed-label i { font-size: 9px; opacity: .7; }
 </style>

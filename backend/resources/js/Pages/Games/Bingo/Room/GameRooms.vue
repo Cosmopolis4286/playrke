@@ -1,145 +1,32 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
-import { usePage } from "@inertiajs/vue3";
 import "@/css/games/bingo/bingo-game-rooms.css";
 
-import BingoGameRoomCard from "@js/Components/Games/Bingo/Room/GameRooms/BingoGameRoomCard.vue";
-import BingoPurchaseModal from "@js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModal.vue";
+import BingoGameRoomCard  from "@js/Components/Games/Bingo/Room/GameRooms/BingoGameRoomCard.vue";
+import BingoPurchaseModalWrapper from "@js/Components/Games/Bingo/Card/PurchaseModal/BingoPurchaseModalWrapper.vue";
 import BingoRoomInfoModal from "@js/Components/Games/Bingo/Room/GameRooms/BingoRoomInfoModal.vue";
-import BingoRulesModal from "@js/Pages/Games/Bingo/Config/Rules/BingoRulesModal.vue";
+import BingoRulesModal    from "@js/Pages/Games/Bingo/Config/Rules/BingoRulesModal.vue";
 
-import { useGameRoomCountdown } from "@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown";
-import { useGameRoomEcho } from "@js/composables/games/bingo/room/game-rooms/useGameRoomEcho";
-import { useGameRoomPurchaseModal } from "@js/composables/games/bingo/card/purchase-modal/useGameRoomPurchaseModal";
+import { useGameRooms }             from "@js/composables/games/bingo/room/game-rooms/useGameRooms";
+import { BINGO_ROOM_IMG } from "@js/modules/games/bingo/room/game-rooms/gameRoomUtils";
 
-import type {
-  BingoGameRoomsPageProps,
-  BingoGameRoom,
-} from "@js/types/games/bingo/room/game-rooms/bingo-game-room";
+import type { BingoGameRoomsPageProps } from "@js/types/games/bingo/room/game-rooms/bingo-game-room";
 
 const props = defineProps<BingoGameRoomsPageProps>();
 
-const bingoRoomImg = '/img/games/bingo/estelar_fd.png'
-
-const page = usePage();
-
-const isAdmin = computed(() => {
-  const roles = page.props.auth?.user?.userRoles || [];
-  return roles.some((ur: any) =>
-    ur.role?.prefix === "admin" || ur.role?.prefix === "superadmin"
-  );
-});
-
-const canBuy = computed(() => {
-  const roles = page.props.auth?.user?.userRoles || [];
-  return roles.some((ur: any) =>
-    ["commerce", "seller", "player"].includes(ur.role?.prefix)
-  );
-});
-
-const rooms = ref<BingoGameRoom[]>(props.rooms.map((r) => ({ ...r })));
-
-const filteredRooms = computed(() => {
-  const roles = page.props.auth?.user?.userRoles || [];
-  const isPlayer = roles.some((ur: any) => ur.role?.prefix === "player");
-  if (isPlayer) return rooms.value.filter((r) => r.room_type === "PUBLIC");
-  return rooms.value;
-});
-
-const serverTimestampMs = props.dateTimeRooms?.timestamp
-  ? Number(props.dateTimeRooms.timestamp)
-  : Date.now();
-
-const { init: initCountdown, getCountdown, updateRoomTime } = useGameRoomCountdown(
-  serverTimestampMs,
-  (_roomId) => {}
-);
-
-useGameRoomEcho(rooms, {
-  userId: page.props.auth?.user?.id ?? null,
-  onRoomAdded: (room) => {
-    if (room.config?.unix_date) updateRoomTime(room.id, room.config.unix_date);
-  },
-});
-
-const modal = useGameRoomPurchaseModal();
-
-// ── Modal de reglamento ──
-const showRulesModal = ref(false);
-
-// ── Modal intermedio de sala ──
-// Se guarda solo el id; la sala se resuelve de forma reactiva desde `rooms`
-// para que el modal refleje las actualizaciones en tiempo real (WebSockets).
-const selectedRoomId = ref<string | null>(null);
-const showRoomInfoModal = ref(false);
-
-const selectedRoomForInfo = computed<BingoGameRoom | null>(() => {
-  if (!selectedRoomId.value) return null;
-  return rooms.value.find((r) => r.id === selectedRoomId.value) ?? null;
-});
-
-function openRoomInfo(roomId: string): void {
-  const room = filteredRooms.value.find((r) => r.id === roomId);
-  if (!room) return;
-  selectedRoomId.value = roomId;
-  showRoomInfoModal.value = true;
-  // Pre-carga el precio en segundo plano mientras el usuario lee la info de la sala
-  modal.prefetch(room);
-}
-
-function closeRoomInfo(): void {
-  showRoomInfoModal.value = false;
-  selectedRoomId.value = null;
-}
-
-function goToLobby(roomId: string): void {
-  window.location.href = `/bingo/${roomId}/lobby`;
-}
-
-function openPurchaseFromInfo(): void {
-  if (!selectedRoomForInfo.value) return;
-  const room = selectedRoomForInfo.value;
-  closeRoomInfo();
-  modal.open(room);
-}
-
-function onPurchaseSuccess(
-  roomId: string,
-  result: { prizePool: number; ctns: number }
-): void {
-  const idx = rooms.value.findIndex((r) => r.id === roomId);
-  if (idx === -1) return;
-  const room = rooms.value[idx];
-  const updatedPlayer = { ctns: (room.players_room?.[0]?.ctns ?? 0) + result.ctns };
-  rooms.value[idx] = { ...room, prize_pool: result.prizePool, players_room: [updatedPlayer] };
-}
-
-// ── Formateo del countdown para el modal ──
-function formatCountdown(roomId: string): string {
-  const cd = getCountdown(roomId);
-  if (!cd || cd.expired) return "EN VIVO";
-  const { days, hours, minutes, seconds } = cd.time;
-  if (days > 0) return `${days}d ${String(hours).padStart(2,"0")}h ${String(minutes).padStart(2,"0")}m`;
-  if (hours > 0) return `${String(hours).padStart(2,"0")}:${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}`;
-  return `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}`;
-}
-
-function isLive(roomId: string): boolean {
-  const cd = getCountdown(roomId);
-  return !cd || cd.expired;
-}
-
-const gameModeMap: Record<string, string> = {
-  ONLINE: "Online", OFFLINE: "Presencial", MIXED: "Mixto",
-};
-
-const roomTypeMap: Record<string, string> = {
-  PUBLIC: "Pública", PRIVATE: "Privada",
-};
-
-onMounted(() => {
-  initCountdown(props.rooms);
-});
+const {
+  filteredRooms,
+  canBuy,
+  getCountdown,
+  showRulesModal,
+  showRoomInfoModal,
+  selectedRoomForInfo,
+  openRoomInfo,
+  closeRoomInfo,
+  openPurchaseFromInfo,
+  onPurchaseSuccess,
+  modal,
+  goToLobby,
+} = useGameRooms(props);
 </script>
 
 <template>
@@ -192,12 +79,6 @@ onMounted(() => {
             :exchange-rate="props.exchangeRate ?? 1"
             :currency-sym="props.currencySym ?? ''"
             :countdown="getCountdown(room.id)"
-            :is-purchasing="false"
-            :room-detail="null"
-            :num-ctns="1"
-            :total-amount="0"
-            :prize-pool-label="'Premio'"
-            :loading="false"
             :index="index"
             @select="openRoomInfo"
           />
@@ -221,44 +102,18 @@ onMounted(() => {
     :exchange-rate="props.exchangeRate ?? 1"
     :currency-sym="props.currencySym ?? 'USD'"
     :can-buy="canBuy"
-    :bingo-room-img="bingoRoomImg"
+    :bingo-room-img="BINGO_ROOM_IMG"
     @close="closeRoomInfo"
     @go-lobby="goToLobby(selectedRoomForInfo.id)"
     @buy="openPurchaseFromInfo"
   />
 
   <!-- ══ Modal de compra ══ -->
-  <BingoPurchaseModal
-    v-if="modal.isOpen.value && canBuy"
-    :is-open="modal.isOpen.value"
-    :step="modal.step.value"
-    :selected-room="modal.selectedRoom.value"
-    :countries="modal.countries.value"
-    :loading-countries="modal.loadingCountries.value"
-    :selected-country="modal.selectedCountry.value"
-    :card-price="modal.cardPrice.value"
-    :currency-symbol="modal.currencySymbol.value"
-    :loading-price="modal.loadingPrice.value"
-    :num-ctns="modal.numCtns.value"
-    :total-amount="modal.totalAmount.value"
-    :can-advance="modal.canAdvance.value"
-    :purchasing="modal.purchasing.value"
+  <BingoPurchaseModalWrapper
+    :modal="modal"
     :exchange-rate="props.exchangeRate ?? 1"
-    :is-player="modal.isPlayer.value"
-    :can-customize="modal.canCustomize.value"
-    :customize-card="modal.customizeCard.value"
-    :custom-card-numbers="modal.customCardNumbers.value"
-    :confirm-incomplete-custom-card="modal.confirmIncompleteCustomCard"
-    @close="modal.close()"
-    @select-country="modal.selectCountry($event)"
-    @next="modal.nextStep()"
-    @prev="modal.prevStep()"
-    @increment="modal.increment()"
-    @decrement="modal.decrement()"
-    @set-ctns="modal.setNumCtns($event)"
-    @toggle-customize="modal.toggleCustomize()"
-    @update:custom-card-numbers="modal.customCardNumbers.value = $event"
-    @purchase="modal.purchase(result => onPurchaseSuccess(modal.selectedRoom.value!.id, result))"
+    :guard="canBuy"
+    @success="onPurchaseSuccess"
   />
 </template>
 

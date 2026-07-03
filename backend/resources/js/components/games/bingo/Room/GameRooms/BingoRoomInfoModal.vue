@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { BingoGameRoom } from '@js/types/games/bingo/room/game-rooms/bingo-game-room'
 import type { RoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
+import { formatCountdown, isLive, GAME_MODE_LABELS, ROOM_TYPE_LABELS } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
 
 const props = defineProps<{
   room: BingoGameRoom
@@ -18,28 +19,20 @@ const emit = defineEmits<{
   (e: 'buy'): void
 }>()
 
-function fmtCountdown(): string {
-  const cd = props.countdown
-  if (!cd || cd.expired) return 'EN VIVO'
-  const { days, hours, minutes, seconds } = cd.time
-  if (days > 0) return `${days}d ${String(hours).padStart(2,'0')}h ${String(minutes).padStart(2,'0')}m`
-  if (hours > 0) return `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`
-  return `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`
-}
-
-const isLive = () => !props.countdown || props.countdown.expired
-
-const gameModeMap: Record<string, string> = { ONLINE: 'Online', OFFLINE: 'Presencial', MIXED: 'Mixto' }
-const roomTypeMap: Record<string, string>  = { PUBLIC: 'Pública', PRIVATE: 'Privada' }
-
-const cardPrice = () => {
+// BUG-03: computed en lugar de funciones sueltas
+const cardPrice = computed(() => {
   const r = props.room
   if (r.card_price != null) return r.card_price.toFixed(2)
   return ((r.config?.card_price_usd ?? 0) * props.exchangeRate).toFixed(2)
-}
-const prize = () => (props.room.prize_pool * props.exchangeRate).toFixed(2)
-const myCtns = () => props.room.players_room?.[0]?.ctns ?? 0
-const priceSym = () => props.room.currency_symbol ?? props.currencySym ?? 'USD'
+})
+const prize    = computed(() => (props.room.prize_pool * props.exchangeRate).toFixed(2))
+const myCtns   = computed(() => props.room.players_room?.[0]?.ctns ?? 0)
+const priceSym = computed(() => props.room.currency_symbol ?? props.currencySym ?? 'USD')
+
+// UX-01: botón "Ir al Lobby" deshabilitado si la sala no está activa/en progreso
+const isLobbyAllowed = computed(() =>
+  props.room.status_code === 'ACTIVE' || props.room.status_code === 'IN_PROGRESS'
+)
 
 // ── Progreso de cartones mínimos para iniciar (realtime, igual que la card/lobby) ──
 const minCardsToStart = computed(() => props.room.config?.min_cards_to_start ?? null)
@@ -62,7 +55,7 @@ const cardsProgressReady = computed(() =>
 <template>
   <Teleport to="body">
     <Transition name="rim-fade">
-      <div class="rim-backdrop" @click.self="emit('close')">
+      <div class="rim-backdrop" role="dialog" aria-modal="true" aria-labelledby="rim-title" @click.self="emit('close')">
         <div class="rim-card">
 
           <!-- ── Imagen banner compacta ── -->
@@ -71,27 +64,27 @@ const cardsProgressReady = computed(() =>
             <div class="rim-banner__overlay" />
 
             <!-- Cerrar -->
-            <button class="rim-close" @click="emit('close')">
+            <button class="rim-close" aria-label="Cerrar" @click="emit('close')">
               <i class="fas fa-times" />
             </button>
 
             <!-- Timer centrado -->
-            <div class="rim-timer" :class="{ 'rim-timer--live': isLive() }">
-              <template v-if="isLive()">
+            <div id="rim-title" class="rim-timer" :class="{ 'rim-timer--live': isLive(countdown) }">
+              <template v-if="isLive(countdown)">
                 <span class="rim-dot" /> EN VIVO
               </template>
               <template v-else>
-                <i class="fas fa-clock" /> {{ fmtCountdown() }}
+                <i class="fas fa-clock" /> {{ formatCountdown(countdown) }}
               </template>
             </div>
 
             <!-- Chips tipo/modo abajo -->
             <div class="rim-banner__foot">
               <span class="rim-chip rim-chip--type">
-                {{ roomTypeMap[room.room_type ?? ''] ?? room.room_type }}
+                {{ ROOM_TYPE_LABELS[room.room_type ?? ''] ?? room.room_type }}
               </span>
               <span class="rim-chip rim-chip--mode">
-                {{ gameModeMap[room.game_mode ?? ''] ?? room.game_mode ?? 'Online' }}
+                {{ GAME_MODE_LABELS[room.game_mode ?? ''] ?? room.game_mode ?? 'Online' }}
               </span>
               <span v-if="room.rounds_count" class="rim-chip rim-chip--rounds">
                 <i class="fas fa-layer-group" /> {{ room.rounds_count }} {{ room.rounds_count === 1 ? 'Ronda' : 'Rondas' }}
@@ -104,15 +97,15 @@ const cardsProgressReady = computed(() =>
 
             <!-- Premio -->
             <div class="rim-prize">
-              <span v-if="myCtns() > 0" class="rim-my-ctns" title="Tus cartones en esta sala">
-                <i class="fas fa-ticket-alt" /> {{ myCtns() }} {{ myCtns() === 1 ? 'cartón' : 'cartones' }}
+              <span v-if="myCtns > 0" class="rim-my-ctns" title="Tus cartones en esta sala">
+                <i class="fas fa-ticket-alt" /> {{ myCtns }} {{ myCtns === 1 ? 'cartón' : 'cartones' }}
               </span>
               <span class="rim-prize__lbl">Premio acumulado</span>
               <div class="rim-prize__val">
-                <span class="rim-prize__num">{{ prize() }}</span>
+                <span class="rim-prize__num">{{ prize }}</span>
                 <span class="rim-prize__sym">{{ currencySym }}</span>
               </div>
-              <span v-if="myCtns() > 0" class="rim-participating">
+              <span v-if="myCtns > 0" class="rim-participating">
                 <i class="fas fa-check-circle" /> Ya estás participando en esta sala
               </span>
             </div>
@@ -142,13 +135,13 @@ const cardsProgressReady = computed(() =>
                 <span class="rim-stat__lbl">Jugadores</span>
               </div>
               <div class="rim-stat">
-                <span class="rim-stat__val">{{ myCtns() }}</span>
+                <span class="rim-stat__val">{{ myCtns }}</span>
                 <span class="rim-stat__lbl">Mis cartones</span>
               </div>
               <div class="rim-stat">
                 <span class="rim-stat__val">
-                  {{ cardPrice() }}
-                  <small>{{ priceSym() }}</small>
+                  {{ cardPrice }}
+                  <small>{{ priceSym }}</small>
                 </span>
                 <span class="rim-stat__lbl">Precio</span>
               </div>
@@ -156,7 +149,12 @@ const cardsProgressReady = computed(() =>
 
             <!-- Acciones -->
             <div class="rim-actions">
-              <button class="rim-btn rim-btn--lobby" @click="emit('go-lobby')">
+              <button
+                class="rim-btn rim-btn--lobby"
+                :disabled="!isLobbyAllowed"
+                :class="{ 'rim-btn--disabled': !isLobbyAllowed }"
+                @click="emit('go-lobby')"
+              >
                 <i class="fas fa-sign-in-alt" /> Ir al Lobby
               </button>
               <button
@@ -386,6 +384,13 @@ const cardsProgressReady = computed(() =>
   color: #031a10; box-shadow: 0 4px 18px rgba(42,245,152,.28);
 }
 .rim-btn--buy:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+/* UX-01: botón lobby deshabilitado */
+.rim-btn--disabled {
+  opacity: .38; cursor: not-allowed;
+  filter: saturate(.2) brightness(.7);
+  pointer-events: none;
+}
 
 /* Transición */
 .rim-fade-enter-active, .rim-fade-leave-active { transition: opacity .2s ease, transform .2s ease; }
