@@ -5,10 +5,11 @@ import echo from '@js/plugins/echo'
 import { useGameRoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
 import { useAntiDebug }         from '@js/composables/games/bingo/useAntiDebug'
 import { useBingoSound }        from '@js/composables/games/bingo/useBingoSound'
-import BingoCartons  from '@js/Components/Games/Bingo/views/inGame/Cartons.vue'
-import GameHeader    from '@js/Components/Games/Bingo/views/inGame/GameHeader.vue'
-import DrawnBoard    from '@js/Components/Games/Bingo/views/inGame/DrawnBoard.vue'
-import NearWinBanner from '@js/Components/Games/Bingo/views/inGame/NearWinBanner.vue'
+import BingoCartons    from '@js/Components/Games/Bingo/views/inGame/Cartons.vue'
+import GameHeader      from '@js/Components/Games/Bingo/views/inGame/GameHeader.vue'
+import DrawnBoard      from '@js/Components/Games/Bingo/views/inGame/DrawnBoard.vue'
+import NearWinBanner   from '@js/Components/Games/Bingo/views/inGame/NearWinBanner.vue'
+import MyProgressBadge from '@js/Components/Games/Bingo/views/inGame/MyProgressBadge.vue'
 import PlayersModal  from '@js/Components/Games/Bingo/views/inGame/PlayersModal.vue'
 import PreDrawModal  from '@js/Components/Games/Bingo/views/inGame/PreDrawModal.vue'
 import GameEndModal  from '@js/Components/Games/Bingo/views/inGame/GameEndModal.vue'
@@ -44,6 +45,7 @@ interface Props {
   roomRouteKey?: string
   initialWinners?: WinnerEntry[]
   gameVariant?: string
+  roomFinished?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -63,6 +65,7 @@ const props = withDefaults(defineProps<Props>(), {
   roomId: '',
   roomRouteKey: '',
   gameVariant: 'BINGO_75',
+  roomFinished: false,
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -130,6 +133,12 @@ const remainingChips      = computed(() => totalChips.value - liveDrawn.value.le
 const showPlayersProgress = computed(() =>
   liveDrawn.value.length > 0 && remainingChips.value <= 10 && playersProgress.value.length > 0
 )
+
+// Indicador personal: fichas que le faltan al jugador para completar su mejor
+// cartón, expuesto por BingoCartons vía defineExpose. Visible desde el arranque
+// del sorteo, sin esperar a que queden pocas fichas (a diferencia de NearWinBanner).
+const cartonsRef = ref<InstanceType<typeof BingoCartons> | null>(null)
+const myMissing  = computed<number | null>(() => cartonsRef.value?.myMissing ?? null)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Countdown
@@ -434,6 +443,16 @@ onMounted(() => {
       isMyWin.value = true
     }
     showWinnerModal.value = true
+  } else if (props.roomFinished) {
+    // Sala finalizada sin ganador (sorteo agotado): sin esto, isFinished quedaba en
+    // false al recargar la página y el header mostraba "EN VIVO" indefinidamente.
+    gameEndData.value = {
+      hasWinner:  false,
+      totalDrawn: liveDrawn.value.length,
+      winners:    [],
+      prize:      0,
+      endTime:    '',
+    }
   }
 })
 
@@ -477,6 +496,8 @@ onUnmounted(() => {
         :chipLetter="chipLetter"
       />
 
+      <MyProgressBadge v-if="!isFinished" :missing="myMissing" />
+
       <NearWinBanner
         :players="showPlayersProgress ? playersProgress : []"
         :remainingChips="remainingChips"
@@ -484,6 +505,7 @@ onUnmounted(() => {
 
       <div class="ig-cards-section">
         <BingoCartons
+          ref="cartonsRef"
           :cartons="cartons ?? []"
           :customerLogo="customerLogo ?? null"
           :roomId="roomId"

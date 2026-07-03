@@ -327,6 +327,23 @@ function pct(card: BingoCard) { return Math.round((hits(card) / variantDef.value
 function isHot(card: BingoCard)    { return hits(card) >= HOT; }
 function isWinner(card: BingoCard) { return bingoSet.value.has(card.id); }
 
+// Menor cantidad de fichas que le faltan al jugador para completar su mejor
+// cartón (asumiendo cartón lleno, igual criterio que fullBingo() más abajo).
+// null si no tiene cartones activos o ya ganó — usado por el padre para
+// mostrar un indicador personal fijo ("te faltan N fichas").
+const myMissing = computed<number | null>(() => {
+  const active = props.cartons.filter(c => !isWinner(c));
+  if (active.length === 0) return null;
+  let min = variantDef.value.totalCells;
+  for (const card of active) {
+    const missing = variantDef.value.totalCells - hits(card);
+    if (missing < min) min = missing;
+  }
+  return min;
+});
+
+defineExpose({ myMissing });
+
 // computed para evitar recálculo en cada render del template
 const filterCounts = computed(() => {
   let win = 0, hot = 0;
