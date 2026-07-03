@@ -35,6 +35,23 @@ export function useLobbyCountdown(getUnixDate: (() => number | null | undefined)
     if (resolve() != null) timer = setInterval(update, 1000)
   }
 
+  function stop() {
+    if (timer) { clearInterval(timer); timer = null }
+  }
+
+  // Pausa el interval cuando la pestaña está oculta; resincroniza al volver.
+  // Evita drift acumulado y ahorra CPU en background.
+  function onVisibilityChange() {
+    if (document.hidden) {
+      stop()
+    } else {
+      update()
+      if (resolve() != null && !isLive.value) timer = setInterval(update, 1000)
+    }
+  }
+
+  document.addEventListener('visibilitychange', onVisibilityChange)
+
   // Reacciona si la fecha cambia (ej. backend la actualiza)
   if (typeof getUnixDate === 'function') {
     watch(getUnixDate, start, { immediate: true })
@@ -42,7 +59,10 @@ export function useLobbyCountdown(getUnixDate: (() => number | null | undefined)
     start()
   }
 
-  onUnmounted(() => { if (timer) clearInterval(timer) })
+  onUnmounted(() => {
+    stop()
+    document.removeEventListener('visibilitychange', onVisibilityChange)
+  })
 
   return { countdown, isLive, isUrgent }
 }

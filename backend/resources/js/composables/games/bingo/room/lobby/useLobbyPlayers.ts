@@ -7,17 +7,21 @@ export interface LobbyPlayer {
   role: string
 }
 
+const STALE_MS = 120_000
+
 export function useLobbyPlayers(roomRouteKey: string | undefined, totalPlayers: () => number) {
   const showModal   = ref(false)
   const playersList = ref<LobbyPlayer[]>([])
   const loading     = ref(false)
   const fetchError  = ref(false)
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
+  let lastFetchedAt = 0
 
   async function open() {
     showModal.value  = true
     fetchError.value = false
-    if (playersList.value.length > 0) return
+    const isStale = Date.now() - lastFetchedAt > STALE_MS
+    if (playersList.value.length > 0 && !isStale) return
     loading.value = true
     try {
       const res = await fetch(`/bingo/${roomRouteKey}/lobby-players`, {
@@ -26,6 +30,7 @@ export function useLobbyPlayers(roomRouteKey: string | undefined, totalPlayers: 
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       playersList.value = data.players ?? []
+      lastFetchedAt     = Date.now()
     } catch {
       playersList.value = []
       fetchError.value  = true

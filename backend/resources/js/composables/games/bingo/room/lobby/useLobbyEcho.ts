@@ -30,6 +30,7 @@ export function useLobbyEcho(
     onPlayersChanged?: (prev: number, next: number) => void
     onCardsChanged?: (totalCards: number) => void
     onCardsUpdated?: (cardPrice: number | null, currencySymbol: string | null) => void
+    onGameStarted?: () => void
   },
 ): { wsStatus: ReturnType<typeof ref<WsStatus>> } {
   const wsStatus = ref<WsStatus>('connecting')
@@ -37,7 +38,11 @@ export function useLobbyEcho(
   // ── Conexión Pusher/Reverb ──
   const pusher = (echo as any).connector.pusher
 
-  const onConnected    = () => { wsStatus.value = 'connected' }
+  // Al reconectar, re-suscribir el canal público por si se perdieron eventos.
+  const onConnected = () => {
+    wsStatus.value = 'connected'
+    echo.channel(roomChannelName)
+  }
   const onDisconnected = () => { wsStatus.value = 'disconnected' }
   const onError        = () => { wsStatus.value = 'error' }
   const onConnecting   = () => { wsStatus.value = 'connecting' }
@@ -53,8 +58,16 @@ export function useLobbyEcho(
   // suprimimos el toast "otro compró" para el siguiente evento público.
   let ownPurchasePending = false
 
+  interface GameStartedPayload { room_id: string | number; draw_id: number; start_time: string }
+
   const roomChannelName = `bingo.room.${roomId}`
-  echo.channel(roomChannelName).listen('.RoomUpdated', (payload: RoomUpdatedPayload) => {
+  echo.channel(roomChannelName)
+    .listen('.GameStarted', (payload: GameStartedPayload) => {
+      if (String(payload.room_id) !== String(roomId)) return
+      live.statusCode = 'IN_PROGRESS'
+      callbacks?.onGameStarted?.()
+    })
+    .listen('.RoomUpdated', (payload: RoomUpdatedPayload) => {
     const prizeChanged   = live.prizePool    !== payload.prize_pool
     const prevPlayers    = live.totalPlayers
     const playersChanged = live.totalPlayers !== payload.total_players
