@@ -59,14 +59,6 @@ export function useBingoSound() {
     },
   })
 
-  const volume = computed({
-    get: () => _volume.value,
-    set: (v) => {
-      _volume.value = v
-      localStorage.setItem('bingo_sound_vol', String(v))
-    },
-  })
-
   function toggleMute() { muted.value = !muted.value }
 
   /** Número sorteado — reproducir next.mp3 */
@@ -83,5 +75,5 @@ export function useBingoSound() {
     for (const k of Object.keys(FILES) as SoundKey[]) _getAudio(k)
   }
 
-  return { muted, volume, toggleMute, playNext, playSelect, playWinner, preload }
+  return { muted, toggleMute, playNext, playSelect, playWinner, preload }
 }

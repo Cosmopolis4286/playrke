@@ -9,25 +9,25 @@ import { onMounted, onUnmounted } from 'vue'
 export function useAntiDebug() {
   const isProd = import.meta.env.PROD
 
-  const blockedKeys = [
-    { key: 'F12' },
-    { ctrlKey: true, shiftKey: true, key: 'i' },
-    { ctrlKey: true, shiftKey: true, key: 'I' },
-    { ctrlKey: true, shiftKey: true, key: 'j' },
-    { ctrlKey: true, shiftKey: true, key: 'J' },
-    { ctrlKey: true, shiftKey: true, key: 'c' },
-    { ctrlKey: true, shiftKey: true, key: 'C' },
-    { ctrlKey: true, key: 'u' },
-    { ctrlKey: true, key: 'U' },
+  // Cada regla declara explícitamente todos los modificadores para evitar
+  // bloquear combinaciones no intencionadas (ej: Ctrl+Shift+U bloqueado por Ctrl+U)
+  const blockedKeys: { key: string; ctrlKey: boolean; shiftKey: boolean }[] = [
+    { key: 'F12',  ctrlKey: false, shiftKey: false },
+    { key: 'F12',  ctrlKey: true,  shiftKey: false },
+    { key: 'i',    ctrlKey: true,  shiftKey: true  },
+    { key: 'I',    ctrlKey: true,  shiftKey: true  },
+    { key: 'j',    ctrlKey: true,  shiftKey: true  },
+    { key: 'J',    ctrlKey: true,  shiftKey: true  },
+    { key: 'c',    ctrlKey: true,  shiftKey: true  },
+    { key: 'C',    ctrlKey: true,  shiftKey: true  },
+    { key: 'u',    ctrlKey: true,  shiftKey: false },
+    { key: 'U',    ctrlKey: true,  shiftKey: false },
   ]
 
   function isBlockedKey(e: KeyboardEvent): boolean {
-    return blockedKeys.some(blocked => {
-      const keyMatch   = blocked.key       ? e.key       === blocked.key       : true
-      const ctrlMatch  = blocked.ctrlKey   ? e.ctrlKey   === blocked.ctrlKey   : true
-      const shiftMatch = blocked.shiftKey  ? e.shiftKey  === blocked.shiftKey  : true
-      return keyMatch && ctrlMatch && shiftMatch
-    })
+    return blockedKeys.some(b =>
+      e.key === b.key && e.ctrlKey === b.ctrlKey && e.shiftKey === b.shiftKey
+    )
   }
 
   function handleKeyDown(e: KeyboardEvent) {
