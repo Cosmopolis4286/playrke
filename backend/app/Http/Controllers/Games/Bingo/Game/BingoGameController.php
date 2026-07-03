@@ -33,6 +33,7 @@ final class BingoGameController extends Controller
         private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $cardGenerateService,
         private readonly \App\Services\Roles\RoleUserService $roleUserService,
         private readonly \App\Services\Games\Bingo\Config\BingoConfigContextService $bingoConfigContext,
+        private readonly \App\Services\Games\Bingo\Game\BingoPatternPositionResolver $patternResolver,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
@@ -194,11 +195,12 @@ final class BingoGameController extends Controller
     public function viewCard(BingoRoom $room, string $card): JsonResponse
     {
         return $this->handleServiceJson(function () use ($room, $card) {
-            $isWinningCard = BingoCardPrize::where('room_id', (string) $room->id)
+            $cardPrize = BingoCardPrize::where('room_id', (string) $room->id)
                 ->where('winning_card_id', $card)
-                ->exists();
+                ->with('round.bingoPattern')
+                ->first();
 
-            if (!$isWinningCard) {
+            if (!$cardPrize) {
                 abort(404, 'Cartón no encontrado en esta sala.');
             }
 
@@ -210,9 +212,25 @@ final class BingoGameController extends Controller
                 abort(404, 'Cartón no encontrado en esta sala.');
             }
 
+            // Posiciones exactas [col,row] del patrón que hizo ganar este cartón —
+            // usado por el frontend para resaltar la línea/patrón específico en vez
+            // de solo mostrar los números marcados.
+            $winningPositions = [];
+            $pattern = $cardPrize->round?->bingoPattern;
+            if ($pattern) {
+                $variant = $room->relationLoaded('config')
+                    ? $room->config?->game_variant
+                    : $room->load('config')->config?->game_variant;
+                $winningPositions = $this->patternResolver->resolve(
+                    $pattern,
+                    $variant ?? \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75
+                );
+            }
+
             return [
-                'success' => true,
-                'card'    => $bingoCard->toFrontendFormat(),
+                'success'          => true,
+                'card'             => $bingoCard->toFrontendFormat(),
+                'winningPositions' => $winningPositions,
             ];
         }, 'No se pudo obtener el cartón.');
     }
