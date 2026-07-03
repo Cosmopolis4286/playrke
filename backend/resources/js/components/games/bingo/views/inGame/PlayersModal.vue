@@ -24,7 +24,14 @@ const emit = defineEmits<{
   close: []
 }>()
 
-type ViewedCard = { serialNumber: string; cardMatrix: number[][]; colLabels?: string[]; loading?: boolean }
+type WinningPosition = { col: string; row: number; free: boolean }
+type ViewedCard = {
+  serialNumber: string
+  cardMatrix: number[][]
+  colLabels?: string[]
+  loading?: boolean
+  winningPositions?: WinningPosition[]
+}
 
 const viewingCard      = ref<ViewedCard | null>(null)
 const viewingCardOwner = ref('')
@@ -37,6 +44,18 @@ const cardCache = new Map<string, ViewedCard>()
 
 // O(1) lookup en template para evitar includes() O(n) en cada celda
 const drawnSet = computed(() => new Set(props.drawnNumbers))
+
+// Set de "col-row" con las celdas exactas del patrón que hizo ganar el cartón
+// mostrado — permite resaltar la línea/patrón específico, no solo los números marcados.
+const winningCellSet = computed(() => {
+  const set = new Set<string>()
+  for (const p of viewingCard.value?.winningPositions ?? []) set.add(`${p.col}-${p.row}`)
+  return set
+})
+
+function isWinningCell(colLabel: string, rowIndex: number): boolean {
+  return winningCellSet.value.has(`${colLabel}-${rowIndex}`)
+}
 
 function toRowMatrix(cardNumbers: Record<string, (number | null)[]> | number[][]): { matrix: number[][]; cols: string[] } {
   if (Array.isArray(cardNumbers)) {
@@ -79,10 +98,11 @@ async function openCardViewer(winner: WinnerEntry) {
     if (data.success && data.card) {
       const { matrix, cols } = toRowMatrix(data.card.cardMatrix ?? {})
       const resolved: ViewedCard = {
-        serialNumber: data.card.serialNumber ?? winner.card_serial,
-        cardMatrix:   matrix,
-        colLabels:    cols,
-        loading:      false,
+        serialNumber:     data.card.serialNumber ?? winner.card_serial,
+        cardMatrix:       matrix,
+        colLabels:        cols,
+        loading:          false,
+        winningPositions: data.winningPositions ?? [],
       }
       cardCache.set(winner.card_id, resolved)
       viewingCard.value = resolved
@@ -212,8 +232,9 @@ function closeCardViewer() {
                   :key="`cell-${r}-${c}`"
                   class="cv-cell"
                   :class="{
-                    'cv-cell--drawn': num > 0 && drawnSet.has(num),
-                    'cv-cell--free':  num === 0,
+                    'cv-cell--drawn':   num > 0 && drawnSet.has(num),
+                    'cv-cell--free':    num === 0,
+                    'cv-cell--winning': isWinningCell(viewingCard.colLabels?.[c] ?? '', r),
                   }"
                 >
                   <template v-if="num === 0">
@@ -230,6 +251,7 @@ function closeCardViewer() {
           </div>
 
           <div class="cv-legend">
+            <span v-if="winningCellSet.size > 0" class="cv-legend__item cv-legend__item--winning"><span class="cv-legend__dot" />Patrón ganador</span>
             <span class="cv-legend__item cv-legend__item--drawn"><span class="cv-legend__dot" />Marcado</span>
             <span class="cv-legend__item cv-legend__item--free"><span class="cv-legend__dot" />Libre</span>
             <span class="cv-legend__item cv-legend__item--normal"><span class="cv-legend__dot" />Sin marcar</span>
@@ -385,17 +407,28 @@ function closeCardViewer() {
 }
 .cv-cell--drawn { background: rgba(42,245,152,0.12); border-color: rgba(42,245,152,0.35); box-shadow: 0 0 10px rgba(42,245,152,0.1); }
 .cv-cell--free  { background: rgba(255,200,0,0.07); border-color: rgba(255,200,0,0.2); }
+/* Patrón ganador: prevalece sobre --drawn para que se note cuál línea/celda hizo BINGO */
+.cv-cell--winning {
+  background: rgba(255,200,0,0.16); border-color: rgba(255,200,0,0.55);
+  box-shadow: 0 0 14px rgba(255,200,0,0.25); animation: cv-winning-pulse 1.6s ease-in-out infinite;
+}
+@keyframes cv-winning-pulse {
+  0%,100% { box-shadow: 0 0 10px rgba(255,200,0,0.18); }
+  50%     { box-shadow: 0 0 18px rgba(255,200,0,0.4); }
+}
 .cv-cell__num { font-size: 14px; font-weight: 700; color: #c8d8ff; font-family: 'Courier New', monospace; }
 .cv-cell__mark {
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
   background: rgba(42,245,152,0.12); border-radius: 8px; font-size: 16px; color: #2af598;
 }
+.cv-cell--winning .cv-cell__mark { background: rgba(255,200,0,0.14); color: #ffd700; }
 .cv-cell__logo { width: 28px; height: 28px; object-fit: contain; opacity: 0.6; }
 .cv-cell__free-icon { font-size: 14px; color: #ffc840; }
 
-.cv-legend { display: flex; gap: 14px; padding: 0 20px 12px; }
+.cv-legend { display: flex; gap: 14px; padding: 0 20px 12px; flex-wrap: wrap; }
 .cv-legend__item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #4a68a8; }
 .cv-legend__dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.cv-legend__item--winning .cv-legend__dot { background: rgba(255,200,0,0.35); border: 1px solid rgba(255,200,0,0.6); }
 .cv-legend__item--drawn .cv-legend__dot { background: rgba(42,245,152,0.3); border: 1px solid rgba(42,245,152,0.5); }
 .cv-legend__item--free  .cv-legend__dot { background: rgba(255,200,0,0.2); border: 1px solid rgba(255,200,0,0.4); }
 .cv-legend__item--normal .cv-legend__dot { background: rgba(255,255,255,0.06); border: 1px solid rgba(80,120,255,0.15); }

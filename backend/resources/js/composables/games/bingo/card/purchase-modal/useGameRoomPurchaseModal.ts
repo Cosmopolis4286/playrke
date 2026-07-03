@@ -4,6 +4,7 @@ import Swal from 'sweetalert2'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
 import { getBingoVariantDef } from '@/js/modules/games/bingo/utils/bingoVariants'
+import { useGameRoomRoles } from '@js/composables/games/bingo/room/game-rooms/useGameRoomRoles'
 import type {
     BingoAvailableCountry,
     BingoCardPriceResponse,
@@ -60,13 +61,8 @@ function _fetchPlayerCardPriceHttp(roomId: string): Promise<BingoCardPriceRespon
 }
 
 export function useGameRoomPurchaseModal() {
-    const page = usePage()
-
-    // ── Rol leído de Inertia (sin HTTP) ─────────────────────────────────────
-    const isPlayer = computed<boolean>(() => {
-        const roles: any[] = page.props.auth?.user?.userRoles ?? []
-        return roles.some((ur: any) => ur.role?.prefix === 'player')
-    })
+    // OPT-03: reutilizar useGameRoomRoles en lugar de duplicar la lógica de isPlayer
+    const { isPlayer } = useGameRoomRoles()
 
     // ── Visibilidad ──────────────────────────────────────────────────────────
     const isOpen = ref(false)
@@ -308,12 +304,17 @@ export function useGameRoomPurchaseModal() {
             return
         }
 
+        // BUG-02: invalidar caché antes del intento — el precio puede cambiar
+        // independientemente del resultado (compra parcial, error de stock, etc.)
+        const roomId = selectedRoom.value.id
+        _priceCache.delete(roomId)
+
         try {
             purchasing.value = true
 
             const endpoint = isPlayer.value
-                ? `/bingo/game-rooms/${selectedRoom.value.id}/player-buy`
-                : `/bingo/game-rooms/${selectedRoom.value.id}/buy`
+                ? `/bingo/game-rooms/${roomId}/player-buy`
+                : `/bingo/game-rooms/${roomId}/buy`
 
             const payload = isPlayer.value
                 ? {
@@ -329,8 +330,6 @@ export function useGameRoomPurchaseModal() {
             showToast(data.message, data.type)
 
             if (data.type === 'success') {
-                // Invalidar caché tras compra exitosa (precio pudo cambiar)
-                _priceCache.delete(selectedRoom.value.id)
                 onSuccess?.({ prizePool: data.prize_pool ?? 0, ctns: data.ctns ?? numCtns.value })
                 close()
             }

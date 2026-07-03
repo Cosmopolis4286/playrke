@@ -60,6 +60,7 @@ function handleClick() {
       'rc--off':    !isAvailable && !isInProgress,
     }"
     :style="{ '--d': animDelay }"
+    :tabindex="!isAvailable && !isInProgress ? -1 : undefined"
     @click="handleClick"
   >
     <div class="rc__glow" />

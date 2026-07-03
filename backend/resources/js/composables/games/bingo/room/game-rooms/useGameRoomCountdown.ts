@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue'
+import { ref, triggerRef, onMounted, onUnmounted } from 'vue'
 import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
 
 // ---------------------------------------------------------------------------
@@ -115,8 +115,6 @@ export function useGameRoomCountdown(
       countdowns.value.forEach((entry, roomId) => {
         if (entry.expired) return
 
-        // Para obtener el unix_date hay que reconstruirlo desde la diferencia.
-        // Guardamos el endMs cuando registramos la sala.
         const endMs = _endMs.get(roomId)
         if (endMs === undefined) return
 
@@ -134,6 +132,9 @@ export function useGameRoomCountdown(
           expired: false,
         })
       })
+
+      // BUG-01: Vue no detecta mutaciones internas del Map — notificar manualmente
+      triggerRef(countdowns)
     }, SECOND)
   }
 
@@ -146,7 +147,9 @@ export function useGameRoomCountdown(
    * @param rooms - Lista de salas de juego
    */
   function init(rooms: BingoGameRoom[]): void {
+    // OPT-01: resetear ambas estructuras para evitar entradas huérfanas en re-llamadas
     _endMs.clear()
+    countdowns.value = new Map()
 
     for (const room of rooms) {
       const unixDate = room.config?.unix_date
@@ -175,14 +178,12 @@ export function useGameRoomCountdown(
   }
 
   /**
-   * Sincroniza el tiempo del cliente con el tiempo del servidor.
-   * Útil cuando el usuario vuelve a la página después de estar en segundo plano.
-   * @param serverTimestampMs - Timestamp actual del servidor en milisegundos
+   * Sincroniza el tiempo con Date.now() y recalcula todos los countdowns.
+   * Se llama automáticamente cuando el usuario vuelve a la pestaña (visibilitychange).
    */
-  function syncTime(serverTimestampMs: number): void {
-    now.value = serverTimestampMs
+  function syncTime(): void {
+    now.value = Date.now()
 
-    // Recalcular todos los countdowns con el nuevo tiempo
     countdowns.value.forEach((entry, roomId) => {
       const endMs = _endMs.get(roomId)
       if (endMs === undefined) return
@@ -191,20 +192,19 @@ export function useGameRoomCountdown(
 
       if (diff <= 0) {
         countdowns.value.set(roomId, { roomId, time: calcTimeRemaining(0), expired: true })
+        if (!entry.expired) onExpire?.(roomId)
       } else {
-        countdowns.value.set(roomId, {
-          roomId,
-          time: calcTimeRemaining(diff),
-          expired: false,
-        })
+        countdowns.value.set(roomId, { roomId, time: calcTimeRemaining(diff), expired: false })
       }
     })
+
+    triggerRef(countdowns)
   }
 
   /**
-   * Actualiza el unix_date de una sala específica y recalcula el countdown.
+   * Actualiza el unix_date de una sala específica y recalcula su countdown.
    * @param roomId - ID de la sala
-   * @param unixDate - Nuevo timestamp de fin
+   * @param unixDate - Nuevo timestamp Unix de fin (en segundos)
    */
   function updateRoomTime(roomId: string, unixDate: number): void {
     const endMs = unixDate * 1_000
@@ -212,31 +212,35 @@ export function useGameRoomCountdown(
 
     const diff = endMs - now.value
 
-    if (diff <= 0) {
-      countdowns.value.set(roomId, { roomId, time: calcTimeRemaining(0), expired: true })
-    } else {
-      countdowns.value.set(roomId, {
-        roomId,
-        time: calcTimeRemaining(diff),
-        expired: false,
-      })
-    }
+    countdowns.value.set(roomId, diff <= 0
+      ? { roomId, time: calcTimeRemaining(0), expired: true }
+      : { roomId, time: calcTimeRemaining(diff), expired: false },
+    )
+    triggerRef(countdowns)
   }
 
-  onUnmounted(stop)
+  // DEAD-01: conectar syncTime a visibilitychange para corregir drift cuando el
+  // usuario vuelve de otra pestaña (el setInterval se pausa en background)
+  function _onVisibilityChange() {
+    if (document.visibilityState === 'visible') syncTime()
+  }
+
+  onMounted(() => document.addEventListener('visibilitychange', _onVisibilityChange))
+
+  onUnmounted(() => {
+    stop()
+    document.removeEventListener('visibilitychange', _onVisibilityChange)
+  })
 
   return {
-    /** Map reactivo de countdowns (roomId → RoomCountdown) */
-    countdowns,
+    // DEAD-02: countdowns (Map interno) no se exporta — usar getCountdown()
     /** Inicializa y arranca el countdown con la lista de salas */
     init,
     /** Detiene el intervalo manualmente */
     stop,
     /** Retorna el countdown de una sala por ID */
     getCountdown,
-    /** Sincroniza el tiempo con el servidor */
-    syncTime,
-    /** Actualiza el tiempo de una sala específica */
+    /** Actualiza el tiempo de una sala específica (para salas añadidas por WS) */
     updateRoomTime,
   }
 }

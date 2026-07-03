@@ -55,8 +55,8 @@ const cardsProgressReady = computed(() =>
 <template>
   <Teleport to="body">
     <Transition name="rim-fade">
-      <div class="rim-backdrop" role="dialog" aria-modal="true" aria-labelledby="rim-title" @click.self="emit('close')">
-        <div class="rim-card">
+      <div class="rim-backdrop" @click.self="emit('close')">
+        <div class="rim-card" role="dialog" aria-modal="true" aria-labelledby="rim-title">
 
           <!-- ── Imagen banner compacta ── -->
           <div class="rim-banner">

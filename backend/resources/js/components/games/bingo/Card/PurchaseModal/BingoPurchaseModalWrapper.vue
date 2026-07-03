@@ -54,6 +54,6 @@ const emit = defineEmits<{
     @set-ctns="modal.setNumCtns($event)"
     @toggle-customize="modal.toggleCustomize()"
     @update:custom-card-numbers="modal.customCardNumbers.value = $event"
-    @purchase="modal.purchase(result => emit('success', modal.selectedRoom.value!.id, result))"
+    @purchase="modal.purchase(result => { const id = modal.selectedRoom.value?.id; if (id) emit('success', id, result) })"
   />
 </template>
