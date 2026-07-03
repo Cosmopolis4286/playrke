@@ -92,12 +92,14 @@ const livePrize        = ref(props.prizePool ?? 0)
 const liveExchangeRate = ref(props.exchangeRate ?? 1)
 const livePlayers      = ref(props.totalPlayers ?? 0)
 const liveDrawn        = ref<number[]>([...(props.draw ?? [])])
-const drawnSet         = new Set<number>(props.draw ?? [])   // O(1) duplicate check
+// ref reactivo: se reconstruye en devReset y se consulta en reconexión WS
+const drawnSet         = ref(new Set<number>(props.draw ?? []))
 const prizeFlash       = ref(false)
 const playersFlash     = ref(false)
 const playersProgress  = ref<PlayerProgress[]>([])
 
 const showWinnerModal  = ref(false)
+const userClosedModal  = ref(false)   // impide reabrir si el usuario cerró manualmente
 const gameEndData      = ref<GameEndData | null>(null)
 const isMyWin          = ref(false)
 const showPlayersModal = ref(false)
@@ -136,6 +138,7 @@ const gameStarted      = ref(false)
 const drawStarting     = ref(false)
 const drawStartingSecs = ref(10)
 let   drawStartTimer: ReturnType<typeof setInterval> | null = null
+let   drawTriggered    = false   // guard contra doble disparo de triggerStartDraw
 
 // unix_date reactivo: se actualiza cuando el servidor envía RoomTimeSync
 const currentUnixDate = ref(props.startTime ?? 0)
@@ -148,8 +151,8 @@ const fakeRoom = computed(() => ({
 const { init: initCountdown, getCountdown, stop: stopCountdown, syncTime, updateRoomTime } = useGameRoomCountdown(
   Date.now(),
   () => {
-    // Guard: no arrancar countdown si el sorteo ya está en curso o finalizado
-    if (liveDrawn.value.length > 0 || isFinished.value) return
+    // Guard: no arrancar si startTime no fue enviado, sorteo en curso, o ya finalizado
+    if (!currentUnixDate.value || liveDrawn.value.length > 0 || isFinished.value) return
     gameStarted.value = true
     scheduleDrawStart()
   },
@@ -165,6 +168,7 @@ function clearDrawTimer() {
   if (drawStartTimer !== null) { clearInterval(drawStartTimer); drawStartTimer = null }
   drawStarting.value     = false
   drawStartingSecs.value = 10
+  drawTriggered          = false
 }
 
 async function triggerStartDraw() {
@@ -188,7 +192,10 @@ function scheduleDrawStart() {
   drawStartingSecs.value = 10
   drawStartTimer = setInterval(() => {
     drawStartingSecs.value -= 1
-    if (drawStartingSecs.value <= 0) { clearDrawTimer(); triggerStartDraw() }
+    if (drawStartingSecs.value <= 0) {
+      if (!drawTriggered) { drawTriggered = true; triggerStartDraw() }
+      clearDrawTimer()
+    }
   }, 1_000)
 }
 
@@ -196,22 +203,29 @@ function scheduleDrawStart() {
 // Bingo detection & winner handling
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleBingoDetected(card: BingoCard) {
-  // No bloquear multi-card: cada carton verifica independientemente
-  if (isMyWin.value) return
+  if (isMyWin.value || isFinished.value) return
+  const csrfToken = getCsrfToken()
+  if (!csrfToken) {
+    console.error('[Bingo] CSRF token no encontrado — reclamo de bingo cancelado')
+    return
+  }
   try {
     const res  = await fetch(`/bingo/${routeKey.value}/check-bingo`, {
       method: 'POST',
       headers: {
-        'X-CSRF-TOKEN': getCsrfToken(),
+        'X-CSRF-TOKEN': csrfToken,
         Accept: 'application/json',
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
       },
       body: JSON.stringify({ card_id: card.id }),
     })
+    // Re-verificar tras el await: el juego pudo terminar mientras esperábamos respuesta
+    if (isFinished.value) return
     const data = await res.json()
     if (data.success && data.hasBingo && data.winner) {
       isMyWin.value         = true
+      userClosedModal.value = false
       showWinnerModal.value = true
     }
   } catch (e) {
@@ -219,11 +233,27 @@ async function handleBingoDetected(card: BingoCard) {
   }
 }
 
-function handleGameEnded(data: { has_winner: boolean; total_drawn: number; winners: any[]; prize: number; end_time: string }) {
+interface GameEndedEvent {
+  has_winner:   boolean
+  total_drawn:  number
+  prize:        number
+  end_time:     string
+  winners: {
+    user_id:     number | string
+    user_name:   string
+    card_id:     number | string
+    card_serial: string
+    prize:       number
+    pattern?:    string
+    round?:      number
+  }[]
+}
+
+function handleGameEnded(data: GameEndedEvent) {
   gameEndData.value = {
     hasWinner:  data.has_winner,
     totalDrawn: data.total_drawn,
-    winners: (data.winners ?? []).map((w: any) => ({
+    winners: (data.winners ?? []).map(w => ({
       user_id:     w.user_id,
       user_name:   w.user_name,
       card_id:     String(w.card_id ?? ''),
@@ -235,16 +265,18 @@ function handleGameEnded(data: { has_winner: boolean; total_drawn: number; winne
     prize:   data.prize ?? 0,
     endTime: data.end_time,
   }
-  if (props.userId && data.winners?.some((w: any) => String(w.user_id) === String(props.userId))) {
+  if (props.userId && data.winners?.some(w => String(w.user_id) === String(props.userId))) {
     isMyWin.value = true
   }
-  showWinnerModal.value = true
+  // No reabrir si el usuario ya cerró el modal conscientemente
+  if (!userClosedModal.value) {
+    showWinnerModal.value = true
+  }
 }
 
 function closeWinnerModal() {
   showWinnerModal.value = false
-  // Si el juego terminó definitivamente, conservar isMyWin para la sesión
-  // Si fue cierre manual mid-game, limpiar para no bloquear futuras detecciones
+  userClosedModal.value = true
   if (!isFinished.value) {
     isMyWin.value = false
   }
@@ -280,8 +312,8 @@ function subscribeToRoom() {
   })
 
   channel.listen('.BingoNumberCalled', (e: { number: number }) => {
-    if (e.number && !drawnSet.has(e.number)) {
-      drawnSet.add(e.number)
+    if (e.number && !drawnSet.value.has(e.number)) {
+      drawnSet.value.add(e.number)
       liveDrawn.value = [...liveDrawn.value, e.number]
       playNext()
     }
@@ -295,14 +327,15 @@ function subscribeToRoom() {
     gameStarted.value = true; clearDrawTimer()
   })
 
-  // WinnerDeclared individual — solo muestra si el modal de fin no está abierto aún
+  // WinnerDeclared individual — abrir modal inmediatamente al ganador sin esperar GameEnded
   channel.listen('.WinnerDeclared', (e: { winner: { id: number | string } }) => {
     if (e.winner && String(e.winner.id) === String(props.userId)) {
       isMyWin.value = true
+      if (!userClosedModal.value) showWinnerModal.value = true
     }
   })
 
-  channel.listen('.GameEnded', (e: any) => {
+  channel.listen('.GameEnded', (e: GameEndedEvent) => {
     handleGameEnded(e); playWinner()
   })
 
@@ -363,11 +396,12 @@ async function devResetTime() {
     if (data.startTime) {
       clearDrawTimer()
       liveDrawn.value       = []
-      drawnSet.clear()
+      drawnSet.value        = new Set()
       gameStarted.value     = false
       gameEndData.value     = null
       isMyWin.value         = false
       showWinnerModal.value = false
+      userClosedModal.value = false
       currentUnixDate.value = data.startTime
       initCountdown([{ id: roomId.value, config: { unix_date: data.startTime } } as any])
       Swal.fire({ title: '¡Sorteo iniciado!', text: 'El sorteo ha sido regenerado exitosamente.', icon: 'success', timer: 2000, showConfirmButton: false, background: '#1a1f3a', color: '#fff' })
@@ -428,8 +462,6 @@ onUnmounted(() => {
         :cardCount="cardCount"
         :rounds="rounds"
         :round="round"
-        :liveDrawnLength="liveDrawn.length"
-        :totalChips="totalChips"
         :bingoPattern="bingoPattern"
         :muted="muted"
         :isLocal="isLocal"
@@ -446,8 +478,7 @@ onUnmounted(() => {
       />
 
       <NearWinBanner
-        v-if="showPlayersProgress"
-        :players="playersProgress"
+        :players="showPlayersProgress ? playersProgress : []"
         :remainingChips="remainingChips"
       />
 
@@ -525,6 +556,7 @@ onUnmounted(() => {
 .ig-page::before {
   content: "";
   position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  will-change: opacity;
   background-image:
     radial-gradient(1px 1px at  6%  8%, rgba(255,255,255,0.88) 0%, transparent 100%),
     radial-gradient(1px 1px at 14% 22%, rgba(255,255,255,0.52) 0%, transparent 100%),
@@ -553,6 +585,7 @@ onUnmounted(() => {
 .ig-page::after {
   content: "";
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  will-change: opacity;
   background-image:
     radial-gradient(2px 2px at 10% 15%, rgba(255,255,255,0.94) 0%, transparent 100%),
     radial-gradient(2px 2px at 45%  8%, rgba(255,255,255,0.80) 0%, transparent 100%),

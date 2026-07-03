@@ -14,7 +14,9 @@ const lastLetter = computed(() => last.value != null ? props.chipLetter(last.val
 const pct        = computed(() => Math.round((props.drawnNumbers.length / props.totalChips) * 100))
 
 // Grid chips en orden cronológico inverso, sin incluir el último (ya destacado arriba)
-const historyChips = computed(() => [...props.drawnNumbers].reverse().slice(1))
+const historyChips  = computed(() => [...props.drawnNumbers].reverse().slice(1))
+// Los 5 más recientes previos al actual (para la sección "anteriores")
+const recentChips   = computed(() => historyChips.value.slice(0, 5))
 
 // Agrupar por letra — dinámico, no hardcodeado a BINGO_75
 const colCounts = computed(() => {
@@ -39,6 +41,10 @@ const colLetters = computed(() => {
 
 // Tooltip hover sobre chip
 const hoveredChip = ref<number | null>(null)
+
+// Historial completo colapsado por defecto: libera espacio vertical para los
+// cartones, que son la prioridad real del jugador durante la partida.
+const showHistory = ref(false)
 </script>
 
 <template>
@@ -97,7 +103,7 @@ const hoveredChip = ref<number | null>(null)
           <span class="db-recent__label">anteriores</span>
           <div class="db-recent__row">
             <div
-              v-for="(n, i) in [...drawnNumbers].reverse().slice(1, 6)"
+              v-for="(n, i) in recentChips"
               :key="`rec-${n}`"
               class="db-chip db-chip--md"
               :class="`db-chip--${chipLetter(n)}`"
@@ -112,15 +118,26 @@ const hoveredChip = ref<number | null>(null)
       </div>
 
       <!-- ═══════════════════════════════════════════
-           HISTORIAL: todas menos la actual
+           HISTORIAL: todas menos la actual — colapsado por
+           defecto para no restarle espacio a los cartones
       ════════════════════════════════════════════ -->
-      <div class="db-history">
+      <button
+        v-if="historyChips.length > 0"
+        class="db-history-toggle"
+        type="button"
+        @click="showHistory = !showHistory"
+      >
+        <i class="fas fa-history" />
+        {{ showHistory ? 'Ocultar historial' : `Ver historial completo (${historyChips.length})` }}
+        <i class="fas fa-chevron-down db-history-toggle__chev" :class="{ 'db-history-toggle__chev--open': showHistory }" />
+      </button>
+
+      <div v-if="showHistory" class="db-history">
         <div
           v-for="n in historyChips"
           :key="n"
           class="db-chip db-chip--sm"
           :class="`db-chip--${chipLetter(n)}`"
-          :title="`${chipLetter(n)}${n}`"
           @mouseenter="hoveredChip = n"
           @mouseleave="hoveredChip = null"
         >
@@ -195,6 +212,7 @@ const hoveredChip = ref<number | null>(null)
 .db-hero__num-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 
 .db-hero__big-num {
+  display: inline-block;
   font-family: 'Anton', sans-serif; font-size: 52px; line-height: 1;
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text; letter-spacing: -1px;
@@ -278,6 +296,21 @@ const hoveredChip = ref<number | null>(null)
   text-transform: uppercase; text-align: center;
 }
 .db-recent__row { display: flex; gap: 3px; align-items: center; }
+
+/* ══════════════════════════════════════════════════════
+   HISTORY TOGGLE
+══════════════════════════════════════════════════════ */
+.db-history-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 6px 10px; border: none;
+  background: rgba(0,0,0,0.1); border-top: 1px solid rgba(80,120,255,0.06);
+  color: #4a6aaa; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  cursor: pointer; transition: background 0.15s ease, color 0.15s ease;
+}
+.db-history-toggle:hover { background: rgba(80,120,255,0.06); color: #7c9dff; }
+.db-history-toggle__chev { font-size: 8px; transition: transform 0.2s ease; }
+.db-history-toggle__chev--open { transform: rotate(180deg); }
 
 /* ══════════════════════════════════════════════════════
    HISTORY GRID

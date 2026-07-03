@@ -1,12 +1,3 @@
-export interface WinnerInfo {
-  id: number
-  name: string
-  card_id: number | string
-  card_serial?: string
-  pattern: string
-  prize: number
-}
-
 export interface WinnerEntry {
   user_id: number | string
   user_name: string

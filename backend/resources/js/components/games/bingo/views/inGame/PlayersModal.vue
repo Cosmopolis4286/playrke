@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { WinnerEntry, GameEndData } from './types'
 
 interface Props {
@@ -24,25 +24,37 @@ const emit = defineEmits<{
   close: []
 }>()
 
-const viewingCard = ref<null | { serialNumber: string; cardMatrix: number[][]; loading?: boolean }>(null)
+const viewingCard      = ref<null | { serialNumber: string; cardMatrix: number[][]; colLabels?: string[]; loading?: boolean }>(null)
 const viewingCardOwner = ref('')
+const loadingCardId    = ref<string | null>(null)
 
-function toRowMatrix(cardNumbers: Record<string, (number | null)[]> | number[][]): number[][] {
-  if (Array.isArray(cardNumbers)) return cardNumbers as number[][]
-  const obj = cardNumbers as Record<string, (number | null)[]>
-  const cols = ['B', 'I', 'N', 'G', 'O']
-  const numRows = obj[cols[0]]?.length ?? 0
-  const rows: number[][] = []
-  for (let r = 0; r < numRows; r++) {
-    rows.push(cols.map(c => (obj[c]?.[r] ?? null) as number))
+// O(1) lookup en template para evitar includes() O(n) en cada celda
+const drawnSet = computed(() => new Set(props.drawnNumbers))
+
+function toRowMatrix(cardNumbers: Record<string, (number | null)[]> | number[][]): { matrix: number[][]; cols: string[] } {
+  if (Array.isArray(cardNumbers)) {
+    return { matrix: cardNumbers as number[][], cols: ['B', 'I', 'N', 'G', 'O'] }
   }
-  return rows
+  const obj = cardNumbers as Record<string, (number | null)[]>
+  // Columnas dinámicas: funciona con BINGO_75, 90, 80, 30
+  const cols = Object.keys(obj)
+  if (!cols.length) {
+    console.warn('[PlayersModal] toRowMatrix: cardMatrix vacía', cardNumbers)
+    return { matrix: [], cols: [] }
+  }
+  const numRows = obj[cols[0]]?.length ?? 0
+  const matrix: number[][] = []
+  for (let r = 0; r < numRows; r++) {
+    matrix.push(cols.map(c => (obj[c]?.[r] ?? 0) as number))
+  }
+  return { matrix, cols }
 }
 
 async function openCardViewer(winner: WinnerEntry) {
-  if (!winner.card_id) return
+  if (!winner.card_id || loadingCardId.value === winner.card_id) return
+  loadingCardId.value    = winner.card_id
   viewingCardOwner.value = winner.user_name
-  viewingCard.value = { serialNumber: winner.card_serial, cardMatrix: [], loading: true }
+  viewingCard.value      = { serialNumber: winner.card_serial, cardMatrix: [], loading: true }
   try {
     const routeKey = props.roomRouteKey || props.roomId
     const res = await fetch(`/bingo/${routeKey}/card/${winner.card_id}`, {
@@ -50,16 +62,20 @@ async function openCardViewer(winner: WinnerEntry) {
     })
     const data = await res.json()
     if (data.success && data.card) {
+      const { matrix, cols } = toRowMatrix(data.card.cardMatrix ?? {})
       viewingCard.value = {
         serialNumber: data.card.serialNumber ?? winner.card_serial,
-        cardMatrix:   toRowMatrix(data.card.cardMatrix ?? {}),
-        loading: false,
+        cardMatrix:   matrix,
+        colLabels:    cols,
+        loading:      false,
       }
     } else {
       viewingCard.value = null
     }
   } catch {
     viewingCard.value = null
+  } finally {
+    loadingCardId.value = null
   }
 }
 
@@ -73,13 +89,13 @@ function closeCardViewer() {
   <!-- Players / Winners modal -->
   <Transition name="gm-fade">
     <div v-if="show" class="gm-overlay" @click.self="emit('close')">
-      <div class="gm-modal pm-modal">
+      <div class="gm-modal pm-modal" role="dialog" aria-modal="true" aria-labelledby="pm-title-text">
 
         <div class="pm-modal__head">
           <div class="pm-modal__title-row">
             <div class="pm-modal__icon"><i class="fas fa-users" /></div>
             <div>
-              <div class="pm-modal__title">Jugadores</div>
+              <div id="pm-title-text" class="pm-modal__title">Jugadores</div>
               <div class="pm-modal__sub">
                 <span>{{ livePlayers }} jugador{{ livePlayers === 1 ? '' : 'es' }}</span>
                 <template v-if="totalWinners > 0">
@@ -119,8 +135,14 @@ function closeCardViewer() {
               <div class="pm-row__prize">
                 <span class="pm-row__sym">{{ currencySym }}</span>{{ Number(w.prize).toFixed(2) }}
               </div>
-              <button v-if="w.card_id" class="pm-card-btn" title="Ver cartón" @click="openCardViewer(w)">
-                <i class="fas fa-th" />
+              <button
+                v-if="w.card_id"
+                class="pm-card-btn"
+                :disabled="loadingCardId === w.card_id"
+                :title="loadingCardId === w.card_id ? 'Cargando…' : 'Ver cartón'"
+                @click="openCardViewer(w)"
+              >
+                <i :class="loadingCardId === w.card_id ? 'fas fa-spinner fa-spin' : 'fas fa-th'" />
               </button>
             </div>
           </template>
@@ -164,7 +186,7 @@ function closeCardViewer() {
         <template v-else-if="viewingCard.cardMatrix && viewingCard.cardMatrix.length">
           <div class="cv-card">
             <div class="cv-card__header">
-              <div v-for="l in ['B','I','N','G','O']" :key="l" class="cv-card__lbl" :class="`cv-card__lbl--${l}`">{{ l }}</div>
+              <div v-for="l in (viewingCard.colLabels ?? ['B','I','N','G','O'])" :key="l" class="cv-card__lbl" :class="`cv-card__lbl--${l}`">{{ l }}</div>
             </div>
             <div class="cv-card__grid">
               <div v-for="(row, r) in viewingCard.cardMatrix" :key="`row-${r}`" class="cv-card__row">
@@ -173,17 +195,17 @@ function closeCardViewer() {
                   :key="`cell-${r}-${c}`"
                   class="cv-cell"
                   :class="{
-                    'cv-cell--drawn': num > 0 && drawnNumbers.includes(num),
+                    'cv-cell--drawn': num > 0 && drawnSet.has(num),
                     'cv-cell--free':  num === 0,
                   }"
                 >
                   <template v-if="num === 0">
-                    <img v-if="customerLogo" :src="customerLogo" class="cv-cell__logo" alt="logo" />
+                    <img v-if="customerLogo" :src="customerLogo" class="cv-cell__logo" alt="logo" crossorigin="anonymous" />
                     <span v-else class="cv-cell__free-icon"><i class="fas fa-star" /></span>
                   </template>
                   <template v-else>
                     <span class="cv-cell__num">{{ num }}</span>
-                    <span v-if="drawnNumbers.includes(num)" class="cv-cell__mark"><i class="fas fa-check" /></span>
+                    <span v-if="drawnSet.has(num)" class="cv-cell__mark"><i class="fas fa-check" /></span>
                   </template>
                 </div>
               </div>

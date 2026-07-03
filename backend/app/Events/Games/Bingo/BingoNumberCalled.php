@@ -5,7 +5,6 @@ namespace App\Events\Games\Bingo;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 class BingoNumberCalled implements ShouldBroadcastNow
 {
@@ -16,8 +15,6 @@ class BingoNumberCalled implements ShouldBroadcastNow
 
     public function __construct(int $number, int $roomId)
     {
-        Log::info('Creando evento BingoNumberCalled', ['number' => $number, 'roomId' => $roomId]);
-
         $this->number = $number;
         $this->roomId = $roomId;
     }

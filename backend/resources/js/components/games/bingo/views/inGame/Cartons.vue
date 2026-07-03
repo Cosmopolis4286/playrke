@@ -234,7 +234,6 @@ interface Props {
   roomId?:         string;
   drawnNumbers?:   number[];
   totalDrawn?:     number;
-  autoCheckBingo?: boolean;
   gameVariant?:    string;
 }
 
@@ -244,7 +243,6 @@ const props = withDefaults(defineProps<Props>(), {
   roomId:         "",
   drawnNumbers:   () => [],
   totalDrawn:     0,
-  autoCheckBingo: true,
   gameVariant:    "BINGO_75",
 });
 
@@ -329,14 +327,31 @@ function pct(card: BingoCard) { return Math.round((hits(card) / variantDef.value
 function isHot(card: BingoCard)    { return hits(card) >= HOT; }
 function isWinner(card: BingoCard) { return bingoSet.value.has(card.id); }
 
+// computed para evitar recálculo en cada render del template
+const filterCounts = computed(() => {
+  let win = 0, hot = 0;
+  for (const c of props.cartons) {
+    if (isWinner(c)) { win++; continue; }
+    if (isHot(c))    hot++;
+  }
+  return { all: props.cartons.length, hot, win };
+});
+
 function getFilterCount(f: Filter): number {
-  if (f === "win") return props.cartons.filter(c => isWinner(c)).length;
-  if (f === "hot") return props.cartons.filter(c => isHot(c) && !isWinner(c)).length;
-  return props.cartons.length;
+  return filterCounts.value[f];
 }
 
+// Memoizado: la variante no cambia durante la partida
+const colNumbersMap = computed(() => {
+  const map = new Map<string, number[]>();
+  for (const col of variantDef.value.columns) {
+    map.set(col.label, Array.from({ length: col.max - col.min + 1 }, (_, i) => col.min + i));
+  }
+  return map;
+});
+
 function colNumbers(col: BingoVariantColumn): number[] {
-  return Array.from({ length: col.max - col.min + 1 }, (_, i) => col.min + i);
+  return colNumbersMap.value.get(col.label) ?? [];
 }
 
 function shortSerial(s: string): string {
@@ -350,23 +365,31 @@ function fullBingo(card: BingoCard): boolean {
     for (let r = 1; r <= variantDef.value.numRows; r++) {
       if (isFreeCell(col, r)) continue;
       const n = num(card, col.label, r);
-      if (n === null || !drawnSet.value.has(n)) return false;
+      // n === null: celda vacía por diseño (BINGO_90 hasEmptyCells) — no cuenta como pendiente
+      if (n === null) continue;
+      if (!drawnSet.value.has(n)) return false;
     }
   }
   return true;
 }
 
 watch(() => props.drawnNumbers, (next, prev) => {
-  // Actualizar drawnSet reactivo
-  drawnSet.value = new Set(next);
-
-  // Reset state cuando el sorteo se reinicia
+  // Reset cuando el sorteo se reinicia
   if (next.length === 0) {
+    drawnSet.value = new Set();
     bingoSet.value = new Set();
     return;
   }
 
-  // O(1) lookup en lugar de O(n²) includes
+  // Mutar el Set existente en lugar de recrearlo completo — O(delta) no O(n)
+  const prevLen = prev?.length ?? 0;
+  if (next.length > prevLen) {
+    for (let i = prevLen; i < next.length; i++) drawnSet.value.add(next[i]);
+  } else {
+    // Cambio no incremental (ej. reconexión WS con estado completo)
+    drawnSet.value = new Set(next);
+  }
+
   const prevSet  = new Set(prev ?? []);
   const newNums  = next.filter(n => !prevSet.has(n));
 
@@ -381,7 +404,6 @@ watch(() => props.drawnNumbers, (next, prev) => {
     if (anyHit) playSelect();
   }
 
-  if (!props.autoCheckBingo) return;
   for (const card of props.cartons) {
     if (bingoSet.value.has(card.id)) continue;
     if (fullBingo(card)) {
@@ -716,36 +738,36 @@ watch(() => props.drawnNumbers, (next, prev) => {
 /* ═══════════════════════════════════════════
    SPECTATOR
 ═══════════════════════════════════════════ */
-.ctn-spectator { padding: 10px 0 4px; }
+.ctn-spectator { padding: 6px 0 2px; }
 .ctn-spectator__hdr {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 11px; font-weight: 700; color: #4a6aaa;
-  text-transform: uppercase; letter-spacing: 0.8px;
-  margin-bottom: 12px; padding: 0 2px;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; font-weight: 700; color: #4a6aaa;
+  text-transform: uppercase; letter-spacing: 0.7px;
+  margin-bottom: 6px; padding: 0 2px;
 }
 .ctn-spectator__eye {
-  width: 26px; height: 26px; border-radius: 8px;
+  width: 20px; height: 20px; border-radius: 6px;
   background: rgba(80,120,255,0.1); border: 1px solid rgba(80,120,255,0.18);
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px; color: #6a90d8; flex-shrink: 0;
+  font-size: 10px; color: #6a90d8; flex-shrink: 0;
 }
 .ctn-spectator__label { flex: 1; }
-.ctn-spectator__count { font-size: 12px; font-weight: 800; color: #7c9dff; }
+.ctn-spectator__count { font-size: 11px; font-weight: 800; color: #7c9dff; }
 .ctn-spectator__count small { font-weight: 400; color: #4a6aaa; margin-left: 2px; }
 
-/* ── Ball grid (spectator) — fichas reales ── */
+/* ── Ball grid (spectator) — fichas reales, minimalista y compacta ── */
 .ctn-ball-grid {
-  display: flex; gap: 6px;
+  display: flex; gap: 3px;
 }
-.ctn-ball-col  { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ctn-ball-col  { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 
-/* Column header — solid pill */
+/* Column header — barra plana y baja */
 .ctn-ball-col__hdr {
-  text-align: center; font-family: 'Anton', sans-serif; font-size: 15px;
-  padding: 5px 0 4px; border-radius: 8px; margin-bottom: 2px;
-  letter-spacing: 0.5px; color: #fff; font-weight: 900;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+  text-align: center; font-family: 'Anton', sans-serif; font-size: 11px;
+  padding: 2px 0; border-radius: 4px; margin-bottom: 1px;
+  letter-spacing: 0.3px; color: #fff; font-weight: 900;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  line-height: 1.3;
 }
 .ctn-ball-col__hdr--col0 { background: linear-gradient(160deg, #1a5fff, #0e3ab8); }
 .ctn-ball-col__hdr--col1 { background: linear-gradient(160deg, #d81818, #960000); }
@@ -753,39 +775,32 @@ watch(() => props.drawnNumbers, (next, prev) => {
 .ctn-ball-col__hdr--col3 { background: linear-gradient(160deg, #0ab040, #077030); }
 .ctn-ball-col__hdr--col4 { background: linear-gradient(160deg, #9010e0, #6008b0); }
 
-/* Number cells */
+/* Number cells — bajas y planas, sin aspect-ratio cuadrado */
 .ctn-ball-cell {
   display: flex; align-items: center; justify-content: center;
-  aspect-ratio: 1; border-radius: 50%;
-  font-size: 10.5px; font-weight: 700; line-height: 1;
+  height: 16px; border-radius: 4px;
+  font-size: 9px; font-weight: 700; line-height: 1;
   color: rgba(255,255,255,0.18);
   background: rgba(255,255,255,0.025);
   border: 1px solid rgba(255,255,255,0.04);
-  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  transition: background 0.15s ease, color 0.15s ease;
   user-select: none; cursor: default;
 }
 
-/* Sorteada — ficha sólida de color */
+/* Sorteada — celda sólida de color, plana (sin relieve) */
 .ctn-ball-cell--hit {
-  color: #fff; font-weight: 900;
-  border-color: rgba(255,255,255,0.22);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.2);
+  color: #fff; font-weight: 800;
+  border-color: rgba(255,255,255,0.16);
 }
-.ctn-ball-cell--hit.ctn-ball-cell--col0 { background: radial-gradient(circle at 36% 30%, #70c8ff, #1a7de0 55%, #0c4fa0 100%); box-shadow: 0 2px 8px rgba(26,125,224,0.5), inset 0 1px 0 rgba(255,255,255,0.4); }
-.ctn-ball-cell--hit.ctn-ball-cell--col1 { background: radial-gradient(circle at 36% 30%, #ff8080, #d42020 55%, #880e0e 100%); box-shadow: 0 2px 8px rgba(212,32,32,0.5), inset 0 1px 0 rgba(255,255,255,0.4); }
-.ctn-ball-cell--hit.ctn-ball-cell--col2 { background: radial-gradient(circle at 36% 30%, #ffe870, #e0a000 55%, #986800 100%); box-shadow: 0 2px 8px rgba(224,160,0,0.45), inset 0 1px 0 rgba(255,255,255,0.4); }
-.ctn-ball-cell--hit.ctn-ball-cell--col3 { background: radial-gradient(circle at 36% 30%, #7ae07a, #28a428 55%, #166016 100%); box-shadow: 0 2px 8px rgba(40,164,40,0.45), inset 0 1px 0 rgba(255,255,255,0.4); }
-.ctn-ball-cell--hit.ctn-ball-cell--col4 { background: radial-gradient(circle at 36% 30%, #c890ff, #7b3fd0 55%, #4a1898 100%); box-shadow: 0 2px 8px rgba(123,63,208,0.5), inset 0 1px 0 rgba(255,255,255,0.4); }
+.ctn-ball-cell--hit.ctn-ball-cell--col0 { background: #1a5fff; }
+.ctn-ball-cell--hit.ctn-ball-cell--col1 { background: #d81818; }
+.ctn-ball-cell--hit.ctn-ball-cell--col2 { background: #b89000; }
+.ctn-ball-cell--hit.ctn-ball-cell--col3 { background: #0ab040; }
+.ctn-ball-cell--hit.ctn-ball-cell--col4 { background: #9010e0; }
 
-/* Última sorteada — destaca con glow y escala */
+/* Última sorteada — resalte sutil sin animación de escala (evita reflow de altura) */
 .ctn-ball-cell--latest {
-  transform: scale(1.15); z-index: 2; position: relative; font-size: 11.5px;
-  animation: ball-latest 0.45s cubic-bezier(0.175,0.885,0.32,1.275) both;
-}
-@keyframes ball-latest {
-  0%   { transform: scale(0.5); opacity: 0; }
-  70%  { transform: scale(1.22); }
-  100% { transform: scale(1.15); opacity: 1; }
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.55);
 }
 
 /* ═══════════════════════════════════════════

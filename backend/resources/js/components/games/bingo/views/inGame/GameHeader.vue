@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 
 interface Props {
@@ -16,15 +15,13 @@ interface Props {
   cardCount: number
   rounds?: number
   round?: number
-  liveDrawnLength: number
-  totalChips: number
   bingoPattern?: string
   muted: boolean
   isLocal: boolean
   devResetting: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   rounds: 0,
   round: 1,
   bingoPattern: '',
@@ -37,10 +34,6 @@ const emit = defineEmits<{
 }>()
 
 function pad(n: number) { return String(n).padStart(2, '0') }
-
-const drawPct = computed(() =>
-  props.totalChips > 0 ? Math.round((props.liveDrawnLength / props.totalChips) * 100) : 0
-)
 </script>
 
 <template>
@@ -100,6 +93,8 @@ const drawPct = computed(() =>
           class="gh-btn gh-btn--icon"
           :class="{ 'gh-btn--muted': muted }"
           :title="muted ? 'Activar sonido' : 'Silenciar'"
+          :aria-label="muted ? 'Activar sonido' : 'Silenciar'"
+          :aria-pressed="muted"
           @click="emit('toggleMute')"
         >
           <i :class="muted ? 'fas fa-volume-mute' : 'fas fa-volume-up'" />
@@ -148,23 +143,6 @@ const drawPct = computed(() =>
           <div class="gh-stat__body">
             <span class="gh-stat__val">{{ round }}<em class="gh-stat__sub">/{{ rounds }}</em></span>
             <span class="gh-stat__lbl">ronda</span>
-          </div>
-        </div>
-      </template>
-
-      <!-- Drawn progress -->
-      <template v-if="liveDrawnLength > 0">
-        <div class="gh-stat-sep" />
-        <div class="gh-stat gh-stat--progress">
-          <i class="fas fa-random gh-stat__solo-icon" />
-          <div class="gh-stat__body">
-            <span class="gh-stat__val">
-              {{ liveDrawnLength }}<em class="gh-stat__sub">/{{ totalChips }}</em>
-            </span>
-            <span class="gh-stat__lbl">sorteadas</span>
-          </div>
-          <div class="gh-pbar">
-            <div class="gh-pbar__fill" :style="{ width: `${drawPct}%` }" />
           </div>
         </div>
       </template>
@@ -375,18 +353,6 @@ const drawPct = computed(() =>
 .gh-stat--flash .gh-stat__val { animation: stat-pop 0.5s ease; }
 @keyframes stat-pop { 0% { color: #2af598; transform: scale(1); } 40% { transform: scale(1.14); } 100% { color: #c8d8ff; transform: scale(1); } }
 
-/* Progress bar inside stat */
-.gh-stat--progress { padding-bottom: 12px; }
-.gh-pbar {
-  position: absolute; bottom: 4px; left: 42px; right: 12px;
-  height: 2px; background: rgba(80,120,255,0.1); border-radius: 2px; overflow: hidden;
-}
-.gh-pbar__fill {
-  height: 100%; border-radius: 2px;
-  background: linear-gradient(90deg, #4a7fff, #2af598);
-  transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
-}
-
 /* Stat separators */
 .gh-stat-sep {
   width: 1px; align-self: stretch; margin: 6px 0;
@@ -449,8 +415,6 @@ const drawPct = computed(() =>
   .gh-stat-sep { display: none; }
   .gh-stat { flex: none; padding: 6px 8px; border-bottom: 1px solid rgba(80,120,255,0.06); }
   .gh-stat:nth-child(odd) { border-right: 1px solid rgba(80,120,255,0.06); }
-  .gh-stat--progress { padding-bottom: 14px; }
-  .gh-pbar { left: 34px; right: 8px; }
 }
 @media (max-width: 380px) {
   .gh-prize__val { font-size: 22px; }

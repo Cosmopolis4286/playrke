@@ -2,15 +2,18 @@
 interface Props {
   show: boolean
   secondsLeft: number
+  totalSeconds?: number
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  totalSeconds: 10,
+})
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="pdm">
-      <div v-if="show" class="pdm-overlay">
+      <div v-if="show" class="pdm-overlay" role="dialog" aria-modal="true" aria-labelledby="pdm-title-text">
         <div class="pdm-box">
           <div class="pdm-particles">
             <span v-for="i in 12" :key="i" class="pdm-particle" :style="{ '--i': i }" />
@@ -20,7 +23,7 @@ defineProps<Props>()
             <span class="pdm-ball__letter">🎱</span>
           </div>
 
-          <div class="pdm-title">¡El sorteo comienza!</div>
+          <div id="pdm-title-text" class="pdm-title">¡El sorteo comienza!</div>
           <div class="pdm-subtitle">Prepara tus cartones</div>
 
           <div class="pdm-countdown">
@@ -29,7 +32,7 @@ defineProps<Props>()
               <circle
                 class="pdm-countdown__fill"
                 cx="32" cy="32" r="28"
-                :style="{ strokeDashoffset: 175.9 - (175.9 * (10 - secondsLeft) / 10) }"
+                :style="{ strokeDashoffset: 175.9 - (175.9 * (totalSeconds - secondsLeft) / totalSeconds) }"
               />
             </svg>
             <span class="pdm-countdown__num">{{ secondsLeft }}</span>

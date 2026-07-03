@@ -1,3 +1,13 @@
+<script lang="ts">
+// Module-level: computed once per bundle load, not per component mount
+const confettiPieces = Array.from({ length: 40 }, (_, i) => ({
+  left:     `${(i * 2.618033) % 100}%`,
+  delay:    `${(i * 0.07) % 2}s`,
+  duration: `${2.5 + (i % 5) * 0.3}s`,
+  color:    ['#7b4fff','#2af598','#ffd700','#ff4466','#00c6ff','#ff8c00'][i % 6],
+}))
+</script>
+
 <script setup lang="ts">
 import type { GameEndData } from './types'
 
@@ -17,37 +27,33 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{ close: [] }>()
-
-// Posiciones fijas de confetti (evita re-render random en cada update)
-const confettiPieces = Array.from({ length: 40 }, (_, i) => ({
-  left:     `${(i * 2.618033) % 100}%`,
-  delay:    `${(i * 0.07) % 2}s`,
-  duration: `${2.5 + (i % 5) * 0.3}s`,
-  color:    ['#7b4fff','#2af598','#ffd700','#ff4466','#00c6ff','#ff8c00'][i % 6],
-}))
 </script>
 
 <template>
   <Transition name="gm-fade">
     <div v-if="show" class="gm-overlay" @click.self="emit('close')">
 
-      <template v-if="gameEndData?.hasWinner || isMyWin">
-        <div
-          v-for="(cf, i) in confettiPieces"
-          :key="`cf-${i}`"
-          class="gm-confetti"
-          :style="{ left: cf.left, animationDelay: cf.delay, animationDuration: cf.duration, background: cf.color }"
-        />
-      </template>
-
       <div
         class="gm-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="gm-title-text"
         :class="{
           'gm-modal--win': gameEndData?.hasWinner || isMyWin,
           'gm-modal--no-winner': gameEndData && !gameEndData.hasWinner,
         }"
       >
-        <button class="gm-close" @click="emit('close')"><i class="fas fa-times" /></button>
+        <button class="gm-close" aria-label="Cerrar" @click="emit('close')"><i class="fas fa-times" /></button>
+
+        <!-- Confetti dentro del modal: desaparece cuando el modal hace fade-out -->
+        <template v-if="gameEndData?.hasWinner || isMyWin">
+          <div
+            v-for="(cf, i) in confettiPieces"
+            :key="`cf-${i}`"
+            class="gm-confetti"
+            :style="{ left: cf.left, animationDelay: cf.delay, animationDuration: cf.duration, background: cf.color }"
+          />
+        </template>
 
         <div class="gm-header">
           <div v-if="gameEndData?.hasWinner || isMyWin" class="gm-trophy">
@@ -58,7 +64,7 @@ const confettiPieces = Array.from({ length: 40 }, (_, i) => ({
             <span class="gm-trophy__icon">🎱</span>
           </div>
 
-          <h2 class="gm-title">
+          <h2 id="gm-title-text" class="gm-title">
             <template v-if="isMyWin">¡BINGO! ¡Ganaste!</template>
             <template v-else-if="gameEndData?.hasWinner">¡Tenemos Ganador!</template>
             <template v-else>Sorteo Finalizado</template>
@@ -252,15 +258,15 @@ const confettiPieces = Array.from({ length: 40 }, (_, i) => ({
 .gm-btn--primary { background: rgba(100,140,255,0.1); border-color: rgba(100,140,255,0.25); color: #7c9dff; }
 .gm-btn--primary:hover { background: rgba(100,140,255,0.2); color: #b0c8ff; }
 
-/* ── Confetti ── */
+/* ── Confetti — position: absolute para quedar dentro del modal (overflow: hidden) ── */
 .gm-confetti {
-  position: fixed; width: 8px; height: 8px; border-radius: 2px; top: -10px;
+  position: absolute; width: 8px; height: 8px; border-radius: 2px; top: -10px;
   animation: confetti-fall linear forwards;
-  pointer-events: none; z-index: 1201;
+  pointer-events: none; z-index: 0;
 }
 @keyframes confetti-fall {
   0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(110vh) rotate(720deg); opacity: 0.2; }
+  100% { transform: translateY(calc(100% + 20px)) rotate(720deg); opacity: 0.2; }
 }
 
 /* ── Fade transition ── */
