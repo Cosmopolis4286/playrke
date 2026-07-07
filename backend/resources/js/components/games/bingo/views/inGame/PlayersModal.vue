@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
+import backendClient from '@/js/plugins/axios'
+import type { WinnerEntry, GameEndData } from './types'
 
 type WinningPositionModule = { col: string; row: number; free: boolean }
 type ViewedCardModule = {
@@ -10,11 +12,10 @@ type ViewedCardModule = {
   winningPositions?: WinningPositionModule[]
 }
 
-// Dentro de <script setup> para que el caché se limpie cuando el componente se desmonta.
-// Evita acumular cartones de partidas anteriores entre navegaciones SPA.
+// Persiste durante la sesión de juego (cartones ganadores son inmutables).
+// Se limpia en unmount (navegación SPA) para no llevar datos entre partidas.
 const cardCache = new Map<string, ViewedCardModule>()
-import backendClient from '@/js/plugins/axios'
-import type { WinnerEntry, GameEndData } from './types'
+onUnmounted(() => cardCache.clear())
 
 interface Props {
   show: boolean

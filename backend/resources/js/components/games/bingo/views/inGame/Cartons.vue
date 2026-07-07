@@ -219,7 +219,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, ref, triggerRef } from "vue";
+import { computed, watch, ref } from "vue";
 // BingoCard: estructura mínima que el backend serializa en toFrontendFormat()
 interface BingoCard {
   id: string
@@ -263,8 +263,9 @@ const bingoSet     = ref<Set<string>>(new Set());
 
 const { playSelect, playWinner } = useBingoSound();
 
-// Ref estable: se muta en lugar de recrear un Set completo en cada render
-const drawnSet = ref(new Set<number>(props.drawnNumbers));
+// computed sobre el prop array — Vue rastrea la dependencia automáticamente,
+// sin necesidad de triggerRef ni rutas de actualización manuales.
+const drawnSet = computed(() => new Set<number>(props.drawnNumbers));
 
 const selectedCard = computed(() =>
   selectedId.value ? props.cartons.find(c => c.id === selectedId.value) ?? null : null
@@ -396,25 +397,24 @@ function fullBingo(card: BingoCard): boolean {
 }
 
 watch(() => props.drawnNumbers, (next, prev) => {
-  // Reset cuando el sorteo se reinicia
   if (next.length === 0) {
-    drawnSet.value = new Set();
     bingoSet.value = new Set();
     return;
   }
 
-  // Mutar el Set existente en lugar de recrearlo completo — O(delta) no O(n)
-  const prevLen = prev?.length ?? 0;
-  if (next.length > prevLen) {
-    for (let i = prevLen; i < next.length; i++) drawnSet.value.add(next[i]);
-    triggerRef(drawnSet);
-  } else {
-    // Cambio no incremental (ej. reconexión WS con estado completo o immediate)
-    drawnSet.value = new Set(next);
+  // Cuando el historial cambia de forma no monotónica (reconexión, corrección de sorteo),
+  // revalidar qué cartones siguen siendo BINGO con el draw actualizado.
+  if ((prev?.length ?? 0) > next.length) {
+    bingoSet.value = new Set(
+      [...bingoSet.value].filter(cardId => {
+        const card = props.cartons.find(c => c.id === cardId);
+        return card ? fullBingo(card) : false;
+      })
+    );
   }
 
-  const prevSet  = new Set(prev ?? []);
-  const newNums  = next.filter(n => !prevSet.has(n));
+  const prevSet = new Set(prev ?? []);
+  const newNums = next.filter(n => !prevSet.has(n));
 
   // En immediate (prev===undefined) no reproducir sonido por fichas ya sorteadas
   if (newNums.length > 0 && prev !== undefined) {

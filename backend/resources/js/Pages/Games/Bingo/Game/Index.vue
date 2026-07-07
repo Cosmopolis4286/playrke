@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue'
 import '@/css/games/bingo/bingo-in-game.css'
 import { useGameRoomCountdown }  from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
 import { useAntiDebug }          from '@js/composables/games/bingo/useAntiDebug'
@@ -98,14 +98,13 @@ const livePrize        = ref(props.prizePool ?? 0)
 const liveExchangeRate = ref(props.exchangeRate ?? 1)
 const livePlayers      = ref(props.totalPlayers ?? 0)
 const liveDrawn        = ref<number[]>([...(props.draw ?? [])])
-const drawnSet         = ref(new Set<number>(props.draw ?? []))
 const prizeFlash       = ref(false)
 const playersFlash     = ref(false)
 const playersProgress  = ref<PlayerProgress[]>([])
 const showWinnerModal  = ref(false)
 
-const modalDismissKey  = computed(() => `bingo-modal-closed-${roomId.value}`)
-const userClosedModal  = ref(sessionStorage.getItem(modalDismissKey.value) === '1')
+const modalDismissKey  = computed(() => roomId.value ? `bingo-modal-closed-${roomId.value}` : '')
+const userClosedModal  = ref(modalDismissKey.value ? sessionStorage.getItem(modalDismissKey.value) === '1' : false)
 const gameEndData      = ref<GameEndData | null>(null)
 const isMyWin          = ref(false)
 const showPlayersModal = ref(false)
@@ -135,9 +134,11 @@ const showPlayersProgress = computed(() =>
 const cartonsRef = ref<InstanceType<typeof BingoCartons> | null>(null)
 const myMissing  = computed<number | null>(() => cartonsRef.value?.myMissing.value ?? null)
 
-function flash(target: { value: boolean }) {
+const flashTimers = new Set<ReturnType<typeof setTimeout>>()
+function flash(target: Ref<boolean>) {
   target.value = true
-  setTimeout(() => { target.value = false }, 1000)
+  const t = setTimeout(() => { target.value = false; flashTimers.delete(t) }, 1000)
+  flashTimers.add(t)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -194,7 +195,7 @@ function handleGameEnded(data: GameEndedEvent) {
 function closeWinnerModal() {
   showWinnerModal.value = false
   userClosedModal.value = true
-  sessionStorage.setItem(modalDismissKey.value, '1')
+  if (modalDismissKey.value) sessionStorage.setItem(modalDismissKey.value, '1')
   if (!isFinished.value) isMyWin.value = false
 }
 
@@ -240,7 +241,6 @@ const { subscribe, unsubscribe } = useBingoGameEcho({
   },
   onPlayerJoined:    (e) => { livePlayers.value = e.current_players; flash(playersFlash) },
   onNumberCalled:    (e) => {
-    drawnSet.value.add(e.number)
     liveDrawn.value = [...liveDrawn.value, e.number]
   },
   onPlayersProgress: (e) => { if (Array.isArray(e.players)) playersProgress.value = e.players },
@@ -277,13 +277,12 @@ async function devResetTime() {
     if (data.startTime) {
       clearDrawTimer()
       liveDrawn.value       = []
-      drawnSet.value        = new Set()
       gameStarted.value     = false
       gameEndData.value     = null
       isMyWin.value         = false
       showWinnerModal.value = false
       userClosedModal.value = false
-      sessionStorage.removeItem(modalDismissKey.value)
+      if (modalDismissKey.value) sessionStorage.removeItem(modalDismissKey.value)
       currentUnixDate.value = data.startTime
       initCountdown([{ id: roomId.value, config: { unix_date: data.startTime } } as any])
       Swal.fire({ title: '¡Sorteo iniciado!', text: 'El sorteo ha sido regenerado exitosamente.', icon: 'success', timer: 2000, showConfirmButton: false, background: '#1a1f3a', color: '#fff' })
@@ -315,7 +314,7 @@ onMounted(() => {
     if (props.userId && props.initialWinners.some(w => String(w.user_id) === String(props.userId))) {
       isMyWin.value = true
     }
-    showWinnerModal.value = true
+    if (!userClosedModal.value) showWinnerModal.value = true
   } else if (props.roomFinished) {
     gameEndData.value = {
       hasWinner:  false,
@@ -324,13 +323,14 @@ onMounted(() => {
       prize:      0,
       endTime:    '',
     }
-    showWinnerModal.value = true
+    if (!userClosedModal.value) showWinnerModal.value = true
   }
 })
 
 onUnmounted(() => {
   stopCountdown()
   unsubscribe()
+  flashTimers.forEach(clearTimeout)
 })
 </script>
 
