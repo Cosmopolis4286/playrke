@@ -1,4 +1,4 @@
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 
 const REDIRECT_DELAY = 3000
@@ -27,10 +27,6 @@ export function useLobbyRedirect(
     }, REDIRECT_DELAY)
   }
 
-  onMounted(() => {
-    if (statusCode()?.toUpperCase() === 'IN_PROGRESS') trigger()
-  })
-
   function cancel() {
     if (redirectTimer) clearTimeout(redirectTimer)
     if (tickTimer)     clearInterval(tickTimer)
@@ -44,7 +40,7 @@ export function useLobbyRedirect(
 
   watch(statusCode, (next) => {
     if (next?.toUpperCase() === 'IN_PROGRESS') trigger()
-  })
+  }, { immediate: true })
 
   return { redirecting, redirectSecs, cancel }
 }

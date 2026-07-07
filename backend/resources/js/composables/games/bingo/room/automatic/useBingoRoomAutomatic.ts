@@ -1,6 +1,7 @@
 import { ref, Ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import { showToast, showToastConfirmAction } from '@/js/utils/toastNotify'
+import { useBingoRoomCrudFactory } from '../shared/useBingoRoomCrudFactory'
 
 import type { BingoRoomAutomatic, BingoRoomAutomaticFormData } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
 
@@ -95,6 +96,8 @@ const emptyFormData = (): BingoRoomAutomaticFormData => ({
     maxSpecialCards: null,
 })
 
+const ENDPOINT = 'bingo-automatic-rooms'
+
 /**
  * Composable para manejar salas de bingo automaticas
  *
@@ -102,52 +105,19 @@ const emptyFormData = (): BingoRoomAutomaticFormData => ({
  * - Control del estado del formulario (create / edit / reset)
  * - Envío de datos (POST / PUT)
  * - Gestión local de la lista
+ *
+ * El CRUD de lista (fetch/copy/toggle/remove) se delega a
+ * useBingoRoomCrudFactory, compartido con useBingoRoom.
  */
 export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomaticReturn {
-    /** Estado de carga global */
-    const loading = ref(false)
+    const crud = useBingoRoomCrudFactory<BingoRoomAutomatic>(tokenId, { endpoint: ENDPOINT, entityLabel: 'sala' })
+    const { loading, rooms, fetchRooms } = crud
 
     /** Estado único del formulario (para tabla CRUD) */
     const roomData = ref<Partial<BingoRoomAutomatic>>(emptyBingoRoomAutomatic())
 
     /** Datos del formulario de creación/edición */
     const roomFormData = ref<BingoRoomAutomaticFormData>(emptyFormData())
-
-    /** Lista reactiva local */
-    const rooms = ref<BingoRoomAutomatic[]>([])
-
-    /**
-     * Inicializa la lista local
-     */
-    function setInitialRooms(initialBingoRoomAutomatics: BingoRoomAutomatic[]) {
-        rooms.value = [...initialBingoRoomAutomatics]
-    }
-
-    /**
-     * Obtiene la lista desde backend
-     */
-    async function fetchRooms(): Promise<boolean> {
-        try {
-            loading.value = true
-
-            const response = await backendClient.get<{ data: BingoRoomAutomatic[] }>(
-                '/bingo-automatic-rooms/fetch-list',
-                { params: { token: tokenId } }
-            )
-
-            if (Array.isArray(response.data?.data)) {
-                rooms.value = response.data.data
-            }
-
-            return true
-        } catch (error) {
-            console.error(error)
-            showToast('Error al cargar las salas de bingo', 'error')
-            return false
-        } finally {
-            loading.value = false
-        }
-    }
 
     /**
      * Envío del formulario (create / update)
@@ -162,12 +132,12 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
 
             if (roomData.value.id) {
                 await backendClient.patch(
-                    `/bingo-automatic-rooms/${roomData.value.id}/update`,
+                    `/${ENDPOINT}/${roomData.value.id}/update`,
                     payload
                 )
                 showToast('Sala actualizada exitosamente', 'success')
             } else {
-                await backendClient.post('/bingo-automatic-rooms', payload)
+                await backendClient.post(`/${ENDPOINT}`, payload)
                 showToast('Sala creada exitosamente', 'success')
             }
 
@@ -203,7 +173,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
             loading.value = true
 
             const { data } = await backendClient.get<{ data: Record<string, any> }>(
-                `/bingo-automatic-rooms/${id}/show`
+                `/${ENDPOINT}/${id}/show`
             )
 
             const room = data.data
@@ -268,171 +238,6 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
     }
 
     /**
-     * Alternar estado (ACTIVE / INACTIVE) de la sala.
-     */
-    async function toggleStatus(id: string | number): Promise<boolean> {
-        const room = rooms.value.find(c => c.id === id)
-        const name = room?.id ?? ''
-
-        const confirm = await showToastConfirmAction({
-            html: `¿Quieres cambiar el estado de esta sala <b>${name}</b>?`,
-            icon: 'warning',
-            confirmButtonText: 'Sí, cambiar estado'
-        })
-
-        if (!confirm) return false
-
-        try {
-            await backendClient.patch(`/bingo-automatic-rooms/${id}/status`)
-            showToast('Estado cambiado con éxito', 'success')
-            await fetchRooms()
-            return true
-        } catch (error) {
-            showToast('Error al cambiar el estado', 'error')
-            return false
-        }
-    }
-
-    /**
-     * Copiar sala de bingo (status INACTIVE)
-     */
-    async function copyRoom(id: string | number): Promise<boolean> {
-        const room = rooms.value.find(c => c.id === id)
-        const name = room?.id ?? ''
-
-        const confirm = await showToastConfirmAction({
-            html: `¿Quieres copiar esta sala <b>${name}</b>? Se creará como borrador.`,
-            icon: 'warning',
-            confirmButtonText: 'Sí, copiar'
-        })
-
-        if (!confirm) return false
-
-        try {
-            await backendClient.post(`/bingo-automatic-rooms/${id}/copy`)
-            showToast('Sala copiada como borrador exitosamente', 'success')
-            await fetchRooms()
-            return true
-        } catch (error) {
-            showToast('Error al copiar la sala', 'error')
-            return false
-        }
-    }
-
-    /**
-     * Eliminación (soft delete)
-     */
-    async function remove(id: string | number): Promise<boolean> {
-        const room = rooms.value.find(c => c.id === id)
-        const name = room?.id ?? ''
-
-        const confirm = await showToastConfirmAction({
-            html: `¿Estás seguro que deseas eliminar esta sala <b>${name}</b>?`,
-            icon: 'warning',
-            confirmButtonText: 'Sí, eliminar'
-        })
-
-        if (!confirm) return false
-
-        try {
-            await backendClient.delete(`/bingo-automatic-rooms/${id}/delete`)
-            showToast('Sala eliminada con éxito', 'success')
-            await fetchRooms()
-            return true
-        } catch (error) {
-            showToast('Error al eliminar la sala', 'error')
-            return false
-        }
-    }
-
-    /**
-     * Genera HTML con lista de códigos para mostrar en el modal de confirmación
-     */
-    function buildItemListHtml(ids: (string | number)[]): string {
-        const items = ids
-            .map(id => rooms.value.find(c => c.id === id))
-            .filter(Boolean)
-            .map(c => c!.id)
-
-        return `
-            <div style="max-height: 150px; overflow-y: auto; text-align: left; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-                <ul style="margin: 0; padding-left: 20px;">
-                    ${items.map(code => `<li style="padding: 4px 0;">${code}</li>`).join('')}
-                </ul>
-            </div>
-        `
-    }
-
-    /**
-     * Alternar estado (masivo)
-     */
-    async function toggleStatusBulk(ids: (string | number)[]): Promise<boolean> {
-        if (ids.length === 0) return false
-
-        if (ids.length === 1) {
-            return toggleStatus(ids[0])
-        }
-
-        const itemListHtml = buildItemListHtml(ids)
-
-        const confirm = await showToastConfirmAction({
-            html: `¿Quieres cambiar el estado de estas ${ids.length} salas?${itemListHtml}`,
-            icon: 'warning',
-            confirmButtonText: 'Sí, cambiar estado'
-        })
-
-        if (!confirm) return false
-
-        try {
-            for (const id of ids) {
-                await backendClient.patch(`/bingo-automatic-rooms/${id}/status`)
-            }
-            showToast(`Estado cambiado con éxito para ${ids.length} salas`, 'success')
-            await fetchRooms()
-            return true
-        } catch (error) {
-            console.error('Error al cambiar el estado de las salas:', error)
-            showToast('Error al cambiar el estado', 'error')
-            return false
-        }
-    }
-
-    /**
-     * Eliminación masiva (soft delete)
-     */
-    async function removeBulk(ids: (string | number)[]): Promise<boolean> {
-        if (ids.length === 0) return false
-
-        if (ids.length === 1) {
-            return remove(ids[0])
-        }
-
-        const itemListHtml = buildItemListHtml(ids)
-
-        const confirm = await showToastConfirmAction({
-            html: `¿Estás seguro que deseas eliminar estas ${ids.length} salas?${itemListHtml}`,
-            icon: 'warning',
-            confirmButtonText: 'Sí, eliminar'
-        })
-
-        if (!confirm) return false
-
-        try {
-            for (const id of ids) {
-                await backendClient.delete(`/bingo-automatic-rooms/${id}/delete`)
-            }
-            showToast(`${ids.length} salas eliminadas con éxito`, 'success')
-            await fetchRooms()
-            return true
-        } catch (error) {
-            console.error('Error al eliminar las salas:', error)
-
-            showToast('Error al eliminar las salas', 'error')
-            return false
-        }
-    }
-
-    /**
      * Ejecuta el job de auto-generación de salas de bingo manualmente.
      * Llama al mismo generador que el scheduler, filtrado por el creador autenticado.
      */
@@ -449,7 +254,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
             loading.value = true
 
             const { data } = await backendClient.get<{ created: boolean; message: string }>(
-                '/bingo-automatic-rooms/execute-job'
+                `/${ENDPOINT}/execute-job`
             )
 
             showToast(data.message, data.created ? 'success' : 'info')
@@ -475,16 +280,16 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
         roomData,
         roomFormData,
         rooms,
-        setInitialRooms,
+        setInitialRooms: crud.setInitialRooms,
         submit,
         create,
         edit,
         reset,
-        copyRoom,
-        toggleStatus,
-        toggleStatusBulk,
-        remove,
-        removeBulk,
+        copyRoom: crud.copyRoom,
+        toggleStatus: crud.toggleStatus,
+        toggleStatusBulk: crud.toggleStatusBulk,
+        remove: crud.remove,
+        removeBulk: crud.removeBulk,
         fetchRooms,
         executeJob,
     }

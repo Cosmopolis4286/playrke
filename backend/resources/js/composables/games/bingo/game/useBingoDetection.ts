@@ -1,4 +1,4 @@
-import { type Ref, type ComputedRef } from 'vue'
+import { type Ref, type ComputedRef, ref } from 'vue'
 import backendClient from '@/js/plugins/axios'
 
 export interface UseBingoDetectionOptions {
@@ -6,14 +6,18 @@ export interface UseBingoDetectionOptions {
   isMyWin:         Ref<boolean>
   isFinished:      ComputedRef<boolean>
   onBingoConfirmed: () => void
+  onBingoError?:   (err: unknown) => void
 }
 
 export function useBingoDetection(options: UseBingoDetectionOptions) {
-  const { routeKey, isMyWin, isFinished, onBingoConfirmed } = options
+  const { routeKey, isMyWin, isFinished, onBingoConfirmed, onBingoError } = options
+
+  const claimingBingo = ref(false)
 
   async function handleBingoDetected(card: { id: string | number }) {
-    if (isMyWin.value || isFinished.value) return
+    if (isMyWin.value || isFinished.value || claimingBingo.value) return
 
+    claimingBingo.value = true
     try {
       const { data } = await backendClient.post<{
         success: boolean
@@ -27,10 +31,12 @@ export function useBingoDetection(options: UseBingoDetectionOptions) {
         isMyWin.value = true
         onBingoConfirmed()
       }
-    } catch {
-      // axios ya loguea errores de red
+    } catch (err) {
+      onBingoError?.(err)
+    } finally {
+      claimingBingo.value = false
     }
   }
 
-  return { handleBingoDetected }
+  return { handleBingoDetected, claimingBingo }
 }
