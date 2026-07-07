@@ -4,16 +4,13 @@ namespace App\Services\Games\Bingo\Card;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
-use App\Models\Currency;
 use App\Models\Games\Common\GameRoom\CurrencyGameRoom;
 use App\Services\Games\Bingo\Room\User\RoomUserRegistrationService;
-use App\Services\Games\Bingo\Room\Validation\RoomValidationService;
 use App\Services\Games\Bingo\Payment\CommissionCalculationService;
 use App\Services\Games\Bingo\Room\Metrics\RoomMetricsService;
 use App\Services\Games\Bingo\Card\BingoCardManagementService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use DomainException;
 
 /**
  * Servicio especializado en la generación de cartones de bingo.
@@ -28,20 +25,17 @@ use DomainException;
 final class BingoCardGenerationService
 {
     private RoomUserRegistrationService $roomUserRegistration;
-    private RoomValidationService $roomValidation;
     private CommissionCalculationService $commissionCalculation;
     private RoomMetricsService $roomMetrics;
     private BingoCardManagementService $cardManagement;
 
     public function __construct(
         RoomUserRegistrationService $roomUserRegistration,
-        RoomValidationService $roomValidation,
         CommissionCalculationService $commissionCalculation,
         RoomMetricsService $roomMetrics,
         BingoCardManagementService $cardManagement
     ) {
         $this->roomUserRegistration = $roomUserRegistration;
-        $this->roomValidation = $roomValidation;
         $this->commissionCalculation = $commissionCalculation;
         $this->roomMetrics = $roomMetrics;
         $this->cardManagement = $cardManagement;
@@ -81,7 +75,6 @@ final class BingoCardGenerationService
             // Inicialización de variables
             $creator = $arrCtn['creator'];
             $seller = $arrCtn['seller'] ?? null;
-            $playerUser = $arrCtn['playerUser'] ?? null;
             $currency = $arrCtn['currency'];
             $numOfCtns = $arrCtn['numOfCtns'];
 
@@ -199,26 +192,6 @@ final class BingoCardGenerationService
                 );
             }
 
-            // Si la sala es de un cliente
-            if ($creator['type'] === 'customer') {
-                // Registrar transacción (se consulta nuevamente el saldo del jugador)
-                $roomId = BingoRoom::where('id', $roomId)->value('uuid_code') ?? $this->getCodeUUID('BingoRoom');
-
-                // TODO: Implementar handleTransactionByBET method
-                // $transactionBet = $this->handleTransactionByBET(
-                //     $game,
-                //     $creator['id'],
-                //     $roomId,
-                //     $playerUser,
-                //     $currency,
-                //     $saleAmount
-                // );
-
-                // if (isset($transactionBet['Error'])) {
-                //     throw new \DomainException('Error al registrar transacción');
-                // }
-            }
-
             Log::info('generateCards completed successfully', ['room_user_id' => $roomUserId]);
 
             return ['room_user_id' => $roomUserId];
@@ -236,17 +209,12 @@ final class BingoCardGenerationService
      * Genera cartones dentro de una transacción de base de datos.
      *
      * @param array $arrCtn Datos para generación
-     * @param BingoRoom $room Sala de bingo
-     * @param float $totalAmount Monto total de la venta
      * @return array Resultado con room_user
      * @throws \DomainException
      */
-    public function generateInTransaction(array $arrCtn, BingoRoom $room, float $totalAmount): array
+    public function generateInTransaction(array $arrCtn): array
     {
-        return DB::transaction(function () use ($arrCtn, $room, $totalAmount) {
-            $roomUser = $this->generateCards($arrCtn);
-            return $roomUser;
-        });
+        return DB::transaction(fn () => $this->generateCards($arrCtn));
     }
 
     private function toUsdAmount(float $amount, float $exchangeRate): float

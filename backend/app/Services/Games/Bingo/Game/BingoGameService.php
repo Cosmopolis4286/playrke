@@ -34,13 +34,7 @@ final class BingoGameService
         // La sala ya viene del route binding, solo necesitamos cargar las relaciones
         $bingoRoom = $room->load(['config', 'creator', 'cardPrices', 'rounds', 'status']);
 
-        // Verificar si la sala está eliminada (soft delete)
         if ($bingoRoom->trashed()) {
-            Log::warning('BingoRoom found but is soft deleted', [
-                'room_id' => $bingoRoom->id,
-                'uuid_code' => $bingoRoom->uuid_code,
-                'deleted_at' => $bingoRoom->deleted_at
-            ]);
             throw new \Illuminate\Database\Eloquent\ModelNotFoundException('BingoRoom has been deleted.');
         }
 
@@ -70,48 +64,27 @@ final class BingoGameService
         // Para salas finalizadas, cargar los ganadores históricos desde BingoCardPrize
         $initialWinners = $roomIsFinished ? $this->getHistoricalWinners($bingoRoom) : [];
 
-        $gameData = [
-            'title' => 'Juego de Bingo',
-            'room' => $bingoRoom,
+        return [
+            'room'         => $bingoRoom,
             'userId'       => $userId !== null ? (string) $userId : null,
             'roomId'       => (string) $bingoRoom->id,
             'roomRouteKey' => $bingoRoom->getRouteKey(),
             'gameVariant'  => $config?->game_variant ?? \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75,
-            'cartons' => $cartons,
-            'customerLogo' => null, // Se puede configurar según necesidad
-            'currencySym' => $pricing->currencySymbol,
-            'prizePool' => (float) $bingoRoom->prize_pool, // Enviar en USD
+            'cartons'      => $cartons,
+            'customerLogo' => null,
+            'currencySym'  => $pricing->currencySymbol,
+            'prizePool'    => (float) $bingoRoom->prize_pool,
             'exchangeRate' => $pricing->exchangeRate,
             'totalPlayers' => (int) $bingoRoom->total_players,
-            'prizePoolType' => 'Premio',
-            'round' => 1, // Obtener de la configuración del juego
-            'rounds' => $rounds->count(), // Número de rondas desde la relación
-            'bingoPattern' => '', // Obtener del patrón activo
-            'vanDraw' => [], // Obtener números sorteados
-            'player' => ['ctns' => count($cartons)],
-            'encrypt' => false,
-            'chipsRest' => [],
-            'draw' => $drawnNumbers,
-            'timeServ' => now()->timestamp,
-            'allChips' => [],
-            'infoGame' => null,
-            'creatorType' => 'admin', // Obtener del creador de la sala
-            'creatorId' => $bingoRoom->creator_user_id,
-            'currencyId' => (string) ($pricing->currencyId ?? 1),
-            'cardPrice' => $pricing->cardPrice,
-            'startTime' => (int) ($config?->unix_date ?? $bingoRoom->published_at?->timestamp ?? now()->timestamp),
-            'closingRoute' => route('bingo-rooms.index'),
+            'prizePoolType'=> 'Premio',
+            'round'        => 1,
+            'rounds'       => (int) $rounds->count(),
+            'bingoPattern' => '',
+            'draw'         => $drawnNumbers,
+            'startTime'    => (int) ($config?->unix_date ?? $bingoRoom->published_at?->timestamp ?? now()->timestamp),
             'initialWinners' => $initialWinners,
-            // Explícito e independiente de si hubo ganador: initialWinners queda vacío
-            // cuando el sorteo terminó sin BINGO, y el frontend no debe seguir mostrando
-            // "EN VIVO" en ese caso al recargar la página de una sala ya finalizada.
             'roomFinished' => $roomIsFinished,
         ];
-
-        // Forzar la serialización correcta para Inertia
-        $gameData['rounds'] = (int) $gameData['rounds'];
-
-        return $gameData;
     }
 
     /**
@@ -127,40 +100,26 @@ final class BingoGameService
             return [];
         }
 
-        try {
-            // Obtener el room_user_id para este usuario en esta sala
-            // Castear a string porque room_id y user_id son Snowflake (bigint guardado como string)
-            $roomUser = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', (string) $roomId)
-                ->where('user_id', (string) $userId)
-                ->first();
+        $roomUser = \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', (string) $roomId)
+            ->where('user_id', (string) $userId)
+            ->first();
 
-            if (!$roomUser) {
-                // Si no hay room_user, intentar obtener cartones directamente por creator_user_id
-                $cards = \App\Domains\Games\Bingo\Models\Card\BingoCard::where('room_id', (string)$roomId)
-                    ->where('creator_user_id', (string)$userId)
-                    ->where('status', \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE)
-                    ->with(['currency', 'cardLot', 'roomUser'])
-                    ->orderBy('serial_number')
-                    ->get();
-            } else {
-                // Obtener los cartones del usuario usando el room_user_id
-                $cards = \App\Domains\Games\Bingo\Models\Card\BingoCard::where('room_user_id', (string)$roomUser->id)
-                    ->where('status', \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE)
-                    ->with(['currency', 'cardLot', 'roomUser'])
-                    ->orderBy('serial_number')
-                    ->get();
-            }
+        $query = \App\Domains\Games\Bingo\Models\Card\BingoCard::query()
+            ->where('status', \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE)
+            ->with(['currency', 'cardLot', 'roomUser'])
+            ->orderBy('serial_number');
 
-            // Transformar los cartones al formato esperado por el frontend
-            return $cards->map(fn ($card) => $card->toFrontendFormat())->toArray();
-        } catch (\Exception $e) {
-            Log::error('Error getting user cartons', [
-                'room_id' => $roomId,
-                'user_id' => $userId,
-                'error' => $e->getMessage()
-            ]);
-            return [];
+        if ($roomUser) {
+            $query->where('room_user_id', (string) $roomUser->id);
+        } else {
+            // Fallback: creador directo sin room_user (ej. sala propia en dev)
+            $query->where('room_id', (string) $roomId)
+                  ->where('creator_user_id', (string) $userId);
         }
+
+        return $query->get()
+            ->map(fn ($card) => $card->toFrontendFormat())
+            ->all();
     }
 
     /**

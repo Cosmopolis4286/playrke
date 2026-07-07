@@ -28,6 +28,7 @@ final class BingoRoomContextService
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencyRepository,
         private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $generateService,
         private readonly \App\Services\Games\Bingo\Config\BingoConfigContextService $bingoConfigContext,
+        private readonly \App\Services\ExchangeRate\CurrencyExchangeRateService $currencyExchangeRate,
     ) {}
 
     /**
@@ -41,11 +42,10 @@ final class BingoRoomContextService
     public function context(string $context, ?int $userId): mixed
     {
         return match ($context) {
-            'fetch-summary' => $this->fetchSummaryGameRooms($userId),
-            'summary' => $this->summaryGameRooms($userId),
-            'fetch-game-rooms' => $this->fetchSummaryGameRooms($userId),
-            'game-rooms' => $this->viewGameRooms($userId),
-            default => throw new DomainException('No existe el contexto: ' . $context),
+            'fetch-summary', 'fetch-game-rooms' => $this->fetchSummaryGameRooms($userId),
+            'summary'     => $this->summaryGameRooms($userId),
+            'game-rooms'  => $this->viewGameRooms($userId),
+            default       => throw new DomainException('No existe el contexto: ' . $context),
         };
     }
 
@@ -243,7 +243,7 @@ final class BingoRoomContextService
 
                 if ($playerCurrency) {
                     $currencySym = $playerCurrency->symbol;
-                    $exchangeRate = $this->getPlayerExchangeRate($playerCurrency->id);
+                    $exchangeRate = $this->currencyExchangeRate->getActiveRate($playerCurrency->id);
                 }
             }
         }
@@ -261,23 +261,6 @@ final class BingoRoomContextService
     }
 
     /**
-     * Obtener tasa de cambio para jugador (USD a moneda local)
-     *
-     * @param int $currencyId ID de la moneda del jugador
-     * @return float Tasa de cambio
-     */
-    private function getPlayerExchangeRate(int $currencyId): float
-    {
-        // Buscar tasa de cambio general para la moneda
-        $exchangeRate = \App\Models\ExchangeRate::where('currency_id', $currencyId)
-            ->where('status', 'ACTIVE')
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        return $exchangeRate ? (float) $exchangeRate->amount : 1.0;
-    }
-
-    /**
      * Obtener precio del cartón para el contexto (para cada sala)
      *
      * @param int $userId ID del usuario
@@ -286,24 +269,20 @@ final class BingoRoomContextService
     private function getPlayerCardPriceForContext(int $userId): ?array
     {
         try {
-            // Verificar roles del usuario
             $isCommerceCustomer = $this->userContext->userHasRole('commerce') || $this->userContext->userHasRole('customer');
-            
-            // Obtener todas las salas activas para el jugador
             $rooms = $this->bingoRooms->getActiveRoomsForViewWithRoleFilter($userId, now()->toDateString(), true, $isCommerceCustomer);
 
             if ($rooms->isEmpty()) {
                 return null;
             }
 
-            // Obtener precios para cada sala
             $roomPrices = [];
             foreach ($rooms as $room) {
-                $roomPrices[$room->id] = $this->generateService->getPlayerCardPrice($room->id, $userId);
+                $roomPrices[$room->id] = $this->generateService->getPlayerCardPrice((string) $room->id, $userId);
             }
 
             return $roomPrices;
-        } catch (\Exception $e) {
+        } catch (\Throwable) {
             return null;
         }
     }

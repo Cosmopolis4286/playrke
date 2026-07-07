@@ -5,25 +5,20 @@ namespace App\Services\Games\Bingo\Card\Generate;
 use App\DTOs\Games\Bingo\Card\Generate\{BingoCardGenerateContexDTO, BingoCardGenerateDTO};
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Events\Games\Bingo\BingoCardSold;
-use App\Events\Wallet\WalletUpdated;
 use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Roles\Commerce;
 use App\Models\Roles\Seller;
-use App\Models\Currency;
-use App\Models\ExchangeRate;
 use App\Models\Roles\Player\External\ExternalPlayer;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Services\Games\Bingo\Card\BingoCardPriceCalculator;
 use App\Services\Games\Bingo\Card\BingoCardGenerationService;
-use App\Services\NotificationService;
 use App\Services\WalletService;
 use App\Traits\Users\PlayerLinkTrait;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 use App\Models\Game;
 
 /**
@@ -43,10 +38,8 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerceRepository,
         private readonly \App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface $commerceCurrencyRepository,
         private readonly \App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface $exchangeRateRepository,
-        private readonly \App\Contracts\Roles\Customer\CustomerRepositoryInterface $customerRepository,
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
         private readonly \App\Contracts\Roles\Seller\SellerCurrencyRepositoryInterface $sellerCurrencyRepository,
-        private readonly BingoCardPriceRepositoryInterface $cardPriceRepository,
         private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
@@ -54,7 +47,7 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\WalletRepositoryInterface $walletRepository,
         private readonly WalletService $walletService,
         private readonly \App\Services\Games\Bingo\Card\BingoCardGenerationService $cardGenerationService,
-        private readonly NotificationService $notificationService,
+        private readonly \App\Services\ExchangeRate\CurrencyExchangeRateService $currencyExchangeRate,
     ) {}
 
     /**
@@ -510,7 +503,7 @@ final class BingoCardGenerateService
         }
 
         // 7. Ejecutar transacción atómica
-        $result = DB::transaction(function () use ($arrCtn, $room) {
+        $result = DB::transaction(function () use ($arrCtn) {
             $roomUser = $this->cardGenerationService->generateCards($arrCtn);
 
             if (!$roomUser) {
@@ -616,7 +609,7 @@ final class BingoCardGenerateService
             'exchangeRate'   => $exchangeRate,
         ];
 
-        $result = DB::transaction(function () use ($arrCtn, $room) {
+        $result = DB::transaction(function () use ($arrCtn) {
             $roomUser = $this->cardGenerationService->generateCards($arrCtn);
 
             if (!$roomUser) {
@@ -669,7 +662,7 @@ final class BingoCardGenerateService
             ->find($roomId);
 
         if (!$fresh) {
-            \Log::warning('BingoRoomUpdated: No se encontró la sala fresca tras la compra', ['room_id' => $roomId]);
+            Log::warning('BingoRoomUpdated: No se encontró la sala fresca tras la compra', ['room_id' => $roomId]);
             return null;
         }
 
@@ -726,19 +719,6 @@ final class BingoCardGenerateService
         };
     }
 
-    private function getPlayerExchangeRate(int $currencyId): float
-    {
-        if ($currencyId === 1) {
-            return 1.0;
-        }
-
-        return (float) ExchangeRate::where('currency_id', $currencyId)
-            ->where('status', 'ACTIVE')
-            ->orderBy('created_at', 'desc')
-            ->value('amount')
-            ?: 1.0;
-    }
-
     /**
      * Obtener el precio del cartón para un jugador usando su billetera configurada.
      *
@@ -773,7 +753,7 @@ final class BingoCardGenerateService
         $currencySymbol = $currency?->symbol ?? 'USD';
 
         // Obtener tasa de cambio para la moneda del jugador
-        $exchangeRate = $this->getPlayerExchangeRate($currencyId);
+        $exchangeRate = $this->currencyExchangeRate->getActiveRate($currencyId);
 
         // Buscar precio personalizado en bingo_card_prices (room + currency)
         // Para jugadores, no filtramos por creator_user_id para permitir precios globales
@@ -881,7 +861,7 @@ final class BingoCardGenerateService
         ];
 
         // Generar cartones — el descuento de billetera lo hace recordCardPurchase abajo
-        $this->cardGenerationService->generateInTransaction($arrCtn, $room, $totalAmount);
+        $this->cardGenerationService->generateInTransaction($arrCtn);
 
         // Descuento de billetera + movimiento — única fuente de verdad
         $description = "Compra de {$numCtns} cartón(es) — Sala {$room->uuid_code}";
@@ -927,9 +907,10 @@ final class BingoCardGenerateService
     private function toUsdAmount(float $amount, float $exchangeRate): float
     {
         if ($exchangeRate <= 0) {
-            throw new DomainException('Tasa de cambio invÃ¡lida para convertir el monto a USD.');
+            throw new DomainException('Tasa de cambio inválida para convertir el monto a USD.');
         }
 
         return round($amount / $exchangeRate, 3);
     }
 }
+

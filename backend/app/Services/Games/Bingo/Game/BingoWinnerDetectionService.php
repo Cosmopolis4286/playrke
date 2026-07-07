@@ -75,13 +75,13 @@ final class BingoWinnerDetectionService
             ->orderBy('round')
             ->first();
 
-        $pattern = $round ? BingoPattern::find($round->bingo_pattern_id) : null;
-
-        // Fallback: patrón "Cartón Lleno" (ALL)
-        if (!$pattern) {
-            $pattern = BingoPattern::where('default_pattern', 'Y')->first()
-                ?? BingoPattern::first();
+        if (!$round) {
+            return null;
         }
+
+        $pattern = BingoPattern::find($round->bingo_pattern_id)
+            ?? BingoPattern::where('default_pattern', 'Y')->first()
+            ?? BingoPattern::first();
 
         if (!$pattern) {
             return null;
@@ -89,18 +89,14 @@ final class BingoWinnerDetectionService
 
         $patternPositions = $this->patternResolver->resolve($pattern, $variant);
 
-        // Cartones activos del usuario
+        // Cartones activos del usuario — primero por room_user, fallback por creator
         $cards = BingoCard::where('room_id', (string) $room->id)
-            ->whereHas('roomUser', fn($q) => $q->where('user_id', (string) $userId))
             ->where('status', BingoCard::STATUS_ACTIVE)
+            ->where(fn ($q) => $q
+                ->whereHas('roomUser', fn ($r) => $r->where('user_id', (string) $userId))
+                ->orWhere('creator_user_id', (string) $userId)
+            )
             ->get();
-
-        if ($cards->isEmpty()) {
-            $cards = BingoCard::where('room_id', (string) $room->id)
-                ->where('creator_user_id', (string) $userId)
-                ->where('status', BingoCard::STATUS_ACTIVE)
-                ->get();
-        }
 
         $lastDraw   = BingoDraw::where('room_id', $room->id)->orderBy('created_at', 'desc')->first();
         $lastDrawId = (int) ($lastDraw?->id ?? 0);
@@ -112,7 +108,6 @@ final class BingoWinnerDetectionService
 
             // Persistencia + broadcasts bajo lock: si el sorteo automático ya reclamó
             // este cartón en paralelo, claimCardWin devuelve null y seguimos buscando
-            // (aunque en la práctica solo puede haber un cartón ganador por usuario aquí).
             $winnerData = $this->drawService->claimCardWin($room, $round, $pattern, (string) $card->id, $lastDrawId);
 
             if ($winnerData === null) {
