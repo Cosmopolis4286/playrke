@@ -36,86 +36,79 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import backendClient from '@js/plugins/axios'
+import echo         from '@js/plugins/echo'
+import BingoBoard   from '@js/Components/Games/Bingo/views/gameInfo/BingoBoard.vue'
+import NumberCaller from '@js/Components/Games/Bingo/views/gameInfo/NumberCaller.vue'
 
-import axios from '@js/plugins/axios';
-import echo  from "@js/plugins/echo";
+declare const route: (name: string, params?: unknown) => string
 
-import BingoBoard   from "@js/Components/Games/Bingo/views/gameInfo/BingoBoard.vue";
-import NumberCaller from "@js/Components/Games/Bingo/views/gameInfo/NumberCaller.vue";
+const VARIANT_TOTALS: Record<string, number> = {
+  BINGO_75: 75, BINGO_90: 90, BINGO_80: 80, BINGO_30: 30,
+}
 
-const VARIANT_TOTALS = { BINGO_75: 75, BINGO_90: 90, BINGO_80: 80, BINGO_30: 30 };
+interface GameInfoData {
+  numbers:     number[]
+  roomId:      string | number
+  gameVariant?: string
+  round?:      number
+}
 
-const props = defineProps({
-  data: { type: Object, required: true },
-});
+const props = defineProps<{ data: GameInfoData }>()
 
-const numbers        = ref([...props.data.numbers]);
-const currentNumber  = ref(null);
-const roomId         = ref(props.data.roomId ?? 1);
-// number → ISO timestamp string, populated as chips arrive via WebSocket
-const drawTimestamps = ref({});
+const numbers        = ref<number[]>([...props.data.numbers])
+const currentNumber  = ref<number | null>(null)
+const roomId         = ref<string | number>(props.data.roomId ?? 1)
+const drawTimestamps = ref<Record<number, string>>({})
 
-let channel = null;
+const totalNumbers = computed(() => VARIANT_TOTALS[props.data.gameVariant ?? ''] ?? 75)
+const pct = computed(() =>
+  totalNumbers.value > 0 ? Math.round((numbers.value.length / totalNumbers.value) * 100) : 0
+)
 
-const totalNumbers = computed(() => VARIANT_TOTALS[props.data.gameVariant] ?? 75);
-const pct = computed(() => totalNumbers.value > 0
-  ? Math.round((numbers.value.length / totalNumbers.value) * 100)
-  : 0
-);
+function subscribeToChannel(id: string | number) {
+  echo.channel(`bingo.room.${id}`)
+    .listen('.BingoNumberCalled', (event: { number: number }) => {
+      if (!numbers.value.includes(event.number)) {
+        numbers.value.push(event.number)
+        drawTimestamps.value = { ...drawTimestamps.value, [event.number]: new Date().toISOString() }
+      }
+      currentNumber.value = event.number
+    })
+}
 
-// ── WebSocket ─────────────────────────────────────────────────────────────────
-const subscribeToChannel = (id) => {
-  channel = echo.channel(`bingo.room.${id}`);
-  channel.listen(".BingoNumberCalled", (event) => {
-    if (!numbers.value.includes(event.number)) {
-      numbers.value.push(event.number);
-      // Record exact time this chip arrived in the browser
-      drawTimestamps.value = { ...drawTimestamps.value, [event.number]: new Date().toISOString() };
-    }
-    currentNumber.value = event.number;
-  });
-};
+function unsubscribeFromChannel(id: string | number) {
+  if (!id) return
+  echo.leaveChannel(`bingo.room.${id}`)
+}
 
-const unsubscribeFromChannel = (id) => {
-  if (!id) return;
-  echo.leave(`bingo.room.${id}`);
-  channel = null;
-};
-
-// ── Lifecycle ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
   try {
-    const res = await axios.get(window.route("bingo.called-numbers", roomId.value));
-    numbers.value = res.data ?? [];
-    // Pre-existing numbers don't have timestamps — leave them empty (will show "—")
-  } catch (error) {
-    console.error("❌ Error al cargar números anteriores:", error);
+    const res = await backendClient.get(route('bingo.called-numbers', roomId.value))
+    numbers.value = res.data ?? []
+  } catch {
+    // silencioso — la tabla de números anteriores simplemente queda vacía
   }
-  subscribeToChannel(roomId.value);
-});
+  subscribeToChannel(roomId.value)
+})
 
-onBeforeUnmount(() => { unsubscribeFromChannel(roomId.value); });
+onBeforeUnmount(() => unsubscribeFromChannel(roomId.value))
 
-watch(() => props.data.numbers, (n) => { numbers.value = [...n]; });
+watch(() => props.data.numbers, (n) => { numbers.value = [...n] })
 
 watch(() => props.data.roomId, (newId, oldId) => {
   if (newId && newId !== oldId) {
-    unsubscribeFromChannel(oldId);
-    roomId.value = newId;
-    drawTimestamps.value = {};
-    subscribeToChannel(newId);
+    unsubscribeFromChannel(oldId)
+    roomId.value         = newId
+    drawTimestamps.value = {}
+    subscribeToChannel(newId)
   }
-});
+})
 
-// ── Admin action ──────────────────────────────────────────────────────────────
-async function callNumberFromInput(number) {
-  try {
-    await axios.post(window.route("bingo.callNumber", roomId.value), { number });
-  } catch (err) {
-    console.error("❌ Error al enviar número", err);
-  }
+async function callNumberFromInput(number: number) {
+  await backendClient.post(route('bingo.callNumber', roomId.value), { number })
 }
 </script>
 

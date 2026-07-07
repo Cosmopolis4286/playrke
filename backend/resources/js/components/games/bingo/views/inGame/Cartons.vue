@@ -219,8 +219,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, ref } from "vue";
-import { type BingoCard } from "@js/Services/bingoService";
+import { computed, watch, ref, triggerRef } from "vue";
+// BingoCard: estructura mínima que el backend serializa en toFrontendFormat()
+interface BingoCard {
+  id: string
+  serialNumber: string
+  cardMatrix: Record<string, (number | null)[]>
+}
 import { useBingoSound } from "@js/composables/games/bingo/useBingoSound";
 import { getBingoVariantDef, type BingoVariantDef, type BingoVariantColumn } from "@/js/modules/games/bingo/utils/bingoVariants";
 
@@ -402,6 +407,7 @@ watch(() => props.drawnNumbers, (next, prev) => {
   const prevLen = prev?.length ?? 0;
   if (next.length > prevLen) {
     for (let i = prevLen; i < next.length; i++) drawnSet.value.add(next[i]);
+    triggerRef(drawnSet);
   } else {
     // Cambio no incremental (ej. reconexión WS con estado completo o immediate)
     drawnSet.value = new Set(next);

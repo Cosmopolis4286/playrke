@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { BingoService } from '@js/Services/bingoService'
 import type { WsStatus } from '@js/composables/games/bingo/room/lobby/useLobbyEcho'
+
+const ROOM_STATUS_LABELS: Record<string, string> = {
+  ACTIVE: 'Disponible', IN_PROGRESS: 'En Juego', FINISHED: 'Finalizada',
+  REFUND: 'Reembolso', OFFLINE: 'Fuera de Línea',
+}
+function getRoomStatusText(code: string | undefined): string {
+  return ROOM_STATUS_LABELS[(code ?? '').toUpperCase()] ?? 'Desconocido'
+}
 import type { LobbyRoom, LobbyLiveState } from './types'
 
 const props = defineProps<{
@@ -49,9 +56,7 @@ const statusClass = computed(() => {
   return `lby-status--${c}`
 })
 
-const roomStatusText = computed(() =>
-  BingoService.getRoomStatusText(props.live.statusCode)
-)
+const roomStatusText = computed(() => getRoomStatusText(props.live.statusCode))
 </script>
 
 <template>

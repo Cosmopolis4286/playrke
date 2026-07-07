@@ -72,8 +72,8 @@ async function loadRooms() {
     if (response.success && response.data) {
       rooms.value = response.data.rooms || []
     }
-  } catch (error) {
-    console.error('Error cargando salas:', error)
+  } catch {
+    // silencioso — tabla queda vacía
   } finally {
     loading.value = false
   }
@@ -84,17 +84,15 @@ async function loadRooms() {
  */
 async function handleButtonAction(action: { type: string; id: string | number }) {
   if (action.type === 'copy') {
-    console.log('Copiando sala:', action.id)
-    // Lógica de copia aquí
+    // TODO: implementar copia de sala
   } else if (action.type === 'delete') {
-    console.log('Eliminando sala:', action.id)
     try {
       const response = await BingoService.closeRoom(action.id.toString())
       if (response.success) {
-        await loadRooms() // recargar lista
+        await loadRooms()
       }
-    } catch (error) {
-      console.error('Error eliminando sala:', error)
+    } catch {
+      // silencioso — la UI no cambia si falla el delete
     }
   }
 }
