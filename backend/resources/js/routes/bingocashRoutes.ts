@@ -1,14 +1,4 @@
-// ======================================================
-// Archivo: resources/js/routes/bingocashRoutes.ts
-// Descripción: Rutas del módulo bingocashRoutes
-// Fecha de actualización (GMT): 2026-01-20T13:36:15Z
-// Generado automáticamente con make:ts-routes-modules
-// ======================================================
-
-export const bingocashRoutes = {
-  outGame: "/bingocash/game-room/{uuidCode}/{room?}/{currency?}",
-  generateCard: "/bingocash/generate-card/store",
-  getDraw: "/bingocash/get-draw/{room}",
-  getChips: "/bingocash/get/chips/{room}",
-  getResult: "/bingocash/get/result/{room}/{value}/{column?}",
-} as const;
+// Las rutas del módulo bingocash están comentadas en routes/modules/games/bingo.php
+// y no tienen implementación activa en el backend. Este archivo se vacía
+// para evitar importaciones de rutas inexistentes.
+export {}

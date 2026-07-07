@@ -112,6 +112,8 @@ export function useGameRoomCountdown(
     intervalId = setInterval(() => {
       now.value += SECOND
 
+      let anyChanged = false
+
       countdowns.value.forEach((entry, roomId) => {
         if (entry.expired) return
 
@@ -123,18 +125,19 @@ export function useGameRoomCountdown(
         if (diff <= 0) {
           countdowns.value.set(roomId, { roomId, time: calcTimeRemaining(0), expired: true })
           onExpire?.(roomId)
-          return
+        } else {
+          countdowns.value.set(roomId, {
+            roomId,
+            time: calcTimeRemaining(diff),
+            expired: false,
+          })
         }
-
-        countdowns.value.set(roomId, {
-          roomId,
-          time: calcTimeRemaining(diff),
-          expired: false,
-        })
+        anyChanged = true
       })
 
-      // BUG-01: Vue no detecta mutaciones internas del Map — notificar manualmente
-      triggerRef(countdowns)
+      // Solo notificar si hubo cambios — evita reactive work innecesario cuando
+      // todos los countdowns ya expiraron
+      if (anyChanged) triggerRef(countdowns)
     }, SECOND)
   }
 
@@ -181,8 +184,8 @@ export function useGameRoomCountdown(
    * Sincroniza el tiempo con Date.now() y recalcula todos los countdowns.
    * Se llama automáticamente cuando el usuario vuelve a la pestaña (visibilitychange).
    */
-  function syncTime(): void {
-    now.value = Date.now()
+  function syncTime(serverTimestampMs?: number): void {
+    now.value = serverTimestampMs ?? Date.now()
 
     countdowns.value.forEach((entry, roomId) => {
       const endMs = _endMs.get(roomId)
@@ -240,6 +243,8 @@ export function useGameRoomCountdown(
     stop,
     /** Retorna el countdown de una sala por ID */
     getCountdown,
+    /** Sincroniza el reloj; acepta timestamp del servidor para corregir drift */
+    syncTime,
     /** Actualiza el tiempo de una sala específica (para salas añadidas por WS) */
     updateRoomTime,
   }

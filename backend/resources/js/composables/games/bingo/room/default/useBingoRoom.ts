@@ -192,17 +192,12 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
 
             if (roomData.value.id) {
                 try {
-                    console.log('Enviando update para sala:', roomData.value.id)
-                    console.log('Payload:', payload)
-
                     await backendClient.patch(
                         `/bingo-rooms/${roomData.value.id}/update`,
                         payload
                     )
-                    console.log('Update exitoso')
                     showToast('Sala actualizada exitosamente', 'success')
                 } catch (updateError: any) {
-                    console.error('Error en update:', updateError)
                     showToast(
                         updateError?.response?.data?.message ?? 'Error al actualizar la sala de bingo',
                         'error'
@@ -211,12 +206,9 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 }
             } else {
                 try {
-                    console.log('Creando nueva sala')
                     await backendClient.post('/bingo-rooms', payload)
-                    console.log('Create exitoso')
                     showToast('Sala creada exitosamente', 'success')
                 } catch (createError: any) {
-                    console.error('Error en create:', createError)
                     showToast(
                         createError?.response?.data?.message ?? 'Error al crear la sala de bingo',
                         'error'
@@ -224,8 +216,6 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                     return false
                 }
             }
-
-            console.log('Haciendo fetchRooms para refrescar lista')
 
             // Forzar recarga con timestamp para evitar cache
             const timestamp = Date.now()
@@ -235,32 +225,15 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             )
 
             if (Array.isArray(response.data?.data)) {
-                console.log('Datos recibidos de fetchRooms:', response.data.data.length)
-                response.data.data.forEach((room, index) => {
-                    console.log(`Room ${index + 1}:`, {
-                        id: room.id,
-                        unix_date: room.unix_date,
-                        updated_at: room.updated_at
-                    })
-                })
                 rooms.value = response.data.data
-                console.log('Rooms actualizado, nuevo length:', rooms.value.length)
-            } else {
-                console.log('No se recibieron datos válidos')
             }
 
-            console.log('fetchRooms completado, rooms.length:', rooms.value.length)
-
             // Forzar reactividad
-            console.log('Forzando actualización reactiva de rooms')
             const currentRooms = [...rooms.value]
             rooms.value = []
             rooms.value = currentRooms
-            console.log('Rooms actualizado forzosamente, rooms.length:', rooms.value.length)
 
             reset()
-            console.log('Form reseteado')
-            console.log('saveRoom completado exitosamente')
 
             // Emitir evento para forzar refresh de la tabla
             window.dispatchEvent(new CustomEvent('bingo-room-updated'))
