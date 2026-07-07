@@ -1,6 +1,6 @@
-<script lang="ts">
-// Nivel de módulo: persiste durante toda la sesión SPA entre aperturas del modal.
-// Los datos de un cartón ganador son inmutables una vez declarado — sin riesgo de obsolescencia.
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+
 type WinningPositionModule = { col: string; row: number; free: boolean }
 type ViewedCardModule = {
   serialNumber: string
@@ -9,11 +9,10 @@ type ViewedCardModule = {
   loading?: boolean
   winningPositions?: WinningPositionModule[]
 }
-const cardCache = new Map<string, ViewedCardModule>()
-</script>
 
-<script setup lang="ts">
-import { ref, computed } from 'vue'
+// Dentro de <script setup> para que el caché se limpie cuando el componente se desmonta.
+// Evita acumular cartones de partidas anteriores entre navegaciones SPA.
+const cardCache = new Map<string, ViewedCardModule>()
 import backendClient from '@/js/plugins/axios'
 import type { WinnerEntry, GameEndData } from './types'
 
@@ -103,7 +102,8 @@ async function openCardViewer(winner: WinnerEntry) {
         loading:          false,
         winningPositions: data.winningPositions ?? [],
       }
-      cardCache.set(requestedCardId, resolved)
+      // Solo cachear si el cartón tiene datos reales — evita fijar permanentemente respuestas vacías
+      if (matrix.length > 0) cardCache.set(requestedCardId, resolved)
       // Descartar si el usuario ya navegó a otro cartón mientras este cargaba
       if (loadingCardId.value === requestedCardId) viewingCard.value = resolved
     } else {

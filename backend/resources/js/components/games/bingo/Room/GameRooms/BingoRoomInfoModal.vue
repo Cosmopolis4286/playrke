@@ -25,7 +25,7 @@ const cardPrice = computed(() => {
   if (r.card_price != null) return r.card_price.toFixed(2)
   return ((r.config?.card_price_usd ?? 0) * props.exchangeRate).toFixed(2)
 })
-const prize    = computed(() => (props.room.prize_pool * props.exchangeRate).toFixed(2))
+const prize    = computed(() => ((props.room.prize_pool ?? 0) * props.exchangeRate).toFixed(2))
 const myCtns   = computed(() => props.room.players_room?.[0]?.ctns ?? 0)
 const priceSym = computed(() => props.room.currency_symbol ?? props.currencySym ?? 'USD')
 

@@ -85,6 +85,12 @@ function chipLetter(n: number): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// IDs — deben estar antes del estado reactivo que los referencia
+// ─────────────────────────────────────────────────────────────────────────────
+const roomId   = computed(() => props.roomId || String(props.room?.id ?? ''))
+const routeKey = computed(() => props.roomRouteKey || roomId.value)
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Estado reactivo
 // ─────────────────────────────────────────────────────────────────────────────
 const revealed         = ref(false)
@@ -97,18 +103,14 @@ const prizeFlash       = ref(false)
 const playersFlash     = ref(false)
 const playersProgress  = ref<PlayerProgress[]>([])
 const showWinnerModal  = ref(false)
-const userClosedModal  = ref(false)
+
+const modalDismissKey  = computed(() => `bingo-modal-closed-${roomId.value}`)
+const userClosedModal  = ref(sessionStorage.getItem(modalDismissKey.value) === '1')
 const gameEndData      = ref<GameEndData | null>(null)
 const isMyWin          = ref(false)
 const showPlayersModal = ref(false)
 const gameStarted      = ref(false)
 const devResetting     = ref(false)
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Computed
-// ─────────────────────────────────────────────────────────────────────────────
-const roomId   = computed(() => props.roomId || String(props.room?.id ?? ''))
-const routeKey = computed(() => props.roomRouteKey || roomId.value)
 
 const isFinished = computed(() =>
   gameEndData.value !== null ||
@@ -192,6 +194,7 @@ function handleGameEnded(data: GameEndedEvent) {
 function closeWinnerModal() {
   showWinnerModal.value = false
   userClosedModal.value = true
+  sessionStorage.setItem(modalDismissKey.value, '1')
   if (!isFinished.value) isMyWin.value = false
 }
 
@@ -205,6 +208,17 @@ const { handleBingoDetected } = useBingoDetection({
   onBingoConfirmed: () => {
     userClosedModal.value = false
     showWinnerModal.value = true
+  },
+  onBingoError: () => {
+    Swal.fire({
+      title: 'Error al verificar BINGO',
+      text: 'No se pudo conectar con el servidor. Tu BINGO puede haberse registrado de todas formas — espera el resultado.',
+      icon: 'warning',
+      timer: 5000,
+      showConfirmButton: false,
+      background: '#1a1f3a',
+      color: '#fff',
+    })
   },
 })
 
@@ -269,6 +283,7 @@ async function devResetTime() {
       isMyWin.value         = false
       showWinnerModal.value = false
       userClosedModal.value = false
+      sessionStorage.removeItem(modalDismissKey.value)
       currentUnixDate.value = data.startTime
       initCountdown([{ id: roomId.value, config: { unix_date: data.startTime } } as any])
       Swal.fire({ title: '¡Sorteo iniciado!', text: 'El sorteo ha sido regenerado exitosamente.', icon: 'success', timer: 2000, showConfirmButton: false, background: '#1a1f3a', color: '#fff' })
