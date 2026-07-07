@@ -9,9 +9,9 @@ defineProps<Props>()
 <template>
   <Transition name="mp-fade">
     <div
-      v-if="missing !== null"
+      v-if="missing !== null && missing >= 0"
       class="mp-badge"
-      :class="{ 'mp-badge--hot': missing <= 2, 'mp-badge--warn': missing > 2 && missing <= 5 }"
+      :class="{ 'mp-badge--bingo': missing === 0, 'mp-badge--hot': missing > 0 && missing <= 2, 'mp-badge--warn': missing > 2 && missing <= 5 }"
     >
       <i class="fas fa-bullseye mp-badge__icon" />
       <span v-if="missing === 0" class="mp-badge__text">¡Tienes BINGO! Presiona tu cartón</span>
@@ -40,6 +40,14 @@ defineProps<Props>()
 
 .mp-badge--warn {
   background: rgba(255,160,0,0.08); border-color: rgba(255,160,0,0.25); color: #ffb060;
+}
+.mp-badge--bingo {
+  background: rgba(42,245,152,0.12); border-color: rgba(42,245,152,0.45); color: #2af598;
+  animation: mp-pulse-bingo 0.8s ease-in-out infinite alternate;
+}
+@keyframes mp-pulse-bingo {
+  from { box-shadow: 0 0 0 0 rgba(42,245,152,0.15); }
+  to   { box-shadow: 0 0 16px 3px rgba(42,245,152,0.35); }
 }
 .mp-badge--hot {
   background: rgba(255,50,50,0.1); border-color: rgba(255,50,50,0.35); color: #ff8080;

@@ -138,7 +138,7 @@ const showPlayersProgress = computed(() =>
 // cartón, expuesto por BingoCartons vía defineExpose. Visible desde el arranque
 // del sorteo, sin esperar a que queden pocas fichas (a diferencia de NearWinBanner).
 const cartonsRef = ref<InstanceType<typeof BingoCartons> | null>(null)
-const myMissing  = computed<number | null>(() => cartonsRef.value?.myMissing ?? null)
+const myMissing  = computed<number | null>(() => cartonsRef.value?.myMissing.value ?? null)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Countdown
@@ -453,6 +453,7 @@ onMounted(() => {
       prize:      0,
       endTime:    '',
     }
+    showWinnerModal.value = true
   }
 })
 

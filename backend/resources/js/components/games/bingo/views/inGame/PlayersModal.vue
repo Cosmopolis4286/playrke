@@ -1,5 +1,20 @@
+<script lang="ts">
+// Nivel de módulo: persiste durante toda la sesión SPA entre aperturas del modal.
+// Los datos de un cartón ganador son inmutables una vez declarado — sin riesgo de obsolescencia.
+type WinningPositionModule = { col: string; row: number; free: boolean }
+type ViewedCardModule = {
+  serialNumber: string
+  cardMatrix: number[][]
+  colLabels?: string[]
+  loading?: boolean
+  winningPositions?: WinningPositionModule[]
+}
+const cardCache = new Map<string, ViewedCardModule>()
+</script>
+
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import backendClient from '@/js/plugins/axios'
 import type { WinnerEntry, GameEndData } from './types'
 
 interface Props {
@@ -24,23 +39,12 @@ const emit = defineEmits<{
   close: []
 }>()
 
-type WinningPosition = { col: string; row: number; free: boolean }
-type ViewedCard = {
-  serialNumber: string
-  cardMatrix: number[][]
-  colLabels?: string[]
-  loading?: boolean
-  winningPositions?: WinningPosition[]
-}
+type WinningPosition = WinningPositionModule
+type ViewedCard = ViewedCardModule
 
 const viewingCard      = ref<ViewedCard | null>(null)
 const viewingCardOwner = ref('')
 const loadingCardId    = ref<string | null>(null)
-
-// Cache de cartones ya consultados en esta sesión del modal — evita refetch al
-// reabrir el mismo cartón ganador (los datos de un cartón no cambian una vez
-// declarado ganador, así que no hay riesgo de servir datos obsoletos).
-const cardCache = new Map<string, ViewedCard>()
 
 // O(1) lookup en template para evitar includes() O(n) en cada celda
 const drawnSet = computed(() => new Set(props.drawnNumbers))
@@ -53,9 +57,6 @@ const winningCellSet = computed(() => {
   return set
 })
 
-function isWinningCell(colLabel: string, rowIndex: number): boolean {
-  return winningCellSet.value.has(`${colLabel}-${rowIndex}`)
-}
 
 function toRowMatrix(cardNumbers: Record<string, (number | null)[]> | number[][]): { matrix: number[][]; cols: string[] } {
   if (Array.isArray(cardNumbers)) {
@@ -86,15 +87,13 @@ async function openCardViewer(winner: WinnerEntry) {
     return
   }
 
-  loadingCardId.value    = winner.card_id
+  const requestedCardId  = winner.card_id
+  loadingCardId.value    = requestedCardId
   viewingCardOwner.value = winner.user_name
   viewingCard.value      = { serialNumber: winner.card_serial, cardMatrix: [], loading: true }
   try {
     const routeKey = props.roomRouteKey || props.roomId
-    const res = await fetch(`/bingo/${routeKey}/card/${winner.card_id}`, {
-      headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-    })
-    const data = await res.json()
+    const { data } = await backendClient.get(`/bingo/${routeKey}/card/${requestedCardId}`)
     if (data.success && data.card) {
       const { matrix, cols } = toRowMatrix(data.card.cardMatrix ?? {})
       const resolved: ViewedCard = {
@@ -104,15 +103,16 @@ async function openCardViewer(winner: WinnerEntry) {
         loading:          false,
         winningPositions: data.winningPositions ?? [],
       }
-      cardCache.set(winner.card_id, resolved)
-      viewingCard.value = resolved
+      cardCache.set(requestedCardId, resolved)
+      // Descartar si el usuario ya navegó a otro cartón mientras este cargaba
+      if (loadingCardId.value === requestedCardId) viewingCard.value = resolved
     } else {
-      viewingCard.value = null
+      if (loadingCardId.value === requestedCardId) viewingCard.value = null
     }
   } catch {
-    viewingCard.value = null
+    if (loadingCardId.value === requestedCardId) viewingCard.value = null
   } finally {
-    loadingCardId.value = null
+    if (loadingCardId.value === requestedCardId) loadingCardId.value = null
   }
 }
 
@@ -234,7 +234,7 @@ function closeCardViewer() {
                   :class="{
                     'cv-cell--drawn':   num > 0 && drawnSet.has(num),
                     'cv-cell--free':    num === 0,
-                    'cv-cell--winning': isWinningCell(viewingCard.colLabels?.[c] ?? '', r),
+                    'cv-cell--winning': winningCellSet.has(`${viewingCard.colLabels?.[c] ?? ''}-${r}`),
                   }"
                 >
                   <template v-if="num === 0">

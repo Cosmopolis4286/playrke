@@ -403,14 +403,15 @@ watch(() => props.drawnNumbers, (next, prev) => {
   if (next.length > prevLen) {
     for (let i = prevLen; i < next.length; i++) drawnSet.value.add(next[i]);
   } else {
-    // Cambio no incremental (ej. reconexión WS con estado completo)
+    // Cambio no incremental (ej. reconexión WS con estado completo o immediate)
     drawnSet.value = new Set(next);
   }
 
   const prevSet  = new Set(prev ?? []);
   const newNums  = next.filter(n => !prevSet.has(n));
 
-  if (newNums.length > 0) {
+  // En immediate (prev===undefined) no reproducir sonido por fichas ya sorteadas
+  if (newNums.length > 0 && prev !== undefined) {
     const newNumSet = new Set(newNums);
     const anyHit = props.cartons.some(card =>
       variantDef.value.columns.some(col => {
@@ -425,11 +426,14 @@ watch(() => props.drawnNumbers, (next, prev) => {
     if (bingoSet.value.has(card.id)) continue;
     if (fullBingo(card)) {
       bingoSet.value.add(card.id);
-      playWinner();
-      emit("bingo-detected", card);
+      // No disparar sonido/evento en la hidratación inicial
+      if (prev !== undefined) {
+        playWinner();
+        emit("bingo-detected", card);
+      }
     }
   }
-});
+}, { immediate: true });
 </script>
 
 <style scoped>

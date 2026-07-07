@@ -2,6 +2,7 @@
   import { computed } from 'vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import BingoRulesDefault from '@/js/Components/Games/Bingo/Config/Rules/Default.vue'
+  import { sanitizeHtml } from '@js/utils/sanitizeHtml'
 
   const props = defineProps<{
     modelValue: boolean
@@ -13,25 +14,7 @@
     (e: 'update:modelValue', value: boolean): void
   }>()
 
-  // BUG-03: sanitizar HTML antes de v-html. Usa DOMParser nativo (sin dependencias).
-  // Elimina scripts, iframes, event handlers y hrefs javascript:.
-  // El contenido lo generan solo admins, pero una XSS stored sería crítica.
-  const sanitizedRules = computed(() => {
-    if (!props.rules) return null
-    const doc = new DOMParser().parseFromString(props.rules, 'text/html')
-    doc.querySelectorAll('script,style,iframe,object,embed,form').forEach(el => el.remove())
-    doc.querySelectorAll('*').forEach(el => {
-      for (const attr of Array.from(el.attributes)) {
-        if (
-          attr.name.startsWith('on') ||
-          (attr.name === 'href' && attr.value.trimStart().toLowerCase().startsWith('javascript'))
-        ) {
-          el.removeAttribute(attr.name)
-        }
-      }
-    })
-    return doc.body.innerHTML
-  })
+  const sanitizedRules = computed(() => props.rules ? sanitizeHtml(props.rules) : null)
 </script>
 
 <template>
