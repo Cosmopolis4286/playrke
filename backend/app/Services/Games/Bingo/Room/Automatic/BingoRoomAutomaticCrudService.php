@@ -70,7 +70,7 @@ final class BingoRoomAutomaticCrudService
                 'serials_pct'             => $dto->serialsPct ?? null,
                 'num_serials'             => $dto->numSerials ?? null,
                 'jackpot_pct'             => $dto->jackpotPct,
-                'status'                  => ($dto->activateRoom ?? false) ? 'INACTIVE' : 'ACTIVE',
+                'status'                  => ($dto->activateRoom ?? false) ? 'ACTIVE' : 'INACTIVE',
                 // New scheduling fields
                 'recurrence_type'         => $dto->recurrenceType ?? 'WEEKLY',
                 'recurrence_days'         => $dto->recurrenceDays ?? null,

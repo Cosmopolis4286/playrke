@@ -6,18 +6,17 @@ use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\DTOs\Games\Bingo\Game\PlayerCardPricingDTO;
 use App\Models\ExchangeRate;
-use App\Models\Games\Bingo\ExternalPlayers;
 use App\Models\Games\Common\Utils\GameStatus;
-use App\Models\User;
 use App\Models\Wallet;
 use App\Services\Games\Bingo\Room\Utils\CheckExpiredBingoRoomsService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 final class BingoGameService
 {
     public function __construct(
-        private readonly \App\Services\Security\UserContextService $userContext,
         private readonly CheckExpiredBingoRoomsService $checkExpired,
     ) {}
 
@@ -37,7 +36,7 @@ final class BingoGameService
 
         // Verificar si la sala está eliminada (soft delete)
         if ($bingoRoom->trashed()) {
-            \Log::warning('BingoRoom found but is soft deleted', [
+            Log::warning('BingoRoom found but is soft deleted', [
                 'room_id' => $bingoRoom->id,
                 'uuid_code' => $bingoRoom->uuid_code,
                 'deleted_at' => $bingoRoom->deleted_at
@@ -48,14 +47,8 @@ final class BingoGameService
         // Obtener cartones del jugador
         $cartons = $this->getUserCartons((int) $bingoRoom->id, $userId);
 
-        // Obtener la wallet del usuario y la moneda asociada (si existe)
-        $wallet = $this->resolveUserWallet($userId);
-        $walletCurrencyId = $wallet?->currency_id ? (int) $wallet->currency_id : null;
-        $currencySym = $wallet?->currency?->symbol ?? '$';
-        $exchangeRate = $this->getWalletExchangeRate($walletCurrencyId);
-
-        // Obtener precio del cartón adaptado a la moneda de la wallet del usuario
-        $cardPrice = $this->getCardPrice($bingoRoom, $walletCurrencyId);
+        // Resolver moneda, tasa de cambio y precio del cartón según la wallet del usuario
+        $pricing = $this->resolvePricingForUser($bingoRoom, $userId);
 
         // Preparar datos del juego
         $config = $bingoRoom->config;
@@ -69,29 +62,13 @@ final class BingoGameService
             ->map(fn($chip) => (int) $chip)
             ->toArray();
 
-        // Para salas finalizadas, cargar los ganadores históricos desde BingoCardPrize
-        $initialWinners = [];
         $roomStatusCode = $bingoRoom->getRelationValue('status')?->code
             ?? $bingoRoom->status?->code
             ?? '';
-        if (strtoupper($roomStatusCode) === 'FINISHED') {
-            $initialWinners = BingoCardPrize::where('room_id', $bingoRoom->id)
-                ->with(['round:id,round', 'winningCard:id,serial_number', 'roomUser.user:id,username,first_name,last_name'])
-                ->get()
-                ->map(function (BingoCardPrize $cp) use ($bingoRoom) {
-                    return [
-                        'user_id'     => (string) ($cp->roomUser?->user_id ?? ''),
-                        'user_name'   => $cp->roomUser?->user?->full_name ?? $cp->roomUser?->user?->username ?? '—',
-                        'card_id'     => (string) ($cp->winning_card_id ?? ''),
-                        'card_serial' => $cp->winningCard?->serial_number ?? '',
-                        'prize'       => (float) ($cp->usd_amount ?? 0),
-                        'pattern'     => $cp->winning_pattern ?? '',
-                        'round'       => $cp->round?->round ?? 1,
-                    ];
-                })
-                ->values()
-                ->all();
-        }
+        $roomIsFinished = strtoupper($roomStatusCode) === 'FINISHED';
+
+        // Para salas finalizadas, cargar los ganadores históricos desde BingoCardPrize
+        $initialWinners = $roomIsFinished ? $this->getHistoricalWinners($bingoRoom) : [];
 
         $gameData = [
             'title' => 'Juego de Bingo',
@@ -102,9 +79,9 @@ final class BingoGameService
             'gameVariant'  => $config?->game_variant ?? \App\Domains\Games\Bingo\ValueObjects\BingoVariant::BINGO_75,
             'cartons' => $cartons,
             'customerLogo' => null, // Se puede configurar según necesidad
-            'currencySym' => $currencySym,
+            'currencySym' => $pricing->currencySymbol,
             'prizePool' => (float) $bingoRoom->prize_pool, // Enviar en USD
-            'exchangeRate' => $exchangeRate, // Enviar la tasa de cambio
+            'exchangeRate' => $pricing->exchangeRate,
             'totalPlayers' => (int) $bingoRoom->total_players,
             'prizePoolType' => 'Premio',
             'round' => 1, // Obtener de la configuración del juego
@@ -120,79 +97,21 @@ final class BingoGameService
             'infoGame' => null,
             'creatorType' => 'admin', // Obtener del creador de la sala
             'creatorId' => $bingoRoom->creator_user_id,
-            'currencyId' => (string) ($walletCurrencyId ?? 1),
-            'cardPrice' => (float) $cardPrice,
+            'currencyId' => (string) ($pricing->currencyId ?? 1),
+            'cardPrice' => $pricing->cardPrice,
             'startTime' => (int) ($config?->unix_date ?? $bingoRoom->published_at?->timestamp ?? now()->timestamp),
             'closingRoute' => route('bingo-rooms.index'),
             'initialWinners' => $initialWinners,
             // Explícito e independiente de si hubo ganador: initialWinners queda vacío
             // cuando el sorteo terminó sin BINGO, y el frontend no debe seguir mostrando
             // "EN VIVO" en ese caso al recargar la página de una sala ya finalizada.
-            'roomFinished' => strtoupper($roomStatusCode) === 'FINISHED',
+            'roomFinished' => $roomIsFinished,
         ];
 
         // Forzar la serialización correcta para Inertia
         $gameData['rounds'] = (int) $gameData['rounds'];
 
         return $gameData;
-    }
-
-    /**
-     * Obtener datos legacy para la vista del juego (compatibilidad).
-     *
-     * @param string $player
-     * @param string $room
-     * @return array
-     */
-    public function getLegacyInGameData(string $player, string $room = ''): array
-    {
-        // Vista para el juego de la venta conjunta de todos los comercios
-        $playerModel = ExternalPlayers::getByLink($player, ['room', 'creator_user_id', 'link', 'currency']);
-
-        if (!$playerModel) {
-            throw new \Illuminate\Database\Eloquent\ModelNotFoundException('Player not found');
-        }
-
-        $creatorUser = $playerModel->creator_user;
-        $userCreator = User::getCreatorUser($creatorUser, false, true);
-
-        if (!$userCreator) {
-            throw new \Illuminate\Database\Eloquent\ModelNotFoundException('Creator user not found');
-        }
-
-        $creator = [
-            'type' => $userCreator['type'],
-            'id' => $userCreator['id'],
-            'userId' => $creatorUser
-        ];
-
-        return [
-            'title' => 'Juego de Bingo',
-            'playerLink' => $playerModel->link,
-            'room' => $playerModel->room,
-            'currency' => $playerModel->currency,
-            'creator' => $creator,
-            'customerLogo' => null,
-            'currencySym' => '$',
-            'prizePool' => $playerModel->room->prizePool ?? 0,
-            'prizePoolType' => 'Premio',
-            'round' => 1,
-            'bingoPattern' => '',
-            'vanDraw' => [],
-            'player' => ['ctns' => 0],
-            'encrypt' => false,
-            'chipsRest' => [],
-            'draw' => [],
-            'timeServ' => now()->timestamp,
-            'allChips' => [],
-            'infoGame' => null,
-            'creatorType' => $creator['type'],
-            'creatorId' => $creator['id'],
-            'currencyId' => 1,
-            'cardPrice' => $playerModel->room->cardPrice ?? 0,
-            'startTime' => $playerModel->room->publicationDate->timestamp ?? now()->timestamp,
-            'closingRoute' => route('bingo-rooms.index'),
-        ];
     }
 
     /**
@@ -235,13 +154,54 @@ final class BingoGameService
             // Transformar los cartones al formato esperado por el frontend
             return $cards->map(fn ($card) => $card->toFrontendFormat())->toArray();
         } catch (\Exception $e) {
-            \Log::error('Error getting user cartons', [
+            Log::error('Error getting user cartons', [
                 'room_id' => $roomId,
                 'user_id' => $userId,
                 'error' => $e->getMessage()
             ]);
             return [];
         }
+    }
+
+    /**
+     * Resuelve moneda, tasa de cambio y precio del cartón para el jugador,
+     * según la wallet activa que tenga configurada (si tiene alguna).
+     */
+    private function resolvePricingForUser(BingoRoom $room, ?int $userId): PlayerCardPricingDTO
+    {
+        $wallet           = $this->resolveUserWallet($userId);
+        $walletCurrencyId = $wallet?->currency_id ? (int) $wallet->currency_id : null;
+
+        return new PlayerCardPricingDTO(
+            currencySymbol: $wallet?->currency?->symbol ?? '$',
+            currencyId:     $walletCurrencyId,
+            exchangeRate:   $this->getWalletExchangeRate($walletCurrencyId),
+            cardPrice:      $this->getCardPrice($room, $walletCurrencyId),
+        );
+    }
+
+    /**
+     * Ganadores históricos de una sala ya finalizada, para reconstruir el
+     * estado de "sorteo terminado" al recargar la página del juego.
+     *
+     * @return array<int, array{user_id: string, user_name: string, card_id: string, card_serial: string, prize: float, pattern: string, round: int}>
+     */
+    private function getHistoricalWinners(BingoRoom $room): array
+    {
+        return BingoCardPrize::where('room_id', $room->id)
+            ->with(['round:id,round', 'winningCard:id,serial_number', 'roomUser.user:id,username,first_name,last_name'])
+            ->get()
+            ->map(fn (BingoCardPrize $cp) => [
+                'user_id'     => (string) ($cp->roomUser?->user_id ?? ''),
+                'user_name'   => $cp->roomUser?->user?->full_name ?? $cp->roomUser?->user?->username ?? '—',
+                'card_id'     => (string) ($cp->winning_card_id ?? ''),
+                'card_serial' => $cp->winningCard?->serial_number ?? '',
+                'prize'       => (float) ($cp->usd_amount ?? 0),
+                'pattern'     => $cp->winning_pattern ?? '',
+                'round'       => $cp->round?->round ?? 1,
+            ])
+            ->values()
+            ->all();
     }
 
     /**
@@ -283,7 +243,7 @@ final class BingoGameService
             'time'      => $newTime->format('H:i:s'),
         ]);
 
-        \Log::info('[DEV] Sala reseteada para nuevo sorteo', [
+        Log::info('[DEV] Sala reseteada para nuevo sorteo', [
             'room_id'  => $room->id,
             'had_data' => $hadData,
         ]);
@@ -297,37 +257,6 @@ final class BingoGameService
             'hasExistingDraw' => $hadData,
             'message'         => $hadData ? 'Sorteo regenerado exitosamente' : 'Nuevo sorteo iniciado',
         ];
-    }
-
-    /**
-     * Validar formato del identificador de sala
-     *
-     * @param string $identifier
-     * @return bool
-     */
-    private function isValidRoomIdentifier(string $identifier): bool
-    {
-        // Verificar si es un UUID válido (formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
-        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $identifier)) {
-            return true;
-        }
-
-        // Verificar si es un ID Snowflake válido (número grande, generalmente 15+ dígitos)
-        if (preg_match('/^\d{15,}$/', $identifier)) {
-            return true;
-        }
-
-        // Verificar si es un UUID sin guiones (formato alternativo)
-        if (preg_match('/^[0-9a-f]{32}$/i', $identifier)) {
-            return true;
-        }
-
-        // Verificar si es un ID corto alfanumérico (como 4xZOjvaxq3G2d)
-        if (preg_match('/^[a-zA-Z0-9]{8,}$/', $identifier)) {
-            return true;
-        }
-
-        return false;
     }
 
     /**

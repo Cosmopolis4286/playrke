@@ -251,11 +251,6 @@ final class BingoRoomController extends Controller
      */
     public function buyFromGameRooms(BingoRoom $room, BingoRoomPlayerBuyRequest $request): JsonResponse
     {
-        \Log::info('buyFromGameRooms: Iniciando compra', [
-            'room_id' => $room->id,
-            'request_data' => $request->validated()
-        ]);
-        
         return $this->handleServiceJson(
             fn() => $this->generateService->buyFromGameRooms(
                 BingoRoomPlayerBuyDTO::fromArray(
@@ -280,12 +275,6 @@ final class BingoRoomController extends Controller
      */
     public function playerBuyFromGameRooms(BingoRoom $room, Request $request): JsonResponse
     {
-        \Log::info('playerBuyFromGameRooms: Iniciando compra de jugador', [
-            'room_id' => $room->id,
-            'num_ctns' => $request->input('num_ctns'),
-            'has_custom_numbers' => $request->has('custom_numbers'),
-        ]);
-
         $request->validate([
             'num_ctns'       => 'required|integer|min:1|max:40',
             'custom_numbers' => 'sometimes|nullable|array',

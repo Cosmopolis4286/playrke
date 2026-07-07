@@ -197,7 +197,6 @@ final class BingoGameController extends Controller
         return $this->handleServiceJson(function () use ($room, $card) {
             $cardPrize = BingoCardPrize::where('room_id', (string) $room->id)
                 ->where('winning_card_id', $card)
-                ->with('round.bingoPattern')
                 ->first();
 
             if (!$cardPrize) {
@@ -212,10 +211,12 @@ final class BingoGameController extends Controller
                 abort(404, 'Cartón no encontrado en esta sala.');
             }
 
-            // Posiciones exactas [col,row] del patrón que hizo ganar este cartón —
-            // usado por el frontend para resaltar la línea/patrón específico en vez
-            // de solo mostrar los números marcados.
+            // Carga lazy condicional: solo consulta round y pattern si hay round_id,
+            // evitando 2 queries extra cuando el prize no tiene ronda asociada.
             $winningPositions = [];
+            if ($cardPrize->round_id) {
+                $cardPrize->load('round.bingoPattern');
+            }
             $pattern = $cardPrize->round?->bingoPattern;
             if ($pattern) {
                 $variant = $room->relationLoaded('config')
@@ -313,22 +314,4 @@ final class BingoGameController extends Controller
         );
     }
 
-    /**
-     * Vista legacy del juego de bingo (compatibilidad).
-     *
-     * @param string $player
-     * @param string $room
-     * @return Response
-     */
-    public function legacyInGame(string $player, string $room = ''): Response
-    {
-        return $this->handleServiceInertia(
-            function () use ($player, $room) {
-                $response = $this->service->getLegacyInGameData($player, $room);
-
-                return Inertia::render('Games/Bingo/Game/Index', $response);
-            },
-            'No se pudo cargar la sala de juego.'
-        );
-    }
 }

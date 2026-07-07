@@ -2,12 +2,8 @@
 
 namespace App\Http\Controllers\Games\Bingo\Report;
 
-use App\DTOs\Games\Bingo\Card\BingoCardGenerateDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService;
-use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,7 +24,6 @@ final class BingoReportController extends Controller
      */
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
-        private readonly BingoCardGenerateService $generateService,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
