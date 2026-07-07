@@ -198,8 +198,6 @@ final class BingoDrawService
             broadcast(new BingoNumberCalled((int) $chip, $roomId));
             $drawnSoFar[] = $chip;
 
-            Log::info('[BingoDrawService] Ficha', ['chip' => $chip, 'index' => $i]);
-
             if (($totalChips - count($drawnSoFar)) <= 10) {
                 try {
                     $this->broadcastPlayersProgress($room, $patternPositions, $drawnSoFar, $variant);

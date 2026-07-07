@@ -191,7 +191,7 @@ class BingoRoomCrudService
                 $this->broadcastLobbyStatusChange($room, $statusCode === 'ACTIVE', $wasActive);
 
                 return true;
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 throw new BingoRoomException('Error al guardar la sala: ' . $e->getMessage());
             }
         });

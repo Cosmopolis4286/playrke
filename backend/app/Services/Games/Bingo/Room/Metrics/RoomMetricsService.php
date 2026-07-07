@@ -195,15 +195,7 @@ class RoomMetricsService implements RoomMetricsInterface
     public function updateRoomMetricsWithCommissions(BingoRoom $room, array $saleData, float $saleAmount, float $sellerCommission = 0): bool
     {
         try {
-            // Debug: Log input parameters
-            Log::info('updateRoomMetricsWithCommissions called', [
-                'roomId' => $room->id,
-                'saleData_keys' => array_keys($saleData),
-                'saleAmount' => $saleAmount,
-                'sellerCommission' => $sellerCommission
-            ]);
-            
-            // Persistir mÃ©tricas monetarias de bingo_rooms en USD.
+            // Persistir métricas monetarias de bingo_rooms en USD.
             // Los lotes/pagos pueden conservar moneda local; este agregado siempre queda normalizado.
             $exchangeRate = $saleData['exchangeRate'] ?? 1;
             

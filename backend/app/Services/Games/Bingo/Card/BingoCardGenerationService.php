@@ -50,8 +50,6 @@ final class BingoCardGenerationService
      */
     public function generateCards(array $arrCtn): array
     {
-        Log::info('generateCards started', ['arrCtn' => $arrCtn]);
-
         $roomId = $arrCtn['roomId'];
 
         // Cargamos la sala con su estado directamente
@@ -85,26 +83,9 @@ final class BingoCardGenerationService
                 ? round((float) $arrCtn['saleAmountUsd'], 3)
                 : $this->toUsdAmount($saleAmount, $exchangeRate);
 
-            Log::info('Variables initialized', [
-                'creator' => $creator,
-                'saleAmount' => $saleAmount,
-                'saleAmountUsd' => $saleAmountUsd,
-                'currency' => $currency,
-                'numOfCtns' => $numOfCtns
-            ]);
-
-            // Registrar o actualizar el usuario en la sala
-            Log::info('Attempting to register room user', [
-                'room' => $room->toArray(),
-                'arrCtn' => $arrCtn
-            ]);
-            
             $roomUserResult = $this->roomUserRegistration->registerOrUpdateRoomUser($arrCtn);
 
-            Log::info('Room user registration result', ['roomUserResult' => $roomUserResult]);
-
             if (!$roomUserResult) {
-                Log::error('Failed to register user in room');
                 throw new \DomainException('Error al registrar usuario en la sala');
             }
 
@@ -124,10 +105,7 @@ final class BingoCardGenerationService
             // Actualizar acumulado y comisiones de la sala
             $updateRoomMetrics = $this->roomMetrics->updateRoomMetricsWithCommissions($room, $arrCtn, $saleAmountUsd, $sellerSaleCommn ?? 0);
 
-            Log::info('Room metrics update result', ['updateRoomMetrics' => $updateRoomMetrics]);
-
             if (!$updateRoomMetrics) {
-                Log::error('Failed to update room metrics');
                 throw new \DomainException('Error al actualizar los valores de la sala');
             }
 
@@ -140,10 +118,8 @@ final class BingoCardGenerationService
             $authenticatedUserId = auth()->id();
             $sellerExists = \DB::table('users')->where('id', $authenticatedUserId)->exists();
             if (!$sellerExists) {
-                Log::error('Authenticated user ID does not exist in users table', ['authenticated_user_id' => $authenticatedUserId]);
                 throw new \DomainException('El usuario autenticado no existe en el sistema');
             }
-            Log::info('Authenticated user ID validated', ['authenticated_user_id' => $authenticatedUserId]);
 
             // Usar el usuario autenticado como seller_user_id
             $arrCtn['seller_user_id'] = $authenticatedUserId;
@@ -154,12 +130,8 @@ final class BingoCardGenerationService
             // Crear lote de cartones
             $lotID = $this->cardManagement->createCtnsLot($arrCtn, $saleAmount);
 
-            Log::info('Card lot created', ['lotID' => $lotID]);
-
             // Generar y almacenar los cartones de bingo (lanza excepción si falla)
             $this->cardManagement->generateAndStoreCtns($arrCtn, $lotID);
-
-            Log::info('Cards generated and stored successfully', ['lotID' => $lotID, 'count' => $arrCtn['numOfCtns']]);
 
             // Guardar comprobante de pago si se proporcionó
             if (isset($arrCtn['receiptImage']) && $arrCtn['receiptImage'] instanceof \Illuminate\Http\UploadedFile) {
@@ -192,15 +164,9 @@ final class BingoCardGenerationService
                 );
             }
 
-            Log::info('generateCards completed successfully', ['room_user_id' => $roomUserId]);
-
             return ['room_user_id' => $roomUserId];
 
-        } catch (\Exception $e) {
-            Log::error('Error in generateCards', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
+        } catch (\Throwable $e) {
             throw new \DomainException('Error en generación de cartones: ' . $e->getMessage());
         }
     }
@@ -220,7 +186,7 @@ final class BingoCardGenerationService
     private function toUsdAmount(float $amount, float $exchangeRate): float
     {
         if ($exchangeRate <= 0) {
-            throw new \DomainException('Tasa de cambio invÃ¡lida para convertir el monto a USD.');
+            throw new \DomainException('Tasa de cambio inválida para convertir el monto a USD.');
         }
 
         return round($amount / $exchangeRate, 3);
@@ -263,15 +229,7 @@ final class BingoCardGenerationService
                 'transaction_reference' => $arrCtn['receiptNumber'] ?? null,
             ]);
 
-            Log::info('Card payment created successfully', [
-                'room_user_id' => $roomUserId,
-                'lot_id' => $lotID,
-                'payment_amount' => $arrCtn['cardPrice'] * $arrCtn['numOfCtns'],
-                'receipt_number' => $arrCtn['receiptNumber'] ?? null,
-                'payment_proof' => $paymentProof,
-            ]);
-
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Error creating card payment', [
                 'error' => $e->getMessage(),
                 'room_user_id' => $roomUserId,
@@ -302,17 +260,7 @@ final class BingoCardGenerationService
             // Guardar archivo
             $path = $receiptImage->storeAs($directory, $fileName, 'public');
             
-            // Guardar información en log para demostración
-            Log::info('Receipt stored', [
-                'room_user_id' => $roomUserId,
-                'lot_id' => $lotID,
-                'receipt_number' => $receiptNumber,
-                'file_path' => $path,
-                'original_name' => $receiptImage->getClientOriginalName(),
-                'file_size' => $receiptImage->getSize(),
-            ]);
-            
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Error storing receipt image', [
                 'error' => $e->getMessage(),
                 'room_user_id' => $roomUserId,
