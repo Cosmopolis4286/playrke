@@ -49,8 +49,7 @@ export function useBingoRoomCrudFactory<TRoom extends BingoRoomListItem>(
             }
 
             return true
-        } catch (error) {
-            console.error(error)
+        } catch {
             showToast(`Error al cargar las ${entityLabel}s de bingo`, 'error')
             return false
         } finally {
@@ -116,8 +115,7 @@ export function useBingoRoomCrudFactory<TRoom extends BingoRoomListItem>(
             showToast(`Estado cambiado con éxito para ${ids.length} ${entityLabel}s`, 'success')
             await fetchRooms()
             return true
-        } catch (error) {
-            console.error(`Error al cambiar el estado de las ${entityLabel}s:`, error)
+        } catch {
             showToast('Error al cambiar el estado', 'error')
             return false
         }
@@ -162,8 +160,7 @@ export function useBingoRoomCrudFactory<TRoom extends BingoRoomListItem>(
             showToast(`${ids.length} ${entityLabel}s eliminadas con éxito`, 'success')
             await fetchRooms()
             return true
-        } catch (error) {
-            console.error(`Error al eliminar las ${entityLabel}s:`, error)
+        } catch {
             showToast(`Error al eliminar las ${entityLabel}s`, 'error')
             return false
         }

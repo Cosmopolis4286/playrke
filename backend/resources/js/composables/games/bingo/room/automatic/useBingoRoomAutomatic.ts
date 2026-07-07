@@ -144,7 +144,6 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
             await fetchRooms()
             return true
         } catch (error: any) {
-            console.error(error)
             showToast(
                 error?.response?.data?.message ?? 'Error al guardar la sala de bingo',
                 'error'
@@ -220,8 +219,7 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
             }
 
             return true
-        } catch (error) {
-            console.error(error)
+        } catch {
             showToast('Error al cargar la sala de bingo', 'error')
             return false
         } finally {
@@ -265,7 +263,6 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
 
             return data.created
         } catch (error: any) {
-            console.error(error)
             showToast(
                 error?.response?.data?.message ?? 'Error al ejecutar el job',
                 'error'

@@ -32,7 +32,11 @@ export function useBingoDetection(options: UseBingoDetectionOptions) {
         onBingoConfirmed()
       }
     } catch (err) {
-      onBingoError?.(err)
+      if (onBingoError) {
+        onBingoError(err)
+      } else {
+        console.error('[useBingoDetection] Error al reclamar BINGO:', err)
+      }
     } finally {
       claimingBingo.value = false
     }

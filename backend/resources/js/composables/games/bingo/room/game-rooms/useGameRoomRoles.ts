@@ -5,12 +5,16 @@ interface UserRole {
   role?: { prefix?: string }
 }
 
+interface AuthPageProps extends Record<string, unknown> {
+  auth?: { user?: { id?: string | number; userRoles?: UserRole[] } }
+}
+
 /**
  * Computed reactivos de permisos del usuario autenticado.
  * Lee `auth.user.userRoles` una sola vez y deriva todos los permisos.
  */
 export function useGameRoomRoles() {
-  const page = usePage()
+  const page = usePage<AuthPageProps>()
 
   const userRoles = computed<UserRole[]>(
     () => (page.props.auth?.user?.userRoles ?? []) as UserRole[]

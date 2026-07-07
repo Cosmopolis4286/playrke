@@ -6,8 +6,7 @@ import { z } from 'zod'
  */
 export const percentageSchema = z
     .number({
-        required_error: 'El porcentaje es requerido',
-        invalid_type_error: 'Debe ser un número válido'
+        error: 'El porcentaje es requerido',
     })
     .min(0, 'No puede ser menor a 0')
     .max(100, 'No puede ser mayor a 100')

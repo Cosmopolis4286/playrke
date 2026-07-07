@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import type { BingoConfigFormData } from '@/js/types/games/bingo/config/bingo-config'
+import type { BingoRoomFormData as BingoConfigFormData } from '@/js/types/games/bingo/room/bingo-room'
 
 /**
  * Límites de porcentajes (expuestos para usar en atributos min/max del FormInput)
@@ -92,8 +92,8 @@ export function useBingoConfigForm(
         }
 
         // Validaciones simples
-        if (!form.value.cardPrice && (form.value.allowedCurrencies?.length ?? 0) === 1) {
-            e.cardPrice = 'El precio del cartón es requerido.'
+        if (!form.value.cardPriceUsd && (form.value.allowedCurrencies?.length ?? 0) === 1) {
+            e.cardPriceUsd = 'El precio del cartón es requerido.'
         }
 
         // Validaciones por moneda

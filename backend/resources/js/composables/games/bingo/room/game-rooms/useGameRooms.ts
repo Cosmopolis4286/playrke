@@ -1,6 +1,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
 
+interface AuthPageProps extends Record<string, unknown> {
+  auth?: { user?: { id?: string | number } }
+}
+
 import { useGameRoomCountdown }    from './useGameRoomCountdown'
 import { useGameRoomEcho }         from './useGameRoomEcho'
 import { useGameRoomPurchaseModal } from '@js/composables/games/bingo/card/purchase-modal/useGameRoomPurchaseModal'
@@ -14,7 +18,7 @@ import type { BingoGameRoom, BingoGameRoomsPageProps } from '@js/types/games/bin
  * modal de info, modal de compra y navegación al lobby.
  */
 export function useGameRooms(props: BingoGameRoomsPageProps) {
-  const page = usePage()
+  const page = usePage<AuthPageProps>()
   const { isAdmin, canBuy, isPlayer } = useGameRoomRoles()
 
   // ── Lista de salas (mutable para parches WS) ──────────────────────────────

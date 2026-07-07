@@ -210,7 +210,6 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
 
             return true
         } catch (error: any) {
-            console.error('Error general en submit:', error)
             showToast(
                 error?.response?.data?.message ?? 'Error al guardar la sala de bingo',
                 'error'
@@ -249,6 +248,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 gameVariant: (config.game_variant ?? 'BINGO_75') as any,
                 prizePoolType: config.prize_pool_type_id ?? null,
                 allowedCurrencies: room.allowed_currencies ?? [],
+                roomsPerCurrency: room.rooms_per_currency === true,
                 amountAddedPrizePool: config.amount_added_prize_pool ?? null,
                 roomCommn: config.room_commission ?? 20,
                 jackpotPct: config.jackpot_pct ?? null,
@@ -277,8 +277,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             }
 
             return true
-        } catch (error) {
-            console.error(error)
+        } catch {
             showToast('Error al cargar la sala de bingo', 'error')
             return false
         } finally {
@@ -295,8 +294,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 `/${ENDPOINT}/${id}/show`
             )
             return response.data?.data ?? null
-        } catch (error) {
-            console.error('Error al cargar detalles de sala:', error)
+        } catch {
             showToast('Error al cargar los detalles de la sala', 'error')
             return null
         }
@@ -351,7 +349,6 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             await fetchRooms()
             return true
         } catch (error: any) {
-            console.error('Error al cancelar sala:', error)
             showToast(
                 error?.response?.data?.message ?? 'Error al cancelar la sala',
                 'error'
@@ -382,7 +379,6 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             await fetchRooms()
             return true
         } catch (error: any) {
-            console.error('Error al activar sala:', error)
             showToast(
                 error?.response?.data?.message ?? 'Error al activar la sala',
                 'error'
@@ -398,7 +394,6 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             await fetchRooms()
             return true
         } catch (error: any) {
-            console.error('Error al programar inicio de sala:', error)
             showToast(
                 error?.response?.data?.message ?? 'Error al programar el inicio de la sala',
                 'error'

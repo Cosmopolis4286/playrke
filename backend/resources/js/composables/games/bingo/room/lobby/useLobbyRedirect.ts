@@ -36,7 +36,14 @@ export function useLobbyRedirect(
     redirectSecs.value = 0
   }
 
-  onUnmounted(cancel)
+  // Inertia puede navegar sin desmontar el componente Vue (XHR swap).
+  // El hook 'before' cancela los timers en cualquier navegación saliente.
+  const removeInertiaHook = router.on('before', cancel)
+
+  onUnmounted(() => {
+    cancel()
+    removeInertiaHook()
+  })
 
   watch(statusCode, (next) => {
     if (next?.toUpperCase() === 'IN_PROGRESS') trigger()
