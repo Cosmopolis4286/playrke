@@ -162,7 +162,7 @@ if (app()->environment('local')) {
  * REPORTES Y ESTADÍSTICAS
  * ====================================
  */
-route_group('bingo', 'bingo.', [], BingoReportController::class, [
+route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.manage,games.bingo'], BingoReportController::class, [
     'cards-sold'        => ['method' => 'get', 'uri' => 'cards-sold', 'action' => 'cardsSold'],
     'sales-report'      => ['method' => 'get', 'uri' => 'sales-report', 'action' => 'salesReport'],
     'sales-report-room' => ['method' => 'get', 'uri' => 'sales-report/room/{room}', 'action' => 'salesReportByRoom'],

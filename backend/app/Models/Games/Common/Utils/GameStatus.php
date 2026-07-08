@@ -4,6 +4,7 @@ namespace App\Models\Games\Common\Utils;
 
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Modelo para la gestión de estados de juegos.
@@ -37,6 +38,32 @@ class GameStatus extends Model
         'code' => 'string',
         'label' => 'string'
     ];
+
+    /**
+     * Devuelve un mapa code→id cacheado por request (evita N queries por saveRoom/draw/etc.).
+     * TTL de 60 s — los códigos de estado no cambian en producción.
+     *
+     * @param string[] $codes  Si se omite, devuelve todos los estados.
+     * @return array<string,string>
+     */
+    public static function codesMap(array $codes = []): array
+    {
+        $cacheKey = 'game_status_map_' . md5(implode(',', $codes));
+
+        return Cache::remember($cacheKey, 60, function () use ($codes) {
+            $query = static::query();
+            if (!empty($codes)) {
+                $query->whereIn('code', $codes);
+            }
+            return $query->pluck('id', 'code')->all();
+        });
+    }
+
+    /** Devuelve el ID de un único código de estado. */
+    public static function codeToId(string $code): ?string
+    {
+        return static::codesMap([$code])[$code] ?? null;
+    }
 
     /**
      * Scope para buscar por ID del estado de juego.

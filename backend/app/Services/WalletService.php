@@ -448,6 +448,90 @@ final class WalletService
     }
 
     /**
+     * Reembolsa un monto a la wallet de un usuario por cancelación de sala u otro motivo.
+     * Registra el movimiento como TYPE_REFUND, separándolo de premios en reportes.
+     */
+    public function recordRefund(
+        Wallet $wallet,
+        float $amount,
+        string $gameId,
+        string $description = 'Reembolso',
+    ): WalletMovement {
+        $movement = null;
+
+        DB::transaction(function () use ($wallet, $amount, $gameId, $description, &$movement) {
+            $walletId      = (string) $wallet->id;
+            $balanceBefore = (float) $wallet->balance;
+
+            $this->walletRepository->incrementBalance($walletId, $amount);
+            $wallet->refresh();
+
+            $movement = $this->movementRepository->record([
+                'wallet_id'      => $walletId,
+                'user_id'        => (string) $wallet->user_id,
+                'type'           => WalletMovement::TYPE_REFUND,
+                'status'         => WalletMovement::STATUS_COMPLETED,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => (float) $wallet->balance,
+                'description'    => $description,
+                'metadata'       => ['game_id' => $gameId],
+            ]);
+        });
+
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_REFUND, $amount);
+
+        return $movement;
+    }
+
+    /**
+     * Acredita saldo por acción administrativa.
+     * Wallet findOrCreate + lockForUpdate + movimiento ocurren en una sola transacción,
+     * eliminando la race condition de creación concurrente de wallets.
+     */
+    public function recordAdminDeposit(\App\Models\User $user, float $amount, string $description = 'Carga de saldo por administrador'): Wallet
+    {
+        $wallet = DB::transaction(function () use ($user, $amount, $description) {
+            // lockForUpdate sobre la wallet evita doble carga concurrente
+            $locked = Wallet::lockForUpdate()
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (!$locked) {
+                $currency = \App\Models\Currency::where('iso_code', 'USD')->firstOrFail();
+                $locked = $user->wallets()->create([
+                    'currency_id' => $currency->id,
+                    'balance'     => 0,
+                    'is_active'   => true,
+                ]);
+            }
+
+            $walletId      = (string) $locked->id;
+            $balanceBefore = (float) $locked->balance;
+
+            $this->walletRepository->incrementBalance($walletId, $amount);
+            $locked->refresh();
+
+            $this->movementRepository->record([
+                'wallet_id'      => $walletId,
+                'user_id'        => (string) $locked->user_id,
+                'type'           => WalletMovement::TYPE_DEPOSIT,
+                'status'         => WalletMovement::STATUS_COMPLETED,
+                'amount'         => $amount,
+                'balance_before' => $balanceBefore,
+                'balance_after'  => (float) $locked->balance,
+                'description'    => $description,
+            ]);
+
+            return $locked;
+        });
+
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_DEPOSIT, $amount);
+
+        return $wallet;
+    }
+
+    /**
      * Movimientos paginados de una billetera del usuario autenticado.
      */
     public function getMovements(Wallet $wallet, int $perPage = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator

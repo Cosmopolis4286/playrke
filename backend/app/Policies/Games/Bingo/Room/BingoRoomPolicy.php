@@ -37,12 +37,42 @@ class BingoRoomPolicy extends BaseRolePolicy
     }
 
     /**
-     * Alternar estado del vendedor.
+     * Puede mutar si es el creador O tiene rol privilegiado (admin/superadmin).
      */
+    public function update(User $user, \Illuminate\Database\Eloquent\Model $model): bool
+    {
+        if (!$this->hasAccess($user) || !$this->canMutate($model)) {
+            return false;
+        }
+
+        if ($user->hasRole(['superadmin', 'admin'])) {
+            return true;
+        }
+
+        return (string) $user->id === (string) $model->creator_user_id;
+    }
+
+    public function delete(User $user, \Illuminate\Database\Eloquent\Model $model): bool
+    {
+        return $this->update($user, $model);
+    }
+
     public function toggleStatus(User $user, BingoRoom $bingoRoom): bool
     {
-        return $this->hasAccess($user)
-            && $this->canMutate($bingoRoom);
+        if (!$this->hasAccess($user) || !$this->canMutate($bingoRoom)) {
+            return false;
+        }
+
+        if ($user->hasRole(['superadmin', 'admin'])) {
+            return true;
+        }
+
+        return (string) $user->id === (string) $bingoRoom->creator_user_id;
+    }
+
+    public function cancel(User $user, BingoRoom $bingoRoom): bool
+    {
+        return $this->update($user, $bingoRoom);
     }
 
     public function generateDraw() {}
