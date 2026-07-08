@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import Swal from 'sweetalert2'
+import { SWAL_DARK } from '@js/utils/swal'
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
 import { getBingoVariantDef } from '@/js/modules/games/bingo/utils/bingoVariants'
@@ -255,8 +256,7 @@ export function useGameRoomPurchaseModal() {
             cancelButtonText: 'Seguir editando',
             confirmButtonColor: '#2af598',
             cancelButtonColor: '#6c757d',
-            background: '#1a1f3a',
-            color: '#fff',
+            ...SWAL_DARK,
         })
 
         if (!result.isConfirmed) return false

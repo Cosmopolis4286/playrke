@@ -25,7 +25,7 @@ export function useBingoDetection(options: UseBingoDetectionOptions) {
         winner:   boolean
       }>(`/bingo/${routeKey.value}/check-bingo`, { card_id: card.id })
 
-      if (isFinished.value) return
+      if (isFinished.value || isMyWin.value) return
 
       if (data.success && data.hasBingo && data.winner) {
         isMyWin.value = true

@@ -97,12 +97,17 @@ export function useGameRooms(props: BingoGameRoomsPageProps) {
     const room   = rooms.value[idx]
     const userId = String(page.props.auth?.user?.id ?? '')
     const existing = room.players_room?.find(p => String((p as any).user_id ?? '') === userId)
-      ?? room.players_room?.[0]
+
+    if (!existing) return
 
     rooms.value[idx] = {
       ...room,
       prize_pool:   result.prizePool,
-      players_room: [{ ...(existing ?? {}), ctns: (existing?.ctns ?? 0) + result.ctns }],
+      players_room: room.players_room?.map(p =>
+        String((p as any).user_id ?? '') === userId
+          ? { ...p, ctns: (p.ctns ?? 0) + result.ctns }
+          : p
+      ) ?? [],
     }
   }
 

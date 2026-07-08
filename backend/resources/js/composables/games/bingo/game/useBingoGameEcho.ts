@@ -56,6 +56,10 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
   let roomChannelName: string | null = null
   const calledNumbers = new Set<number>()
 
+  function resetCalledNumbers() {
+    calledNumbers.clear()
+  }
+
   function subscribe() {
     if (!roomId.value) return
     roomChannelName = `bingo.room.${roomId.value}`
@@ -118,5 +122,5 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
 
   onUnmounted(() => unsubscribe())
 
-  return { subscribe, unsubscribe }
+  return { subscribe, unsubscribe, resetCalledNumbers }
 }

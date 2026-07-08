@@ -40,11 +40,13 @@ export function useLobbyEcho(
 
   // ── Conexión Pusher/Reverb ──
   const pusher = (echo as any).connector.pusher
+  let mounted = true
 
   // Al reconectar, re-suscribir el canal público por si se perdieron eventos.
+  // Guard: si el componente ya fue desmontado no re-abrimos el canal.
   const onConnected = () => {
     wsStatus.value = 'connected'
-    echo.channel(roomChannelName)
+    if (mounted) echo.channel(roomChannelName)
   }
   const onDisconnected = () => { wsStatus.value = 'disconnected' }
   const onError        = () => { wsStatus.value = 'error' }
@@ -132,6 +134,7 @@ export function useLobbyEcho(
   watch(getUserId, subscribePrivate, { immediate: true })
 
   onUnmounted(() => {
+    mounted = false
     if (ownPurchaseResetTimer) clearTimeout(ownPurchaseResetTimer)
     echo.leaveChannel(roomChannelName)
     if (currentPrivateChannel) echo.leaveChannel(currentPrivateChannel)

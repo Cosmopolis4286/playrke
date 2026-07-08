@@ -1,4 +1,5 @@
 import { ref, watch, onUnmounted } from 'vue'
+import backendClient from '@/js/plugins/axios'
 
 export interface LobbyPlayer {
   user_id: string
@@ -24,11 +25,7 @@ export function useLobbyPlayers(roomRouteKey: string | undefined, totalPlayers: 
     if (playersList.value.length > 0 && !isStale) return
     loading.value = true
     try {
-      const res = await fetch(`/bingo/${roomRouteKey}/lobby-players`, {
-        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-      })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
+      const { data } = await backendClient.get(`/bingo/${roomRouteKey}/lobby-players`)
       playersList.value = data.players ?? []
       lastFetchedAt     = Date.now()
     } catch {

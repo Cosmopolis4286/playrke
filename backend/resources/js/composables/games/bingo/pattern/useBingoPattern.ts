@@ -43,8 +43,7 @@ export function useBingoPattern(): UseBingoPatternReturn {
                 bingoPatterns.value = response.data.data
             }
             return true
-        } catch (error) {
-            console.error(error)
+        } catch {
             showToast('Error al cargar los patrones', 'error')
             return false
         } finally {
@@ -70,7 +69,6 @@ export function useBingoPattern(): UseBingoPatternReturn {
             reset()
             return true
         } catch (error: any) {
-            console.error(error)
             showToast(error?.response?.data?.message ?? 'Error al guardar el patrón', 'error')
             return false
         } finally {
@@ -96,8 +94,7 @@ export function useBingoPattern(): UseBingoPatternReturn {
                 status:          data.data.status,
             }
             return true
-        } catch (error) {
-            console.error(error)
+        } catch {
             showToast('Error al cargar el patrón', 'error')
             return false
         } finally {
