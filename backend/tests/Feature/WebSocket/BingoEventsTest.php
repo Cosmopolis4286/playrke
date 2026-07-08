@@ -2,11 +2,11 @@
 
 namespace Tests\Feature\WebSocket;
 
-use App\Events\Games\Bingo\BingoNumberCalled;
-use App\Events\Games\Bingo\BingoGameStarted;
-use App\Events\Games\Bingo\BingoGameEnded;
-use App\Events\Games\Bingo\BingoWinnerDeclared;
-use App\Events\Games\Bingo\BingoPlayerJoined;
+use App\Domains\Games\Bingo\Events\BingoNumberCalled;
+use App\Domains\Games\Bingo\Events\BingoGameStarted;
+use App\Domains\Games\Bingo\Events\BingoGameEnded;
+use App\Domains\Games\Bingo\Events\BingoWinnerDeclared;
+use App\Domains\Games\Bingo\Events\BingoPlayerJoined;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;

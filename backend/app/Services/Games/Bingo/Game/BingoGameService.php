@@ -208,7 +208,7 @@ final class BingoGameService
         ]);
 
         // Emitir evento para sincronizar el tiempo con todos los clientes conectados
-        broadcast(new \App\Events\Games\Bingo\RoomTimeSync($room->id, $unixDate))->toOthers();
+        broadcast(new \App\Domains\Games\Bingo\Events\RoomTimeSync($room->id, $unixDate))->toOthers();
 
         return [
             'startTime'       => $unixDate,

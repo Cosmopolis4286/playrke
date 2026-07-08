@@ -10,10 +10,10 @@ use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
-use App\Events\Games\Bingo\BingoGameEnded;
-use App\Events\Games\Bingo\BingoGameStarted;
-use App\Events\Games\Bingo\BingoNumberCalled;
-use App\Events\Games\Bingo\BingoWinnerDeclared;
+use App\Domains\Games\Bingo\Events\BingoGameEnded;
+use App\Domains\Games\Bingo\Events\BingoGameStarted;
+use App\Domains\Games\Bingo\Events\BingoNumberCalled;
+use App\Domains\Games\Bingo\Events\BingoWinnerDeclared;
 use App\Domains\Platform\WinEvent\Services\WinEventService;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\ExchangeRate;
@@ -365,7 +365,7 @@ final class BingoDrawService
         // Ordenar por menor cantidad de fichas faltantes (más cerca de ganar primero)
         usort($players, fn($a, $b) => $a['missing'] <=> $b['missing']);
 
-        broadcast(new \App\Events\Games\Bingo\BingoPlayersProgress((int) $room->id, $players));
+        broadcast(new \App\Domains\Games\Bingo\Events\BingoPlayersProgress((int) $room->id, $players));
     }
 
     private function detectWinnerAndEnd(
@@ -700,7 +700,40 @@ final class BingoDrawService
             }
         }
 
-        $usdAmount = (float) ($room->prize_pool ?? 0);
+        // Rondas de tipo OTHER son premios físicos — sin monto monetario
+        if ($round->prize_type === 'OTHER') {
+            return ['usd_amount' => 0.0, 'local_amount' => 0.0];
+        }
+
+        $totalUsd = (float) ($room->prize_pool ?? 0);
+
+        // Para rondas PCT, el porcentaje está en bingo_round_prizes.prize_value (sin currency_id)
+        if ($round->prize_type === 'PCT') {
+            if (!$round->relationLoaded('prizes')) {
+                $round->load('prizes');
+            }
+            $pctEntry = $round->prizes->firstWhere('currency_id', null);
+            if ($pctEntry) {
+                $pct = (float) $pctEntry->prize_value;
+            } else {
+                // Fallback 1: rounds_pct del config ÷ número de rondas
+                // Fallback 2: división igualitaria del 100%
+                $totalRounds = max(1, (int) ($room->config?->rounds ?? 1));
+                $pct = $room->config?->rounds_pct !== null
+                    ? (float) $room->config->rounds_pct / $totalRounds
+                    : (100.0 / $totalRounds);
+
+                Log::warning('[BingoDrawService] Ronda PCT sin entrada en bingo_round_prizes — usando fallback', [
+                    'round_id'     => $round->id,
+                    'room_id'      => $room->id,
+                    'fallback_pct' => $pct,
+                ]);
+            }
+            $usdAmount = round($totalUsd * ($pct / 100.0), 4);
+        } else {
+            $totalRounds = max(1, (int) ($room->config?->rounds ?? 1));
+            $usdAmount   = round($totalUsd / $totalRounds, 4);
+        }
 
         return ['usd_amount' => $usdAmount, 'local_amount' => $this->convertToLocal($usdAmount, (string) $card->currency_id)];
     }

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Events\Games\Bingo;
+namespace App\Domains\Games\Bingo\Events;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;

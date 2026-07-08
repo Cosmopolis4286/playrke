@@ -86,10 +86,11 @@ class BingoRoomCrudService
             $dto = $isCreate ? $roomOrDto : $updateDto;
 
             try {
-                // Definir ID del estado de la sala
-                $statusCode = $dto->activateRoom ? 'ACTIVE' : 'INACTIVE';
-                $statusId = GameStatus::where('code', $statusCode)->value('id');
-                $activeStatusId = GameStatus::where('code', 'ACTIVE')->value('id');
+                // Una sola query cacheada para todos los status IDs necesarios
+                $statusMap    = GameStatus::codesMap(['ACTIVE', 'INACTIVE', 'IN_PROGRESS', 'FINISHED', 'CANCELLED']);
+                $statusCode   = $dto->activateRoom ? 'ACTIVE' : 'INACTIVE';
+                $statusId     = $statusMap[$statusCode] ?? null;
+                $activeStatusId = $statusMap['ACTIVE'] ?? null;
 
                 // Sala base (crear o usar existente)
                 $room = $isCreate ? $this->createBaseRoom($userId, $dto, $statusId) : $roomOrDto;
@@ -97,26 +98,25 @@ class BingoRoomCrudService
                 // Resolver configuración y prize pool
                 ['rkeCommission' => $rkeCommission, 'prizePool' => $prizePool] = $this->resolveGameConfig($dto->prizePoolType, $dto->amountAddedPrizePool);
 
-                // Unix timestamp respetando la timezone del creador
-                // Las salas de inicio manual (startMode = MANUAL) no tienen horario: unix_date queda null
-                // hasta que el anfitrión/admin la active manualmente (ver activateNow()).
                 $previousStartMode = $room->loadMissing('config')->config?->start_mode ?? 'SCHEDULED';
                 $startMode = $dto->startMode ?? $previousStartMode;
                 $unixDate = null;
                 if ($startMode === 'SCHEDULED' && $dto->date && $dto->time) {
-                    $normalizedTime = substr($dto->time, 0, 5); // strip seconds if present (H:i:s → H:i)
+                    $normalizedTime = substr($dto->time, 0, 5);
                     $dateTime = "{$dto->date} {$normalizedTime}";
                     $creatorTz = $this->resolveCreatorTimezone($userId);
                     $unixDate = Carbon::createFromFormat('Y-m-d H:i', $dateTime, $creatorTz)->timestamp;
                 }
 
-                // Estado previo de la sala (para detectar transición de/hacia ACTIVE)
-                // En creación, la sala aún no tenía estado: se considera "no activa".
                 $wasActive = !$isCreate && (string) $room->status_id === (string) $activeStatusId;
 
-                // No sobreescribir prize_pool si el juego está activo o en estado terminal
-                $lockedStatuses = $isCreate ? [] : GameStatus::whereIn('code', ['IN_PROGRESS', 'FINISHED', 'CANCELLED'])->pluck('id')->all();
-                $dataToUpdate = (!$isCreate && in_array($room->status_id, $lockedStatuses))
+                // No sobreescribir prize_pool si el juego está en estado terminal
+                $lockedIds    = array_values(array_filter([
+                    $statusMap['IN_PROGRESS'] ?? null,
+                    $statusMap['FINISHED']    ?? null,
+                    $statusMap['CANCELLED']   ?? null,
+                ]));
+                $dataToUpdate = (!$isCreate && in_array($room->status_id, $lockedIds))
                     ? []
                     : ['prize_pool' => $prizePool];
 
@@ -188,7 +188,7 @@ class BingoRoomCrudService
                 // Broadcast de actualización en tiempo real para clientes activos
                 $freshRoom = $room->fresh(['config']);
                 if ($freshRoom && $statusCode === 'ACTIVE') {
-                    broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
+                    broadcast(new \App\Domains\Games\Bingo\Events\BingoRoomUpdated(
                         roomId:       (string) $room->uuid_code,
                         prizePool:    (float)  $room->prize_pool,
                         totalPlayers: (int)    $room->total_players,
@@ -500,9 +500,9 @@ class BingoRoomCrudService
     private function broadcastLobbyStatusChange(BingoRoom $room, bool $isActive, bool $wasActive): void
     {
         $action = match (true) {
-            $isActive && !$wasActive => \App\Events\Games\Bingo\BingoLobbyRoomChanged::ACTION_ACTIVATED,
-            !$isActive && $wasActive => \App\Events\Games\Bingo\BingoLobbyRoomChanged::ACTION_DEACTIVATED,
-            $isActive                => \App\Events\Games\Bingo\BingoLobbyRoomChanged::ACTION_UPDATED,
+            $isActive && !$wasActive => \App\Domains\Games\Bingo\Events\BingoLobbyRoomChanged::ACTION_ACTIVATED,
+            !$isActive && $wasActive => \App\Domains\Games\Bingo\Events\BingoLobbyRoomChanged::ACTION_DEACTIVATED,
+            $isActive                => \App\Domains\Games\Bingo\Events\BingoLobbyRoomChanged::ACTION_UPDATED,
             default                  => null,
         };
 
@@ -516,11 +516,11 @@ class BingoRoomCrudService
         }
 
         // Notifica a los clientes en /bingo/game-rooms (lobby global)
-        broadcast(new \App\Events\Games\Bingo\BingoLobbyRoomChanged($freshRoom, $action));
+        broadcast(new \App\Domains\Games\Bingo\Events\BingoLobbyRoomChanged($freshRoom, $action));
 
         // Notifica también a los clientes en el lobby individual de la sala
         // (bingo.room.{id}) para que actualicen el status_code en tiempo real.
-        broadcast(new \App\Events\Games\Bingo\BingoRoomUpdated(
+        broadcast(new \App\Domains\Games\Bingo\Events\BingoRoomUpdated(
             roomId:       (string) $freshRoom->id,
             prizePool:    (float)  $freshRoom->prize_pool,
             totalPlayers: (int)    $freshRoom->total_players,
@@ -835,20 +835,45 @@ class BingoRoomCrudService
                         'user_id'     => $lot->user_id,
                         'currency_id' => $lot->currency_id,
                     ]);
+
+                    \App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure::create([
+                        'room_id'       => $room->id,
+                        'lot_id'        => $lot->id,
+                        'user_id'       => $lot->user_id,
+                        'currency_id'   => $lot->currency_id,
+                        'amount'        => $amount,
+                        'error_message' => 'Wallet no encontrada o inactiva',
+                        'status'        => 'PENDING',
+                    ]);
                     continue;
                 }
 
-                $this->walletService->recordPrize(
+                $this->walletService->recordRefund(
                     wallet:      $wallet,
                     amount:      $amount,
                     gameId:      (string) $room->id,
                     description: "Reembolso Bingo — Sala cancelada #{$room->id}",
                 );
+
+                \App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure::where('lot_id', $lot->id)
+                    ->where('room_id', $room->id)
+                    ->whereNull('resolved_at')
+                    ->update(['resolved_at' => now(), 'status' => 'RESOLVED']);
             } catch (\Throwable $e) {
                 Log::error('[BingoRoomCrudService] Error al reembolsar cartón — pendiente de reintento manual', [
                     'room_id' => $room->id,
                     'lot_id'  => $lot->id,
                     'error'   => $e->getMessage(),
+                ]);
+
+                \App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure::create([
+                    'room_id'       => $room->id,
+                    'lot_id'        => $lot->id,
+                    'user_id'       => $lot->user_id,
+                    'currency_id'   => $lot->currency_id,
+                    'amount'        => $amount,
+                    'error_message' => $e->getMessage(),
+                    'status'        => 'PENDING',
                 ]);
             }
         }

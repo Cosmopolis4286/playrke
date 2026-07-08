@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Events\Games\Bingo\BingoRoomUpdated;
+use App\Domains\Games\Bingo\Events\BingoRoomUpdated;
 
 class BroadcastTest extends Command
 {

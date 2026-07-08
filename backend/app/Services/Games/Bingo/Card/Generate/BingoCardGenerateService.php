@@ -4,7 +4,7 @@ namespace App\Services\Games\Bingo\Card\Generate;
 
 use App\Domains\Games\Bingo\DTOs\Card\Generate\{BingoCardGenerateContexDTO, BingoCardGenerateDTO};
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
-use App\Events\Games\Bingo\BingoCardSold;
+use App\Domains\Games\Bingo\Events\BingoCardSold;
 use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Roles\Commerce;
@@ -666,7 +666,7 @@ final class BingoCardGenerateService
             return null;
         }
 
-        $event = new \App\Events\Games\Bingo\BingoRoomUpdated(
+        $event = new \App\Domains\Games\Bingo\Events\BingoRoomUpdated(
             roomId:       (string) $fresh->id,
             prizePool:    (float)  $fresh->prize_pool,
             totalPlayers: (int)    $fresh->total_players,
@@ -694,7 +694,7 @@ final class BingoCardGenerateService
             return;
         }
 
-        broadcast(new \App\Events\Games\Bingo\BingoPlayerRoomCardsUpdated(
+        broadcast(new \App\Domains\Games\Bingo\Events\BingoPlayerRoomCardsUpdated(
             userId:         (string) $userId,
             roomId:         (string) $roomId,
             ctns:           (int) $totalCtns,

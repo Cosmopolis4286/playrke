@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Events\Games\Bingo;
+namespace App\Domains\Games\Bingo\Events;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use Illuminate\Broadcasting\Channel;
