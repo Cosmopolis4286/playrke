@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs\Games\Bingo\Game;
+namespace App\Domains\Games\Bingo\DTOs\Game;
 
 /**
  * Precio del cartón y datos de moneda resueltos para un jugador específico,

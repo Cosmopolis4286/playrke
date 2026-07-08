@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs\Games\Bingo\Room\Automatic;
+namespace App\Domains\Games\Bingo\DTOs\Room\Automatic;
 
 /**
  * DTO para la creación de una Sala de Bingo Automática.

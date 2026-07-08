@@ -2,13 +2,15 @@
 
 namespace App\Services\Games\Bingo\Room;
 
-use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
-use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
+use App\Domains\Games\Bingo\DTOs\Room\BingoRoomCreateDTO;
+use App\Domains\Games\Bingo\DTOs\Room\BingoRoomUpdateDTO;
 use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
 use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAudit;
+use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Models\Round\BingoRoundPrize;
@@ -16,9 +18,11 @@ use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Utils\GameConfig;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Services\ExchangeRate\ExchangeRateDomainService;
+use App\Services\WalletService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -37,6 +41,8 @@ class BingoRoomCrudService
         private readonly \App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface $bingoRooms,
         private readonly \App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface $bingoCardPrices,
         private readonly ExchangeRateDomainService $exchangeRateService,
+        private readonly WalletService $walletService,
+        private readonly WalletRepositoryInterface $walletRepository,
     ) {}
 
     /**
@@ -108,8 +114,11 @@ class BingoRoomCrudService
                 // En creación, la sala aún no tenía estado: se considera "no activa".
                 $wasActive = !$isCreate && (string) $room->status_id === (string) $activeStatusId;
 
-                // Datos a actualizar
-                $dataToUpdate = ['prize_pool' => $prizePool];
+                // No sobreescribir prize_pool si el juego está activo o en estado terminal
+                $lockedStatuses = $isCreate ? [] : GameStatus::whereIn('code', ['IN_PROGRESS', 'FINISHED', 'CANCELLED'])->pluck('id')->all();
+                $dataToUpdate = (!$isCreate && in_array($room->status_id, $lockedStatuses))
+                    ? []
+                    : ['prize_pool' => $prizePool];
 
                 // Solo si hubo cambio del estado de la sala
                 if ($room->status_id != $statusId) {
@@ -162,14 +171,16 @@ class BingoRoomCrudService
                         ->update(['creator_commission' => $dto->roomCommission]);
                 }
 
-                // Sincronizar precios de cartones
-                $this->syncCardPrices(
-                    $room->id,
-                    $dto->allowedCurrencies,
-                    $dto->cardPriceUsd ?? 0,
-                    $dto->cardPriceByCurrency ?? [],
-                    $userId,
-                );
+                // Solo sincronizar precios si la clave vino en el request
+                if ($dto->allowedCurrencies !== null) {
+                    $this->syncCardPrices(
+                        $room->id,
+                        $dto->allowedCurrencies,
+                        $dto->cardPriceUsd ?? 0,
+                        $dto->cardPriceByCurrency ?? [],
+                        $userId,
+                    );
+                }
 
                 // Sincronizar rondas (necesita el config ID para room_config_id)
                 $this->syncRounds($room->id, $config->id, $dto->roundsConfig ?? []);
@@ -245,7 +256,6 @@ class BingoRoomCrudService
             'date'                  => $dto->date,
             'time'                  => $dto->time,
             'startMode'             => $dto->startMode,
-            'minCardsToStart'       => $dto->minCardsToStart,
             'roomType'              => $dto->roomType,
             'gameMode'              => $dto->gameMode,
             'gameVariant'           => $dto->gameVariant,
@@ -268,6 +278,11 @@ class BingoRoomCrudService
             'activateRoom'          => $dto->activateRoom,
             'roomsPerCurrency'      => false,
             'isSplitRoom'           => true,
+            'allowCustomCard'       => $dto->allowCustomCard,
+            'allowSpecialCard'      => $dto->allowSpecialCard,
+            'customCardPricePct'    => $dto->customCardPricePct,
+            'maxSpecialCards'       => $dto->maxSpecialCards,
+            'minCardsToStart'       => $dto->minCardsToStart,
         ]);
     }
 
@@ -386,15 +401,18 @@ class BingoRoomCrudService
         // (autónomo o manual). null = sin condición. Editable en creación y actualización.
         $base['min_cards_to_start'] = $dto->minCardsToStart;
 
-        if ($isCreate) {
-            $base['room_id']      = $roomId;
-            $base['is_scheduled']     = 'N';
-            $base['creator_user_id'] = $userId;
-            $base['in_live']      = 'N';
-            // from_house = Y si el creador es admin o superadmin; N para commerce/customer
-            $base['from_house']   = $this->resolveFromHouse($userId);
+        // En update, omitir allowed_currencies si no vino en el request (null = no modificar)
+        if ($dto->allowedCurrencies === null && !$isCreate) {
+            unset($base['allowed_currencies']);
         }
-        // En update: from_house nunca se modifica — es inmutable tras la creación
+
+        if ($isCreate) {
+            $base['room_id']         = $roomId;
+            $base['is_scheduled']    = 'N';
+            $base['creator_user_id'] = $userId;
+            $base['in_live']         = 'N';
+            $base['from_house']      = $this->resolveFromHouse($userId);
+        }
 
         return $base;
     }
@@ -770,14 +788,70 @@ class BingoRoomCrudService
             throw BingoRoomException::expiredRoomStatusLocked();
         }
 
-        // Cambiar estado a CANCELLED
-        $result = $this->bingoRooms->changeGameStatus($room->id, 'CANCELLED');
+        // Cambiar estado a CANCELLED primero (transacción propia)
+        $changed = DB::transaction(fn() => $this->bingoRooms->changeGameStatus($room->id, 'CANCELLED'));
 
-        if ($result) {
-            $this->broadcastLobbyStatusChange($room, false, true);
+        if (!$changed) {
+            return false;
         }
 
-        return $result;
+        $this->broadcastLobbyStatusChange($room, false, true);
+
+        // Reembolsar cartones fuera de la transacción de estado.
+        // Cada lot se reembolsa independientemente; un fallo en uno no revierte
+        // el CANCELLED ya comprometido — los fallos quedan en el log para reintentar.
+        $this->refundCardLotsForRoom($room);
+
+        return true;
+    }
+
+    /**
+     * Reembolsa los cartones comprados en una sala cancelada.
+     * Itera todos los BingoCardLots activos, localiza la wallet del comprador
+     * en la moneda correspondiente y acredita el sale_amount.
+     */
+    private function refundCardLotsForRoom(BingoRoom $room): void
+    {
+        $lots = BingoCardLot::where('room_id', $room->id)
+            ->where('status', 'ACTIVE')
+            ->get();
+
+        foreach ($lots as $lot) {
+            $amount = (float) $lot->sale_amount;
+            if ($amount <= 0) {
+                continue;
+            }
+
+            try {
+                $wallet = $this->walletRepository->findWalletByUserAndCurrency(
+                    (string) $lot->user_id,
+                    (string) $lot->currency_id,
+                );
+
+                if (!$wallet || !$wallet->isActive()) {
+                    Log::warning('[BingoRoomCrudService] Reembolso omitido: wallet no encontrada o inactiva', [
+                        'room_id'     => $room->id,
+                        'lot_id'      => $lot->id,
+                        'user_id'     => $lot->user_id,
+                        'currency_id' => $lot->currency_id,
+                    ]);
+                    continue;
+                }
+
+                $this->walletService->recordPrize(
+                    wallet:      $wallet,
+                    amount:      $amount,
+                    gameId:      (string) $room->id,
+                    description: "Reembolso Bingo — Sala cancelada #{$room->id}",
+                );
+            } catch (\Throwable $e) {
+                Log::error('[BingoRoomCrudService] Error al reembolsar cartón — pendiente de reintento manual', [
+                    'room_id' => $room->id,
+                    'lot_id'  => $lot->id,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**

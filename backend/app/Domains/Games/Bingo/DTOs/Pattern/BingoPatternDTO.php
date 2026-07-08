@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs\Games\Bingo\Pattern;
+namespace App\Domains\Games\Bingo\DTOs\Pattern;
 
 use App\DTOs\ContextDTO;
 

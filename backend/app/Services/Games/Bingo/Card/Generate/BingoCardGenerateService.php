@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Card\Generate;
 
-use App\DTOs\Games\Bingo\Card\Generate\{BingoCardGenerateContexDTO, BingoCardGenerateDTO};
+use App\Domains\Games\Bingo\DTOs\Card\Generate\{BingoCardGenerateContexDTO, BingoCardGenerateDTO};
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Events\Games\Bingo\BingoCardSold;
 use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
@@ -536,11 +536,11 @@ final class BingoCardGenerateService
      * Los datos del jugador (teléfono, nombre) vienen del contexto del commerce/seller
      * autenticado — no se requiere formulario de datos del jugador.
      *
-     * @param \App\DTOs\Games\Bingo\Room\BingoRoomPlayerBuyDTO $dto
+     * @param \App\Domains\Games\Bingo\DTOs\Room\BingoRoomPlayerBuyDTO $dto
      * @return array{type: string, message: string, prize_pool?: float, ctns?: int}
      * @throws DomainException
      */
-    public function buyFromGameRooms(\App\DTOs\Games\Bingo\Room\BingoRoomPlayerBuyDTO $dto): array
+    public function buyFromGameRooms(\App\Domains\Games\Bingo\DTOs\Room\BingoRoomPlayerBuyDTO $dto): array
     {
         $userId = (string) $this->userContext->resolveUserId();
         $role   = $this->roleUserService->getActiveUserRolePrefix((int) $userId);

@@ -2,8 +2,8 @@
 
 namespace App\Services\Games\Bingo\Room;
 
-use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
-use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
+use App\Domains\Games\Bingo\DTOs\Room\BingoRoomCreateDTO;
+use App\Domains\Games\Bingo\DTOs\Room\BingoRoomUpdateDTO;
 use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Services\Games\Bingo\Room\Utils\CheckExpiredBingoRoomsService;

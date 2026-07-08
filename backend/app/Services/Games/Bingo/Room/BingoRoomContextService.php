@@ -2,8 +2,8 @@
 
 namespace App\Services\Games\Bingo\Room;
 
-use App\DTOs\Games\Bingo\Room\BingoGameRoomsDTO;
-use App\DTOs\Games\Bingo\Room\BingoRoomSummaryDTO;
+use App\Domains\Games\Bingo\DTOs\Room\BingoGameRoomsDTO;
+use App\Domains\Games\Bingo\DTOs\Room\BingoRoomSummaryDTO;
 use App\Models\ExchangeRate;
 use App\Traits\HashedTableDataTrait;
 use DomainException;

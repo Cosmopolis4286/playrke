@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Room\Automatic;
 
-use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticSummaryDTO;
+use App\Domains\Games\Bingo\DTOs\Room\Automatic\BingoRoomAutomaticSummaryDTO;
 use App\Models\ExchangeRate;
 use App\Traits\HashedTableDataTrait;
 use DomainException;

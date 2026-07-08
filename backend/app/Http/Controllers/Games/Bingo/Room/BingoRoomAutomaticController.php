@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Games\Bingo\Room;
 
 use App\Http\Controllers\Controller;
 
-use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticCreateDTO;
+use App\Domains\Games\Bingo\DTOs\Room\Automatic\BingoRoomAutomaticCreateDTO;
 use App\Services\Games\Bingo\Room\Automatic\AutoGenerateBingoRoomsService;
-use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticUpdateDTO;
+use App\Domains\Games\Bingo\DTOs\Room\Automatic\BingoRoomAutomaticUpdateDTO;
 use App\Http\Requests\Games\Bingo\Room\Automatic\BingoRoomAutomaticRequest;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
 use Illuminate\Http\JsonResponse;

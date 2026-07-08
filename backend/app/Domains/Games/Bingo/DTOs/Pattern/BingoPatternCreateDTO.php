@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs\Games\Bingo\Pattern;
+namespace App\Domains\Games\Bingo\DTOs\Pattern;
 
 /**
  * Data Transfer Object para la creación de un Patrón de Bingo.

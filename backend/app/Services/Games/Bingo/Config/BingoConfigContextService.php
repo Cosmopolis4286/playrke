@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Config;
 
-use App\DTOs\Games\Bingo\Config\BingoConfigDTO;
+use App\Domains\Games\Bingo\DTOs\Config\BingoConfigDTO;
 use App\Contracts\Games\Common\Utils\GameRuleRepositoryInterface;
 use App\Models\Game;
 use App\Traits\HashedTableDataTrait;

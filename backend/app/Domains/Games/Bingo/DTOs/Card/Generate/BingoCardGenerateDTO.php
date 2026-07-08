@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs\Games\Bingo\Card\Generate;
+namespace App\Domains\Games\Bingo\DTOs\Card\Generate;
 
 /**
  * DTO inmutable para la generación de cartones de Bingo por vendedor.

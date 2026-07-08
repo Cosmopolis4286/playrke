@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs\Games\Bingo\Card\Generate;
+namespace App\Domains\Games\Bingo\DTOs\Card\Generate;
 
 use App\DTOs\ContextDTO;
 use Illuminate\Support\Collection;

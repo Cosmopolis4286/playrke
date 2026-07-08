@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs\Games\Bingo\Room;
+namespace App\Domains\Games\Bingo\DTOs\Room;
 
 /**
  * Data Transfer Object para la actualización de una Sala de Bingo.
@@ -44,8 +44,10 @@ final class BingoRoomUpdateDTO
 
     public static function fromArray(array $data): self
     {
-        // Normalizar allowedCurrencies: array de strings
-        $allowedCurrencies = array_map('strval', array_values((array) ($data['allowedCurrencies'] ?? [])));
+        // null → clave ausente (no modificar); [] → borrar todas las monedas
+        $allowedCurrencies = array_key_exists('allowedCurrencies', $data)
+            ? array_map('strval', array_values((array) $data['allowedCurrencies']))
+            : null;
 
         // Normalizar cardPriceByCurrency: array de monedas a precios
         $cardPriceByCurrency = is_array($data['cardPriceByCurrency'] ?? null)

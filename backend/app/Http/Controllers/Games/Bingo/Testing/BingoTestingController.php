@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Games\Bingo\Testing;
 
-use App\DTOs\Games\Bingo\Card\BingoCardGenerateDTO;
+use App\Domains\Games\Bingo\DTOs\Card\Generate\BingoCardGenerateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Card\BingoCardGenerateRequest;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;

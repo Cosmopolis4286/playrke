@@ -4,12 +4,14 @@ namespace App\Services\Games\Bingo\Room\Automatic;
 
 use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface;
 use App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface;
-use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
+use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Games\Bingo\DTOs\Room\BingoRoomCreateDTO;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Services\ExchangeRate\ExchangeRateDomainService;
 use App\Services\Games\Bingo\Room\BingoRoomCrudService;
+use App\Services\WalletService;
 use App\Models\Games\Common\Utils\GameStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -43,8 +45,10 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
         BingoRoomRepositoryInterface $bingoRooms,
         BingoCardPriceRepositoryInterface $bingoCardPrices,
         ExchangeRateDomainService $exchangeRateService,
+        WalletService $walletService,
+        WalletRepositoryInterface $walletRepository,
     ) {
-        parent::__construct($bingoRooms, $bingoCardPrices, $exchangeRateService);
+        parent::__construct($bingoRooms, $bingoCardPrices, $exchangeRateService, $walletService, $walletRepository);
     }
 
     /**

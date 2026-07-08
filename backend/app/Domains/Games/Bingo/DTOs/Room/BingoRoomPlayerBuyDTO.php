@@ -1,6 +1,6 @@
 <?php
 
-namespace App\DTOs\Games\Bingo\Room;
+namespace App\Domains\Games\Bingo\DTOs\Room;
 
 /**
  * DTO inmutable para la compra de cartones desde la vista game-rooms.

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Games\Bingo\Room;
 
-use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
-use App\DTOs\Games\Bingo\Room\BingoRoomPlayerBuyDTO;
-use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
+use App\Domains\Games\Bingo\DTOs\Room\BingoRoomCreateDTO;
+use App\Domains\Games\Bingo\DTOs\Room\BingoRoomPlayerBuyDTO;
+use App\Domains\Games\Bingo\DTOs\Room\BingoRoomUpdateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Room\BingoRoomPlayerBuyRequest;
 use App\Http\Requests\Games\Bingo\Room\BingoRoomRequest;

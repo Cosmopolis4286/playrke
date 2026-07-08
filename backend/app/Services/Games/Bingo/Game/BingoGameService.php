@@ -6,7 +6,7 @@ use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use App\DTOs\Games\Bingo\Game\PlayerCardPricingDTO;
+use App\Domains\Games\Bingo\DTOs\Game\PlayerCardPricingDTO;
 use App\Models\ExchangeRate;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\Wallet;

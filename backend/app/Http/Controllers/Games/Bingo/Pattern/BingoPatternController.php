@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Games\Bingo\Pattern;
 
-use App\DTOs\Games\Bingo\Pattern\BingoPatternCreateDTO;
-use App\DTOs\Games\Bingo\Pattern\BingoPatternUpdateDTO;
+use App\Domains\Games\Bingo\DTOs\Pattern\BingoPatternCreateDTO;
+use App\Domains\Games\Bingo\DTOs\Pattern\BingoPatternUpdateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Pattern\BingoPatternRequest;
 use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
