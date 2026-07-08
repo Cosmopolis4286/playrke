@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import backendClient from '@/js/plugins/axios'
 import type { BingoRoom } from '@/js/types/games/bingo/room/bingo-room'
 
 interface Props {
@@ -86,11 +87,7 @@ async function openCardViewer(w: WinnerEntry): Promise<void> {
   try {
     // room.id as route key — the controller uses route model binding
     const routeKey = props.room.id
-    const res = await fetch(`/bingo/${routeKey}/card/${w.winning_card_id}`, {
-      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    if (!res.ok) throw new Error('Error cargando cartón')
-    const json = await res.json()
+    const { data: json } = await backendClient.get(`/bingo/${routeKey}/card/${w.winning_card_id}`)
     const card = json.card ?? json.data?.card
     if (card) {
       cardViewerData.value = { serialNumber: card.serialNumber, cardMatrix: card.cardMatrix }

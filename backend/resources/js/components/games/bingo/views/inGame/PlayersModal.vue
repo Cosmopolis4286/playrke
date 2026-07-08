@@ -66,7 +66,6 @@ function toRowMatrix(cardNumbers: Record<string, (number | null)[]> | number[][]
   // Columnas dinámicas: funciona con BINGO_75, 90, 80, 30
   const cols = Object.keys(obj)
   if (!cols.length) {
-    console.warn('[PlayersModal] toRowMatrix: cardMatrix vacía', cardNumbers)
     return { matrix: [], cols: [] }
   }
   const numRows = obj[cols[0]]?.length ?? 0

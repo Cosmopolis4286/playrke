@@ -154,8 +154,8 @@ async function fetchHistory(page = 1) {
     })
     history.value = data.props?.history ?? data.history ?? []
     meta.value    = data.props?.pagination ?? data.pagination ?? meta.value
-  } catch (e) {
-    console.error('[my-games] Error cargando historial:', e)
+  } catch {
+    // silencioso — tabla queda vacía
   } finally {
     loading.value = false
   }
@@ -181,8 +181,8 @@ async function openDetail(row: GameHistoryRow) {
     if (detail.value?.player_cards.some(c => c.is_winner)) {
       activeCardTab.value = 'winners'
     }
-  } catch (e) {
-    console.error('[my-games] Error cargando detalle:', e)
+  } catch {
+    showDetail.value = false
   } finally {
     detailLoading.value = false
   }

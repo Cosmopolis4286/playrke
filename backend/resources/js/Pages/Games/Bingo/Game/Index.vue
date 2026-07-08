@@ -19,6 +19,7 @@ import { getBingoVariantDef }    from '@js/modules/games/bingo/utils/bingoVarian
 import type { WinnerEntry, GameEndData, PlayerProgress } from '@js/Components/Games/Bingo/views/inGame/types'
 import type { GameEndedEvent }   from '@js/composables/games/bingo/game/useBingoGameEcho'
 import Swal from 'sweetalert2'
+import { SWAL_DARK } from '@js/utils/swal'
 import backendClient from '@/js/plugins/axios'
 
 useAntiDebug()
@@ -153,7 +154,7 @@ const fakeRoom = computed(() => ({
 
 const { init: initCountdown, getCountdown, stop: stopCountdown, syncTime, updateRoomTime } =
   useGameRoomCountdown(Date.now(), () => {
-    if (!currentUnixDate.value || liveDrawn.value.length > 0 || isFinished.value) return
+    if (!currentUnixDate.value || liveDrawn.value.length > 0 || isFinished.value || gameStarted.value) return
     gameStarted.value = true
     scheduleDrawStart()
   })
@@ -217,8 +218,7 @@ const { handleBingoDetected } = useBingoDetection({
       icon: 'warning',
       timer: 5000,
       showConfirmButton: false,
-      background: '#1a1f3a',
-      color: '#fff',
+      ...SWAL_DARK,
     })
   },
 })
@@ -226,7 +226,7 @@ const { handleBingoDetected } = useBingoDetection({
 // ─────────────────────────────────────────────────────────────────────────────
 // WebSocket
 // ─────────────────────────────────────────────────────────────────────────────
-const { subscribe, unsubscribe } = useBingoGameEcho({
+const { subscribe, unsubscribe, resetCalledNumbers } = useBingoGameEcho({
   roomId,
   userId: props.userId,
   syncTime,
@@ -265,8 +265,7 @@ async function devResetTime() {
       cancelButtonText:    'Cancelar',
       confirmButtonColor:  '#7b4fff',
       cancelButtonColor:   '#6c757d',
-      background: '#1a1f3a',
-      color:      '#fff',
+      ...SWAL_DARK,
     })
     if (!result.isConfirmed) return
   }
@@ -276,6 +275,7 @@ async function devResetTime() {
     const { data } = await backendClient.post(`/bingo/${routeKey.value}/dev-reset-time`)
     if (data.startTime) {
       clearDrawTimer()
+      resetCalledNumbers()
       liveDrawn.value       = []
       gameStarted.value     = false
       gameEndData.value     = null
@@ -285,10 +285,10 @@ async function devResetTime() {
       if (modalDismissKey.value) sessionStorage.removeItem(modalDismissKey.value)
       currentUnixDate.value = data.startTime
       initCountdown([{ id: roomId.value, config: { unix_date: data.startTime } } as any])
-      Swal.fire({ title: '¡Sorteo iniciado!', text: 'El sorteo ha sido regenerado exitosamente.', icon: 'success', timer: 2000, showConfirmButton: false, background: '#1a1f3a', color: '#fff' })
+      Swal.fire({ title: '¡Sorteo iniciado!', text: 'El sorteo ha sido regenerado exitosamente.', icon: 'success', timer: 2000, showConfirmButton: false, ...SWAL_DARK })
     }
   } catch {
-    Swal.fire({ title: 'Error', text: 'No se pudo regenerar el sorteo.', icon: 'error', background: '#1a1f3a', color: '#fff' })
+    Swal.fire({ title: 'Error', text: 'No se pudo regenerar el sorteo.', icon: 'error', ...SWAL_DARK })
   } finally {
     devResetting.value = false
   }

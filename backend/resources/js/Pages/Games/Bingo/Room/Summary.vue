@@ -42,7 +42,7 @@
   /** Verifica si el usuario es admin o superadmin usando props de Inertia */
   const isAdmin = computed(() => {
     const userRoles = page.props.auth?.user?.userRoles || [];
-    return userRoles.some((ur: any) =>
+    return userRoles.some((ur: { role?: { prefix?: string } }) =>
       ur.role?.prefix === 'admin' || ur.role?.prefix === 'superadmin'
     );
   });

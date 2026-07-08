@@ -26,6 +26,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import Swal from 'sweetalert2'
+import { SWAL_DARK } from '@js/utils/swal'
 import CardHeader from '@js/components/utils/CardHeader.vue'
 import CurrencyTabs from '@js/components/utils/CurrencyTabs.vue'
 import BtnGroup from '@js/components/utils/BtnGroup.vue'
@@ -68,7 +70,13 @@ async function loadRooms() {
     const { data } = await backendClient.get<{ data: SummaryRoom[] }>('/bingo-rooms/fetch-list')
     rooms.value = data.data ?? []
   } catch {
-    // silencioso — tabla queda vacía
+    Swal.fire({
+      title: 'Error al cargar salas',
+      text: 'No se pudo obtener la lista de salas. Intenta recargar la página.',
+      icon: 'error',
+      confirmButtonText: 'Aceptar',
+      ...SWAL_DARK,
+    })
   } finally {
     loading.value = false
   }

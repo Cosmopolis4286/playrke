@@ -428,10 +428,13 @@ watch(() => props.drawnNumbers, (next, prev) => {
     if (anyHit) playSelect();
   }
 
+  const newBingoSet = new Set(bingoSet.value);
+  let anyNew = false;
   for (const card of props.cartons) {
-    if (bingoSet.value.has(card.id)) continue;
+    if (newBingoSet.has(card.id)) continue;
     if (fullBingo(card)) {
-      bingoSet.value.add(card.id);
+      newBingoSet.add(card.id);
+      anyNew = true;
       // No disparar sonido/evento en la hidratación inicial
       if (prev !== undefined) {
         playWinner();
@@ -439,6 +442,7 @@ watch(() => props.drawnNumbers, (next, prev) => {
       }
     }
   }
+  if (anyNew) bingoSet.value = newBingoSet;
 }, { immediate: true });
 </script>
 

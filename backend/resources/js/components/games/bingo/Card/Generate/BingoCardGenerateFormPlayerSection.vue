@@ -204,8 +204,9 @@
         playerExists.value = false
         emit('update:playerExists', false)
       }
-    } catch (error) {
-      console.error('Error checking external player', error)
+    } catch {
+      playerExists.value = false
+      emit('update:playerExists', false)
     } finally {
       checkingPlayer.value = false
       phoneChecked.value = true
