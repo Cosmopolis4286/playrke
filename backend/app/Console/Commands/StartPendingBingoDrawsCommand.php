@@ -7,7 +7,7 @@ use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
-use App\Jobs\Games\Bingo\StartBingoDrawJob;
+use App\Domains\Games\Bingo\Jobs\StartBingoDrawJob;
 use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
 use Throwable;

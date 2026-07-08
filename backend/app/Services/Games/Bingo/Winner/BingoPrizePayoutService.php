@@ -2,7 +2,6 @@
 
 namespace App\Services\Games\Bingo\Winner;
 
-use App\Contracts\WalletRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrizePayment;
 use App\Services\WalletService;
@@ -20,7 +19,6 @@ use Illuminate\Support\Facades\Log;
 final class BingoPrizePayoutService
 {
     public function __construct(
-        private readonly WalletRepositoryInterface $walletRepository,
         private readonly WalletService $walletService,
     ) {}
 
@@ -36,12 +34,12 @@ final class BingoPrizePayoutService
         $userId = $cardPrize->creator_user_id;
 
         try {
-            $wallet = $this->walletRepository->findWalletByUserAndCurrency(
+            $wallet = $this->walletService->findActiveWallet(
                 (string) $userId,
                 (string) $cardPrize->currency_id,
             );
 
-            if (!$wallet || !$wallet->isActive()) {
+            if (!$wallet) {
                 $this->recordFailedPayment($cardPrize, 'El ganador no tiene billetera activa en la moneda del premio.');
                 return;
             }
@@ -107,7 +105,7 @@ final class BingoPrizePayoutService
             'user_id'         => $cardPrize->creator_user_id,
             'currency_id'     => $cardPrize->currency_id,
             'payment_amount'  => $cardPrize->local_amount,
-            'payment_proof'   => 'system_auto',
+            'payment_proof'   => null,
             'payment_status'  => 'failed',
             'payment_notes'   => $reason,
         ]);

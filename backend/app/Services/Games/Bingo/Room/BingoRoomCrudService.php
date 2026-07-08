@@ -4,6 +4,8 @@ namespace App\Services\Games\Bingo\Room;
 
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomCreateDTO;
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomUpdateDTO;
+use App\Domains\Games\Bingo\Events\BingoLobbyRoomChanged;
+use App\Domains\Games\Bingo\Events\BingoRoomUpdated;
 use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
 use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
@@ -11,6 +13,7 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAudit;
 use App\Contracts\WalletRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
+use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Models\Round\BingoRoundPrize;
@@ -79,13 +82,17 @@ class BingoRoomCrudService
      */
     public function saveRoom(BingoRoom|BingoRoomCreateDTO $roomOrDto, ?BingoRoomUpdateDTO $updateDto = null): bool
     {
-        return DB::transaction(function () use ($roomOrDto, $updateDto) {
+        // Los broadcasts se ejecutan FUERA de la transacción para garantizar que el
+        // commit ya ocurrió antes de notificar a los clientes.
+        $broadcastPayload = null;
 
-            $userId = Auth::id();
-            $isCreate = $roomOrDto instanceof BingoRoomCreateDTO;
-            $dto = $isCreate ? $roomOrDto : $updateDto;
+        try {
+            DB::transaction(function () use ($roomOrDto, $updateDto, &$broadcastPayload) {
 
-            try {
+                $userId = Auth::id();
+                $isCreate = $roomOrDto instanceof BingoRoomCreateDTO;
+                $dto = $isCreate ? $roomOrDto : $updateDto;
+
                 // Una sola query cacheada para todos los status IDs necesarios
                 $statusMap    = GameStatus::codesMap(['ACTIVE', 'INACTIVE', 'IN_PROGRESS', 'FINISHED', 'CANCELLED']);
                 $statusCode   = $dto->activateRoom ? 'ACTIVE' : 'INACTIVE';
@@ -185,27 +192,35 @@ class BingoRoomCrudService
                 // Sincronizar rondas (necesita el config ID para room_config_id)
                 $this->syncRounds($room->id, $config->id, $dto->roundsConfig ?? []);
 
-                // Broadcast de actualización en tiempo real para clientes activos
-                $freshRoom = $room->fresh(['config']);
-                if ($freshRoom && $statusCode === 'ACTIVE') {
-                    broadcast(new \App\Domains\Games\Bingo\Events\BingoRoomUpdated(
-                        roomId:       (string) $room->uuid_code,
-                        prizePool:    (float)  $room->prize_pool,
-                        totalPlayers: (int)    $room->total_players,
-                        cardPriceUsd: (float) ($freshRoom->config?->card_price_usd ?? 0),
-                    ));
-                }
+                // Preparar payload para broadcasts post-transacción
+                $broadcastPayload = [
+                    'room'       => $room,
+                    'statusCode' => $statusCode,
+                    'wasActive'  => $wasActive,
+                    'freshRoom'  => $room->fresh(['config']),
+                ];
+            });
+        } catch (\Throwable $e) {
+            throw new BingoRoomException('Error al guardar la sala: ' . $e->getMessage());
+        }
 
-                // Broadcast al lobby (bingo.lobby): notifica a clientes en /bingo/game-rooms
-                // que la sala pasó a estar disponible, dejó de estarlo, o cambió mientras
-                // estaba activa (para que aparezca/desaparezca/se actualice sin recargar).
-                $this->broadcastLobbyStatusChange($room, $statusCode === 'ACTIVE', $wasActive);
+        // Broadcasts FUERA de la transacción: el commit ya ocurrió
+        if ($broadcastPayload) {
+            ['room' => $room, 'statusCode' => $statusCode, 'wasActive' => $wasActive, 'freshRoom' => $freshRoom] = $broadcastPayload;
 
-                return true;
-            } catch (\Throwable $e) {
-                throw new BingoRoomException('Error al guardar la sala: ' . $e->getMessage());
+            if ($freshRoom && $statusCode === 'ACTIVE') {
+                broadcast(new BingoRoomUpdated(
+                    roomId:       (string) $room->uuid_code,
+                    prizePool:    (float)  $room->prize_pool,
+                    totalPlayers: (int)    $room->total_players,
+                    cardPriceUsd: (float) ($freshRoom->config?->card_price_usd ?? 0),
+                ));
             }
-        });
+
+            $this->broadcastLobbyStatusChange($room, $statusCode === 'ACTIVE', $wasActive);
+        }
+
+        return true;
     }
 
     /**
@@ -500,9 +515,9 @@ class BingoRoomCrudService
     private function broadcastLobbyStatusChange(BingoRoom $room, bool $isActive, bool $wasActive): void
     {
         $action = match (true) {
-            $isActive && !$wasActive => \App\Domains\Games\Bingo\Events\BingoLobbyRoomChanged::ACTION_ACTIVATED,
-            !$isActive && $wasActive => \App\Domains\Games\Bingo\Events\BingoLobbyRoomChanged::ACTION_DEACTIVATED,
-            $isActive                => \App\Domains\Games\Bingo\Events\BingoLobbyRoomChanged::ACTION_UPDATED,
+            $isActive && !$wasActive => BingoLobbyRoomChanged::ACTION_ACTIVATED,
+            !$isActive && $wasActive => BingoLobbyRoomChanged::ACTION_DEACTIVATED,
+            $isActive                => BingoLobbyRoomChanged::ACTION_UPDATED,
             default                  => null,
         };
 
@@ -516,11 +531,11 @@ class BingoRoomCrudService
         }
 
         // Notifica a los clientes en /bingo/game-rooms (lobby global)
-        broadcast(new \App\Domains\Games\Bingo\Events\BingoLobbyRoomChanged($freshRoom, $action));
+        broadcast(new BingoLobbyRoomChanged($freshRoom, $action));
 
         // Notifica también a los clientes en el lobby individual de la sala
         // (bingo.room.{id}) para que actualicen el status_code en tiempo real.
-        broadcast(new \App\Domains\Games\Bingo\Events\BingoRoomUpdated(
+        broadcast(new BingoRoomUpdated(
             roomId:       (string) $freshRoom->id,
             prizePool:    (float)  $freshRoom->prize_pool,
             totalPlayers: (int)    $freshRoom->total_players,
@@ -624,12 +639,14 @@ class BingoRoomCrudService
      */
     protected function syncRounds(string $roomId, string $roomConfigId, array $roundsConfig): void
     {
-        // Eliminar rondas previas (y sus premios en cascada)
-        BingoRound::where('room_id', $roomId)->delete();
-
         if (empty($roundsConfig)) {
+            // Sin config de rondas: eliminar las existentes y salir
+            BingoRound::where('room_id', $roomId)->delete();
             return;
         }
+
+        // Eliminar rondas previas antes de recrear (y sus premios en cascada)
+        BingoRound::where('room_id', $roomId)->delete();
 
         $prizeTypeMap = [
             'percentage' => 'PCT',
@@ -814,7 +831,7 @@ class BingoRoomCrudService
     {
         $lots = BingoCardLot::where('room_id', $room->id)
             ->where('status', 'ACTIVE')
-            ->get();
+            ->cursor();
 
         foreach ($lots as $lot) {
             $amount = (float) $lot->sale_amount;
@@ -823,12 +840,12 @@ class BingoRoomCrudService
             }
 
             try {
-                $wallet = $this->walletRepository->findWalletByUserAndCurrency(
+                $wallet = $this->walletService->findActiveWallet(
                     (string) $lot->user_id,
                     (string) $lot->currency_id,
                 );
 
-                if (!$wallet || !$wallet->isActive()) {
+                if (!$wallet) {
                     Log::warning('[BingoRoomCrudService] Reembolso omitido: wallet no encontrada o inactiva', [
                         'room_id'     => $room->id,
                         'lot_id'      => $lot->id,
@@ -836,7 +853,7 @@ class BingoRoomCrudService
                         'currency_id' => $lot->currency_id,
                     ]);
 
-                    \App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure::create([
+                    BingoLotRefundFailure::create([
                         'room_id'       => $room->id,
                         'lot_id'        => $lot->id,
                         'user_id'       => $lot->user_id,
@@ -855,7 +872,10 @@ class BingoRoomCrudService
                     description: "Reembolso Bingo — Sala cancelada #{$room->id}",
                 );
 
-                \App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure::where('lot_id', $lot->id)
+                // Marcar el lot como REFUNDED para evitar doble reembolso en reintentos
+                $lot->update(['status' => 'REFUNDED']);
+
+                BingoLotRefundFailure::where('lot_id', $lot->id)
                     ->where('room_id', $room->id)
                     ->whereNull('resolved_at')
                     ->update(['resolved_at' => now(), 'status' => 'RESOLVED']);
@@ -866,7 +886,7 @@ class BingoRoomCrudService
                     'error'   => $e->getMessage(),
                 ]);
 
-                \App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure::create([
+                BingoLotRefundFailure::create([
                     'room_id'       => $room->id,
                     'lot_id'        => $lot->id,
                     'user_id'       => $lot->user_id,
@@ -926,7 +946,7 @@ class BingoRoomCrudService
                 'unix_date' => $now->timestamp,
             ]);
 
-            \App\Jobs\Games\Bingo\StartBingoDrawJob::dispatch((string) $room->id)->onQueue('bingo-draw');
+            \App\Domains\Games\Bingo\Jobs\StartBingoDrawJob::dispatch((string) $room->id)->onQueue('bingo-draw');
 
             $this->recordAudit(
                 $room,
@@ -1114,7 +1134,7 @@ class BingoRoomCrudService
             throw BingoRoomException::roomHasPlayers();
         }
 
-        $statusId = GameStatus::where('code', 'DELETED')->value('id');
+        $statusId = GameStatus::codeToId('DELETED');
 
         // Usa softDelete con userRelation para sincronizar BingoRoom
         return $this->bingoRooms->softDelete($room, status: $statusId);

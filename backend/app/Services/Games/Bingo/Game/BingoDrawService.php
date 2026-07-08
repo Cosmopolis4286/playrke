@@ -698,6 +698,14 @@ final class BingoDrawService
 
                 return ['usd_amount' => $usdAmount, 'local_amount' => $localAmount];
             }
+
+            // Sin precio configurado para la moneda del cartón — sin pago monetario
+            Log::warning('[BingoDrawService] Ronda FIXED sin precio para la moneda del cartón ganador', [
+                'round_id'    => $round->id,
+                'room_id'     => $room->id,
+                'currency_id' => $card->currency_id,
+            ]);
+            return ['usd_amount' => 0.0, 'local_amount' => 0.0];
         }
 
         // Rondas de tipo OTHER son premios físicos — sin monto monetario

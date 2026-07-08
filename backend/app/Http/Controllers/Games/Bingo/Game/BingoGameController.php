@@ -267,9 +267,9 @@ final class BingoGameController extends Controller
                     // BingoDrawService usa CHIP_INTERVAL_DEV = 0 en local, así que
                     // el sorteo completo termina en segundos sin bloquear mucho.
                     @set_time_limit(120);
-                    \App\Jobs\Games\Bingo\StartBingoDrawJob::dispatchSync((string) $roomId);
+                    \App\Domains\Games\Bingo\Jobs\StartBingoDrawJob::dispatchSync((string) $roomId);
                 } else {
-                    \App\Jobs\Games\Bingo\StartBingoDrawJob::dispatch((string) $roomId)->onQueue('bingo-draw');
+                    \App\Domains\Games\Bingo\Jobs\StartBingoDrawJob::dispatch((string) $roomId)->onQueue('bingo-draw');
                 }
 
                 return [

@@ -30,9 +30,10 @@ class RetryFailedBingoRefundsCommand extends Command
                 ->get();
 
             foreach ($failures as $failure) {
-                $failure->increment('attempts');
-                $failure->last_attempted_at = now();
-                $failure->save();
+                $failure->update([
+                    'attempts'          => $failure->attempts + 1,
+                    'last_attempted_at' => now(),
+                ]);
 
                 try {
                     $wallet = $walletRepository->findWalletByUserAndCurrency(

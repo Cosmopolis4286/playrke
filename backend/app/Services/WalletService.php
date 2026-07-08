@@ -9,6 +9,9 @@ use App\Events\Wallet\WalletMovementRequested;
 use App\Models\Directories\Crypto\Binance\BinanceAccounts;
 use App\Models\Directories\Fiat\Brazil\PixKey;
 use App\Models\Directories\Fiat\Venezuela\PagoMovil;
+use App\Jobs\Wallet\DispatchWalletNotificationJob;
+use App\Models\Currency;
+use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletMovement;
 use App\Services\NotificationService;
@@ -385,17 +388,14 @@ final class WalletService
         string $description = 'Premio ganado',
         string $prizeType = WalletMovement::PRIZE_TYPE_DIGITAL,
     ): WalletMovement {
-        $movement = null;
-
-        DB::transaction(function () use ($wallet, $amount, $description, $gameId, $prizeType, &$movement) {
-            $walletId = (string) $wallet->id;
-
+        $movement = DB::transaction(function () use ($wallet, $amount, $description, $gameId, $prizeType) {
+            $walletId      = (string) $wallet->id;
             $balanceBefore = (float) $wallet->balance;
 
             $this->walletRepository->incrementBalance($walletId, $amount);
             $wallet->refresh();
 
-            $movement = $this->movementRepository->record([
+            return $this->movementRepository->record([
                 'wallet_id'      => $walletId,
                 'user_id'        => (string) $wallet->user_id,
                 'type'           => WalletMovement::TYPE_PRIZE,
@@ -457,16 +457,14 @@ final class WalletService
         string $gameId,
         string $description = 'Reembolso',
     ): WalletMovement {
-        $movement = null;
-
-        DB::transaction(function () use ($wallet, $amount, $gameId, $description, &$movement) {
+        $movement = DB::transaction(function () use ($wallet, $amount, $gameId, $description) {
             $walletId      = (string) $wallet->id;
             $balanceBefore = (float) $wallet->balance;
 
             $this->walletRepository->incrementBalance($walletId, $amount);
             $wallet->refresh();
 
-            $movement = $this->movementRepository->record([
+            return $this->movementRepository->record([
                 'wallet_id'      => $walletId,
                 'user_id'        => (string) $wallet->user_id,
                 'type'           => WalletMovement::TYPE_REFUND,
@@ -489,7 +487,7 @@ final class WalletService
      * Wallet findOrCreate + lockForUpdate + movimiento ocurren en una sola transacción,
      * eliminando la race condition de creación concurrente de wallets.
      */
-    public function recordAdminDeposit(\App\Models\User $user, float $amount, string $description = 'Carga de saldo por administrador'): Wallet
+    public function recordAdminDeposit(User $user, float $amount, string $description = 'Carga de saldo por administrador'): Wallet
     {
         $wallet = DB::transaction(function () use ($user, $amount, $description) {
             // lockForUpdate sobre la wallet evita doble carga concurrente
@@ -498,11 +496,11 @@ final class WalletService
                 ->first();
 
             if (!$locked) {
-                $currency = \App\Models\Currency::where('iso_code', 'USD')->firstOrFail();
+                $currency = Currency::where('iso_code', 'USD')->firstOrFail();
                 $locked = $user->wallets()->create([
                     'currency_id' => $currency->id,
                     'balance'     => 0,
-                    'is_active'   => true,
+                    'status'      => 'ACTIVE',
                 ]);
             }
 
@@ -823,13 +821,14 @@ final class WalletService
             \Illuminate\Support\Facades\Log::warning('[WalletService] broadcastWalletUpdated falló (WebSocket no disponible): ' . $e->getMessage());
         }
 
-        // Guardar notificación persistente
-        $this->notificationService->createWalletNotification(
-            userId: (string) $wallet->user_id,
-            balance: (float) $wallet->balance,
+        // Notificación persistente en queue — no bloquea el hilo del caller
+        // (crítico en cancelaciones masivas con N reembolsos consecutivos)
+        DispatchWalletNotificationJob::dispatch(
+            userId:         (string) $wallet->user_id,
+            balance:        (float)  $wallet->balance,
             currencySymbol: $wallet->currency->symbol ?? '',
-            movementType: $type,
-            amount: $amount
+            movementType:   $type,
+            amount:         $amount,
         );
     }
 
@@ -838,7 +837,7 @@ final class WalletService
      */
     private function broadcastAdminWalletMovement(?WalletMovement $movement, Wallet $wallet, string $type, float $amount): void
     {
-        $user     = $wallet->user ?? \App\Models\User::find($wallet->user_id);
+        $user     = $wallet->user ?? User::find($wallet->user_id);
         $currency = $wallet->currency;
 
         $movementId = $movement ? (string) $movement->id : '';
@@ -908,6 +907,18 @@ final class WalletService
         }
 
         return $wallet;
+    }
+
+    /**
+     * Busca la wallet activa de un usuario para una moneda dada.
+     * Devuelve null si no existe o está inactiva — nunca lanza excepción.
+     * Centraliza el guard duplicado en BingoRoomCrudService y BingoPrizePayoutService.
+     */
+    public function findActiveWallet(string $userId, string $currencyId): ?Wallet
+    {
+        $wallet = $this->walletRepository->findWalletByUserAndCurrency($userId, $currencyId);
+
+        return ($wallet && $wallet->isActive()) ? $wallet : null;
     }
 
     /**

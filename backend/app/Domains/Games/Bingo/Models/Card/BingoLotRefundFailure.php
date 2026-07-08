@@ -2,6 +2,7 @@
 
 namespace App\Domains\Games\Bingo\Models\Card;
 
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Currency;
 use App\Models\User;
@@ -22,6 +23,7 @@ class BingoLotRefundFailure extends Model
     ];
 
     protected $casts = [
+        'id'                => 'string',
         'room_id'           => 'string',
         'lot_id'            => 'string',
         'user_id'           => 'string',

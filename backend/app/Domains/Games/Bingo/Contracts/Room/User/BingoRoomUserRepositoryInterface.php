@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\Games\Bingo\Room\User;
+namespace App\Domains\Games\Bingo\Contracts\Room\User;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;

@@ -48,7 +48,9 @@ class GameStatus extends Model
      */
     public static function codesMap(array $codes = []): array
     {
-        $cacheKey = 'game_status_map_' . md5(implode(',', $codes));
+        $sorted   = $codes;
+        sort($sorted);
+        $cacheKey = 'game_status_map_' . md5(implode(',', $sorted));
 
         return Cache::remember($cacheKey, 60, function () use ($codes) {
             $query = static::query();

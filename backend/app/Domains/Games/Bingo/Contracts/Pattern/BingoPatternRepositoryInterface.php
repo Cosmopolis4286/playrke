@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Contracts\Games\Bingo\Pattern;
+namespace App\Domains\Games\Bingo\Contracts\Pattern;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;

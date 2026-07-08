@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Jobs\Games\Bingo;
+namespace App\Domains\Games\Bingo\Jobs;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Services\Games\Bingo\Game\BingoDrawService;

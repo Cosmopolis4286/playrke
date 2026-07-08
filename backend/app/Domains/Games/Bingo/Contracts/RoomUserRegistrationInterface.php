@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Games\Bingo\Contracts;
+namespace App\Domains\Games\Bingo\Contracts;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
