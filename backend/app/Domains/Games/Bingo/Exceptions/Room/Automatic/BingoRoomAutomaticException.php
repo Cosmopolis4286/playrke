@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Exceptions\Domain\Games\Bingo\Pattern;
+namespace App\Domains\Games\Bingo\Exceptions\Room\Automatic;
 
 use App\Exceptions\Domain\DomainException;
 
 /**
- * Excepciones de dominio relacionadas al agregado Bingo Room
+ * Excepciones de dominio relacionadas al agregado BingoRoomAutomatic
  * en el contexto Admin.
  *
  * Estas excepciones representan reglas de negocio violadas
@@ -14,7 +14,7 @@ use App\Exceptions\Domain\DomainException;
  * IMPORTANTE:
  * - El dominio expone ERROR CODES, no mensajes humanos
  */
-final class BingoPatternException extends DomainException
+final class BingoRoomAutomaticException extends DomainException
 {
     /**
      * Fallo genérico en la creación de la sala de bingo.
@@ -85,13 +85,5 @@ final class BingoPatternException extends DomainException
     public static function invalidPrizePoolType(): self
     {
         return new self('BINGO_ROOM_INVALID_PRIZE_POOL_TYPE');
-    }
-
-    /**
-     * Ya existe un patrón con ese nombre para el usuario.
-     */
-    public static function duplicateName(): self
-    {
-        return new self('BINGO_PATTERN_DUPLICATE_NAME');
     }
 }

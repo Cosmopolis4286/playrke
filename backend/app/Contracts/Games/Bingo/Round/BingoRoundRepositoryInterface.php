@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Repositories\Bingo\Round\Contracts;
+namespace App\Contracts\Games\Bingo\Round;
 
 use App\Contracts\BaseRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * Contrato para el repository de rondas de bingo
  */
-interface BingoRoundRepositoryContract extends BaseRepositoryInterface
+interface BingoRoundRepositoryInterface extends BaseRepositoryInterface
 {
     /**
      * Obtiene una ronda por sala y número de ronda

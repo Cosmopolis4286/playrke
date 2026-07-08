@@ -4,7 +4,7 @@ namespace App\Services\Games\Bingo\Room;
 
 use App\DTOs\Games\Bingo\Room\BingoRoomCreateDTO;
 use App\DTOs\Games\Bingo\Room\BingoRoomUpdateDTO;
-use App\Exceptions\Domain\Games\Bingo\Room\BingoRoomException;
+use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
 use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;

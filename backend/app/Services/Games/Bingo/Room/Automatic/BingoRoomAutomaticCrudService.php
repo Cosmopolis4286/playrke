@@ -4,7 +4,7 @@ namespace App\Services\Games\Bingo\Room\Automatic;
 
 use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticCreateDTO;
 use App\DTOs\Games\Bingo\Room\Automatic\BingoRoomAutomaticUpdateDTO;
-use App\Exceptions\Domain\Games\Bingo\Room\Automatic\BingoRoomAutomaticException;
+use App\Domains\Games\Bingo\Exceptions\Room\Automatic\BingoRoomAutomaticException;
 use App\Http\Resources\Games\Bingo\Room\Automatic\BingoRoomAutomaticResource;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
 use Illuminate\Support\Facades\Auth;
