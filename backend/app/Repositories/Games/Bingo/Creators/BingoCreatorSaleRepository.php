@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Repositories\Bingo\Creators;
+namespace App\Repositories\Games\Bingo\Creators;
 
-use App\Models\Bingo\Creators\BingoCreatorSale;
-use App\Models\Games\Bingo\Room\Config\BingoRoomConfig;
+use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Repositories\BaseRepository;
-use App\Repositories\Bingo\Creators\Contracts\BingoCreatorSaleRepositoryContract;
+use App\Repositories\Games\Bingo\Creators\Contracts\BingoCreatorSaleRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 

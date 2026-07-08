@@ -266,7 +266,6 @@ class BingoRoomCrudService
             'usdExchangeRoundStep'  => $dto->usdExchangeRoundStep,
             'cardPriceByCurrency'   => $cardPriceByCurrency,
             'activateRoom'          => $dto->activateRoom,
-            'fromHouse'             => $dto->fromHouse,
             'roomsPerCurrency'      => false,
             'isSplitRoom'           => true,
         ]);
@@ -992,7 +991,6 @@ class BingoRoomCrudService
             'numSerials'            => $config->num_serials ? (int) $config->num_serials : null,
             'roundsConfig'          => $roundsConfig,
             'activateRoom'          => false,
-            'fromHouse'             => $config->from_house,
         ]);
 
         return $this->saveRoom($dto);

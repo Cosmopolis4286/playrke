@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Games\Bingo\Card\CardLot;
+namespace App\Repositories\Games\Bingo\Cards;
 
-use App\Models\Bingo\Card\BingoCardPayment;
-use App\Repositories\Games\Bingo\Card\CardLot\Contracts\BingoCardPaymentRepositoryContract;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
+use App\Repositories\Games\Bingo\Cards\Contracts\BingoCardPaymentRepositoryContract;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;

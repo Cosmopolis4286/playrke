@@ -860,12 +860,14 @@ final class BingoCardGenerateService
             'customCardNumbers' => $customCardNumbers,
         ];
 
-        // Generar cartones — el descuento de billetera lo hace recordCardPurchase abajo
-        $this->cardGenerationService->generateInTransaction($arrCtn);
-
-        // Descuento de billetera + movimiento — única fuente de verdad
+        // Generar cartones y debitar wallet en una sola transacción atómica.
+        // Si recordCardPurchase falla, generateInTransaction se revierte y el jugador
+        // no queda con cartones sin pago.
         $description = "Compra de {$numCtns} cartón(es) — Sala {$room->uuid_code}";
-        $this->walletService->recordCardPurchase($playerWallet->id, $totalAmount, $description);
+        DB::transaction(function () use ($arrCtn, $playerWallet, $totalAmount, $description) {
+            $this->cardGenerationService->generateInTransaction($arrCtn);
+            $this->walletService->recordCardPurchase($playerWallet->id, $totalAmount, $description);
+        });
 
         // Emitir evento de actualización de sala via WebSocket (fuera de la transacción)
         $fresh = $this->broadcastRoomUpdated($roomId, toOthers: true);

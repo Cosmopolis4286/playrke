@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Bingo\Creators\Contracts;
+namespace App\Repositories\Games\Bingo\Creators\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Bingo\Creators\BingoCreator;
+use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

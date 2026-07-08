@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Repositories\Bingo\Draw;
+namespace App\Repositories\Games\Bingo\Draw;
 
-use App\Models\Bingo\Draw\BingoDraw;
+use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Repositories\BaseRepository;
-use App\Repositories\Bingo\Draw\Contracts\BingoDrawRepositoryContract;
+use App\Repositories\Games\Bingo\Draw\Contracts\BingoDrawRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 

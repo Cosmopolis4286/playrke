@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Repositories\Bingo\Image\Contracts;
+namespace App\Repositories\Games\Bingo\Images\Contracts;
 
 use App\Contracts\BaseRepositoryInterface;
-use App\Models\Bingo\Image\BingoImage;
+use App\Domains\Games\Bingo\Models\Image\BingoImage;
 use Illuminate\Database\Eloquent\Collection;
 
 /**

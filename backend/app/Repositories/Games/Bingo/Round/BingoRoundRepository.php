@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Repositories\Bingo\Round;
+namespace App\Repositories\Games\Bingo\Round;
 
-use App\Models\Bingo\Round\BingoRound;
+use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Repositories\BaseRepository;
-use App\Repositories\Bingo\Round\Contracts\BingoRoundRepositoryContract;
+use App\Contracts\Games\Bingo\Round\BingoRoundRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Repository para manejar operaciones de rondas de bingo
  */
-class BingoRoundRepository extends BaseRepository implements BingoRoundRepositoryContract
+class BingoRoundRepository extends BaseRepository implements BingoRoundRepositoryInterface
 {
     /**
      * Constructor del repository

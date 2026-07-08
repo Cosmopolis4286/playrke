@@ -2,6 +2,67 @@
 
 ---
 
+## [Refactor] 2026-07-07 — Migración del dominio Bingo a `App\Domains\Games\Bingo\*`
+
+### Contexto
+El dominio Bingo (133 archivos PHP) está fragmentado a mitad de camino: solo los
+Models (22 archivos + 1 ValueObject) viven en `App\Domains\Games\Bingo\Models\*`;
+el resto (Services, Repositories, Contracts, DTOs, Events, Jobs, Policies,
+Exceptions — 111 archivos) sigue disperso en las carpetas clásicas por tipo
+(`app/Services/Games/Bingo`, `app/Repositories/Games/Bingo`, etc.). El dominio
+Trivia ya demostró el patrón consolidado completo:
+`App\Domains\Games\Trivia\{Actions,Contracts,DTOs,Events,Models,Repositories,Services}`,
+con un `TriviaServiceProvider` propio y Controllers/Requests/Resources
+deliberadamente fuera de `Domains`. Esta migración replica ese patrón para Bingo,
+por fases, para reducir la deriva de namespaces que ya causó bugs reales
+(`App\Domains\Games\Bingo\Models\Room\BingoRoom.php` y
+`BingoCreatorSaleRepository.php` tenían imports rotos apuntando a namespaces de
+Models que ya no existían).
+
+### Plan completo (9 fases)
+Ver `C:\Users\Eisker\.claude\plans\jolly-chasing-twilight.md` para el detalle
+completo de cada fase, decisiones de diseño y comandos de verificación. Resumen:
+
+| Fase | Contenido | Riesgo | Estado |
+|------|-----------|--------|--------|
+| 0 | CHANGELOG + fix de imports huérfanos preexistentes | mínimo | ✅ |
+| 1 | Exceptions (3 archivos) → Domains | mínimo | ✅ |
+| 2 | DTOs (15 archivos) → Domains | bajo | pendiente |
+| 3 | Events (13 archivos) → Domains | medio (broadcasting) | pendiente |
+| 4 | Jobs (1 archivo) → Domains | bajo | pendiente |
+| 5 | Contracts (11 interfaces) → Domains | bajo | pendiente |
+| 6 | Repositories (28 archivos) + `BingoServiceProvider` | alto (DI) | pendiente |
+| 7 | Services (26 archivos) + completar Provider | alto (DI) | pendiente |
+| 8 | Policies (2 archivos) + `AuthServiceProvider` | medio | pendiente |
+| 9 | Cierre: limpiar carpetas vacías, `phpstan.neon`, tests completos | — | pendiente |
+
+**Decisiones clave**: se crea `BingoServiceProvider` explícito (Fase 6) en vez de
+extender el auto-registro por reflection de `RepositoryServiceProvider`, que hoy
+escanea solo `app/Repositories/**` y dejaría de encontrar los repos de Bingo si se
+movieran sin este cambio. Controllers/Requests/Resources no se migran (mismo
+criterio que Trivia). La duplicación `*RepositoryInterface` vs `*RepositoryContract`
+se preserva tal cual, documentada como deuda técnica a resolver aparte.
+
+### Fase 0 — Fix de imports huérfanos (aislado del movimiento de carpetas)
+Corregidos los `use` que apuntaban a namespaces de Models ya migrados:
+- `App\Domains\Games\Bingo\Models\Room\BingoRoom.php`: imports `App\Models\Games\Bingo\*`
+  corregidos a `App\Domains\Games\Bingo\Models\*` (8 imports); `cardPrizes()` ahora usa
+  el import corto en vez de FQCN inline.
+- `App\Repositories\Games\Bingo\Creators\BingoCreatorSaleRepository.php` y su contrato:
+  namespace declarado no coincidía con su ruta real PSR-4, e importaban
+  `App\Models\Bingo\Creators\BingoCreatorSale` (no existe) y
+  `App\Models\Games\Bingo\Room\Config\BingoRoomConfig` (no existe). Confirmado sin
+  ningún caller real en el proyecto — se corrigió el namespace/imports para dejarlo
+  consistente, sin agregar binding en Provider (sigue sin usarse).
+
+### Fase 1 — Exceptions → Domains
+`app/Exceptions/Domain/Games/Bingo/**` movido a
+`app/Domains/Games/Bingo/Exceptions/**`. Sin bindings de contenedor afectados.
+Actualizados los `use` en `BingoRoomCrudService`, `BingoRoomAutomaticCrudService`
+y `BingoPatternCrudService`.
+
+---
+
 ## [Dev] 2026-04-20 — Infraestructura Docker para desarrollo
 
 ### Nuevo: `.env.dev`

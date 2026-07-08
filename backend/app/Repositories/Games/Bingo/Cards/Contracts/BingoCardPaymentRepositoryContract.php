@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Contracts\Games\Bingo\Card;
+namespace App\Repositories\Games\Bingo\Cards\Contracts;
 
-use App\Models\Bingo\Card\BingoCardPayment;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Contracts\BaseRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
