@@ -189,10 +189,10 @@ final class BingoGameService
             $room->rounds()->update(['status' => 'ACTIVE']);
 
             // Restore room to ACTIVE so the game can be re-drawn
-            $activeStatus = GameStatus::where('code', 'ACTIVE')->first()
-                ?? GameStatus::where('code', 'IN_PROGRESS')->first();
-            if ($activeStatus) {
-                $room->update(['status_id' => $activeStatus->id, 'finished_at' => null]);
+            $statusMap    = GameStatus::codesMap(['ACTIVE', 'IN_PROGRESS']);
+            $restoreId    = $statusMap['ACTIVE'] ?? $statusMap['IN_PROGRESS'] ?? null;
+            if ($restoreId) {
+                $room->update(['status_id' => $restoreId, 'finished_at' => null]);
             }
         });
 

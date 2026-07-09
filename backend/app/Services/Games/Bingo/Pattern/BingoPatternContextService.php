@@ -2,7 +2,7 @@
 
 namespace App\Services\Games\Bingo\Pattern;
 
-use App\Contracts\Games\Bingo\Pattern\BingoPatternRepositoryInterface;
+use App\Domains\Games\Bingo\Contracts\Pattern\BingoPatternRepositoryInterface;
 use App\Domains\Games\Bingo\DTOs\Pattern\BingoPatternDTO;
 use App\Services\Roles\RoleUserService;
 use App\Traits\HashedTableDataTrait;

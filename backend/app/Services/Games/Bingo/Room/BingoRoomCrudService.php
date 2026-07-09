@@ -11,7 +11,6 @@ use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAudit;
-use App\Contracts\WalletRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
@@ -20,6 +19,7 @@ use App\Domains\Games\Bingo\Models\Round\BingoRoundPrize;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Utils\GameConfig;
 use App\Models\Games\Common\Utils\GameStatus;
+use App\Domains\Games\Bingo\Jobs\StartBingoDrawJob;
 use App\Services\ExchangeRate\ExchangeRateDomainService;
 use App\Services\WalletService;
 use Carbon\Carbon;
@@ -41,11 +41,10 @@ use Illuminate\Support\Str;
 class BingoRoomCrudService
 {
     public function __construct(
-        private readonly \App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface $bingoRooms,
-        private readonly \App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface $bingoCardPrices,
+        private readonly \App\Domains\Games\Bingo\Contracts\Room\BingoRoomRepositoryInterface $bingoRooms,
+        private readonly \App\Domains\Games\Bingo\Contracts\Card\CardPrice\BingoCardPriceRepositoryInterface $bingoCardPrices,
         private readonly ExchangeRateDomainService $exchangeRateService,
         private readonly WalletService $walletService,
-        private readonly WalletRepositoryInterface $walletRepository,
     ) {}
 
     /**
@@ -82,12 +81,9 @@ class BingoRoomCrudService
      */
     public function saveRoom(BingoRoom|BingoRoomCreateDTO $roomOrDto, ?BingoRoomUpdateDTO $updateDto = null): bool
     {
-        // Los broadcasts se ejecutan FUERA de la transacción para garantizar que el
-        // commit ya ocurrió antes de notificar a los clientes.
-        $broadcastPayload = null;
-
         try {
-            DB::transaction(function () use ($roomOrDto, $updateDto, &$broadcastPayload) {
+            // Transaction returns the broadcast payload so we can fire events after commit.
+            $payload = DB::transaction(function () use ($roomOrDto, $updateDto) {
 
                 $userId = Auth::id();
                 $isCreate = $roomOrDto instanceof BingoRoomCreateDTO;
@@ -192,8 +188,7 @@ class BingoRoomCrudService
                 // Sincronizar rondas (necesita el config ID para room_config_id)
                 $this->syncRounds($room->id, $config->id, $dto->roundsConfig ?? []);
 
-                // Preparar payload para broadcasts post-transacción
-                $broadcastPayload = [
+                return [
                     'room'       => $room,
                     'statusCode' => $statusCode,
                     'wasActive'  => $wasActive,
@@ -205,20 +200,18 @@ class BingoRoomCrudService
         }
 
         // Broadcasts FUERA de la transacción: el commit ya ocurrió
-        if ($broadcastPayload) {
-            ['room' => $room, 'statusCode' => $statusCode, 'wasActive' => $wasActive, 'freshRoom' => $freshRoom] = $broadcastPayload;
+        ['room' => $room, 'statusCode' => $statusCode, 'wasActive' => $wasActive, 'freshRoom' => $freshRoom] = $payload;
 
-            if ($freshRoom && $statusCode === 'ACTIVE') {
-                broadcast(new BingoRoomUpdated(
-                    roomId:       (string) $room->uuid_code,
-                    prizePool:    (float)  $room->prize_pool,
-                    totalPlayers: (int)    $room->total_players,
-                    cardPriceUsd: (float) ($freshRoom->config?->card_price_usd ?? 0),
-                ));
-            }
-
-            $this->broadcastLobbyStatusChange($room, $statusCode === 'ACTIVE', $wasActive);
+        if ($freshRoom && $statusCode === 'ACTIVE') {
+            broadcast(new BingoRoomUpdated(
+                roomId:       (string) $room->uuid_code,
+                prizePool:    (float)  $room->prize_pool,
+                totalPlayers: (int)    $room->total_players,
+                cardPriceUsd: (float) ($freshRoom->config?->card_price_usd ?? 0),
+            ));
         }
+
+        $this->broadcastLobbyStatusChange($room, $statusCode === 'ACTIVE', $wasActive);
 
         return true;
     }
@@ -447,17 +440,7 @@ class BingoRoomCrudService
      */
     private function isUserAdmin(int $userId): bool
     {
-        $adminRoles = ['admin', 'superadmin'];
-
-        return \DB::table('role_user')
-            ->join('roles', 'role_user.role_id', '=', 'roles.id')
-            ->where('role_user.user_id', $userId)
-            ->whereIn('roles.prefix', $adminRoles)
-            ->where(function ($q) {
-                $q->whereNull('role_user.expires_at')
-                    ->orWhere('role_user.expires_at', '>', now());
-            })
-            ->exists();
+        return $this->resolveAdminRole($userId) !== null;
     }
 
     /**
@@ -470,7 +453,15 @@ class BingoRoomCrudService
             return 'creator';
         }
 
-        $role = \DB::table('role_user')
+        return $this->resolveAdminRole($userId);
+    }
+
+    /**
+     * Devuelve el prefijo del rol admin/superadmin activo del usuario, o null si no tiene.
+     */
+    private function resolveAdminRole(int $userId): ?string
+    {
+        return \DB::table('role_user')
             ->join('roles', 'role_user.role_id', '=', 'roles.id')
             ->where('role_user.user_id', $userId)
             ->whereIn('roles.prefix', ['admin', 'superadmin'])
@@ -480,8 +471,6 @@ class BingoRoomCrudService
             })
             ->orderByRaw("FIELD(roles.prefix, 'superadmin', 'admin')")
             ->value('roles.prefix');
-
-        return $role;
     }
 
     /**
@@ -852,16 +841,7 @@ class BingoRoomCrudService
                         'user_id'     => $lot->user_id,
                         'currency_id' => $lot->currency_id,
                     ]);
-
-                    BingoLotRefundFailure::create([
-                        'room_id'       => $room->id,
-                        'lot_id'        => $lot->id,
-                        'user_id'       => $lot->user_id,
-                        'currency_id'   => $lot->currency_id,
-                        'amount'        => $amount,
-                        'error_message' => 'Wallet no encontrada o inactiva',
-                        'status'        => 'PENDING',
-                    ]);
+                    $this->createRefundFailure($lot, $room, $amount, 'Wallet no encontrada o inactiva');
                     continue;
                 }
 
@@ -885,18 +865,22 @@ class BingoRoomCrudService
                     'lot_id'  => $lot->id,
                     'error'   => $e->getMessage(),
                 ]);
-
-                BingoLotRefundFailure::create([
-                    'room_id'       => $room->id,
-                    'lot_id'        => $lot->id,
-                    'user_id'       => $lot->user_id,
-                    'currency_id'   => $lot->currency_id,
-                    'amount'        => $amount,
-                    'error_message' => $e->getMessage(),
-                    'status'        => 'PENDING',
-                ]);
+                $this->createRefundFailure($lot, $room, $amount, $e->getMessage());
             }
         }
+    }
+
+    private function createRefundFailure(BingoCardLot $lot, BingoRoom $room, float $amount, string $reason): void
+    {
+        BingoLotRefundFailure::create([
+            'room_id'       => $room->id,
+            'lot_id'        => $lot->id,
+            'user_id'       => $lot->user_id,
+            'currency_id'   => $lot->currency_id,
+            'amount'        => $amount,
+            'error_message' => $reason,
+            'status'        => 'PENDING',
+        ]);
     }
 
     /**
@@ -946,7 +930,7 @@ class BingoRoomCrudService
                 'unix_date' => $now->timestamp,
             ]);
 
-            \App\Domains\Games\Bingo\Jobs\StartBingoDrawJob::dispatch((string) $room->id)->onQueue('bingo-draw');
+            StartBingoDrawJob::dispatch((string) $room->id)->onQueue('bingo-draw');
 
             $this->recordAudit(
                 $room,

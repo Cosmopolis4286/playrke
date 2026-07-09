@@ -18,9 +18,10 @@ final class CheckExpiredBingoRoomsService
     {
         $now = Carbon::now('UTC')->timestamp;
 
-        $inactiveId    = GameStatus::where('code', 'INACTIVE')->value('id');
-        $inProgressId  = GameStatus::where('code', 'IN_PROGRESS')->value('id');
-        $activeId      = GameStatus::where('code', 'ACTIVE')->value('id');
+        $statusMap    = GameStatus::codesMap(['INACTIVE', 'IN_PROGRESS', 'ACTIVE']);
+        $inactiveId   = $statusMap['INACTIVE']    ?? null;
+        $inProgressId = $statusMap['IN_PROGRESS'] ?? null;
+        $activeId     = $statusMap['ACTIVE']      ?? null;
 
         if (!$inactiveId || !$inProgressId || !$activeId) {
             return;

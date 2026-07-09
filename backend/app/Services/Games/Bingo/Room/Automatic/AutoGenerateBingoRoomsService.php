@@ -2,9 +2,8 @@
 
 namespace App\Services\Games\Bingo\Room\Automatic;
 
-use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface;
-use App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface;
-use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Games\Bingo\Contracts\Card\CardPrice\BingoCardPriceRepositoryInterface;
+use App\Domains\Games\Bingo\Contracts\Room\BingoRoomRepositoryInterface;
 use App\Domains\Games\Bingo\DTOs\Room\BingoRoomCreateDTO;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
@@ -46,9 +45,8 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
         BingoCardPriceRepositoryInterface $bingoCardPrices,
         ExchangeRateDomainService $exchangeRateService,
         WalletService $walletService,
-        WalletRepositoryInterface $walletRepository,
     ) {
-        parent::__construct($bingoRooms, $bingoCardPrices, $exchangeRateService, $walletService, $walletRepository);
+        parent::__construct($bingoRooms, $bingoCardPrices, $exchangeRateService, $walletService);
     }
 
     /**
@@ -258,7 +256,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
 
     private function generatedRoomStatusId(): int
     {
-        return (int) GameStatus::where('code', 'INACTIVE')->value('id');
+        return (int) GameStatus::codeToId('INACTIVE');
     }
 
     /**

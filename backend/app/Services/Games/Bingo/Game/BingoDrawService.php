@@ -613,15 +613,15 @@ final class BingoDrawService
         }
 
         // Es la ronda final: cambiar status de la sala a FINISHED
-        $finishedStatus = GameStatus::where('code', 'FINISHED')->first();
+        $finishedId = GameStatus::codeToId('FINISHED');
 
-        if (!$finishedStatus) {
+        if (!$finishedId) {
             Log::warning('[BingoDrawService] No existe GameStatus con code=FINISHED — sala no cerrada automáticamente');
             return;
         }
 
         $room->update([
-            'status_id'   => (string) $finishedStatus->id,
+            'status_id'   => $finishedId,
             'finished_at' => now(),
         ]);
 

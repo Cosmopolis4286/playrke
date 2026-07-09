@@ -14,12 +14,12 @@ final class BingoRoomAutomaticContextService
 
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
-        private readonly \App\Contracts\Games\Bingo\Room\BingoRoomAutomaticRepositoryInterface $bingoRooms,
+        private readonly \App\Domains\Games\Bingo\Contracts\Room\BingoRoomAutomaticRepositoryInterface $bingoRooms,
         private readonly \App\Services\Currency\CurrencyService $currencyService,
         private readonly \App\Contracts\GameRepositoryInterface $games,
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
         private readonly \App\Contracts\TimeZoneRepositoryInterface $timeZones,
-        private readonly \App\Contracts\Games\Bingo\Pattern\BingoPatternRepositoryInterface $bingoPatterns,
+        private readonly \App\Domains\Games\Bingo\Contracts\Pattern\BingoPatternRepositoryInterface $bingoPatterns,
         private readonly \App\Contracts\Games\Common\PrizePool\PrizePoolTypeRepositoryInterface $prizePoolTypes,
         private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
         private readonly \App\Contracts\Games\Common\Room\RoomTypeRepositoryInterface $roomTypes,

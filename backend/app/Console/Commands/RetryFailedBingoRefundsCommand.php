@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Contracts\WalletRepositoryInterface;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Services\Commands\CommandService;
 use App\Services\WalletService;
@@ -17,7 +17,7 @@ class RetryFailedBingoRefundsCommand extends Command
     protected $signature   = 'bingo:retry-failed-refunds';
     protected $description = 'Reintenta acreditar reembolsos de salas canceladas que fallaron en el primer intento';
 
-    public function handle(WalletService $walletService, WalletRepositoryInterface $walletRepository): void
+    public function handle(WalletService $walletService): void
     {
         $status    = 'SUCCESS';
         $retried   = 0;
@@ -27,7 +27,7 @@ class RetryFailedBingoRefundsCommand extends Command
         try {
             $failures = BingoLotRefundFailure::pending()
                 ->where('attempts', '<', self::MAX_ATTEMPTS)
-                ->get();
+                ->cursor();
 
             foreach ($failures as $failure) {
                 $failure->update([
@@ -36,12 +36,12 @@ class RetryFailedBingoRefundsCommand extends Command
                 ]);
 
                 try {
-                    $wallet = $walletRepository->findWalletByUserAndCurrency(
+                    $wallet = $walletService->findActiveWallet(
                         (string) $failure->user_id,
                         (string) $failure->currency_id,
                     );
 
-                    if (!$wallet || !$wallet->isActive()) {
+                    if (!$wallet) {
                         $this->warn("Reembolso #{$failure->id}: wallet aún no disponible.");
                         $skipped++;
                         continue;
@@ -55,6 +55,10 @@ class RetryFailedBingoRefundsCommand extends Command
                     );
 
                     $failure->update(['status' => 'RESOLVED', 'resolved_at' => now()]);
+
+                    // Marcar el lot como REFUNDED para evitar doble reembolso en futuros reintentos
+                    BingoCardLot::where('id', $failure->lot_id)->update(['status' => 'REFUNDED']);
+
                     $retried++;
                     $this->info("Reembolso #{$failure->id} acreditado exitosamente.");
                 } catch (Throwable $e) {

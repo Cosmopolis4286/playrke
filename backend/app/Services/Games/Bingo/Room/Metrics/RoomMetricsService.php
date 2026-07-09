@@ -5,7 +5,7 @@ namespace App\Services\Games\Bingo\Room\Metrics;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreatorSale;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
-use App\Services\Games\Bingo\Contracts\RoomMetricsInterface;
+use App\Domains\Games\Bingo\Contracts\RoomMetricsInterface;
 use App\Services\Platform\PlatformWalletService;
 use Illuminate\Support\Facades\Log;
 
