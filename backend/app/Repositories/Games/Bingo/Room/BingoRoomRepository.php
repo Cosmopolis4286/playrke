@@ -4,7 +4,7 @@ namespace App\Repositories\Games\Bingo\Room;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Repositories\BaseRepository;
-use App\Contracts\Games\Bingo\Room\BingoRoomRepositoryInterface;
+use App\Domains\Games\Bingo\Contracts\Room\BingoRoomRepositoryInterface;
 use App\Models\Games\Common\Utils\GameStatus;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -47,7 +47,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
 
     public function changeGameStatus(string $roomId, string $newStatusCode): bool
     {
-        $statusId = GameStatus::where('code', $newStatusCode)->value('id');
+        $statusId = GameStatus::codeToId($newStatusCode);
 
         if (!$statusId) {
             return false;

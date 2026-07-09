@@ -3,7 +3,7 @@
 namespace App\Repositories\Games\Bingo\Card\CardPrice;
 
 use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
-use App\Contracts\Games\Bingo\Card\CardPrice\BingoCardPriceRepositoryInterface;
+use App\Domains\Games\Bingo\Contracts\Card\CardPrice\BingoCardPriceRepositoryInterface;
 use App\Repositories\BaseRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;

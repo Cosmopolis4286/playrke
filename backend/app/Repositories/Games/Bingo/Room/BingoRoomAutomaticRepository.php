@@ -4,7 +4,7 @@ namespace App\Repositories\Games\Bingo\Room;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
 use App\Repositories\BaseRepository;
-use App\Contracts\Games\Bingo\Room\BingoRoomAutomaticRepositoryInterface;
+use App\Domains\Games\Bingo\Contracts\Room\BingoRoomAutomaticRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 

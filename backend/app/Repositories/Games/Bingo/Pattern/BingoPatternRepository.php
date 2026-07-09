@@ -4,7 +4,7 @@ namespace App\Repositories\Games\Bingo\Pattern;
 
 use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Repositories\BaseRepository;
-use App\Contracts\Games\Bingo\Pattern\BingoPatternRepositoryInterface;
+use App\Domains\Games\Bingo\Contracts\Pattern\BingoPatternRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
