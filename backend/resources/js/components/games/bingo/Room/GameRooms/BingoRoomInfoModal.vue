@@ -174,6 +174,13 @@ const cardsProgressReady = computed(() =>
 </template>
 
 <style scoped>
+.rim-backdrop,
+.rim-backdrop *,
+.rim-backdrop *::before,
+.rim-backdrop *::after {
+  box-sizing: border-box;
+}
+
 /* ── Backdrop ── */
 .rim-backdrop {
   position: fixed; inset: 0; z-index: 9999;
@@ -245,12 +252,13 @@ const cardsProgressReady = computed(() =>
 /* Chips pie del banner */
 .rim-banner__foot {
   position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
-  display: flex; gap: 6px; padding: 7px 12px;
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 7px 12px;
 }
 .rim-chip {
   padding: 2px 9px; border-radius: 20px;
   font-size: 10px; font-weight: 700; letter-spacing: .3px;
   display: inline-flex; align-items: center; gap: 4px;
+  white-space: nowrap;
 }
 .rim-chip--type   { background: rgba(123,79,255,.2);  border: 1px solid rgba(123,79,255,.38);  color: #b490ff; }
 .rim-chip--mode   { background: rgba(0,158,253,.15);  border: 1px solid rgba(0,158,253,.32);   color: #7cd4ff; }

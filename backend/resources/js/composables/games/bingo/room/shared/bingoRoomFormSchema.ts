@@ -10,6 +10,24 @@ export const BINGO_ROOM_PERCENTAGE_LIMITS = {
     serialsPct: { min: 2,  max: 35  },
 } as const
 
+/* ─── Schemas de porcentaje pre-compilados (fix: no reconstruir en cada computed) ── */
+
+const roomCommnSchema = percentageSchema
+    .min(BINGO_ROOM_PERCENTAGE_LIMITS.roomCommn.min,  `Mínimo ${BINGO_ROOM_PERCENTAGE_LIMITS.roomCommn.min}%.`)
+    .max(BINGO_ROOM_PERCENTAGE_LIMITS.roomCommn.max,  `Máximo ${BINGO_ROOM_PERCENTAGE_LIMITS.roomCommn.max}%.`)
+
+const serialsPctSchema = percentageSchema
+    .min(BINGO_ROOM_PERCENTAGE_LIMITS.serialsPct.min, `Mínimo ${BINGO_ROOM_PERCENTAGE_LIMITS.serialsPct.min}%.`)
+    .max(BINGO_ROOM_PERCENTAGE_LIMITS.serialsPct.max, `Máximo ${BINGO_ROOM_PERCENTAGE_LIMITS.serialsPct.max}%.`)
+
+const customCardPricePctSchema = percentageSchema
+    .min(1,  'El % del precio del cartón personalizado debe estar entre 1 y 10.')
+    .max(10, 'El % del precio del cartón personalizado debe estar entre 1 y 10.')
+
+/* ─── Días válidos de sala automática ────────────────────────────────── */
+
+const DAY_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
+
 /* ─── Sub-schemas ────────────────────────────────────────────────────── */
 
 const roundConfigSchema = z.object({
@@ -50,8 +68,8 @@ export const bingoRoomFormSchema = z.object({
     customCardPricePct: z.number().nullable().optional(),
     allowSpecialCard:   z.boolean().optional(),
     maxSpecialCards:    z.number().nullable().optional(),
-    // Solo salas automáticas
-    days: z.array(z.string()).optional(),
+    // Solo salas automáticas — enum validado en runtime
+    days: z.array(z.enum(DAY_OF_WEEK)).optional(),
 })
 
 export type BingoRoomFormInput = z.input<typeof bingoRoomFormSchema>
@@ -63,6 +81,12 @@ export interface BingoRoomValidationContext {
     isEdit:         boolean
     useBaseUsd:     boolean
     currenciesMissingRate: string[]
+    /** Porcentaje disponible para rondas: 100 - roomCommn - jackpot - serials.
+     *  Calculado una sola vez en useBingoRoomBaseForm. */
+    availablePct: number
+    /** Número de rondas ya resuelto como entero (≥ 1).
+     *  Calculado una sola vez en useBingoRoomBaseForm. */
+    roundsCount: number
 }
 
 export function validateBingoRoomForm(
@@ -107,8 +131,8 @@ export function validateBingoRoomForm(
     }
 
     /* ── Campos requeridos simples ── */
-    if (!data.roomType)      e.roomType     = 'El tipo de sala es requerido.'
-    if (!data.gameMode)      e.gameMode     = 'Modo de juego requerido.'
+    if (!data.roomType)      e.roomType      = 'El tipo de sala es requerido.'
+    if (!data.gameMode)      e.gameMode      = 'Modo de juego requerido.'
     if (!data.prizePoolType) e.prizePoolType = 'El tipo de bote es requerido.'
 
     /* ── Monedas ── */
@@ -118,14 +142,11 @@ export function validateBingoRoomForm(
         e.allowedCurrencies = 'Hay monedas seleccionadas sin tasa de cambio activa.'
     }
 
-    /* ── Porcentajes con rango ── */
+    /* ── % Sala (pre-compiled schema) ── */
     if (!data.roomCommn) {
         e.roomCommn = 'El % de sala es requerido.'
     } else {
-        const r = percentageSchema
-            .min(BINGO_ROOM_PERCENTAGE_LIMITS.roomCommn.min, `Mínimo ${BINGO_ROOM_PERCENTAGE_LIMITS.roomCommn.min}%.`)
-            .max(BINGO_ROOM_PERCENTAGE_LIMITS.roomCommn.max, `Máximo ${BINGO_ROOM_PERCENTAGE_LIMITS.roomCommn.max}%.`)
-            .safeParse(data.roomCommn)
+        const r = roomCommnSchema.safeParse(data.roomCommn)
         if (!r.success) e.roomCommn = r.error.issues[0].message
     }
 
@@ -133,15 +154,12 @@ export function validateBingoRoomForm(
     if (!data.timeChip) e.timeChip = 'El tiempo de ficha es requerido.'
     if (!data.rounds)   e.rounds   = 'El número de rondas es requerido.'
 
-    /* ── Seriales ── */
+    /* ── Seriales (pre-compiled schema) ── */
     if (data.useSerials) {
         if (!data.serialsPct) {
             e.serialsPct = 'El % de seriales es requerido.'
         } else {
-            const r = percentageSchema
-                .min(BINGO_ROOM_PERCENTAGE_LIMITS.serialsPct.min, `Mínimo ${BINGO_ROOM_PERCENTAGE_LIMITS.serialsPct.min}%.`)
-                .max(BINGO_ROOM_PERCENTAGE_LIMITS.serialsPct.max, `Máximo ${BINGO_ROOM_PERCENTAGE_LIMITS.serialsPct.max}%.`)
-                .safeParse(data.serialsPct)
+            const r = serialsPctSchema.safeParse(data.serialsPct)
             if (!r.success) e.serialsPct = r.error.issues[0].message
         }
         if (!data.numSerials) e.numSerials = 'Ingrese cantidad de seriales.'
@@ -162,21 +180,17 @@ export function validateBingoRoomForm(
         if (Object.keys(currencyErrors).length) e.cardPriceByCurrency = currencyErrors
     }
 
-    /* ── % Rondas ── */
-    const rounds = Number(data.rounds) || 1
-    const rPct   = Number(data.roundsPct) || 0
+    /* ── % Rondas — usa roundsCount y availablePct del composable ── */
+    const { roundsCount: rounds } = ctx
+    const rPct = Number(data.roundsPct) || 0
     if (rounds > 1) {
-        const roomCommn_  = Number(data.roomCommn) || 0
-        const jackpot_    = Number(data.jackpotPct) || 0
-        const serials_    = data.useSerials ? (Number(data.serialsPct) || 0) : 0
-        const maxRounds   = Math.max(0, 100 - roomCommn_ - jackpot_ - serials_)
-
         if (!data.roundsPct || rPct === 0) {
             e.roundsPct = 'El % de rondas es requerido.'
         } else {
+            // Schema dinámico solo para el .max() contextual; los otros son constantes
             const r = percentageSchema
                 .min(BINGO_ROOM_PERCENTAGE_LIMITS.roundsPct.min, `Mínimo ${BINGO_ROOM_PERCENTAGE_LIMITS.roundsPct.min}%.`)
-                .max(maxRounds, `El % de rondas no puede superar el disponible (${maxRounds.toFixed(2)}%).`)
+                .max(ctx.availablePct, `El % de rondas no puede superar el disponible (${ctx.availablePct.toFixed(2)}%).`)
                 .safeParse(rPct)
             if (!r.success) e.roundsPct = r.error.issues[0].message
         }
@@ -210,12 +224,10 @@ export function validateBingoRoomForm(
 
     if (Object.keys(roundErrors).length) e.roundsConfig = roundErrors
 
-    /* ── Cartón personalizado ── */
+    /* ── Cartón personalizado (pre-compiled schema) ── */
     if (data.allowCustomCard) {
-        const pricePct = Number(data.customCardPricePct)
-        if (!pricePct || pricePct < 1 || pricePct > 10) {
-            e.customCardPricePct = 'El % del precio del cartón personalizado debe estar entre 1 y 10.'
-        }
+        const r = customCardPricePctSchema.safeParse(Number(data.customCardPricePct))
+        if (!r.success) e.customCardPricePct = r.error.issues[0].message
     }
 
     /* ── Cartón especial ── */
@@ -226,11 +238,12 @@ export function validateBingoRoomForm(
         }
     }
 
-    /* ── Suma total de porcentajes ── */
+    /* ── Suma total de porcentajes ──
+     * roundsPct solo cuenta cuando rounds > 1; cuando es 1 el campo no aplica. */
     const roomCommn  = Number(data.roomCommn)  || 0
     const jackpotPct = Number(data.jackpotPct) || 0
     const serialsPct = data.useSerials ? (Number(data.serialsPct) || 0) : 0
-    const roundsPct  = Number(data.roundsPct)  || 0
+    const roundsPct  = ctx.roundsCount > 1 ? rPct : 0
     const totalPct   = roomCommn + jackpotPct + serialsPct + roundsPct
     if (totalPct > 100) {
         e.percentageSum = `La suma (${totalPct.toFixed(2)}%) excede el 100%.`

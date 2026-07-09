@@ -5,6 +5,7 @@
   import FormSelect        from '@/js/Components/Common/Form/FormSelect.vue'
   import FormSwitch        from '@/js/Components/Common/Form/FormSwitch.vue'
   import BingoCardSelector from '@/js/Components/Games/Bingo/Pattern/BingoCardSelector.vue'
+  import { validateBingoPatternForm } from '@/js/composables/games/bingo/pattern/bingoPatternFormSchema'
 
   import type { BingoPattern } from '@/js/types/games/bingo/pattern/bingo-patterns'
 
@@ -54,42 +55,7 @@
    * Validación reactiva
    * ========================================================================== */
 
-  const errors = computed<Record<string, string>>(() => {
-    const e: Record<string, string> = {}
-
-    if (!form.value.name?.trim()) {
-      e.name = 'El nombre es requerido.'
-    } else if (form.value.name.length > 30) {
-      e.name = 'Máx. 30 caracteres.'
-    }
-
-    if (!form.value.type_pattern) {
-      e.type_pattern = 'El tipo de patrón es requerido.'
-    }
-
-    if (!form.value.boxes?.trim()) {
-      e.boxes = 'Las casillas son requeridas.'
-    } else {
-      const COL_BASE: Record<string, number> = { B: 1, I: 16, N: 31, G: 46, O: 61 }
-      const parseBox = (raw: string): number | null => {
-        const s = raw.trim().toUpperCase()
-        const m = s.match(/^([BINGO])(\d)$/)
-        if (m) {
-          const row = parseInt(m[2], 10)
-          return (row >= 1 && row <= 5) ? COL_BASE[m[1]] + (row - 1) : null
-        }
-        const n = parseInt(s, 10)
-        return (!isNaN(n) && n >= 1 && n <= 75) ? n : null
-      }
-      const parts = form.value.boxes.split(';').filter(b => b.trim())
-      const invalid = parts.find(b => parseBox(b) === null)
-      if (invalid) {
-        e.boxes = `Casilla inválida: "${invalid.trim()}". Use formato numérico (1-75) o letra+fila (B1-O5).`
-      }
-    }
-
-    return e
-  })
+  const errors = computed<Record<string, string>>(() => validateBingoPatternForm(form.value))
 
   const isValid = computed(() => Object.keys(errors.value).length === 0)
 

@@ -118,6 +118,13 @@ const {
 </template>
 
 <style scoped>
+.game-rooms-page,
+.game-rooms-page *,
+.game-rooms-page *::before,
+.game-rooms-page *::after {
+  box-sizing: border-box;
+}
+
 /* ═══════════════════════════════════════════════════════
    PÁGINA — fondo estelar directo (igual que Game/Index)
 ═══════════════════════════════════════════════════════ */
@@ -131,7 +138,13 @@ const {
   padding: 28px 12px 48px;
   position: relative;
   isolation: isolate;
+  overflow-x: hidden;
+  box-sizing: border-box;
   background: linear-gradient(160deg, #0a0f24 0%, #0c1230 45%, #060a18 100%);
+}
+
+@media (max-width: 380px) {
+  .game-rooms-page { padding: 20px 8px 40px; }
 }
 
 /* ── Capa 1: estrellas finas — mayor densidad ── */
@@ -226,11 +239,16 @@ const {
   65%  { opacity: 1.00; } 100% { opacity: 0.65; }
 }
 
-/* ── Botón flotante: reglamento del bingo ── */
+/* ── Botón flotante: reglamento del bingo ──
+   position: absolute (no fixed) anclado a .game-rooms-page: el área de
+   contenido tiene su propio scroll (#content-scrollable), independiente
+   del viewport. Con fixed, el botón quedaba posicionado respecto a la
+   ventana y terminaba solapado con el footer en vez de flotar dentro
+   del contenido de la página. */
 .grp-rules-fab {
-  position: fixed;
+  position: absolute;
   right: 20px;
-  bottom: 69px;
+  bottom: 24px;
   z-index: 50;
   width: 50px;
   height: 50px;
@@ -284,6 +302,10 @@ const {
   animation: fadeSlideDown 0.7s ease both;
 }
 
+@media (max-width: 380px) {
+  .game-rooms-page__header { margin-bottom: 26px; }
+}
+
 @keyframes fadeSlideDown {
   from { opacity: 0; transform: translateY(-20px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -310,8 +332,14 @@ const {
   filter: drop-shadow(0 0 10px rgba(42,245,152,0.6));
   animation: spinDice 8s linear infinite;
   color: #2af598;
+  flex-shrink: 0;
 }
 .grp-dice--2 { animation-direction: reverse; animation-duration: 10s; color: #009efd; }
+
+@media (max-width: 380px) {
+  .grp-title-wrap { gap: 10px; }
+  .grp-dice { font-size: 20px; }
+}
 
 @keyframes spinDice {
   0%   { transform: rotate(0deg);   }
@@ -320,7 +348,7 @@ const {
 
 .game-rooms-page__title {
   font-family: "Anton", sans-serif;
-  font-size: clamp(28px, 4.5vw, 44px);
+  font-size: clamp(24px, 7vw, 44px);
   letter-spacing: 4px;
   color: #e0eaff;
   margin: 0;
@@ -339,6 +367,12 @@ const {
   color: #7a96c8;
   letter-spacing: 0.8px;
   margin: 0 0 16px;
+  padding: 0 12px;
+}
+
+@media (max-width: 380px) {
+  .game-rooms-page__title { letter-spacing: 2px; }
+  .game-rooms-page__subtitle { font-size: 12px; }
 }
 
 .grp-header-line {
@@ -364,27 +398,28 @@ const {
 ═══════════════════════════════ */
 .game-rooms-page__empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  max-width: 360px;
-  margin: 32px auto;
-  padding: 14px 20px;
-  border-radius: 999px;
-  text-align: left;
+  gap: 12px;
+  max-width: 320px;
+  margin: 40px auto;
+  padding: 28px 20px;
+  border-radius: 20px;
+  text-align: center;
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.08);
   animation: fadeSlideDown 0.5s ease both;
 }
 
 .grp-empty-icon {
-  font-size: 14px;
-  color: #6a85b8;
+  font-size: 26px;
+  color: #4a6698;
   flex-shrink: 0;
 }
 
 .grp-empty-title {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   letter-spacing: 0.2px;
   color: #9fb3da;
@@ -403,7 +438,7 @@ const {
 
 .game-rooms-page__grid {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }
 
@@ -419,6 +454,13 @@ const {
 }
 .game-rooms-page__grid--centered .game-rooms-page__grid-item {
   max-width: 360px;
+}
+
+@media (max-width: 380px) {
+  .game-rooms-page__grid-wrap { padding: 0; }
+  .game-rooms-page__grid { grid-template-columns: 1fr; gap: 10px; }
+  .game-rooms-page__grid-item,
+  .game-rooms-page__grid--centered .game-rooms-page__grid-item { max-width: none; }
 }
 
 /* estilos del modal de info movidos a BingoRoomInfoModal.vue */

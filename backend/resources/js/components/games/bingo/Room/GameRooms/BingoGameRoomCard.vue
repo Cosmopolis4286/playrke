@@ -158,6 +158,13 @@ function handleClick() {
 </template>
 
 <style scoped>
+.rc,
+.rc *,
+.rc *::before,
+.rc *::after {
+  box-sizing: border-box;
+}
+
 /* ══════════════════════════════════
    BASE
 ══════════════════════════════════ */
@@ -204,6 +211,11 @@ function handleClick() {
   pointer-events: none;
 }
 
+.rc:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* glow de fondo */
 .rc__glow {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
@@ -224,7 +236,11 @@ function handleClick() {
 .rc__inner {
   position: relative; z-index: 2;
   display: flex; align-items: stretch;
-  min-height: 88px;
+  min-height: 92px;
+}
+
+@media (max-width: 380px) {
+  .rc__inner { min-height: 96px; }
 }
 
 /* ══════════════════════════════════
@@ -234,6 +250,10 @@ function handleClick() {
   position: relative;
   flex: 0 0 82px;
   overflow: hidden;
+}
+
+@media (max-width: 380px) {
+  .rc__thumb { flex-basis: 92px; }
 }
 .rc__img {
   width: 100%; height: 100%;
@@ -311,6 +331,10 @@ function handleClick() {
   padding: 8px 11px;
   display: flex; flex-direction: column; justify-content: space-between;
   gap: 5px;
+}
+
+@media (max-width: 380px) {
+  .rc__body { padding: 9px 12px; gap: 6px; }
 }
 
 /* ── Fila genérica ── */

@@ -3,6 +3,7 @@ import type { Ref } from 'vue'
 
 import backendClient from '@/js/plugins/axios'
 import { showToast } from '@/js/utils/toastNotify'
+import { validateBingoCardGenerate } from './bingoCardGenerateSchema'
 
 import type { Country } from '@/js/types/country'
 import type {
@@ -102,20 +103,24 @@ export function useBingoCardGenerate(selectedRoom: Ref<Room | null>) {
      * Indica si el formulario está listo para generar cartones.
      * Requiere sala, país, precio cargado, cantidad válida, datos completos del jugador y comprobante.
      */
-    const isFormValid = computed(() => {
-        if (!selectedRoom.value) return false
-        if (loadingCardPrice.value || !cardPriceData.value) return false
-        return (
-            selectedCountry.value !== null &&
-            numCtns.value >= 1 &&
-            numCtns.value <= 40 &&
-            !!player.phone.trim() &&
-            !!player.firstName.trim() &&
-            !!player.lastName.trim() &&
-            !!player.receiptNumber?.trim() &&
-            !!player.receiptImage
+    const isFormValid = computed(() =>
+        validateBingoCardGenerate(
+            {
+                selectedCountry: selectedCountry.value,
+                numCtns:         numCtns.value,
+                phone:           player.phone,
+                firstName:       player.firstName,
+                lastName:        player.lastName,
+                receiptNumber:   player.receiptNumber,
+                receiptImage:    player.receiptImage,
+            },
+            {
+                hasRoom:        !!selectedRoom.value,
+                isLoadingPrice: loadingCardPrice.value,
+                hasPriceLoaded: !!cardPriceData.value,
+            }
         )
-    })
+    )
 
     /* ───────── HELPERS ───────── */
 

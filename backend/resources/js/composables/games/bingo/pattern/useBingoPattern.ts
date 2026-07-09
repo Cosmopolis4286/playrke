@@ -94,8 +94,8 @@ export function useBingoPattern(): UseBingoPatternReturn {
                 status:          data.data.status,
             }
             return true
-        } catch {
-            showToast('Error al cargar el patrón', 'error')
+        } catch (error: any) {
+            showToast(error?.response?.data?.message ?? 'Error al cargar el patrón', 'error')
             return false
         } finally {
             loading.value = false
