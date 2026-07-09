@@ -3,7 +3,15 @@ import { useBingoRoomBaseForm } from '../shared/useBingoRoomBaseForm'
 
 export function useBingoRoomAutomaticForm(
     modelValueGetter: () => BingoRoomAutomaticFormData,
-    emit: (event: 'update:modelValue', value: BingoRoomAutomaticFormData) => void
+    emit: (event: 'update:modelValue', value: BingoRoomAutomaticFormData) => void,
+    currenciesWithActiveRate: () => string[] = () => []
 ) {
-    return useBingoRoomBaseForm(modelValueGetter, emit, () => true)
+    return useBingoRoomBaseForm(
+        modelValueGetter,
+        emit,
+        () => true,
+        () => true,
+        () => false,
+        currenciesWithActiveRate,
+    )
 }

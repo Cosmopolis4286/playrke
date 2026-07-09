@@ -1,3 +1,5 @@
+import { parseBox } from './bingoBoxParser'
+
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 
 export interface BingoPatternFormData {
@@ -5,21 +7,6 @@ export interface BingoPatternFormData {
     type_pattern:    'UNIQUE' | 'MULTIPLE'
     default_pattern?: 'Y' | 'N'
     boxes:           string
-}
-
-/* ─── Helpers internos ───────────────────────────────────────────────────── */
-
-const COL_BASE: Record<string, number> = { B: 1, I: 16, N: 31, G: 46, O: 61 }
-
-function parseBox(raw: string): number | null {
-    const s = raw.trim().toUpperCase()
-    const m = s.match(/^([BINGO])(\d)$/)
-    if (m) {
-        const row = parseInt(m[2], 10)
-        return row >= 1 && row <= 5 ? COL_BASE[m[1]] + (row - 1) : null
-    }
-    const n = parseInt(s, 10)
-    return !isNaN(n) && n >= 1 && n <= 75 ? n : null
 }
 
 /* ─── Validación reactiva ────────────────────────────────────────────────── */

@@ -18,13 +18,12 @@ interface UseBingoPatternReturn {
     fetchBingoPatterns: () => Promise<boolean>
 }
 
-const emptyBingoPattern = (): Partial<BingoPattern> =>
-    Object.freeze({
-        name:            '',
-        type_pattern:    'UNIQUE' as const,
-        default_pattern: 'N' as const,
-        boxes:           '',
-    })
+const emptyBingoPattern = (): Partial<BingoPattern> => ({
+    name:            '',
+    type_pattern:    'UNIQUE' as const,
+    default_pattern: 'N' as const,
+    boxes:           '',
+})
 
 export function useBingoPattern(): UseBingoPatternReturn {
     const loading          = ref(false)
@@ -169,9 +168,7 @@ export function useBingoPattern(): UseBingoPatternReturn {
         })
         if (!confirmed) return false
         try {
-            for (const id of ids) {
-                await backendClient.patch(`/bingo/patterns/${id}/status`)
-            }
+            await backendClient.patch('/bingo/patterns/bulk/status', { ids })
             showToast(`Estado cambiado para ${ids.length} patrones`, 'success')
             await fetchBingoPatterns()
             return true
@@ -191,9 +188,7 @@ export function useBingoPattern(): UseBingoPatternReturn {
         })
         if (!confirmed) return false
         try {
-            for (const id of ids) {
-                await backendClient.delete(`/bingo/patterns/${id}/delete`)
-            }
+            await backendClient.delete('/bingo/patterns/bulk/delete', { data: { ids } })
             showToast(`${ids.length} patrones eliminados`, 'success')
             await fetchBingoPatterns()
             return true

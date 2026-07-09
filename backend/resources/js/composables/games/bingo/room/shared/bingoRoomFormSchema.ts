@@ -24,6 +24,9 @@ const customCardPricePctSchema = percentageSchema
     .min(1,  'El % del precio del cartón personalizado debe estar entre 1 y 10.')
     .max(10, 'El % del precio del cartón personalizado debe estar entre 1 y 10.')
 
+const roundsPctBaseSchema = percentageSchema
+    .min(BINGO_ROOM_PERCENTAGE_LIMITS.roundsPct.min, `Mínimo ${BINGO_ROOM_PERCENTAGE_LIMITS.roundsPct.min}%.`)
+
 /* ─── Días válidos de sala automática ────────────────────────────────── */
 
 const DAY_OF_WEEK = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
@@ -34,7 +37,7 @@ const roundConfigSchema = z.object({
     bingoPattern: z.union([z.number(), z.string()]).nullable(),
     prizeType:    z.enum(['percentage', 'fixed', 'prize']),
     prizeValue:   z.union([z.number(), z.string()]).nullable(),
-    prizeValueByCurrency: z.record(z.number().nullable()).optional(),
+    prizeValueByCurrency: z.record(z.string(), z.number().nullable()).optional(),
     prizeId:   z.union([z.number(), z.string()]).nullable().optional(),
     prizeName: z.string().nullable().optional(),
 })
@@ -62,7 +65,7 @@ export const bingoRoomFormSchema = z.object({
     useBaseUsd:   z.boolean().optional(),
     cardPriceUsd: z.number().nullable().optional(),
     usdExchangeRoundStep: z.number().nullable().optional(),
-    cardPriceByCurrency:  z.record(z.number().nullable()).optional(),
+    cardPriceByCurrency:  z.record(z.string(), z.number().nullable()).optional(),
     activateRoom:    z.boolean().optional(),
     allowCustomCard: z.boolean().optional(),
     customCardPricePct: z.number().nullable().optional(),
@@ -143,7 +146,7 @@ export function validateBingoRoomForm(
     }
 
     /* ── % Sala (pre-compiled schema) ── */
-    if (!data.roomCommn) {
+    if (data.roomCommn === null || data.roomCommn === undefined) {
         e.roomCommn = 'El % de sala es requerido.'
     } else {
         const r = roomCommnSchema.safeParse(data.roomCommn)
@@ -151,8 +154,12 @@ export function validateBingoRoomForm(
     }
 
     /* ── Otros campos requeridos ── */
-    if (!data.timeChip) e.timeChip = 'El tiempo de ficha es requerido.'
-    if (!data.rounds)   e.rounds   = 'El número de rondas es requerido.'
+    if (data.timeChip === null || data.timeChip === undefined || data.timeChip === 0) {
+        e.timeChip = 'El tiempo de ficha es requerido.'
+    }
+    if (data.rounds === null || data.rounds === undefined || data.rounds < 1) {
+        e.rounds = 'El número de rondas debe ser al menos 1.'
+    }
 
     /* ── Seriales (pre-compiled schema) ── */
     if (data.useSerials) {
@@ -187,12 +194,14 @@ export function validateBingoRoomForm(
         if (!data.roundsPct || rPct === 0) {
             e.roundsPct = 'El % de rondas es requerido.'
         } else {
-            // Schema dinámico solo para el .max() contextual; los otros son constantes
-            const r = percentageSchema
-                .min(BINGO_ROOM_PERCENTAGE_LIMITS.roundsPct.min, `Mínimo ${BINGO_ROOM_PERCENTAGE_LIMITS.roundsPct.min}%.`)
-                .max(ctx.availablePct, `El % de rondas no puede superar el disponible (${ctx.availablePct.toFixed(2)}%).`)
-                .safeParse(rPct)
-            if (!r.success) e.roundsPct = r.error.issues[0].message
+            // .min() validado con el schema precompilado; .max() comparado imperativamente
+            // para evitar crear un objeto Zod nuevo en cada render (ctx.availablePct es dinámico).
+            const r = roundsPctBaseSchema.safeParse(rPct)
+            if (!r.success) {
+                e.roundsPct = r.error.issues[0].message
+            } else if (rPct > ctx.availablePct) {
+                e.roundsPct = `El % de rondas no puede superar el disponible (${ctx.availablePct.toFixed(2)}%).`
+            }
         }
     }
 

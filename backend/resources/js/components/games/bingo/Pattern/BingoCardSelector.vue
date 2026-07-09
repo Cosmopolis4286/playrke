@@ -1,14 +1,9 @@
 <script setup lang="ts" name="BingoCardSelector">
 import { computed } from 'vue'
+import { BINGO_LETTERS, COL_BASE, cellNumber, parseBox as parseCell } from '@/js/composables/games/bingo/pattern/bingoBoxParser'
+import type { BingoLetter } from '@/js/composables/games/bingo/pattern/bingoBoxParser'
 
-const LETTERS = ['B', 'I', 'N', 'G', 'O'] as const
-type BingoLetter = typeof LETTERS[number]
-
-const COL_BASE: Record<BingoLetter, number> = { B: 1, I: 16, N: 31, G: 46, O: 61 }
-
-function cellNumber(letter: BingoLetter, row: number): number {
-  return COL_BASE[letter] + (row - 1)
-}
+const LETTERS = BINGO_LETTERS
 
 const FREE_CELL = cellNumber('N', 3)
 
@@ -21,22 +16,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
-
-/** Convierte una casilla en cualquier formato ('B1', 'b1', '1') a su número 1-75. */
-function parseCell(raw: string): number | null {
-  const s = raw.trim().toUpperCase()
-  // Formato letra+fila: B1, I3, N3, G5, O2…
-  const match = s.match(/^([BINGO])(\d)$/)
-  if (match) {
-    const letter = match[1] as BingoLetter
-    const row    = parseInt(match[2], 10)
-    if (row >= 1 && row <= 5) return cellNumber(letter, row)
-    return null
-  }
-  // Formato numérico directo: 1-75
-  const n = parseInt(s, 10)
-  return (!isNaN(n) && n >= 1 && n <= 75) ? n : null
-}
 
 /** Conjunto de números de todas las celdas del cartón (sin la celda libre) */
 const ALL_CELLS = new Set(
