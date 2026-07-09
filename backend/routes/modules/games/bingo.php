@@ -61,14 +61,16 @@ route_group('bingo/config', 'bingo.config.', ['auth', 'multiPermission:games.man
  * ====================================
  */
 route_group('bingo/patterns', 'bingo-patterns.', ['auth', 'multiPermission:games.manage,games.bingo'], BingoPatternController::class, [
-    'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
-    'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
-    'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
-    'show' => ['method' => 'get', 'uri' => '{pattern}/show', 'action' => 'show'],
-    'update' => ['method' => 'patch',  'uri' => '{pattern}/update', 'action' => 'update'],
-    'delete' => ['method' => 'delete', 'uri' => '{pattern}/delete', 'action' => 'delete'],
-    'destroy' => ['method' => 'delete', 'uri' => '{pattern}/force-delete', 'action' => 'destroy'],
-    'toggle-status' => ['method' => 'patch', 'uri' => '{pattern}/status', 'action' => 'toggleStatus'],
+    'index'               => ['method' => 'get',    'uri' => '',                    'action' => 'index'],
+    'store'               => ['method' => 'post',   'uri' => '',                    'action' => 'store'],
+    'fetch-list'          => ['method' => 'get',    'uri' => 'fetch-list',          'action' => 'fetchList'],
+    'show'                => ['method' => 'get',    'uri' => '{pattern}/show',      'action' => 'show'],
+    'update'              => ['method' => 'patch',  'uri' => '{pattern}/update',    'action' => 'update'],
+    'delete'              => ['method' => 'delete', 'uri' => '{pattern}/delete',    'action' => 'delete'],
+    'destroy'             => ['method' => 'delete', 'uri' => '{pattern}/force-delete', 'action' => 'destroy'],
+    'toggle-status'       => ['method' => 'patch',  'uri' => '{pattern}/status',   'action' => 'toggleStatus'],
+    'bulk-toggle-status'  => ['method' => 'patch',  'uri' => 'bulk/status',        'action' => 'toggleStatusBulk'],
+    'bulk-delete'         => ['method' => 'delete', 'uri' => 'bulk/delete',        'action' => 'deleteBulk'],
 ]);
 
 /**

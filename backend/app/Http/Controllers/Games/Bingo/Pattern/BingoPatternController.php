@@ -10,6 +10,7 @@ use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Services\Games\Bingo\Pattern\BingoPatternService;
 use App\Services\Security\UserContextService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -136,6 +137,32 @@ final class BingoPatternController extends Controller
     {
         return $this->handleServiceJson(
             fn() => $this->service->toggleStatus($pattern)
+        );
+    }
+
+    /**
+     * Alterna el estado de múltiples patrones en una sola operación bulk.
+     * Body: { "ids": ["id1", "id2", ...] }
+     */
+    public function toggleStatusBulk(Request $request): JsonResponse
+    {
+        $ids = $request->input('ids', []);
+
+        return $this->handleServiceJson(
+            fn() => ['updated' => $this->service->toggleStatusBulk($ids)]
+        );
+    }
+
+    /**
+     * Eliminación lógica bulk de patrones.
+     * Body: { "ids": ["id1", "id2", ...] }
+     */
+    public function deleteBulk(Request $request): JsonResponse
+    {
+        $ids = $request->input('ids', []);
+
+        return $this->handleServiceJson(
+            fn() => ['deleted' => $this->service->deleteBulk($ids)]
         );
     }
 }
