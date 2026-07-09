@@ -10,6 +10,9 @@ use App\Domains\Games\Bingo\Contracts\Room\BingoRoomRepositoryInterface;
 use App\Domains\Games\Bingo\Contracts\Room\Config\BingoRoomConfigRepositoryInterface;
 use App\Domains\Games\Bingo\Contracts\Room\User\BingoRoomUserRepositoryInterface;
 use App\Domains\Games\Bingo\Contracts\Round\BingoRoundRepositoryInterface;
+use App\Domains\Games\Bingo\Contracts\CommissionCalculationInterface;
+use App\Domains\Games\Bingo\Contracts\RoomMetricsInterface;
+use App\Domains\Games\Bingo\Contracts\RoomUserRegistrationInterface;
 use App\Domains\Games\Bingo\Repositories\Card\CardLot\BingoCardLotRepository;
 use App\Domains\Games\Bingo\Repositories\Card\CardPrice\BingoCardPriceRepository;
 use App\Domains\Games\Bingo\Repositories\Pattern\BingoPatternRepository;
@@ -18,6 +21,9 @@ use App\Domains\Games\Bingo\Repositories\Room\BingoRoomRepository;
 use App\Domains\Games\Bingo\Repositories\Room\BingoRoomUserRepository;
 use App\Domains\Games\Bingo\Repositories\Room\Config\BingoRoomConfigRepository;
 use App\Domains\Games\Bingo\Repositories\Round\BingoRoundRepository;
+use App\Domains\Games\Bingo\Services\Payment\CommissionCalculationService;
+use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
+use App\Domains\Games\Bingo\Services\Room\User\RoomUserRegistrationService;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -51,5 +57,9 @@ class BingoServiceProvider extends ServiceProvider
         $this->app->singleton(BingoRoomConfigRepositoryInterface::class, BingoRoomConfigRepository::class);
         $this->app->singleton(BingoRoomUserRepositoryInterface::class, BingoRoomUserRepository::class);
         $this->app->singleton(BingoRoundRepositoryInterface::class, BingoRoundRepository::class);
+
+        $this->app->singleton(CommissionCalculationInterface::class, CommissionCalculationService::class);
+        $this->app->singleton(RoomMetricsInterface::class, RoomMetricsService::class);
+        $this->app->singleton(RoomUserRegistrationInterface::class, RoomUserRegistrationService::class);
     }
 }

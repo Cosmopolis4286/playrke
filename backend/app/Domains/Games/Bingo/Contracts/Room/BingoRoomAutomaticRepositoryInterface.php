@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Collection;
  * Define los métodos que debe implementar el repositorio para gestionar
  * las salas de bingo automáticas con configuración programada.
  *
- * @package App\Repositories\Games\Bingo\Room\Contracts
+ * @package App\Domains\Games\Bingo\Contracts\Room
  * @author Sistema PlayRKE
  * @version 1.0
  */

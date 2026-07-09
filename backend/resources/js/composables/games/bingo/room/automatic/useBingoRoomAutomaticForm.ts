@@ -10,7 +10,7 @@ export function useBingoRoomAutomaticForm(
         modelValueGetter,
         emit,
         () => true,
-        () => true,
+        () => modelValueGetter().useBaseUsd ?? true,
         () => false,
         currenciesWithActiveRate,
     )

@@ -53,11 +53,14 @@ class GameStatus extends Model
         $cacheKey = 'game_status_map_' . md5(implode(',', $sorted));
 
         return Cache::remember($cacheKey, 60, function () use ($codes, $cacheKey) {
-            // Registrar la clave para que GameStatusObserver pueda borrarla al invalidar.
-            $known = Cache::get('game_status_map_keys', []);
-            if (!in_array($cacheKey, $known, true)) {
-                Cache::put('game_status_map_keys', [...$known, $cacheKey], 300);
-            }
+            // Registrar la clave usando una lock atómica para que GameStatusObserver
+            // pueda invalidarla sin riesgo de race read-modify-write entre procesos.
+            Cache::lock('game_status_map_keys_lock', 3)->get(function () use ($cacheKey): void {
+                $known = Cache::get('game_status_map_keys', []);
+                if (!in_array($cacheKey, $known, true)) {
+                    Cache::put('game_status_map_keys', [...$known, $cacheKey], 300);
+                }
+            });
 
             $query = static::query();
             if (!empty($codes)) {
