@@ -79,4 +79,24 @@ final class BingoPatternService
     {
         return $pattern->forceDelete();
     }
+
+    /**
+     * Alterna el estado de múltiples patrones en un solo UPDATE bulk.
+     *
+     * @param (string|int)[] $ids
+     */
+    public function toggleStatusBulk(array $ids): int
+    {
+        return $this->crudService->toggleStatusBulk($ids);
+    }
+
+    /**
+     * Eliminación lógica bulk de patrones.
+     *
+     * @param (string|int)[] $ids
+     */
+    public function deleteBulk(array $ids): int
+    {
+        return $this->crudService->deleteBulk($ids);
+    }
 }

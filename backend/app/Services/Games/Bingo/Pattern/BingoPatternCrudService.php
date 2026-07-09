@@ -93,4 +93,45 @@ final class BingoPatternCrudService
     {
         return $this->repository->updatePatternStatus($pattern->id, BingoPattern::STATUS_INACTIVE);
     }
+
+    /**
+     * Cambia el estado de múltiples patrones en un solo UPDATE bulk.
+     *
+     * @param (string|int)[] $ids
+     */
+    public function toggleStatusBulk(array $ids): int
+    {
+        if (empty($ids)) {
+            return 0;
+        }
+
+        $activeIds   = BingoPattern::whereIn('id', $ids)->where('status', BingoPattern::STATUS_ACTIVE)->pluck('id');
+        $inactiveIds = BingoPattern::whereIn('id', $ids)->where('status', BingoPattern::STATUS_INACTIVE)->pluck('id');
+
+        $count = 0;
+        if ($activeIds->isNotEmpty()) {
+            BingoPattern::whereIn('id', $activeIds)->update(['status' => BingoPattern::STATUS_INACTIVE]);
+            $count += $activeIds->count();
+        }
+        if ($inactiveIds->isNotEmpty()) {
+            BingoPattern::whereIn('id', $inactiveIds)->update(['status' => BingoPattern::STATUS_ACTIVE]);
+            $count += $inactiveIds->count();
+        }
+
+        return $count;
+    }
+
+    /**
+     * Elimina lógicamente múltiples patrones en un solo UPDATE bulk.
+     *
+     * @param (string|int)[] $ids
+     */
+    public function deleteBulk(array $ids): int
+    {
+        if (empty($ids)) {
+            return 0;
+        }
+
+        return BingoPattern::whereIn('id', $ids)->update(['status' => BingoPattern::STATUS_INACTIVE]);
+    }
 }

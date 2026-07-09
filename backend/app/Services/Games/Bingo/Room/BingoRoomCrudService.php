@@ -82,12 +82,40 @@ class BingoRoomCrudService
     public function saveRoom(BingoRoom|BingoRoomCreateDTO $roomOrDto, ?BingoRoomUpdateDTO $updateDto = null): bool
     {
         try {
-            // Transaction returns the broadcast payload so we can fire events after commit.
-            $payload = DB::transaction(function () use ($roomOrDto, $updateDto) {
+            $payload = $this->saveRoomTransact($roomOrDto, $updateDto);
+        } catch (\Throwable $e) {
+            throw new BingoRoomException('Error al guardar la sala: ' . $e->getMessage());
+        }
 
-                $userId = Auth::id();
-                $isCreate = $roomOrDto instanceof BingoRoomCreateDTO;
-                $dto = $isCreate ? $roomOrDto : $updateDto;
+        // Broadcasts FUERA de la transacción: el commit ya ocurrió
+        ['room' => $room, 'statusCode' => $statusCode, 'wasActive' => $wasActive, 'freshRoom' => $freshRoom] = $payload;
+
+        if ($freshRoom && $statusCode === 'ACTIVE') {
+            broadcast(new BingoRoomUpdated(
+                roomId:       (string) $room->uuid_code,
+                prizePool:    (float)  $room->prize_pool,
+                totalPlayers: (int)    $room->total_players,
+                cardPriceUsd: (float) ($freshRoom->config?->card_price_usd ?? 0),
+            ));
+        }
+
+        $this->broadcastLobbyStatusChange($room, $statusCode === 'ACTIVE', $wasActive);
+
+        return true;
+    }
+
+    /**
+     * Ejecuta la transacción de saveRoom y devuelve el payload de broadcast.
+     * Separado de saveRoom() para que saveRoomOrSplit() pueda controlar
+     * cuándo se emiten los eventos (después del outer commit).
+     */
+    private function saveRoomTransact(BingoRoom|BingoRoomCreateDTO $roomOrDto, ?BingoRoomUpdateDTO $updateDto = null): array
+    {
+        return DB::transaction(function () use ($roomOrDto, $updateDto) {
+
+            $userId = Auth::id();
+            $isCreate = $roomOrDto instanceof BingoRoomCreateDTO;
+            $dto = $isCreate ? $roomOrDto : $updateDto;
 
                 // Una sola query cacheada para todos los status IDs necesarios
                 $statusMap    = GameStatus::codesMap(['ACTIVE', 'INACTIVE', 'IN_PROGRESS', 'FINISHED', 'CANCELLED']);
@@ -194,26 +222,7 @@ class BingoRoomCrudService
                     'wasActive'  => $wasActive,
                     'freshRoom'  => $room->fresh(['config']),
                 ];
-            });
-        } catch (\Throwable $e) {
-            throw new BingoRoomException('Error al guardar la sala: ' . $e->getMessage());
-        }
-
-        // Broadcasts FUERA de la transacción: el commit ya ocurrió
-        ['room' => $room, 'statusCode' => $statusCode, 'wasActive' => $wasActive, 'freshRoom' => $freshRoom] = $payload;
-
-        if ($freshRoom && $statusCode === 'ACTIVE') {
-            broadcast(new BingoRoomUpdated(
-                roomId:       (string) $room->uuid_code,
-                prizePool:    (float)  $room->prize_pool,
-                totalPlayers: (int)    $room->total_players,
-                cardPriceUsd: (float) ($freshRoom->config?->card_price_usd ?? 0),
-            ));
-        }
-
-        $this->broadcastLobbyStatusChange($room, $statusCode === 'ACTIVE', $wasActive);
-
-        return true;
+        });
     }
 
     /**
@@ -230,13 +239,50 @@ class BingoRoomCrudService
             return $this->saveRoom($dto);
         }
 
-        return DB::transaction(function () use ($dto) {
+        // Outer transaction agrupa todas las salas por moneda.
+        // saveRoom() emite broadcasts normalmente cuando se llama sola,
+        // pero aquí suprimimos sus broadcasts individuales y los colectamos
+        // para emitirlos TODOS después del commit outer — evita broadcasts
+        // de salas que aún no existen si una iteración posterior falla y revierte.
+        $broadcastQueue = [];
+
+        DB::transaction(function () use ($dto, &$broadcastQueue) {
             foreach ($dto->allowedCurrencies as $currencyId) {
                 $perCurrencyDto = $this->sliceDtoForCurrency($dto, $currencyId);
-                $this->saveRoom($perCurrencyDto);
+                $broadcastQueue[] = $this->saveRoomReturningBroadcast($perCurrencyDto);
             }
-            return true;
         });
+
+        foreach (array_filter($broadcastQueue) as $b) {
+            if ($b['statusCode'] === 'ACTIVE' && $b['freshRoom']) {
+                broadcast(new BingoRoomUpdated(
+                    roomId:       (string) $b['room']->uuid_code,
+                    prizePool:    (float)  $b['room']->prize_pool,
+                    totalPlayers: (int)    $b['room']->total_players,
+                    cardPriceUsd: (float) ($b['freshRoom']->config?->card_price_usd ?? 0),
+                ));
+            }
+            $this->broadcastLobbyStatusChange($b['room'], $b['statusCode'] === 'ACTIVE', $b['wasActive']);
+        }
+
+        return true;
+    }
+
+    /**
+     * Variante interna de saveRoom() que devuelve el payload de broadcast
+     * en lugar de emitirlo — permite que saveRoomOrSplit() controle cuándo
+     * se emiten los eventos respecto al outer DB::transaction.
+     */
+    private function saveRoomReturningBroadcast(BingoRoomCreateDTO $dto): ?array
+    {
+        $payload = $this->saveRoomTransact($dto);
+
+        return [
+            'room'       => $payload['room'],
+            'statusCode' => $payload['statusCode'],
+            'wasActive'  => $payload['wasActive'],
+            'freshRoom'  => $payload['freshRoom'],
+        ];
     }
 
     /**
@@ -820,7 +866,7 @@ class BingoRoomCrudService
     {
         $lots = BingoCardLot::where('room_id', $room->id)
             ->where('status', 'ACTIVE')
-            ->cursor();
+            ->get();
 
         foreach ($lots as $lot) {
             $amount = (float) $lot->sale_amount;

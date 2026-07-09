@@ -27,16 +27,17 @@ final class CheckExpiredBingoRoomsService
             return;
         }
 
-        // Salas ACTIVE cuya fecha+hora ya pasó
-        BingoRoom::where('status_id', $activeId)
-            ->whereHas('config', fn($q) => $q->where('unix_date', '<=', $now))
-            ->get(['id', 'total_players'])
-            ->each(function (BingoRoom $room) use ($inactiveId, $inProgressId) {
-                $newStatusId = ($room->total_players ?? 0) > 0
-                    ? $inProgressId
-                    : $inactiveId;
+        // Salas ACTIVE cuya fecha+hora ya pasó — dos bulk UPDATE en lugar de N individuales.
+        $expiredSubquery = fn($q) => $q->where('unix_date', '<=', $now);
 
-                $room->update(['status_id' => $newStatusId]);
-            });
+        BingoRoom::where('status_id', $activeId)
+            ->whereHas('config', $expiredSubquery)
+            ->where('total_players', '>', 0)
+            ->update(['status_id' => $inProgressId]);
+
+        BingoRoom::where('status_id', $activeId)
+            ->whereHas('config', $expiredSubquery)
+            ->where(fn($q) => $q->where('total_players', 0)->orWhereNull('total_players'))
+            ->update(['status_id' => $inactiveId]);
     }
 }

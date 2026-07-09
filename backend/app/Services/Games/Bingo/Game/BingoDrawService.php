@@ -43,6 +43,8 @@ final class BingoDrawService
      */
     private ?\Illuminate\Support\Collection $activeCardsCache = null;
     private ?string $activeCardsCacheRoomId = null;
+    /** Número de cartones ACTIVE al momento de cargar el cache — evita COUNT(*) por ficha. */
+    private ?int $activeCardsCacheCount = null;
 
     public function __construct(
         private readonly BingoPrizePayoutService $prizePayoutService,
@@ -193,7 +195,7 @@ final class BingoDrawService
             if ($interval > 0) sleep($interval);
 
             $chip = $sequence[$i];
-            $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * self::CHIP_INTERVAL_SECONDS, $variant);
+            $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * $interval, $variant);
 
             broadcast(new BingoNumberCalled((int) $chip, $roomId));
             $drawnSoFar[] = $chip;
@@ -247,20 +249,20 @@ final class BingoDrawService
     {
         $roomId = (string) $room->id;
 
-        $currentCount = BingoCard::where('room_id', $roomId)
-            ->where('status', BingoCard::STATUS_ACTIVE)
-            ->count();
-
+        // El stale-check usa el COUNT en memoria (activeCardsCacheCount) en lugar de
+        // lanzar un SELECT COUNT(*) por cada ficha cantada (75 queries por sorteo).
+        // El cache solo se recarga si: (a) no existe, (b) es de otra sala, o
+        // (c) fue invalidado explícitamente por invalidateActiveCardsCache().
         $stale = $this->activeCardsCache === null
-            || $this->activeCardsCacheRoomId !== $roomId
-            || $this->activeCardsCache->count() !== $currentCount;
+            || $this->activeCardsCacheRoomId !== $roomId;
 
         if ($stale) {
             $this->activeCardsCache = BingoCard::where('room_id', $roomId)
                 ->where('status', BingoCard::STATUS_ACTIVE)
                 ->with($with)
                 ->get();
-            $this->activeCardsCacheRoomId = $roomId;
+            $this->activeCardsCacheRoomId  = $roomId;
+            $this->activeCardsCacheCount   = $this->activeCardsCache->count();
         }
 
         return $this->activeCardsCache;
@@ -269,7 +271,8 @@ final class BingoDrawService
     /** Invalida el cache de cartones activos — usar tras cambiar el status de un cartón. */
     private function invalidateActiveCardsCache(): void
     {
-        $this->activeCardsCache = null;
+        $this->activeCardsCache      = null;
+        $this->activeCardsCacheCount = null;
     }
 
     private function generateSequence(int $totalChips): array
@@ -463,10 +466,11 @@ final class BingoDrawService
         string       $cardId,
         int          $lastDrawId
     ): ?array {
-        $roundId = (string) $round->id;
+        $roundId   = (string) $round->id;
         $cardPrize = null;
+        $broadcastWinner = null;
 
-        $winnerData = DB::transaction(function () use ($room, $round, $roundId, $pattern, $cardId, $lastDrawId, &$cardPrize) {
+        $winnerData = DB::transaction(function () use ($room, $round, $roundId, $pattern, $cardId, $lastDrawId, &$cardPrize, &$broadcastWinner) {
             $card = BingoCard::where('id', $cardId)
                 ->lockForUpdate()
                 ->with(['roomUser.user', 'cardLot'])
@@ -522,28 +526,16 @@ final class BingoDrawService
                 'user_id'       => $userId,
             ]);
 
-            broadcast(new BingoWinnerDeclared(
-                roomId:     (int) $room->id,
-                drawId:     $lastDrawId,
-                winnerId:   (int) $userId,
-                winnerName: $userName,
-                cardId:     (int) $card->id,
-                pattern:    $pattern->name,
-                prize:      $prize,
-            ));
-
-            $cardPrize->loadMissing('currency');
-            $this->winEventService->reportMoney(
-                userId: $userId ? (string) $userId : null,
-                winnerNameOverride: $userId ? null : $userName,
-                gameSlug: 'bingo',
-                gameName: 'Bingo',
-                amountUsd: $prize,
-                amountLocal: (float) $cardPrize->local_amount,
-                currencyId: $cardPrize->currency_id,
-                sourceReference: (string) $cardPrize->id,
-                metadata: ['room_id' => (string) $room->id, 'pattern' => $pattern->name],
-            );
+            // Capturar payload para broadcast FUERA de la transacción (el commit aún no ocurrió aquí).
+            $broadcastWinner = [
+                'roomId'    => (int) $room->id,
+                'drawId'    => $lastDrawId,
+                'winnerId'  => (int) $userId,
+                'winnerName'=> $userName,
+                'cardId'    => (int) $card->id,
+                'pattern'   => $pattern->name,
+                'prize'     => $prize,
+            ];
 
             return [
                 'user_id'       => (int) $userId,
@@ -557,10 +549,31 @@ final class BingoDrawService
             ];
         });
 
-        // Acreditar el premio a la wallet del ganador FUERA de la transacción de lock:
-        // si el pago falla, el registro del premio ya confirmado no debe revertirse —
-        // queda en prize_status = 'waiting' y puede reintentarse más tarde.
+        // Broadcast y pago FUERA de la transacción: la fila bingo_card_prizes ya está commitada.
         if ($winnerData !== null && $cardPrize !== null) {
+            broadcast(new BingoWinnerDeclared(
+                roomId:     $broadcastWinner['roomId'],
+                drawId:     $broadcastWinner['drawId'],
+                winnerId:   $broadcastWinner['winnerId'],
+                winnerName: $broadcastWinner['winnerName'],
+                cardId:     $broadcastWinner['cardId'],
+                pattern:    $broadcastWinner['pattern'],
+                prize:      $broadcastWinner['prize'],
+            ));
+
+            $cardPrize->loadMissing('currency');
+            $this->winEventService->reportMoney(
+                userId: $broadcastWinner['winnerId'] ? (string) $broadcastWinner['winnerId'] : null,
+                winnerNameOverride: $broadcastWinner['winnerId'] ? null : $broadcastWinner['winnerName'],
+                gameSlug: 'bingo',
+                gameName: 'Bingo',
+                amountUsd: $broadcastWinner['prize'],
+                amountLocal: (float) $cardPrize->local_amount,
+                currencyId: $cardPrize->currency_id,
+                sourceReference: (string) $cardPrize->id,
+                metadata: ['room_id' => (string) $cardPrize->room_id, 'pattern' => $broadcastWinner['pattern']],
+            );
+
             $this->prizePayoutService->payout($cardPrize);
         }
 
@@ -627,7 +640,7 @@ final class BingoDrawService
 
         Log::info('[BingoDrawService] Sala cerrada (FINISHED)', [
             'room_id'     => $room->id,
-            'status_id'   => $finishedStatus->id,
+            'status_id'   => $finishedId,
             'finished_at' => now()->toISOString(),
         ]);
     }
