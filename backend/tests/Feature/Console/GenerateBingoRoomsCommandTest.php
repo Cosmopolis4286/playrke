@@ -11,7 +11,7 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoomTemplate;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Models\Round\BingoRoundPrize;
 use App\Models\Games\Common\Utils\GameStatus;
-use App\Services\Games\Bingo\Room\Automatic\AutoGenerateBingoRoomsService;
+use App\Domains\Games\Bingo\Services\Room\Automatic\AutoGenerateBingoRoomsService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;

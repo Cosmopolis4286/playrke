@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Games\Bingo\Room\Automatic\AutoGenerateBingoRoomsService;
+use App\Domains\Games\Bingo\Services\Room\Automatic\AutoGenerateBingoRoomsService;
 use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
 use Throwable;

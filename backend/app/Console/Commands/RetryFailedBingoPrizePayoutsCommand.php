@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Services\Commands\CommandService;
-use App\Services\Games\Bingo\Winner\BingoPrizePayoutService;
+use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
 use Illuminate\Console\Command;
 use Throwable;
 

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Games\Bingo\History;
 
 use App\Http\Controllers\Controller;
-use App\Services\Games\Bingo\History\PlayerGameHistoryService;
+use App\Domains\Games\Bingo\Services\History\PlayerGameHistoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;

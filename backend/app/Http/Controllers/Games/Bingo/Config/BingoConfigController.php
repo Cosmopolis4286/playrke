@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Games\Bingo\Config;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Config\BingoConfigRequest;
 use App\Http\Requests\Games\Bingo\Config\BingoConfigImageRequest;
-use App\Services\Games\Bingo\Config\BingoConfigService;
+use App\Domains\Games\Bingo\Services\Config\BingoConfigService;
 use App\Services\Security\UserContextService;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;

@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\Commands\CommandService;
-use App\Services\Games\Bingo\Room\Utils\CheckExpiredBingoRoomsService;
+use App\Domains\Games\Bingo\Services\Room\Utils\CheckExpiredBingoRoomsService;
 use Illuminate\Console\Command;
 use Throwable;
 
