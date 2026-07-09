@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Domains\Common\Status\StatusChanger;
+use App\Models\Games\Common\Utils\GameStatus;
+use App\Observers\Games\Common\GameStatusObserver;
 use App\Repositories\BaseRepository;
 use App\Services\Route\RouteService;
 use App\Support\EnvValidator;
@@ -85,6 +87,8 @@ class AppServiceProvider extends ServiceProvider
         if (!$this->app->runningUnitTests()) {
             EnvValidator::validate();
         }
+
+        GameStatus::observe(GameStatusObserver::class);
 
         // -------------------------------------------
         // Forzar HTTPS en producción

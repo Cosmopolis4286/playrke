@@ -52,7 +52,13 @@ class GameStatus extends Model
         sort($sorted);
         $cacheKey = 'game_status_map_' . md5(implode(',', $sorted));
 
-        return Cache::remember($cacheKey, 60, function () use ($codes) {
+        return Cache::remember($cacheKey, 60, function () use ($codes, $cacheKey) {
+            // Registrar la clave para que GameStatusObserver pueda borrarla al invalidar.
+            $known = Cache::get('game_status_map_keys', []);
+            if (!in_array($cacheKey, $known, true)) {
+                Cache::put('game_status_map_keys', [...$known, $cacheKey], 300);
+            }
+
             $query = static::query();
             if (!empty($codes)) {
                 $query->whereIn('code', $codes);
