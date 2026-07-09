@@ -7,7 +7,7 @@ use App\Domains\Games\Bingo\DTOs\Pattern\BingoPatternUpdateDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Games\Bingo\Pattern\BingoPatternRequest;
 use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
-use App\Services\Games\Bingo\Pattern\BingoPatternService;
+use App\Domains\Games\Bingo\Services\Pattern\BingoPatternService;
 use App\Services\Security\UserContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Games\Bingo\Room;
 use App\Http\Controllers\Controller;
 
 use App\Domains\Games\Bingo\DTOs\Room\Automatic\BingoRoomAutomaticCreateDTO;
-use App\Services\Games\Bingo\Room\Automatic\AutoGenerateBingoRoomsService;
+use App\Domains\Games\Bingo\Services\Room\Automatic\AutoGenerateBingoRoomsService;
 use App\Domains\Games\Bingo\DTOs\Room\Automatic\BingoRoomAutomaticUpdateDTO;
 use App\Http\Requests\Games\Bingo\Room\Automatic\BingoRoomAutomaticRequest;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
@@ -29,7 +29,7 @@ final class BingoRoomAutomaticController extends Controller
      * @param BingoRoomAutomaticService $service
      */
     public function __construct(
-        private readonly \App\Services\Games\Bingo\Room\Automatic\BingoRoomAutomaticService $service,
+        private readonly \App\Domains\Games\Bingo\Services\Room\Automatic\BingoRoomAutomaticService $service,
         private readonly \App\Services\Security\UserContextService $userContext,
         private readonly AutoGenerateBingoRoomsService $autoGenerator,
     ) {

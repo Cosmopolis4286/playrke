@@ -3,7 +3,7 @@
 namespace App\Domains\Games\Bingo\Jobs;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use App\Services\Games\Bingo\Game\BingoDrawService;
+use App\Domains\Games\Bingo\Services\Game\BingoDrawService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;

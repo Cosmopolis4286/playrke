@@ -27,13 +27,13 @@ final class BingoGameController extends Controller
      */
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
-        private readonly \App\Services\Games\Bingo\Game\BingoGameService $service,
-        private readonly \App\Services\Games\Bingo\Game\BingoDrawService $drawService,
-        private readonly \App\Services\Games\Bingo\Game\BingoWinnerDetectionService $winnerDetection,
-        private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $cardGenerateService,
+        private readonly \App\Domains\Games\Bingo\Services\Game\BingoGameService $service,
+        private readonly \App\Domains\Games\Bingo\Services\Game\BingoDrawService $drawService,
+        private readonly \App\Domains\Games\Bingo\Services\Game\BingoWinnerDetectionService $winnerDetection,
+        private readonly \App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService $cardGenerateService,
         private readonly \App\Services\Roles\RoleUserService $roleUserService,
-        private readonly \App\Services\Games\Bingo\Config\BingoConfigContextService $bingoConfigContext,
-        private readonly \App\Services\Games\Bingo\Game\BingoPatternPositionResolver $patternResolver,
+        private readonly \App\Domains\Games\Bingo\Services\Config\BingoConfigContextService $bingoConfigContext,
+        private readonly \App\Domains\Games\Bingo\Services\Game\BingoPatternPositionResolver $patternResolver,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }

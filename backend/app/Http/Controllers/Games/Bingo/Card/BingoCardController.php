@@ -29,7 +29,7 @@ final class BingoCardController extends Controller
      */
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
-        private readonly \App\Services\Games\Bingo\Card\Generate\BingoCardGenerateService $generateService,
+        private readonly \App\Domains\Games\Bingo\Services\Card\Generate\BingoCardGenerateService $generateService,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
     }
