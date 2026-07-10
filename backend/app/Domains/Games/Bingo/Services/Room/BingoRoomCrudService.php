@@ -784,7 +784,7 @@ class BingoRoomCrudService
         // Insertar todos los premios en bingo_round_prizes
         if (!empty($prizeRows)) {
             $totalPrizes  = array_sum(array_map('count', $prizeRows));
-            $prizeIds     = $snowflakeService->batch($totalPrizes);
+            $prizeIds     = $this->snowflakeService->batch($totalPrizes);
             $prizeIdIndex = 0;
             $insertRows   = [];
 
