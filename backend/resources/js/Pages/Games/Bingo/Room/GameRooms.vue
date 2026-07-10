@@ -117,6 +117,21 @@ const {
   />
 </template>
 
+<style>
+/* .mt-2 y #app son ancestros fuera de este componente (vienen de
+   auth-layout.blade.php), así que scoped no los alcanza. Son `display:
+   block` con `height: auto`, por lo que no propagan la altura real de
+   #content-scrollable (flex-grow-1) hacia .game-rooms-page — sin esto,
+   `min-height: 100%` de abajo no tiene una base % válida y la página
+   queda más corta que el espacio disponible (ver comentario en
+   .game-rooms-page). Selector acotado con :has() para no afectar otras
+   páginas que reusan el mismo layout. */
+#app:has(> .game-rooms-page),
+.mt-2:has(> #app > .game-rooms-page) {
+  height: 100%;
+}
+</style>
+
 <style scoped>
 .game-rooms-page,
 .game-rooms-page *,
@@ -130,10 +145,15 @@ const {
 ═══════════════════════════════════════════════════════ */
 .game-rooms-page {
   flex: 1;
-  /* navbar 56px + footer 44px (ver footer.blade.php min-height: 44px !important).
-     El margin -0.5rem de abajo ya cancela el mt-2 del wrapper padre, así que no
-     se resta/suma aparte aquí — sumarlo duplicaba ese espacio y generaba scroll. */
-  min-height: calc(100vh - 56px - 44px);
+  /* El footer tiene altura variable en móvil (min-height: 0 !important en
+     footer.blade.php bajo 576px, ver comentario ahí — el texto puede envolver
+     en 2 líneas y superar los 44px "de referencia"). Calcular con
+     calc(100vh - navbar - footer) asumía un footer fijo y se quedaba corto,
+     generando ~9px de overflow-y en el contenedor scrollable padre.
+     #content-scrollable ya es flex-grow-1 dentro de .wrapper (vh-100), así
+     que mide el espacio real disponible: heredamos ese 100% en vez de
+     recalcularlo con el viewport. */
+  min-height: 100%;
   margin: -0.5rem -0.5rem 0;
   padding: 28px 12px 48px;
   position: relative;
@@ -431,21 +451,24 @@ const {
 ═══════════════════════════════ */
 .game-rooms-page__grid-wrap {
   width: 100%;
-  max-width: 860px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 0 4px;
 }
 
 .game-rooms-page__grid {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  /* minmax más ancho: la card horizontal aprovecha mejor 320-460px que 260px,
+     y con pocas salas cada columna crece hasta el máximo del item en vez de
+     quedar angosta con espacio vacío alrededor. */
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
 }
 
 .game-rooms-page__grid-item {
   display: flex;
   width: 100%;
-  max-width: 360px;
+  max-width: 460px;
 }
 
 /* Con pocas cards: centrar la fila */
@@ -453,7 +476,7 @@ const {
   justify-content: center;
 }
 .game-rooms-page__grid--centered .game-rooms-page__grid-item {
-  max-width: 360px;
+  max-width: 460px;
 }
 
 @media (max-width: 380px) {

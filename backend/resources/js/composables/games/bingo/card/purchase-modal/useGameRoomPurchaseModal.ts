@@ -39,25 +39,33 @@ function _cachedPrice(roomId: string) {
 }
 
 /**
- * Las rutas de /bingo-card/* usan HasHashedRouteKey (Hashids).
- * room.encrypted contiene el hash; room.id es el Snowflake crudo.
- * Si encrypted no está disponible se cae al id (p.ej. desde el Lobby).
+ * Clave de ruta para todos los endpoints que usan HasHashedRouteKey (Hashids):
+ *  - /bingo-card/{room}/*
+ *  - /bingo/game-rooms/{room}/*  (player-card-price, buy, player-buy)
+ *
+ * room.encrypted es el hashed_id que el backend espera en el route model binding.
+ * Fallback a room.id solo como último recurso (p.ej. si el prop no llegó).
  */
 function _bingoCardKey(room: BingoGameRoom): string {
     return room.encrypted ?? room.id
 }
 
 /**
- * Petición HTTP deduplicada: si ya hay una en vuelo para el mismo roomId
+ * Petición HTTP deduplicada: si ya hay una en vuelo para el mismo room
  * reutiliza la misma Promise en lugar de lanzar una segunda.
+ *
+ * Usa room.id como clave de caché (estable entre rerenders) pero _bingoCardKey(room)
+ * como segmento de URL (hashed_id que el route model binding de Laravel espera).
  */
-function _fetchPlayerCardPriceHttp(roomId: string): Promise<BingoCardPriceResponse> {
-    if (_inflight.has(roomId)) return _inflight.get(roomId)!
+function _fetchPlayerCardPriceHttp(room: BingoGameRoom): Promise<BingoCardPriceResponse> {
+    const cacheKey = room.id
+    if (_inflight.has(cacheKey)) return _inflight.get(cacheKey)!
+    const routeKey = _bingoCardKey(room)
     const req = backendClient
-        .get<BingoCardPriceResponse>(`/bingo/game-rooms/${roomId}/player-card-price`)
+        .get<BingoCardPriceResponse>(`/bingo/game-rooms/${routeKey}/player-card-price`)
         .then(r => r.data)
-        .finally(() => _inflight.delete(roomId))
-    _inflight.set(roomId, req)
+        .finally(() => _inflight.delete(cacheKey))
+    _inflight.set(cacheKey, req)
     return req
 }
 
@@ -92,6 +100,12 @@ export function useGameRoomPurchaseModal() {
     const customCardNumbers = ref<CardMatrix>({})
 
     const canCustomize = computed(() => isPlayer.value && numCtns.value === 1)
+
+    // True mientras la sala está seleccionada pero su config aún no llegó (lazy prop de Inertia).
+    // Deshabilita el toggle de personalización hasta que game_variant esté disponible.
+    const configLoading = computed(
+        () => !!selectedRoom.value && !selectedRoom.value.config?.game_variant,
+    )
 
     // ── Estado de compra ─────────────────────────────────────────────────────
     const purchasing = ref(false)
@@ -143,8 +157,9 @@ export function useGameRoomPurchaseModal() {
         }
     }
 
-    async function _fetchPlayerCardPrice(roomId: string): Promise<void> {
-        const cached = _cachedPrice(roomId)
+    async function _fetchPlayerCardPrice(room: BingoGameRoom): Promise<void> {
+        const cacheKey = room.id
+        const cached = _cachedPrice(cacheKey)
         if (cached) {
             cardPrice.value = cached.price
             currencySymbol.value = cached.symbol
@@ -154,11 +169,11 @@ export function useGameRoomPurchaseModal() {
 
         try {
             loadingPrice.value = true
-            const data = await _fetchPlayerCardPriceHttp(roomId)
+            const data = await _fetchPlayerCardPriceHttp(room)
             cardPrice.value = data.card_price
             currencySymbol.value = data.currency_symbol
             step.value = 'confirm'
-            _priceCache.set(roomId, { price: data.card_price, symbol: data.currency_symbol, ts: Date.now() })
+            _priceCache.set(cacheKey, { price: data.card_price, symbol: data.currency_symbol, ts: Date.now() })
         } catch {
             showToast('Error al obtener el precio del cartón', 'error')
             cardPrice.value = 0
@@ -177,7 +192,7 @@ export function useGameRoomPurchaseModal() {
         if (!isPlayer.value) return
         if (_cachedPrice(room.id) || _inflight.has(room.id)) return
         try {
-            const data = await _fetchPlayerCardPriceHttp(room.id)
+            const data = await _fetchPlayerCardPriceHttp(room)
             _priceCache.set(room.id, { price: data.card_price, symbol: data.currency_symbol, ts: Date.now() })
         } catch {
             // silencioso — es una optimización, no crítico
@@ -207,7 +222,7 @@ export function useGameRoomPurchaseModal() {
                 cardPrice.value = 0
                 step.value = 'loading'
                 isOpen.value = true
-                await _fetchPlayerCardPrice(room.id)
+                await _fetchPlayerCardPrice(room)
             }
         } else {
             cardPrice.value = 0
@@ -231,7 +246,9 @@ export function useGameRoomPurchaseModal() {
     function toggleCustomize(): void {
         if (!canCustomize.value) return
         customizeCard.value = !customizeCard.value
-        if (customizeCard.value && selectedRoom.value) {
+        // Siempre reinicia la matriz al abrir o cerrar — evita que números de una
+        // sesión anterior de edición queden pegados si el usuario abre/cierra varias veces.
+        if (selectedRoom.value) {
             customCardNumbers.value = emptyMatrix(selectedRoom.value.config?.game_variant)
         }
     }
@@ -304,17 +321,18 @@ export function useGameRoomPurchaseModal() {
             return
         }
 
-        // BUG-02: invalidar caché antes del intento — el precio puede cambiar
+        // Invalidar caché antes del intento — el precio puede cambiar
         // independientemente del resultado (compra parcial, error de stock, etc.)
-        const roomId = selectedRoom.value.id
-        _priceCache.delete(roomId)
+        const cacheKey = selectedRoom.value.id
+        const routeKey = _bingoCardKey(selectedRoom.value)
+        _priceCache.delete(cacheKey)
 
         try {
             purchasing.value = true
 
             const endpoint = isPlayer.value
-                ? `/bingo/game-rooms/${roomId}/player-buy`
-                : `/bingo/game-rooms/${roomId}/buy`
+                ? `/bingo/game-rooms/${routeKey}/player-buy`
+                : `/bingo/game-rooms/${routeKey}/buy`
 
             const payload = isPlayer.value
                 ? {
@@ -359,6 +377,7 @@ export function useGameRoomPurchaseModal() {
         customizeCard,
         customCardNumbers,
         canCustomize,
+        configLoading,
         toggleCustomize,
         confirmIncompleteCustomCard,
         open,

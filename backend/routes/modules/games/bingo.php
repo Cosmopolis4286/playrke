@@ -6,6 +6,7 @@ use App\Http\Controllers\Games\Bingo\Pattern\BingoPatternController;
 use App\Http\Controllers\Games\Bingo\Card\BingoCardController;
 use App\Http\Controllers\Games\Bingo\Game\BingoDrawReplayController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomStatsController;
+use App\Http\Controllers\Games\Bingo\Room\BingoRoomCustomCardStatsController;
 use App\Http\Controllers\Games\Bingo\Game\BingoGameController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomAutomaticController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomController;
@@ -55,6 +56,11 @@ Route::get('bingo-rooms/{room}/draw/replay', BingoDrawReplayController::class)
 Route::get('bingo-rooms/{room}/stats', BingoRoomStatsController::class)
     ->middleware(['auth', 'multiPermission:games.manage,games.bingo'])
     ->name('bingo-rooms.stats');
+
+// Estadísticas de cartones personalizados de la sala
+Route::get('bingo-rooms/{room}/cards/custom-stats', BingoRoomCustomCardStatsController::class)
+    ->middleware(['auth', 'multiPermission:games.manage,games.bingo'])
+    ->name('bingo-rooms.cards.custom-stats');
 
 /**
  * ====================================

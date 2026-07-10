@@ -236,11 +236,11 @@ function handleClick() {
 .rc__inner {
   position: relative; z-index: 2;
   display: flex; align-items: stretch;
-  min-height: 92px;
+  min-height: 108px;
 }
 
 @media (max-width: 380px) {
-  .rc__inner { min-height: 96px; }
+  .rc__inner { min-height: 100px; }
 }
 
 /* ══════════════════════════════════
@@ -248,12 +248,15 @@ function handleClick() {
 ══════════════════════════════════ */
 .rc__thumb {
   position: relative;
-  flex: 0 0 82px;
+  /* ~38% del ancho típico de card (320-460px): más presencia visual que el
+     82px fijo anterior, que quedaba desproporcionado en cards anchas. */
+  flex: 0 0 38%;
+  max-width: 148px;
   overflow: hidden;
 }
 
 @media (max-width: 380px) {
-  .rc__thumb { flex-basis: 92px; }
+  .rc__thumb { flex-basis: 34%; max-width: 120px; }
 }
 .rc__img {
   width: 100%; height: 100%;
@@ -328,9 +331,9 @@ function handleClick() {
 ══════════════════════════════════ */
 .rc__body {
   flex: 1; min-width: 0;
-  padding: 8px 11px;
+  padding: 10px 14px;
   display: flex; flex-direction: column; justify-content: space-between;
-  gap: 5px;
+  gap: 7px;
 }
 
 @media (max-width: 380px) {
@@ -347,12 +350,12 @@ function handleClick() {
 .rc__row--top { flex-shrink: 0; }
 
 .rc__tag {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 2px 7px; border-radius: 5px;
-  font-size: 9px; font-weight: 700; letter-spacing: .25px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: .25px;
   white-space: nowrap; flex-shrink: 0;
 }
-.rc__tag i { font-size: 7.5px; }
+.rc__tag i { font-size: 8px; }
 .rc__tag--rounds {
   color: #a878e8;
   background: rgba(130,60,220,.1); border: 1px solid rgba(130,60,220,.22);
@@ -402,32 +405,38 @@ function handleClick() {
 
 /* ── Fila 2: premio + stats ── */
 .rc__row--bottom {
-  padding-top: 5px;
+  padding-top: 7px;
   border-top: 1px solid rgba(255,255,255,.055);
   flex-shrink: 0;
 }
 
-/* Premio */
+/* Premio — elemento hero de la card */
 .rc__prize {
-  display: flex; align-items: baseline; gap: 4px;
+  display: flex; align-items: baseline; gap: 5px;
   flex-shrink: 1; min-width: 0; overflow: hidden;
 }
 .rc__trophy {
-  font-size: 10px; color: #c8a028; align-self: center; flex-shrink: 0;
+  font-size: 12px; color: #c8a028; align-self: center; flex-shrink: 0;
   filter: drop-shadow(0 0 4px rgba(200,160,40,.4));
 }
 .rc__prize-num {
   font-family: 'Orbitron', 'Anton', sans-serif;
-  font-size: 19px; font-weight: 900; line-height: 1; letter-spacing: -.3px;
+  font-size: 23px; font-weight: 900; line-height: 1; letter-spacing: -.3px;
   background: linear-gradient(130deg, #ffe566 0%, #ffbb20 50%, #ff8800 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   filter: drop-shadow(0 2px 6px rgba(255,150,0,.28));
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .rc__prize-sym {
-  font-size: 11px; font-weight: 700;
+  font-size: 12px; font-weight: 700;
   color: #e0a020; -webkit-text-fill-color: #e0a020;
   flex-shrink: 0;
+}
+
+@media (max-width: 380px) {
+  .rc__prize-num { font-size: 19px; }
+  .rc__prize-sym { font-size: 11px; }
+  .rc__trophy { font-size: 10px; }
 }
 
 /* Stats: jugadores + cartones míos */

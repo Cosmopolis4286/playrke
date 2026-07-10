@@ -1,4 +1,4 @@
-{{-- $navWallet y $navUser son inyectados por NavbarComposer vía AppServiceProvider --}}
+﻿{{-- $navWallet y $navUser son inyectados por NavbarComposer vía AppServiceProvider --}}
 <nav class="main-header navbar navbar-expand navbar-bg justify-content-between">
 
     {{-- ── Izquierda: toggle + marca + billetera ───────────── --}}
@@ -140,14 +140,10 @@
                 </div>
 
                 <ul id="notif-list" class="list-unstyled mb-0 nb-notif-list">
-                    @if(empty($navNotifications))
-                        <li id="notif-empty" class="nb-notif-empty">
-                            <i class="fas fa-check-circle"></i>
-                            <span>Sin notificaciones nuevas</span>
-                        </li>
-                    @else
-                        <li id="notif-empty" class="nb-notif-empty" style="display:none"></li>
-                    @endif
+                    <li id="notif-empty" class="nb-notif-empty" style="{{ empty($navNotifications) ? '' : 'display:none' }}">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Sin notificaciones nuevas</span>
+                    </li>
                 </ul>
             </div>
         </li>
@@ -299,6 +295,29 @@
         });
     }
 
+    function timeAgo(dateStr) {
+        var diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+        if (diff < 5)      return 'Justo ahora';
+        if (diff < 60)     return 'Hace ' + diff + ' s';
+        var minutes = Math.floor(diff / 60);
+        if (minutes < 60)  return 'Hace ' + minutes + ' min';
+        var hours = Math.floor(minutes / 60);
+        if (hours < 24)    return 'Hace ' + hours + ' h';
+        var days = Math.floor(hours / 24);
+        if (days < 7)      return 'Hace ' + days + ' d';
+        return new Date(dateStr).toLocaleDateString('es-VE', { day: '2-digit', month: 'short' });
+    }
+    function fullDateTime(dateStr) {
+        return new Date(dateStr).toLocaleString('es-VE', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    }
+    function tickRelativeTimes() {
+        $list.querySelectorAll('[data-created-at]').forEach(function (el) {
+            el.textContent = timeAgo(el.getAttribute('data-created-at'));
+        });
+    }
+    setInterval(tickRelativeTimes, 30000);
     // ── Saldo navbar ──────────────────────────────────────────
     function updateBalance(data) {
         if (!$balanceEl) return;
@@ -346,7 +365,7 @@
     }
 
     // ── Construir <li> ────────────────────────────────────────
-    function buildListItem(meta, bodyHtml, time, url, notifId, variant, isRead) {
+    function buildListItem(meta, bodyHtml, createdAt, url, notifId, variant, isRead) {
         if (notifId && $list.querySelector('[data-notification-id="' + notifId + '"]')) return null;
 
         var inner =
@@ -355,7 +374,7 @@
               '<i class="fas ' + meta.icon + '" style="font-size:12px;color:' + meta.color + '"></i>' +
             '</div>' +
             '<div style="flex:1;min-width:0">' + bodyHtml + '</div>' +
-            '<small class="text-muted flex-shrink-0" style="font-size:10px">' + time + '</small>';
+            '<small class="text-muted flex-shrink-0" data-created-at="' + createdAt + '" title="' + fullDateTime(createdAt) + '" style="font-size:10px;white-space:nowrap">' + timeAgo(createdAt) + '</small>';
 
         var li = document.createElement('li');
         li.className = 'border-bottom notif-entry' +
@@ -395,7 +414,7 @@
             r.meta,
             '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + (notification.title || r.meta.label) + '</p>' +
             '<p class="mb-0 text-muted" style="font-size:11px">' + notification.message + '</p>',
-            new Date(notification.created_at).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }),
+            notification.created_at,
             url,
             notification.id,
             r.isAdmin ? 'admin' : (r.isResult ? 'result' : ''),

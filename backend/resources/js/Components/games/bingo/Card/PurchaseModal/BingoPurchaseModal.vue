@@ -40,6 +40,8 @@
     canCustomize: boolean
     customizeCard: boolean
     customCardNumbers: Record<string, (number | null)[]>
+    /** True mientras el config de la sala aún no se ha cargado (spinner en el toggle). */
+    configLoading: boolean
     /** Pregunta al usuario si autocompletar o seguir editando; resuelve true si puede continuar la compra. */
     confirmIncompleteCustomCard: (missingCount: number, autoFill: () => void) => Promise<boolean>
   }>()
@@ -72,6 +74,14 @@
       if (!canContinue) return
     }
     emit('purchase')
+  }
+
+  function handleAutoFill(): void {
+    numberPicker.value?.autoFillRemaining()
+  }
+
+  function handleClearAll(): void {
+    numberPicker.value?.clearAll()
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -278,23 +288,26 @@
                     v-if="canCustomize"
                     type="button"
                     class="pm-customize-toggle"
-                    :class="{ 'pm-customize-toggle--on': customizeCard }"
+                    :class="{ 'pm-customize-toggle--on': customizeCard, 'pm-customize-toggle--loading': configLoading }"
+                    :disabled="configLoading"
                     @click="emit('toggle-customize')"
                   >
-                    <i class="fas fa-pen" />
+                    <i v-if="configLoading" class="fas fa-spinner fa-spin" />
+                    <i v-else class="fas fa-pen" />
                     {{ customizeCard ? 'Personalizando mi cartón' : 'Elegir mis números' }}
-                    <i class="fas fa-chevron-down pm-customize-toggle__chevron" :class="{ 'pm-customize-toggle__chevron--open': customizeCard }" />
+                    <i v-if="!configLoading" class="fas fa-chevron-down pm-customize-toggle__chevron" :class="{ 'pm-customize-toggle__chevron--open': customizeCard }" />
                   </button>
 
                   <!-- Selector de números personalizados -->
                   <Transition name="fade">
-                    <BingoCardNumberPicker
-                      v-if="customizeCard"
-                      ref="numberPicker"
-                      :model-value="customCardNumbers"
-                      :variant="selectedRoom?.config?.game_variant"
-                      @update:model-value="emit('update:custom-card-numbers', $event)"
-                    />
+                    <div v-if="customizeCard" class="pm-picker-wrap">
+                      <BingoCardNumberPicker
+                        ref="numberPicker"
+                        :model-value="customCardNumbers"
+                        :variant="selectedRoom?.config?.game_variant"
+                        @update:model-value="emit('update:custom-card-numbers', $event)"
+                      />
+                    </div>
                   </Transition>
 
                   <!-- Resumen -->
@@ -817,6 +830,12 @@
   }
   .pm-customize-toggle__chevron--open {
     transform: rotate(180deg);
+  }
+  .pm-customize-toggle--loading,
+  .pm-customize-toggle:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 
   /* ── Summary ── */
