@@ -524,23 +524,6 @@
     />
 
     <template #footer>
-      <div class="mr-auto">
-        <div class="custom-control custom-switch">
-          <input
-            type="checkbox"
-            class="custom-control-input"
-            id="activateRoom"
-            :disabled="isScheduledDateInPast"
-            :checked="roomFormData.activateRoom ?? false"
-            @change="roomFormData.activateRoom = ($event.target as HTMLInputElement).checked"
-          />
-          <label class="custom-control-label" for="activateRoom">¿Activar sala?</label>
-        </div>
-        <small v-if="isScheduledDateInPast" class="text-danger d-block mt-1">
-          <i class="fas fa-exclamation-triangle mr-1"></i>
-          La fecha/hora programada ya pasó. Actualízala antes de activar la sala.
-        </small>
-      </div>
       <small
         v-if="gameBingoRoomFormRef?.draftStatus === 'saving' || gameBingoRoomFormRef?.draftStatus === 'saved'"
         class="text-muted mr-2"
