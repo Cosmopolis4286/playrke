@@ -13,7 +13,6 @@
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
   import BingoRoomForm from '@/js/Components/Games/Bingo/Room/Form/BingoRoomForm.vue'
-  import FormSwitch from '@/js/Components/Common/Form/FormSwitch.vue'
 
   // ==========================================================================
   // Composables
@@ -316,13 +315,6 @@
     />
 
     <template #footer>
-      <FormSwitch
-        id="activateRoom"
-        name="activateRoom"
-        label="¿Activar sala?"
-        :model-value="roomFormData.activateRoom ?? false"
-        @update:model-value="(val: boolean) => (roomFormData.activateRoom = val)"
-      />
       <button class="btn btn-sm btn-secondary" @click="showModalForm = false">Cerrar</button>
       <button
         v-if="gameBingoRoomFormRef?.canGoPrev"

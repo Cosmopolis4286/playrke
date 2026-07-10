@@ -490,7 +490,12 @@
 
       <!-- Paso: Revisión -->
       <div v-if="step === 'review'" class="col-12">
-        <BingoRoomReviewStep :form="form" :errors="errors" @update:form="form = $event" />
+        <BingoRoomReviewStep
+          :form="form"
+          :errors="errors"
+          :currency-options="allowedCurrenciesOptions"
+          @update:form="form = $event"
+        />
       </div>
     </div>
   </form>

@@ -1,11 +1,14 @@
 <script setup lang="ts" name="BingoRoomReviewStep">
 import { computed } from 'vue'
 import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
+import type { SelectOption } from '@/js/types/common/form/form'
 import { STEP_LABELS, STEP_ERROR_KEYS, type BingoRoomStep } from '@/js/composables/games/bingo/room/shared/useBingoRoomStepper'
+import { getCurrencyLabel } from '../Composables/useRoomCurrency'
 
 const props = defineProps<{
   form:   BingoRoomFormData
   errors: Record<string, unknown>
+  currencyOptions?: SelectOption[]
 }>()
 
 const emit = defineEmits<{
@@ -39,6 +42,35 @@ const isScheduledDateInPast = computed(() => {
 function onActivateRoomChange(checked: boolean): void {
   emit('update:form', { ...props.form, activateRoom: checked })
 }
+
+/**
+ * Precio del cartón por moneda permitida: si la sala usa base USD, el mismo
+ * precio se convierte a todas las monedas con la tasa de cambio (se muestra
+ * el precio base); si no, cada moneda tiene su propio precio manual.
+ */
+const currencyPriceRows = computed(() => {
+  const allowed = props.form.allowedCurrencies ?? []
+  return allowed.map(cur => {
+    const iso = props.currencyOptions?.length
+      ? getCurrencyLabel(cur, props.currencyOptions)
+      : String(cur)
+    const price = props.form.useBaseUsd
+      ? props.form.cardPriceUsd
+      : props.form.cardPriceByCurrency?.[String(cur)]
+    return { iso, price: price != null ? Number(price) : null }
+  })
+})
+
+/**
+ * Con 2+ monedas permitidas, la sala puede repartir un solo bote entre todas
+ * (sala única) o crear una sala independiente por cada moneda (roomsPerCurrency).
+ */
+const roomModeLabel = computed(() => {
+  if ((props.form.allowedCurrencies?.length ?? 0) <= 1) return null
+  return props.form.roomsPerCurrency
+    ? 'Salas separadas por moneda'
+    : 'Sala única (bote compartido)'
+})
 </script>
 
 <template>
@@ -86,9 +118,26 @@ function onActivateRoomChange(checked: boolean): void {
         </h4>
         <dl class="bingo-review-step__dl">
           <dt>Monedas permitidas</dt>
-          <dd>{{ (form.allowedCurrencies ?? []).join(', ') || '—' }}</dd>
-          <dt>Precio base (USD)</dt>
-          <dd>{{ form.cardPriceUsd != null ? '$' + form.cardPriceUsd : '—' }}</dd>
+          <dd>{{ currencyPriceRows.map(r => r.iso).join(', ') || '—' }}</dd>
+          <template v-if="form.useBaseUsd">
+            <dt>Precio base (USD)</dt>
+            <dd>{{ form.cardPriceUsd != null ? '$' + form.cardPriceUsd : '—' }}</dd>
+          </template>
+          <template v-else>
+            <dt>Precio del cartón</dt>
+            <dd>
+              <span v-if="currencyPriceRows.length === 0">—</span>
+              <span v-else>
+                <span v-for="(row, i) in currencyPriceRows" :key="row.iso">
+                  {{ row.iso }}: {{ row.price != null ? row.price : '—' }}<template v-if="i < currencyPriceRows.length - 1">, </template>
+                </span>
+              </span>
+            </dd>
+          </template>
+          <template v-if="roomModeLabel">
+            <dt>Modo de sala</dt>
+            <dd>{{ roomModeLabel }}</dd>
+          </template>
         </dl>
       </section>
 
