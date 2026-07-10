@@ -30,7 +30,7 @@
 <template>
   <!-- Footer visible solo si hay registros -->
   <div v-if="hasRows" class="d-flex justify-content-between align-items-center mt-2">
-    <small class="text-muted">
+    <small class="text-muted" aria-live="polite">
       Mostrando {{ filteredCount }} de {{ totalCount }} registros
 
       <!-- Información de selección -->

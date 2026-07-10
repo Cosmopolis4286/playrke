@@ -1,5 +1,5 @@
 <script setup lang="ts" name="TableWithFilter">
-  import { computed, toRef } from 'vue'
+  import { computed, ref, toRef } from 'vue'
 
   import CardHeader from '../Card/CardHeader.vue'
   import TableFilter from './TableFilter.vue'
@@ -72,6 +72,7 @@
    */
   const {
     handleFilter,
+    currentFilters,
     selectedIds,
     filteredRows,
     paginatedRows,
@@ -89,11 +90,35 @@
     onQueryChange: query => emit('query-change', query)
   })
 
+  /** Referencia al TableFilter para poder limpiar filtros desde el botón de tabla vacía. */
+  const tableFilterRef = ref<{ clearAllFilters: () => void } | null>(null)
+
+  /** true si hay búsqueda o algún filtro por columna activo. */
+  const hasActiveFilters = computed(
+    () =>
+      currentFilters.value.search.trim() !== '' ||
+      Object.values(currentFilters.value.filters).some(v => v !== '')
+  )
+
+  function handleClearFilters(): void {
+    tableFilterRef.value?.clearAllFilters()
+  }
+
   /**
    * Filas realmente renderizadas: paginadas si hay `pageSize` o modo server-side,
    * filtradas completas en caso contrario (comportamiento previo).
    */
   const visibleRows = computed(() => (props.pageSize || props.serverSide ? paginatedRows.value : filteredRows.value))
+
+  /**
+   * IDs de todos los resultados filtrados (no solo la página visible), para
+   * ofrecer "seleccionar los N resultados" en vez de solo la página actual.
+   * Solo tiene sentido en client-side: en server-side el backend pagina y el
+   * cliente nunca tiene el dataset completo para poder seleccionarlo todo.
+   */
+  const allFilteredIds = computed(() =>
+    props.serverSide ? null : filteredRows.value.map(r => String(r.id))
+  )
 
   /**
    * Total de páginas a mostrar en el paginador.
@@ -130,6 +155,7 @@
     <div class="card-body">
       <!-- Filtros y búsqueda -->
       <TableFilter
+        ref="tableFilterRef"
         :search-placeholder="searchPlaceholder"
         :filters="filters"
         :debounce-delay="debounceDelay"
@@ -173,8 +199,11 @@
         :sort="currentSort"
         selectable
         :selected-ids="stringSelectedIds"
+        :all-filtered-ids="allFilteredIds"
+        :has-active-filters="hasActiveFilters"
         @selection-change="handleSelectionChange"
         @sort-change="setSort"
+        @clear-filters="handleClearFilters"
       >
         <!-- Slots dinámicos para celdas -->
         <template

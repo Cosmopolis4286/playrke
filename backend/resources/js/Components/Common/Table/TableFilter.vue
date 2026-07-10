@@ -133,6 +133,9 @@
     const option = filter?.options?.find(opt => opt.value === value)
     return option?.label ?? value
   }
+
+  /** Permite al padre limpiar todos los filtros desde afuera (ej. botón en tabla vacía). */
+  defineExpose({ clearAllFilters })
 </script>
 
 <template>
@@ -151,6 +154,7 @@
             type="text"
             class="form-control"
             :placeholder="searchPlaceholder"
+            aria-label="Buscar en la tabla"
             @input="handleSearch"
           />
           <div class="input-group-append">
@@ -158,9 +162,10 @@
               v-if="searchQuery"
               class="btn btn-outline-secondary"
               type="button"
+              aria-label="Limpiar búsqueda"
               @click="clearSearch"
             >
-              <i class="fas fa-times" />
+              <i class="fas fa-times" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -168,7 +173,12 @@
 
       <!-- Filtros -->
       <div v-for="filter in filters" :key="filter.key" class="col-md-6 col-lg-4 my-1">
-        <select v-model="activeFilters[filter.key]" class="form-control" @change="emitChange">
+        <select
+          v-model="activeFilters[filter.key]"
+          class="form-control"
+          :aria-label="`Filtrar por ${filter.label}`"
+          @change="emitChange"
+        >
           <option value="">
             {{ filter.placeholder ?? `Todos los ${filter.label}` }}
           </option>
@@ -186,18 +196,32 @@
         <div v-if="hasActiveFilters" class="active-filters mt-2">
           <!-- Limpiar -->
           <button class="btn btn-sm btn-outline-danger" type="button" @click="clearAllFilters">
-            <i class="fas fa-filter-circle-xmark" />
+            <i class="fas fa-filter-circle-xmark" aria-hidden="true" />
             Limpiar filtros
           </button>
           <!-- Filtro-Buscar -->
           <span v-if="searchQuery" class="badge badge-secondary">
             "{{ searchQuery }}"
-            <i class="fas fa-times ml-1" @click="clearSearch" />
+            <button
+              type="button"
+              class="badge-remove-btn"
+              aria-label="Quitar filtro de búsqueda"
+              @click="clearSearch"
+            >
+              <i class="fas fa-times" aria-hidden="true" />
+            </button>
           </span>
           <!-- Filtro-Selects -->
           <span v-for="[key, value] in activeFilterEntries" :key="key" class="badge badge-info">
             {{ getFilterLabel(key) }}: {{ getFilterValueLabel(key, value) }}
-            <i class="fas fa-times ml-1" style="cursor: pointer" @click="clearFilter(key)" />
+            <button
+              type="button"
+              class="badge-remove-btn"
+              :aria-label="`Quitar filtro ${getFilterLabel(key)}`"
+              @click="clearFilter(key)"
+            >
+              <i class="fas fa-times" aria-hidden="true" />
+            </button>
           </span>
         </div>
       </div>
@@ -222,5 +246,20 @@
   .badge {
     font-size: 0.875rem;
     padding: 0.375rem 0.5rem;
+  }
+
+  .badge-remove-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-left: 0.35rem;
+    line-height: 1;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .badge-remove-btn:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: 1px;
   }
 </style>

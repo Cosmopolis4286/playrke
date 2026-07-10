@@ -242,15 +242,12 @@
 
     <!-- Botones extra -->
     <template #action-buttons="{ selectedIds }">
+      <span v-if="visibleExtraButtons.length" class="table-extra-buttons__divider" aria-hidden="true" />
       <button
         v-for="(btn, i) in visibleExtraButtons"
         :key="i"
-        v-tooltip="{
-          content: getDisabledReason(btn, selectedIds),
-          disabled: !btn.disabled(selectedIds) || !getDisabledReason(btn, selectedIds)
-        }"
+        v-tooltip="btn.disabled(selectedIds) && getDisabledReason(btn, selectedIds) ? getDisabledReason(btn, selectedIds) : btn.title"
         :class="['btn', 'btn-sm', btn.class || 'btn-secondary']"
-        :title="btn.title"
         :disabled="btn.disabled(selectedIds)"
         @click="btn.onClick"
         type="button"
@@ -263,3 +260,13 @@
     </template>
   </TableWithFilter>
 </template>
+
+<style scoped>
+.table-extra-buttons__divider {
+  width: 1px;
+  align-self: stretch;
+  min-height: 1.5rem;
+  background: var(--bs-border-color, #dee2e6);
+  margin: 0 0.25rem;
+}
+</style>

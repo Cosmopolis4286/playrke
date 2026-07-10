@@ -39,8 +39,8 @@
   <nav v-if="totalPages > 1" aria-label="Paginación de tabla">
     <ul class="pagination pagination-sm mb-0">
       <li class="page-item" :class="{ disabled: currentPage <= 1 || disabled }">
-        <button class="page-link" type="button" @click="goTo(currentPage - 1)" :disabled="disabled">
-          <i class="fas fa-chevron-left"></i>
+        <button class="page-link" type="button" aria-label="Página anterior" @click="goTo(currentPage - 1)" :disabled="disabled">
+          <i class="fas fa-chevron-left" aria-hidden="true"></i>
         </button>
       </li>
 
@@ -54,7 +54,14 @@
         class="page-item"
         :class="{ active: page === currentPage }"
       >
-        <button class="page-link" type="button" @click="goTo(page)" :disabled="disabled">
+        <button
+          class="page-link"
+          type="button"
+          :aria-current="page === currentPage ? 'page' : undefined"
+          :aria-label="`Ir a la página ${page}`"
+          @click="goTo(page)"
+          :disabled="disabled"
+        >
           {{ page }}
         </button>
       </li>
@@ -64,8 +71,8 @@
       </li>
 
       <li class="page-item" :class="{ disabled: currentPage >= totalPages || disabled }">
-        <button class="page-link" type="button" @click="goTo(currentPage + 1)" :disabled="disabled">
-          <i class="fas fa-chevron-right"></i>
+        <button class="page-link" type="button" aria-label="Página siguiente" @click="goTo(currentPage + 1)" :disabled="disabled">
+          <i class="fas fa-chevron-right" aria-hidden="true"></i>
         </button>
       </li>
     </ul>

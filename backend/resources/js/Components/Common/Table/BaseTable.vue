@@ -1,5 +1,5 @@
 <script setup lang="ts" name="BaseTable">
-  import { computed, watch } from 'vue'
+  import { computed } from 'vue'
   import type { Column, Row } from '@/js/types/common/table/column-row'
   import type { TableSortState } from '@/js/composables/common/table/useTableFiltering'
 
@@ -13,10 +13,21 @@
       selectable?: boolean
       selectedIds?: string[]
       sort?: TableSortState
+      /**
+       * IDs de todos los resultados filtrados (no solo la página visible).
+       * Cuando está presente y hay más resultados que filas en la página,
+       * el checkbox de cabecera ofrece expandir la selección a "todos los
+       * N resultados" en vez de limitarse a la página actual.
+       */
+      allFilteredIds?: string[] | null
+      /** true si el usuario tiene búsqueda/filtros activos (para diferenciar el mensaje de tabla vacía). */
+      hasActiveFilters?: boolean
     }>(),
     {
       selectable: false,
-      selectedIds: () => []
+      selectedIds: () => [],
+      allFilteredIds: null,
+      hasActiveFilters: false
     }
   )
 
@@ -24,23 +35,43 @@
   const emit = defineEmits<{
     (e: 'selection-change', ids: string[]): void
     (e: 'sort-change', key: string): void
+    (e: 'clear-filters'): void
   }>()
 
-  /** Computed para verificar selección total */
+  /** Computed para verificar selección total de la página visible */
   const allSelected = computed(
-    () => props.rows.length > 0 && props.selectedIds.length === props.rows.length
+    () => props.rows.length > 0 && props.rows.every(r => props.selectedIds.includes(String(r.id)))
   )
 
-  /** Computed para verificar selección parcial */
-  const someSelected = computed(
-    () => props.selectedIds.length > 0 && props.selectedIds.length < props.rows.length
+  /** true si ya están seleccionados todos los resultados filtrados (no solo la página) */
+  const allFilteredSelected = computed(() => {
+    if (!props.allFilteredIds || props.allFilteredIds.length === 0) return allSelected.value
+    return props.selectedIds.length === props.allFilteredIds.length
+  })
+
+  /** Computed para verificar selección parcial (de la página o del total filtrado) */
+  const someSelected = computed(() => props.selectedIds.length > 0 && !allFilteredSelected.value)
+
+  /** Hay más resultados filtrados que filas en la página actual (paginación activa) */
+  const hasMoreThanPage = computed(
+    () => !!props.allFilteredIds && props.allFilteredIds.length > props.rows.length
   )
 
-  /** Alterna selección total */
+  /** Alterna selección de la página visible */
   function toggleAll(): void {
-    const allIds = props.rows.map(r => String(r.id))
-    const newSelection = allSelected.value ? [] : allIds
+    const pageIds = props.rows.map(r => String(r.id))
+    const newSelection = allSelected.value ? [] : pageIds
     emit('selection-change', newSelection)
+  }
+
+  /** Expande la selección a todos los resultados filtrados */
+  function selectAllFiltered(): void {
+    if (props.allFilteredIds) emit('selection-change', [...props.allFilteredIds])
+  }
+
+  /** Limpia la selección por completo */
+  function clearSelection(): void {
+    emit('selection-change', [])
   }
 
   /** Alterna selección individual */
@@ -71,6 +102,31 @@
   function sortIcon(column: Column): string | null {
     if (!column.sortable || props.sort?.key !== column.key) return null
     return props.sort.direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'
+  }
+
+  /** Estado ARIA de orden para lectores de pantalla */
+  function ariaSort(column: Column): 'ascending' | 'descending' | 'none' | undefined {
+    if (!column.sortable) return undefined
+    if (props.sort?.key !== column.key) return 'none'
+    return props.sort.direction === 'asc' ? 'ascending' : 'descending'
+  }
+
+  /** Activa el ordenamiento también desde teclado (Enter/Espacio) en el header */
+  function onSortKeydown(event: KeyboardEvent, column: Column): void {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    requestSort(column)
+  }
+
+  /**
+   * Label legible para el checkbox de una fila. Usa el primer campo de texto
+   * disponible entre las columnas visibles como referencia (ej. "Código"),
+   * con el id como respaldo si no hay ninguno utilizable.
+   */
+  function rowLabel(row: Record<string, any>): string {
+    const firstTextColumn = props.columns.find(c => !c.html)
+    const value = firstTextColumn ? getNestedValue(row, firstTextColumn.key) : null
+    return value ? String(value) : String(row.id)
   }
 
   /** Obtiene valor seguro en objeto */
@@ -111,72 +167,100 @@
   }
 
   /**
-   * Si se elimina una fila, limpiar selectedIds automáticamente
+   * NOTA: la limpieza de selectedIds cuando una fila deja de existir vive en
+   * useFilterableSelection (compara contra el dataset completo tras filtros,
+   * no contra la página visible). Un watcher aquí sobre `props.rows` estaría
+   * comparando contra la página actual, y borraría la selección de otras
+   * páginas cada vez que el usuario simplemente navega — por eso no vive acá.
    */
-  watch(
-    () => props.rows,
-    newRows => {
-      const validIds = newRows.map(r => String(r.id))
-      const filteredSelection = props.selectedIds.filter(id => validIds.includes(id))
-
-      if (filteredSelection.length !== props.selectedIds.length) {
-        emit('selection-change', filteredSelection)
-      }
-    },
-    { deep: true }
-  )
 </script>
 
 <template>
-  <div class="table-responsive mt-2">
-    <table :id="tableId" class="table-striped table-bordered w-100 my-2 table">
-      <thead>
-        <tr>
-          <th v-if="selectable" class="text-center" style="width: 40px">
-            <input
-              type="checkbox"
-              :checked="allSelected"
-              :indeterminate.prop="someSelected"
-              @change="toggleAll"
-            />
-          </th>
-          <th
-            v-for="column in columns"
-            :key="column.key"
-            :class="{ 'is-sortable': column.sortable }"
-            @click="requestSort(column)"
+  <div>
+    <!-- Banner: selección expandible a todos los resultados filtrados (no solo la página) -->
+    <div v-if="selectable && allSelected && hasMoreThanPage && !allFilteredSelected" class="select-all-banner">
+      Los {{ rows.length }} elementos de esta página están seleccionados.
+      <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @click="selectAllFiltered">
+        Seleccionar los {{ allFilteredIds!.length }} resultados
+      </button>
+    </div>
+    <div v-else-if="selectable && allFilteredSelected && hasMoreThanPage" class="select-all-banner">
+      Los {{ allFilteredIds!.length }} resultados están seleccionados.
+      <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @click="clearSelection">
+        Quitar selección
+      </button>
+    </div>
+
+    <div class="table-responsive mt-2">
+      <table :id="tableId" class="table-striped table-bordered w-100 my-2 table">
+        <thead>
+          <tr>
+            <th v-if="selectable" class="text-center" style="width: 40px">
+              <input
+                type="checkbox"
+                :checked="allSelected"
+                :indeterminate.prop="someSelected"
+                aria-label="Seleccionar todas las filas de esta página"
+                @change="toggleAll"
+              />
+            </th>
+            <th
+              v-for="column in columns"
+              :key="column.key"
+              :class="{ 'is-sortable': column.sortable }"
+              :tabindex="column.sortable ? 0 : undefined"
+              :role="column.sortable ? 'button' : undefined"
+              :aria-sort="ariaSort(column)"
+              @click="requestSort(column)"
+              @keydown="onSortKeydown($event, column)"
+            >
+              {{ column.label }}
+              <i v-if="sortIcon(column)" :class="sortIcon(column)" class="ms-1"></i>
+              <i v-else-if="column.sortable" class="fas fa-sort ms-1 text-muted"></i>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="row in rows"
+            :key="row.id"
+            :class="{ 'table-primary': selectable && isSelected(row.id) }"
+            v-bind="selectable ? { onClick: () => toggleRow(row.id), style: 'cursor: pointer' } : {}"
           >
-            {{ column.label }}
-            <i v-if="sortIcon(column)" :class="sortIcon(column)" class="ms-1"></i>
-            <i v-else-if="column.sortable" class="fas fa-sort ms-1 text-muted"></i>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="row in rows"
-          :key="row.id"
-          :class="{ 'table-primary': selectable && isSelected(row.id) }"
-          v-bind="selectable ? { onClick: () => toggleRow(row.id), style: 'cursor: pointer' } : {}"
-        >
-          <td v-if="selectable" class="text-center">
-            <input type="checkbox" :checked="isSelected(row.id)" @click.stop="toggleRow(row.id)" />
-          </td>
-          <td v-for="column in columns" :key="column.key">
-            <slot :name="`cell-${column.key}`" :row="row" :value="getNestedValue(row, column.key)">
-              <span v-if="column.html" v-html="formatCell(row, column)"></span>
-              <span v-else>{{ formatCell(row, column) }}</span>
-            </slot>
-          </td>
-        </tr>
-        <tr v-if="rows.length === 0">
-          <td :colspan="columns.length + (selectable ? 1 : 0)" class="text-muted py-4 text-center">
-            <i class="fas fa-inbox fa-2x mb-2"></i>
-            <p class="mb-0">{{ emptyMessage ?? 'No hay datos para mostrar' }}</p>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <td v-if="selectable" class="text-center">
+              <input
+                type="checkbox"
+                :checked="isSelected(row.id)"
+                :aria-label="`Seleccionar fila ${rowLabel(row)}`"
+                @click.stop="toggleRow(row.id)"
+              />
+            </td>
+            <td v-for="column in columns" :key="column.key" :class="{ 'cell-truncate': column.truncate }">
+              <slot :name="`cell-${column.key}`" :row="row" :value="getNestedValue(row, column.key)">
+                <span v-if="column.html" v-html="formatCell(row, column)"></span>
+                <span v-else :title="column.truncate ? formatCell(row, column) : undefined">{{ formatCell(row, column) }}</span>
+              </slot>
+            </td>
+          </tr>
+          <tr v-if="rows.length === 0">
+            <td :colspan="columns.length + (selectable ? 1 : 0)" class="text-muted py-4 text-center">
+              <i class="fas fa-inbox fa-2x mb-2"></i>
+              <p class="mb-0">
+                {{ hasActiveFilters ? 'Ningún registro coincide con los filtros aplicados.' : (emptyMessage ?? 'No hay datos para mostrar') }}
+              </p>
+              <button
+                v-if="hasActiveFilters"
+                type="button"
+                class="btn btn-link btn-sm"
+                @click="emit('clear-filters')"
+              >
+                Limpiar filtros
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
@@ -200,5 +284,41 @@
 
   .is-sortable:hover {
     background-color: rgba(0, 0, 0, 0.03);
+  }
+
+  .is-sortable:focus-visible,
+  input[type='checkbox']:focus-visible {
+    outline: 2px solid #0d6efd;
+    outline-offset: 1px;
+  }
+
+  /* Sticky header: mantiene encabezados visibles al hacer scroll vertical
+     dentro de .table-responsive (útil con muchas columnas/filas). */
+  .table-responsive {
+    max-height: 70vh;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #fff;
+  }
+
+  .cell-truncate {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .select-all-banner {
+    background-color: #e7f1ff;
+    border: 1px solid #b6d4fe;
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.85rem;
+    text-align: center;
+    margin-top: 0.5rem;
   }
 </style>

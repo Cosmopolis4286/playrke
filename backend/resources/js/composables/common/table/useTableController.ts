@@ -1,4 +1,4 @@
-import { ref, computed, Ref } from 'vue'
+import { ref, computed, watch, Ref } from 'vue'
 import type { Column, Row } from '@/js/types/common/table/column-row'
 import { useTableFiltering, TableFilterState, TableSortState, SortDirection } from './useTableFiltering'
 import { useFilterableSelection } from './useFilterableSelection'
@@ -56,6 +56,25 @@ export function useTableController<T extends { id: string }>(options: {
         filteredRows,
         onSelectionChange,
     })
+
+    /**
+     * En modo server-side, cada nuevo `rows` es una página/orden distinta
+     * resuelta por el backend (no hay `filteredRows` propio que compare contra
+     * el dataset completo). Sin esto, IDs seleccionados de una página anterior
+     * quedarían "seleccionados" para siempre aunque ya no sean visibles ni
+     * existan en la página actual — comparación superficial por IDs, no deep,
+     * para no recorrer objetos anidados en cada fetch.
+     */
+    if (serverSide) {
+        watch(rows, newRows => {
+            const validIds = new Set(newRows.map(r => String(r.id)))
+            const next = selectedIds.value.filter(id => validIds.has(id))
+            if (next.length !== selectedIds.value.length) {
+                selectedIds.value = next
+                onSelectionChange?.([...next])
+            }
+        })
+    }
 
     /* ---------------- paginación ---------------- */
     const currentPage = ref(1)

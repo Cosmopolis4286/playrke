@@ -84,7 +84,7 @@
 
 <template>
   <div class="action-buttons">
-    <!-- Crear -->
+    <!-- Crear: acción primaria, siempre visible sin depender de selección -->
     <button
       v-if="showCreate"
       :class="['btn', 'btn-success', btnSize()]"
@@ -94,12 +94,20 @@
       {{ createLabel }}
     </button>
 
+    <!-- Separador + contador: solo aparecen cuando hay algo seleccionado,
+         para distinguir visualmente "crear" de las acciones sobre la selección -->
+    <template v-if="hasSelection()">
+      <span class="action-buttons__divider" aria-hidden="true" />
+      <span class="action-buttons__count">
+        {{ selectedIds.length }} seleccionado{{ selectedIds.length > 1 ? 's' : '' }}
+      </span>
+    </template>
+
     <!-- Editar (solo con 1 seleccionado) -->
     <button
       v-if="hasSingleSelect() && showEdit"
-      v-tooltip="{ content: disableEditReason, disabled: !disableEdit || !disableEditReason }"
+      v-tooltip="disableEdit && disableEditReason ? disableEditReason : 'Editar'"
       :class="['btn', 'btn-primary', btnSize()]"
-      :title="`Editar`"
       :disabled="disableEdit"
       @click="emit('edit', selectedIds[0])"
     >
@@ -109,8 +117,8 @@
     <!-- Cambiar estado -->
     <button
       v-if="hasSelection() && showToggleStatus"
+      v-tooltip="selectedIds.length > 1 ? `Cambiar estado (${selectedIds.length})` : 'Cambiar estado'"
       :class="['btn', 'btn-warning', btnSize()]"
-      :title="selectedIds.length > 1 ? `Cambiar estado (${selectedIds.length})` : 'Cambiar estado'"
       @click="emit('toggle-status', selectedIds)"
     >
       <i class="fas fa-toggle-on" />
@@ -120,9 +128,8 @@
     <!-- Eliminar -->
     <button
       v-if="hasSelection() && showDelete"
-      v-tooltip="{ content: disableDeleteReason, disabled: !disableDelete || !disableDeleteReason }"
+      v-tooltip="disableDelete && disableDeleteReason ? disableDeleteReason : (selectedIds.length > 1 ? `Eliminar (${selectedIds.length})` : 'Eliminar')"
       :class="['btn', 'btn-danger', btnSize()]"
-      :title="selectedIds.length > 1 ? `Eliminar (${selectedIds.length})` : 'Eliminar'"
       :disabled="disableDelete"
       @click="emit('delete', selectedIds)"
     >
@@ -141,5 +148,21 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.375rem;
+}
+
+.action-buttons__divider {
+  width: 1px;
+  align-self: stretch;
+  min-height: 1.5rem;
+  background: var(--bs-border-color, #dee2e6);
+  margin: 0 0.25rem;
+}
+
+.action-buttons__count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bs-secondary, #6c757d);
+  white-space: nowrap;
+  margin-right: 0.125rem;
 }
 </style>
