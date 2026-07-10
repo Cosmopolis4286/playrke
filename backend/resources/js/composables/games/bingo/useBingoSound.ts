@@ -21,10 +21,17 @@ const FILES: Record<SoundKey, string> = {
   winner: `${BASE}winner.mp3`,
 }
 
-// Estado compartido entre todas las instancias del composable
-const _muted  = ref(localStorage.getItem('bingo_sound_muted') === '1')
-const _volume = ref(parseFloat(localStorage.getItem('bingo_sound_vol') ?? '0.7'))
+// Estado compartido entre todas las instancias del composable.
+// localStorage se lee de forma lazy (no a nivel de módulo) para evitar
+// ReferenceError en entornos sin window (SSR, tests con jsdom no inicializado).
 const _cache  = new Map<SoundKey, HTMLAudioElement>()
+
+function _readStorage(key: string, fallback: string): string {
+  return typeof localStorage !== 'undefined' ? (localStorage.getItem(key) ?? fallback) : fallback
+}
+
+const _muted  = ref(_readStorage('bingo_sound_muted', '0') === '1')
+const _volume = ref(parseFloat(_readStorage('bingo_sound_vol', '0.7')))
 
 function _getAudio(key: SoundKey): HTMLAudioElement {
   if (!_cache.has(key)) {

@@ -47,7 +47,8 @@
         "vue-imask": "^7.6.1",
         "vue-meta": "^2.4.0",
         "vue-router": "^4.6.4",
-        "vue-toastification": "2.0.0-rc.5"
+        "vue-toastification": "2.0.0-rc.5",
+        "zod": "^4.0.0"
     },
     "devDependencies": {
         "@types/jquery": "^3.5.33",
