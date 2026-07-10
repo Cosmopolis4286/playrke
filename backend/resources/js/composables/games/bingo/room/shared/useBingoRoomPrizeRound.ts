@@ -16,8 +16,9 @@ export function useBingoRoomPrizeRound(
     const prizeModalSelected = ref<PrizeSearchResult[]>([])
 
     async function openPrizeModal(index: number) {
+        showNoPrizesAlert.value = false
         try {
-            const { data } = await backendClient.get<{ data: any[] }>('/prizes/search', {
+            const { data } = await backendClient.get<{ data: PrizeSearchResult[] }>('/prizes/search', {
                 params: { q: '' }
             })
 

@@ -212,6 +212,13 @@
     if (!can) cardPriceByCurrencyActive.value = false
   })
 
+  // Abrir automáticamente el panel de precios si al editar la sala ya trae
+  // errores en ese panel (ej. falta precio por moneda) — de lo contrario el
+  // usuario ve el botón "Guardar" deshabilitado sin ninguna pista visible.
+  if (props.isEdit && hasCardPriceByCurrencyErrors.value) {
+    cardPriceByCurrencyActive.value = true
+  }
+
   // Resetear "Salas por moneda" si las monedas bajan a 1 (ya no aplica)
   watch(canChooseRoomMode, can => {
     if (!can && form.value.roomsPerCurrency) {

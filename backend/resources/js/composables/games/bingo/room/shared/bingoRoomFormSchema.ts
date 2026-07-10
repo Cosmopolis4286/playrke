@@ -6,7 +6,7 @@ import { percentageSchema } from '@/js/Components/Games/Bingo/Room/Form/Utils/pe
 export const BINGO_ROOM_PERCENTAGE_LIMITS = {
     roomCommn:  { min: 10, max: 50  },
     jackpotPct: { min: 1,  max: 15  },
-    roundsPct:  { min: 5,  max: 30  },
+    roundsPct:  { min: 5,  max: 90  },
     serialsPct: { min: 2,  max: 35  },
 } as const
 
@@ -56,6 +56,7 @@ export const bingoRoomFormSchema = z.object({
     roomCommn:    z.number().nullable().optional(),
     jackpotPct:   z.number().nullable().optional(),
     timeChip:     z.number().nullable().optional(),
+    minCardsToStart: z.number().nullable().optional(),
     rounds:       z.number().nullable().optional(),
     roundsPct:    z.number().nullable().optional(),
     roundsConfig: z.array(roundConfigSchema).optional(),
@@ -159,6 +160,12 @@ export function validateBingoRoomForm(
     }
     if (data.rounds === null || data.rounds === undefined || data.rounds < 1) {
         e.rounds = 'El número de rondas debe ser al menos 1.'
+    }
+    if (data.minCardsToStart !== null && data.minCardsToStart !== undefined) {
+        const min = Number(data.minCardsToStart)
+        if (!Number.isInteger(min) || min < 1 || min > 10000) {
+            e.minCardsToStart = 'La cantidad mínima de cartones debe ser un entero entre 1 y 10000.'
+        }
     }
 
     /* ── Seriales (pre-compiled schema) ── */

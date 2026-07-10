@@ -124,6 +124,7 @@
     <FormInput
       label="Rondas"
       name="rounds"
+      :error="errors.rounds"
       type="number"
       required
       :step="1"

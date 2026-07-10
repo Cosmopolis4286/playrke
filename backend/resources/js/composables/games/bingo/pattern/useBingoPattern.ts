@@ -106,7 +106,7 @@ export function useBingoPattern(): UseBingoPatternReturn {
     }
 
     async function toggleStatus(id: string | number): Promise<boolean> {
-        const pattern = bingoPatterns.value.find(p => p.id === id)
+        const pattern = bingoPatterns.value.find(p => String(p.id) === String(id))
         const name    = pattern?.name ?? 'este patrón'
         const confirmed = await showToastConfirmAction({
             html:              `¿Quieres cambiar el estado de <b>${name}</b>?`,
@@ -126,7 +126,7 @@ export function useBingoPattern(): UseBingoPatternReturn {
     }
 
     async function remove(id: string | number): Promise<boolean> {
-        const pattern = bingoPatterns.value.find(p => p.id === id)
+        const pattern = bingoPatterns.value.find(p => String(p.id) === String(id))
         const name    = pattern?.name ?? 'este patrón'
         const confirmed = await showToastConfirmAction({
             html:              `¿Estás seguro que deseas eliminar <b>${name}</b>?`,
@@ -147,7 +147,7 @@ export function useBingoPattern(): UseBingoPatternReturn {
 
     function buildItemListHtml(ids: (string | number)[]): string {
         const items = ids
-            .map(id => bingoPatterns.value.find(p => p.id === id))
+            .map(id => bingoPatterns.value.find(p => String(p.id) === String(id)))
             .filter(Boolean)
             .map(p => p!.name)
         return [

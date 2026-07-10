@@ -1,4 +1,4 @@
-import { watch, onMounted, ref } from 'vue'
+import { watch, onMounted, onUnmounted, ref } from 'vue'
 import type { Ref } from 'vue'
 import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
 
@@ -29,6 +29,8 @@ export function useBingoRoomDraft(
     const draftSavedAt = ref<string | null>(null)
 
     let timer: ReturnType<typeof setTimeout> | null = null
+    const draftStatus = ref<'idle' | 'saving' | 'saved'>('idle')
+    let savedTimer: ReturnType<typeof setTimeout> | null = null
 
     /* ── Leer borrador al montar ── */
     onMounted(() => {
@@ -49,6 +51,9 @@ export function useBingoRoomDraft(
 
     /* ── Guardar con debounce en cada cambio del formulario ── */
     watch(form, (value) => {
+        draftStatus.value = 'saving'
+        // Cancelar el timer de reset-a-idle para no sobreescribir 'saving' con 'idle'
+        if (savedTimer) clearTimeout(savedTimer)
         if (timer) clearTimeout(timer)
         timer = setTimeout(() => {
             try {
@@ -58,9 +63,13 @@ export function useBingoRoomDraft(
                     data:    value,
                 }
                 localStorage.setItem(storageKey, JSON.stringify(envelope))
-                draftSavedAt.value = envelope.savedAt
+                draftSavedAt.value  = envelope.savedAt
+                draftStatus.value   = 'saved'
+                // Vuelve a 'idle' después de 3s para que el indicador no quede fijo
+                if (savedTimer) clearTimeout(savedTimer)
+                savedTimer = setTimeout(() => { draftStatus.value = 'idle' }, 3000)
             } catch {
-                // quota exceeded — ignorar silenciosamente
+                draftStatus.value = 'idle'
             }
         }, debounceMs)
     }, { deep: true })
@@ -85,5 +94,10 @@ export function useBingoRoomDraft(
         draftSavedAt.value = null
     }
 
-    return { hasDraft, draftSavedAt, restoreDraft, discardDraft }
+    onUnmounted(() => {
+        if (timer)      clearTimeout(timer)
+        if (savedTimer) clearTimeout(savedTimer)
+    })
+
+    return { hasDraft, draftSavedAt, draftStatus, restoreDraft, discardDraft }
 }

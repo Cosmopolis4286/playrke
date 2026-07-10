@@ -108,17 +108,25 @@ export function useBingoRoomCrudFactory<TRoom extends BingoRoomListItem>(
 
         if (!confirm) return false
 
-        try {
-            for (const id of ids) {
-                await backendClient.patch(`/${endpoint}/${id}/status`)
-            }
+        const results = await Promise.allSettled(
+            ids.map(id => backendClient.patch(`/${endpoint}/${id}/status`))
+        )
+        const failed = results.filter(r => r.status === 'rejected').length
+        await fetchRooms()
+
+        if (failed === 0) {
             showToast(`Estado cambiado con éxito para ${ids.length} ${entityLabel}s`, 'success')
-            await fetchRooms()
             return true
-        } catch {
-            showToast('Error al cambiar el estado', 'error')
-            return false
         }
+
+        const ok = ids.length - failed
+        showToast(
+            ok > 0
+                ? `${ok} ${entityLabel}s actualizadas, ${failed} fallaron`
+                : `Error al cambiar el estado`,
+            ok > 0 ? 'warning' : 'error'
+        )
+        return ok > 0
     }
 
     async function remove(id: string | number): Promise<boolean> {
@@ -153,17 +161,25 @@ export function useBingoRoomCrudFactory<TRoom extends BingoRoomListItem>(
 
         if (!confirm) return false
 
-        try {
-            for (const id of ids) {
-                await backendClient.delete(`/${endpoint}/${id}/delete`)
-            }
+        const results = await Promise.allSettled(
+            ids.map(id => backendClient.delete(`/${endpoint}/${id}/delete`))
+        )
+        const failed = results.filter(r => r.status === 'rejected').length
+        await fetchRooms()
+
+        if (failed === 0) {
             showToast(`${ids.length} ${entityLabel}s eliminadas con éxito`, 'success')
-            await fetchRooms()
             return true
-        } catch {
-            showToast(`Error al eliminar las ${entityLabel}s`, 'error')
-            return false
         }
+
+        const ok = ids.length - failed
+        showToast(
+            ok > 0
+                ? `${ok} ${entityLabel}s eliminadas, ${failed} fallaron`
+                : `Error al eliminar las ${entityLabel}s`,
+            ok > 0 ? 'warning' : 'error'
+        )
+        return ok > 0
     }
 
     async function copyRoom(id: string | number): Promise<boolean> {

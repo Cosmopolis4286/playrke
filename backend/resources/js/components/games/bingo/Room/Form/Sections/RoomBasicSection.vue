@@ -221,6 +221,7 @@ import { SelectOption } from '@/js/types/common/form/form'
       label="%Sala"
       name="room_commission"
       id="room-commn"
+      :error="errors.roomCommn"
       type="number"
       required
       :step="0.05"
