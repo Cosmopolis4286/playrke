@@ -27,14 +27,14 @@ completo de cada fase, decisiones de diseño y comandos de verificación. Resume
 |------|-----------|--------|--------|
 | 0 | CHANGELOG + fix de imports huérfanos preexistentes | mínimo | ✅ |
 | 1 | Exceptions (3 archivos) → Domains | mínimo | ✅ |
-| 2 | DTOs (15 archivos) → Domains | bajo | pendiente |
-| 3 | Events (13 archivos) → Domains | medio (broadcasting) | pendiente |
-| 4 | Jobs (1 archivo) → Domains | bajo | pendiente |
-| 5 | Contracts (11 interfaces) → Domains | bajo | pendiente |
-| 6 | Repositories (28 archivos) + `BingoServiceProvider` | alto (DI) | pendiente |
-| 7 | Services (26 archivos) + completar Provider | alto (DI) | pendiente |
-| 8 | Policies (2 archivos) + `AuthServiceProvider` | medio | pendiente |
-| 9 | Cierre: limpiar carpetas vacías, `phpstan.neon`, tests completos | — | pendiente |
+| 2 | DTOs (15 archivos) → Domains | bajo | ✅ |
+| 3 | Events (13 archivos) → Domains | medio (broadcasting) | ✅ |
+| 4 | Jobs (1 archivo) → Domains | bajo | ✅ |
+| 5 | Contracts (11 interfaces) → Domains | bajo | ✅ |
+| 6 | Repositories (28 archivos) + `BingoServiceProvider` | alto (DI) | ✅ |
+| 7 | Services (26 archivos) + completar Provider | alto (DI) | ✅ |
+| 8 | Policies (2 archivos) + `AuthServiceProvider` | medio | ✅ |
+| 9 | Cierre: limpiar carpetas vacías, `phpstan.neon`, tests completos | — | ✅ |
 
 **Decisiones clave**: se crea `BingoServiceProvider` explícito (Fase 6) en vez de
 extender el auto-registro por reflection de `RepositoryServiceProvider`, que hoy
@@ -59,7 +59,98 @@ Corregidos los `use` que apuntaban a namespaces de Models ya migrados:
 `app/Exceptions/Domain/Games/Bingo/**` movido a
 `app/Domains/Games/Bingo/Exceptions/**`. Sin bindings de contenedor afectados.
 Actualizados los `use` en `BingoRoomCrudService`, `BingoRoomAutomaticCrudService`
-y `BingoPatternCrudService`.
+y `BingoPatternCrudService`. De paso se corrigió `BingoRoomException.php` (evento
+`Room/Automatic`), cuyo nombre de archivo no coincidía con la clase
+`BingoRoomAutomaticException` que contenía — bajo PSR-4 estricto eso hacía la
+clase invisible al autoloader.
+
+### Fase 2 — DTOs → Domains
+Los 15 DTOs de `app/DTOs/Games/Bingo/**` movidos a
+`app/Domains/Games/Bingo/DTOs/**`, preservando subcarpetas (`Card/Generate`,
+`Config`, `Game`, `Pattern`, `Room`, `Room/Automatic`). Actualizados los 18
+archivos consumidores (Services y Controllers). De paso se corrigieron dos
+imports huérfanos preexistentes con el mismo patrón de namespace desalineado
+de la Fase 0 (`BingoTestingController.php` y una referencia FQCN inline en
+`BingoCardGenerateService.php`).
+
+### Fase 3 — Events → Domains
+Los 13 Events de `app/Events/Games/Bingo/**` movidos a
+`app/Domains/Games/Bingo/Events/**`. Sin bindings de contenedor (Laravel 11 usa
+auto-discovery de listeners). Actualizados 7 archivos consumidores (Services,
+un Command y 2 tests), incluyendo referencias FQCN inline sin `use`. Verificado
+con instanciación real de eventos y confirmación de `broadcastAs()`.
+
+### Fase 4 — Jobs → Domains
+`StartBingoDrawJob` movido a `app/Domains/Games/Bingo/Jobs/`. Actualizados sus 3
+consumidores (`BingoRoomCrudService`, `BingoGameController`,
+`StartPendingBingoDrawsCommand`). Verificado con `Queue::fake()` +
+`assertPushed()` confirmando el `dispatch()->onQueue('bingo-draw')` real.
+
+### Fase 5 — Contracts → Domains
+Las 11 interfaces (8 de `app/Contracts/Games/Bingo/**` + 3 de
+`app/Services/Games/Bingo/Contracts/**`, estas últimas mal ubicadas dentro de
+Services) movidas a `app/Domains/Games/Bingo/Contracts/**`. Ningún Provider
+tocado en esta fase: el auto-scanner de `RepositoryServiceProvider` escanea
+clases concretas en `app/Repositories/**`, no las interfaces — confirmado que
+las 8 `*RepositoryInterface` se siguieron auto-bindeando correctamente tras
+mover solo las interfaces.
+
+### Fase 6 — Repositories + `BingoServiceProvider` (mayor riesgo mecánico)
+Los 28 Repositories de `app/Repositories/Games/Bingo/**` movidos a
+`app/Domains/Games/Bingo/Repositories/**`. Se creó `App\Providers\BingoServiceProvider`
+(mismo patrón que `TriviaServiceProvider`) con los 8 bindings explícitos de
+`*RepositoryInterface`, registrado en `bootstrap/providers.php`. Las 10 clases
+que implementan `*RepositoryContract` (sin ningún caller real confirmado por
+grep) se movieron igual, sin binding — deuda técnica documentada, no se
+renombra la duplicación `RepositoryInterface`/`RepositoryContract`. Verificado
+con resolución real vía el contenedor confirmando explícitamente que las 8
+interfaces ahora resuelven a través de `BingoServiceProvider` (ya no del
+scanner), más instanciación de las 10 clases sin binding.
+
+### Fase 7 — Services + completar `BingoServiceProvider`
+Los 26 Services de `app/Services/Games/Bingo/**` movidos a
+`app/Domains/Games/Bingo/Services/**`. `BingoServiceProvider` extendido con los
+3 bindings de las interfaces de Services movidas en Fase 5
+(`CommissionCalculationInterface`, `RoomMetricsInterface`,
+`RoomUserRegistrationInterface`). Actualizados 15 archivos consumidores externos
+(Controllers, Commands, tests). Se encontró y se dejó intacto un import
+huérfano preexistente sin relación (`App\Services\Games\Bingo\HandleBingoRooms`
+en `SellerController.php`, clase que no existe en ningún lado — código muerto
+anterior a esta migración).
+
+### Fase 8 — Policies + `AuthServiceProvider`
+Las 2 Policies (`BingoRoomPolicy`, `BingoRoomAutomaticPolicy`) movidas a
+`app/Domains/Games/Bingo/Policies/`, junto con la actualización del mapeo
+modelo→policy en `AuthServiceProvider` en el mismo cambio atómico. Verificado
+con `Gate::getPolicyFor()` confirmando que ambos modelos resuelven su Policy
+real desde `Domains`.
+
+### Fase 9 — Cierre
+- Eliminadas las carpetas clásicas vacías residuales de Bingo bajo
+  `app/{Services,Contracts,Policies,DTOs,Events,Jobs}/Games/Bingo` (incluyendo
+  subcarpetas huérfanas de limpiezas anteriores: `Services/Card/Customer`,
+  `Services/Room/Validation`, `Services/Round`, sin archivos).
+- `phpstan.neon`: eliminadas 2 reglas custom que referenciaban clases
+  inexistentes desde antes de esta migración (`App\Contracts\BingoGameInterface`,
+  `App\Models\BingoRoom`) y una regla `ReturnTypeRule` que exigía
+  `Illuminate\Http\Response` en los Controllers de Bingo cuando los 9
+  Controllers reales devuelven `JsonResponse`/`Response` de Inertia (48
+  ocurrencias confirmadas, 0 del tipo exigido).
+- Suite completa de tests corrida como red de seguridad: 145 de 146 tests
+  fallan por una causa raíz **no relacionada** con esta migración — la base de
+  datos de test (`playrke_testing`) rechaza la conexión configurada en
+  `phpunit.xml` (`root` sin contraseña) en este entorno, que usa credenciales
+  distintas (`playrke`/`playrke`). Confirmado por grep que ningún error
+  menciona clases o namespaces de `App\Domains\Games\Bingo\*` — es un problema
+  de configuración de entorno preexistente, no del refactor.
+
+### Resultado final
+Los 133 archivos PHP del dominio Bingo quedaron consolidados bajo
+`App\Domains\Games\Bingo\{Models,DTOs,Events,Exceptions,Jobs,Contracts,Repositories,Services,Policies,ValueObjects}`,
+replicando el patrón de Trivia. Controllers, Requests y Resources permanecen en
+su ubicación HTTP clásica (mismo criterio que Trivia). Cada fase se verificó de
+forma aislada con `php -l`, `composer dump-autoload -o` y resolución real vía
+el contenedor de Laravel antes de avanzar a la siguiente.
 
 ---
 

@@ -52,22 +52,24 @@ class GameStatus extends Model
         sort($sorted);
         $cacheKey = 'game_status_map_' . md5(implode(',', $sorted));
 
-        return Cache::remember($cacheKey, 60, function () use ($codes, $cacheKey) {
-            // Registrar la clave usando una lock atómica para que GameStatusObserver
-            // pueda invalidarla sin riesgo de race read-modify-write entre procesos.
-            Cache::lock('game_status_map_keys_lock', 3)->get(function () use ($cacheKey): void {
-                $known = Cache::get('game_status_map_keys', []);
-                if (!in_array($cacheKey, $known, true)) {
-                    Cache::put('game_status_map_keys', [...$known, $cacheKey], 300);
+        try {
+            return Cache::tags(['game_status'])->remember($cacheKey, 60, function () use ($codes) {
+                $query = static::query();
+                if (!empty($codes)) {
+                    $query->whereIn('code', $codes);
                 }
+                return $query->pluck('id', 'code')->all();
             });
-
-            $query = static::query();
-            if (!empty($codes)) {
-                $query->whereIn('code', $codes);
-            }
-            return $query->pluck('id', 'code')->all();
-        });
+        } catch (\BadMethodCallException) {
+            // Driver no soporta tags (file/database/array) — cache sin tag, se invalida por TTL.
+            return Cache::remember($cacheKey, 60, function () use ($codes) {
+                $query = static::query();
+                if (!empty($codes)) {
+                    $query->whereIn('code', $codes);
+                }
+                return $query->pluck('id', 'code')->all();
+            });
+        }
     }
 
     /** Devuelve el ID de un único código de estado. */

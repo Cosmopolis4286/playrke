@@ -82,21 +82,3 @@ parameters:
         Timestamp: 'int'
         DateString: 'string'
         JsonArray: 'array<string, mixed>'
-    
-    # Custom rules for Bingo game
-    services:
-        -
-            class: PHPStan\Rules\Classes\RequireImplementsRule
-            tags:
-                - phpstan.rules.rule
-            arguments:
-                - App\Contracts\BingoGameInterface
-                - App\Models\BingoRoom
-        
-        -
-            class: PHPStan\Rules\Methods\ReturnTypeRule
-            tags:
-                - phpstan.rules.rule
-            arguments:
-                - App\Http\Controllers\Games\Bingo\*
-                - 'Illuminate\Http\Response'
