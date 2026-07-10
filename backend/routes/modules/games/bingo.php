@@ -4,6 +4,7 @@ use App\Http\Controllers\Games\Bingo\Config\BingoConfigController;
 use App\Http\Controllers\Games\Bingo\Report\BingoReportController;
 use App\Http\Controllers\Games\Bingo\Pattern\BingoPatternController;
 use App\Http\Controllers\Games\Bingo\Card\BingoCardController;
+use App\Http\Controllers\Games\Bingo\Game\BingoDrawReplayController;
 use App\Http\Controllers\Games\Bingo\Game\BingoGameController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomAutomaticController;
 use App\Http\Controllers\Games\Bingo\Room\BingoRoomController;
@@ -43,6 +44,11 @@ route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'multiPermission:games.manag
     'activate-now' => ['method' => 'patch', 'uri' => '{room}/activate-now', 'action' => 'activateNow'],
     'schedule-start' => ['method' => 'patch', 'uri' => '{room}/schedule-start', 'action' => 'scheduleStart'],
 ]);
+
+// Replay de fichas cantadas (auditoría post-sorteo)
+Route::get('bingo-rooms/{room}/draw/replay', BingoDrawReplayController::class)
+    ->middleware(['auth', 'multiPermission:games.manage,games.bingo'])
+    ->name('bingo-rooms.draw.replay');
 
 /**
  * ====================================
