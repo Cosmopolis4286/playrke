@@ -2,9 +2,12 @@
 import { z } from 'zod'
 
 /**
- * Configuración base para porcentaje estándar (0 - 100)
+ * Configuración base para porcentaje estándar (0 - 100).
+ * Usa coerce porque el valor puede llegar como string numérico (ej. "20.00")
+ * desde un backend que serializa columnas decimal como string — sin coerce,
+ * z.number() rechaza ese string como si el campo estuviera vacío.
  */
-export const percentageSchema = z
+export const percentageSchema = z.coerce
     .number({
         error: 'El porcentaje es requerido',
     })

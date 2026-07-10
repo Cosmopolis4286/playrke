@@ -32,6 +32,16 @@ export function useBingoRoomDraft(
     const draftStatus = ref<'idle' | 'saving' | 'saved'>('idle')
     let savedTimer: ReturnType<typeof setTimeout> | null = null
 
+    /**
+     * Snapshot de los datos con los que se abrió el formulario (sala recién
+     * cargada para editar, o formulario vacío en creación). Se usa para
+     * distinguir un borrador real (cambios que el usuario hizo y no guardó)
+     * de un draft huérfano que coincide con los datos originales — sin esto,
+     * reabrir una sala sin haberla tocado mostraría "hay un borrador" solo
+     * porque un cierre anterior del modal dejó ese snapshot en localStorage.
+     */
+    const initialSnapshot = JSON.stringify(form.value)
+
     /* ── Leer borrador al montar ── */
     onMounted(() => {
         try {
@@ -39,6 +49,10 @@ export function useBingoRoomDraft(
             if (!raw) return
             const envelope: DraftEnvelope = JSON.parse(raw)
             if (envelope.v !== DRAFT_VERSION) {
+                localStorage.removeItem(storageKey)
+                return
+            }
+            if (JSON.stringify(envelope.data) === initialSnapshot) {
                 localStorage.removeItem(storageKey)
                 return
             }

@@ -8,6 +8,10 @@ const props = defineProps<{
   errors: Record<string, unknown>
 }>()
 
+const emit = defineEmits<{
+  (e: 'update:form', value: BingoRoomFormData): void
+}>()
+
 type StepKey = Exclude<BingoRoomStep, 'review'>
 
 const STEPS: StepKey[] = ['basic', 'currencies', 'rounds']
@@ -18,6 +22,23 @@ function stepHasErrors(step: StepKey): boolean {
 
 const stepsWithErrors = computed(() => STEPS.filter(stepHasErrors))
 const isReady = computed(() => stepsWithErrors.value.length === 0)
+
+/**
+ * Una sala programada (no manual) cuya fecha/hora ya pasó no debería poder
+ * activarse — en edición no se fuerza a corregir la fecha vencida (el usuario
+ * puede editar otros campos igual), así que este chequeo evita marcarla para
+ * activarse con un horario que ya no tiene sentido.
+ */
+const isScheduledDateInPast = computed(() => {
+  if (props.form.startMode !== 'SCHEDULED') return false
+  const { date, time } = props.form
+  if (!date || !time) return false
+  return new Date(`${date}T${time}:00`) < new Date()
+})
+
+function onActivateRoomChange(checked: boolean): void {
+  emit('update:form', { ...props.form, activateRoom: checked })
+}
 </script>
 
 <template>
@@ -83,6 +104,26 @@ const isReady = computed(() => stepsWithErrors.value.length === 0)
           <dt>% seriales</dt>
           <dd>{{ form.serialsPct != null ? form.serialsPct + '%' : '—' }}</dd>
         </dl>
+      </section>
+
+      <!-- Activación -->
+      <section class="bingo-review-step__section">
+        <h4 class="bingo-review-step__section-title">Activación</h4>
+        <div class="custom-control custom-switch">
+          <input
+            type="checkbox"
+            class="custom-control-input"
+            id="activateRoom"
+            :disabled="isScheduledDateInPast"
+            :checked="form.activateRoom ?? false"
+            @change="onActivateRoomChange(($event.target as HTMLInputElement).checked)"
+          />
+          <label class="custom-control-label" for="activateRoom">¿Activar sala?</label>
+        </div>
+        <small v-if="isScheduledDateInPast" class="text-danger d-block mt-1">
+          <i class="fas fa-exclamation-triangle mr-1"></i>
+          La fecha/hora programada ya pasó. Actualízala antes de activar la sala.
+        </small>
       </section>
     </div>
   </div>
