@@ -1,6 +1,7 @@
 <script setup lang="ts" name="BaseTable">
   import { computed, watch } from 'vue'
   import type { Column, Row } from '@/js/types/common/table/column-row'
+  import type { TableSortState } from '@/js/composables/common/table/useTableFiltering'
 
   /** Props recibidas */
   const props = withDefaults(
@@ -11,6 +12,7 @@
       emptyMessage?: string
       selectable?: boolean
       selectedIds?: string[]
+      sort?: TableSortState
     }>(),
     {
       selectable: false,
@@ -21,6 +23,7 @@
   /** Emit eventos */
   const emit = defineEmits<{
     (e: 'selection-change', ids: string[]): void
+    (e: 'sort-change', key: string): void
   }>()
 
   /** Computed para verificar selección total */
@@ -35,47 +38,44 @@
 
   /** Alterna selección total */
   function toggleAll(): void {
-    const allIds = props.rows.map(r => r.id)
+    const allIds = props.rows.map(r => String(r.id))
     const newSelection = allSelected.value ? [] : allIds
     emit('selection-change', newSelection)
   }
 
   /** Alterna selección individual */
-  function toggleRow(id: string): void {
-    const idx = props.selectedIds.indexOf(id)
+  function toggleRow(id: string | number): void {
+    const key = String(id)
+    const idx = props.selectedIds.indexOf(key)
     let newSelection: string[]
     if (idx >= 0) {
-      newSelection = props.selectedIds.filter(i => i !== id)
+      newSelection = props.selectedIds.filter(i => i !== key)
     } else {
-      newSelection = [...props.selectedIds, id]
+      newSelection = [...props.selectedIds, key]
     }
     emit('selection-change', newSelection)
   }
 
   /** Verifica si fila está seleccionada */
-  function isSelected(id: string): boolean {
-    return props.selectedIds.includes(id)
+  function isSelected(id: string | number): boolean {
+    return props.selectedIds.includes(String(id))
+  }
+
+  /** Solicita ordenar por una columna (delega el toggle asc/desc al padre) */
+  function requestSort(column: Column): void {
+    if (!column.sortable) return
+    emit('sort-change', column.key)
+  }
+
+  /** Ícono de orden actual para una columna */
+  function sortIcon(column: Column): string | null {
+    if (!column.sortable || props.sort?.key !== column.key) return null
+    return props.sort.direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'
   }
 
   /** Obtiene valor seguro en objeto */
   function getNestedValue(obj: Record<string, any>, key: string): any {
     return obj?.[key] ?? ''
-  }
-
-  /**
-   * Escapa texto para evitar inyección HTML
-   * @param text Texto crudo
-   * @returns Texto seguro para HTML
-   */
-  function escapeHtml(text: string): string {
-    const map: Record<string, string> = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;'
-    }
-    return String(text).replace(/[&<>"']/g, m => map[m])
   }
 
   function formatDate(value: string): string {
@@ -91,21 +91,23 @@
     })
   }
 
+  /** Columnas cuyo valor se formatea como fecha automáticamente */
+  const DATE_COLUMN_KEYS = new Set(['created_at', 'updated_at'])
+
   /**
-   * Formatea contenido de celda según configuración HTML
+   * Formatea contenido de celda (aplica formato de fecha si corresponde)
    * @param row Fila de datos
    * @param column Columna actual
-   * @returns Contenido seguro o con HTML
+   * @returns Valor formateado, aún sin escapar
    */
   function formatCell(row: Record<string, any>, column: Column): string {
     let value = getNestedValue(row, column.key)
 
-    // Formatear created_at automáticamente
-    if (column.key === 'created_at' && typeof value === 'string') {
+    if (DATE_COLUMN_KEYS.has(column.key) && typeof value === 'string') {
       value = formatDate(value)
     }
 
-    return column.html ? value : escapeHtml(String(value))
+    return String(value)
   }
 
   /**
@@ -114,7 +116,7 @@
   watch(
     () => props.rows,
     newRows => {
-      const validIds = newRows.map(r => r.id)
+      const validIds = newRows.map(r => String(r.id))
       const filteredSelection = props.selectedIds.filter(id => validIds.includes(id))
 
       if (filteredSelection.length !== props.selectedIds.length) {
@@ -138,7 +140,16 @@
               @change="toggleAll"
             />
           </th>
-          <th v-for="column in columns" :key="column.key">{{ column.label }}</th>
+          <th
+            v-for="column in columns"
+            :key="column.key"
+            :class="{ 'is-sortable': column.sortable }"
+            @click="requestSort(column)"
+          >
+            {{ column.label }}
+            <i v-if="sortIcon(column)" :class="sortIcon(column)" class="ms-1"></i>
+            <i v-else-if="column.sortable" class="fas fa-sort ms-1 text-muted"></i>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -153,7 +164,8 @@
           </td>
           <td v-for="column in columns" :key="column.key">
             <slot :name="`cell-${column.key}`" :row="row" :value="getNestedValue(row, column.key)">
-              <span v-html="formatCell(row, column)"></span>
+              <span v-if="column.html" v-html="formatCell(row, column)"></span>
+              <span v-else>{{ formatCell(row, column) }}</span>
             </slot>
           </td>
         </tr>
@@ -179,5 +191,14 @@
 
   .table-primary {
     background-color: rgba(0, 123, 255, 0.1) !important;
+  }
+
+  .is-sortable {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .is-sortable:hover {
+    background-color: rgba(0, 0, 0, 0.03);
   }
 </style>

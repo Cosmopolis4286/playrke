@@ -6,6 +6,7 @@
   import type { Column, Row } from '@/js/types/common/table/column-row'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilterInterface } from '@/js/types/common/table/table-filter'
+  import type { ServerQuery } from '@/js/composables/common/table/useTableController'
 
   /**
    * Props recibidas desde el componente padre.
@@ -20,6 +21,7 @@
     searchPlaceholder?: string
     debounceDelay?: number
     emptyMessage?: string
+    errorMessage?: string | null
     showCreateButton?: boolean
     showEditButton?: boolean
     showDeleteButton?: boolean
@@ -29,6 +31,11 @@
     disableDeleteReason?: string | ((selectedIds: string[]) => string)
     extraButtons?: ExtraButton[]
     loading?: boolean
+    /** Activa paginación client-side con este tamaño de página */
+    pageSize?: number
+    /** Modo server-side: ver TableWithFilter.vue */
+    serverSide?: boolean
+    serverTotalPages?: number
   }>()
 
   /**
@@ -36,6 +43,7 @@
    */
   const emit = defineEmits<{
     (e: 'selection-change', ids: string[]): void
+    (e: 'query-change', query: ServerQuery): void
   }>()
 
   /**
@@ -209,6 +217,7 @@
     :search-placeholder="props.searchPlaceholder"
     :debounce-delay="props.debounceDelay"
     :empty-message="props.emptyMessage"
+    :error-message="props.errorMessage"
     :show-create-button="props.showCreateButton"
     :show-edit-button="props.showEditButton"
     :show-delete-button="props.showDeleteButton"
@@ -217,10 +226,14 @@
     :disable-delete="resolvedDisableDelete"
     :disable-delete-reason="resolvedDisableDeleteReason"
     :loading="props.loading"
+    :page-size="props.pageSize"
+    :server-side="props.serverSide"
+    :server-total-pages="props.serverTotalPages"
     @create="actionHandlers.create"
     @edit="actionHandlers.edit"
     @delete="actionHandlers.delete"
     @selection-change="handleSelectionChange"
+    @query-change="emit('query-change', $event)"
   >
     <!-- Reenvío automático de slots -->
     <template v-for="(_, name) in $slots" #[name]="slotData" :key="name">

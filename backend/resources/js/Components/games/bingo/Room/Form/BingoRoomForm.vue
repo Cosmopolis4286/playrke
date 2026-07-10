@@ -17,9 +17,13 @@
   // Premios
   import { searchPrizes } from '@/js/composables/prizes/usePrize'
   import { useBingoRoomPrizeRound } from '@/js/composables/games/bingo/room/shared/useBingoRoomPrizeRound'
+  import { useBingoRoomConflictDetector } from '@/js/composables/games/bingo/room/shared/useBingoRoomConflictDetector'
+  import { useBingoRoomDraft } from '@/js/composables/games/bingo/room/shared/useBingoRoomDraft'
+  import { useBingoRoomStepper } from '@/js/composables/games/bingo/room/shared/useBingoRoomStepper'
+  import BingoRoomReviewStep from './Steps/BingoRoomReviewStep.vue'
   import { router } from '@inertiajs/vue3'
   // Types
-  import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
+  import type { BingoRoomFormData, BingoRoom } from '@/js/types/games/bingo/room/bingo-room'
   import type { BingoRoomAutomaticFormData } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
   import { SelectOption } from '@/js/types/common/form/form'
 
@@ -36,6 +40,10 @@
     allowedCurrenciesOptions: SelectOption[]
     bingoPatternOptions: SelectOption[]
     currenciesWithActiveRate?: string[]
+    /** Salas ya cargadas en la tabla — usado solo para detectar solapamiento de horario. */
+    existingRooms?: BingoRoom[]
+    /** ID de la sala en edición, para excluirla del propio chequeo de solapamiento. */
+    editingRoomId?: string | null
     modelValue: BingoRoomFormData | BingoRoomAutomaticFormData
   }>()
 
@@ -74,6 +82,38 @@
   )
 
   /* ==========================================================================
+   * Borrador local (localStorage) — persiste cambios mientras el modal está
+   * abierto para no perder el trabajo si se cierra por accidente.
+   * ========================================================================== */
+
+  const draftStorageKey = computed(() => {
+    const scope = props.automaticRoom ? 'automatic' : 'default'
+    return `bingo-room-draft:${scope}:${props.editingRoomId ?? 'create'}`
+  })
+
+  const { hasDraft, draftStatus, restoreDraft, discardDraft } = useBingoRoomDraft(
+    form,
+    draftStorageKey.value
+  )
+
+  /* ==========================================================================
+   * Wizard por pasos (básico → monedas → rondas → revisión)
+   * ========================================================================== */
+
+  const {
+    step,
+    stepLabel,
+    steps,
+    stepLabels,
+    canGoNext,
+    canGoPrev,
+    goNext,
+    goPrev,
+    goTo,
+    stepHasErrors
+  } = useBingoRoomStepper(errors)
+
+  /* ==========================================================================
    * Computed derivados del form
    * ========================================================================== */
 
@@ -100,6 +140,27 @@
     )
     return selected ? selected.code !== 'ACCUMULATIVE' : false
   })
+
+  /**
+   * Advertencia (no bloqueante) de solapamiento de horario con otra sala ya
+   * programada — solo aplica a salas normales programadas (no automáticas ni
+   * de inicio manual, que no tienen fecha/hora fija que pueda chocar).
+   */
+  const candidateUnixDate = computed<number | null>(() => {
+    if (props.automaticRoom) return null
+    const { date, time } = form.value as BingoRoomFormData
+    if (!date || !time) return null
+    const parsed = new Date(`${date}T${time}:00`)
+    if (isNaN(parsed.getTime())) return null
+    return Math.floor(parsed.getTime() / 1000)
+  })
+
+  const { conflict: scheduleConflict } = useBingoRoomConflictDetector(
+    computed(() => props.existingRooms ?? []),
+    candidateUnixDate,
+    30,
+    computed(() => props.editingRoomId ?? null)
+  )
 
   const canAdjustCtnPriceByCurrency = computed(() => {
     const allowed = form.value.allowedCurrencies
@@ -266,6 +327,7 @@
 
   const submit = (): boolean => {
     if (!isValid.value) return false
+    discardDraft()
     emit('submit')
     return true
   }
@@ -284,91 +346,152 @@
     }
   }
 
-  defineExpose({ submit, isValid, currenciesMissingRate, removeCurrenciesMissingRate })
+  defineExpose({
+    submit,
+    isValid,
+    currenciesMissingRate,
+    removeCurrenciesMissingRate,
+    draftStatus,
+    step,
+    stepLabel,
+    steps,
+    stepLabels,
+    canGoNext,
+    canGoPrev,
+    goNext,
+    goPrev,
+    goTo,
+    stepHasErrors
+  })
 </script>
 
 <template>
+  <!-- Aviso: borrador local disponible (cambios no guardados de una sesión anterior) -->
+  <div v-if="hasDraft" class="alert alert-info d-flex align-items-center justify-content-between mb-3" style="font-size: 0.85rem">
+    <span><i class="fa-solid fa-clock-rotate-left"></i> Hay un borrador sin guardar de esta sala.</span>
+    <div style="gap: 0.5rem" class="d-flex">
+      <button type="button" class="btn btn-sm btn-outline-secondary" @click="discardDraft">Descartar</button>
+      <button type="button" class="btn btn-sm btn-info text-white" @click="restoreDraft">Restaurar</button>
+    </div>
+  </div>
+
+  <!-- Navegación del wizard -->
+  <ul class="nav nav-tabs mb-3" style="font-size: 0.85rem">
+    <li v-for="s in steps" :key="s" class="nav-item">
+      <button
+        type="button"
+        class="nav-link"
+        :class="{ active: step === s, 'text-danger': stepHasErrors(s) && step !== s }"
+        @click="goTo(s)"
+      >
+        {{ stepLabels[s] }}
+        <i v-if="stepHasErrors(s)" class="fa-solid fa-circle-exclamation ml-1" style="font-size: 0.7rem"></i>
+      </button>
+    </li>
+  </ul>
+
   <form id="bingo-room-form" novalidate @submit.prevent="submit">
     <div class="row">
-      <!-- Sección básica: fecha/días, hora, tipo sala, modo, bote, %Sala, tiempo ficha -->
-      <RoomBasicSection
-        :modelValue="form"
-        :errors="errors"
-        :automaticRoom="automaticRoom"
-        :roomTypeOptions="roomTypeOptions"
-        :gameModeOptions="gameModeOptions"
-        :prizePoolTypeOptions="prizePoolTypeOptions"
-        :roomCommn="roomCommn"
-        :jackpotPct="jackpotPct"
-        :percentageLimits="percentageLimits"
-        @update:modelValue="form = $event"
-        @update:roomCommn="roomCommn = $event"
-        @update:jackpotPct="jackpotPct = $event"
-      />
+      <!-- Paso: Datos básicos -->
+      <template v-if="step === 'basic'">
+        <RoomBasicSection
+          :modelValue="form"
+          :errors="errors"
+          :automaticRoom="automaticRoom"
+          :roomTypeOptions="roomTypeOptions"
+          :gameModeOptions="gameModeOptions"
+          :prizePoolTypeOptions="prizePoolTypeOptions"
+          :roomCommn="roomCommn"
+          :jackpotPct="jackpotPct"
+          :percentageLimits="percentageLimits"
+          @update:modelValue="form = $event"
+          @update:roomCommn="roomCommn = $event"
+          @update:jackpotPct="jackpotPct = $event"
+        />
 
-      <!-- Sección monedas: monedas permitidas + panel precios cartones -->
-      <RoomCurrencySection
-        :modelValue="form"
-        :errors="errors"
-        :allowedCurrenciesOptions="allowedCurrenciesOptions"
-        :useBaseUsd="useBaseUsd"
-        :canUseBaseUsd="canUseBaseUsd"
-        :cardPriceByCurrencyActive="cardPriceByCurrencyActive"
-        :canAdjustCtnPriceByCurrency="canAdjustCtnPriceByCurrency"
-        :hasCardPriceByCurrencyErrors="hasCardPriceByCurrencyErrors"
-        :currenciesWithActiveRate="currenciesWithActiveRate ?? []"
-        @update:modelValue="form = $event"
-        @update:useBaseUsd="useBaseUsd = $event"
-        @update:cardPriceByCurrencyActive="cardPriceByCurrencyActive = $event"
-      />
+        <!-- Aviso: solapamiento de horario con otra sala ya programada (no bloqueante) -->
+        <div v-if="scheduleConflict.hasConflict" class="col-12">
+          <div class="alert alert-warning mb-0 px-3 py-2" style="font-size: 0.82rem">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            Hay {{ scheduleConflict.conflictingRooms.length }} sala(s) programada(s) a menos de
+            {{ scheduleConflict.gapMinutes }} minutos de este horario. Puedes continuar, pero revisa
+            que no compitan por los mismos jugadores.
+          </div>
+        </div>
 
-      <!-- Valor extra al bote (fuera de RoomCurrencySection para mantener col grid) -->
-      <FormInput
-        v-show="showAmountAddedPrizePool"
-        label="Valor Fijo/Extra"
-        name="amount_added_prize_pool"
-        :error="errors.amountAddedPrizePool"
-        type="number"
-        required
-        :step="0.05"
-        :min="20"
-        :max="10000"
-        col="col-sm-6 col-md-4 col-lg-3"
-        inputGroup
-        v-model="form.amountAddedPrizePool"
-      >
-        <template #prepend>
-          <span class="input-group-text">$</span>
-        </template>
-      </FormInput>
+        <!-- Valor extra al bote (fuera de RoomCurrencySection para mantener col grid) -->
+        <FormInput
+          v-show="showAmountAddedPrizePool"
+          label="Valor Fijo/Extra"
+          name="amount_added_prize_pool"
+          :error="errors.amountAddedPrizePool"
+          type="number"
+          required
+          :step="0.05"
+          :min="20"
+          :max="10000"
+          col="col-sm-6 col-md-4 col-lg-3"
+          inputGroup
+          v-model="form.amountAddedPrizePool"
+        >
+          <template #prepend>
+            <span class="input-group-text">$</span>
+          </template>
+        </FormInput>
+      </template>
 
-      <!-- Sección rondas: rondas + config avanzada -->
-      <RoomRoundsSection
-        :modelValue="form"
-        :errors="errors"
-        :bingoPatternOptions="bingoPatternOptions"
-        :allowedCurrenciesOptions="allowedCurrenciesOptions"
-        :isSingleRound="isSingleRound"
-        :showRoundsPct="showRoundsPct"
-        :availablePct="availablePct"
-        :percentageLimits="percentageLimits"
-        :totalRoundValues="totalRoundValues"
-        :isRoundValuesValid="isRoundValuesValid"
-        :roundsPct="roundsPct"
-        @update:modelValue="form = $event"
-        @update:roundsPct="roundsPct = $event"
-        @open-prize-modal="openPrizeModal"
-      />
+      <!-- Paso: Monedas y precios -->
+      <template v-if="step === 'currencies'">
+        <RoomCurrencySection
+          :modelValue="form"
+          :errors="errors"
+          :allowedCurrenciesOptions="allowedCurrenciesOptions"
+          :useBaseUsd="useBaseUsd"
+          :canUseBaseUsd="canUseBaseUsd"
+          :cardPriceByCurrencyActive="cardPriceByCurrencyActive"
+          :canAdjustCtnPriceByCurrency="canAdjustCtnPriceByCurrency"
+          :hasCardPriceByCurrencyErrors="hasCardPriceByCurrencyErrors"
+          :currenciesWithActiveRate="currenciesWithActiveRate ?? []"
+          @update:modelValue="form = $event"
+          @update:useBaseUsd="useBaseUsd = $event"
+          @update:cardPriceByCurrencyActive="cardPriceByCurrencyActive = $event"
+        />
+      </template>
 
-      <!-- Sección seriales + alerta porcentajes -->
-      <RoomSerialsSection
-        :modelValue="form"
-        :errors="errors"
-        :percentageLimits="percentageLimits"
-        :serialsPct="serialsPct"
-        @update:modelValue="form = $event"
-        @update:serialsPct="serialsPct = $event"
-      />
+      <!-- Paso: Rondas -->
+      <template v-if="step === 'rounds'">
+        <RoomRoundsSection
+          :modelValue="form"
+          :errors="errors"
+          :bingoPatternOptions="bingoPatternOptions"
+          :allowedCurrenciesOptions="allowedCurrenciesOptions"
+          :isSingleRound="isSingleRound"
+          :showRoundsPct="showRoundsPct"
+          :availablePct="availablePct"
+          :percentageLimits="percentageLimits"
+          :totalRoundValues="totalRoundValues"
+          :isRoundValuesValid="isRoundValuesValid"
+          :roundsPct="roundsPct"
+          @update:modelValue="form = $event"
+          @update:roundsPct="roundsPct = $event"
+          @open-prize-modal="openPrizeModal"
+        />
+
+        <!-- Sección seriales + alerta porcentajes -->
+        <RoomSerialsSection
+          :modelValue="form"
+          :errors="errors"
+          :percentageLimits="percentageLimits"
+          :serialsPct="serialsPct"
+          @update:modelValue="form = $event"
+          @update:serialsPct="serialsPct = $event"
+        />
+      </template>
+
+      <!-- Paso: Revisión -->
+      <div v-if="step === 'review'" class="col-12">
+        <BingoRoomReviewStep :form="form" :errors="errors" />
+      </div>
     </div>
   </form>
 

@@ -6,8 +6,9 @@
   import TableActionButtons from './TableActionButtons.vue'
   import BaseTable from './BaseTable.vue'
   import TableFooterInfo from './TableFooterInfo.vue'
+  import TablePagination from './TablePagination.vue'
 
-  import { useTableController } from '@/js/composables/common/table/useTableController'
+  import { useTableController, ServerQuery } from '@/js/composables/common/table/useTableController'
   import type { Column, Row } from '@/js/types/common/table/column-row'
   import type { TableFilterInterface } from '@/js/types/common/table/table-filter'
 
@@ -24,6 +25,7 @@
     searchPlaceholder?: string
     debounceDelay?: number
     emptyMessage?: string
+    errorMessage?: string | null
     showCreateButton?: boolean
     showEditButton?: boolean
     showDeleteButton?: boolean
@@ -32,6 +34,14 @@
     disableDelete?: boolean
     disableDeleteReason?: string
     loading?: boolean
+    /** Activa paginación client-side con este tamaño de página */
+    pageSize?: number
+    /**
+     * Modo server-side: `rows` ya viene filtrado/ordenado/paginado por el backend.
+     * Requiere `serverTotalPages` y maneja filtros/orden/página vía `@query-change`.
+     */
+    serverSide?: boolean
+    serverTotalPages?: number
   }>()
 
   /**
@@ -42,6 +52,7 @@
     (e: 'edit', id: string): void
     (e: 'delete', ids: string[]): void
     (e: 'selection-change', ids: string[]): void
+    (e: 'query-change', query: ServerQuery): void
   }>()
 
   /**
@@ -57,13 +68,37 @@
 
   /**
    * Controlador principal de la tabla
-   * Maneja filtrado, búsqueda y selección.
+   * Maneja filtrado, búsqueda, orden, selección y paginación.
    */
-  const { handleFilter, selectedIds, filteredRows } = useTableController({
+  const {
+    handleFilter,
+    selectedIds,
+    filteredRows,
+    paginatedRows,
+    currentPage,
+    totalPages,
+    setPage,
+    currentSort,
+    setSort
+  } = useTableController({
     columns: toRef(props, 'columns'),
     rows: toRef(props, 'rows'),
-    onSelectionChange: ids => emit('selection-change', ids.map(String))
+    pageSize: props.pageSize,
+    serverSide: props.serverSide,
+    onSelectionChange: ids => emit('selection-change', ids.map(String)),
+    onQueryChange: query => emit('query-change', query)
   })
+
+  /**
+   * Filas realmente renderizadas: paginadas si hay `pageSize` o modo server-side,
+   * filtradas completas en caso contrario (comportamiento previo).
+   */
+  const visibleRows = computed(() => (props.pageSize || props.serverSide ? paginatedRows.value : filteredRows.value))
+
+  /**
+   * Total de páginas a mostrar en el paginador.
+   */
+  const displayTotalPages = computed(() => (props.serverSide ? (props.serverTotalPages ?? 1) : totalPages.value))
 
   /**
    * IDs seleccionados convertidos a string.
@@ -122,15 +157,24 @@
         </template>
       </TableActionButtons>
 
+      <!-- Error al cargar datos -->
+      <div v-if="errorMessage" class="alert alert-danger d-flex align-items-center mt-3 mb-0" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        {{ errorMessage }}
+      </div>
+
       <!-- Tabla -->
       <BaseTable
+        v-else
         :table-id="tableId"
         :columns="columns"
-        :rows="filteredRows"
+        :rows="visibleRows"
         :empty-message="emptyMessage"
+        :sort="currentSort"
         selectable
         :selected-ids="stringSelectedIds"
         @selection-change="handleSelectionChange"
+        @sort-change="setSort"
       >
         <!-- Slots dinámicos para celdas -->
         <template
@@ -142,12 +186,22 @@
         </template>
       </BaseTable>
 
-      <!-- Footer informativo -->
-      <TableFooterInfo
-        :filtered-count="filteredRows.length"
-        :total-count="rows.length"
-        :selected-count="selectedIds.length"
-      />
+      <!-- Footer informativo + paginación -->
+      <div v-if="!errorMessage" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2">
+        <TableFooterInfo
+          :filtered-count="filteredRows.length"
+          :total-count="rows.length"
+          :selected-count="selectedIds.length"
+        />
+
+        <TablePagination
+          v-if="pageSize || serverSide"
+          :current-page="currentPage"
+          :total-pages="displayTotalPages"
+          :disabled="loading"
+          @update:current-page="setPage"
+        />
+      </div>
     </div>
   </div>
 </template>

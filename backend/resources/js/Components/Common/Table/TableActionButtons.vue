@@ -1,7 +1,9 @@
 <script setup lang="ts" name="TableActionButtons">
   /**
-   * @deprecated Usa Common/Button/ActionButtons.vue directamente.
-   * Este wrapper se mantiene para compatibilidad con los consumidores actuales.
+   * Adaptador de ActionButtons para el módulo de tablas: expone los nombres
+   * de prop/slot que usan TableWithFilter y sus consumidores directos
+   * (showCreateButton/showEditButton/showDeleteButton, slot #action-buttons)
+   * en vez de los nombres cortos de ActionButtons (showCreate/showEdit/showDelete, slot #actions).
    */
   import ActionButtons from '@/js/Components/Common/Button/ActionButtons.vue'
   import type { PropType } from 'vue'
