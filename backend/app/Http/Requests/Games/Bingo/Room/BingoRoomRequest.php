@@ -92,7 +92,8 @@ class BingoRoomRequest extends BaseRequest
             'roundsConfig.*.bingoPattern'                   => ['nullable', 'exists:bingo_patterns,id'],
             'roundsConfig.*.prizeValue'                     => ['nullable', 'numeric', 'min:0', 'max:100'],
             'roundsConfig.*.prizeValueByCurrency'           => ['nullable', 'array'],
-            'roundsConfig.*.prizeValueByCurrency.*'         => ['nullable', 'numeric', 'min:0', 'max:1000000'],
+            // min:0.01 porque withValidator() exige > 0 para rondas de tipo 'fixed'
+            'roundsConfig.*.prizeValueByCurrency.*'         => ['nullable', 'numeric', 'min:0.01', 'max:1000000'],
             'roundsConfig.*.prizeId'                        => ['nullable', 'exists:prizes,id'],
             'roundsConfig.*.prizeName'                      => ['nullable', 'string', 'max:255'],
         ];

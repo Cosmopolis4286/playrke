@@ -105,20 +105,18 @@ final class BingoPatternCrudService
             return 0;
         }
 
-        $activeIds   = BingoPattern::whereIn('id', $ids)->where('status', BingoPattern::STATUS_ACTIVE)->pluck('id');
-        $inactiveIds = BingoPattern::whereIn('id', $ids)->where('status', BingoPattern::STATUS_INACTIVE)->pluck('id');
-
-        $count = 0;
-        if ($activeIds->isNotEmpty()) {
-            BingoPattern::whereIn('id', $activeIds)->update(['status' => BingoPattern::STATUS_INACTIVE]);
-            $count += $activeIds->count();
-        }
-        if ($inactiveIds->isNotEmpty()) {
-            BingoPattern::whereIn('id', $inactiveIds)->update(['status' => BingoPattern::STATUS_ACTIVE]);
-            $count += $inactiveIds->count();
-        }
-
-        return $count;
+        // Un solo UPDATE condicional en lugar de 2 SELECTs + 2 UPDATEs
+        return \Illuminate\Support\Facades\DB::table('bingo_patterns')
+            ->whereIn('id', $ids)
+            ->whereIn('status', [BingoPattern::STATUS_ACTIVE, BingoPattern::STATUS_INACTIVE])
+            ->update([
+                'status' => \Illuminate\Support\Facades\DB::raw(
+                    "CASE WHEN status = '" . BingoPattern::STATUS_ACTIVE . "'"
+                    . " THEN '" . BingoPattern::STATUS_INACTIVE . "'"
+                    . " ELSE '"  . BingoPattern::STATUS_ACTIVE   . "' END"
+                ),
+                'updated_at' => now(),
+            ]);
     }
 
     /**

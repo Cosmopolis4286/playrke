@@ -7,6 +7,7 @@ use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
 use App\Models\Games\Common\GameRoom\CurrencyGameRoom;
 use App\Domains\Games\Bingo\Services\Room\User\RoomUserRegistrationService;
 use App\Domains\Games\Bingo\Services\Payment\CommissionCalculationService;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomCapacityGuard;
 use App\Domains\Games\Bingo\Services\Room\Metrics\RoomMetricsService;
 use App\Domains\Games\Bingo\Services\Card\BingoCardManagementService;
 use Illuminate\Support\Facades\DB;
@@ -109,8 +110,9 @@ final class BingoCardGenerationService
                 throw new \DomainException('Error al actualizar los valores de la sala');
             }
 
-            // Incrementar total_players solo si es un nuevo jugador en la sala
+            // Verificar cupo antes de registrar nuevo jugador (dentro de la transacción con lock).
             if ($isNewRoomUser) {
+                BingoRoomCapacityGuard::assertHasCapacity($room);
                 $this->roomMetrics->updatePlayerCount($room);
             }
 

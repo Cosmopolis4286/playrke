@@ -19,7 +19,9 @@ use App\Domains\Games\Bingo\Models\Round\BingoRoundPrize;
 use App\Models\Games\Common\PrizePool\PrizePoolType;
 use App\Models\Games\Common\Utils\GameConfig;
 use App\Models\Games\Common\Utils\GameStatus;
+use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
 use App\Domains\Games\Bingo\Jobs\StartBingoDrawJob;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Services\ExchangeRate\ExchangeRateDomainService;
 use App\Services\WalletService;
 use Carbon\Carbon;
@@ -45,6 +47,7 @@ class BingoRoomCrudService
         private readonly \App\Domains\Games\Bingo\Contracts\Card\CardPrice\BingoCardPriceRepositoryInterface $bingoCardPrices,
         private readonly ExchangeRateDomainService $exchangeRateService,
         private readonly WalletService $walletService,
+        private readonly BingoRoomAuditLogger $auditLogger,
     ) {}
 
     /**
@@ -244,13 +247,13 @@ class BingoRoomCrudService
         // pero aquí suprimimos sus broadcasts individuales y los colectamos
         // para emitirlos TODOS después del commit outer — evita broadcasts
         // de salas que aún no existen si una iteración posterior falla y revierte.
-        $broadcastQueue = [];
-
-        DB::transaction(function () use ($dto, &$broadcastQueue) {
+        $broadcastQueue = DB::transaction(function () use ($dto) {
+            $queue = [];
             foreach ($dto->allowedCurrencies as $currencyId) {
                 $perCurrencyDto = $this->sliceDtoForCurrency($dto, $currencyId);
-                $broadcastQueue[] = $this->saveRoomReturningBroadcast($perCurrencyDto);
+                $queue[] = $this->saveRoomReturningBroadcast($perCurrencyDto);
             }
+            return $queue;
         });
 
         foreach (array_filter($broadcastQueue) as $b) {
@@ -355,17 +358,33 @@ class BingoRoomCrudService
      */
     protected function createBaseRoom(int $userId, BingoRoomCreateDTO $dto, int $statusId): BingoRoom
     {
-        do {
-            $uuidCode = strtoupper(Str::uuid()->toString());
-        } while (BingoRoom::where('uuid_code', $uuidCode)->exists());
+        $room = null;
+        $maxAttempts = 5;
 
-        $room = BingoRoom::create([
-            'status_id'       => $statusId,
-            'creator_user_id' => $userId,
-            'paid_prizes'     => 'N',
-            'prize_pool'      => 0,
-            'uuid_code'       => $uuidCode,
-        ]);
+        for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
+            try {
+                $uuidCode = strtoupper(Str::uuid()->toString());
+                $room = BingoRoom::create([
+                    'status_id'       => $statusId,
+                    'creator_user_id' => $userId,
+                    'paid_prizes'     => 'N',
+                    'prize_pool'      => 0,
+                    'uuid_code'       => $uuidCode,
+                ]);
+                break;
+            } catch (\Illuminate\Database\QueryException $e) {
+                // SQLSTATE 23000 = unique violation (MySQL); 23505 = unique violation (PostgreSQL)
+                $sqlState = (string) ($e->errorInfo[0] ?? '');
+                $isUnique = str_starts_with($sqlState, '23');
+                if (!$isUnique || $attempt === $maxAttempts - 1) {
+                    throw $e;
+                }
+            }
+        }
+
+        if ($room === null) {
+            throw BingoRoomException::creationFailed();
+        }
 
         BingoCreator::create([
             'room_id'       => $room->id,
@@ -481,6 +500,9 @@ class BingoRoomCrudService
         return $this->isUserAdmin($userId) ? 'Y' : 'N';
     }
 
+    /** Cache de rol admin por userId dentro de la request actual (evita doble query). */
+    private array $adminRoleCache = [];
+
     /**
      * Determina si el usuario tiene rol admin o superadmin vigente.
      */
@@ -504,10 +526,17 @@ class BingoRoomCrudService
 
     /**
      * Devuelve el prefijo del rol admin/superadmin activo del usuario, o null si no tiene.
+     * Resultado cacheado en memoria para la duración de la request (evita doble query
+     * cuando isUserAdmin() y resolveActorRole() se llaman en el mismo flujo).
      */
     private function resolveAdminRole(int $userId): ?string
     {
-        return \DB::table('role_user')
+        if (array_key_exists($userId, $this->adminRoleCache)) {
+            return $this->adminRoleCache[$userId];
+        }
+
+        // orderBy con CASE en lugar de FIELD() para compatibilidad con SQLite en tests.
+        $role = \DB::table('role_user')
             ->join('roles', 'role_user.role_id', '=', 'roles.id')
             ->where('role_user.user_id', $userId)
             ->whereIn('roles.prefix', ['admin', 'superadmin'])
@@ -515,8 +544,10 @@ class BingoRoomCrudService
                 $q->whereNull('role_user.expires_at')
                     ->orWhere('role_user.expires_at', '>', now());
             })
-            ->orderByRaw("FIELD(roles.prefix, 'superadmin', 'admin')")
+            ->orderByRaw("CASE roles.prefix WHEN 'superadmin' THEN 0 ELSE 1 END")
             ->value('roles.prefix');
+
+        return $this->adminRoleCache[$userId] = $role;
     }
 
     /**
@@ -783,25 +814,48 @@ class BingoRoomCrudService
      */
     public function toggleStatus(BingoRoom $room): bool
     {
-        if ($room->status?->code === 'DELETED') {
-            throw BingoRoomException::invalidStatusChange();
-        }
+        // Validaciones y UPDATE dentro de una transacción con lockForUpdate para
+        // eliminar la ventana TOCTOU entre la lectura del estado y la escritura.
+        [$result, $wasActive, $newStatus] = DB::transaction(function () use ($room) {
+            $locked = BingoRoom::where('id', $room->id)
+                ->with(['status', 'config'])
+                ->lockForUpdate()
+                ->first();
 
-        // Bloquear si la fecha+hora de la sala ya expiró (comparar en UTC)
-        // Las salas sin horario (unix_date null) no expiran por tiempo — se activan manualmente.
-        $room->loadMissing('config');
-        if ($room->config && $room->config->unix_date !== null && $room->config->unix_date <= Carbon::now('UTC')->timestamp) {
-            throw BingoRoomException::expiredRoomStatusLocked();
-        }
+            if (!$locked) {
+                return [false, false, null];
+            }
 
-        // Definir nuevo estado alternando entre ACTIVE y INACTIVE
-        $wasActive = $room->status?->code === 'ACTIVE';
-        $newStatus = $wasActive ? 'INACTIVE' : 'ACTIVE';
+            if ($locked->status?->code === 'DELETED') {
+                throw BingoRoomException::invalidStatusChange();
+            }
 
-        $result = $this->bingoRooms->changeGameStatus($room->id, $newStatus);
+            if (
+                $locked->config
+                && $locked->config->unix_date !== null
+                && $locked->config->unix_date <= Carbon::now('UTC')->timestamp
+            ) {
+                throw BingoRoomException::expiredRoomStatusLocked();
+            }
+
+            $wasActive = $locked->status?->code === 'ACTIVE';
+            $newStatus = $wasActive ? 'INACTIVE' : 'ACTIVE';
+
+            $room->setRelations($locked->getRelations());
+            $room->fill($locked->getAttributes());
+
+            return [$this->bingoRooms->changeGameStatus($room->id, $newStatus), $wasActive, $newStatus];
+        });
 
         if ($result) {
             $this->broadcastLobbyStatusChange($room, $newStatus === 'ACTIVE', $wasActive);
+            $this->auditLogger->log(
+                $room,
+                BingoRoomAuditLogger::EVENT_STATUS_CHANGED,
+                'admin',
+                "Estado cambiado de {$room->status?->code} a {$newStatus}",
+                ['previous_status' => $room->status?->code, 'new_status' => $newStatus, 'changed_by' => Auth::id()],
+            );
         }
 
         return $result;
@@ -818,30 +872,38 @@ class BingoRoomCrudService
      */
     public function cancel(BingoRoom $room): bool
     {
-        // Validar que la sala no esté eliminada
-        if ($room->status?->code === 'DELETED') {
-            throw BingoRoomException::invalidStatusChange();
-        }
+        // Todas las validaciones y el UPDATE dentro de una transacción con lockForUpdate
+        // para eliminar la ventana TOCTOU entre la lectura del estado y la escritura.
+        $changed = DB::transaction(function () use ($room) {
+            // Releer la sala con bloqueo exclusivo para evitar que dos peticiones
+            // simultáneas de cancelación ambas pasen la guardia.
+            $locked = BingoRoom::where('id', $room->id)
+                ->with(['status', 'config'])
+                ->lockForUpdate()
+                ->first();
 
-        // Validar que la sala esté ACTIVE
-        if ($room->status?->code !== 'ACTIVE') {
-            throw new BingoRoomException('Solo se pueden cancelar salas con estado ACTIVE');
-        }
+            if (!$locked) {
+                return false;
+            }
 
-        // Validar que la sala tenga jugadores
-        if (($room->total_players ?? 0) === 0) {
-            throw new BingoRoomException('Solo se pueden cancelar salas que tengan jugadores registrados');
-        }
+            if ($locked->status?->code === 'DELETED') {
+                throw BingoRoomException::invalidStatusChange();
+            }
 
-        // Bloquear si la fecha+hora de la sala ya expiró (comparar en UTC)
-        // Las salas sin horario (unix_date null) no expiran por tiempo — se activan manualmente.
-        $room->loadMissing('config');
-        if ($room->config && $room->config->unix_date !== null && $room->config->unix_date <= Carbon::now('UTC')->timestamp) {
-            throw BingoRoomException::expiredRoomStatusLocked();
-        }
+            if ($locked->status?->code !== 'ACTIVE') {
+                throw new BingoRoomException('Solo se pueden cancelar salas con estado ACTIVE');
+            }
 
-        // Cambiar estado a CANCELLED primero (transacción propia)
-        $changed = DB::transaction(fn() => $this->bingoRooms->changeGameStatus($room->id, 'CANCELLED'));
+            if (($locked->total_players ?? 0) === 0) {
+                throw new BingoRoomException('Solo se pueden cancelar salas que tengan jugadores registrados');
+            }
+
+            // Propagate fresh data to $room so callers downstream see the latest state
+            $room->setRelations($locked->getRelations());
+            $room->fill($locked->getAttributes());
+
+            return $this->bingoRooms->changeGameStatus($room->id, 'CANCELLED');
+        });
 
         if (!$changed) {
             return false;
@@ -849,9 +911,23 @@ class BingoRoomCrudService
 
         $this->broadcastLobbyStatusChange($room, false, true);
 
+        $this->auditLogger->log(
+            $room,
+            BingoRoomAuditLogger::EVENT_CANCELLED,
+            'admin',
+            'Sala cancelada',
+            ['cancelled_by' => Auth::id(), 'total_players' => $room->total_players ?? 0],
+        );
+
         // Reembolsar cartones fuera de la transacción de estado.
-        // Cada lot se reembolsa independientemente; un fallo en uno no revierte
-        // el CANCELLED ya comprometido — los fallos quedan en el log para reintentar.
+        $this->auditLogger->log(
+            $room,
+            BingoRoomAuditLogger::EVENT_REFUND_INITIATED,
+            'system',
+            'Reembolso de cartones iniciado',
+            ['total_players' => $room->total_players ?? 0],
+        );
+
         $this->refundCardLotsForRoom($room);
 
         return true;
@@ -864,56 +940,14 @@ class BingoRoomCrudService
      */
     private function refundCardLotsForRoom(BingoRoom $room): void
     {
-        $lots = BingoCardLot::where('room_id', $room->id)
+        BingoCardLot::where('room_id', $room->id)
             ->where('status', 'ACTIVE')
-            ->cursor();
-
-        foreach ($lots as $lot) {
-            $amount = (float) $lot->sale_amount;
-            if ($amount <= 0) {
-                continue;
-            }
-
-            try {
-                $wallet = $this->walletService->findActiveWallet(
-                    (string) $lot->user_id,
-                    (string) $lot->currency_id,
-                );
-
-                if (!$wallet) {
-                    Log::warning('[BingoRoomCrudService] Reembolso omitido: wallet no encontrada o inactiva', [
-                        'room_id'     => $room->id,
-                        'lot_id'      => $lot->id,
-                        'user_id'     => $lot->user_id,
-                        'currency_id' => $lot->currency_id,
-                    ]);
-                    $this->createRefundFailure($lot, $room, $amount, 'Wallet no encontrada o inactiva');
-                    continue;
-                }
-
-                $this->walletService->recordRefund(
-                    wallet:      $wallet,
-                    amount:      $amount,
-                    gameId:      (string) $room->id,
-                    description: "Reembolso Bingo — Sala cancelada #{$room->id}",
-                );
-
-                // Marcar el lot como REFUNDED para evitar doble reembolso en reintentos
-                $lot->update(['status' => 'REFUNDED']);
-
-                BingoLotRefundFailure::where('lot_id', $lot->id)
-                    ->where('room_id', $room->id)
-                    ->whereNull('resolved_at')
-                    ->update(['resolved_at' => now(), 'status' => 'RESOLVED']);
-            } catch (\Throwable $e) {
-                Log::error('[BingoRoomCrudService] Error al reembolsar cartón — pendiente de reintento manual', [
-                    'room_id' => $room->id,
-                    'lot_id'  => $lot->id,
-                    'error'   => $e->getMessage(),
-                ]);
-                $this->createRefundFailure($lot, $room, $amount, $e->getMessage());
-            }
-        }
+            ->select(['id'])
+            ->cursor()
+            ->each(function (BingoCardLot $lot) use ($room): void {
+                BingoCardLotRefundJob::dispatch((string) $lot->id, (string) $room->id)
+                    ->onQueue('bingo-refunds');
+            });
     }
 
     private function createRefundFailure(BingoCardLot $lot, BingoRoom $room, float $amount, string $reason): void
@@ -1117,9 +1151,13 @@ class BingoRoomCrudService
             })
             ->toArray();
 
+        // La copia se crea sin fecha/hora para evitar que quede con unix_date en el
+        // pasado (si la sala original ya expiró) y sea inmediatamente expirada por el cron.
+        // start_mode = MANUAL permite al administrador activarla cuando lo desee.
         $dto = BingoRoomCreateDTO::fromArray([
-            'date'                  => Carbon::parse($config->getRawOriginal('date'))->format('Y-m-d'),
-            'time'                  => substr((string) $config->time, 0, 5),
+            'date'                  => null,
+            'time'                  => null,
+            'startMode'             => 'MANUAL',
             'roomType'              => $config->room_type_id,
             'gameMode'              => $config->game_mode_id,
             'gameVariant'           => $config->game_variant ?? 'BINGO_75',

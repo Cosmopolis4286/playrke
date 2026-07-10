@@ -146,10 +146,13 @@ final class BingoPatternController extends Controller
      */
     public function toggleStatusBulk(Request $request): JsonResponse
     {
-        $ids = $request->input('ids', []);
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1', 'max:200'],
+            'ids.*' => ['required', 'string', 'exists:bingo_patterns,id'],
+        ]);
 
         return $this->handleServiceJson(
-            fn() => ['updated' => $this->service->toggleStatusBulk($ids)]
+            fn() => ['updated' => $this->service->toggleStatusBulk($validated['ids'])]
         );
     }
 
@@ -159,10 +162,13 @@ final class BingoPatternController extends Controller
      */
     public function deleteBulk(Request $request): JsonResponse
     {
-        $ids = $request->input('ids', []);
+        $validated = $request->validate([
+            'ids'   => ['required', 'array', 'min:1', 'max:200'],
+            'ids.*' => ['required', 'string', 'exists:bingo_patterns,id'],
+        ]);
 
         return $this->handleServiceJson(
-            fn() => ['deleted' => $this->service->deleteBulk($ids)]
+            fn() => ['deleted' => $this->service->deleteBulk($validated['ids'])]
         );
     }
 }

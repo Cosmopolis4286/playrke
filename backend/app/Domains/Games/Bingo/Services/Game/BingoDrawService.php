@@ -19,6 +19,7 @@ use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\ExchangeRate;
 use App\Models\User;
 use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -30,25 +31,10 @@ final class BingoDrawService
     /** Cache de tasas de cambio activas resuelta por moneda durante la corrida actual. */
     private array $rateCache = [];
 
-    /**
-     * Cache de cartones ACTIVE de la sala durante la corrida actual del sorteo.
-     * Evita recargar la colección completa (con eager loading) en cada ficha cantada.
-     * Se invalida explícitamente cuando un cartón cambia de estado (claimCardWin) y,
-     * además, se refresca automáticamente si el COUNT(status=ACTIVE) de la sala no
-     * coincide con el tamaño cacheado — cubre compras de cartones mid-sorteo, ya que
-     * las salas ACTIVE/IN_PROGRESS siguen aceptando compras mientras el sorteo corre
-     * (ver BingoCardGenerateService::generateCardStore).
-     *
-     * @var \Illuminate\Support\Collection<int, BingoCard>|null
-     */
-    private ?\Illuminate\Support\Collection $activeCardsCache = null;
-    private ?string $activeCardsCacheRoomId = null;
-    /** Número de cartones ACTIVE al momento de cargar el cache — evita COUNT(*) por ficha. */
-    private ?int $activeCardsCacheCount = null;
-
     public function __construct(
         private readonly BingoPrizePayoutService $prizePayoutService,
         private readonly WinEventService $winEventService,
+        private readonly BingoRoomAuditLogger $auditLogger,
         private readonly BingoPatternPositionResolver $patternResolver = new BingoPatternPositionResolver(),
     ) {}
 
@@ -56,6 +42,11 @@ final class BingoDrawService
     {
         @set_time_limit(0);
         ignore_user_abort(true);
+
+        // Limpiar caches de instancia al inicio de cada sorteo para que los datos
+        // de una sala no se filtren a sorteos posteriores en el mismo worker process.
+        $this->rateCache = [];
+        $this->invalidateActiveCardsCache();
 
         $roomId  = $room->id;
 
@@ -180,6 +171,7 @@ final class BingoDrawService
             $firstDraw = $this->createDrawRecord($roomId, $roundId, $sequence[0], 0, $variant);
             broadcast(new BingoGameStarted($roomId, (int) $firstDraw->id));
             broadcast(new BingoNumberCalled((int) $sequence[0], $roomId));
+            $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_DRAW_STARTED, 'system', 'Sorteo iniciado', ['round_id' => (string) $roundId, 'variant' => $variant]);
 
             $drawnSoFar = [$sequence[0]];
             $startIndex = 1;
@@ -193,6 +185,8 @@ final class BingoDrawService
         for ($i = $startIndex, $total = count($sequence); $i < $total; $i++) {
             $interval = app()->environment('local') ? self::CHIP_INTERVAL_DEV : self::CHIP_INTERVAL_SECONDS;
             if ($interval > 0) sleep($interval);
+
+            $this->currentChipIndex = $i;
 
             $chip = $sequence[$i];
             $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * $interval, $variant);
@@ -232,6 +226,8 @@ final class BingoDrawService
             endTime:    now()->toISOString(),
         ));
 
+        $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_DRAW_FINISHED, 'system', 'Sorteo completado sin ganador', ['total_drawn' => count($drawnSoFar)]);
+
         Log::info('[BingoDrawService] Sorteo completado sin ganador', [
             'room_id' => $roomId,
             'drawn'   => count($drawnSoFar),
@@ -241,38 +237,80 @@ final class BingoDrawService
         return ['success' => true, 'room_id' => $roomId, 'total_chips' => count($drawnSoFar), 'winner' => null];
     }
 
+    /** Número de fichas entre cada verificación de compras mid-sorteo. */
+    private const ACTIVE_CARDS_REFRESH_INTERVAL = 5;
+
+    /**
+     * Índice de la ficha actual dentro del sorteo (0-based).
+     * El draw loop lo actualiza una vez por chip antes de llamar a broadcastPlayersProgress
+     * y detectWinnerAndEnd, de modo que el intervalo periódico de activeCards() sea
+     * "cada N chips reales", no "cada N llamadas al método".
+     */
+    private int $currentChipIndex = 0;
+
     /**
      * Cartones ACTIVE de la sala, cacheados en memoria durante la corrida del sorteo.
-     * Se recarga solo si aún no hay cache para esta sala o tras invalidarCartones().
+     * Keyed por firma de relaciones ($with) para evitar que broadcastPlayersProgress
+     * (que carga ['roomUser.user']) envene el cache de detectWinnerAndEnd
+     * (que necesita ['roomUser.user','cardLot']).
+     *
+     * Se recarga si: (a) no existe para esta sala/with, (b) es de otra sala,
+     * (c) fue invalidado explícitamente, o (d) cada ACTIVE_CARDS_REFRESH_INTERVAL chips.
+     *
+     * @var array<string, \Illuminate\Support\Collection<int, BingoCard>>
      */
+    private array $activeCardsCache = [];
+    private ?string $activeCardsCacheRoomId = null;
+    private ?int $activeCardsCacheCount = null;
+
     private function activeCards(BingoRoom $room, array $with): \Illuminate\Support\Collection
     {
-        $roomId = (string) $room->id;
+        $roomId   = (string) $room->id;
+        $withKey  = implode(',', $with);
 
-        // El stale-check usa el COUNT en memoria (activeCardsCacheCount) en lugar de
-        // lanzar un SELECT COUNT(*) por cada ficha cantada (75 queries por sorteo).
-        // El cache solo se recarga si: (a) no existe, (b) es de otra sala, o
-        // (c) fue invalidado explícitamente por invalidateActiveCardsCache().
-        $stale = $this->activeCardsCache === null
-            || $this->activeCardsCacheRoomId !== $roomId;
+        $baseStale = $this->activeCardsCacheRoomId !== $roomId
+            || !isset($this->activeCardsCache[$withKey]);
 
-        if ($stale) {
-            $this->activeCardsCache = BingoCard::where('room_id', $roomId)
+        $chipIndex = $this->currentChipIndex;
+        $periodicStale = !$baseStale
+            && $this->activeCardsCacheCount !== null
+            && $chipIndex > 0
+            && ($chipIndex % self::ACTIVE_CARDS_REFRESH_INTERVAL === 0)
+            && BingoCard::where('room_id', $roomId)->where('status', BingoCard::STATUS_ACTIVE)->count() !== $this->activeCardsCacheCount;
+
+        if ($baseStale || $periodicStale) {
+            $loaded = BingoCard::where('room_id', $roomId)
                 ->where('status', BingoCard::STATUS_ACTIVE)
                 ->with($with)
                 ->get();
-            $this->activeCardsCacheRoomId  = $roomId;
-            $this->activeCardsCacheCount   = $this->activeCardsCache->count();
+
+            if ($baseStale) {
+                // Primer load o sala distinta — reiniciar todo el cache.
+                $this->activeCardsCache        = [$withKey => $loaded];
+                $this->activeCardsCacheRoomId  = $roomId;
+                $this->activeCardsCacheCount   = $loaded->count();
+            } else {
+                // Recarga periódica — actualizar el count global y esta variante.
+                $this->activeCardsCache[$withKey] = $loaded;
+                $this->activeCardsCacheCount      = $loaded->count();
+                // Recargar las demás variantes con los mismos cartones pero distintas relaciones.
+                foreach (array_keys($this->activeCardsCache) as $k) {
+                    if ($k !== $withKey) {
+                        unset($this->activeCardsCache[$k]);
+                    }
+                }
+            }
         }
 
-        return $this->activeCardsCache;
+        return $this->activeCardsCache[$withKey];
     }
 
     /** Invalida el cache de cartones activos — usar tras cambiar el status de un cartón. */
     private function invalidateActiveCardsCache(): void
     {
-        $this->activeCardsCache      = null;
+        $this->activeCardsCache      = [];
         $this->activeCardsCacheCount = null;
+        // No resetear currentChipIndex — lo actualiza el draw loop por chip.
     }
 
     private function generateSequence(int $totalChips): array
@@ -434,6 +472,14 @@ final class BingoDrawService
             endTime:    now()->toISOString(),
         ));
 
+        $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_WINNER_DECLARED, 'system', 'Ganador(es) declarado(s)', [
+            'round_id'      => (string) $round->id,
+            'total_drawn'   => count($drawnNumbers),
+            'winner_count'  => count($winners),
+            'prize'         => $winners[0]['prize'] ?? 0,
+        ]);
+        $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_DRAW_FINISHED, 'system', 'Sorteo finalizado con ganador', ['total_drawn' => count($drawnNumbers)]);
+
         Log::info('[BingoDrawService] Ganador(es) — sorteo detenido', [
             'room_id'    => $room->id,
             'round_id'   => (string) $round->id,
@@ -491,9 +537,12 @@ final class BingoDrawService
             $prizeAmounts = $this->resolvePrizeAmounts($room, $round, $card);
             $prize        = $prizeAmounts['usd_amount'];
 
-            $prizeType = match ($pattern->name) {
-                'Cartón Lleno', 'Full House' => 'full_house',
-                'Línea Simple', 'Single Line' => 'single_line',
+            // prize_type viene del enum canónico de la ronda (PCT/FIXED/OTHER),
+            // no del nombre del patrón (string mutable que puede renombrarse).
+            $prizeType = match ($round->prize_type) {
+                'FIXED' => 'full_house',
+                'PCT'   => 'serial',
+                'OTHER' => 'serial',
                 default => 'serial',
             };
 
@@ -513,7 +562,7 @@ final class BingoDrawService
                 'usd_amount'        => $prizeAmounts['usd_amount'],
                 'local_amount'      => $prizeAmounts['local_amount'],
                 'prize_status'      => 'waiting',
-                'verification_code' => strtoupper(substr(md5(uniqid($card->id . $roundId, true)), 0, 8)),
+                'verification_code' => strtoupper(bin2hex(random_bytes(8))),
             ]);
 
             Log::info('[BingoDrawService] Premio registrado en bingo_card_prizes', [

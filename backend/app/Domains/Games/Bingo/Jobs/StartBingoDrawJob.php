@@ -4,6 +4,7 @@ namespace App\Domains\Games\Bingo\Jobs;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Game\BingoDrawService;
+use App\Domains\Games\Bingo\Services\Game\BingoRoomHealthCheckService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -30,19 +31,22 @@ final class StartBingoDrawJob implements ShouldQueue
 
     public function __construct(private readonly string $roomId) {}
 
-    public function handle(BingoDrawService $drawService): void
+    public function handle(BingoDrawService $drawService, BingoRoomHealthCheckService $healthCheck): void
     {
-        $room = BingoRoom::with(['status', 'config'])->find($this->roomId);
+        $room = BingoRoom::with(['status', 'config', 'rounds'])->find($this->roomId);
 
         if (!$room) {
             Log::warning('[StartBingoDrawJob] Sala no encontrada', ['room_id' => $this->roomId]);
             return;
         }
 
-        if (!in_array($room->status?->code, ['ACTIVE', 'IN_PROGRESS'], true)) {
-            Log::info('[StartBingoDrawJob] Sala ya no está en estado válido para sorteo', [
+        $errors = $healthCheck->collectErrors($room);
+
+        if (!empty($errors)) {
+            Log::warning('[StartBingoDrawJob] Sala no está lista para sorteo — omitiendo', [
                 'room_id' => $room->id,
                 'status'  => $room->status?->code,
+                'errors'  => $errors,
             ]);
             return;
         }
@@ -50,7 +54,6 @@ final class StartBingoDrawJob implements ShouldQueue
         // Si ya hay fichas cantadas pero la sala sigue activa, es un sorteo interrumpido
         // (p.ej. el worker se reinició a mitad del sorteo) — BingoDrawService::startDraw()
         // detecta este caso y retoma desde la última ficha persistida en vez de reiniciar.
-        // Solo omitimos si la sala ya no está en un estado válido (otro proceso la cerró).
         Log::info('[StartBingoDrawJob] Iniciando/retomando sorteo autónomo', ['room_id' => $room->id]);
 
         $drawService->startDraw($room);
