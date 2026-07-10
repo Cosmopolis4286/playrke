@@ -89,7 +89,7 @@ class BingoCardPrize extends Model
 
     public function generateVerificationCode(): string
     {
-        $this->verification_code = strtoupper(substr(md5(uniqid()), 0, 8));
+        $this->verification_code = strtoupper(bin2hex(random_bytes(4)));
         $this->save();
         return $this->verification_code;
     }

@@ -7,6 +7,7 @@ use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutRetryPolicy;
+use App\Exceptions\Wallet\WalletUnavailableException;
 use App\Services\Commands\CommandService;
 use App\Services\WalletService;
 use Illuminate\Console\Command;
@@ -32,31 +33,38 @@ class RetryFailedBingoRefundsCommand extends Command
                 ->cursor();
 
             foreach ($failures as $failure) {
-                // Respetar el back-off lineal entre intentos.
                 if (!BingoPrizePayoutRetryPolicy::isReadyToRetry($failure->last_attempted_at, $failure->attempts)) {
                     $skipped++;
                     continue;
                 }
 
-                $newAttempts = $failure->attempts + 1;
-                $failure->update([
-                    'attempts'          => $newAttempts,
-                    'last_attempted_at' => now(),
-                ]);
+                // Cachear la sala una sola vez por failure (evita N queries duplicadas en success + abandon path)
+                $room = BingoRoom::find($failure->room_id);
 
                 try {
-                    DB::transaction(function () use ($failure, $walletService) {
-                        // lockForUpdate previene doble reembolso si cancel() y este comando
-                        // corren concurrentemente sobre el mismo lot.
+                    $newAttempts = DB::transaction(function () use ($failure, $walletService): int {
+                        // lockForUpdate en failure previene que dos ejecuciones concurrentes del cron
+                        // procesen el mismo failure simultáneamente.
+                        $locked = BingoLotRefundFailure::where('id', $failure->id)
+                            ->lockForUpdate()
+                            ->first();
+
+                        if (!$locked || $locked->status !== 'PENDING') {
+                            // Otro proceso ya resolvió este failure — saltar.
+                            return 0;
+                        }
+
+                        $newAttempts = $locked->attempts + 1;
+
                         $lot = BingoCardLot::where('id', $failure->lot_id)
                             ->where('status', 'ACTIVE')
                             ->lockForUpdate()
                             ->first();
 
                         if (!$lot) {
-                            // Ya fue reembolsado por otro proceso
-                            $failure->update(['status' => 'RESOLVED', 'resolved_at' => now()]);
-                            return;
+                            // Ya fue reembolsado por otro proceso — marcar resuelto.
+                            $locked->update(['status' => 'RESOLVED', 'resolved_at' => now()]);
+                            return 0;
                         }
 
                         $wallet = $walletService->findActiveWallet(
@@ -65,7 +73,16 @@ class RetryFailedBingoRefundsCommand extends Command
                         );
 
                         if (!$wallet) {
-                            throw new \RuntimeException('Wallet no disponible');
+                            // Actualizar contador DENTRO de la transacción para que sea atómico
+                            // con el check del lot. Si la transacción revierte, el contador no queda quemado.
+                            $locked->update([
+                                'attempts'          => $newAttempts,
+                                'last_attempted_at' => now(),
+                            ]);
+                            throw new WalletUnavailableException::notFound(
+                                (string) $failure->user_id,
+                                (string) $failure->currency_id,
+                            );
                         }
 
                         $walletService->recordRefund(
@@ -76,13 +93,19 @@ class RetryFailedBingoRefundsCommand extends Command
                         );
 
                         $lot->update(['status' => 'REFUNDED']);
-                        $failure->update(['status' => 'RESOLVED', 'resolved_at' => now()]);
+                        $locked->update(['status' => 'RESOLVED', 'resolved_at' => now(), 'attempts' => $newAttempts, 'last_attempted_at' => now()]);
+
+                        return $newAttempts;
                     });
+
+                    if ($newAttempts === 0) {
+                        // Resuelto por otro proceso o ya procesado — no contar como reintento
+                        continue;
+                    }
 
                     $retried++;
                     $this->info("Reembolso #{$failure->id} acreditado exitosamente.");
 
-                    $room = BingoRoom::find($failure->room_id);
                     if ($room) {
                         $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_COMPLETED, 'system', 'Reembolso acreditado por comando de reintento', [
                             'failure_id' => (string) $failure->id,
@@ -91,29 +114,28 @@ class RetryFailedBingoRefundsCommand extends Command
                             'attempts'   => $newAttempts,
                         ]);
                     }
+                } catch (WalletUnavailableException $e) {
+                    // Fallo transitorio de infraestructura: NO abandonar aunque se hayan agotado
+                    // los intentos — el jugador merece el reembolso cuando el wallet vuelva.
+                    $this->warn("Reembolso #{$failure->id}: wallet aún no disponible — se reintentará más tarde.");
+                    $skipped++;
                 } catch (Throwable $e) {
-                    $isWalletUnavailable = $e instanceof \RuntimeException
-                        && str_contains($e->getMessage(), 'Wallet');
-
-                    if ($isWalletUnavailable) {
-                        $this->warn("Reembolso #{$failure->id}: wallet aún no disponible.");
-                    } else {
-                        Log::error('[RetryFailedBingoRefunds] Fallo en reintento', [
-                            'failure_id' => $failure->id,
-                            'error'      => $e->getMessage(),
-                        ]);
-                    }
-
+                    Log::error('[RetryFailedBingoRefunds] Fallo en reintento', [
+                        'failure_id' => $failure->id,
+                        'error'      => $e->getMessage(),
+                    ]);
                     $skipped++;
 
-                    if (BingoPrizePayoutRetryPolicy::shouldAbandon($newAttempts)) {
-                        $failure->update(['status' => 'ABANDONED']);
-                        $abandoned++;
-                        $this->error("Reembolso #{$failure->id} abandonado tras {$newAttempts} intentos.");
+                    // Recuperar el número de intentos actualizado desde la BD para decidir si abandonar
+                    $currentAttempts = BingoLotRefundFailure::where('id', $failure->id)->value('attempts') ?? ($failure->attempts + 1);
 
-                        $room = BingoRoom::find($failure->room_id);
+                    if (BingoPrizePayoutRetryPolicy::shouldAbandon((int) $currentAttempts)) {
+                        BingoLotRefundFailure::where('id', $failure->id)->update(['status' => 'ABANDONED']);
+                        $abandoned++;
+                        $this->error("Reembolso #{$failure->id} abandonado tras {$currentAttempts} intentos.");
+
                         if ($room) {
-                            $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_FAILED, 'system', "Reembolso abandonado tras {$newAttempts} intentos", [
+                            $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_FAILED, 'system', "Reembolso abandonado tras {$currentAttempts} intentos", [
                                 'failure_id' => (string) $failure->id,
                                 'lot_id'     => (string) $failure->lot_id,
                                 'amount'     => (float) $failure->amount,

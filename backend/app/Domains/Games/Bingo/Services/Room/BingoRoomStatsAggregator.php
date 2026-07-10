@@ -8,7 +8,6 @@ use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomStat;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Calcula y persiste las estadísticas finales de una sala de bingo.
@@ -25,6 +24,7 @@ final class BingoRoomStatsAggregator
     {
         $roomId = (string) $room->id;
 
+        // Lotes + cartones + ingresos — una sola query agregada
         $lotStats = BingoCardLot::where('room_id', $roomId)
             ->selectRaw('
                 COUNT(*) as total_lots,
@@ -33,33 +33,37 @@ final class BingoRoomStatsAggregator
             ')
             ->first();
 
-        $totalPlayers = (int) ($room->total_players ?? 0);
-
-        // Número de fichas cantadas en todo el sorteo (todas las rondas)
+        // Fichas cantadas en total
         $totalChipsDrawn = BingoDraw::where('room_id', $roomId)->count();
 
-        $rounds = BingoRound::where('room_id', $roomId)->get(['id', 'status', 'start_time']);
-        $totalRounds   = $rounds->count();
-        $winningRounds = BingoRound::where('room_id', $roomId)
-            ->whereHas('winners')
-            ->count();
+        // Rondas: una query con COUNT condicional para total y ganadoras
+        $roundStats = BingoRound::where('room_id', $roomId)
+            ->withCount('winners')
+            ->get(['id', 'status']);
 
-        // Duración estimada del sorteo: desde la primera ficha hasta la última
-        $firstDraw = BingoDraw::where('room_id', $roomId)->orderBy('created_at')->first(['created_at']);
-        $lastDraw  = BingoDraw::where('room_id', $roomId)->orderByDesc('created_at')->first(['created_at']);
-        $drawDuration = ($firstDraw && $lastDraw)
-            ? (int) $firstDraw->created_at->diffInSeconds($lastDraw->created_at)
-            : null;
+        $totalRounds   = $roundStats->count();
+        $winningRounds = $roundStats->filter(fn($r) => ($r->winners_count ?? 0) > 0)->count();
+
+        // Duración del sorteo: MIN/MAX atómico — evita race condition entre dos queries separadas
+        $drawTimes = BingoDraw::where('room_id', $roomId)
+            ->selectRaw('MIN(created_at) as first_draw, MAX(created_at) as last_draw')
+            ->first();
+
+        $drawDuration = null;
+        if ($drawTimes?->first_draw && $drawTimes->last_draw) {
+            $drawDuration = (int) \Carbon\Carbon::parse($drawTimes->first_draw)
+                ->diffInSeconds(\Carbon\Carbon::parse($drawTimes->last_draw));
+        }
 
         $stat = BingoRoomStat::updateOrCreate(
             ['room_id' => $roomId],
             [
                 'total_lots'            => (int) ($lotStats?->total_lots ?? 0),
                 'total_cards'           => (int) ($lotStats?->total_cards ?? 0),
-                'total_players'         => $totalPlayers,
+                'total_players'         => (int) ($room->total_players ?? 0),
                 'total_revenue'         => (float) ($lotStats?->total_revenue ?? 0),
                 'total_revenue_usd'     => (float) ($room->metrics_by_currency
-                    ? array_sum(array_column($room->metrics_by_currency, 'revenue_usd'))
+                    ? array_sum(array_column((array) $room->metrics_by_currency, 'revenue_usd'))
                     : 0),
                 'prize_pool_final'      => (float) ($room->prize_pool ?? 0),
                 'total_chips_drawn'     => $totalChipsDrawn,

@@ -6,12 +6,14 @@ use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
+use App\Exceptions\Wallet\WalletUnavailableException;
 use App\Services\WalletService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -21,7 +23,8 @@ use Illuminate\Support\Facades\Log;
  * procesar todos los lotes inline — esto desacopla la cancelación de sala del
  * I/O de wallets y evita que timeouts de red bloqueen el HTTP request.
  *
- * Idempotente: verifica que el lot siga en estado ACTIVE antes de acreditar.
+ * Idempotente: lockForUpdate dentro de transacción garantiza que dos workers
+ * que procesen el mismo Job concurrentemente no acrediten dos veces la wallet.
  */
 final class BingoCardLotRefundJob implements ShouldQueue
 {
@@ -37,78 +40,89 @@ final class BingoCardLotRefundJob implements ShouldQueue
 
     public function handle(WalletService $walletService, BingoRoomAuditLogger $auditLogger): void
     {
-        $lot  = BingoCardLot::find($this->lotId);
         $room = BingoRoom::find($this->roomId);
 
-        if (!$lot || !$room) {
-            Log::warning('[BingoCardLotRefundJob] Lot o sala no encontrada', [
-                'lot_id'  => $this->lotId,
-                'room_id' => $this->roomId,
-            ]);
-            return;
-        }
-
-        if ($lot->status !== 'ACTIVE') {
-            // Ya fue reembolsado por un reintento anterior — idempotencia.
-            return;
-        }
-
-        $amount = (float) $lot->sale_amount;
-        if ($amount <= 0) {
+        if (!$room) {
+            Log::warning('[BingoCardLotRefundJob] Sala no encontrada', ['room_id' => $this->roomId]);
             return;
         }
 
         try {
-            $wallet = $walletService->findActiveWallet(
-                (string) $lot->user_id,
-                (string) $lot->currency_id,
-            );
+            DB::transaction(function () use ($walletService, $auditLogger, $room) {
+                // lockForUpdate garantiza que dos workers concurrentes (requeue tras
+                // timeout) no procesen el mismo lot simultáneamente y no dupliquen el pago.
+                $lot = BingoCardLot::where('id', $this->lotId)
+                    ->lockForUpdate()
+                    ->first();
 
-            if (!$wallet) {
-                $this->recordFailure($lot, $room, $amount, 'Wallet no encontrada o inactiva');
-                return;
-            }
+                if (!$lot) {
+                    Log::warning('[BingoCardLotRefundJob] Lot no encontrado', ['lot_id' => $this->lotId]);
+                    return;
+                }
 
-            $walletService->recordRefund(
-                wallet:      $wallet,
-                amount:      $amount,
-                gameId:      (string) $room->id,
-                description: "Reembolso Bingo — Sala cancelada #{$room->id}",
-            );
+                if ($lot->status !== 'ACTIVE') {
+                    // Ya fue reembolsado — idempotencia garantizada.
+                    return;
+                }
 
-            $lot->update(['status' => 'REFUNDED']);
+                $amount = (float) $lot->sale_amount;
+                if ($amount <= 0) {
+                    return;
+                }
 
-            BingoLotRefundFailure::where('lot_id', $lot->id)
-                ->where('room_id', $room->id)
-                ->whereNull('resolved_at')
-                ->update(['resolved_at' => now(), 'status' => 'RESOLVED']);
+                $wallet = $walletService->findActiveWallet(
+                    (string) $lot->user_id,
+                    (string) $lot->currency_id,
+                );
 
-            $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_COMPLETED, 'system', 'Reembolso acreditado', [
-                'lot_id' => (string) $lot->id,
-                'amount' => $amount,
-            ]);
+                if (!$wallet) {
+                    $this->recordFailure($lot, $room, $amount, 'Wallet no encontrada o inactiva');
+                    throw WalletUnavailableException::notFound((string) $lot->user_id, (string) $lot->currency_id);
+                }
 
-            Log::info('[BingoCardLotRefundJob] Reembolso acreditado', [
-                'lot_id'  => $lot->id,
-                'room_id' => $room->id,
-                'amount'  => $amount,
-            ]);
+                $walletService->recordRefund(
+                    wallet:      $wallet,
+                    amount:      $amount,
+                    gameId:      (string) $room->id,
+                    description: "Reembolso Bingo — Sala cancelada #{$room->id}",
+                );
+
+                $lot->update(['status' => 'REFUNDED']);
+
+                BingoLotRefundFailure::where('lot_id', $lot->id)
+                    ->where('room_id', $room->id)
+                    ->whereNull('resolved_at')
+                    ->update(['resolved_at' => now(), 'status' => 'RESOLVED']);
+
+                Log::info('[BingoCardLotRefundJob] Reembolso acreditado', [
+                    'lot_id'  => $lot->id,
+                    'room_id' => $room->id,
+                    'amount'  => $amount,
+                ]);
+
+                try {
+                    $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_COMPLETED, 'system', 'Reembolso acreditado', [
+                        'lot_id' => (string) $lot->id,
+                        'amount' => $amount,
+                    ]);
+                } catch (\Throwable) {}
+            });
         } catch (\Throwable $e) {
             Log::error('[BingoCardLotRefundJob] Error al reembolsar', [
-                'lot_id'  => $lot->id,
-                'room_id' => $room->id,
+                'lot_id'  => $this->lotId,
+                'room_id' => $this->roomId,
                 'error'   => $e->getMessage(),
             ]);
-            $this->recordFailure($lot, $room, $amount, $e->getMessage());
 
-            try {
-                $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_FAILED, 'system', 'Reembolso fallido', [
-                    'lot_id' => (string) $lot->id,
-                    'amount' => $amount,
-                    'error'  => $e->getMessage(),
-                ]);
-            } catch (\Throwable) {
-                // No interrumpir el flujo de error original si el audit falla
+            $lot = BingoCardLot::find($this->lotId);
+            if ($lot) {
+                $this->recordFailure($lot, $room, (float) $lot->sale_amount, $e->getMessage());
+                try {
+                    $auditLogger->log($room, BingoRoomAuditLogger::EVENT_REFUND_FAILED, 'system', 'Reembolso fallido', [
+                        'lot_id' => (string) $lot->id,
+                        'error'  => $e->getMessage(),
+                    ]);
+                } catch (\Throwable) {}
             }
 
             throw $e; // Re-throw para que la queue reintente (3 intentos).

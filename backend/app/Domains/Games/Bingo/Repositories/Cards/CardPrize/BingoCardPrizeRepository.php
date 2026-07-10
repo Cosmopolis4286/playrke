@@ -540,12 +540,10 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
             return null;
         }
 
-        // Generar código único
-        $verificationCode = strtoupper(substr(md5(uniqid()), 0, 8));
+        $verificationCode = strtoupper(bin2hex(random_bytes(4)));
 
-        // Verificar que sea único
         while ($this->model->where('verification_code', $verificationCode)->exists()) {
-            $verificationCode = strtoupper(substr(md5(uniqid()), 0, 8));
+            $verificationCode = strtoupper(bin2hex(random_bytes(4)));
         }
 
         $prize->update(['verification_code' => $verificationCode]);

@@ -6,7 +6,7 @@ use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class BingoRoomStat extends Model
+final class BingoRoomStat extends Model
 {
     use SnowflakeId;
 
@@ -28,6 +28,7 @@ class BingoRoomStat extends Model
     ];
 
     protected $casts = [
+        'id'                    => 'string',
         'room_id'               => 'string',
         'total_lots'            => 'integer',
         'total_cards'           => 'integer',

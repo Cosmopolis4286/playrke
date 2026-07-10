@@ -21,10 +21,13 @@ use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
  */
 final class BingoPatternPositionResolver
 {
+    /** Cache de sub-patrones MULTIPLE por num_id — evita N+1 queries durante el sorteo. */
+    private array $subPatternCache = [];
+
     /**
      * @return array<int, array{col: string, row: int, free: bool}>
      */
-    public function resolve(BingoPattern $pattern, string $variant = BingoVariant::BINGO_75): array
+    public function resolve(BingoPattern $pattern, string $variant = BingoVariant::BINGO_75, array $seen = []): array
     {
         $colDefs  = BingoVariant::columns($variant);
         $labels   = array_column($colDefs, 'label');
@@ -44,14 +47,36 @@ final class BingoPatternPositionResolver
             return $resolved;
         }
 
-        // Patrón MULTIPLE: boxes contiene num_ids de sub-patrones
+        // Patrón MULTIPLE: boxes contiene num_ids de sub-patrones.
+        // $seen previene recursión infinita si dos patrones se referencian mutuamente.
         if ($pattern->type_pattern === 'MULTIPLE') {
-            foreach ($pattern->boxes_array as $numId) {
-                $numId = (int) $numId;
-                if ($numId < 1) continue;
-                $subPattern = BingoPattern::where('num_id', $numId)->whereNull('user_id')->first();
+            $numIds = array_filter(
+                array_map('intval', (array) $pattern->boxes_array),
+                fn($id) => $id >= 1
+            );
+
+            // Precargar todos los sub-patrones en una sola query si no están en cache
+            $missing = array_diff($numIds, array_keys($this->subPatternCache));
+            if (!empty($missing)) {
+                $fetched = BingoPattern::whereIn('num_id', $missing)
+                    ->whereNull('user_id')
+                    ->get()
+                    ->keyBy('num_id');
+                foreach ($missing as $id) {
+                    $this->subPatternCache[$id] = $fetched->get($id);
+                }
+            }
+
+            foreach ($numIds as $numId) {
+                if (in_array($numId, $seen, true)) {
+                    continue; // Evitar recursión circular
+                }
+                $subPattern = $this->subPatternCache[$numId] ?? null;
                 if ($subPattern) {
-                    $resolved = array_merge($resolved, $this->resolve($subPattern, $variant));
+                    $resolved = array_merge(
+                        $resolved,
+                        $this->resolve($subPattern, $variant, [...$seen, $numId])
+                    );
                 }
             }
             return $resolved;

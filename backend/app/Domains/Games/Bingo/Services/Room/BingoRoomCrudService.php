@@ -10,7 +10,6 @@ use App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException;
 use App\Http\Resources\Games\Bingo\Room\BingoRoomResource;
 use App\Domains\Games\Bingo\Models\Creator\BingoCreator;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use App\Domains\Games\Bingo\Models\Room\BingoRoomAudit;
 use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
@@ -23,6 +22,7 @@ use App\Domains\Games\Bingo\Jobs\BingoCardLotRefundJob;
 use App\Domains\Games\Bingo\Jobs\StartBingoDrawJob;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Services\ExchangeRate\ExchangeRateDomainService;
+use App\Services\Utils\Snowflake\SnowflakeBatchService;
 use App\Services\WalletService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -48,6 +48,7 @@ class BingoRoomCrudService
         private readonly ExchangeRateDomainService $exchangeRateService,
         private readonly WalletService $walletService,
         private readonly BingoRoomAuditLogger $auditLogger,
+        private readonly SnowflakeBatchService $snowflakeService,
     ) {}
 
     /**
@@ -86,8 +87,11 @@ class BingoRoomCrudService
     {
         try {
             $payload = $this->saveRoomTransact($roomOrDto, $updateDto);
+        } catch (BingoRoomException $e) {
+            throw $e; // Excepciones de dominio se propagan sin envolver
         } catch (\Throwable $e) {
-            throw new BingoRoomException('Error al guardar la sala: ' . $e->getMessage());
+            // Preservar la excepción original como $previous para no perder el stack trace
+            throw new BingoRoomException('Error al guardar la sala: ' . $e->getMessage(), 0, $e);
         }
 
         // Broadcasts FUERA de la transacción: el commit ya ocurrió
@@ -177,7 +181,7 @@ class BingoRoomCrudService
                 if ($isCreate && ($configData['start_mode'] ?? 'SCHEDULED') === 'MANUAL') {
                     $this->recordAudit(
                         $room,
-                        BingoRoomAudit::EVENT_CREATED_UNSCHEDULED,
+                        BingoRoomAuditLogger::EVENT_CREATED_UNSCHEDULED,
                         'Sala creada sin horario de inicio — requiere activación manual del anfitrión o un administrador.',
                     );
                 }
@@ -192,7 +196,7 @@ class BingoRoomCrudService
 
                     $this->recordAudit(
                         $room,
-                        BingoRoomAudit::EVENT_START_MODE_CHANGED,
+                        BingoRoomAuditLogger::EVENT_START_MODE_CHANGED,
                         $description,
                         ['from' => $previousStartMode, 'to' => $startMode],
                     );
@@ -551,22 +555,21 @@ class BingoRoomCrudService
     }
 
     /**
-     * Registra un evento de dominio en la bitácora dedicada de la sala (bingo_room_audits).
+     * Registra un evento de dominio delegando al BingoRoomAuditLogger centralizado.
      */
     private function recordAudit(BingoRoom $room, string $event, ?string $description = null, array $metadata = []): void
     {
-        $userId = Auth::id();
+        $userId    = Auth::id();
+        $actorRole = $userId ? $this->resolveActorRole((int) $userId, $room) : 'system';
 
-        BingoRoomAudit::create([
-            'room_id'     => $room->id,
-            'user_id'     => $userId,
-            'event'       => $event,
-            'actor_role'  => $userId ? $this->resolveActorRole((int) $userId, $room) : 'system',
-            'description' => $description,
-            'metadata'    => $metadata,
-            'ip_address'  => request()?->ip(),
-            'user_agent'  => request()?->userAgent(),
-        ]);
+        $this->auditLogger->log(
+            $room,
+            $event,
+            $actorRole,
+            $description ?? '',
+            $metadata,
+            $userId ? (string) $userId : null,
+        );
     }
 
     /**
@@ -636,8 +639,7 @@ class BingoRoomCrudService
         }
 
         // Generar IDs Snowflake en lote
-        $snowflakeService = app(\App\Services\Utils\Snowflake\SnowflakeBatchService::class);
-        $ids = $snowflakeService->batch(count($allowedCurrencies));
+        $ids = $this->snowflakeService->batch(count($allowedCurrencies));
 
         $pricesData = [];
         foreach ($allowedCurrencies as $index => $currencyId) {
@@ -720,8 +722,7 @@ class BingoRoomCrudService
             'prize'      => 'OTHER',
         ];
 
-        $snowflakeService = app(\App\Services\Utils\Snowflake\SnowflakeBatchService::class);
-        $ids = $snowflakeService->batch(count($roundsConfig));
+        $ids = $this->snowflakeService->batch(count($roundsConfig));
 
         $rows      = [];
         $prizeRows = []; // [round_id => [ [...entry], ... ]]
@@ -940,14 +941,16 @@ class BingoRoomCrudService
      */
     private function refundCardLotsForRoom(BingoRoom $room): void
     {
-        BingoCardLot::where('room_id', $room->id)
+        // pluck() en lugar de cursor(): cursor() mantiene el PDO abierto mientras itera,
+        // y dispatch() escribe en la misma conexión causando "Commands out of sync" en MySQL.
+        $lotIds = BingoCardLot::where('room_id', $room->id)
             ->where('status', 'ACTIVE')
-            ->select(['id'])
-            ->cursor()
-            ->each(function (BingoCardLot $lot) use ($room): void {
-                BingoCardLotRefundJob::dispatch((string) $lot->id, (string) $room->id)
-                    ->onQueue('bingo-refunds');
-            });
+            ->pluck('id');
+
+        foreach ($lotIds as $lotId) {
+            BingoCardLotRefundJob::dispatch((string) $lotId, (string) $room->id)
+                ->onQueue('bingo-refunds');
+        }
     }
 
     private function createRefundFailure(BingoCardLot $lot, BingoRoom $room, float $amount, string $reason): void
@@ -1014,7 +1017,7 @@ class BingoRoomCrudService
 
             $this->recordAudit(
                 $room,
-                BingoRoomAudit::EVENT_MANUALLY_ACTIVATED,
+                BingoRoomAuditLogger::EVENT_MANUALLY_ACTIVATED,
                 'Sala activada manualmente por ' . ($isCreator ? 'el anfitrión' : 'un administrador') . '.',
                 [
                     'activated_at'   => $now->toIso8601String(),
@@ -1086,7 +1089,7 @@ class BingoRoomCrudService
 
             $this->recordAudit(
                 $room,
-                BingoRoomAudit::EVENT_START_MODE_CHANGED,
+                BingoRoomAuditLogger::EVENT_START_MODE_CHANGED,
                 'Inicio programado para el ' . $scheduled->format('d/m/Y H:i') . ' por ' . ($isCreator ? 'el anfitrión' : 'un administrador') . ' — la sala pasó de inicio manual a horario programado.',
                 [
                     'from'           => 'MANUAL',
@@ -1194,17 +1197,29 @@ class BingoRoomCrudService
      */
     public function delete(BingoRoom $room): bool
     {
-        if ($room->status?->code === 'DELETED') {
-            throw BingoRoomException::alreadyDeleted();
-        }
+        // Guards y softDelete dentro de transacción con lockForUpdate para evitar
+        // la ventana TOCTOU entre la lectura de status y la escritura del DELETE.
+        return DB::transaction(function () use ($room): bool {
+            $locked = BingoRoom::where('id', $room->id)
+                ->with('status')
+                ->lockForUpdate()
+                ->first();
 
-        if (($room->total_players ?? 0) > 0) {
-            throw BingoRoomException::roomHasPlayers();
-        }
+            if (!$locked) {
+                throw BingoRoomException::notFound();
+            }
 
-        $statusId = GameStatus::codeToId('DELETED');
+            if ($locked->status?->code === 'DELETED') {
+                throw BingoRoomException::alreadyDeleted();
+            }
 
-        // Usa softDelete con userRelation para sincronizar BingoRoom
-        return $this->bingoRooms->softDelete($room, status: $statusId);
+            if (($locked->total_players ?? 0) > 0) {
+                throw BingoRoomException::roomHasPlayers();
+            }
+
+            $statusId = GameStatus::codeToId('DELETED');
+
+            return $this->bingoRooms->softDelete($locked, status: $statusId);
+        });
     }
 }

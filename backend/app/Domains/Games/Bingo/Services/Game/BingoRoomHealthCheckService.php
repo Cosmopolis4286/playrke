@@ -3,9 +3,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Games\Bingo\Services\Game;
 
-use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use App\Domains\Games\Bingo\Models\Round\BingoRound;
 
 /**
  * Valida que una sala esté lista para iniciar el sorteo.
@@ -18,18 +16,13 @@ final class BingoRoomHealthCheckService
 {
     /**
      * Ejecuta todas las comprobaciones pre-sorteo en orden de severidad.
-     *
-     * @throws \DomainException con un mensaje que describe exactamente qué falló.
+     * Lanza \DomainException en la primera que falle.
      */
     public function assertReadyForDraw(BingoRoom $room): void
     {
-        $this->assertValidStatus($room);
-        $this->assertNotAlreadyFinished($room);
-        $this->assertHasPlayers($room);
-        $this->assertHasRounds($room);
-        $this->assertRoundsHavePatterns($room);
-        $this->assertMinCardsReached($room);
-        $this->assertPrizePoolCoherent($room);
+        foreach ($this->checks($room) as $check) {
+            $check();
+        }
     }
 
     /**
@@ -52,7 +45,29 @@ final class BingoRoomHealthCheckService
      */
     public function collectErrors(BingoRoom $room): array
     {
-        $checks = [
+        $errors = [];
+        foreach ($this->checks($room) as $check) {
+            try {
+                $check();
+            } catch (\DomainException $e) {
+                $errors[] = $e->getMessage();
+            }
+        }
+        return $errors;
+    }
+
+    /**
+     * Lista canónica de comprobaciones. Usada por assertReadyForDraw y collectErrors
+     * para garantizar que ambos siempre ejecuten exactamente los mismos checks.
+     *
+     * @return list<\Closure>
+     */
+    private function checks(BingoRoom $room): array
+    {
+        // Asegurar eager-load de rounds y config una sola vez antes de los checks
+        $room->loadMissing(['rounds', 'config']);
+
+        return [
             fn() => $this->assertValidStatus($room),
             fn() => $this->assertNotAlreadyFinished($room),
             fn() => $this->assertHasPlayers($room),
@@ -61,17 +76,6 @@ final class BingoRoomHealthCheckService
             fn() => $this->assertMinCardsReached($room),
             fn() => $this->assertPrizePoolCoherent($room),
         ];
-
-        $errors = [];
-        foreach ($checks as $check) {
-            try {
-                $check();
-            } catch (\DomainException $e) {
-                $errors[] = $e->getMessage();
-            }
-        }
-
-        return $errors;
     }
 
     private function assertValidStatus(BingoRoom $room): void
@@ -85,7 +89,8 @@ final class BingoRoomHealthCheckService
 
     private function assertNotAlreadyFinished(BingoRoom $room): void
     {
-        if (BingoRound::where('room_id', (string) $room->id)->where('status', 'FINISHED')->exists()) {
+        // Usa la relación ya eager-loaded — sin query adicional a la BD
+        if ($room->rounds->contains('status', 'FINISHED')) {
             throw new \DomainException(
                 "La sala #{$room->id} ya tiene rondas FINISHED — el sorteo ya fue completado."
             );
@@ -103,7 +108,6 @@ final class BingoRoomHealthCheckService
 
     private function assertHasRounds(BingoRoom $room): void
     {
-        $room->loadMissing('rounds');
         if ($room->rounds->isEmpty()) {
             throw new \DomainException(
                 "La sala #{$room->id} no tiene rondas configuradas."
@@ -113,7 +117,6 @@ final class BingoRoomHealthCheckService
 
     private function assertRoundsHavePatterns(BingoRoom $room): void
     {
-        $room->loadMissing('rounds');
         $missingPattern = $room->rounds->first(fn($r) => empty($r->bingo_pattern_id));
         if ($missingPattern) {
             throw new \DomainException(
@@ -124,7 +127,6 @@ final class BingoRoomHealthCheckService
 
     private function assertMinCardsReached(BingoRoom $room): void
     {
-        $room->loadMissing('config');
         $minCards = $room->config?->min_cards_to_start;
         if ($minCards !== null && ($room->total_cards ?? 0) < $minCards) {
             throw new \DomainException(
@@ -135,9 +137,7 @@ final class BingoRoomHealthCheckService
 
     private function assertPrizePoolCoherent(BingoRoom $room): void
     {
-        $room->loadMissing(['rounds', 'config']);
         $prizePool = (float) ($room->prize_pool ?? 0);
-
         foreach ($room->rounds as $round) {
             if ($round->prize_type === 'PCT' && $prizePool <= 0) {
                 throw new \DomainException(
