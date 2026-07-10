@@ -44,7 +44,13 @@ const emit = defineEmits<{
     :can-customize="modal.canCustomize.value"
     :customize-card="modal.customizeCard.value"
     :custom-card-numbers="modal.customCardNumbers.value"
+    :active-card-index="modal.activeCardIndex.value"
     :config-loading="modal.configLoading.value"
+    :manual-edits="modal.manualEditsPerCard.value"
+    :custom-price-pct="modal.customPricePct.value"
+    :base-price-per-card="modal.basePricePerCard.value"
+    :custom-price-per-card="modal.customPricePerCard.value"
+    :manual-card-count="modal.manualCardCount.value"
     :confirm-incomplete-custom-card="modal.confirmIncompleteCustomCard"
     @close="modal.close()"
     @select-country="modal.selectCountry($event)"
@@ -55,6 +61,8 @@ const emit = defineEmits<{
     @set-ctns="modal.setNumCtns($event)"
     @toggle-customize="modal.toggleCustomize()"
     @update:custom-card-numbers="modal.customCardNumbers.value = $event"
+    @update:manual-edits="modal.manualEditsPerCard.value = $event"
+    @set-active-card-index="modal.activeCardIndex.value = $event"
     @purchase="modal.purchase(result => { const id = modal.selectedRoom.value?.id; if (id) emit('success', id, result) })"
   />
 </template>

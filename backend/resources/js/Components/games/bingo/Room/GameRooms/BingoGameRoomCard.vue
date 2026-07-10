@@ -2,7 +2,13 @@
 import { computed } from 'vue'
 import type { BingoGameRoom } from '@js/types/games/bingo/room/game-rooms/bingo-game-room'
 import type { RoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
-import { formatCountdown, BINGO_ROOM_IMG } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
+import {
+  formatCountdown,
+  BINGO_ROOM_IMG,
+  GAME_VARIANT_LABELS,
+  isAccumulatedPrize,
+} from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
+import { getBingoVariantDef } from '@js/modules/games/bingo/utils/bingoVariants'
 
 // DEAD-02: eliminadas props muertas (isPurchasing, roomDetail, numCtns, totalAmount, prizePoolLabel, loading)
 const props = defineProps<{
@@ -43,6 +49,12 @@ const cardsProgressReady = computed(() =>
   minCardsToStart.value != null && totalCards.value >= minCardsToStart.value
 )
 
+const gameVariant     = computed(() => props.room.config?.game_variant ?? 'BINGO_75')
+const variantLabel    = computed(() => GAME_VARIANT_LABELS[gameVariant.value] ?? gameVariant.value)
+const variantBalls    = computed(() => getBingoVariantDef(gameVariant.value).totalChips)
+const isAccumulated   = computed(() => isAccumulatedPrize(props.room.config?.prize_pool_type))
+const cardsRemaining  = computed(() => Math.max(0, (minCardsToStart.value ?? 0) - totalCards.value))
+
 // BUG-02: reemplazado timerStr local por formatCountdown importado de gameRoomUtils
 // BUG-04: reemplazado bingoRoomImg local por BINGO_ROOM_IMG importado de gameRoomUtils
 
@@ -81,6 +93,11 @@ function handleClick() {
 
         <!-- Estado: top centrado -->
         <div
+          v-tooltip="isAvailable
+            ? 'Sala abierta: puedes comprar cartones ahora mismo'
+            : isInProgress
+              ? 'El sorteo ya comenzó — no se pueden comprar más cartones'
+              : 'Esta sala ya no admite compras'"
           class="rc__status-badge"
           :class="isAvailable ? 'rc__status-badge--ok' : isInProgress ? 'rc__status-badge--live' : 'rc__status-badge--off'"
         >
@@ -89,13 +106,22 @@ function handleClick() {
         </div>
 
         <!-- Timer: bottom centrado -->
-        <div class="rc__timer-badge" :class="{ 'rc__timer-badge--live': !hasTime }">
+        <div
+          v-tooltip="hasTime ? 'Tiempo restante para el inicio del sorteo' : 'El sorteo está en curso ahora mismo'"
+          class="rc__timer-badge"
+          :class="{ 'rc__timer-badge--live': !hasTime }"
+        >
           <template v-if="hasTime">
             <i class="far fa-clock" /><b>{{ formatCountdown(props.countdown) }}</b>
           </template>
           <template v-else>
             <span class="rc__blink" /><b>LIVE</b>
           </template>
+        </div>
+
+        <!-- Variante de bingo: esquina superior derecha -->
+        <div v-tooltip="variantLabel" class="rc__variant-badge">
+          {{ variantBalls }}B
         </div>
       </div>
 
@@ -104,10 +130,18 @@ function handleClick() {
 
         <!-- Fila 1: rondas | precio -->
         <div class="rc__row rc__row--top">
-          <span class="rc__tag rc__tag--rounds">
+          <span
+            v-tooltip="roundsCount > 1
+              ? `Esta sala juega ${roundsCount} rondas seguidas con los mismos cartones`
+              : 'Sala de ronda única'"
+            class="rc__tag rc__tag--rounds"
+          >
             <i class="fas fa-rotate" />{{ roundsCount }} Ronda{{ roundsCount !== 1 ? 's' : '' }}
           </span>
-          <span class="rc__tag rc__tag--price">
+          <span
+            v-tooltip="`${variantLabel} · ${variantBalls} bolas en total`"
+            class="rc__tag rc__tag--price"
+          >
             <i class="fas fa-ticket-alt" />{{ cardPriceFormatted }} {{ sym }}
           </span>
         </div>
@@ -115,6 +149,9 @@ function handleClick() {
         <!-- Barra de progreso cartones -->
         <div
           v-if="showCardsProgress"
+          v-tooltip="cardsProgressReady
+            ? 'Ya se alcanzó el mínimo de cartones — el sorteo puede iniciar'
+            : `Faltan ${cardsRemaining} cartón${cardsRemaining !== 1 ? 'es' : ''} vendido${cardsRemaining !== 1 ? 's' : ''} para que la sala pueda iniciar`"
           class="rc__progress"
           :class="{ 'rc__progress--ready': cardsProgressReady }"
         >
@@ -133,19 +170,33 @@ function handleClick() {
         <!-- Fila 2: premio | stats -->
         <div class="rc__row rc__row--bottom">
           <!-- Premio -->
-          <div class="rc__prize">
+          <div
+            v-tooltip="isAccumulated
+              ? 'Bote acumulado: crece con cada cartón vendido en la sala'
+              : 'Premio fijo para esta sala'"
+            class="rc__prize"
+          >
             <i class="fas fa-trophy rc__trophy" />
             <span class="rc__prize-num">{{ prizeFormatted }}</span>
             <span class="rc__prize-sym">{{ sym }}</span>
+            <i v-if="isAccumulated" class="fas fa-arrow-trend-up rc__prize-trend" />
           </div>
 
           <!-- Stats: jugadores + mis cartones -->
           <div class="rc__stats">
-            <span class="rc__stat" :class="{ 'rc__stat--mine': playerCtns > 0 }">
+            <span
+              v-tooltip="`${room.total_players} jugador${room.total_players !== 1 ? 'es' : ''} en esta sala`"
+              class="rc__stat"
+              :class="{ 'rc__stat--mine': playerCtns > 0 }"
+            >
               <i class="fas fa-users" />
               <span>{{ room.total_players }}</span>
             </span>
-            <span v-if="playerCtns > 0" class="rc__stat rc__stat--ctns">
+            <span
+              v-if="playerCtns > 0"
+              v-tooltip="`Ya compraste ${playerCtns} cartón${playerCtns !== 1 ? 'es' : ''} en esta sala`"
+              class="rc__stat rc__stat--ctns"
+            >
               <i class="fas fa-check-circle" />
               <span>{{ playerCtns }}</span>
             </span>
@@ -236,11 +287,11 @@ function handleClick() {
 .rc__inner {
   position: relative; z-index: 2;
   display: flex; align-items: stretch;
-  min-height: 108px;
+  min-height: 84px;
 }
 
 @media (max-width: 380px) {
-  .rc__inner { min-height: 100px; }
+  .rc__inner { min-height: 80px; }
 }
 
 /* ══════════════════════════════════
@@ -248,15 +299,13 @@ function handleClick() {
 ══════════════════════════════════ */
 .rc__thumb {
   position: relative;
-  /* ~38% del ancho típico de card (320-460px): más presencia visual que el
-     82px fijo anterior, que quedaba desproporcionado en cards anchas. */
-  flex: 0 0 38%;
-  max-width: 148px;
+  flex: 0 0 84px;
+  max-width: 84px;
   overflow: hidden;
 }
 
 @media (max-width: 380px) {
-  .rc__thumb { flex-basis: 34%; max-width: 120px; }
+  .rc__thumb { flex-basis: 76px; max-width: 76px; }
 }
 .rc__img {
   width: 100%; height: 100%;
@@ -279,6 +328,17 @@ function handleClick() {
   position: absolute; left: 0; top: 0; bottom: 0; width: 2.5px;
   background: linear-gradient(180deg, var(--accent) 0%, transparent 90%);
   opacity: .75;
+}
+
+/* variante de bingo — esquina superior derecha del thumbnail */
+.rc__variant-badge {
+  position: absolute; top: 5px; right: 5px; z-index: 3;
+  padding: 2px 6px; border-radius: 6px;
+  font-size: 8px; font-weight: 800; letter-spacing: .3px;
+  color: #cdd8ff; background: rgba(10,14,32,.72);
+  border: 1px solid rgba(255,255,255,.12);
+  backdrop-filter: blur(6px);
+  cursor: help;
 }
 
 /* badge estado — top centrado */
@@ -331,13 +391,13 @@ function handleClick() {
 ══════════════════════════════════ */
 .rc__body {
   flex: 1; min-width: 0;
-  padding: 10px 14px;
+  padding: 7px 10px;
   display: flex; flex-direction: column; justify-content: space-between;
-  gap: 7px;
+  gap: 4px;
 }
 
 @media (max-width: 380px) {
-  .rc__body { padding: 9px 12px; gap: 6px; }
+  .rc__body { padding: 6px 9px; gap: 4px; }
 }
 
 /* ── Fila genérica ── */
@@ -350,12 +410,12 @@ function handleClick() {
 .rc__row--top { flex-shrink: 0; }
 
 .rc__tag {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 8px; border-radius: 6px;
-  font-size: 10px; font-weight: 700; letter-spacing: .25px;
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 6px; border-radius: 5px;
+  font-size: 9px; font-weight: 700; letter-spacing: .2px;
   white-space: nowrap; flex-shrink: 0;
 }
-.rc__tag i { font-size: 8px; }
+.rc__tag i { font-size: 7px; }
 .rc__tag--rounds {
   color: #a878e8;
   background: rgba(130,60,220,.1); border: 1px solid rgba(130,60,220,.22);
@@ -405,55 +465,64 @@ function handleClick() {
 
 /* ── Fila 2: premio + stats ── */
 .rc__row--bottom {
-  padding-top: 7px;
+  padding-top: 4px;
   border-top: 1px solid rgba(255,255,255,.055);
   flex-shrink: 0;
 }
 
-/* Premio — elemento hero de la card */
+/* Premio — elemento hero de la card, pero compacto */
 .rc__prize {
-  display: flex; align-items: baseline; gap: 5px;
+  display: flex; align-items: baseline; gap: 4px;
   flex-shrink: 1; min-width: 0; overflow: hidden;
 }
 .rc__trophy {
-  font-size: 12px; color: #c8a028; align-self: center; flex-shrink: 0;
+  font-size: 10px; color: #c8a028; align-self: center; flex-shrink: 0;
   filter: drop-shadow(0 0 4px rgba(200,160,40,.4));
 }
 .rc__prize-num {
   font-family: 'Orbitron', 'Anton', sans-serif;
-  font-size: 23px; font-weight: 900; line-height: 1; letter-spacing: -.3px;
+  font-size: 18px; font-weight: 900; line-height: 1; letter-spacing: -.3px;
   background: linear-gradient(130deg, #ffe566 0%, #ffbb20 50%, #ff8800 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   filter: drop-shadow(0 2px 6px rgba(255,150,0,.28));
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .rc__prize-sym {
-  font-size: 12px; font-weight: 700;
+  font-size: 10.5px; font-weight: 700;
   color: #e0a020; -webkit-text-fill-color: #e0a020;
   flex-shrink: 0;
 }
+.rc__prize-trend {
+  font-size: 9px; color: #2af598; align-self: center; flex-shrink: 0;
+  margin-left: 1px;
+  animation: prizeTrendPulse 1.8s ease-in-out infinite;
+}
+@keyframes prizeTrendPulse {
+  0%,100% { opacity: .55; transform: translateY(0); }
+  50%     { opacity: 1;   transform: translateY(-1px); }
+}
 
 @media (max-width: 380px) {
-  .rc__prize-num { font-size: 19px; }
-  .rc__prize-sym { font-size: 11px; }
-  .rc__trophy { font-size: 10px; }
+  .rc__prize-num { font-size: 16px; }
+  .rc__prize-sym { font-size: 9.5px; }
+  .rc__trophy { font-size: 9px; }
 }
 
 /* Stats: jugadores + cartones míos */
 .rc__stats {
-  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 3px; flex-shrink: 0;
 }
 .rc__stat {
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 2.5px 7px; border-radius: 5px;
-  font-size: 9px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 2px 5px; border-radius: 4px;
+  font-size: 8px; font-weight: 700;
   color: #4a6080;
   background: rgba(255,255,255,.04);
   border: 1px solid rgba(255,255,255,.07);
   white-space: nowrap;
   transition: border-color .2s, background .2s;
 }
-.rc__stat i { font-size: 8px; color: #2a4058; }
+.rc__stat i { font-size: 7px; color: #2a4058; }
 
 .rc--active:hover .rc__stat,
 .rc--live:hover   .rc__stat {

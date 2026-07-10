@@ -503,6 +503,50 @@ body::-webkit-scrollbar-thumb:hover {
 }
 .nb-user-btn[aria-expanded="true"] .nb-chevron { transform: rotate(180deg); }
 
+/* ── Navbar: evitar overflow-x en pantallas angostas ──────────
+   .main-header es flex (justify-content-between) con 3 grupos: ul
+   izquierda (toggle + marca + billetera), zona centro (oculta bajo
+   md) y ul derecha (notificaciones + usuario). Sin min-width:0 los
+   <ul> flex no se comprimen y el grupo derecho termina empujado
+   fuera del viewport en móviles muy angostos (320-375px), generando
+   scroll horizontal en TODA la app (afecta GameRooms, Lobby, Game y
+   cualquier página que use este layout). */
+.main-header.navbar {
+  flex-wrap: nowrap;
+}
+.main-header .navbar-nav {
+  min-width: 0;
+}
+@media (max-width: 400px) {
+  /* Billetera: la pieza más ancha del grupo izquierdo — se comprime
+     primero para dejar sitio al grupo derecho (notificaciones/avatar,
+     que no puede reducirse más sin perder función). */
+  .nb-wallet-pill {
+    gap: 4px;
+    padding: 4px 8px 4px 6px;
+  }
+  .nb-wallet-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+  }
+  .nb-wallet-balance {
+    font-size: 11px;
+  }
+  .nb-brand-img {
+    max-width: 84px;
+    object-fit: contain;
+  }
+}
+@media (max-width: 340px) {
+  /* Bajo 340px incluso la versión comprimida no alcanza: ocultar el
+     símbolo de moneda del saldo (el número ya es suficiente contexto
+     junto al ícono de billetera) para liberar los últimos px. */
+  .nb-wallet-symbol {
+    display: none;
+  }
+}
+
 /* ── Navbar: menú usuario ────────────────────────────────── */
 .nb-user-menu {
   width: 220px !important;

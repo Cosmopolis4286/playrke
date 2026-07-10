@@ -423,14 +423,29 @@ onUnmounted(() => {
   </div>
 </template>
 
+<style>
+/* .mt-2 y #app son ancestros fuera de este componente (auth-layout.blade.php),
+   scoped no los alcanza. Sin height:100% no propagan la altura real de
+   #content-scrollable hacia .ig-page (mismo fix que GameRooms.vue/Lobby). */
+#app:has(> .ig-page),
+.mt-2:has(> #app > .ig-page) {
+  height: 100%;
+}
+</style>
+
 <style scoped>
 .ig-page {
-  min-height: calc(100vh - 56px - 44px);
+  /* El footer tiene altura variable en móvil (min-height: 0 !important en
+     footer.blade.php bajo 576px). calc(100vh - navbar - footer) asumía un
+     footer fijo y se quedaba corto, generando overflow-y en el contenedor
+     scrollable padre (mismo fix aplicado en GameRooms.vue y Lobby/Index.vue). */
+  min-height: 100%;
   margin: -0.5rem -0.5rem 0;
   padding: 16px 14px 28px;
   position: relative;
   isolation: isolate;
   overflow-x: hidden;
+  box-sizing: border-box;
   opacity: 0;
   transform: translateY(8px);
   transition: opacity 0.38s ease, transform 0.38s ease;

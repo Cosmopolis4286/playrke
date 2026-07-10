@@ -393,6 +393,11 @@ defineExpose({ isComplete, missingCount, autoFillRemaining, clearAll })
   gap: 2px;
 }
 
+/* Grid compacto — reduce el tamaño de las celdas al mínimo cómodo */
+.ncp-head, .ncp-body {
+  font-size: 10px;
+}
+
 .ncp-head__col {
   display: flex;
   flex-direction: column;
@@ -414,8 +419,8 @@ defineExpose({ isComplete, missingCount, autoFillRemaining, clearAll })
 .ncp-head__cell {
   text-align: center;
   font-weight: 800;
-  font-size: 11px;
-  padding: 3px 2px;
+  font-size: 10px;
+  padding: 2px 1px;
   border-radius: 4px;
   letter-spacing: .3px;
   width: 100%;
@@ -428,17 +433,19 @@ defineExpose({ isComplete, missingCount, autoFillRemaining, clearAll })
 /* ── Casillas ── */
 .ncp-cell {
   aspect-ratio: 1;
-  border-radius: 6px;
+  border-radius: 5px;
   border: 1.5px solid rgba(100, 140, 255, 0.18);
   background: rgba(255, 255, 255, 0.03);
   color: #c0d0f0;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   cursor: pointer;
   transition: border-color 0.12s, background 0.12s, transform 0.1s;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
+  padding: 0;
 }
 .ncp-cell:not(:disabled):hover {
   border-color: rgba(100, 140, 255, 0.5);
@@ -467,7 +474,7 @@ defineExpose({ isComplete, missingCount, autoFillRemaining, clearAll })
 }
 .ncp-empty {
   opacity: 0.35;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 /* ── Acciones rápidas ── */

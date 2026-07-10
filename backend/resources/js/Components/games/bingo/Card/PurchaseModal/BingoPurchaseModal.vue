@@ -10,7 +10,7 @@
    */
   import { computed, ref } from 'vue'
   import { router } from '@inertiajs/vue3'
-  import BingoCardNumberPicker from './BingoCardNumberPicker.vue'
+  import BingoCustomCardSection from './BingoCustomCardSection.vue'
   import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
   import type {
     BingoAvailableCountry,
@@ -39,9 +39,21 @@
     isPlayer: boolean | null
     canCustomize: boolean
     customizeCard: boolean
-    customCardNumbers: Record<string, (number | null)[]>
+    customCardNumbers: Record<string, (number | null)[]>[]
+    /** Índice del cartón activo en el picker (0-based). */
+    activeCardIndex: number
     /** True mientras el config de la sala aún no se ha cargado (spinner en el toggle). */
     configLoading: boolean
+    /** Por cartón: true si el usuario tocó ≥1 casilla manualmente. */
+    manualEdits: boolean[]
+    /** Recargo % para cartones personalizados (0 = sin recargo). */
+    customPricePct: number
+    /** Precio base por cartón (sin recargo). */
+    basePricePerCard: number
+    /** Precio por cartón personalizado (con recargo). */
+    customPricePerCard: number
+    /** Cuántos cartones tienen edición manual real. */
+    manualCardCount: number
     /** Pregunta al usuario si autocompletar o seguir editando; resuelve true si puede continuar la compra. */
     confirmIncompleteCustomCard: (missingCount: number, autoFill: () => void) => Promise<boolean>
   }>()
@@ -59,17 +71,21 @@
     (e: 'decrement'): void
     (e: 'set-ctns', value: number): void
     (e: 'toggle-customize'): void
-    (e: 'update:custom-card-numbers', value: Record<string, (number | null)[]>): void
+    (e: 'update:custom-card-numbers', value: Record<string, (number | null)[]>[]): void
+    (e: 'update:manual-edits', value: boolean[]): void
+    (e: 'set-active-card-index', index: number): void
     (e: 'purchase'): void
   }>()
 
-  const numberPicker = ref<InstanceType<typeof BingoCardNumberPicker> | null>(null)
+  const cardSection = ref<InstanceType<typeof BingoCustomCardSection> | null>(null)
 
   async function handlePurchaseClick(): Promise<void> {
-    if (props.customizeCard && numberPicker.value) {
+    // Solo verificar cartones que el usuario marcó como personalizados (manualEdits[i] = true).
+    // Los cartones sin edición manual se envían como al azar y no requieren validación.
+    if (props.customizeCard && cardSection.value && props.manualCardCount > 0) {
       const canContinue = await props.confirmIncompleteCustomCard(
-        numberPicker.value.missingCount,
-        numberPicker.value.autoFillRemaining,
+        cardSection.value.missingCount,
+        cardSection.value.autoFillRemaining,
       )
       if (!canContinue) return
     }
@@ -77,11 +93,11 @@
   }
 
   function handleAutoFill(): void {
-    numberPicker.value?.autoFillRemaining()
+    cardSection.value?.autoFillRemaining()
   }
 
   function handleClearAll(): void {
-    numberPicker.value?.clearAll()
+    cardSection.value?.clearAll()
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -163,6 +179,7 @@
               v-if="step !== 'loading'"
               class="pm-header__close"
               aria-label="Cerrar"
+              :disabled="purchasing"
               @click="emit('close')"
             >
               <i class="fas fa-times" />
@@ -195,6 +212,19 @@
                 </div>
               </div>
             </div>
+
+            <!-- Overlay visual absoluto sobre todo el dialog mientras purchasing.
+                 position:absolute + inset:0 ancla al .pm-dialog (position:relative).
+                 overflow:hidden del dialog recorta el border-radius automáticamente. -->
+            <Transition name="fade">
+              <div v-if="purchasing" class="pm-processing-overlay" aria-hidden="true">
+                <span class="pm-spinner pm-spinner--lg" />
+                <span class="pm-processing-overlay__label">Procesando…</span>
+              </div>
+            </Transition>
+
+            <!-- ═══════ Bloqueo nativo de inputs/botones durante procesamiento ════════ -->
+            <fieldset :disabled="purchasing" style="display:contents;border:none;padding:0;margin:0">
 
             <!-- ═══════════════════ BODY ═══════════════════ -->
             <div class="pm-body">
@@ -283,7 +313,7 @@
                     </button>
                   </div>
 
-                  <!-- Toggle personalizar cartón (solo si numCtns === 1) -->
+                  <!-- Toggle personalizar cartones -->
                   <button
                     v-if="canCustomize"
                     type="button"
@@ -294,40 +324,73 @@
                   >
                     <i v-if="configLoading" class="fas fa-spinner fa-spin" />
                     <i v-else class="fas fa-pen" />
-                    {{ customizeCard ? 'Personalizando mi cartón' : 'Elegir mis números' }}
+                    {{ customizeCard ? 'Personalizando cartones' : 'Elegir mis números' }}
                     <i v-if="!configLoading" class="fas fa-chevron-down pm-customize-toggle__chevron" :class="{ 'pm-customize-toggle__chevron--open': customizeCard }" />
                   </button>
 
-                  <!-- Selector de números personalizados -->
+                  <!-- Picker de cartones personalizados -->
                   <Transition name="fade">
                     <div v-if="customizeCard" class="pm-picker-wrap">
-                      <BingoCardNumberPicker
-                        ref="numberPicker"
-                        :model-value="customCardNumbers"
+                      <BingoCustomCardSection
+                        ref="cardSection"
+                        :matrices="customCardNumbers"
+                        :manual-edits="manualEdits"
+                        :active-index="activeCardIndex"
+                        :num-ctns="numCtns"
                         :variant="selectedRoom?.config?.game_variant"
-                        @update:model-value="emit('update:custom-card-numbers', $event)"
+                        :custom-price-pct="customPricePct"
+                        @update:matrices="emit('update:custom-card-numbers', $event)"
+                        @update:manual-edits="emit('update:manual-edits', $event)"
+                        @update:active-index="emit('set-active-card-index', $event)"
                       />
                     </div>
                   </Transition>
 
-                  <!-- Resumen -->
+                  <!-- Resumen de compra -->
                   <div class="pm-summary">
+                    <!-- País (no-players) -->
                     <div v-if="!isPlayer && isPlayer !== null" class="pm-summary__row">
                       <span>País</span>
                       <span>{{ selectedCountry?.name ?? '—' }}</span>
                     </div>
-                    <div class="pm-summary__row">
-                      <span>Precio c/u</span>
-                      <span>{{ cardPrice.toFixed(2) }} {{ currencySymbol }}</span>
-                    </div>
-                    <div class="pm-summary__row">
-                      <span>Cartones</span>
-                      <span>× {{ numCtns }}</span>
-                    </div>
+
+                    <!-- Caso simple: sin personalización o todos al azar -->
+                    <template v-if="!customizeCard || manualCardCount === 0">
+                      <div class="pm-summary__row">
+                        <span>Precio c/u</span>
+                        <span>{{ basePricePerCard.toFixed(2) }} {{ currencySymbol }}</span>
+                      </div>
+                      <div class="pm-summary__row">
+                        <span>Cartones al azar</span>
+                        <span>× {{ numCtns }}</span>
+                      </div>
+                    </template>
+
+                    <!-- Caso mixto: algunos personalizados, algunos al azar -->
+                    <template v-else>
+                      <!-- Cartones al azar -->
+                      <div v-if="numCtns - manualCardCount > 0" class="pm-summary__row">
+                        <span>Al azar × {{ numCtns - manualCardCount }}</span>
+                        <span>{{ ((numCtns - manualCardCount) * basePricePerCard).toFixed(2) }} {{ currencySymbol }}</span>
+                      </div>
+                      <!-- Cartones personalizados -->
+                      <div class="pm-summary__row pm-summary__row--custom">
+                        <span>
+                          <i class="fas fa-pen" style="font-size:9px;opacity:.7;margin-right:3px" />
+                          Personalizado × {{ manualCardCount }}
+                          <em v-if="customPricePct > 0" class="pm-summary__surcharge">+{{ customPricePct }}%</em>
+                        </span>
+                        <span>{{ (manualCardCount * customPricePerCard).toFixed(2) }} {{ currencySymbol }}</span>
+                      </div>
+                    </template>
+
+                    <!-- Cartones ya comprados -->
                     <div v-if="currentCtns > 0" class="pm-summary__row">
                       <span>Total cartones</span>
                       <span>{{ currentCtns + numCtns }}</span>
                     </div>
+
+                    <!-- Total -->
                     <div class="pm-summary__row pm-summary__row--total">
                       <span>Total</span>
                       <span class="pm-summary__total-amount">
@@ -381,6 +444,8 @@
                 {{ purchasing ? 'Procesando…' : 'Confirmar Compra' }}
               </button>
             </div>
+
+            </fieldset><!-- /purchasing lock -->
           </template>
         </div>
       </div>
@@ -838,6 +903,7 @@
     pointer-events: none;
   }
 
+
   /* ── Summary ── */
   .pm-summary {
     background: rgba(0, 10, 40, 0.5);
@@ -861,6 +927,26 @@
   .pm-summary__row span:last-child {
     color: #c0d0f0;
     font-weight: 600;
+  }
+
+  .pm-summary__row--custom {
+    background: rgba(100, 180, 255, 0.05);
+    border-color: rgba(100, 180, 255, 0.1);
+  }
+  .pm-summary__row--custom span:first-child {
+    color: #90c8ff;
+  }
+  .pm-summary__surcharge {
+    font-style: normal;
+    font-size: 9px;
+    font-weight: 700;
+    color: #4ab4ff;
+    background: rgba(74, 180, 255, 0.12);
+    border: 1px solid rgba(74, 180, 255, 0.25);
+    border-radius: 99px;
+    padding: 1px 5px;
+    margin-left: 4px;
+    vertical-align: middle;
   }
 
   .pm-summary__row--total {
@@ -1000,6 +1086,44 @@
   .pm-spinner--sm {
     width: 13px;
     height: 13px;
+  }
+  .pm-spinner--lg {
+    width: 36px;
+    height: 36px;
+    border-width: 3px;
+  }
+
+  /* ═══════════════════════════════════════════════════════
+   PROCESSING OVERLAY
+═══════════════════════════════════════════════════════ */
+  .pm-processing-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(8, 15, 38, 0.72);
+    backdrop-filter: blur(3px);
+    /* overflow:hidden del .pm-dialog ya recorta el border-radius */
+    pointer-events: all;
+  }
+  .pm-processing-overlay__label {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 0.03em;
+  }
+
+  /* fieldset[disabled] quita pointer-events pero no la apariencia; lo completamos aquí */
+  fieldset[disabled] .pm-qty-btn,
+  fieldset[disabled] .pm-qty-input,
+  fieldset[disabled] .pm-country-btn,
+  fieldset[disabled] .pm-customize-toggle,
+  fieldset[disabled] .pm-btn {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 
   @keyframes pm-spin {

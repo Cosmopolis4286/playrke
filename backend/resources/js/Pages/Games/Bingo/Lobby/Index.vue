@@ -174,18 +174,20 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
 <template>
   <div class="lby-page">
 
-    <!-- FAB: reglamento — Teleport para salir de isolation:isolate y superar z-index del sidebar -->
-    <Teleport to="body">
-      <button
-        type="button"
-        class="lby-rules-fab"
-        title="Ver reglamento del Bingo"
-        aria-label="Ver reglamento del Bingo"
-        @click="showRulesModal = true"
-      >
-        <i class="fas fa-book-open" />
-      </button>
-    </Teleport>
+    <!-- FAB: reglamento — anclado a .lby-page (no Teleport/fixed): con
+         Teleport+fixed quedaba posicionado respecto al viewport completo
+         en vez del área de contenido con scroll propio, igual que el bug
+         corregido en GameRooms.vue (podía solaparse con el footer, cuya
+         altura es variable en móvil). -->
+    <button
+      type="button"
+      class="lby-rules-fab"
+      title="Ver reglamento del Bingo"
+      aria-label="Ver reglamento del Bingo"
+      @click="showRulesModal = true"
+    >
+      <i class="fas fa-book-open" />
+    </button>
 
     <!-- Loading -->
     <div v-if="!room" class="lby-loading">
@@ -266,16 +268,36 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
   </div>
 </template>
 
+<style>
+/* .mt-2 y #app son ancestros fuera de este componente (vienen de
+   auth-layout.blade.php), scoped no los alcanza. Son `display: block` con
+   `height: auto`, así que no propagan la altura real de #content-scrollable
+   (flex-grow-1) hacia .lby-page — sin esto, min-height:100% no tiene una
+   base % válida (ver mismo fix en GameRooms.vue). */
+#app:has(> .lby-page),
+.mt-2:has(> #app > .lby-page) {
+  height: 100%;
+}
+</style>
+
 <style scoped>
 /* ═══════════════════════════════════════════════════════
    PÁGINA
 ═══════════════════════════════════════════════════════ */
 .lby-page {
   flex: 1; width: 100%; box-sizing: border-box;
-  min-height: calc(100vh - 56px - 44px);
+  /* El footer tiene altura variable en móvil (min-height: 0 !important en
+     footer.blade.php bajo 576px — el texto puede envolver en 2 líneas y
+     superar los 44px "de referencia"). calc(100vh - navbar - footer) asumía
+     un footer fijo y se quedaba corto, generando overflow-y en el
+     contenedor scrollable padre (#content-scrollable, que ya es
+     flex-grow-1 dentro de .wrapper vh-100 y mide el espacio real
+     disponible — ver mismo fix en GameRooms.vue). */
+  min-height: 100%;
   margin: -0.5rem -0.5rem 0; padding: 18px 20px 36px;
   display: flex; flex-direction: column;
   position: relative; isolation: isolate;
+  overflow-x: hidden;
   background: linear-gradient(160deg, #0a0f24 0%, #0c1230 45%, #060a18 100%);
 }
 
@@ -364,7 +386,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
 
 /* FAB */
 .lby-rules-fab {
-  position: fixed; right: 20px; bottom: 69px; z-index: 200;
+  position: absolute; right: 20px; bottom: 24px; z-index: 50;
   width: 42px; height: 42px; border-radius: 50%;
   border: 1px solid rgba(42,245,152,.28);
   background: rgba(4,8,20,.88); color: #2af598; font-size: 14px;

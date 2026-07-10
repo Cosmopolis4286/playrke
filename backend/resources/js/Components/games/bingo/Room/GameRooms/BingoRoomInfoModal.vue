@@ -89,6 +89,9 @@ const cardsProgressReady = computed(() =>
               <span v-if="room.rounds_count" class="rim-chip rim-chip--rounds">
                 <i class="fas fa-layer-group" /> {{ room.rounds_count }} {{ room.rounds_count === 1 ? 'Ronda' : 'Rondas' }}
               </span>
+              <span v-if="room.config?.game_variant" class="rim-chip rim-chip--variant">
+                <i class="fas fa-dice" /> {{ room.config.game_variant.replace('_', ' ') }}
+              </span>
             </div>
           </div>
 
@@ -264,6 +267,8 @@ const cardsProgressReady = computed(() =>
 .rim-chip--mode   { background: rgba(0,158,253,.15);  border: 1px solid rgba(0,158,253,.32);   color: #7cd4ff; }
 .rim-chip--rounds { background: rgba(42,245,152,.14); border: 1px solid rgba(42,245,152,.32);  color: #7be8b8; }
 .rim-chip--rounds i { font-size: 9px; opacity: .85; }
+.rim-chip--variant { background: rgba(255,180,0,.13);  border: 1px solid rgba(255,180,0,.3);   color: #ffd060; }
+.rim-chip--variant i { font-size: 9px; opacity: .85; }
 
 /* ── Body ── */
 .rim-body {
