@@ -275,16 +275,28 @@ final class BingoRoomController extends Controller
      */
     public function playerBuyFromGameRooms(BingoRoom $room, Request $request): JsonResponse
     {
+        $numCtns = (int) $request->input('num_ctns', 1);
+
         $request->validate([
-            'num_ctns'       => 'required|integer|min:1|max:40',
-            'custom_numbers' => 'sometimes|nullable|array',
+            'num_ctns'         => 'required|integer|min:1|max:40',
+            // Array de matrices, uno por cartón. Cada elemento es array<col,int[]>.
+            'custom_numbers'   => 'sometimes|nullable|array',
+            'custom_numbers.*' => 'array',
         ]);
+
+        // Validar que el número de matrices coincida con num_ctns si se envían
+        $customNumbers = $request->input('custom_numbers');
+        if ($customNumbers !== null && count($customNumbers) !== $numCtns) {
+            return response()->json([
+                'message' => 'El número de matrices personalizadas debe coincidir con num_ctns.',
+            ], 422);
+        }
 
         return $this->handleServiceJson(
             fn() => $this->generateService->playerBuyFromGameRooms(
                 $room->id,
-                (int) $request->input('num_ctns'),
-                $request->input('custom_numbers'),
+                $numCtns,
+                $customNumbers,
             )
         );
     }

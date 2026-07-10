@@ -793,41 +793,50 @@ final class BingoCardGenerateService
     /**
      * Compra de cartones para jugadores (flujo simplificado).
      *
-     * @param string     $roomId            ID de la sala
-     * @param int        $numCtns           Número de cartones
-     * @param array|null $customCardNumbers Matriz de números elegidos manualmente por el
-     *   jugador (mismo shape que BingoVariant::generateCardMatrix). Solo se admite cuando
-     *   $numCtns === 1; se valida contra la variante de la sala antes de generar el cartón.
+     * @param string     $roomId         ID de la sala
+     * @param int        $numCtns        Número de cartones
+     * @param array|null $customMatrices Array de matrices, una por cartón. Si se envía,
+     *   count($customMatrices) debe ser === $numCtns. Cada elemento es el mismo shape
+     *   que BingoVariant::generateCardMatrix. Se valida cada matriz individualmente.
      * @return array
      */
-    public function playerBuyFromGameRooms(string $roomId, int $numCtns, ?array $customCardNumbers = null): array
+    public function playerBuyFromGameRooms(string $roomId, int $numCtns, ?array $customMatrices = null): array
     {
         $userId = $this->userContext->resolveUserId();
 
-        // Validar que el usuario tenga rol 'player'
         if (!$this->userContext->userHasRole('player')) {
             throw new DomainException('Acceso no autorizado para esta operación');
         }
 
         $room = BingoRoom::with('config')->findOrFail($roomId);
 
-        if ($customCardNumbers !== null) {
-            if ($numCtns !== 1) {
-                throw new DomainException('Solo se puede personalizar el cartón al comprar exactamente 1.');
+        if ($customMatrices !== null) {
+            if (count($customMatrices) !== $numCtns) {
+                throw new DomainException('El número de matrices personalizadas debe coincidir con num_ctns.');
             }
 
             $variant = $room->config?->game_variant ?? BingoVariant::BINGO_75;
-            $error = BingoVariant::validateCustomMatrix($variant, $customCardNumbers);
-
-            if ($error !== null) {
-                throw new DomainException($error);
+            foreach ($customMatrices as $i => $matrix) {
+                $error = BingoVariant::validateCustomMatrix($variant, $matrix);
+                if ($error !== null) {
+                    throw new DomainException("Cartón #" . ($i + 1) . ": {$error}");
+                }
             }
         }
 
         // Obtener precio para jugador
-        $priceInfo = $this->getPlayerCardPrice($roomId, $userId);
-        $cardPrice = $priceInfo['card_price'];
-        $totalAmount = $cardPrice * $numCtns;
+        $priceInfo  = $this->getPlayerCardPrice($roomId, $userId);
+        $basePrice  = $priceInfo['card_price'];
+
+        // Recargo por cartón personalizado: custom_card_price_pct es el % adicional
+        // sobre el precio base (ej. 10 → +10%). Solo aplica a cartones con matrices
+        // enviadas (los sin matriz se generan al azar → precio base).
+        $customPct = (float) ($room->config?->custom_card_price_pct ?? 0);
+        $customCount  = $customMatrices !== null ? count($customMatrices) : 0;
+        $regularCount = $numCtns - $customCount;
+
+        $customPrice  = $customPct > 0 ? round($basePrice * (1 + $customPct / 100), 4) : $basePrice;
+        $totalAmount  = round($basePrice * $regularCount + $customPrice * $customCount, 4);
 
         // Obtener billetera activa del jugador con saldo
         $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['id', 'currency_id', 'balance']);
@@ -854,19 +863,19 @@ final class BingoCardGenerateService
             'seller_type'    => 'USER',
             'currency'       => $currencyId,
             'numOfCtns'      => $numCtns,
-            'cardPrice'      => $cardPrice,
+            'cardPrice'      => $basePrice,   // precio unitario base (el lote usa sale_amount para el total)
             'country'        => null,
             'playerPhone'    => '',
             'playerName'     => '',
             'playerLastName' => '',
             'initials'       => '',
             'cardPriceUsd'   => $priceInfo['card_price_usd'],
-            'saleAmountUsd'  => round($priceInfo['card_price_usd'] * $numCtns, 3),
+            'saleAmountUsd'  => round($totalAmount / max($priceInfo['exchange_rate'], 0.0001), 3),
             'exchangeRate'   => $priceInfo['exchange_rate'],
             'playerUser'     => null,
             'playerLink'     => true,
             'gameVariant'    => $room->config?->game_variant ?? BingoVariant::BINGO_75,
-            'customCardNumbers' => $customCardNumbers,
+            'customCardNumbers' => $customMatrices,
         ];
 
         // Generar cartones y debitar wallet en una sola transacción atómica.
