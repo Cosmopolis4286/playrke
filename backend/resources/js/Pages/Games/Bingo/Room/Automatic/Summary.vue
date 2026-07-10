@@ -325,6 +325,24 @@
       />
       <button class="btn btn-sm btn-secondary" @click="showModalForm = false">Cerrar</button>
       <button
+        v-if="gameBingoRoomFormRef?.canGoPrev"
+        type="button"
+        class="btn btn-sm btn-outline-secondary"
+        @click="gameBingoRoomFormRef?.goPrev()"
+      >
+        Anterior
+      </button>
+      <button
+        v-if="gameBingoRoomFormRef?.step !== 'review'"
+        type="button"
+        class="btn btn-sm btn-primary"
+        :disabled="!gameBingoRoomFormRef?.canGoNext"
+        @click="gameBingoRoomFormRef?.goNext()"
+      >
+        Siguiente
+      </button>
+      <button
+        v-else
         class="btn btn-sm btn-primary"
         :disabled="!canAttemptSave"
         @click="onSaveClick"

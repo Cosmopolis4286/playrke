@@ -2,7 +2,7 @@
   /**
    * Página Juego BINGO → GameRoom/Summary
    */
-  import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+  import { computed, ref, watch } from 'vue'
 
   // ==========================================================================
   // Componentes
@@ -68,13 +68,6 @@
     scheduleRoomStart,
     fetchRoomDetails
   } = useBingoRoom()
-
-  // Key forzar re-render de la tabla
-  const tableKey = ref(0)
-
-  const forceTableRefresh = () => {
-    tableKey.value++
-  }
 
   setInitialRooms(props.rooms.rows)
 
@@ -488,20 +481,10 @@
   ]
 
   const subtitle = `<a title="Ir a configuración del Bingo" href="/bingo/config" class="text-primary font-weight-bold">Ir a configuración</a>`
-
-// Escuchar actualizaciones de salas
-onMounted(() => {
-    window.addEventListener('bingo-room-updated', forceTableRefresh)
-})
-
-onUnmounted(() => {
-    window.removeEventListener('bingo-room-updated', forceTableRefresh)
-})
 </script>
 
 <template>
   <TableWithFilterBridge
-    :key="tableKey"
     tableId="bingo-room-table"
     :title="props.title"
     :subtitle="subtitle"
@@ -536,6 +519,8 @@ onUnmounted(() => {
       :allowed-currencies-options="allowedCurrenciesOptions"
       :bingo-pattern-options="bingoPatternOptions"
       :currencies-with-active-rate="props.currenciesWithActiveRate"
+      :existing-rooms="rooms"
+      :editing-room-id="roomData.id ? String(roomData.id) : null"
     />
 
     <template #footer>
@@ -556,8 +541,34 @@ onUnmounted(() => {
           La fecha/hora programada ya pasó. Actualízala antes de activar la sala.
         </small>
       </div>
+      <small
+        v-if="gameBingoRoomFormRef?.draftStatus === 'saving' || gameBingoRoomFormRef?.draftStatus === 'saved'"
+        class="text-muted mr-2"
+        style="font-size: 0.78rem"
+      >
+        {{ gameBingoRoomFormRef?.draftStatus === 'saving' ? 'Guardando borrador...' : 'Borrador guardado' }}
+      </small>
       <button class="btn btn-sm btn-secondary" :disabled="isSubmitting" @click="showModalForm = false">Cerrar</button>
       <button
+        v-if="gameBingoRoomFormRef?.canGoPrev"
+        type="button"
+        class="btn btn-sm btn-outline-secondary"
+        :disabled="isSubmitting"
+        @click="gameBingoRoomFormRef?.goPrev()"
+      >
+        Anterior
+      </button>
+      <button
+        v-if="gameBingoRoomFormRef?.step !== 'review'"
+        type="button"
+        class="btn btn-sm btn-primary"
+        :disabled="isSubmitting || !gameBingoRoomFormRef?.canGoNext"
+        @click="gameBingoRoomFormRef?.goNext()"
+      >
+        Siguiente
+      </button>
+      <button
+        v-else
         class="btn btn-sm btn-primary"
         :disabled="!canAttemptSave || isSubmitting || loading"
         @click="onSaveClick"
