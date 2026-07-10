@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace App\Domains\Games\Bingo\Services\Game;
 
-use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 
@@ -32,21 +31,22 @@ final class BingoDrawReplayService
     {
         $roomId = (string) $room->id;
 
+        // Eager-load draws para evitar N+1: una query por rounds + una por draws
         $rounds = BingoRound::where('room_id', $roomId)
-            ->with('bingoPattern:id,name')
+            ->with([
+                'bingoPattern:id,name',
+                'draws' => fn ($q) => $q
+                    ->orderBy('time')
+                    ->orderBy('created_at')
+                    ->select(['id', 'round_id', 'chip', 'code', 'time', 'created_at']),
+            ])
             ->orderBy('round')
             ->get();
 
         $result = [];
 
         foreach ($rounds as $round) {
-            $draws = BingoDraw::where('room_id', $roomId)
-                ->where('round_id', (string) $round->id)
-                ->orderBy('time')
-                ->orderBy('created_at')
-                ->get(['id', 'chip', 'code', 'time', 'created_at']);
-
-            $chips = $draws->values()->map(fn ($d, int $idx) => [
+            $chips = $round->draws->values()->map(fn ($d, int $idx) => [
                 'order'    => $idx + 1,
                 'chip'     => (int) $d->chip,
                 'code'     => (string) $d->code,

@@ -79,7 +79,7 @@ class RetryFailedBingoRefundsCommand extends Command
                                 'attempts'          => $newAttempts,
                                 'last_attempted_at' => now(),
                             ]);
-                            throw new WalletUnavailableException::notFound(
+                            throw WalletUnavailableException::notFound(
                                 (string) $failure->user_id,
                                 (string) $failure->currency_id,
                             );
