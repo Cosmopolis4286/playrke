@@ -40,11 +40,16 @@ export function useBingoCardGenerateRoomSection() {
      * Filtros reactivos de búsqueda.
      * Cualquier cambio dispara un nuevo fetch de salas (con debounce).
      */
-    const filters = reactive({
+    const filters = reactive<{
+        date: string
+        roomType: string | null
+        gameMode: string | null
+        prizePoolType: string | null
+    }>({
         date: '',
-        roomType: '',
-        gameMode: '',
-        prizePoolType: '',
+        roomType: null,
+        gameMode: null,
+        prizePoolType: null,
     })
 
     /** Indica si existe al menos una sala para los filtros actuales. */

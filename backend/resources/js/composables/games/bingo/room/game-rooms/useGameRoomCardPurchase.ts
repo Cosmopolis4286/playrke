@@ -173,7 +173,15 @@ export function useGameRoomCardPurchase(context: CardPurchaseContext) {
     onSuccess?: (result: { prizePool: number; ctns: number }) => void,
   ): Promise<void> {
     if (loading.value || !selectedRoomId.value) return
-    if (isLogged.value || context.player === 'GAMES') return
+
+    if (isLogged.value) {
+      showToast('Ya tienes una sesión activa en esta sala.', 'warning')
+      return
+    }
+    if (context.player === 'GAMES') {
+      showToast('No puedes comprar cartones en modo juego libre.', 'warning')
+      return
+    }
 
     try {
       loading.value = true
