@@ -134,6 +134,21 @@ export function validateBingoRoomForm(
         }
     }
 
+    /* ── Edición: fecha/hora programada ya vencida ──
+     * En creación, la fecha/hora futura ya se exige arriba. En edición no se
+     * fuerza a reprogramar solo por abrir el formulario (el usuario puede
+     * querer ajustar otro campo sin tocar el horario) — pero si el valor
+     * actual del campo (tocado o no) queda en el pasado, sí se bloquea el
+     * guardado: de lo contrario la sala queda con un horario vencido sin
+     * ningún aviso hasta que el usuario intenta activarla manualmente. */
+    if (ctx.isEdit && !ctx.automaticRoom && !isManualStart && data.date && data.time && !e.date && !e.time) {
+        const scheduledAt = new Date(`${data.date}T${data.time}:00`)
+        if (scheduledAt < new Date()) {
+            e.date = 'La fecha/hora programada ya pasó. Actualízala para continuar.'
+            e.time = 'La fecha/hora programada ya pasó. Actualízala para continuar.'
+        }
+    }
+
     /* ── Campos requeridos simples ── */
     if (!data.roomType)      e.roomType      = 'El tipo de sala es requerido.'
     if (!data.gameMode)      e.gameMode      = 'Modo de juego requerido.'
