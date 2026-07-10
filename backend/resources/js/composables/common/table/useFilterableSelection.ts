@@ -19,7 +19,7 @@ export function useFilterableSelection<T extends { id: string }>(options: {
         currentFilters.value = filterData
 
         selectedIds.value = selectedIds.value.filter(id =>
-            filteredRows.value.some(row => row.id === id)
+            filteredRows.value.some(row => String(row.id) === id)
         )
 
         emitSelectionChange()

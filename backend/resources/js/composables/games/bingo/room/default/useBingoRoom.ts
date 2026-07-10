@@ -187,26 +187,8 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                 }
             }
 
-            // Forzar recarga con timestamp para evitar cache
-            const timestamp = Date.now()
-            const response = await backendClient.get<{ data: BingoRoom[] }>(
-                `/${ENDPOINT}/fetch-list`,
-                { params: { token: tokenId, _t: timestamp } }
-            )
-
-            if (Array.isArray(response.data?.data)) {
-                rooms.value = response.data.data
-            }
-
-            // Forzar reactividad
-            const currentRooms = [...rooms.value]
-            rooms.value = []
-            rooms.value = currentRooms
-
+            await fetchRooms()
             reset()
-
-            // Emitir evento para forzar refresh de la tabla
-            window.dispatchEvent(new CustomEvent('bingo-room-updated'))
 
             return true
         } catch (error: any) {

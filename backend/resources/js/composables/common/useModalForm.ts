@@ -12,6 +12,14 @@ export interface ModalFormExpose {
     currenciesMissingRate?: string[]
     /** Quita del formulario las monedas sin tasa activa (ver currenciesMissingRate). */
     removeCurrenciesMissingRate?: () => void
+    /** Estado de guardado del borrador local (formularios que lo soporten, ej. BingoRoomForm). */
+    draftStatus?: 'idle' | 'saving' | 'saved'
+    /** Paso activo del wizard (formularios paginados por pasos, ej. BingoRoomForm). */
+    step?: string
+    canGoPrev?: boolean
+    canGoNext?: boolean
+    goPrev?: () => void
+    goNext?: () => void
 }
 
 /**

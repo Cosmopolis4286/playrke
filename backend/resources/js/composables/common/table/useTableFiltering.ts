@@ -6,16 +6,24 @@ export interface TableFilterState {
     filters: Record<string, string>
 }
 
+export type SortDirection = 'asc' | 'desc'
+
+export interface TableSortState {
+    key: string | null
+    direction: SortDirection
+}
+
 interface UseTableFilteringOptions<T extends Record<string, any>> {
     rows: Ref<T[]>
     columns: Ref<Column[]>
     filters: Ref<TableFilterState>
+    sort?: Ref<TableSortState>
 }
 
 export function useTableFiltering<T extends Record<string, any>>(
     options: UseTableFilteringOptions<T>
 ) {
-    const { rows, columns, filters } = options
+    const { rows, columns, filters, sort } = options
 
     function getNestedValue(obj: T, key: string): any {
         return obj?.[key] ?? ''
@@ -52,6 +60,22 @@ export function useTableFiltering<T extends Record<string, any>>(
                     return String(rowVal).toLowerCase() === String(val).toLowerCase()
                 })
             }
+        }
+
+        // ↕️ ordenamiento por columna
+        const sortKey = sort?.value.key
+        if (sortKey) {
+            const direction = sort!.value.direction === 'desc' ? -1 : 1
+            result = [...result].sort((a, b) => {
+                const aVal = getNestedValue(a, sortKey)
+                const bVal = getNestedValue(b, sortKey)
+
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return (aVal - bVal) * direction
+                }
+
+                return String(aVal).localeCompare(String(bVal), undefined, { numeric: true }) * direction
+            })
         }
 
         return result

@@ -4,14 +4,14 @@ export type BingoRoomStep = 'basic' | 'currencies' | 'rounds' | 'review'
 
 const STEPS: BingoRoomStep[] = ['basic', 'currencies', 'rounds', 'review']
 
-const STEP_LABELS: Record<BingoRoomStep, string> = {
+export const STEP_LABELS: Record<BingoRoomStep, string> = {
     basic:      'Datos básicos',
     currencies: 'Monedas y precios',
     rounds:     'Rondas',
     review:     'Revisión',
 }
 
-const STEP_ERROR_KEYS: Record<BingoRoomStep, string[]> = {
+export const STEP_ERROR_KEYS: Record<BingoRoomStep, string[]> = {
     basic:      ['date', 'time', 'days', 'roomType', 'gameMode', 'prizePoolType', 'roomCommn', 'timeChip', 'rounds', 'jackpotPct', 'amountAddedPrizePool'],
     currencies: ['allowedCurrencies', 'cardPriceUsd', 'cardPriceByCurrency', 'usdExchangeRoundStep'],
     rounds:     ['roundsPct', 'roundsConfig', 'serialsPct', 'numSerials', 'customCardPricePct', 'maxSpecialCards', 'percentageSum'],
