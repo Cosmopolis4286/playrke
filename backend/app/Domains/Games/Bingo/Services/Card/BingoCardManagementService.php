@@ -22,18 +22,21 @@ class BingoCardManagementService
     public function createCtnsLot(array $cartonData, float $saleAmount): ?string
     {
         try {
+            $isCustom = ($cartonData['numOfCtns'] === 1) && !empty($cartonData['customCardNumbers']);
+
             $lotData = [
-                'room_id'        => $cartonData['roomId'],
-                'user_id'        => $cartonData['creator']['id'],
-                'seller_user_id' => $cartonData['seller_user_id'] ?? null,
-                'seller_type'    => $cartonData['seller_type'] ?? 'USER',
-                'room_user_id'   => $cartonData['roomUser'],
-                'currency_id'    => $cartonData['currency'],
-                'card_count'     => $cartonData['numOfCtns'],
-                'card_price'     => $cartonData['cardPrice'],
-                'sale_amount'    => $saleAmount,
-                'exchange_rate'  => $cartonData['exchangeRate'] ?? 1,
-                'status'         => 'ACTIVE',
+                'room_id'          => $cartonData['roomId'],
+                'user_id'          => $cartonData['creator']['id'],
+                'seller_user_id'   => $cartonData['seller_user_id'] ?? null,
+                'seller_type'      => $cartonData['seller_type'] ?? 'USER',
+                'room_user_id'     => $cartonData['roomUser'],
+                'currency_id'      => $cartonData['currency'],
+                'card_count'       => $cartonData['numOfCtns'],
+                'card_price'       => $cartonData['cardPrice'],
+                'sale_amount'      => $saleAmount,
+                'exchange_rate'    => $cartonData['exchangeRate'] ?? 1,
+                'status'           => 'ACTIVE',
+                'has_custom_cards' => $isCustom,
             ];
 
             $lot = BingoCardLot::create($lotData);
@@ -68,6 +71,7 @@ class BingoCardManagementService
             $userId     = $cartonData['creator']['id'];
             $variant    = $cartonData['gameVariant'] ?? BingoVariant::BINGO_75;
             $customCardNumbers = ($numOfCtns === 1) ? ($cartonData['customCardNumbers'] ?? null) : null;
+            $isCustomCard      = $customCardNumbers !== null;
 
             $cardIds = [];
             for ($i = 0; $i < $numOfCtns; $i++) {
@@ -92,6 +96,7 @@ class BingoCardManagementService
                     'card_hash'       => $hash,
                     'status'          => 1,
                     'is_validated'    => 0,
+                    'is_custom_card'  => $isCustomCard ? 1 : 0,
                     'validated_at'    => null,
                     'created_at'      => now(),
                     'updated_at'      => now(),
@@ -111,12 +116,16 @@ class BingoCardManagementService
 
     private function generateSerialNumber(): string
     {
-        return 'BINGO-' . strtoupper(uniqid()) . '-' . rand(1000, 9999);
+        // Str::uuid() usa random_bytes() — entropía criptográfica, sin colisiones bajo carga concurrente.
+        // uniqid() tenía resolución de microsegundos: dos workers en el mismo µs generaban el mismo serial.
+        return 'BINGO-' . strtoupper(substr(\Illuminate\Support\Str::uuid()->toString(), 0, 13));
     }
 
     private function generateCardHash(string $roomId, string $roomUserId, array $numbers): string
     {
-        $data = $roomId . $roomUserId . json_encode($numbers) . microtime();
+        // Hash opaco de trazabilidad — NO es un identificador de deduplicación de números.
+        // microtime() garantiza unicidad entre cartones del mismo lote aunque los números coincidan.
+        $data = $roomId . $roomUserId . json_encode($numbers) . microtime(true);
         return hash('sha256', $data);
     }
 

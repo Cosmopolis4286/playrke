@@ -666,8 +666,10 @@ final class BingoCardGenerateService
             return null;
         }
 
+        // hashed_id es el ID que el frontend usa en rooms[].id (viene de fetchRoom con hashed_id).
+        // El canal y el payload deben usar el mismo valor para que patchRoom() encuentre la sala.
         $event = new \App\Domains\Games\Bingo\Events\BingoRoomUpdated(
-            roomId:       (string) $fresh->id,
+            roomId:       $fresh->hashed_id,
             prizePool:    (float)  $fresh->prize_pool,
             totalPlayers: (int)    $fresh->total_players,
             cardPriceUsd: (float) ($fresh->config?->card_price_usd ?? 0),
@@ -694,9 +696,14 @@ final class BingoCardGenerateService
             return;
         }
 
+        // El frontend usa hashed_id en rooms[].id — el payload debe usar el mismo valor
+        // para que la búsqueda findIndex(r => r.id === payload.room_id) encuentre la sala.
+        $room = \App\Domains\Games\Bingo\Models\Room\BingoRoom::select('id')->find($roomId);
+        $hashedRoomId = $room?->hashed_id ?? $roomId;
+
         broadcast(new \App\Domains\Games\Bingo\Events\BingoPlayerRoomCardsUpdated(
             userId:         (string) $userId,
-            roomId:         (string) $roomId,
+            roomId:         $hashedRoomId,
             ctns:           (int) $totalCtns,
             cardPrice:      $cardPrice,
             currencySymbol: $currencySymbol,
@@ -731,9 +738,11 @@ final class BingoCardGenerateService
      */
     public function getPlayerCardPrice(string $roomId, int $userId): array
     {
-        try {
-            $room = BingoRoom::findOrFail($roomId);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        // Eager-load config en la misma query — evita la segunda query lazy al acceder a card_price_usd.
+        $room = BingoRoom::with('config:id,room_id,card_price_usd,game_variant')
+            ->find($roomId);
+
+        if (!$room) {
             throw new DomainException("Sala no encontrada con ID: {$roomId}");
         }
 

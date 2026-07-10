@@ -37,17 +37,18 @@ class BingoCard extends Model
     protected $fillable = [
         'room_id', 'creator_user_id', 'seller_user_id', 'seller_type', 'room_user_id',
         'card_lot_id', 'currency_id', 'serial_number', 'card_numbers',
-        'card_hash', 'status', 'is_validated', 'validated_at',
+        'card_hash', 'status', 'is_validated', 'validated_at', 'is_custom_card',
     ];
 
     protected $casts = [
-        'status'       => 'integer',
-        'card_numbers' => 'array',
-        'is_validated' => 'boolean',
-        'validated_at' => 'datetime',
-        'created_at'   => 'datetime',
-        'updated_at'   => 'datetime',
-        'deleted_at'   => 'datetime',
+        'status'         => 'integer',
+        'card_numbers'   => 'array',
+        'is_validated'   => 'boolean',
+        'validated_at'   => 'datetime',
+        'is_custom_card' => 'boolean',
+        'created_at'     => 'datetime',
+        'updated_at'     => 'datetime',
+        'deleted_at'     => 'datetime',
     ];
 
     public function room(): BelongsTo
@@ -97,8 +98,10 @@ class BingoCard extends Model
 
     public function hasNumber(int $number): bool
     {
-        foreach (self::COLUMNS as $col) {
-            if (in_array($number, $this->card_numbers[$col] ?? [], true)) {
+        // Itera las claves reales del JSON en lugar de COLUMNS fijo — soporta BINGO_90
+        // (columnas '1'..'9') y cualquier variante futura sin modificar este método.
+        foreach (array_keys($this->card_numbers ?? []) as $col) {
+            if (in_array($number, $this->card_numbers[$col], true)) {
                 return true;
             }
         }
@@ -117,6 +120,8 @@ class BingoCard extends Model
     public function scopeWinners($query) { return $query->where('status', self::STATUS_WINNER); }
     public function scopeValidated($query) { return $query->where('is_validated', true); }
 
+    public function scopeCustom($query) { return $query->where('is_custom_card', true); }
+
     public function toFrontendFormat(): array
     {
         return [
@@ -126,6 +131,7 @@ class BingoCard extends Model
             'serialNumber' => $this->serial_number,
             'cardMatrix'   => $this->card_numbers ?? [],
             'isActive'     => (int)$this->status === self::STATUS_ACTIVE,
+            'isCustomCard' => (bool) $this->is_custom_card,
             'purchaseDate' => $this->created_at,
             'price'        => 0,
             'currencyId'   => $this->currency_id,

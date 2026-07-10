@@ -76,4 +76,26 @@ class BingoRoomPolicy extends BaseRolePolicy
     }
 
     public function generateDraw() {}
+
+    /**
+     * Jugadores con cartones en la sala pueden ver la lista de participantes del lobby.
+     * No requiere rol de gestión — solo estar autenticado.
+     */
+    public function viewLobbyPlayers(User $user, BingoRoom $room): bool
+    {
+        // Gestores siempre pueden ver
+        if ($this->hasAccess($user)) {
+            return true;
+        }
+
+        // Players: solo si tienen cartones comprados en la sala
+        if (!$user->hasRole('player')) {
+            return false;
+        }
+
+        return \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $room->id)
+            ->where('user_id', $user->id)
+            ->where('cards_purchased', '>', 0)
+            ->exists();
+    }
 }

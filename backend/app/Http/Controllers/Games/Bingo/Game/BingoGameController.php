@@ -121,7 +121,7 @@ final class BingoGameController extends Controller
      */
     public function lobbyPlayers(BingoRoom $room): \Illuminate\Http\JsonResponse
     {
-        $this->authorize('view', $room);
+        $this->authorize('viewLobbyPlayers', $room);
 
         $players = $room->players()
             ->with('user:id,first_name,last_name')

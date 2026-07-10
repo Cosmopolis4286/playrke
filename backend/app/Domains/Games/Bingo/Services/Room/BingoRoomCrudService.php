@@ -941,16 +941,16 @@ class BingoRoomCrudService
      */
     private function refundCardLotsForRoom(BingoRoom $room): void
     {
-        // pluck() en lugar de cursor(): cursor() mantiene el PDO abierto mientras itera,
-        // y dispatch() escribe en la misma conexión causando "Commands out of sync" en MySQL.
-        $lotIds = BingoCardLot::where('room_id', $room->id)
+        // chunkById evita cargar todos los IDs en memoria de una vez (salas con miles de lotes)
+        // y no mantiene el PDO abierto — seguro despachar jobs dentro del callback.
+        BingoCardLot::where('room_id', $room->id)
             ->where('status', 'ACTIVE')
-            ->pluck('id');
-
-        foreach ($lotIds as $lotId) {
-            BingoCardLotRefundJob::dispatch((string) $lotId, (string) $room->id)
-                ->onQueue('bingo-refunds');
-        }
+            ->chunkById(200, function ($lots) use ($room) {
+                foreach ($lots as $lot) {
+                    BingoCardLotRefundJob::dispatch((string) $lot->id, (string) $room->id)
+                        ->onQueue('bingo-refunds');
+                }
+            });
     }
 
     private function createRefundFailure(BingoCardLot $lot, BingoRoom $room, float $amount, string $reason): void
