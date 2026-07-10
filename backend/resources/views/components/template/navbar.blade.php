@@ -1,4 +1,4 @@
-﻿{{-- $navWallet y $navUser son inyectados por NavbarComposer vía AppServiceProvider --}}
+{{-- $navWallet y $navUser son inyectados por NavbarComposer vía AppServiceProvider --}}
 <nav class="main-header navbar navbar-expand navbar-bg justify-content-between">
 
     {{-- ── Izquierda: toggle + marca + billetera ───────────── --}}
@@ -318,6 +318,7 @@
         });
     }
     setInterval(tickRelativeTimes, 30000);
+
     // ── Saldo navbar ──────────────────────────────────────────
     function updateBalance(data) {
         if (!$balanceEl) return;

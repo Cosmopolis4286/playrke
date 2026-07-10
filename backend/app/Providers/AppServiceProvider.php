@@ -8,11 +8,14 @@ use App\Observers\Games\Common\GameStatusObserver;
 use App\Repositories\BaseRepository;
 use App\Services\Route\RouteService;
 use App\Support\EnvValidator;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Http\Request;
 
 /**
  * AppServiceProvider
@@ -89,6 +92,12 @@ class AppServiceProvider extends ServiceProvider
         }
 
         GameStatus::observe(GameStatusObserver::class);
+
+        // Rate-limit: compra de cartones de jugador — 5 intentos por minuto por (usuario + sala).
+        RateLimiter::for('bingo-player-buy', function (Request $request) {
+            $key = ($request->user()?->id ?? 'guest') . '|' . $request->route('room');
+            return Limit::perMinute(5)->by($key);
+        });
 
         // -------------------------------------------
         // Forzar HTTPS en producción

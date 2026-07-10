@@ -44,6 +44,7 @@ const emit = defineEmits<{
     :can-customize="modal.canCustomize.value"
     :customize-card="modal.customizeCard.value"
     :custom-card-numbers="modal.customCardNumbers.value"
+    :config-loading="modal.configLoading.value"
     :confirm-incomplete-custom-card="modal.confirmIncompleteCustomCard"
     @close="modal.close()"
     @select-country="modal.selectCountry($event)"
