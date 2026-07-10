@@ -18,6 +18,10 @@ export interface BingoGameRoomConfig {
   readonly min_cards_to_start?: number | null
   /** Variante de bingo de la sala (BINGO_75, BINGO_90, BINGO_80, BINGO_30) */
   readonly game_variant?: string | null
+  /** Si la sala permite que el jugador elija sus propios números */
+  readonly allow_custom_card?: boolean | null
+  /** Recargo porcentual sobre el precio base al comprar cartón personalizado (0 = sin recargo) */
+  readonly custom_card_price_pct?: number | null
 }
 
 /**

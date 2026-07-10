@@ -95,26 +95,70 @@ export function useGameRoomPurchaseModal() {
     const MIN_CTNS = 1
     const MAX_CTNS = 40
 
-    // ── Personalización de cartón (solo jugador, solo si numCtns === 1) ──────
+    // ── Personalización de cartones ──────────────────────────────────────────
     const customizeCard = ref(false)
-    const customCardNumbers = ref<CardMatrix>({})
+    // Array de matrices, una por cartón (índice 0..numCtns-1).
+    const customCardNumbers = ref<CardMatrix[]>([])
+    // Por cartón: true si el usuario tocó ≥1 casilla manualmente (no solo autocompletar).
+    const manualEditsPerCard = ref<boolean[]>([])
+    // Índice del cartón que se está editando actualmente en el picker.
+    const activeCardIndex = ref(0)
 
-    const canCustomize = computed(() => isPlayer.value && numCtns.value === 1)
+    const canCustomize = computed(
+        () => isPlayer.value && selectedRoom.value?.config?.allow_custom_card === true,
+    )
 
     // True mientras la sala está seleccionada pero su config aún no llegó (lazy prop de Inertia).
-    // Deshabilita el toggle de personalización hasta que game_variant esté disponible.
     const configLoading = computed(
         () => !!selectedRoom.value && !selectedRoom.value.config?.game_variant,
     )
+
+    // Recargo % configurado en la sala (0 si no aplica).
+    const customPricePct = computed(
+        () => Number(selectedRoom.value?.config?.custom_card_price_pct ?? 0),
+    )
+
+    // Solo las matrices que el usuario editó manualmente — las demás van como null (aleatorio).
+    const effectiveCustomMatrices = computed<(CardMatrix | null)[]>(() => {
+        if (!customizeCard.value) return []
+        return customCardNumbers.value.map((m, i) => manualEditsPerCard.value[i] ? m : null)
+    })
+
+    // Cuántos cartones son realmente personalizados (editados manualmente).
+    const manualCardCount = computed(
+        () => effectiveCustomMatrices.value.filter(m => m !== null).length,
+    )
+
+    // Precio unitario base.
+    const basePricePerCard = computed(() => cardPrice.value)
+
+    // Precio unitario de cartón personalizado (con recargo).
+    const customPricePerCard = computed(() => {
+        if (customPricePct.value <= 0) return cardPrice.value
+        return parseFloat((cardPrice.value * (1 + customPricePct.value / 100)).toFixed(4))
+    })
+
+    // Total calculado según distribución manual/aleatorio.
+    const totalAmountWithCustom = computed(() => {
+        if (!customizeCard.value || manualCardCount.value === 0) {
+            return parseFloat((numCtns.value * basePricePerCard.value).toFixed(2))
+        }
+        const regularCost = (numCtns.value - manualCardCount.value) * basePricePerCard.value
+        const customCost  = manualCardCount.value * customPricePerCard.value
+        return parseFloat((regularCost + customCost).toFixed(2))
+    })
+
+    function _buildEmptyMatrices(n: number, variant?: string | null): CardMatrix[] {
+        return Array.from({ length: n }, () => emptyMatrix(variant))
+    }
 
     // ── Estado de compra ─────────────────────────────────────────────────────
     const purchasing = ref(false)
 
     // ── Computed ─────────────────────────────────────────────────────────────
 
-    const totalAmount = computed(() =>
-        parseFloat((numCtns.value * cardPrice.value).toFixed(2)),
-    )
+    // totalAmount delega al cálculo con recargo cuando hay cartones personalizados.
+    const totalAmount = totalAmountWithCustom
 
     const canAdvance = computed(() => {
         if (isPlayer.value) return true
@@ -208,7 +252,9 @@ export function useGameRoomPurchaseModal() {
         selectedCountry.value = null
         numCtns.value = 1
         customizeCard.value = false
-        customCardNumbers.value = emptyMatrix(room.config?.game_variant)
+        activeCardIndex.value = 0
+        customCardNumbers.value = _buildEmptyMatrices(1, room.config?.game_variant)
+        manualEditsPerCard.value = [false]
 
         if (isPlayer.value) {
             // Precio en caché → paso inmediato; si no → fetch único
@@ -239,18 +285,19 @@ export function useGameRoomPurchaseModal() {
         selectedCountry.value = null
         countries.value = []
         customizeCard.value = false
-        customCardNumbers.value = {}
+        customCardNumbers.value = []
+        manualEditsPerCard.value = []
+        activeCardIndex.value = 0
     }
 
-    /** Activa/desactiva el modo de personalización. Solo permitido con numCtns === 1. */
     function toggleCustomize(): void {
         if (!canCustomize.value) return
         customizeCard.value = !customizeCard.value
-        // Siempre reinicia la matriz al abrir o cerrar — evita que números de una
-        // sesión anterior de edición queden pegados si el usuario abre/cierra varias veces.
+        activeCardIndex.value = 0
         if (selectedRoom.value) {
-            customCardNumbers.value = emptyMatrix(selectedRoom.value.config?.game_variant)
+            customCardNumbers.value = _buildEmptyMatrices(numCtns.value, selectedRoom.value.config?.game_variant)
         }
+        manualEditsPerCard.value = Array(numCtns.value).fill(false)
     }
 
     /**
@@ -296,19 +343,32 @@ export function useGameRoomPurchaseModal() {
         if (step.value === 'confirm') step.value = 'country'
     }
 
+    function _resizeMatrices(n: number): void {
+        if (!customizeCard.value) return
+        const variant = selectedRoom.value?.config?.game_variant
+        const current = customCardNumbers.value
+        const edits   = manualEditsPerCard.value
+        if (n > current.length) {
+            customCardNumbers.value  = [...current, ..._buildEmptyMatrices(n - current.length, variant)]
+            manualEditsPerCard.value = [...edits, ...Array(n - edits.length).fill(false)]
+        } else {
+            customCardNumbers.value  = current.slice(0, n)
+            manualEditsPerCard.value = edits.slice(0, n)
+        }
+        if (activeCardIndex.value >= n) activeCardIndex.value = n - 1
+    }
+
     function increment(): void {
-        if (numCtns.value < MAX_CTNS) numCtns.value++
-        if (numCtns.value !== 1) customizeCard.value = false
+        if (numCtns.value < MAX_CTNS) { numCtns.value++; _resizeMatrices(numCtns.value) }
     }
 
     function decrement(): void {
-        if (numCtns.value > MIN_CTNS) numCtns.value--
-        if (numCtns.value !== 1) customizeCard.value = false
+        if (numCtns.value > MIN_CTNS) { numCtns.value--; _resizeMatrices(numCtns.value) }
     }
 
     function setNumCtns(value: number): void {
         numCtns.value = Math.min(MAX_CTNS, Math.max(MIN_CTNS, Math.floor(value) || MIN_CTNS))
-        if (numCtns.value !== 1) customizeCard.value = false
+        _resizeMatrices(numCtns.value)
     }
 
     async function purchase(
@@ -334,14 +394,18 @@ export function useGameRoomPurchaseModal() {
                 ? `/bingo/game-rooms/${routeKey}/player-buy`
                 : `/bingo/game-rooms/${routeKey}/buy`
 
+            // Solo enviar matrices con edición manual real (null = cartón aleatorio, no se envía)
+            const matricesToSend = effectiveCustomMatrices.value.filter((m): m is CardMatrix => m !== null)
+
             const payload = isPlayer.value
                 ? {
                     num_ctns: numCtns.value,
-                    ...(canCustomize.value && customizeCard.value
-                        ? { custom_numbers: customCardNumbers.value }
+                    ...(canCustomize.value && customizeCard.value && matricesToSend.length > 0
+                        ? { custom_numbers: matricesToSend }
                         : {}),
                 }
                 : { num_ctns: numCtns.value, country_id: selectedCountry.value!.id }
+
 
             const { data } = await backendClient.post<BingoCardPurchaseResponse>(endpoint, payload)
 
@@ -373,11 +437,17 @@ export function useGameRoomPurchaseModal() {
         totalAmount,
         canAdvance,
         isPlayer,
-        // checkingRole eliminado — rol viene de Inertia
         customizeCard,
         customCardNumbers,
+        manualEditsPerCard,
+        activeCardIndex,
         canCustomize,
         configLoading,
+        customPricePct,
+        manualCardCount,
+        basePricePerCard,
+        customPricePerCard,
+        effectiveCustomMatrices,
         toggleCustomize,
         confirmIncompleteCustomCard,
         open,

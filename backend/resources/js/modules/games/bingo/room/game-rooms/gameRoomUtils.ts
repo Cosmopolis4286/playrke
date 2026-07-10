@@ -15,6 +15,18 @@ export const ROOM_TYPE_LABELS: Record<string, string> = {
   DEMO:    'Demo',
 }
 
+export const GAME_VARIANT_LABELS: Record<string, string> = {
+  BINGO_75: 'Bingo 75 bolas',
+  BINGO_90: 'Bingo 90 bolas',
+  BINGO_80: 'Bingo 80 bolas',
+  BINGO_30: 'Bingo 30 bolas (Speed)',
+}
+
+/** prize_pool_type: 1 = bote acumulado (crece con cada cartón vendido), otro = premio fijo */
+export function isAccumulatedPrize(prizePoolType?: number | null): boolean {
+  return prizePoolType === 1
+}
+
 export function formatCountdown(cd: RoomCountdown | undefined): string {
   if (!cd || cd.expired) return 'EN VIVO'
   const { days, hours, minutes, seconds } = cd.time
