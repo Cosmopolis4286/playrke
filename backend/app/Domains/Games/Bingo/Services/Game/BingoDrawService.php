@@ -20,6 +20,7 @@ use App\Models\ExchangeRate;
 use App\Models\User;
 use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomStatsAggregator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -35,6 +36,7 @@ final class BingoDrawService
         private readonly BingoPrizePayoutService $prizePayoutService,
         private readonly WinEventService $winEventService,
         private readonly BingoRoomAuditLogger $auditLogger,
+        private readonly BingoRoomStatsAggregator $statsAggregator,
         private readonly BingoPatternPositionResolver $patternResolver = new BingoPatternPositionResolver(),
     ) {}
 
@@ -698,6 +700,16 @@ final class BingoDrawService
             'status_id'   => $finishedId,
             'finished_at' => now()->toISOString(),
         ]);
+
+        try {
+            $room->refresh();
+            $this->statsAggregator->aggregate($room);
+        } catch (\Throwable $e) {
+            Log::warning('[BingoDrawService] Error al calcular estadísticas de sala', [
+                'room_id' => $room->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

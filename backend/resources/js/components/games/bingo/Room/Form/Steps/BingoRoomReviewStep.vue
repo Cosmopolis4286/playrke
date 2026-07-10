@@ -1,14 +1,14 @@
 <script setup lang="ts" name="BingoRoomReviewStep">
 import { computed } from 'vue'
 import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
-import { STEP_LABELS, STEP_ERROR_KEYS } from './review-step-meta'
+import { STEP_LABELS, STEP_ERROR_KEYS, type BingoRoomStep } from '@/js/composables/games/bingo/room/shared/useBingoRoomStepper'
 
 const props = defineProps<{
   form:   BingoRoomFormData
   errors: Record<string, unknown>
 }>()
 
-type StepKey = 'basic' | 'currencies' | 'rounds'
+type StepKey = Exclude<BingoRoomStep, 'review'>
 
 const STEPS: StepKey[] = ['basic', 'currencies', 'rounds']
 
