@@ -175,10 +175,8 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                     )
                     showToast('Sala actualizada exitosamente', 'success')
                 } catch (updateError: any) {
-                    showToast(
-                        updateError?.response?.data?.message ?? 'Error al actualizar la sala de bingo',
-                        'error'
-                    )
+                    const message = updateError?.response?.data?.message ?? 'Error al actualizar la sala de bingo'
+                    showToast(`${message}. Tu borrador se mantuvo guardado, puedes reintentar.`, 'error')
                     return false
                 }
             } else {
@@ -186,10 +184,8 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
                     await backendClient.post(`/${ENDPOINT}`, payload)
                     showToast('Sala creada exitosamente', 'success')
                 } catch (createError: any) {
-                    showToast(
-                        createError?.response?.data?.message ?? 'Error al crear la sala de bingo',
-                        'error'
-                    )
+                    const message = createError?.response?.data?.message ?? 'Error al crear la sala de bingo'
+                    showToast(`${message}. Tu borrador se mantuvo guardado, puedes reintentar.`, 'error')
                     return false
                 }
             }
