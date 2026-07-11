@@ -103,6 +103,21 @@ class Currency extends Model
         return $this->hasMany(Seller::class, 'currency_id');
     }
 
+    /**
+     * ID (Snowflake) de la moneda USD, cacheado por request.
+     *
+     * Con IDs Snowflake el ID de USD nunca es el entero 1 — varios puntos
+     * del código asumían `currency_id === 1` como atajo para "es USD", lo
+     * cual siempre era falso y ocultaba silenciosamente el problema real
+     * (ver ExchangeRateException). Usar este helper en su lugar.
+     */
+    public static function usdId(): ?string
+    {
+        return \Illuminate\Support\Facades\Cache::remember('currency_usd_id', 60, function () {
+            return static::where('iso_code', 'USD')->value('id');
+        });
+    }
+
     // ========================
     // Accessors
     // ========================

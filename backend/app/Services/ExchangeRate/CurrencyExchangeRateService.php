@@ -2,23 +2,34 @@
 
 namespace App\Services\ExchangeRate;
 
+use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
+use App\Models\Currency;
 use App\Models\ExchangeRate;
 
 /**
- * Consulta simple de la tasa de cambio oficial vigente de una moneda.
+ * Única fuente de verdad para la tasa de cambio OFICIAL de la plataforma
+ * (tabla `exchange_rates`).
  *
  * Distinto de ExchangeRateDomainService (que resuelve tasas específicas por
- * rol/entidad de comercio): aquí solo se busca la tasa ACTIVE más reciente
+ * rol/entidad de comercio, que a su vez cae aquí si el rol no tiene tasa
+ * propia configurada): aquí solo se busca la tasa ACTIVE más reciente
  * registrada para una moneda, sin contexto de usuario ni de rol.
  */
 final class CurrencyExchangeRateService
 {
     /**
-     * Tasa de cambio oficial vigente para una moneda (1.0 si es USD o no hay tasa registrada).
+     * Tasa de cambio oficial vigente para una moneda.
+     *
+     * USD siempre es 1:1 consigo misma. Para cualquier otra moneda, si no
+     * hay tasa ACTIVE registrada se lanza ExchangeRateException — nunca se
+     * asume 1:1 en silencio (eso corrompía prize_pool/total_sales/pagos,
+     * tratando montos en moneda local como si ya fueran USD).
+     *
+     * @throws ExchangeRateException Si no hay tasa activa para la moneda.
      */
-    public function getActiveRate(?int $currencyId): float
+    public function getActiveRate(string|int|null $currencyId): float
     {
-        if (!$currencyId || $currencyId === 1) {
+        if (!$currencyId || (string) $currencyId === (string) Currency::usdId()) {
             return 1.0;
         }
 
@@ -27,6 +38,10 @@ final class CurrencyExchangeRateService
             ->orderByDesc('created_at')
             ->value('amount');
 
-        return $amount ? (float) $amount : 1.0;
+        if (!$amount || (float) $amount <= 0) {
+            throw ExchangeRateException::noActiveRate($currencyId);
+        }
+
+        return (float) $amount;
     }
 }
