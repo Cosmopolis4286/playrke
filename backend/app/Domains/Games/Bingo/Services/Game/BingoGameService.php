@@ -7,10 +7,12 @@ use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\DTOs\Game\PlayerCardPricingDTO;
-use App\Models\ExchangeRate;
+use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
+use App\Models\Currency;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\Wallet;
 use App\Domains\Games\Bingo\Services\Room\Utils\CheckExpiredBingoRoomsService;
+use App\Services\ExchangeRate\CurrencyExchangeRateService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -18,6 +20,7 @@ final class BingoGameService
 {
     public function __construct(
         private readonly CheckExpiredBingoRoomsService $checkExpired,
+        private readonly CurrencyExchangeRateService $currencyExchangeRate,
     ) {}
 
     /**
@@ -235,9 +238,10 @@ final class BingoGameService
         }
 
         // Buscar precio en USD (moneda por defecto)
-        $cardPrice = $room->cardPrices
-            ->where('currency_id', 1) // Asumiendo que 1 es USD
-            ->first();
+        $usdId = Currency::usdId();
+        $cardPrice = $usdId
+            ? $room->cardPrices->firstWhere('currency_id', $usdId)
+            : null;
 
         // Si no hay precio en USD, tomar el primero disponible
         if (!$cardPrice && $room->cardPrices->isNotEmpty()) {
@@ -245,8 +249,9 @@ final class BingoGameService
         }
 
         $price = (float) ($cardPrice?->card_price ?? 0);
+        $isWalletUsd = $walletCurrencyId && (string) $walletCurrencyId === (string) $usdId;
 
-        return $walletCurrencyId && $walletCurrencyId !== 1
+        return $walletCurrencyId && !$isWalletUsd
             ? $this->convertToWalletCurrency($price, $walletCurrencyId)
             : $price;
     }
@@ -263,23 +268,34 @@ final class BingoGameService
             ->first();
     }
 
+    /**
+     * Tasa de cambio de la billetera del jugador — delega a la fuente única
+     * de verdad (CurrencyExchangeRateService → exchange_rates). Vista de solo
+     * lectura (precio mostrado antes de comprar): si no hay tasa activa no se
+     * bloquea la carga de la página, pero queda registrado en logs para que
+     * se corrija antes de que el jugador intente comprar (ahí sí se bloquea,
+     * ver BingoCardGenerateService::getPlayerCardPrice()).
+     */
     private function getWalletExchangeRate(?int $currencyId): float
     {
-        if (!$currencyId || $currencyId === 1) {
+        if (!$currencyId) {
             return 1.0;
         }
 
-        $exchangeRate = ExchangeRate::where('currency_id', $currencyId)
-            ->where('status', 'ACTIVE')
-            ->orderByDesc('created_at')
-            ->first();
-
-        return $exchangeRate ? (float) $exchangeRate->amount : 1.0;
+        try {
+            return $this->currencyExchangeRate->getActiveRate($currencyId);
+        } catch (ExchangeRateException $e) {
+            Log::warning('[BingoGameService] Sin tasa activa al resolver precio para el jugador', [
+                'currency_id' => $currencyId,
+                'error'       => $e->getMessage(),
+            ]);
+            return 1.0;
+        }
     }
 
     private function convertToWalletCurrency(float $amount, ?int $currencyId): float
     {
-        if (!$currencyId || $currencyId === 1) {
+        if (!$currencyId) {
             return round($amount, 2);
         }
 

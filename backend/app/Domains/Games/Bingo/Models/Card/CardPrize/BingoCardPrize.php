@@ -42,20 +42,26 @@ class BingoCardPrize extends Model
     ];
 
     protected $casts = [
-        'status'       => 'string',
-        'round_id'     => 'string',
-        'usd_amount'   => 'decimal:2',
-        'local_amount' => 'decimal:4',
-        'claimed_at'   => 'datetime',
-        'created_at'   => 'datetime',
-        'updated_at'   => 'datetime',
-        'deleted_at'   => 'datetime',
+        'status'            => 'string',
+        'creator_user_id'   => 'string',
+        'seller_user_id'    => 'string',
+        'room_user_id'      => 'string',
+        'card_lot_id'       => 'string',
+        'winning_card_id'   => 'string',
+        'currency_id'       => 'string',
+        'round_id'          => 'string',
+        'usd_amount'        => 'decimal:2',
+        'local_amount'      => 'decimal:4',
+        'claimed_at'        => 'datetime',
+        'created_at'        => 'datetime',
+        'updated_at'        => 'datetime',
+        'deleted_at'        => 'datetime',
     ];
 
     protected $appends = ['prize_type_description', 'prize_status_description'];
 
     public function room(): BelongsTo { return $this->belongsTo(BingoRoom::class, 'room_id'); }
-    public function creatorUser(): BelongsTo { return $this->belongsTo(User::class, 'creator_user_id'); }
+    public function creatorUser(): BelongsTo { return $this->belongsTo(User::class, 'creator_user_id')->withTrashed(); }
     public function seller(): BelongsTo { return $this->belongsTo(User::class, 'seller_user_id'); }
     public function roomUser(): BelongsTo { return $this->belongsTo(BingoRoomUser::class, 'room_user_id'); }
     public function cardLot(): BelongsTo { return $this->belongsTo(BingoCardLot::class, 'card_lot_id'); }

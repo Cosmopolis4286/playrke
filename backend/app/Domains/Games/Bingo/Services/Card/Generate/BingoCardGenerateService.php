@@ -37,7 +37,6 @@ final class BingoCardGenerateService
         private readonly \App\Contracts\CurrencyRepositoryInterface $currencies,
         private readonly \App\Contracts\Roles\Commerce\CommerceRepositoryInterface $commerceRepository,
         private readonly \App\Contracts\Roles\Commerce\CommerceCurrencyRepositoryInterface $commerceCurrencyRepository,
-        private readonly \App\Contracts\Roles\Commerce\CommerceExchangeRateRepositoryInterface $exchangeRateRepository,
         private readonly \App\Contracts\Roles\Seller\SellerRepositoryInterface $sellerRepository,
         private readonly \App\Contracts\Roles\Seller\SellerCurrencyRepositoryInterface $sellerCurrencyRepository,
         private readonly \App\Contracts\Games\Common\GameMode\GameModeRepositoryInterface $gameModes,
@@ -48,6 +47,7 @@ final class BingoCardGenerateService
         private readonly WalletService $walletService,
         private readonly \App\Domains\Games\Bingo\Services\Card\BingoCardGenerationService $cardGenerationService,
         private readonly \App\Services\ExchangeRate\CurrencyExchangeRateService $currencyExchangeRate,
+        private readonly \App\Services\ExchangeRate\ExchangeRateDomainService $exchangeRateDomain,
     ) {}
 
     /**
@@ -307,8 +307,9 @@ final class BingoCardGenerateService
             throw new DomainException('No se encontró moneda para el país seleccionado.');
         }
 
-        // 4. Tasa de cambio activa del commerce para esa moneda
-        $exchangeRate = (float) $this->exchangeRateRepository->getCommerceCurrencyValue($commerceId, $currencyId);
+        // 4. Tasa de cambio: propia del commerce si existe, si no hereda la oficial
+        //    (exchange_rates) — nunca asume 1:1 en silencio, ver ExchangeRateDomainService.
+        $exchangeRate = $this->exchangeRateDomain->getExchangeRateByCurrency((int) $currencyId, (int) $userId);
 
         // 5. Precio personalizado en bingo_card_prices (room + currency + creator_user_id del commerce)
         $customPrice = BingoCardPrice::byRoom($roomId)
@@ -440,14 +441,12 @@ final class BingoCardGenerateService
             throw new DomainException('Moneda no disponible para el país seleccionado.');
         }
 
-        // 4. Calcular tasa de cambio
-        $exchangeRateValue = $this->exchangeRateRepository->getCommerceCurrencyValue($commerce, $currency);
-
-        if (!$exchangeRateValue || $exchangeRateValue <= 0) {
-            throw new DomainException('No se encontró una tasa de cambio válida para el comercio y moneda seleccionados.');
-        }
-
-        $exchangeRate = round($exchangeRateValue, 2);
+        // 4. Tasa de cambio: propia del commerce si existe, si no hereda la oficial
+        //    (exchange_rates) — lanza ExchangeRateException (DomainException) si tampoco existe ahí.
+        $exchangeRate = round(
+            $this->exchangeRateDomain->getExchangeRateByCurrency((int) $currency, (int) $creatorUser),
+            2,
+        );
 
         // 5. Calcular precio del cartón
         //    Busca precio personalizado en bingo_card_prices para la sala, moneda y commerce.
@@ -566,9 +565,10 @@ final class BingoCardGenerateService
             throw new DomainException('Moneda no disponible para el país seleccionado.');
         }
 
-        // 4. Tasa de cambio
+        // 4. Tasa de cambio: propia del commerce si existe, si no hereda la oficial
+        //    (exchange_rates) — lanza ExchangeRateException (DomainException) si tampoco existe ahí.
         $exchangeRate = round(
-            (float) $this->exchangeRateRepository->getCommerceCurrencyValue($commerceId, $currencyId),
+            $this->exchangeRateDomain->getExchangeRateByCurrency((int) $currencyId, (int) $userId),
             2,
         );
 

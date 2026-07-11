@@ -15,12 +15,13 @@ use App\Domains\Games\Bingo\Events\BingoGameStarted;
 use App\Domains\Games\Bingo\Events\BingoNumberCalled;
 use App\Domains\Games\Bingo\Events\BingoWinnerDeclared;
 use App\Domains\Platform\WinEvent\Services\WinEventService;
+use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
 use App\Models\Games\Common\Utils\GameStatus;
-use App\Models\ExchangeRate;
 use App\Models\User;
 use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomStatsAggregator;
+use App\Services\ExchangeRate\CurrencyExchangeRateService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -37,6 +38,7 @@ final class BingoDrawService
         private readonly WinEventService $winEventService,
         private readonly BingoRoomAuditLogger $auditLogger,
         private readonly BingoRoomStatsAggregator $statsAggregator,
+        private readonly CurrencyExchangeRateService $currencyExchangeRate,
         private readonly BingoPatternPositionResolver $patternResolver = new BingoPatternPositionResolver(),
     ) {}
 
@@ -534,7 +536,7 @@ final class BingoDrawService
 
             $userId   = $card->roomUser?->user_id ?? $card->creator_user_id;
             $user     = $card->roomUser?->user ?? User::find($userId);
-            $userName = $user?->name ?? ('Jugador #' . $userId);
+            $userName = $user?->username ?? ('Jugador #' . $userId);
 
             $prizeAmounts = $this->resolvePrizeAmounts($room, $round, $card);
             $prize        = $prizeAmounts['usd_amount'];
@@ -713,32 +715,45 @@ final class BingoDrawService
     }
 
     /**
-     * Obtiene la tasa de cambio activa más reciente para una moneda.
+     * Obtiene la tasa de cambio activa más reciente para una moneda, delegando
+     * a la fuente única de verdad (CurrencyExchangeRateService → exchange_rates).
      * Cacheada en memoria por moneda durante la corrida actual del servicio:
      * un sorteo puede tener decenas de cartones ganadores y todos comparten
      * la misma tasa vigente en ese instante.
+     *
+     * Devuelve null (en vez de lanzar) si no hay tasa activa: un sorteo ya en
+     * curso no debe interrumpirse a mitad de camino por esto — el llamador
+     * decide cómo proceder (ver convertToLocal) y siempre queda registrado.
      */
-    private function getActiveRate(string $currencyId): float
+    private function getActiveRateOrNull(string $currencyId): ?float
     {
         if (array_key_exists($currencyId, $this->rateCache)) {
             return $this->rateCache[$currencyId];
         }
 
-        return $this->rateCache[$currencyId] = (float) ExchangeRate::where('currency_id', $currencyId)
-            ->where('status', 'ACTIVE')
-            ->orderBy('created_at', 'desc')
-            ->value('amount');
+        try {
+            return $this->rateCache[$currencyId] = $this->currencyExchangeRate->getActiveRate($currencyId);
+        } catch (ExchangeRateException $e) {
+            Log::error('[BingoDrawService] Sin tasa de cambio activa al calcular premio — monto quedará SIN CONVERTIR (revisar manualmente)', [
+                'currency_id' => $currencyId,
+                'error'       => $e->getMessage(),
+            ]);
+            return $this->rateCache[$currencyId] = null;
+        }
     }
 
     /**
      * Convierte un monto USD a moneda local usando el exchange rate de la moneda del cartón.
-     * Si no hay tasa o la moneda es USD, devuelve el monto original.
+     * Si no hay tasa activa, devuelve el monto USD SIN convertir (mismo número,
+     * distinta moneda) — ya no es un fallback silencioso: getActiveRateOrNull()
+     * deja constancia en logs, y BingoRoomDetails.vue advierte al admin cuando
+     * detecta usd_amount === local_amount en una moneda distinta de USD.
      */
     private function convertToLocal(float $usdAmount, string $currencyId): float
     {
-        $rate = $this->getActiveRate($currencyId);
+        $rate = $this->getActiveRateOrNull($currencyId);
 
-        if ($rate <= 0) {
+        if ($rate === null || $rate <= 0) {
             return $usdAmount;
         }
 
@@ -773,8 +788,8 @@ final class BingoDrawService
 
             if ($fixedPrize) {
                 $localAmount = (float) $fixedPrize->prize_value;
-                $rate = $this->getActiveRate((string) $card->currency_id);
-                $usdAmount = $rate > 0 ? round($localAmount / $rate, 4) : $localAmount;
+                $rate = $this->getActiveRateOrNull((string) $card->currency_id);
+                $usdAmount = ($rate !== null && $rate > 0) ? round($localAmount / $rate, 4) : $localAmount;
 
                 return ['usd_amount' => $usdAmount, 'local_amount' => $localAmount];
             }

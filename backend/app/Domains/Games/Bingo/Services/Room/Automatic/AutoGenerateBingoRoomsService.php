@@ -9,7 +9,9 @@ use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Services\ExchangeRate\ExchangeRateDomainService;
+use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomCrudService;
+use App\Services\Utils\Snowflake\SnowflakeBatchService;
 use App\Services\WalletService;
 use App\Models\Games\Common\Utils\GameStatus;
 use Carbon\Carbon;
@@ -45,8 +47,10 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
         BingoCardPriceRepositoryInterface $bingoCardPrices,
         ExchangeRateDomainService $exchangeRateService,
         WalletService $walletService,
+        BingoRoomAuditLogger $auditLogger,
+        SnowflakeBatchService $snowflakeService,
     ) {
-        parent::__construct($bingoRooms, $bingoCardPrices, $exchangeRateService, $walletService);
+        parent::__construct($bingoRooms, $bingoCardPrices, $exchangeRateService, $walletService, $auditLogger, $snowflakeService);
     }
 
     /**
