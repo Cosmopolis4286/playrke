@@ -72,9 +72,15 @@ final class BingoRoomContextService
         $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
-            relations: ['config', 'config.roomType', 'config.gameMode', 'config.prizePoolType', 'status', 'rounds.prizes'],
+            // cardPrizes/cardLots solo traen las columnas necesarias para contar (vía
+            // closure) — ganadores y cartones personalizados, sin cargar registros completos.
+            relations: [
+                'config', 'config.roomType', 'config.gameMode', 'config.prizePoolType', 'status', 'rounds.prizes',
+                'cardPrizes' => fn($q) => $q->select('id', 'room_id', 'status')->where('status', 'ACTIVE'),
+                'cardLots' => fn($q) => $q->select('id', 'room_id', 'card_count', 'has_custom_cards', 'status')->where('status', 'ACTIVE'),
+            ],
             conditions: $conditions,
-            fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'total_cards', 'prize_pool', 'created_at']
+            fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'total_cards', 'prize_pool', 'metrics_by_currency', 'created_at']
         );
 
         $collection = $source instanceof LengthAwarePaginator
@@ -118,9 +124,12 @@ final class BingoRoomContextService
             $isCreator  = $authUserId && (string) $model?->creator_user_id === $authUserId;
             $row['can_activate_now'] = $isManual && $isActive && ($isCreator || $isAdmin);
 
-            // Quitar prefijo "Bote " del tipo de bote
-            if (isset($row['config.prizePoolType.label'])) {
-                $row['config.prizePoolType.label'] = preg_replace('/^Bote\s+/i', '', $row['config.prizePoolType.label']);
+            // Quitar prefijo "Bote " del tipo de bote (ahorra espacio en la columna).
+            // OJO: normalizeKey() convierte 'config.prizePoolType.label' a
+            // 'config_prizepooltype_label' (minúsculas + guiones bajos) — buscar la key
+            // con puntos literales aquí nunca coincidía y el prefijo nunca se quitaba.
+            if (isset($row['config_prizepooltype_label'])) {
+                $row['config_prizepooltype_label'] = preg_replace('/^Bote\s+/i', '', $row['config_prizepooltype_label']);
             }
 
             // Campos meta numéricos crudos (además de las versiones _badge con HTML de abajo):
@@ -129,25 +138,57 @@ final class BingoRoomContextService
             $row['total_players'] = (int) ($model?->total_players ?? 0);
             $row['total_cards']   = (int) ($model?->total_cards ?? 0);
 
-            // Formatear columna Cartones: número vendido + cuota mínima apilados, en vez de
-            // concatenados en un solo texto — la cuota se resalta en verde si ya se alcanzó.
+            // Formatear columna Cartones: con mínimo configurado, barra de progreso hacia
+            // la cuota (verde al alcanzarla); sin mínimo, solo el número vendido. Si hay
+            // cartones personalizados (BingoCardLot.has_custom_cards), se anota aparte.
             $cardsCount = $row['total_cards'];
             $minCards   = $config?->min_cards_to_start;
             $cardsCountClass = $cardsCount === 0 ? ' room-cards-cell__count--zero' : '';
 
+            $customCardsCount = (int) ($model?->cardLots
+                ?->where('has_custom_cards', true)
+                ->sum('card_count') ?? 0);
+
+            $customCardsHtml = $customCardsCount > 0
+                ? '<span class="room-cards-cell__custom" title="Cartones personalizados">'
+                    . '<i class="fas fa-pen"></i>' . $customCardsCount
+                    . '</span>'
+                : '';
+
             if ($minCards !== null && $minCards > 0) {
+                $pct = min(100, (int) round(($cardsCount / $minCards) * 100));
                 $quotaMet = $cardsCount >= $minCards;
                 $row['total_cards_badge'] = '<div class="room-cards-cell">'
-                    . '<span class="room-cards-cell__count' . $cardsCountClass . '">' . $cardsCount . '</span>'
-                    . '<span class="room-cards-cell__quota' . ($quotaMet ? ' room-cards-cell__quota--met' : '') . '">mín. ' . (int) $minCards . '</span>'
+                    . '<div class="room-cards-cell__row">'
+                    . '<span class="room-cards-cell__count' . $cardsCountClass . '" title="Cartones vendidos"><i class="fas fa-clone"></i>' . $cardsCount . '</span>'
+                    . '<span class="room-cards-cell__quota' . ($quotaMet ? ' room-cards-cell__quota--met' : '') . '">/ ' . (int) $minCards . '</span>'
+                    . $customCardsHtml
+                    . '</div>'
+                    . '<div class="room-cards-cell__bar" title="' . $pct . '% de la cuota mínima">'
+                    . '<div class="room-cards-cell__bar-fill' . ($quotaMet ? ' room-cards-cell__bar-fill--met' : '') . '" style="width:' . $pct . '%"></div>'
+                    . '</div>'
                     . '</div>';
             } else {
-                $row['total_cards_badge'] = '<span class="room-cards-cell__count' . $cardsCountClass . '">' . $cardsCount . '</span>';
+                $row['total_cards_badge'] = '<div class="room-cards-cell"><div class="room-cards-cell__row">'
+                    . '<span class="room-cards-cell__count' . $cardsCountClass . '" title="Cartones vendidos"><i class="fas fa-clone"></i>' . $cardsCount . '</span>'
+                    . $customCardsHtml
+                    . '</div></div>';
             }
 
-            // Columna "Jugadores": atenuar el 0 para que no compita visualmente con salas con actividad real.
+            // Columna "Jugadores": jugadores + ganadores, con iconos para diferenciarlos
+            // de un vistazo (persona vs. trofeo) — atenuados en 0 para no competir
+            // visualmente con salas con actividad real.
             $playersCount = $row['total_players'];
-            $row['total_players_badge'] = '<span class="room-players-cell' . ($playersCount === 0 ? ' room-players-cell--zero' : '') . '">' . $playersCount . '</span>';
+            $winnersCount = $model?->cardPrizes?->count() ?? 0;
+
+            $row['total_players_badge'] = '<div class="room-players-cell">'
+                . '<span class="room-players-cell__stat' . ($playersCount === 0 ? ' room-players-cell__stat--zero' : '') . '" title="Jugadores">'
+                . '<i class="fas fa-user"></i>' . $playersCount
+                . '</span>'
+                . '<span class="room-players-cell__stat' . ($winnersCount === 0 ? ' room-players-cell__stat--zero' : '') . '" title="Ganadores">'
+                . '<i class="fas fa-trophy"></i>' . $winnersCount
+                . '</span>'
+                . '</div>';
 
             // Columna "Código": código + fecha/hora de inicio (formato corto, sin segundos) apiladas.
             $startInfo = $model?->start_info;
@@ -161,14 +202,22 @@ final class BingoRoomContextService
                 . '</div>';
 
             // Columna "Moneda(s)": pills discretas (metadata de contexto, no el dato principal
-            // de la columna); campo separado con ids para filtrar.
+            // de la columna) + badge con cartones vendidos en esa moneda (metrics_by_currency),
+            // para comparar de un vistazo cuál moneda vendió más sin abrir "Detalles de Sala".
             $currencyIds = (array) ($config?->allowed_currencies ?? []);
-            $isoCodes = array_values(array_map(fn($id) => $currencyMap[$id] ?? $id, $currencyIds));
+            $metricsByCurrency = $model?->metrics_by_currency ?? [];
 
-            $row['config_allowed_currencies_badge'] = '<div class="room-currency-pills">' . implode('', array_map(
-                fn($iso) => '<span class="room-currency-pill">' . e($iso) . '</span>',
-                $isoCodes
-            )) . '</div>';
+            $currencyPillsHtml = array_map(function ($currencyId) use ($currencyMap, $metricsByCurrency) {
+                $iso = $currencyMap[$currencyId] ?? $currencyId;
+                $cardsSold = (int) ($metricsByCurrency[(string) $currencyId]['total_cards'] ?? 0);
+
+                return '<span class="room-currency-pill">'
+                    . e($iso)
+                    . '<span class="room-currency-pill__count" title="Cartones vendidos en ' . e($iso) . '">' . $cardsSold . '</span>'
+                    . '</span>';
+            }, $currencyIds);
+
+            $row['config_allowed_currencies_badge'] = '<div class="room-currency-pills">' . implode('', $currencyPillsHtml) . '</div>';
             $row['currency_ids'] = $currencyIds;
 
             // Columna "Premio": una línea por moneda permitida en la sala.
@@ -188,20 +237,34 @@ final class BingoRoomContextService
             $prizePoolUsd = (float) ($model?->prize_pool ?? 0);
 
             $prizeLines = [];
+            $totalUsdApprox = 0.0;
+            $hasUnconvertedLine = false;
+
             foreach ($currencyIds as $currencyId) {
                 $iso = $currencyMap[$currencyId] ?? $currencyId;
                 $currencyIdStr = (string) $currencyId;
                 $amountClass = 'room-prize-cell__amount';
                 $amountTitle = '';
+                $amountUsd = null;
 
                 if ($fixedPrizesByCurrency->has($currencyIdStr)) {
                     $amount = (float) $fixedPrizesByCurrency->get($currencyIdStr);
                     $amountText = number_format($amount, 2);
+
+                    // Premio FIJO: está en moneda local, se necesita la tasa para
+                    // aportar su equivalente en USD al total aproximado.
+                    try {
+                        $rate = $this->currencyExchangeRate->getActiveRate($currencyId);
+                        $amountUsd = $rate > 0 ? $amount / $rate : null;
+                    } catch (\App\Exceptions\Domain\ExchangeRate\ExchangeRateException) {
+                        $amountUsd = null;
+                    }
                 } else {
                     try {
                         $rate = $this->currencyExchangeRate->getActiveRate($currencyId);
                         $amount = $prizePoolUsd * $rate;
                         $amountText = number_format($amount, 2);
+                        $amountUsd = $prizePoolUsd;
                     } catch (\App\Exceptions\Domain\ExchangeRate\ExchangeRateException) {
                         $amount = null;
                         $amountText = '—';
@@ -217,13 +280,32 @@ final class BingoRoomContextService
                     $amountTitle = 'Bote en 0 con cartones vendidos — revisar';
                 }
 
+                if ($amountUsd !== null) {
+                    $totalUsdApprox += $amountUsd;
+                } else {
+                    $hasUnconvertedLine = true;
+                }
+
                 $prizeLines[] = '<div class="room-prize-cell__line">'
                     . '<span class="room-prize-cell__currency">' . e($iso) . '</span>'
                     . '<span class="' . $amountClass . '"' . ($amountTitle !== '' ? ' title="' . e($amountTitle) . '"' : '') . '>' . $amountText . '</span>'
                     . '</div>';
             }
 
-            $row['prize_pool_badge'] = '<div class="room-prize-cell">' . implode('', $prizeLines) . '</div>';
+            // Total aproximado en USD: solo aporta cuando hay 2+ monedas (con 1 sola,
+            // la línea ya es el total). Se marca "≈" y con "*" si alguna línea no pudo
+            // convertirse (sin tasa activa), para no aparentar precisión que no existe.
+            $totalLineHtml = '';
+            if (count($currencyIds) > 1) {
+                $totalTitle = $hasUnconvertedLine
+                    ? 'Aproximado: no incluye monedas sin tasa de cambio activa'
+                    : 'Total aproximado en USD';
+                $totalLineHtml = '<div class="room-prize-cell__total" title="' . e($totalTitle) . '">'
+                    . '≈ $' . number_format($totalUsdApprox, 2) . ' USD' . ($hasUnconvertedLine ? '*' : '')
+                    . '</div>';
+            }
+
+            $row['prize_pool_badge'] = '<div class="room-prize-cell">' . implode('', $prizeLines) . $totalLineHtml . '</div>';
         }
         unset($row);
 

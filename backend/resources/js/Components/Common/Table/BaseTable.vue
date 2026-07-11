@@ -385,6 +385,18 @@
     cursor: help;
   }
 
+  /* Total aproximado en USD cuando la sala maneja 2+ monedas */
+  :deep(.room-prize-cell__total) {
+    margin-top: 2px;
+    padding-top: 3px;
+    border-top: 1px dashed #dee2e6;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #8891a0;
+    font-variant-numeric: tabular-nums;
+    cursor: help;
+  }
+
   /* Estado de la sala: chip con punto de color, más discreto que un badge sólido */
   :deep(.room-status-chip) {
     display: inline-flex;
@@ -420,6 +432,9 @@
   }
 
   :deep(.room-currency-pill) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
     font-size: 0.68rem;
     font-weight: 700;
     padding: 0.16rem 0.42rem;
@@ -427,6 +442,16 @@
     background: #eef0f3;
     color: #8891a0;
     letter-spacing: 0.02em;
+  }
+
+  /* Cartones vendidos en esa moneda — dato numérico, contraste más marcado que el iso_code */
+  :deep(.room-currency-pill__count) {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: #495057;
+    background: #fff;
+    border-radius: 3px;
+    padding: 0 0.3rem;
   }
 
   /* Cartones vendidos + cuota mínima, apilados en vez de concatenados en texto */
@@ -437,13 +462,26 @@
   }
 
   :deep(.room-cards-cell__count) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
     font-variant-numeric: tabular-nums;
     font-weight: 600;
+    font-size: 0.82rem;
+  }
+
+  :deep(.room-cards-cell__count) i {
+    font-size: 0.7rem;
+    color: #8891a0;
   }
 
   :deep(.room-cards-cell__count--zero) {
     color: #b3bac4;
     font-weight: 400;
+  }
+
+  :deep(.room-cards-cell__count--zero) i {
+    color: #d5d9df;
   }
 
   :deep(.room-cards-cell__quota) {
@@ -455,12 +493,77 @@
     color: #15803d;
   }
 
-  /* Jugadores: atenuar el 0 para no competir visualmente con salas con actividad real */
-  :deep(.room-players-cell) {
-    font-variant-numeric: tabular-nums;
+  /* Fila número + cuota, encima de la barra de progreso */
+  :deep(.room-cards-cell__row) {
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
   }
 
-  :deep(.room-players-cell--zero) {
+  /* Cartones personalizados vendidos, dentro de la fila de conteo */
+  :deep(.room-cards-cell__custom) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #8891a0;
+    background: #f4effc;
+    border-radius: 4px;
+    padding: 0.05rem 0.35rem;
+    margin-left: 0.25rem;
+  }
+
+  :deep(.room-cards-cell__custom) i {
+    font-size: 0.6rem;
+    color: #8891a0;
+  }
+
+  /* Barra de progreso hacia la cuota mínima de cartones */
+  :deep(.room-cards-cell__bar) {
+    width: 100%;
+    min-width: 60px;
+    height: 4px;
+    border-radius: 999px;
+    background: #eef0f3;
+    overflow: hidden;
+  }
+
+  :deep(.room-cards-cell__bar-fill) {
+    height: 100%;
+    border-radius: 999px;
+    background: #0d6efd;
+    transition: width 0.2s ease;
+  }
+
+  :deep(.room-cards-cell__bar-fill--met) {
+    background: #15803d;
+  }
+
+  /* Jugadores + ganadores, diferenciados por icono */
+  :deep(.room-players-cell) {
+    display: flex;
+    gap: 0.6rem;
+  }
+
+  :deep(.room-players-cell__stat) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.82rem;
+  }
+
+  :deep(.room-players-cell__stat) i {
+    font-size: 0.7rem;
+    color: #8891a0;
+  }
+
+  :deep(.room-players-cell__stat--zero) {
     color: #b3bac4;
+  }
+
+  :deep(.room-players-cell__stat--zero) i {
+    color: #d5d9df;
   }
 </style>
