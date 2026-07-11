@@ -255,7 +255,9 @@ final class WalletService
      */
     public function deposit(string $walletId, float $amount): Wallet
     {
-        $wallet = DB::transaction(function () use ($walletId, $amount) {
+        $movementId = null;
+
+        $wallet = DB::transaction(function () use ($walletId, $amount, &$movementId) {
             $wallet = $this->findOwnedWallet($walletId);
 
             if ($wallet->isBlocked()) {
@@ -267,7 +269,7 @@ final class WalletService
             $this->walletRepository->incrementBalance($walletId, $amount);
             $wallet->refresh();
 
-            $this->movementRepository->record([
+            $movement = $this->movementRepository->record([
                 'wallet_id'      => (string) $wallet->id,
                 'user_id'        => (string) $wallet->user_id,
                 'type'           => WalletMovement::TYPE_DEPOSIT,
@@ -277,12 +279,13 @@ final class WalletService
                 'balance_after'  => (float) $wallet->balance,
                 'description'    => 'Depósito manual',
             ]);
+            $movementId = (string) $movement->id;
 
             return $wallet;
         });
 
         // Broadcast FUERA de la transacción: garantiza que el commit ya ocurrió
-        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_DEPOSIT, $amount);
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_DEPOSIT, $amount, $movementId);
 
         return $wallet;
     }
@@ -292,7 +295,9 @@ final class WalletService
      */
     public function withdraw(string $walletId, float $amount): Wallet
     {
-        $wallet = DB::transaction(function () use ($walletId, $amount) {
+        $movementId = null;
+
+        $wallet = DB::transaction(function () use ($walletId, $amount, &$movementId) {
             $wallet = $this->findOwnedWallet($walletId);
 
             if ($wallet->isBlocked()) {
@@ -308,7 +313,7 @@ final class WalletService
             $this->walletRepository->decrementBalance($walletId, $amount);
             $wallet->refresh();
 
-            $this->movementRepository->record([
+            $movement = $this->movementRepository->record([
                 'wallet_id'      => (string) $wallet->id,
                 'user_id'        => (string) $wallet->user_id,
                 'type'           => WalletMovement::TYPE_WITHDRAWAL,
@@ -318,12 +323,13 @@ final class WalletService
                 'balance_after'  => (float) $wallet->balance,
                 'description'    => 'Retiro manual',
             ]);
+            $movementId = (string) $movement->id;
 
             return $wallet;
         });
 
         // Broadcast FUERA de la transacción: garantiza que el commit ya ocurrió
-        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_WITHDRAWAL, $amount);
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_WITHDRAWAL, $amount, $movementId);
 
         return $wallet;
     }
@@ -343,7 +349,9 @@ final class WalletService
      */
     public function recordTriviaEntry(Wallet $wallet, float $amount, string $description = 'Entrada sala Trivia'): Wallet
     {
-        $result = DB::transaction(function () use ($wallet, $amount, $description) {
+        $movementId = null;
+
+        $result = DB::transaction(function () use ($wallet, $amount, $description, &$movementId) {
             $walletId = (string) $wallet->id;
 
             if (! $wallet->hasSufficientBalance($amount)) {
@@ -355,7 +363,7 @@ final class WalletService
             $this->walletRepository->decrementBalance($walletId, $amount);
             $wallet->refresh();
 
-            $this->movementRepository->record([
+            $movement = $this->movementRepository->record([
                 'wallet_id'      => $walletId,
                 'user_id'        => (string) $wallet->user_id,
                 'type'           => WalletMovement::TYPE_TRIVIA_ENTRY,
@@ -365,11 +373,12 @@ final class WalletService
                 'balance_after'  => (float) $wallet->balance,
                 'description'    => $description,
             ]);
+            $movementId = (string) $movement->id;
 
             return $wallet;
         });
 
-        $this->broadcastWalletUpdated($result, WalletMovement::TYPE_TRIVIA_ENTRY, $amount);
+        $this->broadcastWalletUpdated($result, WalletMovement::TYPE_TRIVIA_ENTRY, $amount, $movementId);
 
         return $result;
     }
@@ -408,14 +417,16 @@ final class WalletService
             ]);
         });
 
-        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PRIZE, $amount);
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PRIZE, $amount, (string) $movement->id);
 
         return $movement;
     }
 
     public function recordCardPurchase(string $walletId, float $amount, string $description = 'Compra de cartones'): Wallet
     {
-        $wallet = DB::transaction(function () use ($walletId, $amount, $description) {
+        $movementId = null;
+
+        $wallet = DB::transaction(function () use ($walletId, $amount, $description, &$movementId) {
             $wallet = $this->findOwnedWallet($walletId);
 
             if (! $wallet->hasSufficientBalance($amount)) {
@@ -427,7 +438,7 @@ final class WalletService
             $this->walletRepository->decrementBalance($walletId, $amount);
             $wallet->refresh();
 
-            $this->movementRepository->record([
+            $movement = $this->movementRepository->record([
                 'wallet_id'      => (string) $wallet->id,
                 'user_id'        => (string) $wallet->user_id,
                 'type'           => WalletMovement::TYPE_PURCHASE,
@@ -437,12 +448,13 @@ final class WalletService
                 'balance_after'  => (float) $wallet->balance,
                 'description'    => $description,
             ]);
+            $movementId = (string) $movement->id;
 
             return $wallet;
         });
 
         // Broadcast FUERA de la transacción: garantiza que el commit ya ocurrió
-        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PURCHASE, $amount);
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PURCHASE, $amount, $movementId);
 
         return $wallet;
     }
@@ -477,7 +489,7 @@ final class WalletService
             ]);
         });
 
-        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_REFUND, $amount);
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_REFUND, $amount, (string) $movement->id);
 
         return $movement;
     }
@@ -489,7 +501,9 @@ final class WalletService
      */
     public function recordAdminDeposit(User $user, float $amount, string $description = 'Carga de saldo por administrador'): Wallet
     {
-        $wallet = DB::transaction(function () use ($user, $amount, $description) {
+        $movementId = null;
+
+        $wallet = DB::transaction(function () use ($user, $amount, $description, &$movementId) {
             // lockForUpdate sobre la wallet evita doble carga concurrente
             $locked = Wallet::lockForUpdate()
                 ->where('user_id', $user->id)
@@ -510,7 +524,7 @@ final class WalletService
             $this->walletRepository->incrementBalance($walletId, $amount);
             $locked->refresh();
 
-            $this->movementRepository->record([
+            $movement = $this->movementRepository->record([
                 'wallet_id'      => $walletId,
                 'user_id'        => (string) $locked->user_id,
                 'type'           => WalletMovement::TYPE_DEPOSIT,
@@ -520,11 +534,12 @@ final class WalletService
                 'balance_after'  => (float) $locked->balance,
                 'description'    => $description,
             ]);
+            $movementId = (string) $movement->id;
 
             return $locked;
         });
 
-        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_DEPOSIT, $amount);
+        $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_DEPOSIT, $amount, $movementId);
 
         return $wallet;
     }
@@ -806,7 +821,7 @@ final class WalletService
     /**
      * Emite el evento WebSocket con el nuevo saldo.
      */
-    private function broadcastWalletUpdated(Wallet $wallet, string $type, float $amount): void
+    private function broadcastWalletUpdated(Wallet $wallet, string $type, float $amount, ?string $movementId = null): void
     {
         try {
             broadcast(new WalletUpdated(
@@ -829,6 +844,7 @@ final class WalletService
             currencySymbol: $wallet->currency->symbol ?? '',
             movementType:   $type,
             amount:         $amount,
+            movementId:     $movementId,
         );
     }
 

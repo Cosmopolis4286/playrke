@@ -142,4 +142,23 @@ final class BingoRoomException extends DomainException
     {
         return new static('La sala ha alcanzado el límite máximo de jugadores.');
     }
+
+    /**
+     * Intento de quitar de "monedas permitidas" una moneda que ya tiene
+     * cartones vendidos en la sala (dejaría ventas existentes huérfanas).
+     */
+    public static function currencyRemovalWithSalesNotAllowed(string $currencyLabels): self
+    {
+        return new self("No puedes quitar {$currencyLabels}: ya tiene cartones vendidos en esta sala.");
+    }
+
+    /**
+     * Intento de editar una sala cuyo sorteo ya inició o terminó
+     * (IN_PROGRESS, FINISHED, CANCELLED) — a partir de ahí puede haber
+     * premios entregados que se perderían al reconstruir las rondas.
+     */
+    public static function roomNotEditableStatus(): self
+    {
+        return new self('Solo se puede editar una sala cuyo sorteo no ha iniciado ni finalizado.');
+    }
 }

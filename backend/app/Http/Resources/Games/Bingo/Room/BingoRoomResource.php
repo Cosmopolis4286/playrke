@@ -28,6 +28,15 @@ class BingoRoomResource extends JsonResource
 
             'allowed_currencies' => $config?->allowed_currencies ?? [],
 
+            // Monedas con al menos un cartón vendido (BingoCardLot ACTIVE) — el formulario de
+            // edición las usa para advertir/impedir que se quiten de "monedas permitidas".
+            // Se resuelve con una query distinct ligera (no carga los lotes completos).
+            'sold_currencies' => \App\Domains\Games\Bingo\Models\Card\BingoCardLot::where('room_id', $this->id)
+                ->where('status', 'ACTIVE')
+                ->distinct()
+                ->pluck('currency_id')
+                ->values(),
+
             'card_price_by_currency' => $this->whenLoaded('cardPrices', function () {
                 return $this->cardPrices->mapWithKeys(fn($p) => [
                     $p->currency_id => $p->card_price

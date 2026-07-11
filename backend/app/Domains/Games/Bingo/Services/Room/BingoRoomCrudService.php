@@ -124,14 +124,37 @@ class BingoRoomCrudService
             $isCreate = $roomOrDto instanceof BingoRoomCreateDTO;
             $dto = $isCreate ? $roomOrDto : $updateDto;
 
+                // Sala base (crear o usar existente)
+                $room = $isCreate ? null : $roomOrDto->loadMissing('status');
+
+                // Solo se puede editar una sala mientras su sorteo no ha iniciado ni
+                // terminado — a partir de IN_PROGRESS ya puede haber premios entregados
+                // (bingo_card_prizes), y syncRounds() más abajo borra y recrea las rondas
+                // en cada guardado, lo que borraría ese historial (round_id cascadeOnDelete).
+                if (!$isCreate && !in_array($room->status?->code, ['ACTIVE', 'INACTIVE', 'OFFLINE'], true)) {
+                    throw BingoRoomException::roomNotEditableStatus();
+                }
+
+                // Con jugadores registrados se bloquea, del lado del servidor, el cambio de
+                // estado (status_id) — la sala se activa/desactiva desde el botón dedicado
+                // "Alternar Estado" (que sí valida jugadores), no desde el formulario de edición.
+                $lockedByPlayers = !$isCreate && (int) ($room->total_players ?? 0) > 0;
+
+                // En cualquier update, no permitir quitar de "monedas permitidas" una moneda
+                // que ya tenga cartones vendidos (ventas reales) — evita dejar huérfanas
+                // compras existentes sin precio de cartón asociado tras syncCardPrices().
+                if (!$isCreate && $dto->allowedCurrencies !== null) {
+                    $this->guardAgainstRemovingSoldCurrencies($room->id, $dto->allowedCurrencies);
+                }
+
                 // Una sola query cacheada para todos los status IDs necesarios
                 $statusMap    = GameStatus::codesMap(['ACTIVE', 'INACTIVE', 'IN_PROGRESS', 'FINISHED', 'CANCELLED']);
-                $statusCode   = $dto->activateRoom ? 'ACTIVE' : 'INACTIVE';
+                $statusCode   = $lockedByPlayers ? ($room->status?->code ?? 'INACTIVE') : ($dto->activateRoom ? 'ACTIVE' : 'INACTIVE');
                 $statusId     = $statusMap[$statusCode] ?? null;
                 $activeStatusId = $statusMap['ACTIVE'] ?? null;
 
                 // Sala base (crear o usar existente)
-                $room = $isCreate ? $this->createBaseRoom($userId, $dto, $statusId) : $roomOrDto;
+                $room = $isCreate ? $this->createBaseRoom($userId, $dto, $statusId) : $room;
 
                 // Resolver configuración y prize pool
                 ['rkeCommission' => $rkeCommission, 'prizePool' => $prizePool] = $this->resolveGameConfig($dto->prizePoolType, $dto->amountAddedPrizePool);
@@ -612,6 +635,34 @@ class BingoRoomCrudService
             totalCards:   (int)    $freshRoom->total_cards,
             statusCode:   $freshRoom->status?->code,
         ));
+    }
+
+    /**
+     * Impide quitar de "monedas permitidas" una moneda que ya tenga cartones
+     * vendidos (BingoCardLot activo) en la sala — dejaría esas ventas sin
+     * precio de cartón asociado tras el sync de syncCardPrices().
+     *
+     * @param string $roomId
+     * @param array $newAllowedCurrencies IDs de monedas que quedarán permitidas tras el update
+     * @throws BingoRoomException Si alguna moneda con ventas quedaría excluida
+     */
+    private function guardAgainstRemovingSoldCurrencies(string $roomId, array $newAllowedCurrencies): void
+    {
+        $soldCurrencyIds = BingoCardLot::where('room_id', $roomId)
+            ->where('status', 'ACTIVE')
+            ->distinct()
+            ->pluck('currency_id');
+
+        $newAllowedSet = array_map('strval', $newAllowedCurrencies);
+        $removedSoldIds = $soldCurrencyIds->reject(fn($id) => in_array((string) $id, $newAllowedSet, true));
+
+        if ($removedSoldIds->isEmpty()) {
+            return;
+        }
+
+        $labels = \App\Models\Currency::whereIn('id', $removedSoldIds)->pluck('iso_code')->implode(', ');
+
+        throw BingoRoomException::currencyRemovalWithSalesNotAllowed($labels ?: $removedSoldIds->implode(', '));
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\NotificationRepositoryInterface;
 use App\Events\Notifications\NotificationCreated;
+use App\Models\MovementType;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -85,20 +86,37 @@ final class NotificationService
         float $balance,
         string $currencySymbol,
         string $movementType,
-        float $amount
+        float $amount,
+        ?string $movementId = null,
     ): Notification {
-        $title = match($movementType) {
+        $catalogType = MovementType::catalog()->get($movementType);
+        $label       = $catalogType->label ?? match ($movementType) {
+            'CARD_PURCHASE' => 'Compra de cartón',
+            default => 'Movimiento de billetera',
+        };
+        $isCredit = $catalogType->is_credit ?? !in_array($movementType, ['WITHDRAWAL', 'PURCHASE', 'CARD_PURCHASE', 'TRIVIA_ENTRY'], true);
+
+        $title = match ($movementType) {
             'DEPOSIT' => '💰 Depósito Recibido',
             'WITHDRAWAL' => '💸 Retiro Realizado',
-            'CARD_PURCHASE' => '🎫 Compra de Cartones',
-            default => '💳 Movimiento de Billetera'
+            'PURCHASE', 'CARD_PURCHASE' => '🎫 Compra de Cartones',
+            'PRIZE' => '🏆 ¡Premio Ganado!',
+            'REFUND' => '↩️ Reembolso Recibido',
+            'TRIVIA_ENTRY' => '🧠 Entrada a Trivia',
+            'RKE_COMMISSION' => '💼 Comisión Recibida',
+            default => "💳 {$label}",
         };
 
-        $message = match($movementType) {
+        $verb = $isCredit ? 'recibido' : 'gastado';
+        $message = match ($movementType) {
             'DEPOSIT' => "Has recibido {$currencySymbol}{$amount}",
             'WITHDRAWAL' => "Has retirado {$currencySymbol}{$amount}",
-            'CARD_PURCHASE' => "Has gastado {$currencySymbol}{$amount} en cartones",
-            default => "Movimiento de {$currencySymbol}{$amount}"
+            'PURCHASE', 'CARD_PURCHASE' => "Has gastado {$currencySymbol}{$amount} en cartones",
+            'PRIZE' => "Ganaste {$currencySymbol}{$amount}",
+            'REFUND' => "Se reembolsaron {$currencySymbol}{$amount} a tu billetera",
+            'TRIVIA_ENTRY' => "Has gastado {$currencySymbol}{$amount} en una entrada de trivia",
+            'RKE_COMMISSION' => "Has recibido {$currencySymbol}{$amount} por comisión",
+            default => "Has {$verb} {$currencySymbol}{$amount} — {$label}",
         };
 
         return $this->create(
@@ -110,7 +128,11 @@ final class NotificationService
                 'balance' => $balance,
                 'currency_symbol' => $currencySymbol,
                 'movement_type' => $movementType,
+                'movement_type_label' => $label,
+                'is_credit' => $isCredit,
                 'amount' => $amount,
+                'movement_id' => $movementId,
+                'url' => $movementId ? "/wallet#movement/{$movementId}" : '/wallet',
             ]
         );
     }
