@@ -257,20 +257,23 @@ class BingoRoom extends BaseModel
     }
 
     /**
-     * Badge HTML del estado
+     * Chip HTML del estado (punto de color + texto, ver .room-status-chip en BaseTable.vue).
      */
     public function getStatusBadgeAttribute(): string
     {
         $code = $this->getStatusCodeAttribute();
 
-        return match ($code) {
-            'ACTIVE'   => '<span class="badge badge-success">Disponible</span>',
-            'IN_PROGRESS' => '<span class="badge badge-primary">En Juego</span>',
-            'FINISHED'    => '<span class="badge badge-info">Finalizada</span>',
-            'REFUND'      => '<span class="badge badge-warning">Reembolso</span>',
-            'OFFLINE'     => '<span class="badge badge-secondary">Fuera de Línea</span>',
-            default       => '<span class="badge badge-dark">No Disponible</span>',
+        [$variant, $label] = match ($code) {
+            'ACTIVE'      => ['live', 'Disponible'],
+            'IN_PROGRESS' => ['live', 'En Juego'],
+            'FINISHED'    => ['finished', 'Finalizada'],
+            'REFUND'      => ['warning', 'Reembolso'],
+            'OFFLINE'     => ['offline', 'Fuera de Línea'],
+            'CANCELLED'   => ['cancelled', 'Cancelada'],
+            default       => ['offline', 'No Disponible'],
         };
+
+        return '<span class="room-status-chip room-status-chip--' . $variant . '">' . e($label) . '</span>';
     }
 
     // ========================

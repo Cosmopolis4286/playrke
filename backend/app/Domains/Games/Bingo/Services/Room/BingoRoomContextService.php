@@ -58,8 +58,8 @@ final class BingoRoomContextService
      */
     private function resolveSummaryGameRooms(?int $userId): array
     {
-        $labels  = ['Código', 'Estado', 'Tipo', 'Modo', 'Tipo Bote', 'Moneda(s)', 'Jugadores', 'Cartones', 'Premio', 'Inicio'];
-        $rowKeys = ['id', 'status_badge', 'config.roomType.label', 'config.gameMode.label', 'config.prizePoolType.label', 'config.allowed_currencies', 'total_players', 'total_cards', 'prize_pool', 'start_info'];
+        $labels  = ['Código', 'Estado', 'Tipo', 'Modo', 'Tipo Bote', 'Moneda(s)', 'Jugadores', 'Cartones', 'Premio'];
+        $rowKeys = ['code_start_badge', 'status_badge', 'config.roomType.label', 'config.gameMode.label', 'config.prizePoolType.label', 'config.allowed_currencies_badge', 'total_players_badge', 'total_cards_badge', 'prize_pool_badge'];
 
         // Superadmin y admin ven todas las salas; commerce/customer solo las suyas
         $isGlobalAdmin = $this->userContext->userHasRole('superadmin')
@@ -72,7 +72,7 @@ final class BingoRoomContextService
         $source = $this->bingoRooms->paginateWithRelations(
             perPage: 15,
             page: 1,
-            relations: ['config', 'config.roomType', 'config.gameMode', 'config.prizePoolType', 'status'],
+            relations: ['config', 'config.roomType', 'config.gameMode', 'config.prizePoolType', 'status', 'rounds.prizes'],
             conditions: $conditions,
             fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'total_cards', 'prize_pool', 'created_at']
         );
@@ -123,18 +123,107 @@ final class BingoRoomContextService
                 $row['config.prizePoolType.label'] = preg_replace('/^Bote\s+/i', '', $row['config.prizePoolType.label']);
             }
 
-            // Formatear columna Cartones: vendidos + mínimo si aplica
-            $minCards = $config?->min_cards_to_start;
+            // Campos meta numéricos crudos (además de las versiones _badge con HTML de abajo):
+            // el frontend los usa para lógica de negocio (hasPlayers, disable-edit, etc.),
+            // no solo para mostrarlos — deben sobrevivir aunque las columnas visuales cambien.
+            $row['total_players'] = (int) ($model?->total_players ?? 0);
+            $row['total_cards']   = (int) ($model?->total_cards ?? 0);
+
+            // Formatear columna Cartones: número vendido + cuota mínima apilados, en vez de
+            // concatenados en un solo texto — la cuota se resalta en verde si ya se alcanzó.
+            $cardsCount = $row['total_cards'];
+            $minCards   = $config?->min_cards_to_start;
+            $cardsCountClass = $cardsCount === 0 ? ' room-cards-cell__count--zero' : '';
+
             if ($minCards !== null && $minCards > 0) {
-                $row['total_cards'] = ($row['total_cards'] ?? 0) . ' / mín: ' . $minCards;
+                $quotaMet = $cardsCount >= $minCards;
+                $row['total_cards_badge'] = '<div class="room-cards-cell">'
+                    . '<span class="room-cards-cell__count' . $cardsCountClass . '">' . $cardsCount . '</span>'
+                    . '<span class="room-cards-cell__quota' . ($quotaMet ? ' room-cards-cell__quota--met' : '') . '">mín. ' . (int) $minCards . '</span>'
+                    . '</div>';
+            } else {
+                $row['total_cards_badge'] = '<span class="room-cards-cell__count' . $cardsCountClass . '">' . $cardsCount . '</span>';
             }
 
-            // Columna "Moneda(s)": mostrar iso_codes; campo separado con ids para filtrar
-            $currencyIds = (array) ($row['config_allowed_currencies'] ?? []);
+            // Columna "Jugadores": atenuar el 0 para que no compita visualmente con salas con actividad real.
+            $playersCount = $row['total_players'];
+            $row['total_players_badge'] = '<span class="room-players-cell' . ($playersCount === 0 ? ' room-players-cell--zero' : '') . '">' . $playersCount . '</span>';
+
+            // Columna "Código": código + fecha/hora de inicio (formato corto, sin segundos) apiladas.
+            $startInfo = $model?->start_info;
+            $startInfoShort = $startInfo && preg_match('/^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})/', $startInfo, $m)
+                ? "{$m[3]}/{$m[2]} {$m[4]}"
+                : $startInfo;
+
+            $row['code_start_badge'] = '<div class="room-code-cell">'
+                . '<span class="room-code-cell__code">' . e($row['id'] ?? '') . '</span>'
+                . '<span class="room-code-cell__date">' . e($startInfoShort ?? '') . '</span>'
+                . '</div>';
+
+            // Columna "Moneda(s)": pills discretas (metadata de contexto, no el dato principal
+            // de la columna); campo separado con ids para filtrar.
+            $currencyIds = (array) ($config?->allowed_currencies ?? []);
             $isoCodes = array_values(array_map(fn($id) => $currencyMap[$id] ?? $id, $currencyIds));
 
-            $row['config_allowed_currencies'] = implode(', ', $isoCodes);
+            $row['config_allowed_currencies_badge'] = '<div class="room-currency-pills">' . implode('', array_map(
+                fn($iso) => '<span class="room-currency-pill">' . e($iso) . '</span>',
+                $isoCodes
+            )) . '</div>';
             $row['currency_ids'] = $currencyIds;
+
+            // Columna "Premio": una línea por moneda permitida en la sala.
+            // Premios FIJOS (bingo_round_prizes.currency_id) se usan tal cual; si el bote es
+            // porcentual/acumulativo (sin currency_id), se convierte prize_pool (base USD)
+            // a cada moneda con la tasa activa. Sin tasa activa -> "—" en esa línea.
+            $fixedPrizesByCurrency = $model?->rounds
+                ?->flatMap(fn($round) => $round->prizes)
+                ->whereNotNull('currency_id')
+                ->groupBy('currency_id')
+                ->map(fn($prizes) => $prizes->sum('prize_value')) ?? collect();
+
+            // OJO: 'prize_pool' no está en $rowKeys (solo se seleccionó en `fields` de la
+            // query), por lo que buildRow() nunca lo copiaba al array $row — esto hacía
+            // que el bote mostrado fuera siempre 0.00 sin importar el prize_pool real de
+            // la sala. Se lee directamente del modelo, igual que total_players/total_cards.
+            $prizePoolUsd = (float) ($model?->prize_pool ?? 0);
+
+            $prizeLines = [];
+            foreach ($currencyIds as $currencyId) {
+                $iso = $currencyMap[$currencyId] ?? $currencyId;
+                $currencyIdStr = (string) $currencyId;
+                $amountClass = 'room-prize-cell__amount';
+                $amountTitle = '';
+
+                if ($fixedPrizesByCurrency->has($currencyIdStr)) {
+                    $amount = (float) $fixedPrizesByCurrency->get($currencyIdStr);
+                    $amountText = number_format($amount, 2);
+                } else {
+                    try {
+                        $rate = $this->currencyExchangeRate->getActiveRate($currencyId);
+                        $amount = $prizePoolUsd * $rate;
+                        $amountText = number_format($amount, 2);
+                    } catch (\App\Exceptions\Domain\ExchangeRate\ExchangeRateException) {
+                        $amount = null;
+                        $amountText = '—';
+                        $amountClass .= ' room-prize-cell__amount--na';
+                        $amountTitle = 'Sin tasa de cambio activa';
+                    }
+                }
+
+                // Bote en 0 con cartones ya vendidos: señal a revisar (no un dato neutro),
+                // se marca visualmente sin alterar la cifra real.
+                if ($amount !== null && $amount <= 0.0 && $cardsCount > 0) {
+                    $amountClass .= ' room-prize-cell__amount--zero';
+                    $amountTitle = 'Bote en 0 con cartones vendidos — revisar';
+                }
+
+                $prizeLines[] = '<div class="room-prize-cell__line">'
+                    . '<span class="room-prize-cell__currency">' . e($iso) . '</span>'
+                    . '<span class="' . $amountClass . '"' . ($amountTitle !== '' ? ' title="' . e($amountTitle) . '"' : '') . '>' . $amountText . '</span>'
+                    . '</div>';
+            }
+
+            $row['prize_pool_badge'] = '<div class="room-prize-cell">' . implode('', $prizeLines) . '</div>';
         }
         unset($row);
 
@@ -243,7 +332,17 @@ final class BingoRoomContextService
 
                 if ($playerCurrency) {
                     $currencySym = $playerCurrency->symbol;
-                    $exchangeRate = $this->currencyExchangeRate->getActiveRate($playerCurrency->id);
+                    try {
+                        $exchangeRate = $this->currencyExchangeRate->getActiveRate($playerCurrency->id);
+                    } catch (\App\Exceptions\Domain\ExchangeRate\ExchangeRateException $e) {
+                        // Vista de solo lectura (lobby): no bloquear la carga de la sala por
+                        // falta de tasa — se deja constancia en logs para que se corrija la
+                        // tasa antes de que el jugador intente comprar (ahí sí se bloquea).
+                        \Illuminate\Support\Facades\Log::warning('[BingoRoomContextService] Sin tasa activa al armar contexto del lobby', [
+                            'currency_id' => $playerCurrency->id,
+                            'error'       => $e->getMessage(),
+                        ]);
+                    }
                 }
             }
         }
