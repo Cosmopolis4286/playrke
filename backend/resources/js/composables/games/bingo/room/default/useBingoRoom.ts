@@ -12,6 +12,9 @@ interface UseBingoRoomReturn {
     /** Datos de la sala (para crear o editar) */
     roomData: Ref<Partial<BingoRoom>>
 
+    /** IDs de monedas con al menos un cartón vendido en la sala en edición (no se pueden quitar de "monedas permitidas"). */
+    soldCurrencyIds: Ref<string[]>
+
     /** Datos del formulario de creación */
     roomFormData: Ref<BingoRoomFormData>
 
@@ -131,6 +134,9 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
     /** Estado único del formulario (para tabla CRUD) */
     const roomData = ref<Partial<BingoRoom>>(emptyBingoRoom())
 
+    /** Monedas con cartones vendidos en la sala en edición (ver soldCurrencyIds) */
+    const soldCurrencyIds = ref<string[]>([])
+
     /** Datos del formulario de creación/edición */
     const roomFormData = ref<BingoRoomFormData>(emptyFormData())
 
@@ -140,6 +146,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
     function reset(): void {
         roomData.value = { ...emptyBingoRoom() }
         roomFormData.value = emptyFormData()
+        soldCurrencyIds.value = []
     }
 
     /**
@@ -219,6 +226,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
             const config = room.config ?? {}
 
             roomData.value = { id: room.id }
+            soldCurrencyIds.value = (room.sold_currencies ?? []).map((id: string | number) => String(id))
 
             roomFormData.value = {
                 date: config.date ?? null,
@@ -386,6 +394,7 @@ export function useBingoRoom(tokenId: string = ''): UseBingoRoomReturn {
 
     return {
         roomData,
+        soldCurrencyIds,
         roomFormData,
         rooms,
         loading,

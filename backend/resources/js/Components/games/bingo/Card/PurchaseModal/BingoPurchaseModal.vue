@@ -346,102 +346,77 @@
                     </div>
                   </Transition>
 
-                  <!-- Resumen de compra -->
-                  <div class="pm-summary">
-                    <!-- País (no-players) -->
-                    <div v-if="!isPlayer && isPlayer !== null" class="pm-summary__row">
-                      <span>País</span>
-                      <span>{{ selectedCountry?.name ?? '—' }}</span>
-                    </div>
-
-                    <!-- Caso simple: sin personalización o todos al azar -->
-                    <template v-if="!customizeCard || manualCardCount === 0">
-                      <div class="pm-summary__row">
-                        <span>Precio c/u</span>
-                        <span>{{ basePricePerCard.toFixed(2) }} {{ currencySymbol }}</span>
-                      </div>
-                      <div class="pm-summary__row">
-                        <span>Cartones al azar</span>
-                        <span>× {{ numCtns }}</span>
-                      </div>
-                    </template>
-
-                    <!-- Caso mixto: algunos personalizados, algunos al azar -->
-                    <template v-else>
-                      <!-- Cartones al azar -->
-                      <div v-if="numCtns - manualCardCount > 0" class="pm-summary__row">
-                        <span>Al azar × {{ numCtns - manualCardCount }}</span>
-                        <span>{{ ((numCtns - manualCardCount) * basePricePerCard).toFixed(2) }} {{ currencySymbol }}</span>
-                      </div>
-                      <!-- Cartones personalizados -->
-                      <div class="pm-summary__row pm-summary__row--custom">
-                        <span>
-                          <i class="fas fa-pen" style="font-size:9px;opacity:.7;margin-right:3px" />
-                          Personalizado × {{ manualCardCount }}
-                          <em v-if="customPricePct > 0" class="pm-summary__surcharge">+{{ customPricePct }}%</em>
-                        </span>
-                        <span>{{ (manualCardCount * customPricePerCard).toFixed(2) }} {{ currencySymbol }}</span>
-                      </div>
-                    </template>
-
-                    <!-- Cartones ya comprados -->
-                    <div v-if="currentCtns > 0" class="pm-summary__row">
-                      <span>Total cartones</span>
-                      <span>{{ currentCtns + numCtns }}</span>
-                    </div>
-
-                    <!-- Total -->
-                    <div class="pm-summary__row pm-summary__row--total">
-                      <span>Total</span>
-                      <span class="pm-summary__total-amount">
-                        {{ totalAmount.toFixed(2) }}
-                        <small>{{ currencySymbol }}</small>
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </Transition>
             </div>
 
             <!-- ═══════════════════ FOOTER ═══════════════════ -->
             <div class="pm-footer">
-              <button
-                v-if="!isPlayer && isPlayer !== null && step === 'confirm'"
-                class="pm-btn pm-btn--secondary"
-                :disabled="purchasing"
-                @click="emit('prev')"
-              >
-                <i class="fas fa-arrow-left mr-1" />Atrás
-              </button>
 
-              <button
-                v-if="step === 'confirm' && currentCtns > 0"
-                class="pm-btn pm-btn--cards"
-                @click="goToLobby"
-              >
-                <i class="fas fa-door-open mr-1" />Ir al lobby
-              </button>
+              <!-- Botones izquierda: solo iconos -->
+              <div class="pm-footer__actions">
+                <button
+                  v-if="!isPlayer && isPlayer !== null && step === 'confirm'"
+                  class="pm-icon-btn"
+                  title="Atrás"
+                  :disabled="purchasing"
+                  @click="emit('prev')"
+                >
+                  <i class="fas fa-arrow-left" />
+                </button>
+                <button
+                  v-if="step === 'confirm' && currentCtns > 0"
+                  class="pm-icon-btn pm-icon-btn--lobby"
+                  title="Ir al lobby"
+                  @click="goToLobby"
+                >
+                  <i class="fas fa-door-open" />
+                </button>
+              </div>
 
-              <div class="pm-footer__spacer" />
+              <!-- Resumen compacto centrado -->
+              <div v-if="step === 'confirm'" class="pm-footer__summary">
+                <!-- Sin personalización o todos al azar -->
+                <template v-if="!customizeCard || manualCardCount === 0">
+                  <span class="pm-fs__pill">
+                    <i class="fas fa-ticket-alt" />{{ numCtns }}× {{ basePricePerCard.toFixed(2) }}
+                  </span>
+                </template>
+                <!-- Mixto -->
+                <template v-else>
+                  <span v-if="numCtns - manualCardCount > 0" class="pm-fs__pill">
+                    <i class="fas fa-dice" />{{ numCtns - manualCardCount }}× {{ basePricePerCard.toFixed(2) }}
+                  </span>
+                  <span class="pm-fs__pill pm-fs__pill--custom">
+                    <i class="fas fa-pen" />{{ manualCardCount }}× {{ customPricePerCard.toFixed(2) }}
+                    <em v-if="customPricePct > 0">+{{ customPricePct }}%</em>
+                  </span>
+                </template>
+                <span class="pm-fs__sep">=</span>
+                <span class="pm-fs__total">
+                  {{ totalAmount.toFixed(2) }}<small>{{ currencySymbol }}</small>
+                </span>
+              </div>
+              <div v-else class="pm-footer__spacer" />
 
+              <!-- Botón principal -->
               <button
                 v-if="!isPlayer && isPlayer !== null && step === 'country'"
                 class="pm-btn pm-btn--primary"
                 :disabled="!canAdvance || loadingPrice"
                 @click="emit('next')"
               >
-                Siguiente<i class="fas fa-arrow-right ml-1" />
+                <i class="fas fa-arrow-right" />
               </button>
-
               <button
                 v-else
                 class="pm-btn pm-btn--buy"
                 :disabled="purchasing || isPlayer === null"
                 @click="handlePurchaseClick"
               >
-                <span v-if="purchasing" class="pm-spinner pm-spinner--sm mr-1" />
-                <i v-else class="fas fa-lock mr-1" />
-                {{ purchasing ? 'Procesando…' : 'Confirmar Compra' }}
+                <span v-if="purchasing" class="pm-spinner pm-spinner--sm" />
+                <i v-else class="fas fa-lock" />
+                {{ purchasing ? 'Procesando…' : 'Comprar' }}
               </button>
             </div>
 
@@ -508,8 +483,8 @@
     z-index: 1;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 20px 12px;
+    gap: 10px;
+    padding: 10px 16px 8px;
     background: linear-gradient(90deg, rgba(0, 74, 255, 0.15), rgba(0, 158, 253, 0.1));
     border-bottom: 1px solid rgba(100, 140, 255, 0.12);
   }
@@ -633,28 +608,29 @@
   .pm-room-banner {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 20px;
+    gap: 8px;
+    padding: 5px 14px;
     background: rgba(0, 10, 40, 0.5);
     border-bottom: 1px solid rgba(100, 140, 255, 0.08);
   }
 
   .pm-room-banner__img {
-    width: 44px;
-    height: 30px;
+    width: 32px;
+    height: 22px;
     object-fit: cover;
-    border-radius: 6px;
+    border-radius: 5px;
     opacity: 0.85;
   }
 
   .pm-room-banner__info {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
   }
 
   .pm-room-banner__mode {
-    font-size: 10px;
+    font-size: 9px;
     color: #5578bb;
     text-transform: uppercase;
     letter-spacing: 0.6px;
@@ -663,12 +639,12 @@
   .pm-room-banner__prize {
     display: flex;
     align-items: baseline;
-    gap: 4px;
+    gap: 3px;
   }
 
   .pm-room-banner__prize-num {
     font-family: 'Anton', sans-serif;
-    font-size: 20px;
+    font-size: 15px;
     background: linear-gradient(135deg, #ffe566, #ffab00);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -676,7 +652,7 @@
   }
 
   .pm-room-banner__prize-sym {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     color: #ffd060;
     -webkit-text-fill-color: #ffd060;
@@ -688,7 +664,7 @@
   .pm-body {
     flex: 1;
     overflow-y: auto;
-    padding: 14px 20px;
+    padding: 8px 14px;
     scrollbar-width: thin;
     scrollbar-color: #7b4fff transparent;
   }
@@ -706,7 +682,7 @@
   .pm-step {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 7px;
   }
 
   .pm-step__label {
@@ -812,12 +788,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
   }
 
   .pm-qty-btn {
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     border: 1.5px solid rgba(100, 140, 255, 0.3);
     background: rgba(255, 255, 255, 0.04);
@@ -826,7 +802,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 11px;
     transition: all 0.2s;
   }
   .pm-qty-btn:not(:disabled):hover {
@@ -840,15 +816,15 @@
   }
 
   .pm-qty-input {
-    width: 58px;
+    width: 46px;
     background: rgba(255, 255, 255, 0.05);
     border: 1.5px solid rgba(100, 140, 255, 0.2);
-    border-radius: 10px;
+    border-radius: 8px;
     color: #e0e8ff;
-    font-size: 22px;
+    font-size: 18px;
     font-family: 'Anton', sans-serif;
     text-align: center;
-    padding: 3px 0;
+    padding: 2px 0;
     outline: none;
     -moz-appearance: textfield;
     appearance: none;
@@ -867,10 +843,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
-    padding: 9px 14px;
-    border-radius: 12px;
+    padding: 6px 12px;
+    border-radius: 10px;
     border: 1.5px solid rgba(100, 140, 255, 0.25);
     background: rgba(255, 255, 255, 0.03);
     color: #7c9dff;
@@ -904,107 +880,117 @@
   }
 
 
-  /* ── Summary ── */
-  .pm-summary {
-    background: rgba(0, 10, 40, 0.5);
-    border: 1px solid rgba(100, 140, 255, 0.12);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .pm-summary__row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 7px 12px;
-    font-size: 11px;
-    border-bottom: 1px solid rgba(100, 140, 255, 0.07);
-    color: #8aa4d0;
-  }
-  .pm-summary__row:last-child {
-    border-bottom: none;
-  }
-  .pm-summary__row span:last-child {
-    color: #c0d0f0;
-    font-weight: 600;
-  }
-
-  .pm-summary__row--custom {
-    background: rgba(100, 180, 255, 0.05);
-    border-color: rgba(100, 180, 255, 0.1);
-  }
-  .pm-summary__row--custom span:first-child {
-    color: #90c8ff;
-  }
-  .pm-summary__surcharge {
-    font-style: normal;
-    font-size: 9px;
-    font-weight: 700;
-    color: #4ab4ff;
-    background: rgba(74, 180, 255, 0.12);
-    border: 1px solid rgba(74, 180, 255, 0.25);
-    border-radius: 99px;
-    padding: 1px 5px;
-    margin-left: 4px;
-    vertical-align: middle;
-  }
-
-  .pm-summary__row--total {
-    background: rgba(0, 74, 255, 0.08);
-    padding: 9px 12px;
-  }
-  .pm-summary__row--total span:first-child {
-    color: #7c9dff;
-    font-weight: 700;
-    font-size: 12px;
-  }
-
-  .pm-summary__total-amount {
-    font-family: 'Anton', sans-serif !important;
-    font-size: 18px !important;
-    color: #7affba !important;
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-  }
-  .pm-summary__total-amount small {
-    font-family: inherit;
-    font-size: 11px !important;
-    color: #4ea87a;
-  }
-
   /* ═══════════════════════════════════════════════════════
    FOOTER
 ═══════════════════════════════════════════════════════ */
   .pm-footer {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 16px;
+    gap: 6px;
+    padding: 6px 12px;
     border-top: 1px solid rgba(100, 140, 255, 0.1);
     background: rgba(0, 5, 20, 0.4);
   }
 
-  .pm-footer__spacer {
-    flex: 1;
+  .pm-footer__actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
   }
+
+  .pm-footer__spacer { flex: 1; }
+
+  /* Resumen compacto en el footer */
+  .pm-footer__summary {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 1;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+  .pm-fs__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #8aa4d0;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(100,140,255,0.12);
+    border-radius: 99px;
+    padding: 2px 7px;
+    white-space: nowrap;
+  }
+  .pm-fs__pill i { font-size: 8px; opacity: .65; }
+  .pm-fs__pill--custom {
+    color: #90c8ff;
+    border-color: rgba(100,180,255,0.2);
+    background: rgba(100,180,255,0.06);
+  }
+  .pm-fs__pill--custom em {
+    font-style: normal;
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #4ab4ff;
+    background: rgba(74,180,255,0.15);
+    border-radius: 99px;
+    padding: 0 3px;
+    margin-left: 1px;
+  }
+  .pm-fs__sep {
+    font-size: 10px;
+    color: rgba(100,140,255,0.4);
+  }
+  .pm-fs__total {
+    font-family: 'Anton', sans-serif;
+    font-size: 15px;
+    color: #7affba;
+    white-space: nowrap;
+  }
+  .pm-fs__total small {
+    font-family: inherit;
+    font-size: 9px;
+    color: #4ea87a;
+    margin-left: 2px;
+  }
+
+  /* Botón icono (atrás / lobby) */
+  .pm-icon-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(100, 140, 255, 0.25);
+    background: rgba(255,255,255,0.04);
+    color: #7c9dff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .pm-icon-btn:not(:disabled):hover {
+    background: rgba(100,140,255,0.12);
+    border-color: rgba(100,140,255,0.5);
+  }
+  .pm-icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .pm-icon-btn--lobby { color: #7c9dff; }
 
   .pm-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 9px 18px;
+    gap: 5px;
+    padding: 7px 16px;
     border-radius: 30px;
     border: none;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.4px;
     cursor: pointer;
-    transition:
-      filter 0.2s,
-      opacity 0.2s,
-      transform 0.15s;
+    flex-shrink: 0;
+    transition: filter 0.2s, opacity 0.2s, transform 0.15s;
     white-space: nowrap;
   }
   .pm-btn:not(:disabled):hover {
@@ -1017,32 +1003,16 @@
     transform: none;
   }
 
-  .pm-btn--secondary {
-    background: rgba(100, 140, 255, 0.12);
-    color: #7c9dff;
-    border: 1px solid rgba(100, 140, 255, 0.25);
-  }
-
   .pm-btn--primary {
     background: linear-gradient(90deg, #4a6fff 0%, #009efd 100%);
     color: #fff;
+    padding: 7px 14px;
   }
 
   .pm-btn--buy {
     background: linear-gradient(90deg, #2af598 0%, #009efd 100%);
     color: #051830;
-    min-width: 160px;
-  }
-
-  .pm-btn--cards {
-    background: rgba(124, 157, 255, 0.12);
-    color: #7c9dff;
-    border: 1px solid rgba(124, 157, 255, 0.3);
-  }
-  .pm-btn--cards:hover {
-    background: rgba(124, 157, 255, 0.22);
-    border-color: rgba(124, 157, 255, 0.55);
-    color: #c8d8ff;
+    min-width: 110px;
   }
 
   /* ═══════════════════════════════════════════════════════
@@ -1051,18 +1021,18 @@
   .pm-ctns-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     align-self: center;
-    padding: 5px 12px;
+    padding: 3px 10px;
     background: rgba(42, 245, 152, 0.08);
     border: 1px solid rgba(42, 245, 152, 0.22);
     border-radius: 30px;
     color: #7affba;
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .pm-ctns-badge i {
-    font-size: 10px;
+    font-size: 9px;
     opacity: 0.75;
   }
 

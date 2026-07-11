@@ -118,18 +118,16 @@ function handleClick() {
             <span class="rc__blink" /><b>LIVE</b>
           </template>
         </div>
-
-        <!-- Variante de bingo: esquina superior derecha -->
-        <div v-tooltip="variantLabel" class="rc__variant-badge">
-          {{ variantBalls }}B
-        </div>
       </div>
 
       <!-- ── Body ── -->
       <div class="rc__body">
 
-        <!-- Fila 1: rondas | precio -->
+        <!-- Fila 1: variante | rondas | precio -->
         <div class="rc__row rc__row--top">
+          <span v-tooltip="variantLabel" class="rc__tag rc__tag--variant">
+            {{ variantBalls }}B
+          </span>
           <span
             v-tooltip="roundsCount > 1
               ? `Esta sala juega ${roundsCount} rondas seguidas con los mismos cartones`
@@ -330,17 +328,6 @@ function handleClick() {
   opacity: .75;
 }
 
-/* variante de bingo — esquina superior derecha del thumbnail */
-.rc__variant-badge {
-  position: absolute; top: 5px; right: 5px; z-index: 3;
-  padding: 2px 6px; border-radius: 6px;
-  font-size: 8px; font-weight: 800; letter-spacing: .3px;
-  color: #cdd8ff; background: rgba(10,14,32,.72);
-  border: 1px solid rgba(255,255,255,.12);
-  backdrop-filter: blur(6px);
-  cursor: help;
-}
-
 /* badge estado — top centrado */
 .rc__status-badge {
   position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
@@ -416,6 +403,11 @@ function handleClick() {
   white-space: nowrap; flex-shrink: 0;
 }
 .rc__tag i { font-size: 7px; }
+.rc__tag--variant {
+  color: #8aa0c0;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1);
+  cursor: help;
+}
 .rc__tag--rounds {
   color: #a878e8;
   background: rgba(130,60,220,.1); border: 1px solid rgba(130,60,220,.22);
@@ -424,6 +416,7 @@ function handleClick() {
 .rc__tag--price {
   color: #6aaad8;
   background: rgba(40,110,190,.1); border: 1px solid rgba(40,110,190,.2);
+  margin-left: auto;
 }
 .rc__tag--price i { color: #3a80b8; }
 

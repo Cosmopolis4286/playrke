@@ -243,11 +243,13 @@
 
     // ── Metadatos por tipo de movimiento ─────────────────────
     var TYPE_META = {
-        DEPOSIT:      { label: 'Depósito',      icon: 'fa-arrow-down',  color: '#28a745', sign: '+' },
-        WITHDRAWAL:   { label: 'Retiro',         icon: 'fa-arrow-up',    color: '#ffc107', sign: '-' },
-        PURCHASE:     { label: 'Compra cartón',  icon: 'fa-ticket-alt',  color: '#dc3545', sign: '-' },
-        PRIZE:        { label: '¡Premio! 🎉',    icon: 'fa-trophy',      color: '#fd7e14', sign: '+' },
-        TRIVIA_ENTRY: { label: 'Entrada Trivia', icon: 'fa-brain',       color: '#7c3aed', sign: '-' },
+        DEPOSIT:        { label: 'Depósito',      icon: 'fa-arrow-down',  color: '#28a745', sign: '+' },
+        WITHDRAWAL:     { label: 'Retiro',         icon: 'fa-arrow-up',    color: '#ffc107', sign: '-' },
+        PURCHASE:       { label: 'Compra cartón',  icon: 'fa-ticket-alt',  color: '#dc3545', sign: '-' },
+        PRIZE:          { label: '¡Premio! 🎉',    icon: 'fa-trophy',      color: '#fd7e14', sign: '+' },
+        TRIVIA_ENTRY:   { label: 'Entrada Trivia', icon: 'fa-brain',       color: '#7c3aed', sign: '-' },
+        REFUND:         { label: 'Reembolso',      icon: 'fa-undo',       color: '#0891b2', sign: '+' },
+        RKE_COMMISSION: { label: 'Comisión RKE',   icon: 'fa-percent',    color: '#667eea', sign: '+' },
     };
 
     var ADMIN_META = {
@@ -408,12 +410,24 @@
     function renderNotification(notification, prepend) {
         if ($empty) $empty.style.display = 'none';
 
-        var r   = resolveMeta(notification);
-        var url = (notification.data && notification.data.url) || (r.isResult ? '/wallet' : null);
+        var r    = resolveMeta(notification);
+        var url  = (notification.data && notification.data.url) || (r.isResult ? '/wallet' : null);
+        var data = notification.data || {};
+
+        var amountChip = '';
+        if (data.amount != null && data.currency_symbol && r.meta.sign) {
+            amountChip =
+                '<span class="flex-shrink-0 font-weight-bold" style="font-size:12px;color:' + r.meta.color + '">' +
+                    r.meta.sign + fmt(data.currency_symbol, data.amount) +
+                '</span>';
+        }
 
         var li = buildListItem(
             r.meta,
-            '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + (notification.title || r.meta.label) + '</p>' +
+            '<div class="d-flex align-items-start justify-content-between" style="gap:8px">' +
+                '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + (notification.title || r.meta.label) + '</p>' +
+                amountChip +
+            '</div>' +
             '<p class="mb-0 text-muted" style="font-size:11px">' + notification.message + '</p>',
             notification.created_at,
             url,

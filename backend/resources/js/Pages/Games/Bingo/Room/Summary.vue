@@ -52,6 +52,7 @@
   // ==========================================================================
   const {
     roomData,
+    soldCurrencyIds,
     roomFormData,
     rooms,
     loading,
@@ -377,10 +378,34 @@
       return room != null && (room.total_players ?? 0) > 0
     })
 
+  /**
+   * true si la sala actualmente en edición ya tiene jugadores registrados —
+   * en ese caso el formulario bloquea el switch de estado (¿Activar sala?),
+   * pero permite seguir editando el resto (monedas, precios, bote, rondas,
+   * comisión, jackpot, tiempo ficha, min. cartones, modo/horario de inicio).
+   */
+  const editingRoomHasPlayers = computed(() => hasPlayers([String(roomData.value.id ?? '')]))
+
   const hasActiveStatus = (ids: string[]): boolean =>
     ids.some(id => {
       const room = rooms.value.find(r => String(r.id) === String(id))
       return room != null && room.status === 'ACTIVE'
+    })
+
+  /** Estados en los que el sorteo de la sala aún no ha iniciado ni terminado. */
+  const EDITABLE_ROOM_STATUSES = ['ACTIVE', 'INACTIVE', 'OFFLINE']
+
+  /**
+   * Solo se puede editar una sala mientras su sorteo no ha iniciado ni
+   * finalizado — una vez IN_PROGRESS/FINISHED/CANCELLED ya puede haber
+   * premios entregados (bingo_card_prizes), y syncRounds() en el backend
+   * borra y recrea las rondas en cada guardado, lo que borraría ese
+   * historial (bingo_card_prizes.round_id es cascadeOnDelete).
+   */
+  const isNotEditableStatus = (ids: string[]): boolean =>
+    ids.some(id => {
+      const room = rooms.value.find(r => String(r.id) === String(id))
+      return room != null && !EDITABLE_ROOM_STATUSES.includes(room.status)
     })
 
   const canCancelRoom = (ids: string[]): boolean => {
@@ -495,8 +520,8 @@
     showCreateButton
     showEditButton
     showDeleteButton
-    :disable-edit="hasPlayers"
-    disable-edit-reason="No se puede editar una sala con jugadores registrados"
+    :disable-edit="isNotEditableStatus"
+    disable-edit-reason="No se puede editar una sala En Juego, Finalizada o Cancelada"
     :disable-delete="hasPlayers"
     disable-delete-reason="No se puede eliminar una sala con jugadores registrados"
     :extra-buttons="extraButtons"
@@ -521,6 +546,8 @@
       :currencies-with-active-rate="props.currenciesWithActiveRate"
       :existing-rooms="rooms"
       :editing-room-id="roomData.id ? String(roomData.id) : null"
+      :editing-room-has-players="editingRoomHasPlayers"
+      :sold-currency-ids="soldCurrencyIds"
     />
 
     <template #footer>

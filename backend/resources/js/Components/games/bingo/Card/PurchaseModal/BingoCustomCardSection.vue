@@ -133,7 +133,7 @@ defineExpose({
 .bcs-wrap {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 /* ── Tabs ── */

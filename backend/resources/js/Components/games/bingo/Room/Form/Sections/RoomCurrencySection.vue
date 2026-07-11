@@ -2,6 +2,7 @@
   import { computed } from 'vue'
   import FormSelect from '@/js/Components/Common/Form/FormSelect.vue'
   import { updateCtnPriceForCurrency, getCurrencyLabel } from '../Composables/useRoomCurrency'
+  import { showToast } from '@/js/utils/toastNotify'
   import type { BingoRoomFormData } from '@/js/types/games/bingo/room/bingo-room'
   import type { SelectOption } from '@/js/types/common/form/form'
 
@@ -15,6 +16,8 @@
     canAdjustCtnPriceByCurrency: boolean
     hasCardPriceByCurrencyErrors: boolean
     currenciesWithActiveRate?: string[]
+    /** IDs de monedas con cartones ya vendidos — no se pueden quitar de "Monedas Permitidas". */
+    soldCurrencyIds?: string[]
   }>()
 
   const emit = defineEmits<{
@@ -22,6 +25,26 @@
     (e: 'update:useBaseUsd', value: boolean): void
     (e: 'update:cardPriceByCurrencyActive', value: boolean): void
   }>()
+
+  /**
+   * Intercepta el cambio de "Monedas Permitidas": si el usuario intenta quitar
+   * una moneda que ya tiene cartones vendidos, se revierte y se avisa — el
+   * servidor también lo rechazaría, pero avisar aquí evita perder el resto de
+   * los cambios del formulario al guardar.
+   */
+  function onAllowedCurrenciesChange(value: (string | number)[] | null): void {
+    const sold = props.soldCurrencyIds ?? []
+    const next = (value ?? []).map(String)
+    const removedSold = sold.filter(id => !next.includes(id))
+
+    if (removedSold.length > 0) {
+      const labels = removedSold.map(id => label(id)).join(', ')
+      showToast(`No puedes quitar ${labels}: ya tiene cartones vendidos en esta sala.`, 'error')
+      return
+    }
+
+    emit('update:modelValue', { ...props.modelValue, allowedCurrencies: value as any })
+  }
 
   function toggleCtnPriceByCurrency() {
     if (!props.canAdjustCtnPriceByCurrency) return
@@ -76,7 +99,7 @@
     col="col-sm-6"
     inputGroup
     :modelValue="modelValue.allowedCurrencies"
-    @update:modelValue="emit('update:modelValue', { ...modelValue, allowedCurrencies: $event })"
+    @update:modelValue="onAllowedCurrenciesChange"
   >
     <template #append>
       <VDropdown

@@ -9,6 +9,8 @@ const props = defineProps<{
   form:   BingoRoomFormData
   errors: Record<string, unknown>
   currencyOptions?: SelectOption[]
+  /** true si la sala tiene jugadores: el estado no se puede cambiar desde el formulario. */
+  lockActivateRoom?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -163,13 +165,17 @@ const roomModeLabel = computed(() => {
             type="checkbox"
             class="custom-control-input"
             id="activateRoom"
-            :disabled="isScheduledDateInPast"
+            :disabled="isScheduledDateInPast || lockActivateRoom"
             :checked="form.activateRoom ?? false"
             @change="onActivateRoomChange(($event.target as HTMLInputElement).checked)"
           />
           <label class="custom-control-label" for="activateRoom">¿Activar sala?</label>
         </div>
-        <small v-if="isScheduledDateInPast" class="text-danger d-block mt-1">
+        <small v-if="lockActivateRoom" class="text-muted d-block mt-1">
+          <i class="fas fa-lock mr-1"></i>
+          La sala tiene jugadores registrados: usa "Alternar Estado" en la tabla para cambiar el estado.
+        </small>
+        <small v-else-if="isScheduledDateInPast" class="text-danger d-block mt-1">
           <i class="fas fa-exclamation-triangle mr-1"></i>
           La fecha/hora programada ya pasó. Actualízala antes de activar la sala.
         </small>

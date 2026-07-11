@@ -44,6 +44,10 @@
     existingRooms?: BingoRoom[]
     /** ID de la sala en edición, para excluirla del propio chequeo de solapamiento. */
     editingRoomId?: string | null
+    /** true si la sala en edición ya tiene jugadores registrados. */
+    editingRoomHasPlayers?: boolean
+    /** IDs de monedas con al menos un cartón vendido en la sala en edición — no se pueden quitar de "Monedas Permitidas". */
+    soldCurrencyIds?: string[]
     modelValue: BingoRoomFormData | BingoRoomAutomaticFormData
   }>()
 
@@ -116,6 +120,22 @@
   /* ==========================================================================
    * Computed derivados del form
    * ========================================================================== */
+
+  /**
+   * Con jugadores registrados se bloquean los campos que afectarían una
+   * partida en curso (monedas/precios, bote, rondas/premios/seriales y el
+   * estado de la sala). El resto (comisión, jackpot, tiempo ficha, mínimo de
+   * cartones, modo/horario de inicio) sigue editable.
+   */
+  const lockedByPlayers = computed(() => props.isEdit === true && props.editingRoomHasPlayers === true)
+
+  const soldCurrencyIds = computed(() => (props.soldCurrencyIds ?? []).map(String))
+
+  const soldCurrencyLabels = computed(() =>
+    soldCurrencyIds.value
+      .map(id => props.allowedCurrenciesOptions.find(opt => String(opt.value) === id)?.label ?? id)
+      .join(', ')
+  )
 
   const showRoundsPct = computed(() => (form.value.rounds ?? 1) >= 1)
 
@@ -442,6 +462,13 @@
 
       <!-- Paso: Monedas y precios -->
       <template v-if="step === 'currencies'">
+        <div v-if="isEdit && soldCurrencyIds.length" class="col-12 mb-2">
+          <div class="alert alert-warning mb-0 px-3 py-2" style="font-size: 0.82rem">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            Esta sala ya tiene cartones vendidos en: <strong>{{ soldCurrencyLabels }}</strong>.
+            No puedes quitar esas monedas de "Monedas Permitidas" — el servidor rechazará el cambio.
+          </div>
+        </div>
         <RoomCurrencySection
           :modelValue="form"
           :errors="errors"
@@ -452,6 +479,7 @@
           :canAdjustCtnPriceByCurrency="canAdjustCtnPriceByCurrency"
           :hasCardPriceByCurrencyErrors="hasCardPriceByCurrencyErrors"
           :currenciesWithActiveRate="currenciesWithActiveRate ?? []"
+          :soldCurrencyIds="soldCurrencyIds"
           @update:modelValue="form = $event"
           @update:useBaseUsd="useBaseUsd = $event"
           @update:cardPriceByCurrencyActive="cardPriceByCurrencyActive = $event"
@@ -494,6 +522,7 @@
           :form="form"
           :errors="errors"
           :currency-options="allowedCurrenciesOptions"
+          :lock-activate-room="lockedByPlayers"
           @update:form="form = $event"
         />
       </div>
