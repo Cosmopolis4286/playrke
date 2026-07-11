@@ -147,20 +147,30 @@ export const useGlobalNotifications = () => {
 
   // Funciones helper
   const getWalletTitle = (movementType: string): string => {
-    const titles = {
+    const titles: Record<string, string> = {
       DEPOSIT: '💰 Depósito Recibido',
       WITHDRAWAL: '💸 Retiro Realizado',
+      PURCHASE: '🎫 Compra de Cartones',
       CARD_PURCHASE: '🎫 Compra de Cartones',
+      PRIZE: '🏆 ¡Premio Ganado!',
+      REFUND: '↩️ Reembolso Recibido',
+      TRIVIA_ENTRY: '🧠 Entrada a Trivia',
+      RKE_COMMISSION: '💼 Comisión Recibida',
     }
     return titles[movementType] || '💳 Movimiento de Billetera'
   }
 
   const getWalletMessage = (event: any): string => {
     const { movement_type, amount, currency_symbol } = event
-    const messages = {
+    const messages: Record<string, string> = {
       DEPOSIT: `Has recibido ${currency_symbol}${amount}`,
       WITHDRAWAL: `Has retirado ${currency_symbol}${amount}`,
+      PURCHASE: `Has gastado ${currency_symbol}${amount} en cartones`,
       CARD_PURCHASE: `Has gastado ${currency_symbol}${amount} en cartones`,
+      PRIZE: `Ganaste ${currency_symbol}${amount}`,
+      REFUND: `Se reembolsaron ${currency_symbol}${amount} a tu billetera`,
+      TRIVIA_ENTRY: `Has gastado ${currency_symbol}${amount} en una entrada de trivia`,
+      RKE_COMMISSION: `Has recibido ${currency_symbol}${amount} por comisión`,
     }
     return messages[movement_type] || `Movimiento de ${currency_symbol}${amount}`
   }
