@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Head } from '@inertiajs/vue3'
 import CardHeader      from '@js/Components/Common/Card/CardHeader.vue'
 import BaseTable       from '@js/Components/Common/Table/BaseTable.vue'
@@ -173,6 +173,24 @@ async function openDetail(id: string) {
     detailLoading.value = false
   }
 }
+
+// ── Deep-link desde notificación: /wallet-movements?movement={id} ──────────
+function openMovementFromQuery() {
+  const params    = new URLSearchParams(window.location.search)
+  const movementId = params.get('movement')
+  if (!movementId) return
+
+  params.delete('movement')
+  const newQuery = params.toString()
+  const newUrl   = window.location.pathname + (newQuery ? `?${newQuery}` : '')
+  window.history.replaceState(null, '', newUrl)
+
+  openDetail(movementId)
+}
+
+onMounted(() => {
+  openMovementFromQuery()
+})
 
 // ── Acciones admin ─────────────────────────────────────────────────────────
 async function handleApprove() {

@@ -900,7 +900,7 @@ final class WalletService
                     'currency_symbol' => $symbol,
                     'user_id'       => (string) $wallet->user_id,
                     'user_name'     => $userName,
-                    'url'           => '/wallet-movements',
+                    'url'           => $movementId ? "/wallet-movements?movement={$movementId}" : '/wallet-movements',
                 ],
             );
         }
