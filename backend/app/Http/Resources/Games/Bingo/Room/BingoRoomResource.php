@@ -80,7 +80,7 @@ class BingoRoomResource extends JsonResource
                 fn() => $this->cardPrizes->map(fn($cp) => [
                     'id'              => (string) $cp->id,
                     'user_id'         => (string) $cp->creator_user_id,
-                    'user_name'       => $cp->creatorUser?->name ?? ('Jugador #' . $cp->creator_user_id),
+                    'username'        => $cp->creatorUser?->username,
                     'round_id'        => (string) $cp->round_id,
                     'round_number'    => $cp->round?->round ?? null,
                     'winning_card_id' => (string) $cp->winning_card_id,
@@ -88,6 +88,8 @@ class BingoRoomResource extends JsonResource
                     'winning_pattern' => $cp->winning_pattern,
                     'prize_type'      => $cp->prize_type,
                     'usd_amount'      => (float) $cp->usd_amount,
+                    'local_amount'    => (float) $cp->local_amount,
+                    'currency_id'     => $cp->currency_id !== null ? (string) $cp->currency_id : null,
                     'prize_status'    => $cp->prize_status,
                     'created_at'      => $cp->created_at?->toISOString(),
                 ])->values()

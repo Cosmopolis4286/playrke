@@ -82,7 +82,7 @@ class BingoRoom extends BaseModel
         'total_players' => 'integer',
         'total_cards' => 'integer',
         'paid_prizes' => 'string',
-        'metrics_by_currency' => 'array',
+        'metrics_by_currency' => \App\Casts\AsForceObjectJson::class,
     ];
 
     // ========================
