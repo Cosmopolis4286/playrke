@@ -161,7 +161,7 @@ export interface BingoRoom {
     readonly winners?: Array<{
         id: string
         user_id: string
-        user_name: string
+        username: string | null
         round_id: string
         round_number: number | null
         winning_card_id: string
@@ -169,6 +169,8 @@ export interface BingoRoom {
         winning_pattern: string | null
         prize_type: string | null
         usd_amount: number
+        local_amount: number
+        currency_id: string | null
         prize_status: string
         created_at: string | null
     }>

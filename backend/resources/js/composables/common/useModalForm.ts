@@ -14,6 +14,8 @@ export interface ModalFormExpose {
     removeCurrenciesMissingRate?: () => void
     /** Estado de guardado del borrador local (formularios que lo soporten, ej. BingoRoomForm). */
     draftStatus?: 'idle' | 'saving' | 'saved'
+    /** Descarta el borrador local (formularios que lo soporten, ej. BingoRoomForm) — llamar solo tras un submit confirmado por el backend. */
+    discardDraft?: () => void
     /** Paso activo del wizard (formularios paginados por pasos, ej. BingoRoomForm). */
     step?: string
     canGoPrev?: boolean
@@ -93,7 +95,13 @@ export function useModalForm<T extends { id?: number | string }>(
         isSubmitting.value = true
         try {
             const response = await submitFn()
-            if (response) showModalForm.value = false
+            if (response) {
+                // Recién aquí el backend confirmó el guardado — antes de esto el
+                // borrador debe seguir vivo por si el submit falla (validación de
+                // servidor, red) y el usuario necesita reintentar sin perder los datos.
+                formRef.value?.discardDraft?.()
+                showModalForm.value = false
+            }
             return response
         } finally {
             isSubmitting.value = false
