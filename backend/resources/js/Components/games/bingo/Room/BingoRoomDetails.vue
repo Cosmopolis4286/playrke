@@ -26,8 +26,9 @@ type WinnerEntry = NonNullable<BingoRoom['winners']>[number]
 
 const loadingCard    = ref<string | null>(null)
 const cardViewerOpen = ref(false)
+const cardViewerError = ref(false)
 const cardViewerData = ref<{ serialNumber: string; cardMatrix: Record<string, (number | null)[]> } | null>(null)
-const cardViewerOwner = ref('')
+const cardViewerWinner = ref<WinnerEntry | null>(null)
 
 // Variant column defs (reused from game page — mirror of BingoVariant.php)
 const CARD_VIEWER_COLS: Record<string, { label: string; min: number; max: number; freeRow: number | null; bg: string }[]> = {
@@ -81,8 +82,9 @@ function viewerNum(colLabel: string, r: number): number | null {
 async function openCardViewer(w: WinnerEntry): Promise<void> {
   loadingCard.value = w.id
   cardViewerOpen.value = true
+  cardViewerError.value = false
   cardViewerData.value = null
-  cardViewerOwner.value = w.user_name
+  cardViewerWinner.value = w
 
   try {
     // room.id as route key — the controller uses route model binding
@@ -91,9 +93,11 @@ async function openCardViewer(w: WinnerEntry): Promise<void> {
     const card = json.card ?? json.data?.card
     if (card) {
       cardViewerData.value = { serialNumber: card.serialNumber, cardMatrix: card.cardMatrix }
+    } else {
+      cardViewerError.value = true
     }
   } catch {
-    cardViewerOpen.value = false
+    cardViewerError.value = true
   } finally {
     loadingCard.value = null
   }
@@ -120,6 +124,20 @@ const fmt = {
     const n = typeof value === 'string' ? parseFloat(value) : value
     if (isNaN(n)) return '-'
     return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(n)
+  },
+
+  /**
+   * Monto en moneda local (no USD) — se usa para campos que ya vienen
+   * convertidos a la moneda de cada currency_id (ej. metrics_by_currency,
+   * card_price_by_currency, local_amount de premios). Se formatea sin
+   * símbolo de moneda para no aparentar ser dólares; el ISO code se
+   * muestra aparte (ej. "VES 780,00").
+   */
+  localAmount(value: number | string | null | undefined): string {
+    if (value === null || value === undefined || value === '') return '-'
+    const n = typeof value === 'string' ? parseFloat(value) : value
+    if (isNaN(n)) return '-'
+    return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
   },
 
   number(value: number | string | null | undefined): string {
@@ -169,25 +187,62 @@ const cardPricesList = computed(() => {
   if (!prices || !Object.keys(prices).length) return null
   return Object.entries(prices).map(([currencyId, price]) => {
     const label = props.allowedCurrenciesOptions.find(c => String(c.value) === String(currencyId))?.label ?? currencyId
-    return { label, price: fmt.currency(price) }
+    return { label, price: fmt.localAmount(price) }
   })
 })
 
+// metrics_by_currency viene en moneda local de cada currency_id (no USD) —
+// ver RoomMetricsService::updateRoomMetricsWithCommissions().
 const metricsByCurrencyList = computed(() => {
   const metrics = props.room.metrics_by_currency
   if (!metrics || !Object.keys(metrics).length) return null
+
+  // Monedas permitidas de la sala — si solo hay una, sirve de fallback cuando
+  // el currencyId no resuelve (datos antiguos: un bug de serialización en
+  // metrics_by_currency podía perder la clave real cuando había una sola
+  // moneda con ventas; ya corregido en el backend para registros nuevos).
+  const allowedIds = (props.room as any).allowed_currencies ?? []
+  const singleAllowedId = Array.isArray(allowedIds) && allowedIds.length === 1 ? String(allowedIds[0]) : null
+
   return Object.entries(metrics).map(([currencyId, m]) => {
-    const label = props.allowedCurrenciesOptions.find(c => String(c.value) === String(currencyId))?.label ?? currencyId
+    const resolvedId = props.allowedCurrenciesOptions.some(c => String(c.value) === String(currencyId))
+      ? currencyId
+      : (singleAllowedId ?? currencyId)
+    const label = props.allowedCurrenciesOptions.find(c => String(c.value) === String(resolvedId))?.label ?? `Moneda #${currencyId}`
     return {
-      currencyId,
+      currencyId: resolvedId,
       label,
-      totalSales: fmt.currency(m.total_sales),
+      totalSales: fmt.localAmount(m.total_sales),
       totalCards: fmt.number(m.total_cards),
-      prizePool: fmt.currency(m.prize_pool),
-      totalCommissions: fmt.currency(m.rke_commission + m.room_commission + m.seller_commission),
+      prizePool: fmt.localAmount(m.prize_pool),
+      totalCommissions: fmt.localAmount(m.rke_commission + m.room_commission + m.seller_commission),
     }
   })
 })
+
+/** Resuelve el código ISO de una moneda por su ID, para mostrar junto a montos locales. */
+function currencyIso(currencyId?: string | number | null): string {
+  if (currencyId == null) return ''
+  return props.allowedCurrenciesOptions.find(c => String(c.value) === String(currencyId))?.label ?? ''
+}
+
+/** Username del ganador, o "Sin usuario" si el usuario fue eliminado/no resuelve. */
+function winnerUsername(w: WinnerEntry): string {
+  return w.username ? `@${w.username}` : 'Sin usuario'
+}
+
+/**
+ * true si el premio se pagó sin conversión real: cuando no hay tasa de cambio
+ * activa al momento del sorteo, BingoDrawService::convertToLocal() devuelve
+ * el monto USD tal cual como si fuera moneda local (usd_amount === local_amount).
+ * En ese caso el "≈ $X USD" sería engañoso (no es una conversión, es el mismo
+ * número sin convertir) — se muestra una advertencia en su lugar.
+ */
+function isUnconvertedPrize(w: WinnerEntry): boolean {
+  if (currencyIso(w.currency_id) === 'USD') return false
+  if (!w.usd_amount || w.usd_amount <= 0) return false
+  return Math.abs(w.usd_amount - w.local_amount) < 0.005
+}
 
 const prizePoolTypeCode = computed(() => {
   const id = props.room.config?.prize_pool_type_id
@@ -307,6 +362,7 @@ const totalPct = computed(() => {
     <!-- ── Financiero ─────────────────────────────────── -->
     <div class="details-section">
       <h6 class="section-title">Financiero</h6>
+      <p class="section-hint">Montos normalizados en USD. Para valores en la moneda local de cada venta, ver "Desglose por Moneda" más abajo.</p>
       <div class="details-grid">
         <div class="detail-item highlight">
           <span class="detail-label">Ventas Totales</span>
@@ -455,14 +511,23 @@ const totalPct = computed(() => {
           <div class="winner-main">
             <span class="winner-badge"><i class="fas fa-trophy" /></span>
             <div class="winner-info">
-              <span class="winner-name">{{ w.user_name }}</span>
+              <span class="winner-name">
+                {{ winnerUsername(w) }}
+                <span class="winner-id">#{{ w.user_id }}</span>
+              </span>
               <span class="winner-meta">
                 <span v-if="w.round_number">Ronda {{ w.round_number }}</span>
                 <span v-if="w.winning_pattern"> · {{ w.winning_pattern }}</span>
               </span>
             </div>
             <div class="winner-prize">
-              <span class="winner-amount">${{ w.usd_amount.toFixed(2) }}</span>
+              <span class="winner-amount">
+                {{ currencyIso(w.currency_id) }} {{ fmt.localAmount(w.local_amount) }}
+              </span>
+              <span v-if="isUnconvertedPrize(w)" class="winner-amount-warning" title="No había tasa de cambio activa al momento del sorteo: el monto no se convirtió de USD a la moneda local">
+                <i class="fas fa-exclamation-triangle"></i> Sin tasa activa, no convertido
+              </span>
+              <span v-else class="winner-amount-usd">≈ ${{ w.usd_amount.toFixed(2) }} USD</span>
               <span class="winner-status" :class="`winner-status--${w.prize_status}`">{{ PRIZE_STATUS_LABELS[w.prize_status] ?? w.prize_status }}</span>
             </div>
             <button
@@ -487,11 +552,31 @@ const totalPct = computed(() => {
           <div class="wd-modal">
             <div class="wd-modal__header">
               <span class="wd-modal__title"><i class="fas fa-id-card" /> Cartón Ganador</span>
-              <button class="wd-modal__close" @click="cardViewerOpen = false"><i class="fas fa-times" /></button>
+              <button class="wd-modal__close" @click="cardViewerOpen = false" aria-label="Cerrar"><i class="fas fa-times" /></button>
             </div>
+
+            <!-- Resumen del ganador: visible en todos los estados (loading/error/ok) -->
+            <div v-if="cardViewerWinner" class="wd-winner-summary">
+              <div class="wd-winner-summary__name">
+                {{ winnerUsername(cardViewerWinner) }}
+                <span class="winner-id">#{{ cardViewerWinner.user_id }}</span>
+              </div>
+              <div class="wd-winner-summary__meta">
+                <span v-if="cardViewerWinner.round_number" class="wd-chip"><i class="fas fa-flag-checkered"></i> Ronda {{ cardViewerWinner.round_number }}</span>
+                <span v-if="cardViewerWinner.winning_pattern" class="wd-chip"><i class="fas fa-shapes"></i> {{ cardViewerWinner.winning_pattern }}</span>
+                <span class="wd-chip wd-chip--prize">
+                  <i class="fas fa-coins"></i>
+                  {{ currencyIso(cardViewerWinner.currency_id) }} {{ fmt.localAmount(cardViewerWinner.local_amount) }}
+                </span>
+              </div>
+            </div>
+
             <div v-if="cardViewerData" class="wd-modal__body">
-              <div class="wd-card-owner">{{ cardViewerOwner }}</div>
-              <div class="wd-card-serial">{{ cardViewerData.serialNumber }}</div>
+              <div class="wd-card-serial">
+                <i class="fas fa-barcode"></i>
+                <span class="wd-card-serial__label">Serial</span>
+                <span class="wd-card-serial__value">{{ cardViewerData.serialNumber }}</span>
+              </div>
               <!-- card grid -->
               <div class="wd-card">
                 <div class="wd-card__head" :style="{ gridTemplateColumns: `repeat(${cardViewerCols.length}, 1fr)` }">
@@ -515,8 +600,16 @@ const totalPct = computed(() => {
                 </div>
               </div>
             </div>
-            <div v-else class="wd-modal__body wd-modal__body--loading">
-              <i class="fas fa-spinner fa-spin fa-2x" />
+            <div v-else-if="cardViewerError" class="wd-modal__body wd-modal__body--state">
+              <i class="fas fa-exclamation-circle wd-state-icon wd-state-icon--error"></i>
+              <p class="wd-state-text">No se pudo cargar el cartón ganador.</p>
+              <button class="wd-retry-btn" @click="cardViewerWinner && openCardViewer(cardViewerWinner)">
+                <i class="fas fa-rotate-right"></i> Reintentar
+              </button>
+            </div>
+            <div v-else class="wd-modal__body wd-modal__body--state">
+              <i class="fas fa-spinner fa-spin wd-state-icon"></i>
+              <p class="wd-state-text">Cargando cartón...</p>
             </div>
           </div>
         </div>
@@ -559,6 +652,12 @@ const totalPct = computed(() => {
   padding-bottom: 0.4rem;
   border-bottom: 2px solid #007bff;
   display: inline-block;
+}
+
+.section-hint {
+  font-size: 0.72rem;
+  color: #6c757d;
+  margin: -0.3rem 0 0.6rem;
 }
 
 .details-grid {
@@ -720,10 +819,16 @@ const totalPct = computed(() => {
 
 .winner-info { flex: 1; min-width: 0; }
 .winner-name { display: block; font-size: 0.82rem; font-weight: 600; color: #212529; }
+.winner-id { font-size: 0.68rem; font-weight: 400; color: #adb5bd; margin-left: 4px; }
 .winner-meta { font-size: 0.7rem; color: #6c757d; }
 
 .winner-prize { text-align: right; flex-shrink: 0; }
-.winner-amount { display: block; font-size: 0.85rem; font-weight: 700; color: #28a745; }
+.winner-amount { display: block; font-size: 0.85rem; font-weight: 700; color: #28a745; white-space: nowrap; }
+.winner-amount-usd { display: block; font-size: 0.68rem; color: #6c757d; }
+.winner-amount-warning {
+  display: block; font-size: 0.65rem; font-weight: 600; color: #b45309;
+  white-space: nowrap;
+}
 .winner-status {
   font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
   padding: 1px 5px; border-radius: 3px;
@@ -770,11 +875,51 @@ const totalPct = computed(() => {
 }
 .wd-modal__close:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
-.wd-modal__body { padding: 14px; }
-.wd-modal__body--loading { display: flex; justify-content: center; align-items: center; min-height: 120px; color: #6c757d; }
+/* Resumen del ganador (visible en loading/error/ok) */
+.wd-winner-summary {
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid #f0f2f5;
+}
+.wd-winner-summary__name { font-size: 0.88rem; font-weight: 700; color: #212529; margin-bottom: 6px; }
+.wd-winner-summary__meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.wd-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.68rem; font-weight: 600; color: #495057;
+  background: #f1f3f5; border-radius: 999px; padding: 3px 9px;
+}
+.wd-chip i { font-size: 0.62rem; }
+.wd-chip--prize { background: #eafbf1; color: #0f5132; }
 
-.wd-card-owner { font-size: 0.8rem; font-weight: 600; color: #212529; margin-bottom: 2px; }
-.wd-card-serial { font-size: 0.65rem; color: #adb5bd; font-family: monospace; margin-bottom: 10px; }
+.wd-modal__body { padding: 14px; }
+.wd-modal__body--state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; min-height: 140px; color: #6c757d; text-align: center;
+}
+.wd-state-icon { font-size: 1.8rem; color: #adb5bd; }
+.wd-state-icon--error { color: #dc3545; }
+.wd-state-text { font-size: 0.8rem; margin: 0; }
+.wd-retry-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.75rem; font-weight: 600; color: #007bff;
+  background: #e7f1ff; border: none; border-radius: 6px;
+  padding: 6px 12px; cursor: pointer; transition: background 0.14s;
+}
+.wd-retry-btn:hover { background: #d5e8ff; }
+
+.wd-card-serial {
+  display: flex; align-items: center; gap: 7px;
+  background: #212529; border-radius: 6px;
+  padding: 7px 10px; margin-bottom: 12px;
+}
+.wd-card-serial i { color: #ffc107; font-size: 0.8rem; }
+.wd-card-serial__label {
+  font-size: 0.62rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: #adb5bd;
+}
+.wd-card-serial__value {
+  font-family: monospace; font-size: 0.82rem; font-weight: 700;
+  color: #fff; letter-spacing: 0.5px; margin-left: auto;
+}
 
 .wd-card { border-radius: 8px; overflow: hidden; border: 1px solid #dee2e6; }
 .wd-card__head { display: grid; }

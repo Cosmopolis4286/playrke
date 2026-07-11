@@ -551,6 +551,17 @@
     />
 
     <template #footer>
+      <button
+        v-if="editingRoomHasPlayers"
+        type="button"
+        class="btn btn-sm btn-outline-warning"
+        style="margin-right: auto"
+        :disabled="isSubmitting"
+        title="Ver ventas, ganadores y desglose financiero sin cerrar la edición"
+        @click="openRoomDetails([String(roomData.id)])"
+      >
+        <i class="fas fa-info-circle"></i> Ver Detalles
+      </button>
       <small
         v-if="gameBingoRoomFormRef?.draftStatus === 'saving' || gameBingoRoomFormRef?.draftStatus === 'saved'"
         class="text-muted mr-2"

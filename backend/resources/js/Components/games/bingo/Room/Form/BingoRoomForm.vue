@@ -22,6 +22,7 @@
   import { useBingoRoomStepper } from '@/js/composables/games/bingo/room/shared/useBingoRoomStepper'
   import BingoRoomReviewStep from './Steps/BingoRoomReviewStep.vue'
   import { router } from '@inertiajs/vue3'
+  import { showToastConfirmAction } from '@/js/helpers/form/ui/crudModalUI'
   // Types
   import type { BingoRoomFormData, BingoRoom } from '@/js/types/games/bingo/room/bingo-room'
   import type { BingoRoomAutomaticFormData } from '@/js/types/games/bingo/room/automatic/bingo-room-automatic'
@@ -95,10 +96,18 @@
     return `bingo-room-draft:${scope}:${props.editingRoomId ?? 'create'}`
   })
 
-  const { hasDraft, draftStatus, restoreDraft, discardDraft } = useBingoRoomDraft(
+  const { hasDraft, draftSavedAt, draftDateExpired, draftStatus, isDraftStale, restoreDraft, discardDraft } = useBingoRoomDraft(
     form,
-    draftStorageKey.value
+    draftStorageKey.value,
+    props.automaticRoom ?? false
   )
+
+  const draftSavedAtLabel = computed(() => {
+    if (!draftSavedAt.value) return ''
+    const parsed = new Date(draftSavedAt.value)
+    if (isNaN(parsed.getTime())) return ''
+    return parsed.toLocaleString('es-VE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  })
 
   /* ==========================================================================
    * Wizard por pasos (básico → monedas → rondas → revisión)
@@ -116,6 +125,42 @@
     goTo,
     stepHasErrors
   } = useBingoRoomStepper(errors)
+
+  const onRestoreDraft = (): void => {
+    restoreDraft()
+    // Un borrador viejo puede traer una fecha/hora ya vencida — llevar al
+    // usuario al step donde está el campo para que la actualice, en vez de
+    // dejarlo con errores rojos sin contexto de por qué aparecieron.
+    if (draftDateExpired.value) goTo('basic')
+  }
+
+  const onDiscardDraft = async (): Promise<void> => {
+    // Si el form actual ya coincide con el borrador guardado (el usuario lo
+    // restauró y no cambió nada más), no hay nada que perder — evita pedir
+    // confirmación para una acción que no descarta trabajo real.
+    if (isDraftStale()) {
+      discardDraft()
+      return
+    }
+    const confirmed = await showToastConfirmAction(
+      '¿Descartar el borrador guardado? Esta acción no se puede deshacer.',
+      'warning',
+      'Descartar'
+    )
+    if (!confirmed) return
+    discardDraft()
+  }
+
+  /** Adelanta la fecha/hora programada del borrador restaurado a "ahora + 15 min". */
+  const updateDraftScheduledDate = (): void => {
+    const next = new Date(Date.now() + 15 * 60 * 1000)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const date = `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`
+    const time = `${pad(next.getHours())}:${pad(next.getMinutes())}`
+    form.value = { ...form.value, date, time }
+    draftDateExpired.value = false
+    goTo('basic')
+  }
 
   /* ==========================================================================
    * Computed derivados del form
@@ -347,7 +392,6 @@
 
   const submit = (): boolean => {
     if (!isValid.value) return false
-    discardDraft()
     emit('submit')
     return true
   }
@@ -372,6 +416,7 @@
     currenciesMissingRate,
     removeCurrenciesMissingRate,
     draftStatus,
+    discardDraft,
     step,
     stepLabel,
     steps,
@@ -388,11 +433,24 @@
 <template>
   <!-- Aviso: borrador local disponible (cambios no guardados de una sesión anterior) -->
   <div v-if="hasDraft" class="alert alert-info d-flex align-items-center justify-content-between mb-3" style="font-size: 0.85rem">
-    <span><i class="fa-solid fa-clock-rotate-left"></i> Hay un borrador sin guardar de esta sala.</span>
+    <span>
+      <i class="fa-solid fa-clock-rotate-left"></i> Hay un borrador sin guardar de esta sala<template v-if="draftSavedAtLabel"> ({{ draftSavedAtLabel }})</template>.
+    </span>
     <div style="gap: 0.5rem" class="d-flex">
-      <button type="button" class="btn btn-sm btn-outline-secondary" @click="discardDraft">Descartar</button>
-      <button type="button" class="btn btn-sm btn-info text-white" @click="restoreDraft">Restaurar</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" @click="onDiscardDraft">Descartar</button>
+      <button type="button" class="btn btn-sm btn-info text-white" @click="onRestoreDraft">Restaurar</button>
     </div>
+  </div>
+
+  <!-- Aviso: el borrador restaurado trae una fecha/hora ya vencida -->
+  <div v-if="draftDateExpired" class="alert alert-warning d-flex align-items-center justify-content-between mb-3" style="font-size: 0.85rem">
+    <span>
+      <i class="fa-solid fa-triangle-exclamation me-2"></i>
+      El borrador restaurado tenía una fecha/hora programada que ya pasó. Actualízala para poder guardar.
+    </span>
+    <button type="button" class="btn btn-sm btn-warning" @click="updateDraftScheduledDate">
+      Actualizar fecha
+    </button>
   </div>
 
   <!-- Navegación del wizard -->
