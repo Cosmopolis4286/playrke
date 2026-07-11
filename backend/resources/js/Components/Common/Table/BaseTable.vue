@@ -321,4 +321,146 @@
     text-align: center;
     margin-top: 0.5rem;
   }
+
+  /* Celda combinada "Código" + fecha/hora de inicio (contenido inyectado vía v-html) */
+  :deep(.room-code-cell) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  :deep(.room-code-cell__code) {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  :deep(.room-code-cell__date) {
+    font-size: 0.75rem;
+    color: #8891a0;
+  }
+
+  /* Celda "Premio": una línea por moneda, alineada por código ISO */
+  :deep(.room-prize-cell) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  :deep(.room-prize-cell__line) {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  :deep(.room-prize-cell__currency) {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #8891a0;
+    min-width: 2.4em;
+    flex: none;
+  }
+
+  :deep(.room-prize-cell__amount) {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  /* Bote en 0 con cartones ya vendidos: atenuado + marca de alerta (no cambia la cifra) */
+  :deep(.room-prize-cell__amount--zero) {
+    color: #b45309;
+    font-weight: 500;
+  }
+
+  :deep(.room-prize-cell__amount--zero)::after {
+    content: ' \26A0';
+    font-size: 0.7rem;
+  }
+
+  /* Sin tasa de cambio activa para convertir el bote a esa moneda */
+  :deep(.room-prize-cell__amount--na) {
+    color: #b3bac4;
+    font-weight: 500;
+    cursor: help;
+  }
+
+  /* Estado de la sala: chip con punto de color, más discreto que un badge sólido */
+  :deep(.room-status-chip) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  :deep(.room-status-chip)::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  :deep(.room-status-chip--offline)   { background: #eef0f3; color: #8891a0; }
+  :deep(.room-status-chip--finished)  { background: #e7f1ff; color: #0d6efd; }
+  :deep(.room-status-chip--live)      { background: #e9f7ee; color: #15803d; }
+  :deep(.room-status-chip--warning)   { background: #fef6e7; color: #b45309; }
+  :deep(.room-status-chip--cancelled) { background: #fdecec; color: #b91c1c; }
+
+  /* Moneda(s): pills discretas (metadata de contexto, no el dato principal de la columna) */
+  :deep(.room-currency-pills) {
+    display: flex;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+  }
+
+  :deep(.room-currency-pill) {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.16rem 0.42rem;
+    border-radius: 4px;
+    background: #eef0f3;
+    color: #8891a0;
+    letter-spacing: 0.02em;
+  }
+
+  /* Cartones vendidos + cuota mínima, apilados en vez de concatenados en texto */
+  :deep(.room-cards-cell) {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  :deep(.room-cards-cell__count) {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  :deep(.room-cards-cell__count--zero) {
+    color: #b3bac4;
+    font-weight: 400;
+  }
+
+  :deep(.room-cards-cell__quota) {
+    font-size: 0.7rem;
+    color: #b3bac4;
+  }
+
+  :deep(.room-cards-cell__quota--met) {
+    color: #15803d;
+  }
+
+  /* Jugadores: atenuar el 0 para no competir visualmente con salas con actividad real */
+  :deep(.room-players-cell) {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :deep(.room-players-cell--zero) {
+    color: #b3bac4;
+  }
 </style>

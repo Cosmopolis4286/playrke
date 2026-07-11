@@ -5,7 +5,7 @@
   import RoomBasicSection from './Sections/RoomBasicSection.vue'
   import RoomCurrencySection from './Sections/RoomCurrencySection.vue'
   import RoomRoundsSection from './Sections/RoomRoundsSection.vue'
-  import RoomSerialsSection from './Sections/RoomSerialsSection.vue'
+  import RoomOptionsSection from './Sections/RoomOptionsSection.vue'
   // Componentes comunes
   import FormInput from '@/js/Components/Common/Form/FormInput.vue'
   import Modal from '@/js/Components/Common/Modal/Modal.vue'
@@ -562,9 +562,11 @@
           @update:roundsPct="roundsPct = $event"
           @open-prize-modal="openPrizeModal"
         />
+      </template>
 
-        <!-- Sección seriales + alerta porcentajes -->
-        <RoomSerialsSection
+      <!-- Paso: Más / Opcional -->
+      <template v-if="step === 'options'">
+        <RoomOptionsSection
           :modelValue="form"
           :errors="errors"
           :percentageLimits="percentageLimits"

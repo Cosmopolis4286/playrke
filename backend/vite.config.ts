@@ -34,7 +34,9 @@ function getAllJsTsFiles(dir: string, baseDir: string = dir): string[] {
       results = results.concat(getAllJsTsFiles(fullPath, baseDir))
     } else if (
       file.isFile() &&
-      (file.name.endsWith('.js') || file.name.endsWith('.ts') || file.name.endsWith('.vue'))
+      (file.name.endsWith('.js') || file.name.endsWith('.ts') || file.name.endsWith('.vue')) &&
+      !file.name.endsWith('.test.ts') && !file.name.endsWith('.test.js') &&
+      !file.name.endsWith('.spec.ts') && !file.name.endsWith('.spec.js')
     ) {
       // Convertir a ruta relativa desde baseDir y con separadores Unix
       const relativePath = path.relative(baseDir, fullPath).split(path.sep).join('/')

@@ -129,6 +129,7 @@
           :clearable="!required"
           :can-clear="!required"
           :disabled="disabled"
+          append-to-body
           class="multiselect-bootstrap"
           :class="{ 'ms-invalid': !!error }"
           style="width: 100%"
@@ -156,6 +157,7 @@
       :clearable="!required"
       :can-clear="!required"
       :disabled="disabled"
+      append-to-body
       class="multiselect-bootstrap"
       :class="{ 'ms-invalid': !!error }"
     />
@@ -279,5 +281,40 @@
 
   .multiselect-bootstrap :deep(.multiselect-option) {
     font-size: 0.9rem;
+  }
+</style>
+
+<style>
+  /*
+   * Con append-to-body el dropdown de opciones se teleporta a <body> (fuera del
+   * modal) para no quedar cortado por el overflow:auto de .modal-body. Al salir
+   * del subárbol de .multiselect-bootstrap pierde tanto el scope de Vue como la
+   * herencia de sus custom properties --ms-*, así que se repiten aquí como
+   * reglas globales (único consumidor de @vueform/multiselect en el proyecto).
+   */
+  .multiselect-dropdown {
+    --ms-dropdown-bg: #fff;
+    --ms-dropdown-border-color: #ced4da;
+    --ms-dropdown-border-width: 1px;
+    --ms-dropdown-radius: 0.25rem;
+    --ms-option-font-size: 0.9rem;
+
+    --ms-option-bg-selected: #007bff;
+    --ms-option-color-selected: #fff;
+    --ms-option-bg-selected-pointed: #0069d9;
+    --ms-option-bg-pointed: #f8f9fa;
+    --ms-option-color-pointed: #16181b;
+
+    --ms-max-height: 200px;
+
+    z-index: 1070 !important; /* por encima del overlay del Modal (1050/1051) */
+  }
+
+  .multiselect-dropdown .multiselect-option {
+    min-height: 32px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
   }
 </style>
