@@ -85,6 +85,14 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             $with['players'] = fn($q) => $q->where('user_id', $userId)->select(['room_id', 'user_id', 'cards_purchased']);
         }
 
+        // Preview de jugadores (prueba social en la card del lobby): solo username/first_name,
+        // nunca datos sensibles (email, teléfono). Se trunca a 4 en PHP tras cargar — sin
+        // límite por-sala real en la query (HasMany no soporta limit-per-group sin window
+        // functions), aceptable porque las salas no acumulan miles de jugadores. Relación
+        // separada de `players` para no pisar su constraint por user_id (ver comentario arriba).
+        $with['playersPreview'] = fn($q) => $q->select(['id', 'room_id', 'user_id']);
+        $with['playersPreview.user'] = fn($q) => $q->select(['id', 'username', 'first_name']);
+
         // Ventana ±1 día para cubrir diferencias de timezone entre servidor (UTC)
         // y zonas de los creadores (ej. America/Caracas UTC-4).
         // El frontend filtra visualmente por countdown expirado.

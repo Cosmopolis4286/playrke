@@ -35,6 +35,14 @@ export interface BingoGameRoomPlayer {
 }
 
 /**
+ * Preview anónimo de un jugador en la sala, para prueba social visual.
+ * Solo expone la inicial del nombre — nunca username/email completos.
+ */
+export interface BingoGameRoomPlayerPreview {
+  readonly initial: string
+}
+
+/**
  * Sala de juego de bingo vista desde el jugador/vendedor.
  * Basado en los datos expuestos por `viewGameRooms` context.
  */
@@ -57,6 +65,8 @@ export interface BingoGameRoom {
   readonly config?: BingoGameRoomConfig | null
   /** Cartones del jugador actual en esta sala */
   readonly players_room?: BingoGameRoomPlayer[] | null
+  /** Preview anónimo (máx. 4) de jugadores en la sala, para prueba social */
+  readonly players_preview?: BingoGameRoomPlayerPreview[] | null
   /**
    * Código de estado de la sala: 'ACTIVE' = disponible para comprar,
    * 'PLAYING' = en juego, etc.

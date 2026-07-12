@@ -38,14 +38,28 @@ final class BingoGameRoomsDTO implements ContextDTO
                 ? $room->players->map(fn($p) => ['ctns' => (int) $p->cards_purchased])->values()->all()
                 : null;
 
+            // Preview de jugadores para prueba social (avatares/iniciales en la card del lobby):
+            // solo la inicial del nombre, nunca username/email completos. Se trunca a 4.
+            $playersPreview = $room->relationLoaded('playersPreview')
+                ? $room->playersPreview
+                    ->take(4)
+                    ->map(function ($p) {
+                        $name = $p->user?->first_name ?: $p->user?->username;
+                        return ['initial' => $name ? mb_strtoupper(mb_substr($name, 0, 1)) : '?'];
+                    })
+                    ->values()
+                    ->all()
+                : [];
+
             $roomData = array_merge(
                 $room->toArray(),
                 [
-                    'status_code'  => $room->status?->code ?? 'ACTIVE',
-                    'room_type'    => $room->config?->roomType?->code ?? 'PUBLIC',
-                    'game_mode'    => $room->config?->gameMode?->code ?? null,
-                    'id'           => $room->getRouteKey(), // Usar ID hasheado para route binding
-                    'players_room' => $playersRoom,
+                    'status_code'     => $room->status?->code ?? 'ACTIVE',
+                    'room_type'       => $room->config?->roomType?->code ?? 'PUBLIC',
+                    'game_mode'       => $room->config?->gameMode?->code ?? null,
+                    'id'              => $room->getRouteKey(), // Usar ID hasheado para route binding
+                    'players_room'    => $playersRoom,
+                    'players_preview' => $playersPreview,
                 ],
             );
 

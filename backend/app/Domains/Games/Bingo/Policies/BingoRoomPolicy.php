@@ -78,6 +78,15 @@ class BingoRoomPolicy extends BaseRolePolicy
     public function generateDraw() {}
 
     /**
+     * Cualquier usuario autenticado puede ver sus propios cartones en la sala.
+     * El servicio ya filtra por userId — no hay fuga de datos entre usuarios.
+     */
+    public function viewMyCards(User $user, BingoRoom $room): bool
+    {
+        return $this->hasAccess($user) || $user->hasRole('player');
+    }
+
+    /**
      * Jugadores con cartones en la sala pueden ver la lista de participantes del lobby.
      * No requiere rol de gestión — solo estar autenticado.
      */

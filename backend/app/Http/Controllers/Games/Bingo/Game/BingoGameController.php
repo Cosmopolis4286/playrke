@@ -169,6 +169,8 @@ final class BingoGameController extends Controller
      */
     public function getUserCards(BingoRoom $room): JsonResponse
     {
+        $this->authorize('viewMyCards', $room);
+
         return $this->handleServiceJson(
             function () use ($room) {
                 $userId = $this->userContext->resolveUserId();

@@ -190,6 +190,16 @@ class BingoRoom extends BaseModel
     }
 
     /**
+     * Jugadores de la sala, para preview de prueba social (avatares/iniciales en el lobby).
+     * Relación separada de players() para poder aplicar su propio eager-load de `user`
+     * sin pisar el constraint por user_id que usa players() en otros contextos.
+     */
+    public function playersPreview(): HasMany
+    {
+        return $this->hasMany(BingoRoomUser::class, 'room_id', 'id');
+    }
+
+    /**
      * Límites del vendedor
      */
     public function sellerLimits(): BelongsTo
