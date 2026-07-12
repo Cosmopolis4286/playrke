@@ -1,39 +1,41 @@
-{{-- $navWallet y $navUser son inyectados por NavbarComposer vía AppServiceProvider --}}
-<nav class="main-header navbar navbar-expand navbar-bg justify-content-between">
+﻿{{-- $navWallet y $navUser son inyectados por NavbarComposer vía AppServiceProvider --}}
+<nav class="main-header navbar navbar-expand navbar-bg nb-root">
 
-    {{-- ── Izquierda: toggle + marca + billetera ───────────── --}}
-    <ul class="navbar-nav align-items-center" style="gap:.25rem;">
+    {{-- ══ IZQUIERDA: toggle + logo (siempre visible) ══ --}}
+    <div class="nb-left">
+        <a class="nb-icon-btn" data-widget="pushmenu" href="#" role="button" aria-label="Menú">
+            <i class="fas fa-bars"></i>
+        </a>
+        {{-- Logo: solo en móvil (sidebar colapsado) --}}
+        <a href="{{ url('/dashboard') }}" class="nb-brand d-md-none" aria-label="Inicio">
+            <img src="{{ asset('img/logo.png') }}" alt="PlayRKE" class="nb-brand-img">
+        </a>
+    </div>
 
-        {{-- Toggle sidebar --}}
-        <li class="nav-item">
-            <a class="nb-icon-btn" data-widget="pushmenu" href="#" role="button" aria-label="Menú">
-                <i class="fas fa-bars"></i>
-            </a>
-        </li>
+    {{-- ══ CENTRO MÓVIL: billetera compacta (solo sm-, encima del buscador) ══ --}}
+    @if ($navWallet)
+    <div class="nb-wallet-center d-md-none">
+        <a class="nb-wallet-pill nb-wallet-pill--center" href="{{ route('wallet.index') }}" title="Mi billetera">
+            <span class="nb-wallet-icon"><i class="fas fa-wallet"></i></span>
+            <span id="navbar-balance" class="nb-wallet-balance">
+                <span class="nb-wallet-symbol">{{ $navWallet->currency->symbol }}</span>{{ number_format($navWallet->balance, $navWallet->currency->decimal_places ?? 2, ',', '.') }}
+            </span>
+        </a>
+    </div>
+    @endif
 
-        {{-- Marca PlayRKE: visible solo cuando el sidebar está oculto (móvil) --}}
-        <li class="nav-item d-md-none">
-            <a href="{{ url('/dashboard') }}" class="nb-brand" aria-label="Ir al dashboard">
-                <img src="{{ asset('img/logo.png') }}" alt="PlayRKE" class="nb-brand-img">
-            </a>
-        </li>
-
-        {{-- Billetera (solo si el usuario tiene una activa) --}}
-        @if ($navWallet)
-            <li class="nav-item">
-                <a class="nb-wallet-pill" href="{{ route('wallet.index') }}" title="Mi billetera">
-                    <span class="nb-wallet-icon"><i class="fas fa-wallet"></i></span>
-                    <span id="navbar-balance" class="nb-wallet-balance">
-                        <span class="nb-wallet-symbol">{{ $navWallet->currency->symbol }}</span>{{ number_format($navWallet->balance, $navWallet->currency->decimal_places ?? 2, ',', '.') }}
-                    </span>
-                </a>
-            </li>
-        @endif
-
-    </ul>
-
-    {{-- ── Centro: breadcrumb + widgets contextuales ─────────── --}}
+    {{-- ══ CENTRO DESKTOP: buscador + breadcrumb + quick chips (md+) ══ --}}
     <div class="nb-center-zone d-none d-md-flex align-items-center" style="flex:1; justify-content:center; gap:1rem; min-width:0; padding:0 12px;">
+
+        {{-- Billetera desktop: dentro del centro para no presionar al avatar --}}
+        @if ($navWallet)
+        <a class="nb-wallet-pill" href="{{ route('wallet.index') }}" title="Mi billetera">
+            <span class="nb-wallet-icon"><i class="fas fa-wallet"></i></span>
+            <span id="navbar-balance-desktop" class="nb-wallet-balance">
+                <span class="nb-wallet-symbol">{{ $navWallet->currency->symbol }}</span>{{ number_format($navWallet->balance, $navWallet->currency->decimal_places ?? 2, ',', '.') }}
+            </span>
+        </a>
+        @endif
 
         @if (!empty($navBreadcrumb) && count($navBreadcrumb) > 1)
             {{-- Breadcrumb de navegación --}}
@@ -102,43 +104,36 @@
 
     </div>
 
-    {{-- ── Derecha: pendientes + notificaciones + usuario ──── --}}
-    <ul class="navbar-nav align-items-center" style="gap:.5rem;">
+    {{-- ══ DERECHA: pendientes + notificaciones + usuario ══ --}}
+    <div class="nb-right">
 
-        {{-- 🟠 Acciones pendientes (depósitos/retiros): solo admin, superadmin y tesorero --}}
-        <li class="nav-item d-none d-sm-block" id="nb-pending-pill-wrap" style="{{ $navPendingCount > 0 ? '' : 'display:none!important' }}">
-            <a class="nb-pending-pill" href="{{ route('wallet-movements.index') }}"
-               title="Movimientos pendientes por revisar">
-                <i class="fas fa-clock"></i>
-                <span id="nb-pending-label">{{ $navPendingCount }} pendiente{{ $navPendingCount === 1 ? '' : 's' }}</span>
-            </a>
-        </li>
-        {{-- Versión compacta para pantallas muy pequeñas --}}
-        <li class="nav-item d-sm-none" id="nb-pending-pill-wrap-sm" style="{{ $navPendingCount > 0 ? '' : 'display:none!important' }}">
-            <a class="nb-icon-btn position-relative" href="{{ route('wallet-movements.index') }}"
-               title="Movimientos pendientes por revisar">
-                <i class="fas fa-clock"></i>
-                <span id="nb-pending-badge" class="nb-badge nb-badge--warning">{{ $navPendingCount > 99 ? '99+' : $navPendingCount }}</span>
-            </a>
-        </li>
+        {{-- Pendientes: pill en sm+, ícono en xs --}}
+        <a class="nb-pending-pill d-none d-sm-flex" id="nb-pending-pill-wrap"
+           href="{{ route('wallet-movements.index') }}" title="Movimientos pendientes"
+           style="{{ $navPendingCount > 0 ? '' : 'display:none!important' }}">
+            <i class="fas fa-clock"></i>
+            <span id="nb-pending-label">{{ $navPendingCount }} pendiente{{ $navPendingCount === 1 ? '' : 's' }}</span>
+        </a>
+        <a class="nb-icon-btn position-relative d-sm-none" id="nb-pending-pill-wrap-sm"
+           href="{{ route('wallet-movements.index') }}" title="Movimientos pendientes"
+           style="{{ $navPendingCount > 0 ? '' : 'display:none!important' }}">
+            <i class="fas fa-clock"></i>
+            <span id="nb-pending-badge" class="nb-badge nb-badge--warning">{{ $navPendingCount > 99 ? '99+' : $navPendingCount }}</span>
+        </a>
 
-        {{-- 🔔 Notificaciones --}}
-        <li class="nav-item dropdown">
+        {{-- Notificaciones --}}
+        <div class="nav-item dropdown">
             <a class="nb-icon-btn position-relative" href="#" id="notifToggle"
                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                title="Notificaciones">
                 <i class="fas fa-bell"></i>
                 <span id="notif-badge" class="nb-badge{{ ($navUnreadCount ?? 0) > 0 ? '' : ' d-none' }}">{{ ($navUnreadCount ?? 0) > 99 ? '99+' : ($navUnreadCount ?? 0) }}</span>
             </a>
-
-            <div class="dropdown-menu dropdown-menu-right p-0 nb-notif-menu"
-                 aria-labelledby="notifToggle">
-
+            <div class="dropdown-menu dropdown-menu-right p-0 nb-notif-menu" aria-labelledby="notifToggle">
                 <div class="nb-notif-header">
                     <span><i class="fas fa-bell mr-1"></i>Notificaciones</span>
                     <button type="button" id="notif-clear" class="nb-notif-clear">Limpiar todo</button>
                 </div>
-
                 <ul id="notif-list" class="list-unstyled mb-0 nb-notif-list">
                     <li id="notif-empty" class="nb-notif-empty" style="{{ empty($navNotifications) ? '' : 'display:none' }}">
                         <i class="fas fa-check-circle"></i>
@@ -146,10 +141,10 @@
                     </li>
                 </ul>
             </div>
-        </li>
+        </div>
 
-        {{-- 👤 Usuario --}}
-        <li class="nav-item dropdown">
+        {{-- Usuario --}}
+        <div class="nav-item dropdown">
             <button class="nb-user-btn"
                     type="button" id="userDropdown"
                     data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -163,7 +158,7 @@
                         <span class="nb-avatar-level" title="Nivel {{ $navUserLevel->current_level }}">{{ $navUserLevel->current_level }}</span>
                     @endif
                 </span>
-                <i class="fas fa-chevron-down nb-chevron"></i>
+                <i class="fas fa-chevron-down nb-chevron d-none d-sm-block"></i>
             </button>
 
             <div class="dropdown-menu dropdown-menu-right p-0 nb-user-menu"
@@ -223,9 +218,9 @@
                     </button>
                 </div>
             </div>
-        </li>
+        </div>
 
-    </ul>
+    </div>{{-- /.nb-right --}}
 </nav>
 
 {{-- ── Notificaciones + WebSocket (todos los usuarios autenticados) ── --}}
@@ -272,7 +267,8 @@
     var $badge     = document.getElementById('notif-badge');
     var $list      = document.getElementById('notif-list');
     var $empty     = document.getElementById('notif-empty');
-    var $balanceEl = document.getElementById('navbar-balance');
+    var $balanceEl         = document.getElementById('navbar-balance');
+    var $balanceElDesktop  = document.getElementById('navbar-balance-desktop');
     var $clearBtn  = document.getElementById('notif-clear');
     var notifCount = 0;
 
@@ -292,7 +288,7 @@
         });
     }
     function fmt(symbol, n) {
-        return symbol + ' ' + parseFloat(n).toLocaleString('es-VE', {
+        return symbol + ' ' + parseFloat(n).toLocaleString('es-VE', {
             minimumFractionDigits: 2, maximumFractionDigits: 2
         });
     }
@@ -323,13 +319,15 @@
 
     // ── Saldo navbar ──────────────────────────────────────────
     function updateBalance(data) {
-        if (!$balanceEl) return;
-        $balanceEl.innerHTML =
-            '<span class="text-success font-weight-bold">' + data.currency_symbol + '</span> ' +
+        var html = '<span class="nb-wallet-symbol">' + data.currency_symbol + '</span>' +
             parseFloat(data.balance).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        $balanceEl.style.transition = 'opacity .15s';
-        $balanceEl.style.opacity = '0.2';
-        setTimeout(function () { $balanceEl.style.opacity = '1'; }, 160);
+        [$balanceEl, $balanceElDesktop].forEach(function (el) {
+            if (!el) return;
+            el.innerHTML = html;
+            el.style.transition = 'opacity .15s';
+            el.style.opacity = '0.2';
+            setTimeout(function () { el.style.opacity = '1'; }, 160);
+        });
     }
 
     // ── Badge de notificaciones ───────────────────────────────

@@ -286,14 +286,7 @@ body::-webkit-scrollbar-thumb:hover {
 .nb-brand {
   display: flex;
   align-items: center;
-  height: 56px;
-  padding: 6px 4px;
-  box-sizing: border-box;
-}
-.nb-brand-img {
-  height: 100%;
-  width: auto;
-  object-fit: contain;
+  text-decoration: none;
 }
 
 /* ── Navbar: pill billetera ───────────────────────────────── */
@@ -503,48 +496,98 @@ body::-webkit-scrollbar-thumb:hover {
 }
 .nb-user-btn[aria-expanded="true"] .nb-chevron { transform: rotate(180deg); }
 
-/* ── Navbar: evitar overflow-x en pantallas angostas ──────────
-   .main-header es flex (justify-content-between) con 3 grupos: ul
-   izquierda (toggle + marca + billetera), zona centro (oculta bajo
-   md) y ul derecha (notificaciones + usuario). Sin min-width:0 los
-   <ul> flex no se comprimen y el grupo derecho termina empujado
-   fuera del viewport en móviles muy angostos (320-375px), generando
-   scroll horizontal en TODA la app (afecta GameRooms, Lobby, Game y
-   cualquier página que use este layout). */
-.main-header.navbar {
+/* ══════════════════════════════════════════════════════════════
+   NAVBAR — LAYOUT RESPONSIVO
+   Estructura: .nb-root → [.nb-left] [.nb-center-zone] [.nb-wallet-center] [.nb-right]
+   En móvil (<768px): left(toggle+logo) | wallet-center | right(bell+avatar)
+   En desktop (≥768px): left(toggle) | center(wallet+search+chips) | right(bell+avatar)
+══════════════════════════════════════════════════════════════ */
+
+/* Contenedor raíz: 3 zonas alineadas sin wrap */
+.main-header.navbar,
+.nb-root {
   flex-wrap: nowrap;
+  overflow: hidden;
+  justify-content: space-between;  /* left | [center] | right */
 }
-.main-header .navbar-nav {
+
+/* ── Zona izquierda ── */
+.nb-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Billetera MÓVIL: bloque central en xs/sm ── */
+.nb-wallet-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-width: 0;
+  padding: 0 6px;
 }
-@media (max-width: 400px) {
-  /* Billetera: la pieza más ancha del grupo izquierdo — se comprime
-     primero para dejar sitio al grupo derecho (notificaciones/avatar,
-     que no puede reducirse más sin perder función). */
-  .nb-wallet-pill {
-    gap: 4px;
-    padding: 4px 8px 4px 6px;
-  }
-  .nb-wallet-icon {
-    width: 22px;
-    height: 22px;
-    font-size: 10px;
-  }
-  .nb-wallet-balance {
-    font-size: 11px;
-  }
-  .nb-brand-img {
-    max-width: 84px;
-    object-fit: contain;
-  }
+.nb-wallet-pill--center {
+  max-width: 100%;
 }
-@media (max-width: 340px) {
-  /* Bajo 340px incluso la versión comprimida no alcanza: ocultar el
-     símbolo de moneda del saldo (el número ya es suficiente contexto
-     junto al ícono de billetera) para liberar los últimos px. */
-  .nb-wallet-symbol {
-    display: none;
+.nb-wallet-pill--center .nb-wallet-balance {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 110px;
+}
+
+/* ── Zona derecha ── */
+.nb-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Logo ── */
+.nb-brand-img {
+  height: 34px;
+  width: auto;
+  max-width: 100px;
+  object-fit: contain;
+}
+
+/* ── Breakpoints móvil ────────────────────────────────────── */
+
+/* sm (≤575px): billetera más compacta */
+@media (max-width: 575px) {
+  .nb-wallet-pill--center .nb-wallet-balance {
+    max-width: 80px;
+    font-size: 12px;
   }
+  .nb-right { gap: 4px; }
+}
+
+/* xs (≤430px): logo más pequeño, balance corto */
+@media (max-width: 430px) {
+  .nb-brand-img { max-width: 80px; height: 28px; }
+  .nb-wallet-pill--center .nb-wallet-balance { max-width: 62px; font-size: 11px; }
+  .nb-wallet-icon { width: 22px; height: 22px; font-size: 10px; }
+  .nb-wallet-pill--center { gap: 5px; padding: 4px 8px 4px 6px; }
+  .nb-user-btn { padding: 3px 5px 3px 3px; gap: 3px; }
+}
+
+/* xxs (≤360px): ocultar texto del saldo, dejar solo ícono */
+@media (max-width: 360px) {
+  .nb-brand-img { max-width: 64px; height: 26px; }
+  .nb-wallet-pill--center .nb-wallet-balance { display: none; }
+  .nb-wallet-pill--center { padding: 5px 8px; border-radius: 50%; }
+  .nb-wallet-center { flex: 0 0 auto; }
+  .nb-right { gap: 2px; }
+  .nb-icon-btn { width: 32px; height: 32px; font-size: 13px; }
+}
+
+/* Resetear la billetera desktop (en .nb-center-zone) para que no herede compresión móvil */
+@media (min-width: 768px) {
+  .nb-wallet-pill--center { max-width: none; }
+  .nb-wallet-pill--center .nb-wallet-balance { max-width: none; font-size: 13px; }
 }
 
 /* ── Navbar: menú usuario ────────────────────────────────── */

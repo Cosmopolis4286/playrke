@@ -115,8 +115,13 @@ export function useGameRooms(props: BingoGameRoomsPageProps) {
   const showRulesModal = ref(false)
 
   // ── Navegación ────────────────────────────────────────────────────────────
+  const redirectingToLobby = ref(false)
+
   function goToLobby(roomId: string): void {
-    router.visit(`/bingo/${roomId}/lobby`)
+    redirectingToLobby.value = true
+    router.visit(`/bingo/${roomId}/lobby`, {
+      onFinish: () => { redirectingToLobby.value = false },
+    })
   }
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -145,5 +150,6 @@ export function useGameRooms(props: BingoGameRoomsPageProps) {
     modal,
     // Navegación
     goToLobby,
+    redirectingToLobby,
   }
 }

@@ -26,6 +26,7 @@ const {
   onPurchaseSuccess,
   modal,
   goToLobby,
+  redirectingToLobby,
 } = useGameRooms(props);
 </script>
 
@@ -103,6 +104,7 @@ const {
     :currency-sym="props.currencySym ?? 'USD'"
     :can-buy="canBuy"
     :bingo-room-img="BINGO_ROOM_IMG"
+    :redirecting="redirectingToLobby"
     @close="closeRoomInfo"
     @go-lobby="goToLobby(selectedRoomForInfo.id)"
     @buy="openPurchaseFromInfo"

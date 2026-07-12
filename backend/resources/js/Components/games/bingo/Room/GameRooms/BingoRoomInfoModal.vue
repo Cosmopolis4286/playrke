@@ -11,6 +11,8 @@ const props = defineProps<{
   currencySym: string
   canBuy: boolean
   bingoRoomImg: string
+  /** true mientras Inertia está navegando al lobby */
+  redirecting?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -57,6 +59,14 @@ const cardsProgressReady = computed(() =>
     <Transition name="rim-fade">
       <div class="rim-backdrop" @click.self="emit('close')">
         <div class="rim-card" role="dialog" aria-modal="true" aria-labelledby="rim-title">
+
+          <!-- Overlay de redirección al lobby -->
+          <Transition name="rim-overlay">
+            <div v-if="redirecting" class="rim-redirect-overlay" aria-hidden="true">
+              <span class="rim-redirect-spinner" />
+              <span class="rim-redirect-label">Redirigiendo…</span>
+            </div>
+          </Transition>
 
           <!-- ── Imagen banner compacta ── -->
           <div class="rim-banner">
@@ -154,11 +164,13 @@ const cardsProgressReady = computed(() =>
             <div class="rim-actions">
               <button
                 class="rim-btn rim-btn--lobby"
-                :disabled="!isLobbyAllowed"
-                :class="{ 'rim-btn--disabled': !isLobbyAllowed }"
+                :disabled="!isLobbyAllowed || redirecting"
+                :class="{ 'rim-btn--disabled': !isLobbyAllowed || redirecting }"
                 @click="emit('go-lobby')"
               >
-                <i class="fas fa-sign-in-alt" /> Ir al Lobby
+                <span v-if="redirecting" class="rim-btn-spinner" />
+                <i v-else class="fas fa-sign-in-alt" />
+                {{ redirecting ? 'Redirigiendo…' : 'Ir al Lobby' }}
               </button>
               <button
                 v-if="canBuy && room.status_code === 'ACTIVE'"
@@ -405,7 +417,45 @@ const cardsProgressReady = computed(() =>
   pointer-events: none;
 }
 
-/* Transición */
+/* ── Overlay de redirección al lobby ── */
+.rim-redirect-overlay {
+  position: absolute; inset: 0; z-index: 20;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px;
+  background: rgba(6, 10, 28, 0.78);
+  backdrop-filter: blur(4px);
+  border-radius: inherit;
+}
+.rim-redirect-spinner {
+  display: inline-block;
+  width: 38px; height: 38px;
+  border: 3px solid rgba(123, 79, 255, 0.2);
+  border-top-color: #7b4fff;
+  border-radius: 50%;
+  animation: rimSpin .7s linear infinite;
+}
+@keyframes rimSpin { to { transform: rotate(360deg); } }
+.rim-redirect-label {
+  font-size: 13px; font-weight: 700; letter-spacing: .4px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Spinner pequeño dentro del botón lobby */
+.rim-btn-spinner {
+  display: inline-block;
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: rimSpin .7s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Transición del overlay */
+.rim-overlay-enter-active, .rim-overlay-leave-active { transition: opacity .2s ease; }
+.rim-overlay-enter-from, .rim-overlay-leave-to { opacity: 0; }
+
+/* Transición modal */
 .rim-fade-enter-active, .rim-fade-leave-active { transition: opacity .2s ease, transform .2s ease; }
 .rim-fade-enter-from, .rim-fade-leave-to { opacity: 0; transform: scale(.96) translateY(6px); }
 </style>
