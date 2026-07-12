@@ -19,6 +19,7 @@ defineProps<{
 const emit = defineEmits<{
   openPlayers: []
   openPurchase: []
+  openMyCards: []
   requestNotification: []
 }>()
 </script>
@@ -39,13 +40,12 @@ const emit = defineEmits<{
       </div>
 
       <div
-        class="lby-stat lby-stat--mine"
-        :class="{ 'lby-stat--clickable': canPurchaseCards }"
-        :title="canPurchaseCards ? 'Comprar cartones' : undefined"
-        :role="canPurchaseCards ? 'button' : undefined"
-        :tabindex="canPurchaseCards ? 0 : undefined"
-        @click="canPurchaseCards && emit('openPurchase')"
-        @keydown.enter="canPurchaseCards && emit('openPurchase')"
+        class="lby-stat lby-stat--mine lby-stat--clickable"
+        :title="live.userCards > 0 ? 'Ver mis cartones' : (canPurchaseCards ? 'Comprar cartones' : 'Mis cartones')"
+        role="button"
+        tabindex="0"
+        @click="live.userCards > 0 ? emit('openMyCards') : canPurchaseCards && emit('openPurchase')"
+        @keydown.enter="live.userCards > 0 ? emit('openMyCards') : canPurchaseCards && emit('openPurchase')"
       >
         <div class="lby-stat__icon-wrap"><i class="fas fa-ticket-alt" /></div>
         <span class="lby-stat__val" aria-live="polite" aria-atomic="true">{{ live.userCards }}</span>

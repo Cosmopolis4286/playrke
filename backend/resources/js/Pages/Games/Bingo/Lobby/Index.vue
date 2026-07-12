@@ -8,6 +8,7 @@ import LobbyHero          from '@js/Components/Games/Bingo/Room/Lobby/LobbyHero.
 import LobbyCardsProgress from '@js/Components/Games/Bingo/Room/Lobby/LobbyCardsProgress.vue'
 import LobbyStatsPanel    from '@js/Components/Games/Bingo/Room/Lobby/LobbyStatsPanel.vue'
 import LobbyPlayersModal  from '@js/Components/Games/Bingo/Room/Lobby/LobbyPlayersModal.vue'
+import LobbyMyCardsModal  from '@js/Components/Games/Bingo/Room/Lobby/LobbyMyCardsModal.vue'
 import LobbyToasts        from '@js/Components/Games/Bingo/Room/Lobby/LobbyToasts.vue'
 import LobbyRedirectBanner from '@js/Components/Games/Bingo/Room/Lobby/LobbyRedirectBanner.vue'
 import { useGameRoomPurchaseModal } from '@js/composables/games/bingo/card/purchase-modal/useGameRoomPurchaseModal'
@@ -17,6 +18,7 @@ import { useLobbyToasts }        from '@js/composables/games/bingo/room/lobby/us
 import { useLobbyPlayers }       from '@js/composables/games/bingo/room/lobby/useLobbyPlayers'
 import { useLobbyRedirect }      from '@js/composables/games/bingo/room/lobby/useLobbyRedirect'
 import { useLobbyShare }         from '@js/composables/games/bingo/room/lobby/useLobbyShare'
+import { useLobbyMyCards }       from '@js/composables/games/bingo/room/lobby/useLobbyMyCards'
 import { useLobbyNotification }  from '@js/composables/games/bingo/room/lobby/useLobbyNotification'
 import { useLobbyLastSale }      from '@js/composables/games/bingo/room/lobby/useLobbyLastSale'
 import type { LobbyRoom } from '@js/Components/Games/Bingo/Room/Lobby/types'
@@ -102,7 +104,8 @@ const { redirecting, redirectSecs, cancel: cancelRedirect } = useLobbyRedirect(p
 
 // ── Modals ──
 const showRulesModal = ref(false)
-const modal = useGameRoomPurchaseModal()
+const modal      = useGameRoomPurchaseModal()
+const myCards    = useLobbyMyCards(props.roomRouteKey)
 
 // Cierra el modal de compra si el sorteo arranca mientras está abierto
 watch(() => live.statusCode, (code) => {
@@ -233,6 +236,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
           :notification-permission="notification.permission.value"
           @open-players="players.open()"
           @open-purchase="openPurchase"
+          @open-my-cards="myCards.open()"
           @request-notification="notification.requestPermission()"
         />
       </div>
@@ -249,6 +253,15 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
       :current-user-id="userId"
       @close="players.close()"
       @retry="players.open()"
+    />
+
+    <LobbyMyCardsModal
+      :show="myCards.showModal.value"
+      :cards="myCards.cards.value"
+      :loading="myCards.loading.value"
+      :fetch-error="myCards.fetchError.value"
+      @close="myCards.close()"
+      @retry="myCards.refresh()"
     />
 
     <LobbyRedirectBanner :show="redirecting" :secs="redirectSecs" @cancel="cancelRedirect" />
