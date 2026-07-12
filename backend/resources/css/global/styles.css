@@ -133,10 +133,12 @@ body::-webkit-scrollbar-thumb:hover {
   pointer-events: none;
 }
 
-/* AdminLTE aplica un margin-top: -0.5% (relativo al ancho del viewport) al .wrapper,
-   pensado para compensar su navbar de altura fija. Con nuestro layout flex + vh-100 esto
-   desplaza todo el wrapper hacia arriba: el navbar queda cortado en su borde superior y
-   el footer no llega al borde inferior de la ventana. Lo anulamos. */
+/* AdminLTE con layout-fixed aplica padding-top al body (altura del navbar) y margin-top
+   al .wrapper. El navbar en nuestra implementación no es position:fixed — está en el
+   flujo del wrapper — así que ambos valores crean espacio vacío visible arriba. Los anulamos. */
+body.layout-fixed {
+  padding-top: 0 !important;
+}
 .layout-fixed .wrapper {
   margin-top: 0 !important;
 }
@@ -741,7 +743,7 @@ body::-webkit-scrollbar-thumb:hover {
   justify-content: center;
   align-items: center;
   gap: 0.75rem;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* ── Navbar: buscador global ─────────────────────────────── */

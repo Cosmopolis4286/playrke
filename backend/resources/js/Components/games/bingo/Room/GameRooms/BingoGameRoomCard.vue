@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onUnmounted } from 'vue'
 import type { BingoGameRoom } from '@js/types/games/bingo/room/game-rooms/bingo-game-room'
 import type { RoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
 import {
@@ -74,6 +74,26 @@ const playersPreview = computed(() => props.room.players_preview ?? [])
 const extraPlayersCount = computed(() =>
   Math.max(0, props.room.total_players - playersPreview.value.length)
 )
+
+// "Vendiendo rápido": detecta un salto de +2 o más cartones vendidos entre dos actualizaciones
+// de la prop (polling/websocket externo) y muestra el badge unos segundos. Sin llamadas propias
+// al backend — solo compara el valor entrante con el anterior.
+const showSellingFast = ref(false)
+let sellingFastTimeout: ReturnType<typeof setTimeout> | null = null
+
+watch(
+  () => props.room.total_cards,
+  (next, prev) => {
+    if (prev == null || next == null || next - prev < 2) return
+    showSellingFast.value = true
+    if (sellingFastTimeout) clearTimeout(sellingFastTimeout)
+    sellingFastTimeout = setTimeout(() => { showSellingFast.value = false }, 8000)
+  },
+)
+
+onUnmounted(() => {
+  if (sellingFastTimeout) clearTimeout(sellingFastTimeout)
+})
 
 // BUG-02: reemplazado timerStr local por formatCountdown importado de gameRoomUtils
 // BUG-04: reemplazado bingoRoomImg local por BINGO_ROOM_IMG importado de gameRoomUtils
@@ -193,9 +213,16 @@ function handleClick(event: MouseEvent) {
           :class="{ 'rc__progress--ready': cardsProgressReady }"
         >
           <div class="rc__progress__header">
-            <span class="rc__progress__label">
-              <i class="fas fa-layer-group" />
-              {{ cardsProgressReady ? '¡Listo!' : 'Cartones para iniciar' }}
+            <span
+              class="rc__progress__label"
+              :class="{ 'rc__progress__label--hot': showSellingFast && !cardsProgressReady }"
+            >
+              <i :class="showSellingFast && !cardsProgressReady ? 'fas fa-fire' : 'fas fa-layer-group'" />
+              {{
+                cardsProgressReady
+                  ? '¡Listo!'
+                  : (showSellingFast ? 'Vendiendo rápido' : 'Cartones para iniciar')
+              }}
             </span>
             <span class="rc__progress__count">{{ totalCards }} / {{ minCardsToStart }}</span>
           </div>
@@ -586,6 +613,17 @@ function handleClick(event: MouseEvent) {
   color: #5a7ca0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .rc__progress__label i { font-size: 8px; }
+
+/* "Vendiendo rápido" — pico de ventas detectado entre actualizaciones */
+.rc__progress__label--hot {
+  color: #ff9430;
+  animation: hotPulse 1s ease-in-out infinite;
+}
+.rc__progress__label--hot i { color: #ff7a1a; }
+@keyframes hotPulse {
+  0%, 100% { opacity: .8; }
+  50%      { opacity: 1; }
+}
 .rc__progress__count {
   font-size: 10px; font-weight: 800; color: #7a9ac0;
   flex-shrink: 0; white-space: nowrap;
