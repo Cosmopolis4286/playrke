@@ -202,7 +202,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
      */
     public function countByRoomAndStatus(string $roomId, int $status): int
     {
-        return $this->model->where('room', $roomId)
+        return $this->model->where('room_id', $roomId)
             ->where('status', $status)
             ->count();
     }
@@ -330,7 +330,7 @@ class BingoDrawRepository extends BaseRepository implements BingoDrawRepositoryC
         $offset = ($page - 1) * $perPage;
         $total = $this->countByRoom($roomId);
 
-        $data = $this->model->where('room', $roomId)
+        $data = $this->model->where('room_id', $roomId)
             ->orderByDesc('created_at')
             ->offset($offset)
             ->limit($perPage)

@@ -323,7 +323,7 @@ class BingoCardPrizePaymentRepository extends BaseRepository implements BingoCar
      */
     public function getPaymentStatsBySeller(string $sellerId): array
     {
-        $stats = $this->model->where('seller_id', $sellerId)
+        $stats = $this->model->where('seller_user_id', $sellerId)
                             ->selectRaw('
                                 COUNT(*) as total_payments,
                                 SUM(CASE WHEN payment_status = "completed" THEN 1 ELSE 0 END) as completed_payments,
@@ -626,7 +626,7 @@ class BingoCardPrizePaymentRepository extends BaseRepository implements BingoCar
                                 SUM(payment_amount) as total_amount,
                                 AVG(payment_amount) as average_amount,
                                 COUNT(DISTINCT room_id) as total_rooms,
-                                COUNT(DISTINCT seller_id) as total_sellers
+                                COUNT(DISTINCT seller_user_id) as total_sellers
                             ')
                             ->first();
 

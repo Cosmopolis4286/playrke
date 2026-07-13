@@ -41,9 +41,9 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function findByRoomCreatorAndCurrency(string $roomId, string $creatorUserId, string $currency): ?BingoCreatorSale
     {
-        return $this->model->where('room', $roomId)
+        return $this->model->where('room_id', $roomId)
             ->where('creator_user_id', $creatorUserId)
-            ->where('currency', $currency)
+            ->where('currency_id', $currency)
             ->first();
     }
 
@@ -57,11 +57,11 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function existsByRoomCreatorAndCurrency(string $roomId, string $creatorUserId, ?string $currency = null): bool
     {
-        $query = $this->model->where('room', $roomId)
+        $query = $this->model->where('room_id', $roomId)
             ->where('creator_user_id', $creatorUserId);
 
         if ($currency) {
-            $query->where('currency', $currency);
+            $query->where('currency_id', $currency);
         }
 
         return $query->exists();
@@ -75,7 +75,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function getByRoom(string $roomId): Collection
     {
-        return $this->model->where('room', $roomId)->get();
+        return $this->model->where('room_id', $roomId)->get();
     }
 
     /**
@@ -97,7 +97,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function getByCurrency(string $currency): Collection
     {
-        return $this->model->where('currency', $currency)->get();
+        return $this->model->where('currency_id', $currency)->get();
     }
 
     /**
@@ -109,8 +109,8 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function getPrizePoolAmountByRoomAndCurrency(string $roomId, string $currency): float
     {
-        return (float) $this->model->where('room', $roomId)
-            ->where('currency', $currency)
+        return (float) $this->model->where('room_id', $roomId)
+            ->where('currency_id', $currency)
             ->sum('prize_pool_amount');
     }
 
@@ -122,7 +122,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function getTotalSalesByRoom(string $roomId): float
     {
-        return (float) $this->model->where('room', $roomId)->sum('sale_amount');
+        return (float) $this->model->where('room_id', $roomId)->sum('sale_amount');
     }
 
     /**
@@ -133,7 +133,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function getTotalRkeCommissionByRoom(string $roomId): float
     {
-        return (float) $this->model->where('room', $roomId)->sum('rke_commission');
+        return (float) $this->model->where('room_id', $roomId)->sum('rke_commission');
     }
 
     /**
@@ -144,7 +144,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function getTotalRoomCommissionByRoom(string $roomId): float
     {
-        return (float) $this->model->where('room', $roomId)->sum('room_commission');
+        return (float) $this->model->where('room_id', $roomId)->sum('room_commission');
     }
 
     /**
@@ -155,7 +155,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function getTotalSellerCommissionByRoom(string $roomId): float
     {
-        return (float) $this->model->where('room', $roomId)->sum('seller_commission');
+        return (float) $this->model->where('room_id', $roomId)->sum('seller_commission');
     }
 
     /**
@@ -221,13 +221,13 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
         $totalRkeCommission = $this->getTotalRkeCommissionByRoom($roomId);
         $totalRoomCommission = $this->getTotalRoomCommissionByRoom($roomId);
         $totalSellerCommission = $this->getTotalSellerCommissionByRoom($roomId);
-        $totalPrizePool = (float) $this->model->where('room', $roomId)->sum('prize_pool_amount');
+        $totalPrizePool = (float) $this->model->where('room_id', $roomId)->sum('prize_pool_amount');
 
-        $byCurrency = $this->model->where('room', $roomId)
-            ->selectRaw('currency, SUM(sale_amount) as total_sales, SUM(prize_pool_amount) as total_prize_pool')
-            ->groupBy('currency')
+        $byCurrency = $this->model->where('room_id', $roomId)
+            ->selectRaw('currency_id, SUM(sale_amount) as total_sales, SUM(prize_pool_amount) as total_prize_pool')
+            ->groupBy('currency_id')
             ->get()
-            ->keyBy('currency')
+            ->keyBy('currency_id')
             ->toArray();
 
         return [
@@ -261,13 +261,13 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
         $totalRoomCommission = $this->getTotalRoomCommissionByCreator($creatorUserId);
         $totalSellerCommission = $this->getTotalSellerCommissionByCreator($creatorUserId);
         $totalPrizePool = (float) $this->model->where('creator_user_id', $creatorUserId)->sum('prize_pool_amount');
-        $roomCount = $this->model->where('creator_user_id', $creatorUserId)->distinct('room')->count();
+        $roomCount = $this->model->where('creator_user_id', $creatorUserId)->distinct('room_id')->count('room_id');
 
         $byCurrency = $this->model->where('creator_user_id', $creatorUserId)
-            ->selectRaw('currency, SUM(sale_amount) as total_sales, SUM(prize_pool_amount) as total_prize_pool')
-            ->groupBy('currency')
+            ->selectRaw('currency_id, SUM(sale_amount) as total_sales, SUM(prize_pool_amount) as total_prize_pool')
+            ->groupBy('currency_id')
             ->get()
-            ->keyBy('currency')
+            ->keyBy('currency_id')
             ->toArray();
 
         return [
@@ -315,8 +315,8 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
      */
     public function getTopRoomsBySales(int $limit = 10): Collection
     {
-        return $this->model->selectRaw('room, SUM(sale_amount) as total_sales')
-            ->groupBy('room')
+        return $this->model->selectRaw('room_id, SUM(sale_amount) as total_sales')
+            ->groupBy('room_id')
             ->orderByDesc('total_sales')
             ->limit($limit)
             ->get();
@@ -335,7 +335,7 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
     public function updateOrCreateSale(string $roomId, string $creatorUserId, string $currency, float $amount, ?float $sellerCommission = null): BingoCreatorSale
     {
         // Obtener configuración de la sala
-        $roomConfig = BingoRoomConfig::where('room', $roomId)->first(['rke_commission', 'room_commission']);
+        $roomConfig = BingoRoomConfig::where('room_id', $roomId)->first(['rke_commission', 'room_commission']);
 
         $rkeCommission = round($amount * (($roomConfig->rke_commission ?? 0) / 100), 3);
         $roomCommission = round($amount * (($roomConfig->room_commission ?? 0) / 100), 3);
@@ -344,9 +344,9 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
 
         $sale = $this->model->firstOrCreate(
             [
-                'room' => $roomId,
+                'room_id' => $roomId,
                 'creator_user_id' => $creatorUserId,
-                'currency' => $currency
+                'currency_id' => $currency
             ],
             [
                 'sale_amount' => $amount,
@@ -499,9 +499,9 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
     public function searchSales(string $searchTerm): Collection
     {
         return $this->model->where(function ($query) use ($searchTerm) {
-            $query->where('room', 'like', "%{$searchTerm}%")
+            $query->where('room_id', 'like', "%{$searchTerm}%")
                 ->orWhere('creator_user_id', 'like', "%{$searchTerm}%")
-                ->orWhere('currency', 'like', "%{$searchTerm}%");
+                ->orWhere('currency_id', 'like', "%{$searchTerm}%");
         })->get();
     }
 
@@ -513,12 +513,12 @@ class BingoCreatorSaleRepository extends BaseRepository implements BingoCreatorS
     public function getSalesGroupedByCurrency(): Collection
     {
         return $this->model->selectRaw('
-                currency,
+                currency_id,
                 SUM(sale_amount) as total_sales,
                 COUNT(*) as transaction_count,
                 AVG(sale_amount) as avg_sale_amount
             ')
-            ->groupBy('currency')
+            ->groupBy('currency_id')
             ->orderByDesc('total_sales')
             ->get();
     }

@@ -23,11 +23,16 @@ class BingoRoomUserRepository extends BaseRepository implements BingoRoomUserRep
     }
 
     /**
-     * Obtiene un jugador por sala, usuario creador y jugador
+     * Obtiene un jugador por sala y usuario.
+     *
+     * bingo_room_users no distingue "creador" vs "jugador" por columna
+     * (solo tiene room_id/user_id/role), por lo que $creatorUserId no
+     * se usa como filtro; se conserva en la firma por compatibilidad
+     * con el contrato.
      *
      * @param mixed $roomId ID de la sala
-     * @param mixed $creatorUserId ID del usuario creador
-     * @param mixed $playerUserId ID del jugador
+     * @param mixed $creatorUserId sin uso (ver nota arriba)
+     * @param mixed $playerUserId ID del jugador (user_id)
      * @param array $fields Campos a seleccionar
      * @return BingoRoomUser|null
      */
@@ -35,25 +40,23 @@ class BingoRoomUserRepository extends BaseRepository implements BingoRoomUserRep
     {
         return $this->model->select($fields)
             ->where('room_id', $roomId)
-            ->where('creator_user_id', $creatorUserId)
-            ->where('player_user_id', $playerUserId)
+            ->where('user_id', $playerUserId)
             ->first();
     }
 
     /**
-     * Obtiene un valor específico por jugador
+     * Obtiene un valor específico por jugador.
      *
      * @param mixed $roomId ID de la sala
-     * @param mixed $creatorUserId ID del usuario creador
-     * @param mixed $playerUserId ID del jugador
+     * @param mixed $creatorUserId sin uso (ver nota en getByPlayerUser)
+     * @param mixed $playerUserId ID del jugador (user_id)
      * @param string $field Campo a obtener
      * @return mixed
      */
     public function getValueByPlayerUser($roomId, $creatorUserId, $playerUserId, string $field = 'id')
     {
         return $this->model->where('room_id', $roomId)
-            ->where('creator_user_id', $creatorUserId)
-            ->where('player_user_id', $playerUserId)
+            ->where('user_id', $playerUserId)
             ->value($field);
     }
 
@@ -157,14 +160,15 @@ class BingoRoomUserRepository extends BaseRepository implements BingoRoomUserRep
     }
 
     /**
-     * Obtiene jugadores por usuario creador
+     * Obtiene las filas de sala de un usuario (bingo_room_users no
+     * distingue "creador" por columna propia, solo tiene user_id/role).
      *
-     * @param mixed $creatorUserId ID del usuario creador
+     * @param mixed $creatorUserId ID del usuario (user_id)
      * @return Collection
      */
     public function getByCreatorUser($creatorUserId): Collection
     {
-        return $this->model->where('creator_user_id', $creatorUserId)->get();
+        return $this->model->where('user_id', $creatorUserId)->get();
     }
 
     /**

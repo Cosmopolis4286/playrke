@@ -38,7 +38,7 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
      */
     public function findByRoom(string $roomId): ?BingoDrawCode
     {
-        return $this->model->where('room', $roomId)->first();
+        return $this->model->where('room_id', $roomId)->first();
     }
 
     /**
@@ -85,7 +85,7 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
      */
     public function existsByRoom(string $roomId): bool
     {
-        return $this->model->where('room', $roomId)->exists();
+        return $this->model->where('room_id', $roomId)->exists();
     }
 
     /**
@@ -142,7 +142,7 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
      */
     public function countByRoom(string $roomId): int
     {
-        return $this->model->where('room', $roomId)->count();
+        return $this->model->where('room_id', $roomId)->count();
     }
 
     /**
@@ -181,7 +181,7 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
     public function getCodeStats(): array
     {
         $totalCodes = $this->model->count();
-        $totalRooms = $this->model->distinct('room')->count();
+        $totalRooms = $this->model->distinct('room_id')->count('room_id');
         $uniqueNumbers = $this->getUniqueNumbers()->count();
         $uniqueSymbols = $this->getUniqueSymbols()->count();
         $codesPerRoom = $totalRooms > 0 ? $totalCodes / $totalRooms : 0;
@@ -206,7 +206,7 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
         return $this->model->where(function ($query) use ($searchTerm) {
             $query->where('num', 'like', "%{$searchTerm}%")
                 ->orWhere('sym', 'like', "%{$searchTerm}%")
-                ->orWhere('room', 'like', "%{$searchTerm}%");
+                ->orWhere('room_id', 'like', "%{$searchTerm}%");
         })->get();
     }
 
@@ -257,7 +257,7 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
     public function createCodeForRoom(string $roomId, string $num, string $sym): BingoDrawCode
     {
         return $this->create([
-            'room' => $roomId,
+            'room_id' => $roomId,
             'num' => $num,
             'sym' => $sym
         ]);
@@ -273,7 +273,7 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
      */
     public function updateRoomCode(string $roomId, string $newNum, string $newSym): bool
     {
-        return $this->model->where('room', $roomId)
+        return $this->model->where('room_id', $roomId)
             ->update([
                 'num' => $newNum,
                 'sym' => $newSym
@@ -288,7 +288,7 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
      */
     public function deleteRoomCode(string $roomId): bool
     {
-        return $this->model->where('room', $roomId)->delete() > 0;
+        return $this->model->where('room_id', $roomId)->delete() > 0;
     }
 
     /**
@@ -346,7 +346,7 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
         $query = $this->model->where('num', $num)->where('sym', $sym);
 
         if ($excludeRoomId) {
-            $query->where('room', '!=', $excludeRoomId);
+            $query->where('room_id', '!=', $excludeRoomId);
         }
 
         return $query->exists();
@@ -360,7 +360,7 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
      */
     public function getRoomCodeHistory(string $roomId): Collection
     {
-        return $this->model->where('room', $roomId)
+        return $this->model->where('room_id', $roomId)
             ->orderByDesc('created_at')
             ->get();
     }
@@ -394,8 +394,8 @@ class BingoDrawCodeRepository extends BaseRepository implements BingoDrawCodeRep
      */
     public function cleanOrphanedCodes(): int
     {
-        return $this->model->whereNull('room')
-            ->orWhere('room', '')
+        return $this->model->whereNull('room_id')
+            ->orWhere('room_id', '')
             ->delete();
     }
 

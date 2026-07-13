@@ -37,7 +37,7 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
      */
     public function findByRoom(string $roomId): ?BingoCreator
     {
-        return $this->model->where('room', $roomId)->first();
+        return $this->model->where('room_id', $roomId)->first();
     }
 
     /**
@@ -49,24 +49,27 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
      */
     public function findByRoomAndCreatorUser(string $roomId, string $creatorUserId): ?BingoCreator
     {
-        return $this->model->where('room', $roomId)
-            ->where('creator_user_id', $creatorUserId)
+        return $this->model->where('room_id', $roomId)
+            ->where('user_id', $creatorUserId)
             ->first();
     }
 
     /**
-     * Obtener creador por tipo y ID de creador específico en una sala
+     * Obtener creador por sala y usuario.
+     *
+     * bingo_room_creators no tiene columnas creator_type/creator_id;
+     * $creatorType se conserva en la firma por compatibilidad con el
+     * contrato mientras que $creatorId se filtra contra user_id.
      *
      * @param string $roomId
-     * @param string $creatorType
-     * @param string $creatorId
+     * @param string $creatorType sin uso (ver nota arriba)
+     * @param string $creatorId ID del usuario creador (user_id)
      * @return BingoCreator|null
      */
     public function findByRoomAndCreator(string $roomId, string $creatorType, string $creatorId): ?BingoCreator
     {
-        return $this->model->where('room', $roomId)
-            ->where('creator_type', $creatorType)
-            ->where('creator_id', $creatorId)
+        return $this->model->where('room_id', $roomId)
+            ->where('user_id', $creatorId)
             ->first();
     }
 
@@ -79,20 +82,24 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
      */
     public function existsByRoomAndCreatorUser(string $roomId, string $creatorUserId): bool
     {
-        return $this->model->where('room', $roomId)
-            ->where('creator_user_id', $creatorUserId)
+        return $this->model->where('room_id', $roomId)
+            ->where('user_id', $creatorUserId)
             ->exists();
     }
 
     /**
-     * Obtener todos los creadores por tipo
+     * Obtener todos los creadores por tipo.
      *
-     * @param string $creatorType
+     * bingo_room_creators no tiene columna creator_type; no existe
+     * un filtro equivalente posible sin cambio de esquema. Devuelve
+     * todos los registros para no romper el contrato.
+     *
+     * @param string $creatorType sin uso (ver nota arriba)
      * @return Collection<int, BingoCreator>
      */
     public function getByCreatorType(string $creatorType): Collection
     {
-        return $this->model->where('creator_type', $creatorType)->get();
+        return $this->model->get();
     }
 
     /**
@@ -102,7 +109,7 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
      */
     public function getActiveCreators(): Collection
     {
-        return $this->getByStatus('active');
+        return $this->getByStatus('ACTIVE');
     }
 
     /**
@@ -112,7 +119,7 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
      */
     public function getInactiveCreators(): Collection
     {
-        return $this->getByStatus('inactive');
+        return $this->getByStatus('INACTIVE');
     }
 
     /**
@@ -123,41 +130,48 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
      */
     public function getByCreatorUser(string $creatorUserId): Collection
     {
-        return $this->model->where('creator_user_id', $creatorUserId)->get();
+        return $this->model->where('user_id', $creatorUserId)->get();
     }
 
     /**
-     * Obtener creadores por ID de creador específico
+     * Obtener creadores por ID de creador específico.
      *
-     * @param string $creatorId
+     * bingo_room_creators no tiene columna creator_id; se filtra
+     * contra user_id, que es el identificador real del creador.
+     *
+     * @param string $creatorId ID del usuario creador (user_id)
      * @return Collection<int, BingoCreator>
      */
     public function getByCreatorId(string $creatorId): Collection
     {
-        return $this->model->where('creator_id', $creatorId)->get();
+        return $this->model->where('user_id', $creatorId)->get();
     }
 
     /**
-     * Obtener creadores por rango de precios de cartas
+     * Obtener creadores por rango de precios de cartas.
      *
-     * @param float $minPrice
-     * @param float $maxPrice
-     * @return Collection<int, BingoCreator>
+     * bingo_room_creators no tiene columna card_price (el precio del
+     * cartón vive en bingo_card_prices, por sala/moneda). No hay
+     * equivalente posible sin cambio de esquema.
+     *
+     * @throws \RuntimeException
      */
     public function getByCardPriceRange(float $minPrice, float $maxPrice): Collection
     {
-        return $this->model->whereBetween('card_price', [$minPrice, $maxPrice])->get();
+        throw new \RuntimeException('bingo_room_creators no tiene columna card_price; usar BingoCardPriceRepository.');
     }
 
     /**
-     * Obtener creadores que soportan una moneda específica
+     * Obtener creadores que soportan una moneda específica.
      *
-     * @param string $currencyCode
-     * @return Collection<int, BingoCreator>
+     * bingo_room_creators no tiene columna allowed_currencies. No hay
+     * equivalente posible sin cambio de esquema.
+     *
+     * @throws \RuntimeException
      */
     public function getBySupportedCurrency(string $currencyCode): Collection
     {
-        return $this->model->whereJsonContains('allowed_currencies', $currencyCode)->get();
+        throw new \RuntimeException('bingo_room_creators no tiene columna allowed_currencies.');
     }
 
     /**
@@ -174,29 +188,29 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
     }
 
     /**
-     * Actualizar precio de carta de un creador
+     * Actualizar precio de carta de un creador.
      *
-     * @param string $creatorId
-     * @param float $newPrice
-     * @return bool
+     * bingo_room_creators no tiene columna card_price. No hay
+     * equivalente posible sin cambio de esquema.
+     *
+     * @throws \RuntimeException
      */
     public function updateCardPrice(string $creatorId, float $newPrice): bool
     {
-        return $this->model->where('id', $creatorId)
-            ->update(['card_price' => $newPrice]) > 0;
+        throw new \RuntimeException('bingo_room_creators no tiene columna card_price; usar BingoCardPriceRepository.');
     }
 
     /**
-     * Actualizar monedas permitidas de un creador
+     * Actualizar monedas permitidas de un creador.
      *
-     * @param string $creatorId
-     * @param array $allowedCurrencies
-     * @return bool
+     * bingo_room_creators no tiene columna allowed_currencies. No hay
+     * equivalente posible sin cambio de esquema.
+     *
+     * @throws \RuntimeException
      */
     public function updateAllowedCurrencies(string $creatorId, array $allowedCurrencies): bool
     {
-        return $this->model->where('id', $creatorId)
-            ->update(['allowed_currencies' => $allowedCurrencies]) > 0;
+        throw new \RuntimeException('bingo_room_creators no tiene columna allowed_currencies.');
     }
 
     /**
@@ -212,19 +226,15 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
     public function getCreatorStats(): array
     {
         $totalCreators = $this->model->count();
-        $activeCreators = $this->model->where('status', 'active')->count();
-        $inactiveCreators = $this->model->where('status', 'inactive')->count();
-
-        $byType = $this->model->selectRaw('creator_type, COUNT(*) as count')
-            ->groupBy('creator_type')
-            ->pluck('count', 'creator_type')
-            ->toArray();
+        $activeCreators = $this->model->where('status', 'ACTIVE')->count();
+        $inactiveCreators = $this->model->where('status', 'INACTIVE')->count();
 
         return [
             'total_creators' => $totalCreators,
             'active_creators' => $activeCreators,
             'inactive_creators' => $inactiveCreators,
-            'by_type' => $byType
+            // bingo_room_creators no tiene columna creator_type
+            'by_type' => [],
         ];
     }
 
@@ -240,7 +250,7 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
      */
     public function getCommissionStats(string $creatorId): array
     {
-        $creator = $this->model->where('creator_id', $creatorId)->first();
+        $creator = $this->model->where('user_id', $creatorId)->first();
 
         if (!$creator) {
             return [
@@ -250,8 +260,8 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
             ];
         }
 
-        $roomCount = $this->model->where('creator_id', $creatorId)->count();
-        $totalCommission = $this->model->where('creator_id', $creatorId)
+        $roomCount = $this->model->where('user_id', $creatorId)->count();
+        $totalCommission = $this->model->where('user_id', $creatorId)
             ->sum('creator_commission');
         $averageCommission = $roomCount > 0 ? $totalCommission / $roomCount : 0.0;
 
@@ -286,23 +296,23 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
     public function searchCreators(string $searchTerm): Collection
     {
         return $this->model->where(function ($query) use ($searchTerm) {
-            $query->where('creator_user_id', 'like', "%{$searchTerm}%")
-                ->orWhere('creator_id', 'like', "%{$searchTerm}%")
-                ->orWhere('room', 'like', "%{$searchTerm}%");
+            $query->where('user_id', 'like', "%{$searchTerm}%")
+                ->orWhere('room_id', 'like', "%{$searchTerm}%");
         })->get();
     }
 
     /**
-     * Obtener historial de cambios de precios de un creador
+     * Obtener historial de cambios de precios de un creador.
      *
-     * @param string $creatorId
-     * @return Collection
+     * bingo_room_creators no tiene columna card_price (ver
+     * getByCardPriceRange). No hay equivalente posible sin cambio
+     * de esquema.
+     *
+     * @throws \RuntimeException
      */
     public function getPriceHistory(string $creatorId): Collection
     {
-        return $this->model->where('creator_id', $creatorId)
-            ->orderBy('updated_at', 'desc')
-            ->get(['card_price', 'updated_at']);
+        throw new \RuntimeException('bingo_room_creators no tiene columna card_price; usar BingoCardPriceRepository.');
     }
 
     /**
@@ -313,7 +323,7 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
      */
     public function hasCreatorConflicts(string $roomId): bool
     {
-        return $this->model->where('room', $roomId)->count() > 1;
+        return $this->model->where('room_id', $roomId)->count() > 1;
     }
 
     /**
@@ -338,12 +348,15 @@ class BingoCreatorRepository extends BaseRepository implements BingoCreatorRepos
     }
 
     /**
-     * Obtener precio promedio de cartas
+     * Obtener precio promedio de cartas.
      *
-     * @return float
+     * bingo_room_creators no tiene columna card_price. No hay
+     * equivalente posible sin cambio de esquema.
+     *
+     * @throws \RuntimeException
      */
     public function getAverageCardPrice(): float
     {
-        return (float) $this->model->avg('card_price') ?? 0.0;
+        throw new \RuntimeException('bingo_room_creators no tiene columna card_price; usar BingoCardPriceRepository.');
     }
 }

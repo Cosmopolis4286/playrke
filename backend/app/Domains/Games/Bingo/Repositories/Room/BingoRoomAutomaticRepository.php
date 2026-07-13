@@ -40,16 +40,19 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
     }
 
     /**
-     * Obtener salas por creador
+     * Obtener salas por creador.
      *
-     * @param string $creatorType
-     * @param string $creatorId
+     * bingo_rooms_automatic no tiene columnas creator_type/creator_id,
+     * solo creator_user_id; se conserva $creatorType en la firma por
+     * compatibilidad con el contrato, sin usarlo como filtro.
+     *
+     * @param string $creatorType sin uso (ver nota arriba)
+     * @param string $creatorId ID del usuario creador (creator_user_id)
      * @return Collection<int, BingoRoomAutomatic>
      */
     public function getByCreator(string $creatorType, string $creatorId): Collection
     {
-        return $this->model->where('creator_type', $creatorType)
-            ->where('creator_id', $creatorId)
+        return $this->model->where('creator_user_id', $creatorId)
             ->get();
     }
 
@@ -81,7 +84,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      */
     public function getByGameMode(string $gameMode): Collection
     {
-        return $this->model->where('game_mode', $gameMode)->get();
+        return $this->model->where('game_mode_id', $gameMode)->get();
     }
 
     /**
@@ -92,7 +95,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      */
     public function getByPrizePoolType(string $prizePoolType): Collection
     {
-        return $this->model->where('prize_pool_type', $prizePoolType)->get();
+        return $this->model->where('prize_pool_type_id', $prizePoolType)->get();
     }
 
     /**
@@ -158,7 +161,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      */
     public function getByRoomType(string $roomType): Collection
     {
-        return $this->model->where('room_type', $roomType)->get();
+        return $this->model->where('room_type_id', $roomType)->get();
     }
 
     /**
@@ -243,8 +246,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      */
     public function existsByCreator(string $creatorType, string $creatorId): bool
     {
-        return $this->model->where('creator_type', $creatorType)
-            ->where('creator_id', $creatorId)
+        return $this->model->where('creator_user_id', $creatorId)
             ->exists();
     }
 
@@ -268,8 +270,7 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      */
     public function countByCreator(string $creatorType, string $creatorId): int
     {
-        return $this->model->where('creator_type', $creatorType)
-            ->where('creator_id', $creatorId)
+        return $this->model->where('creator_user_id', $creatorId)
             ->count();
     }
 
@@ -294,14 +295,14 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
         $liveRooms = $this->model->where('in_live', 'Y')->count();
         $scheduledToday = $this->getTodayScheduledRooms()->count();
 
-        $byGameMode = $this->model->selectRaw('game_mode, COUNT(*) as count')
-            ->groupBy('game_mode')
-            ->pluck('count', 'game_mode')
+        $byGameMode = $this->model->selectRaw('game_mode_id, COUNT(*) as count')
+            ->groupBy('game_mode_id')
+            ->pluck('count', 'game_mode_id')
             ->toArray();
 
-        $byRoomType = $this->model->selectRaw('room_type, COUNT(*) as count')
-            ->groupBy('room_type')
-            ->pluck('count', 'room_type')
+        $byRoomType = $this->model->selectRaw('room_type_id, COUNT(*) as count')
+            ->groupBy('room_type_id')
+            ->pluck('count', 'room_type_id')
             ->toArray();
 
         return [
@@ -419,9 +420,9 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      */
     public function getGroupedByGameMode(): Collection
     {
-        return $this->model->selectRaw('game_mode, COUNT(*) as count')
-            ->groupBy('game_mode')
-            ->orderBy('game_mode')
+        return $this->model->selectRaw('game_mode_id, COUNT(*) as count')
+            ->groupBy('game_mode_id')
+            ->orderBy('game_mode_id')
             ->get();
     }
 
@@ -432,9 +433,9 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
      */
     public function getGroupedByRoomType(): Collection
     {
-        return $this->model->selectRaw('room_type, COUNT(*) as count')
-            ->groupBy('room_type')
-            ->orderBy('room_type')
+        return $this->model->selectRaw('room_type_id, COUNT(*) as count')
+            ->groupBy('room_type_id')
+            ->orderBy('room_type_id')
             ->get();
     }
 

@@ -45,7 +45,7 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
         }
 
         if (isset($filters['seller_id'])) {
-            $query->where('seller_id', $filters['seller_id']);
+            $query->where('seller_user_id', $filters['seller_id']);
         }
 
         if (isset($filters['validated'])) {
@@ -114,7 +114,7 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
      */
     public function getCardsBySeller(string $sellerId, array $filters = []): Collection
     {
-        $query = $this->model->where('seller_id', $sellerId);
+        $query = $this->model->where('seller_user_id', $sellerId);
 
         // Aplicar filtros adicionales
         if (isset($filters['room_id'])) {
@@ -268,7 +268,7 @@ class BingoCardRepository extends BaseRepository implements BingoCardRepositoryC
         }
 
         if (isset($filters['seller_id'])) {
-            $query->where('seller_id', $filters['seller_id']);
+            $query->where('seller_user_id', $filters['seller_id']);
         }
 
         return $query->with(['room', 'roomUser.user', 'seller', 'cardLot'])
