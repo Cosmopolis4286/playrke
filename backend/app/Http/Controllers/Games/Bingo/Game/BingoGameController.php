@@ -220,19 +220,14 @@ final class BingoGameController extends Controller
         return $this->handleServiceJson(function () use ($room, $card) {
             $cardPrize = BingoCardPrize::where('room_id', (string) $room->id)
                 ->where('winning_card_id', $card)
+                ->with('winningCard')
                 ->first();
 
-            if (!$cardPrize) {
+            if (!$cardPrize || !$cardPrize->winningCard) {
                 abort(404, 'Cartón no encontrado en esta sala.');
             }
 
-            $bingoCard = BingoCard::where('id', $card)
-                ->where('room_id', (string) $room->id)
-                ->first();
-
-            if (!$bingoCard) {
-                abort(404, 'Cartón no encontrado en esta sala.');
-            }
+            $bingoCard = $cardPrize->winningCard;
 
             // Carga lazy condicional: solo consulta round y pattern si hay round_id,
             // evitando 2 queries extra cuando el prize no tiene ronda asociada.
@@ -267,6 +262,8 @@ final class BingoGameController extends Controller
      */
     public function devResetStartTime(BingoRoom $room): JsonResponse
     {
+        abort_if(!app()->environment('local'), 403, 'Solo disponible en entorno local.');
+
         return $this->handleServiceJson(
             fn() => $this->service->devResetStartTime($room)
         );

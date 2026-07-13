@@ -5,6 +5,7 @@ namespace App\Domains\Games\Bingo\Policies;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\User;
 use App\Policies\Roles\BaseRolePolicy;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Policy de autorización para el dominio BingoRoom.
@@ -131,9 +132,13 @@ class BingoRoomPolicy extends BaseRolePolicy
             return true;
         }
 
-        return \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $room->id)
-            ->where('user_id', $user->id)
-            ->where('cards_purchased', '>', 0)
-            ->exists();
+        $cacheKey = "bingo:policy:viewGame:{$user->id}:{$room->id}";
+
+        return Cache::remember($cacheKey, 30, fn () =>
+            \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $room->id)
+                ->where('user_id', $user->id)
+                ->where('cards_purchased', '>', 0)
+                ->exists()
+        );
     }
 }

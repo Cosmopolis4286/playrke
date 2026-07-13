@@ -15,6 +15,7 @@ use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\Wallet;
 use App\Domains\Games\Bingo\Services\Room\Utils\CheckExpiredBingoRoomsService;
 use App\Services\ExchangeRate\CurrencyExchangeRateService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -104,31 +105,48 @@ final class BingoGameService
      */
     public function getDrawState(BingoRoom $room): array
     {
-        $drawnNumbers = BingoDraw::where('room_id', $room->id)
-            ->orderBy('time')
-            ->orderBy('created_at')
-            ->pluck('chip')
-            ->map(fn($chip) => (int) $chip)
-            ->toArray();
+        // Cacheado 3s — bajo tormenta de reconexiones (muchos clientes simultáneos)
+        // todas las consultas de historial de fichas golpearían la misma tabla a la vez.
+        $drawnNumbers = Cache::remember(
+            "bingo:draw-state:draw:{$room->id}",
+            3,
+            fn () => BingoDraw::where('room_id', $room->id)
+                ->orderBy('time')
+                ->orderBy('created_at')
+                ->pluck('chip')
+                ->map(fn($chip) => (int) $chip)
+                ->toArray()
+        );
 
+        if (!$room->relationLoaded('status')) $room->load('status');
         $roomStatusCode = $room->status?->code ?? '';
         $roomIsFinished = strtoupper($roomStatusCode) === 'FINISHED';
 
-        // players_progress: solo cuando quedan ≤10 fichas y el sorteo sigue activo
+        // players_progress: solo cuando quedan ≤10 fichas y el sorteo sigue activo.
+        // Cacheado 3s por sala+cantidad de fichas — bajo una desconexión masiva de
+        // WS, muchos clientes reconectan casi a la vez y llaman a este endpoint en
+        // paralelo; sin cache, cada uno recalcula ronda+patrón+progreso de todos
+        // los cartones de la sala, multiplicando carga de DB en el peor momento.
         $playersProgress = [];
         if (!$room->relationLoaded('config')) $room->load('config');
         $variant    = $room->config?->game_variant ?? BingoVariant::BINGO_75;
         $totalChips = BingoVariant::totalChips($variant);
         if (!$roomIsFinished && count($drawnNumbers) > 0 && ($totalChips - count($drawnNumbers)) <= 10) {
-            // Obtener el patrón desde la ronda activa de la sala
-            $round   = $room->rounds()->latest('round')->first();
-            $pattern = $round?->bingo_pattern_id
-                ? BingoPattern::find($round->bingo_pattern_id)
-                : BingoPattern::where('default_pattern', 'Y')->first();
-            if ($pattern) {
+            $cacheKey = "bingo:draw-state:players-progress:{$room->id}:" . count($drawnNumbers);
+            $playersProgress = Cache::remember($cacheKey, 3, function () use ($room, $variant, $drawnNumbers) {
+                // Obtener el patrón desde la ronda activa de la sala
+                $round   = $room->rounds()->latest('round')->first();
+                $pattern = $round?->bingo_pattern_id
+                    ? BingoPattern::find($round->bingo_pattern_id)
+                    : BingoPattern::where('default_pattern', 'Y')->first();
+
+                if (!$pattern) {
+                    return [];
+                }
+
                 $patternPositions = $this->patternResolver->resolve($pattern, $variant);
-                $playersProgress  = $this->drawService->computePlayersProgress($room, $patternPositions, $drawnNumbers);
-            }
+                return $this->drawService->computePlayersProgress($room, $patternPositions, $drawnNumbers);
+            });
         }
 
         return [

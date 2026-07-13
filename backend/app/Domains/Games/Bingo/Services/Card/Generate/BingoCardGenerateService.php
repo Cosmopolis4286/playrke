@@ -632,6 +632,10 @@ final class BingoCardGenerateService
         // junto con el precio y símbolo actualizados para que el frontend no requiera recarga.
         $this->broadcastPlayerCardsUpdated((string) $room->id, $creatorUserId, (float) $cardPrice, (string) $currencySymbol);
 
+        // Invalidar el cache de viewGame — el usuario puede haber comprado su primer cartón
+        // y el cache de la policy habría devuelto false durante hasta 30s tras la compra.
+        \Illuminate\Support\Facades\Cache::forget("bingo:policy:viewGame:{$userId}:{$room->id}");
+
         // Notificar la venta a dashboards de admin/superadmin y al vendedor/comercio propietario.
         broadcast(new BingoCardSold(
             roomId: (string) $room->id,
@@ -788,6 +792,78 @@ final class BingoCardGenerateService
             'exchange_rate' => $exchangeRate,
             'is_custom_price' => $isCustomPrice,
         ];
+    }
+
+    /**
+     * Igual que getPlayerCardPrice() pero para varias salas a la vez.
+     *
+     * La billetera/moneda del jugador es la misma para todas las salas, así
+     * que se resuelve una sola vez; salas y precios personalizados se traen
+     * en dos queries con whereIn en lugar de N queries por sala (usado por
+     * el lobby, que resuelve el precio de cada sala activa en un mismo request).
+     *
+     * @param string[] $roomIds
+     * @return array<string, array> Precio por sala, indexado por room_id. Las
+     *   salas sin billetera/tasa resolvible simplemente no aparecen en el resultado.
+     */
+    public function getPlayerCardPricesForRooms(array $roomIds, int $userId): array
+    {
+        if (empty($roomIds)) {
+            return [];
+        }
+
+        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string) $userId, ['currency_id']);
+
+        if ($activeWallets->isEmpty()) {
+            return [];
+        }
+
+        $playerWallet = $activeWallets->first();
+        $currencyId = $playerWallet->currency_id;
+
+        $currency = $this->currencies->find($currencyId, ['symbol']);
+        $currencySymbol = $currency?->symbol ?? 'USD';
+
+        $exchangeRate = $this->currencyExchangeRate->getActiveRate($currencyId);
+
+        $rooms = BingoRoom::with('config:id,room_id,card_price_usd,game_variant')
+            ->whereIn('id', $roomIds)
+            ->get()
+            ->keyBy('id');
+
+        $customPrices = BingoCardPrice::whereIn('room_id', $roomIds)
+            ->byCurrency($currencyId)
+            ->pluck('card_price', 'room_id');
+
+        $results = [];
+
+        foreach ($roomIds as $roomId) {
+            $room = $rooms->get($roomId);
+
+            if (!$room) {
+                continue;
+            }
+
+            $customPrice = $customPrices->get($roomId);
+            $isCustomPrice = $customPrice !== null;
+
+            if ($isCustomPrice) {
+                $cardPrice = $this->priceCalculator->calculate($customPrice, true, $exchangeRate);
+            } else {
+                $roomCtnPrice = $room->config?->card_price_usd ?? 0.0;
+                $cardPrice = $this->priceCalculator->calculate($roomCtnPrice, false, $exchangeRate);
+            }
+
+            $results[$roomId] = [
+                'card_price' => (float) $cardPrice,
+                'card_price_usd' => (float) $this->toUsdAmount($cardPrice, $exchangeRate),
+                'currency_symbol' => (string) ($currencySymbol ?? 'USD'),
+                'exchange_rate' => $exchangeRate,
+                'is_custom_price' => $isCustomPrice,
+            ];
+        }
+
+        return $results;
     }
 
     /**

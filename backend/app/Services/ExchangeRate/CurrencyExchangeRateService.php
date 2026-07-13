@@ -5,6 +5,7 @@ namespace App\Services\ExchangeRate;
 use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
 use App\Models\Currency;
 use App\Models\ExchangeRate;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Única fuente de verdad para la tasa de cambio OFICIAL de la plataforma
@@ -17,6 +18,15 @@ use App\Models\ExchangeRate;
  */
 final class CurrencyExchangeRateService
 {
+    /**
+     * TTL corto: la tasa cambia con poca frecuencia (ediciones manuales de
+     * admin/commerce/customer), pero este método se llama en loops por sala
+     * (lobby de bingo, listados admin) — un TTL de segundos elimina la
+     * mayoría de queries repetidas sin arriesgar montos desactualizados
+     * de forma perceptible.
+     */
+    private const TTL_SECONDS = 30;
+
     /**
      * Tasa de cambio oficial vigente para una moneda.
      *
@@ -33,10 +43,14 @@ final class CurrencyExchangeRateService
             return 1.0;
         }
 
-        $amount = ExchangeRate::where('currency_id', $currencyId)
-            ->where('status', 'ACTIVE')
-            ->orderByDesc('created_at')
-            ->value('amount');
+        $amount = Cache::remember(
+            "exchange_rate:active:{$currencyId}",
+            self::TTL_SECONDS,
+            fn () => ExchangeRate::where('currency_id', $currencyId)
+                ->where('status', 'ACTIVE')
+                ->orderByDesc('created_at')
+                ->value('amount')
+        );
 
         if (!$amount || (float) $amount <= 0) {
             throw ExchangeRateException::noActiveRate($currencyId);

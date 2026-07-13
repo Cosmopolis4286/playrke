@@ -457,12 +457,9 @@ final class BingoRoomContextService
                 return null;
             }
 
-            $roomPrices = [];
-            foreach ($rooms as $room) {
-                $roomPrices[$room->id] = $this->generateService->getPlayerCardPrice((string) $room->id, $userId);
-            }
+            $roomIds = $rooms->pluck('id')->map(fn ($id) => (string) $id)->all();
 
-            return $roomPrices;
+            return $this->generateService->getPlayerCardPricesForRooms($roomIds, $userId);
         } catch (\Throwable) {
             return null;
         }

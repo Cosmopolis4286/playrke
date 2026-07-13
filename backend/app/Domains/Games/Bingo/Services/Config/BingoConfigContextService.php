@@ -8,6 +8,7 @@ use App\Models\Game;
 use App\Traits\HashedTableDataTrait;
 use DomainException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -101,7 +102,7 @@ final class BingoConfigContextService
      */
     public function getImageBingoRules(int $userId): string
     {
-        $gameId = Game::where('name', 'BINGO')->value('id');
+        $gameId = $this->bingoGameId();
         $game   = $gameId ? $this->gameRule->getByUserAndGame($userId, $gameId) : null;
 
         if ($game && $game->image && $game->encrypted) {
@@ -116,7 +117,7 @@ final class BingoConfigContextService
      */
     public function getBingoRules(int $userId): string
     {
-        $gameId = Game::where('name', 'BINGO')->value('id');
+        $gameId = $this->bingoGameId();
         $game   = $gameId ? $this->gameRule->getByUserAndGame($userId, $gameId) : null;
 
         return $game?->rules ?? '';
@@ -129,13 +130,23 @@ final class BingoConfigContextService
      */
     private function resolveBingoGameId(): int|string
     {
-        $gameId = Game::where('name', 'BINGO')->value('id');
+        $gameId = $this->bingoGameId();
 
         if (!$gameId) {
             throw new DomainException('El juego BINGO no existe en la base de datos.');
         }
 
         return $gameId;
+    }
+
+    /**
+     * ID del juego BINGO, cacheado de forma indefinida: es una fila de
+     * catálogo estática (nunca cambia en runtime) consultada en cada
+     * resolución de reglas/imagen, dos veces por carga de `context('index')`.
+     */
+    private function bingoGameId(): int|string|null
+    {
+        return Cache::rememberForever('game:id:BINGO', fn () => Game::where('name', 'BINGO')->value('id'));
     }
 
     /**
