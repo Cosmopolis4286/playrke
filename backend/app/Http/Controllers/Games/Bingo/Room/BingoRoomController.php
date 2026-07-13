@@ -83,6 +83,32 @@ final class BingoRoomController extends Controller
     }
 
     /**
+     * Refetch paginado/filtrado del listado de salas (Room/Summary), usado
+     * por la tabla en modo server-side tras la carga inicial de la página.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function summaryData(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->summaryData(
+                page: (int) $request->query('page', 1),
+                perPage: (int) $request->query('per_page', 15),
+                filters: array_filter([
+                    'search' => $request->query('search'),
+                    'status' => $request->query('status'),
+                    'room_type_id' => $request->query('room_type_id'),
+                    'game_mode_id' => $request->query('game_mode_id'),
+                    'prize_pool_type_id' => $request->query('prize_pool_type_id'),
+                    'from_house' => $request->query('from_house'),
+                    'currency_id' => $request->query('currency_id'),
+                ])
+            )
+        );
+    }
+
+    /**
      * Mostrar detalle de una sala de bingo.
      *
      * @param BingoRoom $room

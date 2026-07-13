@@ -53,10 +53,20 @@ final class BingoRoomContextService
      * Resolver listado de salas de bingo.
      *
      * @param int|null $userId ID del usuario
+     * @param int $page Página solicitada (1-based)
+     * @param int $perPage Registros por página
+     * @param array{
+     *     status?: string,
+     *     room_type_id?: string,
+     *     game_mode_id?: string,
+     *     prize_pool_type_id?: string,
+     *     from_house?: string,
+     *     currency_id?: string,
+     * } $filters Filtros server-side sobre campos reales (ver BingoRoomRepository::paginateSummaryGameRooms)
      * @return array Listado de salas con paginación
      * @throws DomainException Si no se pueden resolver las salas de bingo
      */
-    private function resolveSummaryGameRooms(?int $userId): array
+    private function resolveSummaryGameRooms(?int $userId, int $page = 1, int $perPage = 15, array $filters = []): array
     {
         $labels  = ['Código', 'Estado', 'Tipo', 'Modo', 'Tipo Bote', 'Moneda(s)', 'Jugadores', 'Cartones', 'Premio'];
         $rowKeys = ['code_start_badge', 'status_badge', 'config.roomType.label', 'config.gameMode.label', 'config.prizePoolType.label', 'config.allowed_currencies_badge', 'total_players_badge', 'total_cards_badge', 'prize_pool_badge'];
@@ -69,9 +79,11 @@ final class BingoRoomContextService
             ? ['creator_user_id' => $userId]
             : [];
 
-        $source = $this->bingoRooms->paginateWithRelations(
-            perPage: 15,
-            page: 1,
+        $source = $this->bingoRooms->paginateSummaryGameRooms(
+            perPage: $perPage,
+            page: $page,
+            conditions: $conditions,
+            filters: $filters,
             // cardPrizes/cardLots solo traen las columnas necesarias para contar (vía
             // closure) — ganadores y cartones personalizados, sin cargar registros completos.
             relations: [
@@ -79,7 +91,6 @@ final class BingoRoomContextService
                 'cardPrizes' => fn($q) => $q->select('id', 'room_id', 'status')->where('status', 'ACTIVE'),
                 'cardLots' => fn($q) => $q->select('id', 'room_id', 'card_count', 'has_custom_cards', 'status')->where('status', 'ACTIVE'),
             ],
-            conditions: $conditions,
             fields: ['id', 'uuid_code', 'status_id', 'creator_user_id', 'total_players', 'total_cards', 'prize_pool', 'metrics_by_currency', 'created_at']
         );
 
@@ -354,6 +365,26 @@ final class BingoRoomContextService
             gameModes: $this->gameModes->getActiveGameModes(),
             roomTypes: $this->roomTypes->getActiveTypes()
         );
+    }
+
+    /**
+     * Refetch server-side del listado de salas (paginación/filtros/búsqueda
+     * de Room/Summary tras la carga inicial vía Inertia) — a diferencia de
+     * summaryGameRooms(), no reconstruye catálogos (monedas, patrones, tipos)
+     * que no cambian entre páginas, solo `rooms` + `pagination`.
+     *
+     * @param array{
+     *     status?: string,
+     *     room_type_id?: string,
+     *     game_mode_id?: string,
+     *     prize_pool_type_id?: string,
+     *     from_house?: string,
+     *     currency_id?: string,
+     * } $filters
+     */
+    public function summaryDataForRefetch(int $userId, int $page, int $perPage, array $filters): array
+    {
+        return $this->resolveSummaryGameRooms($userId, $page, $perPage, $filters);
     }
 
     /**

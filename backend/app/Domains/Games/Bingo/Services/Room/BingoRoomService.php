@@ -42,6 +42,26 @@ final class BingoRoomService
     }
 
     /**
+     * Refetch paginado/filtrado del listado admin/commerce de salas
+     * (Room/Summary), usado por la tabla en modo server-side.
+     *
+     * @param array{
+     *     status?: string,
+     *     room_type_id?: string,
+     *     game_mode_id?: string,
+     *     prize_pool_type_id?: string,
+     *     from_house?: string,
+     *     currency_id?: string,
+     * } $filters
+     */
+    public function summaryData(int $page, int $perPage, array $filters): array
+    {
+        $this->checkExpired->handle();
+        $userId = $this->userContext->resolveUserId();
+        return $this->contextService->summaryDataForRefetch($userId, $page, $perPage, $filters);
+    }
+
+    /**
      * Mostrar detalle de una sala de bingo.
      */
     public function show(BingoRoom $room): BingoRoomResource

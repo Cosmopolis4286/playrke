@@ -5,6 +5,7 @@ namespace App\Domains\Games\Bingo\Contracts\Room;
 use App\Contracts\BaseRepositoryInterface;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * Contrato para el repositorio de salas de Bingo.
@@ -46,4 +47,31 @@ interface BingoRoomRepositoryInterface extends BaseRepositoryInterface
      * @return Collection<BingoRoom>
      */
     public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false): Collection;
+
+    /**
+     * Paginar el listado admin/commerce de salas (Room/Summary) con filtros
+     * reales aplicados en SQL, en vez de traer una sola página fija y filtrar
+     * en el cliente.
+     *
+     * @param array<string,mixed> $conditions Condiciones directas sobre bingo_rooms (campo => valor)
+     * @param array{
+     *     search?: string,
+     *     status?: string,
+     *     room_type_id?: string,
+     *     game_mode_id?: string,
+     *     prize_pool_type_id?: string,
+     *     from_house?: string,
+     *     currency_id?: string,
+     * } $filters Filtros sobre relaciones (config.*, status.code) + búsqueda por uuid_code
+     * @param array<int,string|\Closure> $relations
+     * @param array<int,string> $fields
+     */
+    public function paginateSummaryGameRooms(
+        int $perPage,
+        int $page,
+        array $conditions,
+        array $filters,
+        array $relations,
+        array $fields
+    ): LengthAwarePaginator;
 }

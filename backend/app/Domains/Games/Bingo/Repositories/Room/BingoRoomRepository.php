@@ -175,4 +175,62 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
             $page
         );
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function paginateSummaryGameRooms(
+        int $perPage,
+        int $page,
+        array $conditions,
+        array $filters,
+        array $relations,
+        array $fields
+    ): LengthAwarePaginator {
+        $query = $this->model->newQuery()
+            ->select($fields)
+            ->with($relations);
+
+        foreach ($conditions as $field => $value) {
+            $query->where($field, $value);
+        }
+
+        // Búsqueda de texto: solo contra uuid_code (única columna de texto libre
+        // real en bingo_rooms) — el resto de columnas visibles en la tabla son
+        // HTML/labels calculados en PHP tras traer los datos, sin equivalente
+        // directo seguro en SQL.
+        if (!empty($filters['search'])) {
+            $query->where('uuid_code', 'like', '%' . $filters['search'] . '%');
+        }
+
+        if (!empty($filters['status'])) {
+            $query->whereHas('status', fn ($q) => $q->where('code', $filters['status']));
+        }
+
+        if (!empty($filters['room_type_id'])) {
+            $query->whereHas('config', fn ($q) => $q->where('room_type_id', $filters['room_type_id']));
+        }
+
+        if (!empty($filters['game_mode_id'])) {
+            $query->whereHas('config', fn ($q) => $q->where('game_mode_id', $filters['game_mode_id']));
+        }
+
+        if (!empty($filters['prize_pool_type_id'])) {
+            $query->whereHas('config', fn ($q) => $q->where('prize_pool_type_id', $filters['prize_pool_type_id']));
+        }
+
+        if (!empty($filters['from_house'])) {
+            $query->whereHas('config', fn ($q) => $q->where('from_house', $filters['from_house']));
+        }
+
+        if (!empty($filters['currency_id'])) {
+            $query->whereHas(
+                'config',
+                fn ($q) => $q->whereJsonContains('allowed_currencies', (string) $filters['currency_id'])
+            );
+        }
+
+        return $query->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+    }
 }

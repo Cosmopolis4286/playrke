@@ -36,6 +36,7 @@ route_group('bingo-rooms', 'bingo-rooms.', ['auth', 'multiPermission:games.manag
     'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
+    'summary-data' => ['method' => 'get', 'uri' => 'summary-data', 'action' => 'summaryData'],
     'show' => ['method' => 'get', 'uri' => '{room}/show', 'action' => 'show'],
     'update' => ['method' => 'patch',  'uri' => '{room}/update', 'action' => 'update'],
     'delete' => ['method' => 'delete', 'uri' => '{room}/delete', 'action' => 'delete'],
@@ -166,7 +167,7 @@ route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.bingo,games.bingo
     'game'          => ['method' => 'get',  'uri' => '{room}/game',          'action' => 'inGame'],
     'draw-state'    => ['method' => 'get',  'uri' => '{room}/draw-state',    'action' => 'drawState'],
     'user-cards'    => ['method' => 'get',  'uri' => '{room}/user-cards',    'action' => 'getUserCards'],
-    'check-bingo'   => ['method' => 'post', 'uri' => '{room}/check-bingo',   'action' => 'checkBingo'],
+    'check-bingo'   => ['method' => 'post', 'uri' => '{room}/check-bingo',   'action' => 'checkBingo', 'middleware' => ['throttle:bingo-check-bingo']],
     'view-card'     => ['method' => 'get',  'uri' => '{room}/card/{card}',   'action' => 'viewCard'],
 ]);
 
