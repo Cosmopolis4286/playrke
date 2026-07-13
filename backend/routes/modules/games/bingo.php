@@ -153,10 +153,13 @@ route_group('bingo/game-rooms', 'bingo-game-rooms.', ['auth', 'multiPermission:g
  * JUEGO DE BINGO
  * ====================================
  */
-// NOTA: 'game' (inGame) no está cubierto por authorizeResource() en el controlador
-// -- resourceAbilityMap() solo mapea index/show/create/store/edit/update/destroy,
-// no 'inGame' -- así que sin este middleware cualquier usuario autenticado podía
-// ver la sala de juego de CUALQUIER sala, sin importar si jugaba en ella.
+// NOTA: 'game' (inGame), 'draw-state' y 'check-bingo' NO están cubiertos por
+// authorizeResource() en el controlador -- resourceAbilityMap() solo mapea
+// index/show/create/store/edit/update/destroy, no estas acciones -- así que
+// el middleware multiPermission de abajo solo exige el permiso GENERAL del
+// módulo, no pertenencia a la sala. Cada action llama explícitamente
+// $this->authorize('viewGame', $room) (BingoRoomPolicy::viewGame), que exige
+// que el jugador tenga cartones comprados en ESA sala específica.
 route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.bingo,games.bingo.game_rooms'], BingoGameController::class, [
     'lobby'         => ['method' => 'get',  'uri' => '{room}/lobby',         'action' => 'lobby'],
     'lobby-players' => ['method' => 'get',  'uri' => '{room}/lobby-players', 'action' => 'lobbyPlayers'],

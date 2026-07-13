@@ -107,4 +107,33 @@ class BingoRoomPolicy extends BaseRolePolicy
             ->where('cards_purchased', '>', 0)
             ->exists();
     }
+
+    /**
+     * Ver el estado de una partida (inGame, draw-state, checkBingo) — requiere
+     * pertenecer a la sala (haber comprado cartones o ser su creador), no solo
+     * tener el permiso general del módulo. Sin esto, cualquier player con
+     * acceso al módulo podía consultar el sorteo/premio/ganadores de CUALQUIER
+     * sala adivinando su id. Mismo criterio que viewLobbyPlayers, más el
+     * fallback de creador directo que ya contempla getUserCartons() (sala
+     * propia sin BingoRoomUser, ej. en dev).
+     */
+    public function viewGame(User $user, BingoRoom $room): bool
+    {
+        if ($this->hasAccess($user)) {
+            return true;
+        }
+
+        if (!$user->hasRole('player')) {
+            return false;
+        }
+
+        if ((string) $user->id === (string) $room->creator_user_id) {
+            return true;
+        }
+
+        return \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $room->id)
+            ->where('user_id', $user->id)
+            ->where('cards_purchased', '>', 0)
+            ->exists();
+    }
 }

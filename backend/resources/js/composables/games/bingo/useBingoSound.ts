@@ -12,13 +12,14 @@
 
 import { ref, computed } from 'vue'
 
-type SoundKey = 'next' | 'select' | 'winner'
+type SoundKey = 'next' | 'select' | 'winner' | 'tick'
 
 const BASE = '/sounds/bingo/'
 const FILES: Record<SoundKey, string> = {
   next:   `${BASE}next.mp3`,
   select: `${BASE}select.mp3`,
   winner: `${BASE}winner.mp3`,
+  tick:   `${BASE}select.mp3`,
 }
 
 // Estado compartido entre todas las instancias del composable.
@@ -77,10 +78,13 @@ export function useBingoSound() {
   /** Bingo detectado o ganador — reproducir winner.mp3 */
   function playWinner() { play('winner') }
 
+  /** Tick corto para los últimos segundos de la cuenta regresiva */
+  function playTick() { play('tick', _volume.value * 0.4) }
+
   /** Precargar todos los sonidos (llamar en onMounted) */
   function preload() {
     for (const k of Object.keys(FILES) as SoundKey[]) _getAudio(k)
   }
 
-  return { muted, toggleMute, playNext, playSelect, playWinner, preload }
+  return { muted, toggleMute, playNext, playSelect, playWinner, playTick, preload }
 }
