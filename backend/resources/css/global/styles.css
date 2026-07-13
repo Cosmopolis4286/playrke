@@ -21,21 +21,33 @@
 
 /* ── Tema claro ── */
 [data-theme="light"] {
-  --ds-bg:           #eef0f7;
+  --ds-bg:           #e8eaf4;
   --ds-surface:      #ffffff;
-  --ds-surface-2:    #f8f9fc;
-  --ds-border:       #e2e6ef;
-  --ds-border-2:     #c8d0e0;
+  --ds-surface-2:    #f4f5fb;
+  --ds-border:       #d8dde8;
+  --ds-border-2:     #c0c8d8;
   --ds-text:         #1a202c;
   --ds-text-2:       #4a5568;
   --ds-text-muted:   #8a94a6;
-  --ds-badge-bg:     #f1f3f9;
+  --ds-badge-bg:     #edf0f8;
   --ds-badge-color:  #4a5568;
-  --ds-card-hover-shadow: 0 6px 20px rgba(0,0,0,.09);
-  --ds-skeleton-a:   #e9ecef;
-  --ds-skeleton-b:   #f8f9fa;
+  --ds-card-hover-shadow: 0 6px 20px rgba(0,0,0,.12);
+  --ds-skeleton-a:   #e2e5ee;
+  --ds-skeleton-b:   #f0f2f8;
 }
 
+/* Sombra en cards para que sobresalgan del fondo claro */
+[data-theme="light"] .card {
+  box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 0 0 1px rgba(0,0,0,.04) !important;
+}
+[data-theme="light"] .card:hover {
+  box-shadow: var(--ds-card-hover-shadow) !important;
+}
+
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
 body {
   font-family: 'Poppins', sans-serif !important;
   background-color: var(--ds-bg) !important; /* adapta al tema activo */
@@ -55,9 +67,10 @@ body {
 /* Bootstrap badge bg-light — legible en ambos temas */
 .badge.bg-light      { background-color: var(--ds-badge-bg) !important; color: var(--ds-text) !important; border: 1px solid var(--ds-border); }
 
-[data-theme="light"] .main-sidebar,
-[data-theme="light"] .main-sidebar .nav-sidebar {
-  background: #1e1f3b !important; /* sidebar permanece oscuro en tema claro */
+/* sidebar: el gradiente de aside.main-sidebar ya define su fondo;
+   en tema claro mantener el mismo estilo oscuro (branding consistente) */
+[data-theme="light"] .main-sidebar {
+  background-image: radial-gradient(circle at 50% -20.71%, #352e72 0, #181b50 25%, #02002f 50%, #000011 75%, #000000 100%) !important;
 }
 
 .hide-elem {
@@ -147,13 +160,35 @@ body {
   background: linear-gradient(90deg, #181b50 0%, #060324 8%, #0a0535 50%, #060324 100%);
   border-bottom: none;
   position: relative;
-  /* Sin box-shadow vertical — el separador visual lo da el ::after (línea de 2px).
-     La sombra difusa hacia abajo creaba una banda oscura visible bajo el navbar. */
   box-shadow: none;
   height: var(--navbar-h) !important;
   min-height: var(--navbar-h) !important;
+  max-height: var(--navbar-h) !important;
   padding: 0 1rem !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
   box-sizing: border-box;
+  overflow: visible !important;
+}
+/* AdminLTE fuerza height:3.35rem y border-bottom en .main-header — igualamos a nuestro token */
+.main-header {
+  height: var(--navbar-h) !important;
+  min-height: var(--navbar-h) !important;
+  max-height: var(--navbar-h) !important;
+  overflow: visible !important;
+  border-bottom: none !important; /* AdminLTE pone border-bottom: 1px solid #12004C */
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Todos los nav-item del navbar alinean verticalmente */
+.main-header.navbar .nav-item {
+  display: flex;
+  align-items: center;
+}
+.main-header.navbar .nav-item.dropdown {
+  display: flex;
+  align-items: center;
 }
 
 /* Línea de acento degradada (verde → azul → violeta) que separa el navbar del contenido */
@@ -178,16 +213,20 @@ body {
   opacity: 0.6;
 }
 
-/* AdminLTE con layout-fixed aplica padding-top al body (altura del navbar) y margin-top
-   al .wrapper. El navbar en nuestra implementación no es position:fixed — está en el
-   flujo del wrapper — así que ambos valores crean espacio vacío visible arriba. Los anulamos. */
+/* AdminLTE aplica margin-top:-0.5% y height:1px al .wrapper, y padding-top al body
+   en layout-fixed. Anulamos todo para que el navbar sea el primer elemento visible. */
 body.layout-fixed {
   padding-top: 0 !important;
+  background-color: var(--ds-bg) !important;
 }
+.wrapper,
 .layout-fixed .wrapper,
 #app-wrapper {
   margin-top: 0 !important;
+  height: auto !important;          /* AdminLTE fuerza height:1px */
+  min-height: 100vh !important;     /* que el wrapper ocupe toda la ventana */
   background: var(--ds-bg) !important;
+  background-color: var(--ds-bg) !important;
 }
 
 /* AdminLTE (adminlte.js, Layout.fixLayoutHeight) escribe un min-height INLINE en
@@ -456,8 +495,7 @@ button.nb-icon-btn {
   box-shadow: 0 8px 32px rgba(0,0,0,.28) !important;
   background: var(--ds-surface) !important;
   overflow: hidden;
-  margin-top: 6px !important;
-  z-index: 1050 !important;
+  z-index: 1055 !important;
 }
 .nb-notif-header {
   display: flex;
@@ -504,10 +542,14 @@ button.nb-icon-btn {
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.1);
   border-radius: 99px;
-  padding: 5px 10px 5px 5px;
+  padding: 0 10px 0 4px;
+  height: 38px;
+  box-sizing: border-box;
+  flex-shrink: 0;
   cursor: pointer;
   transition: background .2s, border-color .2s;
   text-decoration: none;
+  vertical-align: middle;
 }
 .nb-user-btn:hover,
 .nb-user-btn:focus {
@@ -576,14 +618,26 @@ button.nb-icon-btn {
    En desktop (≥768px): left(toggle) | center(wallet+search+chips) | right(bell+avatar)
 ══════════════════════════════════════════════════════════════ */
 
-/* Contenedor raíz: 3 zonas alineadas sin wrap.
-   NO overflow:clip aquí — los dropdowns (notif, user) se abren hacia abajo
-   y serían cortados. El clip solo aplica en .nb-center-zone. */
+/* Contenedor raíz: 3 zonas alineadas sin wrap. */
 .main-header.navbar,
 .nb-root {
   flex-wrap: nowrap;
-  overflow: visible;
+  overflow: visible; /* visible para que los dropdowns fixed no sean recortados */
   justify-content: space-between;
+  align-items: center;
+  height: var(--navbar-h) !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+/* Dropdowns del navbar: position:fixed para salir del navbar
+   y posicionarse correctamente en desktop y móvil */
+.nb-notif-menu,
+.nb-user-menu {
+  position: fixed !important;
+  top: calc(var(--navbar-h) + 4px) !important;
+  right: 12px !important;
+  left: auto !important;
+  margin-top: 0 !important;
 }
 
 /* ── Zona izquierda ── */
@@ -592,6 +646,7 @@ button.nb-icon-btn {
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
+  height: 100%;
 }
 
 /* ── Billetera MÓVIL: bloque central en xs/sm ── */
@@ -602,6 +657,7 @@ button.nb-icon-btn {
   justify-content: center;
   min-width: 0;
   padding: 0 6px;
+  height: 100%;
 }
 .nb-wallet-pill--center {
   max-width: 100%;
@@ -619,6 +675,7 @@ button.nb-icon-btn {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  height: 100%;
 }
 
 /* ── Logo ── */
@@ -675,8 +732,18 @@ button.nb-icon-btn {
   box-shadow: 0 8px 32px rgba(0,0,0,.28) !important;
   background: var(--ds-surface) !important;
   overflow: hidden;
-  margin-top: 6px !important;
-  z-index: 1050 !important;
+  z-index: 1055 !important;
+}
+/* En móvil: notif ocupa casi todo el ancho */
+@media (max-width: 767px) {
+  .nb-notif-menu {
+    width: calc(100vw - 16px) !important;
+    max-width: 340px !important;
+    right: 8px !important;
+  }
+  .nb-user-menu {
+    right: 8px !important;
+  }
 }
 .nb-user-header {
   display: flex;
@@ -791,23 +858,26 @@ button.nb-icon-btn {
 .nb-theme-pill {
   display: inline-flex;
   align-items: center;
-  width: 28px;
-  height: 16px;
-  border-radius: 8px;
-  background: rgba(0,0,0,.12);
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: #c9d0db;
+  border: 1px solid rgba(0,0,0,.1);
   padding: 2px;
-  transition: background .2s;
+  transition: background .25s;
   flex-shrink: 0;
+  margin-left: auto;
 }
-.nb-theme-pill--on { background: #667eea; }
+.nb-theme-pill--on { background: #667eea; border-color: #5a6fd6; }
 .nb-theme-pill__dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
   background: #fff;
-  transition: transform .2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  transition: transform .25s;
 }
-.nb-theme-pill--on .nb-theme-pill__dot { transform: translateX(12px); }
+.nb-theme-pill--on .nb-theme-pill__dot { transform: translateX(14px); }
 
 .nb-menu-divider {
   height: 1px;

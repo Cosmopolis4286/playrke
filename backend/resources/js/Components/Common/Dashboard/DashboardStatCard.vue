@@ -128,6 +128,17 @@
 }
 .sc__desc { font-size: 0.76rem; color: var(--ds-text-muted); }
 
+/* Sombra en tema claro para separar la card del fondo */
+:root:not([data-theme="light"]) .sc {
+  box-shadow: none;
+}
+:global([data-theme="light"]) .sc {
+  box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 0 0 1px rgba(0,0,0,.04);
+}
+:global([data-theme="light"]) .sc--link:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,.12);
+}
+
 /* Tendencia */
 .sc__trend {
   display: inline-flex;

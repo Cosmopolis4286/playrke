@@ -217,7 +217,7 @@
                             </svg>
                         </span>
                         <span id="nb-theme-label">Tema claro</span>
-                        <span class="nb-theme-pill ms-auto" id="nb-theme-pill">
+                        <span class="nb-theme-pill" id="nb-theme-pill">
                             <span class="nb-theme-pill__dot"></span>
                         </span>
                     </button>
@@ -611,11 +611,10 @@ window.__playrkeTheme = (function () {
     var html = document.documentElement;
 
     function applyTheme(theme) {
-        var label  = document.getElementById('nb-theme-label');
-        var pill   = document.getElementById('nb-theme-pill');
-        var svgSun = document.getElementById('nb-theme-svg-sun');
-        var svgMoon= document.getElementById('nb-theme-svg-moon');
-
+        var label   = document.getElementById('nb-theme-label');
+        var pill    = document.getElementById('nb-theme-pill');
+        var svgSun  = document.getElementById('nb-theme-svg-sun');
+        var svgMoon = document.getElementById('nb-theme-svg-moon');
         if (theme === 'light') {
             html.setAttribute('data-theme', 'light');
             if (label)   label.textContent = 'Modo oscuro';
@@ -632,24 +631,28 @@ window.__playrkeTheme = (function () {
     }
 
     function toggle() {
-        var current = html.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-        var next = current === 'dark' ? 'light' : 'dark';
+        var next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
         localStorage.setItem(STORAGE_KEY, next);
         applyTheme(next);
     }
 
-    // Aplicar tema guardado en cuanto el DOM del navbar esté disponible
-    var saved = localStorage.getItem(STORAGE_KEY) || 'dark';
-    applyTheme(saved);
+    // Inicializar con el tema guardado
+    applyTheme(localStorage.getItem(STORAGE_KEY) || 'dark');
 
-    // Usar delegación de eventos en document para no depender del momento de registro
-    document.addEventListener('click', function (e) {
-        var btn = e.target.closest('#nb-theme-toggle');
-        if (!btn) return;
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        toggle();
-    }, true); // captura en fase capture → antes que Bootstrap
+    // Registrar al hacer DOMContentLoaded para asegurarse que el botón existe
+    document.addEventListener('DOMContentLoaded', function () {
+        var btn = document.getElementById('nb-theme-toggle');
+        if (btn) {
+            btn.addEventListener('mousedown', function (e) {
+                e.preventDefault();  // evita que Bootstrap cierre el dropdown en mousedown
+            });
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggle();
+            });
+        }
+    });
 
     return { toggle: toggle, apply: applyTheme };
 })();
