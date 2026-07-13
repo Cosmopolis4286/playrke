@@ -269,6 +269,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   (e: "bingo-detected", cards: BingoCard[]): void
   (e: "card-hit", cardId: string): void
+  (e: "card-selected", id: string | null): void
 }>()
 
 const variantDef = computed<BingoVariantDef>(() => getBingoVariantDef(props.gameVariant));
@@ -281,6 +282,7 @@ const _savedSize   = typeof localStorage !== 'undefined' ? (localStorage.getItem
 const cardSize     = ref<"sm" | "md">(_savedSize ?? (isMobile && (props.cartons?.length ?? 0) > 2 ? "sm" : "md"));
 watch(cardSize, v => { if (typeof localStorage !== 'undefined') localStorage.setItem('bingo-card-size', v) })
 const selectedId   = ref<string | null>(null);
+watch(selectedId, id => emit('card-selected', id))
 // Sets internos (no reactivos) + contador de versión para forzar re-render.
 // Vue no detecta .add()/.delete() en un ref<Set> — el patrón version-bump
 // es la forma correcta: mutar el Set y luego incrementar el contador para
@@ -386,7 +388,7 @@ const myMissing = computed<number | null>(() => {
   return min;
 });
 
-defineExpose({ myMissing, streak, selectedId });
+defineExpose({ myMissing, streak });
 
 // computed para evitar recálculo en cada render del template
 const filterCounts = computed(() => {

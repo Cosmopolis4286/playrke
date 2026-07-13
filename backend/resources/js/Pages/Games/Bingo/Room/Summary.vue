@@ -3,6 +3,7 @@
    * Página Juego BINGO → GameRoom/Summary
    */
   import { computed, ref, watch } from 'vue'
+  import backendClient from '@js/plugins/axios'
 
   // ==========================================================================
   // Componentes
@@ -28,6 +29,8 @@
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilterInterface } from '@js/types/common/table/table-filter'
   import type { BingoRoom } from '@/js/types/games/bingo/room/bingo-room'
+  import type { ServerQuery } from '@/js/composables/common/table/useTableController'
+  import type { Pagination } from '@/js/types/common/table/pagination'
 
   // ==========================================================================
   // Props (Inertia)
@@ -71,6 +74,57 @@
   } = useBingoRoom()
 
   setInitialRooms(props.rooms.rows)
+
+  // ==========================================================================
+  // Paginación server-side (Room/Summary.vue)
+  // ==========================================================================
+  // El backend solo pagina 15 salas por vez (BingoRoomContextService::
+  // resolveSummaryGameRooms) — sin esto, las salas más allá de la página 1
+  // quedaban invisibles y sin forma de buscarlas. Los filtros por columna
+  // calculada (config_roomtype_label, etc.) mapean a su condición SQL real
+  // vía BingoRoomController::summaryData; la búsqueda de texto libre solo
+  // filtra por uuid_code (única columna de texto real en bingo_rooms), no
+  // por tipo/modo/tipo bote (esas son labels calculados sin columna SQL
+  // única que las cubra con seguridad).
+  const pagination = ref<Pagination>(
+    props.rooms_pagination ?? { total: props.rooms.rows.length, per_page: 15, current_page: 1, last_page: 1, from: null, to: null }
+  )
+
+  const FILTER_KEY_TO_PARAM: Record<string, string> = {
+    config_roomtype_label: 'room_type_id',
+    config_gamemode_label: 'game_mode_id',
+    config_prizepooltype_label: 'prize_pool_type_id',
+    currency_ids: 'currency_id',
+    status: 'status',
+    from_house: 'from_house',
+  }
+
+  async function fetchSummaryPage(query: ServerQuery) {
+    loading.value = true
+    try {
+      const params: Record<string, string | number> = {
+        page: query.page,
+        per_page: pagination.value.per_page,
+      }
+
+      if (query.search) params.search = query.search
+
+      for (const [filterKey, value] of Object.entries(query.filters)) {
+        if (!value) continue
+        const param = FILTER_KEY_TO_PARAM[filterKey]
+        if (param) params[param] = value
+      }
+
+      const { data } = await backendClient.get('/bingo-rooms/summary-data', { params })
+
+      rooms.value = data.rooms?.rows ?? []
+      if (data.pagination) pagination.value = data.pagination
+    } catch {
+      // silencioso — la tabla conserva la última página cargada correctamente
+    } finally {
+      loading.value = false
+    }
+  }
 
   // ==========================================================================
   // Modal de Detalles
@@ -516,7 +570,7 @@
     :columns="props.rooms.columns"
     :rows="rooms"
     :filters="filters"
-    search-placeholder="Buscar por código, tipo, modo, tipo bote..."
+    search-placeholder="Buscar por código de sala..."
     showCreateButton
     showEditButton
     showDeleteButton
@@ -526,6 +580,9 @@
     disable-delete-reason="No se puede eliminar una sala con jugadores registrados"
     :extra-buttons="extraButtons"
     :loading="loading"
+    server-side
+    :server-total-pages="pagination.last_page"
+    @query-change="fetchSummaryPage"
   />
 
   <Modal
