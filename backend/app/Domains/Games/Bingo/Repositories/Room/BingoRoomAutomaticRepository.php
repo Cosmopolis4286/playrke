@@ -597,4 +597,49 @@ class BingoRoomAutomaticRepository extends BaseRepository implements BingoRoomAu
             'recommended_room_commission' => round($averages->avg_room_commission ?? 10.0, 2)
         ];
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function paginateSummaryGameRooms(
+        int $perPage,
+        int $page,
+        array $conditions,
+        array $filters,
+        array $relations,
+        array $fields
+    ): \Illuminate\Pagination\LengthAwarePaginator {
+        $query = $this->model->newQuery()
+            ->select($fields)
+            ->with($relations);
+
+        foreach ($conditions as $field => $value) {
+            $query->where($field, $value);
+        }
+
+        // room_type_id/game_mode_id/prize_pool_type_id/status son columnas propias
+        // de bingo_rooms_automatic (no requieren whereHas sobre una relación).
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['room_type_id'])) {
+            $query->where('room_type_id', $filters['room_type_id']);
+        }
+
+        if (!empty($filters['game_mode_id'])) {
+            $query->where('game_mode_id', $filters['game_mode_id']);
+        }
+
+        if (!empty($filters['prize_pool_type_id'])) {
+            $query->where('prize_pool_type_id', $filters['prize_pool_type_id']);
+        }
+
+        if (!empty($filters['currency_id'])) {
+            $query->whereJsonContains('allowed_currencies', (string) $filters['currency_id']);
+        }
+
+        return $query->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+    }
 }

@@ -46,10 +46,19 @@ final class BingoRoomAutomaticContextService
      * Resolver listado de salas de bingo automaticas.
      *
      * @param int|null $userId ID del usuario para filtrar
+     * @param int $page Página solicitada (1-based)
+     * @param int $perPage Registros por página
+     * @param array{
+     *     status?: string,
+     *     room_type_id?: string,
+     *     game_mode_id?: string,
+     *     prize_pool_type_id?: string,
+     *     currency_id?: string,
+     * } $filters Filtros server-side (ver BingoRoomAutomaticRepository::paginateSummaryGameRooms)
      * @return array Listado de salas con paginación
      * @throws DomainException Si no se pueden resolver las salas de bingo
      */
-    private function resolveGameRooms(?int $userId): array
+    private function resolveGameRooms(?int $userId, int $page = 1, int $perPage = 15, array $filters = []): array
     {
         $labels  = ['Código', 'Estado', 'Días', 'Hora', 'Tipo de Sala', 'Modo de Juego', 'Tipo Bote', 'Moneda(s)'];
         $rowKeys = ['id', 'status_badge', 'days_description', 'formatted_time', 'roomType.label', 'gameMode.label', 'prizePoolType.label', 'allowed_currencies'];
@@ -58,11 +67,12 @@ final class BingoRoomAutomaticContextService
             ? ['creator_user_id' => $userId]
             : [];
 
-        $source = $this->bingoRooms->paginateWithRelations(
-            perPage: 15,
-            page: 1,
-            relations: ['roomType:id,label', 'gameMode:id,label', 'prizePoolType:id,label'],
+        $source = $this->bingoRooms->paginateSummaryGameRooms(
+            perPage: $perPage,
+            page: $page,
             conditions: $conditions,
+            filters: $filters,
+            relations: ['roomType:id,label', 'gameMode:id,label', 'prizePoolType:id,label'],
             fields: ['id', 'room_type_id', 'game_mode_id', 'prize_pool_type_id', 'days', 'time', 'allowed_currencies', 'creator_user_id', 'created_at', 'status']
         );
 
@@ -109,6 +119,23 @@ final class BingoRoomAutomaticContextService
     private function fetchGameRooms(int $userId): array
     {
         return $this->resolveGameRooms($userId)['rooms']['rows'] ?? [];
+    }
+
+    /**
+     * Refetch server-side del listado de salas automáticas (paginación/
+     * filtros de Room/Automatic/Summary tras la carga inicial vía Inertia).
+     *
+     * @param array{
+     *     status?: string,
+     *     room_type_id?: string,
+     *     game_mode_id?: string,
+     *     prize_pool_type_id?: string,
+     *     currency_id?: string,
+     * } $filters
+     */
+    public function summaryDataForRefetch(int $userId, int $page, int $perPage, array $filters): array
+    {
+        return $this->resolveGameRooms($userId, $page, $perPage, $filters);
     }
 
     /**
