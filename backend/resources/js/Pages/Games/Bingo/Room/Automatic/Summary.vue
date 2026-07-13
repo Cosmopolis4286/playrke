@@ -5,6 +5,7 @@
 
   import { computed, ref, watch } from 'vue'
   import { router } from '@inertiajs/vue3'
+  import backendClient from '@js/plugins/axios'
 
   // ==========================================================================
   // Componentes
@@ -29,6 +30,8 @@
   import type { BingoRoomAutomaticSummaryPageProps } from '@/js/types/games/bingo/room/automatic/summary/bingo-room-automatic-summary-page'
   import type { ExtraButton } from '@js/types/common/table/extra-buttons'
   import type { TableFilterInterface } from '@js/types/common/table/table-filter'
+  import type { ServerQuery } from '@/js/composables/common/table/useTableController'
+  import type { Pagination } from '@/js/types/common/table/pagination'
 
   // ==========================================================================
   // Props (Inertia)
@@ -55,6 +58,53 @@
   } = useBingoRoomAutomatic()
 
   setInitialRooms(props.rooms.rows)
+
+  // ==========================================================================
+  // Paginación server-side (Room/Automatic/Summary.vue)
+  // ==========================================================================
+  // Mismo bug/arreglo que Room/Summary.vue: el backend solo pagina 15 salas
+  // por vez (BingoRoomAutomaticContextService::resolveGameRooms) — sin esto,
+  // salas más allá de la página 1 quedaban invisibles. No hay columna de
+  // texto legible (uuid_code) en bingo_rooms_automatic, así que el buscador
+  // de texto libre no se envía al backend y opera solo sobre la página
+  // actualmente cargada.
+  const summaryLoading = ref(false)
+  const pagination = ref<Pagination>(
+    props.rooms_pagination ?? { total: props.rooms.rows.length, per_page: 15, current_page: 1, last_page: 1, from: null, to: null }
+  )
+
+  const FILTER_KEY_TO_PARAM: Record<string, string> = {
+    roomtype_label: 'room_type_id',
+    gamemode_label: 'game_mode_id',
+    prizepooltype_label: 'prize_pool_type_id',
+    currency_ids: 'currency_id',
+    status: 'status',
+  }
+
+  async function fetchSummaryPage(query: ServerQuery) {
+    summaryLoading.value = true
+    try {
+      const params: Record<string, string | number> = {
+        page: query.page,
+        per_page: pagination.value.per_page,
+      }
+
+      for (const [filterKey, value] of Object.entries(query.filters)) {
+        if (!value) continue
+        const param = FILTER_KEY_TO_PARAM[filterKey]
+        if (param) params[param] = value
+      }
+
+      const { data } = await backendClient.get('/bingo-automatic-rooms/summary-data', { params })
+
+      rooms.value = data.rooms?.rows ?? []
+      if (data.pagination) pagination.value = data.pagination
+    } catch {
+      // silencioso — la tabla conserva la última página cargada correctamente
+    } finally {
+      summaryLoading.value = false
+    }
+  }
 
   // ==========================================================================
   // Modal + Form handler
@@ -288,11 +338,15 @@
     :columns="props.rooms.columns"
     :rows="rooms"
     :filters="filters"
-    search-placeholder="Buscar por código, tipo, modo, tipo bote..."
+    search-placeholder="Buscar en la página actual..."
     showCreateButton
     showEditButton
     showDeleteButton
     :extra-buttons="extraButtons"
+    :loading="summaryLoading"
+    server-side
+    :server-total-pages="pagination.last_page"
+    @query-change="fetchSummaryPage"
   />
 
   <Modal

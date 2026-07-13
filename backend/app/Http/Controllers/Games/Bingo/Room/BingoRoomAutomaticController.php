@@ -10,6 +10,7 @@ use App\Domains\Games\Bingo\DTOs\Room\Automatic\BingoRoomAutomaticUpdateDTO;
 use App\Http\Requests\Games\Bingo\Room\Automatic\BingoRoomAutomaticRequest;
 use App\Domains\Games\Bingo\Models\Room\BingoRoomAutomatic;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -78,6 +79,31 @@ final class BingoRoomAutomaticController extends Controller
     {
         return $this->handleServiceJson(
             fn() => ['data' => $this->service->fetchList()]
+        );
+    }
+
+    /**
+     * Refetch paginado/filtrado del listado de salas automáticas
+     * (Room/Automatic/Summary), usado por la tabla en modo server-side
+     * tras la carga inicial de la página.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function summaryData(Request $request): JsonResponse
+    {
+        return $this->handleServiceJson(
+            fn() => $this->service->summaryData(
+                page: (int) $request->query('page', 1),
+                perPage: (int) $request->query('per_page', 15),
+                filters: array_filter([
+                    'status' => $request->query('status'),
+                    'room_type_id' => $request->query('room_type_id'),
+                    'game_mode_id' => $request->query('game_mode_id'),
+                    'prize_pool_type_id' => $request->query('prize_pool_type_id'),
+                    'currency_id' => $request->query('currency_id'),
+                ])
+            )
         );
     }
 
