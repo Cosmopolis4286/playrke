@@ -27,8 +27,9 @@ use Illuminate\Support\Facades\Log;
 
 final class BingoDrawService
 {
-    private const CHIP_INTERVAL_SECONDS = 5;
-    private const CHIP_INTERVAL_DEV     = 0; // sin espera en entorno local
+    private const CHIP_INTERVAL_SECONDS = 5; // fallback si time_chip no está configurado
+    // En local se usa BINGO_DEV_INTERVAL_SECONDS si no hay time_chip en la config.
+    private const CHIP_INTERVAL_DEV     = 3;
 
     /** Cache de tasas de cambio activas resuelta por moneda durante la corrida actual. */
     private array $rateCache = [];
@@ -214,8 +215,16 @@ final class BingoDrawService
         }
 
         // 6. Fichas restantes
+        // time_chip de la config es la fuente de verdad.
+        // Fallback: 5s en producción / BINGO_DEV_INTERVAL_SECONDS (default 3s) en local.
+        $configInterval = (int) ($room->config?->time_chip ?? 0);
+        $interval = $configInterval > 0
+            ? $configInterval
+            : (app()->environment('local')
+                ? (int) env('BINGO_DEV_INTERVAL_SECONDS', self::CHIP_INTERVAL_DEV)
+                : self::CHIP_INTERVAL_SECONDS);
+
         for ($i = $startIndex, $total = count($sequence); $i < $total; $i++) {
-            $interval = app()->environment('local') ? self::CHIP_INTERVAL_DEV : self::CHIP_INTERVAL_SECONDS;
             // sleep() intencional — este método siempre corre en el worker dedicado
             // 'bingo-draw' (StartBingoDrawJob, $timeout=0), nunca en el servidor web.
             if ($interval > 0) sleep($interval);
@@ -223,7 +232,9 @@ final class BingoDrawService
             $this->currentChipIndex = $i;
 
             $chip = $sequence[$i];
-            $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * $interval, $variant);
+            // time = segundos transcurridos desde la primera ficha (índice * intervalo).
+            // Nunca 0 para que el ORDER BY time preserve el orden de inserción.
+            $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * max($interval, 1), $variant);
 
             // La ficha ya está persistida (createDrawRecord) antes de este punto —
             // si el broadcast falla (ej. Reverb caído momentáneamente), no debe
