@@ -1,4 +1,4 @@
-import { onUnmounted, type Ref } from 'vue'
+import { onUnmounted, ref, type Ref } from 'vue'
 import echo from '@js/plugins/echo'
 import type { PlayerProgress } from '@js/Components/Games/Bingo/views/inGame/types'
 
@@ -36,6 +36,11 @@ export interface UseBingoGameEchoOptions {
   onGameStarted:     () => void
   onWinnerDeclared:  (e: { winner: { id: number | string } }) => void
   onGameEnded:       (e: GameEndedEvent) => void
+  /** Se dispara al recuperar la conexión tras una desconexión (no en el
+   * connect inicial) — usado para resincronizar estado que pudo perderse
+   * mientras el socket estuvo caído, ya que Reverb/Pusher no reenvía
+   * eventos pasados. */
+  onReconnected?:    () => void
 }
 
 const ROOM_EVENTS = [
@@ -50,18 +55,41 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
     clearDrawTimer, playNext, playWinner,
     onRoomUpdated, onPlayerJoined, onNumberCalled,
     onPlayersProgress, onGameStarted, onWinnerDeclared,
-    onGameEnded,
+    onGameEnded, onReconnected,
   } = options
 
   let roomChannelName: string | null = null
-  const calledNumbers = new Set<number>()
+  const calledNumbers    = new Set<number>()
+  let wasDisconnected    = false
+  const isReconnecting   = ref(false)
 
   function resetCalledNumbers() {
     calledNumbers.clear()
   }
 
+  /** Marca números como ya vistos sin re-emitirlos — usado tras un resync
+   * por HTTP (ej. draw-state) para que el listener de WS no los duplique
+   * si llegan de nuevo por socket. */
+  function markNumbersAsSeen(numbers: number[]) {
+    for (const n of numbers) calledNumbers.add(n)
+  }
+
+  function handleConnectionStateChange(states: { current: string }) {
+    if (states.current === 'disconnected' || states.current === 'unavailable') {
+      wasDisconnected      = true
+      isReconnecting.value = true
+    } else if (states.current === 'connected') {
+      if (wasDisconnected) {
+        wasDisconnected = false
+        onReconnected?.()
+      }
+      isReconnecting.value = false
+    }
+  }
+
   function subscribe() {
     if (!roomId.value) return
+    echo.connector.pusher.connection.bind('state_change', handleConnectionStateChange)
     roomChannelName = `bingo.room.${roomId.value}`
     const channel   = echo.channel(roomChannelName)
 
@@ -74,7 +102,7 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
     })
 
     channel.listen('.BingoNumberCalled', (e: { number: number }) => {
-      if (e.number && !calledNumbers.has(e.number)) {
+      if (e.number !== null && e.number !== undefined && !calledNumbers.has(e.number)) {
         calledNumbers.add(e.number)
         onNumberCalled(e)
         playNext()
@@ -113,6 +141,7 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
   }
 
   function unsubscribe() {
+    echo.connector.pusher.connection.unbind('state_change', handleConnectionStateChange)
     if (!roomChannelName) return
     const channel = echo.channel(roomChannelName)
     for (const event of ROOM_EVENTS) channel.stopListening(event)
@@ -122,5 +151,5 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
 
   onUnmounted(() => unsubscribe())
 
-  return { subscribe, unsubscribe, resetCalledNumbers }
+  return { subscribe, unsubscribe, resetCalledNumbers, markNumbersAsSeen, isReconnecting }
 }

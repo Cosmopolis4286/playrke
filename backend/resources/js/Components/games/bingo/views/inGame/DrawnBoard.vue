@@ -5,18 +5,24 @@ interface Props {
   drawnNumbers: number[]
   totalChips: number
   chipLetter: (n: number) => string
+  newBallFlash?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { newBallFlash: false })
 
 const last       = computed(() => props.drawnNumbers[props.drawnNumbers.length - 1])
 const lastLetter = computed(() => last.value != null ? props.chipLetter(last.value) : '')
 const pct        = computed(() => Math.round((props.drawnNumbers.length / props.totalChips) * 100))
 
 // Grid chips en orden cronológico inverso, sin incluir el último (ya destacado arriba)
-const historyChips  = computed(() => [...props.drawnNumbers].reverse().slice(1))
+const historyChips    = computed(() => [...props.drawnNumbers].reverse().slice(1))
 // Los 5 más recientes previos al actual (para la sección "anteriores")
-const recentChips   = computed(() => historyChips.value.slice(0, 5))
+const recentChips     = computed(() => historyChips.value.slice(0, 5))
+// Versión lazy: muestra las últimas 30 hasta que el usuario expande
+const LAZY_LIMIT      = 30
+const showAll         = ref(false)
+const visibleHistory  = computed(() => showAll.value ? historyChips.value : historyChips.value.slice(0, LAZY_LIMIT))
+const hiddenCount     = computed(() => Math.max(0, historyChips.value.length - LAZY_LIMIT))
 
 // Agrupar por letra — dinámico, no hardcodeado a BINGO_75
 const colCounts = computed(() => {
@@ -87,7 +93,7 @@ const showHistory = ref(false)
           <!-- Barra de progreso con etiqueta -->
           <div class="db-progress">
             <div class="db-progress__track">
-              <div class="db-progress__fill" :style="{ width: `${pct}%` }" />
+              <div class="db-progress__fill" :class="{ 'db-progress__fill--flash': newBallFlash }" :style="{ width: `${pct}%` }" />
               <div class="db-progress__shine" :style="{ left: `${pct}%` }" />
             </div>
             <div class="db-progress__labels">
@@ -132,9 +138,22 @@ const showHistory = ref(false)
         <i class="fas fa-chevron-down db-history-toggle__chev" :class="{ 'db-history-toggle__chev--open': showHistory }" />
       </button>
 
-      <div v-if="showHistory" class="db-history">
+      <!-- En mobile: scroll horizontal compacto, siempre visible sin toggle -->
+      <div v-if="historyChips.length > 0" class="db-history db-history--mobile-scroll">
         <div
           v-for="n in historyChips"
+          :key="`ms-${n}`"
+          class="db-chip db-chip--sm"
+          :class="`db-chip--${chipLetter(n)}`"
+        >
+          <span class="db-chip__ltr">{{ chipLetter(n) }}</span>
+          <span class="db-chip__num">{{ n }}</span>
+        </div>
+      </div>
+
+      <div v-if="showHistory" class="db-history db-history--desktop">
+        <div
+          v-for="n in visibleHistory"
           :key="n"
           class="db-chip db-chip--sm"
           :class="`db-chip--${chipLetter(n)}`"
@@ -143,9 +162,14 @@ const showHistory = ref(false)
         >
           <span class="db-chip__ltr">{{ chipLetter(n) }}</span>
           <span class="db-chip__num">{{ n }}</span>
-          <!-- Tooltip minimalista -->
           <div v-if="hoveredChip === n" class="db-chip__tip">{{ chipLetter(n) }}{{ n }}</div>
         </div>
+        <button
+          v-if="!showAll && hiddenCount > 0"
+          class="db-show-all-btn"
+          type="button"
+          @click="showAll = true"
+        >+ {{ hiddenCount }} más</button>
       </div>
 
     </div>
@@ -167,15 +191,15 @@ const showHistory = ref(false)
    HERO
 ══════════════════════════════════════════════════════ */
 .db-hero {
-  display: flex; align-items: center; gap: 20px;
-  padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 16px;
   border-bottom: 1px solid rgba(80,120,255,0.07);
 }
 
 /* Bola principal */
 .db-hero__ball-wrap {
   position: relative; flex-shrink: 0;
-  width: 64px; height: 64px;
+  width: 48px; height: 48px;
   display: flex; align-items: center; justify-content: center;
 }
 .db-hero__glow {
@@ -207,16 +231,16 @@ const showHistory = ref(false)
 .db-ring--O { border-color: rgba(212,32,32,0.6); }
 
 /* Meta: número grande + progreso */
-.db-hero__meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.db-hero__meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 
-.db-hero__num-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.db-hero__num-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 .db-hero__big-num {
   display: inline-block;
-  font-family: 'Anton', sans-serif; font-size: 52px; line-height: 1;
+  font-family: 'Anton', sans-serif; font-size: 38px; line-height: 1;
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text; letter-spacing: -1px;
-  filter: drop-shadow(0 2px 12px currentColor);
+  filter: drop-shadow(0 2px 10px currentColor);
 }
 .db-num--B { background: linear-gradient(135deg, #90d0ff, #1a7de0); }
 .db-num--I { background: linear-gradient(135deg, #d0a0ff, #7b3fd0); }
@@ -267,6 +291,14 @@ const showHistory = ref(false)
   background: linear-gradient(90deg, #4a7fff 0%, #2af598 100%);
   transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
   position: relative;
+}
+.db-progress__fill--flash {
+  animation: progress-flash 0.6s ease-out;
+}
+@keyframes progress-flash {
+  0%   { filter: brightness(1); }
+  30%  { filter: brightness(2.2) saturate(1.5); }
+  100% { filter: brightness(1); }
 }
 .db-progress__fill::after {
   content: ''; position: absolute; right: 0; top: 50%;
@@ -321,6 +353,36 @@ const showHistory = ref(false)
   background: rgba(0,0,0,0.12);
 }
 
+.db-show-all-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 3px 10px; border-radius: 8px;
+  border: 1px solid rgba(80,120,255,0.2); background: rgba(80,120,255,0.06);
+  color: #4a7fff; font-size: 9px; font-weight: 700; cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  align-self: center;
+}
+.db-show-all-btn:hover { background: rgba(80,120,255,0.14); color: #7ca8ff; }
+
+/* Mobile: scroll horizontal compacto, siempre visible */
+.db-history--mobile-scroll {
+  display: none;
+}
+.db-history--desktop {
+  display: flex;
+}
+
+@media (max-width: 640px) {
+  .db-history--mobile-scroll {
+    display: flex; flex-wrap: nowrap; overflow-x: auto;
+    padding: 6px 12px 8px; gap: 3px; background: rgba(0,0,0,0.10);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .db-history--mobile-scroll::-webkit-scrollbar { display: none; }
+  .db-history-toggle { display: none; }
+  .db-history--desktop { display: none; }
+}
+
 /* ══════════════════════════════════════════════════════
    CHIP — base
 ══════════════════════════════════════════════════════ */
@@ -338,13 +400,13 @@ const showHistory = ref(false)
 .db-chip__num { font-weight: 900; color: #fff; font-family: 'Anton', sans-serif; }
 
 /* Sizes */
-.db-chip--hero { width: 64px; height: 64px; border-width: 2px; animation: hero-enter 0.55s cubic-bezier(0.175,0.885,0.32,1.275) both; }
-.db-chip--hero .db-chip__ltr { font-size: 10px; }
-.db-chip--hero .db-chip__num { font-size: 24px; }
+.db-chip--hero { width: 48px; height: 48px; border-width: 2px; animation: hero-enter 0.55s cubic-bezier(0.175,0.885,0.32,1.275) both; }
+.db-chip--hero .db-chip__ltr { font-size: 8px; }
+.db-chip--hero .db-chip__num { font-size: 18px; }
 
-.db-chip--md { width: 36px; height: 36px; }
-.db-chip--md .db-chip__ltr { font-size: 7px; }
-.db-chip--md .db-chip__num { font-size: 13px; }
+.db-chip--md { width: 32px; height: 32px; }
+.db-chip--md .db-chip__ltr { font-size: 6.5px; }
+.db-chip--md .db-chip__num { font-size: 11px; }
 
 .db-chip--sm { width: 28px; height: 28px; }
 .db-chip--sm .db-chip__ltr { font-size: 5.5px; }
@@ -405,17 +467,17 @@ const showHistory = ref(false)
    RESPONSIVE
 ══════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
-  .db-hero { flex-wrap: wrap; gap: 12px; padding: 12px 14px; }
-  .db-hero__big-num { font-size: 40px; }
+  .db-hero { flex-wrap: wrap; gap: 10px; padding: 10px 12px; }
+  .db-hero__big-num { font-size: 30px; }
   .db-recent { flex-direction: row; align-items: center; gap: 8px; width: 100%; }
   .db-recent__label { writing-mode: horizontal-tb; margin-bottom: 0; }
   .db-history { padding: 8px 10px 10px; gap: 3px; }
 }
 @media (max-width: 420px) {
-  .db-hero__ball-wrap { width: 52px; height: 52px; }
-  .db-chip--hero { width: 52px; height: 52px; }
-  .db-chip--hero .db-chip__num { font-size: 20px; }
-  .db-hero__big-num { font-size: 34px; }
+  .db-hero__ball-wrap { width: 40px; height: 40px; }
+  .db-chip--hero { width: 40px; height: 40px; }
+  .db-chip--hero .db-chip__num { font-size: 15px; }
+  .db-hero__big-num { font-size: 26px; }
   .db-hero__col-pills { display: none; }
   .db-chip--sm { width: 24px; height: 24px; }
   .db-chip--sm .db-chip__ltr { font-size: 5px; }

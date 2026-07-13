@@ -14,8 +14,9 @@ export function useBingoDetection(options: UseBingoDetectionOptions) {
 
   const claimingBingo = ref(false)
 
-  async function handleBingoDetected(card: { id: string | number }) {
+  async function handleBingoDetected(cards: { id: string | number }[]) {
     if (isMyWin.value || isFinished.value || claimingBingo.value) return
+    if (!cards.length) return
 
     claimingBingo.value = true
     try {
@@ -23,7 +24,10 @@ export function useBingoDetection(options: UseBingoDetectionOptions) {
         success: boolean
         hasBingo: boolean
         winner:   boolean
-      }>(`/bingo/${routeKey.value}/check-bingo`, { card_id: card.id })
+      }>(`/bingo/${routeKey.value}/check-bingo`, {
+        card_id:  cards[0].id,
+        card_ids: cards.map(c => c.id),
+      })
 
       if (isFinished.value || isMyWin.value) return
 

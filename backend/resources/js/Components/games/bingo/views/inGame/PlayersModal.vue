@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import backendClient from '@/js/plugins/axios'
 import type { WinnerEntry, GameEndData } from './types'
 
@@ -45,6 +45,34 @@ type ViewedCard = ViewedCardModule
 const viewingCard      = ref<ViewedCard | null>(null)
 const viewingCardOwner = ref('')
 const loadingCardId    = ref<string | null>(null)
+
+// ── Lista de jugadores activos (se carga cuando se abre el modal y no hay ganadores aún) ──
+interface ActivePlayer { user_id: string; name: string; cards_purchased: number }
+const activePlayers      = ref<ActivePlayer[]>([])
+const loadingPlayers     = ref(false)
+const playersError       = ref(false)
+
+async function fetchActivePlayers(): Promise<void> {
+  if (loadingPlayers.value) return
+  loadingPlayers.value = true
+  playersError.value   = false
+  try {
+    const routeKey = props.roomRouteKey || props.roomId
+    const { data } = await backendClient.get(`/bingo/${routeKey}/lobby-players`)
+    activePlayers.value = (data.players ?? []).sort(
+      (a: ActivePlayer, b: ActivePlayer) => b.cards_purchased - a.cards_purchased,
+    )
+  } catch {
+    playersError.value = true
+  } finally {
+    loadingPlayers.value = false
+  }
+}
+
+// Cargar jugadores cada vez que el modal se abre y aún no hay fin de partida
+watch(() => props.show, (val) => {
+  if (val && props.totalWinners === 0) fetchActivePlayers()
+})
 
 // O(1) lookup en template para evitar includes() O(n) en cada celda
 const drawnSet = computed(() => new Set(props.drawnNumbers))
@@ -149,6 +177,7 @@ function closeCardViewer() {
         </div>
 
         <div class="pm-modal__body">
+          <!-- Ganadores (cuando la partida terminó) -->
           <template v-if="totalWinners > 0">
             <div class="pm-section-label"><i class="fas fa-trophy" /> Ganadores</div>
             <div
@@ -183,10 +212,56 @@ function closeCardViewer() {
               </button>
             </div>
           </template>
-          <div v-else class="pm-empty">
-            <i class="fas fa-info-circle" />
-            <span>Aún no hay ganadores registrados.</span>
-          </div>
+
+          <!-- Jugadores activos (partida en curso, aún no hay ganadores) -->
+          <template v-else>
+            <div class="pm-section-label"><i class="fas fa-users" /> Jugadores</div>
+
+            <!-- Cargando -->
+            <div v-if="loadingPlayers" class="pm-empty">
+              <span class="pm-spinner" /> Cargando jugadores…
+            </div>
+
+            <!-- Error -->
+            <div v-else-if="playersError" class="pm-empty pm-empty--error">
+              <i class="fas fa-exclamation-circle" />
+              <span>Error al cargar</span>
+              <button class="pm-retry-btn" @click="fetchActivePlayers">
+                <i class="fas fa-redo" /> Reintentar
+              </button>
+            </div>
+
+            <!-- Sin jugadores -->
+            <div v-else-if="activePlayers.length === 0" class="pm-empty">
+              <i class="fas fa-user-slash" />
+              <span>Aún no hay jugadores registrados.</span>
+            </div>
+
+            <!-- Lista -->
+            <div
+              v-else
+              v-for="(p, idx) in activePlayers"
+              :key="p.user_id"
+              class="pm-row"
+              :class="{ 'pm-row--me': String(p.user_id) === String(userId) }"
+            >
+              <div class="pm-row__rank">
+                <template v-if="idx === 0"><i class="fas fa-medal" style="color:#ffc200" /></template>
+                <template v-else-if="idx === 1"><i class="fas fa-medal" style="color:#b0c4d8" /></template>
+                <template v-else-if="idx === 2"><i class="fas fa-medal" style="color:#c87840" /></template>
+                <template v-else>#{{ idx + 1 }}</template>
+              </div>
+              <div class="pm-row__info">
+                <div class="pm-row__name">
+                  {{ p.name }}
+                  <span v-if="String(p.user_id) === String(userId)" class="pm-you">TÚ</span>
+                </div>
+              </div>
+              <div class="pm-row__ctns">
+                <i class="fas fa-ticket-alt" /> {{ p.cards_purchased }}
+              </div>
+            </div>
+          </template>
         </div>
 
         <div class="pm-modal__foot">
@@ -432,6 +507,31 @@ function closeCardViewer() {
 .cv-legend__item--drawn .cv-legend__dot { background: rgba(42,245,152,0.3); border: 1px solid rgba(42,245,152,0.5); }
 .cv-legend__item--free  .cv-legend__dot { background: rgba(255,200,0,0.2); border: 1px solid rgba(255,200,0,0.4); }
 .cv-legend__item--normal .cv-legend__dot { background: rgba(255,255,255,0.06); border: 1px solid rgba(80,120,255,0.15); }
+
+/* ── Jugadores activos: extras ── */
+.pm-spinner {
+  display: inline-block; width: 16px; height: 16px; flex-shrink: 0;
+  border: 2px solid rgba(100,140,255,.2); border-top-color: #2af598;
+  border-radius: 50%; animation: pmSpin .7s linear infinite;
+}
+@keyframes pmSpin { to { transform: rotate(360deg); } }
+
+.pm-empty--error { color: #ff8a8a !important; flex-direction: column; gap: 8px !important; }
+.pm-empty--error i { font-size: 20px; color: #ff4d6d; }
+
+.pm-retry-btn {
+  padding: 5px 14px; border-radius: 7px; font-size: 10px; font-weight: 700;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,77,109,.1); border: 1px solid rgba(255,77,109,.28); color: #ff6e8a;
+  transition: background .15s;
+}
+.pm-retry-btn:hover { background: rgba(255,77,109,.2); }
+
+.pm-row__ctns {
+  font-size: 10px; font-weight: 700; color: #4a6090; flex-shrink: 0;
+  display: flex; align-items: center; gap: 4px;
+}
+.pm-row__ctns i { font-size: 8px; opacity: .7; }
 
 /* ── Fade transition ── */
 .gm-fade-enter-active, .gm-fade-leave-active { transition: opacity 0.25s ease; }

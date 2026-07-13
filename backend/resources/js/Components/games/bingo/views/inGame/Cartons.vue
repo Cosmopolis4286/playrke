@@ -17,7 +17,10 @@
           v-for="f in visibleFilters"
           :key="f.value"
           class="ctn-fbtn"
-          :class="{ 'ctn-fbtn--active': activeFilter === f.value }"
+          :class="{
+            'ctn-fbtn--active':  activeFilter === f.value,
+            'ctn-fbtn--new-hot': f.value === 'hot' && freshHotSet.value.size > 0 && activeFilter !== 'hot',
+          }"
           @click="activeFilter = f.value"
         >
           <i :class="f.icon" />
@@ -51,9 +54,11 @@
         :key="card.id || idx"
         class="ctn-card"
         :class="{
-          'ctn-card--winner': isWinner(card),
-          'ctn-card--hot':    isHot(card) && !isWinner(card),
-          'ctn-card--active': selectedId === card.id,
+          'ctn-card--winner':    isWinner(card),
+          'ctn-card--hot':       isHot(card) && !isWinner(card),
+          'ctn-card--active':    selectedId === card.id,
+          'ctn-card--hit-flash': hitSet.value.has(card.id) && !isWinner(card),
+          'ctn-card--fresh-hot': freshHotSet.value.has(card.id),
         }"
         :style="{ '--i': idx }"
         translate="no"
@@ -219,7 +224,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, ref } from "vue";
+import { computed, watch, ref, onUnmounted } from "vue";
 // BingoCard: estructura mínima que el backend serializa en toFrontendFormat()
 interface BingoCard {
   id: string
@@ -231,8 +236,6 @@ import { getBingoVariantDef, type BingoVariantDef, type BingoVariantColumn } fro
 
 type Filter = "all" | "hot" | "win";
 
-const HOT = 10;
-
 interface Props {
   cartons?:        BingoCard[];
   customerLogo?:   string;
@@ -240,6 +243,7 @@ interface Props {
   drawnNumbers?:   number[];
   totalDrawn?:     number;
   gameVariant?:    string;
+  hotThreshold?:   number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -249,17 +253,29 @@ const props = withDefaults(defineProps<Props>(), {
   drawnNumbers:   () => [],
   totalDrawn:     0,
   gameVariant:    "BINGO_75",
+  hotThreshold:   10,
 });
 
-const emit = defineEmits<{ (e: "bingo-detected", card: BingoCard): void }>();
+const emit = defineEmits<{
+  (e: "bingo-detected", cards: BingoCard[]): void
+  (e: "card-hit", cardId: string): void
+}>()
 
 const variantDef = computed<BingoVariantDef>(() => getBingoVariantDef(props.gameVariant));
 const totalChips = computed(() => variantDef.value.totalChips);
 
 const activeFilter = ref<Filter>("all");
-const cardSize     = ref<"sm" | "md">("md");
+// Auto-sm en mobile si hay más de 2 cartones; el usuario puede cambiar manualmente
+const isMobile     = typeof window !== 'undefined' && window.innerWidth <= 600
+const cardSize     = ref<"sm" | "md">(isMobile && (props.cartons?.length ?? 0) > 2 ? "sm" : "md");
 const selectedId   = ref<string | null>(null);
 const bingoSet     = ref<Set<string>>(new Set());
+// IDs de cartones que recibieron un hit en la última bola — se limpia tras 700ms
+const hitSet       = ref<Set<string>>(new Set());
+const hitTimers    = new Map<string, ReturnType<typeof setTimeout>>()
+// IDs de cartones que acaban de entrar en estado "caliente" por primera vez
+const freshHotSet  = ref<Set<string>>(new Set());
+const freshHotTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 const { playSelect, playWinner } = useBingoSound();
 
@@ -330,7 +346,7 @@ const hitsMap = computed(() => {
 
 function hits(card: BingoCard): number { return hitsMap.value.get(card.id) ?? computeHits(card); }
 function pct(card: BingoCard) { return Math.round((hits(card) / variantDef.value.totalCells) * 100); }
-function isHot(card: BingoCard)    { return hits(card) >= HOT; }
+function isHot(card: BingoCard)    { return hits(card) >= props.hotThreshold; }
 function isWinner(card: BingoCard) { return bingoSet.value.has(card.id); }
 
 // Menor cantidad de fichas que le faltan al jugador para completar su mejor
@@ -396,6 +412,11 @@ function fullBingo(card: BingoCard): boolean {
   return true;
 }
 
+onUnmounted(() => {
+  hitTimers.forEach(clearTimeout)
+  freshHotTimers.forEach(clearTimeout)
+})
+
 watch(() => props.drawnNumbers, (next, prev) => {
   if (next.length === 0) {
     bingoSet.value = new Set();
@@ -416,33 +437,69 @@ watch(() => props.drawnNumbers, (next, prev) => {
   const prevSet = new Set(prev ?? []);
   const newNums = next.filter(n => !prevSet.has(n));
 
-  // En immediate (prev===undefined) no reproducir sonido por fichas ya sorteadas
+  // Flash en cartones que recibieron alguna de las bolas nuevas (también dispara sonido)
   if (newNums.length > 0 && prev !== undefined) {
-    const newNumSet = new Set(newNums);
-    const anyHit = props.cartons.some(card =>
-      variantDef.value.columns.some(col => {
-        const m = card.cardMatrix as Record<string, (number | null)[]> | null;
-        return m?.[col.label]?.some(n => n !== null && newNumSet.has(n)) ?? false;
+    const newNumSet = new Set(newNums)
+    let anyHit = false
+    for (const card of props.cartons) {
+      const hit = variantDef.value.columns.some(col => {
+        const m = card.cardMatrix as Record<string, (number | null)[]> | null
+        return m?.[col.label]?.some(n => n !== null && newNumSet.has(n)) ?? false
       })
-    );
-    if (anyHit) playSelect();
+      if (hit) {
+        anyHit = true
+        hitSet.value = new Set([...hitSet.value, card.id])
+        emit("card-hit", card.id)
+        // Limpiar flash existente si llega otra bola antes de que expire
+        if (hitTimers.has(card.id)) clearTimeout(hitTimers.get(card.id)!)
+        const t = setTimeout(() => {
+          hitSet.value = new Set([...hitSet.value].filter(id => id !== card.id))
+          hitTimers.delete(card.id)
+        }, 700)
+        hitTimers.set(card.id, t)
+      }
+    }
+    if (anyHit) playSelect()
   }
 
-  const newBingoSet = new Set(bingoSet.value);
-  let anyNew = false;
+  const newBingoSet  = new Set(bingoSet.value);
+  const newWinners: BingoCard[] = [];
   for (const card of props.cartons) {
     if (newBingoSet.has(card.id)) continue;
     if (fullBingo(card)) {
       newBingoSet.add(card.id);
-      anyNew = true;
-      // No disparar sonido/evento en la hidratación inicial
-      if (prev !== undefined) {
-        playWinner();
-        emit("bingo-detected", card);
+      if (prev !== undefined) newWinners.push(card);
+    }
+  }
+  if (newWinners.length > 0) {
+    playWinner();
+    emit("bingo-detected", newWinners);
+  }
+  if (newBingoSet.size !== bingoSet.value.size) bingoSet.value = newBingoSet;
+
+  // Detectar cartones que acaban de cruzar el umbral HOT por primera vez
+  if (prev !== undefined) {
+    const prevDrawnSet = new Set(prev ?? [])
+    for (const card of props.cartons) {
+      if (bingoSet.value.has(card.id) || freshHotSet.value.has(card.id)) continue
+      if (isHot(card)) {
+        // Verificar que antes NO era hot (recalculando con el draw anterior)
+        const prevHits = variantDef.value.columns.reduce((acc, col) => {
+          const m = card.cardMatrix as Record<string, (number | null)[]> | null
+          return acc + (m?.[col.label]?.filter(n => n !== null && prevDrawnSet.has(n as number)).length ?? 0)
+        }, 0)
+        if (prevHits < props.hotThreshold) {
+          freshHotSet.value = new Set([...freshHotSet.value, card.id])
+          if (freshHotTimers.has(card.id)) clearTimeout(freshHotTimers.get(card.id)!)
+          const t = setTimeout(() => {
+            freshHotSet.value = new Set([...freshHotSet.value].filter(id => id !== card.id))
+            freshHotTimers.delete(card.id)
+          }, 1500)
+          freshHotTimers.set(card.id, t)
+        }
       }
     }
   }
-  if (anyNew) bingoSet.value = newBingoSet;
 }, { immediate: true });
 </script>
 
@@ -502,6 +559,14 @@ watch(() => props.drawnNumbers, (next, prev) => {
   display: inline-flex; align-items: center; justify-content: center;
 }
 .ctn-fbtn--active .ctn-fbtn__n { background: rgba(42,245,152,0.14); color: #2af598; }
+.ctn-fbtn--new-hot {
+  border-color: rgba(255,140,30,0.45); color: #ffb060;
+  animation: fbtn-hot-pulse 0.7s ease-in-out infinite alternate;
+}
+@keyframes fbtn-hot-pulse {
+  from { box-shadow: 0 0 0 0 rgba(255,140,30,0.0); background: transparent; }
+  to   { box-shadow: 0 0 8px 2px rgba(255,140,30,0.25); background: rgba(255,140,30,0.08); }
+}
 
 /* Legend */
 .ctn-legend { display: flex; align-items: center; gap: 3px; }
@@ -583,6 +648,23 @@ watch(() => props.drawnNumbers, (next, prev) => {
 @keyframes cin    { from { opacity:0; transform:translateY(22px) scale(0.92) } to { opacity:1; transform:translateY(0) scale(1) } }
 @keyframes hpulse { 0%,100% { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 1.5px rgba(255,140,30,0.3) } 50% { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 3.5px rgba(255,140,30,0.6) } }
 @keyframes wpulse { 0%,100% { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 2px rgba(220,170,0,0.38) } 50% { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 4px rgba(220,170,0,0.7) } }
+
+/* Fresh-hot — parpadeo naranja al cruzar el umbral HOT por primera vez */
+.ctn-card--fresh-hot { animation: cin 0.45s cubic-bezier(0.34,1.56,0.64,1) both, fresh-hot-ring 1.5s ease-out forwards !important; }
+@keyframes fresh-hot-ring {
+  0%   { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 0 rgba(255,140,30,0.0); }
+  15%  { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 4px rgba(255,140,30,0.8), 0 0 24px 4px rgba(255,140,30,0.35); }
+  60%  { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 3px rgba(255,140,30,0.4); }
+  100% { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 1.5px rgba(255,140,30,0.3); }
+}
+
+/* Hit flash — anillo que aparece y se desvanece en 700ms cuando una bola impacta el cartón */
+.ctn-card--hit-flash { animation: cin 0.45s cubic-bezier(0.34,1.56,0.64,1) both, card-hit-ring 0.7s ease-out forwards !important; }
+@keyframes card-hit-ring {
+  0%   { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 0 rgba(100,180,255,0.0),  0 0 0 0 rgba(42,245,152,0.0); }
+  20%  { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 3px rgba(100,180,255,0.7), 0 0 18px 2px rgba(42,245,152,0.25); }
+  100% { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 5px rgba(100,180,255,0.0), 0 0 0 0 rgba(42,245,152,0.0); }
+}
 
 /* ── Header ── */
 .ctn-head { display: grid; }

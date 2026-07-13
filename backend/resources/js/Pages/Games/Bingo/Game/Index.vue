@@ -50,6 +50,7 @@ interface Props {
   initialWinners?: WinnerEntry[]
   gameVariant?:   string
   roomFinished?:  boolean
+  hotThreshold?:  number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -69,7 +70,8 @@ const props = withDefaults(defineProps<Props>(), {
   roomId:       '',
   roomRouteKey: '',
   gameVariant:  'BINGO_75',
-  roomFinished: false,
+  roomFinished:  false,
+  hotThreshold:  10,
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -101,11 +103,14 @@ const livePlayers      = ref(props.totalPlayers ?? 0)
 const liveDrawn        = ref<number[]>([...(props.draw ?? [])])
 const prizeFlash       = ref(false)
 const playersFlash     = ref(false)
+const ballFlash        = ref(false)
 const playersProgress  = ref<PlayerProgress[]>([])
 const showWinnerModal  = ref(false)
 
-const modalDismissKey  = computed(() => roomId.value ? `bingo-modal-closed-${roomId.value}` : '')
-const userClosedModal  = ref(modalDismissKey.value ? sessionStorage.getItem(modalDismissKey.value) === '1' : false)
+const modalDismissKey = computed(() => roomId.value ? `bingo-modal-closed-${roomId.value}` : '')
+// Derivado del computed para que se resuelva cuando roomId ya tiene valor (no durante setup).
+const userClosedModal = ref(false)
+if (modalDismissKey.value) userClosedModal.value = sessionStorage.getItem(modalDismissKey.value) === '1'
 const gameEndData      = ref<GameEndData | null>(null)
 const isMyWin          = ref(false)
 const showPlayersModal = ref(false)
@@ -135,11 +140,22 @@ const showPlayersProgress = computed(() =>
 const cartonsRef = ref<InstanceType<typeof BingoCartons> | null>(null)
 const myMissing  = computed<number | null>(() => cartonsRef.value?.myMissing.value ?? null)
 
-const flashTimers = new Set<ReturnType<typeof setTimeout>>()
+const flashTimers   = new Set<ReturnType<typeof setTimeout>>()
+const flashTargetTimers = new Map<Ref<boolean>, ReturnType<typeof setTimeout>>()
 function flash(target: Ref<boolean>) {
+  if (flashTargetTimers.has(target)) {
+    const prev = flashTargetTimers.get(target)!
+    clearTimeout(prev)
+    flashTimers.delete(prev)
+  }
   target.value = true
-  const t = setTimeout(() => { target.value = false; flashTimers.delete(t) }, 1000)
+  const t = setTimeout(() => {
+    target.value = false
+    flashTimers.delete(t)
+    flashTargetTimers.delete(target)
+  }, 1000)
   flashTimers.add(t)
+  flashTargetTimers.set(target, t)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -147,7 +163,10 @@ function flash(target: Ref<boolean>) {
 // ─────────────────────────────────────────────────────────────────────────────
 const currentUnixDate = ref(props.startTime ?? 0)
 
-const fakeRoom = computed(() => ({
+// useGameRoomCountdown espera una lista de salas (uso original: lobby con
+// múltiples salas). Aquí solo hay una sala, así que se adapta con un objeto
+// "sala" mínimo que satisface esa forma.
+const countdownRoomShim = computed(() => ({
   id:     roomId.value || '0',
   config: { unix_date: currentUnixDate.value },
 }))
@@ -159,8 +178,8 @@ const { init: initCountdown, getCountdown, stop: stopCountdown, syncTime, update
     scheduleDrawStart()
   })
 
-const cd      = computed(() => getCountdown(fakeRoom.value.id))
-const hasTime = computed(() => cd.value && !cd.value.expired)
+const cd      = computed(() => getCountdown(countdownRoomShim.value.id) ?? null)
+const hasTime = computed(() => cd.value !== null && !cd.value.expired)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Draw scheduler
@@ -187,17 +206,51 @@ function handleGameEnded(data: GameEndedEvent) {
     prize:   data.prize ?? 0,
     endTime: data.end_time,
   }
-  if (props.userId && data.winners?.some(w => String(w.user_id) === String(props.userId))) {
-    isMyWin.value = true
-  }
+  isMyWin.value = !!(props.userId && data.winners?.some(w => String(w.user_id) === String(props.userId)))
   if (!userClosedModal.value) showWinnerModal.value = true
+}
+
+// Resincroniza el estado del sorteo tras recuperar la conexión de socket —
+// Reverb/Pusher no reenvía eventos emitidos mientras el cliente estuvo
+// desconectado, así que se refresca contra el backend (ver useBingoGameEcho.onReconnected).
+async function resyncDrawState() {
+  if (!routeKey.value) return
+  try {
+    const { data } = await backendClient.get(`/bingo/${routeKey.value}/draw-state`)
+
+    if (Array.isArray(data.draw) && data.draw.length > liveDrawn.value.length) {
+      liveDrawn.value = data.draw
+      markNumbersAsSeen(data.draw)
+    }
+    if (data.totalPlayers    !== undefined) livePlayers.value    = data.totalPlayers
+    if (data.prizePool       !== undefined) livePrize.value      = data.prizePool
+    if (Array.isArray(data.playersProgress) && data.playersProgress.length > 0) {
+      playersProgress.value = data.playersProgress
+    }
+
+    if (data.roomFinished && gameEndData.value === null) {
+      const winners: WinnerEntry[] = data.initialWinners ?? []
+      gameEndData.value = {
+        hasWinner:  winners.length > 0,
+        totalDrawn: liveDrawn.value.length,
+        winners,
+        prize:      data.prizePool ?? 0,
+        endTime:    '',
+      }
+      isMyWin.value = !!(props.userId && winners.some(w => String(w.user_id) === String(props.userId)))
+      if (!userClosedModal.value) showWinnerModal.value = true
+    }
+  } catch (e) {
+    console.error('[Bingo] Error al resincronizar estado del sorteo tras reconexión:', e)
+  }
 }
 
 function closeWinnerModal() {
   showWinnerModal.value = false
   userClosedModal.value = true
   if (modalDismissKey.value) sessionStorage.setItem(modalDismissKey.value, '1')
-  if (!isFinished.value) isMyWin.value = false
+  // isMyWin se conserva — el estado de victoria lo gestiona handleGameEnded/onWinnerDeclared,
+  // no el cierre del modal, para que el re-open por GameEnded posterior funcione.
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -226,7 +279,7 @@ const { handleBingoDetected } = useBingoDetection({
 // ─────────────────────────────────────────────────────────────────────────────
 // WebSocket
 // ─────────────────────────────────────────────────────────────────────────────
-const { subscribe, unsubscribe, resetCalledNumbers } = useBingoGameEcho({
+const { subscribe, unsubscribe, resetCalledNumbers, markNumbersAsSeen, isReconnecting } = useBingoGameEcho({
   roomId,
   userId: props.userId,
   syncTime,
@@ -242,11 +295,18 @@ const { subscribe, unsubscribe, resetCalledNumbers } = useBingoGameEcho({
   onPlayerJoined:    (e) => { livePlayers.value = e.current_players; flash(playersFlash) },
   onNumberCalled:    (e) => {
     liveDrawn.value = [...liveDrawn.value, e.number]
+    flash(ballFlash)
   },
   onPlayersProgress: (e) => { if (Array.isArray(e.players)) playersProgress.value = e.players },
   onGameStarted:     ()  => { gameStarted.value = true },
-  onWinnerDeclared:  ()  => { isMyWin.value = true; if (!userClosedModal.value) showWinnerModal.value = true },
+  onWinnerDeclared:  ()  => {
+    isMyWin.value = true
+    // Si GameEnded ya llegó (gameEndData !== null), su handler ya abrió/gestiona el modal.
+    // Sólo abrimos aquí si aún no hay datos finales (WinnerDeclared llegó antes que GameEnded).
+    if (!userClosedModal.value && gameEndData.value === null) showWinnerModal.value = true
+  },
   onGameEnded:       (e) => handleGameEnded(e),
+  onReconnected:     ()  => { resyncDrawState() },
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -298,8 +358,9 @@ async function devResetTime() {
 // Lifecycle
 // ─────────────────────────────────────────────────────────────────────────────
 onMounted(() => {
-  setTimeout(() => { revealed.value = true }, 80)
-  initCountdown([fakeRoom.value as any])
+  const revealTimer = setTimeout(() => { revealed.value = true; flashTimers.delete(revealTimer) }, 80)
+  flashTimers.add(revealTimer)
+  initCountdown([countdownRoomShim.value as any])
   subscribe()
   preload()
 
@@ -331,6 +392,7 @@ onUnmounted(() => {
   stopCountdown()
   unsubscribe()
   flashTimers.forEach(clearTimeout)
+  flashTargetTimers.clear()
 })
 </script>
 
@@ -365,6 +427,7 @@ onUnmounted(() => {
         :drawnNumbers="liveDrawn"
         :totalChips="totalChips"
         :chipLetter="chipLetter"
+        :newBallFlash="ballFlash"
       />
 
       <MyProgressBadge v-if="!isFinished" :missing="myMissing" />
@@ -373,6 +436,14 @@ onUnmounted(() => {
         :players="showPlayersProgress ? playersProgress : []"
         :remainingChips="remainingChips"
       />
+
+      <!-- Banner de reconexión WS -->
+      <Transition name="ig-reconnect">
+        <div v-if="isReconnecting" class="ig-reconnect-banner">
+          <span class="ig-reconnect-spinner" />
+          Reconectando…
+        </div>
+      </Transition>
 
       <div class="ig-cards-section">
         <BingoCartons
@@ -383,6 +454,7 @@ onUnmounted(() => {
           :drawnNumbers="liveDrawn"
           :totalDrawn="liveDrawn.length"
           :gameVariant="gameVariant"
+          :hotThreshold="hotThreshold"
           @bingo-detected="handleBingoDetected"
         />
       </div>
@@ -519,6 +591,24 @@ onUnmounted(() => {
 }
 
 .ig-cards-section { width: 100%; }
+
+/* Banner reconexión */
+.ig-reconnect-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 14px; border-radius: 10px;
+  background: rgba(255,160,30,0.1); border: 1px solid rgba(255,160,30,0.3);
+  color: #ffb84a; font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+}
+.ig-reconnect-spinner {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid rgba(255,160,30,0.28); border-top-color: #ffb84a;
+  animation: ig-rspin 0.8s linear infinite; flex-shrink: 0;
+}
+@keyframes ig-rspin { to { transform: rotate(360deg) } }
+.ig-reconnect-enter-active,
+.ig-reconnect-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
+.ig-reconnect-enter-from,
+.ig-reconnect-leave-to     { opacity: 0; transform: translateY(-4px); }
 </style>
 
 <!-- ig-fade es usado por DrawnBoard y NearWinBanner vía <Transition>. Debe ser global. -->
