@@ -21,7 +21,7 @@
 
 /* ── Tema claro ── */
 [data-theme="light"] {
-  --ds-bg:           #f0f2f8;
+  --ds-bg:           #eef0f7;
   --ds-surface:      #ffffff;
   --ds-surface-2:    #f8f9fc;
   --ds-border:       #e2e6ef;
@@ -200,7 +200,13 @@ body.layout-fixed {
    flex-grow dimensione el área real del contenido en vez del valor fijo de AdminLTE. */
 .layout-fixed .wrapper .content-wrapper {
   min-height: 0 !important;
-  background: transparent !important;
+  background: var(--ds-bg) !important; /* AdminLTE pone #f4f6f9 — sobreescribir con el token del tema */
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+/* .content-wrapper sin .layout-fixed también puede aplicar */
+.content-wrapper {
+  background: var(--ds-bg) !important;
 }
 /* AdminLTE pone padding: 0 0.5rem en .content-wrapper > .content — eliminar para que
    el contenido empiece pegado al navbar sin spaciado extra. */
@@ -223,10 +229,13 @@ body.layout-fixed {
   transition: padding-top .2s ease-in-out;
 }
 
-/* ── Scrollbar del área de contenido: degradado cósmico (verde → azul → violeta) ── */
+/* ── Scrollbar del área de contenido ── */
 #content-scrollable {
   scrollbar-width: thin;
-  scrollbar-color: #7b4fff rgba(255,255,255,0.03);
+  scrollbar-color: #7b4fff transparent;
+}
+[data-theme="light"] #content-scrollable {
+  scrollbar-color: #7b4fff rgba(0,0,0,.08);
 }
 /* Páginas con fondo de estrellas a pantalla completa (game-rooms, lobby): el
    gradiente vive en .game-rooms-page/.lby-page, que no cubre la franja del

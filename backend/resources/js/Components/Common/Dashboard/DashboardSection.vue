@@ -45,12 +45,29 @@
 
 <style scoped>
 .skeleton-block {
-  background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+  background: linear-gradient(90deg, var(--ds-skeleton-a) 25%, var(--ds-skeleton-b) 50%, var(--ds-skeleton-a) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* Root card element — scoped applies directly (no :deep needed) */
+.card {
+  background: var(--ds-surface) !important;
+  border-color: var(--ds-border) !important;
+  color: var(--ds-text);
+}
+.card-header {
+  background: var(--ds-surface-2) !important;
+  border-color: var(--ds-border) !important;
+  color: var(--ds-text);
+}
+.card-body { color: var(--ds-text); }
+.card-footer {
+  background: var(--ds-surface-2) !important;
+  border-color: var(--ds-border) !important;
 }
 </style>

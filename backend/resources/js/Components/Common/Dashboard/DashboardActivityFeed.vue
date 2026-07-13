@@ -47,9 +47,8 @@
       <li
         v-for="item in (maxItems ? items.slice(0, maxItems) : items)"
         :key="item.id"
-        class="activity-feed__item d-flex gap-3 align-items-start p-3 rounded-3 border"
+        class="activity-feed__item d-flex gap-3 align-items-start p-3 rounded-3"
         :class="{ 'col-md-6': columns === 2 }"
-        style="border-color: #e9ecef !important;"
       >
         <!-- Icono de tipo -->
         <div class="activity-feed__icon flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle"
@@ -96,13 +95,16 @@
 
 <style scoped>
 .activity-feed__item {
-  background: #fff;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
   transition: box-shadow 0.2s ease, transform 0.1s ease;
 }
 .activity-feed__item:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: var(--ds-card-hover-shadow);
   transform: translateY(-1px);
 }
+:deep(.text-muted) { color: var(--ds-text-2) !important; }
 @media (max-width: 767px) {
   .activity-feed__item {
     width: 100% !important;

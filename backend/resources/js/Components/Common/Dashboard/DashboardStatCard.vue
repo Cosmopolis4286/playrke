@@ -57,19 +57,19 @@
 <style scoped>
 .sc {
   position: relative;
-  background: #fff;
+  background: var(--ds-surface);
   border-radius: 10px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--ds-border);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   height: 100%;
   text-decoration: none;
-  color: inherit;
+  color: var(--ds-text);
   transition: box-shadow 0.18s, transform 0.18s;
 }
 .sc--link:hover {
-  box-shadow: 0 6px 20px rgba(0,0,0,.09);
+  box-shadow: var(--ds-card-hover-shadow);
   transform: translateY(-2px);
 }
 
@@ -100,12 +100,12 @@
   justify-content: center;
   font-size: 1rem;
 }
-.sc__icon--primary   { background: #e7f0ff; color: #0d6efd; }
-.sc__icon--success   { background: #e6f4ed; color: #198754; }
-.sc__icon--danger    { background: #fce8ea; color: #dc3545; }
-.sc__icon--warning   { background: #fff8e1; color: #b08000; }
-.sc__icon--info      { background: #e0f8ff; color: #0aa2c0; }
-.sc__icon--secondary { background: #ebebeb; color: #495057; }
+.sc__icon--primary   { background: rgba(13,110,253,.13); color: #0d6efd; }
+.sc__icon--success   { background: rgba(25,135,84,.13);  color: #198754; }
+.sc__icon--danger    { background: rgba(220,53,69,.13);  color: #dc3545; }
+.sc__icon--warning   { background: rgba(255,193,7,.13);  color: #b08000; }
+.sc__icon--info      { background: rgba(13,202,240,.13); color: #0aa2c0; }
+.sc__icon--secondary { background: var(--ds-surface-2);  color: var(--ds-text-2); }
 
 /* Contenido */
 .sc__content { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -115,7 +115,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .04em;
-  color: #6c757d;
+  color: var(--ds-text-2);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -124,9 +124,9 @@
   font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.15;
-  color: #212529;
+  color: var(--ds-text);
 }
-.sc__desc { font-size: 0.76rem; color: #8a9bb0; }
+.sc__desc { font-size: 0.76rem; color: var(--ds-text-muted); }
 
 /* Tendencia */
 .sc__trend {
@@ -139,5 +139,5 @@
 }
 .sc-trend--up   { color: #198754; }
 .sc-trend--down { color: #dc3545; }
-.sc__trend-lbl  { font-weight: 400; color: #8a9bb0; }
+.sc__trend-lbl  { font-weight: 400; color: var(--ds-text-muted); }
 </style>
