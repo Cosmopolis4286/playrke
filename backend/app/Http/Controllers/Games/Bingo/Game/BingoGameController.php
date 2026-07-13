@@ -272,19 +272,24 @@ final class BingoGameController extends Controller
      */
     public function startDraw(BingoRoom $room): JsonResponse
     {
+        // El docblock decía "solo disponible en entorno local" pero el código no
+        // lo hacía cumplir — solo cambiaba el modo de ejecución (sync vs cola), sin
+        // bloquear la acción fuera de local. Hoy es seguro porque la ruta ya está
+        // gateada externamente (routes/modules/games/bingo.php), pero se agrega la
+        // misma defensa en profundidad que devResetStartTime por si se expone la
+        // ruta fuera de ese bloque en el futuro — este endpoint dispara sorteos
+        // arbitrarios sin pasar por el cron/health-check normal.
+        abort_if(!app()->environment('local'), 403, 'Solo disponible en entorno local.');
+
         return $this->handleServiceJson(
             function () use ($room) {
                 $roomId = (int) $room->id;
 
-                if (app()->environment('local')) {
-                    // En local no hay queue worker fiable — ejecutar sincrónico.
-                    // BingoDrawService usa CHIP_INTERVAL_DEV = 0 en local, así que
-                    // el sorteo completo termina en segundos sin bloquear mucho.
-                    @set_time_limit(120);
-                    \App\Domains\Games\Bingo\Jobs\StartBingoDrawJob::dispatchSync((string) $roomId);
-                } else {
-                    \App\Domains\Games\Bingo\Jobs\StartBingoDrawJob::dispatch((string) $roomId)->onQueue('bingo-draw');
-                }
+                // En local no hay queue worker fiable — ejecutar sincrónico.
+                // BingoDrawService usa CHIP_INTERVAL_DEV = 0 en local, así que
+                // el sorteo completo termina en segundos sin bloquear mucho.
+                @set_time_limit(120);
+                \App\Domains\Games\Bingo\Jobs\StartBingoDrawJob::dispatchSync((string) $roomId);
 
                 return [
                     'success' => true,

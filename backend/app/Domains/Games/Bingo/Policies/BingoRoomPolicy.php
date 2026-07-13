@@ -117,6 +117,10 @@ class BingoRoomPolicy extends BaseRolePolicy
      * sala adivinando su id. Mismo criterio que viewLobbyPlayers, más el
      * fallback de creador directo que ya contempla getUserCartons() (sala
      * propia sin BingoRoomUser, ej. en dev).
+     *
+     * NOTA: No se bloquea por status de sala (FINISHED incluido). Los ganadores
+     * deben poder consultar sus resultados después del cierre del juego.
+     * El cache de 30s es seguro aquí porque cards_purchased no se revierte.
      */
     public function viewGame(User $user, BingoRoom $room): bool
     {

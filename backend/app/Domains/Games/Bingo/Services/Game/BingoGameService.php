@@ -118,7 +118,10 @@ final class BingoGameService
                 ->toArray()
         );
 
-        if (!$room->relationLoaded('status')) $room->load('status');
+        // Siempre recargar status desde DB — el route binding puede tener el modelo
+        // en memoria con un status anterior (IN_PROGRESS) si el sorteo terminó entre
+        // la resolución del binding y esta llamada (sin el reload, roomFinished sería false).
+        $room->load('status');
         $roomStatusCode = $room->status?->code ?? '';
         $roomIsFinished = strtoupper($roomStatusCode) === 'FINISHED';
 

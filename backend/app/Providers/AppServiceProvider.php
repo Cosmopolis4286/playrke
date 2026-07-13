@@ -99,6 +99,13 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($key);
         });
 
+        // Rate-limit: verificación de bingo — 10 intentos por minuto por (usuario + sala).
+        // Protege contra multi-tab o clics rápidos que salten el guard claimingBingo del cliente.
+        RateLimiter::for('bingo-check-bingo', function (Request $request) {
+            $key = ($request->user()?->id ?? 'guest') . '|' . $request->route('room');
+            return Limit::perMinute(10)->by($key);
+        });
+
         // -------------------------------------------
         // Forzar HTTPS en producción
         // -------------------------------------------

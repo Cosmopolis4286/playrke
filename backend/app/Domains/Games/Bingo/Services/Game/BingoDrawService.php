@@ -412,6 +412,9 @@ final class BingoDrawService
 
         // Invalidar el cache de draw-state para que el próximo resync del cliente
         // reciba la ficha recién persistida en lugar del snapshot anterior.
+        // El cache de players-progress usa el count como parte del key, por lo que
+        // cada ficha nueva genera un key distinto — las entradas anteriores quedan
+        // huérfanas con TTL de 3s, sin necesidad de invalidarlas explícitamente.
         \Illuminate\Support\Facades\Cache::forget("bingo:draw-state:draw:{$roomId}");
 
         return $draw;
