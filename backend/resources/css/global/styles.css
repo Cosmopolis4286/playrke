@@ -452,21 +452,23 @@ button.nb-icon-btn {
 .nb-notif-menu {
   width: 320px;
   border-radius: 14px !important;
-  border: 1px solid #eaecf0 !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,.14) !important;
+  border: 1px solid var(--ds-border) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.28) !important;
+  background: var(--ds-surface) !important;
   overflow: hidden;
   margin-top: 6px !important;
+  z-index: 1050 !important;
 }
 .nb-notif-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background: #f8f9fc;
-  border-bottom: 1px solid #eaecf0;
+  background: var(--ds-surface-2);
+  border-bottom: 1px solid var(--ds-border);
   font-size: 12.5px;
   font-weight: 600;
-  color: #374151;
+  color: var(--ds-text);
 }
 .nb-notif-clear {
   background: none;
@@ -489,7 +491,7 @@ button.nb-icon-btn {
   align-items: center;
   gap: 8px;
   padding: 2.5rem 1rem;
-  color: #9ca3af;
+  color: var(--ds-text-muted);
   font-size: 13px;
 }
 .nb-notif-empty i { font-size: 28px; color: #34d399; }
@@ -574,11 +576,13 @@ button.nb-icon-btn {
    En desktop (≥768px): left(toggle) | center(wallet+search+chips) | right(bell+avatar)
 ══════════════════════════════════════════════════════════════ */
 
-/* Contenedor raíz: 3 zonas alineadas sin wrap. */
+/* Contenedor raíz: 3 zonas alineadas sin wrap.
+   NO overflow:clip aquí — los dropdowns (notif, user) se abren hacia abajo
+   y serían cortados. El clip solo aplica en .nb-center-zone. */
 .main-header.navbar,
 .nb-root {
   flex-wrap: nowrap;
-  overflow: clip;
+  overflow: visible;
   justify-content: space-between;
 }
 
@@ -663,14 +667,16 @@ button.nb-icon-btn {
 
 /* ── Navbar: menú usuario ────────────────────────────────── */
 .nb-user-menu {
-  width: 220px !important;
-  min-width: 220px !important;
-  max-width: 220px !important;
+  width: 240px !important;
+  min-width: 240px !important;
+  max-width: 240px !important;
   border-radius: 14px !important;
-  border: 1px solid #eaecf0 !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,.14) !important;
+  border: 1px solid var(--ds-border) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.28) !important;
+  background: var(--ds-surface) !important;
   overflow: hidden;
   margin-top: 6px !important;
+  z-index: 1050 !important;
 }
 .nb-user-header {
   display: flex;
@@ -709,8 +715,8 @@ button.nb-icon-btn {
 /* ── Navbar: nivel y progreso de experiencia ──────────────── */
 .nb-user-level {
   padding: 10px 16px;
-  background: #f8f9fc;
-  border-bottom: 1px solid #eaecf0;
+  background: var(--ds-surface-2);
+  border-bottom: 1px solid var(--ds-border);
 }
 .nb-user-level-row {
   display: flex;
@@ -729,13 +735,13 @@ button.nb-icon-btn {
 .nb-user-level-badge i { font-size: 10px; }
 .nb-user-level-xp {
   font-size: 10.5px;
-  color: #6b7280;
+  color: var(--ds-text-2);
 }
 .nb-user-level-bar {
   width: 100%;
   height: 6px;
   border-radius: 99px;
-  background: #e5e7eb;
+  background: var(--ds-border);
   overflow: hidden;
 }
 .nb-user-level-bar-fill {
@@ -751,13 +757,13 @@ button.nb-icon-btn {
   gap: 10px;
   padding: 8px 14px;
   font-size: 13px;
-  color: #374151;
+  color: var(--ds-text);
   text-decoration: none;
   transition: background .15s;
 }
 .nb-menu-item:hover {
-  background: rgba(102,126,234,.08);
-  color: #181b50;
+  background: rgba(102,126,234,.1);
+  color: var(--ds-text);
   text-decoration: none;
 }
 .nb-menu-icon {
@@ -771,10 +777,41 @@ button.nb-icon-btn {
   flex-shrink: 0;
 }
 .nb-icon-profile { background: rgba(102,126,234,.12); color: #667eea; }
-.nb-icon-wallet  { background: #ecfdf5; color: #10b981; }
+.nb-icon-wallet  { background: rgba(16,185,129,.12);  color: #10b981; }
+.nb-icon-theme   { background: rgba(245,158,11,.12);  color: #f59e0b; }
+/* Botón de tema: reset de estilos de <button> para verse igual a los <a> */
+.nb-menu-item--btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+/* Pill toggle — indicador visual del estado del tema */
+.nb-theme-pill {
+  display: inline-flex;
+  align-items: center;
+  width: 28px;
+  height: 16px;
+  border-radius: 8px;
+  background: rgba(0,0,0,.12);
+  padding: 2px;
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.nb-theme-pill--on { background: #667eea; }
+.nb-theme-pill__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .2s;
+}
+.nb-theme-pill--on .nb-theme-pill__dot { transform: translateX(12px); }
+
 .nb-menu-divider {
   height: 1px;
-  background: #f3f4f6;
+  background: rgba(0,0,0,.07);
   margin: 2px 0;
 }
 .nb-user-menu-footer { padding: 6px 0; }
@@ -792,7 +829,7 @@ button.nb-icon-btn {
   transition: background .15s;
   text-align: left;
 }
-.nb-logout-btn:hover { background: #fef2f2; }
+.nb-logout-btn:hover { background: rgba(239,68,68,.1); }
 .nb-logout-btn i {
   width: 30px;
   height: 30px;

@@ -121,11 +121,6 @@
             <span id="nb-pending-badge" class="nb-badge nb-badge--warning">{{ $navPendingCount > 99 ? '99+' : $navPendingCount }}</span>
         </a>
 
-        {{-- Tema claro/oscuro --}}
-        <button type="button" id="nb-theme-toggle" class="nb-icon-btn" title="Cambiar tema" aria-label="Cambiar tema">
-            <i class="fas fa-sun" id="nb-theme-icon"></i>
-        </button>
-
         {{-- Notificaciones --}}
         <div class="nav-item dropdown">
             <a class="nb-icon-btn position-relative" href="#" id="notifToggle"
@@ -208,6 +203,24 @@
                         <span class="nb-menu-icon nb-icon-wallet"><i class="fas fa-wallet"></i></span>
                         <span>Mi Billetera</span>
                     </a>
+
+                    {{-- Toggle de tema --}}
+                    <button type="button" id="nb-theme-toggle" class="nb-menu-item nb-menu-item--btn">
+                        <span class="nb-menu-icon nb-icon-theme" id="nb-theme-icon-wrap">
+                            {{-- SVG sol (dark mode → mostrar sol para "activar claro") --}}
+                            <svg id="nb-theme-svg-sun" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1zm0 16a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0v-1a1 1 0 0 1 1-1zm8.66-10a1 1 0 0 1-.366 1.366l-.866.5a1 1 0 1 1-1-1.732l.866-.5A1 1 0 0 1 20.66 8zM5.706 15.134a1 1 0 0 1-.366 1.366l-.866.5a1 1 0 1 1-1-1.732l.866-.5a1 1 0 0 1 1.366.366zM20.66 16a1 1 0 0 1-1.366.366l-.866-.5a1 1 0 1 1 1-1.732l.866.5A1 1 0 0 1 20.66 16zM5.706 8.866a1 1 0 0 1-1.366.366l-.866-.5a1 1 0 1 1 1-1.732l.866.5a1 1 0 0 1 .366 1.366zM22 12a1 1 0 0 1-1 1h-1a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1zM4 12a1 1 0 0 1-1 1H2a1 1 0 1 1 0-2h1a1 1 0 0 1 1 1zm8-5a5 5 0 1 0 0 10A5 5 0 0 0 12 7z"/>
+                            </svg>
+                            {{-- SVG luna (light mode → mostrar luna para "activar oscuro") --}}
+                            <svg id="nb-theme-svg-moon" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        </span>
+                        <span id="nb-theme-label">Tema claro</span>
+                        <span class="nb-theme-pill ms-auto" id="nb-theme-pill">
+                            <span class="nb-theme-pill__dot"></span>
+                        </span>
+                    </button>
                 </div>
 
                 <div class="nb-menu-divider"></div>
@@ -593,32 +606,51 @@ document.addEventListener('keydown', function (e) {
 });
 
 // ── Theme toggle ─────────────────────────────────────────
-(function () {
+window.__playrkeTheme = (function () {
     var STORAGE_KEY = 'playrke-theme';
-    var html  = document.documentElement;
-    var btn   = document.getElementById('nb-theme-toggle');
-    var icon  = document.getElementById('nb-theme-icon');
+    var html = document.documentElement;
 
     function applyTheme(theme) {
+        var label  = document.getElementById('nb-theme-label');
+        var pill   = document.getElementById('nb-theme-pill');
+        var svgSun = document.getElementById('nb-theme-svg-sun');
+        var svgMoon= document.getElementById('nb-theme-svg-moon');
+
         if (theme === 'light') {
             html.setAttribute('data-theme', 'light');
-            if (icon) { icon.className = 'fas fa-moon'; }
+            if (label)   label.textContent = 'Modo oscuro';
+            if (pill)    pill.classList.add('nb-theme-pill--on');
+            if (svgSun)  svgSun.style.display  = 'none';
+            if (svgMoon) svgMoon.style.display = '';
         } else {
             html.removeAttribute('data-theme');
-            if (icon) { icon.className = 'fas fa-sun'; }
+            if (label)   label.textContent = 'Modo claro';
+            if (pill)    pill.classList.remove('nb-theme-pill--on');
+            if (svgSun)  svgSun.style.display  = '';
+            if (svgMoon) svgMoon.style.display = 'none';
         }
     }
 
+    function toggle() {
+        var current = html.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+        var next = current === 'dark' ? 'light' : 'dark';
+        localStorage.setItem(STORAGE_KEY, next);
+        applyTheme(next);
+    }
+
+    // Aplicar tema guardado en cuanto el DOM del navbar esté disponible
     var saved = localStorage.getItem(STORAGE_KEY) || 'dark';
     applyTheme(saved);
 
-    if (btn) {
-        btn.addEventListener('click', function () {
-            var current = html.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-            var next = current === 'dark' ? 'light' : 'dark';
-            localStorage.setItem(STORAGE_KEY, next);
-            applyTheme(next);
-        });
-    }
+    // Usar delegación de eventos en document para no depender del momento de registro
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('#nb-theme-toggle');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        toggle();
+    }, true); // captura en fase capture → antes que Bootstrap
+
+    return { toggle: toggle, apply: applyTheme };
 })();
 </script>
