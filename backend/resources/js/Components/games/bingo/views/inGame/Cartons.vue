@@ -10,6 +10,9 @@
         <span v-if="totalDrawn > 0" class="ctn-bar__drawn">
           <i class="fas fa-shuffle" />{{ totalDrawn }}<em>/{{ totalChips }}</em>
         </span>
+        <span v-if="remainingChips !== undefined && remainingChips > 0 && totalDrawn > 0" class="ctn-bar__remaining">
+          <i class="fas fa-hourglass-half" />{{ remainingChips }}
+        </span>
         <Transition name="ctn-streak">
           <span v-if="streak >= 2" class="ctn-bar__streak" :key="streak">
             <i class="fas fa-bolt" />{{ streak }}
@@ -57,6 +60,7 @@
       <div
         v-for="(card, idx) in filteredCards"
         :key="card.id || idx"
+        :data-card-id="card.id"
         class="ctn-card"
         :class="{
           'ctn-card--winner':    isWinner(card),
@@ -64,6 +68,7 @@
           'ctn-card--active':    selectedId === card.id,
           'ctn-card--hit-flash': isHit(card) && !isWinner(card),
           'ctn-card--fresh-hot': isFreshHot(card),
+          'ctn-card--focus-pulse': focusPulseId === card.id,
         }"
         :style="{ '--i': idx }"
         translate="no"
@@ -128,8 +133,8 @@
 
     <!-- ── Detail modal ── -->
     <Transition name="ctn-modal">
-      <div v-if="selectedCard" class="ctn-modal-bg" @click.self="selectedId = null" @keydown.escape.stop="selectedId = null">
-        <div class="ctn-modal">
+      <div v-if="selectedCard" class="ctn-modal-bg" role="dialog" aria-modal="true" :aria-label="`Detalle cartón ${selectedCard.serialNumber}`" @click.self="selectedId = null" @keydown.escape.stop="selectedId = null">
+        <div class="ctn-modal" ref="modalRef" tabindex="-1">
           <button class="ctn-modal__x" @click="selectedId = null"><i class="fas fa-times" /></button>
 
           <div class="ctn-modal__header">
@@ -232,7 +237,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch, ref, onUnmounted } from "vue";
+import { computed, watch, ref, nextTick, onMounted, onUnmounted } from "vue";
 // BingoCard: estructura mínima que el backend serializa en toFrontendFormat()
 interface BingoCard {
   id: string
@@ -241,6 +246,7 @@ interface BingoCard {
 }
 import { useBingoSound } from "@js/composables/games/bingo/useBingoSound";
 import { getBingoVariantDef, type BingoVariantDef, type BingoVariantColumn } from "@/js/modules/games/bingo/utils/bingoVariants";
+import { shortSerial } from "@js/utils/bingoUtils";
 
 type Filter = "all" | "hot" | "win";
 
@@ -250,6 +256,7 @@ interface Props {
   roomId?:         string;
   drawnNumbers?:   number[];
   totalDrawn?:     number;
+  remainingChips?: number;
   gameVariant?:    string;
   hotThreshold?:   number;
   bingoPattern?:   string;
@@ -261,6 +268,7 @@ const props = withDefaults(defineProps<Props>(), {
   roomId:         "",
   drawnNumbers:   () => [],
   totalDrawn:     0,
+  remainingChips: undefined,
   gameVariant:    "BINGO_75",
   hotThreshold:   10,
   bingoPattern:   "",
@@ -388,7 +396,38 @@ const myMissing = computed<number | null>(() => {
   return min;
 });
 
-defineExpose({ myMissing, streak });
+// Hasta 3 cartones activos más cerca de completar, ordenados por menor missing
+// — usado por el header para listar serial + fichas faltantes de cada uno.
+const topCards = computed<{ id: string; serial: string; missing: number }[]>(() => {
+  return props.cartons
+    .filter(c => !isWinner(c))
+    .map(c => ({ id: c.id, serial: c.serialNumber, missing: variantDef.value.totalCells - hits(c) }))
+    .sort((a, b) => a.missing - b.missing)
+    .slice(0, 3);
+});
+
+// Resalta brevemente un cartón (anillo pulsante) sin depender de selectedId,
+// para no forzar la apertura del modal de detalle — llamado por el padre justo
+// después de hacer scrollIntoView vía data-card-id (ver Index.vue::focusCard).
+const focusPulseId = ref<string | null>(null);
+let focusPulseTimer: ReturnType<typeof setTimeout> | null = null;
+const modalRef = ref<HTMLElement | null>(null);
+// Enfocar el modal al abrirlo para que Escape funcione sin mouse y los lectores de pantalla anuncien el dialog
+watch(selectedId, (id) => {
+  if (id) nextTick(() => modalRef.value?.focus())
+})
+function pulseCard(id: string) {
+  if (!filteredCards.value.some(c => c.id === id)) activeFilter.value = "all";
+  if (focusPulseTimer) clearTimeout(focusPulseTimer);
+  focusPulseId.value = id;
+  focusPulseTimer = setTimeout(() => { focusPulseId.value = null; focusPulseTimer = null; }, 1600);
+}
+
+onUnmounted(() => {
+  if (focusPulseTimer) clearTimeout(focusPulseTimer);
+});
+
+defineExpose({ myMissing, topCards, pulseCard, streak });
 
 // computed para evitar recálculo en cada render del template
 const filterCounts = computed(() => {
@@ -404,24 +443,20 @@ function getFilterCount(f: Filter): number {
   return filterCounts.value[f];
 }
 
-// Memoizado: la variante no cambia durante la partida
-const colNumbersMap = computed(() => {
-  const map = new Map<string, number[]>();
-  for (const col of variantDef.value.columns) {
-    map.set(col.label, Array.from({ length: col.max - col.min + 1 }, (_, i) => col.min + i));
-  }
-  return map;
-});
+// La variante no cambia durante la partida — mapa estático construido una vez.
+function buildColNumbersMap(def: BingoVariantDef): Map<string, number[]> {
+  const map = new Map<string, number[]>()
+  for (const col of def.columns)
+    map.set(col.label, Array.from({ length: col.max - col.min + 1 }, (_, i) => col.min + i))
+  return map
+}
+const colNumbersMap = ref(buildColNumbersMap(variantDef.value))
+watch(variantDef, (def) => { colNumbersMap.value = buildColNumbersMap(def) })
 
 function colNumbers(col: BingoVariantColumn): number[] {
   return colNumbersMap.value.get(col.label) ?? [];
 }
 
-function shortSerial(s: string): string {
-  if (!s) return "—";
-  const p = s.split("-");
-  return p.length >= 3 ? `${p[0]}-…-${p[p.length - 1]}` : s.slice(-14);
-}
 
 function fullBingo(card: BingoCard): boolean {
   for (const col of variantDef.value.columns) {
@@ -439,7 +474,7 @@ function fullBingo(card: BingoCard): boolean {
 function onEscapeKey(e: KeyboardEvent) {
   if (e.key === 'Escape' && selectedId.value) selectedId.value = null
 }
-window.addEventListener('keydown', onEscapeKey)
+onMounted(() => { window.addEventListener('keydown', onEscapeKey) })
 onUnmounted(() => {
   hitTimers.forEach(clearTimeout)
   freshHotTimers.forEach(clearTimeout)
@@ -582,6 +617,14 @@ watch(() => props.drawnNumbers, (next, prev) => {
 }
 .ctn-bar__drawn i   { font-size: 9px; opacity: 0.6; }
 .ctn-bar__drawn em  { opacity: 0.35; font-style: normal; font-weight: 500; }
+.ctn-bar__remaining {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 700; color: #7b8ec8;
+  padding: 2px 8px;
+  background: rgba(120,140,220,0.06); border: 1px solid rgba(120,140,220,0.14);
+  border-radius: 20px; letter-spacing: 0.2px;
+}
+.ctn-bar__remaining i { font-size: 8px; opacity: 0.55; }
 .ctn-bar__streak {
   display: flex; align-items: center; gap: 3px;
   font-size: 10px; font-weight: 800; color: #ffd060;
@@ -718,6 +761,14 @@ watch(() => props.drawnNumbers, (next, prev) => {
   0%   { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 0 rgba(100,180,255,0.0),  0 0 0 0 rgba(42,245,152,0.0); }
   20%  { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 3px rgba(100,180,255,0.7), 0 0 18px 2px rgba(42,245,152,0.25); }
   100% { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 5px rgba(100,180,255,0.0), 0 0 0 0 rgba(42,245,152,0.0); }
+}
+
+/* Focus pulse — resalta el cartón al hacer click en él desde el header (fichas faltantes) */
+.ctn-card--focus-pulse { animation: cin 0.45s cubic-bezier(0.34,1.56,0.64,1) both, focus-pulse-ring 1.6s ease-out forwards !important; }
+@keyframes focus-pulse-ring {
+  0%   { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 0 rgba(123,79,255,0.0); }
+  12%  { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 4px rgba(123,79,255,0.85), 0 0 26px 5px rgba(123,79,255,0.4); }
+  100% { box-shadow: 0 4px 20px rgba(0,0,0,0.15), 0 0 0 0 rgba(123,79,255,0.0); }
 }
 
 /* ── Header ── */

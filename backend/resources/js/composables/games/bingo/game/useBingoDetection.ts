@@ -19,6 +19,7 @@ export function useBingoDetection(options: UseBingoDetectionOptions) {
     if (!cards.length) return
 
     claimingBingo.value = true
+    if ('vibrate' in navigator) navigator.vibrate([80, 30, 80])
     try {
       const { data } = await backendClient.post<{
         success: boolean

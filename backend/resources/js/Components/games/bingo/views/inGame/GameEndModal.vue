@@ -9,6 +9,8 @@ const confettiPieces = Array.from({ length: 40 }, (_, i) => ({
 </script>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { Link } from '@inertiajs/vue3'
 import type { GameEndData } from './types'
 
 interface Props {
@@ -27,6 +29,15 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{ close: [] }>()
+
+// Fix #4: dedup en caso de duplicados por reconexión WebSocket
+const uniqueDrawn = computed(() => [...new Set(props.drawnNumbers)])
+
+// Fix #8: toggle para ver todas las fichas sorteadas
+const showAllChips = ref(false)
+const CHIPS_PREVIEW = 40
+const visibleChips  = computed(() => showAllChips.value ? uniqueDrawn.value : uniqueDrawn.value.slice(0, CHIPS_PREVIEW))
+const hiddenChips   = computed(() => Math.max(0, uniqueDrawn.value.length - CHIPS_PREVIEW))
 </script>
 
 <template>
@@ -111,11 +122,14 @@ const emit = defineEmits<{ close: [] }>()
           Ningún cartón completó el bingo en este sorteo.
         </div>
 
-        <div v-if="drawnNumbers.length > 0" class="gm-chips-summary">
-          <div class="gm-chips-summary__label">Fichas sorteadas</div>
-          <div class="gm-chips-summary__grid">
+        <div v-if="uniqueDrawn.length > 0" class="gm-chips-summary">
+          <div class="gm-chips-summary__header">
+            <span class="gm-chips-summary__label">Fichas sorteadas</span>
+            <span class="gm-chips-summary__count">{{ uniqueDrawn.length }}/{{ totalChips }}</span>
+          </div>
+          <div class="gm-chips-summary__grid" :class="{ 'gm-chips-summary__grid--expanded': showAllChips }">
             <div
-              v-for="n in drawnNumbers"
+              v-for="n in visibleChips"
               :key="`gs-${n}`"
               class="ig-chip ig-chip--sm"
               :class="`ig-chip--${chipLetter(n)}`"
@@ -124,12 +138,18 @@ const emit = defineEmits<{ close: [] }>()
               <span class="ig-chip__num">{{ n }}</span>
             </div>
           </div>
+          <button v-if="!showAllChips && hiddenChips > 0" class="gm-chips-show-all" @click="showAllChips = true">
+            <i class="fas fa-chevron-down" /> Ver todas ({{ hiddenChips }} más)
+          </button>
         </div>
 
         <div class="gm-actions">
           <button class="gm-btn gm-btn--primary" @click="emit('close')">
             <i class="fas fa-check" /> Cerrar
           </button>
+          <Link href="/bingo/game-rooms" class="gm-btn gm-btn--secondary">
+            <i class="fas fa-door-open" /> Buscar otra sala
+          </Link>
         </div>
       </div>
 
@@ -212,11 +232,33 @@ const emit = defineEmits<{ close: [] }>()
 .gm-no-winner i { font-size: 16px; }
 
 /* ── Chips summary ── */
-.gm-chips-summary { padding: 0 20px 16px; }
-.gm-chips-summary__label { font-size: 9px; font-weight: 700; color: #3a5080; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-.gm-chips-summary__grid { display: flex; flex-wrap: wrap; gap: 4px; max-height: 120px; overflow-y: auto; }
-.gm-chips-summary__grid::-webkit-scrollbar { width: 3px; }
-.gm-chips-summary__grid::-webkit-scrollbar-thumb { background: rgba(80,120,255,0.2); border-radius: 2px; }
+.gm-chips-summary { padding: 0 20px 16px; flex-shrink: 0; }
+.gm-chips-summary__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.gm-chips-summary__label { font-size: 9px; font-weight: 700; color: #3a5080; text-transform: uppercase; letter-spacing: 1px; }
+.gm-chips-summary__count { font-size: 9px; font-weight: 700; color: #2a3860; font-family: 'Courier New', monospace; }
+.gm-chips-summary__grid {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  max-height: 120px; overflow: hidden;
+  position: relative;
+}
+.gm-chips-summary__grid::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 36px;
+  background: linear-gradient(transparent, rgba(6,10,30,0.95));
+  pointer-events: none;
+}
+.gm-chips-summary__grid--expanded { max-height: 200px; overflow-y: auto; }
+.gm-chips-summary__grid--expanded::after { display: none; }
+.gm-chips-summary__grid--expanded::-webkit-scrollbar { width: 4px; }
+.gm-chips-summary__grid--expanded::-webkit-scrollbar-thumb { background: rgba(80,120,255,0.2); border-radius: 2px; }
+.gm-chips-show-all {
+  display: flex; align-items: center; gap: 5px; justify-content: center;
+  width: 100%; margin-top: 6px; padding: 4px;
+  background: none; border: none; cursor: pointer;
+  color: #4a6aaa; font-size: 10px; font-weight: 700; transition: color 0.15s;
+}
+.gm-chips-show-all:hover { color: #7c9dff; }
+.gm-chips-show-all i { font-size: 8px; }
 
 /* ── Chip styles (copied from DrawnBoard so they work here without import) ── */
 .ig-chip {
@@ -253,20 +295,30 @@ const emit = defineEmits<{ close: [] }>()
 }
 
 /* ── Actions ── */
-.gm-actions { padding: 0 20px 20px; }
-.gm-btn { width: 100%; padding: 11px; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all 0.2s ease; border: 1px solid; }
+.gm-actions { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+.gm-btn {
+  width: 100%; padding: 11px; border-radius: 12px; font-size: 13px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: all 0.2s ease; border: 1px solid; text-decoration: none;
+}
 .gm-btn--primary { background: rgba(100,140,255,0.1); border-color: rgba(100,140,255,0.25); color: #7c9dff; }
 .gm-btn--primary:hover { background: rgba(100,140,255,0.2); color: #b0c8ff; }
+.gm-btn--secondary { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.09); color: #4a6aaa; }
+.gm-btn--secondary:hover { background: rgba(255,255,255,0.07); color: #7c9dff; }
 
 /* ── Confetti — position: absolute para quedar dentro del modal (overflow: hidden) ── */
 .gm-confetti {
   position: absolute; width: 8px; height: 8px; border-radius: 2px; top: -10px;
-  animation: confetti-fall linear forwards;
+  animation: confetti-fall linear infinite;
   pointer-events: none; z-index: 0;
 }
 @keyframes confetti-fall {
   0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(calc(100% + 20px)) rotate(720deg); opacity: 0.2; }
+  80%  { opacity: 0.8; }
+  100% { transform: translateY(calc(100vh + 20px)) rotate(720deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gm-confetti { animation: none; opacity: 0; }
 }
 
 /* ── Fade transition ── */

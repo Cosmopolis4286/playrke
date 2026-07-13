@@ -36,16 +36,10 @@ const colCounts = computed(() => {
   return counts
 })
 
-// Letras únicas en orden de aparición del sorteo (para las pills)
-const colLetters = computed(() => {
-  const seen = new Set<string>()
-  const order: string[] = []
-  for (const n of props.drawnNumbers) {
-    const ltr = props.chipLetter(n)
-    if (!seen.has(ltr)) { seen.add(ltr); order.push(ltr) }
-  }
-  return order.sort()
-})
+// Letras únicas ordenadas alfabéticamente (máx. 5 en BINGO_75 → el sort es trivial)
+const colLetters = computed(() =>
+  [...new Set(props.drawnNumbers.map(n => props.chipLetter(n)))].sort()
+)
 
 // Tooltip hover sobre chip
 const hoveredChip = ref<number | null>(null)
@@ -53,6 +47,13 @@ const hoveredChip = ref<number | null>(null)
 // Historial completo colapsado por defecto: libera espacio vertical para los
 // cartones, que son la prioridad real del jugador durante la partida.
 const showHistory = ref(false)
+
+// Expuesto para que Index.vue lo llame tras un devReset (Fix #3)
+function resetView() {
+  showHistory.value = false
+  showAll.value = false
+}
+defineExpose({ resetView })
 </script>
 
 <template>
@@ -69,9 +70,15 @@ const showHistory = ref(false)
           <div class="db-hero__glow" :class="`db-glow--${lastLetter}`" />
           <div class="db-hero__ring db-hero__ring--1" :class="`db-ring--${lastLetter}`" />
           <div class="db-hero__ring db-hero__ring--2" :class="`db-ring--${lastLetter}`" />
-          <div class="db-chip db-chip--hero" :class="`db-chip--${lastLetter}`">
+          <div
+            class="db-chip db-chip--hero"
+            :class="`db-chip--${lastLetter}`"
+            @mouseenter="hoveredChip = last ?? null"
+            @mouseleave="hoveredChip = null"
+          >
             <span class="db-chip__ltr">{{ lastLetter }}</span>
             <span class="db-chip__num">{{ last }}</span>
+            <div v-if="last != null && hoveredChip === last" class="db-chip__tip db-chip__tip--below">{{ lastLetter }}{{ last }}</div>
           </div>
         </div>
         <!-- aria-live: anuncia la nueva bola a lectores de pantalla -->
@@ -118,9 +125,12 @@ const showHistory = ref(false)
               class="db-chip db-chip--md"
               :class="[`db-chip--${chipLetter(n)}`, { 'db-chip--pending': highlightSet.has(n) }]"
               :style="{ opacity: 1 - i * 0.12 }"
+              @mouseenter="hoveredChip = n"
+              @mouseleave="hoveredChip = null"
             >
               <span class="db-chip__ltr">{{ chipLetter(n) }}</span>
               <span class="db-chip__num">{{ n }}</span>
+              <div v-if="hoveredChip === n" class="db-chip__tip">{{ chipLetter(n) }}{{ n }}</div>
             </div>
           </div>
         </div>
@@ -145,10 +155,10 @@ const showHistory = ref(false)
       <!-- En mobile: scroll horizontal compacto, siempre visible sin toggle -->
       <div v-if="historyChips.length > 0" class="db-history db-history--mobile-scroll">
         <div
-          v-for="n in historyChips"
+          v-for="(n, i) in historyChips"
           :key="`ms-${n}`"
           class="db-chip db-chip--sm"
-          :class="`db-chip--${chipLetter(n)}`"
+          :class="[`db-chip--${chipLetter(n)}`, { 'db-chip--latest': i === 0 }]"
         >
           <span class="db-chip__ltr">{{ chipLetter(n) }}</span>
           <span class="db-chip__num">{{ n }}</span>
@@ -193,6 +203,13 @@ const showHistory = ref(false)
   outline: 2px solid rgba(42,245,152,0.7);
   outline-offset: 1px;
   box-shadow: 0 0 8px rgba(42,245,152,0.3);
+}
+
+/* Chip más reciente en el scroll mobile — Fix #8 */
+.db-chip--latest {
+  outline: 2px solid rgba(255,255,255,0.55);
+  outline-offset: 1px;
+  box-shadow: 0 0 10px rgba(255,255,255,0.25);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -447,6 +464,17 @@ const showHistory = ref(false)
 .db-chip__tip::after {
   content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
   border: 4px solid transparent; border-top-color: rgba(80,120,255,0.3);
+}
+
+/* Variante hacia abajo — la bola hero está pegada al borde superior del
+   contenedor (overflow: hidden en .db-root), así que el tooltip por encima
+   quedaría cortado. */
+.db-chip__tip--below {
+  bottom: auto; top: calc(100% + 5px);
+}
+.db-chip__tip--below::after {
+  top: auto; bottom: 100%;
+  border-top-color: transparent; border-bottom-color: rgba(80,120,255,0.3);
 }
 
 /* ══════════════════════════════════════════════════════

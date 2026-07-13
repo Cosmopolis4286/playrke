@@ -1,5 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
+import { shortSerial } from '@js/utils/bingoUtils'
+
+interface TopCard {
+  id:      string
+  serial:  string
+  missing: number
+}
 
 interface Props {
   prizePoolType: string
@@ -19,21 +27,39 @@ interface Props {
   muted: boolean
   isLocal: boolean
   devResetting: boolean
+  /** Hasta 3 cartones activos más cerca de completar (serial + fichas faltantes). */
+  topCards?: TopCard[]
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   rounds: 0,
   round: 1,
   bingoPattern: '',
+  topCards: () => [],
 })
 
 const emit = defineEmits<{
   toggleMute: []
   openPlayers: []
   devReset: []
+  focusCard: [id: string]
 }>()
 
 function pad(n: number) { return String(n).padStart(2, '0') }
+
+// Fix #14: guard contra datos inconsistentes del backend (round > rounds)
+const safeRound = computed(() =>
+  props.rounds ? Math.min(props.round ?? 1, props.rounds) : (props.round ?? 1)
+)
+
+function missingClass(missing: number): string {
+  if (missing < 0) return ''
+  if (missing === 0) return 'gh-chip--bingo'
+  if (missing <= 2)  return 'gh-chip--hot'
+  if (missing <= 5)  return 'gh-chip--warn'
+  return ''
+}
+
 </script>
 
 <template>
@@ -82,7 +108,23 @@ function pad(n: number) { return String(n).padStart(2, '0') }
         <span class="gh-badge__dot" /> EN VIVO
       </div>
 
-      <div class="gh-spacer" />
+      <!-- Mis cartones más cerca de completar (hasta 3) — aprovecha el espacio
+           libre entre el badge de estado y las acciones del header. -->
+      <div v-if="topCards.length > 0 && !isFinished" class="gh-missing">
+        <i class="fas fa-bullseye gh-missing__icon" />
+        <button
+          v-for="tc in topCards"
+          :key="tc.id"
+          class="gh-chip"
+          :class="missingClass(tc.missing)"
+          :title="`Cartón ${tc.serial} — ${tc.missing === 0 ? '¡BINGO!' : `faltan ${tc.missing} fichas`}`"
+          @click="emit('focusCard', tc.id)"
+        >
+          <span class="gh-chip__serial">{{ shortSerial(tc.serial) }}</span>
+          <span class="gh-chip__missing">{{ tc.missing === 0 ? '¡BINGO!' : tc.missing }}</span>
+        </button>
+      </div>
+      <div v-else class="gh-spacer" />
 
       <!-- Actions -->
       <div class="gh-actions">
@@ -141,7 +183,7 @@ function pad(n: number) { return String(n).padStart(2, '0') }
         <div class="gh-stat">
           <i class="fas fa-sync-alt gh-stat__solo-icon" />
           <div class="gh-stat__body">
-            <span class="gh-stat__val">{{ round }}<em class="gh-stat__sub">/{{ rounds }}</em></span>
+            <span class="gh-stat__val">{{ safeRound }}<em class="gh-stat__sub">/{{ rounds }}</em></span>
             <span class="gh-stat__lbl">ronda</span>
           </div>
         </div>
@@ -231,6 +273,36 @@ function pad(n: number) { return String(n).padStart(2, '0') }
   background: linear-gradient(180deg, transparent, rgba(80,120,255,0.18), transparent);
 }
 .gh-spacer { flex: 1; }
+
+/* Mis cartones cerca de completar — ocupa el espacio libre del header principal */
+.gh-missing {
+  flex: 1; display: flex; align-items: center; gap: 6px;
+  padding: 0 4px; overflow: hidden;
+}
+.gh-missing__icon { font-size: 10px; color: #4a6aaa; flex-shrink: 0; }
+.gh-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 20px; flex-shrink: 0;
+  background: rgba(80,120,255,0.06); border: 1px solid rgba(80,120,255,0.18);
+  cursor: pointer; transition: all 0.15s ease;
+}
+.gh-chip:hover { background: rgba(80,120,255,0.12); border-color: rgba(80,120,255,0.32); transform: translateY(-1px); }
+.gh-chip__serial {
+  font-size: 9px; font-weight: 700; color: #6a80b0;
+  font-family: 'Courier New', monospace; letter-spacing: 0.2px;
+}
+.gh-chip__missing {
+  font-size: 11px; font-weight: 900; color: #c8d8ff;
+  font-family: 'Courier New', monospace;
+}
+.gh-chip--warn { background: rgba(255,160,0,0.1); border-color: rgba(255,160,0,0.3); }
+.gh-chip--warn .gh-chip__missing { color: #ffb060; }
+.gh-chip--hot { background: rgba(255,50,50,0.1); border-color: rgba(255,50,50,0.35); animation: gh-chip-pulse 1s ease-in-out infinite alternate; }
+.gh-chip--hot .gh-chip__missing { color: #ff8080; }
+.gh-chip--bingo { background: rgba(42,245,152,0.14); border-color: rgba(42,245,152,0.5); animation: gh-chip-pulse-bingo 0.8s ease-in-out infinite alternate; }
+.gh-chip--bingo .gh-chip__missing { color: #2af598; }
+@keyframes gh-chip-pulse { from { box-shadow: 0 0 0 0 rgba(255,50,50,0.15); } to { box-shadow: 0 0 8px 2px rgba(255,50,50,0.3); } }
+@keyframes gh-chip-pulse-bingo { from { box-shadow: 0 0 0 0 rgba(42,245,152,0.2); } to { box-shadow: 0 0 10px 3px rgba(42,245,152,0.4); } }
 
 /* Status badges */
 .gh-badge {
@@ -360,6 +432,16 @@ function pad(n: number) { return String(n).padStart(2, '0') }
   flex-shrink: 0;
 }
 
+/* "Mis fichas faltantes" — mismos umbrales de color que el badge que reemplaza */
+.gh-stat--warn .gh-stat__solo-icon { background: rgba(255,160,0,0.14); color: #ffb060; }
+.gh-stat--warn .gh-stat__val       { color: #ffb060; }
+.gh-stat--hot .gh-stat__solo-icon  { background: rgba(255,50,50,0.14); color: #ff8080; animation: gh-stat-pulse 1s ease-in-out infinite alternate; }
+.gh-stat--hot .gh-stat__val        { color: #ff8080; }
+.gh-stat--bingo .gh-stat__solo-icon { background: rgba(42,245,152,0.16); color: #2af598; animation: gh-stat-pulse-bingo 0.8s ease-in-out infinite alternate; }
+.gh-stat--bingo .gh-stat__val       { color: #2af598; }
+@keyframes gh-stat-pulse { from { box-shadow: 0 0 0 0 rgba(255,50,50,0.15); } to { box-shadow: 0 0 8px 2px rgba(255,50,50,0.3); } }
+@keyframes gh-stat-pulse-bingo { from { box-shadow: 0 0 0 0 rgba(42,245,152,0.2); } to { box-shadow: 0 0 10px 2px rgba(42,245,152,0.4); } }
+
 /* ═══════════════════════════════════════════
    DEV RIBBON
 ═══════════════════════════════════════════ */
@@ -400,7 +482,7 @@ function pad(n: number) { return String(n).padStart(2, '0') }
   .gh-stat { padding: 6px 8px; }
 }
 @media (max-width: 560px) {
-  .gh-main { padding: 10px 12px; min-height: auto; gap: 0; }
+  .gh-main { padding: 10px 12px; min-height: auto; gap: 0; flex-wrap: wrap; }
   .gh-divider { display: none; }
   .gh-prize { flex-direction: row; align-items: center; gap: 5px; }
   .gh-prize__type { display: none; }
@@ -410,6 +492,9 @@ function pad(n: number) { return String(n).padStart(2, '0') }
   .gh-countdown__label { font-size: 7.5px; }
   .gh-tu { min-width: 24px; padding: 1px 4px; }
   .gh-tu b { font-size: 13px; }
+  /* Cartones cercanos: baja a fila propia con scroll horizontal en mobile */
+  .gh-missing { flex-basis: 100%; order: 3; margin-top: 8px; overflow-x: auto; }
+  .gh-chip { padding: 3px 8px; }
   /* Stats: grid 2-col on mobile */
   .gh-stats { display: grid; grid-template-columns: 1fr 1fr; padding: 0 12px; }
   .gh-stat-sep { display: none; }

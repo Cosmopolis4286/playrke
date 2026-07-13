@@ -168,6 +168,11 @@ function closeCardViewer() {
                   <i class="fas fa-trophy" style="color:#ffd700;font-size:10px" />
                   <span>{{ totalWinners }} ganador{{ totalWinners === 1 ? '' : 'es' }}</span>
                 </template>
+                <template v-if="drawnNumbers.length > 0">
+                  <span class="pm-modal__sub-sep">·</span>
+                  <i class="fas fa-shuffle" style="font-size:9px;opacity:0.6" />
+                  <span>{{ drawnNumbers.length }} fichas</span>
+                </template>
               </div>
             </div>
           </div>
