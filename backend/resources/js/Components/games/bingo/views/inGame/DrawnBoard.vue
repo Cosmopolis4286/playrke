@@ -6,9 +6,11 @@ interface Props {
   totalChips: number
   chipLetter: (n: number) => string
   newBallFlash?: boolean
+  highlightNumbers?: number[]
 }
 
-const props = withDefaults(defineProps<Props>(), { newBallFlash: false })
+const props = withDefaults(defineProps<Props>(), { newBallFlash: false, highlightNumbers: () => [] })
+const highlightSet = computed(() => new Set<number>(props.highlightNumbers))
 
 const last       = computed(() => props.drawnNumbers[props.drawnNumbers.length - 1])
 const lastLetter = computed(() => last.value != null ? props.chipLetter(last.value) : '')
@@ -72,6 +74,8 @@ const showHistory = ref(false)
             <span class="db-chip__num">{{ last }}</span>
           </div>
         </div>
+        <!-- aria-live: anuncia la nueva bola a lectores de pantalla -->
+        <div aria-live="polite" aria-atomic="true" class="db-sr-only">{{ lastLetter }}{{ last }}</div>
 
         <!-- Número grande + barra + resumen columnas -->
         <div class="db-hero__meta">
@@ -112,7 +116,7 @@ const showHistory = ref(false)
               v-for="(n, i) in recentChips"
               :key="`rec-${n}`"
               class="db-chip db-chip--md"
-              :class="`db-chip--${chipLetter(n)}`"
+              :class="[`db-chip--${chipLetter(n)}`, { 'db-chip--pending': highlightSet.has(n) }]"
               :style="{ opacity: 1 - i * 0.12 }"
             >
               <span class="db-chip__ltr">{{ chipLetter(n) }}</span>
@@ -156,7 +160,7 @@ const showHistory = ref(false)
           v-for="n in visibleHistory"
           :key="n"
           class="db-chip db-chip--sm"
-          :class="`db-chip--${chipLetter(n)}`"
+          :class="[`db-chip--${chipLetter(n)}`, { 'db-chip--pending': highlightSet.has(n) }]"
           @mouseenter="hoveredChip = n"
           @mouseleave="hoveredChip = null"
         >
@@ -177,6 +181,20 @@ const showHistory = ref(false)
 </template>
 
 <style scoped>
+/* Visually hidden but readable by screen readers */
+.db-sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* Chip del cartón activo seleccionado — resaltado en el historial */
+.db-chip--pending {
+  outline: 2px solid rgba(42,245,152,0.7);
+  outline-offset: 1px;
+  box-shadow: 0 0 8px rgba(42,245,152,0.3);
+}
+
 /* ══════════════════════════════════════════════════════
    ROOT
 ══════════════════════════════════════════════════════ */

@@ -5,13 +5,13 @@ import type { PlayerProgress } from './types'
 interface Props {
   players: PlayerProgress[]
   remainingChips: number
+  maxVisible?: number
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { maxVisible: 8 })
 
-const MAX_VISIBLE = 8
-const visiblePlayers = computed(() => props.players.slice(0, MAX_VISIBLE))
-const hiddenCount    = computed(() => Math.max(0, props.players.length - MAX_VISIBLE))
+const visiblePlayers = computed(() => props.players.slice(0, props.maxVisible))
+const hiddenCount    = computed(() => Math.max(0, props.players.length - props.maxVisible))
 </script>
 
 <template>
@@ -32,6 +32,7 @@ const hiddenCount    = computed(() => Math.max(0, props.players.length - MAX_VIS
               'ig-near-win__player--hot':  p.missing <= 2,
               'ig-near-win__player--warn': p.missing <= 5 && p.missing > 2,
             }"
+            :title="p.user_name"
           >
             <span class="ig-near-win__rank">#{{ idx + 1 }}</span>
             <span class="ig-near-win__name">{{ p.user_name }}</span>

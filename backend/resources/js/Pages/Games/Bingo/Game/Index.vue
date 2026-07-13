@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, type Ref } from 'vue'
 import '@/css/games/bingo/bingo-in-game.css'
 import { useGameRoomCountdown }  from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
 import { useAntiDebug }          from '@js/composables/games/bingo/useAntiDebug'
@@ -24,7 +24,7 @@ import backendClient from '@/js/plugins/axios'
 
 useAntiDebug()
 
-const { muted, toggleMute, playNext, playWinner, preload } = useBingoSound()
+const { muted, toggleMute, playNext, playWinner, playTick, preload } = useBingoSound()
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Props
@@ -140,6 +140,24 @@ const showPlayersProgress = computed(() =>
 const cartonsRef = ref<InstanceType<typeof BingoCartons> | null>(null)
 const myMissing  = computed<number | null>(() => cartonsRef.value?.myMissing.value ?? null)
 
+// Números del cartón activo que ya fueron sorteados (hits del cartón seleccionado).
+// Se pasa a DrawnBoard para resaltarlos en el historial de bolas.
+const activeCardHitNumbers = computed<number[]>(() => {
+  const activeId = cartonsRef.value?.selectedId.value ?? null
+  const card = (props.cartons ?? []).find(c => String(c.id) === activeId)
+  if (!card) return []
+  const drawn = new Set(liveDrawn.value)
+  const hits: number[] = []
+  for (const col of variantDef.value.columns) {
+    const colData = (card as any).cardMatrix?.[col.label] as (number | null)[] | undefined
+    if (!colData) continue
+    for (const n of colData) {
+      if (n !== null && drawn.has(n)) hits.push(n)
+    }
+  }
+  return hits
+})
+
 const flashTimers   = new Set<ReturnType<typeof setTimeout>>()
 const flashTargetTimers = new Map<Ref<boolean>, ReturnType<typeof setTimeout>>()
 function flash(target: Ref<boolean>) {
@@ -187,6 +205,9 @@ const hasTime = computed(() => cd.value !== null && !cd.value.expired)
 const { drawStarting, drawStartingSecs, clearDrawTimer, scheduleDrawStart } =
   useDrawScheduler(routeKey)
 
+// Tick sonoro en los últimos 5 segundos de la cuenta regresiva pre-sorteo
+watch(drawStartingSecs, (s) => { if (s > 0 && s <= 5) playTick() })
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Game-end handling
 // ─────────────────────────────────────────────────────────────────────────────
@@ -213,7 +234,7 @@ function handleGameEnded(data: GameEndedEvent) {
 // Resincroniza el estado del sorteo tras recuperar la conexión de socket —
 // Reverb/Pusher no reenvía eventos emitidos mientras el cliente estuvo
 // desconectado, así que se refresca contra el backend (ver useBingoGameEcho.onReconnected).
-async function resyncDrawState() {
+async function resyncDrawState(attempt = 0) {
   if (!routeKey.value) return
   try {
     const { data } = await backendClient.get(`/bingo/${routeKey.value}/draw-state`)
@@ -241,7 +262,13 @@ async function resyncDrawState() {
       if (!userClosedModal.value) showWinnerModal.value = true
     }
   } catch (e) {
-    console.error('[Bingo] Error al resincronizar estado del sorteo tras reconexión:', e)
+    if (attempt < 1) {
+      // Un reintento tras 2s — cubre el caso de reconexión inestable
+      const t = setTimeout(() => { flashTimers.delete(t); resyncDrawState(attempt + 1) }, 2000)
+      flashTimers.add(t)
+    } else {
+      console.error('[Bingo] Error al resincronizar estado del sorteo tras reconexión:', e)
+    }
   }
 }
 
@@ -256,7 +283,7 @@ function closeWinnerModal() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Bingo detection
 // ─────────────────────────────────────────────────────────────────────────────
-const { handleBingoDetected } = useBingoDetection({
+const { handleBingoDetected, claimingBingo } = useBingoDetection({
   routeKey,
   isMyWin,
   isFinished,
@@ -428,6 +455,7 @@ onUnmounted(() => {
         :totalChips="totalChips"
         :chipLetter="chipLetter"
         :newBallFlash="ballFlash"
+        :highlightNumbers="activeCardHitNumbers"
       />
 
       <MyProgressBadge v-if="!isFinished" :missing="myMissing" />
@@ -445,6 +473,14 @@ onUnmounted(() => {
         </div>
       </Transition>
 
+      <!-- Overlay claim BINGO en vuelo -->
+      <Transition name="ig-claim">
+        <div v-if="claimingBingo" class="ig-claim-overlay">
+          <span class="ig-claim-spinner" />
+          Verificando BINGO…
+        </div>
+      </Transition>
+
       <div class="ig-cards-section">
         <BingoCartons
           ref="cartonsRef"
@@ -455,6 +491,7 @@ onUnmounted(() => {
           :totalDrawn="liveDrawn.length"
           :gameVariant="gameVariant"
           :hotThreshold="hotThreshold"
+          :bingoPattern="bingoPattern"
           @bingo-detected="handleBingoDetected"
         />
       </div>
@@ -609,6 +646,24 @@ onUnmounted(() => {
 .ig-reconnect-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
 .ig-reconnect-enter-from,
 .ig-reconnect-leave-to     { opacity: 0; transform: translateY(-4px); }
+
+/* Overlay claim BINGO */
+.ig-claim-overlay {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 10px 18px; border-radius: 12px;
+  background: rgba(123,79,255,0.12); border: 1px solid rgba(123,79,255,0.35);
+  color: #b090ff; font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
+  box-shadow: 0 0 24px rgba(123,79,255,0.12);
+}
+.ig-claim-spinner {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid rgba(123,79,255,0.3); border-top-color: #b090ff;
+  animation: ig-rspin 0.7s linear infinite; flex-shrink: 0;
+}
+.ig-claim-enter-active,
+.ig-claim-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
+.ig-claim-enter-from,
+.ig-claim-leave-to     { opacity: 0; transform: scale(0.94); }
 </style>
 
 <!-- ig-fade es usado por DrawnBoard y NearWinBanner vía <Transition>. Debe ser global. -->

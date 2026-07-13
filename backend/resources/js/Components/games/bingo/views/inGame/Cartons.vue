@@ -10,6 +10,11 @@
         <span v-if="totalDrawn > 0" class="ctn-bar__drawn">
           <i class="fas fa-shuffle" />{{ totalDrawn }}<em>/{{ totalChips }}</em>
         </span>
+        <Transition name="ctn-streak">
+          <span v-if="streak >= 2" class="ctn-bar__streak" :key="streak">
+            <i class="fas fa-bolt" />{{ streak }}
+          </span>
+        </Transition>
       </div>
 
       <div class="ctn-bar__filters">
@@ -123,7 +128,7 @@
 
     <!-- ── Detail modal ── -->
     <Transition name="ctn-modal">
-      <div v-if="selectedCard" class="ctn-modal-bg" @click.self="selectedId = null">
+      <div v-if="selectedCard" class="ctn-modal-bg" @click.self="selectedId = null" @keydown.escape.stop="selectedId = null">
         <div class="ctn-modal">
           <button class="ctn-modal__x" @click="selectedId = null"><i class="fas fa-times" /></button>
 
@@ -131,6 +136,9 @@
             <div v-if="isWinner(selectedCard)" class="ctn-modal__tag ctn-modal__tag--win">🏆 BINGO</div>
             <div v-else-if="isHot(selectedCard)" class="ctn-modal__tag ctn-modal__tag--hot">🔥 CALIENTE</div>
             <div class="ctn-modal__serial">{{ selectedCard.serialNumber }}</div>
+            <div v-if="bingoPattern" class="ctn-modal__pattern">
+              <i class="fas fa-th-large" /> {{ bingoPattern }}
+            </div>
           </div>
 
           <!-- big card -->
@@ -244,6 +252,7 @@ interface Props {
   totalDrawn?:     number;
   gameVariant?:    string;
   hotThreshold?:   number;
+  bingoPattern?:   string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -254,6 +263,7 @@ const props = withDefaults(defineProps<Props>(), {
   totalDrawn:     0,
   gameVariant:    "BINGO_75",
   hotThreshold:   10,
+  bingoPattern:   "",
 });
 
 const emit = defineEmits<{
@@ -265,9 +275,11 @@ const variantDef = computed<BingoVariantDef>(() => getBingoVariantDef(props.game
 const totalChips = computed(() => variantDef.value.totalChips);
 
 const activeFilter = ref<Filter>("all");
-// Auto-sm en mobile si hay más de 2 cartones; el usuario puede cambiar manualmente
+// Auto-sm en mobile si hay más de 2 cartones; preferencia persistida en localStorage
 const isMobile     = typeof window !== 'undefined' && window.innerWidth <= 600
-const cardSize     = ref<"sm" | "md">(isMobile && (props.cartons?.length ?? 0) > 2 ? "sm" : "md");
+const _savedSize   = typeof localStorage !== 'undefined' ? (localStorage.getItem('bingo-card-size') as "sm" | "md" | null) : null
+const cardSize     = ref<"sm" | "md">(_savedSize ?? (isMobile && (props.cartons?.length ?? 0) > 2 ? "sm" : "md"));
+watch(cardSize, v => { if (typeof localStorage !== 'undefined') localStorage.setItem('bingo-card-size', v) })
 const selectedId   = ref<string | null>(null);
 const bingoSet     = ref<Set<string>>(new Set());
 // IDs de cartones que recibieron un hit en la última bola — se limpia tras 700ms
@@ -276,6 +288,8 @@ const hitTimers    = new Map<string, ReturnType<typeof setTimeout>>()
 // IDs de cartones que acaban de entrar en estado "caliente" por primera vez
 const freshHotSet  = ref<Set<string>>(new Set());
 const freshHotTimers = new Map<string, ReturnType<typeof setTimeout>>()
+// Racha: cuántas bolas consecutivas cayeron en al menos un cartón del jugador
+const streak       = ref(0)
 
 const { playSelect, playWinner } = useBingoSound();
 
@@ -364,7 +378,7 @@ const myMissing = computed<number | null>(() => {
   return min;
 });
 
-defineExpose({ myMissing });
+defineExpose({ myMissing, streak, selectedId });
 
 // computed para evitar recálculo en cada render del template
 const filterCounts = computed(() => {
@@ -412,9 +426,14 @@ function fullBingo(card: BingoCard): boolean {
   return true;
 }
 
+function onEscapeKey(e: KeyboardEvent) {
+  if (e.key === 'Escape' && selectedId.value) selectedId.value = null
+}
+window.addEventListener('keydown', onEscapeKey)
 onUnmounted(() => {
   hitTimers.forEach(clearTimeout)
   freshHotTimers.forEach(clearTimeout)
+  window.removeEventListener('keydown', onEscapeKey)
 })
 
 watch(() => props.drawnNumbers, (next, prev) => {
@@ -459,7 +478,13 @@ watch(() => props.drawnNumbers, (next, prev) => {
         hitTimers.set(card.id, t)
       }
     }
-    if (anyHit) playSelect()
+    if (anyHit) {
+      playSelect()
+      navigator.vibrate?.(80)
+      streak.value++
+    } else if (newNums.length > 0) {
+      streak.value = 0
+    }
   }
 
   const newBingoSet  = new Set(bingoSet.value);
@@ -541,6 +566,19 @@ watch(() => props.drawnNumbers, (next, prev) => {
 }
 .ctn-bar__drawn i   { font-size: 9px; opacity: 0.6; }
 .ctn-bar__drawn em  { opacity: 0.35; font-style: normal; font-weight: 500; }
+.ctn-bar__streak {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 800; color: #ffd060;
+  padding: 2px 8px;
+  background: rgba(255,200,0,0.08); border: 1px solid rgba(255,200,0,0.25);
+  border-radius: 20px; letter-spacing: 0.2px;
+  animation: streak-pop 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+.ctn-bar__streak i { font-size: 9px; opacity: 0.8; }
+@keyframes streak-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.ctn-streak-enter-active { animation: streak-pop 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+.ctn-streak-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.ctn-streak-leave-to     { opacity: 0; transform: scale(0.8); }
 
 /* Filters */
 .ctn-bar__filters { display: flex; align-items: center; gap: 4px; flex: 1; justify-content: center; flex-wrap: wrap; }
@@ -816,6 +854,14 @@ watch(() => props.drawnNumbers, (next, prev) => {
 .ctn-modal__tag--win { background: linear-gradient(135deg,#ffd700,#ffaa00); color: #1a1000; }
 .ctn-modal__tag--hot { background: linear-gradient(135deg,#ff8c1a,#ffcc00); color: #1a0800; }
 .ctn-modal__serial   { font-size: 8px; color: #2a3860; font-family: 'Courier New',monospace; }
+.ctn-modal__pattern {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9px; font-weight: 700; color: #7b4fff;
+  background: rgba(123,79,255,0.08); border: 1px solid rgba(123,79,255,0.18);
+  padding: 2px 7px; border-radius: 6px; margin-top: 2px;
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.ctn-modal__pattern i { font-size: 8px; opacity: 0.8; }
 
 .ctn-dcard { border-radius: 10px; overflow: hidden; border: 1px solid rgba(70,100,200,0.2); margin-bottom: 14px; }
 .ctn-dcard__head { display: grid; }
