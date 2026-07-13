@@ -101,6 +101,7 @@ route_group('bingo-automatic-rooms', 'bingo-automatic-rooms.', ['auth', 'multiPe
     'index' => ['method' => 'get', 'uri' => '', 'action' => 'index'],
     'store' => ['method' => 'post', 'uri' => '', 'action' => 'store'],
     'fetch-list' => ['method' => 'get', 'uri' => 'fetch-list', 'action' => 'fetchList'],
+    'summary-data' => ['method' => 'get', 'uri' => 'summary-data', 'action' => 'summaryData'],
     'show' => ['method' => 'get', 'uri' => '{room}/show', 'action' => 'show'],
     'update' => ['method' => 'patch',  'uri' => '{room}/update', 'action' => 'update'],
     'delete' => ['method' => 'delete', 'uri' => '{room}/delete', 'action' => 'delete'],
