@@ -1,7 +1,8 @@
 @import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap');
 
 :root {
-  --navbar-h: 56px; /* altura única del navbar — cambiar aquí y aplica en ticker, sidebar móvil y navbar */
+  --navbar-h: 56px;
+  --footer-h: 44px; /* altura única del navbar — cambiar aquí y aplica en ticker, sidebar móvil y navbar */
 
   /* ── Tokens de color BINGO por columna (B I N G O → col 0-4)
         Compartidos por DrawnBoard, Cartons y cualquier otro componente
@@ -96,11 +97,60 @@ body {
 /* Bootstrap badge bg-light — legible en ambos temas */
 .badge.bg-light      { background-color: var(--ds-badge-bg) !important; color: var(--ds-text) !important; border: 1px solid var(--ds-border); }
 
-/* sidebar: el gradiente de aside.main-sidebar ya define su fondo;
-   en tema claro mantener el mismo estilo oscuro (branding consistente) */
-[data-theme="light"] .main-sidebar {
-  background-image: radial-gradient(circle at 50% -20.71%, #352e72 0, #181b50 25%, #02002f 50%, #000011 75%, #000000 100%) !important;
+/* ── Sidebar tema claro ── */
+[data-theme="light"] .main-sidebar,
+[data-theme="light"] [class*='sidebar-dark-'],
+[data-theme="light"] [class*='sidebar-light-'] {
+  background: #f0f2fa !important;
+  background-color: #f0f2fa !important;
+  background-image: none !important;
+  border-right: 1px solid #d8dde8 !important;
+  box-shadow: 2px 0 8px rgba(0,0,0,.06) !important;
 }
+[data-theme="light"] .main-sidebar .menu-image-play.cold {
+  background: linear-gradient(160deg, #e8eaf4 0%, #dde0f0 100%) !important;
+  border-bottom: 1px solid #c8cee0 !important;
+}
+[data-theme="light"] .main-sidebar .menu-image-play.cold .brand-image {
+  filter: brightness(0.85) saturate(1.2) !important;
+}
+[data-theme="light"] .main-sidebar .menu-image-play.cold::after {
+  opacity: 0.4 !important;
+}
+[data-theme="light"] [class*='sidebar-dark-'] .sidebar a,
+[data-theme="light"] [class*='sidebar-dark-'] .sidebar a:hover {
+  color: #3a4a6a !important;
+}
+[data-theme="light"] [class*='sidebar-dark-'] .nav-header {
+  color: #6a7a9a !important;
+}
+[data-theme="light"] .nav-sidebar > .nav-item > .nav-link p,
+[data-theme="light"] .nav-sidebar > .nav-item > .nav-link .nav-icon,
+[data-theme="light"] .nav-sidebar > .nav-item > .nav-link:not(.active) p,
+[data-theme="light"] .nav-sidebar > .nav-item > .nav-link:not(.active) .nav-icon {
+  color: #3a4a6a !important;
+}
+[data-theme="light"] .nav-sidebar > .nav-item > .nav-link:not(.active):hover {
+  background: rgba(99,102,241,.08) !important;
+}
+[data-theme="light"] .nav-sidebar > .nav-item > .nav-link.active {
+  background: rgba(99,102,241,.15) !important;
+  color: #3730a3 !important;
+}
+[data-theme="light"] .nav-sidebar .nav-treeview > .nav-item > .nav-link {
+  color: #4a5a7a !important;
+}
+[data-theme="light"] .nav-sidebar .nav-treeview {
+  border-left-color: #c0c8d8 !important;
+}
+[data-theme="light"] .sidebar-user-footer {
+  background: rgba(0,0,0,.04) !important;
+  border-top-color: #d8dde8 !important;
+}
+[data-theme="light"] .sidebar-user-footer__name { color: #1a202c !important; }
+[data-theme="light"] .sidebar-user-footer__role { color: #6a7a9a !important; }
+[data-theme="light"] .sidebar-user-footer__logout { color: #6a7a9a !important; }
+[data-theme="light"] .sidebar-brand-version { color: rgba(80,100,160,0.6) !important; }
 
 .hide-elem {
   display: none !important;
@@ -213,12 +263,153 @@ body {
   pointer-events: none;
 }
 
-/* ── Tema claro: navbar mantiene fondo oscuro (branding) ── */
-[data-theme="light"] .navbar-bg {
-  background: linear-gradient(90deg, #1e2160 0%, #161845 8%, #1a1c4a 50%, #161845 100%) !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,.18) !important;
+/* ── Footer: estilos base de links y brand (ambos temas) ── */
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
-[data-theme="light"] .navbar-bg::after { opacity: 0.6; }
+.footer-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+}
+.footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.footer-brand-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+.footer-brand-name {
+  font-weight: 700;
+  font-size: 12px;
+  color: inherit;
+}
+.footer-copy-sep,
+.footer-year,
+.footer-version {
+  color: inherit;
+  opacity: 0.55;
+}
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.footer-link {
+  font-size: 11px;
+  color: inherit;
+  opacity: 0.6;
+  text-decoration: none;
+  transition: opacity .15s;
+}
+.footer-link:hover {
+  opacity: 1;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Footer tema oscuro (default) ── */
+:root {
+  --footer-shadow: 0 -8px 24px rgba(0,0,0,0.35);
+}
+
+/* ── Footer + sidebar tema claro ── */
+[data-theme="light"] {
+  --footer-bg: linear-gradient(90deg, rgba(99,102,241,0.06) 0%, #f0f2fa 15%, #f0f2fa 85%, rgba(99,102,241,0.06) 100%);
+  --footer-bg-color: #f0f2fa;
+  --footer-border: #d0d5e8;
+  --footer-shadow: 0 -2px 8px rgba(0,0,0,.06);
+  --footer-color: #4a5568;
+}
+
+/* ── Tema claro: navbar blanco con acento sutil ── */
+[data-theme="light"] .navbar-bg {
+  background: linear-gradient(90deg, #f0f2fa 0%, #ffffff 10%, #ffffff 90%, #f0f2fa 100%) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08) !important;
+  border-bottom: 1px solid #d8dde8 !important;
+}
+[data-theme="light"] .navbar-bg::after { opacity: 0.5; }
+
+/* ── Navbar claro: ajustar colores de los elementos ── */
+[data-theme="light"] .nb-icon-btn,
+[data-theme="light"] .nb-icon-btn i {
+  color: #3a4a6a !important;
+}
+[data-theme="light"] .nb-icon-btn:hover {
+  background: rgba(99,102,241,.10) !important;
+  color: #3730a3 !important;
+}
+[data-theme="light"] .nb-wallet-pill {
+  background: rgba(99,102,241,.10) !important;
+  border-color: rgba(99,102,241,.25) !important;
+  color: #3a4a6a !important;
+}
+[data-theme="light"] .nb-wallet-balance,
+[data-theme="light"] .nb-wallet-symbol {
+  color: #3a4a6a !important;
+}
+[data-theme="light"] .nb-search-input {
+  background: rgba(99,102,241,.07) !important;
+  border-color: #d0d5e8 !important;
+  color: #1a202c !important;
+}
+[data-theme="light"] .nb-search-input::placeholder {
+  color: #8a94a6 !important;
+}
+[data-theme="light"] .nb-search-icon {
+  color: #8a94a6 !important;
+}
+[data-theme="light"] .nb-search-kbd {
+  background: #e8eaf4 !important;
+  border-color: #c0c8d8 !important;
+  color: #6a7a9a !important;
+}
+[data-theme="light"] .nb-qchip {
+  background: rgba(99,102,241,.08) !important;
+  border-color: rgba(99,102,241,.2) !important;
+  color: #3a4a6a !important;
+}
+[data-theme="light"] .nb-qchip:hover {
+  background: rgba(99,102,241,.16) !important;
+  color: #3730a3 !important;
+}
+[data-theme="light"] .nb-badge {
+  background: #ef4444 !important;
+}
+[data-theme="light"] .nb-user-btn {
+  background: rgba(99,102,241,.08) !important;
+  border-color: rgba(99,102,241,.2) !important;
+}
+[data-theme="light"] .nb-chevron {
+  color: #3a4a6a !important;
+}
+[data-theme="light"] .nb-avatar-online {
+  border-color: #ffffff !important;
+}
+[data-theme="light"] .nb-avatar-level {
+  border-color: #f0f2fa !important;
+}
+[data-theme="light"] .nb-pending-pill {
+  background: rgba(245,158,11,.10) !important;
+  border-color: rgba(245,158,11,.3) !important;
+  color: #92400e !important;
+}
+[data-theme="light"] .nb-breadcrumb__link,
+[data-theme="light"] .nb-breadcrumb__current {
+  color: #3a4a6a !important;
+}
+[data-theme="light"] .nb-breadcrumb__sep {
+  color: #8a94a6 !important;
+}
 
 /* ══════════════════════════════════════════════════════════════
    LAYOUT GENERAL — reset de AdminLTE para nuestro flex layout
@@ -239,35 +430,25 @@ body {
    Todo esto rompe nuestro layout flex. Lo anulamos aquí.
 ══════════════════════════════════════════════════════════════ */
 
-/* 1. Body con clases de AdminLTE: asegurar que no añadan padding-top */
+/* 1. Reset body — sin padding-top que AdminLTE inyecta con layout-navbar-fixed */
+body,
 body.layout-fixed,
 body.sidebar-mini,
 body.hold-transition {
   padding-top: 0 !important;
-}
-
-/* 2. Wrapper: position:fixed inset:0 — pegado al viewport sin importar lo que
-   AdminLTE haga al body/html. Anula margin-top:-0.5% y height:1px !important
-   de AdminLTE porque position:fixed saca el elemento del flujo normal y lo
-   ancla directamente al viewport. */
-#app-wrapper,
-#app-wrapper.wrapper {
-  position: fixed !important;
-  inset: 0 !important;          /* top:0 right:0 bottom:0 left:0 */
   margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  background: var(--ds-bg) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  z-index: 0;
 }
 
-/* 3. Navbar: altura fija. AdminLTE aplica margin-left:250px para que el navbar no
-   se superponga con el sidebar fixed — ese margin-left LO MANTENEMOS intencionalmente.
-   Solo anulamos height, padding vertical y border. */
+/* 2. Navbar: ancho completo (left:0 right:0), z-index:1039 para estar encima
+   del sidebar (AdminLTE usa z-index:1038 en .main-sidebar).
+   Anulamos el margin-left:250px que AdminLTE aplica — el navbar debe cubrir
+   TODA la fila superior incluyendo la zona del sidebar. */
 .main-header {
-  flex-shrink: 0 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin-left: 0 !important;
   height: var(--navbar-h) !important;
   min-height: var(--navbar-h) !important;
   max-height: var(--navbar-h) !important;
@@ -277,38 +458,66 @@ body.hold-transition {
   padding-bottom: 0 !important;
   border-bottom: none !important;
   overflow: visible !important;
-  z-index: 1034 !important;
+  z-index: 1039 !important;
 }
 
-/* 4. Content wrapper: crece para llenar el espacio entre navbar y footer.
-   margin-left:250px de AdminLTE lo MANTENEMOS — es el offset correcto del sidebar. */
+/* 3. Wrapper: position:fixed inset:0 — neutraliza .wrapper { margin-top:-0.5%;
+   height:1px } de AdminLTE. Con el navbar ya en fixed/top:0, el wrapper
+   solo necesita ser un stacking context de fondo. */
+#app-wrapper,
+#app-wrapper.wrapper {
+  position: fixed !important;
+  inset: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: var(--ds-bg) !important;
+  z-index: 0;
+}
+
+/* 4. Content wrapper: ocupa el espacio entre navbar y footer, ambos fixed.
+   NO ponemos left:0 — AdminLTE aplica margin-left:250px via
+   body:not(.sidebar-mini-md) .main-header y .content-wrapper. */
 main.content-wrapper,
 .content-wrapper {
-  flex: 1 1 0% !important;
-  min-height: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
+  position: fixed !important;
+  top: var(--navbar-h) !important;
+  left: 250px !important;
+  right: 0 !important;
+  bottom: var(--footer-h) !important;
+  margin: 0 !important;
   padding: 0 !important;
   background: var(--ds-bg) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
 }
+/* Sidebar colapsado: contenido ocupa más ancho */
+body.sidebar-collapse main.content-wrapper,
+body.sidebar-collapse .content-wrapper {
+  left: 0 !important;
+}
+@media (min-width: 992px) {
+  body.sidebar-mini.sidebar-collapse main.content-wrapper,
+  body.sidebar-mini.sidebar-collapse .content-wrapper {
+    left: 4.6rem !important;
+  }
+}
+@media (max-width: 767.98px) {
+  main.content-wrapper,
+  .content-wrapper {
+    left: 0 !important;
+  }
+}
 .content-wrapper > .content { padding: 0 !important; }
 
-/* 5. Scrollable: crece dentro del content-wrapper */
+/* 5. Scrollable: crece dentro del content-wrapper, propaga altura via flex */
 #content-scrollable {
   flex: 1 1 0%;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   background: var(--ds-bg) !important;
-}
-
-/* Propagar altura: flex column en #content-scrollable y #slot-wrapper para que
-   .game-rooms-page/.lby-page/.ig-page reciban una altura real de padre (no %).
-   height:100% dentro de overflow:auto no resuelve — flex si. */
-#content-scrollable {
   display: flex !important;
   flex-direction: column !important;
 }
@@ -325,13 +534,36 @@ main.content-wrapper,
   flex-direction: column;
 }
 
-/* 6. Footer: siempre al fondo. margin-left de AdminLTE lo mantenemos para el offset. */
+/* 6. Footer: ancho completo desde left:250px (respeta sidebar).
+   z-index:1033 — sobre el content pero bajo el sidebar y navbar. */
 .main-footer,
 footer.main-footer {
-  flex-shrink: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 250px !important;
+  right: 0 !important;
+  width: auto !important;
+  margin: 0 !important;
   padding: 0 !important;
+  z-index: 1033 !important;
+  height: var(--footer-h) !important;
+  box-sizing: border-box !important;
+}
+body.sidebar-collapse .main-footer,
+body.sidebar-collapse footer.main-footer {
+  left: 0 !important;
+}
+@media (min-width: 992px) {
+  body.sidebar-mini.sidebar-collapse .main-footer,
+  body.sidebar-mini.sidebar-collapse footer.main-footer {
+    left: 4.6rem !important;
+  }
+}
+@media (max-width: 767.98px) {
+  .main-footer,
+  footer.main-footer {
+    left: 0 !important;
+  }
 }
 
 /* Ticker de ganancias (position:fixed): su altura empuja el contenido scrollable */
@@ -349,6 +581,14 @@ footer.main-footer {
 [data-theme="light"] #content-scrollable {
   scrollbar-color: #7b4fff rgba(0,0,0,.08);
 }
+/* Páginas de juego full-height: como sus padres (#app, #slot-wrapper) son flex
+   column con flex:1, las páginas necesitan también flex:1 para llenar el alto. */
+.ig-page,
+.lby-page,
+.game-rooms-page {
+  flex: 1 1 0% !important;
+}
+
 /* Páginas con fondo de estrellas a pantalla completa (game-rooms, lobby): el
    gradiente vive en .game-rooms-page/.lby-page, que no cubre la franja del
    scrollbar track (8px) a su derecha — se ve el fondo gris claro de AdminLTE
@@ -1156,11 +1396,21 @@ button.nb-icon-btn {
 /* Resultado de un depósito/retiro ya procesado */
 .notif-entry--result { border-left-color: #34d399; }
 
+/* AdminLTE layout-fixed pone top:0 y height:100vh en .main-sidebar.
+   Necesitamos un selector de mayor especificidad con !important para ganar. */
+body.layout-fixed aside.main-sidebar,
+body.sidebar-mini aside.main-sidebar,
 aside.main-sidebar {
   background-image: radial-gradient(circle at 50% -20.71%, #352e72 0, #181b50 25%, #02002f 50%, #000011 75%, #000000 100%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* Sidebar empieza debajo del navbar — que cubre todo el ancho con z-index:1039 */
+  top: var(--navbar-h) !important;
+  bottom: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100vh - var(--navbar-h)) !important;
 }
 
 aside.main-sidebar .sidebar {
@@ -1233,9 +1483,12 @@ aside.main-sidebar .sidebar.mt-2 {
    navbar sean accesibles mientras el drawer está abierto, el overlay también debe empezar
    desde top: var(--navbar-h) en vez de top:0. ── */
 @media (max-width: 767.98px) {
-  .main-sidebar {
-    top: var(--navbar-h);
-    height: calc(100vh - var(--navbar-h));
+  .main-sidebar,
+  body.layout-fixed .main-sidebar {
+    top: var(--navbar-h) !important;
+    height: auto !important;
+    max-height: calc(100vh - var(--navbar-h)) !important;
+    bottom: 0 !important;
   }
   /* Bajar el overlay al mismo nivel que el sidebar para no bloquear el navbar */
   #sidebar-overlay {
@@ -1381,8 +1634,8 @@ body.sidebar-mini.sidebar-collapse .main-sidebar:hover .menu-image-play.cold {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  height: 66px;
-  padding: 0 1rem;
+  height: 50px;
+  padding: 0 0.75rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.25);
   flex-shrink: 0;
