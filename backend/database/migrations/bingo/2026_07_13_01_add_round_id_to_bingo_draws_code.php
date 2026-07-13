@@ -54,18 +54,11 @@ return new class extends Migration
             ->pluck('Key_name')
             ->unique();
 
+        // room_id tiene una FK (bingo_draws_code_room_id_foreign) que MySQL exige
+        // mantener respaldada por algún índice que empiece por room_id en todo
+        // momento — hay que crear los índices nuevos ANTES de dropear los viejos,
+        // o el DROP del último índice que respalda la FK falla con error 1553.
         Schema::table('bingo_draws_code', function (Blueprint $table) use ($existingIndexes) {
-            // Los unique constraints originales (room_id+num, room_id+sym) ya
-            // no permitirían una segunda secuencia completa por ronda — se
-            // reemplazan por versiones que incluyen round_id.
-            if ($existingIndexes->contains('unique_num_per_room')) {
-                $table->dropUnique('unique_num_per_room');
-            }
-
-            if ($existingIndexes->contains('unique_sym_per_room')) {
-                $table->dropUnique('unique_sym_per_room');
-            }
-
             if (!$existingIndexes->contains('unique_num_per_room_round')) {
                 $table->unique(['room_id', 'round_id', 'num'], 'unique_num_per_room_round');
             }
@@ -76,6 +69,19 @@ return new class extends Migration
 
             if (!$existingIndexes->contains('idx_bingo_draws_code_room_round')) {
                 $table->index(['room_id', 'round_id'], 'idx_bingo_draws_code_room_round');
+            }
+        });
+
+        Schema::table('bingo_draws_code', function (Blueprint $table) use ($existingIndexes) {
+            // Los unique constraints originales (room_id+num, room_id+sym) ya
+            // no permitirían una segunda secuencia completa por ronda — se
+            // reemplazan por las versiones que incluyen round_id creadas arriba.
+            if ($existingIndexes->contains('unique_num_per_room')) {
+                $table->dropUnique('unique_num_per_room');
+            }
+
+            if ($existingIndexes->contains('unique_sym_per_room')) {
+                $table->dropUnique('unique_sym_per_room');
             }
         });
     }
