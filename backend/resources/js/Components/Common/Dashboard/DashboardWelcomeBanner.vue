@@ -102,12 +102,12 @@
 </template>
 
 <style scoped>
-/* ── Contenedor: minimalista, fondo claro con acento sutil por rol ── */
+/* ── Contenedor ── */
 .wb {
   position: relative;
-  background: #fff;
+  background: var(--ds-surface);
   border-radius: 12px;
-  border: 1px solid #eef0f4;
+  border: 1px solid var(--ds-border);
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
   overflow: hidden;
 }
@@ -152,8 +152,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #fff;
-  color: #2d3748;
+  background: var(--ds-surface);
+  color: var(--ds-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -176,7 +176,7 @@
   height: 9px;
   border-radius: 50%;
   background: #22c55e;
-  border: 2px solid #fff;
+  border: 2px solid var(--ds-surface);
 }
 
 /* ── Texto ── */
@@ -194,7 +194,7 @@
   margin: 0;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #1a202c;
+  color: var(--ds-text);
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -204,8 +204,8 @@
   display: inline-block;
   padding: 1px 8px;
   border-radius: 20px;
-  background: #f1f3f9;
-  color: #4a5568;
+  background: var(--ds-badge-bg);
+  color: var(--ds-badge-color);
   font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -217,16 +217,16 @@
 .wb__sub {
   margin: 1px 0 0;
   font-size: 0.68rem;
-  color: #8a94a6;
+  color: var(--ds-text-2);
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
   gap: 0.25rem;
   white-space: nowrap;
 }
-.wb__sub-icon { font-size: 0.62rem; color: #b0b8c5; }
+.wb__sub-icon { font-size: 0.62rem; color: var(--ds-text-muted); }
 .wb__date { text-transform: capitalize; }
-.wb__sep { color: #d1d5db; }
+.wb__sep { color: var(--ds-border-2); }
 
 /* ── Highlights contextuales ── */
 .wb__highlights {
@@ -235,7 +235,7 @@
   gap: 1rem;
   flex-shrink: 0;
   padding: 0 0.85rem;
-  border-left: 1px solid #f0f2f7;
+  border-left: 1px solid var(--ds-border);
   white-space: nowrap;
 }
 
@@ -275,21 +275,21 @@
 .wb__action--warning:hover  { background: #d97706; }
 .wb__action--info     { background: #3b82f6; color: #fff; }
 .wb__action--info:hover     { background: #2563eb; }
-.wb__action--secondary{ background: #f1f3f9; color: #4a5568; }
-.wb__action--secondary:hover{ background: #e5e9f2; }
+.wb__action--secondary{ background: var(--ds-badge-bg); color: var(--ds-badge-color); }
+.wb__action--secondary:hover{ background: var(--ds-surface-2); }
 
 .wb__action--outline-primary  { border-color: #c7d2fe; color: #667eea; background: transparent; }
-.wb__action--outline-primary:hover  { background: #eef0ff; }
+.wb__action--outline-primary:hover  { background: rgba(102,126,234,.1); }
 .wb__action--outline-success  { border-color: #a7f3d0; color: #059669; background: transparent; }
-.wb__action--outline-success:hover  { background: #ecfdf5; }
+.wb__action--outline-success:hover  { background: rgba(16,185,129,.1); }
 .wb__action--outline-danger   { border-color: #fecaca; color: #dc2626; background: transparent; }
-.wb__action--outline-danger:hover   { background: #fef2f2; }
+.wb__action--outline-danger:hover   { background: rgba(220,38,38,.1); }
 .wb__action--outline-warning  { border-color: #fde68a; color: #d97706; background: transparent; }
-.wb__action--outline-warning:hover  { background: #fffbeb; }
+.wb__action--outline-warning:hover  { background: rgba(245,158,11,.1); }
 .wb__action--outline-info     { border-color: #bfdbfe; color: #2563eb; background: transparent; }
-.wb__action--outline-info:hover     { background: #eff6ff; }
-.wb__action--outline-secondary{ border-color: #e2e8f0; color: #64748b; background: transparent; }
-.wb__action--outline-secondary:hover{ background: #f8fafc; }
+.wb__action--outline-info:hover     { background: rgba(59,130,246,.1); }
+.wb__action--outline-secondary{ border-color: var(--ds-border); color: var(--ds-text-2); background: transparent; }
+.wb__action--outline-secondary:hover{ background: var(--ds-surface-2); }
 
 @media (max-width: 576px) {
   .wb__body { padding: 0.6rem 0.85rem; }

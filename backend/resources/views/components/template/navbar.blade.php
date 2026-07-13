@@ -121,6 +121,11 @@
             <span id="nb-pending-badge" class="nb-badge nb-badge--warning">{{ $navPendingCount > 99 ? '99+' : $navPendingCount }}</span>
         </a>
 
+        {{-- Tema claro/oscuro --}}
+        <button type="button" id="nb-theme-toggle" class="nb-icon-btn" title="Cambiar tema" aria-label="Cambiar tema">
+            <i class="fas fa-sun" id="nb-theme-icon"></i>
+        </button>
+
         {{-- Notificaciones --}}
         <div class="nav-item dropdown">
             <a class="nb-icon-btn position-relative" href="#" id="notifToggle"
@@ -586,4 +591,34 @@ document.addEventListener('keydown', function (e) {
         if (inp) inp.focus();
     }
 });
+
+// ── Theme toggle ─────────────────────────────────────────
+(function () {
+    var STORAGE_KEY = 'playrke-theme';
+    var html  = document.documentElement;
+    var btn   = document.getElementById('nb-theme-toggle');
+    var icon  = document.getElementById('nb-theme-icon');
+
+    function applyTheme(theme) {
+        if (theme === 'light') {
+            html.setAttribute('data-theme', 'light');
+            if (icon) { icon.className = 'fas fa-moon'; }
+        } else {
+            html.removeAttribute('data-theme');
+            if (icon) { icon.className = 'fas fa-sun'; }
+        }
+    }
+
+    var saved = localStorage.getItem(STORAGE_KEY) || 'dark';
+    applyTheme(saved);
+
+    if (btn) {
+        btn.addEventListener('click', function () {
+            var current = html.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            var next = current === 'dark' ? 'light' : 'dark';
+            localStorage.setItem(STORAGE_KEY, next);
+            applyTheme(next);
+        });
+    }
+})();
 </script>

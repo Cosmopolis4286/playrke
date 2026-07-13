@@ -10,7 +10,7 @@
 <html lang="en" class="is-loading">
 <x-template.head :title="$title" :inertia="$inertia" />
 
-<body class="hold-transition sidebar-mini layout-fixed overflow-hidden">
+<body class="hold-transition sidebar-mini layout-fixed">
     {{-- Loader visible mientras la app se carga --}}
     <x-shared.app-loader />
 
@@ -48,7 +48,7 @@
                     </section>
                 @endisset
 
-                <div @class(['mt-2' => !$contentHeader])>
+                <div>
                     {{ $slot }}
                 </div>
             </section>

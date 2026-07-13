@@ -1,7 +1,63 @@
 @import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap');
 
+:root {
+  --navbar-h: 56px; /* altura única del navbar — cambiar aquí y aplica en ticker, sidebar móvil y navbar */
+
+  /* ── Tokens de color — tema oscuro (default) ── */
+  --ds-bg:           #060324;
+  --ds-surface:      rgba(255,255,255,.04);
+  --ds-surface-2:    rgba(255,255,255,.07);
+  --ds-border:       rgba(255,255,255,.09);
+  --ds-border-2:     rgba(255,255,255,.13);
+  --ds-text:         #e0eaff;
+  --ds-text-2:       #8a9bb0;
+  --ds-text-muted:   #4a6080;
+  --ds-badge-bg:     rgba(255,255,255,.08);
+  --ds-badge-color:  #aab8d0;
+  --ds-card-hover-shadow: 0 6px 20px rgba(0,0,0,.35);
+  --ds-skeleton-a:   rgba(255,255,255,.04);
+  --ds-skeleton-b:   rgba(255,255,255,.10);
+}
+
+/* ── Tema claro ── */
+[data-theme="light"] {
+  --ds-bg:           #f0f2f8;
+  --ds-surface:      #ffffff;
+  --ds-surface-2:    #f8f9fc;
+  --ds-border:       #e2e6ef;
+  --ds-border-2:     #c8d0e0;
+  --ds-text:         #1a202c;
+  --ds-text-2:       #4a5568;
+  --ds-text-muted:   #8a94a6;
+  --ds-badge-bg:     #f1f3f9;
+  --ds-badge-color:  #4a5568;
+  --ds-card-hover-shadow: 0 6px 20px rgba(0,0,0,.09);
+  --ds-skeleton-a:   #e9ecef;
+  --ds-skeleton-b:   #f8f9fa;
+}
+
 body {
   font-family: 'Poppins', sans-serif !important;
+  background-color: var(--ds-bg) !important; /* adapta al tema activo */
+  overflow: hidden !important;               /* scroll delegado a #content-scrollable */
+}
+
+#content-scrollable {
+  background-color: var(--ds-bg) !important;
+}
+
+/* ── Bootstrap card overrides — respetan el tema activo ── */
+.card                { background-color: var(--ds-surface) !important; border-color: var(--ds-border) !important; color: var(--ds-text); }
+.card-header         { background-color: var(--ds-surface-2) !important; border-color: var(--ds-border) !important; color: var(--ds-text) !important; }
+.card-footer         { background-color: var(--ds-surface-2) !important; border-color: var(--ds-border) !important; }
+.card .text-muted,
+.text-muted          { color: var(--ds-text-2) !important; }
+/* Bootstrap badge bg-light — legible en ambos temas */
+.badge.bg-light      { background-color: var(--ds-badge-bg) !important; color: var(--ds-text) !important; border: 1px solid var(--ds-border); }
+
+[data-theme="light"] .main-sidebar,
+[data-theme="light"] .main-sidebar .nav-sidebar {
+  background: #1e1f3b !important; /* sidebar permanece oscuro en tema claro */
 }
 
 .hide-elem {
@@ -38,27 +94,6 @@ body {
   }
 }
 
-body::-webkit-scrollbar {
-  width: 8px;
-}
-
-body::-webkit-scrollbar-button {
-  display: none;
-}
-
-body::-webkit-scrollbar-track {
-  background-color: transparent !important;
-}
-
-body::-webkit-scrollbar-thumb {
-  background: #7c3aed !important;
-  border: none !important;
-  border-radius: 999px !important;
-}
-
-body::-webkit-scrollbar-thumb:hover {
-  background: #8b5cf6 !important;
-}
 
 .grid-dashboard {
   display: flex;
@@ -109,13 +144,14 @@ body::-webkit-scrollbar-thumb:hover {
 }
 
 .navbar-bg {
-  /* El primer color coincide con el borde del degradado del sidebar para que no se note la unión */
   background: linear-gradient(90deg, #181b50 0%, #060324 8%, #0a0535 50%, #060324 100%);
   border-bottom: none;
   position: relative;
-  box-shadow: 0 2px 16px rgba(0,0,0,.4);
-  height: 56px !important;
-  min-height: 56px !important;
+  /* Sin box-shadow vertical — el separador visual lo da el ::after (línea de 2px).
+     La sombra difusa hacia abajo creaba una banda oscura visible bajo el navbar. */
+  box-shadow: none;
+  height: var(--navbar-h) !important;
+  min-height: var(--navbar-h) !important;
   padding: 0 1rem !important;
   box-sizing: border-box;
 }
@@ -133,14 +169,25 @@ body::-webkit-scrollbar-thumb:hover {
   pointer-events: none;
 }
 
+/* Tema claro: navbar con fondo sólido oscuro (branding consistente) */
+[data-theme="light"] .navbar-bg {
+  background: linear-gradient(90deg, #1e2160 0%, #161845 8%, #1a1c4a 50%, #161845 100%) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18) !important;
+}
+[data-theme="light"] .navbar-bg::after {
+  opacity: 0.6;
+}
+
 /* AdminLTE con layout-fixed aplica padding-top al body (altura del navbar) y margin-top
    al .wrapper. El navbar en nuestra implementación no es position:fixed — está en el
    flujo del wrapper — así que ambos valores crean espacio vacío visible arriba. Los anulamos. */
 body.layout-fixed {
   padding-top: 0 !important;
 }
-.layout-fixed .wrapper {
+.layout-fixed .wrapper,
+#app-wrapper {
   margin-top: 0 !important;
+  background: var(--ds-bg) !important;
 }
 
 /* AdminLTE (adminlte.js, Layout.fixLayoutHeight) escribe un min-height INLINE en
@@ -153,6 +200,12 @@ body.layout-fixed {
    flex-grow dimensione el área real del contenido en vez del valor fijo de AdminLTE. */
 .layout-fixed .wrapper .content-wrapper {
   min-height: 0 !important;
+  background: transparent !important;
+}
+/* AdminLTE pone padding: 0 0.5rem en .content-wrapper > .content — eliminar para que
+   el contenido empiece pegado al navbar sin spaciado extra. */
+.content-wrapper > .content {
+  padding: 0 !important;
 }
 
 /* El navbar es position:relative dentro de .wrapper (flex-column), así que el
@@ -180,9 +233,9 @@ body.layout-fixed {
    scrollbar track (8px) a su derecha — se ve el fondo gris claro de AdminLTE
    detrás. Igualamos el fondo del contenedor scrollable al mismo gradiente
    para que no haya corte de color visible bajo el scrollbar. */
-#content-scrollable:has(> .mt-2 > #app > .game-rooms-page),
-#content-scrollable:has(> .mt-2 > #app > .lby-page),
-#content-scrollable:has(> .mt-2 > #app > .ig-page) {
+#content-scrollable:has(> div > #app > .game-rooms-page),
+#content-scrollable:has(> div > #app > .lby-page),
+#content-scrollable:has(> div > #app > .ig-page) {
   background: linear-gradient(160deg, #0a0f24 0%, #0c1230 45%, #060a18 100%);
 }
 #content-scrollable::-webkit-scrollbar { width: 8px; }
@@ -201,7 +254,7 @@ body.layout-fixed {
 /* ── Ticker de ganancias en vivo: fijo bajo el navbar, respeta el ancho del sidebar ── */
 #platform-win-ticker {
   position: fixed;
-  top: 56px;
+  top: var(--navbar-h);
   left: 0;
   right: 0;
   z-index: 1027; /* por debajo del sidebar (zindex-main-sidebar) y encima del contenido */
@@ -282,6 +335,13 @@ body.layout-fixed {
   background: rgba(102,126,234,.2);
   color: #fff;
   text-decoration: none;
+}
+/* Asegurar que <button> con nb-icon-btn no herede estilos del browser */
+button.nb-icon-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
 }
 
 /* ── Navbar: marca PlayRKE (solo móvil, sidebar oculto) ───── */
@@ -505,12 +565,12 @@ body.layout-fixed {
    En desktop (≥768px): left(toggle) | center(wallet+search+chips) | right(bell+avatar)
 ══════════════════════════════════════════════════════════════ */
 
-/* Contenedor raíz: 3 zonas alineadas sin wrap */
+/* Contenedor raíz: 3 zonas alineadas sin wrap. */
 .main-header.navbar,
 .nb-root {
   flex-wrap: nowrap;
-  overflow: hidden;
-  justify-content: space-between;  /* left | [center] | right */
+  overflow: clip;
+  justify-content: space-between;
 }
 
 /* ── Zona izquierda ── */
@@ -743,7 +803,7 @@ body.layout-fixed {
   justify-content: center;
   align-items: center;
   gap: 0.75rem;
-  overflow: visible;
+  overflow: clip;
 }
 
 /* ── Navbar: buscador global ─────────────────────────────── */
@@ -979,20 +1039,27 @@ aside.main-sidebar .sidebar.mt-2 {
   box-shadow: none;
 }
 
-/* ── Drawer móvil: el sidebar no debe tapar el navbar (1038 > 1034) ── */
+/* ── Drawer móvil: sidebar debajo del navbar; #sidebar-overlay (z:1037) cubre toda la
+   pantalla incluyendo el navbar (z:1034 static, sin efecto). Para que los controles del
+   navbar sean accesibles mientras el drawer está abierto, el overlay también debe empezar
+   desde top: var(--navbar-h) en vez de top:0. ── */
 @media (max-width: 767.98px) {
   .main-sidebar {
-    top: 56px;
-    height: calc(100vh - 56px);
+    top: var(--navbar-h);
+    height: calc(100vh - var(--navbar-h));
+  }
+  /* Bajar el overlay al mismo nivel que el sidebar para no bloquear el navbar */
+  #sidebar-overlay {
+    top: var(--navbar-h) !important;
   }
 }
 
-/* ── Logo del sidebar: header tipo "space", misma altura que el footer de usuario (66px) ── */
+/* ── Logo del sidebar: mismo alto que el navbar para alineación horizontal perfecta ── */
 .menu-image-play.cold {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 66px;
+  height: var(--navbar-h);
   padding: 6px 18px;
   box-sizing: border-box;
   flex-shrink: 0;
@@ -1080,7 +1147,7 @@ aside.main-sidebar .sidebar.mt-2 {
 }
 
 body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .menu-image-play.cold {
-  height: 56px;
+  height: var(--navbar-h);
   padding: 8px 4px;
 }
 
@@ -1113,9 +1180,9 @@ body.sidebar-mini.sidebar-collapse .main-sidebar:not(:hover) .sidebar-brand-vers
   display: none;
 }
 
-/* Al expandir el sidebar en hover (sidebar-mini collapsed) restaurar altura */
+/* Al expandir el sidebar en hover mantener la misma altura que el navbar */
 body.sidebar-mini.sidebar-collapse .main-sidebar:hover .menu-image-play.cold {
-  height: 66px;
+  height: var(--navbar-h);
   padding: 6px 18px;
 }
 
