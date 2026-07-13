@@ -363,16 +363,17 @@ async function devResetTime() {
     if (data.startTime) {
       clearDrawTimer()
       resetCalledNumbers()
-      liveDrawn.value       = []
-      gameStarted.value     = false
-      gameEndData.value     = null
-      isMyWin.value         = false
-      showWinnerModal.value = false
-      userClosedModal.value = false
+      liveDrawn.value        = []
+      playersProgress.value  = []
+      gameStarted.value      = false
+      gameEndData.value      = null
+      isMyWin.value          = false
+      showWinnerModal.value  = false
+      userClosedModal.value  = false
       if (modalDismissKey.value) sessionStorage.removeItem(modalDismissKey.value)
-      currentUnixDate.value = data.startTime
+      currentUnixDate.value  = data.startTime
       initCountdown([{ id: roomId.value, config: { unix_date: data.startTime } } as any])
-      Swal.fire({ title: '¡Sorteo iniciado!', text: 'El sorteo ha sido regenerado exitosamente.', icon: 'success', timer: 2000, showConfirmButton: false, ...SWAL_DARK })
+      Swal.fire({ title: '¡Listo!', text: 'Sorteo regenerado. Comienza en 10 segundos.', icon: 'success', timer: 2000, showConfirmButton: false, ...SWAL_DARK })
     }
   } catch {
     Swal.fire({ title: 'Error', text: 'No se pudo regenerar el sorteo.', icon: 'error', ...SWAL_DARK })
