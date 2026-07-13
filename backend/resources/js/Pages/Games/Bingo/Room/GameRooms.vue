@@ -130,7 +130,8 @@ const {
    páginas que reusan el mismo layout. */
 #app:has(> .game-rooms-page),
 #slot-wrapper:has(> #app > .game-rooms-page) {
-  height: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
 }
 </style>
 

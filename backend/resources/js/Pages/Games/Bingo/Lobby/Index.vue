@@ -289,7 +289,8 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
    base % válida (ver mismo fix en GameRooms.vue). */
 #app:has(> .lby-page),
 #slot-wrapper:has(> #app > .lby-page) {
-  height: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
 }
 </style>
 

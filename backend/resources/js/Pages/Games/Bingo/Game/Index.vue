@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, shallowRef, triggerRef, watch, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, computed, shallowRef, watch, onMounted, onUnmounted, type Ref } from 'vue'
 import '@/css/games/bingo/bingo-in-game.css'
 import { useGameRoomCountdown }  from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
 import { useAntiDebug }          from '@js/composables/games/bingo/useAntiDebug'
@@ -103,7 +103,10 @@ const revealed         = ref(false)
 const livePrize        = ref(props.prizePool ?? 0)
 const liveExchangeRate = ref(props.exchangeRate ?? 1)
 const livePlayers      = ref(props.totalPlayers ?? 0)
-// shallowRef + triggerRef: evita crear un array nuevo en cada bola sorteada
+// shallowRef: cada actualización reasigna .value con un array nuevo (nunca se
+// muta in-place) — Cartons.vue observa esta prop con watch() sin deep, que
+// compara por referencia; mutar in-place haría que ese watcher dejara de
+// dispararse tras la primera ficha (ver onNumberCalled más abajo).
 const liveDrawn        = shallowRef<number[]>([...(props.draw ?? [])])
 // Espejo mutable de props.cartons — se actualiza en resync cuando el usuario
 // compra cartones mientras el WebSocket estuvo caído.
@@ -148,13 +151,13 @@ const cartonsRef = ref<InstanceType<typeof BingoCartons> | null>(null)
 // defineExpose auto-unwraps refs — cartonsRef.value.myMissing is number|null, not a ref
 const myMissing  = computed<number | null>(() => cartonsRef.value?.myMissing ?? null)
 
-// Cartón actualmente seleccionado — estable entre fichas, solo cambia cuando el
-// usuario pulsa otro cartón. Separarlo de activeCardHitNumbers evita que cada
-// nueva ficha re-busque el cartón en liveCartons innecesariamente.
+// Cartón actualmente seleccionado — actualizado via evento @card-selected (reactivo).
+// No se puede leer de cartonsRef.value.selectedId porque los valores expuestos
+// de componentes hijos no disparan reactividad cuando cambian.
+const activeCardId = ref<string | null>(null)
 const activeCard = computed(() => {
-  const activeId = cartonsRef.value?.selectedId ?? null
-  if (!activeId) return null
-  return liveCartons.value.find(c => String(c.id) === activeId) ?? null
+  if (!activeCardId.value) return null
+  return liveCartons.value.find(c => String(c.id) === activeCardId.value) ?? null
 })
 
 // Números del cartón activo que ya fueron sorteados.
@@ -172,6 +175,9 @@ const activeCardHitNumbers = computed<number[]>(() => {
   }
   return hits
 })
+
+// Guard para cancelar updates de estado tras desmontaje (async fetches en vuelo)
+let _unmounted = false
 
 // Todos los timers pendientes (flashes de UI + retries de red) — limpiados en onUnmounted
 const _pendingTimers    = new Set<ReturnType<typeof setTimeout>>()
@@ -267,11 +273,11 @@ async function resyncDrawState(attempt = 0) {
       backendClient.get(`/bingo/${routeKey.value}/draw-state`),
       backendClient.get(`/bingo/${routeKey.value}/user-cards`).catch(() => null),
     ])
+    if (_unmounted) return
     const data = stateRes.data
 
     if (Array.isArray(data.draw) && data.draw.length > liveDrawn.value.length) {
       liveDrawn.value = data.draw
-      triggerRef(liveDrawn)
       markNumbersAsSeen(data.draw)
     }
     if (data.totalPlayers !== undefined) livePlayers.value = data.totalPlayers
@@ -366,13 +372,17 @@ const { subscribe, unsubscribe, resetCalledNumbers, markNumbersAsSeen, isReconne
   },
   onPlayerJoined:    (e) => { livePlayers.value = e.current_players; flash(playersFlash) },
   onNumberCalled:    (e) => {
-    liveDrawn.value.push(e.number)
-    triggerRef(liveDrawn)
+    // Reasignar (no .push() in-place): Cartons.vue observa esta prop con
+    // watch(() => props.drawnNumbers, ...) sin deep — con push()+triggerRef()
+    // el array sigue siendo la misma referencia entre renders, así que ese
+    // watcher (comparación por referencia) nunca se dispara de nuevo tras el
+    // primer número, y la detección de BINGO/hits/racha se congela en vivo.
+    liveDrawn.value = [...liveDrawn.value, e.number]
     flash(ballFlash)
   },
   onPlayersProgress: (e) => { if (Array.isArray(e.players)) playersProgress.value = e.players },
   onGameStarted:     ()  => { gameStarted.value = true },
-  onWinnerDeclared:  (e)  => {
+  onWinnerDeclared:  ()  => {
     // useBingoGameEcho ya filtró por userId antes de llamar este callback
     isMyWin.value = true
     // WinnerDeclared puede llegar antes que GameEnded (que trae el premio y los ganadores).
@@ -391,38 +401,52 @@ const { subscribe, unsubscribe, resetCalledNumbers, markNumbersAsSeen, isReconne
 // ─────────────────────────────────────────────────────────────────────────────
 // [DEV] Reset
 // ─────────────────────────────────────────────────────────────────────────────
+function formatCountdown(): string | null {
+  if (!hasTime.value || !cd.value) return null
+  const { days, hours, minutes, seconds } = cd.value.time
+  const parts: string[] = []
+  if (days > 0)    parts.push(`${days}d`)
+  if (hours > 0)   parts.push(`${hours}h`)
+  parts.push(`${minutes}m`, `${seconds}s`)
+  return parts.join(' ')
+}
+
 async function devResetTime() {
   if (devResetting.value) return
 
-  if (liveDrawn.value.length > 0) {
-    const result = await Swal.fire({
-      title: '¿Regenerar sorteo?',
-      text: 'Ya existe un sorteo cargado/finalizado. ¿Deseas regenerarlo? Esto reiniciará el juego.',
-      icon: 'warning',
-      showCancelButton:    true,
-      confirmButtonText:   'Sí, regenerar',
-      cancelButtonText:    'Cancelar',
-      confirmButtonColor:  '#7b4fff',
-      cancelButtonColor:   '#6c757d',
-      ...SWAL_DARK,
-    })
-    if (!result.isConfirmed) return
-  }
+  const remaining = formatCountdown()
+  const hasDrawInProgress = liveDrawn.value.length > 0
+
+  const text = hasDrawInProgress
+    ? 'Ya existe un sorteo cargado/finalizado. ¿Deseas regenerarlo? Esto reiniciará el juego.'
+    : remaining
+      ? `Actualmente faltan ${remaining} para que inicie la sala. ¿Deseas adelantar el sorteo de prueba?`
+      : '¿Deseas iniciar el sorteo de prueba ahora?'
+
+  const result = await Swal.fire({
+    title: hasDrawInProgress ? '¿Regenerar sorteo?' : '¿Iniciar sorteo de prueba?',
+    text,
+    icon: 'warning',
+    showCancelButton:    true,
+    confirmButtonText:   hasDrawInProgress ? 'Sí, regenerar' : 'Sí, iniciar',
+    cancelButtonText:    'Cancelar',
+    confirmButtonColor:  '#7b4fff',
+    cancelButtonColor:   '#6c757d',
+    ...SWAL_DARK,
+  })
+  if (!result.isConfirmed) return
 
   devResetting.value = true
   try {
-    const [resetRes] = await Promise.all([
-      backendClient.post(`/bingo/${routeKey.value}/dev-reset-time`),
-      backendClient.get(`/bingo/${routeKey.value}/user-cards`).catch(() => null).then(r => {
-        if (r && Array.isArray(r.data?.data)) liveCartons.value = r.data.data
-      }),
-    ])
-    const data = resetRes.data
+    const { data } = await backendClient.post(`/bingo/${routeKey.value}/dev-reset-time`)
     if (data.startTime) {
+      // Refrescar cartones después de confirmar el reset (secuencial, no paralelo)
+      backendClient.get(`/bingo/${routeKey.value}/user-cards`).then(r => {
+        if (!_unmounted && Array.isArray(r.data?.data)) liveCartons.value = r.data.data
+      }).catch(() => null)
       clearDrawTimer()
       resetCalledNumbers()
       liveDrawn.value         = []
-      triggerRef(liveDrawn)
       playersProgress.value   = []
       gameStarted.value       = false
       gameEndData.value       = null
@@ -432,7 +456,7 @@ async function devResetTime() {
       roomFinishedLocal.value = false
       currentUnixDate.value  = data.startTime
       initCountdown([{ id: roomId.value, config: { unix_date: data.startTime } } as any])
-      Swal.fire({ title: '¡Listo!', text: 'Sorteo regenerado. Comienza en 10 segundos.', icon: 'success', timer: 2000, showConfirmButton: false, ...SWAL_DARK })
+      Swal.fire({ title: '¡Listo!', text: 'Sorteo regenerado. Comienza en ~2 minutos.', icon: 'success', timer: 2000, showConfirmButton: false, ...SWAL_DARK })
     }
   } catch {
     Swal.fire({ title: 'Error', text: 'No se pudo regenerar el sorteo.', icon: 'error', ...SWAL_DARK })
@@ -477,6 +501,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  _unmounted = true
   stopCountdown()
   _stopTickWatch()
   unsubscribe()
@@ -557,6 +582,7 @@ onUnmounted(() => {
           :hotThreshold="hotThreshold"
           :bingoPattern="bingoPattern"
           @bingo-detected="handleBingoDetected"
+          @card-selected="id => activeCardId = id"
         />
       </div>
 
@@ -602,7 +628,8 @@ onUnmounted(() => {
    #content-scrollable hacia .ig-page (mismo fix que GameRooms.vue/Lobby). */
 #app:has(> .ig-page),
 #slot-wrapper:has(> #app > .ig-page) {
-  height: 100%;
+  flex: 1 1 0%;
+  min-height: 0;
 }
 </style>
 
