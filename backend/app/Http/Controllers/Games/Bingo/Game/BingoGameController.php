@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Games\Bingo\Game;
 
 use App\Http\Controllers\Controller;
-use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use Illuminate\Http\JsonResponse;
@@ -190,21 +189,16 @@ final class BingoGameController extends Controller
     {
         $this->authorize('viewMyCards', $room);
 
-        return $this->handleServiceJson(
-            function () use ($room) {
-                $userId = $this->userContext->resolveUserId();
-                if (!$room->relationLoaded('status')) $room->load('status');
-                $roomIsFinished = strtoupper($room->status?->code ?? '') === 'FINISHED';
-                $cartons = $this->service->getUserCartons($room->id, $userId, $roomIsFinished);
+        $userId = $this->userContext->resolveUserId();
+        if (!$room->relationLoaded('status')) $room->load('status');
+        $roomIsFinished = strtoupper($room->status?->code ?? '') === 'FINISHED';
+        $cartons = $this->service->getUserCartons($room->id, $userId, $roomIsFinished);
 
-                return [
-                    'success' => true,
-                    'data' => $cartons,
-                    'message' => 'Cartones obtenidos exitosamente'
-                ];
-            },
-            'No se pudieron obtener los cartones del usuario.'
-        );
+        return response()->json([
+            'success' => true,
+            'data'    => $cartons,
+            'message' => 'Cartones obtenidos exitosamente',
+        ])->header('Cache-Control', 'no-store');
     }
 
     /**
