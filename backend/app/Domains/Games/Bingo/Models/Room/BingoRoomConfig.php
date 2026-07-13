@@ -85,6 +85,7 @@ class BingoRoomConfig extends Model
         'jackpot_pct'             => 'decimal:2',
         'unix_date'               => 'integer',
         'num_serials'             => 'integer',
+        'time_chip'               => 'integer',
         'min_cards_to_start'      => 'integer',
         'allow_custom_card'       => 'boolean',
         'custom_card_price_pct'   => 'decimal:2',
