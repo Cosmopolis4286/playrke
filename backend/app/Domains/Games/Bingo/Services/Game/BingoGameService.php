@@ -5,8 +5,10 @@ namespace App\Domains\Games\Bingo\Services\Game;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
 use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
+use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\DTOs\Game\PlayerCardPricingDTO;
+use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Exceptions\Domain\ExchangeRate\ExchangeRateException;
 use App\Models\Currency;
 use App\Models\Games\Common\Utils\GameStatus;
@@ -21,6 +23,8 @@ final class BingoGameService
     public function __construct(
         private readonly CheckExpiredBingoRoomsService $checkExpired,
         private readonly CurrencyExchangeRateService $currencyExchangeRate,
+        private readonly BingoDrawService $drawService,
+        private readonly BingoPatternPositionResolver $patternResolver,
     ) {}
 
     /**
@@ -87,6 +91,53 @@ final class BingoGameService
             'startTime'    => (int) ($config?->unix_date ?? $bingoRoom->published_at?->timestamp ?? now()->timestamp),
             'initialWinners' => $initialWinners,
             'roomFinished' => $roomIsFinished,
+        ];
+    }
+
+    /**
+     * Estado actual del sorteo — usado por el cliente para resincronizar
+     * tras una reconexión de WebSocket (eventos perdidos mientras el socket
+     * estuvo caído, ya que Reverb/Pusher no reenvía el historial).
+     *
+     * @param BingoRoom $room
+     * @return array
+     */
+    public function getDrawState(BingoRoom $room): array
+    {
+        $drawnNumbers = BingoDraw::where('room_id', $room->id)
+            ->orderBy('time')
+            ->orderBy('created_at')
+            ->pluck('chip')
+            ->map(fn($chip) => (int) $chip)
+            ->toArray();
+
+        $roomStatusCode = $room->status?->code ?? '';
+        $roomIsFinished = strtoupper($roomStatusCode) === 'FINISHED';
+
+        // players_progress: solo cuando quedan ≤10 fichas y el sorteo sigue activo
+        $playersProgress = [];
+        if (!$room->relationLoaded('config')) $room->load('config');
+        $variant    = $room->config?->game_variant ?? BingoVariant::BINGO_75;
+        $totalChips = BingoVariant::totalChips($variant);
+        if (!$roomIsFinished && count($drawnNumbers) > 0 && ($totalChips - count($drawnNumbers)) <= 10) {
+            // Obtener el patrón desde la ronda activa de la sala
+            $round   = $room->rounds()->latest('round')->first();
+            $pattern = $round?->bingo_pattern_id
+                ? BingoPattern::find($round->bingo_pattern_id)
+                : BingoPattern::where('default_pattern', 'Y')->first();
+            if ($pattern) {
+                $patternPositions = $this->patternResolver->resolve($pattern, $variant);
+                $playersProgress  = $this->drawService->computePlayersProgress($room, $patternPositions, $drawnNumbers);
+            }
+        }
+
+        return [
+            'draw'            => $drawnNumbers,
+            'totalPlayers'    => (int) $room->total_players,
+            'prizePool'       => (float) $room->prize_pool,
+            'roomFinished'    => $roomIsFinished,
+            'initialWinners'  => $roomIsFinished ? $this->getHistoricalWinners($room) : [],
+            'playersProgress' => $playersProgress,
         ];
     }
 

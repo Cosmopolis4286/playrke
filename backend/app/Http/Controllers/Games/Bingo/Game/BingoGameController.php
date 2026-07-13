@@ -148,6 +148,8 @@ final class BingoGameController extends Controller
      */
     public function inGame(BingoRoom $room): Response
     {
+        $this->authorize('viewGame', $room);
+
         return $this->handleServiceInertia(
             function () use ($room) {
                 $userId = $this->userContext->resolveUserId();
@@ -158,6 +160,23 @@ final class BingoGameController extends Controller
                 return Inertia::render('Games/Bingo/Game/Index', $response);
             },
             'No se pudo cargar la sala de juego.'
+        );
+    }
+
+    /**
+     * Estado actual del sorteo (API) — consumido por el cliente al
+     * reconectar el WebSocket para resincronizar números cantados/ganadores
+     * que pudo haber perdido mientras el socket estuvo caído.
+     *
+     * @param BingoRoom $room
+     * @return JsonResponse
+     */
+    public function drawState(BingoRoom $room): JsonResponse
+    {
+        $this->authorize('viewGame', $room);
+
+        return $this->handleServiceJson(
+            fn () => $this->service->getDrawState($room)
         );
     }
 
@@ -292,6 +311,8 @@ final class BingoGameController extends Controller
      */
     public function checkBingo(BingoRoom $room): JsonResponse
     {
+        $this->authorize('viewGame', $room);
+
         return $this->handleServiceJson(
             function () use ($room) {
                 $userId = $this->userContext->resolveUserId();

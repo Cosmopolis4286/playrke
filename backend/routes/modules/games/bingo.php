@@ -161,6 +161,7 @@ route_group('bingo', 'bingo.', ['auth', 'multiPermission:games.bingo,games.bingo
     'lobby'         => ['method' => 'get',  'uri' => '{room}/lobby',         'action' => 'lobby'],
     'lobby-players' => ['method' => 'get',  'uri' => '{room}/lobby-players', 'action' => 'lobbyPlayers'],
     'game'          => ['method' => 'get',  'uri' => '{room}/game',          'action' => 'inGame'],
+    'draw-state'    => ['method' => 'get',  'uri' => '{room}/draw-state',    'action' => 'drawState'],
     'user-cards'    => ['method' => 'get',  'uri' => '{room}/user-cards',    'action' => 'getUserCards'],
     'check-bingo'   => ['method' => 'post', 'uri' => '{room}/check-bingo',   'action' => 'checkBingo'],
     'view-card'     => ['method' => 'get',  'uri' => '{room}/card/{card}',   'action' => 'viewCard'],

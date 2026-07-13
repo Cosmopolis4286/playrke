@@ -356,17 +356,22 @@ final class BingoDrawService
         ]);
     }
 
-    private function broadcastPlayersProgress(BingoRoom $room, array $patternPositions, array $drawnNumbers, string $variant = BingoVariant::BINGO_75): void
+    /**
+     * Calcula el progreso de cada jugador (fichas faltantes para el patrón activo).
+     * Público para que otros servicios (ej. BingoGameService::getDrawState) puedan
+     * incluirlo en la respuesta de resync sin duplicar la lógica.
+     *
+     * @return array<int, array{user_id: int, user_name: string, missing: int}>
+     */
+    public function computePlayersProgress(BingoRoom $room, array $patternPositions, array $drawnNumbers): array
     {
         if (empty($patternPositions)) {
-            return;
+            return [];
         }
 
-        $drawnSet = array_flip($drawnNumbers);
-
-        $cards = $this->activeCards($room, ['roomUser.user']);
-
-        $playerBest = []; // user_id => ['user_name' => ..., 'missing' => int]
+        $drawnSet   = array_flip($drawnNumbers);
+        $cards      = $this->activeCards($room, ['roomUser.user']);
+        $playerBest = [];
 
         foreach ($cards as $card) {
             $matrix  = $card->card_numbers ?? [];
@@ -374,12 +379,8 @@ final class BingoDrawService
 
             foreach ($patternPositions as $cell) {
                 if ($cell['free']) continue;
-
                 $num = $matrix[$cell['col']][$cell['row']] ?? null;
-
-                if ($num === null || !isset($drawnSet[$num])) {
-                    $missing++;
-                }
+                if ($num === null || !isset($drawnSet[$num])) $missing++;
             }
 
             $userId = $card->roomUser?->user_id ?? $card->creator_user_id;
@@ -395,22 +396,23 @@ final class BingoDrawService
         }
 
         if (empty($playerBest)) {
-            return;
+            return [];
         }
 
         $players = [];
         foreach ($playerBest as $userId => $info) {
-            $players[] = [
-                'user_id'   => $userId,
-                'user_name' => $info['user_name'],
-                'missing'   => $info['missing'],
-            ];
+            $players[] = ['user_id' => $userId, 'user_name' => $info['user_name'], 'missing' => $info['missing']];
         }
-
-        // Ordenar por menor cantidad de fichas faltantes (más cerca de ganar primero)
         usort($players, fn($a, $b) => $a['missing'] <=> $b['missing']);
+        return $players;
+    }
 
-        broadcast(new \App\Domains\Games\Bingo\Events\BingoPlayersProgress((int) $room->id, $players));
+    private function broadcastPlayersProgress(BingoRoom $room, array $patternPositions, array $drawnNumbers, string $variant = BingoVariant::BINGO_75): void
+    {
+        $players = $this->computePlayersProgress($room, $patternPositions, $drawnNumbers);
+        if (!empty($players)) {
+            broadcast(new \App\Domains\Games\Bingo\Events\BingoPlayersProgress((int) $room->id, $players));
+        }
     }
 
     private function detectWinnerAndEnd(
