@@ -3,6 +3,39 @@
 :root {
   --navbar-h: 56px; /* altura única del navbar — cambiar aquí y aplica en ticker, sidebar móvil y navbar */
 
+  /* ── Tokens de color BINGO por columna (B I N G O → col 0-4)
+        Compartidos por DrawnBoard, Cartons y cualquier otro componente
+        que renderice fichas o encabezados de columna.              ── */
+  --bc0-solid:  #1a7de0;  /* B — azul  */
+  --bc0-light:  #70c8ff;
+  --bc0-dark:   #0c4fa0;
+  --bc0-glow:   rgba(26,125,224,0.55);
+  --bc0-tint:   rgba(26,125,224,0.11);
+
+  --bc1-solid:  #7b3fd0;  /* I — morado */
+  --bc1-light:  #c890ff;
+  --bc1-dark:   #4a1898;
+  --bc1-glow:   rgba(123,63,208,0.55);
+  --bc1-tint:   rgba(123,63,208,0.11);
+
+  --bc2-solid:  #28a428;  /* N — verde  */
+  --bc2-light:  #7ae07a;
+  --bc2-dark:   #166016;
+  --bc2-glow:   rgba(40,164,40,0.50);
+  --bc2-tint:   rgba(40,164,40,0.10);
+
+  --bc3-solid:  #c89000;  /* G — dorado */
+  --bc3-light:  #ffe870;
+  --bc3-dark:   #886000;
+  --bc3-glow:   rgba(200,144,0,0.50);
+  --bc3-tint:   rgba(200,144,0,0.10);
+
+  --bc4-solid:  #d42020;  /* O — rojo   */
+  --bc4-light:  #ff8080;
+  --bc4-dark:   #880e0e;
+  --bc4-glow:   rgba(212,32,32,0.55);
+  --bc4-tint:   rgba(212,32,32,0.10);
+
   /* ── Tokens de color — tema oscuro (default) ── */
   --ds-bg:           #060324;
   --ds-surface:      rgba(255,255,255,.04);
@@ -47,15 +80,11 @@
 html, body {
   margin: 0 !important;
   padding: 0 !important;
+  background-color: var(--ds-bg) !important; /* cubre cualquier px visible detrás del wrapper */
 }
 body {
   font-family: 'Poppins', sans-serif !important;
-  background-color: var(--ds-bg) !important; /* adapta al tema activo */
-  overflow: hidden !important;               /* scroll delegado a #content-scrollable */
-}
-
-#content-scrollable {
-  background-color: var(--ds-bg) !important;
+  overflow: hidden !important;
 }
 
 /* ── Bootstrap card overrides — respetan el tema activo ── */
@@ -156,39 +185,19 @@ body {
   color: #4f7fff;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   NAVBAR — estilos de fondo y decoración
+══════════════════════════════════════════════════════════════ */
 .navbar-bg {
   background: linear-gradient(90deg, #181b50 0%, #060324 8%, #0a0535 50%, #060324 100%);
   border-bottom: none;
-  position: relative;
   box-shadow: none;
-  height: var(--navbar-h) !important;
-  min-height: var(--navbar-h) !important;
-  max-height: var(--navbar-h) !important;
-  padding: 0 1rem !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
+  position: relative;
   box-sizing: border-box;
-  overflow: visible !important;
-}
-/* AdminLTE fuerza height:3.35rem y border-bottom en .main-header — igualamos a nuestro token */
-.main-header {
-  height: var(--navbar-h) !important;
-  min-height: var(--navbar-h) !important;
-  max-height: var(--navbar-h) !important;
-  overflow: visible !important;
-  border-bottom: none !important; /* AdminLTE pone border-bottom: 1px solid #12004C */
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
-/* Todos los nav-item del navbar alinean verticalmente */
-.main-header.navbar .nav-item {
-  display: flex;
-  align-items: center;
-}
-.main-header.navbar .nav-item.dropdown {
-  display: flex;
-  align-items: center;
+  /* El padding lateral lo define .navbar-bg, no .main-header, para no interferir
+     con las reglas de margin/padding que reseteamos en .main-header */
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
 }
 
 /* Línea de acento degradada (verde → azul → violeta) que separa el navbar del contenido */
@@ -204,66 +213,118 @@ body {
   pointer-events: none;
 }
 
-/* Tema claro: navbar con fondo sólido oscuro (branding consistente) */
+/* ── Tema claro: navbar mantiene fondo oscuro (branding) ── */
 [data-theme="light"] .navbar-bg {
   background: linear-gradient(90deg, #1e2160 0%, #161845 8%, #1a1c4a 50%, #161845 100%) !important;
   box-shadow: 0 2px 8px rgba(0,0,0,.18) !important;
 }
-[data-theme="light"] .navbar-bg::after {
-  opacity: 0.6;
+[data-theme="light"] .navbar-bg::after { opacity: 0.6; }
+
+/* ══════════════════════════════════════════════════════════════
+   LAYOUT GENERAL — reset de AdminLTE para nuestro flex layout
+
+   Estructura:
+     body
+       └─ #app-wrapper.wrapper  (flex-column, height:100vh)
+            ├─ nav.main-header  (flex-shrink:0, height:56px)
+            ├─ aside.main-sidebar (position:fixed — fuera del flujo)
+            ├─ main.content-wrapper (flex:1, overflow:hidden)
+            │    └─ section#content-scrollable (overflow-y:auto)
+            └─ footer.main-footer (flex-shrink:0)
+
+   AdminLTE asume navbar fixed y aplica:
+     - body.layout-fixed: padding-top = navbar height
+     - .wrapper: margin-top:-0.5%, height:1px
+     - .main-header, .content-wrapper, .main-footer: margin-left:250px
+   Todo esto rompe nuestro layout flex. Lo anulamos aquí.
+══════════════════════════════════════════════════════════════ */
+
+/* 1. Body con clases de AdminLTE: asegurar que no añadan padding-top */
+body.layout-fixed,
+body.sidebar-mini,
+body.hold-transition {
+  padding-top: 0 !important;
 }
 
-/* AdminLTE aplica margin-top:-0.5% y height:1px al .wrapper, y padding-top al body
-   en layout-fixed. Anulamos todo para que el navbar sea el primer elemento visible. */
-body.layout-fixed {
-  padding-top: 0 !important;
-  background-color: var(--ds-bg) !important;
-}
-.wrapper,
-.layout-fixed .wrapper,
-#app-wrapper {
-  margin-top: 0 !important;
-  height: auto !important;          /* AdminLTE fuerza height:1px */
-  min-height: 100vh !important;     /* que el wrapper ocupe toda la ventana */
+/* 2. Wrapper: position:fixed inset:0 — pegado al viewport sin importar lo que
+   AdminLTE haga al body/html. Anula margin-top:-0.5% y height:1px !important
+   de AdminLTE porque position:fixed saca el elemento del flujo normal y lo
+   ancla directamente al viewport. */
+#app-wrapper,
+#app-wrapper.wrapper {
+  position: fixed !important;
+  inset: 0 !important;          /* top:0 right:0 bottom:0 left:0 */
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
   background: var(--ds-bg) !important;
-  background-color: var(--ds-bg) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  z-index: 0;
 }
 
-/* AdminLTE (adminlte.js, Layout.fixLayoutHeight) escribe un min-height INLINE en
-   .content-wrapper calculado en window.load, basado en las alturas de navbar/sidebar/
-   footer en ESE momento. Nunca se recalcula al navegar entre páginas de Inertia (SPA,
-   sin recargar el documento), así que ese valor queda fijo y desactualizado: si el
-   contenido real de la página actual es más bajo que el de la página donde se calculó,
-   queda un hueco en blanco debajo del navbar. Se anula con !important — un inline style
-   sin !important no puede vencer una regla de hoja de estilos que sí lo tiene — para que
-   flex-grow dimensione el área real del contenido en vez del valor fijo de AdminLTE. */
-.layout-fixed .wrapper .content-wrapper {
-  min-height: 0 !important;
-  background: var(--ds-bg) !important; /* AdminLTE pone #f4f6f9 — sobreescribir con el token del tema */
-  padding-top: 0 !important;
+/* 3. Navbar: altura fija. AdminLTE aplica margin-left:250px para que el navbar no
+   se superponga con el sidebar fixed — ese margin-left LO MANTENEMOS intencionalmente.
+   Solo anulamos height, padding vertical y border. */
+.main-header {
+  flex-shrink: 0 !important;
+  height: var(--navbar-h) !important;
+  min-height: var(--navbar-h) !important;
+  max-height: var(--navbar-h) !important;
   margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom: none !important;
+  overflow: visible !important;
+  z-index: 1034 !important;
 }
-/* .content-wrapper sin .layout-fixed también puede aplicar */
+
+/* 4. Content wrapper: crece para llenar el espacio entre navbar y footer.
+   margin-left:250px de AdminLTE lo MANTENEMOS — es el offset correcto del sidebar. */
+main.content-wrapper,
 .content-wrapper {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  background: var(--ds-bg) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+.content-wrapper > .content { padding: 0 !important; }
+
+/* 5. Scrollable: crece dentro del content-wrapper */
+#content-scrollable {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: var(--ds-bg) !important;
 }
-/* AdminLTE pone padding: 0 0.5rem en .content-wrapper > .content — eliminar para que
-   el contenido empiece pegado al navbar sin spaciado extra. */
-.content-wrapper > .content {
+
+/* Propagar altura a los wrappers del slot para que las páginas full-height
+   (lby-page, game-rooms-page, ig-page) puedan usar min-height:100% correctamente */
+#slot-wrapper,
+#slot-wrapper > #app {
+  min-height: 100%;
+  height: 100%;
+}
+
+/* 6. Footer: siempre al fondo. margin-left de AdminLTE lo mantenemos para el offset. */
+.main-footer,
+footer.main-footer {
+  flex-shrink: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
   padding: 0 !important;
 }
 
-/* El navbar es position:relative dentro de .wrapper (flex-column), así que el
-   contenido siguiente en el flujo (.content-wrapper → #content-scrollable) ya
-   queda naturalmente debajo de él — sin necesitar padding-top de compensación.
-   El único elemento que sí necesita compensarse es el ticker de ganancias, que es
-   position:fixed (flota fuera del flujo, ver #platform-win-ticker más abajo): su
-   altura real medida (--pwt-height, fijada por PlatformWinTicker.vue; '0px' si no
-   hay panel visible) es lo único que debe empujar el contenido hacia abajo. */
-:root {
-  --pwt-height: 0px;
-}
-.layout-fixed .wrapper .content-wrapper #content-scrollable {
+/* Ticker de ganancias (position:fixed): su altura empuja el contenido scrollable */
+:root { --pwt-height: 0px; }
+#content-scrollable {
   padding-top: var(--pwt-height);
   transition: padding-top .2s ease-in-out;
 }
@@ -281,9 +342,9 @@ body.layout-fixed {
    scrollbar track (8px) a su derecha — se ve el fondo gris claro de AdminLTE
    detrás. Igualamos el fondo del contenedor scrollable al mismo gradiente
    para que no haya corte de color visible bajo el scrollbar. */
-#content-scrollable:has(> div > #app > .game-rooms-page),
-#content-scrollable:has(> div > #app > .lby-page),
-#content-scrollable:has(> div > #app > .ig-page) {
+#content-scrollable:has(> #slot-wrapper > #app > .game-rooms-page),
+#content-scrollable:has(> #slot-wrapper > #app > .lby-page),
+#content-scrollable:has(> #slot-wrapper > #app > .ig-page) {
   background: linear-gradient(160deg, #0a0f24 0%, #0c1230 45%, #060a18 100%);
 }
 #content-scrollable::-webkit-scrollbar { width: 8px; }
@@ -13722,6 +13783,8 @@ a.text-dark:focus {
   height: auto !important;
   display: flex;
   align-items: center;
+  flex-shrink: 0; /* no ser aplastado por flex-grow del content-wrapper */
+  margin-left: 0 !important;
 }
 
 .footer-inner {

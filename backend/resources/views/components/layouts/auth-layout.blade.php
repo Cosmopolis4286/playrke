@@ -48,7 +48,7 @@
                     </section>
                 @endisset
 
-                <div>
+                <div id="slot-wrapper">
                     {{ $slot }}
                 </div>
             </section>
