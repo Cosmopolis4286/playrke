@@ -13,7 +13,7 @@ class BingoDrawCode extends Model
 
     protected $table = 'bingo_draws_code';
 
-    protected $fillable = ['room_id', 'num', 'sym'];
+    protected $fillable = ['room_id', 'round_id', 'num', 'sym'];
 
     protected $casts = [
         'created_at' => 'datetime',
