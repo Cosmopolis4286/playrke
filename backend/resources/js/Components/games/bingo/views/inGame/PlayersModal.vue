@@ -296,7 +296,10 @@ function closeCardViewer() {
         </div>
 
         <template v-else-if="viewingCard.cardMatrix && viewingCard.cardMatrix.length">
-          <div class="cv-card">
+          <div
+            class="cv-card"
+            :style="{ '--cv-cols': `repeat(${(viewingCard.colLabels ?? ['B','I','N','G','O']).length}, 1fr)` }"
+          >
             <div class="cv-card__header">
               <div v-for="l in (viewingCard.colLabels ?? ['B','I','N','G','O'])" :key="l" class="cv-card__lbl" :class="`cv-card__lbl--${l}`">{{ l }}</div>
             </div>
@@ -461,7 +464,7 @@ function closeCardViewer() {
 @keyframes cv-spin { to { transform: rotate(360deg) } }
 
 .cv-card { padding: 16px 20px; }
-.cv-card__header { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 4px; }
+.cv-card__header { display: grid; grid-template-columns: var(--cv-cols, repeat(5, 1fr)); gap: 4px; margin-bottom: 4px; }
 .cv-card__lbl {
   display: flex; align-items: center; justify-content: center;
   height: 28px; border-radius: 6px; font-size: 13px; font-weight: 900; letter-spacing: 1px;
@@ -473,7 +476,7 @@ function closeCardViewer() {
 .cv-card__lbl--O { background: rgba(255,100,50,0.12); color: #ff9650; }
 
 .cv-card__grid { display: flex; flex-direction: column; gap: 4px; }
-.cv-card__row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.cv-card__row { display: grid; grid-template-columns: var(--cv-cols, repeat(5, 1fr)); gap: 4px; }
 .cv-cell {
   display: flex; align-items: center; justify-content: center;
   height: 46px; border-radius: 8px; position: relative;

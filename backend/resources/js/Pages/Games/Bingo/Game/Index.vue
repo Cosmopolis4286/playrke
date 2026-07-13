@@ -106,6 +106,9 @@ const playersFlash     = ref(false)
 const ballFlash        = ref(false)
 const playersProgress  = ref<PlayerProgress[]>([])
 const showWinnerModal  = ref(false)
+// Espejo mutable del estado finished — permite que devResetTime lo limpie sin
+// depender de props.room.status_code que es inmutable (prop Inertia).
+const roomFinishedLocal = ref(props.roomFinished ?? false)
 
 const modalDismissKey = computed(() => roomId.value ? `bingo-modal-closed-${roomId.value}` : '')
 // Derivado del computed para que se resuelva cuando roomId ya tiene valor (no durante setup).
@@ -118,9 +121,7 @@ const gameStarted      = ref(false)
 const devResetting     = ref(false)
 
 const isFinished = computed(() =>
-  gameEndData.value !== null ||
-  String(props.room?.status ?? '').toUpperCase()      === 'FINISHED' ||
-  String(props.room?.status_code ?? '').toUpperCase() === 'FINISHED'
+  gameEndData.value !== null || roomFinishedLocal.value
 )
 
 const totalWinners   = computed(() => gameEndData.value?.winners?.length ?? 0)
@@ -212,6 +213,7 @@ watch(drawStartingSecs, (s) => { if (s > 0 && s <= 5) playTick() })
 // Game-end handling
 // ─────────────────────────────────────────────────────────────────────────────
 function handleGameEnded(data: GameEndedEvent) {
+  roomFinishedLocal.value = true
   gameEndData.value = {
     hasWinner:  data.has_winner,
     totalDrawn: data.total_drawn,
@@ -249,17 +251,20 @@ async function resyncDrawState(attempt = 0) {
       playersProgress.value = data.playersProgress
     }
 
-    if (data.roomFinished && gameEndData.value === null) {
-      const winners: WinnerEntry[] = data.initialWinners ?? []
-      gameEndData.value = {
-        hasWinner:  winners.length > 0,
-        totalDrawn: liveDrawn.value.length,
-        winners,
-        prize:      data.prizePool ?? 0,
-        endTime:    '',
+    if (data.roomFinished) {
+      roomFinishedLocal.value = true
+      if (gameEndData.value === null) {
+        const winners: WinnerEntry[] = data.initialWinners ?? []
+        gameEndData.value = {
+          hasWinner:  winners.length > 0,
+          totalDrawn: liveDrawn.value.length,
+          winners,
+          prize:      data.prizePool ?? 0,
+          endTime:    '',
+        }
+        isMyWin.value = !!(props.userId && winners.some(w => String(w.user_id) === String(props.userId)))
+        if (!userClosedModal.value) showWinnerModal.value = true
       }
-      isMyWin.value = !!(props.userId && winners.some(w => String(w.user_id) === String(props.userId)))
-      if (!userClosedModal.value) showWinnerModal.value = true
     }
   } catch (e) {
     if (attempt < 1) {
@@ -363,13 +368,14 @@ async function devResetTime() {
     if (data.startTime) {
       clearDrawTimer()
       resetCalledNumbers()
-      liveDrawn.value        = []
-      playersProgress.value  = []
-      gameStarted.value      = false
-      gameEndData.value      = null
-      isMyWin.value          = false
-      showWinnerModal.value  = false
-      userClosedModal.value  = false
+      liveDrawn.value         = []
+      playersProgress.value   = []
+      gameStarted.value       = false
+      gameEndData.value       = null
+      isMyWin.value           = false
+      showWinnerModal.value   = false
+      userClosedModal.value   = false
+      roomFinishedLocal.value = false
       if (modalDismissKey.value) sessionStorage.removeItem(modalDismissKey.value)
       currentUnixDate.value  = data.startTime
       initCountdown([{ id: roomId.value, config: { unix_date: data.startTime } } as any])

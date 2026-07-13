@@ -23,7 +23,7 @@ export function useBingoDetection(options: UseBingoDetectionOptions) {
       const { data } = await backendClient.post<{
         success: boolean
         hasBingo: boolean
-        winner:   boolean
+        winner:   Record<string, unknown> | null
       }>(`/bingo/${routeKey.value}/check-bingo`, {
         card_id:  cards[0].id,
         card_ids: cards.map(c => c.id),

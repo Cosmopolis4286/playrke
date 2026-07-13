@@ -24,7 +24,7 @@
           class="ctn-fbtn"
           :class="{
             'ctn-fbtn--active':  activeFilter === f.value,
-            'ctn-fbtn--new-hot': f.value === 'hot' && freshHotSet.value.size > 0 && activeFilter !== 'hot',
+            'ctn-fbtn--new-hot': f.value === 'hot' && _freshHotVer.value > 0 && _freshHotSet.size > 0 && activeFilter !== 'hot',
           }"
           @click="activeFilter = f.value"
         >
@@ -62,8 +62,8 @@
           'ctn-card--winner':    isWinner(card),
           'ctn-card--hot':       isHot(card) && !isWinner(card),
           'ctn-card--active':    selectedId === card.id,
-          'ctn-card--hit-flash': hitSet.value.has(card.id) && !isWinner(card),
-          'ctn-card--fresh-hot': freshHotSet.value.has(card.id),
+          'ctn-card--hit-flash': isHit(card) && !isWinner(card),
+          'ctn-card--fresh-hot': isFreshHot(card),
         }"
         :style="{ '--i': idx }"
         translate="no"
@@ -76,9 +76,9 @@
 
         <!-- Body -->
         <div class="ctn-body" :style="{ gridTemplateColumns: `repeat(${variantDef.columns.length}, 1fr)` }">
-          <template v-for="col in variantDef.columns" :key="col.label">
+          <template v-for="r in variantDef.numRows" :key="r">
             <div
-              v-for="r in variantDef.numRows" :key="`${col.label}${r}`"
+              v-for="col in variantDef.columns" :key="`${col.label}${r}`"
               class="ctn-cell"
               :class="[`ctn-cell--col${col.colorIdx}`, cellCls(card, col.label, r)]"
             >
@@ -147,8 +147,8 @@
               <span v-for="col in variantDef.columns" :key="col.label" class="ctn-head__l" :class="`ctn-head__l--col${col.colorIdx}`">{{ col.label }}</span>
             </div>
             <div class="ctn-dcard__body" :style="{ gridTemplateColumns: `repeat(${variantDef.columns.length}, 1fr)` }">
-              <template v-for="col in variantDef.columns" :key="col.label">
-                <div v-for="r in variantDef.numRows" :key="`d${col.label}${r}`" class="ctn-dcell" :class="cellCls(selectedCard, col.label, r)">
+              <template v-for="r in variantDef.numRows" :key="r">
+                <div v-for="col in variantDef.columns" :key="`d${col.label}${r}`" class="ctn-dcell" :class="cellCls(selectedCard, col.label, r)">
                   <template v-if="isFreeCell(col, r)">
                     <span class="ctn-dfree">★</span>
                   </template>
@@ -281,12 +281,18 @@ const _savedSize   = typeof localStorage !== 'undefined' ? (localStorage.getItem
 const cardSize     = ref<"sm" | "md">(_savedSize ?? (isMobile && (props.cartons?.length ?? 0) > 2 ? "sm" : "md"));
 watch(cardSize, v => { if (typeof localStorage !== 'undefined') localStorage.setItem('bingo-card-size', v) })
 const selectedId   = ref<string | null>(null);
-const bingoSet     = ref<Set<string>>(new Set());
-// IDs de cartones que recibieron un hit en la última bola — se limpia tras 700ms
-const hitSet       = ref<Set<string>>(new Set());
-const hitTimers    = new Map<string, ReturnType<typeof setTimeout>>()
-// IDs de cartones que acaban de entrar en estado "caliente" por primera vez
-const freshHotSet  = ref<Set<string>>(new Set());
+// Sets internos (no reactivos) + contador de versión para forzar re-render.
+// Vue no detecta .add()/.delete() en un ref<Set> — el patrón version-bump
+// es la forma correcta: mutar el Set y luego incrementar el contador para
+// que los computed/bindings que leen el contador se recalculen.
+const _bingoSet    = new Set<string>()
+const _hitSet      = new Set<string>()
+const _freshHotSet = new Set<string>()
+const _bingoVer    = ref(0)
+const _hitVer      = ref(0)
+const _freshHotVer = ref(0)
+
+const hitTimers      = new Map<string, ReturnType<typeof setTimeout>>()
 const freshHotTimers = new Map<string, ReturnType<typeof setTimeout>>()
 // Racha: cuántas bolas consecutivas cayeron en al menos un cartón del jugador
 const streak       = ref(0)
@@ -360,8 +366,10 @@ const hitsMap = computed(() => {
 
 function hits(card: BingoCard): number { return hitsMap.value.get(card.id) ?? computeHits(card); }
 function pct(card: BingoCard) { return Math.round((hits(card) / variantDef.value.totalCells) * 100); }
-function isHot(card: BingoCard)    { return hits(card) >= props.hotThreshold; }
-function isWinner(card: BingoCard) { return bingoSet.value.has(card.id); }
+function isHot(card: BingoCard)      { return hits(card) >= props.hotThreshold; }
+function isWinner(card: BingoCard)   { void _bingoVer.value;    return _bingoSet.has(card.id) }
+function isHit(card: BingoCard)      { void _hitVer.value;      return _hitSet.has(card.id) }
+function isFreshHot(card: BingoCard) { void _freshHotVer.value; return _freshHotSet.has(card.id) }
 
 // Menor cantidad de fichas que le faltan al jugador para completar su mejor
 // cartón (asumiendo cartón lleno, igual criterio que fullBingo() más abajo).
@@ -438,19 +446,25 @@ onUnmounted(() => {
 
 watch(() => props.drawnNumbers, (next, prev) => {
   if (next.length === 0) {
-    bingoSet.value = new Set();
+    bingoSet.value.clear();    triggerRef(bingoSet)
+    hitTimers.forEach(clearTimeout)
+    hitTimers.clear()
+    hitSet.value.clear();      triggerRef(hitSet)
+    freshHotTimers.forEach(clearTimeout)
+    freshHotTimers.clear()
+    freshHotSet.value.clear(); triggerRef(freshHotSet)
+    streak.value = 0
     return;
   }
 
   // Cuando el historial cambia de forma no monotónica (reconexión, corrección de sorteo),
   // revalidar qué cartones siguen siendo BINGO con el draw actualizado.
   if ((prev?.length ?? 0) > next.length) {
-    bingoSet.value = new Set(
-      [...bingoSet.value].filter(cardId => {
-        const card = props.cartons.find(c => c.id === cardId);
-        return card ? fullBingo(card) : false;
-      })
-    );
+    for (const id of [...bingoSet.value]) {
+      const card = props.cartons.find(c => c.id === id);
+      if (!card || !fullBingo(card)) bingoSet.value.delete(id);
+    }
+    triggerRef(bingoSet)
   }
 
   const prevSet = new Set(prev ?? []);
@@ -467,12 +481,12 @@ watch(() => props.drawnNumbers, (next, prev) => {
       })
       if (hit) {
         anyHit = true
-        hitSet.value = new Set([...hitSet.value, card.id])
+        hitSet.value.add(card.id); triggerRef(hitSet)
         emit("card-hit", card.id)
         // Limpiar flash existente si llega otra bola antes de que expire
         if (hitTimers.has(card.id)) clearTimeout(hitTimers.get(card.id)!)
         const t = setTimeout(() => {
-          hitSet.value = new Set([...hitSet.value].filter(id => id !== card.id))
+          hitSet.value.delete(card.id); triggerRef(hitSet)
           hitTimers.delete(card.id)
         }, 700)
         hitTimers.set(card.id, t)
@@ -487,20 +501,19 @@ watch(() => props.drawnNumbers, (next, prev) => {
     }
   }
 
-  const newBingoSet  = new Set(bingoSet.value);
   const newWinners: BingoCard[] = [];
   for (const card of props.cartons) {
-    if (newBingoSet.has(card.id)) continue;
+    if (bingoSet.value.has(card.id)) continue;
     if (fullBingo(card)) {
-      newBingoSet.add(card.id);
+      bingoSet.value.add(card.id);
       if (prev !== undefined) newWinners.push(card);
     }
   }
   if (newWinners.length > 0) {
+    triggerRef(bingoSet)
     playWinner();
     emit("bingo-detected", newWinners);
   }
-  if (newBingoSet.size !== bingoSet.value.size) bingoSet.value = newBingoSet;
 
   // Detectar cartones que acaban de cruzar el umbral HOT por primera vez
   if (prev !== undefined) {
@@ -514,10 +527,10 @@ watch(() => props.drawnNumbers, (next, prev) => {
           return acc + (m?.[col.label]?.filter(n => n !== null && prevDrawnSet.has(n as number)).length ?? 0)
         }, 0)
         if (prevHits < props.hotThreshold) {
-          freshHotSet.value = new Set([...freshHotSet.value, card.id])
+          freshHotSet.value.add(card.id); triggerRef(freshHotSet)
           if (freshHotTimers.has(card.id)) clearTimeout(freshHotTimers.get(card.id)!)
           const t = setTimeout(() => {
-            freshHotSet.value = new Set([...freshHotSet.value].filter(id => id !== card.id))
+            freshHotSet.value.delete(card.id); triggerRef(freshHotSet)
             freshHotTimers.delete(card.id)
           }, 1500)
           freshHotTimers.set(card.id, t)
