@@ -1,6 +1,7 @@
 <script setup lang="ts">
 interface Props {
-  missing: number | null
+  missing:  number | null
+  finished?: boolean
 }
 
 defineProps<Props>()
@@ -12,13 +13,15 @@ defineProps<Props>()
       v-if="missing !== null && missing >= 0"
       class="mp-badge"
       :class="{
-        'mp-badge--bingo': missing === 0,
-        'mp-badge--hot':   missing > 0 && missing <= 2,
-        'mp-badge--warn':  missing > 2 && missing <= 5,
+        'mp-badge--bingo':    missing === 0 && !finished,
+        'mp-badge--winner':   missing === 0 && finished,
+        'mp-badge--hot':      missing > 0 && missing <= 2,
+        'mp-badge--warn':     missing > 2 && missing <= 5,
       }"
     >
       <i class="fas fa-bullseye mp-badge__icon" />
-      <span v-if="missing === 0" class="mp-badge__text">¡Tienes BINGO! Presiona tu cartón</span>
+      <span v-if="missing === 0 && !finished" class="mp-badge__text">¡Tienes BINGO! Presiona tu cartón</span>
+      <span v-else-if="missing === 0 && finished" class="mp-badge__text">¡Ganaste! Tu cartón completó el BINGO</span>
       <span v-else class="mp-badge__text">
         Te falta<span v-if="missing !== 1">n</span>
         <strong class="mp-badge__num">{{ missing }}</strong>
@@ -61,6 +64,10 @@ defineProps<Props>()
   to   { box-shadow: 0 0 16px 3px rgba(42,245,152,0.35); }
 }
 
+.mp-badge--winner {
+  background: rgba(220,170,0,0.10); border-color: rgba(220,170,0,0.40); color: #ffd060;
+}
+
 .mp-badge--hot {
   background: rgba(255,50,50,0.1); border-color: rgba(255,50,50,0.35); color: #ff8080;
   animation: mp-pulse 1s ease-in-out infinite alternate;
@@ -82,12 +89,12 @@ defineProps<Props>()
     top: 4px;
     z-index: 40;
     backdrop-filter: blur(10px);
-    /* Fondo más opaco para que sea legible sobre los cartones */
     background: rgba(8,12,36,0.82);
     border-color: rgba(80,120,255,0.22);
   }
-  .mp-badge--warn  { background: rgba(255,160,0,0.18); }
-  .mp-badge--hot   { background: rgba(255,50,50,0.20); }
-  .mp-badge--bingo { background: rgba(42,245,152,0.22); }
+  .mp-badge--warn    { background: rgba(255,160,0,0.18); }
+  .mp-badge--hot     { background: rgba(255,50,50,0.20); }
+  .mp-badge--bingo   { background: rgba(42,245,152,0.22); }
+  .mp-badge--winner  { background: rgba(220,170,0,0.18); }
 }
 </style>

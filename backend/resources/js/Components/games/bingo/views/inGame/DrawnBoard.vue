@@ -227,11 +227,11 @@ const showHistory = ref(false)
 }
 @keyframes glow-pulse { 0%,100% { opacity: 0.35; transform: scale(0.9); } 50% { opacity: 0.6; transform: scale(1.1); } }
 
-.db-glow--B { background: #1a7de0; }
-.db-glow--I { background: #7b3fd0; }
-.db-glow--N { background: #28a428; }
-.db-glow--G { background: #e0a000; }
-.db-glow--O { background: #d42020; }
+.db-glow--B { background: var(--bc0-solid); }
+.db-glow--I { background: var(--bc1-solid); }
+.db-glow--N { background: var(--bc2-solid); }
+.db-glow--G { background: var(--bc3-solid); }
+.db-glow--O { background: var(--bc4-solid); }
 
 .db-hero__ring {
   position: absolute; border-radius: 50%; border: 1px solid;
@@ -242,11 +242,11 @@ const showHistory = ref(false)
 .db-hero__ring--2 { inset: -14px; animation-delay: 0.7s; }
 @keyframes ring-out { 0% { opacity: 0.5; transform: scale(0.85); } 100% { opacity: 0; transform: scale(1.4); } }
 
-.db-ring--B { border-color: rgba(26,125,224,0.6); }
-.db-ring--I { border-color: rgba(123,63,208,0.6); }
-.db-ring--N { border-color: rgba(40,164,40,0.6); }
-.db-ring--G { border-color: rgba(224,160,0,0.6); }
-.db-ring--O { border-color: rgba(212,32,32,0.6); }
+.db-ring--B { border-color: var(--bc0-glow); }
+.db-ring--I { border-color: var(--bc1-glow); }
+.db-ring--N { border-color: var(--bc2-glow); }
+.db-ring--G { border-color: var(--bc3-glow); }
+.db-ring--O { border-color: var(--bc4-glow); }
 
 /* Meta: número grande + progreso */
 .db-hero__meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -260,11 +260,11 @@ const showHistory = ref(false)
   background-clip: text; letter-spacing: -1px;
   filter: drop-shadow(0 2px 10px currentColor);
 }
-.db-num--B { background: linear-gradient(135deg, #90d0ff, #1a7de0); }
-.db-num--I { background: linear-gradient(135deg, #d0a0ff, #7b3fd0); }
-.db-num--N { background: linear-gradient(135deg, #90e890, #28a428); }
-.db-num--G { background: linear-gradient(135deg, #ffe890, #e0a000); }
-.db-num--O { background: linear-gradient(135deg, #ff9090, #d42020); }
+.db-num--B { background: linear-gradient(135deg, var(--bc0-light), var(--bc0-solid)); }
+.db-num--I { background: linear-gradient(135deg, var(--bc1-light), var(--bc1-solid)); }
+.db-num--N { background: linear-gradient(135deg, var(--bc2-light), var(--bc2-solid)); }
+.db-num--G { background: linear-gradient(135deg, var(--bc3-light), var(--bc3-solid)); }
+.db-num--O { background: linear-gradient(135deg, var(--bc4-light), var(--bc4-solid)); }
 
 /* Columnas BINGO mini pills */
 .db-hero__col-pills { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -278,25 +278,25 @@ const showHistory = ref(false)
 .db-col-pill__letter { font-size: 8px; font-weight: 900; letter-spacing: 0.5px; opacity: 0.8; }
 .db-col-pill__count  { font-size: 13px; font-weight: 800; line-height: 1; font-family: 'Courier New', monospace; }
 
-.db-col-pill--B { background: rgba(26,125,224,0.12); border-color: rgba(26,125,224,0.25); }
-.db-col-pill--B .db-col-pill__letter { color: #78c8ff; }
-.db-col-pill--B .db-col-pill__count  { color: #90d8ff; }
+.db-col-pill--B { background: var(--bc0-tint); border-color: var(--bc0-glow); }
+.db-col-pill--B .db-col-pill__letter { color: var(--bc0-light); }
+.db-col-pill--B .db-col-pill__count  { color: var(--bc0-light); }
 
-.db-col-pill--I { background: rgba(123,63,208,0.12); border-color: rgba(123,63,208,0.25); }
-.db-col-pill--I .db-col-pill__letter { color: #c090ff; }
-.db-col-pill--I .db-col-pill__count  { color: #d4b0ff; }
+.db-col-pill--I { background: var(--bc1-tint); border-color: var(--bc1-glow); }
+.db-col-pill--I .db-col-pill__letter { color: var(--bc1-light); }
+.db-col-pill--I .db-col-pill__count  { color: var(--bc1-light); }
 
-.db-col-pill--N { background: rgba(40,164,40,0.10); border-color: rgba(40,164,40,0.22); }
-.db-col-pill--N .db-col-pill__letter { color: #70d870; }
-.db-col-pill--N .db-col-pill__count  { color: #90e890; }
+.db-col-pill--N { background: var(--bc2-tint); border-color: var(--bc2-glow); }
+.db-col-pill--N .db-col-pill__letter { color: var(--bc2-light); }
+.db-col-pill--N .db-col-pill__count  { color: var(--bc2-light); }
 
-.db-col-pill--G { background: rgba(224,160,0,0.10); border-color: rgba(224,160,0,0.22); }
-.db-col-pill--G .db-col-pill__letter { color: #ffd040; }
-.db-col-pill--G .db-col-pill__count  { color: #ffe870; }
+.db-col-pill--G { background: var(--bc3-tint); border-color: var(--bc3-glow); }
+.db-col-pill--G .db-col-pill__letter { color: var(--bc3-light); }
+.db-col-pill--G .db-col-pill__count  { color: var(--bc3-light); }
 
-.db-col-pill--O { background: rgba(212,32,32,0.10); border-color: rgba(212,32,32,0.22); }
-.db-col-pill--O .db-col-pill__letter { color: #ff7070; }
-.db-col-pill--O .db-col-pill__count  { color: #ff9090; }
+.db-col-pill--O { background: var(--bc4-tint); border-color: var(--bc4-glow); }
+.db-col-pill--O .db-col-pill__letter { color: var(--bc4-light); }
+.db-col-pill--O .db-col-pill__count  { color: var(--bc4-light); }
 
 /* Barra de progreso */
 .db-progress { display: flex; flex-direction: column; gap: 5px; }
@@ -453,24 +453,24 @@ const showHistory = ref(false)
    CHIP COLORS
 ══════════════════════════════════════════════════════ */
 .db-chip--B {
-  background: radial-gradient(circle at 36% 30%, #70c8ff, #1a7de0 55%, #0c4fa0 100%);
-  box-shadow: 0 3px 10px rgba(26,125,224,0.5), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25);
+  background: radial-gradient(circle at 36% 30%, var(--bc0-light), var(--bc0-solid) 55%, var(--bc0-dark) 100%);
+  box-shadow: 0 3px 10px var(--bc0-glow), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25);
 }
 .db-chip--I {
-  background: radial-gradient(circle at 36% 30%, #c890ff, #7b3fd0 55%, #4a1898 100%);
-  box-shadow: 0 3px 10px rgba(123,63,208,0.5), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25);
+  background: radial-gradient(circle at 36% 30%, var(--bc1-light), var(--bc1-solid) 55%, var(--bc1-dark) 100%);
+  box-shadow: 0 3px 10px var(--bc1-glow), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25);
 }
 .db-chip--N {
-  background: radial-gradient(circle at 36% 30%, #7ae07a, #28a428 55%, #166016 100%);
-  box-shadow: 0 3px 10px rgba(40,164,40,0.45), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25);
+  background: radial-gradient(circle at 36% 30%, var(--bc2-light), var(--bc2-solid) 55%, var(--bc2-dark) 100%);
+  box-shadow: 0 3px 10px var(--bc2-glow), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25);
 }
 .db-chip--G {
-  background: radial-gradient(circle at 36% 30%, #ffe870, #e0a000 55%, #986800 100%);
-  box-shadow: 0 3px 10px rgba(224,160,0,0.45), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25);
+  background: radial-gradient(circle at 36% 30%, var(--bc3-light), var(--bc3-solid) 55%, var(--bc3-dark) 100%);
+  box-shadow: 0 3px 10px var(--bc3-glow), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25);
 }
 .db-chip--O {
-  background: radial-gradient(circle at 36% 30%, #ff8080, #d42020 55%, #880e0e 100%);
-  box-shadow: 0 3px 10px rgba(212,32,32,0.5), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25);
+  background: radial-gradient(circle at 36% 30%, var(--bc4-light), var(--bc4-solid) 55%, var(--bc4-dark) 100%);
+  box-shadow: 0 3px 10px var(--bc4-glow), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 0 rgba(0,0,0,0.25);
 }
 
 /* ══════════════════════════════════════════════════════

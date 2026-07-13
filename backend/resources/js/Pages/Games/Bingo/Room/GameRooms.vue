@@ -129,7 +129,7 @@ const {
    .game-rooms-page). Selector acotado con :has() para no afectar otras
    páginas que reusan el mismo layout. */
 #app:has(> .game-rooms-page),
-.mt-2:has(> #app > .game-rooms-page) {
+#slot-wrapper:has(> #app > .game-rooms-page) {
   height: 100%;
 }
 </style>

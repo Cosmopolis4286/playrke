@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, computed, shallowRef, triggerRef, watch, onMounted, onUnmounted, type Ref } from 'vue'
 import '@/css/games/bingo/bingo-in-game.css'
 import { useGameRoomCountdown }  from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
 import { useAntiDebug }          from '@js/composables/games/bingo/useAntiDebug'
@@ -7,6 +7,7 @@ import { useBingoSound }         from '@js/composables/games/bingo/useBingoSound
 import { useBingoGameEcho }      from '@js/composables/games/bingo/game/useBingoGameEcho'
 import { useDrawScheduler }      from '@js/composables/games/bingo/game/useDrawScheduler'
 import { useBingoDetection }     from '@js/composables/games/bingo/game/useBingoDetection'
+import { useModalDismiss }       from '@js/composables/games/bingo/game/useModalDismiss'
 import BingoCartons    from '@js/Components/Games/Bingo/views/inGame/Cartons.vue'
 import GameHeader      from '@js/Components/Games/Bingo/views/inGame/GameHeader.vue'
 import DrawnBoard      from '@js/Components/Games/Bingo/views/inGame/DrawnBoard.vue'
@@ -80,12 +81,14 @@ const props = withDefaults(defineProps<Props>(), {
 const variantDef = computed(() => getBingoVariantDef(props.gameVariant ?? 'BINGO_75'))
 const totalChips = computed(() => variantDef.value.totalChips)
 
-function chipLetter(n: number): string {
-  for (const col of variantDef.value.columns) {
-    if (n >= col.min && n <= col.max) return col.label
-  }
-  return '?'
-}
+// Map pre-construido número→letra; O(1) por lookup en vez de iterar columnas por cada chip
+const chipLetterMap = computed(() => {
+  const m = new Map<number, string>()
+  for (const col of variantDef.value.columns)
+    for (let n = col.min; n <= col.max; n++) m.set(n, col.label)
+  return m
+})
+function chipLetter(n: number): string { return chipLetterMap.value.get(n) ?? '?' }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IDs — deben estar antes del estado reactivo que los referencia
@@ -100,7 +103,11 @@ const revealed         = ref(false)
 const livePrize        = ref(props.prizePool ?? 0)
 const liveExchangeRate = ref(props.exchangeRate ?? 1)
 const livePlayers      = ref(props.totalPlayers ?? 0)
-const liveDrawn        = ref<number[]>([...(props.draw ?? [])])
+// shallowRef + triggerRef: evita crear un array nuevo en cada bola sorteada
+const liveDrawn        = shallowRef<number[]>([...(props.draw ?? [])])
+// Espejo mutable de props.cartons — se actualiza en resync cuando el usuario
+// compra cartones mientras el WebSocket estuvo caído.
+const liveCartons      = shallowRef<{ id: string | number; [key: string]: any }[]>([...(props.cartons ?? [])])
 const prizeFlash       = ref(false)
 const playersFlash     = ref(false)
 const ballFlash        = ref(false)
@@ -111,9 +118,8 @@ const showWinnerModal  = ref(false)
 const roomFinishedLocal = ref(props.roomFinished ?? false)
 
 const modalDismissKey = computed(() => roomId.value ? `bingo-modal-closed-${roomId.value}` : '')
-// Derivado del computed para que se resuelva cuando roomId ya tiene valor (no durante setup).
-const userClosedModal = ref(false)
-if (modalDismissKey.value) userClosedModal.value = sessionStorage.getItem(modalDismissKey.value) === '1'
+const { dismissed: userClosedModal, init: initModalDismiss, dismiss: dismissModal, reset: resetModal } =
+  useModalDismiss(modalDismissKey)
 const gameEndData      = ref<GameEndData | null>(null)
 const isMyWin          = ref(false)
 const showPlayersModal = ref(false)
@@ -132,49 +138,59 @@ const prizeFormatted = computed(() => {
   return v % 1 === 0 ? v.toFixed(0) : v.toFixed(2)
 })
 
-const cardCount = computed(() => props.cartons?.length ?? 0)
+const cardCount = computed(() => liveCartons.value.length)
 
 const showPlayersProgress = computed(() =>
   liveDrawn.value.length > 0 && remainingChips.value <= 10 && playersProgress.value.length > 0
 )
 
 const cartonsRef = ref<InstanceType<typeof BingoCartons> | null>(null)
-const myMissing  = computed<number | null>(() => cartonsRef.value?.myMissing.value ?? null)
+// defineExpose auto-unwraps refs — cartonsRef.value.myMissing is number|null, not a ref
+const myMissing  = computed<number | null>(() => cartonsRef.value?.myMissing ?? null)
 
-// Números del cartón activo que ya fueron sorteados (hits del cartón seleccionado).
+// Cartón actualmente seleccionado — estable entre fichas, solo cambia cuando el
+// usuario pulsa otro cartón. Separarlo de activeCardHitNumbers evita que cada
+// nueva ficha re-busque el cartón en liveCartons innecesariamente.
+const activeCard = computed(() => {
+  const activeId = cartonsRef.value?.selectedId ?? null
+  if (!activeId) return null
+  return liveCartons.value.find(c => String(c.id) === activeId) ?? null
+})
+
+// Números del cartón activo que ya fueron sorteados.
 // Se pasa a DrawnBoard para resaltarlos en el historial de bolas.
 const activeCardHitNumbers = computed<number[]>(() => {
-  const activeId = cartonsRef.value?.selectedId.value ?? null
-  const card = (props.cartons ?? []).find(c => String(c.id) === activeId)
-  if (!card) return []
-  const drawn = new Set(liveDrawn.value)
+  if (!activeCard.value) return []
+  const drawnSet = new Set<number>(liveDrawn.value)
   const hits: number[] = []
   for (const col of variantDef.value.columns) {
-    const colData = (card as any).cardMatrix?.[col.label] as (number | null)[] | undefined
+    const colData = (activeCard.value as any).cardMatrix?.[col.label] as (number | null)[] | undefined
     if (!colData) continue
     for (const n of colData) {
-      if (n !== null && drawn.has(n)) hits.push(n)
+      if (n !== null && drawnSet.has(n)) hits.push(n)
     }
   }
   return hits
 })
 
-const flashTimers   = new Set<ReturnType<typeof setTimeout>>()
-const flashTargetTimers = new Map<Ref<boolean>, ReturnType<typeof setTimeout>>()
+// Todos los timers pendientes (flashes de UI + retries de red) — limpiados en onUnmounted
+const _pendingTimers    = new Set<ReturnType<typeof setTimeout>>()
+const _flashPerTarget   = new Map<Ref<boolean>, ReturnType<typeof setTimeout>>()
 function flash(target: Ref<boolean>) {
-  if (flashTargetTimers.has(target)) {
-    const prev = flashTargetTimers.get(target)!
-    clearTimeout(prev)
-    flashTimers.delete(prev)
-  }
+  const prev = _flashPerTarget.get(target)
+  if (prev !== undefined) { clearTimeout(prev); _pendingTimers.delete(prev) }
   target.value = true
   const t = setTimeout(() => {
     target.value = false
-    flashTimers.delete(t)
-    flashTargetTimers.delete(target)
+    _pendingTimers.delete(t)
+    _flashPerTarget.delete(target)
   }, 1000)
-  flashTimers.add(t)
-  flashTargetTimers.set(target, t)
+  _pendingTimers.add(t)
+  _flashPerTarget.set(target, t)
+}
+function _scheduleRetry(fn: () => void, ms: number) {
+  const t = setTimeout(() => { _pendingTimers.delete(t); fn() }, ms)
+  _pendingTimers.add(t)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -200,6 +216,13 @@ const { init: initCountdown, getCountdown, stop: stopCountdown, syncTime, update
 const cd      = computed(() => getCountdown(countdownRoomShim.value.id) ?? null)
 const hasTime = computed(() => cd.value !== null && !cd.value.expired)
 
+// Re-inicializa el countdown cuando devResetTime actualiza currentUnixDate.
+// initCountdown en onMounted toma la copia del shim en ese instante; este watch
+// garantiza que cambios posteriores (ej. dev reset) se propagen al countdown.
+watch(currentUnixDate, () => {
+  initCountdown([countdownRoomShim.value as any])
+})
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Draw scheduler
 // ─────────────────────────────────────────────────────────────────────────────
@@ -207,7 +230,7 @@ const { drawStarting, drawStartingSecs, clearDrawTimer, scheduleDrawStart } =
   useDrawScheduler(routeKey)
 
 // Tick sonoro en los últimos 5 segundos de la cuenta regresiva pre-sorteo
-watch(drawStartingSecs, (s) => { if (s > 0 && s <= 5) playTick() })
+const _stopTickWatch = watch(drawStartingSecs, (s) => { if (s > 0 && s <= 5) playTick() })
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Game-end handling
@@ -230,7 +253,8 @@ function handleGameEnded(data: GameEndedEvent) {
     endTime: data.end_time,
   }
   isMyWin.value = !!(props.userId && data.winners?.some(w => String(w.user_id) === String(props.userId)))
-  if (!userClosedModal.value) showWinnerModal.value = true
+  // No reabrir el modal si el usuario ya lo cerró explícitamente o si ya está visible
+  if (!userClosedModal.value && !showWinnerModal.value) showWinnerModal.value = true
 }
 
 // Resincroniza el estado del sorteo tras recuperar la conexión de socket —
@@ -239,16 +263,24 @@ function handleGameEnded(data: GameEndedEvent) {
 async function resyncDrawState(attempt = 0) {
   if (!routeKey.value) return
   try {
-    const { data } = await backendClient.get(`/bingo/${routeKey.value}/draw-state`)
+    const [stateRes, cardsRes] = await Promise.all([
+      backendClient.get(`/bingo/${routeKey.value}/draw-state`),
+      backendClient.get(`/bingo/${routeKey.value}/user-cards`).catch(() => null),
+    ])
+    const data = stateRes.data
 
     if (Array.isArray(data.draw) && data.draw.length > liveDrawn.value.length) {
       liveDrawn.value = data.draw
+      triggerRef(liveDrawn)
       markNumbersAsSeen(data.draw)
     }
-    if (data.totalPlayers    !== undefined) livePlayers.value    = data.totalPlayers
-    if (data.prizePool       !== undefined) livePrize.value      = data.prizePool
+    if (data.totalPlayers !== undefined) livePlayers.value = data.totalPlayers
+    if (data.prizePool    !== undefined) livePrize.value   = data.prizePool
     if (Array.isArray(data.playersProgress) && data.playersProgress.length > 0) {
       playersProgress.value = data.playersProgress
+    }
+    if (cardsRes && Array.isArray(cardsRes.data?.data) && cardsRes.data.data.length > liveCartons.value.length) {
+      liveCartons.value = cardsRes.data.data
     }
 
     if (data.roomFinished) {
@@ -265,12 +297,17 @@ async function resyncDrawState(attempt = 0) {
         isMyWin.value = !!(props.userId && winners.some(w => String(w.user_id) === String(props.userId)))
         if (!userClosedModal.value) showWinnerModal.value = true
       }
+      return
+    }
+
+    // roomFinished=false pero se cantaron todas las fichas: posible carrera entre
+    // GameEnded y la actualización de status. Reintenta antes de quedarse en "en curso".
+    if (attempt < 2 && liveDrawn.value.length >= totalChips.value) {
+      _scheduleRetry(() => resyncDrawState(attempt + 1), 2000)
     }
   } catch (e) {
     if (attempt < 1) {
-      // Un reintento tras 2s — cubre el caso de reconexión inestable
-      const t = setTimeout(() => { flashTimers.delete(t); resyncDrawState(attempt + 1) }, 2000)
-      flashTimers.add(t)
+      _scheduleRetry(() => resyncDrawState(attempt + 1), 2000)
     } else {
       console.error('[Bingo] Error al resincronizar estado del sorteo tras reconexión:', e)
     }
@@ -279,8 +316,7 @@ async function resyncDrawState(attempt = 0) {
 
 function closeWinnerModal() {
   showWinnerModal.value = false
-  userClosedModal.value = true
-  if (modalDismissKey.value) sessionStorage.setItem(modalDismissKey.value, '1')
+  dismissModal()
   // isMyWin se conserva — el estado de victoria lo gestiona handleGameEnded/onWinnerDeclared,
   // no el cierre del modal, para que el re-open por GameEnded posterior funcione.
 }
@@ -293,7 +329,7 @@ const { handleBingoDetected, claimingBingo } = useBingoDetection({
   isMyWin,
   isFinished,
   onBingoConfirmed: () => {
-    userClosedModal.value = false
+    resetModal()
     showWinnerModal.value = true
   },
   onBingoError: () => {
@@ -312,7 +348,11 @@ const { handleBingoDetected, claimingBingo } = useBingoDetection({
 // WebSocket
 // ─────────────────────────────────────────────────────────────────────────────
 const { subscribe, unsubscribe, resetCalledNumbers, markNumbersAsSeen, isReconnecting } = useBingoGameEcho({
-  roomId,
+  roomId: computed(() => {
+    const id = roomId.value
+    if (!id) console.warn('[Bingo] roomId vacío — canal WebSocket no suscrito')
+    return id
+  }),
   userId: props.userId,
   syncTime,
   updateRoomTime,
@@ -326,16 +366,23 @@ const { subscribe, unsubscribe, resetCalledNumbers, markNumbersAsSeen, isReconne
   },
   onPlayerJoined:    (e) => { livePlayers.value = e.current_players; flash(playersFlash) },
   onNumberCalled:    (e) => {
-    liveDrawn.value = [...liveDrawn.value, e.number]
+    liveDrawn.value.push(e.number)
+    triggerRef(liveDrawn)
     flash(ballFlash)
   },
   onPlayersProgress: (e) => { if (Array.isArray(e.players)) playersProgress.value = e.players },
   onGameStarted:     ()  => { gameStarted.value = true },
-  onWinnerDeclared:  ()  => {
+  onWinnerDeclared:  (e)  => {
+    // useBingoGameEcho ya filtró por userId antes de llamar este callback
     isMyWin.value = true
-    // Si GameEnded ya llegó (gameEndData !== null), su handler ya abrió/gestiona el modal.
-    // Sólo abrimos aquí si aún no hay datos finales (WinnerDeclared llegó antes que GameEnded).
-    if (!userClosedModal.value && gameEndData.value === null) showWinnerModal.value = true
+    // WinnerDeclared puede llegar antes que GameEnded (que trae el premio y los ganadores).
+    // Esperar 1.5 s para que GameEnded llegue primero y el modal se abra con datos completos.
+    // Si GameEnded ya llegó (gameEndData !== null) o el usuario ya cerró el modal, no hacer nada.
+    if (!userClosedModal.value && gameEndData.value === null) {
+      _scheduleRetry(() => {
+        if (!userClosedModal.value && gameEndData.value === null) showWinnerModal.value = true
+      }, 1500)
+    }
   },
   onGameEnded:       (e) => handleGameEnded(e),
   onReconnected:     ()  => { resyncDrawState() },
@@ -364,19 +411,25 @@ async function devResetTime() {
 
   devResetting.value = true
   try {
-    const { data } = await backendClient.post(`/bingo/${routeKey.value}/dev-reset-time`)
+    const [resetRes] = await Promise.all([
+      backendClient.post(`/bingo/${routeKey.value}/dev-reset-time`),
+      backendClient.get(`/bingo/${routeKey.value}/user-cards`).catch(() => null).then(r => {
+        if (r && Array.isArray(r.data?.data)) liveCartons.value = r.data.data
+      }),
+    ])
+    const data = resetRes.data
     if (data.startTime) {
       clearDrawTimer()
       resetCalledNumbers()
       liveDrawn.value         = []
+      triggerRef(liveDrawn)
       playersProgress.value   = []
       gameStarted.value       = false
       gameEndData.value       = null
       isMyWin.value           = false
       showWinnerModal.value   = false
-      userClosedModal.value   = false
+      resetModal()
       roomFinishedLocal.value = false
-      if (modalDismissKey.value) sessionStorage.removeItem(modalDismissKey.value)
       currentUnixDate.value  = data.startTime
       initCountdown([{ id: roomId.value, config: { unix_date: data.startTime } } as any])
       Swal.fire({ title: '¡Listo!', text: 'Sorteo regenerado. Comienza en 10 segundos.', icon: 'success', timer: 2000, showConfirmButton: false, ...SWAL_DARK })
@@ -392,8 +445,9 @@ async function devResetTime() {
 // Lifecycle
 // ─────────────────────────────────────────────────────────────────────────────
 onMounted(() => {
-  const revealTimer = setTimeout(() => { revealed.value = true; flashTimers.delete(revealTimer) }, 80)
-  flashTimers.add(revealTimer)
+  initModalDismiss()
+
+  _scheduleRetry(() => { revealed.value = true }, 80)
   initCountdown([countdownRoomShim.value as any])
   subscribe()
   preload()
@@ -424,9 +478,12 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopCountdown()
+  _stopTickWatch()
   unsubscribe()
-  flashTimers.forEach(clearTimeout)
-  flashTargetTimers.clear()
+  _pendingTimers.forEach(clearTimeout)
+  // Resetear los refs de flash para que no queden en true si el componente remonta
+  _flashPerTarget.forEach((_, target) => { target.value = false })
+  _flashPerTarget.clear()
 })
 </script>
 
@@ -465,7 +522,7 @@ onUnmounted(() => {
         :highlightNumbers="activeCardHitNumbers"
       />
 
-      <MyProgressBadge v-if="!isFinished" :missing="myMissing" />
+      <MyProgressBadge :missing="myMissing" :finished="isFinished" />
 
       <NearWinBanner
         :players="showPlayersProgress ? playersProgress : []"
@@ -491,7 +548,7 @@ onUnmounted(() => {
       <div class="ig-cards-section">
         <BingoCartons
           ref="cartonsRef"
-          :cartons="cartons ?? []"
+          :cartons="liveCartons"
           :customerLogo="customerLogo ?? null"
           :roomId="roomId"
           :drawnNumbers="liveDrawn"
@@ -544,7 +601,7 @@ onUnmounted(() => {
    scoped no los alcanza. Sin height:100% no propagan la altura real de
    #content-scrollable hacia .ig-page (mismo fix que GameRooms.vue/Lobby). */
 #app:has(> .ig-page),
-.mt-2:has(> #app > .ig-page) {
+#slot-wrapper:has(> #app > .ig-page) {
   height: 100%;
 }
 </style>

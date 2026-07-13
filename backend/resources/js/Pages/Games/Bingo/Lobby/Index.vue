@@ -288,7 +288,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
    (flex-grow-1) hacia .lby-page — sin esto, min-height:100% no tiene una
    base % válida (ver mismo fix en GameRooms.vue). */
 #app:has(> .lby-page),
-.mt-2:has(> #app > .lby-page) {
+#slot-wrapper:has(> #app > .lby-page) {
   height: 100%;
 }
 </style>

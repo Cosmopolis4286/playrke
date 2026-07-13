@@ -446,13 +446,13 @@ onUnmounted(() => {
 
 watch(() => props.drawnNumbers, (next, prev) => {
   if (next.length === 0) {
-    bingoSet.value.clear();    triggerRef(bingoSet)
+    _bingoSet.clear();    _bingoVer.value++
     hitTimers.forEach(clearTimeout)
     hitTimers.clear()
-    hitSet.value.clear();      triggerRef(hitSet)
+    _hitSet.clear();      _hitVer.value++
     freshHotTimers.forEach(clearTimeout)
     freshHotTimers.clear()
-    freshHotSet.value.clear(); triggerRef(freshHotSet)
+    _freshHotSet.clear(); _freshHotVer.value++
     streak.value = 0
     return;
   }
@@ -460,11 +460,12 @@ watch(() => props.drawnNumbers, (next, prev) => {
   // Cuando el historial cambia de forma no monotónica (reconexión, corrección de sorteo),
   // revalidar qué cartones siguen siendo BINGO con el draw actualizado.
   if ((prev?.length ?? 0) > next.length) {
-    for (const id of [...bingoSet.value]) {
+    let changed = false
+    for (const id of [..._bingoSet]) {
       const card = props.cartons.find(c => c.id === id);
-      if (!card || !fullBingo(card)) bingoSet.value.delete(id);
+      if (!card || !fullBingo(card)) { _bingoSet.delete(id); changed = true }
     }
-    triggerRef(bingoSet)
+    if (changed) _bingoVer.value++
   }
 
   const prevSet = new Set(prev ?? []);
@@ -481,12 +482,12 @@ watch(() => props.drawnNumbers, (next, prev) => {
       })
       if (hit) {
         anyHit = true
-        hitSet.value.add(card.id); triggerRef(hitSet)
+        _hitSet.add(card.id); _hitVer.value++
         emit("card-hit", card.id)
         // Limpiar flash existente si llega otra bola antes de que expire
         if (hitTimers.has(card.id)) clearTimeout(hitTimers.get(card.id)!)
         const t = setTimeout(() => {
-          hitSet.value.delete(card.id); triggerRef(hitSet)
+          _hitSet.delete(card.id); _hitVer.value++
           hitTimers.delete(card.id)
         }, 700)
         hitTimers.set(card.id, t)
@@ -503,14 +504,14 @@ watch(() => props.drawnNumbers, (next, prev) => {
 
   const newWinners: BingoCard[] = [];
   for (const card of props.cartons) {
-    if (bingoSet.value.has(card.id)) continue;
+    if (_bingoSet.has(card.id)) continue;
     if (fullBingo(card)) {
-      bingoSet.value.add(card.id);
+      _bingoSet.add(card.id);
       if (prev !== undefined) newWinners.push(card);
     }
   }
   if (newWinners.length > 0) {
-    triggerRef(bingoSet)
+    _bingoVer.value++
     playWinner();
     emit("bingo-detected", newWinners);
   }
@@ -519,7 +520,7 @@ watch(() => props.drawnNumbers, (next, prev) => {
   if (prev !== undefined) {
     const prevDrawnSet = new Set(prev ?? [])
     for (const card of props.cartons) {
-      if (bingoSet.value.has(card.id) || freshHotSet.value.has(card.id)) continue
+      if (_bingoSet.has(card.id) || _freshHotSet.has(card.id)) continue
       if (isHot(card)) {
         // Verificar que antes NO era hot (recalculando con el draw anterior)
         const prevHits = variantDef.value.columns.reduce((acc, col) => {
@@ -527,10 +528,10 @@ watch(() => props.drawnNumbers, (next, prev) => {
           return acc + (m?.[col.label]?.filter(n => n !== null && prevDrawnSet.has(n as number)).length ?? 0)
         }, 0)
         if (prevHits < props.hotThreshold) {
-          freshHotSet.value.add(card.id); triggerRef(freshHotSet)
+          _freshHotSet.add(card.id); _freshHotVer.value++
           if (freshHotTimers.has(card.id)) clearTimeout(freshHotTimers.get(card.id)!)
           const t = setTimeout(() => {
-            freshHotSet.value.delete(card.id); triggerRef(freshHotSet)
+            _freshHotSet.delete(card.id); _freshHotVer.value++
             freshHotTimers.delete(card.id)
           }, 1500)
           freshHotTimers.set(card.id, t)
@@ -629,11 +630,11 @@ watch(() => props.drawnNumbers, (next, prev) => {
   box-shadow: 0 1px 4px rgba(0,0,0,0.35);
   cursor: default;
 }
-.ctn-legend__dot--col0 { background: linear-gradient(135deg,#2060ff,#0e3ab0); }
-.ctn-legend__dot--col1 { background: linear-gradient(135deg,#e02020,#900000); }
-.ctn-legend__dot--col2 { background: linear-gradient(135deg,#c8a000,#886c00); }
-.ctn-legend__dot--col3 { background: linear-gradient(135deg,#12c060,#077040); }
-.ctn-legend__dot--col4 { background: linear-gradient(135deg,#a030f0,#6808b8); }
+.ctn-legend__dot--col0 { background: radial-gradient(circle at 38% 32%, var(--bc0-light), var(--bc0-solid) 60%, var(--bc0-dark)); box-shadow: 0 1px 6px var(--bc0-glow); }
+.ctn-legend__dot--col1 { background: radial-gradient(circle at 38% 32%, var(--bc1-light), var(--bc1-solid) 60%, var(--bc1-dark)); box-shadow: 0 1px 6px var(--bc1-glow); }
+.ctn-legend__dot--col2 { background: radial-gradient(circle at 38% 32%, var(--bc2-light), var(--bc2-solid) 60%, var(--bc2-dark)); box-shadow: 0 1px 6px var(--bc2-glow); }
+.ctn-legend__dot--col3 { background: radial-gradient(circle at 38% 32%, var(--bc3-light), var(--bc3-solid) 60%, var(--bc3-dark)); box-shadow: 0 1px 6px var(--bc3-glow); }
+.ctn-legend__dot--col4 { background: radial-gradient(circle at 38% 32%, var(--bc4-light), var(--bc4-solid) 60%, var(--bc4-dark)); box-shadow: 0 1px 6px var(--bc4-glow); }
 
 /* Size toggle */
 .ctn-sizebar { display: flex; gap: 2px; }
@@ -730,11 +731,11 @@ watch(() => props.drawnNumbers, (next, prev) => {
   content: ''; position: absolute; bottom: 0; left: 12%; right: 12%; height: 2px;
   background: rgba(255,255,255,0.22); border-radius: 2px;
 }
-.ctn-head__l--col0 { background: linear-gradient(160deg,#1a5fff,#0e3ab8); }
-.ctn-head__l--col1 { background: linear-gradient(160deg,#d81818,#960000); }
-.ctn-head__l--col2 { background: linear-gradient(160deg,#c09800,#886a00); }
-.ctn-head__l--col3 { background: linear-gradient(160deg,#0ab040,#077030); }
-.ctn-head__l--col4 { background: linear-gradient(160deg,#9010e0,#6008b0); }
+.ctn-head__l--col0 { background: linear-gradient(160deg, var(--bc0-light), var(--bc0-solid) 55%, var(--bc0-dark)); }
+.ctn-head__l--col1 { background: linear-gradient(160deg, var(--bc1-light), var(--bc1-solid) 55%, var(--bc1-dark)); }
+.ctn-head__l--col2 { background: linear-gradient(160deg, var(--bc2-light), var(--bc2-solid) 55%, var(--bc2-dark)); }
+.ctn-head__l--col3 { background: linear-gradient(160deg, var(--bc3-light), var(--bc3-solid) 55%, var(--bc3-dark)); }
+.ctn-head__l--col4 { background: linear-gradient(160deg, var(--bc4-light), var(--bc4-solid) 55%, var(--bc4-dark)); }
 .ctn-grid--sm .ctn-head__l { font-size: 13px; padding: 6px 0 5px; }
 
 /* ── Body ── */
@@ -745,17 +746,17 @@ watch(() => props.drawnNumbers, (next, prev) => {
   border-right: 1px solid #eaeefc; border-bottom: 1px solid #eaeefc;
   transition: background 0.1s; position: relative;
 }
-.ctn-cell--col0 { background: #f4f7ff; }
-.ctn-cell--col1 { background: #fff4f4; }
-.ctn-cell--col2 { background: #fdfaf0; }
-.ctn-cell--col3 { background: #f2fbf5; }
-.ctn-cell--col4 { background: #faf3ff; }
+.ctn-cell--col0 { background: color-mix(in srgb, var(--bc0-solid) 6%, #fff); }
+.ctn-cell--col1 { background: color-mix(in srgb, var(--bc1-solid) 6%, #fff); }
+.ctn-cell--col2 { background: color-mix(in srgb, var(--bc2-solid) 6%, #fff); }
+.ctn-cell--col3 { background: color-mix(in srgb, var(--bc3-solid) 5%, #fff); }
+.ctn-cell--col4 { background: color-mix(in srgb, var(--bc4-solid) 6%, #fff); }
 
-.ctn-cell--hit.ctn-cell--col0 { background: rgba(26,95,255,0.09); }
-.ctn-cell--hit.ctn-cell--col1 { background: rgba(216,24,24,0.09); }
-.ctn-cell--hit.ctn-cell--col2 { background: rgba(192,152,0,0.09); }
-.ctn-cell--hit.ctn-cell--col3 { background: rgba(10,176,64,0.09); }
-.ctn-cell--hit.ctn-cell--col4 { background: rgba(144,16,224,0.09); }
+.ctn-cell--hit.ctn-cell--col0 { background: var(--bc0-tint); }
+.ctn-cell--hit.ctn-cell--col1 { background: var(--bc1-tint); }
+.ctn-cell--hit.ctn-cell--col2 { background: var(--bc2-tint); }
+.ctn-cell--hit.ctn-cell--col3 { background: var(--bc3-tint); }
+.ctn-cell--hit.ctn-cell--col4 { background: var(--bc4-tint); }
 .ctn-cell--free { background: linear-gradient(135deg,rgba(42,245,152,0.1),rgba(0,158,253,0.07)) !important; }
 
 .ctn-num {
@@ -771,11 +772,11 @@ watch(() => props.drawnNumbers, (next, prev) => {
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 3px 10px rgba(0,0,0,0.28), inset 0 -2px 4px rgba(0,0,0,0.18), inset 0 2px 4px rgba(255,255,255,0.35);
 }
-.ctn-ball--col0 { background: radial-gradient(circle at 36% 30%, #6090ff, #0e40d0 75%); }
-.ctn-ball--col1 { background: radial-gradient(circle at 36% 30%, #ff6060, #a80000 75%); }
-.ctn-ball--col2 { background: radial-gradient(circle at 36% 30%, #f0d840, #9a7a00 75%); }
-.ctn-ball--col3 { background: radial-gradient(circle at 36% 30%, #40e888, #057838 75%); }
-.ctn-ball--col4 { background: radial-gradient(circle at 36% 30%, #d860ff, #6c06c8 75%); }
+.ctn-ball--col0 { background: radial-gradient(circle at 36% 30%, var(--bc0-light), var(--bc0-solid) 55%, var(--bc0-dark)); }
+.ctn-ball--col1 { background: radial-gradient(circle at 36% 30%, var(--bc1-light), var(--bc1-solid) 55%, var(--bc1-dark)); }
+.ctn-ball--col2 { background: radial-gradient(circle at 36% 30%, var(--bc2-light), var(--bc2-solid) 55%, var(--bc2-dark)); }
+.ctn-ball--col3 { background: radial-gradient(circle at 36% 30%, var(--bc3-light), var(--bc3-solid) 55%, var(--bc3-dark)); }
+.ctn-ball--col4 { background: radial-gradient(circle at 36% 30%, var(--bc4-light), var(--bc4-solid) 55%, var(--bc4-dark)); }
 .ctn-ball span {
   font-family: 'Poppins',sans-serif; font-size: 11px; font-weight: 900; color: #fff;
   text-shadow: 0 1px 4px rgba(0,0,0,0.5); line-height: 1;
@@ -941,11 +942,11 @@ watch(() => props.drawnNumbers, (next, prev) => {
   text-shadow: 0 1px 2px rgba(0,0,0,0.35);
   line-height: 1.3;
 }
-.ctn-ball-col__hdr--col0 { background: linear-gradient(160deg, #1a5fff, #0e3ab8); }
-.ctn-ball-col__hdr--col1 { background: linear-gradient(160deg, #d81818, #960000); }
-.ctn-ball-col__hdr--col2 { background: linear-gradient(160deg, #c09800, #886a00); }
-.ctn-ball-col__hdr--col3 { background: linear-gradient(160deg, #0ab040, #077030); }
-.ctn-ball-col__hdr--col4 { background: linear-gradient(160deg, #9010e0, #6008b0); }
+.ctn-ball-col__hdr--col0 { background: linear-gradient(160deg, var(--bc0-light), var(--bc0-solid) 55%, var(--bc0-dark)); }
+.ctn-ball-col__hdr--col1 { background: linear-gradient(160deg, var(--bc1-light), var(--bc1-solid) 55%, var(--bc1-dark)); }
+.ctn-ball-col__hdr--col2 { background: linear-gradient(160deg, var(--bc2-light), var(--bc2-solid) 55%, var(--bc2-dark)); }
+.ctn-ball-col__hdr--col3 { background: linear-gradient(160deg, var(--bc3-light), var(--bc3-solid) 55%, var(--bc3-dark)); }
+.ctn-ball-col__hdr--col4 { background: linear-gradient(160deg, var(--bc4-light), var(--bc4-solid) 55%, var(--bc4-dark)); }
 
 /* Number cells — bajas y planas, sin aspect-ratio cuadrado */
 .ctn-ball-cell {
@@ -964,11 +965,11 @@ watch(() => props.drawnNumbers, (next, prev) => {
   color: #fff; font-weight: 800;
   border-color: rgba(255,255,255,0.16);
 }
-.ctn-ball-cell--hit.ctn-ball-cell--col0 { background: #1a5fff; }
-.ctn-ball-cell--hit.ctn-ball-cell--col1 { background: #d81818; }
-.ctn-ball-cell--hit.ctn-ball-cell--col2 { background: #b89000; }
-.ctn-ball-cell--hit.ctn-ball-cell--col3 { background: #0ab040; }
-.ctn-ball-cell--hit.ctn-ball-cell--col4 { background: #9010e0; }
+.ctn-ball-cell--hit.ctn-ball-cell--col0 { background: var(--bc0-solid); }
+.ctn-ball-cell--hit.ctn-ball-cell--col1 { background: var(--bc1-solid); }
+.ctn-ball-cell--hit.ctn-ball-cell--col2 { background: var(--bc2-solid); }
+.ctn-ball-cell--hit.ctn-ball-cell--col3 { background: var(--bc3-solid); }
+.ctn-ball-cell--hit.ctn-ball-cell--col4 { background: var(--bc4-solid); }
 
 /* Última sorteada — resalte sutil sin animación de escala (evita reflow de altura) */
 .ctn-ball-cell--latest {

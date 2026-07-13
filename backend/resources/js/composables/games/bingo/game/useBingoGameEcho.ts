@@ -89,6 +89,10 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
 
   function subscribe() {
     if (!roomId.value) return
+    // unbind previo a modo defensivo: si subscribe() llegara a invocarse dos
+    // veces sin pasar por unmount, evita apilar el mismo handler N veces y
+    // que onReconnected se dispare N veces por cada reconexión real.
+    echo.connector.pusher.connection.unbind('state_change', handleConnectionStateChange)
     echo.connector.pusher.connection.bind('state_change', handleConnectionStateChange)
     roomChannelName = `bingo.room.${roomId.value}`
     const channel   = echo.channel(roomChannelName)
