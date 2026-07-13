@@ -193,7 +193,9 @@ final class BingoGameController extends Controller
         return $this->handleServiceJson(
             function () use ($room) {
                 $userId = $this->userContext->resolveUserId();
-                $cartons = $this->service->getUserCartons($room->id, $userId);
+                if (!$room->relationLoaded('status')) $room->load('status');
+                $roomIsFinished = strtoupper($room->status?->code ?? '') === 'FINISHED';
+                $cartons = $this->service->getUserCartons($room->id, $userId, $roomIsFinished);
 
                 return [
                     'success' => true,

@@ -45,8 +45,13 @@ final class BingoGameService
             throw new \Illuminate\Database\Eloquent\ModelNotFoundException('BingoRoom has been deleted.');
         }
 
-        // Obtener cartones del jugador
-        $cartons = $this->getUserCartons((int) $bingoRoom->id, $userId);
+        $roomStatusCode = $bingoRoom->getRelationValue('status')?->code
+            ?? $bingoRoom->status?->code
+            ?? '';
+        $roomIsFinished = strtoupper($roomStatusCode) === 'FINISHED';
+
+        // Obtener cartones del jugador (incluye ganadores si la sala ya terminó)
+        $cartons = $this->getUserCartons((int) $bingoRoom->id, $userId, $roomIsFinished);
 
         // Resolver moneda, tasa de cambio y precio del cartón según la wallet del usuario
         $pricing = $this->resolvePricingForUser($bingoRoom, $userId);
@@ -62,11 +67,6 @@ final class BingoGameService
             ->pluck('chip')
             ->map(fn($chip) => (int) $chip)
             ->toArray();
-
-        $roomStatusCode = $bingoRoom->getRelationValue('status')?->code
-            ?? $bingoRoom->status?->code
-            ?? '';
-        $roomIsFinished = strtoupper($roomStatusCode) === 'FINISHED';
 
         // Para salas finalizadas, cargar los ganadores históricos desde BingoCardPrize
         $initialWinners = $roomIsFinished ? $this->getHistoricalWinners($bingoRoom) : [];
@@ -146,9 +146,10 @@ final class BingoGameService
      *
      * @param int $roomId
      * @param int|null $userId
+     * @param bool $includeWinners  true para salas finalizadas — incluye STATUS_WINNER además de STATUS_ACTIVE
      * @return array
      */
-    public function getUserCartons(int $roomId, ?int $userId): array
+    public function getUserCartons(int $roomId, ?int $userId, bool $includeWinners = false): array
     {
         if (!$userId) {
             return [];
@@ -158,8 +159,12 @@ final class BingoGameService
             ->where('user_id', (string) $userId)
             ->first();
 
+        $validStatuses = $includeWinners
+            ? [\App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE, \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_WINNER]
+            : [\App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE];
+
         $query = \App\Domains\Games\Bingo\Models\Card\BingoCard::query()
-            ->where('status', \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE)
+            ->whereIn('status', $validStatuses)
             ->with(['currency', 'cardLot', 'roomUser'])
             ->orderBy('serial_number');
 
@@ -234,11 +239,16 @@ final class BingoGameService
         $hasExistingCode = BingoDrawCode::where('room_id', $room->id)->exists();
         $hadData = $hasExistingDraw || $hasExistingCode;
 
-        // Full DEV reset: clear all draw data, prizes, rounds and room status
+        // Full DEV reset: clear all draw data, prizes, rounds, cards and room status
         DB::transaction(function () use ($room) {
             BingoDraw::where('room_id', $room->id)->delete();
             BingoDrawCode::where('room_id', $room->id)->delete();
             BingoCardPrize::where('room_id', $room->id)->delete();
+
+            // Restaurar cartones ganadores a ACTIVE para que el siguiente sorteo los detecte
+            \App\Domains\Games\Bingo\Models\Card\BingoCard::where('room_id', (string) $room->id)
+                ->where('status', \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_WINNER)
+                ->update(['status' => \App\Domains\Games\Bingo\Models\Card\BingoCard::STATUS_ACTIVE]);
 
             $room->rounds()->update(['status' => 'ACTIVE']);
 

@@ -79,9 +79,9 @@ final class BingoWinnerDetectionService
             return null;
         }
 
-        $pattern = BingoPattern::find($round->bingo_pattern_id)
-            ?? BingoPattern::where('default_pattern', 'Y')->first()
-            ?? BingoPattern::first();
+        $pattern = $round->bingo_pattern_id
+            ? BingoPattern::find($round->bingo_pattern_id)
+            : null;
 
         if (!$pattern) {
             return null;
@@ -98,8 +98,11 @@ final class BingoWinnerDetectionService
             )
             ->get();
 
-        $lastDraw   = BingoDraw::where('room_id', $room->id)->orderBy('created_at', 'desc')->first();
-        $lastDrawId = (int) ($lastDraw?->id ?? 0);
+        $lastDraw = BingoDraw::where('room_id', $room->id)->orderBy('created_at', 'desc')->first();
+        if (!$lastDraw) {
+            return null;
+        }
+        $lastDrawId = (int) $lastDraw->id;
 
         foreach ($cards as $card) {
             if (!$this->checkBingo($card, $drawnNumbers, $patternPositions)) {
