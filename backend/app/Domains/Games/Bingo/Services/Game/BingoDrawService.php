@@ -543,15 +543,22 @@ final class BingoDrawService
         $this->closeRoomIfFinalRound($room, $round);
 
         // Evento de fin de juego para toda la sala
-        broadcast(new BingoGameEnded(
-            roomId:     (int) $room->id,
-            drawId:     $lastDrawId,
-            hasWinner:  true,
-            totalDrawn: count($drawnNumbers),
-            winners:    $winners,
-            prize:      $winners[0]['prize'],
-            endTime:    now()->toISOString(),
-        ));
+        try {
+            broadcast(new BingoGameEnded(
+                roomId:     (int) $room->id,
+                drawId:     $lastDrawId,
+                hasWinner:  true,
+                totalDrawn: count($drawnNumbers),
+                winners:    $winners,
+                prize:      $winners[0]['prize'],
+                endTime:    now()->toISOString(),
+            ));
+        } catch (\Throwable $e) {
+            Log::error('[BingoDrawService] Error al emitir BingoGameEnded (con ganador) — sorteo ya cerrado en BD', [
+                'room_id' => $room->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
 
         $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_WINNER_DECLARED, 'system', 'Ganador(es) declarado(s)', [
             'round_id'      => (string) $round->id,

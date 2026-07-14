@@ -10,6 +10,7 @@ use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Jobs\StartBingoDrawJob;
 use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 /**
@@ -80,6 +81,16 @@ class StartPendingBingoDrawsCommand extends Command
                 if (!$hasActiveRound && $hasFinishedRound) {
                     continue;
                 }
+
+                // Verificar si el sorteo ya está corriendo consultando el lock.
+                // Si el lock puede adquirirse, el job NO está en ejecución → liberarlo
+                // inmediatamente y despachar. Si no puede adquirirse, el job ya corre.
+                $drawLock = Cache::lock("bingo:draw-lock:{$room->id}", 4200);
+                if (!$drawLock->get()) {
+                    // Sorteo en curso en algún worker — no despachar duplicado.
+                    continue;
+                }
+                $drawLock->release();
 
                 // Sin sorteo iniciado, o interrumpido a mitad (p.ej. el worker se reinició):
                 // despachamos — BingoDrawService::startDraw() detecta el caso interrumpido

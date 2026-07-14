@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -33,29 +34,46 @@ final class StartBingoDrawJob implements ShouldQueue
 
     public function handle(BingoDrawService $drawService, BingoRoomHealthCheckService $healthCheck): void
     {
-        $room = BingoRoom::with(['status', 'config', 'rounds'])->find($this->roomId);
+        // Lock atómico por sala: previene que dos instancias del job corran en paralelo
+        // (puede ocurrir cuando el cron despacha mientras un retry del worker anterior
+        // sigue en la cola, o si retry_after < duración real del sorteo).
+        // TTL = 4 200 s (70 min) — mayor que el sorteo más largo posible (75 × 30 s = 2 250 s).
+        $lock = Cache::lock("bingo:draw-lock:{$this->roomId}", 4200);
 
-        if (!$room) {
-            Log::warning('[StartBingoDrawJob] Sala no encontrada', ['room_id' => $this->roomId]);
-            return;
-        }
-
-        $errors = $healthCheck->collectErrors($room);
-
-        if (!empty($errors)) {
-            Log::warning('[StartBingoDrawJob] Sala no está lista para sorteo — omitiendo', [
-                'room_id' => $room->id,
-                'status'  => $room->status?->code,
-                'errors'  => $errors,
+        if (!$lock->get()) {
+            Log::info('[StartBingoDrawJob] Sorteo ya en curso (lock activo) — descartando instancia duplicada', [
+                'room_id' => $this->roomId,
             ]);
             return;
         }
 
-        // Si ya hay fichas cantadas pero la sala sigue activa, es un sorteo interrumpido
-        // (p.ej. el worker se reinició a mitad del sorteo) — BingoDrawService::startDraw()
-        // detecta este caso y retoma desde la última ficha persistida en vez de reiniciar.
-        Log::info('[StartBingoDrawJob] Iniciando/retomando sorteo autónomo', ['room_id' => $room->id]);
+        try {
+            $room = BingoRoom::with(['status', 'config', 'rounds'])->find($this->roomId);
 
-        $drawService->startDraw($room);
+            if (!$room) {
+                Log::warning('[StartBingoDrawJob] Sala no encontrada', ['room_id' => $this->roomId]);
+                return;
+            }
+
+            $errors = $healthCheck->collectErrors($room);
+
+            if (!empty($errors)) {
+                Log::warning('[StartBingoDrawJob] Sala no está lista para sorteo — omitiendo', [
+                    'room_id' => $room->id,
+                    'status'  => $room->status?->code,
+                    'errors'  => $errors,
+                ]);
+                return;
+            }
+
+            // Si ya hay fichas cantadas pero la sala sigue activa, es un sorteo interrumpido
+            // (p.ej. el worker se reinició a mitad del sorteo) — BingoDrawService::startDraw()
+            // detecta este caso y retoma desde la última ficha persistida en vez de reiniciar.
+            Log::info('[StartBingoDrawJob] Iniciando/retomando sorteo autónomo', ['room_id' => $room->id]);
+
+            $drawService->startDraw($room);
+        } finally {
+            $lock->release();
+        }
     }
 }
