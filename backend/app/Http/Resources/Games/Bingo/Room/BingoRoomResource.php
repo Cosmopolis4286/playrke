@@ -99,6 +99,7 @@ class BingoRoomResource extends JsonResource
                 'room_type_id'            => $config->room_type_id,
                 'start_mode'              => $config->start_mode,
                 'min_cards_to_start'      => $config->min_cards_to_start,
+                'max_players'             => $config->max_players,
                 'date'                    => $config->date?->format('Y-m-d'),
                 'time'                    => $config->time,
                 'game_mode_id'            => $config->game_mode_id,

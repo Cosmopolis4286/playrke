@@ -367,6 +367,7 @@ class BingoRoomCrudService
             'customCardPricePct'    => $dto->customCardPricePct,
             'maxSpecialCards'       => $dto->maxSpecialCards,
             'minCardsToStart'       => $dto->minCardsToStart,
+            'maxPlayers'            => $dto->maxPlayers,
         ]);
     }
 
@@ -500,6 +501,10 @@ class BingoRoomCrudService
         // min_cards_to_start: condición opcional para permitir el inicio del sorteo
         // (autónomo o manual). null = sin condición. Editable en creación y actualización.
         $base['min_cards_to_start'] = $dto->minCardsToStart;
+
+        // max_players: cupo opcional de jugadores, aplicado por BingoRoomCapacityGuard
+        // en BingoCardGenerationService al comprar cartones. null = sin límite.
+        $base['max_players'] = $dto->maxPlayers;
 
         // En update, omitir allowed_currencies si no vino en el request (null = no modificar)
         if ($dto->allowedCurrencies === null && !$isCreate) {

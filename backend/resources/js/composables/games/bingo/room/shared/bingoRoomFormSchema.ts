@@ -57,6 +57,7 @@ export const bingoRoomFormSchema = z.object({
     jackpotPct:   z.number().nullable().optional(),
     timeChip:     z.number().nullable().optional(),
     minCardsToStart: z.number().nullable().optional(),
+    maxPlayers:      z.number().nullable().optional(),
     rounds:       z.number().nullable().optional(),
     roundsPct:    z.number().nullable().optional(),
     roundsConfig: z.array(roundConfigSchema).optional(),
@@ -180,6 +181,12 @@ export function validateBingoRoomForm(
         const min = Number(data.minCardsToStart)
         if (!Number.isInteger(min) || min < 1 || min > 10000) {
             e.minCardsToStart = 'La cantidad mínima de cartones debe ser un entero entre 1 y 10000.'
+        }
+    }
+    if (data.maxPlayers !== null && data.maxPlayers !== undefined) {
+        const max = Number(data.maxPlayers)
+        if (!Number.isInteger(max) || max < 1 || max > 100000) {
+            e.maxPlayers = 'El cupo máximo de jugadores debe ser un entero entre 1 y 100000.'
         }
     }
 

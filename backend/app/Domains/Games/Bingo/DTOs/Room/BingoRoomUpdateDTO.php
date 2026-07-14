@@ -40,6 +40,7 @@ final class BingoRoomUpdateDTO
         public readonly ?float $customCardPricePct = null,
         public readonly ?bool $allowSpecialCard = null,
         public readonly ?int $maxSpecialCards = null,
+        public readonly ?int $maxPlayers = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -95,6 +96,7 @@ final class BingoRoomUpdateDTO
             customCardPricePct: isset($data['customCardPricePct']) ? (float) $data['customCardPricePct'] : null,
             allowSpecialCard: isset($data['allowSpecialCard']) ? (bool) $data['allowSpecialCard'] : null,
             maxSpecialCards: isset($data['maxSpecialCards']) ? (int) $data['maxSpecialCards'] : null,
+            maxPlayers: isset($data['maxPlayers']) ? (int) $data['maxPlayers'] : null,
         );
     }
 }

@@ -39,6 +39,8 @@ class BingoRoomRequest extends BaseRequest
 
             // Cantidad mínima de cartones vendidos para permitir el inicio del sorteo (opcional)
             'minCardsToStart'             => ['nullable', 'integer', 'min:1', 'max:10000'],
+            // Cupo máximo de jugadores en la sala (opcional, sin límite si no se envía)
+            'maxPlayers'                  => ['nullable', 'integer', 'min:1', 'max:100000'],
             'roomType'                    => ['required', 'exists:room_types,id'],
             'gameMode'                    => ['required', 'exists:game_modes,id'],
             'gameVariant'                 => ['nullable', 'string', 'in:BINGO_75,BINGO_90,BINGO_80,BINGO_30'],
@@ -267,6 +269,10 @@ class BingoRoomRequest extends BaseRequest
             'minCardsToStart.integer'         => 'La cantidad mínima de cartones debe ser un número entero.',
             'minCardsToStart.min'             => 'La cantidad mínima de cartones debe ser al menos 1.',
             'minCardsToStart.max'             => 'La cantidad mínima de cartones no puede superar 10000.',
+
+            'maxPlayers.integer'              => 'El cupo máximo de jugadores debe ser un número entero.',
+            'maxPlayers.min'                  => 'El cupo máximo de jugadores debe ser al menos 1.',
+            'maxPlayers.max'                  => 'El cupo máximo de jugadores no puede superar 100000.',
 
             'roomType.required'               => 'El tipo de sala es obligatorio.',
             'roomType.exists'                 => 'El tipo de sala seleccionado no es válido.',

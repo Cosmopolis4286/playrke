@@ -272,6 +272,26 @@ import { SelectOption } from '@/js/types/common/form/form'
       "
     />
 
+    <!-- Cupo máximo de jugadores — opcional, sin límite si se deja vacío -->
+    <FormInput
+      label="Máx. Jugadores"
+      name="max_players"
+      :error="(errors as any).maxPlayers"
+      type="number"
+      placeholder="Sin límite"
+      :step="1"
+      :min="1"
+      :max="100000"
+      col="col-sm-6 col-md-4 col-lg-3"
+      :modelValue="(modelValue as any).maxPlayers ?? null"
+      @update:modelValue="
+        emit('update:modelValue', {
+          ...modelValue,
+          maxPlayers: $event === '' || $event === null ? null : Number($event)
+        } as any)
+      "
+    />
+
     <!-- %Jackpot -->
     <FormInput
       label="%Jackpot"
