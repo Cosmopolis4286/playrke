@@ -1,7 +1,7 @@
 @props(['title' => '', 'inertia' => false, 'page' => []])
 
 <head>
-    {{-- Anti-flash: aplica tema guardado antes de que carguen los estilos --}}
+    {{-- Anti-flash: aplica tema guardado antes de pintar --}}
     <script>try{if(localStorage.getItem('playrke-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
     {{-- Meta básicos --}}
     <meta charset="utf-8">

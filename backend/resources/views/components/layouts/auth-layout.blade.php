@@ -11,6 +11,25 @@
 <x-template.head :title="$title" :inertia="$inertia" />
 
 <body class="hold-transition sidebar-mini layout-fixed">
+    {{-- Inicializar --sidebar-w antes de pintar cualquier elemento --}}
+    <script>
+    (function(){
+        var b = document.body;
+        var SK = 'lte.pushmenu.remember';
+        var isMini = b.classList.contains('sidebar-mini');
+        var isCollapse = b.classList.contains('sidebar-collapse');
+        // Restaurar estado guardado por AdminLTE
+        try {
+            if (localStorage.getItem(SK) === 'sidebar-collapse') {
+                b.classList.add('sidebar-collapse');
+                isCollapse = true;
+            }
+        } catch(e){}
+        var w = (isMini && isCollapse) ? '4.6rem' : (!isMini && isCollapse) ? '0px' : '250px';
+        document.documentElement.style.setProperty('--sidebar-w', w);
+    })();
+    </script>
+
     {{-- Loader visible mientras la app se carga --}}
     <x-shared.app-loader />
 

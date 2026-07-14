@@ -656,4 +656,32 @@ window.__playrkeTheme = (function () {
 
     return { toggle: toggle, apply: applyTheme };
 })();
+
+// ── Sidebar width sync → CSS var --sidebar-w ─────────────
+(function () {
+    var root = document.documentElement;
+    var body = document.body;
+
+    function calcW() {
+        var isMini     = body.classList.contains('sidebar-mini');
+        var isCollapse = body.classList.contains('sidebar-collapse');
+        if (window.innerWidth < 768) return '0px';
+        if (isMini && isCollapse)    return '4.6rem';
+        if (!isMini && isCollapse)   return '0px';
+        return '250px';
+    }
+
+    function applyW() { root.style.setProperty('--sidebar-w', calcW()); }
+
+    // Aplicar ahora (body ya existe — este script va al final del <body>)
+    applyW();
+
+    // Reaccionar a cada toggle de AdminLTE (agrega/quita 'sidebar-collapse')
+    if (window.MutationObserver) {
+        new MutationObserver(applyW).observe(body, {
+            attributes: true, attributeFilter: ['class']
+        });
+    }
+    window.addEventListener('resize', applyW);
+})();
 </script>

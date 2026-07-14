@@ -439,15 +439,13 @@ body.hold-transition {
   margin: 0 !important;
 }
 
-/* 2. Navbar: ancho completo (left:0 right:0), z-index:1039 para estar encima
-   del sidebar (AdminLTE usa z-index:1038 en .main-sidebar).
-   Anulamos el margin-left:250px que AdminLTE aplica — el navbar debe cubrir
-   TODA la fila superior incluyendo la zona del sidebar. */
+/* 2. Navbar: usa --sidebar-w (actualizado por JS al hacer toggle) */
 .main-header {
   position: fixed !important;
   top: 0 !important;
-  left: 0 !important;
+  left: var(--sidebar-w, 250px) !important;
   right: 0 !important;
+  width: auto !important;
   margin-left: 0 !important;
   height: var(--navbar-h) !important;
   min-height: var(--navbar-h) !important;
@@ -458,7 +456,11 @@ body.hold-transition {
   padding-bottom: 0 !important;
   border-bottom: none !important;
   overflow: visible !important;
-  z-index: 1039 !important;
+  z-index: 1035 !important;
+  transition: left 0.3s ease-in-out !important;
+}
+@media (max-width: 767.98px) {
+  .main-header { left: 0 !important; }
 }
 
 /* 3. Wrapper: position:fixed inset:0 — neutraliza .wrapper { margin-top:-0.5%;
@@ -475,39 +477,26 @@ body.hold-transition {
   z-index: 0;
 }
 
-/* 4. Content wrapper: ocupa el espacio entre navbar y footer, ambos fixed.
-   NO ponemos left:0 — AdminLTE aplica margin-left:250px via
-   body:not(.sidebar-mini-md) .main-header y .content-wrapper. */
+/* 4. Content wrapper: usa --sidebar-w */
 main.content-wrapper,
 .content-wrapper {
   position: fixed !important;
   top: var(--navbar-h) !important;
-  left: 250px !important;
+  left: var(--sidebar-w, 250px) !important;
   right: 0 !important;
   bottom: var(--footer-h) !important;
-  margin: 0 !important;
+  width: auto !important;
+  margin-left: 0 !important;
   padding: 0 !important;
   background: var(--ds-bg) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-}
-/* Sidebar colapsado: contenido ocupa más ancho */
-body.sidebar-collapse main.content-wrapper,
-body.sidebar-collapse .content-wrapper {
-  left: 0 !important;
-}
-@media (min-width: 992px) {
-  body.sidebar-mini.sidebar-collapse main.content-wrapper,
-  body.sidebar-mini.sidebar-collapse .content-wrapper {
-    left: 4.6rem !important;
-  }
+  transition: left 0.3s ease-in-out !important;
 }
 @media (max-width: 767.98px) {
   main.content-wrapper,
-  .content-wrapper {
-    left: 0 !important;
-  }
+  .content-wrapper { left: 0 !important; }
 }
 .content-wrapper > .content { padding: 0 !important; }
 
@@ -516,22 +505,30 @@ body.sidebar-collapse .content-wrapper {
   flex: 1 1 0%;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: hidden !important;
   background: var(--ds-bg) !important;
   display: flex !important;
   flex-direction: column !important;
+  width: 100%;
+  box-sizing: border-box;
 }
 #slot-wrapper {
   flex: 1 1 0%;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 #slot-wrapper > #app {
   flex: 1 1 0%;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* 6. Footer: ancho completo desde left:250px (respeta sidebar).
@@ -540,30 +537,18 @@ body.sidebar-collapse .content-wrapper {
 footer.main-footer {
   position: fixed !important;
   bottom: 0 !important;
-  left: 250px !important;
+  left: var(--sidebar-w, 250px) !important;
   right: 0 !important;
   width: auto !important;
-  margin: 0 !important;
+  margin-left: 0 !important;
   padding: 0 !important;
   z-index: 1033 !important;
   height: var(--footer-h) !important;
   box-sizing: border-box !important;
-}
-body.sidebar-collapse .main-footer,
-body.sidebar-collapse footer.main-footer {
-  left: 0 !important;
-}
-@media (min-width: 992px) {
-  body.sidebar-mini.sidebar-collapse .main-footer,
-  body.sidebar-mini.sidebar-collapse footer.main-footer {
-    left: 4.6rem !important;
-  }
+  transition: left 0.3s ease-in-out !important;
 }
 @media (max-width: 767.98px) {
-  .main-footer,
-  footer.main-footer {
-    left: 0 !important;
-  }
+  .main-footer, footer.main-footer { left: 0 !important; }
 }
 
 /* Ticker de ganancias (position:fixed): su altura empuja el contenido scrollable */
@@ -587,6 +572,8 @@ body.sidebar-collapse footer.main-footer {
 .lby-page,
 .game-rooms-page {
   flex: 1 1 0% !important;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 /* Páginas con fondo de estrellas a pantalla completa (game-rooms, lobby): el
@@ -805,21 +792,29 @@ button.nb-icon-btn {
   width: 320px;
   border-radius: 14px !important;
   border: 1px solid var(--ds-border) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,.28) !important;
-  background: var(--ds-surface) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.45) !important;
+  background: #0e1235 !important;
   overflow: hidden;
   z-index: 1055 !important;
+}
+[data-theme="light"] .nb-notif-menu {
+  background: #ffffff !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.14) !important;
 }
 .nb-notif-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  background: var(--ds-surface-2);
-  border-bottom: 1px solid var(--ds-border);
+  background: #111540;
+  border-bottom: 1px solid rgba(255,255,255,.08);
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ds-text);
+}
+[data-theme="light"] .nb-notif-header {
+  background: #f4f5fb;
+  border-bottom-color: #d8dde8;
 }
 .nb-notif-clear {
   background: none;
@@ -1042,10 +1037,14 @@ button.nb-icon-btn {
   max-width: 240px !important;
   border-radius: 14px !important;
   border: 1px solid var(--ds-border) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,.28) !important;
-  background: var(--ds-surface) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.45) !important;
+  background: #0e1235 !important;
   overflow: hidden;
   z-index: 1055 !important;
+}
+[data-theme="light"] .nb-user-menu {
+  background: #ffffff !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.14) !important;
 }
 /* En móvil: notif ocupa casi todo el ancho */
 @media (max-width: 767px) {
@@ -1095,8 +1094,12 @@ button.nb-icon-btn {
 /* ── Navbar: nivel y progreso de experiencia ──────────────── */
 .nb-user-level {
   padding: 10px 16px;
-  background: var(--ds-surface-2);
-  border-bottom: 1px solid var(--ds-border);
+  background: #111540;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+[data-theme="light"] .nb-user-level {
+  background: #f4f5fb;
+  border-bottom-color: #d8dde8;
 }
 .nb-user-level-row {
   display: flex;
@@ -1194,8 +1197,11 @@ button.nb-icon-btn {
 
 .nb-menu-divider {
   height: 1px;
-  background: rgba(0,0,0,.07);
+  background: rgba(255,255,255,.08);
   margin: 2px 0;
+}
+[data-theme="light"] .nb-menu-divider {
+  background: #e8eaf4;
 }
 .nb-user-menu-footer { padding: 6px 0; }
 .nb-logout-btn {
@@ -1396,21 +1402,14 @@ button.nb-icon-btn {
 /* Resultado de un depósito/retiro ya procesado */
 .notif-entry--result { border-left-color: #34d399; }
 
-/* AdminLTE layout-fixed pone top:0 y height:100vh en .main-sidebar.
-   Necesitamos un selector de mayor especificidad con !important para ganar. */
-body.layout-fixed aside.main-sidebar,
-body.sidebar-mini aside.main-sidebar,
+/* Sidebar: top:0, full height — el navbar empieza a su derecha (left:250px) */
 aside.main-sidebar {
   background-image: radial-gradient(circle at 50% -20.71%, #352e72 0, #181b50 25%, #02002f 50%, #000011 75%, #000000 100%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* Sidebar empieza debajo del navbar — que cubre todo el ancho con z-index:1039 */
-  top: var(--navbar-h) !important;
-  bottom: 0 !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: calc(100vh - var(--navbar-h)) !important;
+  top: 0 !important;
+  height: 100vh !important;
 }
 
 aside.main-sidebar .sidebar {
@@ -1483,16 +1482,12 @@ aside.main-sidebar .sidebar.mt-2 {
    navbar sean accesibles mientras el drawer está abierto, el overlay también debe empezar
    desde top: var(--navbar-h) en vez de top:0. ── */
 @media (max-width: 767.98px) {
-  .main-sidebar,
-  body.layout-fixed .main-sidebar {
-    top: var(--navbar-h) !important;
-    height: auto !important;
-    max-height: calc(100vh - var(--navbar-h)) !important;
-    bottom: 0 !important;
+  .main-sidebar {
+    top: 0 !important;
+    height: 100vh !important;
   }
-  /* Bajar el overlay al mismo nivel que el sidebar para no bloquear el navbar */
   #sidebar-overlay {
-    top: var(--navbar-h) !important;
+    top: 0 !important;
   }
 }
 
@@ -1664,16 +1659,16 @@ body.sidebar-mini.sidebar-collapse .main-sidebar:hover .menu-image-play.cold {
 
 .sidebar-user-footer__avatar {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .sidebar-user-footer__photo {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1688,7 +1683,7 @@ body.sidebar-mini.sidebar-collapse .main-sidebar:hover .menu-image-play.cold {
 
 .sidebar-user-footer__name {
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -1697,7 +1692,7 @@ body.sidebar-mini.sidebar-collapse .main-sidebar:hover .menu-image-play.cold {
 
 .sidebar-user-footer__role {
   color: rgba(255, 255, 255, 0.55);
-  font-size: 0.68rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   white-space: nowrap;
