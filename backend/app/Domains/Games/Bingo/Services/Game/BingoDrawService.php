@@ -162,11 +162,32 @@ final class BingoDrawService
             ]);
         }
 
-        $resuming = $sequenceIsValid && $alreadyDrawn->isNotEmpty() && $alreadyDrawn->count() < count($existingSequence);
+        // Además de que la secuencia sea válida, verificar que las fichas ya cantadas
+        // coincidan exactamente con el prefijo de esa secuencia — protege contra el
+        // caso donde la secuencia fue regenerada pero los draws viejos no se borraron,
+        // lo que causaría fichas fantasma o fichas saltadas en el resume.
+        $drawnChips     = $alreadyDrawn->pluck('chip')->map(fn ($c) => (int) $c)->all();
+        $sequencePrefix = array_slice($existingSequence, 0, count($drawnChips));
+        $prefixMatches  = $drawnChips === $sequencePrefix;
+
+        $resuming = $sequenceIsValid
+            && $alreadyDrawn->isNotEmpty()
+            && $alreadyDrawn->count() < count($existingSequence)
+            && $prefixMatches;
+
+        if ($sequenceIsValid && $alreadyDrawn->isNotEmpty() && !$prefixMatches) {
+            Log::warning('[BingoDrawService] Fichas cantadas no coinciden con el prefijo de la secuencia — reiniciando sorteo', [
+                'room_id'         => $roomId,
+                'round_id'        => $roundId,
+                'drawn_count'     => count($drawnChips),
+                'prefix_expected' => array_slice($sequencePrefix, 0, 5),
+                'drawn_actual'    => array_slice($drawnChips, 0, 5),
+            ]);
+        }
 
         if ($resuming) {
             $sequence   = $existingSequence;
-            $drawnSoFar = $alreadyDrawn->pluck('chip')->map(fn ($chip) => (int) $chip)->all();
+            $drawnSoFar = $drawnChips;
             $lastDraw   = $alreadyDrawn->last();
             $startIndex = count($drawnSoFar);
 
@@ -194,7 +215,7 @@ final class BingoDrawService
             $this->persistDrawCodes($roomId, $roundId, $sequence);
 
             // 5. Primera ficha + GameStarted
-            $firstDraw = $this->createDrawRecord($roomId, $roundId, $sequence[0], 0, $variant);
+            $firstDraw = $this->createDrawRecord($roomId, $roundId, $sequence[0], 0, $variant, [$sequence[0]]);
             try {
                 broadcast(new BingoGameStarted($roomId, (int) $firstDraw->id));
                 broadcast(new BingoNumberCalled((int) $sequence[0], $roomId));
@@ -234,7 +255,8 @@ final class BingoDrawService
             $chip = $sequence[$i];
             // time = segundos transcurridos desde la primera ficha (índice * intervalo).
             // Nunca 0 para que el ORDER BY time preserve el orden de inserción.
-            $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * max($interval, 1), $variant);
+            $drawnSoFar[] = $chip;
+            $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * max($interval, 1), $variant, $drawnSoFar);
 
             // La ficha ya está persistida (createDrawRecord) antes de este punto —
             // si el broadcast falla (ej. Reverb caído momentáneamente), no debe
@@ -249,7 +271,6 @@ final class BingoDrawService
                     'error'   => $e->getMessage(),
                 ]);
             }
-            $drawnSoFar[] = $chip;
 
             if (($totalChips - count($drawnSoFar)) <= 10) {
                 try {
@@ -307,7 +328,7 @@ final class BingoDrawService
 
     /**
      * Cartones ACTIVE de la sala, cacheados en memoria durante la corrida del sorteo.
-     * Keyed por firma de relaciones ($with) para evitar que broadcastPlayersProgress
+     * Keyed por json_encode($with) para evitar que broadcastPlayersProgress
      * (que carga ['roomUser.user']) envene el cache de detectWinnerAndEnd
      * (que necesita ['roomUser.user','cardLot']).
      *
@@ -323,7 +344,7 @@ final class BingoDrawService
     private function activeCards(BingoRoom $room, array $with): \Illuminate\Support\Collection
     {
         $roomId   = (string) $room->id;
-        $withKey  = implode(',', $with);
+        $withKey  = json_encode($with);
 
         $baseStale = $this->activeCardsCacheRoomId !== $roomId
             || !isset($this->activeCardsCache[$withKey]);
@@ -347,13 +368,17 @@ final class BingoDrawService
                 $this->activeCardsCacheRoomId  = $roomId;
                 $this->activeCardsCacheCount   = $loaded->count();
             } else {
-                // Recarga periódica — actualizar el count global y esta variante.
-                $this->activeCardsCache[$withKey] = $loaded;
-                $this->activeCardsCacheCount      = $loaded->count();
-                // Recargar las demás variantes con los mismos cartones pero distintas relaciones.
+                // Recarga periódica — actualizar el count global y recargar TODAS las variantes
+                // en cache para evitar que una evicción cause un query extra en el mismo chip
+                // (broadcastPlayersProgress y detectWinnerAndEnd usan distintos $with).
+                $this->activeCardsCacheCount = $loaded->count();
                 foreach (array_keys($this->activeCardsCache) as $k) {
-                    if ($k !== $withKey) {
-                        unset($this->activeCardsCache[$k]);
+                    if ($k === $withKey) {
+                        $this->activeCardsCache[$k] = $loaded;
+                    } else {
+                        // Recargar la otra variante con las mismas filas pero distintas relaciones.
+                        $otherWith = json_decode($k, true);
+                        $this->activeCardsCache[$k] = $loaded->load($otherWith);
                     }
                 }
             }
@@ -410,7 +435,7 @@ final class BingoDrawService
         BingoDrawCode::insert($rows);
     }
 
-    private function createDrawRecord(string $roomId, string $roundId, int $chip, int $time, string $variant): BingoDraw
+    private function createDrawRecord(string $roomId, string $roundId, int $chip, int $time, string $variant, array $allDrawnSoFar): BingoDraw
     {
         $draw = BingoDraw::create([
             'room_id'  => $roomId,
@@ -421,12 +446,14 @@ final class BingoDrawService
             'status'   => 'FINISHED',
         ]);
 
-        // Invalidar el cache de draw-state para que el próximo resync del cliente
-        // reciba la ficha recién persistida en lugar del snapshot anterior.
-        // El cache de players-progress usa el count como parte del key, por lo que
-        // cada ficha nueva genera un key distinto — las entradas anteriores quedan
-        // huérfanas con TTL de 3s, sin necesidad de invalidarlas explícitamente.
-        \Illuminate\Support\Facades\Cache::forget("bingo:draw-state:draw:{$roomId}");
+        // Cache-aside write: usar el array en memoria en lugar de re-leer la DB.
+        // Evita la tormenta de lecturas cuando múltiples clientes hacen resync
+        // simultáneamente. La clave es la misma que usa BingoGameService::getDrawState().
+        \Illuminate\Support\Facades\Cache::put(
+            "bingo:draw-state:draw:{$roomId}",
+            $allDrawnSoFar,
+            3
+        );
 
         return $draw;
     }
@@ -542,7 +569,13 @@ final class BingoDrawService
         $this->closeRound($round);
         $this->closeRoomIfFinalRound($room, $round);
 
-        // Evento de fin de juego para toda la sala
+        // Evento de fin de juego para toda la sala. 'prize' es el total repartido
+        // en este chip — si dos o más cartones completan el patrón a la vez (cada
+        // uno con su propio winners[]['prize']), sumarlos aquí evita que este
+        // campo resumen quede trunco al monto de un solo ganador; el desglose
+        // por ganador sigue disponible en winners[].
+        $totalPrize = array_sum(array_column($winners, 'prize'));
+
         try {
             broadcast(new BingoGameEnded(
                 roomId:     (int) $room->id,
@@ -550,7 +583,7 @@ final class BingoDrawService
                 hasWinner:  true,
                 totalDrawn: count($drawnNumbers),
                 winners:    $winners,
-                prize:      $winners[0]['prize'],
+                prize:      $totalPrize,
                 endTime:    now()->toISOString(),
             ));
         } catch (\Throwable $e) {
@@ -564,7 +597,7 @@ final class BingoDrawService
             'round_id'      => (string) $round->id,
             'total_drawn'   => count($drawnNumbers),
             'winner_count'  => count($winners),
-            'prize'         => $winners[0]['prize'] ?? 0,
+            'prize'         => $totalPrize,
         ]);
         $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_DRAW_FINISHED, 'system', 'Sorteo finalizado con ganador', ['total_drawn' => count($drawnNumbers)]);
 
