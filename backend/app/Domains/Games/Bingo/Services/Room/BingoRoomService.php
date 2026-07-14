@@ -177,9 +177,11 @@ final class BingoRoomService
 
     /**
      * Eliminar una sala de bingo permanentemente (hard delete).
+     *
+     * @throws \App\Domains\Games\Bingo\Exceptions\Room\BingoRoomException Si la sala tiene historial financiero
      */
     public function destroy(BingoRoom $room): bool
     {
-        return $room->forceDelete();
+        return $this->crudService->destroy($room);
     }
 }

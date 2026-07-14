@@ -65,11 +65,14 @@ final class BingoRoomException extends DomainException
     }
 
     /**
-     * Intento de eliminación física inválida.
+     * Intento de eliminación física de una sala con historial de actividad
+     * (jugadores, cartones vendidos o bote acumulado) — el hard delete
+     * cascadea hacia tablas financieras (premios, pagos, comisiones,
+     * reembolsos) y destruiría esa evidencia de forma irreversible.
      */
     public static function destroyNotAllowed(): self
     {
-        return new self('BINGO_ROOM_DESTROY_NOT_ALLOWED');
+        return new self('No puedes eliminar físicamente una sala con historial de jugadores, ventas o premios.');
     }
 
     public static function invalidRoomType(): self

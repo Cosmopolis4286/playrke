@@ -1278,4 +1278,40 @@ class BingoRoomCrudService
             return $this->bingoRooms->softDelete($locked, status: $statusId);
         });
     }
+
+    /**
+     * Eliminación física (hard delete) de una sala de bingo.
+     *
+     * A diferencia de delete() (soft-delete), esta operación es irreversible
+     * y varias tablas relacionadas (bingo_card_prizes, bingo_card_payments,
+     * bingo_card_prize_payments, bingo_creator_sales, bingo_card_refunds,
+     * bingo_lot_refund_failures) tienen ON DELETE CASCADE — borrar una sala
+     * con historial financiero destruiría esa evidencia sin posibilidad de
+     * recuperación. Se bloquea si la sala tiene cualquier rastro de
+     * actividad (jugadores, cartones vendidos o bote acumulado).
+     *
+     * @throws BingoRoomException Si la sala no existe o tiene historial financiero
+     */
+    public function destroy(BingoRoom $room): bool
+    {
+        return DB::transaction(function () use ($room): bool {
+            $locked = BingoRoom::where('id', $room->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$locked) {
+                throw BingoRoomException::notFound();
+            }
+
+            $hasFinancialTrace = ($locked->total_players ?? 0) > 0
+                || ($locked->total_cards ?? 0) > 0
+                || ($locked->prize_pool ?? 0) > 0;
+
+            if ($hasFinancialTrace) {
+                throw BingoRoomException::destroyNotAllowed();
+            }
+
+            return $locked->forceDelete();
+        });
+    }
 }
