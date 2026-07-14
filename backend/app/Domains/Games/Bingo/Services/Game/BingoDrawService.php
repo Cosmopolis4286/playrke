@@ -22,6 +22,7 @@ use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomStatsAggregator;
 use App\Services\ExchangeRate\CurrencyExchangeRateService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -33,6 +34,9 @@ final class BingoDrawService
 
     /** Cache de tasas de cambio activas resuelta por moneda durante la corrida actual. */
     private array $rateCache = [];
+
+    /** Intervalo entre fichas (segundos) de la corrida activa — usado para calcular el TTL del cache de draw-state. */
+    private int $currentInterval = 5;
 
     public function __construct(
         private readonly BingoPrizePayoutService $prizePayoutService,
@@ -48,6 +52,32 @@ final class BingoDrawService
         @set_time_limit(0);
         ignore_user_abort(true);
 
+        $roomId = $room->id;
+
+        // Lock de proceso: serializa llamadas concurrentes a startDraw() para la
+        // misma sala. ShouldBeUniqueUntilProcessing libera el lock del queue al
+        // inicio del job, así que el cron puede encolar una segunda instancia
+        // mientras la primera sigue corriendo. Este Cache::lock garantiza que
+        // solo un worker ejecute el cuerpo del sorteo a la vez.
+        // TTL = 5 400 s (90 min) > sorteo más largo posible (90 × 60 s).
+        $drawLock = Cache::lock("bingo:draw-lock:{$roomId}", 5400);
+
+        if (!$drawLock->get()) {
+            Log::warning('[BingoDrawService] Otro worker ya tiene el lock del sorteo — abortando duplicado', [
+                'room_id' => $roomId,
+            ]);
+            return ['success' => false, 'room_id' => $roomId, 'reason' => 'lock_held'];
+        }
+
+        try {
+            return $this->runDraw($room);
+        } finally {
+            $drawLock->release();
+        }
+    }
+
+    private function runDraw(BingoRoom $room): array
+    {
         // Limpiar caches de instancia al inicio de cada sorteo para que los datos
         // de una sala no se filtren a sorteos posteriores en el mismo worker process.
         $this->rateCache = [];
@@ -198,6 +228,12 @@ final class BingoDrawService
                 'total'         => count($sequence),
             ]);
 
+            // Refrescar cache antes del broadcast: clientes que hagan resync HTTP
+            // justo durante el resume recibirán el snapshot correcto en lugar de
+            // un cache expirado o del crash anterior. TTL provisional hasta que el
+            // loop de fichas lo refresque con el intervalo correcto.
+            Cache::put("bingo:draw-state:draw:{$roomId}", $drawnSoFar, max($this->currentInterval + 2, 6));
+
             broadcast(new BingoNumberCalled((int) $lastDraw->chip, $roomId));
 
             if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, (int) $lastDraw->id, $variant)) {
@@ -244,6 +280,7 @@ final class BingoDrawService
             : (app()->environment('local')
                 ? (int) env('BINGO_DEV_INTERVAL_SECONDS', self::CHIP_INTERVAL_DEV)
                 : self::CHIP_INTERVAL_SECONDS);
+        $this->currentInterval = $interval;
 
         for ($i = $startIndex, $total = count($sequence); $i < $total; $i++) {
             // sleep() intencional — este método siempre corre en el worker dedicado
@@ -255,13 +292,11 @@ final class BingoDrawService
             $chip = $sequence[$i];
             // time = segundos transcurridos desde la primera ficha (índice * intervalo).
             // Nunca 0 para que el ORDER BY time preserve el orden de inserción.
-            $drawnSoFar[] = $chip;
-            $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * max($interval, 1), $variant, $drawnSoFar);
+            // ORDEN CRÍTICO: persist → broadcast → append a $drawnSoFar → detectWinner.
+            // detectWinnerAndEnd ve el chip solo después de que el broadcast salió,
+            // evitando un payout por una ficha que los clientes nunca recibieron.
+            $draw = $this->createDrawRecord($roomId, $roundId, $chip, $i * max($interval, 1), $variant, [...$drawnSoFar, $chip]);
 
-            // La ficha ya está persistida (createDrawRecord) antes de este punto —
-            // si el broadcast falla (ej. Reverb caído momentáneamente), no debe
-            // abortar el sorteo completo: el mecanismo de resume de startDraw()
-            // retransmite la última ficha conocida cuando el job se reintenta.
             try {
                 broadcast(new BingoNumberCalled((int) $chip, $roomId));
             } catch (\Throwable $e) {
@@ -271,6 +306,9 @@ final class BingoDrawService
                     'error'   => $e->getMessage(),
                 ]);
             }
+            // Append después del broadcast: detectWinnerAndEnd no verá el chip
+            // hasta aquí, garantizando que los clientes ya lo recibieron.
+            $drawnSoFar[] = $chip;
 
             if (($totalChips - count($drawnSoFar)) <= 10) {
                 try {
@@ -376,9 +414,11 @@ final class BingoDrawService
                     if ($k === $withKey) {
                         $this->activeCardsCache[$k] = $loaded;
                     } else {
-                        // Recargar la otra variante con las mismas filas pero distintas relaciones.
+                        // Clonar antes de load(): Collection::load() muta en-place y
+                        // retorna $this, por lo que sin clone ambas keys quedarían como
+                        // el mismo objeto PHP y las relaciones se pisarían mutuamente.
                         $otherWith = json_decode($k, true);
-                        $this->activeCardsCache[$k] = $loaded->load($otherWith);
+                        $this->activeCardsCache[$k] = (clone $loaded)->load($otherWith);
                     }
                 }
             }
@@ -449,10 +489,10 @@ final class BingoDrawService
         // Cache-aside write: usar el array en memoria en lugar de re-leer la DB.
         // Evita la tormenta de lecturas cuando múltiples clientes hacen resync
         // simultáneamente. La clave es la misma que usa BingoGameService::getDrawState().
-        \Illuminate\Support\Facades\Cache::put(
+        Cache::put(
             "bingo:draw-state:draw:{$roomId}",
             $allDrawnSoFar,
-            3
+            max($this->currentInterval + 2, 6)
         );
 
         return $draw;
