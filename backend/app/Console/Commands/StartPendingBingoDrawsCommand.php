@@ -2,15 +2,11 @@
 
 namespace App\Console\Commands;
 
-use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
-use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
-use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\Jobs\StartBingoDrawJob;
 use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 /**
@@ -35,6 +31,8 @@ class StartPendingBingoDrawsCommand extends Command
         try {
             $now = now()->timestamp;
 
+            // Todos los agregados necesarios se cargan en una sola query con withCount/withExists
+            // para evitar N+1 (antes: 4 queries adicionales por sala dentro del foreach).
             $rooms = BingoRoom::query()
                 ->whereHas('status', fn($q) => $q->whereIn('code', ['ACTIVE', 'IN_PROGRESS']))
                 // Las salas sin horario (start_mode = MANUAL, unix_date null) quedan fuera:
@@ -44,10 +42,19 @@ class StartPendingBingoDrawsCommand extends Command
                     BingoRoomUser::ROLE_PLAYER,
                     BingoRoomUser::ROLE_PLAYER_SELLER,
                 ]))
-                ->withCount(['players as registered_players_count' => fn($q) => $q->whereIn('role', [
-                    BingoRoomUser::ROLE_PLAYER,
-                    BingoRoomUser::ROLE_PLAYER_SELLER,
-                ])])
+                ->withCount([
+                    'players as registered_players_count' => fn($q) => $q->whereIn('role', [
+                        BingoRoomUser::ROLE_PLAYER,
+                        BingoRoomUser::ROLE_PLAYER_SELLER,
+                    ]),
+                    // drawn_count y sequence_count se scopean al round activo/en-progreso
+                    // para evitar que los draws de rondas anteriores (ya completadas)
+                    // inflen el contador y salten el dispatch de una nueva ronda.
+                    'draws as drawn_count'    => fn($q) => $q->whereHas('round', fn($r) => $r->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])),
+                    'drawCodes as sequence_count' => fn($q) => $q->whereHas('round', fn($r) => $r->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])),
+                    'rounds as active_round_count'   => fn($q) => $q->whereIn('status', ['ACTIVE', 'IN_PROGRESS']),
+                    'rounds as finished_round_count' => fn($q) => $q->where('status', 'FINISHED'),
+                ])
                 ->with('config:id,room_id,unix_date,min_cards_to_start')
                 ->get();
 
@@ -59,11 +66,8 @@ class StartPendingBingoDrawsCommand extends Command
                     continue;
                 }
 
-                $drawnCount = BingoDraw::where('room_id', (string) $room->id)->count();
-                $sequenceCount = BingoDrawCode::where('room_id', (string) $room->id)->count();
-
                 // Sorteo ya completo (todas las fichas de la secuencia fueron cantadas) — nada que hacer.
-                if ($sequenceCount > 0 && $drawnCount >= $sequenceCount) {
+                if ($room->sequence_count > 0 && $room->drawn_count >= $room->sequence_count) {
                     continue;
                 }
 
@@ -71,30 +75,13 @@ class StartPendingBingoDrawsCommand extends Command
                 // ya se resolvió (con o sin ganador). Si sigue ACTIVE/IN_PROGRESS es porque
                 // closeRoomIfFinalRound() no pudo cerrarla — no debe volver a sortearse cada
                 // minuto (eso generaba un BingoCardPrize y un pago nuevos en cada corrida).
-                $hasActiveRound = BingoRound::where('room_id', (string) $room->id)
-                    ->whereIn('status', ['ACTIVE', 'IN_PROGRESS'])
-                    ->exists();
-                $hasFinishedRound = BingoRound::where('room_id', (string) $room->id)
-                    ->where('status', 'FINISHED')
-                    ->exists();
-
-                if (!$hasActiveRound && $hasFinishedRound) {
+                if ($room->active_round_count === 0 && $room->finished_round_count > 0) {
                     continue;
                 }
 
-                // Verificar si el sorteo ya está corriendo consultando el lock.
-                // Si el lock puede adquirirse, el job NO está en ejecución → liberarlo
-                // inmediatamente y despachar. Si no puede adquirirse, el job ya corre.
-                $drawLock = Cache::lock("bingo:draw-lock:{$room->id}", 4200);
-                if (!$drawLock->get()) {
-                    // Sorteo en curso en algún worker — no despachar duplicado.
-                    continue;
-                }
-                $drawLock->release();
-
-                // Sin sorteo iniciado, o interrumpido a mitad (p.ej. el worker se reinició):
-                // despachamos — BingoDrawService::startDraw() detecta el caso interrumpido
-                // y retoma desde la última ficha persistida en vez de reiniciar.
+                // ShouldBeUnique en StartBingoDrawJob garantiza que el queue driver
+                // rechace este dispatch si ya hay una instancia encolada o en ejecución
+                // para esta sala — no se necesita lock manual aquí.
                 StartBingoDrawJob::dispatch((string) $room->id)->onQueue('bingo-draw');
                 $started++;
 

@@ -13,6 +13,8 @@ use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Models\Games\Common\Utils\GameStatus;
 use App\Models\Pivots\Roles\Seller\SellerRoomLimits;
 use App\Models\User;
+use App\Domains\Games\Bingo\Models\Draw\BingoDraw;
+use App\Domains\Games\Bingo\Models\Draw\BingoDrawCode;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Models\Games\Common\Utils\GameExchangeRate;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -126,6 +128,16 @@ class BingoRoom extends BaseModel
     public function rounds(): HasMany
     {
         return $this->hasMany(BingoRound::class, 'room_id', 'id')->orderBy('round');
+    }
+
+    public function draws(): HasMany
+    {
+        return $this->hasMany(BingoDraw::class, 'room_id', 'id');
+    }
+
+    public function drawCodes(): HasMany
+    {
+        return $this->hasMany(BingoDrawCode::class, 'room_id', 'id');
     }
 
     /**
