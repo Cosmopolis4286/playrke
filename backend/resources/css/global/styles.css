@@ -610,19 +610,8 @@ footer.main-footer {
 
 @media (min-width: 768px) {
   #platform-win-ticker {
-    left: 250px;
+    left: var(--sidebar-w, 250px);
     transition: left .3s ease-in-out;
-  }
-
-  body.sidebar-collapse #platform-win-ticker {
-    left: 0;
-  }
-}
-
-/* A partir de lg (992px), .sidebar-mini colapsa a modo ícono (80px) en vez de ocultarse */
-@media (min-width: 992px) {
-  body.sidebar-collapse #platform-win-ticker {
-    left: 80px;
   }
 }
 

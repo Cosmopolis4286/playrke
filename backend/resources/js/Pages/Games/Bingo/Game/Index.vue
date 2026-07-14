@@ -156,11 +156,8 @@ const showPlayersProgress = computed(() =>
 
 // Último valor no-vacío de playersProgress — evita que NearWinBanner desaparezca
 // cuando el backend devuelve [] en un resync antes del próximo evento PlayersProgress.
-const lastKnownProgress = computed(() =>
-  playersProgress.value.length > 0 ? playersProgress.value : _lastNonEmptyProgress.value
-)
-const _lastNonEmptyProgress = ref<PlayerProgress[]>([])
-watch(playersProgress, (v) => { if (v.length > 0) _lastNonEmptyProgress.value = v })
+const lastKnownProgress = ref<PlayerProgress[]>([])
+watch(playersProgress, (v) => { if (v.length > 0) lastKnownProgress.value = v }, { immediate: true })
 
 const cartonsRef = ref<InstanceType<typeof BingoCartons> | null>(null)
 // Hasta 3 cartones activos más cerca de completar (serial + fichas faltantes),
@@ -261,8 +258,12 @@ const _stopTickWatch = watch(drawStartingSecs, (s) => { if (s > 0 && s <= 5) pla
 // Game-end handling
 // ─────────────────────────────────────────────────────────────────────────────
 function handleGameEnded(data: GameEndedEvent) {
-  roomFinishedLocal.value = true
+  // Capturar antes de limpiar: si el jugador ya confirmó su BINGO pero GameEnded
+  // llega antes del callback de confirmación, forzamos la apertura del modal.
+  const forceOpen = bingoConfirmed.value
   bingoConfirmed.value = false
+
+  roomFinishedLocal.value = true
   if (_stallTimer !== null) { clearTimeout(_stallTimer); _stallTimer = null }
   drawStalling.value = false
   gameEndData.value = {
@@ -281,9 +282,6 @@ function handleGameEnded(data: GameEndedEvent) {
     endTime: data.end_time,
   }
   isMyWin.value = !!(props.userId && data.winners?.some(w => String(w.user_id) === String(props.userId)))
-  // Abrir modal: si el usuario lo cerró, solo reabrirlo si estamos esperando confirmación de BINGO propio
-  const forceOpen = bingoConfirmed.value
-  bingoConfirmed.value = false
   if (forceOpen) { resetModal() }
   if (!userClosedModal.value || forceOpen) showWinnerModal.value = true
 }
@@ -315,9 +313,20 @@ async function resyncDrawState(attempt = 0) {
     if (_unmounted) return
     const data = stateRes.data
 
-    if (Array.isArray(data.draw) && data.draw.length > liveDrawn.value.length) {
-      liveDrawn.value = data.draw
-      markNumbersAsSeen(data.draw)
+    // El array del servidor es autoritativo — adoptarlo si difiere del estado local.
+    // Casos: fichas perdidas por WS (server más largo), reset/resume (misma longitud,
+    // distinto contenido), o reset de dev (server devuelve [] → limpiar local).
+    if (Array.isArray(data.draw)) {
+      const localJson = JSON.stringify(liveDrawn.value)
+      const serverJson = JSON.stringify(data.draw)
+      if (serverJson !== localJson) {
+        liveDrawn.value = data.draw
+        if (data.draw.length > 0) {
+          markNumbersAsSeen(data.draw)
+        } else {
+          resetCalledNumbers()
+        }
+      }
     }
     if (data.totalPlayers !== undefined) livePlayers.value = data.totalPlayers
     if (data.prizePool    !== undefined) livePrize.value   = data.prizePool

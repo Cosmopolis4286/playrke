@@ -16,10 +16,11 @@ const props = defineProps<Props>()
 // ── Ganadores / Card viewer ────────────────────────────────────────────────
 
 const PRIZE_STATUS_LABELS: Record<string, string> = {
-  waiting:   'Pendiente',
-  claimed:   'Pagado',
-  cancelled: 'Cancelado',
-  suspended: 'Suspendido',
+  waiting:    'Pendiente',
+  processing: 'Procesando pago',
+  claimed:    'Pagado',
+  cancelled:  'Cancelado',
+  suspended:  'Suspendido',
 }
 
 type WinnerEntry = NonNullable<BingoRoom['winners']>[number]
@@ -833,10 +834,11 @@ const totalPct = computed(() => {
   font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
   padding: 1px 5px; border-radius: 3px;
 }
-.winner-status--waiting   { background: #fff3cd; color: #856404; }
-.winner-status--claimed   { background: #d1e7dd; color: #0f5132; }
-.winner-status--cancelled { background: #f8d7da; color: #842029; }
-.winner-status--suspended { background: #e2e3e5; color: #41464b; }
+.winner-status--waiting    { background: #fff3cd; color: #856404; }
+.winner-status--processing { background: #cfe2ff; color: #084298; }
+.winner-status--claimed    { background: #d1e7dd; color: #0f5132; }
+.winner-status--cancelled  { background: #f8d7da; color: #842029; }
+.winner-status--suspended  { background: #e2e3e5; color: #41464b; }
 
 .winner-card-btn {
   flex-shrink: 0; width: 28px; height: 28px; border-radius: 6px;

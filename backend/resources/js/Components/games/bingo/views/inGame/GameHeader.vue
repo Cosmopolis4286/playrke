@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { shortSerial } from '@js/utils/bingoUtils'
 
@@ -120,7 +120,6 @@ function onScrollResize() {
   left = Math.max(margin, Math.min(left, window.innerWidth - popW - margin))
   popoverPos.value = { top: r.bottom + window.scrollY + 10, left, arrowLeft: r.left + r.width / 2 - left }
 }
-import { onMounted, onUnmounted } from 'vue'
 onMounted(() => {
   window.addEventListener('scroll', onScrollResize, { passive: true })
   window.addEventListener('resize', onScrollResize, { passive: true })

@@ -1,40 +1,26 @@
 <?php
 
-use App\Models\Games\Common\Utils\GameStatus;
+use Database\Seeders\GameStatusSeeder;
 use Illuminate\Database\Migrations\Migration;
 
 /**
  * Garantiza que los códigos de estado de juego críticos existan en la tabla
- * game_status, independientemente de si el seeder fue ejecutado.
+ * game_status, independientemente de si el seeder fue ejecutado previamente.
  *
- * BingoDrawService::closeRoomIfFinalRound() requiere GameStatus::codeToId('FINISHED')
- * para cerrar la sala al terminar el sorteo. Si la fila no existe, la sala queda
- * bloqueada en ACTIVE/IN_PROGRESS y el cron vuelve a despachar el sorteo en cada
- * minuto, generando pagos duplicados.
+ * Delega en GameStatusSeeder (la fuente canónica de estos datos de referencia)
+ * en lugar de duplicar la lógica aquí. El seeder usa updateOrCreate, por lo
+ * que es idempotente y seguro de ejecutar múltiples veces.
  */
 return new class extends Migration
 {
     public function up(): void
     {
-        $required = [
-            ['code' => 'ACTIVE',      'label' => 'Activa'],
-            ['code' => 'INACTIVE',    'label' => 'Inactiva'],
-            ['code' => 'DELETED',     'label' => 'Eliminada'],
-            ['code' => 'CLOSED',      'label' => 'Cerrada'],
-            ['code' => 'IN_PROGRESS', 'label' => 'En Juego'],
-            ['code' => 'FINISHED',    'label' => 'Finalizada'],
-            ['code' => 'REFUND',      'label' => 'Reembolso'],
-            ['code' => 'OFFLINE',     'label' => 'Fuera de Línea'],
-            ['code' => 'CANCELLED',   'label' => 'Cancelada'],
-        ];
-
-        foreach ($required as $row) {
-            GameStatus::updateOrCreate(['code' => $row['code']], ['label' => $row['label']]);
-        }
+        (new GameStatusSeeder())->run();
     }
 
     public function down(): void
     {
-        // No eliminar — estos registros son datos de referencia, no estructura.
+        // Los datos de referencia de game_status no se eliminan en rollback —
+        // otras tablas tienen FKs hacia ellos y su ausencia rompe el sistema.
     }
 };
