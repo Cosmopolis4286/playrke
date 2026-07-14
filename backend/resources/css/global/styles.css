@@ -462,6 +462,14 @@ body.hold-transition {
 @media (max-width: 767.98px) {
   .main-header { left: 0 !important; }
 }
+/* AdminLTE aplica margin-left:4.6rem!important a .main-header en sidebar-collapse
+   (misma especificidad que nuestra regla base) — igualamos especificidad para anularlo,
+   porque de lo contrario left + margin-left se suman y duplican el hueco tras el sidebar. */
+@media (min-width: 992px) {
+  .sidebar-mini.sidebar-collapse .main-header {
+    margin-left: 0 !important;
+  }
+}
 
 /* 3. Wrapper: position:fixed inset:0 — neutraliza .wrapper { margin-top:-0.5%;
    height:1px } de AdminLTE. Con el navbar ya en fixed/top:0, el wrapper
@@ -497,6 +505,13 @@ main.content-wrapper,
 @media (max-width: 767.98px) {
   main.content-wrapper,
   .content-wrapper { left: 0 !important; }
+}
+/* Igualar especificidad de AdminLTE (.sidebar-mini.sidebar-collapse .content-wrapper)
+   para que no sume su margin-left:4.6rem al left:var(--sidebar-w) de arriba. */
+@media (min-width: 992px) {
+  .sidebar-mini.sidebar-collapse .content-wrapper {
+    margin-left: 0 !important;
+  }
 }
 .content-wrapper > .content { padding: 0 !important; }
 
@@ -549,6 +564,13 @@ footer.main-footer {
 }
 @media (max-width: 767.98px) {
   .main-footer, footer.main-footer { left: 0 !important; }
+}
+/* Igualar especificidad de AdminLTE (.sidebar-mini.sidebar-collapse .main-footer)
+   para que no sume su margin-left:4.6rem al left:var(--sidebar-w) de arriba. */
+@media (min-width: 992px) {
+  .sidebar-mini.sidebar-collapse .main-footer {
+    margin-left: 0 !important;
+  }
 }
 
 /* Ticker de ganancias (position:fixed): su altura empuja el contenido scrollable */

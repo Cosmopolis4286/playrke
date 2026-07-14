@@ -47,6 +47,7 @@ class StartPendingBingoDrawsCommand extends Command
                         BingoRoomUser::ROLE_PLAYER,
                         BingoRoomUser::ROLE_PLAYER_SELLER,
                     ]),
+                    'cards as total_cards_count',
                     // drawn_count y sequence_count se scopean al round activo/en-progreso
                     // para evitar que los draws de rondas anteriores (ya completadas)
                     // inflen el contador y salten el dispatch de una nueva ronda.
@@ -62,7 +63,7 @@ class StartPendingBingoDrawsCommand extends Command
                 // Condición opcional: la sala exige una cantidad mínima de cartones
                 // vendidos antes de poder iniciar su sorteo (ver min_cards_to_start).
                 $minCards = $room->config?->min_cards_to_start;
-                if ($minCards !== null && ($room->total_cards ?? 0) < $minCards) {
+                if ($minCards !== null && ($room->total_cards_count ?? 0) < $minCards) {
                     continue;
                 }
 

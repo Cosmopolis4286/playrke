@@ -130,7 +130,7 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
 
     channel.listen('.GameEnded', (e: GameEndedEvent) => {
       onGameEnded(e)
-      playWinner()
+      if (e.has_winner) playWinner()
     })
 
     channel.listen('.RoomTimeSync', (e: { server_timestamp: number; unix_date: number }) => {

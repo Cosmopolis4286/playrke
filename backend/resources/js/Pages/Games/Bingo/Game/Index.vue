@@ -313,20 +313,29 @@ async function resyncDrawState(attempt = 0) {
     if (_unmounted) return
     const data = stateRes.data
 
-    // El array del servidor es autoritativo — adoptarlo si difiere del estado local.
-    // Casos: fichas perdidas por WS (server más largo), reset/resume (misma longitud,
-    // distinto contenido), o reset de dev (server devuelve [] → limpiar local).
+    // El array del servidor es autoritativo, con un guard de floor:
+    //  - Server más largo que local → fichas perdidas por WS, aceptar.
+    //  - Server igual longitud pero distinto contenido → reset/resume, aceptar.
+    //  - Server vacío Y local vacío → nada que hacer.
+    //  - Server vacío Y local tiene fichas → cache miss transitorio (TTL expiró
+    //    entre chips); NO limpiar el estado local para evitar borrar la partida
+    //    en curso. Solo limpiar si el juego aún no empezó (gameStarted=false).
     if (Array.isArray(data.draw)) {
-      const localJson = JSON.stringify(liveDrawn.value)
-      const serverJson = JSON.stringify(data.draw)
-      if (serverJson !== localJson) {
-        liveDrawn.value = data.draw
-        if (data.draw.length > 0) {
+      if (data.draw.length > 0) {
+        const localJson = JSON.stringify(liveDrawn.value)
+        const serverJson = JSON.stringify(data.draw)
+        if (serverJson !== localJson) {
+          liveDrawn.value = data.draw
           markNumbersAsSeen(data.draw)
-        } else {
+        }
+      } else if (!gameStarted.value) {
+        // Sorteo no iniciado o reset explícito (dev): limpiar estado local.
+        if (liveDrawn.value.length > 0) {
+          liveDrawn.value = []
           resetCalledNumbers()
         }
       }
+      // data.draw=[] con gameStarted=true → cache miss transitorio; ignorar.
     }
     if (data.totalPlayers !== undefined) livePlayers.value = data.totalPlayers
     if (data.prizePool    !== undefined) livePrize.value   = data.prizePool
@@ -360,9 +369,11 @@ async function resyncDrawState(attempt = 0) {
     }
 
     // roomFinished=false pero se cantaron todas las fichas: posible carrera entre
-    // GameEnded y la actualización de status. Reintenta antes de quedarse en "en curso".
-    if (attempt < 2 && liveDrawn.value.length >= totalChips.value) {
-      _scheduleRetry(() => resyncDrawState(attempt + 1), 2000)
+    // GameEnded y la actualización de status en BD. Reintentar con backoff hasta 5 veces
+    // antes de quedarse en "en curso" y dejar que el stall banner actúe.
+    if (liveDrawn.value.length >= totalChips.value && attempt < 5) {
+      const delay = attempt < 2 ? 2000 : 4000
+      _scheduleRetry(() => resyncDrawState(attempt + 1), delay)
     }
   } catch (e) {
     if (attempt < 1) {
