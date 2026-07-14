@@ -28,10 +28,11 @@ class BingoCardPrize extends Model
     ];
 
     public const PRIZE_STATUSES = [
-        'waiting'   => 'Esperando',
-        'claimed'   => 'Reclamado',
-        'cancelled' => 'Cancelado',
-        'suspended' => 'Suspendido',
+        'waiting'    => 'Esperando',
+        'processing' => 'Procesando pago',
+        'claimed'    => 'Reclamado',
+        'cancelled'  => 'Cancelado',
+        'suspended'  => 'Suspendido',
     ];
 
     protected $fillable = [
@@ -78,10 +79,24 @@ class BingoCardPrize extends Model
     public function getPrizeStatusDescriptionAttribute(): string { return self::PRIZE_STATUSES[$this->prize_status] ?? $this->prize_status; }
 
     public function isWaiting(): bool { return $this->prize_status === 'waiting'; }
+    public function isProcessing(): bool { return $this->prize_status === 'processing'; }
     public function isClaimed(): bool { return $this->prize_status === 'claimed'; }
     public function isActive(): bool { return $this->status === 'ACTIVE'; }
     public function isCancelled(): bool { return $this->prize_status === 'cancelled'; }
     public function isSuspended(): bool { return $this->prize_status === 'suspended'; }
+
+    /**
+     * Reserva el premio para pago: 'waiting' → 'processing'. Debe llamarse
+     * bajo lockForUpdate() y solo si isWaiting() — ver
+     * BingoPrizePayoutService::payout(). Una vez en 'processing', cualquier
+     * llamada concurrente que obtenga el lock después ve un estado distinto
+     * de 'waiting' y no reintenta el pago.
+     */
+    public function markAsProcessing(): bool
+    {
+        $this->prize_status = 'processing';
+        return $this->save();
+    }
 
     public function markAsClaimed(): bool
     {
@@ -108,6 +123,7 @@ class BingoCardPrize extends Model
     public function scopeByStatus($query, string $status) { return $query->where('prize_status', $status); }
     public function scopeByType($query, string $type) { return $query->where('prize_type', $type); }
     public function scopeWaiting($query) { return $query->where('prize_status', 'waiting'); }
+    public function scopeProcessing($query) { return $query->where('prize_status', 'processing'); }
     public function scopeClaimed($query) { return $query->where('prize_status', 'claimed'); }
     public function scopeCancelled($query) { return $query->where('prize_status', 'cancelled'); }
     public function scopeSuspended($query) { return $query->where('prize_status', 'suspended'); }

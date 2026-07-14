@@ -277,6 +277,7 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
                                 COUNT(*) as total_prizes,
                                 SUM(CASE WHEN prize_status = "claimed" THEN 1 ELSE 0 END) as claimed_prizes,
                                 SUM(CASE WHEN prize_status = "waiting" THEN 1 ELSE 0 END) as waiting_prizes,
+                                SUM(CASE WHEN prize_status = "processing" THEN 1 ELSE 0 END) as processing_prizes,
                                 SUM(CASE WHEN prize_status = "cancelled" THEN 1 ELSE 0 END) as cancelled_prizes,
                                 SUM(CASE WHEN prize_status = "suspended" THEN 1 ELSE 0 END) as suspended_prizes,
                                 SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active_prizes,
@@ -289,6 +290,7 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
             'total_prizes' => $stats->total_prizes ?? 0,
             'claimed_prizes' => $stats->claimed_prizes ?? 0,
             'waiting_prizes' => $stats->waiting_prizes ?? 0,
+            'processing_prizes' => $stats->processing_prizes ?? 0,
             'cancelled_prizes' => $stats->cancelled_prizes ?? 0,
             'suspended_prizes' => $stats->suspended_prizes ?? 0,
             'active_prizes' => $stats->active_prizes ?? 0,
@@ -307,6 +309,7 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
                                 COUNT(*) as total_prizes,
                                 SUM(CASE WHEN prize_status = "claimed" THEN 1 ELSE 0 END) as claimed_prizes,
                                 SUM(CASE WHEN prize_status = "waiting" THEN 1 ELSE 0 END) as waiting_prizes,
+                                SUM(CASE WHEN prize_status = "processing" THEN 1 ELSE 0 END) as processing_prizes,
                                 SUM(CASE WHEN status = "ACTIVE" THEN 1 ELSE 0 END) as active_prizes,
                                 SUM(usd_amount) as total_usd_value
                             ')
@@ -316,6 +319,7 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
             'total_prizes' => $stats->total_prizes ?? 0,
             'claimed_prizes' => $stats->claimed_prizes ?? 0,
             'waiting_prizes' => $stats->waiting_prizes ?? 0,
+            'processing_prizes' => $stats->processing_prizes ?? 0,
             'active_prizes' => $stats->active_prizes ?? 0,
             'total_usd_value' => floatval($stats->total_usd_value ?? 0),
         ];
@@ -375,7 +379,7 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
                        ->toArray();
 
         // Asegurar que todos los estados estén presentes
-        $validStatuses = ['waiting', 'claimed', 'cancelled', 'suspended'];
+        $validStatuses = ['waiting', 'processing', 'claimed', 'cancelled', 'suspended'];
         foreach ($validStatuses as $status) {
             if (!isset($counts[$status])) {
                 $counts[$status] = 0;
