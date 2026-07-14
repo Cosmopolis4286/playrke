@@ -838,6 +838,25 @@ onUnmounted(() => {
   display: flex; flex-direction: column; gap: 12px; min-width: 0;
 }
 
+/* Entrada escalonada tipo app nativa: cada bloque directo de .ig-inner aparece
+   con un pequeño delay tras el anterior en vez de todos a la vez con el fade
+   plano de .ig-page — refuerza la sensación de "pantalla cargando por partes". */
+.ig-page--revealed .ig-inner > * {
+  animation: ig-stagger-in 0.5s cubic-bezier(0.16,1,0.3,1) both;
+}
+.ig-page--revealed .ig-inner > *:nth-child(1) { animation-delay: 0.02s; }
+.ig-page--revealed .ig-inner > *:nth-child(2) { animation-delay: 0.08s; }
+.ig-page--revealed .ig-inner > *:nth-child(3) { animation-delay: 0.14s; }
+.ig-page--revealed .ig-inner > *:nth-child(4) { animation-delay: 0.20s; }
+.ig-page--revealed .ig-inner > *:nth-child(n+5) { animation-delay: 0.24s; }
+@keyframes ig-stagger-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ig-page--revealed .ig-inner > * { animation: none; }
+}
+
 .ig-cards-section { width: 100%; }
 
 /* Banner reconexión */

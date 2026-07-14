@@ -649,6 +649,7 @@ watch(() => props.drawnNumbers, (next, prev) => {
   transition: all 0.14s ease; letter-spacing: 0.2px;
 }
 .ctn-fbtn:hover { border-color: rgba(100,140,255,0.3); color: #7a90c0; }
+.ctn-fbtn:active, .ctn-sz:active { transform: scale(0.92); }
 .ctn-fbtn--active { background: rgba(100,140,255,0.1); border-color: rgba(100,140,255,0.35); color: #b0c4ff; }
 .ctn-fbtn__n {
   min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px;
@@ -732,6 +733,9 @@ watch(() => props.drawnNumbers, (next, prev) => {
   box-shadow: 0 16px 44px rgba(0,0,0,0.18), 0 0 0 2px rgba(42,200,130,0.35) !important;
   transform: translateY(-5px) scale(1.015);
 }
+/* Feedback táctil — :hover no dispara en touch, :active sí y da la
+   sensación de "presioné esto" inmediata que se espera de una app nativa. */
+.ctn-card:active { transform: scale(0.97); transition-duration: 0.1s; }
 .ctn-card--hot {
   border-color: rgba(255,140,30,0.5);
   animation: cin 0.45s cubic-bezier(0.34,1.56,0.64,1) both, hpulse 2.2s ease-in-out infinite;
