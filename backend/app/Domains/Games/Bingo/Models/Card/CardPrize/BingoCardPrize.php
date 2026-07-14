@@ -9,13 +9,14 @@ use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Models\Currency;
 use App\Models\User;
+use App\Services\Games\GamePrizeContract;
 use App\Traits\SnowflakeId;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class BingoCardPrize extends Model
+class BingoCardPrize extends Model implements GamePrizeContract
 {
     use SnowflakeId, SoftDeletes;
 
@@ -132,4 +133,42 @@ class BingoCardPrize extends Model
     public function scopeByRound($query, string $roundId) { return $query->where('round_id', $roundId); }
     public function scopeWithVerificationCode($query) { return $query->whereNotNull('verification_code'); }
     public function scopeWithoutVerificationCode($query) { return $query->whereNull('verification_code'); }
+
+    // ── GamePrizeContract ────────────────────────────────────────────────────
+
+    public function getGameSlug(): string { return 'bingo'; }
+    public function getGameId(): string   { return (string) $this->room_id; }
+    public function getUserId(): string   { return (string) $this->creator_user_id; }
+    public function getCurrencyId(): string { return (string) $this->currency_id; }
+    public function getLocalAmount(): float { return (float) $this->local_amount; }
+
+    public function hasCompletedPayment(): bool
+    {
+        return $this->payments()->where('payment_status', 'completed')->exists();
+    }
+
+    public function buildPaymentAttributes(?string $movementId, string $status, ?string $reason): array
+    {
+        return [
+            'card_prize_id'         => $this->id,
+            'payment_method'        => 'system_payment',
+            'room_id'               => $this->room_id,
+            'creator_user_id'       => $this->creator_user_id,
+            'seller_user_id'        => $this->seller_user_id,
+            'seller_type'           => $this->seller_type,
+            'user_id'               => $this->creator_user_id,
+            'currency_id'           => $this->currency_id,
+            'payment_amount'        => $this->local_amount,
+            'payment_proof'         => $movementId ? 'system_auto' : null,
+            'payment_status'        => $status,
+            'payment_notes'         => $reason,
+            'transaction_reference' => $movementId,
+            'processed_at'          => $movementId ? now() : null,
+        ];
+    }
+
+    public function createPayment(array $attributes): void
+    {
+        BingoCardPrizePayment::create($attributes);
+    }
 }
