@@ -35,7 +35,6 @@ class BingoDraw extends Model
 
     public function room(): BelongsTo { return $this->belongsTo(BingoRoom::class, 'room_id'); }
     public function round(): BelongsTo { return $this->belongsTo(BingoRound::class, 'round_id'); }
-    public function codeDraw(): BelongsTo { return $this->belongsTo(BingoDrawCode::class, 'room_id', 'room_id'); }
 
     public function scopeByRoom($query, string $roomId) { return $query->where('room_id', $roomId); }
     public function scopeByStatus($query, string $status) { return $query->where('status', $status); }

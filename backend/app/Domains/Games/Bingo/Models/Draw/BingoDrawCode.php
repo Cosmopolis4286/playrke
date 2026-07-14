@@ -37,8 +37,10 @@ class BingoDrawCode extends Model
 
     public function isValidFormat(): bool
     {
-        if (!is_numeric($this->num) || strlen($this->num) > 4) return false;
-        if (!preg_match('/^[A-Z]$/', $this->sym)) return false;
+        // num = posición en la secuencia (1-based index), sym = número de ficha cantada.
+        // Ambos son enteros positivos; el rango máximo es 1-90 para BINGO_90.
+        if (!ctype_digit((string) $this->num) || (int) $this->num < 1) return false;
+        if (!ctype_digit((string) $this->sym) || (int) $this->sym < 1) return false;
         return true;
     }
 
