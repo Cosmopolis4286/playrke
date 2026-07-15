@@ -114,8 +114,12 @@ class ScoreService implements ScoreServiceInterface
      */
     public function getLeaderboard(string $gameId): LeaderboardDTO
     {
-        // Obtener jugadores ordenados por puntuación
-        $playerIds = Redis::zrevrange(
+        // Obtener jugadores ordenados por puntuación.
+        // Formato de respuesta de WITHSCORES difiere según el cliente Redis:
+        // phpredis devuelve un array asociativo [id => score, ...] igual que
+        // predis (a diferencia de otros comandos donde phpredis usa array
+        // plano) — normalizamos igual para no depender de cuál esté activo.
+        $playerScores = Redis::zrevrange(
             self::LEADERBOARD_KEY . $gameId,
             0,
             -1,
@@ -125,14 +129,10 @@ class ScoreService implements ScoreServiceInterface
         $scores = [];
         $position = 1;
 
-        // playerIds viene como [id1, score1, id2, score2, ...]
-        for ($i = 0; $i < count($playerIds); $i += 2) {
-            $playerId = $playerIds[$i];
-            $redisScore = (int) $playerIds[$i + 1];
-
+        foreach ($playerScores as $playerId => $redisScore) {
             // Obtener datos completos del jugador
-            $scoreDto = $this->getPlayerScore($gameId, $playerId);
-            
+            $scoreDto = $this->getPlayerScore($gameId, (string) $playerId);
+
             // Actualizar con posición correcta
             $scores[] = $scoreDto->withPosition($position++);
         }
