@@ -6,7 +6,7 @@ use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\BingoLotRefundFailure;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Services\Room\BingoRoomAuditLogger;
-use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutRetryPolicy;
+use App\Domains\Games\Common\Services\PrizePayoutRetryPolicy;
 use App\Exceptions\Wallet\WalletUnavailableException;
 use App\Services\Commands\CommandService;
 use App\Services\WalletService;
@@ -29,11 +29,11 @@ class RetryFailedBingoRefundsCommand extends Command
 
         try {
             $failures = BingoLotRefundFailure::pending()
-                ->where('attempts', '<', BingoPrizePayoutRetryPolicy::MAX_ATTEMPTS)
+                ->where('attempts', '<', PrizePayoutRetryPolicy::MAX_ATTEMPTS)
                 ->cursor();
 
             foreach ($failures as $failure) {
-                if (!BingoPrizePayoutRetryPolicy::isReadyToRetry($failure->last_attempted_at, $failure->attempts)) {
+                if (!PrizePayoutRetryPolicy::isReadyToRetry($failure->last_attempted_at, $failure->attempts)) {
                     $skipped++;
                     continue;
                 }
@@ -129,7 +129,7 @@ class RetryFailedBingoRefundsCommand extends Command
                     // Recuperar el número de intentos actualizado desde la BD para decidir si abandonar
                     $currentAttempts = BingoLotRefundFailure::where('id', $failure->id)->value('attempts') ?? ($failure->attempts + 1);
 
-                    if (BingoPrizePayoutRetryPolicy::shouldAbandon((int) $currentAttempts)) {
+                    if (PrizePayoutRetryPolicy::shouldAbandon((int) $currentAttempts)) {
                         BingoLotRefundFailure::where('id', $failure->id)->update(['status' => 'ABANDONED']);
                         $abandoned++;
                         $this->error("Reembolso #{$failure->id} abandonado tras {$currentAttempts} intentos.");

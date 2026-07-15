@@ -4,7 +4,7 @@ namespace App\Console\Commands;
 
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Services\Commands\CommandService;
-use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutRetryPolicy;
+use App\Domains\Games\Common\Services\PrizePayoutRetryPolicy;
 use App\Domains\Games\Bingo\Services\Winner\BingoPrizePayoutService;
 use Illuminate\Console\Command;
 use Throwable;
@@ -19,9 +19,9 @@ use Throwable;
  * siempre: claimCardWin() solo invoca el pago una vez, en el momento del
  * sorteo, y nunca vuelve a intentarlo por su cuenta.
  *
- * Usa BingoPrizePayoutRetryPolicy (MAX_ATTEMPTS + backoff lineal) — la misma
- * política que RetryFailedBingoRefundsCommand — en vez de una constante local
- * y un reintento sin espera entre corridas.
+ * Usa PrizePayoutRetryPolicy (MAX_ATTEMPTS + backoff lineal) — la misma
+ * política que RetryFailedBingoRefundsCommand y trivia:retry-failed-prize-payouts
+ * — en vez de una constante local y un reintento sin espera entre corridas.
  */
 class RetryFailedBingoPrizePayoutsCommand extends Command
 {
@@ -38,32 +38,45 @@ class RetryFailedBingoPrizePayoutsCommand extends Command
             // 'processing' incluido: cubre premios que quedaron a medias (wallet
             // posiblemente ya acreditada) en una corrida anterior — payout() ya
             // sabe distinguir ese caso y solo reparar el estado sin re-acreditar.
-            $cardPrizes = BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
-                ->withCount('payments')
-                ->having('payments_count', '<', BingoPrizePayoutRetryPolicy::MAX_ATTEMPTS)
-                ->with(['payments' => fn ($q) => $q->latest('created_at')->limit(1)])
-                ->get();
+            //
+            // chunkById(50): evita cargar toda la tabla en memoria si hay muchos
+            // premios pendientes tras un incidente prolongado.
+            //
+            // whereRaw con subquery en lugar de withCount+having: HAVING sin GROUP BY
+            // es SQL inválido en MySQL ONLY_FULL_GROUP_BY (default desde 5.7) y
+            // silenciosamente devuelve cero filas — nunca reintentaría ningún premio.
+            BingoCardPrize::whereIn('prize_status', ['waiting', 'processing'])
+                ->whereRaw(
+                    '(SELECT COUNT(*) FROM bingo_card_prize_payments WHERE bingo_card_prize_payments.card_prize_id = bingo_card_prizes.id AND bingo_card_prize_payments.deleted_at IS NULL) < ?',
+                    [PrizePayoutRetryPolicy::MAX_ATTEMPTS]
+                )
+                ->chunkById(50, function ($chunk) use ($payoutService, &$retried, &$skipped) {
+                    foreach ($chunk as $cardPrize) {
+                        // Cargar solo el último payment de cada modelo individualmente:
+                        // limit(1) en eager-load HasMany es un pitfall conocido de Laravel
+                        // que limita el resultado TOTAL de la relación a 1 fila global, no
+                        // 1 por modelo — todos los demás modelos verían payments vacíos y
+                        // bypassearían el backoff.
+                        $lastPayment = $cardPrize->payments()->latest('created_at')->first();
+                        $attempts    = $cardPrize->payments()->count();
 
-            foreach ($cardPrizes as $cardPrize) {
-                $lastPayment = $cardPrize->payments->first();
-                $attempts    = $cardPrize->payments_count;
+                        if (!PrizePayoutRetryPolicy::isReadyToRetry($lastPayment?->created_at, $attempts)) {
+                            $skipped++;
+                            continue;
+                        }
 
-                if (!BingoPrizePayoutRetryPolicy::isReadyToRetry($lastPayment?->created_at, $attempts)) {
-                    $skipped++;
-                    continue;
-                }
+                        $payoutService->payout($cardPrize);
 
-                $payoutService->payout($cardPrize);
+                        $cardPrize->refresh();
 
-                $cardPrize->refresh();
-
-                if ($cardPrize->isClaimed()) {
-                    $retried++;
-                    $this->info("Premio #{$cardPrize->id} acreditado exitosamente.");
-                } else {
-                    $skipped++;
-                }
-            }
+                        if ($cardPrize->isClaimed()) {
+                            $retried++;
+                            $this->info("Premio #{$cardPrize->id} acreditado exitosamente.");
+                        } else {
+                            $skipped++;
+                        }
+                    }
+                });
 
             $output = "Revisión completada. Premios acreditados: {$retried}. Aún pendientes: {$skipped}.";
         } catch (Throwable $e) {

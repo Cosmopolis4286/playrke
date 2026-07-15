@@ -1,14 +1,13 @@
 <?php
 declare(strict_types=1);
-namespace App\Domains\Games\Bingo\Services\Winner;
+namespace App\Domains\Games\Common\Services;
 
 /**
- * Política de reintentos para pagos de premios de bingo.
- * Centraliza MAX_ATTEMPTS y criterios de back-off para que
- * RetryFailedBingoPrizePayoutsCommand y cualquier retry futuro
- * usen los mismos parámetros.
+ * Política de reintentos para pagos de premios y reembolsos, compartida
+ * entre juegos (Bingo, Trivia, ...). Centraliza MAX_ATTEMPTS y el criterio
+ * de back-off para que todos los comandos de retry usen los mismos parámetros.
  */
-final class BingoPrizePayoutRetryPolicy
+final class PrizePayoutRetryPolicy
 {
     public const MAX_ATTEMPTS = 5;
 
