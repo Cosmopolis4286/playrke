@@ -139,12 +139,17 @@ final class GamePrizeService
                 if (!$row || $row->hasCompletedPayment()) {
                     return; // ya pagado por un worker concurrente — no continuar
                 }
+                // Clave de idempotencia POR REGISTRO DE PREMIO (no por sala+usuario):
+                // usar getKey() (card_prize_id / trivia_participant_id) garantiza que:
+                // (a) reintentos del mismo premio nunca generan un segundo movimiento,
+                // (b) dos ganadores distintos en la misma sala NO comparten la clave,
+                // (c) un mismo usuario que gana en dos rondas diferentes tiene claves distintas.
                 $movement = $this->walletService->recordPrize(
                     wallet:         $wallet,
                     amount:         $amount,
                     gameId:         $locked->getGameId(),
                     description:    $description,
-                    idempotencyKey: sprintf('%s_prize:%s:%s', $locked->getGameSlug(), $locked->getGameId(), $userId),
+                    idempotencyKey: sprintf('%s_prize:%s', $locked->getGameSlug(), $locked->getKey()),
                 );
                 $this->recordPayment($locked, (string) $movement->id, 'completed', null);
                 $locked->markAsClaimed();
