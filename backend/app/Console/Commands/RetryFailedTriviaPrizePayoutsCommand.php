@@ -2,7 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Domains\Games\Common\Services\PrizePayoutRetryPolicy;
 use App\Domains\Games\Trivia\Models\TriviaGame;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Models\TriviaScore;
@@ -24,7 +23,9 @@ use Throwable;
  * último solo se llena si el pago llegó a intentarse — si distribute() falló
  * por completo, ningún participante tendría final_rank aunque sí ganó.
  *
- * Usa PrizePayoutRetryPolicy — misma política que los comandos de Bingo.
+ * El backoff/reintento en sí lo maneja GamePrizeService::payout() (FSM
+ * waiting→processing→claimed) — este comando solo decide QUÉ ganadores
+ * necesitan que se llame payoutOne(), no CUÁNDO reintentar cada uno.
  */
 class RetryFailedTriviaPrizePayoutsCommand extends Command
 {
@@ -76,17 +77,7 @@ class RetryFailedTriviaPrizePayoutsCommand extends Command
                         ->where('user_id', $score->player_id)
                         ->first();
 
-                    if (! $participant || $participant->prize_status === 'paid') {
-                        continue;
-                    }
-
-                    if (PrizePayoutRetryPolicy::shouldAbandon((int) $participant->prize_payment_attempts)) {
-                        $skipped++;
-                        continue;
-                    }
-
-                    if (! PrizePayoutRetryPolicy::isReadyToRetry($participant->prize_last_attempted_at, (int) $participant->prize_payment_attempts)) {
-                        $skipped++;
+                    if (! $participant || $participant->isClaimed() || $participant->isCancelled()) {
                         continue;
                     }
 

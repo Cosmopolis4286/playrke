@@ -14,10 +14,18 @@ use Illuminate\Support\Facades\Log;
  *
  * Garantías:
  *  – Idempotente: el mismo $prizeRecord nunca se paga dos veces, aunque dos
- *    workers o procesos llamen a payout() simultáneamente (lockForUpdate + FSM).
+ *    workers o procesos llamen a payout() simultáneamente (lockForUpdate + FSM
+ *    + idempotencyKey en WalletService::recordPrize()).
  *  – Atómico: la transición de estado (waiting → processing) ocurre en una
  *    transacción corta; el pago a la wallet ocurre FUERA de esa transacción,
  *    evitando que un broadcast de saldo quede dentro de un commit ajeno.
+ *    NOTA: si $prizeRecord vive en una conexión distinta a wallet_movements
+ *    (ej. TriviaParticipant en pgsql_trivia vs wallet_movements en mysql),
+ *    DB::transaction() y lockForUpdate() actúan sobre motores de BD separados
+ *    — no hay atomicidad real entre ambos. La protección efectiva contra doble
+ *    pago en ese caso es el idempotencyKey (constraint único en wallet_movements),
+ *    no el lock. Para modelos mono-BD (ej. BingoCardPrize + wallets en mysql)
+ *    el lock sí es atómico con el pago y el idempotencyKey es una capa extra.
  *  – Recuperable: si el pago falla tras actualizar la wallet, el registro queda
  *    en 'processing' con un payment sin 'completed'; el reintento detecta la
  *    situación y sólo repara el estado sin volver a tocar la wallet.
@@ -134,10 +142,11 @@ final class GamePrizeService
                     return; // ya pagado por un worker concurrente — no continuar
                 }
                 $movement = $this->walletService->recordPrize(
-                    wallet:      $wallet,
-                    amount:      $amount,
-                    gameId:      $locked->getGameId(),
-                    description: $description,
+                    wallet:         $wallet,
+                    amount:         $amount,
+                    gameId:         $locked->getGameId(),
+                    description:    $description,
+                    idempotencyKey: sprintf('%s_prize:%s:%s', $locked->getGameSlug(), $locked->getGameId(), $userId),
                 );
                 $this->recordPayment($locked, (string) $movement->id, 'completed', null);
                 $locked->markAsClaimed();
