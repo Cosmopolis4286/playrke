@@ -318,7 +318,7 @@ final class BingoDrawService
 
             if (($totalChips - count($drawnSoFar)) <= 10) {
                 try {
-                    $this->broadcastPlayersProgress($room, $patternPositions, $drawnSoFar, $variant);
+                    $this->broadcastPlayersProgress($room, $patternPositions, $drawnSoFar);
                 } catch (\Throwable $e) {
                     Log::warning('[BingoDrawService] Error al emitir progreso de jugadores', [
                         'room_id' => $roomId,
@@ -333,7 +333,10 @@ final class BingoDrawService
         }
 
         // 7. Sorteo completo sin ganador — cerrar ronda y sala si es la final
-        $lastDraw = BingoDraw::where('room_id', (string) $roomId)->orderBy('created_at', 'desc')->first();
+        $lastDraw = BingoDraw::where('room_id', (string) $roomId)
+            ->where('round_id', $roundId)
+            ->orderBy('created_at', 'desc')
+            ->first();
 
         $this->closeRound($round);
         $this->closeRoomIfFinalRound($room, $round);
@@ -555,7 +558,7 @@ final class BingoDrawService
         return $players;
     }
 
-    private function broadcastPlayersProgress(BingoRoom $room, array $patternPositions, array $drawnNumbers, string $variant = BingoVariant::BINGO_75): void
+    private function broadcastPlayersProgress(BingoRoom $room, array $patternPositions, array $drawnNumbers): void
     {
         $players = $this->computePlayersProgress($room, $patternPositions, $drawnNumbers);
         if (!empty($players)) {
