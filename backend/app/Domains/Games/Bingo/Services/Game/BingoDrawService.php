@@ -689,17 +689,80 @@ final class BingoDrawService
                 ->with(['roomUser.user', 'cardLot'])
                 ->first();
 
-            if (!$card || (int) $card->status !== BingoCard::STATUS_ACTIVE) {
-                // Ya fue reclamado por otro proceso (sorteo automático vs. check manual) o no existe.
+            if (!$card) {
+                return null;
+            }
+
+            $userId   = $card->roomUser?->user_id ?? $card->creator_user_id;
+            $user     = $card->roomUser?->user ?? User::find($userId);
+            $userName = $user?->username ?? ('Jugador #' . $userId);
+
+            // Si el cartón ya es WINNER, el premio fue creado en un intento anterior
+            // (el job de sorteo murió después del commit de bingo_card_prizes pero
+            // antes de completar el payout). Recuperar el premio existente y
+            // continuar con el pago en lugar de intentar crear un duplicado
+            // (lo que lanzaría Duplicate entry sobre bingo_card_prizes_card_round_unique).
+            if ((int) $card->status === BingoCard::STATUS_WINNER) {
+                $existing = BingoCardPrize::where('winning_card_id', $cardId)
+                    ->where('round_id', $roundId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$existing) {
+                    // Cartón marcado WINNER pero sin fila de premio — estado corrupto,
+                    // no hay nada que pagar. Loguear para investigación manual.
+                    Log::error('[BingoDrawService] Cartón WINNER sin BingoCardPrize — estado inconsistente', [
+                        'card_id'  => $cardId,
+                        'round_id' => $roundId,
+                    ]);
+                    return null;
+                }
+
+                // Solo reintentar el pago si no está ya completado/cancelado.
+                if ($existing->isClaimed() || $existing->isCancelled()) {
+                    return null;
+                }
+
+                $cardPrize = $existing;
+                $prize     = (float) $existing->usd_amount;
+
+                Log::warning('[BingoDrawService] Cartón ya reclamado — retomando pago del premio existente', [
+                    'card_prize_id' => $cardPrize->id,
+                    'card_id'       => $cardId,
+                    'round_id'      => $roundId,
+                    'prize_status'  => $existing->prize_status,
+                ]);
+
+                return [
+                    'winnerData' => [
+                        'user_id'       => (int) $userId,
+                        'user_name'     => $userName,
+                        'card_id'       => (string) $card->id,
+                        'card_serial'   => $card->serial_number,
+                        'card_prize_id' => (string) $cardPrize->id,
+                        'prize'         => $prize,
+                        'pattern'       => $pattern->name,
+                        'round'         => $round->round,
+                    ],
+                    'broadcast' => [
+                        'roomId'    => (int) $room->id,
+                        'drawId'    => $lastDrawId,
+                        'winnerId'  => (int) $userId,
+                        'winnerName'=> $userName,
+                        'cardId'    => (int) $card->id,
+                        'pattern'   => $pattern->name,
+                        'prize'     => $prize,
+                    ],
+                ];
+            }
+
+            if ((int) $card->status !== BingoCard::STATUS_ACTIVE) {
+                // Otro proceso lo reclamó en un estado distinto (cancelled, etc.)
                 return null;
             }
 
             $card->update(['status' => BingoCard::STATUS_WINNER]);
             $this->invalidateActiveCardsCache();
-
-            $userId   = $card->roomUser?->user_id ?? $card->creator_user_id;
-            $user     = $card->roomUser?->user ?? User::find($userId);
-            $userName = $user?->username ?? ('Jugador #' . $userId);
 
             $prizeAmounts = $this->resolvePrizeAmounts($room, $round, $card);
             $prize        = $prizeAmounts['usd_amount'];
