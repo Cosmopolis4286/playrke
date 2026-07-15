@@ -200,6 +200,15 @@ final class BingoDrawService
         $sequencePrefix = array_slice($existingSequence, 0, count($drawnChips));
         $prefixMatches  = $drawnChips === $sequencePrefix;
 
+        // Caso especial: todos los chips ya fueron cantados pero closeRound() no se ejecutó
+        // (p.ej. el worker murió justo después de crear el último BingoDraw).
+        // Con la condición anterior ($alreadyDrawn->count() < count($existingSequence)),
+        // este caso caía al else y borraba todo el historial — error crítico que obligaba
+        // a re-sortear una sala que ya había terminado. Ahora lo detectamos y cerramos directamente.
+        $allDone = $sequenceIsValid
+            && $alreadyDrawn->count() === count($existingSequence)
+            && $alreadyDrawn->isNotEmpty();
+
         $resuming = $sequenceIsValid
             && $alreadyDrawn->isNotEmpty()
             && $alreadyDrawn->count() < count($existingSequence)
@@ -226,7 +235,51 @@ final class BingoDrawService
                 ? (int) env('BINGO_DEV_INTERVAL_SECONDS', self::CHIP_INTERVAL_DEV)
                 : self::CHIP_INTERVAL_SECONDS);
 
-        if ($resuming) {
+        if ($allDone) {
+            // Todos los chips ya están en bingo_draws pero la ronda/sala no se cerró.
+            // Cerrar directamente sin re-sortear ni borrar el historial.
+            $drawnSoFar = $drawnChips;
+            $lastDraw   = $alreadyDrawn->last();
+
+            Log::warning('[BingoDrawService] Sorteo completo sin cierre detectado — cerrando ronda', [
+                'room_id'    => $roomId,
+                'round_id'   => $roundId,
+                'total_drawn' => count($drawnSoFar),
+            ]);
+
+            Cache::put("bingo:draw-state:draw:{$roomId}", $drawnSoFar, max($this->currentInterval + 2, 6));
+
+            // Verificar si ya hay ganadores registrados antes de llamar detectWinnerAndEnd.
+            // Si existen BingoCardPrize para esta ronda, sólo cerramos sin re-declarar.
+            $hasExistingPrizes = \App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize::where('round_id', $roundId)->exists();
+
+            if ($hasExistingPrizes) {
+                Log::info('[BingoDrawService] All-done: ganadores ya registrados — cerrando sin re-declarar', [
+                    'room_id'  => $roomId,
+                    'round_id' => $roundId,
+                ]);
+                $this->closeRoundAndRoom($round, $room);
+                return ['success' => true, 'room_id' => $roomId, 'total_chips' => count($drawnSoFar), 'winner' => null, 'alreadyFinished' => true];
+            }
+
+            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, (int) $lastDraw->id, $variant)) {
+                return $result;
+            }
+
+            // Sin ganador tras revisar todos los chips
+            $this->closeRoundAndRoom($round, $room);
+            broadcast(new BingoGameEnded(
+                roomId:     (int) $roomId,
+                drawId:     (int) ($lastDraw->id ?? 0),
+                hasWinner:  false,
+                totalDrawn: count($drawnSoFar),
+                winners:    [],
+                prize:      (float) ($room->prize_pool ?? 0),
+                endTime:    now()->toISOString(),
+            ));
+            $this->auditLogger->log($room, BingoRoomAuditLogger::EVENT_DRAW_FINISHED, 'system', 'Sorteo completado sin ganador (all-done recovery)', ['total_drawn' => count($drawnSoFar)]);
+            return ['success' => true, 'room_id' => $roomId, 'total_chips' => count($drawnSoFar), 'winner' => null];
+        } elseif ($resuming) {
             $sequence   = $existingSequence;
             $drawnSoFar = $drawnChips;
             $lastDraw   = $alreadyDrawn->last();
@@ -247,7 +300,16 @@ final class BingoDrawService
 
             broadcast(new BingoNumberCalled((int) $lastDraw->chip, $roomId));
 
-            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, (int) $lastDraw->id, $variant)) {
+            // Verificar si ya hay ganadores antes de llamar detectWinnerAndEnd en resume,
+            // para evitar re-declarar un ganador ya procesado y re-emitir BingoWinnerDeclared.
+            $hasExistingPrizes = \App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize::where('round_id', $roundId)->exists();
+
+            if ($hasExistingPrizes) {
+                Log::info('[BingoDrawService] Resume: ganadores ya registrados — continuando sin re-declarar', [
+                    'room_id'  => $roomId,
+                    'round_id' => $roundId,
+                ]);
+            } elseif ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, (int) $lastDraw->id, $variant)) {
                 return $result;
             }
         } else {
@@ -338,8 +400,7 @@ final class BingoDrawService
             ->orderBy('created_at', 'desc')
             ->first();
 
-        $this->closeRound($round);
-        $this->closeRoomIfFinalRound($room, $round);
+        $this->closeRoundAndRoom($round, $room);
 
         broadcast(new BingoGameEnded(
             roomId:     (int) $roomId,
@@ -614,9 +675,8 @@ final class BingoDrawService
             return null;
         }
 
-        // Cerrar la ronda y la sala (si es la ronda final)
-        $this->closeRound($round);
-        $this->closeRoomIfFinalRound($room, $round);
+        // Cerrar la ronda y la sala (si es la ronda final) en una sola transacción
+        $this->closeRoundAndRoom($round, $room);
 
         // Evento de fin de juego para toda la sala. 'prize' es el total repartido
         // en este chip — si dos o más cartones completan el patrón a la vez (cada
@@ -684,6 +744,14 @@ final class BingoDrawService
     ): ?array {
         $roundId   = (string) $round->id;
         $cardPrize = null;
+
+        // Pre-cargar prizes FUERA de la transacción para no hacer un SELECT adicional
+        // mientras se sostiene un lockForUpdate sobre bingo_cards — reduce la ventana
+        // de lock y elimina el riesgo de deadlock si otro proceso edita bingo_round_prizes
+        // al mismo tiempo (los dos locks crearían un ciclo InnoDB).
+        if (!$round->relationLoaded('prizes')) {
+            $round->load('prizes');
+        }
 
         /** @var array{winnerData: array<string,mixed>, broadcast: array<string,mixed>}|null $txResult */
         $txResult = DB::transaction(function () use ($room, $round, $roundId, $pattern, $cardId, $lastDrawId, &$cardPrize) {
@@ -869,6 +937,20 @@ final class BingoDrawService
     }
 
     /**
+     * Cierra la ronda y luego la sala (si es la ronda final) dentro de una
+     * transacción para evitar el estado inconsistente "ronda FINISHED + sala IN_PROGRESS".
+     * Si closeRoomIfFinalRound() falla, lanza excepción y la transacción revierte
+     * el cierre de ronda también — el reintento del job lo reintenta completo.
+     */
+    private function closeRoundAndRoom(BingoRound $round, BingoRoom $room): void
+    {
+        DB::transaction(function () use ($round, $room) {
+            $this->closeRound($round);
+            $this->closeRoomIfFinalRound($room, $round);
+        });
+    }
+
+    /**
      * Marca la ronda como FINISHED y registra la última ficha.
      */
     private function closeRound(BingoRound $round): void
@@ -1012,10 +1094,7 @@ final class BingoDrawService
     private function resolvePrizeAmounts(BingoRoom $room, BingoRound $round, BingoCard $card): array
     {
         if ($round->prize_type === 'FIXED') {
-            if (!$round->relationLoaded('prizes')) {
-                $round->load('prizes');
-            }
-
+            // prizes pre-cargados por claimCardWin() antes de abrir la TX
             $fixedPrize = $round->prizes->firstWhere('currency_id', (string) $card->currency_id);
 
             if ($fixedPrize) {
@@ -1044,9 +1123,7 @@ final class BingoDrawService
 
         // Para rondas PCT, el porcentaje está en bingo_round_prizes.prize_value (sin currency_id)
         if ($round->prize_type === 'PCT') {
-            if (!$round->relationLoaded('prizes')) {
-                $round->load('prizes');
-            }
+            // prizes pre-cargados por claimCardWin() antes de abrir la TX
             $pctEntry = $round->prizes->firstWhere('currency_id', null);
             if ($pctEntry) {
                 $pct = (float) $pctEntry->prize_value;
