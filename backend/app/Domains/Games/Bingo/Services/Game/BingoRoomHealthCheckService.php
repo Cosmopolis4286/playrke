@@ -89,10 +89,16 @@ final class BingoRoomHealthCheckService
 
     private function assertNotAlreadyFinished(BingoRoom $room): void
     {
-        // Usa la relación ya eager-loaded — sin query adicional a la BD
-        if ($room->rounds->contains('status', 'FINISHED')) {
+        // Usa la relación ya eager-loaded — sin query adicional a la BD.
+        // Comparar con el total configurado de rondas en lugar de solo comprobar
+        // si existe alguna FINISHED: en salas multi-ronda, la existencia de una
+        // ronda FINISHED es normal y no debe bloquear el inicio de la siguiente.
+        $totalRounds    = max(1, (int) ($room->config?->rounds ?? 1));
+        $finishedRounds = $room->rounds->where('status', 'FINISHED')->count();
+
+        if ($finishedRounds >= $totalRounds) {
             throw new \DomainException(
-                "La sala #{$room->id} ya tiene rondas FINISHED — el sorteo ya fue completado."
+                "La sala #{$room->id} ya tiene todas sus rondas FINISHED ({$finishedRounds}/{$totalRounds}) — el sorteo ya fue completado."
             );
         }
     }
