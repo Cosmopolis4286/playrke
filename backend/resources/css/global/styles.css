@@ -51,6 +51,10 @@
   --ds-card-hover-shadow: 0 6px 20px rgba(0,0,0,.35);
   --ds-skeleton-a:   rgba(255,255,255,.04);
   --ds-skeleton-b:   rgba(255,255,255,.10);
+  /* Overlay translúcido sobre una superficie (ej. loading state de un modal)
+     — mismo tono que --ds-surface pero con opacidad alta para tapar el
+     contenido de debajo sin perder el tinte del tema activo. */
+  --ds-overlay:      rgba(10,8,30,.82);
 }
 
 /* ── Tema claro ── */
@@ -68,6 +72,7 @@
   --ds-card-hover-shadow: 0 6px 20px rgba(0,0,0,.12);
   --ds-skeleton-a:   #e2e5ee;
   --ds-skeleton-b:   #f0f2f8;
+  --ds-overlay:      rgba(255,255,255,.88);
 }
 
 /* Sombra en cards para que sobresalgan del fondo claro */

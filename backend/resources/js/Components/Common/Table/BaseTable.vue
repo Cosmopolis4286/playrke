@@ -302,7 +302,7 @@
     position: sticky;
     top: 0;
     z-index: 1;
-    background-color: #fff;
+    background-color: var(--ds-surface);
   }
 
   .cell-truncate {
@@ -313,13 +313,14 @@
   }
 
   .select-all-banner {
-    background-color: #e7f1ff;
-    border: 1px solid #b6d4fe;
+    background-color: rgba(102,126,234,.12);
+    border: 1px solid rgba(102,126,234,.3);
     border-radius: 0.25rem;
     padding: 0.5rem 0.85rem;
     font-size: 0.85rem;
     text-align: center;
     margin-top: 0.5rem;
+    color: var(--ds-text);
   }
 
   /* Celda combinada "Código" + fecha/hora de inicio (contenido inyectado vía v-html) */
@@ -337,7 +338,7 @@
 
   :deep(.room-code-cell__date) {
     font-size: 0.75rem;
-    color: #8891a0;
+    color: var(--ds-text-muted);
   }
 
   /* Celda "Premio": una línea por moneda, alineada por código ISO */
@@ -356,7 +357,7 @@
   :deep(.room-prize-cell__currency) {
     font-size: 0.7rem;
     font-weight: 700;
-    color: #8891a0;
+    color: var(--ds-text-muted);
     min-width: 2.4em;
     flex: none;
   }
@@ -380,7 +381,7 @@
 
   /* Sin tasa de cambio activa para convertir el bote a esa moneda */
   :deep(.room-prize-cell__amount--na) {
-    color: #b3bac4;
+    color: var(--ds-text-muted);
     font-weight: 500;
     cursor: help;
   }
@@ -389,10 +390,10 @@
   :deep(.room-prize-cell__total) {
     margin-top: 2px;
     padding-top: 3px;
-    border-top: 1px dashed #dee2e6;
+    border-top: 1px dashed var(--ds-border);
     font-size: 0.72rem;
     font-weight: 600;
-    color: #8891a0;
+    color: var(--ds-text-muted);
     font-variant-numeric: tabular-nums;
     cursor: help;
   }
@@ -418,11 +419,11 @@
     flex-shrink: 0;
   }
 
-  :deep(.room-status-chip--offline)   { background: #eef0f3; color: #8891a0; }
-  :deep(.room-status-chip--finished)  { background: #e7f1ff; color: #0d6efd; }
-  :deep(.room-status-chip--live)      { background: #e9f7ee; color: #15803d; }
-  :deep(.room-status-chip--warning)   { background: #fef6e7; color: #b45309; }
-  :deep(.room-status-chip--cancelled) { background: #fdecec; color: #b91c1c; }
+  :deep(.room-status-chip--offline)   { background: var(--ds-surface-2); color: var(--ds-text-muted); }
+  :deep(.room-status-chip--finished)  { background: rgba(13,110,253,.14); color: #4c8dff; }
+  :deep(.room-status-chip--live)      { background: rgba(21,128,61,.16); color: #34d399; }
+  :deep(.room-status-chip--warning)   { background: rgba(180,83,9,.16);  color: #f59e0b; }
+  :deep(.room-status-chip--cancelled) { background: rgba(185,28,28,.16); color: #ef4444; }
 
   /* Moneda(s): pills discretas (metadata de contexto, no el dato principal de la columna) */
   :deep(.room-currency-pills) {
@@ -439,8 +440,8 @@
     font-weight: 700;
     padding: 0.16rem 0.42rem;
     border-radius: 4px;
-    background: #eef0f3;
-    color: #8891a0;
+    background: var(--ds-surface-2);
+    color: var(--ds-text-muted);
     letter-spacing: 0.02em;
   }
 
@@ -448,8 +449,8 @@
   :deep(.room-currency-pill__count) {
     font-variant-numeric: tabular-nums;
     font-weight: 700;
-    color: #495057;
-    background: #fff;
+    color: var(--ds-text);
+    background: var(--ds-surface);
     border-radius: 3px;
     padding: 0 0.3rem;
   }
@@ -472,21 +473,21 @@
 
   :deep(.room-cards-cell__count) i {
     font-size: 0.7rem;
-    color: #8891a0;
+    color: var(--ds-text-muted);
   }
 
   :deep(.room-cards-cell__count--zero) {
-    color: #b3bac4;
+    color: var(--ds-text-muted);
     font-weight: 400;
   }
 
   :deep(.room-cards-cell__count--zero) i {
-    color: #d5d9df;
+    color: var(--ds-text-muted);
   }
 
   :deep(.room-cards-cell__quota) {
     font-size: 0.7rem;
-    color: #b3bac4;
+    color: var(--ds-text-muted);
   }
 
   :deep(.room-cards-cell__quota--met) {
@@ -507,8 +508,8 @@
     gap: 0.2rem;
     font-size: 0.68rem;
     font-weight: 600;
-    color: #8891a0;
-    background: #f4effc;
+    color: var(--ds-text-muted);
+    background: rgba(123,79,255,.14);
     border-radius: 4px;
     padding: 0.05rem 0.35rem;
     margin-left: 0.25rem;
@@ -516,7 +517,7 @@
 
   :deep(.room-cards-cell__custom) i {
     font-size: 0.6rem;
-    color: #8891a0;
+    color: var(--ds-text-muted);
   }
 
   /* Barra de progreso hacia la cuota mínima de cartones */
@@ -525,7 +526,7 @@
     min-width: 60px;
     height: 4px;
     border-radius: 999px;
-    background: #eef0f3;
+    background: var(--ds-surface-2);
     overflow: hidden;
   }
 
@@ -556,15 +557,15 @@
 
   :deep(.room-players-cell__stat) i {
     font-size: 0.7rem;
-    color: #8891a0;
+    color: var(--ds-text-muted);
   }
 
   :deep(.room-players-cell__stat--zero) {
-    color: #b3bac4;
+    color: var(--ds-text-muted);
   }
 
   :deep(.room-players-cell__stat--zero) i {
-    color: #d5d9df;
+    color: var(--ds-text-muted);
   }
 
   /* Cupo máximo de jugadores (max_players) — mismo criterio visual que
@@ -572,7 +573,7 @@
      (llenarse no es "meta alcanzada", es "ya no se pueden vender más cartones"). */
   :deep(.room-players-cell__quota) {
     font-size: 0.7rem;
-    color: #b3bac4;
+    color: var(--ds-text-muted);
     align-self: center;
   }
 
