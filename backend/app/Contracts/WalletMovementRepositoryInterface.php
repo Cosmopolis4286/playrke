@@ -20,6 +20,7 @@ interface WalletMovementRepositoryInterface extends BaseRepositoryInterface
      *   balance_after:  float,
      *   description?:   string|null,
      *   reference_id?:  string|null,
+     *   idempotency_key?: string|null,
      * } $data
      */
     public function record(array $data): WalletMovement;

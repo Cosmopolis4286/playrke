@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property float  $balance_after
  * @property string|null $description
  * @property string|null $reference_id  ID externo (cartón, premio, etc.)
+ * @property string|null $idempotency_key  Clave única para prevenir doble acreditación en pagos reintentables
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
  *
@@ -79,6 +80,7 @@ class WalletMovement extends Model
         'balance_after',
         'description',
         'reference_id',
+        'idempotency_key',
         'receipt_path',
         'metadata',
         'admin_notes',

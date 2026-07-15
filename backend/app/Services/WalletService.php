@@ -387,8 +387,13 @@ final class WalletService
      * Acredita un premio (Bingo, Trivia o cualquier juego futuro) al ganador.
      * La wallet se recibe ya resuelta — nunca acepta un ID externo.
      *
-     * @param string $gameId    ID de la sala/juego que originó el premio.
-     * @param string $prizeType WalletMovement::PRIZE_TYPE_DIGITAL | PRIZE_TYPE_PHYSICAL.
+     * @param string      $gameId          ID de la sala/juego que originó el premio.
+     * @param string      $prizeType       WalletMovement::PRIZE_TYPE_DIGITAL | PRIZE_TYPE_PHYSICAL.
+     * @param string|null $idempotencyKey  Clave determinística (ej. "trivia_prize:{room_id}:{user_id}").
+     *   Si ya existe un movimiento con esta clave, se retorna sin acreditar de
+     *   nuevo — necesario para juegos cuyo registro de premio vive en una BD
+     *   distinta a wallet_movements (ej. Trivia en pgsql_trivia), donde no hay
+     *   transacción conjunta ni lockForUpdate que prevenga doble pago en un retry.
      */
     public function recordPrize(
         Wallet $wallet,
@@ -396,26 +401,45 @@ final class WalletService
         string $gameId,
         string $description = 'Premio ganado',
         string $prizeType = WalletMovement::PRIZE_TYPE_DIGITAL,
+        ?string $idempotencyKey = null,
     ): WalletMovement {
-        $movement = DB::transaction(function () use ($wallet, $amount, $description, $gameId, $prizeType) {
-            $walletId      = (string) $wallet->id;
-            $balanceBefore = (float) $wallet->balance;
+        if ($idempotencyKey !== null) {
+            $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+            if ($existing) {
+                return $existing;
+            }
+        }
 
-            $this->walletRepository->incrementBalance($walletId, $amount);
-            $wallet->refresh();
+        try {
+            $movement = DB::transaction(function () use ($wallet, $amount, $description, $gameId, $prizeType, $idempotencyKey) {
+                $walletId      = (string) $wallet->id;
+                $balanceBefore = (float) $wallet->balance;
 
-            return $this->movementRepository->record([
-                'wallet_id'      => $walletId,
-                'user_id'        => (string) $wallet->user_id,
-                'type'           => WalletMovement::TYPE_PRIZE,
-                'status'         => WalletMovement::STATUS_COMPLETED,
-                'amount'         => $amount,
-                'balance_before' => $balanceBefore,
-                'balance_after'  => (float) $wallet->balance,
-                'description'    => $description,
-                'metadata'       => ['game_id' => $gameId, 'prize_type' => $prizeType],
-            ]);
-        });
+                $this->walletRepository->incrementBalance($walletId, $amount);
+                $wallet->refresh();
+
+                return $this->movementRepository->record([
+                    'wallet_id'        => $walletId,
+                    'user_id'          => (string) $wallet->user_id,
+                    'type'             => WalletMovement::TYPE_PRIZE,
+                    'status'           => WalletMovement::STATUS_COMPLETED,
+                    'amount'           => $amount,
+                    'balance_before'   => $balanceBefore,
+                    'balance_after'    => (float) $wallet->balance,
+                    'description'      => $description,
+                    'idempotency_key'  => $idempotencyKey,
+                    'metadata'         => ['game_id' => $gameId, 'prize_type' => $prizeType],
+                ]);
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Carrera entre el check de arriba y el insert: otro proceso ganó y
+            // ya acreditó esta misma clave. La wallet no se acreditó dos veces
+            // porque incrementBalance() de ESTA llamada revierte con la transacción.
+            if ($idempotencyKey !== null && str_contains($e->getMessage(), 'idempotency_key')) {
+                return WalletMovement::where('idempotency_key', $idempotencyKey)->firstOrFail();
+            }
+            throw $e;
+        }
 
         $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PRIZE, $amount, (string) $movement->id);
 
