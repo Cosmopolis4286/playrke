@@ -130,7 +130,11 @@ export function useBingoGameEcho(options: UseBingoGameEchoOptions) {
 
     channel.listen('.GameEnded', (e: GameEndedEvent) => {
       onGameEnded(e)
-      if (e.has_winner) playWinner()
+      // playWinner() solo para el ganador real — no para todos los jugadores.
+      // Comparar igual que WinnerDeclared (String cast para Snowflake IDs).
+      if (e.has_winner && userId && e.winners.some(w => String(w.user_id) === String(userId))) {
+        playWinner()
+      }
     })
 
     channel.listen('.RoomTimeSync', (e: { server_timestamp: number; unix_date: number }) => {

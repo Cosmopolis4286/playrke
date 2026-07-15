@@ -320,14 +320,29 @@ async function resyncDrawState(attempt = 0) {
     //  - Server vacío Y local tiene fichas → cache miss transitorio (TTL expiró
     //    entre chips); NO limpiar el estado local para evitar borrar la partida
     //    en curso. Solo limpiar si el juego aún no empezó (gameStarted=false).
+    //
+    // IMPORTANTE: liveDrawn.value se lee DESPUÉS del await — no antes — para
+    // capturar cualquier chip que un WS BingoNumberCalled haya añadido durante
+    // el viaje de red. Leer antes causaría que el response HTTP (snapshot más
+    // antiguo) sobrescriba chips ya recibidos por WS, borrándolos del tablero.
     if (Array.isArray(data.draw)) {
       if (data.draw.length > 0) {
-        const localJson = JSON.stringify(liveDrawn.value)
-        const serverJson = JSON.stringify(data.draw)
-        if (serverJson !== localJson) {
+        // Solo sobreescribir si el servidor tiene MÁS fichas que el local actual
+        // (no si solo tiene distintas — eso sería revertir chips WS recientes).
+        if (data.draw.length > liveDrawn.value.length) {
           liveDrawn.value = data.draw
           markNumbersAsSeen(data.draw)
+        } else if (data.draw.length === liveDrawn.value.length) {
+          // Misma longitud: solo aplicar si el contenido difiere (reset/resume).
+          const localJson  = JSON.stringify(liveDrawn.value)
+          const serverJson = JSON.stringify(data.draw)
+          if (serverJson !== localJson) {
+            liveDrawn.value = data.draw
+            markNumbersAsSeen(data.draw)
+          }
         }
+        // data.draw.length < liveDrawn.value.length → WS ya avanzó más que el
+        // snapshot del servidor; ignorar para no revertir fichas recientes.
       } else if (!gameStarted.value) {
         // Sorteo no iniciado o reset explícito (dev): limpiar estado local.
         if (liveDrawn.value.length > 0) {

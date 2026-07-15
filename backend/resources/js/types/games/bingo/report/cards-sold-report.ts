@@ -9,7 +9,7 @@ export interface CardsSoldColumn {
 }
 
 export interface CardsSoldRow {
-  id: number
+  id: string
   card_number: string
   room_name: string
   player_name: string

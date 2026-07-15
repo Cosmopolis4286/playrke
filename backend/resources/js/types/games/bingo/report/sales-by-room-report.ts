@@ -9,7 +9,7 @@ export interface SalesByRoomColumn {
 }
 
 export interface SalesByRoomRow {
-  id: number
+  id: string
   card_number: string
   player_name: string
   card_price: number

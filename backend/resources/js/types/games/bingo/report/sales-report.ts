@@ -9,7 +9,7 @@ export interface SalesColumn {
 }
 
 export interface SalesRow {
-  id: number
+  id: string
   room_name: string
   room_type: string
   total_cards_sold: number
@@ -21,14 +21,17 @@ export interface SalesRow {
   status: string
 }
 
+export interface SalesCurrencyTotals {
+  amount: number
+  commission: number
+}
+
 export interface SalesSummary {
   total_rooms: number
   total_cards_sold: number
-  total_amount_usd: number
-  total_amount_eur: number
-  total_amount_ves: number
+  /** Totales de venta y comisión por código ISO de moneda (una sala puede vender en varias monedas). */
+  by_currency: Record<string, SalesCurrencyTotals>
   total_commission: number
-  total_net_amount: number
 }
 
 export interface SalesData {

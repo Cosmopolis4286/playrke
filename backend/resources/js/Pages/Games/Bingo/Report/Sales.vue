@@ -26,6 +26,17 @@
   const salesData = ref(props.sales.rows)
   const summaryData = computed(() => props.sales.summary)
 
+  /**
+   * Desglose de totales por moneda, como array para iterar en el template
+   * (una sala puede vender en varias monedas — ver metrics_by_currency).
+   */
+  const currencyTotals = computed(() =>
+    Object.entries(summaryData.value.by_currency ?? {}).map(([iso, totals]) => ({
+      iso,
+      ...totals
+    }))
+  )
+
   // Key forzar re-render de la tabla
   const tableKey = ref(0)
 
@@ -95,8 +106,11 @@
       onClick: (ids: string[]) => {
         if (ids.length === 1) {
           const row = salesData.value.find(r => String(r.id) === String(ids[0]))
-          if (row) {
-            window.location.href = `/bingo/sales-report/room/${row.id}`
+          // row.id es compuesto "roomId:currencyId" (una sala puede tener una fila
+          // por cada moneda vendida) — se extrae solo el roomId para la navegación.
+          const roomId = row?.id.split(':')[0]
+          if (roomId) {
+            window.location.href = `/bingo/sales-report/room/${roomId}`
           }
         }
       }
@@ -129,15 +143,15 @@
                   <p class="mb-0">Cartones Vendidos</p>
                 </div>
               </div>
-              <div class="col-md-3">
+              <div class="col-md-3" v-for="ct in currencyTotals" :key="ct.iso">
                 <div class="text-center">
-                  <h4 class="text-info">${{ summaryData.total_amount_usd.toFixed(2) }}</h4>
-                  <p class="mb-0">Total USD</p>
+                  <h4 class="text-info">{{ ct.iso }} {{ ct.amount.toFixed(2) }}</h4>
+                  <p class="mb-0">Total {{ ct.iso }}</p>
                 </div>
               </div>
               <div class="col-md-3">
                 <div class="text-center">
-                  <h4 class="text-warning">${{ summaryData.total_commission.toFixed(2) }}</h4>
+                  <h4 class="text-warning">{{ summaryData.total_commission.toFixed(2) }}</h4>
                   <p class="mb-0">Total Comisión</p>
                 </div>
               </div>

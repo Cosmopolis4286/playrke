@@ -9,7 +9,7 @@ export interface WinnersColumn {
 }
 
 export interface WinnersRow {
-  id: number
+  id: string
   winner_name: string
   room_name: string
   prize_type: string

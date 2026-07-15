@@ -3,7 +3,11 @@
 namespace App\Http\Controllers\Games\Bingo\Report;
 
 use App\Http\Controllers\Controller;
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\CardPayment\BingoCardPayment;
+use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Models\Currency;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,13 +23,24 @@ use Inertia\Response;
  */
 final class BingoReportController extends Controller
 {
-    /**
-     * @param BingoRoomService $service
-     */
     public function __construct(
         private readonly \App\Services\Security\UserContextService $userContext,
     ) {
         $this->authorizeResource(BingoRoom::class, 'room');
+    }
+
+    /**
+     * Etiqueta legible de una sala para las columnas de reporte: no existe un
+     * campo "nombre" en bingo_rooms (ver BingoPrizePayoutService, que usa el
+     * mismo criterio) — se identifica por su uuid_code corto.
+     */
+    private function roomLabel(?BingoRoom $room): string
+    {
+        if ($room === null) {
+            return '—';
+        }
+
+        return 'Sala #' . strtoupper(substr((string) $room->uuid_code, 0, 8));
     }
 
     /**
@@ -34,8 +49,39 @@ final class BingoReportController extends Controller
     public function cardsSold(string $currency = null, string $dateFilter = null): Response
     {
         abort_if($this->userContext->userHasRole('player'), 403);
-        // TODO: Implement actual data fetching logic
-        // This is a placeholder implementation
+
+        $query = BingoCard::query()
+            ->with(['room', 'roomUser.user', 'currency', 'cardLot'])
+            ->orderByDesc('created_at');
+
+        if ($currency) {
+            $query->where('currency_id', $currency);
+        }
+
+        if ($dateFilter) {
+            $query->whereDate('created_at', $dateFilter);
+        }
+
+        $cardStatusToLabel = [
+            BingoCard::STATUS_ACTIVE    => 'Active',
+            BingoCard::STATUS_INACTIVE  => 'Used',
+            BingoCard::STATUS_WINNER    => 'Winner',
+            BingoCard::STATUS_CANCELLED => 'Refunded',
+        ];
+
+        $rows = $query->limit(500)->get()->map(function (BingoCard $card) use ($cardStatusToLabel) {
+            return [
+                'id'          => (string) $card->id,
+                'card_number' => $card->serial_number,
+                'room_name'   => $this->roomLabel($card->room),
+                'player_name' => $card->roomUser?->user?->name ?? '—',
+                'sale_date'   => optional($card->created_at)->format('Y-m-d H:i:s'),
+                'amount'      => (float) ($card->cardLot?->card_price ?? 0),
+                'currency'    => $card->currency?->iso_code ?? '—',
+                'status'      => $cardStatusToLabel[(int) $card->status] ?? (string) $card->status,
+            ];
+        })->all();
+
         $cardsData = [
             'columns' => [
                 ['key' => 'id', 'label' => 'ID', 'sortable' => true],
@@ -47,36 +93,10 @@ final class BingoReportController extends Controller
                 ['key' => 'currency', 'label' => 'Moneda', 'sortable' => true],
                 ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
             ],
-            'rows' => [
-                // Placeholder data - replace with actual database query
-                [
-                    'id' => 1,
-                    'card_number' => 'BINGO-001',
-                    'room_name' => 'Sala Principal',
-                    'player_name' => 'Juan Pérez',
-                    'sale_date' => '2024-01-15 10:30:00',
-                    'amount' => 10.00,
-                    'currency' => 'USD',
-                    'status' => 'Active'
-                ],
-                [
-                    'id' => 2,
-                    'card_number' => 'BINGO-002',
-                    'room_name' => 'Sala Secundaria',
-                    'player_name' => 'María García',
-                    'sale_date' => '2024-01-15 11:45:00',
-                    'amount' => 15.00,
-                    'currency' => 'USD',
-                    'status' => 'Active'
-                ]
-            ]
+            'rows' => $rows,
         ];
 
-        $currencies = [
-            ['id' => 1, 'iso_code' => 'USD'],
-            ['id' => 2, 'iso_code' => 'EUR'],
-            ['id' => 3, 'iso_code' => 'VES']
-        ];
+        $currencies = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code']);
 
         return Inertia::render('Games/Bingo/Report/CardsSold', [
             'title' => 'Reporte de Cartones Vendidos',
@@ -92,8 +112,45 @@ final class BingoReportController extends Controller
      */
     public function winners(string $type = null, string $dateFilter = null, string $currency = null): Response
     {
-        // TODO: Implement actual data fetching logic
-        // This is a placeholder implementation
+        abort_if($this->userContext->userHasRole('player'), 403);
+
+        $query = BingoCardPrize::query()
+            ->with(['room', 'creatorUser', 'currency'])
+            ->orderByDesc('created_at');
+
+        if ($type) {
+            $query->where('prize_type', $type);
+        }
+
+        if ($currency) {
+            $query->where('currency_id', $currency);
+        }
+
+        if ($dateFilter) {
+            $query->whereDate('created_at', $dateFilter);
+        }
+
+        $prizeStatusToLabel = [
+            'waiting'    => 'Pending',
+            'processing' => 'Processing',
+            'claimed'    => 'Paid',
+            'cancelled'  => 'Cancelled',
+            'suspended'  => 'Suspended',
+        ];
+
+        $rows = $query->limit(500)->get()->map(function (BingoCardPrize $prize) use ($prizeStatusToLabel) {
+            return [
+                'id'           => (string) $prize->id,
+                'winner_name'  => $prize->creatorUser?->name ?? '—',
+                'room_name'    => $this->roomLabel($prize->room),
+                'prize_type'   => $prize->prize_type_description,
+                'prize_amount' => (float) $prize->local_amount,
+                'currency'     => $prize->currency?->iso_code ?? '—',
+                'win_date'     => optional($prize->claimed_at ?? $prize->created_at)->format('Y-m-d H:i:s'),
+                'status'       => $prizeStatusToLabel[$prize->prize_status] ?? $prize->prize_status,
+            ];
+        })->all();
+
         $winnersData = [
             'columns' => [
                 ['key' => 'id', 'label' => 'ID', 'sortable' => true],
@@ -105,54 +162,15 @@ final class BingoReportController extends Controller
                 ['key' => 'win_date', 'label' => 'Fecha de Ganancia', 'sortable' => true],
                 ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
             ],
-            'rows' => [
-                // Placeholder data - replace with actual database query
-                [
-                    'id' => 1,
-                    'winner_name' => 'Carlos Rodríguez',
-                    'room_name' => 'Sala Principal',
-                    'prize_type' => 'Línea Completa',
-                    'prize_amount' => 500.00,
-                    'currency' => 'USD',
-                    'win_date' => '2024-01-15 15:30:00',
-                    'status' => 'Paid'
-                ],
-                [
-                    'id' => 2,
-                    'winner_name' => 'Ana Martínez',
-                    'room_name' => 'Sala Secundaria',
-                    'prize_type' => 'Bingo Completo',
-                    'prize_amount' => 1000.00,
-                    'currency' => 'USD',
-                    'win_date' => '2024-01-15 16:45:00',
-                    'status' => 'Paid'
-                ],
-                [
-                    'id' => 3,
-                    'winner_name' => 'Luis Sánchez',
-                    'room_name' => 'Sala VIP',
-                    'prize_type' => 'Diagonal',
-                    'prize_amount' => 250.00,
-                    'currency' => 'EUR',
-                    'win_date' => '2024-01-15 17:20:00',
-                    'status' => 'Pending'
-                ]
-            ]
+            'rows' => $rows,
         ];
 
-        $currencies = [
-            ['id' => 1, 'iso_code' => 'USD'],
-            ['id' => 2, 'iso_code' => 'EUR'],
-            ['id' => 3, 'iso_code' => 'VES']
-        ];
+        $currencies = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code']);
 
-        $prizeTypes = [
-            ['value' => 'line', 'label' => 'Línea'],
-            ['value' => 'diagonal', 'label' => 'Diagonal'],
-            ['value' => 'full', 'label' => 'Bingo Completo'],
-            ['value' => 'corner', 'label' => 'Esquina'],
-            ['value' => 'center', 'label' => 'Centro']
-        ];
+        $prizeTypes = collect(BingoCardPrize::PRIZE_TYPES)
+            ->map(fn (string $label, string $value) => ['value' => $value, 'label' => $label])
+            ->values()
+            ->all();
 
         return Inertia::render('Games/Bingo/Report/Winners', [
             'title' => 'Reporte de Ganadores',
@@ -170,8 +188,63 @@ final class BingoReportController extends Controller
      */
     public function salesReport(string $currency = null, string $dateFilter = null): Response
     {
-        // TODO: Implement actual data fetching logic
-        // This is a placeholder implementation for room sales
+        abort_if($this->userContext->userHasRole('player'), 403);
+
+        $query = BingoRoom::query()
+            ->with(['config.roomType', 'status'])
+            ->orderByDesc('created_at');
+
+        if ($dateFilter) {
+            $query->whereDate('created_at', $dateFilter);
+        }
+
+        $currencies = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code'])->keyBy('id');
+
+        $rows = [];
+        $totalsByCurrency = [];
+        $totalCardsSold = 0;
+
+        foreach ($query->get() as $room) {
+            /** @var BingoRoom $room */
+            // Cada sala puede vender en varias monedas — metrics_by_currency
+            // (ver RoomMetricsService::registerSale) ya trae el desglose por
+            // currency_id sin necesitar reagregar bingo_cards en cada request.
+            $metricsByCurrency = (array) ($room->metrics_by_currency ?? []);
+
+            if (empty($metricsByCurrency)) {
+                continue;
+            }
+
+            foreach ($metricsByCurrency as $currencyId => $metrics) {
+                if ($currency && (string) $currencyId !== (string) $currency) {
+                    continue;
+                }
+
+                $isoCode = $currencies->get($currencyId)?->iso_code ?? '—';
+                $totalSales = (float) ($metrics['total_sales'] ?? 0);
+                $commission = (float) ($metrics['rke_commission'] ?? 0) + (float) ($metrics['room_commission'] ?? 0);
+                $cardsSold = (int) ($metrics['total_cards'] ?? 0);
+
+                $rows[] = [
+                    'id'               => (string) $room->id . ':' . $currencyId,
+                    'room_name'        => $this->roomLabel($room),
+                    'room_type'        => $room->config?->roomType?->code ?? 'PUBLIC',
+                    'total_cards_sold' => $cardsSold,
+                    'total_amount'     => $totalSales,
+                    'currency'         => $isoCode,
+                    'commission'       => $commission,
+                    'net_amount'       => $totalSales - $commission,
+                    'sale_date'        => optional($room->created_at)->format('Y-m-d'),
+                    'status'           => $room->status?->code ?? '—',
+                ];
+
+                $totalsByCurrency[$isoCode] ??= ['amount' => 0.0, 'commission' => 0.0];
+                $totalsByCurrency[$isoCode]['amount'] += $totalSales;
+                $totalsByCurrency[$isoCode]['commission'] += $commission;
+                $totalCardsSold += $cardsSold;
+            }
+        }
+
         $salesData = [
             'columns' => [
                 ['key' => 'id', 'label' => 'ID', 'sortable' => true],
@@ -185,80 +258,19 @@ final class BingoReportController extends Controller
                 ['key' => 'sale_date', 'label' => 'Fecha', 'sortable' => true],
                 ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
             ],
-            'rows' => [
-                // Placeholder data - replace with actual database query
-                [
-                    'id' => 1,
-                    'room_name' => 'Sala Principal',
-                    'room_type' => 'Normal',
-                    'total_cards_sold' => 150,
-                    'total_amount' => 1500.00,
-                    'currency' => 'USD',
-                    'commission' => 150.00,
-                    'net_amount' => 1350.00,
-                    'sale_date' => '2024-01-15',
-                    'status' => 'Completed'
-                ],
-                [
-                    'id' => 2,
-                    'room_name' => 'Sala VIP',
-                    'room_type' => 'VIP',
-                    'total_cards_sold' => 75,
-                    'total_amount' => 1125.00,
-                    'currency' => 'USD',
-                    'commission' => 112.50,
-                    'net_amount' => 1012.50,
-                    'sale_date' => '2024-01-15',
-                    'status' => 'Completed'
-                ],
-                [
-                    'id' => 3,
-                    'room_name' => 'Sala Automática 1',
-                    'room_type' => 'Automática',
-                    'total_cards_sold' => 200,
-                    'total_amount' => 2000.00,
-                    'currency' => 'EUR',
-                    'commission' => 200.00,
-                    'net_amount' => 1800.00,
-                    'sale_date' => '2024-01-16',
-                    'status' => 'Processing'
-                ],
-                [
-                    'id' => 4,
-                    'room_name' => 'Sala Especial',
-                    'room_type' => 'Especial',
-                    'total_cards_sold' => 100,
-                    'total_amount' => 500.00,
-                    'currency' => 'VES',
-                    'commission' => 50.00,
-                    'net_amount' => 450.00,
-                    'sale_date' => '2024-01-16',
-                    'status' => 'Pending'
-                ]
-            ],
+            'rows' => $rows,
             'summary' => [
-                'total_rooms' => 4,
-                'total_cards_sold' => 525,
-                'total_amount_usd' => 2625.00,
-                'total_amount_eur' => 2000.00,
-                'total_amount_ves' => 500.00,
-                'total_commission' => 512.50,
-                'total_net_amount' => 4612.50
-            ]
+                'total_rooms'      => count(array_unique(array_map(fn (array $r) => explode(':', $r['id'])[0], $rows))),
+                'total_cards_sold' => $totalCardsSold,
+                'by_currency'      => $totalsByCurrency,
+                'total_commission' => array_sum(array_column($totalsByCurrency, 'commission')),
+            ],
         ];
 
-        $currencies = [
-            ['id' => 1, 'iso_code' => 'USD'],
-            ['id' => 2, 'iso_code' => 'EUR'],
-            ['id' => 3, 'iso_code' => 'VES']
-        ];
-
-        $roomTypes = [
-            ['value' => 'Normal', 'label' => 'Normal'],
-            ['value' => 'VIP', 'label' => 'VIP'],
-            ['value' => 'Automática', 'label' => 'Automática'],
-            ['value' => 'Especial', 'label' => 'Especial']
-        ];
+        $roomTypes = \App\Models\Games\Common\Room\RoomType::query()
+            ->get(['code', 'label'])
+            ->map(fn ($rt) => ['value' => $rt->code, 'label' => $rt->label])
+            ->all();
 
         return Inertia::render('Games/Bingo/Report/Sales', [
             'title' => 'Reporte de Ventas',
@@ -273,10 +285,48 @@ final class BingoReportController extends Controller
     /**
      * Display the sales report for a specific room.
      */
-    public function salesReportByRoom(string $room, string $currency = null): Response
+    public function salesReportByRoom(BingoRoom $room, string $currency = null): Response
     {
-        // TODO: Implement actual data fetching logic for specific room
-        // This is a placeholder implementation for specific room sales
+        abort_if($this->userContext->userHasRole('player'), 403);
+
+        $room->load(['config.roomType']);
+
+        $query = BingoCard::query()
+            ->where('room_id', $room->id)
+            ->with(['roomUser.user', 'currency', 'cardLot.payments'])
+            ->orderByDesc('created_at');
+
+        if ($currency) {
+            $query->where('currency_id', $currency);
+        }
+
+        $paymentStatusToLabel = [
+            'PENDING'   => 'Pending',
+            'COMPLETED' => 'Paid',
+            'FAILED'    => 'Cancelled',
+        ];
+
+        $cards = $query->limit(500)->get();
+
+        $rows = $cards->map(function (BingoCard $card) use ($paymentStatusToLabel) {
+            $payment = $card->cardLot?->payments?->first();
+
+            return [
+                'id'             => (string) $card->id,
+                'card_number'    => $card->serial_number,
+                'player_name'    => $card->roomUser?->user?->name ?? '—',
+                'card_price'     => (float) ($card->cardLot?->card_price ?? 0),
+                'currency'       => $card->currency?->iso_code ?? '—',
+                'sale_date'      => optional($card->created_at)->format('Y-m-d H:i:s'),
+                'payment_method' => $payment?->payment_method ?? '—',
+                'status'         => $paymentStatusToLabel[$payment?->payment_status] ?? ($payment?->payment_status ?? 'Pending'),
+            ];
+        })->all();
+
+        $totalAmount = (float) $cards->sum(fn (BingoCard $card) => (float) ($card->cardLot?->card_price ?? 0));
+        $primaryCurrency = $cards->first()?->currency?->iso_code ?? '—';
+        $commission = (float) ($room->room_commission ?? 0) + (float) ($room->rke_commission ?? 0);
+
         $roomSalesData = [
             'columns' => [
                 ['key' => 'id', 'label' => 'ID', 'sortable' => true],
@@ -288,85 +338,28 @@ final class BingoReportController extends Controller
                 ['key' => 'payment_method', 'label' => 'Método de Pago', 'sortable' => true],
                 ['key' => 'status', 'label' => 'Estado', 'sortable' => true],
             ],
-            'rows' => [
-                // Placeholder data - replace with actual database query for specific room
-                [
-                    'id' => 1,
-                    'card_number' => 'BINGO-001',
-                    'player_name' => 'Carlos Rodríguez',
-                    'card_price' => 10.00,
-                    'currency' => 'USD',
-                    'sale_date' => '2024-01-15 10:30:00',
-                    'payment_method' => 'Credit Card',
-                    'status' => 'Paid'
-                ],
-                [
-                    'id' => 2,
-                    'card_number' => 'BINGO-002',
-                    'player_name' => 'María García',
-                    'card_price' => 10.00,
-                    'currency' => 'USD',
-                    'sale_date' => '2024-01-15 11:45:00',
-                    'payment_method' => 'PayPal',
-                    'status' => 'Paid'
-                ],
-                [
-                    'id' => 3,
-                    'card_number' => 'BINGO-003',
-                    'player_name' => 'Juan Pérez',
-                    'card_price' => 10.00,
-                    'currency' => 'USD',
-                    'sale_date' => '2024-01-15 14:20:00',
-                    'payment_method' => 'Bank Transfer',
-                    'status' => 'Paid'
-                ],
-                [
-                    'id' => 4,
-                    'card_number' => 'BINGO-004',
-                    'player_name' => 'Ana Martínez',
-                    'card_price' => 10.00,
-                    'currency' => 'USD',
-                    'sale_date' => '2024-01-15 15:10:00',
-                    'payment_method' => 'Cash',
-                    'status' => 'Pending'
-                ],
-                [
-                    'id' => 5,
-                    'card_number' => 'BINGO-005',
-                    'player_name' => 'Luis Sánchez',
-                    'card_price' => 10.00,
-                    'currency' => 'USD',
-                    'sale_date' => '2024-01-15 16:30:00',
-                    'payment_method' => 'Credit Card',
-                    'status' => 'Paid'
-                ]
-            ],
+            'rows' => $rows,
             'room_info' => [
-                'id' => $room,
-                'name' => 'Sala Principal',
-                'type' => 'Normal',
-                'total_cards_sold' => 5,
-                'total_amount' => 50.00,
-                'currency' => 'USD',
-                'commission' => 5.00,
-                'net_amount' => 45.00
+                'id'               => (string) $room->id,
+                'name'             => $this->roomLabel($room),
+                'type'             => $room->config?->roomType?->code ?? 'PUBLIC',
+                'total_cards_sold' => $cards->count(),
+                'total_amount'     => $totalAmount,
+                'currency'         => $primaryCurrency,
+                'commission'       => $commission,
+                'net_amount'       => $totalAmount - $commission,
             ]
         ];
 
-        $currencies = [
-            ['id' => 1, 'iso_code' => 'USD'],
-            ['id' => 2, 'iso_code' => 'EUR'],
-            ['id' => 3, 'iso_code' => 'VES']
-        ];
+        $currencies = Currency::query()->orderBy('iso_code')->get(['id', 'iso_code']);
 
-        $paymentMethods = [
-            ['value' => 'Credit Card', 'label' => 'Tarjeta de Crédito'],
-            ['value' => 'Debit Card', 'label' => 'Tarjeta de Débito'],
-            ['value' => 'PayPal', 'label' => 'PayPal'],
-            ['value' => 'Bank Transfer', 'label' => 'Transferencia Bancaria'],
-            ['value' => 'Cash', 'label' => 'Efectivo'],
-            ['value' => 'Crypto', 'label' => 'Criptomoneda']
-        ];
+        $paymentMethods = BingoCardPayment::query()
+            ->whereNotNull('payment_method')
+            ->distinct()
+            ->orderBy('payment_method')
+            ->pluck('payment_method')
+            ->map(fn (string $method) => ['value' => $method, 'label' => $method])
+            ->all();
 
         return Inertia::render('Games/Bingo/Report/SalesByRoom', [
             'title' => "Reporte de Ventas - {$roomSalesData['room_info']['name']}",
@@ -374,9 +367,7 @@ final class BingoReportController extends Controller
             'currencies' => $currencies,
             'paymentMethods' => $paymentMethods,
             'selectedCurrency' => $currency,
-            'roomId' => $room
+            'roomId' => (string) $room->id
         ]);
     }
-
-    
 }
