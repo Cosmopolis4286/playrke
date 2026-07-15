@@ -24,6 +24,9 @@ class TriviaParticipant extends BaseModel
         'eliminated_at',
         'final_rank',
         'prize_won',
+        'prize_status',
+        'prize_payment_attempts',
+        'prize_last_attempted_at',
         'power_ups',
         'power_ups_used',
         'correct_answers',
@@ -45,6 +48,8 @@ class TriviaParticipant extends BaseModel
         'confirmed_at' => 'datetime',
         'joined_game_at' => 'datetime',
         'eliminated_at' => 'datetime',
+        'prize_payment_attempts' => 'integer',
+        'prize_last_attempted_at' => 'datetime',
     ];
 
     // Relaciones
@@ -96,6 +101,11 @@ class TriviaParticipant extends BaseModel
     public function isWinner(): bool
     {
         return $this->status === 'winner';
+    }
+
+    public function prizePaid(): bool
+    {
+        return $this->prize_status === 'paid';
     }
 
     // Comodines disponibles

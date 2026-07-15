@@ -49,3 +49,15 @@ Schedule::command('trivia:start-scheduled-rooms')
     ->everyMinute()
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/schedule.log'));
+
+Schedule::command('trivia:auto-finish-stale-games')
+    ->timezone('UTC')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/schedule.log'));
+
+Schedule::command('trivia:retry-failed-prize-payouts')
+    ->timezone('UTC')
+    ->withoutOverlapping()
+    ->everyFiveMinutes()
+    ->appendOutputTo(storage_path('logs/schedule.log'));

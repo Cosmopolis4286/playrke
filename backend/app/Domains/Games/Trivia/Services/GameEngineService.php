@@ -88,6 +88,7 @@ class GameEngineService implements GameEngineInterface
             metadata: [
                 'game_code' => $game->game_code,
                 'room_title' => $room->title,
+                'last_activity' => time(),
             ]
         );
 
@@ -181,7 +182,10 @@ class GameEngineService implements GameEngineInterface
 
         // Guardar el ID usado para no repetirlo
         $usedIds[] = (string) $question->id;
-        $updatedMetadata = array_merge($state->metadata, ['used_question_ids' => $usedIds]);
+        $updatedMetadata = array_merge($state->metadata, [
+            'used_question_ids' => $usedIds,
+            'last_activity' => time(),
+        ]);
         $newState = new \App\Domains\Games\Trivia\DTOs\GameStateDTO(
             gameId:               $newState->gameId,
             roomId:               $newState->roomId,
@@ -296,6 +300,14 @@ class GameEngineService implements GameEngineInterface
             'max_streak' => $newScore->maxStreak,
             'average_response_time_ms' => $newScore->averageResponseTimeMs,
         ]);
+
+        // Marcar actividad reciente para que shouldAutoFinish() no cierre el
+        // juego por timeout mientras los jugadores siguen respondiendo.
+        $this->stateRepository->updateField(
+            $gameId,
+            'metadata',
+            array_merge($state->metadata, ['last_activity' => time()])
+        );
 
         // Persistir respuesta en DB
         // (Se puede hacer async vía Job para no bloquear)

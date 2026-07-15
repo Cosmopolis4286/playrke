@@ -96,46 +96,11 @@ final class PrizeDistributionService
                     continue;
                 }
 
-                // Obtener wallet del ganador en la moneda del premio
-                $wallet = Wallet::where('user_id', $userId)
-                    ->where('currency_id', $currencyId)
-                    ->where('status', 'ACTIVE')
-                    ->first();
+                $result = $this->payoutOne($room, $userId, $payout['rank'], $amount, $currencyId);
 
-                if (! $wallet) {
-                    Log::warning('[PrizeDistribution] Ganador sin wallet', [
-                        'room_id'     => $room->id,
-                        'user_id'     => $userId,
-                        'currency_id' => $currencyId,
-                        'amount'      => $amount,
-                    ]);
-                    continue;
+                if ($result) {
+                    $results[] = $result;
                 }
-
-                // Acreditar premio
-                $movement = $this->walletService->recordPrize(
-                    wallet:      $wallet,
-                    amount:      $amount,
-                    gameId:      (string) $room->id,
-                    description: "Premio Trivia #{$payout['rank']}° — {$room->title} ({$room->code})",
-                );
-
-                // Actualizar participant en pgsql_trivia
-                TriviaParticipant::where('room_id', $room->id)
-                    ->where('user_id', $userId)
-                    ->update([
-                        'final_rank' => $payout['rank'],
-                        'prize_won'  => $amount,
-                        'status'     => 'winner',
-                    ]);
-
-                $results[] = [
-                    'playerId'   => $userId,
-                    'position'   => $payout['rank'],
-                    'prizeAmount' => $amount,
-                    'currencyId' => $currencyId,
-                    'movementId' => (string) $movement->id,
-                ];
             }
         });
 
@@ -150,6 +115,66 @@ final class PrizeDistributionService
         $this->announceTopWinner($room, $results);
 
         return $results;
+    }
+
+    /**
+     * Acredita el premio de un único ganador y deja registrado en
+     * trivia_participants.prize_status el resultado del intento — necesario
+     * para que trivia:retry-failed-prize-payouts pueda detectar y reintentar
+     * a los ganadores cuya wallet no estaba disponible en el momento del pago.
+     *
+     * @return array{playerId: string, position: int, prizeAmount: float, currencyId: string, movementId: string}|null
+     */
+    public function payoutOne(TriviaRoom $room, string $userId, int $rank, float $amount, string $currencyId): ?array
+    {
+        $participant = TriviaParticipant::where('room_id', $room->id)
+            ->where('user_id', $userId)
+            ->first();
+
+        $participant?->increment('prize_payment_attempts');
+        $participant?->update(['prize_last_attempted_at' => now()]);
+
+        // Obtener wallet del ganador en la moneda del premio
+        $wallet = Wallet::where('user_id', $userId)
+            ->where('currency_id', $currencyId)
+            ->where('status', 'ACTIVE')
+            ->first();
+
+        if (! $wallet) {
+            Log::warning('[PrizeDistribution] Ganador sin wallet', [
+                'room_id'     => $room->id,
+                'user_id'     => $userId,
+                'currency_id' => $currencyId,
+                'amount'      => $amount,
+            ]);
+
+            $participant?->update(['prize_status' => 'failed']);
+
+            return null;
+        }
+
+        // Acreditar premio
+        $movement = $this->walletService->recordPrize(
+            wallet:      $wallet,
+            amount:      $amount,
+            gameId:      (string) $room->id,
+            description: "Premio Trivia #{$rank}° — {$room->title} ({$room->code})",
+        );
+
+        $participant?->update([
+            'final_rank'    => $rank,
+            'prize_won'     => $amount,
+            'status'        => 'winner',
+            'prize_status'  => 'paid',
+        ]);
+
+        return [
+            'playerId'    => $userId,
+            'position'    => $rank,
+            'prizeAmount' => $amount,
+            'currencyId'  => $currencyId,
+            'movementId'  => (string) $movement->id,
+        ];
     }
 
     /**
