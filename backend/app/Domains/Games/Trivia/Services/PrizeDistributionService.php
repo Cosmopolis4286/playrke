@@ -8,9 +8,7 @@ use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Platform\WinEvent\Services\WinEventService;
 use App\Models\ExchangeRate;
 use App\Models\Games\Trivia\TriviaParticipant;
-use App\Models\Wallet;
-use App\Services\WalletService;
-use Illuminate\Support\Facades\DB;
+use App\Services\Games\GamePrizeService;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
@@ -45,7 +43,7 @@ final class PrizeDistributionService
     private const MIN_PAID_POSITIONS_POOL = 3;
 
     public function __construct(
-        private readonly WalletService $walletService,
+        private readonly GamePrizeService $gamePrizeService,
         private readonly WinEventService $winEventService,
     ) {}
 
@@ -73,36 +71,36 @@ final class PrizeDistributionService
         $currencyId = (string) $room->prize_currency_id;
         $results    = [];
 
-        // Transacción MySQL (wallets) — las actualizaciones de pgsql_trivia son
-        // idempotentes y se hacen dentro del mismo bloque para consistencia lógica.
-        DB::transaction(function () use ($room, $finalRanks, $payouts, $currencyId, &$results) {
-            foreach ($payouts as $payout) {
-                $rank   = $finalRanks[$payout['rank'] - 1] ?? null;
+        // Cada payoutOne() delega la atomicidad del pago a GamePrizeService
+        // (FSM waiting→processing→claimed + idempotencyKey) — no se envuelve
+        // en una transacción conjunta porque trivia_participants (pgsql_trivia)
+        // y wallet_movements (mysql) son motores de BD distintos.
+        foreach ($payouts as $payout) {
+            $rank = $finalRanks[$payout['rank'] - 1] ?? null;
 
-                // La posición no existe (menos jugadores que posiciones pagas)
-                if (! $rank) {
-                    continue;
-                }
-
-                // No pagar a jugadores sin ninguna respuesta correcta (skill gate)
-                if (($rank['correctAnswers'] ?? 0) === 0) {
-                    continue;
-                }
-
-                $userId = $rank['playerId'];
-                $amount = round((float) $payout['amount'], 8);
-
-                if ($amount <= 0) {
-                    continue;
-                }
-
-                $result = $this->payoutOne($room, $userId, $payout['rank'], $amount, $currencyId);
-
-                if ($result) {
-                    $results[] = $result;
-                }
+            // La posición no existe (menos jugadores que posiciones pagas)
+            if (! $rank) {
+                continue;
             }
-        });
+
+            // No pagar a jugadores sin ninguna respuesta correcta (skill gate)
+            if (($rank['correctAnswers'] ?? 0) === 0) {
+                continue;
+            }
+
+            $userId = $rank['playerId'];
+            $amount = round((float) $payout['amount'], 8);
+
+            if ($amount <= 0) {
+                continue;
+            }
+
+            $result = $this->payoutOne($room, $userId, $payout['rank'], $amount, $currencyId);
+
+            if ($result) {
+                $results[] = $result;
+            }
+        }
 
         Log::info('[PrizeDistribution] Premios distribuidos', [
             'room_id' => $roomId,
@@ -118,10 +116,10 @@ final class PrizeDistributionService
     }
 
     /**
-     * Acredita el premio de un único ganador y deja registrado en
-     * trivia_participants.prize_status el resultado del intento — necesario
-     * para que trivia:retry-failed-prize-payouts pueda detectar y reintentar
-     * a los ganadores cuya wallet no estaba disponible en el momento del pago.
+     * Acredita el premio de un único ganador vía GamePrizeService — el mismo
+     * FSM (waiting→processing→claimed) e idempotencia que usa Bingo. Deja el
+     * resultado en trivia_participants.prize_status, detectable y reintentable
+     * por trivia:retry-failed-prize-payouts.
      *
      * @return array{playerId: string, position: int, prizeAmount: float, currencyId: string, movementId: string}|null
      */
@@ -131,49 +129,45 @@ final class PrizeDistributionService
             ->where('user_id', $userId)
             ->first();
 
-        $participant?->increment('prize_payment_attempts');
-        $participant?->update(['prize_last_attempted_at' => now()]);
-
-        // Obtener wallet del ganador en la moneda del premio
-        $wallet = Wallet::where('user_id', $userId)
-            ->where('currency_id', $currencyId)
-            ->where('status', 'ACTIVE')
-            ->first();
-
-        if (! $wallet) {
-            Log::warning('[PrizeDistribution] Ganador sin wallet', [
-                'room_id'     => $room->id,
-                'user_id'     => $userId,
-                'currency_id' => $currencyId,
-                'amount'      => $amount,
+        if (! $participant) {
+            Log::warning('[PrizeDistribution] Ganador sin registro de participante', [
+                'room_id' => $room->id,
+                'user_id' => $userId,
             ]);
-
-            $participant?->update(['prize_status' => 'failed']);
-
             return null;
         }
 
-        // Acreditar premio
-        $movement = $this->walletService->recordPrize(
-            wallet:      $wallet,
-            amount:      $amount,
-            gameId:      (string) $room->id,
-            description: "Premio Trivia #{$rank}° — {$room->title} ({$room->code})",
+        // Preparar el registro para el FSM de GamePrizeService: solo se
+        // reinicia a 'waiting' si aún no se intentó pagar (evita pisar
+        // 'processing'/'claimed' si esto se llama dos veces sobre el mismo ganador).
+        if ($participant->final_rank === null) {
+            $participant->update([
+                'final_rank'   => $rank,
+                'prize_won'    => $amount,
+                'status'       => 'winner',
+                'prize_status' => 'waiting',
+            ]);
+        }
+
+        $this->gamePrizeService->payout(
+            $participant,
+            "Premio Trivia #{$rank}° — {$room->title} ({$room->code})",
         );
 
-        $participant?->update([
-            'final_rank'    => $rank,
-            'prize_won'     => $amount,
-            'status'        => 'winner',
-            'prize_status'  => 'paid',
-        ]);
+        $participant->refresh();
+
+        if (! $participant->isClaimed()) {
+            return null;
+        }
+
+        $movementId = $participant->payments()->completed()->latest('created_at')->value('transaction_reference');
 
         return [
             'playerId'    => $userId,
             'position'    => $rank,
             'prizeAmount' => $amount,
             'currencyId'  => $currencyId,
-            'movementId'  => (string) $movement->id,
+            'movementId'  => (string) $movementId,
         ];
     }
 
