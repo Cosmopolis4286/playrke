@@ -96,28 +96,57 @@ final class GamePrizeService
             $wallet = $this->walletService->findActiveWallet($userId, $locked->getCurrencyId());
 
             if (!$wallet) {
-                Log::warning('[GamePrizeService] Ganador sin wallet activa', [
+                Log::warning('[GamePrizeService] Ganador sin wallet activa — suspendiendo premio para revisión manual', [
                     'game'        => $gameSlug,
                     'prize_id'    => $locked->getKey(),
                     'user_id'     => $userId,
                     'currency_id' => $locked->getCurrencyId(),
                 ]);
-                $this->recordPayment($locked, null, 'failed', 'El ganador no tiene billetera activa en la moneda del premio.');
+                // Wallet inexistente es un error permanente (no transitorio): transicionar
+                // a 'suspended' para que el retry cron no lo intente indefinidamente y
+                // un operador pueda revisarlo manualmente.
+                DB::transaction(function () use ($locked) {
+                    $this->recordPayment($locked, null, 'failed', 'El ganador no tiene billetera activa en la moneda del premio.');
+                    $locked->prize_status = 'suspended';
+                    $locked->save();
+                });
                 return;
             }
 
             $amount   = $locked->getLocalAmount();
-            $movement = $this->walletService->recordPrize(
-                wallet:      $wallet,
-                amount:      $amount,
-                gameId:      $locked->getGameId(),
-                description: $description,
-            );
 
-            DB::transaction(function () use ($locked, $movement) {
+            // IMPORTANTE: recordPrize() y el registro del payment + markAsClaimed()
+            // NO pueden estar en la misma transacción porque recordPrize() modifica
+            // la wallet (balance externo). Separar las dos operaciones expone una
+            // ventana donde el worker muere entre ambas, pero eso se cubre con el
+            // path de reintento hasCompletedPayment() en la transacción 1 de arriba.
+            //
+            // El riesgo de doble pago existe si dos workers concurrentes pasan la
+            // transacción 1 (markAsProcessing) y ambos llaman recordPrize() antes de
+            // que cualquiera commitee la transacción 2. Para mitigarlo, la transacción 2
+            // re-verifica hasCompletedPayment() con lockForUpdate antes de creditar.
+            $movement = null;
+            DB::transaction(function () use ($locked, $wallet, $amount, $description, &$movement) {
+                // Re-verificar bajo lock que nadie más completó el pago mientras esperábamos.
+                /** @var \App\Services\Games\GamePrizeContract $row */
+                $row = $locked::where('id', $locked->getKey())->lockForUpdate()->first();
+                if (!$row || $row->hasCompletedPayment()) {
+                    return; // ya pagado por un worker concurrente — no continuar
+                }
+                $movement = $this->walletService->recordPrize(
+                    wallet:      $wallet,
+                    amount:      $amount,
+                    gameId:      $locked->getGameId(),
+                    description: $description,
+                );
                 $this->recordPayment($locked, (string) $movement->id, 'completed', null);
                 $locked->markAsClaimed();
             });
+
+            if ($movement === null) {
+                // Otro worker completó el pago concurrentemente — nada más que hacer.
+                return;
+            }
 
             Log::info('[GamePrizeService] Premio acreditado', [
                 'game'        => $gameSlug,
@@ -128,13 +157,20 @@ final class GamePrizeService
                 'movement_id' => $movement->id,
             ]);
         } catch (\Throwable $e) {
-            Log::error('[GamePrizeService] Falló el pago — prize_status queda en processing', [
+            Log::error('[GamePrizeService] Falló el pago — prize_status queda en processing para reintento', [
                 'game'     => $gameSlug,
                 'prize_id' => $locked->getKey(),
                 'user_id'  => $userId,
                 'error'    => $e->getMessage(),
             ]);
-            $this->recordPayment($locked, null, 'failed', $e->getMessage());
+            try {
+                $this->recordPayment($locked, null, 'failed', $e->getMessage());
+            } catch (\Throwable $inner) {
+                Log::error('[GamePrizeService] No se pudo registrar el payment fallido', [
+                    'prize_id' => $locked->getKey(),
+                    'error'    => $inner->getMessage(),
+                ]);
+            }
         }
     }
 
