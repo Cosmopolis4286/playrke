@@ -73,7 +73,7 @@ class BingoRoomRepository extends BaseRepository implements BingoRoomRepositoryI
     public function getActiveRoomsForViewWithRoleFilter(int $userId, string $today, bool $isPlayer, bool $isCommerceCustomer = false, bool $isAdmin = false): Collection
     {
         $with = [
-            'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id,game_mode_id,min_cards_to_start,game_variant,allow_custom_card,custom_card_price_pct',
+            'config:room_id,unix_date,card_price_usd,prize_pool_type_id,date,time,room_type_id,game_mode_id,min_cards_to_start,max_players,game_variant,allow_custom_card,custom_card_price_pct',
             'config.prizePoolType:id,code,label',
             'config.roomType:id,code,label',
             'config.gameMode:id,code,label',

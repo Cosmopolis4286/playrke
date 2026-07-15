@@ -99,6 +99,7 @@ final class BingoGameController extends Controller
                     'time_chip'             => $config?->time_chip,
                     'rounds'                => $config?->rounds,
                     'min_cards_to_start'    => $config?->min_cards_to_start,
+                    'max_players'           => $config?->max_players,
                     'game_variant'          => $config?->game_variant,
                 ];
 

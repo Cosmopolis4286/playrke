@@ -20,6 +20,7 @@ export interface LobbyRoom {
   time_chip?: number
   rounds?: number
   min_cards_to_start?: number | null
+  max_players?: number | null
   game_variant?: string | null
 }
 

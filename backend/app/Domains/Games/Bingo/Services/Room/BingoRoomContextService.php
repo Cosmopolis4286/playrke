@@ -188,14 +188,23 @@ final class BingoRoomContextService
 
             // Columna "Jugadores": jugadores + ganadores, con iconos para diferenciarlos
             // de un vistazo (persona vs. trofeo) — atenuados en 0 para no competir
-            // visualmente con salas con actividad real.
+            // visualmente con salas con actividad real. Si hay cupo configurado
+            // (max_players), se anota "/N" y se marca en rojo al llenarse — mismo
+            // criterio visual que la cuota mínima de cartones de arriba.
             $playersCount = $row['total_players'];
             $winnersCount = $model?->cardPrizes?->count() ?? 0;
+            $maxPlayers   = $config?->max_players;
+            $roomIsFull   = $maxPlayers !== null && $maxPlayers > 0 && $playersCount >= $maxPlayers;
+
+            $playersQuotaHtml = ($maxPlayers !== null && $maxPlayers > 0)
+                ? '<span class="room-players-cell__quota' . ($roomIsFull ? ' room-players-cell__quota--full' : '') . '">/ ' . (int) $maxPlayers . '</span>'
+                : '';
 
             $row['total_players_badge'] = '<div class="room-players-cell">'
-                . '<span class="room-players-cell__stat' . ($playersCount === 0 ? ' room-players-cell__stat--zero' : '') . '" title="Jugadores">'
+                . '<span class="room-players-cell__stat' . ($playersCount === 0 ? ' room-players-cell__stat--zero' : '') . ($roomIsFull ? ' room-players-cell__stat--full' : '') . '" title="Jugadores">'
                 . '<i class="fas fa-user"></i>' . $playersCount
                 . '</span>'
+                . $playersQuotaHtml
                 . '<span class="room-players-cell__stat' . ($winnersCount === 0 ? ' room-players-cell__stat--zero' : '') . '" title="Ganadores">'
                 . '<i class="fas fa-trophy"></i>' . $winnersCount
                 . '</span>'

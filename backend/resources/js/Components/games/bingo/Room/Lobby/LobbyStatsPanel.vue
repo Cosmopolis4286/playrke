@@ -1,13 +1,19 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import type { LobbyRoom, LobbyLiveState } from './types'
 
-defineProps<{
+const props = defineProps<{
   room: LobbyRoom
   live: LobbyLiveState
   roomRouteKey: string
   canNavigateGame: boolean
   canPurchaseCards: boolean
+  /** Calculado en el padre (Lobby/Index.vue): max_players alcanzado Y el
+   * usuario aún no tiene cartones — un jugador ya registrado puede seguir
+   * comprando aunque el cupo de jugadores nuevos esté lleno (ver
+   * BingoCardGenerationService::$isNewRoomUser). */
+  roomIsFull: boolean
   redirecting: boolean
   playersFlash: boolean
   minCardsToStart: number | null
@@ -22,6 +28,13 @@ const emit = defineEmits<{
   openMyCards: []
   requestNotification: []
 }>()
+
+// Indicador de advertencia previo al bloqueo real (solo visual, no afecta
+// canPurchaseCards) — se acerca al límite de jugadores de la sala.
+const roomIsNearFull = computed(() =>
+  !props.roomIsFull && props.room.max_players != null &&
+  props.live.totalPlayers >= props.room.max_players * 0.8
+)
 </script>
 
 <template>
@@ -30,13 +43,15 @@ const emit = defineEmits<{
     <div class="lby-stats">
       <div
         class="lby-stat lby-stat--clickable"
-        :class="{ 'lby-flash': playersFlash }"
+        :class="{ 'lby-flash': playersFlash, 'lby-stat--full': roomIsFull, 'lby-stat--near-full': roomIsNearFull }"
         title="Ver lista de jugadores"
         @click="emit('openPlayers')"
       >
         <div class="lby-stat__icon-wrap"><i class="fas fa-users" /></div>
-        <span class="lby-stat__val" aria-live="polite" aria-atomic="true">{{ live.totalPlayers }}</span>
-        <span class="lby-stat__lbl">Jugadores</span>
+        <span class="lby-stat__val" aria-live="polite" aria-atomic="true">
+          {{ live.totalPlayers }}<template v-if="room.max_players"><small class="lby-stat__val-max">/{{ room.max_players }}</small></template>
+        </span>
+        <span class="lby-stat__lbl">{{ roomIsFull ? 'Sala llena' : 'Jugadores' }}</span>
       </div>
 
       <div
@@ -120,6 +135,12 @@ const emit = defineEmits<{
       <span>Sala cerrada — modo espectador</span>
     </div>
 
+    <!-- Cupo lleno — nuevos jugadores no podrán registrar cartones (BingoRoomCapacityGuard) -->
+    <div v-else-if="roomIsFull && live.userCards === 0" class="lby-spectator">
+      <i class="fas fa-lock" />
+      <span>Sala llena — modo espectador</span>
+    </div>
+
     <!-- Última compra -->
     <div v-if="lastSaleLabel" class="lby-last-sale">
       <i class="fas fa-bolt" />
@@ -167,6 +188,14 @@ const emit = defineEmits<{
 .lby-stat--closed { border-color: rgba(255,77,109,.15); background: rgba(255,77,109,.03); }
 .lby-stat--closed .lby-stat__icon-wrap { color: #ff6e8a; border-color: rgba(255,77,109,.2); background: rgba(255,77,109,.08); }
 .lby-stat--closed .lby-stat__val { color: #ff6e8a; }
+
+.lby-stat--near-full { border-color: rgba(255,191,0,.2); background: rgba(255,191,0,.03); }
+.lby-stat--near-full .lby-stat__icon-wrap { color: #ffc336; border-color: rgba(255,191,0,.25); background: rgba(255,191,0,.1); }
+.lby-stat--near-full .lby-stat__val { color: #ffc336; }
+.lby-stat--full { border-color: rgba(255,77,109,.2); background: rgba(255,77,109,.04); }
+.lby-stat--full .lby-stat__icon-wrap { color: #ff6e8a; border-color: rgba(255,77,109,.25); background: rgba(255,77,109,.1); }
+.lby-stat--full .lby-stat__val { color: #ff6e8a; }
+.lby-stat__val-max { font-size: 10px; font-weight: 500; opacity: .55; margin-left: 1px; }
 
 .lby-stat__icon-wrap {
   width: 22px; height: 22px; border-radius: 6px;
