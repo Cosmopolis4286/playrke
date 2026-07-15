@@ -114,10 +114,22 @@ watch(() => live.statusCode, (code) => {
 
 const canNavigateGame = computed(() => roomRouteKey.value.length > 0)
 
+// Cupo de sala (max_players): BingoRoomCapacityGuard::assertHasCapacity() solo
+// se invoca para jugadores NUEVOS (ver BingoCardGenerationService, condicionado
+// a $isNewRoomUser) — un jugador que ya tiene cartones en la sala puede seguir
+// comprando aunque el cupo de jugadores esté lleno. Replicar la misma distinción
+// aquí evita bloquear al usuario equivocado en la UI.
+const roomIsFull = computed(() =>
+  props.room?.max_players != null &&
+  live.userCards === 0 &&
+  live.totalPlayers >= props.room.max_players
+)
+
 const canPurchaseCards = computed(() =>
   props.room != null &&
   live.statusCode?.toUpperCase() === 'ACTIVE' &&
-  !props.room.close_room
+  !props.room.close_room &&
+  !roomIsFull.value
 )
 
 const minCardsToStart = computed(() => props.room?.min_cards_to_start ?? null)
@@ -228,6 +240,7 @@ function onPurchaseSuccess(_roomId: string, result: { prizePool: number; ctns: n
           :room-route-key="roomRouteKey"
           :can-navigate-game="canNavigateGame"
           :can-purchase-cards="canPurchaseCards"
+          :room-is-full="roomIsFull"
           :redirecting="redirecting"
           :players-flash="playersFlash"
           :min-cards-to-start="minCardsToStart"
