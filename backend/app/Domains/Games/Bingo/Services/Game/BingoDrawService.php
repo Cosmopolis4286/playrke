@@ -215,6 +215,17 @@ final class BingoDrawService
             ]);
         }
 
+        // Resolver el intervalo aquí — antes del bloque if($resuming) — para que
+        // el TTL del cache de resume use el valor real configurado en la sala y no
+        // el default de la instancia (5s), lo que causaba que la cache expirara
+        // muy pronto si time_chip era mayor (ej. 60s → TTL quedaba en 7s en vez de 62s).
+        $configInterval = (int) ($room->config?->time_chip ?? 0);
+        $this->currentInterval = $configInterval > 0
+            ? $configInterval
+            : (app()->environment('local')
+                ? (int) env('BINGO_DEV_INTERVAL_SECONDS', self::CHIP_INTERVAL_DEV)
+                : self::CHIP_INTERVAL_SECONDS);
+
         if ($resuming) {
             $sequence   = $existingSequence;
             $drawnSoFar = $drawnChips;
@@ -240,10 +251,12 @@ final class BingoDrawService
                 return $result;
             }
         } else {
-            // Limpiar sorteos previos (de una sala/ronda distinta o ya finalizada)
-            DB::transaction(function () use ($roomId) {
-                BingoDraw::where('room_id', $roomId)->delete();
-                BingoDrawCode::where('room_id', $roomId)->delete();
+            // Limpiar sorteos previos de la ronda activa únicamente — no tocar
+            // draws de rondas ya FINISHED para no destruir el historial de auditoría
+            // en juegos multi-ronda.
+            DB::transaction(function () use ($roomId, $roundId) {
+                BingoDraw::where('room_id', $roomId)->where('round_id', $roundId)->delete();
+                BingoDrawCode::where('room_id', $roomId)->where('round_id', $roundId)->delete();
             });
 
             // 4. Generar y persistir secuencia
@@ -272,15 +285,8 @@ final class BingoDrawService
         }
 
         // 6. Fichas restantes
-        // time_chip de la config es la fuente de verdad.
-        // Fallback: 5s en producción / BINGO_DEV_INTERVAL_SECONDS (default 3s) en local.
-        $configInterval = (int) ($room->config?->time_chip ?? 0);
-        $interval = $configInterval > 0
-            ? $configInterval
-            : (app()->environment('local')
-                ? (int) env('BINGO_DEV_INTERVAL_SECONDS', self::CHIP_INTERVAL_DEV)
-                : self::CHIP_INTERVAL_SECONDS);
-        $this->currentInterval = $interval;
+        // $this->currentInterval ya fue resuelto antes del bloque resume (arriba).
+        $interval = $this->currentInterval;
 
         for ($i = $startIndex, $total = count($sequence); $i < $total; $i++) {
             // sleep() intencional — este método siempre corre en el worker dedicado
@@ -803,7 +809,10 @@ final class BingoDrawService
     {
         $round->update([
             'status'    => 'FINISHED',
+            // Filtrar también por round_id para no coger el último chip de otra ronda
+            // en juegos multi-ronda con timestamps de segundo granularity.
             'last_chip' => BingoDraw::where('room_id', (string) $round->room_id)
+                ->where('round_id', (string) $round->id)
                 ->orderBy('created_at', 'desc')
                 ->value('chip'),
         ]);

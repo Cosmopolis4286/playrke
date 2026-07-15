@@ -44,6 +44,7 @@ class BingoCardPrize extends Model implements GamePrizeContract
     ];
 
     protected $casts = [
+        'id'                => 'string',
         'status'            => 'string',
         'creator_user_id'   => 'string',
         'seller_user_id'    => 'string',
