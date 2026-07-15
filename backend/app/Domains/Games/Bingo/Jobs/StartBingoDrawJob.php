@@ -39,6 +39,16 @@ final class StartBingoDrawJob implements ShouldQueue, ShouldBeUniqueUntilProcess
     public int $timeout = 0;
 
     /**
+     * Máximo de intentos antes de pasar el job a failed_jobs.
+     * 3 reintentos cubre crashes transitorios del worker sin generar un
+     * loop infinito cuando hay un error permanente (ej. migración pendiente).
+     */
+    public int $tries = 3;
+
+    /** Segundos entre reintentos — da tiempo al sistema a recuperarse. */
+    public int $backoff = 30;
+
+    /**
      * Ventana de unicidad: cubre el tiempo máximo que el job puede pasar en cola
      * esperando a ser procesado. Con ShouldBeUniqueUntilProcessing el lock se libera
      * al inicio del handle(), así que este valor solo necesita cubrir el queue wait,
