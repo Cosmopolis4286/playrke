@@ -221,34 +221,6 @@ class BingoCardPrizeRepository extends BaseRepository implements BingoCardPrizeR
     }
 
     /**
-     * Actualiza el estado de un premio
-     */
-    public function updatePrizeStatus(string $prizeId, string $newStatus): bool
-    {
-        $updateData = ['prize_status' => $newStatus];
-
-        // Si el estado es "claimed", también actualizar la fecha de reclamo
-        if ($newStatus === 'claimed') {
-            $updateData['claimed_at'] = Carbon::now();
-        }
-
-        return $this->model->where('id', $prizeId)
-                          ->update($updateData) > 0;
-    }
-
-    /**
-     * Marca un premio como reclamado
-     */
-    public function markPrizeAsClaimed(string $prizeId): bool
-    {
-        return $this->model->where('id', $prizeId)
-                          ->update([
-                              'prize_status' => 'claimed',
-                              'claimed_at' => Carbon::now(),
-                          ]) > 0;
-    }
-
-    /**
      * Activa o desactiva un premio
      */
     public function togglePrizeActivation(string $prizeId, bool $isActive): bool

@@ -125,29 +125,6 @@ interface BingoCardPrizeRepositoryContract extends BaseRepositoryInterface
     public function getPrizesByCardLot(string $cardLotId, array $filters = []): Collection;
 
     /**
-     * Actualiza el estado de un premio
-     *
-     * @param string $prizeId ID del premio
-     * @param string $newStatus Nuevo estado
-     * @return bool True si se actualizó correctamente
-     *
-     * @example
-     * $updated = $repository->updatePrizeStatus('123', 'claimed');
-     */
-    public function updatePrizeStatus(string $prizeId, string $newStatus): bool;
-
-    /**
-     * Marca un premio como reclamado
-     *
-     * @param string $prizeId ID del premio
-     * @return bool True si se marcó correctamente
-     *
-     * @example
-     * $claimed = $repository->markPrizeAsClaimed('123');
-     */
-    public function markPrizeAsClaimed(string $prizeId): bool;
-
-    /**
      * Activa o desactiva un premio
      *
      * @param string $prizeId ID del premio
