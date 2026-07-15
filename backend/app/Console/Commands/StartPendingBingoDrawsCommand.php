@@ -7,6 +7,7 @@ use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Domains\Games\Bingo\Jobs\StartBingoDrawJob;
 use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -68,7 +69,16 @@ class StartPendingBingoDrawsCommand extends Command
                 }
 
                 // Sorteo ya completo (todas las fichas de la secuencia fueron cantadas) — nada que hacer.
+                // Si la sala sigue ACTIVE/IN_PROGRESS con el sorteo completo, es probable que
+                // closeRoomIfFinalRound() haya fallado — alertar para revisión manual.
                 if ($room->sequence_count > 0 && $room->drawn_count >= $room->sequence_count) {
+                    if ($room->active_round_count === 0 && $room->finished_round_count === 0) {
+                        Log::critical('[StartPendingBingoDrawsCommand] Sala atascada: sorteo completo pero sin rondas FINISHED ni cierre de sala', [
+                            'room_id'      => $room->id,
+                            'drawn'        => $room->drawn_count,
+                            'sequence'     => $room->sequence_count,
+                        ]);
+                    }
                     continue;
                 }
 
@@ -102,7 +112,15 @@ class StartPendingBingoDrawsCommand extends Command
             $this->error($output);
         }
 
-        app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
+        // logCommandExecution hace un INSERT — si la BD está caída (misma causa del
+        // error capturado arriba), esta llamada también lanzaría, suprimiendo el output
+        // original. Envolver en try/catch garantiza que el error visible al scheduler
+        // sea el original, no un error de logging.
+        try {
+            app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
+        } catch (Throwable $logEx) {
+            $this->error('No se pudo registrar la ejecución del comando: ' . $logEx->getMessage());
+        }
 
         if ($status === 'SUCCESS') {
             $this->info($output);
