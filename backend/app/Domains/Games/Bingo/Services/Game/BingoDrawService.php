@@ -262,7 +262,7 @@ final class BingoDrawService
                 return ['success' => true, 'room_id' => $roomId, 'total_chips' => count($drawnSoFar), 'winner' => null, 'alreadyFinished' => true];
             }
 
-            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, (int) $lastDraw->id, $variant)) {
+            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, (int) $lastDraw->id)) {
                 return $result;
             }
 
@@ -309,7 +309,7 @@ final class BingoDrawService
                     'room_id'  => $roomId,
                     'round_id' => $roundId,
                 ]);
-            } elseif ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, (int) $lastDraw->id, $variant)) {
+            } elseif ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, (int) $lastDraw->id)) {
                 return $result;
             }
         } else {
@@ -341,7 +341,7 @@ final class BingoDrawService
             $drawnSoFar = [$sequence[0]];
             $startIndex = 1;
 
-            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $firstDraw->id, $variant)) {
+            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $firstDraw->id)) {
                 return $result;
             }
         }
@@ -389,7 +389,7 @@ final class BingoDrawService
                 }
             }
 
-            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $draw->id, $variant)) {
+            if ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, $draw->id)) {
                 return $result;
             }
         }
@@ -633,8 +633,7 @@ final class BingoDrawService
         BingoPattern $pattern,
         array        $patternPositions,
         array        $drawnNumbers,
-        int          $lastDrawId,
-        string       $variant = BingoVariant::BINGO_75
+        int          $lastDrawId
     ): ?array {
         // Salida rápida: si el patrón no tiene posiciones definidas no hay bingo posible
         if (empty($patternPositions)) {
@@ -916,17 +915,28 @@ final class BingoDrawService
             ));
 
             $cardPrize->loadMissing('currency');
-            $this->winEventService->reportMoney(
-                userId: $broadcastWinner['winnerId'] ? (string) $broadcastWinner['winnerId'] : null,
-                winnerNameOverride: $broadcastWinner['winnerId'] ? null : $broadcastWinner['winnerName'],
-                gameSlug: 'bingo',
-                gameName: 'Bingo',
-                amountUsd: $broadcastWinner['prize'],
-                amountLocal: (float) $cardPrize->local_amount,
-                currencyId: $cardPrize->currency_id,
-                sourceReference: (string) $cardPrize->id,
-                metadata: ['room_id' => (string) $cardPrize->room_id, 'pattern' => $broadcastWinner['pattern']],
-            );
+
+            // reportMoney en try/catch: un error aquí NO debe bloquear el payout.
+            // Si lanza (ej. servicio de eventos caído), el premio igualmente se acredita
+            // y el fallo queda en el log para reconciliación manual.
+            try {
+                $this->winEventService->reportMoney(
+                    userId: $broadcastWinner['winnerId'] ? (string) $broadcastWinner['winnerId'] : null,
+                    winnerNameOverride: $broadcastWinner['winnerId'] ? null : $broadcastWinner['winnerName'],
+                    gameSlug: 'bingo',
+                    gameName: 'Bingo',
+                    amountUsd: $broadcastWinner['prize'],
+                    amountLocal: (float) $cardPrize->local_amount,
+                    currencyId: $cardPrize->currency_id,
+                    sourceReference: (string) $cardPrize->id,
+                    metadata: ['room_id' => (string) $cardPrize->room_id, 'pattern' => $broadcastWinner['pattern']],
+                );
+            } catch (\Throwable $e) {
+                Log::error('[BingoDrawService] Error al registrar win event — payout continúa', [
+                    'card_prize_id' => $cardPrize->id,
+                    'error'         => $e->getMessage(),
+                ]);
+            }
 
             $this->prizePayoutService->payout($cardPrize);
         } else {
