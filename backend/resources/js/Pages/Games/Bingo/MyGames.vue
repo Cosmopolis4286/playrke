@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import backendClient      from '@js/plugins/axios'
 import DashboardStatCard  from '@js/Components/Common/Dashboard/DashboardStatCard.vue'
 import DashboardSection   from '@js/Components/Common/Dashboard/DashboardSection.vue'
@@ -133,6 +133,11 @@ function formatTotalAmount(d: { total_usd: number; total_local: number; currency
   return formatAmount(d.total_usd, d.is_usd, d.total_local, d.currency_symbol, d.decimal_places)
 }
 
+/** Gasto y neto vienen solo en moneda local (no traen su par USD por separado). */
+function formatLocalOnly(amount: number, symbol: string, decimals: number, isUsd: boolean): string {
+  return isUsd ? `${amount.toFixed(2)} USD` : `${symbol}${amount.toFixed(decimals)}`
+}
+
 // ── Stats ──────────────────────────────────────────────────────────────────
 const totalGames   = computed(() => meta.value.total)
 const wonOnPage    = computed(() => history.value.filter(r => r.won).length)
@@ -146,6 +151,25 @@ const displayCards = computed(() => {
   }
   return detail.value.player_cards
 })
+
+// ── Carrusel de cartones ────────────────────────────────────────────────────
+const cardIndex = ref(0)
+
+watch(displayCards, () => { cardIndex.value = 0 })
+
+/** Clamp defensivo: evita index-out-of-bounds si displayCards se acorta
+ * (cambio de tab a "winners") antes de que el watcher reinicie cardIndex. */
+const activeCard = computed(() => {
+  const cards = displayCards.value
+  return cards[cardIndex.value] ?? cards[0] ?? null
+})
+
+function prevCard() {
+  cardIndex.value = cardIndex.value === 0 ? displayCards.value.length - 1 : cardIndex.value - 1
+}
+function nextCard() {
+  cardIndex.value = cardIndex.value === displayCards.value.length - 1 ? 0 : cardIndex.value + 1
+}
 
 // ── Fetch lista ────────────────────────────────────────────────────────────
 async function fetchHistory(page = 1) {
@@ -366,12 +390,36 @@ async function openDetail(row: GameHistoryRow) {
           </div>
         </div>
 
+        <!-- Resumen financiero: gasto vs. ganado vs. neto — el feedback más
+             directo de "¿me convino jugar esta partida?" ── -->
+        <div class="result-summary mb-3">
+          <div class="result-summary__item">
+            <div class="result-summary__label"><i class="fas fa-coins"></i>Gastado</div>
+            <div class="result-summary__value">{{ formatLocalOnly(detail.total_spent_local, detail.currency_symbol, detail.decimal_places, detail.is_usd) }}</div>
+          </div>
+          <div class="result-summary__sep"><i class="fas fa-minus"></i></div>
+          <div class="result-summary__item">
+            <div class="result-summary__label"><i class="fas fa-trophy"></i>Ganado</div>
+            <div class="result-summary__value result-summary__value--win">{{ formatLocalOnly(detail.total_local, detail.currency_symbol, detail.decimal_places, detail.is_usd) }}</div>
+          </div>
+          <div class="result-summary__sep"><i class="fas fa-equals"></i></div>
+          <div class="result-summary__item">
+            <div class="result-summary__label">Neto</div>
+            <div
+              class="result-summary__value"
+              :class="detail.net_result_local >= 0 ? 'result-summary__value--win' : 'result-summary__value--loss'"
+            >
+              {{ detail.net_result_local >= 0 ? '+' : '' }}{{ formatLocalOnly(detail.net_result_local, detail.currency_symbol, detail.decimal_places, detail.is_usd) }}
+            </div>
+          </div>
+        </div>
+
         <!-- Info general -->
         <div class="row g-2 mb-3">
           <div class="col-6 col-md-3">
             <div class="detail-info-card">
               <div class="detail-info-card__label">Fecha</div>
-              <div class="detail-info-card__value small">{{ formatDate(detail.game_date) }}</div>
+              <div class="detail-info-card__value detail-info-card__value--sm">{{ formatDate(detail.game_date) }}</div>
             </div>
           </div>
           <div class="col-6 col-md-3">
@@ -389,7 +437,7 @@ async function openDetail(row: GameHistoryRow) {
           <div class="col-6 col-md-3">
             <div class="detail-info-card">
               <div class="detail-info-card__label">Cartones</div>
-              <div class="detail-info-card__value text-primary fw-bold">{{ detail.cards_purchased }}</div>
+              <div class="detail-info-card__value detail-info-card__value--accent">{{ detail.cards_purchased }}</div>
             </div>
           </div>
           <div v-if="detail.game_mode" class="col-6 col-md-3">
@@ -406,12 +454,18 @@ async function openDetail(row: GameHistoryRow) {
           </div>
           <div v-if="detail.prize_pool > 0" class="col-6 col-md-3">
             <div class="detail-info-card">
-              <div class="detail-info-card__label">Bote</div>
-              <div class="detail-info-card__value text-success fw-bold">
+              <div class="detail-info-card__label">Bote total de la sala</div>
+              <div class="detail-info-card__value detail-info-card__value--win">
                 <template v-if="detail.is_usd">{{ detail.prize_pool.toFixed(2) }} USD</template>
                 <template v-else>{{ detail.currency_symbol }}{{ detail.prize_pool_local.toFixed(detail.decimal_places) }}</template>
               </div>
               <div v-if="!detail.is_usd" class="detail-info-card__sub">({{ detail.prize_pool.toFixed(2) }} USD)</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="detail-info-card">
+              <div class="detail-info-card__label">Jugadores en la sala</div>
+              <div class="detail-info-card__value"><i class="fas fa-users me-1 detail-info-card__icon"></i>{{ detail.total_players }}</div>
             </div>
           </div>
         </div>
@@ -419,7 +473,7 @@ async function openDetail(row: GameHistoryRow) {
         <!-- Premios obtenidos -->
         <div v-if="detail.prizes.length > 0" class="mb-3">
           <h6 class="section-heading">
-            <i class="fas fa-star me-2 text-warning"></i>Premios obtenidos
+            <i class="fas fa-star"></i>Premios obtenidos
           </h6>
           <div class="prize-list">
             <div
@@ -432,10 +486,10 @@ async function openDetail(row: GameHistoryRow) {
                 <span :class="prizeStatusCls(prize.status)">{{ prize.status_label }}</span>
               </div>
               <div class="prize-item__right">
-                <span v-if="prize.usd_amount > 0" class="fw-bold text-success me-2">
+                <span v-if="prize.usd_amount > 0" class="prize-item__amount">
                   {{ formatPrizeAmount(prize) }}
                 </span>
-                <span v-if="!prize.is_usd && prize.usd_amount > 0" class="small text-muted">
+                <span v-if="!prize.is_usd && prize.usd_amount > 0" class="prize-item__amount-usd">
                   ({{ prize.usd_amount.toFixed(2) }} USD)
                 </span>
               </div>
@@ -444,8 +498,8 @@ async function openDetail(row: GameHistoryRow) {
             <div v-if="detail.total_usd > 0" class="prize-total">
               <span>Total ganado</span>
               <div class="text-end">
-                <span class="fw-bold text-success">{{ formatTotalAmount(detail) }}</span>
-                <span v-if="!detail.is_usd" class="d-block small text-muted">({{ detail.total_usd.toFixed(2) }} USD)</span>
+                <span class="prize-total__amount">{{ formatTotalAmount(detail) }}</span>
+                <span v-if="!detail.is_usd" class="prize-total__usd">({{ detail.total_usd.toFixed(2) }} USD)</span>
               </div>
             </div>
           </div>
@@ -454,7 +508,8 @@ async function openDetail(row: GameHistoryRow) {
         <!-- Rondas -->
         <div v-if="detail.rounds.length > 0" class="mb-3">
           <h6 class="section-heading">
-            <i class="fas fa-list-ol me-2 text-primary"></i>Rondas
+            <i class="fas fa-list-ol"></i>Rondas
+            <span class="section-heading__hint">{{ detail.rounds_finished }}/{{ detail.rounds_total }} finalizadas</span>
           </h6>
           <div class="rounds-grid">
             <div
@@ -463,9 +518,7 @@ async function openDetail(row: GameHistoryRow) {
               class="round-item"
             >
               <div class="round-item__number">#{{ round.round }}</div>
-              <div class="round-item__info">
-                <span class="small text-muted">{{ round.prize_type }}</span>
-              </div>
+              <div class="round-item__info">{{ round.prize_type }}</div>
               <span :class="roundStatusCls(round.status)" class="round-item__status">
                 {{ roundStatusLabel(round.status) }}
               </span>
@@ -473,11 +526,11 @@ async function openDetail(row: GameHistoryRow) {
           </div>
         </div>
 
-        <!-- Cartones del jugador -->
+        <!-- Cartones del jugador (carrusel) -->
         <div v-if="detail.player_cards.length > 0">
           <div class="d-flex align-items-center justify-content-between mb-2">
             <h6 class="section-heading mb-0">
-              <i class="fas fa-th me-2 text-secondary"></i>Mis cartones
+              <i class="fas fa-th"></i>Mis cartones
               <span class="badge bg-light text-dark border ms-2">{{ detail.player_cards.length }}</span>
             </h6>
             <div v-if="detail.player_cards.some(c => c.is_winner)" class="btn-group btn-group-sm">
@@ -498,18 +551,44 @@ async function openDetail(row: GameHistoryRow) {
             </div>
           </div>
 
-          <div class="cards-grid">
-            <BingoCardDisplay
-              v-for="card in displayCards"
-              :key="card.id"
-              :cardMatrix="card.card_matrix"
-              :variant="detail.game_variant"
-              :serial="card.serial"
-              :isWinner="card.is_winner"
-            />
+          <div v-if="activeCard" class="card-carousel">
+            <button
+              v-if="displayCards.length > 1"
+              class="card-carousel__nav card-carousel__nav--prev"
+              aria-label="Cartón anterior"
+              @click="prevCard"
+            ><i class="fas fa-chevron-left"></i></button>
+
+            <div class="card-carousel__stage">
+              <BingoCardDisplay
+                :key="activeCard.id"
+                :cardMatrix="activeCard.card_matrix"
+                :variant="detail.game_variant"
+                :serial="activeCard.serial"
+                :isWinner="activeCard.is_winner"
+              />
+            </div>
+
+            <button
+              v-if="displayCards.length > 1"
+              class="card-carousel__nav card-carousel__nav--next"
+              aria-label="Cartón siguiente"
+              @click="nextCard"
+            ><i class="fas fa-chevron-right"></i></button>
           </div>
 
-          <div v-if="displayCards.length === 0" class="text-center text-muted small py-3">
+          <div v-if="displayCards.length > 1" class="card-carousel__dots">
+            <button
+              v-for="(card, i) in displayCards"
+              :key="card.id"
+              class="card-carousel__dot"
+              :class="{ 'card-carousel__dot--active': i === cardIndex, 'card-carousel__dot--winner': card.is_winner }"
+              :aria-label="`Ver cartón ${i + 1}`"
+              @click="cardIndex = i"
+            ></button>
+          </div>
+
+          <div v-if="!activeCard" class="text-center text-muted small py-3">
             Sin cartones ganadores en esta partida.
           </div>
         </div>
@@ -633,6 +712,14 @@ async function openDetail(row: GameHistoryRow) {
   letter-spacing: .6px;
   color: var(--ds-text-2);
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.section-heading i { color: #f59e0b; font-size: 12px; }
+.section-heading__hint {
+  font-weight: 500; text-transform: none; letter-spacing: 0;
+  color: var(--ds-text-muted); font-size: 11px; margin-left: 2px;
 }
 
 /* ── Detail banner ──────────────────────────────────────── */
@@ -666,15 +753,45 @@ async function openDetail(row: GameHistoryRow) {
 .detail-banner__right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .detail-banner__prize { font-size: 20px; font-weight: 800; color: #198754; }
 
+/* ── Resumen financiero: gasto → ganado → neto, el feedback más accionable
+ * del modal (¿me convino jugar?) — antes no existía en absoluto. ── */
+.result-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border);
+  border-radius: 10px;
+  padding: 12px 18px;
+  flex-wrap: wrap;
+}
+.result-summary__item { text-align: center; }
+.result-summary__label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .4px;
+  color: var(--ds-text-muted); margin-bottom: 2px;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.result-summary__label i { font-size: 9px; }
+.result-summary__value { font-size: 16px; font-weight: 700; color: var(--ds-text); }
+.result-summary__value--win  { color: #10b981; }
+.result-summary__value--loss { color: #ef4444; }
+.result-summary__sep { color: var(--ds-text-muted); font-size: 11px; opacity: .6; }
+
 /* ── Info cards ─────────────────────────────────────────── */
 .detail-info-card {
   background: var(--ds-surface-2);
   border: 1px solid var(--ds-border);
   border-radius: 8px;
   padding: 10px 12px;
+  height: 100%;
 }
 .detail-info-card__label { font-size: 10px; text-transform: uppercase; color: var(--ds-text-muted); letter-spacing: .4px; margin-bottom: 2px; }
 .detail-info-card__value { font-weight: 600; font-size: 13px; color: var(--ds-text); }
+.detail-info-card__value--sm     { font-size: 11.5px; }
+.detail-info-card__value--accent { color: #667eea; }
+.detail-info-card__value--win    { color: #10b981; }
+.detail-info-card__icon          { color: var(--ds-text-muted); }
 .detail-info-card__sub   { font-size: 10px; color: var(--ds-text-muted); margin-top: 1px; }
 
 /* ── Prize list ─────────────────────────────────────────── */
@@ -692,15 +809,19 @@ async function openDetail(row: GameHistoryRow) {
   background: var(--ds-surface);
 }
 .prize-item:last-child { border-bottom: none; }
+.prize-item__amount     { font-weight: 700; color: #10b981; margin-right: 6px; }
+.prize-item__amount-usd { font-size: 11px; color: var(--ds-text-muted); }
 .prize-total {
   display: flex;
   justify-content: space-between;
   padding: 10px 14px;
-  background: rgba(25,135,84,.08);
-  border-top: 2px solid rgba(25,135,84,.25);
+  background: rgba(16,185,129,.08);
+  border-top: 2px solid rgba(16,185,129,.25);
   font-size: 14px;
   color: var(--ds-text-2);
 }
+.prize-total__amount { font-weight: 800; color: #10b981; font-size: 15px; }
+.prize-total__usd    { display: block; font-size: 10px; color: var(--ds-text-muted); text-align: right; }
 
 /* ── Rounds grid ────────────────────────────────────────── */
 .rounds-grid {
@@ -719,14 +840,61 @@ async function openDetail(row: GameHistoryRow) {
   min-width: 160px;
 }
 .round-item__number { font-weight: 700; font-size: 13px; color: var(--ds-text); }
-.round-item__info   { flex: 1; font-size: 12px; }
+.round-item__info   { flex: 1; font-size: 12px; color: var(--ds-text-muted); }
 .round-item__status { flex-shrink: 0; font-size: 10px; }
 
-/* ── Cards grid ─────────────────────────────────────────── */
-.cards-grid {
+/* ── Carrusel de cartones ─────────────────────────────────
+ * Se muestra un cartón a la vez (más legible que una grilla apretada
+ * cuando el jugador compró varios), con flechas + puntos indicadores;
+ * el punto del cartón ganador se resalta en dorado para ubicarlo rápido. ── */
+.card-carousel {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
+.card-carousel__stage {
+  width: 100%;
+  max-width: 280px;
+  display: flex;
+  justify-content: center;
+}
+.card-carousel__nav {
+  flex-shrink: 0;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--ds-surface-2);
+  border: 1px solid var(--ds-border-2);
+  color: var(--ds-text-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, color .2s, transform .15s;
+}
+.card-carousel__nav:hover {
+  background: rgba(102,126,234,.15);
+  border-color: #667eea;
+  color: #667eea;
+  transform: scale(1.05);
+}
+.card-carousel__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 12px;
+}
+.card-carousel__dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--ds-border-2);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background .2s, transform .15s;
+}
+.card-carousel__dot:hover { transform: scale(1.2); }
+.card-carousel__dot--active { background: #667eea; transform: scale(1.3); }
+.card-carousel__dot--winner { background: #f59e0b; }
+.card-carousel__dot--winner.card-carousel__dot--active { background: #f59e0b; }
 </style>

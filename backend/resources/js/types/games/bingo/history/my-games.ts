@@ -63,6 +63,13 @@ export interface GameHistoryDetail {
   won: boolean
   total_usd: number
   total_local: number
+  /** Suma de sale_amount de los lotes de cartones del jugador en esta sala (moneda local). */
+  total_spent_local: number
+  /** total_local (ganado) - total_spent_local: puede ser negativo. */
+  net_result_local: number
+  total_players: number
+  rounds_finished: number
+  rounds_total: number
   currency: string
   currency_symbol: string
   decimal_places: number

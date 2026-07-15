@@ -3,6 +3,7 @@
 namespace App\Domains\Games\Bingo\Services\History;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Card\BingoCardLot;
 use App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
@@ -128,6 +129,15 @@ final class PlayerGameHistoryService
             ->values()
             ->all();
 
+        // Gasto del jugador: suma de sale_amount de sus lotes de cartones en
+        // esta sala (moneda local de cada lote — normalmente uniforme por
+        // jugador, ya que compra en su propia moneda). Es el dato que falta
+        // para poder mostrar "ganancia neta" en vez de solo el total ganado.
+        $lotModels = BingoCardLot::where('room_id', $roomId)
+            ->where('user_id', $userId)
+            ->get();
+        $totalSpentLocal = (float) $lotModels->sum('sale_amount');
+
         // Rondas
         $config  = $room->config;
         $rounds  = $room->rounds
@@ -190,6 +200,11 @@ final class PlayerGameHistoryService
             'won'              => $ru->winner === 'Y' || count($prizes) > 0,
             'total_usd'        => round((float) collect($prizes)->sum('usd_amount'), 2),
             'total_local'      => round((float) collect($prizes)->sum('local_amount'), 4),
+            'total_spent_local' => round($totalSpentLocal, 2),
+            'net_result_local'  => round((float) collect($prizes)->sum('local_amount') - $totalSpentLocal, 2),
+            'total_players'     => (int) ($room->total_players ?? 0),
+            'rounds_finished'   => $room->rounds->where('status', 'FINISHED')->count(),
+            'rounds_total'      => $room->rounds->count(),
             'currency'         => $playerCurrency,
             'currency_symbol'  => $playerCurrencySymbol,
             'decimal_places'   => $playerDecimalPlaces,

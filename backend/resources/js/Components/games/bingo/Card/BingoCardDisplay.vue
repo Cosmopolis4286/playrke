@@ -112,10 +112,12 @@ function isDrawn(col: string, rowIdx: number): boolean {
   padding: 5px 2px;
 }
 .bcd-cell {
-  text-align: center;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 13px;
   font-weight: 600;
-  padding: 6px 2px;
   border: 1px solid #f0f0f0;
   color: #333;
   transition: background .15s;
