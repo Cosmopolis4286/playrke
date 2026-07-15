@@ -69,23 +69,21 @@ final class GamePrizeService
                 return null;
             }
 
-            if ($row->isWaiting()) {
-                $row->markAsProcessing();
-                return $row;
-            }
-
-            if ($row->isProcessing()) {
-                // Reintento: si ya existe un pago completado la wallet ya fue
-                // acreditada — sólo reparar el estado sin re-acreditar.
+            if ($row->isWaiting() || $row->isProcessing()) {
+                // Reparar antes de (re)intentar: si ya existe un pago completado
+                // la wallet ya fue acreditada — esto cubre tanto el camino normal
+                // (waiting→processing) como un registro que por algún motivo volvió
+                // a 'waiting'/quedó en 'processing' con el pago ya resuelto.
                 if ($row->hasCompletedPayment()) {
-                    Log::warning('[GamePrizeService] Pago completado ya existente en processing — reparando estado', [
+                    Log::warning('[GamePrizeService] Pago completado ya existente — reparando estado', [
                         'game'     => $row->getGameSlug(),
                         'prize_id' => $row->getKey(),
                     ]);
                     $row->markAsClaimed();
                     return null;
                 }
-                // Sin pago completado todavía: reintentar.
+
+                $row->markAsProcessing();
                 return $row;
             }
 
@@ -134,7 +132,7 @@ final class GamePrizeService
             // que cualquiera commitee la transacción 2. Para mitigarlo, la transacción 2
             // re-verifica hasCompletedPayment() con lockForUpdate antes de creditar.
             $movement = null;
-            DB::transaction(function () use ($locked, $wallet, $amount, $description, &$movement) {
+            DB::transaction(function () use ($locked, $wallet, $amount, $description, $userId, &$movement) {
                 // Re-verificar bajo lock que nadie más completó el pago mientras esperábamos.
                 /** @var \App\Services\Games\GamePrizeContract $row */
                 $row = $locked::where('id', $locked->getKey())->lockForUpdate()->first();
