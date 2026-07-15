@@ -2,13 +2,24 @@
 
 namespace App\Models\Games\Trivia;
 
+use App\Domains\Games\Trivia\Models\TriviaPrizePayment;
 use App\Models\BaseModel;
+use App\Services\Games\GamePrizeContract;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class TriviaParticipant extends BaseModel
+class TriviaParticipant extends BaseModel implements GamePrizeContract
 {
     protected $connection = 'pgsql_trivia';
     protected $table = 'trivia_participants';
+
+    public const PRIZE_STATUSES = [
+        'waiting'    => 'Esperando',
+        'processing' => 'Procesando pago',
+        'claimed'    => 'Reclamado',
+        'cancelled'  => 'Cancelado',
+        'suspended'  => 'Suspendido',
+    ];
 
     protected $fillable = [
         'room_id',
@@ -25,8 +36,6 @@ class TriviaParticipant extends BaseModel
         'final_rank',
         'prize_won',
         'prize_status',
-        'prize_payment_attempts',
-        'prize_last_attempted_at',
         'power_ups',
         'power_ups_used',
         'correct_answers',
@@ -48,8 +57,6 @@ class TriviaParticipant extends BaseModel
         'confirmed_at' => 'datetime',
         'joined_game_at' => 'datetime',
         'eliminated_at' => 'datetime',
-        'prize_payment_attempts' => 'integer',
-        'prize_last_attempted_at' => 'datetime',
     ];
 
     // Relaciones
@@ -61,6 +68,11 @@ class TriviaParticipant extends BaseModel
     public function team(): BelongsTo
     {
         return $this->belongsTo(\App\Domains\Games\Trivia\Models\TriviaTeam::class, 'team_id');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(TriviaPrizePayment::class, 'participant_id');
     }
 
     // El usuario está en MySQL, no se puede hacer relación directa Eloquent
@@ -103,11 +115,6 @@ class TriviaParticipant extends BaseModel
         return $this->status === 'winner';
     }
 
-    public function prizePaid(): bool
-    {
-        return $this->prize_status === 'paid';
-    }
-
     // Comodines disponibles
     public function getAvailablePowerUp(string $type): int
     {
@@ -131,5 +138,56 @@ class TriviaParticipant extends BaseModel
         $this->power_ups_used = $used;
 
         return true;
+    }
+
+    // ── GamePrizeContract ────────────────────────────────────────────────────
+
+    public function getGameSlug(): string { return 'trivia'; }
+    public function getGameId(): string   { return (string) $this->room_id; }
+    public function getUserId(): string   { return (string) $this->user_id; }
+    public function getCurrencyId(): string { return (string) $this->room?->prize_currency_id; }
+    public function getLocalAmount(): float { return (float) $this->prize_won; }
+
+    public function isWaiting(): bool    { return $this->prize_status === 'waiting'; }
+    public function isProcessing(): bool { return $this->prize_status === 'processing'; }
+    public function isClaimed(): bool    { return $this->prize_status === 'claimed'; }
+    public function isCancelled(): bool  { return $this->prize_status === 'cancelled'; }
+    public function isSuspended(): bool  { return $this->prize_status === 'suspended'; }
+
+    public function markAsProcessing(): bool
+    {
+        $this->prize_status = 'processing';
+        return $this->save();
+    }
+
+    public function markAsClaimed(): bool
+    {
+        $this->prize_status = 'claimed';
+        return $this->save();
+    }
+
+    public function hasCompletedPayment(): bool
+    {
+        return $this->payments()->where('payment_status', 'completed')->exists();
+    }
+
+    public function buildPaymentAttributes(?string $movementId, string $status, ?string $reason): array
+    {
+        return [
+            'participant_id'         => $this->id,
+            'room_id'                => $this->room_id,
+            'user_id'                => $this->user_id,
+            'currency_id'            => $this->getCurrencyId(),
+            'payment_amount'         => $this->prize_won,
+            'payment_status'         => $status,
+            'payment_notes'          => $reason,
+            'transaction_reference'  => $movementId,
+            'processed_at'           => $movementId ? now() : null,
+        ];
+    }
+
+    public function createPayment(array $attributes): void
+    {
+        TriviaPrizePayment::create($attributes);
     }
 }
