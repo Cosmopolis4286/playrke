@@ -22,18 +22,20 @@ class TriviaAnswer extends BaseModel
         'game_id',
         'player_id', // Referencia externa, no FK
         'question_id',
-        'submitted_answer',
+        'selected_option_index',
         'is_correct',
         'points_earned',
         'response_time_ms',
-        'answered_at',
+        'is_late',
+        'client_id',
     ];
 
     protected $casts = [
+        'selected_option_index' => 'integer',
         'is_correct' => 'boolean',
         'points_earned' => 'integer',
         'response_time_ms' => 'float',
-        'answered_at' => 'datetime',
+        'is_late' => 'boolean',
     ];
 
     public function game(): BelongsTo

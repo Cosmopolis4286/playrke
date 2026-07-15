@@ -7,12 +7,19 @@ use App\Domains\Games\Trivia\Services\GameEngineService;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Models\TriviaQuestion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Redis;
 use Tests\TestCase;
 
 class GameEngineServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    // RefreshDatabase por defecto solo migra/envuelve la conexión default
+    // (mysql). trivia_rooms/trivia_participants viven en pgsql_trivia
+    // (apunta a trivia_testing — ver phpunit.xml) y necesitan su propia
+    // transacción con rollback para no ensuciar esa BD entre tests.
+    protected $connectionsToTransact = ['mysql', 'pgsql_trivia'];
 
     private GameEngineService $service;
 
@@ -26,6 +33,13 @@ class GameEngineServiceTest extends TestCase
         // — más robusto ante cambios futuros de constructor que armarlas a mano.
         $this->service = app(GameEngineService::class);
         Redis::flushall();
+
+        // sendNextQuestion() despacha AdvanceTriviaQuestion con delay como job
+        // de seguridad (avanza si nadie responde a tiempo). Con QUEUE_CONNECTION
+        // =sync ese delay se ignora y el job corre inmediato, finalizando el
+        // juego antes de que el test alcance a llamar submitAnswer(). Queue::fake()
+        // deja el job encolado sin ejecutarlo.
+        Queue::fake();
     }
 
     private function createRoomWithQuestions(): TriviaRoom
@@ -33,6 +47,7 @@ class GameEngineServiceTest extends TestCase
         $room = TriviaRoom::create([
             'code' => 'TEST01',
             'title' => 'Sala Test',
+            'host_id' => '1',
             'status' => 'waiting',
             'max_players' => 10,
             'question_count' => 3,
@@ -40,14 +55,10 @@ class GameEngineServiceTest extends TestCase
 
         for ($i = 1; $i <= 3; $i++) {
             TriviaQuestion::create([
-                'room_id' => $room->id,
-                'question_number' => $i,
                 'question_text' => "Pregunta {$i}",
-                'correct_answer' => 'A',
-                'option_1' => 'A',
-                'option_2' => 'B',
-                'option_3' => 'C',
-                'option_4' => 'D',
+                'options' => ['A', 'B', 'C', 'D'],
+                'correct_option_index' => 0,
+                'is_active' => true,
             ]);
         }
 
@@ -92,10 +103,12 @@ class GameEngineServiceTest extends TestCase
         $gameState = $this->service->startGame((string) $room->id, ['player-1']);
         $this->service->sendNextQuestion($gameState->gameId);
 
+        // correct_option_index = 0 en createRoomWithQuestions() → la respuesta
+        // correcta se representa como el índice "0" (string), no como letra.
         $result = $this->service->submitAnswer(
             $gameState->gameId,
             'player-1',
-            'A',
+            '0',
             2000
         );
 
@@ -112,7 +125,7 @@ class GameEngineServiceTest extends TestCase
         $result = $this->service->submitAnswer(
             $gameState->gameId,
             'player-1',
-            'B',
+            '1',
             2000
         );
 

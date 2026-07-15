@@ -315,11 +315,10 @@ class GameEngineService implements GameEngineInterface
             'game_id' => $gameId,
             'player_id' => $playerId,
             'question_id' => $questionDto->questionId,
-            'submitted_answer' => $answer,
+            'selected_option_index' => (int) $answer,
             'is_correct' => $isCorrect,
             'points_earned' => $result->pointsEarned,
             'response_time_ms' => $responseTimeMs,
-            'answered_at' => now(),
         ]);
 
         // Emitir eventos
