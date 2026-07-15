@@ -25,12 +25,13 @@
         <env name="DB_HOST" value="127.0.0.1"/>
         <env name="DB_PORT" value="3306"/>
         <env name="DB_DATABASE" value="playrke_testing"/>
-        <env name="DB_USERNAME" value="root"/>
-        <env name="DB_PASSWORD" value=""/>
+        <env name="DB_USERNAME" value="playrke"/>
+        <env name="DB_PASSWORD" value="playrke"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="BROADCAST_DRIVER" value="log"/>
+        <env name="REDIS_CLIENT" value="predis"/>
     </php>
 </phpunit>

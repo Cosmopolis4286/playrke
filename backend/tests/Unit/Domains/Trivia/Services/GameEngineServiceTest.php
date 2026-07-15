@@ -4,9 +4,6 @@ namespace Tests\Unit\Domains\Trivia\Services;
 
 use App\Domains\Games\Trivia\DTOs\GameStateDTO;
 use App\Domains\Games\Trivia\Services\GameEngineService;
-use App\Domains\Games\Trivia\Services\RoomService;
-use App\Domains\Games\Trivia\Services\ScoreService;
-use App\Domains\Games\Trivia\Repositories\RedisGameStateRepository;
 use App\Domains\Games\Trivia\Models\TriviaRoom;
 use App\Domains\Games\Trivia\Models\TriviaQuestion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,12 +19,12 @@ class GameEngineServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
-        $stateRepo = new RedisGameStateRepository();
-        $scoreService = new ScoreService();
-        $roomService = new RoomService();
-        
-        $this->service = new GameEngineService($stateRepo, $scoreService, $roomService);
+
+        // Resuelto vía el contenedor: GameEngineService depende de
+        // PrizeDistributionService (→ GamePrizeService → WalletService, con
+        // su propio árbol de dependencias) además de ScoreService y las demás
+        // — más robusto ante cambios futuros de constructor que armarlas a mano.
+        $this->service = app(GameEngineService::class);
         Redis::flushall();
     }
 
