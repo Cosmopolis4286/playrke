@@ -73,14 +73,16 @@
   transform: translateY(-2px);
 }
 
-/* Franja superior */
+/* Franja superior — mismos acentos que la navbar (nb-qchip, nb-wallet-icon,
+ * nb-avatar-level) para que las stat cards se sientan parte del mismo
+ * sistema visual en vez de usar los defaults apagados de Bootstrap. */
 .sc__stripe { height: 4px; }
-.sc__stripe--primary   { background: #0d6efd; }
-.sc__stripe--success   { background: #198754; }
-.sc__stripe--danger    { background: #dc3545; }
-.sc__stripe--warning   { background: #ffc107; }
-.sc__stripe--info      { background: #0dcaf0; }
-.sc__stripe--secondary { background: #6c757d; }
+.sc__stripe--primary   { background: linear-gradient(90deg, #667eea, #818cf8); }
+.sc__stripe--success   { background: linear-gradient(90deg, #10b981, #34d399); }
+.sc__stripe--danger    { background: linear-gradient(90deg, #dc2626, #f87171); }
+.sc__stripe--warning   { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.sc__stripe--info      { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
+.sc__stripe--secondary { background: var(--ds-border-2); }
 
 .sc__body {
   display: flex;
@@ -100,12 +102,19 @@
   justify-content: center;
   font-size: 1rem;
 }
-.sc__icon--primary   { background: rgba(13,110,253,.13); color: #0d6efd; }
-.sc__icon--success   { background: rgba(25,135,84,.13);  color: #198754; }
-.sc__icon--danger    { background: rgba(220,53,69,.13);  color: #dc3545; }
-.sc__icon--warning   { background: rgba(255,193,7,.13);  color: #b08000; }
-.sc__icon--info      { background: rgba(13,202,240,.13); color: #0aa2c0; }
-.sc__icon--secondary { background: var(--ds-surface-2);  color: var(--ds-text-2); }
+.sc__icon--primary   { background: rgba(102,126,234,.14); color: #667eea; }
+.sc__icon--success   { background: rgba(16,185,129,.14);  color: #10b981; }
+.sc__icon--danger    { background: rgba(220,38,38,.14);   color: #ef4444; }
+.sc__icon--warning   { background: rgba(245,158,11,.14);  color: #f59e0b; }
+.sc__icon--info      { background: rgba(14,165,233,.14);  color: #0ea5e9; }
+.sc__icon--secondary { background: var(--ds-surface-2);   color: var(--ds-text-2); }
+
+/* Tema claro: los tonos --primary/--info de encima pierden legibilidad sobre
+ * fondo blanco (mismo tono claro que el fondo tintado) — se oscurecen solo
+ * en este tema, igual que el resto del design system (--ds-* light overrides). */
+[data-theme="light"] .sc__icon--primary { color: #4c5fd6; }
+[data-theme="light"] .sc__icon--info    { color: #0b84b8; }
+[data-theme="light"] .sc__icon--warning { color: #b8790a; }
 
 /* Contenido */
 .sc__content { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -148,7 +157,7 @@
   font-weight: 600;
   margin-top: 2px;
 }
-.sc-trend--up   { color: #198754; }
-.sc-trend--down { color: #dc3545; }
+.sc-trend--up   { color: #10b981; }
+.sc-trend--down { color: #ef4444; }
 .sc__trend-lbl  { font-weight: 400; color: var(--ds-text-muted); }
 </style>

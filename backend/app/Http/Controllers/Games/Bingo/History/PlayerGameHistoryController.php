@@ -20,8 +20,10 @@ final class PlayerGameHistoryController extends Controller
         $userId  = (string) Auth::id();
         $perPage = (int) $request->query('per_page', 15);
         $page    = (int) $request->query('page', 1);
+        $search  = $request->query('search') ?: null;
+        $result  = $request->query('result') ?: null;
 
-        $paginator = $this->historyService->getHistory($userId, $perPage, $page);
+        $paginator = $this->historyService->getHistory($userId, $perPage, $page, $search, $result);
 
         return Inertia::render('Games/Bingo/MyGames', [
             'title'    => 'Mis Partidas de Bingo',

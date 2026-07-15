@@ -14,13 +14,34 @@ final class PlayerGameHistoryService
 {
     /**
      * Historial paginado de partidas del jugador (listado).
+     *
+     * @param string|null $search Filtra por código de sala (uuid_code, prefijo o parcial).
+     * @param string|null $result 'won' | 'lost' — filtra por si el jugador ganó algún premio en la sala.
      */
-    public function getHistory(string $userId, int $perPage = 15, int $page = 1): LengthAwarePaginator
-    {
-        $paginator = BingoRoomUser::with(['room.config', 'room.status'])
+    public function getHistory(
+        string $userId,
+        int $perPage = 15,
+        int $page = 1,
+        ?string $search = null,
+        ?string $result = null,
+    ): LengthAwarePaginator {
+        $query = BingoRoomUser::with(['room.config', 'room.status'])
             ->where('user_id', $userId)
-            ->whereIn('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER])
-            ->orderBy('created_at', 'desc')
+            ->whereIn('role', [BingoRoomUser::ROLE_PLAYER, BingoRoomUser::ROLE_PLAYER_SELLER]);
+
+        if ($search) {
+            $query->whereHas('room', function ($q) use ($search) {
+                $q->where('uuid_code', 'like', "%{$search}%");
+            });
+        }
+
+        if ($result === 'won') {
+            $query->where('winner', 'Y');
+        } elseif ($result === 'lost') {
+            $query->where('winner', '!=', 'Y');
+        }
+
+        $paginator = $query->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);
 
         $roomIds = $paginator->getCollection()->pluck('room_id')->unique()->values()->all();
