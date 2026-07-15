@@ -101,10 +101,11 @@ function roundStatusCls(s: string): string {
 
 function prizeStatusCls(s: string): string {
   const map: Record<string, string> = {
-    waiting:   'badge bg-warning text-dark',
-    claimed:   'badge bg-success',
-    cancelled: 'badge bg-danger',
-    suspended: 'badge bg-secondary',
+    waiting:    'badge bg-warning text-dark',
+    processing: 'badge bg-info text-dark',
+    claimed:    'badge bg-success',
+    cancelled:  'badge bg-danger',
+    suspended:  'badge bg-secondary',
   }
   return map[s] ?? 'badge bg-secondary'
 }

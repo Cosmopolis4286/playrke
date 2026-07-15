@@ -566,4 +566,26 @@
   :deep(.room-players-cell__stat--zero) i {
     color: #d5d9df;
   }
+
+  /* Cupo máximo de jugadores (max_players) — mismo criterio visual que
+     room-cards-cell__quota, en rojo al llegar al límite en vez de verde
+     (llenarse no es "meta alcanzada", es "ya no se pueden vender más cartones"). */
+  :deep(.room-players-cell__quota) {
+    font-size: 0.7rem;
+    color: #b3bac4;
+    align-self: center;
+  }
+
+  :deep(.room-players-cell__quota--full) {
+    color: #dc2626;
+    font-weight: 600;
+  }
+
+  :deep(.room-players-cell__stat--full) {
+    color: #dc2626;
+  }
+
+  :deep(.room-players-cell__stat--full) i {
+    color: #dc2626;
+  }
 </style>
