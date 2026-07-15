@@ -60,11 +60,11 @@ class BingoWinnerDeclared implements ShouldBroadcastNow
             'room_id' => $this->roomId,
             'draw_id' => $this->drawId,
             'winner' => [
-                'id' => $this->winnerId,
-                'name' => $this->winnerName,
-                'card_id' => $this->cardId,
+                'id'      => $this->winnerId,
+                'name'    => $this->winnerName,
+                'card_id' => (string) $this->cardId,
                 'pattern' => $this->pattern,
-                'prize' => $this->prize,
+                'prize'   => $this->prize,
             ],
             'timestamp' => now()->toISOString(),
         ];

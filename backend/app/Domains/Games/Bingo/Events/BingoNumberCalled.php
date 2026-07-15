@@ -10,22 +10,23 @@ class BingoNumberCalled implements ShouldBroadcastNow
 {
     use SerializesModels;
 
-    public $number;
-    public $roomId;
+    public function __construct(
+        public readonly int $number,
+        public readonly int $roomId,
+    ) {}
 
-    public function __construct(int $number, int $roomId)
-    {
-        $this->number = $number;
-        $this->roomId = $roomId;
-    }
-
-    public function broadcastOn()
+    public function broadcastOn(): Channel
     {
         return new Channel("bingo.room.{$this->roomId}");
     }
 
-    public function broadcastAs()
+    public function broadcastAs(): string
     {
         return 'BingoNumberCalled';
+    }
+
+    public function broadcastWith(): array
+    {
+        return ['number' => $this->number];
     }
 }
