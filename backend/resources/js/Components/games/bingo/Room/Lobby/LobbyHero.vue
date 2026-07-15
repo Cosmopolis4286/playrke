@@ -57,6 +57,15 @@ const statusClass = computed(() => {
 })
 
 const roomStatusText = computed(() => getRoomStatusText(props.live.statusCode))
+
+const startLabel = computed(() => {
+  const unix = props.room.unix_date
+  if (!unix) return null
+  const d = new Date(unix * 1000)
+  const fecha = d.toLocaleDateString('es', { day: 'numeric', month: 'short' })
+  const hora  = d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `${fecha} · ${hora}`
+})
 </script>
 
 <template>
@@ -131,6 +140,10 @@ const roomStatusText = computed(() => getRoomStatusText(props.live.statusCode))
             class="lby-status-chip"
             :class="statusClass"
           >{{ roomStatusText }}</span>
+
+          <div v-if="startLabel" class="lby-start-time">
+            <i class="fas fa-calendar-alt" /> {{ startLabel }}
+          </div>
 
           <div
             v-if="(fullHousePrize ?? room.full_house_prize) != null || (serialPrize ?? room.serial_prize) != null"
@@ -274,6 +287,13 @@ const roomStatusText = computed(() => getRoomStatusText(props.live.statusCode))
 .lby-prize-sub__lbl { display: block; font-size: 7px; color: #3a5068; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 1px; }
 .lby-prize-sub__val { font-family: 'Anton', sans-serif; font-size: 12px; color: #b0c4e0; }
 .lby-prize-sub__sym { font-style: normal; font-size: 9px; font-weight: 700; color: #6a8090; margin-left: 2px; }
+
+.lby-start-time {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .4px;
+  color: rgba(180,200,255,.55); white-space: nowrap;
+}
+.lby-start-time i { font-size: 9px; opacity: .55; }
 
 .lby-timer {
   background: rgba(4,8,20,.85); border: 1px solid rgba(255,255,255,.1);

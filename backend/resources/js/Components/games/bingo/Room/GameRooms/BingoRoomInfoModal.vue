@@ -36,6 +36,15 @@ const isLobbyAllowed = computed(() =>
   props.room.status_code === 'ACTIVE' || props.room.status_code === 'IN_PROGRESS'
 )
 
+const startLabel = computed(() => {
+  const unix = props.room.config?.unix_date
+  if (!unix) return null
+  const d = new Date(unix * 1000)
+  const fecha = d.toLocaleDateString('es', { day: 'numeric', month: 'short' })
+  const hora  = d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `${fecha} · ${hora}`
+})
+
 // ── Progreso de cartones mínimos para iniciar (realtime, igual que la card/lobby) ──
 const minCardsToStart = computed(() => props.room.config?.min_cards_to_start ?? null)
 const totalCards      = computed(() => props.room.total_cards ?? 0)
@@ -86,6 +95,11 @@ const cardsProgressReady = computed(() =>
               <template v-else>
                 <i class="fas fa-clock" /> {{ formatCountdown(countdown) }}
               </template>
+            </div>
+
+            <!-- Fecha/hora programada -->
+            <div v-if="startLabel" class="rim-start-time">
+              <i class="fas fa-calendar-alt" /> {{ startLabel }}
             </div>
 
             <!-- Chips tipo/modo abajo -->
@@ -263,6 +277,16 @@ const cardsProgressReady = computed(() =>
   animation: rimBlink 1s infinite;
 }
 @keyframes rimBlink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+/* Fecha/hora programada */
+.rim-start-time {
+  position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; letter-spacing: .4px;
+  color: rgba(200,216,255,.75); white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,.7);
+}
+.rim-start-time i { font-size: 9px; opacity: .7; }
 
 /* Chips pie del banner */
 .rim-banner__foot {

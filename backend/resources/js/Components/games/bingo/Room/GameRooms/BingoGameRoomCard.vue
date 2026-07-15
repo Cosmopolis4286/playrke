@@ -45,6 +45,17 @@ const sym = computed(() => props.room.currency_symbol ?? props.currencySym)
 
 const roundsCount = computed(() => props.room.rounds_count ?? 1)
 
+// Fecha y hora de inicio — derivado de unix_date (timestamp Unix en segundos)
+// para evitar ambigüedades de parseo de strings de fecha (Invalid Date en Safari/Firefox).
+const startLabel = computed(() => {
+  const unix = props.room.config?.unix_date
+  if (!unix) return null
+  const d = new Date(unix * 1000)
+  const fecha = d.toLocaleDateString('es', { day: 'numeric', month: 'short' })
+  const hora  = d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false })
+  return `${fecha} · ${hora}`
+})
+
 const minCardsToStart   = computed(() => props.room.config?.min_cards_to_start ?? null)
 const totalCards        = computed(() => props.room.total_cards ?? 0)
 const showCardsProgress = computed(() => minCardsToStart.value != null && minCardsToStart.value > 0)
@@ -152,17 +163,16 @@ function handleClick(event: MouseEvent) {
           {{ isAvailable ? 'ACTIVA' : isInProgress ? 'EN JUEGO' : 'CERRADA' }}
         </div>
 
+        <!-- Timer solo cuando hay countdown activo: en curso (isInProgress) el
+             status-badge ya muestra "EN JUEGO" con punto parpadeante — mostrar
+             un segundo badge "LIVE" aquí sería redundante. -->
         <div
-          v-tooltip="hasTime ? 'Tiempo restante para el inicio del sorteo' : 'El sorteo está en curso ahora mismo'"
+          v-if="hasTime"
+          v-tooltip="'Tiempo restante para el inicio del sorteo'"
           class="rc__timer-badge"
-          :class="{ 'rc__timer-badge--live': !hasTime, 'rc__timer-badge--urgent': isUrgent }"
+          :class="{ 'rc__timer-badge--urgent': isUrgent }"
         >
-          <template v-if="hasTime">
-            <i class="far fa-clock" /><b>{{ formatCountdown(props.countdown) }}</b>
-          </template>
-          <template v-else>
-            <span class="rc__blink" /><b>LIVE</b>
-          </template>
+          <i class="far fa-clock" /><b>{{ formatCountdown(props.countdown) }}</b>
         </div>
 
         <div class="rc__orbit-dot" />
@@ -183,6 +193,16 @@ function handleClick(event: MouseEvent) {
           >
             <i class="fas fa-rotate" />{{ roundsCount }} Ronda{{ roundsCount !== 1 ? 's' : '' }}
           </span>
+        </div>
+
+        <!-- Fecha y hora de inicio — siempre visible si está configurada -->
+        <div
+          v-if="startLabel"
+          v-tooltip="'Fecha y hora programada de inicio del sorteo'"
+          class="rc__start-time"
+        >
+          <i class="far fa-calendar-alt" />
+          <span>{{ startLabel }}</span>
         </div>
 
         <!-- Premio — bloque hero, centrado y protagonista -->
@@ -510,9 +530,6 @@ function handleClick(event: MouseEvent) {
   font-family: 'Orbitron', 'Anton', monospace;
   font-size: 9.5px; font-weight: 800; letter-spacing: .3px; color: #9ecaf0;
 }
-.rc__timer-badge--live { color: #ff8aaa; background: rgba(36,10,20,.7); border-color: rgba(255,77,109,.32); }
-.rc__timer-badge--live b { color: #ff8aaa; text-shadow: 0 0 8px rgba(255,77,109,.4); }
-
 /* timer urgente: <1 minuto para el sorteo — color de alerta + pulso rápido */
 .rc__timer-badge--urgent {
   color: #ffb020;
@@ -526,14 +543,6 @@ function handleClick(event: MouseEvent) {
   0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,.4); }
   50%      { box-shadow: 0 2px 14px rgba(255,176,32,.55); }
 }
-
-.rc__blink {
-  width: 5px; height: 5px; border-radius: 50%;
-  background: currentColor; display: inline-block;
-  box-shadow: 0 0 6px currentColor;
-  animation: bk 1s infinite;
-}
-@keyframes bk { 0%,100%{opacity:1} 50%{opacity:.06} }
 
 /* ══════════════════════════════════
    BODY
@@ -561,6 +570,15 @@ function handleClick(event: MouseEvent) {
   width: 3px; height: 3px; border-radius: 50%;
   background: #34486a; flex-shrink: 0;
 }
+
+/* ── Fecha / hora de inicio ── */
+.rc__start-time {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .2px;
+  color: #7a9ac0;
+  flex-shrink: 0;
+}
+.rc__start-time i { font-size: 9px; color: #4a6a90; }
 
 /* ── Premio — bloque hero, centrado ── */
 .rc__prize {

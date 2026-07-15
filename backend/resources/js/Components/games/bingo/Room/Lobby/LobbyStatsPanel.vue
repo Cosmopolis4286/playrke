@@ -35,6 +35,7 @@ const roomIsNearFull = computed(() =>
   !props.roomIsFull && props.room.max_players != null &&
   props.live.totalPlayers >= props.room.max_players * 0.8
 )
+
 </script>
 
 <template>
