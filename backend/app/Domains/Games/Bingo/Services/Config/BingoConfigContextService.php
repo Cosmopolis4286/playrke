@@ -140,13 +140,18 @@ final class BingoConfigContextService
     }
 
     /**
-     * ID del juego BINGO, cacheado de forma indefinida: es una fila de
-     * catálogo estática (nunca cambia en runtime) consultada en cada
-     * resolución de reglas/imagen, dos veces por carga de `context('index')`.
+     * ID del juego BINGO, cacheado indefinidamente: fila de catálogo estática
+     * que nunca cambia en runtime. Usar forgetBingoGameIdCache() si el seeder
+     * se re-ejecuta en un entorno existente.
      */
     private function bingoGameId(): int|string|null
     {
         return Cache::rememberForever('game:id:BINGO', fn () => Game::where('name', 'BINGO')->value('id'));
+    }
+
+    public static function forgetBingoGameIdCache(): void
+    {
+        Cache::forget('game:id:BINGO');
     }
 
     /**

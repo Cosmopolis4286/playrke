@@ -25,11 +25,13 @@ class RedisGameStateRepository implements GameStateRepositoryInterface
     public function saveState(string $gameId, GameStateDTO $state, ?int $ttl = null): void
     {
         $key = $this->key($gameId);
-        
-        Redis::hset($key, 'data', json_encode($state->toArray()));
-        Redis::hset($key, 'updated_at', time());
-        
-        Redis::expire($key, $ttl ?? self::DEFAULT_TTL);
+        $effectiveTtl = $ttl ?? self::DEFAULT_TTL;
+
+        Redis::pipeline(function ($pipe) use ($key, $state, $effectiveTtl) {
+            $pipe->hset($key, 'data', json_encode($state->toArray()));
+            $pipe->hset($key, 'updated_at', time());
+            $pipe->expire($key, $effectiveTtl);
+        });
     }
 
     /**
@@ -111,56 +113,17 @@ class RedisGameStateRepository implements GameStateRepositoryInterface
     }
 
     /**
-     * Guardar puntuación de jugador en tiempo real.
-     */
-    public function savePlayerScore(string $gameId, string $playerId, array $scoreData): void
-    {
-        $key = self::KEY_PREFIX . "score:{$gameId}:{$playerId}";
-        
-        Redis::hset($key, 'data', json_encode($scoreData));
-        Redis::expire($key, self::DEFAULT_TTL);
-    }
-
-    /**
-     * Obtener puntuación de jugador.
-     */
-    public function getPlayerScore(string $gameId, string $playerId): ?array
-    {
-        $key = self::KEY_PREFIX . "score:{$gameId}:{$playerId}";
-        $data = Redis::hget($key, 'data');
-        
-        return $data ? json_decode($data, true) : null;
-    }
-
-    /**
-     * Obtener todas las puntuaciones de un juego.
-     */
-    public function getAllScores(string $gameId): array
-    {
-        $pattern = self::KEY_PREFIX . "score:{$gameId}:*";
-        $keys = Redis::keys($pattern);
-        
-        $scores = [];
-        foreach ($keys as $key) {
-            $data = Redis::hget($key, 'data');
-            if ($data) {
-                $scores[] = json_decode($data, true);
-            }
-        }
-        
-        return $scores;
-    }
-
-    /**
      * Guardar pregunta actual.
      */
     public function saveCurrentQuestion(string $gameId, array $questionData): void
     {
         $key = self::KEY_PREFIX . "question:{$gameId}";
-        
-        Redis::hset($key, 'data', json_encode($questionData));
-        Redis::hset($key, 'sent_at', time());
-        Redis::expire($key, self::DEFAULT_TTL);
+
+        Redis::pipeline(function ($pipe) use ($key, $questionData) {
+            $pipe->hset($key, 'data', json_encode($questionData));
+            $pipe->hset($key, 'sent_at', time());
+            $pipe->expire($key, self::DEFAULT_TTL);
+        });
     }
 
     /**
