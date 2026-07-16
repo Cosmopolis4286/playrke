@@ -395,6 +395,12 @@ class User extends Authenticatable implements MustVerifyEmail
      * - string con coma: 'admin,commerce'
      * - array: ['admin', 'commerce']
      *
+     * Fuente de verdad única para roles: reemplaza intencionalmente el
+     * hasRole() del trait HasRoles (Spatie), que consulta model_has_roles
+     * (tabla que esta app no usa). Todo middleware/gate/policy de rol debe
+     * pasar por este método o por App\Services\Auth\RoleAuthorizationService,
+     * nunca reimplementar la comparación de prefijos por su cuenta.
+     *
      * @param string|array $role Rol o roles a buscar.
      * @return bool
      */

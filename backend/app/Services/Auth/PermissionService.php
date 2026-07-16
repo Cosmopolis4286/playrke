@@ -3,18 +3,13 @@
 namespace App\Services\Auth;
 
 use App\Models\User;
-use App\Repositories\Roles\RoleUserRepository;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Servicio centralizado para validar permisos de usuario.
+ * API estática de conveniencia para validar permisos del usuario autenticado
+ * desde contextos sin inyección de dependencias (p.ej. FormRequest::authorize()).
  *
- * Permite verificar permisos por:
- *  - roles (prefijo del rol)
- *  - prefix (alias semántico de roles)
- *  - callback personalizado
- *
- * Fuente de verdad: tabla role_user (roles activos)
+ * Delega toda la verificación en RoleAuthorizationService (fuente de verdad única).
  */
 class PermissionService
 {
@@ -44,13 +39,7 @@ class PermissionService
             return false;
         }
 
-        /** @var RoleUserRepository $roleUserRepository */
-        $roleUserRepository = app(RoleUserRepository::class);
-
-        return $roleUserRepository->userHasAnyRole(
-            $user,
-            (array) $roles
-        );
+        return app(RoleAuthorizationService::class)->hasAnyRole($user, $roles);
     }
 
     /**

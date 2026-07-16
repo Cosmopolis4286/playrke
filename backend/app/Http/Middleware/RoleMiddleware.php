@@ -2,32 +2,23 @@
 
 namespace App\Http\Middleware;
 
-use App\Repositories\Roles\RoleUserRepository;
+use App\Services\Auth\RoleAuthorizationService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Middleware para validar roles activos del usuario.
+ * Middleware para validar roles del usuario.
  *
- * Verifica que el usuario autenticado posea al menos uno
- * de los roles permitidos y que la asignación esté activa
- * (sin expiración o con expiración futura).
+ * Verifica que el usuario autenticado posea al menos uno de los roles
+ * permitidos, vía RoleAuthorizationService (fuente de verdad única).
  */
 class RoleMiddleware
 {
-    protected RoleUserRepository $roleUserRepository;
-
-    /**
-     * Constructor del middleware.
-     *
-     * @param RoleUserRepository $roleUserRepository
-     */
-    public function __construct(RoleUserRepository $roleUserRepository)
-    {
-        $this->roleUserRepository = $roleUserRepository;
-    }
+    public function __construct(
+        private readonly RoleAuthorizationService $roleAuthorizationService,
+    ) {}
 
     /**
      * Maneja la petición entrante.
@@ -45,10 +36,7 @@ class RoleMiddleware
             return $this->unauthorizedResponse($request);
         }
 
-        if (
-            ! $this->roleUserRepository
-                ->userHasAnyRole($user, (array) $roles)
-        ) {
+        if (! $this->roleAuthorizationService->hasAnyRole($user, (array) $roles)) {
             return $this->forbiddenResponse($request);
         }
 

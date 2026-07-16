@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\Auth\RoleAuthorizationService;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -60,11 +61,9 @@ class AuthServiceProvider extends ServiceProvider
     {
         $prefixes = $allowedPrefixes ?? [$gateName];
 
-        $prefixesLower = array_map('strtolower', $prefixes);
-        Gate::define($gateName, function ($user) use ($prefixesLower) {
-            return $user->roles->contains(function ($role) use ($prefixesLower) {
-                return in_array(strtolower((string) $role->prefix), $prefixesLower, true);
-            });
-        });
+        Gate::define(
+            $gateName,
+            fn ($user) => app(RoleAuthorizationService::class)->hasAnyRole($user, $prefixes)
+        );
     }
 }
