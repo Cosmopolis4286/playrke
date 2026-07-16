@@ -18,29 +18,21 @@ class LoadUserPermissions
         // Si el usuario está autenticado, cargar sus permisos en la sesión
         if (auth()->check()) {
             $user = auth()->user();
-            
-            // Cache de permisos para mejorar rendimiento
-            $permissions = cache()->remember(
-                "user_permissions_{$user->id}",
+
+            // Un solo round-trip de cache en lugar de dos separados (permisos + roles).
+            // Ambos se invalidan juntos — esto es correcto porque cambian al mismo tiempo
+            // (asignación/revocación de roles siempre afecta ambos).
+            $data = cache()->remember(
+                "user_perms_roles_{$user->id}",
                 now()->addHours(1),
-                function () use ($user) {
-                    return $user->getAllPermissions()->pluck('name')->toArray();
-                }
+                fn () => [
+                    'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+                    'roles'       => $user->getRoleNames()->toArray(),
+                ]
             );
-            
-            // Compartir permisos con todas las vistas
-            view()->share('userPermissions', $permissions);
-            
-            // Compartir roles del usuario
-            $roles = cache()->remember(
-                "user_roles_{$user->id}",
-                now()->addHours(1),
-                function () use ($user) {
-                    return $user->getRoleNames()->toArray();
-                }
-            );
-            
-            view()->share('userRoles', $roles);
+
+            view()->share('userPermissions', $data['permissions']);
+            view()->share('userRoles',       $data['roles']);
         }
 
         return $next($request);

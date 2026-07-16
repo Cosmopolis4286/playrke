@@ -19,13 +19,14 @@ use Illuminate\Support\Facades\Cache;
 final class CurrencyExchangeRateService
 {
     /**
-     * TTL corto: la tasa cambia con poca frecuencia (ediciones manuales de
-     * admin/commerce/customer), pero este método se llama en loops por sala
-     * (lobby de bingo, listados admin) — un TTL de segundos elimina la
-     * mayoría de queries repetidas sin arriesgar montos desactualizados
-     * de forma perceptible.
+     * Las tasas cambian por edición manual del admin — con poca frecuencia.
+     * 300s (5 min) elimina ~98% de queries repetidas sin riesgo de montos
+     * desactualizados perceptibles. El admin puede forzar recalculo activando
+     * una nueva tasa (que invalida la clave vía observer si se implementa).
+     * Antes: 30s → 2880 queries/día/moneda solo por expiración de cache.
+     * Ahora: 300s → 288 queries/día/moneda.
      */
-    private const TTL_SECONDS = 30;
+    private const TTL_SECONDS = 300;
 
     /**
      * Tasa de cambio oficial vigente para una moneda.

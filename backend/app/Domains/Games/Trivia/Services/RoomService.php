@@ -315,7 +315,7 @@ class RoomService implements RoomServiceInterface
         // Limpiar Redis (opcional — no falla si Redis no está disponible)
         try {
             Redis::del(self::KEY_PREFIX . $roomId);
-            Redis::del(self::KEY_PREFIX . "players:{$roomId}");
+            // "trivia:room:players:{roomId}" nunca fue escrita — se elimina solo la clave real.
         } catch (\Throwable) {
             // Redis no disponible — ignorar limpieza
         }
