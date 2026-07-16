@@ -81,7 +81,7 @@ class RoomServiceTest extends TestCase
             'description' => 'Descripción personalizada',
             'question_count' => 20,
             'time_per_question' => 30,
-        ]);
+        ], 'pgsql_trivia');
     }
 
     #[Test]
@@ -110,7 +110,7 @@ class RoomServiceTest extends TestCase
             'title' => 'Sala Test',
             'host_id' => '1',
             'status' => 'waiting',
-        ]);
+        ], 'pgsql_trivia');
     }
 
     #[Test]
@@ -232,7 +232,7 @@ class RoomServiceTest extends TestCase
         $this->assertDatabaseHas('trivia_rooms', [
             'id' => $room->roomId,
             'status' => 'closed',
-        ]);
+        ], 'pgsql_trivia');
         $this->assertNull(Redis::hget('trivia:room:' . $room->roomId, 'data'));
     }
 
