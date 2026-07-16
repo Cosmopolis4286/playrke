@@ -405,7 +405,16 @@ class RoomService implements RoomServiceInterface
 
         $room->update($updateData);
 
-        // Actualizar Redis
+        // Invalidar el cache antes de releer: getRoom() prioriza Redis, que
+        // en este punto todavía tiene el DTO de antes del update — sin este
+        // borrado, getRoom() devuelve (y vuelve a guardar) el valor viejo,
+        // dejando la actualización invisible para cualquiera que lea vía Redis.
+        try {
+            Redis::del(self::KEY_PREFIX . $roomId);
+        } catch (\Throwable) {
+            // Redis no disponible — getRoom() caerá al fallback de BD de todas formas.
+        }
+
         $roomDto = $this->getRoom($roomId);
         $this->saveRoomToRedis($roomDto);
 
