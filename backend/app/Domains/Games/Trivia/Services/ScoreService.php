@@ -66,13 +66,16 @@ class ScoreService implements ScoreServiceInterface
             answerHistory: $existing['answer_history'] ?? []
         );
 
-        // Guardar score (sin position — se calcula en lectura)
-        Redis::pipeline(function ($pipe) use ($key, $score, $gameId, $playerId, $points) {
-            $pipe->hset($key, 'data', json_encode($score->toArray()));
-            $pipe->expire($key, self::TTL);
-            $pipe->zadd(self::LEADERBOARD_KEY . $gameId, $points, $playerId);
-            $pipe->expire(self::LEADERBOARD_KEY . $gameId, self::TTL);
-        });
+        // Guardar score (sin position — se calcula en lectura).
+        // Redis::pipeline() no se usa aquí: solo PhpRedisConnection lo
+        // implementa — bajo predis cae al __call() genérico de Connection,
+        // que lo trata como un comando Redis literal inexistente y no ejecuta
+        // nada dentro del closure (ver ScoreServiceTest::test_can_reset_scores,
+        // que expuso el mismo problema en resetScores()).
+        Redis::hset($key, 'data', json_encode($score->toArray()));
+        Redis::expire($key, self::TTL);
+        Redis::zadd(self::LEADERBOARD_KEY . $gameId, $points, $playerId);
+        Redis::expire(self::LEADERBOARD_KEY . $gameId, self::TTL);
 
         return $score;
     }
@@ -121,10 +124,8 @@ class ScoreService implements ScoreServiceInterface
     }
 
     /**
-     * Obtener leaderboard completo.
-     *
-     * Antes: 1 zrevrange + N hget secuenciales = N+1 round-trips.
-     * Ahora: 1 zrevrange + 1 pipeline de N hget = 2 round-trips totales.
+     * Obtener leaderboard completo — 1 zrevrange + N hget secuenciales
+     * (ver nota de pipeline en updateScore() sobre por qué no se agrupan).
      */
     public function getLeaderboard(string $gameId): LeaderboardDTO
     {
@@ -140,12 +141,10 @@ class ScoreService implements ScoreServiceInterface
             );
         }
 
-        // Pipeline: un solo round-trip para todos los hget
-        $rawScores = Redis::pipeline(function ($pipe) use ($gameId, $playerIds) {
-            foreach ($playerIds as $playerId) {
-                $pipe->hget(self::KEY_PREFIX . "{$gameId}:{$playerId}", 'data');
-            }
-        });
+        $rawScores = [];
+        foreach ($playerIds as $playerId) {
+            $rawScores[] = Redis::hget(self::KEY_PREFIX . "{$gameId}:{$playerId}", 'data');
+        }
 
         $scores = [];
         foreach ($playerIds as $i => $playerId) {
@@ -202,11 +201,10 @@ class ScoreService implements ScoreServiceInterface
             return [];
         }
 
-        $rawScores = Redis::pipeline(function ($pipe) use ($keys) {
-            foreach ($keys as $key) {
-                $pipe->hget($key, 'data');
-            }
-        });
+        $rawScores = [];
+        foreach ($keys as $key) {
+            $rawScores[] = Redis::hget($key, 'data');
+        }
 
         $scores = [];
         foreach ($rawScores as $raw) {
@@ -222,28 +220,16 @@ class ScoreService implements ScoreServiceInterface
      * Resetear puntuaciones.
      *
      * Antes: Redis::keys() bloqueante + del individual.
-     * Ahora: scan no bloqueante + del en pipeline.
+     * Ahora: scan no bloqueante + del secuencial (ver nota de pipeline en updateScore()).
      */
     public function resetScores(string $gameId): void
     {
         $keys = $this->scanKeys(self::KEY_PREFIX . "{$gameId}:*");
 
-        Redis::pipeline(function ($pipe) use ($keys, $gameId) {
-            foreach ($keys as $key) {
-                $pipe->del($key);
-            }
-            $pipe->del(self::LEADERBOARD_KEY . $gameId);
-        });
-    }
-
-    /**
-     * Actualizar sorted set del leaderboard.
-     * Llamado internamente por updateScore (ya dentro de pipeline).
-     */
-    private function updateLeaderboardSortedSet(string $gameId, string $playerId, int $score): void
-    {
-        Redis::zadd(self::LEADERBOARD_KEY . $gameId, $score, $playerId);
-        Redis::expire(self::LEADERBOARD_KEY . $gameId, self::TTL);
+        if (! empty($keys)) {
+            Redis::del(...$keys);
+        }
+        Redis::del(self::LEADERBOARD_KEY . $gameId);
     }
 
     /**
@@ -254,13 +240,27 @@ class ScoreService implements ScoreServiceInterface
      */
     private function scanKeys(string $pattern): array
     {
+        // Redis::scan($cursor, $options) — $options debe ser el array asociativo
+        // ['match' => ..., 'count' => ...] que Illuminate\Redis\Connections
+        // espera (PhpRedisConnection lo desempaqueta explícitamente; Predis lo
+        // reenvía tal cual). Parámetros posicionales sueltos ('match', $pattern,
+        // 'count', 100) no son interpretados por ninguno de los dos y siempre
+        // devuelven un resultado vacío, aunque sí existan claves.
         $keys   = [];
-        $cursor = '0';
+        $cursor = 0;
 
         do {
-            [$cursor, $found] = Redis::scan($cursor, 'match', $pattern, 'count', 100);
+            $result = Redis::scan($cursor, ['match' => $pattern, 'count' => 100]);
+
+            // scan() devuelve false cuando no hay más resultados (cursor 0 y
+            // vacío) — ver PhpRedisConnection::scan().
+            if ($result === false) {
+                break;
+            }
+
+            [$cursor, $found] = $result;
             $keys = array_merge($keys, $found);
-        } while ($cursor !== '0');
+        } while ((int) $cursor !== 0);
 
         return $keys;
     }
