@@ -61,13 +61,19 @@ final class BingoGameService
         $config = $bingoRoom->config;
         $rounds = $bingoRoom->rounds;
 
-        // Cargar números sorteados desde la base de datos
-        $drawnNumbers = BingoDraw::where('room_id', $bingoRoom->id)
-            ->orderBy('time')
-            ->orderBy('created_at')
-            ->pluck('chip')
-            ->map(fn($chip) => (int) $chip)
-            ->toArray();
+        // Reusar cache escrito por BingoDrawService — evita query a bingo_draws en page-load
+        // cuando el sorteo está en progreso (la clave ya tiene los chips actuales con TTL activo).
+        $drawCacheKey = "bingo:draw-state:draw:{$bingoRoom->id}";
+        $drawnNumbers = Cache::get($drawCacheKey);
+        if ($drawnNumbers === null) {
+            $drawnNumbers = BingoDraw::where('room_id', $bingoRoom->id)
+                ->orderBy('time')
+                ->orderBy('created_at')
+                ->pluck('chip')
+                ->map(fn($chip) => (int) $chip)
+                ->toArray();
+            Cache::put($drawCacheKey, $drawnNumbers, 5);
+        }
 
         // Para salas finalizadas, cargar los ganadores históricos desde BingoCardPrize
         $initialWinners = $roomIsFinished ? $this->getHistoricalWinners($bingoRoom) : [];
@@ -105,18 +111,24 @@ final class BingoGameService
      */
     public function getDrawState(BingoRoom $room): array
     {
-        // Cacheado 3s — bajo tormenta de reconexiones (muchos clientes simultáneos)
-        // todas las consultas de historial de fichas golpearían la misma tabla a la vez.
-        $drawnNumbers = Cache::remember(
-            "bingo:draw-state:draw:{$room->id}",
-            3,
-            fn () => BingoDraw::where('room_id', $room->id)
+        // La clave "bingo:draw-state:draw:{roomId}" es escrita por BingoDrawService en cada
+        // chip con TTL = max(interval+2, 6)s. Cache::remember() con TTL fijo de 3s sobreescribiría
+        // ese TTL largo en el fallback de DB, acortando la ventana útil del cache entre chips.
+        // Solución: leer con get() (no toca el TTL existente); solo en cache miss, escribir
+        // con TTL corto (5s) para amortiguar tormentas de reconexión sin destruir el TTL del draw.
+        $cacheKey     = "bingo:draw-state:draw:{$room->id}";
+        $drawnNumbers = Cache::get($cacheKey);
+        if ($drawnNumbers === null) {
+            $drawnNumbers = BingoDraw::where('room_id', $room->id)
                 ->orderBy('time')
                 ->orderBy('created_at')
                 ->pluck('chip')
                 ->map(fn($chip) => (int) $chip)
-                ->toArray()
-        );
+                ->toArray();
+            // TTL corto solo cuando no hay valor previo — el draw service lo reescribirá
+            // en el siguiente chip con el TTL correcto (interval+2s).
+            Cache::put($cacheKey, $drawnNumbers, 5);
+        }
 
         // Siempre recargar status desde DB — el route binding puede tener el modelo
         // en memoria con un status anterior (IN_PROGRESS) si el sorteo terminó entre
