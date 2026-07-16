@@ -1092,8 +1092,8 @@
   font-size: 1rem;
   flex-shrink: 0;
 }
-.pw-modal__icon--deposit  { background: #dcfce7; color: #16a34a; }
-.pw-modal__icon--withdraw { background: #fee2e2; color: #dc2626; }
+.pw-modal__icon--deposit  { background: rgba(22,163,74,.16); color: #4ade80; }
+.pw-modal__icon--withdraw { background: rgba(220,38,38,.16); color: #f87171; }
 
 .pw-modal__title {
   font-size: 1rem;
@@ -1126,7 +1126,7 @@
   font-size: 0.8rem;
   transition: background 0.12s;
 }
-.pw-modal__close:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+.pw-modal__close:hover { background: rgba(220,38,38,.14); color: #f87171; border-color: rgba(220,38,38,.4); }
 
 .pw-modal__body {
   padding: 1.25rem 1.5rem;
@@ -1190,8 +1190,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: #fee2e2;
-  color: #dc2626;
+  background: rgba(220,38,38,.14);
+  color: #f87171;
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 0.8rem;

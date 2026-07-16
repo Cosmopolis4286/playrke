@@ -300,41 +300,41 @@ function handleCreate() {
 }
 
 .permission-table thead th {
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
+  background-color: var(--ds-surface-2);
+  border-bottom: 2px solid var(--ds-border);
   font-weight: 600;
-  color: #495057;
+  color: var(--ds-text-2);
   white-space: nowrap;
   padding: 1rem 0.75rem;
 }
 
 .permission-col { min-width: 200px; padding: 0.75rem; }
-.module-col    { min-width: 100px; color: #6c757d; padding: 0.75rem; }
+.module-col    { min-width: 100px; color: var(--ds-text-muted); padding: 0.75rem; }
 .role-col      { min-width: 90px; padding: 0.75rem; }
 .actions-col   { width: 50px; padding: 0.75rem; }
 
 .permission-key { font-family: monospace; font-size: 0.75rem; }
 
-.category-header { background-color: #f8f9fa; }
+.category-header { background-color: var(--ds-surface-2); }
 .category-header td {
   padding: 0.75rem;
-  border-top: 1px solid #dee2e6;
-  border-bottom: 1px solid #dee2e6;
+  border-top: 1px solid var(--ds-border);
+  border-bottom: 1px solid var(--ds-border);
 }
 
-.permission-row:hover { background-color: #f8f9fa; }
-.permission-row td { border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+.permission-row:hover { background-color: var(--ds-surface-2); }
+.permission-row td { border-bottom: 1px solid var(--ds-border); vertical-align: middle; }
 
 .custom-checkbox-wrapper { display: flex; justify-content: center; align-items: center; }
 .custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #007bff; }
 .custom-checkbox:disabled { cursor: not-allowed; opacity: 0.6; }
 
-.badge-purple   { background-color: #e9d5ff; color: #7c3aed; }
-.badge-blue     { background-color: #dbeafe; color: #2563eb; }
-.badge-green    { background-color: #d1fae5; color: #059669; }
-.badge-yellow   { background-color: #fef3c7; color: #d97706; }
-.badge-info     { background-color: #cff4fc; color: #055160; }
-.badge-secondary{ background-color: #e9ecef; color: #6c757d; }
+.badge-purple   { background-color: rgba(124,58,237,.18); color: #a78bfa; }
+.badge-blue     { background-color: rgba(37,99,235,.18);  color: #60a5fa; }
+.badge-green    { background-color: rgba(5,150,105,.18);  color: #34d399; }
+.badge-yellow   { background-color: rgba(217,119,6,.18);  color: #fbbf24; }
+.badge-info     { background-color: rgba(5,81,96,.25);    color: #22d3ee; }
+.badge-secondary{ background-color: var(--ds-surface-2);  color: var(--ds-text-2); }
 
 .font-weight-medium { font-weight: 500; }
 .gap-2 { gap: 0.5rem; }

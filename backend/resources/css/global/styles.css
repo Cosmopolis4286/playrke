@@ -533,20 +533,18 @@ main.content-wrapper,
   box-sizing: border-box;
 }
 #slot-wrapper {
-  flex: 1 1 0%;
-  min-height: 0;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
   box-sizing: border-box;
 }
 #slot-wrapper > #app {
-  flex: 1 1 0%;
-  min-height: 0;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
   box-sizing: border-box;
 }

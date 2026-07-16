@@ -291,7 +291,7 @@
   .isp-search-label {
     font-size: 0.775rem;
     font-weight: 600;
-    color: #495057;
+    color: var(--ds-text-2);
     margin-bottom: 0.3rem;
     display: flex;
     align-items: center;
@@ -304,8 +304,8 @@
     left: 0;
     right: 0;
     z-index: 200;
-    background: #fff;
-    border: 1px solid #dee2e6;
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border);
     border-radius: 0.3rem;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
     max-height: 220px;
@@ -320,11 +320,12 @@
     padding: 0.38rem 0.7rem;
     background: none;
     border: none;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--ds-border);
     cursor: pointer;
     text-align: left;
     font-size: 0.815rem;
     transition: background 0.12s;
+    color: var(--ds-text);
   }
 
   .isp-result-item:last-child {
@@ -332,7 +333,7 @@
   }
 
   .isp-result-item:hover {
-    background: #eef4ff;
+    background: rgba(102,126,234,.12);
   }
 
   /* ---------------- SLOT RESULT ---------------- */
@@ -340,8 +341,8 @@
   :deep(.r-code) {
     font-family: monospace;
     font-size: 0.72rem;
-    background: #f1f3f5;
-    color: #6c757d;
+    background: var(--ds-surface-2);
+    color: var(--ds-text-2);
     padding: 1px 5px;
     border-radius: 3px;
     flex-shrink: 0;
@@ -350,7 +351,7 @@
   :deep(.r-name) {
     flex: 1;
     font-weight: 500;
-    color: #212529;
+    color: var(--ds-text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -373,8 +374,8 @@
   /* ------------------------------------------------------------------ */
 
   .isp-panel {
-    background: #fff;
-    border: 1px solid #dee2e6;
+    background: var(--ds-surface-2);
+    border: 1px solid var(--ds-border);
     border-radius: 0.3rem;
     padding: 0.45rem 0.7rem 0.55rem;
   }
@@ -389,7 +390,7 @@
   .isp-panel-title {
     font-size: 0.775rem;
     font-weight: 600;
-    color: #495057;
+    color: var(--ds-text-2);
     display: flex;
     align-items: center;
     gap: 0.3rem;
@@ -432,15 +433,16 @@
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    background: #e8f0fe;
-    border: 1px solid #c5d8f9;
+    background: rgba(102,126,234,.14);
+    border: 1px solid rgba(102,126,234,.32);
     border-radius: 1rem;
     padding: 0.18rem 0.45rem 0.18rem 0.55rem;
     font-size: 0.775rem;
-    color: #1a56b0;
+    color: #94a8ee;
     white-space: nowrap;
     max-width: 260px;
   }
+  [data-theme="light"] .isp-chip { color: #4c5fd6; }
 
   /* En modo lista: ocupa todo el ancho, sin pill */
   .isp-chip--row {
@@ -526,9 +528,10 @@
   }
 
   :deep(.chip-qty-btn:hover) {
-    background: #c5d8f9;
-    color: #1a56b0;
+    background: rgba(102,126,234,.28);
+    color: #94a8ee;
   }
+  [data-theme="light"] :deep(.chip-qty-btn:hover) { color: #1a56b0; }
 
   :deep(.chip-remove) {
     display: inline-flex;
@@ -554,8 +557,8 @@
   }
 
   :deep(.chip-remove:hover) {
-    background: #fecaca;
-    color: #dc2626;
+    background: rgba(220,38,38,.2);
+    color: #ef4444;
   }
 
   /* ------------------------------------------------------------------ */

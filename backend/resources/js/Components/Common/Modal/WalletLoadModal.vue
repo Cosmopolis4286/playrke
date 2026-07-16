@@ -63,7 +63,7 @@ async function loadBalance() {
   <div v-if="show" class="modal fade show" tabindex="-1" style="display: block; background-color: rgba(0,0,0,.5);">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+        <div class="modal-header wlm-header">
           <h5 class="modal-title mb-0">
             <i class="fas fa-wallet mr-2"></i>
             Cargar Saldo
@@ -192,7 +192,7 @@ async function loadBalance() {
 
 .modal-content {
   position: relative;
-  background-color: #fefefe;
+  background-color: var(--ds-surface);
   border: none;
   border-radius: 0.5rem;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
@@ -204,6 +204,11 @@ async function loadBalance() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.wlm-header {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
 }
 
 .modal-title {
@@ -241,16 +246,18 @@ async function loadBalance() {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #374151;
+  color: var(--ds-text-2);
 }
 
 .form-control {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--ds-border-2);
   border-radius: 0.375rem;
   font-size: 1rem;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  background: var(--ds-surface);
+  color: var(--ds-text);
 }
 
 .form-control:focus {
@@ -298,7 +305,7 @@ async function loadBalance() {
 }
 
 .bg-gray-50 {
-  background-color: #f9fafb;
+  background-color: var(--ds-surface-2);
 }
 
 .rounded-lg {
@@ -306,19 +313,19 @@ async function loadBalance() {
 }
 
 .text-gray-700 {
-  color: #374151;
+  color: var(--ds-text-2);
 }
 
 .text-gray-600 {
-  color: #4b5563;
+  color: var(--ds-text-2);
 }
 
 .text-gray-900 {
-  color: #111827;
+  color: var(--ds-text);
 }
 
 .text-indigo-500 {
-  color: #6366f1;
+  color: #818cf8;
 }
 
 .bg-indigo-500 {
@@ -326,19 +333,19 @@ async function loadBalance() {
 }
 
 .bg-white {
-  background-color: white;
+  background-color: var(--ds-surface);
 }
 
 .border-gray-200 {
-  border-color: #e5e7eb;
+  border-color: var(--ds-border);
 }
 
 .hover\:border-indigo-300:hover {
-  border-color: #a5b4fc;
+  border-color: #818cf8;
 }
 
 .hover\:bg-indigo-50:hover {
-  background-color: #eef2ff;
+  background-color: rgba(99,102,241,.15);
 }
 
 .shadow-md {
@@ -350,4 +357,13 @@ async function loadBalance() {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem;
 }
+
+.w-10 { width: 2.5rem; }
+.h-10 { height: 2.5rem; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+
+.bg-indigo-100 { background-color: rgba(99,102,241,.16); }
+.text-indigo-600 { color: #818cf8; }
 </style>

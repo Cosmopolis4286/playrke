@@ -82,15 +82,15 @@ const version = computed(() => props.status?.version ?? '')
 .tos-body        { display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; padding: 0.5rem 0; }
 .tos-icon-wrap   { width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg,#667eea22,#764ba222); display:flex;align-items:center;justify-content:center; }
 .tos-main-icon   { font-size: 1.8rem; color: #667eea; }
-.tos-title       { font-size: 1.1rem; font-weight: 700; color: #1e293b; margin: 0; }
-.tos-subtitle    { font-size: 0.78rem; color: #94a3b8; margin: -0.5rem 0 0; }
-.tos-summary     { font-size: 0.875rem; color: #475569; line-height: 1.6; max-width: 380px; margin: 0; }
+.tos-title       { font-size: 1.1rem; font-weight: 700; color: var(--ds-text); margin: 0; }
+.tos-subtitle    { font-size: 0.78rem; color: var(--ds-text-muted); margin: -0.5rem 0 0; }
+.tos-summary     { font-size: 0.875rem; color: var(--ds-text-2); line-height: 1.6; max-width: 380px; margin: 0; }
 
-.tos-points      { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; text-align: left; background: #f8fafc; border-radius: 12px; padding: 1rem; }
-.tos-point       { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.82rem; color: #475569; line-height: 1.4; }
+.tos-points      { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; text-align: left; background: var(--ds-surface-2); border-radius: 12px; padding: 1rem; }
+.tos-point       { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.82rem; color: var(--ds-text-2); line-height: 1.4; }
 .tos-point__icon { color: #22c55e; font-size: 0.85rem; margin-top: 0.1rem; flex-shrink: 0; }
 
-.tos-error       { width:100%; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:0.6rem 0.8rem; font-size:0.82rem; color:#dc2626; display:flex;gap:0.4rem;align-items:center; }
+.tos-error       { width:100%; background:rgba(220,38,38,.14); border:1px solid rgba(220,38,38,.35); border-radius:8px; padding:0.6rem 0.8rem; font-size:0.82rem; color:#f87171; display:flex;gap:0.4rem;align-items:center; }
 
 .tos-btn         { display:inline-flex;align-items:center;gap:0.5rem;padding:10px 28px;border-radius:10px;font-size:0.875rem;font-weight:600;cursor:pointer;border:none;transition:all 0.15s; }
 .tos-btn--accept { background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;box-shadow:0 2px 8px rgba(102,126,234,0.35);width:100%; justify-content:center; }

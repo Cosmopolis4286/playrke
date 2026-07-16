@@ -212,7 +212,7 @@
 
 <style scoped>
 .rich-editor {
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--ds-border);
   border-radius: 0.375rem;
   overflow: hidden;
   font-size: 0.875rem;
@@ -224,8 +224,8 @@
   align-items: center;
   gap: 2px;
   padding: 6px 8px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  background: var(--ds-surface-2);
+  border-bottom: 1px solid var(--ds-border);
 }
 
 .rte-group {
@@ -237,7 +237,7 @@
 .rte-sep {
   width: 1px;
   height: 20px;
-  background: #dee2e6;
+  background: var(--ds-border-2);
   margin: 0 4px;
 }
 
@@ -251,7 +251,7 @@
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: #495057;
+  color: var(--ds-text-2);
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
@@ -259,8 +259,8 @@
 }
 
 .rich-editor-toolbar button:hover:not(:disabled) {
-  background: #e9ecef;
-  color: #212529;
+  background: var(--ds-border);
+  color: var(--ds-text);
 }
 
 .rich-editor-toolbar button.active {
@@ -283,7 +283,7 @@
   font-weight: 700;
   font-size: 0.8rem;
   margin-right: 2px;
-  color: #495057;
+  color: var(--ds-text-2);
 }
 
 .rte-color-dot {
@@ -304,7 +304,7 @@
 
 .rte-color-clear {
   font-size: 0.65rem !important;
-  color: #6c757d !important;
+  color: var(--ds-text-2) !important;
 }
 
 /* Área de edición */
@@ -315,7 +315,8 @@
   padding: 12px 16px;
   outline: none;
   line-height: 1.7;
-  color: #212529;
+  color: var(--ds-text);
+  background: var(--ds-surface);
 }
 
 :deep(.rich-editor-body p) { margin-bottom: 0.6rem; }
@@ -328,12 +329,12 @@
   border-left: 3px solid #0d6efd;
   margin: 0.6rem 0;
   padding: 0.3rem 0.8rem;
-  color: #6c757d;
-  background: #f0f4ff;
+  color: var(--ds-text-2);
+  background: rgba(13,110,253,.1);
   border-radius: 0 4px 4px 0;
 }
 :deep(.rich-editor-body code) {
-  background: #f1f3f5;
+  background: var(--ds-surface-2);
   padding: 2px 5px;
   border-radius: 3px;
   font-size: 0.85em;
@@ -341,12 +342,13 @@
 }
 :deep(.rich-editor-body hr) {
   border: none;
-  border-top: 2px solid #dee2e6;
+  border-top: 2px solid var(--ds-border);
   margin: 0.8rem 0;
 }
 :deep(.rich-editor-body mark) {
   background: #fff3cd;
   padding: 0 2px;
   border-radius: 2px;
+  color: #212529;
 }
 </style>
