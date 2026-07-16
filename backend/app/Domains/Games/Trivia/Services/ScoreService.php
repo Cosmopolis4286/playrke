@@ -246,11 +246,18 @@ class ScoreService implements ScoreServiceInterface
         // reenvía tal cual). Parámetros posicionales sueltos ('match', $pattern,
         // 'count', 100) no son interpretados por ninguno de los dos y siempre
         // devuelven un resultado vacío, aunque sí existan claves.
+        //
+        // SCAN MATCH compara contra las claves reales en Redis, que incluyen
+        // el prefijo de conexión (config('database.redis.options.prefix'),
+        // ej. "playrke_database_") — a diferencia de comandos como HGET/DEL,
+        // que Laravel prefija automáticamente. Sin anteponerlo aquí, match
+        // nunca encuentra nada aunque las claves existan.
+        $prefix = (string) config('database.redis.options.prefix');
         $keys   = [];
         $cursor = 0;
 
         do {
-            $result = Redis::scan($cursor, ['match' => $pattern, 'count' => 100]);
+            $result = Redis::scan($cursor, ['match' => $prefix . $pattern, 'count' => 100]);
 
             // scan() devuelve false cuando no hay más resultados (cursor 0 y
             // vacío) — ver PhpRedisConnection::scan().
@@ -261,6 +268,12 @@ class ScoreService implements ScoreServiceInterface
             [$cursor, $found] = $result;
             $keys = array_merge($keys, $found);
         } while ((int) $cursor !== 0);
+
+        // Quitar el prefijo: los comandos posteriores (HGET, DEL) que Laravel
+        // ejecuta sobre estas claves ya lo antepondrán ellos mismos.
+        if ($prefix !== '') {
+            $keys = array_map(fn ($key) => str_starts_with($key, $prefix) ? substr($key, strlen($prefix)) : $key, $keys);
+        }
 
         return $keys;
     }
