@@ -242,35 +242,41 @@ final class PlatformWalletService
     // Helpers
     // -------------------------------------------------------------------------
 
-    /** Resuelve la wallet de plataforma para la moneda dada (con caché corto). */
+    /**
+     * Resuelve la wallet de plataforma para la moneda dada.
+     * Caché guarda solo el wallet ID (string) para evitar serializar modelos Eloquent.
+     */
     public function resolveWallet(string $currencyId): ?Wallet
     {
-        return Cache::remember(
+        $walletId = Cache::remember(
             $this->cacheKey($currencyId),
             self::CACHE_TTL,
-            function () use ($currencyId): ?Wallet {
+            function () use ($currencyId): ?string {
                 $user = $this->resolvePlatformUser();
                 if (! $user) {
                     return null;
                 }
 
-                return $this->walletRepository->findWalletByUserAndCurrency(
+                $wallet = $this->walletRepository->findWalletByUserAndCurrency(
                     (string) $user->id,
                     $currencyId
                 );
+
+                return $wallet ? (string) $wallet->id : null;
             }
         );
+
+        return $walletId ? Wallet::find($walletId) : null;
     }
 
     /**
      * Resuelve el usuario sistema de la plataforma, creándolo si aún no existe.
-     * Garantiza que la billetera de plataforma esté siempre disponible sin
-     * requerir la ejecución manual de `php artisan platform:setup-user`.
+     * Caché guarda solo el user ID (string) para evitar serializar modelos Eloquent.
      */
     private function resolvePlatformUser(): ?User
     {
-        return Cache::remember('platform_user_id', self::CACHE_TTL, function (): ?User {
-            return User::firstOrCreate(
+        $userId = Cache::remember('platform_user_id', self::CACHE_TTL, function (): ?string {
+            $user = User::firstOrCreate(
                 ['email' => PlatformUserSeeder::PLATFORM_EMAIL],
                 [
                     'username'          => PlatformUserSeeder::PLATFORM_USERNAME,
@@ -284,7 +290,11 @@ final class PlatformWalletService
                     'is_system_account' => true,
                 ]
             );
+
+            return $user ? (string) $user->id : null;
         });
+
+        return $userId ? User::find($userId) : null;
     }
 
     private function cacheKey(string $currencyId): string

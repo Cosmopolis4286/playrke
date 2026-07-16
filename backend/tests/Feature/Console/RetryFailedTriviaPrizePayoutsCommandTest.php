@@ -8,9 +8,9 @@ use App\Domains\Games\Trivia\Models\TriviaScore;
 use App\Models\Country;
 use App\Models\Currency;
 use App\Models\Games\Trivia\TriviaParticipant;
+use App\Models\MovementType;
 use App\Models\User;
 use App\Models\Wallet;
-use App\Models\WalletMovement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
@@ -28,6 +28,26 @@ class RetryFailedTriviaPrizePayoutsCommandTest extends TestCase
     use RefreshDatabase;
 
     protected $connectionsToTransact = ['mysql', 'pgsql_trivia'];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // wallet_movements.type es FK contra movement_types.code (migración
+        // 2026_06_27_211954_convert_wallet_movements_type_to_fk) — la BD real
+        // tiene el catálogo sembrado manualmente, playrke_testing no. Sin
+        // esto, WalletService::recordPrize() falla por constraint FK, no por
+        // idempotencia, y el catch de QueryException lo enmascaraba como
+        // "ya pagado" antes de corregirlo.
+        if (! MovementType::where('code', 'PRIZE')->exists()) {
+            MovementType::create([
+                'code' => 'PRIZE',
+                'label' => 'Premio ganado',
+                'is_credit' => true,
+                'status' => 'ACTIVE',
+            ]);
+        }
+    }
 
     private function makeRoom(array $overrides = []): TriviaRoom
     {
@@ -140,8 +160,10 @@ class RetryFailedTriviaPrizePayoutsCommandTest extends TestCase
             ->expectsOutputToContain('acreditados: 1')
             ->assertExitCode(0);
 
+        // Split por defecto 60/25/15 (ver PrizeDistributionService::normalizedSplit()):
+        // con un solo ganador en posición 1, solo cobra el 60% del prize_amount.
         $wallet->refresh();
-        $this->assertEquals(10.0, (float) $wallet->balance);
+        $this->assertEquals(6.0, (float) $wallet->balance);
 
         $participant = TriviaParticipant::where('room_id', $room->id)->where('user_id', $user->id)->first();
         $this->assertEquals('claimed', $participant->prize_status);

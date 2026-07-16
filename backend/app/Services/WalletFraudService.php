@@ -96,8 +96,11 @@ final class WalletFraudService
     private function operationCountToday(string $userId, string $type): int
     {
         $cacheKey = "fraud:vel:{$userId}:{$type}:" . now()->format('Y-m-d');
+        // TTL al fin del día — la clave ya incluye la fecha, por lo que no hay
+        // riesgo de rollover: la del día siguiente tiene clave distinta.
+        $ttl = Carbon::now()->secondsUntilEndOfDay() + 1;
 
-        return (int) Cache::remember($cacheKey, 60, fn () =>
+        return (int) Cache::remember($cacheKey, $ttl, fn () =>
             WalletMovement::where('user_id', $userId)
                 ->where('type', $type)
                 ->where('created_at', '>=', Carbon::today())

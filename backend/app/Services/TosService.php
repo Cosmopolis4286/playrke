@@ -9,13 +9,14 @@ use Illuminate\Support\Facades\Cache;
 
 final class TosService
 {
-    private const CACHE_KEY    = 'tos:current_version';
-    private const CACHE_TTL    = 3600; // 1 hora
+    private const CACHE_KEY = 'tos:current_version_id';
+    private const CACHE_TTL = 3600; // 1 hora
 
     public function currentVersion(): ?TosVersion
     {
-        $version = Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => TosVersion::current());
-        return $version ?: null;
+        $id = Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => TosVersion::current()?->id);
+
+        return $id ? TosVersion::find($id) : null;
     }
 
     public function currentVersionString(): ?string
@@ -53,6 +54,6 @@ final class TosService
 
     public function invalidateCache(): void
     {
-        Cache::forget(self::CACHE_KEY);
+        Cache::forget(self::CACHE_KEY); // 'tos:current_version_id'
     }
 }

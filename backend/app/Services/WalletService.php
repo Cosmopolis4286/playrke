@@ -435,8 +435,17 @@ final class WalletService
             // Carrera entre el check de arriba y el insert: otro proceso ganó y
             // ya acreditó esta misma clave. La wallet no se acreditó dos veces
             // porque incrementBalance() de ESTA llamada revierte con la transacción.
+            //
+            // Solo se trata como carrera de idempotencia si (a) el mensaje señala
+            // el índice único de esa columna Y (b) el registro realmente existe —
+            // cualquier otro fallo de la misma transacción (ej. FK, NOT NULL) no
+            // debe enmascararse como "ya pagado", o firstOrFail() lanza una
+            // excepción distinta que oculta la causa real.
             if ($idempotencyKey !== null && str_contains($e->getMessage(), 'idempotency_key')) {
-                return WalletMovement::where('idempotency_key', $idempotencyKey)->firstOrFail();
+                $existingMovement = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
+                if ($existingMovement) {
+                    return $existingMovement;
+                }
             }
             throw $e;
         }

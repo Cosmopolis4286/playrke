@@ -27,6 +27,7 @@ class MovementType extends Model
     protected $keyType = 'string';
 
     private const CACHE_KEY = 'movement_types:catalog';
+    private const CACHE_TTL = 86400; // 24 h — invalidado por forgetCatalogCache() al editar desde admin
 
     protected $fillable = [
         'code',
@@ -81,7 +82,7 @@ class MovementType extends Model
      */
     public static function catalog(): Collection
     {
-        return Cache::rememberForever(self::CACHE_KEY, fn () => self::query()->get()->keyBy('code'));
+        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => self::query()->get()->keyBy('code'));
     }
 
     public static function forgetCatalogCache(): void

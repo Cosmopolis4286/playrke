@@ -42,29 +42,27 @@ final class WithdrawalLimitService
         }
 
         $walletId = (string) $wallet->id;
+        $sums     = $this->withdrawalSums($walletId);
 
         // ── Límite diario ─────────────────────────────────────────────────────
-        $dailyUsed = $this->sumWithdrawals($walletId, 'daily');
-        if (($dailyUsed + $amount) > $limit->max_daily) {
-            $remaining = max(0, $limit->max_daily - $dailyUsed);
+        if (($sums['daily'] + $amount) > $limit->max_daily) {
+            $remaining = max(0, $limit->max_daily - $sums['daily']);
             throw new \DomainException(
                 "Límite diario de retiro alcanzado. Puedes retirar hasta {$remaining} hoy."
             );
         }
 
         // ── Límite semanal ────────────────────────────────────────────────────
-        $weeklyUsed = $this->sumWithdrawals($walletId, 'weekly');
-        if (($weeklyUsed + $amount) > $limit->max_weekly) {
-            $remaining = max(0, $limit->max_weekly - $weeklyUsed);
+        if (($sums['weekly'] + $amount) > $limit->max_weekly) {
+            $remaining = max(0, $limit->max_weekly - $sums['weekly']);
             throw new \DomainException(
                 "Límite semanal de retiro alcanzado. Puedes retirar hasta {$remaining} esta semana."
             );
         }
 
         // ── Límite mensual ────────────────────────────────────────────────────
-        $monthlyUsed = $this->sumWithdrawals($walletId, 'monthly');
-        if (($monthlyUsed + $amount) > $limit->max_monthly) {
-            $remaining = max(0, $limit->max_monthly - $monthlyUsed);
+        if (($sums['monthly'] + $amount) > $limit->max_monthly) {
+            $remaining = max(0, $limit->max_monthly - $sums['monthly']);
             throw new \DomainException(
                 "Límite mensual de retiro alcanzado. Puedes retirar hasta {$remaining} este mes."
             );
@@ -72,35 +70,48 @@ final class WithdrawalLimitService
     }
 
     /**
-     * Suma de retiros COMPLETADOS o PENDING en el período indicado.
-     * Usa caché corta (60 s) para no golpear la DB en cada validación.
+     * Sumas de retiros COMPLETADOS o PENDING para los tres períodos en una sola query.
+     * Caché por período con clave que incluye el segmento temporal, expiración al fin del día.
+     *
+     * @return array{daily: float, weekly: float, monthly: float}
      */
-    private function sumWithdrawals(string $walletId, string $period): float
+    private function withdrawalSums(string $walletId): array
     {
-        $cacheKey = "wlimit:{$walletId}:{$period}:" . now()->format($this->cacheSegment($period));
+        $today = Carbon::today()->format('Y-m-d');
+        $week  = Carbon::now()->format('Y-W');
+        $month = Carbon::now()->format('Y-m');
 
-        return (float) Cache::remember($cacheKey, 60, function () use ($walletId, $period) {
-            $from = match ($period) {
-                'daily'   => Carbon::today(),
-                'weekly'  => Carbon::now()->startOfWeek(),
-                'monthly' => Carbon::now()->startOfMonth(),
-            };
+        $cacheKey = "wlimit:{$walletId}:sums:{$today}:{$week}:{$month}";
+        $secondsUntilMidnight = Carbon::now()->secondsUntilEndOfDay() + 1;
 
-            return WalletMovement::where('wallet_id', $walletId)
+        return Cache::remember($cacheKey, $secondsUntilMidnight, function () use ($walletId) {
+            $monthStart  = Carbon::now()->startOfMonth();
+            $weekStart   = Carbon::now()->startOfWeek();
+            $todayStart  = Carbon::today();
+
+            $rows = WalletMovement::where('wallet_id', $walletId)
                 ->where('type', WalletMovement::TYPE_WITHDRAWAL)
                 ->whereIn('status', [WalletMovement::STATUS_PENDING, WalletMovement::STATUS_COMPLETED])
-                ->where('created_at', '>=', $from)
-                ->sum('amount');
-        });
-    }
+                ->where('created_at', '>=', $monthStart)
+                ->get(['amount', 'created_at']);
 
-    private function cacheSegment(string $period): string
-    {
-        return match ($period) {
-            'daily'   => 'Y-m-d',
-            'weekly'  => 'Y-W',
-            'monthly' => 'Y-m',
-        };
+            $daily   = 0.0;
+            $weekly  = 0.0;
+            $monthly = 0.0;
+
+            foreach ($rows as $row) {
+                $amount   = (float) $row->amount;
+                $monthly += $amount;
+                if ($row->created_at >= $weekStart) {
+                    $weekly += $amount;
+                }
+                if ($row->created_at >= $todayStart) {
+                    $daily += $amount;
+                }
+            }
+
+            return compact('daily', 'weekly', 'monthly');
+        });
     }
 
     /**
@@ -115,12 +126,14 @@ final class WithdrawalLimitService
             return [];
         }
 
+        $sums = $this->withdrawalSums($walletId);
+
         return [
-            'kyc_level'    => $kycLevel,
-            'per_tx'       => ['max' => $limit->max_per_transaction, 'min' => $limit->min_per_transaction],
-            'daily'        => ['used' => $this->sumWithdrawals($walletId, 'daily'),   'max' => $limit->max_daily],
-            'weekly'       => ['used' => $this->sumWithdrawals($walletId, 'weekly'),  'max' => $limit->max_weekly],
-            'monthly'      => ['used' => $this->sumWithdrawals($walletId, 'monthly'), 'max' => $limit->max_monthly],
+            'kyc_level' => $kycLevel,
+            'per_tx'    => ['max' => $limit->max_per_transaction, 'min' => $limit->min_per_transaction],
+            'daily'     => ['used' => $sums['daily'],   'max' => $limit->max_daily],
+            'weekly'    => ['used' => $sums['weekly'],  'max' => $limit->max_weekly],
+            'monthly'   => ['used' => $sums['monthly'], 'max' => $limit->max_monthly],
         ];
     }
 }
