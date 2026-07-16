@@ -302,13 +302,19 @@ final class BingoDrawService
 
             // Verificar si ya hay ganadores antes de llamar detectWinnerAndEnd en resume,
             // para evitar re-declarar un ganador ya procesado y re-emitir BingoWinnerDeclared.
+            // IMPORTANTE: si hay premios existentes y el resume termina sin detectar un nuevo
+            // ganador, el loop de fichas restantes caería al bloque "sin ganador" y emitiría
+            // BingoGameEnded(hasWinner:false) — incorrecto. Por eso retornamos aquí directamente
+            // para que el draw job finalice correctamente y el payout sea retomado por el cron.
             $hasExistingPrizes = \App\Domains\Games\Bingo\Models\Card\CardPrize\BingoCardPrize::where('round_id', $roundId)->exists();
 
             if ($hasExistingPrizes) {
-                Log::info('[BingoDrawService] Resume: ganadores ya registrados — continuando sin re-declarar', [
+                Log::info('[BingoDrawService] Resume: ganadores ya registrados — cerrando ronda sin re-declarar', [
                     'room_id'  => $roomId,
                     'round_id' => $roundId,
                 ]);
+                $this->closeRoundAndRoom($round, $room);
+                return ['success' => true, 'room_id' => $roomId, 'total_chips' => count($drawnSoFar), 'winner' => null, 'alreadyFinished' => true];
             } elseif ($result = $this->detectWinnerAndEnd($room, $round, $pattern, $patternPositions, $drawnSoFar, (int) $lastDraw->id)) {
                 return $result;
             }
