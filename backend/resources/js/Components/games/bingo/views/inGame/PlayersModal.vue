@@ -1,21 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
-import backendClient from '@/js/plugins/axios'
-import type { WinnerEntry, GameEndData } from './types'
-
-type WinningPositionModule = { col: string; row: number; free: boolean }
-type ViewedCardModule = {
-  serialNumber: string
-  cardMatrix: number[][]
-  colLabels?: string[]
-  loading?: boolean
-  winningPositions?: WinningPositionModule[]
-}
-
-// Persiste durante la sesión de juego (cartones ganadores son inmutables).
-// Se limpia en unmount (navegación SPA) para no llevar datos entre partidas.
-const cardCache = new Map<string, ViewedCardModule>()
-onUnmounted(() => cardCache.clear())
+import { computed } from 'vue'
+import type { GameEndData } from './types'
+import { useActivePlayers } from '@js/composables/games/bingo/game/useActivePlayers'
+import { useCardViewer } from '@js/composables/games/bingo/game/useCardViewer'
+import WinnersList from './Players/WinnersList.vue'
+import ActivePlayersList from './Players/ActivePlayersList.vue'
+import CardViewerModal from './Players/CardViewerModal.vue'
 
 interface Props {
   show: boolean
@@ -39,115 +29,20 @@ const emit = defineEmits<{
   close: []
 }>()
 
-type WinningPosition = WinningPositionModule
-type ViewedCard = ViewedCardModule
+const { activePlayers, loadingPlayers, playersError, fetchActivePlayers } = useActivePlayers({
+  show: computed(() => props.show),
+  totalWinners: computed(() => props.totalWinners),
+  roomRouteKey: computed(() => props.roomRouteKey),
+  roomId: computed(() => props.roomId),
+})
 
-const viewingCard      = ref<ViewedCard | null>(null)
-const viewingCardOwner = ref('')
-const loadingCardId    = ref<string | null>(null)
-
-// ── Lista de jugadores activos (se carga cuando se abre el modal y no hay ganadores aún) ──
-interface ActivePlayer { user_id: string; name: string; cards_purchased: number }
-const activePlayers      = ref<ActivePlayer[]>([])
-const loadingPlayers     = ref(false)
-const playersError       = ref(false)
-
-async function fetchActivePlayers(): Promise<void> {
-  if (loadingPlayers.value) return
-  loadingPlayers.value = true
-  playersError.value   = false
-  try {
-    const routeKey = props.roomRouteKey || props.roomId
-    const { data } = await backendClient.get(`/bingo/${routeKey}/lobby-players`)
-    activePlayers.value = (data.players ?? []).sort(
-      (a: ActivePlayer, b: ActivePlayer) => b.cards_purchased - a.cards_purchased,
-    )
-  } catch {
-    playersError.value = true
-  } finally {
-    loadingPlayers.value = false
-  }
-}
-
-// Cargar jugadores cada vez que el modal se abre y aún no hay fin de partida
-watch(() => props.show, (val) => {
-  if (val && props.totalWinners === 0) fetchActivePlayers()
+const { viewingCard, viewingCardOwner, loadingCardId, openCardViewer, closeCardViewer } = useCardViewer({
+  roomRouteKey: computed(() => props.roomRouteKey),
+  roomId: computed(() => props.roomId),
 })
 
 // O(1) lookup en template para evitar includes() O(n) en cada celda
 const drawnSet = computed(() => new Set(props.drawnNumbers))
-
-// Set de "col-row" con las celdas exactas del patrón que hizo ganar el cartón
-// mostrado — permite resaltar la línea/patrón específico, no solo los números marcados.
-const winningCellSet = computed(() => {
-  const set = new Set<string>()
-  for (const p of viewingCard.value?.winningPositions ?? []) set.add(`${p.col}-${p.row}`)
-  return set
-})
-
-
-function toRowMatrix(cardNumbers: Record<string, (number | null)[]> | number[][]): { matrix: number[][]; cols: string[] } {
-  if (Array.isArray(cardNumbers)) {
-    return { matrix: cardNumbers as number[][], cols: ['B', 'I', 'N', 'G', 'O'] }
-  }
-  const obj = cardNumbers as Record<string, (number | null)[]>
-  // Columnas dinámicas: funciona con BINGO_75, 90, 80, 30
-  const cols = Object.keys(obj)
-  if (!cols.length) {
-    return { matrix: [], cols: [] }
-  }
-  const numRows = obj[cols[0]]?.length ?? 0
-  const matrix: number[][] = []
-  for (let r = 0; r < numRows; r++) {
-    matrix.push(cols.map(c => (obj[c]?.[r] ?? 0) as number))
-  }
-  return { matrix, cols }
-}
-
-async function openCardViewer(winner: WinnerEntry) {
-  if (!winner.card_id || loadingCardId.value === winner.card_id) return
-
-  const cached = cardCache.get(winner.card_id)
-  if (cached) {
-    viewingCardOwner.value = winner.user_name
-    viewingCard.value      = cached
-    return
-  }
-
-  const requestedCardId  = winner.card_id
-  loadingCardId.value    = requestedCardId
-  viewingCardOwner.value = winner.user_name
-  viewingCard.value      = { serialNumber: winner.card_serial, cardMatrix: [], loading: true }
-  try {
-    const routeKey = props.roomRouteKey || props.roomId
-    const { data } = await backendClient.get(`/bingo/${routeKey}/card/${requestedCardId}`)
-    if (data.success && data.card) {
-      const { matrix, cols } = toRowMatrix(data.card.cardMatrix ?? {})
-      const resolved: ViewedCard = {
-        serialNumber:     data.card.serialNumber ?? winner.card_serial,
-        cardMatrix:       matrix,
-        colLabels:        cols,
-        loading:          false,
-        winningPositions: data.winningPositions ?? [],
-      }
-      // Solo cachear si el cartón tiene datos reales — evita fijar permanentemente respuestas vacías
-      if (matrix.length > 0) cardCache.set(requestedCardId, resolved)
-      // Descartar si el usuario ya navegó a otro cartón mientras este cargaba
-      if (loadingCardId.value === requestedCardId) viewingCard.value = resolved
-    } else {
-      if (loadingCardId.value === requestedCardId) viewingCard.value = null
-    }
-  } catch {
-    if (loadingCardId.value === requestedCardId) viewingCard.value = null
-  } finally {
-    if (loadingCardId.value === requestedCardId) loadingCardId.value = null
-  }
-}
-
-function closeCardViewer() {
-  viewingCard.value = null
-  viewingCardOwner.value = ''
-}
 </script>
 
 <template>
@@ -182,91 +77,22 @@ function closeCardViewer() {
         </div>
 
         <div class="pm-modal__body">
-          <!-- Ganadores (cuando la partida terminó) -->
-          <template v-if="totalWinners > 0">
-            <div class="pm-section-label"><i class="fas fa-trophy" /> Ganadores</div>
-            <div
-              v-for="(w, idx) in gameEndData?.winners ?? []"
-              :key="`pm-w-${w.card_id}-${idx}`"
-              class="pm-row"
-              :class="{ 'pm-row--me': String(w.user_id) === String(userId) }"
-            >
-              <div class="pm-row__rank">#{{ idx + 1 }}</div>
-              <div class="pm-row__info">
-                <div class="pm-row__name">
-                  {{ w.user_name }}
-                  <span v-if="String(w.user_id) === String(userId)" class="pm-you">TÚ</span>
-                </div>
-                <div class="pm-row__meta">
-                  <span class="pm-serial">{{ w.card_serial }}</span>
-                  <span v-if="w.round" class="pm-badge pm-badge--round">Ronda {{ w.round }}</span>
-                  <span v-if="w.pattern" class="pm-badge pm-badge--pattern">{{ w.pattern }}</span>
-                </div>
-              </div>
-              <div class="pm-row__prize">
-                <span class="pm-row__sym">{{ currencySym }}</span>{{ Number(w.prize).toFixed(2) }}
-              </div>
-              <button
-                v-if="w.card_id"
-                class="pm-card-btn"
-                :disabled="loadingCardId === w.card_id"
-                :title="loadingCardId === w.card_id ? 'Cargando…' : 'Ver cartón'"
-                @click="openCardViewer(w)"
-              >
-                <i :class="loadingCardId === w.card_id ? 'fas fa-spinner fa-spin' : 'fas fa-th'" />
-              </button>
-            </div>
-          </template>
-
-          <!-- Jugadores activos (partida en curso, aún no hay ganadores) -->
-          <template v-else>
-            <div class="pm-section-label"><i class="fas fa-users" /> Jugadores</div>
-
-            <!-- Cargando -->
-            <div v-if="loadingPlayers" class="pm-empty">
-              <span class="pm-spinner" /> Cargando jugadores…
-            </div>
-
-            <!-- Error -->
-            <div v-else-if="playersError" class="pm-empty pm-empty--error">
-              <i class="fas fa-exclamation-circle" />
-              <span>Error al cargar</span>
-              <button class="pm-retry-btn" @click="fetchActivePlayers">
-                <i class="fas fa-redo" /> Reintentar
-              </button>
-            </div>
-
-            <!-- Sin jugadores -->
-            <div v-else-if="activePlayers.length === 0" class="pm-empty">
-              <i class="fas fa-user-slash" />
-              <span>Aún no hay jugadores registrados.</span>
-            </div>
-
-            <!-- Lista -->
-            <div
-              v-else
-              v-for="(p, idx) in activePlayers"
-              :key="p.user_id"
-              class="pm-row"
-              :class="{ 'pm-row--me': String(p.user_id) === String(userId) }"
-            >
-              <div class="pm-row__rank">
-                <template v-if="idx === 0"><i class="fas fa-medal" style="color:#ffc200" /></template>
-                <template v-else-if="idx === 1"><i class="fas fa-medal" style="color:#b0c4d8" /></template>
-                <template v-else-if="idx === 2"><i class="fas fa-medal" style="color:#c87840" /></template>
-                <template v-else>#{{ idx + 1 }}</template>
-              </div>
-              <div class="pm-row__info">
-                <div class="pm-row__name">
-                  {{ p.name }}
-                  <span v-if="String(p.user_id) === String(userId)" class="pm-you">TÚ</span>
-                </div>
-              </div>
-              <div class="pm-row__ctns">
-                <i class="fas fa-ticket-alt" /> {{ p.cards_purchased }}
-              </div>
-            </div>
-          </template>
+          <WinnersList
+            v-if="totalWinners > 0"
+            :game-end-data="gameEndData"
+            :user-id="userId"
+            :currency-sym="currencySym"
+            :loading-card-id="loadingCardId"
+            @view-card="openCardViewer"
+          />
+          <ActivePlayersList
+            v-else
+            :active-players="activePlayers"
+            :loading-players="loadingPlayers"
+            :players-error="playersError"
+            :user-id="userId"
+            @retry="fetchActivePlayers"
+          />
         </div>
 
         <div class="pm-modal__foot">
@@ -279,82 +105,13 @@ function closeCardViewer() {
     </div>
   </Transition>
 
-  <!-- Card viewer modal -->
-  <Transition name="gm-fade">
-    <div v-if="viewingCard" class="gm-overlay gm-overlay--stacked" @click.self="closeCardViewer">
-      <div class="gm-modal cv-modal">
-
-        <div class="cv-head">
-          <div class="cv-head__icon"><i class="fas fa-ticket-alt" /></div>
-          <div class="cv-head__info">
-            <div class="cv-head__title">
-              Cartón Ganador
-              <span class="cv-head__serial">{{ viewingCard.serialNumber }}</span>
-            </div>
-            <div class="cv-head__owner">{{ viewingCardOwner }}</div>
-          </div>
-          <button class="pm-modal__close" @click="closeCardViewer"><i class="fas fa-times" /></button>
-        </div>
-
-        <div v-if="viewingCard.loading" class="cv-loading">
-          <div class="cv-spinner" /> Cargando cartón…
-        </div>
-
-        <template v-else-if="viewingCard.cardMatrix && viewingCard.cardMatrix.length">
-          <div
-            class="cv-card"
-            :style="{ '--cv-cols': `repeat(${(viewingCard.colLabels ?? ['B','I','N','G','O']).length}, 1fr)` }"
-          >
-            <div class="cv-card__header">
-              <div v-for="l in (viewingCard.colLabels ?? ['B','I','N','G','O'])" :key="l" class="cv-card__lbl" :class="`cv-card__lbl--${l}`">{{ l }}</div>
-            </div>
-            <div class="cv-card__grid">
-              <div v-for="(row, r) in viewingCard.cardMatrix" :key="`row-${r}`" class="cv-card__row">
-                <div
-                  v-for="(num, c) in row"
-                  :key="`cell-${r}-${c}`"
-                  class="cv-cell"
-                  :class="{
-                    'cv-cell--drawn':   num > 0 && drawnSet.has(num),
-                    'cv-cell--free':    num === 0,
-                    'cv-cell--winning': winningCellSet.has(`${viewingCard.colLabels?.[c] ?? ''}-${r}`),
-                  }"
-                >
-                  <template v-if="num === 0">
-                    <img v-if="customerLogo" :src="customerLogo" class="cv-cell__logo" alt="logo" crossorigin="anonymous" />
-                    <span v-else class="cv-cell__free-icon"><i class="fas fa-star" /></span>
-                  </template>
-                  <template v-else>
-                    <span class="cv-cell__num">{{ num }}</span>
-                    <span v-if="drawnSet.has(num)" class="cv-cell__mark"><i class="fas fa-check" /></span>
-                  </template>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="cv-legend">
-            <span v-if="winningCellSet.size > 0" class="cv-legend__item cv-legend__item--winning"><span class="cv-legend__dot" />Patrón ganador</span>
-            <span class="cv-legend__item cv-legend__item--drawn"><span class="cv-legend__dot" />Marcado</span>
-            <span class="cv-legend__item cv-legend__item--free"><span class="cv-legend__dot" />Libre</span>
-            <span class="cv-legend__item cv-legend__item--normal"><span class="cv-legend__dot" />Sin marcar</span>
-          </div>
-        </template>
-
-        <div v-else class="pm-empty">
-          <i class="fas fa-exclamation-triangle" />
-          <span>No se pudo cargar el cartón.</span>
-        </div>
-
-        <div class="pm-modal__foot">
-          <button class="pm-close-btn" @click="closeCardViewer">
-            <i class="fas fa-arrow-left" /> Volver
-          </button>
-        </div>
-
-      </div>
-    </div>
-  </Transition>
+  <CardViewerModal
+    :viewing-card="viewingCard"
+    :viewing-card-owner="viewingCardOwner"
+    :drawn-set="drawnSet"
+    :customer-logo="customerLogo"
+    @close="closeCardViewer"
+  />
 </template>
 
 <style scoped>
@@ -364,7 +121,6 @@ function closeCardViewer() {
   background: rgba(4,6,20,0.82); backdrop-filter: blur(10px);
   display: flex; align-items: center; justify-content: center; padding: 16px;
 }
-.gm-overlay--stacked { z-index: 1300; }
 
 .gm-modal {
   background: linear-gradient(160deg, rgba(11,18,48,0.98) 0%, rgba(6,10,30,0.98) 100%);
@@ -403,39 +159,6 @@ function closeCardViewer() {
 .pm-modal__body::-webkit-scrollbar-track { background: transparent; }
 .pm-modal__body::-webkit-scrollbar-thumb { background: rgba(80,120,255,0.2); border-radius: 2px; }
 
-.pm-section-label { font-size: 9px; font-weight: 700; color: #3a5080; text-transform: uppercase; letter-spacing: 1.2px; display: flex; align-items: center; gap: 5px; padding: 4px 0; }
-.pm-section-label i { color: #ffd700; font-size: 8px; }
-
-.pm-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 10px; border-radius: 10px;
-  background: rgba(255,255,255,0.025); border: 1px solid rgba(80,120,255,0.08);
-  transition: background 0.2s;
-}
-.pm-row--me { background: rgba(42,245,152,0.06); border-color: rgba(42,245,152,0.2); }
-.pm-row__rank { font-size: 10px; font-weight: 700; color: #4a68a8; width: 22px; flex-shrink: 0; }
-.pm-row__info { flex: 1; min-width: 0; }
-.pm-row__name { font-size: 12px; font-weight: 700; color: #c8d8ff; display: flex; align-items: center; gap: 5px; }
-.pm-row__meta { display: flex; align-items: center; gap: 5px; margin-top: 2px; flex-wrap: wrap; }
-.pm-row__prize { font-size: 13px; font-weight: 800; color: #ffd700; font-family: 'Courier New', monospace; flex-shrink: 0; white-space: nowrap; }
-.pm-row__sym { font-size: 10px; font-weight: 700; margin-right: 2px; }
-.pm-serial { font-size: 9.5px; color: #3a5080; }
-.pm-you { font-size: 8px; font-weight: 900; color: #2af598; background: rgba(42,245,152,0.12); border: 1px solid rgba(42,245,152,0.3); border-radius: 4px; padding: 1px 5px; letter-spacing: 0.5px; }
-.pm-badge { font-size: 9px; font-weight: 700; border-radius: 4px; padding: 1px 6px; }
-.pm-badge--round { background: rgba(80,120,255,0.1); border: 1px solid rgba(80,120,255,0.2); color: #7c9dff; }
-.pm-badge--pattern { background: rgba(180,80,255,0.1); border: 1px solid rgba(180,80,255,0.2); color: #c07fff; }
-.pm-card-btn {
-  width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
-  background: rgba(100,140,255,0.1); border: 1px solid rgba(100,140,255,0.2);
-  color: #7c9dff; font-size: 11px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.2s, color 0.2s;
-}
-.pm-card-btn:hover { background: rgba(100,140,255,0.2); color: #b0c8ff; }
-
-.pm-empty { display: flex; align-items: center; gap: 8px; padding: 20px 0; color: #3a5080; font-size: 12px; }
-.pm-empty i { font-size: 14px; }
-
 .pm-modal__foot { padding: 12px 20px; border-top: 1px solid rgba(80,120,255,0.1); }
 .pm-close-btn {
   width: 100%; padding: 9px; border-radius: 10px;
@@ -446,101 +169,6 @@ function closeCardViewer() {
 }
 .pm-close-btn:hover { background: rgba(100,140,255,0.2); color: #b0c8ff; }
 
-/* ── Card Viewer modal ── */
-.cv-modal { max-width: 380px; }
-
-.cv-head {
-  display: flex; align-items: center; gap: 12px;
-  padding: 16px 20px 12px; border-bottom: 1px solid rgba(80,120,255,0.1);
-}
-.cv-head__icon {
-  width: 36px; height: 36px; border-radius: 10px;
-  background: rgba(100,140,255,0.1); border: 1px solid rgba(100,140,255,0.2);
-  display: flex; align-items: center; justify-content: center; font-size: 14px; color: #7c9dff;
-  flex-shrink: 0;
-}
-.cv-head__info { flex: 1; min-width: 0; }
-.cv-head__title { font-size: 13px; font-weight: 800; color: #e0eaff; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.cv-head__serial { font-size: 10px; color: #4a68a8; font-family: 'Courier New', monospace; background: rgba(80,120,255,0.08); border: 1px solid rgba(80,120,255,0.12); border-radius: 5px; padding: 1px 6px; }
-.cv-head__owner { font-size: 11px; color: #5a7acc; margin-top: 2px; }
-
-.cv-loading { display: flex; align-items: center; gap: 10px; padding: 30px 20px; color: #5a7acc; font-size: 12px; }
-.cv-spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(80,120,255,0.2); border-top-color: #7c9dff; animation: cv-spin 0.7s linear infinite; }
-@keyframes cv-spin { to { transform: rotate(360deg) } }
-
-.cv-card { padding: 16px 20px; }
-.cv-card__header { display: grid; grid-template-columns: var(--cv-cols, repeat(5, 1fr)); gap: 4px; margin-bottom: 4px; }
-.cv-card__lbl {
-  display: flex; align-items: center; justify-content: center;
-  height: 28px; border-radius: 6px; font-size: 13px; font-weight: 900; letter-spacing: 1px;
-}
-.cv-card__lbl--B { background: rgba(40,140,255,0.15); color: #78c8ff; }
-.cv-card__lbl--I { background: rgba(180,80,255,0.15); color: #d08cff; }
-.cv-card__lbl--N { background: rgba(42,245,152,0.12); color: #50f0a0; }
-.cv-card__lbl--G { background: rgba(255,200,0,0.12); color: #ffdc50; }
-.cv-card__lbl--O { background: rgba(255,100,50,0.12); color: #ff9650; }
-
-.cv-card__grid { display: flex; flex-direction: column; gap: 4px; }
-.cv-card__row { display: grid; grid-template-columns: var(--cv-cols, repeat(5, 1fr)); gap: 4px; }
-.cv-cell {
-  display: flex; align-items: center; justify-content: center;
-  height: 46px; border-radius: 8px; position: relative;
-  background: rgba(255,255,255,0.035); border: 1px solid rgba(80,120,255,0.1);
-  transition: all 0.25s ease;
-}
-.cv-cell--drawn { background: rgba(42,245,152,0.12); border-color: rgba(42,245,152,0.35); box-shadow: 0 0 10px rgba(42,245,152,0.1); }
-.cv-cell--free  { background: rgba(255,200,0,0.07); border-color: rgba(255,200,0,0.2); }
-/* Patrón ganador: prevalece sobre --drawn para que se note cuál línea/celda hizo BINGO */
-.cv-cell--winning {
-  background: rgba(255,200,0,0.16); border-color: rgba(255,200,0,0.55);
-  box-shadow: 0 0 14px rgba(255,200,0,0.25); animation: cv-winning-pulse 1.6s ease-in-out infinite;
-}
-@keyframes cv-winning-pulse {
-  0%,100% { box-shadow: 0 0 10px rgba(255,200,0,0.18); }
-  50%     { box-shadow: 0 0 18px rgba(255,200,0,0.4); }
-}
-.cv-cell__num { font-size: 14px; font-weight: 700; color: #c8d8ff; font-family: 'Courier New', monospace; }
-.cv-cell__mark {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  background: rgba(42,245,152,0.12); border-radius: 8px; font-size: 16px; color: #2af598;
-}
-.cv-cell--winning .cv-cell__mark { background: rgba(255,200,0,0.14); color: #ffd700; }
-.cv-cell__logo { width: 28px; height: 28px; object-fit: contain; opacity: 0.6; }
-.cv-cell__free-icon { font-size: 14px; color: #ffc840; }
-
-.cv-legend { display: flex; gap: 14px; padding: 0 20px 12px; flex-wrap: wrap; }
-.cv-legend__item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #4a68a8; }
-.cv-legend__dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
-.cv-legend__item--winning .cv-legend__dot { background: rgba(255,200,0,0.35); border: 1px solid rgba(255,200,0,0.6); }
-.cv-legend__item--drawn .cv-legend__dot { background: rgba(42,245,152,0.3); border: 1px solid rgba(42,245,152,0.5); }
-.cv-legend__item--free  .cv-legend__dot { background: rgba(255,200,0,0.2); border: 1px solid rgba(255,200,0,0.4); }
-.cv-legend__item--normal .cv-legend__dot { background: rgba(255,255,255,0.06); border: 1px solid rgba(80,120,255,0.15); }
-
-/* ── Jugadores activos: extras ── */
-.pm-spinner {
-  display: inline-block; width: 16px; height: 16px; flex-shrink: 0;
-  border: 2px solid rgba(100,140,255,.2); border-top-color: #2af598;
-  border-radius: 50%; animation: pmSpin .7s linear infinite;
-}
-@keyframes pmSpin { to { transform: rotate(360deg); } }
-
-.pm-empty--error { color: #ff8a8a !important; flex-direction: column; gap: 8px !important; }
-.pm-empty--error i { font-size: 20px; color: #ff4d6d; }
-
-.pm-retry-btn {
-  padding: 5px 14px; border-radius: 7px; font-size: 10px; font-weight: 700;
-  cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
-  background: rgba(255,77,109,.1); border: 1px solid rgba(255,77,109,.28); color: #ff6e8a;
-  transition: background .15s;
-}
-.pm-retry-btn:hover { background: rgba(255,77,109,.2); }
-
-.pm-row__ctns {
-  font-size: 10px; font-weight: 700; color: #4a6090; flex-shrink: 0;
-  display: flex; align-items: center; gap: 4px;
-}
-.pm-row__ctns i { font-size: 8px; opacity: .7; }
-
 /* ── Fade transition ── */
 .gm-fade-enter-active, .gm-fade-leave-active { transition: opacity 0.25s ease; }
 .gm-fade-enter-from, .gm-fade-leave-to { opacity: 0; }
@@ -548,7 +176,5 @@ function closeCardViewer() {
 /* ── Responsive ── */
 @media (max-width: 480px) {
   .gm-modal { border-radius: 16px; }
-  .cv-cell { height: 38px; }
-  .cv-cell__num { font-size: 12px; }
 }
 </style>
