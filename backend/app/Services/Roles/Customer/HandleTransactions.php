@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services\Users\Roles\Customer;
+namespace App\Services\Roles\Customer;
 
+use App\Models\Shared\Transactions\Transaction;
 use App\Traits\Games\SeamlessWallet;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -17,10 +17,10 @@ class HandleTransactions
 
         try {
             // Obtener transacciones pendientes
-            $query = Transaction::where('status', 0);
+            $query = Transaction::where('status', Transaction::STATUS_WAITING);
 
             if ($customer) {
-                $query->where('customer', $customer);
+                $query->where('customer_id', $customer);
             }
 
             $transactions = $query->get();
@@ -48,8 +48,8 @@ class HandleTransactions
 
                     // Actualizar la transacción si es exitosa
                     Transaction::where('id', $transactionID)->update([
-                        'status' => 1,
-                        'processing_data' => Carbon::now(),
+                        'status' => Transaction::STATUS_EXECUTED,
+                        'processing_data' => now(),
                         'updated_at' => now(),
                     ]);
                 } catch (\Exception $e) {

@@ -2,15 +2,14 @@
 
 namespace App\Traits\Games;
 
-// Models
-use App\Models\Customer;
-use App\Models\CustomerGame;
-use App\Models\CustomerUser;
-use App\Models;
-use App\Models\Transactions;
-use App\Traits\Users\Roles\Customer\CustomerTrait;
-// Traits
-
+// Repositories (reemplazan la API estática Customer::/CustomerGame::/CustomerUser:: que
+// nunca existió — la arquitectura real del proyecto expone estas operaciones vía
+// Repository con inyección, no métodos estáticos en el modelo).
+use App\Contracts\Roles\Customer\CustomerRepositoryInterface;
+use App\Contracts\Roles\Customer\CustomerGameRepositoryInterface;
+use App\Contracts\Roles\Customer\CustomerUserRepositoryInterface;
+use App\Contracts\Shared\Transactions\TransactionRepositoryInterface;
+use App\Models\Game;
 // Otros
 use Carbon\Carbon;
 use GuzzleHttp\Client;
@@ -19,19 +18,14 @@ use Illuminate\Support\Facades\Log;
 
 trait SeamlessWallet
 {
-    use CustomerTrait;
-
-    private function getCustomerKey($customerId)
+    /**
+     * customers.customer_key es la única credencial almacenada — no existe una
+     * "security_key" separada en el esquema real (customers no tiene esa
+     * columna). La firma se genera directamente con customer_key.
+     */
+    private function getCustomerKey($customerId): ?string
     {
-        $customer = Customer::getById($customerId, ['customer_key', 'security_key']);
-
-        // Desencriptar clave de seguridad
-        $encryptedKey = decrypt($customer->security_key, env('CTMER_ENCRYPTION_KEY'));
-
-        // Desencriptar la clave de seguridad del cliente usando la clave específica
-        $customerKey = decrypt($customer->customer_key, $encryptedKey);
-
-        return $customerKey;
+        return app(CustomerRepositoryInterface::class)->find($customerId)?->customer_key;
     }
 
     private function generateSignature($dataJson, $securityKey)
@@ -43,9 +37,12 @@ trait SeamlessWallet
 
     private function globalCurl($customerId, $dataJson, $action)
     {
+        $customerRepo = app(CustomerRepositoryInterface::class);
+        $customer = $customerRepo->find($customerId);
+
         // Obtener la clave de seguridad y la ruta del enlace
-        $customerKey = $this->getCustomerKey($customerId);
-        $linkRoute = Customer::getValueById($customerId, 'link_route');
+        $customerKey = $customer?->customer_key;
+        $linkRoute = $customer?->api_route;
 
         // Generar la firma
         $hashHex = $this->generateSignature($dataJson, $customerKey);
@@ -82,22 +79,23 @@ trait SeamlessWallet
             return null;
         }
 
-        // Obtener la clave de seguridad del cliente
-        $customerKey = $this->getCustomerKey($customerId);
-        if (!$customerKey) {
-            Log::error("No se pudo obtener la clave del cliente.", ['customerId' => $customerId]);
+        $customer = app(CustomerRepositoryInterface::class)->find($customerId);
+
+        if (!$customer) {
+            Log::error("Cliente no encontrado: [ID => {$customerId}]");
+            return null;
+        }
+
+        $customerKey = $customer->customer_key;
+        $linkRoute = $customer->api_route;
+
+        if (!$linkRoute) {
+            Log::error("No se pudo obtener la URL base del cliente.", ['customerId' => $customerId]);
             return null;
         }
 
         // Generar la firma
         $signature = $this->generateSignature($dataJson, $customerKey);
-
-        // Obtener la URL base del cliente
-        $linkRoute = Customer::getValueById($customerId, 'link_route');
-        if (!$linkRoute) {
-            Log::error("No se pudo obtener la URL base del cliente.", ['customerId' => $customerId]);
-            return null;
-        }
 
         // Crear una instancia de Guzzle con configuración predeterminada
         $client = $this->createGuzzleClient();
@@ -166,7 +164,7 @@ trait SeamlessWallet
     public function getUserBalanceFromCustomer($customerId, $userToken)
     {
         // Intenta obtener el usuario localmente
-        $user = CustomerUser::getByToken($customerId, $userToken, ['user_id', 'currency']);
+        $user = app(CustomerUserRepositoryInterface::class)->getByToken($customerId, $userToken);
 
         // Si no se encuentra, realiza una solicitud para obtener la información del usuario
         if (!$user) {
@@ -179,7 +177,7 @@ trait SeamlessWallet
             $currency = $response['Data']['DefaultCurrencyCode'] ?? null;
         } else {
             $userId = $user->user_id;
-            $currency = $user->currency;
+            $currency = $user->currency_id;
         }
 
         // Construye el cuerpo del JSON de manera segura
@@ -196,8 +194,8 @@ trait SeamlessWallet
     public function transferMoney($transaction, $additionalData = '')
     {
         // Obtener datos del cliente
-        $customerId = $transaction->customer;
-        $customer = Customer::getById($customerId, ['brand', 'product']);
+        $customerId = $transaction->customer_id;
+        $customer = app(CustomerRepositoryInterface::class)->find($customerId);
 
         // Validar que se obtuvieron datos del cliente
         if (!$customer) {
@@ -206,25 +204,25 @@ trait SeamlessWallet
         }
 
         // Obtener Info del Juego con respecto al cliente
-        $game = CustomerGame::getByGameID($customerId, $transaction->game, ['customer_game_id', 'product']);
+        $game = app(CustomerGameRepositoryInterface::class)->getByGameID($customerId, $transaction->game_id);
 
         if (!$game) {
-            Log::error("No existe el ID de Juego del cliente [{$customerId}] para el juego [games.id={$transaction->game}]");
+            Log::error("No existe el ID de Juego del cliente [{$customerId}] para el juego [games.id={$transaction->game_id}]");
             return ['Error' => "No existe el ID de Juego del cliente [{$customerId}]"];
         }
 
         // Obtener informacion del jugador
-        $player = CustomerUser::getById($transaction->user_id, ['user_id', 'brand', 'token', 'currency']);
+        $player = app(CustomerUserRepositoryInterface::class)->getByUserId($customerId, $transaction->user_id);
 
         // Datos del cuerpo de la solicitud
         $dataJson = json_encode([
             "Ticks" => "0000000",
             "Game" => $game->customer_game_id,
             "Product" => $game->product,
-            "Brand" => $player->brand,
+            "Brand" => $player->brand ?? null,
             "Token" => $player->token ?? '',
             "UserID" => $player->user_id ?? '',
-            "CurrencyCode" => $player->currency,
+            "CurrencyCode" => $player->currency_id ?? null,
             "BetID" => $transaction->bet_id,
             "Amount" => $transaction->amount,
             "TransactionID" => $transaction->code,
@@ -238,7 +236,7 @@ trait SeamlessWallet
         // Manejo de la respuesta
         if (!$response || (isset($response['Error']) && $response['Error'])) {
             Log::error("Error en la transferencia de dinero: " . ($response['Error'] ?? 'Error desconocido'));
-            return ['Error' => ':' . $response['Error'] ?? ''];
+            return ['Error' => ':' . ($response['Error'] ?? '')];
         }
 
         return $response;
@@ -246,6 +244,8 @@ trait SeamlessWallet
 
     public function getTransaction($game, $customerId, $user)
     {
+        $transactionRepo = app(TransactionRepositoryInterface::class);
+
         // Obtener la marca de tiempo fuera del bucle
         $timestamp = Carbon::now()->timestamp;
 
@@ -256,7 +256,7 @@ trait SeamlessWallet
 
             // Generar un hash MD5 del valor concatenado
             $uniqueId = md5($data);
-        } while (Transaction::existsCode($uniqueId, $customerId));
+        } while ($transactionRepo->existsCodeForCustomer($uniqueId, $customerId));
 
         return $uniqueId;
     }
@@ -265,8 +265,10 @@ trait SeamlessWallet
     private function handleTransactionByBET(array $game, $customer, $roomId, $playerUser, $currency, $totalSaleAmount)
     {
         try {
+            $transaction = null;
+
             // Manejo de transacciones en un closure
-            DB::transaction(function () use ($game, $customer, $roomId, $playerUser, $currency, $totalSaleAmount) {
+            DB::transaction(function () use ($game, $customer, $roomId, $playerUser, $currency, $totalSaleAmount, &$transaction) {
                 // Registrar la transacción
                 $transaction = $this->registerTransaction(
                     $game,
@@ -293,13 +295,13 @@ trait SeamlessWallet
 
                 // Actualizar la transacción como exitosa
                 $transaction->update([
-                    'status' => 1,
+                    'status' => \App\Models\Shared\Transactions\Transaction::STATUS_EXECUTED,
                     'processing_data' => now(),
                     'updated_at' => now(),
                 ]);
-
-                return $transaction;
             });
+
+            return $transaction;
         } catch (\Exception $e) {
             // Registrar el error y devolverlo como respuesta
             Log::error("Error en handleTransactionByBET ['customerId' => $customer]: " . $e->getMessage());
@@ -308,7 +310,7 @@ trait SeamlessWallet
     }
 
     // Función para registrar las transacciones del cliente
-    public function registerTransaction(array $game, $customer, $clientUser, $betId, $type, $currency, $amount, $status = 0)
+    public function registerTransaction(array $game, $customer, $clientUser, $betId, $type, $currency, $amount, $status = null)
     {
         try {
             // Validar datos requeridos
@@ -317,21 +319,21 @@ trait SeamlessWallet
             }
 
             // Obtener valores necesarios
-            $gameId = Game::getValueByName($game['name']);
+            $gameId = Game::getValueByName($game['name'], 'id');
             $code = $this->getTransaction($game['name'], $customer, $clientUser);
 
             // Crear la transacción
-            return Transaction::create([
-                'customer' => $customer,
+            return app(TransactionRepositoryInterface::class)->createTransaction([
+                'customer_id' => $customer,
                 'user_id' => $clientUser,
-                'game' => $gameId,
-                'game_mode' => $game['game_mode'],
+                'game_id' => $gameId,
+                'game_mode_id' => $game['game_mode'],
                 'bet_id' => $betId,
                 'code' => $code, // transaction_id
                 'transaction_type' => $type,
-                'currency' => $currency,
+                'currency_id' => $currency,
                 'amount' => $amount,
-                'status' => $status,
+                'status' => $status ?? \App\Models\Shared\Transactions\Transaction::STATUS_WAITING,
             ]);
         } catch (\InvalidArgumentException $e) {
             Log::warning('Datos inválidos para registrar la transacción: ' . $e->getMessage());

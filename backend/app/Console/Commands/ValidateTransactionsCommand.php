@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Users\Customer\HandleTransactions;
-use App\Services\Helpers\HandleCommands;
+use App\Services\Roles\Customer\HandleTransactions;
+use App\Services\Commands\CommandService;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -50,7 +50,7 @@ class ValidateTransactionsCommand extends Command
         }
 
         // Guardar el registro de ejecución
-        app(HandleCommands::class)->logCommandExecution($this->signature, $output, $status);
+        app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
 
         // Imprimir resultado final
         if ($status === 'SUCCESS') {

@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Shared\Transactions;
 
+use App\Contracts\Shared\Transactions\TransactionRepositoryInterface;
 use App\Models\Shared\Transactions\Transaction;
 use App\Repositories\BaseRepository;
-use App\Repositories\Shared\Transactions\Contracts\TransactionRepositoryContract;
 use Illuminate\Database\Eloquent\Collection;
 use Carbon\Carbon;
 
@@ -15,7 +15,7 @@ use Carbon\Carbon;
  * incluyendo consultas por código, cliente, estado y gestión
  * de transacciones financieras del sistema.
  */
-class TransactionRepository extends BaseRepository implements TransactionRepositoryContract
+class TransactionRepository extends BaseRepository implements TransactionRepositoryInterface
 {
     /**
      * Constructor del repositorio.
