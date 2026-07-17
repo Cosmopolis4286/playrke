@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { Head, useForm, Link } from '@inertiajs/vue3'
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { getRoute } from '@js/routes/triviaRoutes'
-import { utcToLocalInput, localInputToUtc, getMinLocalDatetime } from '@js/composables/useTimezone'
+import { utcToLocalInput, localInputToUtc } from '@js/composables/useTimezone'
+import { useTriviaFeeByCurrency, initFeeByCurrencyFromRoom } from '@js/composables/games/trivia/admin/useTriviaFeeByCurrency'
+import { useTriviaPrizePayouts, initPrizePayoutsFromRoom } from '@js/composables/games/trivia/admin/useTriviaPrizePayouts'
+import { useTriviaPrizeRules } from '@js/composables/games/trivia/admin/useTriviaPrizeRules'
+import { useTriviaRoomEditValidation } from '@js/composables/games/trivia/admin/useTriviaRoomEditValidation'
+import FeeByCurrencyEditor from '@js/Components/Games/Trivia/Admin/RoomForm/FeeByCurrencyEditor.vue'
+import PrizeConfigSection from '@js/Components/Games/Trivia/Admin/RoomForm/PrizeConfigSection.vue'
+import ScheduledAtField from '@js/Components/Games/Trivia/Admin/RoomForm/ScheduledAtField.vue'
 
 interface Currency { id: string; symbol: string; name: string; iso_code: string }
 
@@ -13,70 +20,11 @@ const props = defineProps({
   errors: Object,
 })
 
-// Inicializar fee_by_currency desde la sala existente
-// Soporta tanto el nuevo formato { id: amount } como el legado entry_fee + entry_currency_id
-function initFeeByCurrency(): Record<string, number> {
-  if (props.room.fee_by_currency && Object.keys(props.room.fee_by_currency).length > 0) {
-    return { ...props.room.fee_by_currency }
-  }
-  if (props.room.entry_currency_id && Number(props.room.entry_fee) > 0) {
-    return { [props.room.entry_currency_id]: Number(props.room.entry_fee) }
-  }
-  return {}
-}
+const { feeByCurrency, toggleCurrency, getCurrencyById, setFee } =
+  useTriviaFeeByCurrency(() => props.currencies, initFeeByCurrencyFromRoom(props.room))
 
-const feeByCurrency = ref<Record<string, number>>(initFeeByCurrency())
-
-// IDs de monedas seleccionadas (las que tienen entrada en feeByCurrency)
-const selectedCurrencyIds = computed({
-  get: () => Object.keys(feeByCurrency.value),
-  set: (ids: string[]) => {
-    const updated: Record<string, number> = {}
-    for (const id of ids) {
-      updated[id] = feeByCurrency.value[id] ?? 0
-    }
-    feeByCurrency.value = updated
-  },
-})
-
-function toggleCurrency(id: string) {
-  if (feeByCurrency.value[id] !== undefined) {
-    const copy = { ...feeByCurrency.value }
-    delete copy[id]
-    feeByCurrency.value = copy
-  } else {
-    feeByCurrency.value = { ...feeByCurrency.value, [id]: 0 }
-  }
-}
-
-function getCurrencyById(id: string): Currency | undefined {
-  return props.currencies.find(c => c.id === id)
-}
-
-// Inicializar prize_payouts desde la sala existente, o usar el default 60/25/15
-function initPrizePayouts(): { rank: number; percent: number }[] {
-  if (Array.isArray(props.room.prize_payouts) && props.room.prize_payouts.length > 0) {
-    return props.room.prize_payouts.map((p: any) => ({ rank: Number(p.rank), percent: Number(p.percent) }))
-  }
-  return [
-    { rank: 1, percent: 0.60 },
-    { rank: 2, percent: 0.25 },
-    { rank: 3, percent: 0.15 },
-  ]
-}
-
-const prizePayouts = ref<{ rank: number; percent: number }[]>(initPrizePayouts())
-
-function addPrizePayout() {
-  const nextRank = prizePayouts.value.length > 0
-    ? Math.max(...prizePayouts.value.map(p => p.rank)) + 1
-    : 1
-  prizePayouts.value.push({ rank: nextRank, percent: 0 })
-}
-
-function removePrizePayout(index: number) {
-  prizePayouts.value.splice(index, 1)
-}
+const { prizePayouts, addPrizePayout, removePrizePayout } =
+  useTriviaPrizePayouts(initPrizePayoutsFromRoom(props.room))
 
 const form = useForm({
   title: props.room.title,
@@ -97,96 +45,11 @@ const form = useForm({
 
 const isEditable = computed(() => props.room.status === 'waiting')
 
-// Min datetime for scheduled_at (must be in the future)
-const minScheduledAt = computed(() => getMinLocalDatetime())
+const { minScheduledAt, scheduledAtError, sponsorPrizeError, platformRakeError, prizePayoutsError } =
+  useTriviaPrizeRules(form, prizePayouts)
 
-// --- Validaciones de cliente (feedback inmediato, espejo de las reglas del backend) ---
-
-const titleError = computed(() => {
-  const value = (form.title || '').trim()
-  if (!value) return 'El título es obligatorio'
-  if (value.length > 255) return 'El título no puede exceder 255 caracteres'
-  return ''
-})
-
-const descriptionError = computed(() => {
-  if ((form.description || '').length > 1000) return 'La descripción no puede exceder 1000 caracteres'
-  return ''
-})
-
-const maxPlayersError = computed(() => {
-  const value = Number(form.max_players)
-  if (!form.max_players && form.max_players !== 0) return 'Debes indicar el máximo de jugadores'
-  if (!Number.isInteger(value)) return 'Debe ser un número entero'
-  if (value < 2) return 'La sala debe permitir al menos 2 jugadores'
-  if (value > 500) return 'Máximo 500 jugadores permitidos'
-  return ''
-})
-
-// Validate scheduled_at is in the future (comparando en hora local)
-const scheduledAtError = computed(() => {
-  if (!form.scheduled_at) return ''
-  if (new Date(form.scheduled_at) <= new Date()) {
-    return 'La fecha y hora de inicio debe ser futura'
-  }
-  return ''
-})
-
-// Cada precio de entrada debe ser mayor a 0 si la moneda está activa
-const feeByCurrencyError = computed(() => {
-  for (const cid of Object.keys(feeByCurrency.value)) {
-    const amount = Number(feeByCurrency.value[cid])
-    if (!Number.isFinite(amount) || amount <= 0) {
-      const currency = getCurrencyById(cid)
-      return `Indica un precio de entrada mayor a 0 para ${currency?.iso_code ?? 'la moneda seleccionada'}`
-    }
-  }
-  return ''
-})
-
-// Si hay un monto de premio, se debe seleccionar la moneda del premio
-const prizeCurrencyError = computed(() => {
-  if (Number(form.prize_amount) > 0 && !form.prize_currency_id) {
-    return 'Selecciona la moneda del premio cuando indicas un monto'
-  }
-  return ''
-})
-
-const prizeAmountError = computed(() => {
-  const value = Number(form.prize_amount)
-  if (form.prize_amount !== null && form.prize_amount !== undefined && value < 0) {
-    return 'El monto del premio no puede ser negativo'
-  }
-  return ''
-})
-
-// Si hay aporte de sponsor, se debe seleccionar la moneda del premio
-const sponsorPrizeError = computed(() => {
-  const value = Number(form.sponsor_prize)
-  if (value < 0) return 'El aporte del sponsor no puede ser negativo'
-  if (value > 0 && !form.prize_currency_id) {
-    return 'Selecciona la moneda del premio cuando defines un aporte de sponsor'
-  }
-  return ''
-})
-
-const platformRakeError = computed(() => {
-  const value = Number(form.platform_rake_percent)
-  if (!Number.isFinite(value) || value < 0) return 'La comisión no puede ser negativa'
-  if (value > 30) return 'La comisión de la plataforma no puede superar 30%'
-  return ''
-})
-
-// La suma de porcentajes de prize_payouts debe ser ≈ 100% cuando el modelo es 'pool'
-const prizePayoutsError = computed(() => {
-  if (form.prize_model !== 'pool') return ''
-  if (prizePayouts.value.length === 0) return ''
-  const total = prizePayouts.value.reduce((sum, p) => sum + (Number(p.percent) || 0), 0)
-  if (Math.abs(total - 1) > 0.01) {
-    return `La suma de los porcentajes debe ser 100% (actual: ${Math.round(total * 100)}%)`
-  }
-  return ''
-})
+const { titleError, descriptionError, maxPlayersError, feeByCurrencyError, prizeCurrencyError, prizeAmountError } =
+  useTriviaRoomEditValidation(form, feeByCurrency, getCurrencyById)
 
 const hasClientErrors = computed(() =>
   Boolean(
@@ -359,54 +222,15 @@ const submit = () => {
             </p>
 
             <div class="space-y-4">
-              <!-- Selector de monedas aceptadas -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Monedas de entrada
-                </label>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="c in currencies" :key="c.id"
-                    type="button"
-                    @click="toggleCurrency(c.id)"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    :class="feeByCurrency[c.id] !== undefined
-                      ? 'bg-indigo-600 border-indigo-600 text-white shadow'
-                      : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-indigo-400'"
-                  >
-                    <span>{{ c.symbol }}</span>
-                    <span class="opacity-80">{{ c.iso_code }}</span>
-                    <span v-if="feeByCurrency[c.id] !== undefined" class="ml-0.5">✓</span>
-                  </button>
-                </div>
-                <p class="mt-1.5 text-xs text-gray-400">Haz clic para activar/desactivar. Sin selección = sala gratuita.</p>
-              </div>
-
-              <!-- Precios por moneda -->
-              <div v-if="Object.keys(feeByCurrency).length > 0"
-                class="rounded-xl border border-indigo-100 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 p-4">
-                <p class="text-xs font-semibold text-indigo-700 dark:text-indigo-300 mb-3 uppercase tracking-wide">
-                  💰 Precio de entrada por moneda
-                </p>
-                <div class="flex flex-wrap gap-3">
-                  <div v-for="(_, cid) in feeByCurrency" :key="cid" class="flex items-center gap-0">
-                    <span class="inline-flex items-center px-2.5 py-1.5 rounded-l-lg bg-indigo-100 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 text-xs font-bold border border-indigo-200 dark:border-indigo-700">
-                      {{ getCurrencyById(String(cid))?.symbol ?? cid }}
-                    </span>
-                    <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      :value="feeByCurrency[cid]"
-                      @input="feeByCurrency[cid] = Math.max(0, Number(($event.target as HTMLInputElement).value))"
-                      class="w-24 rounded-r-lg border border-l-0 border-indigo-200 dark:border-indigo-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 disabled:opacity-50"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-                <p v-if="feeByCurrencyError" class="mt-2 text-sm text-red-600">{{ feeByCurrencyError }}</p>
-                <p v-else-if="form.errors.fee_by_currency" class="mt-2 text-sm text-red-600">{{ form.errors.fee_by_currency }}</p>
-              </div>
+              <FeeByCurrencyEditor
+                :currencies="currencies"
+                :fee-by-currency="feeByCurrency"
+                :get-currency-by-id="getCurrencyById"
+                :error="feeByCurrencyError || form.errors.fee_by_currency"
+                :disabled="!isEditable"
+                @toggle="toggleCurrency"
+                @update:fee="setFee"
+              />
 
               <!-- Premio -->
               <div class="pt-2">
@@ -457,158 +281,34 @@ const submit = () => {
             </div>
           </div>
 
-          <!-- Configuración de Premios -->
-          <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">
-              🏆 Configuración de Premios
-            </h3>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
-              Define cómo se reparte el premio final entre los ganadores.
-            </p>
+          <PrizeConfigSection
+            :prize-model="form.prize_model"
+            :sponsor-prize="form.sponsor_prize"
+            :platform-rake-percent="form.platform_rake_percent"
+            :prize-payouts="prizePayouts"
+            :sponsor-prize-error="sponsorPrizeError"
+            :sponsor-prize-server-error="form.errors.sponsor_prize"
+            :platform-rake-error="platformRakeError"
+            :platform-rake-server-error="form.errors.platform_rake_percent"
+            :prize-payouts-error="prizePayoutsError"
+            :prize-payouts-server-error="form.errors.prize_payouts"
+            :disabled="!isEditable"
+            @update:prize-model="form.prize_model = $event"
+            @update:sponsor-prize="form.sponsor_prize = $event"
+            @update:platform-rake-percent="form.platform_rake_percent = $event"
+            @add-payout="addPrizePayout"
+            @remove-payout="removePrizePayout"
+          />
 
-            <div class="space-y-4">
-              <!-- Modelo de premio -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Modelo de premio
-                </label>
-                <div class="flex gap-4 text-sm">
-                  <label class="flex items-center gap-1.5 cursor-pointer">
-                    <input v-model="form.prize_model" type="radio" value="guaranteed" class="text-indigo-600" />
-                    <span class="text-gray-700 dark:text-gray-300">Garantizado</span>
-                  </label>
-                  <label class="flex items-center gap-1.5 cursor-pointer">
-                    <input v-model="form.prize_model" type="radio" value="pool" class="text-indigo-600" />
-                    <span class="text-gray-700 dark:text-gray-300">Pozo (entradas + sponsor)</span>
-                  </label>
-                </div>
-                <p class="mt-1.5 text-xs text-gray-400">
-                  <strong>Garantizado:</strong> se reparte el monto del premio + sponsor, sin importar cuántos jugadores haya.
-                  <strong>Pozo:</strong> el premio se forma con las entradas pagadas + sponsor, menos la comisión de la plataforma.
-                </p>
-              </div>
-
-              <!-- Aporte de sponsor -->
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Aporte de sponsor (opcional)
-                </label>
-                <input
-                  v-model.number="form.sponsor_prize"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  :aria-invalid="Boolean(sponsorPrizeError || form.errors.sponsor_prize)"
-                  class="mt-1 block w-40 rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  :class="(sponsorPrizeError || form.errors.sponsor_prize) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
-                  placeholder="0"
-                />
-                <p v-if="sponsorPrizeError" class="mt-1 text-sm text-red-600">{{ sponsorPrizeError }}</p>
-                <p v-else-if="form.errors.sponsor_prize" class="mt-1 text-sm text-red-600">{{ form.errors.sponsor_prize }}</p>
-                <p v-else class="mt-1 text-xs text-gray-400">Monto adicional aportado por un sponsor, en la moneda del premio.</p>
-              </div>
-
-              <!-- Comisión de la plataforma (solo modelo pool) -->
-              <div v-if="form.prize_model === 'pool'">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Comisión de la plataforma (%)
-                </label>
-                <input
-                  v-model.number="form.platform_rake_percent"
-                  type="number"
-                  min="0"
-                  max="30"
-                  step="0.01"
-                  :aria-invalid="Boolean(platformRakeError || form.errors.platform_rake_percent)"
-                  class="mt-1 block w-32 rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  :class="(platformRakeError || form.errors.platform_rake_percent) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
-                  placeholder="0"
-                />
-                <p v-if="platformRakeError" class="mt-1 text-sm text-red-600">{{ platformRakeError }}</p>
-                <p v-else-if="form.errors.platform_rake_percent" class="mt-1 text-sm text-red-600">{{ form.errors.platform_rake_percent }}</p>
-                <p v-else class="mt-1 text-xs text-gray-400">Porcentaje del pozo que retiene la plataforma (máx. 30%).</p>
-              </div>
-
-              <!-- Distribución por posición (solo modelo pool) -->
-              <div v-if="form.prize_model === 'pool'">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Distribución por posición
-                </label>
-                <div class="space-y-2">
-                  <div v-for="(payout, index) in prizePayouts" :key="index" class="flex items-center gap-2">
-                    <span class="text-sm text-gray-500 dark:text-gray-400 w-16">Puesto</span>
-                    <input
-                      v-model.number="payout.rank"
-                      type="number"
-                      min="1"
-                      class="w-20 rounded-md dark:bg-gray-900 dark:text-gray-300 border-gray-300 dark:border-gray-700 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                    <span class="text-sm text-gray-500 dark:text-gray-400">→</span>
-                    <input
-                      :value="Math.round(payout.percent * 100)"
-                      @input="payout.percent = Math.max(0, Number(($event.target as HTMLInputElement).value)) / 100"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
-                      class="w-20 rounded-md dark:bg-gray-900 dark:text-gray-300 border-gray-300 dark:border-gray-700 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                    <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
-                    <button
-                      type="button"
-                      @click="removePrizePayout(index)"
-                      class="ml-auto text-xs text-red-600 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      Quitar
-                    </button>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  @click="addPrizePayout"
-                  class="mt-2 text-xs text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  + Añadir posición
-                </button>
-                <p v-if="prizePayoutsError" class="mt-1 text-sm text-red-600">{{ prizePayoutsError }}</p>
-                <p v-else-if="form.errors.prize_payouts" class="mt-1 text-sm text-red-600">{{ form.errors.prize_payouts }}</p>
-                <p v-else class="mt-1.5 text-xs text-gray-400">La suma de los porcentajes debe ser 100%. Por defecto: 1° 60%, 2° 25%, 3° 15%.</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Fecha y Hora de Inicio -->
-          <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              📅 Fecha y Hora de Inicio
-            </h3>
-
-            <div>
-              <label for="scheduled_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Inicio Automático
-              </label>
-              <input
-                id="scheduled_at"
-                v-model="form.scheduled_at"
-                type="datetime-local"
-                :min="minScheduledAt"
-                :aria-invalid="Boolean(scheduledAtError || form.errors.scheduled_at)"
-                class="mt-1 block w-full rounded-md dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                :class="(scheduledAtError || form.errors.scheduled_at) ? 'border-red-300 dark:border-red-700 focus:border-red-500' : 'border-gray-300 dark:border-gray-700 focus:border-indigo-500'"
-              />
-              <p class="mt-1 text-xs text-gray-500">Deja vacío para inicio manual. Si especificas fecha y hora, la sala se iniciará automáticamente.</p>
-              <p v-if="scheduledAtError" class="mt-1 text-sm text-red-600">{{ scheduledAtError }}</p>
-              <p v-else-if="form.errors.scheduled_at" class="mt-1 text-sm text-red-600">{{ form.errors.scheduled_at }}</p>
-              <button
-                v-if="form.scheduled_at"
-                type="button"
-                @click="form.scheduled_at = ''"
-                class="mt-2 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-              >
-                Quitar fecha (inicio manual)
-              </button>
-            </div>
-          </div>
+          <ScheduledAtField
+            :model-value="form.scheduled_at"
+            :min="minScheduledAt"
+            :error="scheduledAtError"
+            :server-error="form.errors.scheduled_at"
+            :disabled="!isEditable"
+            show-clear-button
+            @update:model-value="form.scheduled_at = $event"
+          />
 
           <!-- Info de sólo lectura -->
           <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
