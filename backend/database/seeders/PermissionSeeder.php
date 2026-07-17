@@ -118,6 +118,10 @@ class PermissionSeeder extends Seeder
             ['name' => 'audit.view', 'guard_name' => 'web', 'description' => 'Ver auditoría'],
             ['name' => 'audit.export', 'guard_name' => 'web', 'description' => 'Exportar auditoría'],
 
+            // KYC (verificación de identidad)
+            ['name' => 'kyc.view', 'guard_name' => 'web', 'description' => 'Ver documentos KYC'],
+            ['name' => 'kyc.manage', 'guard_name' => 'web', 'description' => 'Aprobar/rechazar documentos KYC'],
+
             // Eventos de ganancia (ticker de la plataforma)
             ['name' => 'win-events.manage', 'guard_name' => 'web', 'description' => 'Registrar y ver eventos de ganancia manuales'],
 

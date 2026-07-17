@@ -42,6 +42,7 @@ class RolePermissionSeeder extends Seeder
                 'games.bingo', // Acceso a juegos de bingo
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial', 'reports.gaming',
                 'audit.view',
+                'kyc.view', 'kyc.manage',
                 'win-events.manage',
                 // Opciones independientes
                 'directory.view', 'directory.search',
