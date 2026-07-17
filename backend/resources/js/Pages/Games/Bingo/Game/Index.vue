@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, shallowRef, watch, onMounted, onUnmounted, type Ref, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import '@/css/games/bingo/bingo-in-game.css'
 import { useGameRoomCountdown }  from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
 import { useAntiDebug }          from '@js/composables/games/bingo/useAntiDebug'
@@ -8,6 +8,8 @@ import { useBingoGameEcho }      from '@js/composables/games/bingo/game/useBingo
 import { useDrawScheduler }      from '@js/composables/games/bingo/game/useDrawScheduler'
 import { useBingoDetection }     from '@js/composables/games/bingo/game/useBingoDetection'
 import { useModalDismiss }       from '@js/composables/games/bingo/game/useModalDismiss'
+import { useTimerRegistry }      from '@js/composables/games/bingo/game/useTimerRegistry'
+import { useGameEndFlow }        from '@js/composables/games/bingo/game/useGameEndFlow'
 import BingoCartons    from '@js/Components/Games/Bingo/views/inGame/Cartons.vue'
 import GameHeader      from '@js/Components/Games/Bingo/views/inGame/GameHeader.vue'
 import DrawnBoard      from '@js/Components/Games/Bingo/views/inGame/DrawnBoard.vue'
@@ -15,9 +17,10 @@ import NearWinBanner   from '@js/Components/Games/Bingo/views/inGame/NearWinBann
 import PlayersModal    from '@js/Components/Games/Bingo/views/inGame/PlayersModal.vue'
 import PreDrawModal    from '@js/Components/Games/Bingo/views/inGame/PreDrawModal.vue'
 import GameEndModal    from '@js/Components/Games/Bingo/views/inGame/GameEndModal.vue'
+import GameStarfield      from '@js/Components/Games/Bingo/views/inGame/GameStarfield.vue'
+import GameStatusBanners  from '@js/Components/Games/Bingo/views/inGame/GameStatusBanners.vue'
 import { getBingoVariantDef }    from '@js/modules/games/bingo/utils/bingoVariants'
-import type { WinnerEntry, GameEndData, PlayerProgress } from '@js/Components/Games/Bingo/views/inGame/types'
-import type { GameEndedEvent }   from '@js/composables/games/bingo/game/useBingoGameEcho'
+import type { WinnerEntry } from '@js/Components/Games/Bingo/views/inGame/types'
 import Swal from 'sweetalert2'
 import { SWAL_DARK } from '@js/utils/swal'
 import backendClient from '@/js/plugins/axios'
@@ -99,35 +102,13 @@ const roomId   = computed(() => props.roomId || String(props.room?.id ?? ''))
 const routeKey = computed(() => props.roomRouteKey || roomId.value)
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Estado reactivo
+// Estado reactivo local
 // ─────────────────────────────────────────────────────────────────────────────
 const revealed         = ref(false)
-const livePrize        = ref(props.prizePool ?? 0)
 const liveExchangeRate = ref(props.exchangeRate ?? 1)
-const livePlayers      = ref(props.totalPlayers ?? 0)
-// shallowRef: cada actualización reasigna .value con un array nuevo (nunca se
-// muta in-place) — Cartons.vue observa esta prop con watch() sin deep, que
-// compara por referencia; mutar in-place haría que ese watcher dejara de
-// dispararse tras la primera ficha (ver onNumberCalled más abajo).
-const liveDrawn        = shallowRef<number[]>([...(props.draw ?? [])])
-// Espejo mutable de props.cartons — se actualiza en resync cuando el usuario
-// compra cartones mientras el WebSocket estuvo caído.
-const liveCartons      = shallowRef<{ id: string | number; [key: string]: any }[]>([...(props.cartons ?? [])])
 const prizeFlash       = ref(false)
 const playersFlash     = ref(false)
 const ballFlash        = ref(false)
-const playersProgress  = ref<PlayerProgress[]>([])
-const showWinnerModal  = ref(false)
-// Espejo mutable del estado finished — permite que devResetTime lo limpie sin
-// depender de props.room.status_code que es inmutable (prop Inertia).
-const roomFinishedLocal = ref(props.roomFinished ?? false)
-
-const modalDismissKey = computed(() => roomId.value ? `bingo-modal-closed-${roomId.value}` : '')
-const { dismissed: userClosedModal, init: initModalDismiss, dismiss: dismissModal, reset: resetModal } =
-  useModalDismiss(modalDismissKey)
-const gameEndData      = ref<GameEndData | null>(null)
-const isMyWin          = ref(false)
-const bingoConfirmed   = ref(false)
 const showPlayersModal = ref(false)
 const gameStarted      = ref(false)
 const devResetting     = ref(false)
@@ -136,9 +117,42 @@ const reconnectingTooLong = ref(false)
 const drawStalling        = ref(false)
 let _stallTimer: ReturnType<typeof setTimeout> | null = null
 
-const isFinished = computed(() =>
-  gameEndData.value !== null || roomFinishedLocal.value
-)
+const modalDismissKey = computed(() => roomId.value ? `bingo-modal-closed-${roomId.value}` : '')
+const { dismissed: userClosedModal, init: initModalDismiss, dismiss: dismissModal, reset: resetModal } =
+  useModalDismiss(modalDismissKey)
+const bingoConfirmed   = ref(false)
+
+// Guard para cancelar updates de estado tras desmontaje (async fetches en vuelo)
+let _unmounted = false
+const { flash, scheduleRetry, clearAll: clearAllTimers } = useTimerRegistry()
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Game-end flow (liveDrawn, liveCartons, livePrize, livePlayers, gameEndData, etc.)
+// ─────────────────────────────────────────────────────────────────────────────
+const {
+  liveDrawn, liveCartons, livePrize, livePlayers, playersProgress, currentUnixDate,
+  roomFinishedLocal, gameEndData, isMyWin, showWinnerModal, isFinished,
+  bindEchoHelpers, handleGameEnded, refreshUserCards, resyncDrawState, closeWinnerModal: _closeWinnerModal,
+} = useGameEndFlow({
+  routeKey,
+  userId: props.userId,
+  initialDraw: props.draw ?? [],
+  initialCartons: props.cartons ?? [],
+  initialPrizePool: props.prizePool ?? 0,
+  initialTotalPlayers: props.totalPlayers ?? 0,
+  initialRoomFinished: props.roomFinished ?? false,
+  initialStartTime: props.startTime ?? 0,
+  totalChips,
+  gameStarted,
+  userClosedModal,
+  resetModal,
+  scheduleRetry,
+  isUnmounted: () => _unmounted,
+})
+
+function closeWinnerModal() {
+  _closeWinnerModal(dismissModal, bingoConfirmed)
+}
 
 const totalWinners   = computed(() => gameEndData.value?.winners?.length ?? 0)
 const remainingChips = computed(() => totalChips.value - liveDrawn.value.length)
@@ -156,7 +170,7 @@ const showPlayersProgress = computed(() =>
 
 // Último valor no-vacío de playersProgress — evita que NearWinBanner desaparezca
 // cuando el backend devuelve [] en un resync antes del próximo evento PlayersProgress.
-const lastKnownProgress = ref<PlayerProgress[]>([])
+const lastKnownProgress = ref<{ user_id: number | string; user_name: string; card_serial: string; missing: number }[]>([])
 watch(playersProgress, (v) => { if (v.length > 0) lastKnownProgress.value = v }, { immediate: true })
 
 const cartonsRef = ref<InstanceType<typeof BingoCartons> | null>(null)
@@ -192,34 +206,9 @@ const activeCardHitNumbers = computed<number[]>(() => {
   return hits
 })
 
-// Guard para cancelar updates de estado tras desmontaje (async fetches en vuelo)
-let _unmounted = false
-
-// Todos los timers pendientes (flashes de UI + retries de red) — limpiados en onUnmounted
-const _pendingTimers    = new Set<ReturnType<typeof setTimeout>>()
-const _flashPerTarget   = new Map<Ref<boolean>, ReturnType<typeof setTimeout>>()
-function flash(target: Ref<boolean>, ms = 1000) {
-  const prev = _flashPerTarget.get(target)
-  if (prev !== undefined) { clearTimeout(prev); _pendingTimers.delete(prev) }
-  target.value = true
-  const t = setTimeout(() => {
-    target.value = false
-    _pendingTimers.delete(t)
-    _flashPerTarget.delete(target)
-  }, ms)
-  _pendingTimers.add(t)
-  _flashPerTarget.set(target, t)
-}
-function _scheduleRetry(fn: () => void, ms: number) {
-  const t = setTimeout(() => { _pendingTimers.delete(t); fn() }, ms)
-  _pendingTimers.add(t)
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Countdown
 // ─────────────────────────────────────────────────────────────────────────────
-const currentUnixDate = ref(props.startTime ?? 0)
-
 // useGameRoomCountdown espera una lista de salas (uso original: lobby con
 // múltiples salas). Aquí solo hay una sala, así que se adapta con un objeto
 // "sala" mínimo que satisface esa forma.
@@ -253,159 +242,6 @@ const { drawStarting, drawStartingSecs, clearDrawTimer, scheduleDrawStart } =
 
 // Tick sonoro en los últimos 5 segundos de la cuenta regresiva pre-sorteo
 const _stopTickWatch = watch(drawStartingSecs, (s) => { if (s > 0 && s <= 5) playTick() })
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Game-end handling
-// ─────────────────────────────────────────────────────────────────────────────
-function handleGameEnded(data: GameEndedEvent) {
-  // Capturar antes de limpiar: si el jugador ya confirmó su BINGO pero GameEnded
-  // llega antes del callback de confirmación, forzamos la apertura del modal.
-  const forceOpen = bingoConfirmed.value
-  bingoConfirmed.value = false
-
-  roomFinishedLocal.value = true
-  if (_stallTimer !== null) { clearTimeout(_stallTimer); _stallTimer = null }
-  drawStalling.value = false
-  gameEndData.value = {
-    hasWinner:  data.has_winner,
-    totalDrawn: data.total_drawn,
-    winners: (data.winners ?? []).map(w => ({
-      user_id:     w.user_id,
-      user_name:   w.user_name,
-      card_id:     String(w.card_id ?? ''),
-      card_serial: w.card_serial ?? '',
-      prize:       Number(w.prize ?? 0),
-      pattern:     w.pattern ?? '',
-      round:       w.round ?? 1,
-    })),
-    prize:   data.prize ?? 0,
-    endTime: data.end_time,
-  }
-  isMyWin.value = !!(props.userId && data.winners?.some(w => String(w.user_id) === String(props.userId)))
-  if (forceOpen) { resetModal() }
-  if (!userClosedModal.value || forceOpen) showWinnerModal.value = true
-}
-
-// Refresca los cartones del usuario y actualiza liveCartons si hay nuevos.
-// Política: sobreescribe si el backend devuelve más cartones (nunca resta).
-async function refreshUserCards(overwrite = false) {
-  try {
-    const r = await backendClient.get(`/bingo/${routeKey.value}/user-cards`)
-    if (_unmounted) return
-    const cards = r.data?.data
-    if (!Array.isArray(cards)) return
-    if (overwrite || cards.length > liveCartons.value.length) {
-      liveCartons.value = cards
-    }
-  } catch { /* silencioso — no crítico */ }
-}
-
-// Resincroniza el estado del sorteo tras recuperar la conexión de socket —
-// Reverb/Pusher no reenvía eventos emitidos mientras el cliente estuvo
-// desconectado, así que se refresca contra el backend (ver useBingoGameEcho.onReconnected).
-async function resyncDrawState(attempt = 0) {
-  if (!routeKey.value) return
-  try {
-    const [stateRes, cardsRes] = await Promise.all([
-      backendClient.get(`/bingo/${routeKey.value}/draw-state`),
-      backendClient.get(`/bingo/${routeKey.value}/user-cards`).catch(() => null),
-    ])
-    if (_unmounted) return
-    const data = stateRes.data
-
-    // El array del servidor es autoritativo, con un guard de floor:
-    //  - Server más largo que local → fichas perdidas por WS, aceptar.
-    //  - Server igual longitud pero distinto contenido → reset/resume, aceptar.
-    //  - Server vacío Y local vacío → nada que hacer.
-    //  - Server vacío Y local tiene fichas → cache miss transitorio (TTL expiró
-    //    entre chips); NO limpiar el estado local para evitar borrar la partida
-    //    en curso. Solo limpiar si el juego aún no empezó (gameStarted=false).
-    //
-    // IMPORTANTE: liveDrawn.value se lee DESPUÉS del await — no antes — para
-    // capturar cualquier chip que un WS BingoNumberCalled haya añadido durante
-    // el viaje de red. Leer antes causaría que el response HTTP (snapshot más
-    // antiguo) sobrescriba chips ya recibidos por WS, borrándolos del tablero.
-    if (Array.isArray(data.draw)) {
-      if (data.draw.length > 0) {
-        // Solo sobreescribir si el servidor tiene MÁS fichas que el local actual
-        // (no si solo tiene distintas — eso sería revertir chips WS recientes).
-        if (data.draw.length > liveDrawn.value.length) {
-          liveDrawn.value = data.draw
-          markNumbersAsSeen(data.draw)
-        } else if (data.draw.length === liveDrawn.value.length) {
-          // Misma longitud: solo aplicar si el contenido difiere (reset/resume).
-          const localJson  = JSON.stringify(liveDrawn.value)
-          const serverJson = JSON.stringify(data.draw)
-          if (serverJson !== localJson) {
-            liveDrawn.value = data.draw
-            markNumbersAsSeen(data.draw)
-          }
-        }
-        // data.draw.length < liveDrawn.value.length → WS ya avanzó más que el
-        // snapshot del servidor; ignorar para no revertir fichas recientes.
-      } else if (!gameStarted.value) {
-        // Sorteo no iniciado o reset explícito (dev): limpiar estado local.
-        if (liveDrawn.value.length > 0) {
-          liveDrawn.value = []
-          resetCalledNumbers()
-        }
-      }
-      // data.draw=[] con gameStarted=true → cache miss transitorio; ignorar.
-    }
-    if (data.totalPlayers !== undefined) livePlayers.value = data.totalPlayers
-    if (data.prizePool    !== undefined) livePrize.value   = data.prizePool
-    if (Array.isArray(data.playersProgress)) {
-      playersProgress.value = data.playersProgress
-    }
-    // Actualizar startTime si el sorteo aún no empezó y el backend tiene una fecha distinta.
-    // El watch(currentUnixDate) dispara initCountdown automáticamente — no llamar aquí.
-    if (data.startTime && liveDrawn.value.length === 0 && data.startTime !== currentUnixDate.value) {
-      currentUnixDate.value = data.startTime
-    }
-    if (cardsRes && Array.isArray(cardsRes.data?.data) && cardsRes.data.data.length > liveCartons.value.length) {
-      liveCartons.value = cardsRes.data.data
-    }
-
-    if (data.roomFinished) {
-      roomFinishedLocal.value = true
-      if (gameEndData.value === null) {
-        const winners: WinnerEntry[] = data.initialWinners ?? []
-        gameEndData.value = {
-          hasWinner:  winners.length > 0,
-          totalDrawn: liveDrawn.value.length,
-          winners,
-          prize:      data.prizePool ?? 0,
-          endTime:    '',
-        }
-        isMyWin.value = !!(props.userId && winners.some(w => String(w.user_id) === String(props.userId)))
-        if (!userClosedModal.value) showWinnerModal.value = true
-      }
-      return
-    }
-
-    // roomFinished=false pero se cantaron todas las fichas: posible carrera entre
-    // GameEnded y la actualización de status en BD. Reintentar con backoff hasta 5 veces
-    // antes de quedarse en "en curso" y dejar que el stall banner actúe.
-    if (liveDrawn.value.length >= totalChips.value && attempt < 5) {
-      const delay = attempt < 2 ? 2000 : 4000
-      _scheduleRetry(() => resyncDrawState(attempt + 1), delay)
-    }
-  } catch (e) {
-    if (attempt < 1) {
-      _scheduleRetry(() => resyncDrawState(attempt + 1), 2000)
-    } else {
-      console.error('[Bingo] Error al resincronizar estado del sorteo tras reconexión:', e)
-    }
-  }
-}
-
-function closeWinnerModal() {
-  showWinnerModal.value = false
-  bingoConfirmed.value = false
-  dismissModal()
-  // isMyWin se conserva — el estado de victoria lo gestiona handleGameEnded/onWinnerDeclared,
-  // no el cierre del modal, para que el re-open por GameEnded posterior funcione.
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Bingo detection
@@ -475,14 +311,16 @@ const { subscribe, unsubscribe, resetCalledNumbers, markNumbersAsSeen, isReconne
     // Esperar 1.5 s para que GameEnded llegue primero y el modal se abra con datos completos.
     // Si GameEnded ya llegó (gameEndData !== null) o el usuario ya cerró el modal, no hacer nada.
     if (!userClosedModal.value && gameEndData.value === null && !isFinished.value) {
-      _scheduleRetry(() => {
+      scheduleRetry(() => {
         if (!userClosedModal.value && gameEndData.value === null) showWinnerModal.value = true
       }, 1500)
     }
   },
-  onGameEnded:       (e) => handleGameEnded(e),
+  onGameEnded:       (e) => handleGameEnded(e, bingoConfirmed),
   onReconnected:     ()  => { resyncDrawState() },
 })
+
+bindEchoHelpers({ markNumbersAsSeen, resetCalledNumbers })
 
 // Watch de reconexión prolongada — declarado después de useBingoGameEcho para tener isReconnecting
 let _reconnectLongTimer: ReturnType<typeof setTimeout> | null = null
@@ -596,7 +434,7 @@ function focusCard(id?: string) {
 onMounted(() => {
   initModalDismiss()
 
-  _scheduleRetry(() => { revealed.value = true }, 80)
+  scheduleRetry(() => { revealed.value = true }, 80)
   initCountdown([countdownRoomShim.value as any])
   subscribe()
   preload()
@@ -630,9 +468,7 @@ onUnmounted(() => {
   stopCountdown()
   _stopTickWatch()
   unsubscribe()
-  _pendingTimers.forEach(clearTimeout)
-  _flashPerTarget.forEach((_, target) => { target.value = false })
-  _flashPerTarget.clear()
+  clearAllTimers()
   if (_reconnectLongTimer !== null) clearTimeout(_reconnectLongTimer)
   if (_stallTimer !== null) clearTimeout(_stallTimer)
   document.title = 'Bingo'
@@ -641,10 +477,7 @@ onUnmounted(() => {
 
 <template>
   <div class="ig-page" :class="{ 'ig-page--revealed': revealed }">
-    <div class="ig-stars" aria-hidden="true">
-      <div class="ig-stars__a" />
-      <div class="ig-stars__b" />
-    </div>
+    <GameStarfield />
     <div class="ig-inner">
 
       <GameHeader
@@ -686,42 +519,16 @@ onUnmounted(() => {
         :remainingChips="remainingChips"
       />
 
-      <!-- Banner sorteo lento — si pasan >90s sin nueva ficha durante partida activa -->
-      <Transition name="ig-reconnect">
-        <div v-if="drawStalling && !isFinished && !isReconnecting" class="ig-stall-banner">
-          <i class="fas fa-hourglass-half ig-stall-banner__icon" />
-          El sorteo está tardando más de lo normal
-          <button class="ig-reconnect-reload ig-stall-reload" @click="resyncDrawState()">
-            Resincronizar
-          </button>
-        </div>
-      </Transition>
-
-      <!-- Banner de reconexión WS -->
-      <Transition name="ig-reconnect">
-        <div v-if="isReconnecting" class="ig-reconnect-banner" :class="{ 'ig-reconnect-banner--timeout': reconnectingTooLong }">
-          <span class="ig-reconnect-spinner" />
-          <span v-if="reconnectingTooLong">Sin conexión —</span>
-          <span v-else>Reconectando…</span>
-          <button v-if="reconnectingTooLong" class="ig-reconnect-reload" @click="_reload">
-            Recargar
-          </button>
-        </div>
-      </Transition>
-
-      <!-- Overlay claim BINGO en vuelo — sticky para no empujar el layout -->
-      <Teleport to="body">
-        <Transition name="ig-claim">
-          <div v-if="claimingBingo" class="ig-claim-overlay">
-            <span class="ig-claim-spinner" />
-            Verificando BINGO…
-          </div>
-          <div v-else-if="bingoConfirmed" class="ig-claim-overlay ig-claim-overlay--confirmed">
-            <i class="fas fa-check-circle" />
-            ¡BINGO confirmado! Esperando resultado…
-          </div>
-        </Transition>
-      </Teleport>
+      <GameStatusBanners
+        :draw-stalling="drawStalling"
+        :is-finished="isFinished"
+        :is-reconnecting="isReconnecting"
+        :reconnecting-too-long="reconnectingTooLong"
+        :claiming-bingo="claimingBingo"
+        :bingo-confirmed="bingoConfirmed"
+        @resync="resyncDrawState()"
+        @reload="_reload"
+      />
 
       <div class="ig-cards-section">
         <BingoCartons
@@ -813,60 +620,6 @@ onUnmounted(() => {
 }
 .ig-page--revealed { opacity: 1; transform: translateY(0); }
 
-/* Estrellas: elementos reales en vez de ::before/::after — evita 2 capas GPU
-   composited permanentes durante toda la partida (fix #14). */
-.ig-stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
-.ig-stars__a, .ig-stars__b {
-  position: absolute; inset: 0; will-change: opacity;
-}
-.ig-stars__a {
-  background-image:
-    radial-gradient(1px 1px at  6%  8%, rgba(255,255,255,0.88) 0%, transparent 100%),
-    radial-gradient(1px 1px at 14% 22%, rgba(255,255,255,0.52) 0%, transparent 100%),
-    radial-gradient(1px 1px at 24%  4%, rgba(255,255,255,0.78) 0%, transparent 100%),
-    radial-gradient(1px 1px at 33% 38%, rgba(255,255,255,0.42) 0%, transparent 100%),
-    radial-gradient(1px 1px at 44% 16%, rgba(255,255,255,0.68) 0%, transparent 100%),
-    radial-gradient(1px 1px at 57%  7%, rgba(255,255,255,0.82) 0%, transparent 100%),
-    radial-gradient(1px 1px at 66% 30%, rgba(255,255,255,0.58) 0%, transparent 100%),
-    radial-gradient(1px 1px at 76% 12%, rgba(255,255,255,0.74) 0%, transparent 100%),
-    radial-gradient(1px 1px at 88%  5%, rgba(255,255,255,0.48) 0%, transparent 100%),
-    radial-gradient(1px 1px at 95% 22%, rgba(255,255,255,0.78) 0%, transparent 100%),
-    radial-gradient(1px 1px at  3% 45%, rgba(255,255,255,0.62) 0%, transparent 100%),
-    radial-gradient(1px 1px at 11% 60%, rgba(255,255,255,0.38) 0%, transparent 100%),
-    radial-gradient(1px 1px at 20% 75%, rgba(255,255,255,0.70) 0%, transparent 100%),
-    radial-gradient(1px 1px at 53% 48%, rgba(255,255,255,0.82) 0%, transparent 100%),
-    radial-gradient(1px 1px at 83% 70%, rgba(255,255,255,0.52) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 18% 18%, rgba(180,200,255,0.92) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 48% 10%, rgba(200,180,255,0.85) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 78% 28%, rgba(180,220,255,0.90) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 60% 58%, rgba(200,255,220,0.82) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 90% 45%, rgba(255,240,180,0.78) 0%, transparent 100%);
-  animation: twinkle-a 7s ease-in-out infinite alternate;
-}
-.ig-stars__b {
-  background-image:
-    radial-gradient(2px 2px at 10% 15%, rgba(255,255,255,0.94) 0%, transparent 100%),
-    radial-gradient(2px 2px at 45%  8%, rgba(255,255,255,0.80) 0%, transparent 100%),
-    radial-gradient(2px 2px at 65% 25%, rgba(255,240,180,0.90) 0%, transparent 100%),
-    radial-gradient(2px 2px at 82% 18%, rgba(180,200,255,0.82) 0%, transparent 100%),
-    radial-gradient(2px 2px at 23% 70%, rgba(255,255,255,0.88) 0%, transparent 100%),
-    radial-gradient(2px 2px at 55% 62%, rgba(220,200,255,0.82) 0%, transparent 100%),
-    radial-gradient(3px 3px at 37% 20%, rgba(255,255,255,1.00) 0%, transparent 100%),
-    radial-gradient(3px 3px at 70% 45%, rgba(220,200,255,0.94) 0%, transparent 100%),
-    radial-gradient(3px 3px at 15% 82%, rgba(255,255,255,0.90) 0%, transparent 100%),
-    radial-gradient(4px 4px at 62% 35%, rgba(255,255,255,1.00) 0%, rgba(200,220,255,0.28) 50%, transparent 100%);
-  animation: twinkle-b 9s ease-in-out infinite alternate-reverse;
-}
-@keyframes twinkle-a {
-  0% { opacity: 0.52 } 40% { opacity: 0.94 } 70% { opacity: 0.68 } 100% { opacity: 0.82 }
-}
-@keyframes twinkle-b {
-  0% { opacity: 0.68 } 35% { opacity: 0.48 } 65% { opacity: 1.00 } 100% { opacity: 0.62 }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ig-stars__a, .ig-stars__b { animation: none; opacity: 0.6; }
-}
-
 .ig-inner {
   position: relative; z-index: 1;
   max-width: 1120px; width: 100%; margin: 0 auto;
@@ -893,85 +646,6 @@ onUnmounted(() => {
 }
 
 .ig-cards-section { width: 100%; }
-
-/* Banner reconexión */
-.ig-reconnect-banner {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 14px; border-radius: 10px;
-  background: rgba(255,160,30,0.1); border: 1px solid rgba(255,160,30,0.3);
-  color: #ffb84a; font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
-  transition: background 0.3s ease, border-color 0.3s ease;
-}
-.ig-reconnect-banner--timeout {
-  background: rgba(255,60,60,0.1); border-color: rgba(255,60,60,0.35);
-  color: #ff8080;
-}
-.ig-reconnect-reload {
-  margin-left: auto; padding: 3px 10px; border-radius: 6px;
-  background: rgba(255,60,60,0.15); border: 1px solid rgba(255,60,60,0.4);
-  color: #ff8080; font-size: 10px; font-weight: 700; cursor: pointer;
-  transition: background 0.15s ease;
-}
-.ig-reconnect-reload:hover { background: rgba(255,60,60,0.28); }
-.ig-reconnect-spinner {
-  width: 12px; height: 12px; border-radius: 50%;
-  border: 2px solid rgba(255,160,30,0.28); border-top-color: #ffb84a;
-  animation: ig-rspin 0.8s linear infinite; flex-shrink: 0;
-}
-.ig-reconnect-banner--timeout .ig-reconnect-spinner {
-  animation: none;
-  border-color: rgba(255,60,60,0.3);
-  border-top-color: #ff8080;
-}
-
-/* Banner sorteo lento */
-.ig-stall-banner {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 14px; border-radius: 10px;
-  background: rgba(255,160,30,0.07); border: 1px solid rgba(255,160,30,0.22);
-  color: #c89040; font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
-}
-.ig-stall-banner__icon { animation: ig-hourglass 2s ease-in-out infinite; }
-@keyframes ig-hourglass { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
-.ig-stall-reload {
-  border-color: rgba(255,160,30,0.4) !important;
-  background: rgba(255,160,30,0.1) !important;
-  color: #ffb84a !important;
-}
-.ig-stall-reload:hover { background: rgba(255,160,30,0.2) !important; }
-
-@keyframes ig-rspin { to { transform: rotate(360deg) } }
-.ig-reconnect-enter-active,
-.ig-reconnect-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
-.ig-reconnect-enter-from,
-.ig-reconnect-leave-to     { opacity: 0; transform: translateY(-4px); }
-
-/* Overlay claim BINGO — fixed centrado, no empuja el layout (Fix #6) */
-.ig-claim-overlay {
-  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-  z-index: 1400;
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 22px; border-radius: 30px;
-  background: rgba(14,8,38,0.92); border: 1px solid rgba(123,79,255,0.5);
-  color: #b090ff; font-size: 12px; font-weight: 700; letter-spacing: 0.3px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 24px rgba(123,79,255,0.2);
-  backdrop-filter: blur(12px); white-space: nowrap;
-}
-.ig-claim-overlay--confirmed {
-  border-color: rgba(42,245,152,0.5);
-  color: #2af598;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 24px rgba(42,245,152,0.18);
-}
-.ig-claim-overlay--confirmed i { font-size: 14px; }
-.ig-claim-spinner {
-  width: 14px; height: 14px; border-radius: 50%;
-  border: 2px solid rgba(123,79,255,0.3); border-top-color: #b090ff;
-  animation: ig-rspin 0.7s linear infinite; flex-shrink: 0;
-}
-.ig-claim-enter-active,
-.ig-claim-leave-active { transition: opacity 0.25s ease, transform 0.25s ease; }
-.ig-claim-enter-from  { opacity: 0; transform: translateX(-50%) translateY(8px); }
-.ig-claim-leave-to    { opacity: 0; transform: translateX(-50%) translateY(8px); }
 </style>
 
 <!-- ig-fade es usado por DrawnBoard y NearWinBanner vía <Transition>. Debe ser global. -->
