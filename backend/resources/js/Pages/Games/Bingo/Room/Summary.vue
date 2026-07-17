@@ -20,15 +20,17 @@
   import { useCrudEventListener } from '@/js/composables/form/useCrudEventListener'
   import { useModalForm } from '@/js/composables/common/useModalForm'
   import { useBingoRoom } from '@/js/composables/games/bingo/room/default/useBingoRoom'
+  import { useBingoRoomStatusChecks } from '@js/composables/games/bingo/room/summary/useBingoRoomStatusChecks'
+  import { useRoomDetailsModal } from '@js/composables/games/bingo/room/summary/useRoomDetailsModal'
+  import { useRoomActivateModal } from '@js/composables/games/bingo/room/summary/useRoomActivateModal'
+  import { useMissingRateModal } from '@js/composables/games/bingo/room/summary/useMissingRateModal'
+  import { useRoomSummaryFilters, useRoomSummaryExtraButtons } from '@js/composables/games/bingo/room/summary/useRoomSummaryTableConfig'
   import { usePage, router } from '@inertiajs/vue3'
 
   // ==========================================================================
   // Types
   // ==========================================================================
   import type { BingoRoomSummaryPageProps } from '@/js/types/games/bingo/room/summary/bingo-room-summary-page'
-  import type { ExtraButton } from '@js/types/common/table/extra-buttons'
-  import type { TableFilterInterface } from '@js/types/common/table/table-filter'
-  import type { BingoRoom } from '@/js/types/games/bingo/room/bingo-room'
   import type { ServerQuery } from '@/js/composables/common/table/useTableController'
   import type { Pagination } from '@/js/types/common/table/pagination'
 
@@ -129,63 +131,16 @@
   // ==========================================================================
   // Modal de Detalles
   // ==========================================================================
-  const showDetailsModal = ref(false)
-  const selectedRoomDetails = ref<BingoRoom | null>(null)
-  const loadingDetails = ref(false)
-
-  const openRoomDetails = async (ids: string[]) => {
-    if (!ids || ids.length !== 1) return
-
-    const roomId = ids[0]
-    selectedRoomDetails.value = null
-    loadingDetails.value = true
-    showDetailsModal.value = true
-
-    const roomDetails = await fetchRoomDetails(roomId)
-    selectedRoomDetails.value = roomDetails ?? null
-
-    loadingDetails.value = false
-  }
-
-  const closeDetailsModal = () => {
-    showDetailsModal.value = false
-    selectedRoomDetails.value = null
-  }
+  const { showDetailsModal, selectedRoomDetails, loadingDetails, openRoomDetails, closeDetailsModal } =
+    useRoomDetailsModal(fetchRoomDetails)
 
   // ==========================================================================
   // Modal de Activación / Programación de inicio (salas sin horario)
   // ==========================================================================
-  const showActivateModal = ref(false)
-  const selectedActivateRoom = ref<BingoRoom | null>(null)
-  const isActivatingRoom = ref(false)
-  const isSchedulingRoom = ref(false)
-
-  const openActivateModal = (ids: string[]) => {
-    if (ids.length !== 1) return
-    const room = rooms.value.find(r => String(r.id) === String(ids[0]))
-    if (!room) return
-
-    selectedActivateRoom.value = room
-    showActivateModal.value = true
-  }
-
-  const handleActivateNow = async (roomId: string | number) => {
-    isActivatingRoom.value = true
-    const ok = await activateRoomNow(roomId)
-    isActivatingRoom.value = false
-    if (ok) showActivateModal.value = false
-  }
-
-  const handleScheduleStart = async (roomId: string | number, date: string, time: string) => {
-    isSchedulingRoom.value = true
-    const ok = await scheduleRoomStart(roomId, date, time)
-    isSchedulingRoom.value = false
-    if (ok) showActivateModal.value = false
-  }
-
-  watch(showActivateModal, open => {
-    if (!open) selectedActivateRoom.value = null
-  })
+  const {
+    showActivateModal, selectedActivateRoom, isActivatingRoom, isSchedulingRoom,
+    openActivateModal, handleActivateNow, handleScheduleStart,
+  } = useRoomActivateModal({ rooms, activateRoomNow, scheduleRoomStart })
 
   // ==========================================================================
   // Modal + Form handler
@@ -311,126 +266,31 @@
   // ==========================================================================
   // Modal: monedas sin tasa de cambio activa
   // ==========================================================================
-  const showMissingRateModal = ref(false)
-
-  const currenciesMissingRateLabels = computed(() => {
-    const missing = gameBingoRoomFormRef.value?.currenciesMissingRate ?? []
-    return missing
-      .map(id => allowedCurrenciesOptions.value.find(opt => String(opt.value) === id)?.label ?? id)
-      .join(', ')
-  })
-
-  /**
-   * Intercepta el click de "Guardar": si la única razón de invalidez es que
-   * hay monedas seleccionadas sin tasa de cambio activa, en vez de dejar el
-   * botón simplemente deshabilitado se ofrece al usuario decidir cómo seguir
-   * (quitar esas monedas o ir a configurar la tasa) antes de continuar.
-   */
-  const onSaveClick = () => {
-    const missing = gameBingoRoomFormRef.value?.currenciesMissingRate ?? []
-    if (missing.length > 0) {
-      showMissingRateModal.value = true
-      return
-    }
-    handleSubmit()
-  }
-
-  const goToExchangeRates = () => {
-    router.visit('/exchange-rate')
-  }
-
-  const continueWithoutMissingCurrencies = () => {
-    gameBingoRoomFormRef.value?.removeCurrenciesMissingRate?.()
-    showMissingRateModal.value = false
-  }
-
-  /**
-   * Habilita el botón "Guardar" cuando el formulario es válido, o cuando la
-   * única razón de invalidez son monedas sin tasa activa — en ese caso el
-   * click abre el modal de decisión (onSaveClick) en vez de enviar.
-   */
-  const canAttemptSave = computed(() => {
-    if (gameBingoRoomFormRef.value?.isValid) return true
-    return (gameBingoRoomFormRef.value?.currenciesMissingRate?.length ?? 0) > 0
+  const {
+    showMissingRateModal, currenciesMissingRateLabels,
+    onSaveClick, goToExchangeRates, continueWithoutMissingCurrencies, canAttemptSave,
+  } = useMissingRateModal({
+    formRef: gameBingoRoomFormRef,
+    allowedCurrenciesOptions,
+    handleSubmit,
   })
 
   // ==========================================================================
   // Filtros
   // ==========================================================================
 
-  const filters = computed<readonly TableFilterInterface[]>(() => {
-  const baseFilters = [
-    {
-      key: 'config_roomtype_label',
-      label: 'tipo',
-      placeholder: 'Filtrar por tipo',
-      options: roomTypeOptions.value
-    },
-    {
-      key: 'config_gamemode_label',
-      label: 'modo',
-      placeholder: 'Filtrar por modo',
-      options: gameModeOptions.value
-    },
-    {
-      key: 'config_prizepooltype_label',
-      label: 'tipo bote',
-      placeholder: 'Filtrar por tipo bote',
-      options: prizePoolTypeOptions.value
-    },
-    {
-      key: 'currency_ids',
-      label: 'moneda',
-      placeholder: 'Filtrar por moneda',
-      options: allowedCurrenciesOptions.value
-    },
-    {
-      key: 'status',
-      label: 'Estado',
-      placeholder: 'Filtrar por estado',
-      options: [
-        { value: 'ACTIVE', label: 'Disponible' },
-        { value: 'IN_PROGRESS', label: 'En Juego' },
-        { value: 'FINISHED', label: 'Finalizada' },
-        { value: 'REFUND', label: 'Reembolso' },
-        { value: 'OFFLINE', label: 'Fuera de Línea' }
-      ]
-    }
-  ];
-
-  // Agregar filtro from_house solo para admin/superadmin
-  if (isAdmin.value) {
-    baseFilters.push({
-      key: 'from_house',
-      label: 'Origen',
-      placeholder: 'Filtrar por origen',
-      options: [
-        { value: 'Y', label: 'Salas propias de la app' },
-        { value: 'N', label: 'Salas de usuarios' }
-      ]
-    });
-  }
-
-  return baseFilters;
-})
+  const { filters } = useRoomSummaryFilters({
+    roomTypeOptions, gameModeOptions, prizePoolTypeOptions, allowedCurrenciesOptions, isAdmin,
+  })
 
   // ==========================================================================
   // Botones extra
   // ==========================================================================
 
-  const nowUnix = (): number => Math.floor(Date.now() / 1000)
-
-  const isExpired = (ids: string[]): boolean =>
-    ids.some(id => {
-      const room = rooms.value.find(r => String(r.id) === String(id))
-      return room != null && room.unix_date != null && Number(room.unix_date) <= nowUnix()
-    })
-
-  const hasPlayers = (ids: string[]): boolean =>
-    ids.some(id => {
-      const room = rooms.value.find(r => String(r.id) === String(id))
-      return room != null && (room.total_players ?? 0) > 0
-    })
+  const {
+    isExpired, hasPlayers, hasActiveStatus, isNotEditableStatus,
+    canCancelRoom, canActivateNow, isManualRoom,
+  } = useBingoRoomStatusChecks(rooms)
 
   /**
    * true si la sala actualmente en edición ya tiene jugadores registrados —
@@ -440,124 +300,10 @@
    */
   const editingRoomHasPlayers = computed(() => hasPlayers([String(roomData.value.id ?? '')]))
 
-  const hasActiveStatus = (ids: string[]): boolean =>
-    ids.some(id => {
-      const room = rooms.value.find(r => String(r.id) === String(id))
-      return room != null && room.status === 'ACTIVE'
-    })
-
-  /** Estados en los que el sorteo de la sala aún no ha iniciado ni terminado. */
-  const EDITABLE_ROOM_STATUSES = ['ACTIVE', 'INACTIVE', 'OFFLINE']
-
-  /**
-   * Solo se puede editar una sala mientras su sorteo no ha iniciado ni
-   * finalizado — una vez IN_PROGRESS/FINISHED/CANCELLED ya puede haber
-   * premios entregados (bingo_card_prizes), y syncRounds() en el backend
-   * borra y recrea las rondas en cada guardado, lo que borraría ese
-   * historial (bingo_card_prizes.round_id es cascadeOnDelete).
-   */
-  const isNotEditableStatus = (ids: string[]): boolean =>
-    ids.some(id => {
-      const room = rooms.value.find(r => String(r.id) === String(id))
-      return room != null && !EDITABLE_ROOM_STATUSES.includes(room.status)
-    })
-
-  const canCancelRoom = (ids: string[]): boolean => {
-    return ids.length === 1 && hasPlayers(ids) && hasActiveStatus(ids)
-  }
-
-  const canActivateNow = (ids: string[]): boolean =>
-    ids.length === 1 &&
-    ids.some(id => {
-      const room = rooms.value.find(r => String(r.id) === String(id))
-      return room != null && room.can_activate_now === true
-    })
-
-  const isManualRoom = (ids: string[]): boolean =>
-    ids.length === 1 &&
-    ids.some(id => {
-      const room = rooms.value.find(r => String(r.id) === String(id))
-      return room != null && room.start_mode === 'MANUAL'
-    })
-
-  const extraButtons: ExtraButton[] = [
-    {
-      label: 'Salas Automáticas',
-      class: 'btn-secondary',
-      show: (ids: string[]) => !ids.length,
-      onClick: (ids: string[]) => {
-        if (ids.length) return
-        window.location.href = `/bingo-automatic-rooms`
-      }
-    },
-    {
-      label: 'Ver Salas',
-      class: 'btn-primary',
-      show: (ids: string[]) => !ids.length,
-      onClick: (ids: string[]) => {
-        if (ids.length) return
-        window.location.href = `/bingo/game-rooms`
-      }
-    },
-    {
-      icon: 'fas fa-info-circle',
-      class: 'btn-warning text-white',
-      title: 'Ver Detalles',
-      show: (ids: string[]) => ids.length === 1 && hasPlayers(ids),
-      onClick: openRoomDetails
-    },
-    {
-      icon: 'fas fa-exchange-alt',
-      class: 'btn-secondary',
-      title: 'Alternar Estado',
-      show: false,
-      action: 'toggleStatus',
-      disabled: (ids: string[]) => isExpired(ids) || hasPlayers(ids),
-      disabledReason: (ids: string[]) =>
-        isExpired(ids)
-          ? 'La sala ya expiró, no se puede cambiar el estado'
-          : 'La sala tiene jugadores registrados, no se puede cambiar el estado'
-    },
-    {
-      icon: 'fas fa-copy',
-      class: 'btn-primary text-white',
-      title: 'Copiar Sala',
-      show: (ids: string[]) => ids.length === 1,
-      action: 'copy'
-    },
-    {
-      icon: 'fas fa-sign-out-alt',
-      class: 'btn-dark',
-      title: 'Ir a Sala',
-      show: (ids: string[]) => ids.length === 1,
-      onClick: goToRoom
-    },
-    {
-      icon: 'fas fa-times',
-      class: 'btn-danger',
-      title: 'Cancelar Sala',
-      show: (ids: string[]) => canCancelRoom(ids),
-      onClick: (ids: string[]) => {
-        if (ids.length === 1) {
-          cancelRoom(ids[0])
-        }
-      }
-    },
-    {
-      icon: 'fas fa-calendar-alt',
-      class: 'btn-warning text-white',
-      title: 'Programar Horario',
-      show: (ids: string[]) => isManualRoom(ids) && !canActivateNow(ids),
-      onClick: openActivateModal
-    },
-    {
-      icon: 'fas fa-play',
-      class: 'btn-success text-white',
-      title: 'Activar Ahora',
-      show: (ids: string[]) => canActivateNow(ids),
-      onClick: openActivateModal
-    }
-  ]
+  const extraButtons = useRoomSummaryExtraButtons({
+    isExpired, hasPlayers, canCancelRoom, canActivateNow, isManualRoom,
+    openRoomDetails, openActivateModal, goToRoom, cancelRoom,
+  })
 
   const subtitle = `<a title="Ir a configuración del Bingo" href="/bingo/config" class="text-primary font-weight-bold">Ir a configuración</a>`
 </script>
