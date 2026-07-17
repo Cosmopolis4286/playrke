@@ -3,6 +3,7 @@
 namespace App\Policies\Roles;
 
 use App\Models\User;
+use App\Services\Auth\RoleAuthorizationService;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -69,15 +70,16 @@ abstract class BaseRolePolicy
     /**
      * Valida si el usuario tiene acceso base según el rol requerido.
      *
-     * Se apoya en la implementación del método `hasRole` del modelo User,
-     * el cual debe ser compatible con string|array.
+     * Delega en RoleAuthorizationService, la misma fuente de verdad que
+     * usan middleware y gates, para que todas las capas de autorización
+     * evalúen exactamente la misma regla.
      *
      * @param User $user
      * @return bool
      */
     protected function hasAccess(User $user): bool
     {
-        return $user->hasRole($this->requiredRole());
+        return app(RoleAuthorizationService::class)->hasAnyRole($user, $this->requiredRole());
     }
 
     /**

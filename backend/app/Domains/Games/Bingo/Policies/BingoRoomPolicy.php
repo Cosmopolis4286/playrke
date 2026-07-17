@@ -3,8 +3,10 @@
 namespace App\Domains\Games\Bingo\Policies;
 
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Models\User;
-use App\Policies\Roles\BaseRolePolicy;
+use App\Services\Auth\RoleAuthorizationService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -12,68 +14,62 @@ use Illuminate\Support\Facades\Cache;
  *
  * Reglas:
  * - Solo usuarios con roles permitidos pueden operar
- * - Vendedores en estados DELETED o BLOCKED no pueden mutar
+ * - Salas en estados DELETED o BLOCKED no pueden mutar
  * - Compatible con authorizeResource()
  */
-class BingoRoomPolicy extends BaseRolePolicy
+class BingoRoomPolicy extends BingoBasePolicy
 {
     /**
-     * Roles requeridos para operar sobre vendedores.
-     *
-     * @return string|string[]
+     * Puede gestionar (mutar/alternar estado) si tiene rol privilegiado
+     * (admin/superadmin) o si es el creador de la sala.
      */
-    protected function requiredRole(): string|array
-    {
-        return ['superadmin', 'admin', 'commerce', 'customer'];
-    }
-
-    /**
-     * Estados que bloquean operaciones mutables.
-     *
-     * @return string[]
-     */
-    protected function forbiddenStatuses(): array
-    {
-        return ['DELETED', 'BLOCKED'];
-    }
-
-    /**
-     * Puede mutar si es el creador O tiene rol privilegiado (admin/superadmin).
-     */
-    public function update(User $user, \Illuminate\Database\Eloquent\Model $model): bool
+    protected function canManage(User $user, Model $model): bool
     {
         if (!$this->hasAccess($user) || !$this->canMutate($model)) {
             return false;
         }
 
-        if ($user->hasRole(['superadmin', 'admin'])) {
+        if ($this->hasElevatedRole($user)) {
             return true;
         }
 
         return (string) $user->id === (string) $model->creator_user_id;
     }
 
-    public function delete(User $user, \Illuminate\Database\Eloquent\Model $model): bool
+    protected function hasElevatedRole(User $user): bool
     {
-        return $this->update($user, $model);
+        return app(RoleAuthorizationService::class)->hasAnyRole($user, ['superadmin', 'admin']);
+    }
+
+    /**
+     * Verifica pertenencia a la sala (cartones comprados > 0).
+     */
+    protected function belongsToRoom(User $user, BingoRoom $room): bool
+    {
+        return BingoRoomUser::where('room_id', $room->id)
+            ->where('user_id', $user->id)
+            ->where('cards_purchased', '>', 0)
+            ->exists();
+    }
+
+    public function update(User $user, Model $model): bool
+    {
+        return $this->canManage($user, $model);
+    }
+
+    public function delete(User $user, Model $model): bool
+    {
+        return $this->canManage($user, $model);
     }
 
     public function toggleStatus(User $user, BingoRoom $bingoRoom): bool
     {
-        if (!$this->hasAccess($user) || !$this->canMutate($bingoRoom)) {
-            return false;
-        }
-
-        if ($user->hasRole(['superadmin', 'admin'])) {
-            return true;
-        }
-
-        return (string) $user->id === (string) $bingoRoom->creator_user_id;
+        return $this->canManage($user, $bingoRoom);
     }
 
     public function cancel(User $user, BingoRoom $bingoRoom): bool
     {
-        return $this->update($user, $bingoRoom);
+        return $this->canManage($user, $bingoRoom);
     }
 
     public function generateDraw() {}
@@ -103,10 +99,7 @@ class BingoRoomPolicy extends BaseRolePolicy
             return false;
         }
 
-        return \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $room->id)
-            ->where('user_id', $user->id)
-            ->where('cards_purchased', '>', 0)
-            ->exists();
+        return $this->belongsToRoom($user, $room);
     }
 
     /**
@@ -138,11 +131,6 @@ class BingoRoomPolicy extends BaseRolePolicy
 
         $cacheKey = "bingo:policy:viewGame:{$user->id}:{$room->id}";
 
-        return Cache::remember($cacheKey, 30, fn () =>
-            \App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser::where('room_id', $room->id)
-                ->where('user_id', $user->id)
-                ->where('cards_purchased', '>', 0)
-                ->exists()
-        );
+        return Cache::remember($cacheKey, 30, fn () => $this->belongsToRoom($user, $room));
     }
 }
