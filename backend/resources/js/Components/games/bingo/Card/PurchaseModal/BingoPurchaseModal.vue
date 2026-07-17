@@ -10,7 +10,11 @@
    */
   import { computed, ref } from 'vue'
   import { router } from '@inertiajs/vue3'
-  import BingoCustomCardSection from './BingoCustomCardSection.vue'
+  import PurchaseModalHeader from './PurchaseModalHeader.vue'
+  import PurchaseModalRoomBanner from './PurchaseModalRoomBanner.vue'
+  import PurchaseModalCountryStep from './PurchaseModalCountryStep.vue'
+  import PurchaseModalConfirmStep from './PurchaseModalConfirmStep.vue'
+  import PurchaseModalFooter from './PurchaseModalFooter.vue'
   import type { BingoGameRoom } from '@/js/types/games/bingo/room/game-rooms/bingo-game-room'
   import type {
     BingoAvailableCountry,
@@ -77,27 +81,16 @@
     (e: 'purchase'): void
   }>()
 
-  const cardSection = ref<InstanceType<typeof BingoCustomCardSection> | null>(null)
+  const confirmStep = ref<InstanceType<typeof PurchaseModalConfirmStep> | null>(null)
 
-  async function handlePurchaseClick(): Promise<void> {
-    // Solo verificar cartones que el usuario marcó como personalizados (manualEdits[i] = true).
-    // Los cartones sin edición manual se envían como al azar y no requieren validación.
-    if (props.customizeCard && cardSection.value && props.manualCardCount > 0) {
-      const canContinue = await props.confirmIncompleteCustomCard(
-        cardSection.value.missingCount,
-        cardSection.value.autoFillRemaining,
-      )
-      if (!canContinue) return
-    }
-    emit('purchase')
+  function handlePurchaseClick(): void {
+    confirmStep.value?.handlePurchaseClick()
   }
 
-  function handleAutoFill(): void {
-    cardSection.value?.autoFillRemaining()
-  }
-
-  function handleClearAll(): void {
-    cardSection.value?.clearAll()
+  function goToLobby() {
+    if (!props.selectedRoom) return
+    emit('close')
+    router.visit(`/bingo/${props.selectedRoom.id}/lobby`)
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -124,21 +117,6 @@
   const currentCtns = computed(() => {
     return props.selectedRoom?.players_room?.[0]?.ctns ?? 0
   })
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Handlers
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  function onCtnsInput(e: Event) {
-    const val = parseInt((e.target as HTMLInputElement).value, 10)
-    if (!isNaN(val)) emit('set-ctns', val)
-  }
-
-  function goToLobby() {
-    if (!props.selectedRoom) return
-    emit('close')
-    router.visit(`/bingo/${props.selectedRoom.id}/lobby`)
-  }
 </script>
 
 <template>
@@ -149,69 +127,22 @@
           <!-- ── Glow decorativo ── -->
           <div class="pm-dialog__glow" />
 
-          <!-- ═══════════════════ HEADER ═══════════════════ -->
-          <div class="pm-header">
-            <div class="pm-header__left">
-              <i class="fas fa-ticket-alt pm-header__icon" />
-              <span class="pm-header__title">Comprar Cartones</span>
-            </div>
-
-            <!-- Stepper dinámico -->
-            <div class="pm-stepper" v-if="step !== 'loading'">
-              <div
-                v-for="(lbl, i) in stepperLabels"
-                :key="i"
-                class="pm-stepper__step"
-                :class="{
-                  'pm-stepper__step--done': i < stepIndex,
-                  'pm-stepper__step--active': i === stepIndex
-                }"
-              >
-                <div class="pm-stepper__dot">
-                  <i v-if="i < stepIndex" class="fas fa-check" style="font-size: 8px" />
-                  <span v-else>{{ i + 1 }}</span>
-                </div>
-                <span class="pm-stepper__lbl">{{ lbl }}</span>
-              </div>
-            </div>
-
-            <button
-              v-if="step !== 'loading'"
-              class="pm-header__close"
-              aria-label="Cerrar"
-              :disabled="purchasing"
-              @click="emit('close')"
-            >
-              <i class="fas fa-times" />
-            </button>
-
-            <div v-else class="spinner-border spinner-border-sm text-primary" role="status"></div>
-          </div>
+          <PurchaseModalHeader
+            :step="step"
+            :step-index="stepIndex"
+            :stepper-labels="stepperLabels"
+            :purchasing="purchasing"
+            @close="emit('close')"
+          />
 
           <template v-if="step !== 'loading'">
-            <!-- ── Banner sala ── -->
-            <div v-if="selectedRoom" class="pm-room-banner">
-              <img
-                :src="`/img/games/bingo/estelar_fd.png`"
-                alt="sala"
-                class="pm-room-banner__img"
-              />
-              <div class="pm-room-banner__info">
-                <span class="pm-room-banner__mode">
-                  <i class="fas fa-gamepad mr-1" />Cartón Lleno
-                </span>
-                <div class="pm-room-banner__prize">
-                  <span class="pm-room-banner__prize-num">{{ prizeFormatted }}</span>
-                  <span class="pm-room-banner__prize-sym">
-                    {{
-                      isPlayer
-                        ? currencySymbol
-                        : (selectedCountry?.currency_symbol ?? currencySymbol ?? 'USD')
-                    }}
-                  </span>
-                </div>
-              </div>
-            </div>
+            <PurchaseModalRoomBanner
+              :selected-room="selectedRoom"
+              :prize-formatted="prizeFormatted"
+              :is-player="isPlayer"
+              :currency-symbol="currencySymbol"
+              :selected-country="selectedCountry"
+            />
 
             <!-- Overlay visual absoluto sobre todo el dialog mientras purchasing.
                  position:absolute + inset:0 ancla al .pm-dialog (position:relative).
@@ -228,197 +159,64 @@
 
             <!-- ═══════════════════ BODY ═══════════════════ -->
             <div class="pm-body">
-              <!-- ── STEP 1: País (solo para no-players) ── -->
-              <Transition name="step-slide" mode="out-in">
-                <div
-                  v-if="!isPlayer && isPlayer !== null && step === 'country'"
-                  key="country"
-                  class="pm-step"
-                >
-                  <p class="pm-step__label">Selecciona el país del jugador</p>
+              <PurchaseModalCountryStep
+                :is-player="isPlayer"
+                :step="step"
+                :loading-countries="loadingCountries"
+                :countries="countries"
+                :selected-country="selectedCountry"
+                :card-price="cardPrice"
+                :loading-price="loadingPrice"
+                :currency-symbol="currencySymbol"
+                @select-country="emit('select-country', $event)"
+              />
 
-                  <div v-if="loadingCountries" class="pm-loading">
-                    <span class="pm-spinner" />
-                    <span>Cargando países…</span>
-                  </div>
-
-                  <div v-else-if="countries.length === 0" class="pm-empty">
-                    <i class="fas fa-globe-americas" />
-                    <span>Sin países disponibles para esta sala</span>
-                  </div>
-
-                  <div v-else class="pm-country-grid">
-                    <button
-                      v-for="country in countries"
-                      :key="country.id"
-                      class="pm-country-btn"
-                      :class="{
-                        'pm-country-btn--selected': selectedCountry?.id === country.id
-                      }"
-                      @click="emit('select-country', country)"
-                    >
-                      <span class="pm-country-btn__flag">{{ country.flag ?? '🌐' }}</span>
-                      <span class="pm-country-btn__name">{{ country.name }}</span>
-                      <span class="pm-country-btn__sym">{{ country.currency_symbol }}</span>
-                      <i
-                        v-if="selectedCountry?.id === country.id"
-                        class="fas fa-check-circle pm-country-btn__check"
-                      />
-                    </button>
-                  </div>
-
-                  <!-- Precio obtenido -->
-                  <Transition name="fade">
-                    <div
-                      v-if="selectedCountry && !loadingPrice && cardPrice > 0"
-                      class="pm-price-pill"
-                    >
-                      <i class="fas fa-tag mr-1" />
-                      Cartón:
-                      <strong>{{ cardPrice.toFixed(2) }} {{ currencySymbol }}</strong>
-                    </div>
-                    <div v-else-if="loadingPrice" class="pm-price-pill pm-price-pill--loading">
-                      <span class="pm-spinner pm-spinner--sm" />Obteniendo precio…
-                    </div>
-                  </Transition>
-                </div>
-              </Transition>
-
-              <!-- ── STEP 2: Confirmar ── -->
-              <Transition name="step-slide" mode="out-in">
-                <div v-if="step === 'confirm'" key="confirm" class="pm-step">
-
-                  <!-- Badge cartones actuales -->
-                  <div v-if="currentCtns > 0" class="pm-ctns-badge">
-                    <i class="fas fa-ticket-alt" />
-                    <span>Ya tienes <strong>{{ currentCtns }}</strong> cartón{{ currentCtns === 1 ? '' : 'es' }} aquí</span>
-                  </div>
-
-                  <!-- Selector cantidad -->
-                  <div class="pm-qty-row">
-                    <button class="pm-qty-btn" :disabled="numCtns <= 1" @click="emit('decrement')">
-                      <i class="fas fa-minus" />
-                    </button>
-                    <input
-                      type="number"
-                      class="pm-qty-input"
-                      :value="numCtns"
-                      min="1"
-                      max="40"
-                      step="1"
-                      @input="onCtnsInput"
-                    />
-                    <button class="pm-qty-btn" :disabled="numCtns >= 40" @click="emit('increment')">
-                      <i class="fas fa-plus" />
-                    </button>
-                  </div>
-
-                  <!-- Toggle personalizar cartones -->
-                  <button
-                    v-if="canCustomize"
-                    type="button"
-                    class="pm-customize-toggle"
-                    :class="{ 'pm-customize-toggle--on': customizeCard, 'pm-customize-toggle--loading': configLoading }"
-                    :disabled="configLoading"
-                    @click="emit('toggle-customize')"
-                  >
-                    <i v-if="configLoading" class="fas fa-spinner fa-spin" />
-                    <i v-else class="fas fa-pen" />
-                    {{ customizeCard ? 'Personalizando cartones' : 'Elegir mis números' }}
-                    <i v-if="!configLoading" class="fas fa-chevron-down pm-customize-toggle__chevron" :class="{ 'pm-customize-toggle__chevron--open': customizeCard }" />
-                  </button>
-
-                  <!-- Picker de cartones personalizados -->
-                  <Transition name="fade">
-                    <div v-if="customizeCard" class="pm-picker-wrap">
-                      <BingoCustomCardSection
-                        ref="cardSection"
-                        :matrices="customCardNumbers"
-                        :manual-edits="manualEdits"
-                        :active-index="activeCardIndex"
-                        :num-ctns="numCtns"
-                        :variant="selectedRoom?.config?.game_variant"
-                        :custom-price-pct="customPricePct"
-                        @update:matrices="emit('update:custom-card-numbers', $event)"
-                        @update:manual-edits="emit('update:manual-edits', $event)"
-                        @update:active-index="emit('set-active-card-index', $event)"
-                      />
-                    </div>
-                  </Transition>
-
-                </div>
-              </Transition>
+              <PurchaseModalConfirmStep
+                ref="confirmStep"
+                :step="step"
+                :current-ctns="currentCtns"
+                :num-ctns="numCtns"
+                :can-customize="canCustomize"
+                :customize-card="customizeCard"
+                :config-loading="configLoading"
+                :custom-card-numbers="customCardNumbers"
+                :manual-edits="manualEdits"
+                :active-card-index="activeCardIndex"
+                :variant="selectedRoom?.config?.game_variant"
+                :custom-price-pct="customPricePct"
+                :manual-card-count="manualCardCount"
+                :confirm-incomplete-custom-card="confirmIncompleteCustomCard"
+                @increment="emit('increment')"
+                @decrement="emit('decrement')"
+                @set-ctns="emit('set-ctns', $event)"
+                @toggle-customize="emit('toggle-customize')"
+                @update:custom-card-numbers="emit('update:custom-card-numbers', $event)"
+                @update:manual-edits="emit('update:manual-edits', $event)"
+                @set-active-card-index="emit('set-active-card-index', $event)"
+                @purchase="emit('purchase')"
+              />
             </div>
 
-            <!-- ═══════════════════ FOOTER ═══════════════════ -->
-            <div class="pm-footer">
-
-              <!-- Botones izquierda: solo iconos -->
-              <div class="pm-footer__actions">
-                <button
-                  v-if="!isPlayer && isPlayer !== null && step === 'confirm'"
-                  class="pm-icon-btn"
-                  title="Atrás"
-                  :disabled="purchasing"
-                  @click="emit('prev')"
-                >
-                  <i class="fas fa-arrow-left" />
-                </button>
-                <button
-                  v-if="step === 'confirm' && currentCtns > 0"
-                  class="pm-icon-btn pm-icon-btn--lobby"
-                  title="Ir al lobby"
-                  @click="goToLobby"
-                >
-                  <i class="fas fa-door-open" />
-                </button>
-              </div>
-
-              <!-- Resumen compacto centrado -->
-              <div v-if="step === 'confirm'" class="pm-footer__summary">
-                <!-- Sin personalización o todos al azar -->
-                <template v-if="!customizeCard || manualCardCount === 0">
-                  <span class="pm-fs__pill">
-                    <i class="fas fa-ticket-alt" />{{ numCtns }}× {{ basePricePerCard.toFixed(2) }}
-                  </span>
-                </template>
-                <!-- Mixto -->
-                <template v-else>
-                  <span v-if="numCtns - manualCardCount > 0" class="pm-fs__pill">
-                    <i class="fas fa-dice" />{{ numCtns - manualCardCount }}× {{ basePricePerCard.toFixed(2) }}
-                  </span>
-                  <span class="pm-fs__pill pm-fs__pill--custom">
-                    <i class="fas fa-pen" />{{ manualCardCount }}× {{ customPricePerCard.toFixed(2) }}
-                    <em v-if="customPricePct > 0">+{{ customPricePct }}%</em>
-                  </span>
-                </template>
-                <span class="pm-fs__sep">=</span>
-                <span class="pm-fs__total">
-                  {{ totalAmount.toFixed(2) }}<small>{{ currencySymbol }}</small>
-                </span>
-              </div>
-              <div v-else class="pm-footer__spacer" />
-
-              <!-- Botón principal -->
-              <button
-                v-if="!isPlayer && isPlayer !== null && step === 'country'"
-                class="pm-btn pm-btn--primary"
-                :disabled="!canAdvance || loadingPrice"
-                @click="emit('next')"
-              >
-                <i class="fas fa-arrow-right" />
-              </button>
-              <button
-                v-else
-                class="pm-btn pm-btn--buy"
-                :disabled="purchasing || isPlayer === null"
-                @click="handlePurchaseClick"
-              >
-                <span v-if="purchasing" class="pm-spinner pm-spinner--sm" />
-                <i v-else class="fas fa-lock" />
-                {{ purchasing ? 'Procesando…' : 'Comprar' }}
-              </button>
-            </div>
+            <PurchaseModalFooter
+              :is-player="isPlayer"
+              :step="step"
+              :current-ctns="currentCtns"
+              :purchasing="purchasing"
+              :can-advance="canAdvance"
+              :loading-price="loadingPrice"
+              :customize-card="customizeCard"
+              :manual-card-count="manualCardCount"
+              :base-price-per-card="basePricePerCard"
+              :custom-price-per-card="customPricePerCard"
+              :custom-price-pct="customPricePct"
+              :num-ctns="numCtns"
+              :total-amount="totalAmount"
+              :currency-symbol="currencySymbol"
+              @prev="emit('prev')"
+              @next="emit('next')"
+              @purchase="handlePurchaseClick"
+              @lobby="goToLobby"
+            />
 
             </fieldset><!-- /purchasing lock -->
           </template>
@@ -476,189 +274,6 @@
   }
 
   /* ═══════════════════════════════════════════════════════
-   HEADER
-═══════════════════════════════════════════════════════ */
-  .pm-header {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 16px 8px;
-    background: linear-gradient(90deg, rgba(0, 74, 255, 0.15), rgba(0, 158, 253, 0.1));
-    border-bottom: 1px solid rgba(100, 140, 255, 0.12);
-  }
-
-  .pm-header__left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .pm-header__icon {
-    color: #7c9dff;
-    font-size: 15px;
-  }
-
-  .pm-header__title {
-    font-size: 14px;
-    font-weight: 700;
-    color: #c8d8ff;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-  }
-
-  .pm-header__close {
-    margin-left: auto;
-    background: rgba(255, 255, 255, 0.06);
-    border: none;
-    color: #7c9dff;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    transition:
-      background 0.2s,
-      color 0.2s;
-    flex-shrink: 0;
-  }
-  .pm-header__close:hover {
-    background: rgba(255, 255, 255, 0.14);
-    color: #fff;
-  }
-
-  /* ── Stepper ── */
-  .pm-stepper {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-    justify-content: center;
-  }
-
-  .pm-stepper__step {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    opacity: 0.35;
-    transition: opacity 0.25s;
-  }
-  .pm-stepper__step--active {
-    opacity: 1;
-  }
-  .pm-stepper__step--done {
-    opacity: 0.65;
-  }
-
-  .pm-stepper__dot {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: rgba(100, 140, 255, 0.15);
-    border: 1.5px solid rgba(100, 140, 255, 0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 9px;
-    font-weight: 700;
-    color: #7c9dff;
-    transition:
-      background 0.25s,
-      border-color 0.25s;
-  }
-  .pm-stepper__step--active .pm-stepper__dot {
-    background: rgba(42, 245, 152, 0.2);
-    border-color: #2af598;
-    color: #2af598;
-  }
-  .pm-stepper__step--done .pm-stepper__dot {
-    background: rgba(42, 245, 152, 0.12);
-    border-color: rgba(42, 245, 152, 0.4);
-    color: #2af598;
-  }
-
-  .pm-stepper__lbl {
-    font-size: 10px;
-    font-weight: 600;
-    color: #7c9dff;
-    letter-spacing: 0.4px;
-    white-space: nowrap;
-  }
-  .pm-stepper__step--active .pm-stepper__lbl {
-    color: #c8d8ff;
-  }
-
-  /* Conector entre steps */
-  .pm-stepper__step:not(:last-child)::after {
-    content: '';
-    display: block;
-    width: 20px;
-    height: 1px;
-    background: rgba(100, 140, 255, 0.25);
-    margin-left: 5px;
-  }
-
-  /* ═══════════════════════════════════════════════════════
-   ROOM BANNER
-═══════════════════════════════════════════════════════ */
-  .pm-room-banner {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 14px;
-    background: rgba(0, 10, 40, 0.5);
-    border-bottom: 1px solid rgba(100, 140, 255, 0.08);
-  }
-
-  .pm-room-banner__img {
-    width: 32px;
-    height: 22px;
-    object-fit: cover;
-    border-radius: 5px;
-    opacity: 0.85;
-  }
-
-  .pm-room-banner__info {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .pm-room-banner__mode {
-    font-size: 9px;
-    color: #5578bb;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-  }
-
-  .pm-room-banner__prize {
-    display: flex;
-    align-items: baseline;
-    gap: 3px;
-  }
-
-  .pm-room-banner__prize-num {
-    font-family: 'Anton', sans-serif;
-    font-size: 15px;
-    background: linear-gradient(135deg, #ffe566, #ffab00);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .pm-room-banner__prize-sym {
-    font-size: 10px;
-    font-weight: 700;
-    color: #ffd060;
-    -webkit-text-fill-color: #ffd060;
-  }
-
-  /* ═══════════════════════════════════════════════════════
    BODY
 ═══════════════════════════════════════════════════════ */
   .pm-body {
@@ -679,368 +294,6 @@
     border-radius: 10px;
   }
 
-  .pm-step {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-  }
-
-  .pm-step__label {
-    font-size: 11px;
-    color: #5578bb;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin: 0;
-  }
-
-  /* ── Loading / Empty ── */
-  .pm-loading,
-  .pm-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 30px 0;
-    color: #3a5080;
-    font-size: 13px;
-  }
-  .pm-empty i {
-    font-size: 36px;
-    opacity: 0.4;
-  }
-
-  /* ── Country grid ── */
-  .pm-country-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 8px;
-  }
-
-  .pm-country-btn {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    padding: 10px 8px;
-    border-radius: 12px;
-    border: 1.5px solid rgba(100, 140, 255, 0.18);
-    background: rgba(255, 255, 255, 0.03);
-    cursor: pointer;
-    transition:
-      border-color 0.2s,
-      background 0.2s,
-      transform 0.15s;
-    text-align: center;
-  }
-  .pm-country-btn:hover {
-    border-color: rgba(100, 140, 255, 0.45);
-    background: rgba(100, 140, 255, 0.08);
-    transform: translateY(-1px);
-  }
-  .pm-country-btn--selected {
-    border-color: #2af598 !important;
-    background: rgba(42, 245, 152, 0.08) !important;
-  }
-  .pm-country-btn__flag {
-    font-size: 22px;
-    line-height: 1;
-  }
-  .pm-country-btn__name {
-    font-size: 11px;
-    font-weight: 600;
-    color: #c0d0f0;
-  }
-  .pm-country-btn__sym {
-    font-size: 10px;
-    color: #5578bb;
-  }
-  .pm-country-btn__check {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    color: #2af598;
-    font-size: 11px;
-  }
-
-  /* ── Price pill ── */
-  .pm-price-pill {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(42, 245, 152, 0.1);
-    border: 1px solid rgba(42, 245, 152, 0.25);
-    border-radius: 30px;
-    padding: 6px 14px;
-    font-size: 13px;
-    color: #7affba;
-    width: fit-content;
-    margin: 0 auto;
-  }
-  .pm-price-pill--loading {
-    color: #5578bb;
-    border-color: rgba(100, 140, 255, 0.2);
-    background: rgba(100, 140, 255, 0.05);
-  }
-
-  /* ── Qty row ── */
-  .pm-qty-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .pm-qty-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(100, 140, 255, 0.3);
-    background: rgba(255, 255, 255, 0.04);
-    color: #7c9dff;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    transition: all 0.2s;
-  }
-  .pm-qty-btn:not(:disabled):hover {
-    background: rgba(100, 140, 255, 0.15);
-    border-color: rgba(100, 140, 255, 0.6);
-    color: #fff;
-  }
-  .pm-qty-btn:disabled {
-    opacity: 0.25;
-    cursor: not-allowed;
-  }
-
-  .pm-qty-input {
-    width: 46px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1.5px solid rgba(100, 140, 255, 0.2);
-    border-radius: 8px;
-    color: #e0e8ff;
-    font-size: 18px;
-    font-family: 'Anton', sans-serif;
-    text-align: center;
-    padding: 2px 0;
-    outline: none;
-    -moz-appearance: textfield;
-    appearance: none;
-  }
-  .pm-qty-input::-webkit-inner-spin-button,
-  .pm-qty-input::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-  .pm-qty-input:focus {
-    border-color: rgba(100, 140, 255, 0.55);
-  }
-
-  /* ── Toggle personalizar cartón ── */
-  .pm-customize-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    width: 100%;
-    padding: 6px 12px;
-    border-radius: 10px;
-    border: 1.5px solid rgba(100, 140, 255, 0.25);
-    background: rgba(255, 255, 255, 0.03);
-    color: #7c9dff;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: border-color 0.2s, background 0.2s, color 0.2s;
-  }
-  .pm-customize-toggle:hover {
-    border-color: rgba(100, 140, 255, 0.5);
-    background: rgba(100, 140, 255, 0.08);
-  }
-  .pm-customize-toggle--on {
-    border-color: rgba(42, 245, 152, 0.4);
-    background: rgba(42, 245, 152, 0.08);
-    color: #7affba;
-  }
-  .pm-customize-toggle__chevron {
-    margin-left: auto;
-    font-size: 10px;
-    transition: transform 0.2s;
-  }
-  .pm-customize-toggle__chevron--open {
-    transform: rotate(180deg);
-  }
-  .pm-customize-toggle--loading,
-  .pm-customize-toggle:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
-
-  /* ═══════════════════════════════════════════════════════
-   FOOTER
-═══════════════════════════════════════════════════════ */
-  .pm-footer {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-top: 1px solid rgba(100, 140, 255, 0.1);
-    background: rgba(0, 5, 20, 0.4);
-  }
-
-  .pm-footer__actions {
-    display: flex;
-    gap: 4px;
-    flex-shrink: 0;
-  }
-
-  .pm-footer__spacer { flex: 1; }
-
-  /* Resumen compacto en el footer */
-  .pm-footer__summary {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex: 1;
-    flex-wrap: wrap;
-    min-width: 0;
-  }
-  .pm-fs__pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10px;
-    color: #8aa4d0;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(100,140,255,0.12);
-    border-radius: 99px;
-    padding: 2px 7px;
-    white-space: nowrap;
-  }
-  .pm-fs__pill i { font-size: 8px; opacity: .65; }
-  .pm-fs__pill--custom {
-    color: #90c8ff;
-    border-color: rgba(100,180,255,0.2);
-    background: rgba(100,180,255,0.06);
-  }
-  .pm-fs__pill--custom em {
-    font-style: normal;
-    font-size: 8.5px;
-    font-weight: 700;
-    color: #4ab4ff;
-    background: rgba(74,180,255,0.15);
-    border-radius: 99px;
-    padding: 0 3px;
-    margin-left: 1px;
-  }
-  .pm-fs__sep {
-    font-size: 10px;
-    color: rgba(100,140,255,0.4);
-  }
-  .pm-fs__total {
-    font-family: 'Anton', sans-serif;
-    font-size: 15px;
-    color: #7affba;
-    white-space: nowrap;
-  }
-  .pm-fs__total small {
-    font-family: inherit;
-    font-size: 9px;
-    color: #4ea87a;
-    margin-left: 2px;
-  }
-
-  /* Botón icono (atrás / lobby) */
-  .pm-icon-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    border: 1.5px solid rgba(100, 140, 255, 0.25);
-    background: rgba(255,255,255,0.04);
-    color: #7c9dff;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    flex-shrink: 0;
-    transition: background 0.15s, border-color 0.15s;
-  }
-  .pm-icon-btn:not(:disabled):hover {
-    background: rgba(100,140,255,0.12);
-    border-color: rgba(100,140,255,0.5);
-  }
-  .pm-icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-  .pm-icon-btn--lobby { color: #7c9dff; }
-
-  .pm-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    padding: 7px 16px;
-    border-radius: 30px;
-    border: none;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: filter 0.2s, opacity 0.2s, transform 0.15s;
-    white-space: nowrap;
-  }
-  .pm-btn:not(:disabled):hover {
-    filter: brightness(1.12);
-    transform: translateY(-1px);
-  }
-  .pm-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  .pm-btn--primary {
-    background: linear-gradient(90deg, #4a6fff 0%, #009efd 100%);
-    color: #fff;
-    padding: 7px 14px;
-  }
-
-  .pm-btn--buy {
-    background: linear-gradient(90deg, #2af598 0%, #009efd 100%);
-    color: #051830;
-    min-width: 110px;
-  }
-
-  /* ═══════════════════════════════════════════════════════
-   CTNS BADGE (cartones actuales)
-═══════════════════════════════════════════════════════ */
-  .pm-ctns-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    align-self: center;
-    padding: 3px 10px;
-    background: rgba(42, 245, 152, 0.08);
-    border: 1px solid rgba(42, 245, 152, 0.22);
-    border-radius: 30px;
-    color: #7affba;
-    font-size: 11px;
-  }
-
-  .pm-ctns-badge i {
-    font-size: 9px;
-    opacity: 0.75;
-  }
-
-  .pm-ctns-badge strong {
-    color: #fff;
-    font-weight: 700;
-  }
-
   /* ═══════════════════════════════════════════════════════
    SPINNER
 ═══════════════════════════════════════════════════════ */
@@ -1052,10 +305,6 @@
     border-top-color: #2af598;
     border-radius: 50%;
     animation: pm-spin 0.7s linear infinite;
-  }
-  .pm-spinner--sm {
-    width: 13px;
-    height: 13px;
   }
   .pm-spinner--lg {
     width: 36px;
@@ -1087,11 +336,11 @@
   }
 
   /* fieldset[disabled] quita pointer-events pero no la apariencia; lo completamos aquí */
-  fieldset[disabled] .pm-qty-btn,
-  fieldset[disabled] .pm-qty-input,
-  fieldset[disabled] .pm-country-btn,
-  fieldset[disabled] .pm-customize-toggle,
-  fieldset[disabled] .pm-btn {
+  fieldset[disabled] :deep(.pm-qty-btn),
+  fieldset[disabled] :deep(.pm-qty-input),
+  fieldset[disabled] :deep(.pm-country-btn),
+  fieldset[disabled] :deep(.pm-customize-toggle),
+  fieldset[disabled] :deep(.pm-btn) {
     opacity: 0.45;
     cursor: not-allowed;
   }
@@ -1115,21 +364,6 @@
   .modal-fade-leave-to {
     opacity: 0;
     transform: scale(0.96);
-  }
-
-  .step-slide-enter-active,
-  .step-slide-leave-active {
-    transition:
-      opacity 0.2s ease,
-      transform 0.2s ease;
-  }
-  .step-slide-enter-from {
-    opacity: 0;
-    transform: translateX(18px);
-  }
-  .step-slide-leave-to {
-    opacity: 0;
-    transform: translateX(-18px);
   }
 
   .fade-enter-active,
