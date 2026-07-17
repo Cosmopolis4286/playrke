@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm, Link } from '@inertiajs/vue3'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { getRoute } from '@js/routes/triviaRoutes'
 import { localInputToUtc } from '@js/composables/useTimezone'
 import { useTriviaFeeByCurrency } from '@js/composables/games/trivia/admin/useTriviaFeeByCurrency'
@@ -68,25 +68,29 @@ const estimatedTime = computed(() => {
 })
 
 // Actualizar team_names cuando cambia team_count
-function onTeamCountChange() {
-  const newCount = form.teams_config.team_count
+watch(() => form.teams_config.team_count, (newCount) => {
   const names = form.teams_config.team_names
   if (newCount > names.length) {
+    // Agregar nombres vacíos
     for (let i = names.length; i < newCount; i++) {
       names.push(i < 2 ? ['Equipo Rojo', 'Equipo Azul'][i] : `Equipo ${i + 1}`)
     }
   } else if (newCount < names.length) {
+    // Quitar nombres sobrantes
     names.splice(newCount)
   }
   form.teams_config.team_names = names
-}
+})
+
+// Ajustar team_count para duelo (máximo 2)
+watch(() => form.game_mode, (mode) => {
+  if (mode === 'duel') {
+    form.teams_config.team_count = 2
+  }
+})
 
 function onGameModeChange(mode: string) {
   form.game_mode = mode as 'free_for_all' | 'teams' | 'duel'
-  if (mode === 'duel') {
-    form.teams_config.team_count = 2
-    onTeamCountChange()
-  }
 }
 
 const submit = () => {
