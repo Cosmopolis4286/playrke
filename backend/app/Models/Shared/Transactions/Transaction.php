@@ -18,22 +18,25 @@ class Transaction extends Model
 
     protected $table = "transactions";
 
+    public const STATUS_WAITING  = 'WAITING';
+    public const STATUS_EXECUTED = 'EXECUTED';
+
     protected $fillable = [
-        'customer',
+        'customer_id',
         'user_id',
-        'game',
-        'game_mode',
+        'game_id',
+        'game_mode_id',
         'bet_id',
         'code',
         'transaction_type',
-        'currency',
+        'currency_id',
         'amount',
         'status',
-        'processing_data'
+        'processing_data',
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',
-        'processing_data' => 'array'
+        'amount' => 'decimal:8',
+        'processing_data' => 'datetime',
     ];
 }

@@ -41,7 +41,7 @@ class TransactionRepository extends BaseRepository implements TransactionReposit
     public function existsCodeForCustomer(string $code, string $customer): bool
     {
         return $this->model->where('code', $code)
-            ->where('customer', $customer)
+            ->where('customer_id', $customer)
             ->exists();
     }
 
@@ -50,7 +50,7 @@ class TransactionRepository extends BaseRepository implements TransactionReposit
      */
     public function getByCustomer(string $customerId): Collection
     {
-        return $this->model->where('customer', $customerId)->get();
+        return $this->model->where('customer_id', $customerId)->get();
     }
 
     /**
@@ -66,7 +66,7 @@ class TransactionRepository extends BaseRepository implements TransactionReposit
      */
     public function getByGame(string $gameId): Collection
     {
-        return $this->model->where('game', $gameId)->get();
+        return $this->model->where('game_id', $gameId)->get();
     }
 
     /**
@@ -74,7 +74,7 @@ class TransactionRepository extends BaseRepository implements TransactionReposit
      */
     public function getByCurrency(string $currencyId): Collection
     {
-        return $this->model->where('currency', $currencyId)->get();
+        return $this->model->where('currency_id', $currencyId)->get();
     }
 
     /**
@@ -163,7 +163,7 @@ class TransactionRepository extends BaseRepository implements TransactionReposit
         $errors = [];
 
         // Validar campos requeridos
-        $required = ['customer', 'code', 'transaction_type', 'currency', 'amount'];
+        $required = ['customer_id', 'code', 'transaction_type', 'currency_id', 'amount'];
         foreach ($required as $field) {
             if (!isset($data[$field]) || empty($data[$field])) {
                 $errors[$field] = "El campo {$field} es requerido";
