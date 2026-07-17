@@ -13,7 +13,7 @@ use App\Http\Controllers\Roles\CustomerController;
 // API CLIENTE (SEAMLESS WALLET)
 // ====================================
 
-role_protected_routes(['customer'], 'customer', CustomerController::class, [
+role_protected_routes(['role:customer'], 'customer', CustomerController::class, [
     'balance' => ['method' => 'get', 'uri' => 'balance/{userToken}'],
     'user-id' => ['method' => 'get', 'uri' => 'user-id/{userToken}'],
     'increase-balance' => ['method' => 'get', 'uri' => 'increase-balance/{userToken}/{balance?}'],

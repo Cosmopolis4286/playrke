@@ -20,7 +20,7 @@ class PrizeRequest extends BaseRequest
      */
     public function authorize(): bool
     {
-        return PermissionService::checkPrefix(['admin', 'commerce']);
+        return PermissionService::checkPrefix(['superadmin', 'admin', 'commerce', 'customer']);
     }
 
     /**
