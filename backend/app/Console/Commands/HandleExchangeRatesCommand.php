@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\UserPreference;
+use App\Services\Commands\CommandService;
 use App\Services\ExchangeRate\BcvExchangeRateService;
 use App\Services\ExchangeRate\ExchangeRateApiService;
 use App\Services\ExchangeRate\ExchangeRateUpdaterService;
@@ -66,7 +67,7 @@ class HandleExchangeRatesCommand extends Command
         }
 
         if ($ratesFetchFailed && empty($bcvOnlyUserIds)) {
-            $this->comm->logCommandExecution(
+            app(CommandService::class)->logCommandExecution(
                 $this->signature,
                 'No se pudieron obtener las tasas desde la API externa.',
                 'ERROR'
@@ -75,7 +76,7 @@ class HandleExchangeRatesCommand extends Command
         }
 
         if (empty($rates) && $bcvFetchFailed) {
-            $this->comm->logCommandExecution(
+            app(CommandService::class)->logCommandExecution(
                 $this->signature,
                 'No se pudieron obtener las tasas desde la API externa ni la tasa del BCV.',
                 'ERROR'
@@ -124,7 +125,7 @@ class HandleExchangeRatesCommand extends Command
             $this->error($output);
         }
 
-        $this->comm->logCommandExecution($this->signature, $output, $status);
+        app(CommandService::class)->logCommandExecution($this->signature, $output, $status);
 
         if ($status === 'SUCCESS') {
             $this->info($output);
