@@ -937,9 +937,25 @@ final class BingoCardGenerateService
 
         $room = BingoRoom::with('config')->findOrFail($roomId);
 
-        if ($customMatrices !== null) {
-            if (count($customMatrices) !== $numCtns) {
-                throw new DomainException('El número de matrices personalizadas debe coincidir con num_ctns.');
+        $customCount = $customMatrices !== null ? count($customMatrices) : 0;
+
+        if ($customCount > 0) {
+            if (!$room->config?->allow_custom_card) {
+                throw new DomainException('Esta sala no permite cartones personalizados.');
+            }
+
+            if ($customCount > $numCtns) {
+                throw new DomainException('El número de matrices personalizadas no puede superar num_ctns.');
+            }
+
+            if ($room->config->custom_card_mode === 'every_x') {
+                $everyX = (int) ($room->config->custom_card_every_x ?? 0);
+                $maxAllowed = $this->maxCustomCardsAllowed($everyX, $numCtns);
+                if ($customCount > $maxAllowed) {
+                    throw new DomainException(
+                        "Con esta cantidad de cartones solo puedes personalizar {$maxAllowed}."
+                    );
+                }
             }
 
             $variant = $room->config?->game_variant ?? BingoVariant::BINGO_75;
@@ -958,7 +974,6 @@ final class BingoCardGenerateService
         // Precio de cartones personalizados según la modalidad configurada en la sala
         // (custom_card_mode). Solo aplica a cartones con matrices enviadas (los sin
         // matriz se generan al azar → siempre precio base).
-        $customCount  = $customMatrices !== null ? count($customMatrices) : 0;
         $regularCount = $numCtns - $customCount;
 
         $customTotal = $customCount > 0
