@@ -135,20 +135,22 @@ class SubmitAnswerAction
     }
 
     /**
-     * Tiempo real de respuesta en milisegundos: ahora - server_timestamp_ms
+     * Tiempo real de respuesta en milisegundos enteros: ahora - server_timestamp_ms
      * de cuando se envió la pregunta (persistido en Redis, ver
      * GameEngineService::sendNextQuestion). Si el dato no viene (Redis
      * legacy pre-fix, o TTL/carrera), fail-closed: se trata como tiempo
      * excedido en vez de 0 — cierra el bypass que permitía clientTimestamp=null.
+     * Entero (no float): response_time_ms es una columna integer en
+     * trivia_answers (pgsql_trivia) — un float causa error de tipo en el insert.
      */
-    private function calculateResponseTime(QuestionDTO $question): float
+    private function calculateResponseTime(QuestionDTO $question): int
     {
         if ($question->serverTimestampMs === null) {
-            return (float) (self::MAX_RESPONSE_TIME * 1000) + 1;
+            return (self::MAX_RESPONSE_TIME * 1000) + 1;
         }
 
         $elapsed = (microtime(true) * 1000) - $question->serverTimestampMs;
 
-        return max(0.0, min($elapsed, self::MAX_RESPONSE_TIME * 1000));
+        return (int) round(max(0.0, min($elapsed, (float) (self::MAX_RESPONSE_TIME * 1000))));
     }
 }
