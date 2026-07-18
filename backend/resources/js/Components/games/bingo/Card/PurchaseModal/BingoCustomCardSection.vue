@@ -19,8 +19,12 @@ const props = defineProps<{
   activeIndex: number
   numCtns: number
   variant?: string | null
-  /** Recargo % para cartones personalizados (0 = sin recargo) */
+  /** Modalidad de cartón personalizado de la sala */
+  customCardMode?: 'paid' | 'every_x' | 'free' | null
+  /** Recargo % para cartones personalizados (0 = sin recargo, solo aplica en modo 'paid') */
   customPricePct?: number | null
+  /** Máximo de cartones personalizables permitidos en esta compra (solo relevante en modo 'every_x') */
+  maxCustomAllowed?: number
 }>()
 
 const emit = defineEmits<{
@@ -33,6 +37,15 @@ const picker = ref<InstanceType<typeof BingoCardNumberPicker> | null>(null)
 
 /** Cuántos cartones tienen edición manual */
 const manualCount = computed(() => props.manualEdits.filter(Boolean).length)
+
+/** En modo 'every_x': índice (dentro del orden de edición) a partir del cual un tab manual excede el límite. */
+function isOverLimit(index: number): boolean {
+  if (props.customCardMode !== 'every_x' || props.maxCustomAllowed === undefined) return false
+  if (!props.manualEdits[index]) return false
+  // Cuenta cuántos cartones manuales hay hasta este índice (inclusive) — si supera el máximo, excede.
+  const manualUpToHere = props.manualEdits.slice(0, index + 1).filter(Boolean).length
+  return manualUpToHere > props.maxCustomAllowed
+}
 
 function onPickerUpdate(matrix: CardMatrix): void {
   const next = [...props.matrices]
@@ -82,6 +95,7 @@ defineExpose({
         :class="{
           'bcs-tab--active':  activeIndex === i - 1,
           'bcs-tab--manual':  manualEdits[i - 1],
+          'bcs-tab--over-limit': isOverLimit(i - 1),
         }"
         :title="manualEdits[i - 1] ? 'Personalizado' : 'Al azar'"
         @click="emit('update:active-index', i - 1)"
@@ -91,22 +105,32 @@ defineExpose({
       </button>
     </div>
 
-    <!-- Aviso de recargo cuando el cartón activo es manual y hay recargo configurado -->
+    <!-- Aviso de recargo (modo 'paid') cuando el cartón activo es manual y hay recargo configurado -->
     <div
-      v-if="customPricePct && customPricePct > 0 && manualEdits[activeIndex]"
+      v-if="customCardMode === 'paid' && customPricePct && customPricePct > 0 && manualEdits[activeIndex]"
       class="bcs-surcharge-notice"
     >
       <i class="fas fa-info-circle" />
       Este cartón tiene un recargo del <strong>{{ customPricePct }}%</strong> por ser personalizado.
     </div>
 
-    <!-- Aviso de autocompletado puro (sin edición manual) -->
+    <!-- Aviso de autocompletado puro (sin edición manual, modo 'paid') -->
     <div
-      v-else-if="customPricePct && customPricePct > 0 && !manualEdits[activeIndex]"
+      v-else-if="customCardMode === 'paid' && customPricePct && customPricePct > 0 && !manualEdits[activeIndex]"
       class="bcs-random-notice"
     >
       <i class="fas fa-dice" />
       Sin cambios manuales → se tratará como <strong>cartón al azar</strong> (precio normal).
+    </div>
+
+    <!-- Aviso de límite (modo 'every_x') -->
+    <div v-if="customCardMode === 'every_x'" class="bcs-surcharge-notice">
+      <i class="fas fa-info-circle" />
+      Puedes personalizar hasta <strong>{{ maxCustomAllowed ?? 0 }}</strong> de estos {{ numCtns }} cartón(es).
+    </div>
+    <div v-if="customCardMode === 'free'" class="bcs-random-notice">
+      <i class="fas fa-unlock" />
+      Personalización de uso libre, sin costo adicional.
     </div>
 
     <BingoCardNumberPicker
@@ -167,6 +191,11 @@ defineExpose({
 }
 .bcs-tab--manual {
   border-color: rgba(100, 180, 255, 0.45);
+}
+.bcs-tab--over-limit {
+  border-color: rgba(255, 90, 90, 0.55);
+  background: rgba(255, 90, 90, 0.1);
+  color: #ff9a9a;
 }
 .bcs-tab__dot {
   display: inline-block;

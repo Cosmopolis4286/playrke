@@ -50,8 +50,14 @@
     configLoading: boolean
     /** Por cartón: true si el usuario tocó ≥1 casilla manualmente. */
     manualEdits: boolean[]
-    /** Recargo % para cartones personalizados (0 = sin recargo). */
+    /** Modalidad de cartón personalizado de la sala. */
+    customCardMode?: 'paid' | 'every_x' | 'free' | null
+    /** Recargo % para cartones personalizados (0 = sin recargo, solo aplica en modo 'paid'). */
     customPricePct: number
+    /** Máximo de cartones personalizables permitidos en esta compra (modo 'every_x'). */
+    maxCustomCardsAllowed?: number
+    /** True si el jugador personalizó más cartones de los permitidos. */
+    exceedsCustomCardLimit?: boolean
     /** Precio base por cartón (sin recargo). */
     basePricePerCard: number
     /** Precio por cartón personalizado (con recargo). */
@@ -183,7 +189,10 @@
                 :manual-edits="manualEdits"
                 :active-card-index="activeCardIndex"
                 :variant="selectedRoom?.config?.game_variant"
+                :custom-card-mode="customCardMode"
                 :custom-price-pct="customPricePct"
+                :max-custom-allowed="maxCustomCardsAllowed"
+                :exceeds-custom-card-limit="exceedsCustomCardLimit"
                 :manual-card-count="manualCardCount"
                 :confirm-incomplete-custom-card="confirmIncompleteCustomCard"
                 @increment="emit('increment')"
@@ -208,7 +217,9 @@
               :manual-card-count="manualCardCount"
               :base-price-per-card="basePricePerCard"
               :custom-price-per-card="customPricePerCard"
+              :custom-card-mode="customCardMode"
               :custom-price-pct="customPricePct"
+              :exceeds-custom-card-limit="exceedsCustomCardLimit"
               :num-ctns="numCtns"
               :total-amount="totalAmount"
               :currency-symbol="currencySymbol"

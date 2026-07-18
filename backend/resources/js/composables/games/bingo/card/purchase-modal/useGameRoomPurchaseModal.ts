@@ -47,6 +47,14 @@ function _cachedPrice(roomId: string) {
     return entry
 }
 
+function _extractCustomCardState(data: BingoCardPriceResponse): CustomCardState {
+    return {
+        mode: data.custom_card_mode ?? null,
+        pricePct: Number(data.custom_card_price_pct ?? 0),
+        everyX: data.custom_card_every_x ?? null,
+    }
+}
+
 /**
  * Clave de ruta para todos los endpoints que usan HasHashedRouteKey (Hashids):
  *  - /bingo-card/{room}/*
@@ -236,6 +244,7 @@ export function useGameRoomPurchaseModal() {
         if (cached) {
             cardPrice.value = cached.price
             currencySymbol.value = cached.symbol
+            customCardState.value = cached.customCard
             step.value = 'confirm'
             return
         }
@@ -245,8 +254,9 @@ export function useGameRoomPurchaseModal() {
             const data = await _fetchPlayerCardPriceHttp(room)
             cardPrice.value = data.card_price
             currencySymbol.value = data.currency_symbol
+            customCardState.value = _extractCustomCardState(data)
             step.value = 'confirm'
-            _priceCache.set(cacheKey, { price: data.card_price, symbol: data.currency_symbol, ts: Date.now() })
+            _priceCache.set(cacheKey, { price: data.card_price, symbol: data.currency_symbol, ts: Date.now(), customCard: customCardState.value })
         } catch {
             showToast('Error al obtener el precio del cartón', 'error')
             cardPrice.value = 0
@@ -266,7 +276,7 @@ export function useGameRoomPurchaseModal() {
         if (_cachedPrice(room.id) || _inflight.has(room.id)) return
         try {
             const data = await _fetchPlayerCardPriceHttp(room)
-            _priceCache.set(room.id, { price: data.card_price, symbol: data.currency_symbol, ts: Date.now() })
+            _priceCache.set(room.id, { price: data.card_price, symbol: data.currency_symbol, ts: Date.now(), customCard: _extractCustomCardState(data) })
         } catch {
             // silencioso — es una optimización, no crítico
         }
@@ -284,6 +294,7 @@ export function useGameRoomPurchaseModal() {
         activeCardIndex.value = 0
         customCardNumbers.value = _buildEmptyMatrices(1, room.config?.game_variant)
         manualEditsPerCard.value = [false]
+        customCardState.value = { ...EMPTY_CUSTOM_CARD_STATE }
 
         if (isPlayer.value) {
             // Precio en caché → paso inmediato; si no → fetch único
@@ -291,6 +302,7 @@ export function useGameRoomPurchaseModal() {
             if (cached) {
                 cardPrice.value = cached.price
                 currencySymbol.value = cached.symbol
+                customCardState.value = cached.customCard
                 step.value = 'confirm'
                 isOpen.value = true
             } else {
@@ -410,6 +422,14 @@ export function useGameRoomPurchaseModal() {
             return
         }
 
+        if (exceedsCustomCardLimit.value) {
+            showToast(
+                `Con ${numCtns.value} cartón(es) solo puedes personalizar ${maxCustomCardsAllowed.value}.`,
+                'error',
+            )
+            return
+        }
+
         // Invalidar caché antes del intento — el precio puede cambiar
         // independientemente del resultado (compra parcial, error de stock, etc.)
         const cacheKey = selectedRoom.value.id
@@ -472,7 +492,10 @@ export function useGameRoomPurchaseModal() {
         activeCardIndex,
         canCustomize,
         configLoading,
+        customCardState,
         customPricePct,
+        maxCustomCardsAllowed,
+        exceedsCustomCardLimit,
         manualCardCount,
         basePricePerCard,
         customPricePerCard,

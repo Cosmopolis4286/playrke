@@ -13,8 +13,12 @@ const props = defineProps<{
   manualEdits: boolean[]
   activeCardIndex: number
   variant: string | undefined
+  customCardMode?: 'paid' | 'every_x' | 'free' | null
   customPricePct: number
+  maxCustomAllowed?: number
   manualCardCount: number
+  /** True si el jugador personalizó más cartones de los permitidos por el modo 'every_x'. */
+  exceedsCustomCardLimit?: boolean
   /** Pregunta al usuario si autocompletar o seguir editando; resuelve true si puede continuar la compra. */
   confirmIncompleteCustomCard: (missingCount: number, autoFill: () => void) => Promise<boolean>
 }>()
@@ -38,6 +42,8 @@ function onCtnsInput(e: Event) {
 }
 
 async function handlePurchaseClick(): Promise<void> {
+  if (props.exceedsCustomCardLimit) return
+
   // Solo verificar cartones que el usuario marcó como personalizados (manualEdits[i] = true).
   // Los cartones sin edición manual se envían como al azar y no requieren validación.
   if (props.customizeCard && cardSection.value && props.manualCardCount > 0) {
@@ -107,7 +113,9 @@ defineExpose({ handlePurchaseClick, onCtnsInput })
             :active-index="activeCardIndex"
             :num-ctns="numCtns"
             :variant="variant"
+            :custom-card-mode="customCardMode"
             :custom-price-pct="customPricePct"
+            :max-custom-allowed="maxCustomAllowed"
             @update:matrices="emit('update:custom-card-numbers', $event)"
             @update:manual-edits="emit('update:manual-edits', $event)"
             @update:active-index="emit('set-active-card-index', $event)"

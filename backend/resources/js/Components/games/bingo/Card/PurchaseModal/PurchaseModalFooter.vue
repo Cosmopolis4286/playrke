@@ -12,7 +12,9 @@ defineProps<{
   manualCardCount: number
   basePricePerCard: number
   customPricePerCard: number
+  customCardMode?: 'paid' | 'every_x' | 'free' | null
   customPricePct: number
+  exceedsCustomCardLimit?: boolean
   numCtns: number
   totalAmount: number
   currencySymbol: string
@@ -65,7 +67,7 @@ const emit = defineEmits<{
         </span>
         <span class="pm-fs__pill pm-fs__pill--custom">
           <i class="fas fa-pen" />{{ manualCardCount }}× {{ customPricePerCard.toFixed(2) }}
-          <em v-if="customPricePct > 0">+{{ customPricePct }}%</em>
+          <em v-if="customCardMode === 'paid' && customPricePct > 0">+{{ customPricePct }}%</em>
         </span>
       </template>
       <span class="pm-fs__sep">=</span>
@@ -87,7 +89,7 @@ const emit = defineEmits<{
     <button
       v-else
       class="pm-btn pm-btn--buy"
-      :disabled="purchasing || isPlayer === null"
+      :disabled="purchasing || isPlayer === null || exceedsCustomCardLimit"
       @click="emit('purchase')"
     >
       <span v-if="purchasing" class="pm-spinner pm-spinner--sm" />
