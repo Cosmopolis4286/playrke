@@ -26,8 +26,18 @@ function emptyMatrix(variant?: string | null): CardMatrix {
     return matrix
 }
 
+/** Estado de la modalidad de cartón personalizado, resuelto por el backend en /player-card-price. */
+interface CustomCardState {
+    mode: 'paid' | 'every_x' | 'free' | null
+    pricePct: number
+    everyX: number | null
+    alreadyPurchased: number
+}
+
+const EMPTY_CUSTOM_CARD_STATE: CustomCardState = { mode: null, pricePct: 0, everyX: null, alreadyPurchased: 0 }
+
 // Caché en módulo: sobrevive navegación dentro de la SPA pero se limpia al recargar
-const _priceCache = new Map<string, { price: number; symbol: string; ts: number }>()
+const _priceCache = new Map<string, { price: number; symbol: string; ts: number; customCard: CustomCardState }>()
 const _inflight = new Map<string, Promise<BingoCardPriceResponse>>()
 const CACHE_TTL_MS = 60_000 // 1 minuto
 
@@ -89,6 +99,9 @@ export function useGameRoomPurchaseModal() {
     const cardPrice = ref(0)
     const currencySymbol = ref('USD')
     const loadingPrice = ref(false)
+
+    // ── Estado de cartón personalizado (resuelto por el backend) ─────────────
+    const customCardState = ref<CustomCardState>({ ...EMPTY_CUSTOM_CARD_STATE })
 
     // ── Cantidad ─────────────────────────────────────────────────────────────
     const numCtns = ref(1)

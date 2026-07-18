@@ -46,6 +46,12 @@ final class BingoRoomAutomaticUpdateDTO
         public readonly ?int          $minCardsToStart       = null,
         public readonly ?int          $salesStartOffsetDays  = null,
         public readonly ?bool         $roomsPerCurrency      = null,
+        public readonly ?bool         $allowCustomCard       = null,
+        public readonly ?float        $customCardPricePct    = null,
+        public readonly ?string       $customCardMode        = null,
+        public readonly ?int          $customCardEveryX      = null,
+        public readonly ?bool         $allowSpecialCard      = null,
+        public readonly ?int          $maxSpecialCards       = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -104,6 +110,12 @@ final class BingoRoomAutomaticUpdateDTO
             minCardsToStart: isset($data['minCardsToStart']) ? (int) $data['minCardsToStart'] : null,
             salesStartOffsetDays: isset($data['salesStartOffsetDays']) ? (int) $data['salesStartOffsetDays'] : null,
             roomsPerCurrency: isset($data['roomsPerCurrency']) ? (bool) $data['roomsPerCurrency'] : null,
+            allowCustomCard: isset($data['allowCustomCard']) ? (bool) $data['allowCustomCard'] : null,
+            customCardPricePct: isset($data['customCardPricePct']) ? (float) $data['customCardPricePct'] : null,
+            customCardMode: $data['customCardMode'] ?? null,
+            customCardEveryX: isset($data['customCardEveryX']) ? (int) $data['customCardEveryX'] : null,
+            allowSpecialCard: isset($data['allowSpecialCard']) ? (bool) $data['allowSpecialCard'] : null,
+            maxSpecialCards: isset($data['maxSpecialCards']) ? (int) $data['maxSpecialCards'] : null,
         );
     }
 }

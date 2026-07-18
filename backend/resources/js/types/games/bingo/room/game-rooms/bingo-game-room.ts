@@ -22,6 +22,10 @@ export interface BingoGameRoomConfig {
   readonly allow_custom_card?: boolean | null
   /** Recargo porcentual sobre el precio base al comprar cartón personalizado (0 = sin recargo) */
   readonly custom_card_price_pct?: number | null
+  /** Modalidad del cartón personalizado: 'paid' (recargo), 'every_x' (gratis cada X cartones), 'free' (uso libre) */
+  readonly custom_card_mode?: 'paid' | 'every_x' | 'free' | null
+  /** Cantidad de cartones para que el siguiente cartón personalizado sea gratis (solo si custom_card_mode = 'every_x') */
+  readonly custom_card_every_x?: number | null
 }
 
 /**

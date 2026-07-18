@@ -41,6 +41,12 @@ class BingoRoomAutomaticResource extends JsonResource
                 'serials_pct'             => $this->use_serials ? $this->serials_pct : null,
                 'num_serials'             => $this->use_serials ? $this->num_serials : null,
                 'in_live'                 => $this->in_live,
+                'allow_custom_card'       => (bool) $this->allow_custom_card,
+                'custom_card_price_pct'   => $this->custom_card_price_pct,
+                'custom_card_mode'        => $this->custom_card_mode,
+                'custom_card_every_x'     => $this->custom_card_every_x,
+                'allow_special_card'      => (bool) $this->allow_special_card,
+                'max_special_cards'       => $this->max_special_cards,
                 // Nuevos campos de programación avanzada
                 'recurrence_type'         => $this->recurrence_type,
                 'recurrence_days'         => $this->recurrence_days ?? [],

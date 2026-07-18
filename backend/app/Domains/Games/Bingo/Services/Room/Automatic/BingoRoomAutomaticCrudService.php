@@ -84,6 +84,12 @@ final class BingoRoomAutomaticCrudService
                 'max_rooms_per_day'       => $dto->maxRoomsPerDay ?? null,
                 'min_cards_to_start'      => $dto->minCardsToStart ?? null,
                 'sales_start_offset_days' => $dto->salesStartOffsetDays ?? null,
+                'allow_custom_card'       => $dto->allowCustomCard ?? false,
+                'custom_card_price_pct'   => $dto->customCardPricePct ?? null,
+                'custom_card_mode'        => $dto->customCardMode ?? null,
+                'custom_card_every_x'     => $dto->customCardEveryX ?? null,
+                'allow_special_card'      => $dto->allowSpecialCard ?? false,
+                'max_special_cards'       => $dto->maxSpecialCards ?? null,
             ];
 
             if ($isCreate) {
@@ -267,6 +273,12 @@ final class BingoRoomAutomaticCrudService
             'numSerials'           => $room->num_serials ? (int) $room->num_serials : null,
             'roundsConfig'         => $roundsConfig,
             'activateRoom'              => true,
+            'allowCustomCard'      => (bool) $room->allow_custom_card,
+            'customCardPricePct'   => $room->custom_card_price_pct !== null ? (float) $room->custom_card_price_pct : null,
+            'customCardMode'       => $room->custom_card_mode,
+            'customCardEveryX'     => $room->custom_card_every_x !== null ? (int) $room->custom_card_every_x : null,
+            'allowSpecialCard'     => (bool) $room->allow_special_card,
+            'maxSpecialCards'      => $room->max_special_cards !== null ? (int) $room->max_special_cards : null,
         ]);
 
         return $this->saveRoom($dto);

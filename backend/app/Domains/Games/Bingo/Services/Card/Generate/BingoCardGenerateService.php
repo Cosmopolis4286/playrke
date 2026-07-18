@@ -5,6 +5,7 @@ namespace App\Domains\Games\Bingo\Services\Card\Generate;
 use App\Domains\Games\Bingo\DTOs\Card\Generate\{BingoCardGenerateContexDTO, BingoCardGenerateDTO};
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Domains\Games\Bingo\Events\BingoCardSold;
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Roles\Commerce;
@@ -743,7 +744,7 @@ final class BingoCardGenerateService
     public function getPlayerCardPrice(string $roomId, int $userId): array
     {
         // Eager-load config en la misma query — evita la segunda query lazy al acceder a card_price_usd.
-        $room = BingoRoom::with('config:id,room_id,card_price_usd,game_variant')
+        $room = BingoRoom::with('config:id,room_id,card_price_usd,game_variant,allow_custom_card,custom_card_price_pct,custom_card_mode,custom_card_every_x')
             ->find($roomId);
 
         if (!$room) {
@@ -785,12 +786,20 @@ final class BingoCardGenerateService
         }
         $cardPriceUsd = $this->toUsdAmount($cardPrice, $exchangeRate);
 
+        $customCardsPurchased = $room->config?->allow_custom_card
+            ? BingoCard::where('room_id', $roomId)->where('creator_user_id', $userId)->custom()->count()
+            : 0;
+
         return [
             'card_price' => (float) $cardPrice,
             'card_price_usd' => (float) $cardPriceUsd,
             'currency_symbol' => (string) ($currencySymbol ?? 'USD'),
             'exchange_rate' => $exchangeRate,
             'is_custom_price' => $isCustomPrice,
+            'custom_card_mode' => $room->config?->custom_card_mode,
+            'custom_card_price_pct' => $room->config?->custom_card_price_pct !== null ? (float) $room->config->custom_card_price_pct : null,
+            'custom_card_every_x' => $room->config?->custom_card_every_x,
+            'custom_cards_purchased' => (int) $customCardsPurchased,
         ];
     }
 
@@ -867,6 +876,48 @@ final class BingoCardGenerateService
     }
 
     /**
+     * Máximo de cartones personalizables permitidos en una compra de `$numCtns`
+     * cartones cuando la sala usa custom_card_mode = 'every_x': por cada ciclo
+     * de (X normales + 1 personalizable) solo el último cartón del ciclo puede
+     * personalizarse. Ej. X=3 → de cada 4 cartones consecutivos, 1 personalizable
+     * (posiciones 4, 8, 12...). La regla es por proceso de compra — no se basa
+     * en el histórico acumulado del jugador en la sala.
+     */
+    private function maxCustomCardsAllowed(int $everyX, int $numCtns): int
+    {
+        if ($everyX < 1) {
+            return $numCtns;
+        }
+
+        return intdiv($numCtns, $everyX + 1);
+    }
+
+    /**
+     * Calcula el monto total a cobrar por los `$customCount` cartones personalizados
+     * de esta compra, según la modalidad configurada en la sala (custom_card_mode):
+     *
+     * - 'paid' (o sin modo, retrocompatibilidad): recargo custom_card_price_pct (%)
+     *   sobre el precio base, aplicado a todos los cartones personalizados.
+     * - 'free' / 'every_x': sin recargo — precio base por cartón. En 'every_x' el
+     *   límite de cuántos cartones pueden personalizarse ya se validó antes de
+     *   llegar aquí (ver maxCustomCardsAllowed).
+     */
+    private function resolveCustomCardsTotal(BingoRoom $room, float $basePrice, int $customCount): float
+    {
+        $mode = $room->config?->custom_card_mode;
+
+        if ($mode === 'free' || $mode === 'every_x') {
+            return round($basePrice * $customCount, 4);
+        }
+
+        // 'paid' (o null): comportamiento por defecto, recargo % sobre el precio base.
+        $customPct = (float) ($room->config?->custom_card_price_pct ?? 0);
+        $customPrice = $customPct > 0 ? round($basePrice * (1 + $customPct / 100), 4) : $basePrice;
+
+        return round($customPrice * $customCount, 4);
+    }
+
+    /**
      * Compra de cartones para jugadores (flujo simplificado).
      *
      * @param string     $roomId         ID de la sala
@@ -904,15 +955,17 @@ final class BingoCardGenerateService
         $priceInfo  = $this->getPlayerCardPrice($roomId, $userId);
         $basePrice  = $priceInfo['card_price'];
 
-        // Recargo por cartón personalizado: custom_card_price_pct es el % adicional
-        // sobre el precio base (ej. 10 → +10%). Solo aplica a cartones con matrices
-        // enviadas (los sin matriz se generan al azar → precio base).
-        $customPct = (float) ($room->config?->custom_card_price_pct ?? 0);
+        // Precio de cartones personalizados según la modalidad configurada en la sala
+        // (custom_card_mode). Solo aplica a cartones con matrices enviadas (los sin
+        // matriz se generan al azar → siempre precio base).
         $customCount  = $customMatrices !== null ? count($customMatrices) : 0;
         $regularCount = $numCtns - $customCount;
 
-        $customPrice  = $customPct > 0 ? round($basePrice * (1 + $customPct / 100), 4) : $basePrice;
-        $totalAmount  = round($basePrice * $regularCount + $customPrice * $customCount, 4);
+        $customTotal = $customCount > 0
+            ? $this->resolveCustomCardsTotal($room, $basePrice, $customCount)
+            : 0.0;
+
+        $totalAmount = round($basePrice * $regularCount + $customTotal, 4);
 
         // Obtener billetera activa del jugador con saldo
         $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['id', 'currency_id', 'balance']);

@@ -283,6 +283,12 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
             'num_serials'             => $template->num_serials,
             'jackpot_pct'             => $template->jackpot_pct,
             'min_cards_to_start'      => $template->min_cards_to_start,
+            'allow_custom_card'       => $template->allow_custom_card,
+            'custom_card_price_pct'   => $template->custom_card_price_pct,
+            'custom_card_mode'        => $template->custom_card_mode,
+            'custom_card_every_x'     => $template->custom_card_every_x,
+            'allow_special_card'      => $template->allow_special_card,
+            'max_special_cards'       => $template->max_special_cards,
         ]);
     }
 

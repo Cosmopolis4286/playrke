@@ -45,6 +45,12 @@ final class BingoRoomAutomaticCreateDTO
         public readonly ?int          $minCardsToStart       = null,
         public readonly ?int          $salesStartOffsetDays  = null,
         public readonly bool          $roomsPerCurrency      = false,
+        public readonly bool          $allowCustomCard       = false,
+        public readonly ?float        $customCardPricePct    = null,
+        public readonly ?string       $customCardMode        = null,
+        public readonly ?int          $customCardEveryX      = null,
+        public readonly bool          $allowSpecialCard      = false,
+        public readonly ?int          $maxSpecialCards       = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -95,6 +101,12 @@ final class BingoRoomAutomaticCreateDTO
             minCardsToStart: isset($data['minCardsToStart']) ? (int) $data['minCardsToStart'] : null,
             salesStartOffsetDays: isset($data['salesStartOffsetDays']) ? (int) $data['salesStartOffsetDays'] : null,
             roomsPerCurrency: (bool) ($data['roomsPerCurrency'] ?? false),
+            allowCustomCard: (bool) ($data['allowCustomCard'] ?? false),
+            customCardPricePct: isset($data['customCardPricePct']) ? (float) $data['customCardPricePct'] : null,
+            customCardMode: $data['customCardMode'] ?? null,
+            customCardEveryX: isset($data['customCardEveryX']) ? (int) $data['customCardEveryX'] : null,
+            allowSpecialCard: (bool) ($data['allowSpecialCard'] ?? false),
+            maxSpecialCards: isset($data['maxSpecialCards']) ? (int) $data['maxSpecialCards'] : null,
         );
     }
 }

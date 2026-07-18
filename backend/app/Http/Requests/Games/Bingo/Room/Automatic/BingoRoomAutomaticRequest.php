@@ -105,6 +105,14 @@ class BingoRoomAutomaticRequest extends BaseRequest
             // Días de anticipación para publicar la sala antes del inicio del juego
             // null = mismo día; 1..30 = la sala se publica N días antes
             'salesStartOffsetDays'       => ['nullable', 'integer', 'min:1', 'max:30'],
+
+            // Cartón personalizado
+            'allowCustomCard'             => ['boolean'],
+            'customCardMode'              => ['required_if:allowCustomCard,true', 'nullable', 'in:paid,every_x,free'],
+            'customCardPricePct'          => ['required_if:customCardMode,paid', 'nullable', 'numeric', 'min:1', 'max:10'],
+            'customCardEveryX'            => ['required_if:customCardMode,every_x', 'nullable', 'integer', 'min:2', 'max:100'],
+            'allowSpecialCard'            => ['boolean'],
+            'maxSpecialCards'             => ['nullable', 'integer', 'min:1', 'max:5'],
         ];
     }
 
@@ -273,6 +281,13 @@ class BingoRoomAutomaticRequest extends BaseRequest
             'salesStartOffsetDays.integer'    => 'Los días de anticipación deben ser un número entero.',
             'salesStartOffsetDays.min'        => 'Los días de anticipación deben ser al menos 1.',
             'salesStartOffsetDays.max'        => 'Los días de anticipación no pueden superar 30.',
+
+            'customCardMode.required_if'      => 'Debe seleccionar una modalidad de cartón personalizado.',
+            'customCardMode.in'               => 'La modalidad de cartón personalizado no es válida.',
+            'customCardPricePct.required_if'  => 'El % del precio del cartón personalizado es obligatorio.',
+            'customCardEveryX.required_if'    => 'La cantidad de cartones para el cartón gratuito es obligatoria.',
+            'customCardEveryX.min'            => 'Debe ser cada 2 cartones o más.',
+            'customCardEveryX.max'            => 'No puede ser cada más de 100 cartones.',
         ];
     }
 }
