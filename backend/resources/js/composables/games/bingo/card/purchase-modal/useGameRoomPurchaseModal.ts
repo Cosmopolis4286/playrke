@@ -31,10 +31,9 @@ interface CustomCardState {
     mode: 'paid' | 'every_x' | 'free' | null
     pricePct: number
     everyX: number | null
-    alreadyPurchased: number
 }
 
-const EMPTY_CUSTOM_CARD_STATE: CustomCardState = { mode: null, pricePct: 0, everyX: null, alreadyPurchased: 0 }
+const EMPTY_CUSTOM_CARD_STATE: CustomCardState = { mode: null, pricePct: 0, everyX: null }
 
 // Caché en módulo: sobrevive navegación dentro de la SPA pero se limpia al recargar
 const _priceCache = new Map<string, { price: number; symbol: string; ts: number; customCard: CustomCardState }>()
@@ -126,10 +125,22 @@ export function useGameRoomPurchaseModal() {
         () => !!selectedRoom.value && !selectedRoom.value.config?.game_variant,
     )
 
-    // Recargo % configurado en la sala (0 si no aplica).
-    const customPricePct = computed(
-        () => Number(selectedRoom.value?.config?.custom_card_price_pct ?? 0),
-    )
+    // Recargo % configurado en la sala (0 si no aplica; solo relevante en modo 'paid').
+    const customPricePct = computed(() => customCardState.value.pricePct)
+
+    /**
+     * Máximo de cartones personalizables permitidos en esta compra cuando el modo
+     * es 'every_x': por cada ciclo de (X normales + 1 personalizable) solo el
+     * último cartón del ciclo puede personalizarse. Ej. X=3 con 10 cartones →
+     * de cada 4 consecutivos, 1 personalizable (posiciones 4, 8) → máximo 2.
+     * En 'paid'/'free' no hay límite (más allá de numCtns).
+     */
+    const maxCustomCardsAllowed = computed(() => {
+        if (customCardState.value.mode !== 'every_x') return numCtns.value
+        const everyX = customCardState.value.everyX ?? 0
+        if (everyX < 1) return numCtns.value
+        return Math.floor(numCtns.value / (everyX + 1))
+    })
 
     // Solo las matrices que el usuario editó manualmente — las demás van como null (aleatorio).
     const effectiveCustomMatrices = computed<(CardMatrix | null)[]>(() => {
@@ -142,12 +153,17 @@ export function useGameRoomPurchaseModal() {
         () => effectiveCustomMatrices.value.filter(m => m !== null).length,
     )
 
+    // True si el jugador personalizó más cartones de los permitidos por el modo 'every_x'.
+    const exceedsCustomCardLimit = computed(
+        () => customCardState.value.mode === 'every_x' && manualCardCount.value > maxCustomCardsAllowed.value,
+    )
+
     // Precio unitario base.
     const basePricePerCard = computed(() => cardPrice.value)
 
-    // Precio unitario de cartón personalizado (con recargo).
+    // Precio unitario de cartón personalizado: recargo solo aplica en modo 'paid'.
     const customPricePerCard = computed(() => {
-        if (customPricePct.value <= 0) return cardPrice.value
+        if (customCardState.value.mode !== 'paid' || customPricePct.value <= 0) return cardPrice.value
         return parseFloat((cardPrice.value * (1 + customPricePct.value / 100)).toFixed(4))
     })
 
