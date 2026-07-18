@@ -365,6 +365,8 @@ class BingoRoomCrudService
             'allowCustomCard'       => $dto->allowCustomCard,
             'allowSpecialCard'      => $dto->allowSpecialCard,
             'customCardPricePct'    => $dto->customCardPricePct,
+            'customCardMode'        => $dto->customCardMode,
+            'customCardEveryX'      => $dto->customCardEveryX,
             'maxSpecialCards'       => $dto->maxSpecialCards,
             'minCardsToStart'       => $dto->minCardsToStart,
             'maxPlayers'            => $dto->maxPlayers,
@@ -485,6 +487,8 @@ class BingoRoomCrudService
             'jackpot_pct'             => $dto->jackpotPct ?? null,
             'allow_custom_card'       => $dto->allowCustomCard ?? false,
             'custom_card_price_pct'   => $dto->customCardPricePct ?? null,
+            'custom_card_mode'        => $dto->customCardMode ?? null,
+            'custom_card_every_x'     => $dto->customCardEveryX ?? null,
             'allow_special_card'      => $dto->allowSpecialCard ?? false,
             'max_special_cards'       => $dto->maxSpecialCards ?? null,
         ];
@@ -1237,6 +1241,12 @@ class BingoRoomCrudService
             'numSerials'            => $config->num_serials ? (int) $config->num_serials : null,
             'roundsConfig'          => $roundsConfig,
             'activateRoom'          => false,
+            'allowCustomCard'       => (bool) $config->allow_custom_card,
+            'customCardPricePct'    => $config->custom_card_price_pct !== null ? (float) $config->custom_card_price_pct : null,
+            'customCardMode'        => $config->custom_card_mode,
+            'customCardEveryX'      => $config->custom_card_every_x !== null ? (int) $config->custom_card_every_x : null,
+            'allowSpecialCard'      => (bool) $config->allow_special_card,
+            'maxSpecialCards'       => $config->max_special_cards !== null ? (int) $config->max_special_cards : null,
         ]);
 
         return $this->saveRoom($dto);

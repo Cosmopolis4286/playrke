@@ -70,7 +70,9 @@ export const bingoRoomFormSchema = z.object({
     cardPriceByCurrency:  z.record(z.string(), z.number().nullable()).optional(),
     activateRoom:    z.boolean().optional(),
     allowCustomCard: z.boolean().optional(),
+    customCardMode:  z.enum(['paid', 'every_x', 'free']).nullable().optional(),
     customCardPricePct: z.number().nullable().optional(),
+    customCardEveryX:   z.number().nullable().optional(),
     allowSpecialCard:   z.boolean().optional(),
     maxSpecialCards:    z.number().nullable().optional(),
     // Solo salas automáticas — enum validado en runtime
@@ -264,8 +266,17 @@ export function validateBingoRoomForm(
 
     /* ── Cartón personalizado (pre-compiled schema) ── */
     if (data.allowCustomCard) {
-        const r = customCardPricePctSchema.safeParse(Number(data.customCardPricePct))
-        if (!r.success) e.customCardPricePct = r.error.issues[0].message
+        if (!data.customCardMode) {
+            e.customCardMode = 'Debe seleccionar una modalidad de cartón personalizado.'
+        } else if (data.customCardMode === 'paid') {
+            const r = customCardPricePctSchema.safeParse(Number(data.customCardPricePct))
+            if (!r.success) e.customCardPricePct = r.error.issues[0].message
+        } else if (data.customCardMode === 'every_x') {
+            const everyX = Number(data.customCardEveryX)
+            if (!data.customCardEveryX || !Number.isInteger(everyX) || everyX < 2 || everyX > 100) {
+                e.customCardEveryX = 'Debe ser un entero entre 2 y 100.'
+            }
+        }
     }
 
     /* ── Cartón especial ── */

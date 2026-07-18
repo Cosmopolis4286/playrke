@@ -31,7 +31,9 @@
               emit('update:modelValue', {
                 ...modelValue,
                 allowCustomCard: ($event.target as HTMLInputElement).checked,
-                ...(!($event.target as HTMLInputElement).checked ? { customCardPricePct: null } : {})
+                ...(!($event.target as HTMLInputElement).checked
+                  ? { customCardMode: null, customCardPricePct: null, customCardEveryX: null }
+                  : {})
               } as any)
             "
           />
@@ -41,8 +43,37 @@
         </div>
 
         <template v-if="(modelValue as any).allowCustomCard">
-          <!-- Precio cartón personalizado -->
+          <!-- Modalidad del cartón personalizado -->
           <div>
+            <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
+              Modalidad <span class="text-danger">*</span>
+            </label>
+            <select
+              name="custom_card_mode"
+              :class="['form-control form-control-sm', { 'is-invalid': (errors as any).customCardMode }]"
+              style="width: 220px"
+              :value="(modelValue as any).customCardMode ?? ''"
+              @change="
+                emit('update:modelValue', {
+                  ...modelValue,
+                  customCardMode: ($event.target as HTMLSelectElement).value || null,
+                  ...(($event.target as HTMLSelectElement).value !== 'paid' ? { customCardPricePct: null } : {}),
+                  ...(($event.target as HTMLSelectElement).value !== 'every_x' ? { customCardEveryX: null } : {})
+                } as any)
+              "
+            >
+              <option value="" disabled>Seleccione una opción</option>
+              <option value="paid">Permitir con costo adicional</option>
+              <option value="every_x">Permitir cada X cartones</option>
+              <option value="free">Uso libre</option>
+            </select>
+            <small v-if="(errors as any).customCardMode" class="text-danger" style="font-size: 0.72rem">
+              {{ (errors as any).customCardMode }}
+            </small>
+          </div>
+
+          <!-- Precio cartón personalizado (solo modalidad "con costo adicional") -->
+          <div v-if="(modelValue as any).customCardMode === 'paid'">
             <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
               Precio cartón personalizado <span class="text-danger">*</span>
             </label>
@@ -69,6 +100,33 @@
             </div>
             <small v-if="(errors as any).customCardPricePct" class="text-danger" style="font-size: 0.72rem">
               {{ (errors as any).customCardPricePct }}
+            </small>
+          </div>
+
+          <!-- Cada X cartones (solo modalidad "cada X cartones") -->
+          <div v-if="(modelValue as any).customCardMode === 'every_x'">
+            <label class="d-block" style="font-size: 0.78rem; margin-bottom: 0.2rem; color: #495057">
+              Cada cuántos cartones <span class="text-danger">*</span>
+            </label>
+            <input
+              name="custom_card_every_x"
+              type="number"
+              :class="['form-control form-control-sm', { 'is-invalid': (errors as any).customCardEveryX }]"
+              placeholder="Ej: 10"
+              :step="1"
+              :min="2"
+              :max="100"
+              style="width: 110px"
+              :value="(modelValue as any).customCardEveryX ?? ''"
+              @change="
+                emit('update:modelValue', {
+                  ...modelValue,
+                  customCardEveryX: ($event.target as HTMLInputElement).value === '' ? null : Number(($event.target as HTMLInputElement).value)
+                } as any)
+              "
+            />
+            <small v-if="(errors as any).customCardEveryX" class="text-danger" style="font-size: 0.72rem">
+              {{ (errors as any).customCardEveryX }}
             </small>
           </div>
         </template>

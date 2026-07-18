@@ -151,6 +151,8 @@ export interface BingoRoom {
         unix_date?: number | null
         allow_custom_card?: boolean
         custom_card_price_pct?: number | string | null
+        custom_card_mode?: CustomCardMode | null
+        custom_card_every_x?: number | null
         allow_special_card?: boolean
         max_special_cards?: number | null
     } | null
@@ -215,6 +217,14 @@ export interface RoundConfig {
  */
 export type BingoGameVariant = 'BINGO_75' | 'BINGO_90' | 'BINGO_80' | 'BINGO_30'
 
+/**
+ * Modalidad del cartón personalizado (solo aplica si allowCustomCard = true):
+ * - paid: costo adicional (%) sobre el precio base del cartón
+ * - every_x: cartón personalizado gratis cada X cartones comprados
+ * - free: uso libre, sin restricción ni costo adicional
+ */
+export type CustomCardMode = 'paid' | 'every_x' | 'free'
+
 export interface BingoRoomFormData {
     date?: string | null
     time?: string | null
@@ -243,7 +253,9 @@ export interface BingoRoomFormData {
     cardPriceByCurrency?: Record<string, number | null>
     activateRoom?: boolean
     allowCustomCard?: boolean
+    customCardMode?: CustomCardMode | null
     customCardPricePct?: number | null
+    customCardEveryX?: number | null
     allowSpecialCard?: boolean
     maxSpecialCards?: number | null
 }

@@ -91,7 +91,9 @@ const emptyFormData = (): BingoRoomAutomaticFormData => ({
     minCardsToStart: null,
     salesStartOffsetDays: null,
     allowCustomCard: false,
+    customCardMode: null,
     customCardPricePct: null,
+    customCardEveryX: null,
     allowSpecialCard: false,
     maxSpecialCards: null,
 })
@@ -213,7 +215,9 @@ export function useBingoRoomAutomatic(tokenId: string = ''): UseBingoRoomAutomat
                 minCardsToStart: room.min_cards_to_start != null ? Number(room.min_cards_to_start) : null,
                 salesStartOffsetDays: room.sales_start_offset_days != null ? Number(room.sales_start_offset_days) : null,
                 allowCustomCard: config.allow_custom_card === true,
+                customCardMode: config.custom_card_mode ?? null,
                 customCardPricePct: config.custom_card_price_pct != null ? Number(config.custom_card_price_pct) : null,
+                customCardEveryX: config.custom_card_every_x != null ? Number(config.custom_card_every_x) : null,
                 allowSpecialCard: config.allow_special_card === true,
                 maxSpecialCards: config.max_special_cards != null ? Number(config.max_special_cards) : null,
             }
