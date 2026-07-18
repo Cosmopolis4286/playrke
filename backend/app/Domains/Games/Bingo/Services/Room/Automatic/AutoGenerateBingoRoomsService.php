@@ -81,9 +81,9 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
         $query = BingoRoomAutomatic::query()
             ->with(['cardPriceAutomatic', 'roundAutomatic'])
             ->where('status', BingoRoomAutomatic::STATUS_ACTIVE)
-            ->whereJsonContains('days', $dayName)
-            ->whereTime('time', '>=', $now->format('H:i:s'))
-            ->whereTime('time', '<=', $windowEnd->format('H:i:s'));
+            ->whereJsonContains('recurrence_days', $dayName)
+            ->whereTime('game_time', '>=', $now->format('H:i:s'))
+            ->whereTime('game_time', '<=', $windowEnd->format('H:i:s'));
 
         if ($creator) {
             $query->where('creator_user_id', $creator['id']);
@@ -197,7 +197,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
         $creatorTz = $this->resolveTemplateTimezone($template);
         return BingoRoomCreateDTO::fromArray([
             'date'              => Carbon::now($creatorTz)->format('Y-m-d'),
-            'time'              => $template->time ? $template->time->format('H:i') : '00:00',
+            'time'              => $template->game_time ? $template->game_time->format('H:i') : '00:00',
             'roomType'          => $template->room_type_id,
             'gameMode'          => $template->game_mode_id,
             'prizePoolType'     => $template->prize_pool_type_id,
@@ -221,7 +221,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
     {
         $creatorTz     = $this->resolveTemplateTimezone($template);
         $scheduledDate = Carbon::now($creatorTz)->format('Y-m-d');
-        $scheduledTime = $template->time ? $template->time->format('H:i:s') : null;
+        $scheduledTime = $template->game_time ? $template->game_time->format('H:i:s') : null;
         $unixDate      = $scheduledTime
             ? Carbon::createFromFormat('Y-m-d H:i:s', "$scheduledDate $scheduledTime", $creatorTz)->timestamp
             : null;

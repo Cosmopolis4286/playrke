@@ -67,8 +67,8 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $defaults = [
             'id'                      => $this->nextId(),
             'status'                  => BingoRoomAutomatic::STATUS_ACTIVE,
-            'days'                    => json_encode([strtolower($now->englishDayOfWeek)]),
-            'time'                    => $now->format('H:i:s'),
+            'recurrence_days'         => json_encode([strtolower($now->englishDayOfWeek)]),
+            'game_time'               => $now->format('H:i:s'),
             'room_type_id'            => $this->nextId(),
             'game_mode_id'            => $this->nextId(),
             'prize_pool_type_id'      => $this->nextId(),
@@ -196,7 +196,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $now      = Carbon::now('America/Caracas');
         $otherDay = strtolower($now->copy()->addDay()->englishDayOfWeek);
 
-        $this->makeTemplate(['days' => [$otherDay]]);
+        $this->makeTemplate(['recurrence_days' => [$otherDay]]);
 
         $result = app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
 
@@ -209,7 +209,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
     {
         $futureTime = Carbon::now('America/Caracas')->addHours(2)->format('H:i:s');
 
-        $this->makeTemplate(['time' => $futureTime]);
+        $this->makeTemplate(['game_time' => $futureTime]);
 
         $result = app(AutoGenerateBingoRoomsService::class)->createBingoRooms();
 
