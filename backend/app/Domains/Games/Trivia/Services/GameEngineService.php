@@ -211,6 +211,7 @@ class GameEngineService implements GameEngineInterface
             timeLimitSeconds: (int) ($question->time_limit_seconds ?? $room?->time_per_question ?? 20),
             correctAnswer:    (string) ($question->correct_option_index ?? 0),
             points:           (int) ($question->points ?? 100),
+            serverTimestampMs: microtime(true) * 1000,
         );
 
         // Guardar en Redis
