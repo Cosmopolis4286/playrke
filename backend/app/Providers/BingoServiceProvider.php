@@ -62,4 +62,17 @@ class BingoServiceProvider extends ServiceProvider
         $this->app->singleton(RoomMetricsInterface::class, RoomMetricsService::class);
         $this->app->singleton(RoomUserRegistrationInterface::class, RoomUserRegistrationService::class);
     }
+
+    /**
+     * Bootstrap services.
+     */
+    public function boot(): void
+    {
+        // database/migrations/bingo/ no se escanea automáticamente por
+        // artisan migrate/migrate:fresh (Laravel solo mira database/migrations/
+        // en la raíz) — sin este registro, un entorno nuevo (o la BD de test,
+        // que se reconstruye con migrate:fresh en cada corrida de RefreshDatabase)
+        // nunca crea las tablas bingo_* aunque el código las use.
+        $this->loadMigrationsFrom(database_path('migrations/bingo'));
+    }
 }

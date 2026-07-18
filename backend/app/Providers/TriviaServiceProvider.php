@@ -67,5 +67,10 @@ class TriviaServiceProvider extends ServiceProvider
             config_path('trivia.php'),
             'trivia'
         );
+
+        // database/migrations/trivia/ no se escanea automáticamente por
+        // artisan migrate/migrate:fresh — sin este registro, un entorno
+        // nuevo nunca crea las tablas trivia_* aunque el código las use.
+        $this->loadMigrationsFrom(database_path('migrations/trivia'));
     }
 }
