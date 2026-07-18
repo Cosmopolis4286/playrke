@@ -62,7 +62,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
      */
     private function makeTemplate(array $overrides = []): BingoRoomAutomatic
     {
-        $now = Carbon::now('America/Caracas');
+        $now = Carbon::now('UTC');
 
         $defaults = [
             'id'                      => $this->nextId(),
@@ -195,7 +195,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
     #[Test]
     public function service_skips_templates_not_scheduled_today(): void
     {
-        $now      = Carbon::now('America/Caracas');
+        $now      = Carbon::now('UTC');
         $otherDay = strtolower($now->copy()->addDay()->englishDayOfWeek);
 
         $this->makeTemplate(['recurrence_days' => [$otherDay]]);
@@ -209,7 +209,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
     #[Test]
     public function service_skips_templates_outside_time_window(): void
     {
-        $futureTime = Carbon::now('America/Caracas')->addHours(2)->format('H:i:s');
+        $futureTime = Carbon::now('UTC')->addHours(2)->format('H:i:s');
 
         $this->makeTemplate(['game_time' => $futureTime]);
 
@@ -296,7 +296,7 @@ class GenerateBingoRoomsCommandTest extends TestCase
         $this->assertEquals(2, (int) $config->rounds);
         $this->assertEquals(80.00, (float) $config->rounds_pct);
         $this->assertEquals(
-            Carbon::now('America/Caracas')->format('Y-m-d'),
+            Carbon::now('UTC')->format('Y-m-d'),
             $config->date->format('Y-m-d')
         );
     }
