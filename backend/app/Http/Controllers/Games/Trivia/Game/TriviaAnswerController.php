@@ -6,8 +6,11 @@ namespace App\Http\Controllers\Games\Trivia\Game;
 
 use App\Domains\Games\Trivia\Contracts\GameEngineInterface;
 use App\Domains\Games\Trivia\Contracts\GameStateRepositoryInterface;
+use App\Enums\Games\Common\AntiCheatSignalType;
+use App\Enums\Games\Common\GameSlug;
 use App\Http\Controllers\Controller;
 use App\Events\Games\Trivia\TriviaAnswerResult;
+use App\Services\Games\AntiCheatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,6 +36,7 @@ final class TriviaAnswerController extends Controller
     public function __construct(
         private readonly GameStateRepositoryInterface $stateRepository,
         private readonly GameEngineInterface          $gameEngine,
+        private readonly AntiCheatService              $antiCheat,
     ) {}
 
     public function store(Request $request, string $gameId): JsonResponse
@@ -93,9 +97,29 @@ final class TriviaAnswerController extends Controller
         }
 
         $selectedOptionIndex  = (int) $request->input('selected_option_index');
-        $responseTimeMs       = (int) $request->input('response_time_ms');
         $correctOptionIndex   = (int) ($questionData['correct_answer'] ?? $questionData['correct_option_index'] ?? 0);
         $timeLimitMs          = (int) ($questionData['time_limit_seconds'] ?? 20) * 1000;
+
+        // Tiempo real server-side: ya NO se confía en response_time_ms enviado
+        // por el cliente (podía mentir libremente). Fuente de verdad:
+        // server_timestamp_ms persistido por GameEngineService::sendNextQuestion.
+        $serverTimestampMs = (float) ($questionData['server_timestamp_ms'] ?? 0);
+        $responseTimeMs    = $serverTimestampMs > 0
+            ? (int) max(0, min((microtime(true) * 1000) - $serverTimestampMs, $timeLimitMs))
+            : $timeLimitMs; // fail-closed: sin dato server-side, se trata como respuesta al límite del tiempo
+
+        // Bot gate: ningún humano responde en menos del mínimo configurado.
+        if ($responseTimeMs < (int) config('anticheat.trivia.min_human_response_ms', 300)) {
+            $this->antiCheat->flag(
+                userId: $userId,
+                game: GameSlug::TRIVIA,
+                signal: AntiCheatSignalType::INSTANT_RESPONSE,
+                gameId: $gameId,
+                metadata: ['question_id' => $questionId, 'response_time_ms' => $responseTimeMs],
+            );
+
+            return response()->json(['success' => false, 'message' => 'Velocidad de respuesta sospechosa.'], 422);
+        }
 
         $isLate    = $selectedOptionIndex === -1;
         $isCorrect = ! $isLate && $selectedOptionIndex === $correctOptionIndex;
