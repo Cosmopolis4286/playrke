@@ -53,7 +53,11 @@ class SubmitAnswerActionTest extends TestCase
         for ($i = 1; $i <= 3; $i++) {
             TriviaQuestion::create([
                 'question_text' => "Pregunta {$i}",
-                'options' => ['A', 'B', 'C', 'D'],
+                // Opciones numéricas: QuestionDTO->correctAnswer se arma desde
+                // correct_option_index (string), y SubmitAnswerAction exige
+                // in_array($answer, $question->options, true) — usar índices
+                // como opciones evita el mismatch letra vs índice.
+                'options' => ['0', '1', '2', '3'],
                 'correct_option_index' => 0,
                 'is_active' => true,
             ]);
@@ -74,6 +78,7 @@ class SubmitAnswerActionTest extends TestCase
         // usleep para simular una respuesta humana real por encima del umbral.
         usleep(310_000);
 
+        // '0' es la opción correcta: correct_option_index=0.
         $result = $this->action->execute($gameState->gameId, (string) $user->id, '0');
 
         $this->assertTrue($result->isCorrect);
