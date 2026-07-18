@@ -215,7 +215,9 @@
 </script>
 
 <template>
-  <div class="card">
+  <div class="ds-page">
+    <div class="ds-inner">
+    <div class="card">
     <CardHeader :title="title" :subtitle="subtitle" />
 
     <div class="card-body">
@@ -278,6 +280,8 @@
         :total-count="rows.length"
         :selected-count="selectedIds.length"
       />
+    </div>
+    </div>
     </div>
   </div>
 
