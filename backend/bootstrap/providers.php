@@ -1,6 +1,7 @@
 <?php
 
 return [
+    App\Providers\AntiCheatServiceProvider::class,
     App\Providers\AppServiceProvider::class,
     App\Providers\AuthServiceProvider::class,
     App\Providers\BingoServiceProvider::class,
