@@ -39,8 +39,11 @@
 
   /* ── Tokens de color — tema oscuro (default) ── */
   --ds-bg:           #060324;
-  --ds-surface:      rgba(255,255,255,.04);
-  --ds-surface-2:    rgba(255,255,255,.07);
+  /* Sólidos (no rgba translúcido): cards/modales necesitan taparse por completo
+     sobre cualquier fondo (backdrop de modal, imágenes, gradientes de página),
+     no dejar transparentar lo que hay detrás. */
+  --ds-surface:      #12103a;
+  --ds-surface-2:    #181650;
   --ds-border:       rgba(255,255,255,.09);
   --ds-border-2:     rgba(255,255,255,.13);
   --ds-text:         #e0eaff;
@@ -81,6 +84,83 @@
 }
 [data-theme="light"] .card:hover {
   box-shadow: var(--ds-card-hover-shadow) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FORMULARIOS Y MODALES — Bootstrap 4 vendorizado, respetan el tema.
+   .form-control/.custom-select/.modal-content vienen con colores fijos
+   (#fff, #495057) que no reaccionan a --ds-*. Sin esto, todo formulario
+   o modal queda blanco fijo sobre el tema oscuro (default de la app).
+══════════════════════════════════════════════════════════════ */
+.form-control,
+.custom-select,
+.form-control-plaintext {
+  background-color: var(--ds-surface-2) !important;
+  border-color: var(--ds-border) !important;
+  color: var(--ds-text) !important;
+}
+.form-control:focus,
+.custom-select:focus {
+  background-color: var(--ds-surface-2) !important;
+  color: var(--ds-text) !important;
+}
+.form-control::placeholder {
+  color: var(--ds-text-muted) !important;
+}
+.form-control:disabled,
+.form-control[readonly],
+.custom-select:disabled {
+  background-color: var(--ds-surface) !important;
+  color: var(--ds-text-2) !important;
+}
+/* Flecha del <select> nativo: el SVG embebido de Bootstrap usa #343a40 (oscuro),
+   invisible sobre superficie oscura — se sustituye por una variante clara. */
+[data-theme="light"] .custom-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='4' height='5' viewBox='0 0 4 5'%3e%3cpath fill='%23343a40' d='M2 0L0 2h4zm0 5L0 3h4z'/%3e%3c/svg%3e") !important;
+}
+.custom-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='4' height='5' viewBox='0 0 4 5'%3e%3cpath fill='%23e0eaff' d='M2 0L0 2h4zm0 5L0 3h4z'/%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 8px 10px !important;
+}
+
+.modal-content {
+  background-color: var(--ds-surface) !important;
+  border-color: var(--ds-border) !important;
+  color: var(--ds-text);
+}
+.modal-header,
+.modal-footer {
+  border-color: var(--ds-border) !important;
+}
+.close,
+.modal .close {
+  color: var(--ds-text) !important;
+  text-shadow: none !important;
+}
+
+/* Checks/radios/switches: fondo del cuadro sin marcar, sigue el tema */
+.custom-control-label::before {
+  background-color: var(--ds-surface) !important;
+  border-color: var(--ds-border-2) !important;
+}
+
+/* Tabs (usados en formularios multi-paso como el de registro de salas) */
+.nav-tabs {
+  border-bottom-color: var(--ds-border) !important;
+}
+.nav-tabs .nav-link {
+  color: var(--ds-text-2) !important;
+  border-color: transparent !important;
+}
+.nav-tabs .nav-link:hover {
+  border-color: var(--ds-border) !important;
+}
+.nav-tabs .nav-link.active {
+  background-color: var(--ds-surface) !important;
+  color: var(--ds-text) !important;
+  border-color: var(--ds-border) var(--ds-border) var(--ds-surface) !important;
 }
 
 html, body {
