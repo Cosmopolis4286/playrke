@@ -147,8 +147,10 @@
 </script>
 
 <template>
-  <TableWithFilterBridge
-    table-id="currency-table"
+  <div class="ds-page">
+    <div class="ds-inner">
+    <TableWithFilterBridge
+      table-id="currency-table"
     title="Monedas"
     subtitle="Gestión de monedas del sistema"
     :columns="columns"
@@ -179,11 +181,13 @@
       </span>
     </template>
 
-    <!-- País -->
-    <template #cell-country="{ row }">
-      {{ row.country?.name ?? '—' }}
-    </template>
-  </TableWithFilterBridge>
+      <!-- País -->
+      <template #cell-country="{ row }">
+        {{ row.country?.name ?? '—' }}
+      </template>
+    </TableWithFilterBridge>
+    </div>
+  </div>
 
   <Modal
     v-model="showModalForm"

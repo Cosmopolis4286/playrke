@@ -181,18 +181,22 @@
 </script>
 
 <template>
-  <TableWithFilterBridge
-    tableId="commerce-table"
-    title="Comercializadoras"
-    :columns="props.commerces.columns"
-    :rows="commerces"
-    :filters="filters"
-    search-placeholder="Buscar por nombre, email, teléfono..."
-    showCreateButton
-    showEditButton
-    showDeleteButton
-    :extra-buttons="extraButtons"
-  />
+  <div class="ds-page">
+    <div class="ds-inner">
+      <TableWithFilterBridge
+        tableId="commerce-table"
+        title="Comercializadoras"
+        :columns="props.commerces.columns"
+        :rows="commerces"
+        :filters="filters"
+        search-placeholder="Buscar por nombre, email, teléfono..."
+        showCreateButton
+        showEditButton
+        showDeleteButton
+        :extra-buttons="extraButtons"
+      />
+    </div>
+  </div>
 
   <Modal
     v-model="showModalForm"

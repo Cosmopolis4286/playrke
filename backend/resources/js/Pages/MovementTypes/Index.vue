@@ -133,8 +133,10 @@
 </script>
 
 <template>
-  <TableWithFilterBridge
-    table-id="movement-type-table"
+  <div class="ds-page">
+    <div class="ds-inner">
+    <TableWithFilterBridge
+      table-id="movement-type-table"
     title="Tipos de Movimiento"
     subtitle="Catálogo de tipos de movimiento de billetera"
     :columns="columns"
@@ -170,12 +172,14 @@
     </template>
 
     <!-- Origen -->
-    <template #cell-is_system="{ row }">
-      <span :class="['badge', row.is_system ? 'badge-info' : 'badge-light']">
-        {{ row.is_system ? 'Sistema' : 'Personalizado' }}
-      </span>
-    </template>
-  </TableWithFilterBridge>
+      <template #cell-is_system="{ row }">
+        <span :class="['badge', row.is_system ? 'badge-info' : 'badge-light']">
+          {{ row.is_system ? 'Sistema' : 'Personalizado' }}
+        </span>
+      </template>
+    </TableWithFilterBridge>
+    </div>
+  </div>
 
   <Modal
     v-model="showModalForm"

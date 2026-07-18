@@ -244,29 +244,31 @@
 </script>
 
 <template>
-  <div>
-    <TableWithFilterBridge
-      tableId="user-table"
-      title="Usuarios"
-      :columns="props.users.columns"
-      :rows="users"
-      :filters="filters"
-      search-placeholder="Buscar por nombre, username, email..."
-      showCreateButton
-      showDeleteButton
-      :extra-buttons="extraButtons"
-    />
-    
-    <!-- Modal para carga de saldo -->
-    <WalletLoadModal
-      :show="showWalletModal"
-      :user-name="selectedUserName"
-      :user-id="selectedUserId"
-      :user-balance="selectedUserBalance"
-      :user-currency="selectedUserCurrency?.iso_code"
-      :user-currency-symbol="selectedUserCurrency?.symbol"
-      @close="closeWalletModal"
-      @success="onWalletLoadSuccess"
-    />
+  <div class="ds-page">
+    <div class="ds-inner">
+      <TableWithFilterBridge
+        tableId="user-table"
+        title="Usuarios"
+        :columns="props.users.columns"
+        :rows="users"
+        :filters="filters"
+        search-placeholder="Buscar por nombre, username, email..."
+        showCreateButton
+        showDeleteButton
+        :extra-buttons="extraButtons"
+      />
+    </div>
   </div>
+
+  <!-- Modal para carga de saldo -->
+  <WalletLoadModal
+    :show="showWalletModal"
+    :user-name="selectedUserName"
+    :user-id="selectedUserId"
+    :user-balance="selectedUserBalance"
+    :user-currency="selectedUserCurrency?.iso_code"
+    :user-currency-symbol="selectedUserCurrency?.symbol"
+    @close="closeWalletModal"
+    @success="onWalletLoadSuccess"
+  />
 </template>
