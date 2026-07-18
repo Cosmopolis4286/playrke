@@ -145,6 +145,14 @@
   background-color: var(--ds-surface) !important;
   border-color: var(--ds-border-2) !important;
 }
+/* El <input> real es invisible (opacity:0) y Bootstrap indica el foco con
+   box-shadow en ::before (arriba). Sin resetear el outline nativo, el
+   navegador dibuja su propio anillo de foco alrededor del input oculto —
+   con el track ahora oscuro y sólido, ese anillo tapa visualmente la
+   bolita (::after) del switch en vez de perderse contra un fondo blanco. */
+.custom-control-input:focus {
+  outline: none;
+}
 
 /* Tabs (usados en formularios multi-paso como el de registro de salas) */
 .nav-tabs {
