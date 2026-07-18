@@ -5,7 +5,6 @@ namespace App\Domains\Games\Bingo\Services\Card\Generate;
 use App\Domains\Games\Bingo\DTOs\Card\Generate\{BingoCardGenerateContexDTO, BingoCardGenerateDTO};
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
 use App\Domains\Games\Bingo\Events\BingoCardSold;
-use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Card\CardPrice\BingoCardPrice;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Models\Roles\Commerce;
@@ -786,10 +785,6 @@ final class BingoCardGenerateService
         }
         $cardPriceUsd = $this->toUsdAmount($cardPrice, $exchangeRate);
 
-        $customCardsPurchased = $room->config?->allow_custom_card
-            ? BingoCard::where('room_id', $roomId)->where('creator_user_id', $userId)->custom()->count()
-            : 0;
-
         return [
             'card_price' => (float) $cardPrice,
             'card_price_usd' => (float) $cardPriceUsd,
@@ -799,7 +794,6 @@ final class BingoCardGenerateService
             'custom_card_mode' => $room->config?->custom_card_mode,
             'custom_card_price_pct' => $room->config?->custom_card_price_pct !== null ? (float) $room->config->custom_card_price_pct : null,
             'custom_card_every_x' => $room->config?->custom_card_every_x,
-            'custom_cards_purchased' => (int) $customCardsPurchased,
         ];
     }
 

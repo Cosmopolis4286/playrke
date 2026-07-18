@@ -70,9 +70,10 @@ class BingoCardManagementService
             $roomUserId = $cartonData['roomUser'];
             $userId     = $cartonData['creator']['id'];
             $variant      = $cartonData['gameVariant'] ?? BingoVariant::BINGO_75;
-            // customCardNumbers es array de matrices (una por cartón) o null.
+            // customCardNumbers es array de matrices (una por cartón, 0..numOfCtns
+            // elementos) o null. Los índices 0..count-1 usan la matriz personalizada;
+            // el resto (si el array es más corto que numOfCtns) se genera al azar.
             $customMatrices = $cartonData['customCardNumbers'] ?? null;
-            $isCustomCard   = $customMatrices !== null;
 
             $cardIds = [];
             for ($i = 0; $i < $numOfCtns; $i++) {
@@ -80,8 +81,8 @@ class BingoCardManagementService
             }
 
             for ($i = 0; $i < $numOfCtns; $i++) {
-                // Si hay matrices personalizadas, usa la del índice correspondiente.
-                $cardNumbers = $customMatrices[$i] ?? BingoVariant::generateCardMatrix($variant);
+                $hasCustomMatrix = $customMatrices !== null && array_key_exists($i, $customMatrices);
+                $cardNumbers = $hasCustomMatrix ? $customMatrices[$i] : BingoVariant::generateCardMatrix($variant);
                 $hash        = $this->generateCardHash($roomId, $roomUserId, $cardNumbers);
 
                 $cards[] = [
@@ -98,7 +99,7 @@ class BingoCardManagementService
                     'card_hash'       => $hash,
                     'status'          => 1,
                     'is_validated'    => 0,
-                    'is_custom_card'  => $isCustomCard ? 1 : 0,
+                    'is_custom_card'  => $hasCustomMatrix ? 1 : 0,
                     'validated_at'    => null,
                     'created_at'      => now(),
                     'updated_at'      => now(),
