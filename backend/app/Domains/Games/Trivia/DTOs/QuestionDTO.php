@@ -23,7 +23,8 @@ class QuestionDTO
         public readonly array $options,
         public readonly int $timeLimitSeconds,
         public readonly ?string $correctAnswer = null,
-        public readonly ?int $points = 100
+        public readonly ?int $points = 100,
+        public readonly ?float $serverTimestampMs = null
     ) {}
 
     /**
@@ -41,6 +42,7 @@ class QuestionDTO
             timeLimitSeconds: (int)    ($data['time_limit_seconds'] ?? $data['time_limit'] ?? 15),
             correctAnswer:    $data['correct_answer'] ?? $data['answer'] ?? null,
             points:           (int)    ($data['points'] ?? 100),
+            serverTimestampMs: isset($data['server_timestamp_ms']) ? (float) $data['server_timestamp_ms'] : null,
         );
     }
 
@@ -118,6 +120,7 @@ class QuestionDTO
             'time_limit_seconds' => $this->timeLimitSeconds,
             'correct_answer' => $this->correctAnswer,
             'points' => $this->points,
+            'server_timestamp_ms' => $this->serverTimestampMs,
         ];
     }
 
