@@ -8,6 +8,9 @@ use App\Domains\Games\Bingo\Models\Pattern\BingoPattern;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Domains\Games\Bingo\ValueObjects\BingoVariant;
+use App\Enums\Games\Common\AntiCheatSignalType;
+use App\Enums\Games\Common\GameSlug;
+use App\Services\Games\AntiCheatService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -21,6 +24,7 @@ final class BingoWinnerDetectionService
 {
     public function __construct(
         private readonly BingoDrawService $drawService,
+        private readonly AntiCheatService $antiCheat,
         private readonly BingoPatternPositionResolver $patternResolver = new BingoPatternPositionResolver()
     ) {}
 
@@ -103,6 +107,36 @@ final class BingoWinnerDetectionService
             return null;
         }
         $lastDrawId = (int) $lastDraw->id;
+
+        // Gate anti-fraude de timing: nadie puede reclamar bingo antes de que
+        // sea humanamente posible ver la ficha cantada y confirmar el patrón.
+        $elapsedMs  = $lastDraw->created_at->diffInMilliseconds(now());
+        $minDelayMs = (int) config('anticheat.bingo.min_claim_delay_ms', 400);
+
+        if ($elapsedMs < $minDelayMs) {
+            $this->antiCheat->flag(
+                userId: (string) $userId,
+                game: GameSlug::BINGO,
+                signal: AntiCheatSignalType::IMPOSSIBLE_CLAIM_TIMING,
+                gameId: (string) $room->id,
+                metadata: [
+                    'last_draw_id'    => $lastDrawId,
+                    'last_draw_at'    => $lastDraw->created_at->toIso8601String(),
+                    'elapsed_ms'      => $elapsedMs,
+                    'min_required_ms' => $minDelayMs,
+                ],
+            );
+
+            Log::warning('[BingoWinnerDetection] Timing de reclamo sospechoso — bloqueado', [
+                'room_id'    => $room->id,
+                'user_id'    => $userId,
+                'elapsed_ms' => $elapsedMs,
+            ]);
+
+            // Mismo resultado que "no tiene bingo aún" — no revela al cliente
+            // que fue detectado, evitando un oráculo para calibrar el bot.
+            return null;
+        }
 
         foreach ($cards as $card) {
             if (!$this->checkBingo($card, $drawnNumbers, $patternPositions)) {
