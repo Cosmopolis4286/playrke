@@ -69,27 +69,55 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
     }
 
     /**
-     * Obtiene plantillas ACTIVE para el día de hoy cuya hora cae en la
-     * ventana de tiempo actual.
+     * Obtiene plantillas ACTIVE para el día de hoy (en UTC) cuya hora cae en
+     * la ventana de tiempo actual.
+     *
+     * El día se filtra en SQL usando UTC como aproximación — un desfase de
+     * zona horaria solo podría mover una plantilla al día UTC adyacente
+     * cerca de medianoche, no afecta la ventana de hora en sí. La hora en
+     * cambio SÍ depende de la zona horaria del creador (game_time se
+     * interpreta como hora local del creador, no UTC) — filtrarla en SQL
+     * contra UTC directamente descartaría plantillas de creadores fuera de
+     * UTC+0, así que la ventana de tiempo se evalúa en PHP por plantilla,
+     * resolviendo la zona horaria real de cada una vía resolveTemplateTimezone().
      */
     private function getActiveTemplates(?array $creator): Collection
     {
-        $now       = Carbon::now('UTC');
-        $dayName   = strtolower($now->englishDayOfWeek);
-        $windowEnd = $now->copy()->addMinutes(self::TIME_WINDOW_MINUTES);
+        $now     = Carbon::now('UTC');
+        $dayName = strtolower($now->englishDayOfWeek);
 
         $query = BingoRoomAutomatic::query()
-            ->with(['cardPriceAutomatic', 'roundAutomatic'])
             ->where('status', BingoRoomAutomatic::STATUS_ACTIVE)
-            ->whereJsonContains('recurrence_days', $dayName)
-            ->whereTime('game_time', '>=', $now->format('H:i:s'))
-            ->whereTime('game_time', '<=', $windowEnd->format('H:i:s'));
+            ->whereJsonContains('recurrence_days', $dayName);
 
         if ($creator) {
             $query->where('creator_user_id', $creator['id']);
         }
 
-        return $query->get();
+        return $query->get()->filter(fn (BingoRoomAutomatic $template) => $this->isWithinTimeWindow($template));
+    }
+
+    /**
+     * Determina si la hora programada de la plantilla (interpretada en la
+     * zona horaria de su creador) ya se cumplió y sigue dentro de la ventana
+     * de gracia (desde ahora - TIME_WINDOW_MINUTES hasta ahora, en esa misma
+     * zona). El scheduler corre cada hora, así que la ventana cubre salas
+     * cuya hora programada llegó desde la última ejecución.
+     */
+    private function isWithinTimeWindow(BingoRoomAutomatic $template): bool
+    {
+        if (!$template->game_time) {
+            return false;
+        }
+
+        $creatorTz   = $this->resolveTemplateTimezone($template);
+        $now         = Carbon::now($creatorTz);
+        $windowStart = $now->copy()->subMinutes(self::TIME_WINDOW_MINUTES);
+
+        $scheduledTime = Carbon::parse($template->game_time->format('H:i:s'), $creatorTz)
+            ->setDateFrom($now);
+
+        return $scheduledTime->betweenIncluded($windowStart, $now);
     }
 
     /**
