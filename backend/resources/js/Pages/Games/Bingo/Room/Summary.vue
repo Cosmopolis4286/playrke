@@ -306,6 +306,15 @@
   })
 
   const subtitle = `<a title="Ir a configuración del Bingo" href="/bingo/config" class="text-primary font-weight-bold">Ir a configuración</a>`
+
+  /** "Paso X de Y" para orientar al usuario dentro del wizard del modal. */
+  const stepProgressLabel = computed(() => {
+    const ref = gameBingoRoomFormRef.value
+    if (!ref) return ''
+    const idx = ref.steps.indexOf(ref.step)
+    if (idx === -1) return ''
+    return `Paso ${idx + 1} de ${ref.steps.length}`
+  })
 </script>
 
 <template>
@@ -365,11 +374,16 @@
       >
         <i class="fas fa-info-circle"></i> Ver Detalles
       </button>
+      <small v-if="stepProgressLabel" class="text-muted mr-2" style="font-size: 0.78rem">
+        {{ stepProgressLabel }}
+      </small>
       <small
         v-if="gameBingoRoomFormRef?.draftStatus === 'saving' || gameBingoRoomFormRef?.draftStatus === 'saved'"
         class="text-muted mr-2"
         style="font-size: 0.78rem"
       >
+        <i class="fa-solid fa-circle-notch fa-spin mr-1" v-if="gameBingoRoomFormRef?.draftStatus === 'saving'"></i>
+        <i class="fa-solid fa-check mr-1" v-else></i>
         {{ gameBingoRoomFormRef?.draftStatus === 'saving' ? 'Guardando borrador...' : 'Borrador guardado' }}
       </small>
       <button class="btn btn-sm btn-secondary" :disabled="isSubmitting" @click="showModalForm = false">Cerrar</button>
@@ -380,24 +394,27 @@
         :disabled="isSubmitting"
         @click="gameBingoRoomFormRef?.goPrev()"
       >
-        Anterior
+        <i class="fa-solid fa-arrow-left mr-1"></i> Anterior
       </button>
       <button
         v-if="gameBingoRoomFormRef?.step !== 'review'"
         type="button"
         class="btn btn-sm btn-primary"
         :disabled="isSubmitting || !gameBingoRoomFormRef?.canGoNext"
+        :title="!gameBingoRoomFormRef?.canGoNext ? 'Corrige los errores de este paso para continuar' : ''"
         @click="gameBingoRoomFormRef?.goNext()"
       >
-        Siguiente
+        Siguiente <i class="fa-solid fa-arrow-right ml-1"></i>
       </button>
       <button
         v-else
         class="btn btn-sm btn-primary"
         :disabled="!canAttemptSave || isSubmitting || loading"
+        :title="!canAttemptSave ? 'Corrige los errores señalados en el resumen antes de guardar' : ''"
         @click="onSaveClick"
       >
         <span v-if="isSubmitting" class="spinner-border spinner-border-sm mr-1" role="status" aria-hidden="true"></span>
+        <i v-else class="fa-solid fa-floppy-disk mr-1"></i>
         {{ isSubmitting ? 'Guardando...' : 'Guardar' }}
       </button>
     </template>

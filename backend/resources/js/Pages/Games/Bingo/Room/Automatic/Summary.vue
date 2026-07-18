@@ -167,6 +167,15 @@
     return (gameBingoRoomFormRef.value?.currenciesMissingRate?.length ?? 0) > 0
   })
 
+  /** "Paso X de Y" para orientar al usuario dentro del wizard del modal. */
+  const stepProgressLabel = computed(() => {
+    const ref = gameBingoRoomFormRef.value
+    if (!ref) return ''
+    const idx = ref.steps.indexOf(ref.step)
+    if (idx === -1) return ''
+    return `Paso ${idx + 1} de ${ref.steps.length}`
+  })
+
   // ==========================================================================
   // CRUD global (eventos tabla)
   // ==========================================================================
@@ -369,6 +378,9 @@
     />
 
     <template #footer>
+      <small v-if="stepProgressLabel" class="text-muted mr-2" style="font-size: 0.78rem">
+        {{ stepProgressLabel }}
+      </small>
       <button class="btn btn-sm btn-secondary" @click="showModalForm = false">Cerrar</button>
       <button
         v-if="gameBingoRoomFormRef?.canGoPrev"
@@ -376,24 +388,26 @@
         class="btn btn-sm btn-outline-secondary"
         @click="gameBingoRoomFormRef?.goPrev()"
       >
-        Anterior
+        <i class="fa-solid fa-arrow-left mr-1"></i> Anterior
       </button>
       <button
         v-if="gameBingoRoomFormRef?.step !== 'review'"
         type="button"
         class="btn btn-sm btn-primary"
         :disabled="!gameBingoRoomFormRef?.canGoNext"
+        :title="!gameBingoRoomFormRef?.canGoNext ? 'Corrige los errores de este paso para continuar' : ''"
         @click="gameBingoRoomFormRef?.goNext()"
       >
-        Siguiente
+        Siguiente <i class="fa-solid fa-arrow-right ml-1"></i>
       </button>
       <button
         v-else
         class="btn btn-sm btn-primary"
         :disabled="!canAttemptSave"
+        :title="!canAttemptSave ? 'Corrige los errores señalados en el resumen antes de guardar' : ''"
         @click="onSaveClick"
       >
-        Guardar
+        <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar
       </button>
     </template>
   </Modal>

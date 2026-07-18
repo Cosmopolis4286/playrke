@@ -584,6 +584,7 @@
           :currency-options="allowedCurrenciesOptions"
           :lock-activate-room="lockedByPlayers"
           @update:form="form = $event"
+          @goto-step="goTo"
         />
       </div>
     </div>
