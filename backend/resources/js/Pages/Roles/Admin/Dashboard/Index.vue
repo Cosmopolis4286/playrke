@@ -203,19 +203,4 @@
   50%       { opacity: 0.5; transform: scale(0.8); }
 }
 
-.ds-page {
-  width: 100%;
-  min-height: 100%;
-  overflow-x: hidden;
-  padding: 1.25rem 1rem;
-  box-sizing: border-box;
-}
-
-.ds-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
 </style>
