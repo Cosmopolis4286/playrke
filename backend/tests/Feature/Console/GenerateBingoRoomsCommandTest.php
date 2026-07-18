@@ -108,36 +108,38 @@ class GenerateBingoRoomsCommandTest extends TestCase
         return BingoRoomAutomatic::find($defaults['id']);
     }
 
+    /**
+     * BingoRoomAutomatic::getCardPricesConfig() lee directamente de las
+     * columnas JSON `card_currencies`/`card_prices` de bingo_rooms_automatic
+     * — no existe (ni existió nunca) una tabla `bingo_card_price_automatic`
+     * satélite; el código de producción real nunca la referencia.
+     */
     private function addCardPrices(BingoRoomAutomatic $template, array $cardPrices): void
     {
-        DB::table('bingo_card_price_automatic')->insert([
-            'id'                      => $this->nextId(),
-            'automatic_bingo_room_id' => $template->id,
-            'creator_user_id'         => $template->creator_user_id,
-            'currencies'              => json_encode(array_keys($cardPrices)),
-            'card_prices'             => json_encode($cardPrices),
-            'status'                  => 'ACTIVE',
-            'created_at'              => now(),
-            'updated_at'              => now(),
+        $template->update([
+            'card_currencies' => array_keys($cardPrices),
+            'card_prices'     => $cardPrices,
         ]);
     }
 
+    /**
+     * BingoRoomAutomatic::getRoundsConfig() lee directamente de la columna
+     * JSON `rounds_config` (un solo array con las 3 claves) de
+     * bingo_rooms_automatic — no existe una tabla `bingo_rounds_automatic`
+     * satélite; el código de producción real nunca la referencia.
+     */
     private function addRoundConfig(
         BingoRoomAutomatic $template,
         array $prizeTypes,
         array $bingoPatterns,
         array $prizeValues
     ): void {
-        DB::table('bingo_rounds_automatic')->insert([
-            'id'                      => $this->nextId(),
-            'automatic_bingo_room_id' => $template->id,
-            'rounds'                  => count($prizeTypes),
-            'prize_types'             => json_encode($prizeTypes),
-            'bingo_patterns'          => json_encode($bingoPatterns),
-            'prize_values'            => json_encode($prizeValues),
-            'status'                  => 'ACTIVE',
-            'created_at'              => now(),
-            'updated_at'              => now(),
+        $template->update([
+            'rounds_config' => [
+                'prize_types'    => $prizeTypes,
+                'bingo_patterns' => $bingoPatterns,
+                'prize_values'   => $prizeValues,
+            ],
         ]);
     }
 
