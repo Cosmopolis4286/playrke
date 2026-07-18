@@ -373,7 +373,7 @@ final class AutoGenerateBingoRoomsService extends BingoRoomCrudService
         $patterns    = $roundsConfig['bingo_patterns'] ?? [];
         $prizeValues = $roundsConfig['prize_values'] ?? [];
 
-        if ($totalRounds === 0) {
+        if ($totalRounds === 0 || empty($patterns)) {
             return;
         }
 
