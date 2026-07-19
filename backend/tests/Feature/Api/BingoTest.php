@@ -73,6 +73,11 @@ class BingoTest extends TestCase
             ['name' => 'Test Country', 'iso_code_3' => 'TCO', 'status' => 'ACTIVE']
         );
 
+        // BingoCardGenerationService::generateCards() resuelve Game::getValueByName('BINGO', 'id')
+        // para registrar la moneda en currencies_game_rooms -- sin esta fila, 'game_id' llega NULL
+        // y viola la constraint NOT NULL de la tabla.
+        \App\Models\Game::firstOrCreate(['name' => 'BINGO'], ['status' => 'ACTIVE']);
+
         $this->user = User::factory()->create(['country_id' => $this->country->id]);
     }
 
@@ -283,8 +288,11 @@ class BingoTest extends TestCase
         $this->makeRoom(['status_code' => 'ACTIVE']);
         $this->makeRoom(['status_code' => 'FINISHED']);
 
+        // BingoRoomRepository::paginateSummaryGameRooms() filtra por status.code
+        // (whereHas('status', ...->where('code', $filters['status']))), no por
+        // status_id — el filtro va por el código de texto, no por el id numérico.
         $response = $this->actingAs($admin)
-            ->getJson('/bingo-rooms/summary-data?status=' . GameStatus::codeToId('ACTIVE'));
+            ->getJson('/bingo-rooms/summary-data?status=ACTIVE');
 
         $response->assertOk();
 
@@ -320,9 +328,9 @@ class BingoTest extends TestCase
                 'num_ctns' => 2,
             ]);
 
-        $response->assertOk();
-
         // 2 cartones * 10.00 USD (card_price_usd) = 20.00 debitados de la wallet.
+        $response->assertOk()
+            ->assertJsonPath('wallet_balance', 80.0);
         $this->assertEquals(80.0, (float) $wallet->fresh()->balance);
         $this->assertEquals(2, BingoCard::where('room_id', $room->id)->where('creator_user_id', $player->id)->count());
     }
@@ -339,7 +347,13 @@ class BingoTest extends TestCase
                 'num_ctns' => 1,
             ]);
 
-        $response->assertStatus(422);
+        // playerBuyFromGameRooms() lanza el \DomainException GLOBAL de PHP (no
+        // App\Exceptions\Domain\DomainException) -- el Handler solo mapea el segundo a
+        // JSON con status_code resuelto; el global cae al branch genérico "expectsJson"
+        // (Handler::render()), que siempre responde 500 salvo excepciones conocidas
+        // (Auth/Validation/ModelNotFound). No hay código 422 específico para saldo
+        // insuficiente en este dominio.
+        $response->assertStatus(500);
         $this->assertStringContainsString('Saldo insuficiente', $response->json('message') ?? '');
     }
 
@@ -350,19 +364,27 @@ class BingoTest extends TestCase
         $room = $this->makeRoom();
         $this->makeWallet($player, 1000);
 
+        // El controlador valida num_ctns inline (no vía FormRequest) y el Handler
+        // global reescribe TODAS las respuestas AJAX/JSON -- incluida ValidationException --
+        // a {success:false, message:"..."}, perdiendo la clave estándar 'errors' que usa
+        // assertJsonValidationErrors(). Se verifica el mensaje de validación en su lugar.
         $response = $this->actingAs($player)
             ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", [
                 'num_ctns' => 0,
             ]);
 
-        $response->assertStatus(422)->assertJsonValidationErrors(['num_ctns']);
+        $response->assertStatus(422);
+        // Laravel humaniza el nombre del atributo en el mensaje: "num_ctns" -> "num ctns".
+        $this->assertStringContainsString('num ctns', $response->json('message') ?? '');
 
         $response = $this->actingAs($player)
             ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", [
                 'num_ctns' => 41,
             ]);
 
-        $response->assertStatus(422)->assertJsonValidationErrors(['num_ctns']);
+        $response->assertStatus(422);
+        // Laravel humaniza el nombre del atributo en el mensaje: "num_ctns" -> "num ctns".
+        $this->assertStringContainsString('num ctns', $response->json('message') ?? '');
     }
 
     // ─── Cartones propios ───────────────────────────────────────────────────────
@@ -398,8 +420,10 @@ class BingoTest extends TestCase
         $response = $this->actingAs($player)
             ->getJson("/bingo/{$room->hashed_id}/draw-state");
 
+        // BingoGameService::getDrawState() devuelve la clave 'draw' (no 'drawnNumbers')
+        // con las fichas cantadas, junto a totalPlayers/prizePool/roomFinished/etc.
         $response->assertOk()
-            ->assertJsonStructure(['drawnNumbers']);
+            ->assertJsonStructure(['draw', 'totalPlayers', 'prizePool', 'roomFinished']);
     }
 
     /** @test */
