@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\Auditable;
@@ -14,6 +15,7 @@ abstract class BaseModel extends Model
     use Auditable;
     use SnowflakeId;
     use HasHashedRouteKey;
+    use HasFactory;
 
     /**
      * Evita asignación masiva accidental

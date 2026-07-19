@@ -7,6 +7,7 @@ use App\Models\ExchangeRate;
 use App\Models\Roles\Commerce\CommerceExchangeRate;
 use App\Models\Roles\Seller;
 use App\Traits\SnowflakeId;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -26,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Currency extends Model
 {
-    use SnowflakeId;
+    use SnowflakeId, HasFactory;
 
     // ========================
     // Configuración de la tabla

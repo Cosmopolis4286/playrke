@@ -5,12 +5,13 @@ namespace App\Domains\Games\Bingo\Models\Draw;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
 use App\Domains\Games\Bingo\Models\Round\BingoRound;
 use App\Traits\SnowflakeId;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BingoDraw extends Model
 {
-    use SnowflakeId;
+    use SnowflakeId, HasFactory;
 
     protected $table = 'bingo_draws';
 
