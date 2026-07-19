@@ -6,7 +6,6 @@ use App\DTOs\Roles\Admin\Permission\PermissionDTO;
 use App\DTOs\Roles\Admin\Permission\RolePermissionDTO;
 use App\Models\Role;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
 use App\Models\Permission;
 
 final class PermissionService
@@ -57,34 +56,24 @@ final class PermissionService
 
     /**
      * Asignar permisos a un rol.
+     *
+     * Resuelve los IDs a instancias Permission antes de pasarlas a Spatie:
+     * givePermissionTo() acepta arrays, pero internamente busca por *nombre*
+     * cuando recibe un array de strings (Spatie\Permission\Traits\HasPermissions::
+     * getStoredPermission()) — pasar Snowflake IDs directamente no encontraría
+     * ninguna coincidencia. Pasar la Collection de instancias evita esa ambigüedad
+     * y además deja que Spatie invalide la cache de permisos automáticamente
+     * (Role usa RefreshesPermissionCache), sin necesidad de limpiarla a mano.
      */
     public function assignPermissionsToRole(string $roleId, array $permissionIds): void
     {
-        // Verificar que el rol existe
-        $roleExists = DB::table('roles')->where('id', $roleId)->exists();
-        if (!$roleExists) {
-            throw new \Exception("Rol no encontrado con ID: {$roleId}");
+        $role = Role::findOrFail($roleId);
+
+        $permissions = Permission::whereIn('id', $permissionIds)->get();
+
+        if ($permissions->isNotEmpty()) {
+            $role->givePermissionTo($permissions);
         }
-
-        // Verificar que los permisos existen
-        $existingPermissions = Permission::whereIn('id', $permissionIds)->pluck('id')->toArray();
-
-        foreach ($permissionIds as $permId) {
-            if (!in_array($permId, $existingPermissions)) {
-                continue;
-            }
-
-            // Insertar en la tabla pivote (ignora si ya existe)
-            DB::table('role_has_permissions')->insertOrIgnore([
-                'permission_id' => $permId,
-                'role_id' => $roleId,
-            ]);
-        }
-
-        // Clear permission cache
-        app('cache')
-            ->store(config('permission.cache.store') != 'default' ? config('permission.cache.store') : null)
-            ->forget(config('permission.cache.key'));
     }
 
     /**
@@ -92,15 +81,13 @@ final class PermissionService
      */
     public function revokePermissionsFromRole(string $roleId, array $permissionIds): void
     {
-        DB::table('role_has_permissions')
-            ->where('role_id', $roleId)
-            ->whereIn('permission_id', $permissionIds)
-            ->delete();
+        $role = Role::findOrFail($roleId);
 
-        // Clear permission cache
-        app('cache')
-            ->store(config('permission.cache.store') != 'default' ? config('permission.cache.store') : null)
-            ->forget(config('permission.cache.key'));
+        $permissions = Permission::whereIn('id', $permissionIds)->get();
+
+        foreach ($permissions as $permission) {
+            $role->revokePermissionTo($permission);
+        }
     }
 
     /**
@@ -151,11 +138,20 @@ final class PermissionService
 
     /**
      * Eliminar un permiso.
+     *
+     * La verificación de is_system vive en PermissionPolicy (autorización),
+     * no aquí — este método asume que ya se autorizó la operación.
+     * Invalida la cache de Spatie explícitamente: a diferencia de
+     * assign/revoke (que la limpian solos porque pasan por Role, que usa
+     * RefreshesPermissionCache), borrar el Permission en sí no dispara esa
+     * limpieza automáticamente.
      */
     public function deletePermission(string $permissionId): void
     {
         $permission = Permission::findOrFail($permissionId);
         $permission->delete();
+
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     /**
@@ -163,30 +159,16 @@ final class PermissionService
      */
     public function getRolesWithPermissions(): array
     {
-        // Obtener roles directamente de la tabla para asegurar que existen
-        $roles = DB::table('roles')
-            ->select('id', 'name', 'prefix')
-            ->where('status', 'ACTIVE')
+        return Role::with('permissions')
+            ->where('status', true)
             ->orderBy('name')
-            ->get();
-
-        $rolesData = [];
-        foreach ($roles as $role) {
-            // Obtener permisos asignados a este rol desde la tabla pivote
-            $permissionIds = DB::table('role_has_permissions')
-                ->where('role_id', $role->id)
-                ->pluck('permission_id')
-                ->map(fn($id) => (string) $id)
-                ->toArray();
-
-            $rolesData[] = [
-                'id' => (string) $role->id,
-                'name' => $role->name,
-                'prefix' => $role->prefix ?? $role->name,
-                'permissions' => $permissionIds,
-            ];
-        }
-
-        return $rolesData;
+            ->get()
+            ->map(fn(Role $role) => [
+                'id'          => (string) $role->id,
+                'name'        => $role->name,
+                'prefix'      => $role->prefix ?? $role->name,
+                'permissions' => $role->permissions->pluck('id')->map(fn($id) => (string) $id)->toArray(),
+            ])
+            ->toArray();
     }
 }

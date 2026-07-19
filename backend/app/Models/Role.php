@@ -139,7 +139,15 @@ class Role extends Model implements RoleContract
             $permission = app(PermissionContract::class)->findById($permission, $guardName ?? $this->attributes['guard_name'] ?? Guard::getDefaultName(static::class));
         }
 
-        return $this->permissions->contains($permission);
+        // contains($model) con un solo argumento compara por igualdad ==
+        // entre instancias Eloquent completas (atributos, timestamps, etc.),
+        // no por identidad de registro — dos instancias distintas del MISMO
+        // permiso (una recién resuelta por findByName/findById, otra ya
+        // cargada en $this->permissions) casi nunca son == entre sí, así que
+        // esto devolvía false incluso cuando el rol sí tenía el permiso
+        // asignado en role_has_permissions. contains('id', ...) compara por
+        // clave primaria, que es lo que realmente identifica al registro.
+        return $this->permissions->contains($permission->getKeyName(), $permission->getKey());
     }
 
     // =========================================================================
