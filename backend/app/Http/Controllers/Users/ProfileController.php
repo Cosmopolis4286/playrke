@@ -315,9 +315,10 @@ class ProfileController extends Controller
                 'description' => $r->description ?? null,
             ]),
             'wallet' => $wallet ? [
-                'balance'  => (float) $wallet->balance,
-                'currency' => $wallet->currency?->iso_code ?? 'USD',
-                'symbol'   => $wallet->currency?->symbol   ?? '$',
+                'balance'       => (float) $wallet->balance,
+                'bonus_balance' => (float) $wallet->bonus_balance,
+                'currency'      => $wallet->currency?->iso_code ?? 'USD',
+                'symbol'        => $wallet->currency?->symbol   ?? '$',
             ] : null,
         ];
     }
