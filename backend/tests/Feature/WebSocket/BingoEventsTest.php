@@ -85,7 +85,15 @@ class BingoEventsTest extends TestCase
     {
         Event::fake();
 
-        broadcast(new BingoGameEnded(123, 456, true));
+        broadcast(new BingoGameEnded(
+            roomId: 123,
+            drawId: 456,
+            hasWinner: true,
+            totalDrawn: 30,
+            winners: [],
+            prize: 100.00,
+            endTime: now()->toISOString(),
+        ));
 
         Event::assertDispatched(BingoGameEnded::class);
     }
@@ -93,12 +101,28 @@ class BingoEventsTest extends TestCase
     /** @test */
     public function bingo_game_ended_event_includes_winner_status()
     {
-        $event = new BingoGameEnded(123, 456, true);
+        $event = new BingoGameEnded(
+            roomId: 123,
+            drawId: 456,
+            hasWinner: true,
+            totalDrawn: 30,
+            winners: [],
+            prize: 100.00,
+            endTime: now()->toISOString(),
+        );
         $data = $event->broadcastWith();
 
         $this->assertTrue($data['has_winner']);
 
-        $event = new BingoGameEnded(123, 456, false);
+        $event = new BingoGameEnded(
+            roomId: 123,
+            drawId: 456,
+            hasWinner: false,
+            totalDrawn: 30,
+            winners: [],
+            prize: 0,
+            endTime: now()->toISOString(),
+        );
         $data = $event->broadcastWith();
 
         $this->assertFalse($data['has_winner']);
@@ -172,7 +196,15 @@ class BingoEventsTest extends TestCase
         $events = [
             new BingoNumberCalled(42, $roomId),
             new BingoGameStarted($roomId, 456),
-            new BingoGameEnded($roomId, 456, true),
+            new BingoGameEnded(
+                roomId: $roomId,
+                drawId: 456,
+                hasWinner: true,
+                totalDrawn: 30,
+                winners: [],
+                prize: 100.00,
+                endTime: now()->toISOString(),
+            ),
             new BingoWinnerDeclared($roomId, 456, 789, 'John', 101, 'pattern', 100),
             new BingoPlayerJoined($roomId, 789, 'John', 10),
         ];
@@ -206,7 +238,15 @@ class BingoEventsTest extends TestCase
         $events = [
             new BingoNumberCalled(42, 123),
             new BingoGameStarted(123, 456),
-            new BingoGameEnded(123, 456, true),
+            new BingoGameEnded(
+                roomId: 123,
+                drawId: 456,
+                hasWinner: true,
+                totalDrawn: 30,
+                winners: [],
+                prize: 100.00,
+                endTime: now()->toISOString(),
+            ),
             new BingoWinnerDeclared(123, 456, 789, 'John', 101, 'pattern', 100),
             new BingoPlayerJoined(123, 789, 'John', 10),
         ];
@@ -225,7 +265,15 @@ class BingoEventsTest extends TestCase
         return match ($class) {
             BingoNumberCalled::class => new BingoNumberCalled(42, 123),
             BingoGameStarted::class => new BingoGameStarted(123, 456),
-            BingoGameEnded::class => new BingoGameEnded(123, 456, true),
+            BingoGameEnded::class => new BingoGameEnded(
+                roomId: 123,
+                drawId: 456,
+                hasWinner: true,
+                totalDrawn: 30,
+                winners: [],
+                prize: 100.00,
+                endTime: now()->toISOString(),
+            ),
             BingoWinnerDeclared::class => new BingoWinnerDeclared(123, 456, 789, 'John', 101, 'pattern', 100),
             BingoPlayerJoined::class => new BingoPlayerJoined(123, 789, 'John', 10),
         };
