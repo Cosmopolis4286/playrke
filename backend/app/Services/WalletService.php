@@ -40,8 +40,10 @@ final class WalletService
         return $this->walletRepository
             ->getWalletsByUser($userId, ['status' => 'ACTIVE'])
             ->map(fn(Wallet $w) => [
-                'id'           => (string) $w->id,
-                'balance'      => (float) $w->balance,
+                'id'                => (string) $w->id,
+                'balance'           => (float) $w->balance,
+                'bonus_balance'     => (float) $w->bonus_balance,
+                'playable_balance'  => $w->getPlayableBalance(),
                 'status'       => $w->status,
                 'currency_id'  => (string) $w->currency_id,
                 'currency'     => [
