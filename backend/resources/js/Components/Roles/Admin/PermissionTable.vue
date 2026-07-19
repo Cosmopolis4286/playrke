@@ -15,65 +15,77 @@
       </div>
     </div>
 
-    <TableFilter
-      search-placeholder="Buscar por nombre o descripción..."
-      :filters="tableFilters"
-      :debounce-delay="300"
-      @filter="onFilter"
-    />
-
+    <!-- Tabla -->
     <div class="card">
       <div class="card-body p-0">
-        <BaseTable
-          table-id="permissions-matrix"
-          :columns="columns"
-          :rows="filteredRows"
-          :has-active-filters="hasActiveFilters"
-          empty-message="No hay permisos registrados"
-          @clear-filters="clearFilters"
-        >
-          <template #cell-permission="{ row }">
-            <div class="d-flex align-items-center">
-              <i class="fas fa-key text-muted mr-2" style="font-size: 10px;"></i>
-              <span class="font-weight-medium">{{ formatPermissionName(row.name) }}</span>
-              <i v-if="row.is_system" class="fas fa-lock text-danger ml-2" title="Permiso del sistema"></i>
-            </div>
-            <small class="text-muted d-block permission-key">{{ row.name }}</small>
-          </template>
-
-          <template #cell-module="{ row }">
-            <span class="badge badge-light text-muted">{{ row.moduleLabel }}</span>
-          </template>
-
-          <template v-for="role in displayRoles" :key="`h-${role.id}`" #[`header-role-${role.id}`]>
-            <span class="badge" :class="getRoleBadgeClass(role.name)">
-              {{ formatRoleName(role.name) }}
-            </span>
-          </template>
-
-          <template v-for="role in displayRoles" :key="role.id" #[`cell-role-${role.id}`]="{ row }">
-            <div class="custom-checkbox-wrapper">
-              <input
-                type="checkbox"
-                class="custom-checkbox"
-                :checked="hasPermission(role.id, String(row.id))"
-                :disabled="row.is_system || saving"
-                @change="$emit('toggle-permission', role.id, String(row.id))"
-              />
-            </div>
-          </template>
-
-          <template #cell-actions="{ row }">
-            <button
-              v-if="!row.is_system"
-              class="btn btn-sm btn-link text-danger"
-              @click="handleDelete(String(row.id), row.name)"
-              title="Eliminar permiso"
-            >
-              <i class="fas fa-trash"></i>
-            </button>
-          </template>
-        </BaseTable>
+        <div class="table-responsive">
+          <table class="table table-hover permission-table mb-0">
+            <thead>
+              <tr>
+                <th class="permission-col">Permiso</th>
+                <th class="module-col">Módulo</th>
+                <th v-for="role in displayRoles" :key="role.id" class="role-col text-center">
+                  <span class="badge" :class="getRoleBadgeClass(role.name)">
+                    {{ formatRoleName(role.name) }}
+                  </span>
+                </th>
+                <th class="actions-col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-for="category in permissionCategories" :key="category.name">
+                <tr class="category-header">
+                  <td colspan="100%">
+                    <div class="d-flex align-items-center">
+                      <i class="fas fa-folder text-primary mr-2"></i>
+                      <span v-if="category.subModule" class="font-weight-bold">
+                        {{ category.moduleName }}
+                        <i class="fas fa-angle-right text-muted mx-1"></i>
+                        <span class="text-primary">{{ category.subModule }}</span>
+                      </span>
+                      <span v-else class="font-weight-bold">{{ category.moduleName }}</span>
+                      <span class="text-muted ml-2">({{ category.permissions.length }})</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-for="permission in category.permissions" :key="permission.id" class="permission-row">
+                  <td class="permission-col">
+                    <div class="d-flex align-items-center ml-4">
+                      <i class="fas fa-key text-muted mr-2" style="font-size: 10px;"></i>
+                      <span class="font-weight-medium">{{ formatPermissionName(permission.name) }}</span>
+                      <i v-if="permission.is_system" class="fas fa-lock text-danger ml-2" title="Permiso del sistema"></i>
+                    </div>
+                    <small class="text-muted d-block permission-key ml-4">{{ permission.name }}</small>
+                  </td>
+                  <td class="module-col">
+                    <span class="badge badge-light text-muted">{{ category.subModule || category.moduleName }}</span>
+                  </td>
+                  <td v-for="role in displayRoles" :key="role.id" class="role-col text-center">
+                    <div class="custom-checkbox-wrapper">
+                      <input
+                        type="checkbox"
+                        class="custom-checkbox"
+                        :checked="hasPermission(role.id, permission.id)"
+                        :disabled="permission.is_system || saving"
+                        @change="$emit('toggle-permission', role.id, permission.id)"
+                      />
+                    </div>
+                  </td>
+                  <td class="actions-col text-center">
+                    <button
+                      v-if="!permission.is_system"
+                      class="btn btn-sm btn-link text-danger"
+                      @click="handleDelete(permission.id, permission.name)"
+                      title="Eliminar permiso"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -109,12 +121,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import BaseTable from '@/js/Components/Common/Table/BaseTable.vue'
-import TableFilter from '@/js/Components/Common/Table/TableFilter.vue'
 import Modal from '@/js/Components/Common/Modal/Modal.vue'
 import Swal from 'sweetalert2'
-import type { Column, Row } from '@/js/types/common/table/column-row'
-import type { TableFilterInterface } from '@/js/types/common/table/table-filter'
 
 interface Permission {
   id: string
@@ -151,18 +159,53 @@ const saving = ref(false)
 const showCreateModal = ref(false)
 const newPerm = ref({ name: '', guard_name: 'web', description: '' })
 
-// Todos los roles activos recibidos del backend, orden alfabético — antes
-// se filtraba contra un array `roleOrder` hardcodeado que ocultaba en
-// silencio cualquier rol no listado ahí (ej. un rol nuevo creado después).
+// Todos los roles activos recibidos del backend, orden alfabético — antes se
+// filtraba contra un array roleOrder hardcodeado (['superadmin','admin',...])
+// que ocultaba en silencio cualquier rol no listado ahí (ej. 'customer' nunca
+// aparecía en la matriz aunque existiera y tuviera permisos asignados).
 const displayRoles = computed(() =>
   [...props.roles].sort((a, b) => a.name.localeCompare(b.name))
 )
 
+const permissionCategories = computed(() => {
+  const map = new Map<string, { name: string; moduleName: string; subModule: string | null; permissions: Permission[] }>()
+
+  for (const p of props.permissions.rows ?? []) {
+    const cat = categorize(p.name)
+    const key = cat.subModule ? `${cat.module} › ${cat.subModule}` : cat.module
+    if (!map.has(key)) {
+      map.set(key, { name: key, moduleName: cat.module, subModule: cat.subModule, permissions: [] })
+    }
+    map.get(key)!.permissions.push(p)
+  }
+
+  // Sort by module name, then by submodule name
+  const sorted = [...map.values()].sort((a, b) => {
+    if (a.moduleName !== b.moduleName) {
+      return a.moduleName.localeCompare(b.moduleName)
+    }
+    if (a.subModule && b.subModule) {
+      return a.subModule.localeCompare(b.subModule)
+    }
+    return a.subModule ? 1 : -1
+  })
+
+  // Sort permissions within each category alphabetically by permission name
+  for (const cat of sorted) {
+    cat.permissions.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  return sorted
+})
+
 function categorize(name: string): { module: string; subModule: string | null } {
   const parts = name.split('.')
   const mainModule = parts[0]
+
+  // Capitalize first letter
   const module = mainModule.charAt(0).toUpperCase() + mainModule.slice(1)
 
+  // If there's a second part and it's not an action, treat it as submodule
   const actions = ['view', 'create', 'edit', 'delete', 'manage', 'list', 'show', 'update', 'store', 'destroy', 'index', 'config', 'assign', 'revoke', 'toggle', 'export', 'import', 'approve', 'reject', 'play', 'access']
 
   let subModule: string | null = null
@@ -172,84 +215,6 @@ function categorize(name: string): { module: string; subModule: string | null } 
 
   return { module, subModule }
 }
-
-function moduleLabel(name: string): string {
-  const { module, subModule } = categorize(name)
-  return subModule ? `${module} › ${subModule}` : module
-}
-
-// Columnas: fijas (permiso, módulo) + una dinámica por rol + acciones.
-// BaseTable ya soporta columnas y slots cell-{key} arbitrarios — no hace
-// falta modificarlo para columnas generadas desde datos (roles).
-const columns = computed<Column[]>(() => [
-  { key: 'permission', label: 'Permiso', sortable: true },
-  { key: 'module', label: 'Módulo', sortable: true },
-  ...displayRoles.value.map(role => ({
-    key: `role-${role.id}`,
-    label: formatRoleName(role.name),
-    sortable: false,
-    searchable: false,
-  })),
-  { key: 'actions', label: '', sortable: false, searchable: false },
-])
-
-// Filas planas: se pierde el header de sección con colspan que agrupaba
-// visualmente por módulo (decisión consciente, ver PermissionTable — antes
-// esto no permitía búsqueda/filtro real). El módulo queda como columna
-// normal, ordenable y filtrable.
-const allRows = computed<(Row & Permission & { moduleLabel: string })[]>(() =>
-  (props.permissions.rows ?? []).map(p => ({
-    ...p,
-    id: p.id,
-    moduleLabel: moduleLabel(p.name),
-  }))
-)
-
-const moduleOptions = computed(() => {
-  const modules = new Set(allRows.value.map(r => categorize(r.name).module))
-  return [...modules].sort().map(m => ({ value: m, label: m }))
-})
-
-const tableFilters = computed<TableFilterInterface[]>(() => [
-  {
-    key: 'module',
-    label: 'Módulo',
-    placeholder: 'Todos los módulos',
-    options: moduleOptions.value,
-  },
-])
-
-const searchQuery = ref('')
-const activeModule = ref('')
-
-const hasActiveFilters = computed(() => searchQuery.value.trim() !== '' || activeModule.value !== '')
-
-function onFilter(payload: { search: string; filters: Record<string, string> }) {
-  searchQuery.value = payload.search
-  activeModule.value = payload.filters.module ?? ''
-}
-
-function clearFilters() {
-  searchQuery.value = ''
-  activeModule.value = ''
-}
-
-const filteredRows = computed(() => {
-  let rows = allRows.value
-
-  if (activeModule.value) {
-    rows = rows.filter(r => categorize(r.name).module === activeModule.value)
-  }
-
-  const q = searchQuery.value.trim().toLowerCase()
-  if (q) {
-    rows = rows.filter(r =>
-      r.name.toLowerCase().includes(q) || (r.description ?? '').toLowerCase().includes(q)
-    )
-  }
-
-  return [...rows].sort((a, b) => a.name.localeCompare(b.name))
-})
 
 function formatPermissionName(name: string): string {
   const parts = name.split('.')
@@ -327,14 +292,41 @@ function handleCreate() {
 <style scoped>
 .permission-matrix { width: 100%; }
 
+.permission-table {
+  font-size: 0.9rem;
+  width: 100%;
+  min-width: 900px;
+}
+
+.permission-table thead th {
+  background-color: var(--ds-surface-2);
+  border-bottom: 2px solid var(--ds-border);
+  font-weight: 600;
+  color: var(--ds-text-2);
+  white-space: nowrap;
+  padding: 0.6rem 0.75rem;
+}
+
+.permission-col { min-width: 200px; padding: 0.5rem 0.75rem; }
+.module-col    { min-width: 100px; color: var(--ds-text-muted); padding: 0.5rem 0.75rem; }
+.role-col      { min-width: 90px; padding: 0.5rem 0.75rem; }
+.actions-col   { width: 50px; padding: 0.5rem 0.75rem; }
+
 .permission-key { font-family: monospace; font-size: 0.75rem; }
+
+.category-header { background-color: var(--ds-surface-2); }
+.category-header td {
+  padding: 0.4rem 0.75rem;
+  border-top: 1px solid var(--ds-border);
+  border-bottom: 1px solid var(--ds-border);
+}
+
+.permission-row:hover { background-color: var(--ds-surface-2); }
+.permission-row td { border-bottom: 1px solid var(--ds-border); vertical-align: middle; }
 
 .custom-checkbox-wrapper { display: flex; justify-content: center; align-items: center; }
 .custom-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #007bff; }
 .custom-checkbox:disabled { cursor: not-allowed; opacity: 0.6; }
-
-.font-weight-medium { font-weight: 500; }
-.gap-2 { gap: 0.5rem; }
 
 .badge-purple    { background-color: rgba(124,58,237,.18); color: #a78bfa; }
 .badge-blue      { background-color: rgba(37,99,235,.18);  color: #60a5fa; }
@@ -345,4 +337,28 @@ function handleCreate() {
 .badge-pink      { background-color: rgba(219,39,119,.18); color: #f472b6; }
 .badge-info      { background-color: rgba(5,81,96,.25);    color: #22d3ee; }
 .badge-secondary { background-color: var(--ds-surface-2);  color: var(--ds-text-2); }
+
+.font-weight-medium { font-weight: 500; }
+.gap-2 { gap: 0.5rem; }
+
+/* Altura acotada al viewport: la card scrollea internamente (tabla), no la
+   página completa. Antes la tabla crecía sin límite y sumaba su propio alto
+   al de la página (header + breadcrumb + botones + tabla), generando scroll
+   vertical doble (el de la página Y el de la tabla). */
+.table-responsive {
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+}
+
+.permission-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+@media (max-width: 1200px) {
+  .permission-table { font-size: 0.85rem; min-width: 800px; }
+  .permission-col   { min-width: 180px; }
+  .role-col         { min-width: 75px; }
+}
 </style>

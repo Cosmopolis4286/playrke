@@ -73,6 +73,8 @@ class PermissionSeeder extends Seeder
             ['name' => 'games.bingo.game_rooms', 'guard_name' => 'web', 'description' => 'Acceso a salas de bingo'],
             ['name' => 'games.bingo.cards_sold', 'guard_name' => 'web', 'description' => 'Acceso a cartones vendidos'],
             ['name' => 'games.bingo.manage', 'guard_name' => 'web', 'description' => 'Gestionar juegos de bingo'],
+            ['name' => 'games.bingo.winners', 'guard_name' => 'web', 'description' => 'Ver ganadores de bingo'],
+            ['name' => 'games.bingo.sales_report', 'guard_name' => 'web', 'description' => 'Ver reporte de ventas de bingo'],
             
             // Trivia - Permisos generales
             ['name' => 'games.trivia.view', 'guard_name' => 'web', 'description' => 'Ver sección de trivia'],
@@ -113,6 +115,7 @@ class PermissionSeeder extends Seeder
             ['name' => 'system.maintenance', 'guard_name' => 'web', 'description' => 'Modo mantenimiento'],
             ['name' => 'system.logs', 'guard_name' => 'web', 'description' => 'Ver logs del sistema'],
             ['name' => 'system.backup', 'guard_name' => 'web', 'description' => 'Gestionar backups'],
+            ['name' => 'settings.manage', 'guard_name' => 'web', 'description' => 'Gestionar configuración general de la plataforma'],
 
             // Auditoría
             ['name' => 'audit.view', 'guard_name' => 'web', 'description' => 'Ver auditoría'],

@@ -214,7 +214,7 @@
               @click="requestSort(column)"
               @keydown="onSortKeydown($event, column)"
             >
-              <slot :name="`header-${column.key}`">{{ column.label }}</slot>
+              {{ column.label }}
               <i v-if="sortIcon(column)" :class="sortIcon(column)" class="ms-1"></i>
               <i v-else-if="column.sortable" class="fas fa-sort ms-1 text-muted"></i>
             </th>

@@ -12,6 +12,7 @@ class SidebarMenuService
      * Estructura completa del menú con permisos requeridos
      */
     public array $menuStructure = [
+        // ── Uso diario (todos los roles) ──────────────────────────────
         'dashboard' => [
             'title' => 'Tablero',
             'icon' => 'fas fa-tachometer-alt',
@@ -53,50 +54,8 @@ class SidebarMenuService
             'exclude_roles' => ['player', 'seller'],
             'route' => 'exchange-rate.index',
         ],
-        'users' => [
-            'title' => 'Usuarios',
-            'icon' => 'fa-solid fa-users-gear',
-            'permission' => 'users.view',
-            'submenu' => [
-                'permissions' => [
-                    'title' => 'Permisos',
-                    'route' => 'permissions.index',
-                    'permission' => 'superadmin.access',
-                    'exclude_roles' => ['!superadmin'],
-                ],
-                'all_users' => [
-                    'title' => 'Listado',
-                    'route' => 'admin.users',
-                    'permission' => 'users.manage',
-                ],
-            ],
-        ],
-        'settings' => [
-            'title' => 'Configuración',
-            'icon' => 'fas fa-sliders-h',
-            'permission' => 'settings.manage',
-            'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
-            'route' => 'settings.index',
-        ],
-        'prizes' => [
-            'title' => 'Gestión de Premios',
-            'icon' => 'fas fa-trophy',
-            'permission' => 'prizes.view',
-            'exclude_roles' => ['player', 'seller'],
-            'route' => 'prizes.index',
-        ],
-        'sales_management' => [
-            'title' => 'Gestión de Ventas',
-            'icon' => 'fa-solid fa-comments-dollar',
-            'permission' => 'sellers.view,customers.view', // Accesible para commerce, customer, seller
-            'submenu' => [
-                'my_sellers' => [
-                    'title' => 'Mis Vendedores',
-                    'route' => 'manager-seller.index',
-                    'permission' => 'sellers.view',
-                ],
-            ],
-        ],
+
+        // ── Juegos (operación diaria de juego) ────────────────────────
         'games' => [
             'title' => 'Gestión de Juegos',
             'icon' => 'fas fa-gamepad',
@@ -116,9 +75,9 @@ class SidebarMenuService
         ],
         'games_bingo' => [
             'title' => 'Bingo',
-            'icon' => 'fas fa-gamepad',
+            'icon' => 'fas fa-dice',
             'permission' => 'games.bingo', // Acceso específico a juegos de bingo
-            'exclude_roles' => ['superadmin', 'admin'], // Superadmin no ve este menú
+            'exclude_roles' => ['superadmin', 'admin'], // Superadmin/admin gestionan bingo desde "Gestión de Juegos"
             'submenu' => [
                 'game_rooms' => [
                     'title' => 'Salas de Bingo',
@@ -140,28 +99,14 @@ class SidebarMenuService
                 'bingo_winners' => [
                     'title' => 'Ganadores',
                     'route' => 'bingo.winners',
-                    'permission' => 'games.bingo.winners', 
+                    'permission' => 'games.bingo.winners',
                 ],
                 'bingo_sales_report' => [
                     'title' => 'Reporte de Ventas',
                     'route' => 'bingo.sales-report',
-                    'permission' => 'games.bingo.sales_report', 
+                    'permission' => 'games.bingo.sales_report',
                 ],
             ],
-        ],
-        'audit' => [
-            'title'         => 'Auditoría',
-            'icon'          => 'fas fa-history',
-            'permission'    => 'audit.view',
-            'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
-            'route'         => 'audit.index',
-        ],
-        'win_events' => [
-            'title'         => 'Eventos de Ganancia',
-            'icon'          => 'fas fa-gift',
-            'permission'    => 'win-events.manage',
-            'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
-            'route'         => 'admin.win-event.index',
         ],
         'games_trivia' => [
             'title' => 'Trivia',
@@ -205,6 +150,68 @@ class SidebarMenuService
                     'permission' => 'games.trivia.stats.view',
                 ],
             ],
+        ],
+
+        // ── Gestión de negocio ─────────────────────────────────────────
+        'sales_management' => [
+            'title' => 'Gestión de Ventas',
+            'icon' => 'fa-solid fa-comments-dollar',
+            'permission' => 'sellers.view', // Accesible para commerce
+            'submenu' => [
+                'my_sellers' => [
+                    'title' => 'Mis Vendedores',
+                    'route' => 'manager-seller.index',
+                    'permission' => 'sellers.view',
+                ],
+            ],
+        ],
+        'prizes' => [
+            'title' => 'Gestión de Premios',
+            'icon' => 'fas fa-trophy',
+            'permission' => 'prizes.view',
+            'exclude_roles' => ['player', 'seller'],
+            'route' => 'prizes.index',
+        ],
+        'win_events' => [
+            'title'         => 'Eventos de Ganancia',
+            'icon'          => 'fas fa-gift',
+            'permission'    => 'win-events.manage',
+            'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
+            'route'         => 'admin.win-event.index',
+        ],
+
+        // ── Administración del sistema ──────────────────────────────────
+        'users' => [
+            'title' => 'Usuarios',
+            'icon' => 'fa-solid fa-users-gear',
+            'permission' => 'users.view',
+            'submenu' => [
+                'permissions' => [
+                    'title' => 'Permisos',
+                    'route' => 'permissions.index',
+                    'permission' => 'superadmin.access',
+                    'exclude_roles' => ['!superadmin'],
+                ],
+                'all_users' => [
+                    'title' => 'Listado',
+                    'route' => 'admin.users',
+                    'permission' => 'users.manage',
+                ],
+            ],
+        ],
+        'settings' => [
+            'title' => 'Configuración',
+            'icon' => 'fas fa-sliders-h',
+            'permission' => 'settings.manage',
+            'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
+            'route' => 'settings.index',
+        ],
+        'audit' => [
+            'title'         => 'Auditoría',
+            'icon'          => 'fas fa-history',
+            'permission'    => 'audit.view',
+            'exclude_roles' => ['player', 'seller', 'commerce', 'customer'],
+            'route'         => 'audit.index',
         ],
         /*
         'treasury' => [

@@ -40,10 +40,12 @@ class RolePermissionSeeder extends Seeder
                 'exchange.view', 'exchange.manage',
                 'games.view', 'games.manage',
                 'games.bingo', // Acceso a juegos de bingo
+                'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
                 'reports.view', 'reports.generate', 'reports.export', 'reports.financial', 'reports.gaming',
                 'audit.view',
                 'kyc.view', 'kyc.manage',
                 'win-events.manage',
+                'settings.manage', // Configuración general de la plataforma
                 // Opciones independientes
                 'directory.view', 'directory.search',
                 'prizes.view', 'prizes.create', 'prizes.edit', 'prizes.delete', 'prizes.assign',
@@ -66,6 +68,7 @@ class RolePermissionSeeder extends Seeder
                 'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
                 'customers.view', 'customers.create', 'customers.edit',
                 'games.bingo', // Acceso a juegos de bingo
+                'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
                 'reports.view', 'reports.generate', 'reports.gaming',
                 // Opciones independientes
                 'directory.view', 'directory.search',
