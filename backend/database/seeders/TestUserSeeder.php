@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Models\Country;
 use App\Models\Currency;
@@ -138,16 +139,19 @@ class TestUserSeeder extends Seeder
                     ]
                 );
 
-                // Asignar rol según corresponda
+                // Asignar rol según corresponda.
+                // guard_name siempre 'web': RoleSeeder crea TODOS los roles con
+                // guard 'web' (incluido 'customer', cambiado explícitamente desde
+                // 'api' para que tenga acceso al menú — ver RoleSeeder::run()).
+                // La excepción especial que quedaba aquí buscaba 'customer' con
+                // guard 'api', que ya no existe, así que el rol nunca se asignaba
+                // al usuario demo de ese rol (badge de rol vacío en /admin/users).
                 try {
-                    $guardName = $data['role'] === 'customer' ? 'api' : 'web';
-
-                    // Buscar el rol por nombre y guard
-                    $role = \Spatie\Permission\Models\Role::where('name', $data['role'])
-                        ->where('guard_name', $guardName)
+                    $role = Role::where('name', $data['role'])
+                        ->where('guard_name', 'web')
                         ->first();
 
-                    if ($role && !$user->hasRole($data['role'], $guardName)) {
+                    if ($role && !$user->hasRole($data['role'])) {
                         $user->assignRole($role);
                         $this->command->info("  ✅ Rol {$data['role']} asignado");
                     }
