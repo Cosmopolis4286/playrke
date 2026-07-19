@@ -35,7 +35,7 @@ const {
   adminNotes, actionLoading, actionError, showRejectForm, receiptZoom,
   openDetail, handleApprove, handleReject,
   isReceiptImage, isPending, isActionable,
-} = useWalletMovementDetail(updateMovement)
+} = useWalletMovementDetail(updateMovement, computed(() => props.movementTypes))
 
 // ── Deep-link desde notificación: /wallet-movements?movement={id} ──────────
 function openMovementFromQuery() {

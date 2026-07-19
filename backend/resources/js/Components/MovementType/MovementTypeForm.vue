@@ -180,12 +180,14 @@
         </div>
       </div>
 
-      <!-- Suma saldo -->
+      <!-- Suma saldo (bloqueado en tipos de sistema: cambiarlo invertiría
+           el signo de todo el historial de ese tipo) -->
       <FormSwitch
         name="is_credit"
-        label="Suma saldo a la billetera (crédito)"
+        :label="isCodeLocked ? 'Suma saldo a la billetera (crédito) — bloqueado en tipos de sistema' : 'Suma saldo a la billetera (crédito)'"
         col="col-md-6"
         :modelValue="form.is_credit ?? true"
+        :disabled="isCodeLocked"
         @update:modelValue="form.is_credit = $event"
       />
 

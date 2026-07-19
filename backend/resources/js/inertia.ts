@@ -20,9 +20,25 @@ createInertiaApp({
         const pageImport = pages[path]
 
         if (!pageImport) {
+            // El componente pedido no está en el bundle (rename, casing distinto
+            // al de disco, o un data-page obsoleto cacheado por el navegador tras
+            // un deploy). Inertia monta el fallback con las props que el server
+            // preparó para el componente ORIGINAL (name), que no incluyen
+            // status/message/url — Error.vue las exige, así que hay que
+            // sobreescribir su schema de props con valores por defecto, o Vue
+            // lanza "Missing required prop: status" y la página queda en blanco.
+            console.error(`[Inertia] Componente "${name}" no encontrado en el bundle. Mostrando fallback de error.`)
             const errorPage = pages['/resources/js/Pages/Errors/Error.vue']
             if (!errorPage) throw new Error('[Inertia] Falta Pages/Errors/Error.vue')
-            return (await errorPage()).default
+            const ErrorComponent = (await errorPage()).default as Record<string, unknown>
+            return {
+                ...ErrorComponent,
+                props: {
+                    status: { type: Number, default: 404 },
+                    message: { type: String, default: `No se pudo cargar la página solicitada (${name}).` },
+                    url: { type: String, default: null },
+                },
+            }
         }
 
         const module = await pageImport()

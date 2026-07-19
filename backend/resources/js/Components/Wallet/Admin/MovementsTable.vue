@@ -47,7 +47,7 @@ defineEmits<{
         <i :class="typeConfig[(row as Movement).type]?.icon"></i>
         {{ typeConfig[(row as Movement).type]?.label ?? (row as Movement).type }}
       </span>
-      <span v-if="(row as Movement).type === 'PRIZE' && (row as Movement).prize_type" class="mv-badge mv-badge--prize-sub">
+      <span v-if="['PRIZE', 'BONUS_PRIZE'].includes((row as Movement).type) && (row as Movement).prize_type" class="mv-badge mv-badge--prize-sub">
         <i :class="prizeTypeConfig[(row as Movement).prize_type!].icon"></i>
         {{ prizeTypeConfig[(row as Movement).prize_type!].label }}
       </span>

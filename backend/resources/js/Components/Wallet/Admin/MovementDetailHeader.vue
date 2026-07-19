@@ -41,14 +41,14 @@ defineProps<{
         {{ typeConfig[detail.type]?.label ?? detail.type }}
       </span>
     </div>
-    <div v-if="detail.type === 'PRIZE' && detail.prize_type" class="mv-detail__section">
+    <div v-if="(detail.type === 'PRIZE' || detail.type === 'BONUS_PRIZE') && detail.prize_type" class="mv-detail__section">
       <p class="mv-detail__label">Naturaleza del premio</p>
       <span class="mv-badge mv-badge--prize-sub">
         <i :class="prizeTypeConfig[detail.prize_type].icon"></i>
         {{ prizeTypeConfig[detail.prize_type].label }}
       </span>
     </div>
-    <div v-if="detail.type === 'PRIZE' && detail.game_id" class="mv-detail__section">
+    <div v-if="(detail.type === 'PRIZE' || detail.type === 'BONUS_PRIZE') && detail.game_id" class="mv-detail__section">
       <p class="mv-detail__label">ID del juego/sala</p>
       <p class="mv-detail__value mv-detail__value--mono">{{ detail.game_id }}</p>
     </div>
