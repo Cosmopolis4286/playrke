@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\WalletDepositRequest;
 use App\Http\Requests\WalletWithdrawRequest;
 use App\Models\MovementType;
+use App\Services\Roles\RoleUserService;
 use App\Services\WalletService;
 use App\Services\WithdrawalLimitService;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +21,7 @@ class WalletController extends Controller
     public function __construct(
         private readonly WalletService         $walletService,
         private readonly WithdrawalLimitService $limitService,
+        private readonly RoleUserService        $roleUserService,
     ) {}
 
     /**
@@ -27,7 +29,15 @@ class WalletController extends Controller
      */
     public function index(): Response
     {
-        $rolePrefix = Auth::user()?->roles?->first()?->prefix;
+        // roles?->first()?->prefix no es determinístico si el usuario tiene
+        // más de un rol (sin orden garantizado en la relación) — se usa el
+        // mismo resolutor de "rol activo" que el resto de la app (RoleUserService),
+        // con fallback a null si no hay rol activo válido para no romper la página.
+        try {
+            $rolePrefix = $this->roleUserService->getActiveUserRolePrefix((int) Auth::id());
+        } catch (\DomainException) {
+            $rolePrefix = null;
+        }
 
         return Inertia::render('Wallet/Index', [
             'wallets'       => $this->walletService->getPlayerWallets(),

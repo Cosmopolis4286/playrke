@@ -31,7 +31,7 @@ final class WalletMovementController extends Controller
         return Inertia::render('Wallet/Movements/Index', [
             'title'         => 'Movimientos de Billetera',
             'movements'     => collect($paginator->items())->map(fn(WalletMovement $m) => $this->mapMovement($m)),
-            'movementTypes' => MovementType::orderBy('label')->get(['code', 'label', 'description', 'icon', 'color', 'is_credit']),
+            'movementTypes' => MovementType::orderBy('label')->get(['code', 'label', 'description', 'icon', 'color', 'is_credit', 'requires_approval']),
             'meta'          => [
                 'current_page' => $paginator->currentPage(),
                 'last_page'    => $paginator->lastPage(),

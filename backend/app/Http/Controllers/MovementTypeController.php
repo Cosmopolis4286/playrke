@@ -93,6 +93,15 @@ class MovementTypeController extends Controller
             'sort_order'        => 'nullable|integer|min:0',
         ]);
 
+        // is_credit de un tipo de sistema (DEPOSIT, PRIZE, BONUS_PRIZE, etc.) no
+        // es editable: cambiarlo invertiría silenciosamente el signo de todos los
+        // movimientos históricos y futuros de ese tipo (WalletMovement::isCredit()
+        // delega en este valor), un riesgo de integridad financiera real que el
+        // frontend deshabilita visualmente pero que debe reforzarse aquí.
+        if ($movementType->is_system) {
+            $validated['is_credit'] = $movementType->is_credit;
+        }
+
         $movementType->update($validated);
 
         MovementType::forgetCatalogCache();
