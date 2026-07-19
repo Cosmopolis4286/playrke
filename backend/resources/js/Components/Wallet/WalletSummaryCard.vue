@@ -40,6 +40,9 @@ const totalDeposits = computed(() =>
 const totalPrizes = computed(() =>
   summaryMovements.value.filter(m => m.type === 'PRIZE').reduce((s, m) => s + m.amount, 0)
 )
+const totalBonusPrizes = computed(() =>
+  summaryMovements.value.filter(m => m.type === 'BONUS_PRIZE').reduce((s, m) => s + m.amount, 0)
+)
 const totalWithdrawals = computed(() =>
   summaryMovements.value.filter(m => m.type === 'WITHDRAWAL').reduce((s, m) => s + m.amount, 0)
 )
@@ -96,6 +99,17 @@ function formatAmount(value: number) {
         </div>
         <p class="summary-item__amount summary-item__amount--withdrawal">
           {{ currencySymbol }} {{ formatAmount(totalWithdrawals) }}
+        </p>
+      </div>
+
+      <div v-if="totalBonusPrizes > 0" class="summary-item summary-item--bonus">
+        <div class="summary-item__icon"><i class="fas fa-gift"></i></div>
+        <div class="summary-item__info">
+          <p class="summary-item__label">Premios bono</p>
+          <p class="summary-item__sublabel">No retirable, solo para jugar</p>
+        </div>
+        <p class="summary-item__amount summary-item__amount--bonus">
+          {{ currencySymbol }} {{ formatAmount(totalBonusPrizes) }}
         </p>
       </div>
     </div>
@@ -178,6 +192,7 @@ function formatAmount(value: number) {
 .summary-item--deposit    { background: rgba(34, 197, 94, .12); }
 .summary-item--prize      { background: rgba(245, 158, 11, .12); }
 .summary-item--withdrawal { background: rgba(59, 130, 246, .12); }
+.summary-item--bonus      { background: rgba(168, 85, 247, .12); }
 
 .summary-item__icon {
   width: 36px;
@@ -194,6 +209,7 @@ function formatAmount(value: number) {
 .summary-item--deposit    .summary-item__icon { background: #22c55e; }
 .summary-item--prize      .summary-item__icon { background: #f59e0b; }
 .summary-item--withdrawal .summary-item__icon { background: #3b82f6; }
+.summary-item--bonus      .summary-item__icon { background: #a855f7; }
 
 .summary-item__info { flex: 1; min-width: 0; }
 
@@ -220,4 +236,5 @@ function formatAmount(value: number) {
 .summary-item__amount--deposit    { color: #16a34a; }
 .summary-item__amount--prize      { color: #d97706; }
 .summary-item__amount--withdrawal { color: #2563eb; }
+.summary-item__amount--bonus      { color: #9333ea; }
 </style>

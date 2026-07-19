@@ -22,6 +22,7 @@ defineProps<{
   prizeTypeConfig: Record<'DIGITAL' | 'PHYSICAL', { label: string; icon: string }>
   statusConfig: Record<string, { label: string; cls: string }>
   directoryTypeLabel: Record<string, string>
+  isCreditByCode: Record<string, boolean>
   userName: (u: Movement['user']) => string
   adminName: (u: Movement['processed_by']) => string
   formatAmount: (mov: Movement) => string
@@ -63,7 +64,7 @@ defineEmits<{
         :user-name="userName"
       />
 
-      <MovementDetailAmounts :detail="detail" :format-amount="formatAmount" />
+      <MovementDetailAmounts :detail="detail" :format-amount="formatAmount" :is-credit-by-code="isCreditByCode" />
 
       <MovementReceiptViewer
         :detail="detail"

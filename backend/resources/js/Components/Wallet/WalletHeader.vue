@@ -5,6 +5,8 @@ defineProps<{
   wallets: Wallet[]
   activeWallet: Wallet | null
   formattedBalance: string
+  formattedBonusBalance: string
+  hasBonusBalance: boolean
   canWithdraw: boolean
 }>()
 
@@ -34,6 +36,14 @@ const emit = defineEmits<{
         <span class="wallet-header__balance-label">Saldo disponible</span>
         <span class="wallet-header__balance-amount">
           {{ activeWallet.currency.symbol }}&nbsp;{{ formattedBalance }}
+        </span>
+        <span
+          v-if="hasBonusBalance"
+          class="wallet-header__bonus-badge"
+          title="Saldo no retirable, solo para jugar dentro de la app"
+        >
+          <i class="fas fa-gift"></i>
+          Bono: {{ activeWallet.currency.symbol }}&nbsp;{{ formattedBonusBalance }}
         </span>
         <span
           class="wallet-header__status-badge"
@@ -155,6 +165,20 @@ const emit = defineEmits<{
   font-weight: 800;
   line-height: 1;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.wallet-header__bonus-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(168, 85, 247, 0.25);
+  color: #fff;
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  cursor: help;
 }
 
 .wallet-header__status-badge {

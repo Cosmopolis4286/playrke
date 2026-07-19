@@ -8,6 +8,7 @@ defineProps<{
   typeConfig: Record<string, { label: string; cls: string; style?: string; icon: string }>
   prizeTypeConfig: Record<'DIGITAL' | 'PHYSICAL', { label: string; icon: string }>
   statusConfig: Record<string, { label: string; cls: string }>
+  isCreditByCode: Record<string, boolean>
   userName: (u: Movement['user']) => string
   formatAmount: (mov: Movement) => string
   formatDate: (iso: string) => string
@@ -55,7 +56,7 @@ defineEmits<{
     <template #cell-amount="{ row }">
       <span
         class="mv-amount"
-        :class="['DEPOSIT','PRIZE'].includes((row as Movement).type) ? 'mv-amount--positive' : 'mv-amount--negative'"
+        :class="isCreditByCode[(row as Movement).type] ? 'mv-amount--positive' : 'mv-amount--negative'"
       >
         {{ formatAmount(row as Movement) }}
       </span>

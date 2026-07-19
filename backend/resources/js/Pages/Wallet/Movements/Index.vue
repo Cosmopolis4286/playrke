@@ -57,7 +57,7 @@ onMounted(() => {
 
 // ── Helpers visuales ─────────────────────────────────────────────────────────
 const {
-  typeConfig, prizeTypeConfig, statusConfig, directoryTypeLabel,
+  typeConfig, isCreditByCode, prizeTypeConfig, statusConfig, directoryTypeLabel,
   userName, adminName, formatAmount, formatDate,
 } = useMovementFormatters(computed(() => props.movementTypes))
 </script>
@@ -91,6 +91,7 @@ const {
           :type-config="typeConfig"
           :prize-type-config="prizeTypeConfig"
           :status-config="statusConfig"
+          :is-credit-by-code="isCreditByCode"
           :user-name="userName"
           :format-amount="formatAmount"
           :format-date="formatDate"
@@ -131,6 +132,7 @@ const {
     :prize-type-config="prizeTypeConfig"
     :status-config="statusConfig"
     :directory-type-label="directoryTypeLabel"
+    :is-credit-by-code="isCreditByCode"
     :user-name="userName"
     :admin-name="adminName"
     :format-amount="formatAmount"

@@ -8,6 +8,8 @@ export interface WalletCurrency {
 export interface Wallet {
   id: string
   balance: number
+  bonus_balance: number
+  playable_balance: number
   status: 'ACTIVE' | 'INACTIVE' | 'BLOCKED'
   currency_id: string
   currency: WalletCurrency

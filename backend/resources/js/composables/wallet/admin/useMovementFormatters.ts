@@ -91,7 +91,7 @@ export function useMovementFormatters(movementTypes: Ref<MovementType[]> | Movem
   }
 
   return {
-    typeConfig,
+    typeConfig, isCreditByCode,
     prizeTypeConfig, statusConfig, directoryTypeLabel,
     userName, adminName, formatAmount, formatDate,
   }

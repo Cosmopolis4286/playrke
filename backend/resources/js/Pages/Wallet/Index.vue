@@ -35,7 +35,7 @@ const {
   pendingOperation, pendingLoading,
   loading, errorMsg, successMsg, tosRequired,
   resultToast,
-  canWithdraw, formattedBalance, parsedAmount,
+  canWithdraw, formattedBalance, formattedBonusBalance, hasBonusBalance, parsedAmount,
   canGoToStep2, canSubmitDeposit, canSubmitWithdraw,
   openModal, closeModal,
   goToStep1, goToStep2,
@@ -222,6 +222,8 @@ function handleSelectWallet(wallet: Wallet) {
         :wallets="wallets"
         :active-wallet="activeWallet"
         :formatted-balance="formattedBalance"
+        :formatted-bonus-balance="formattedBonusBalance"
+        :has-bonus-balance="hasBonusBalance"
         :can-withdraw="canWithdraw"
         @select-wallet="handleSelectWallet"
         @deposit="openDepositModal"

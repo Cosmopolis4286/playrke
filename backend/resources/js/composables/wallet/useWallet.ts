@@ -93,6 +93,19 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
     }).format(balance)
   })
 
+  // Saldo bono (no retirable, solo usable dentro de la app). Nunca se usa
+  // para validar retiros — canWithdraw/canGoToStep2 siguen mirando solo balance.
+  const formattedBonusBalance = computed(() => {
+    if (!activeWallet.value) return '0.00'
+    const { bonus_balance, currency } = activeWallet.value
+    return new Intl.NumberFormat('es-VE', {
+      minimumFractionDigits: currency.decimal_places,
+      maximumFractionDigits: currency.decimal_places,
+    }).format(bonus_balance)
+  })
+
+  const hasBonusBalance = computed(() => (activeWallet.value?.bonus_balance ?? 0) > 0)
+
   const parsedAmount = computed(() => parseFloat(amount.value) || 0)
 
   const canGoToStep2 = computed(() => {
@@ -435,7 +448,7 @@ export function useWallet(initialWallets: Wallet[], userId?: string) {
     loading, errorMsg, successMsg, tosRequired,
     resultToast,
     // computed
-    canWithdraw, formattedBalance, parsedAmount,
+    canWithdraw, formattedBalance, formattedBonusBalance, hasBonusBalance, parsedAmount,
     canGoToStep2, canSubmitDeposit, canSubmitWithdraw,
     // acciones
     openModal, closeModal,

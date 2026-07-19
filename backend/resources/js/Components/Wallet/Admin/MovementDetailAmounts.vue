@@ -4,6 +4,7 @@ import type { Movement } from '@js/types/wallet/admin-movement'
 defineProps<{
   detail: Movement
   formatAmount: (mov: Movement) => string
+  isCreditByCode: Record<string, boolean>
 }>()
 </script>
 
@@ -14,7 +15,7 @@ defineProps<{
       <p class="mv-detail__label">Monto</p>
       <p
         class="mv-detail__amount"
-        :class="['DEPOSIT','PRIZE'].includes(detail.type) ? 'mv-amount--positive' : 'mv-amount--negative'"
+        :class="isCreditByCode[detail.type] ? 'mv-amount--positive' : 'mv-amount--negative'"
       >
         {{ formatAmount(detail) }}
       </p>
