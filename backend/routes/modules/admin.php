@@ -7,6 +7,7 @@ use App\Http\Controllers\Roles\Admin\AdminCustomerController;
 use App\Http\Controllers\Roles\Admin\AdminPlayerController;
 use App\Http\Controllers\Roles\Admin\AdminTreasurerController;
 use App\Http\Controllers\Roles\Admin\AdminUserController;
+use App\Http\Controllers\Roles\Admin\User\UserPermissionController;
 use App\Http\Controllers\Roles\AdministratorController;
 use App\Http\Controllers\Roles\PermissionController;
 use App\Http\Controllers\Roles\Treasurer\OtherTreasurersController;
@@ -146,6 +147,23 @@ Route::middleware('auth')->group(function () {
         'getWalletBalance' => ['method' => 'get', 'uri' => '{user}/wallet-balance','action' => 'getWalletBalance'],
     ];
     role_protected_routes(['role:admin'], 'admin/user', AdminUserController::class, $userRoutes, 'user');
+
+    /**
+     * =========================================================
+     * PERMISOS ESPECÍFICOS POR USUARIO (SOLO SUPERADMIN)
+     * =========================================================
+     * Distinto del grupo admin/user de arriba (role:admin): otorgar/revocar
+     * permisos directos a una persona es más sensible que las operaciones
+     * CRUD normales de usuario, así que exige superadmin explícitamente.
+     */
+    role_protected_routes(['role:superadmin'], 'admin/user', UserPermissionController::class, [
+        // Nombres de ruta distintos a los de $userRoutes (arriba, mismo
+        // prefijo admin/user.*): 'index'/'update' ya existen ahí y
+        // route_group() reasignaría el nombre a la última ruta definida,
+        // rompiendo route('admin.user.index') del listado de usuarios.
+        'permissions.show'   => ['method' => 'get', 'uri' => '{user}/permissions', 'action' => 'index'],
+        'permissions.update' => ['method' => 'put', 'uri' => '{user}/permissions', 'action' => 'update'],
+    ], 'user');
 
     /**
      * =========================================================
