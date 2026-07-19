@@ -101,6 +101,7 @@ const hiddenChips   = computed(() => Math.max(0, uniqueDrawn.value.length - CHIP
             :key="w.card_id"
             class="gm-winner-card"
             :class="{ 'gm-winner-card--me': String(w.user_id) === String(userId) }"
+            :style="{ '--wd': `${idx * 60}ms` }"
           >
             <div class="gm-winner-card__rank">#{{ idx + 1 }}</div>
             <div class="gm-winner-card__info">
@@ -171,6 +172,11 @@ const hiddenChips   = computed(() => Math.max(0, uniqueDrawn.value.length - CHIP
   box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 1px 0 rgba(255,255,255,0.04) inset;
   width: 100%; max-width: 480px; overflow: hidden; position: relative;
   max-height: 90vh; display: flex; flex-direction: column;
+  animation: gmModalIn .45s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes gmModalIn {
+  from { opacity: 0; transform: translateY(10px) scale(.98); }
+  to   { opacity: 1; transform: none; }
 }
 .gm-modal--win    { border-color: rgba(255,200,0,0.35); box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 60px rgba(255,200,0,0.08), 0 1px 0 rgba(255,255,255,0.04) inset; }
 .gm-modal--no-winner { border-color: rgba(80,120,255,0.18); }
@@ -191,20 +197,20 @@ const hiddenChips   = computed(() => Math.max(0, uniqueDrawn.value.length - CHIP
 .gm-trophy { position: relative; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; }
 .gm-trophy__ring {
   position: absolute; inset: 0; border-radius: 50%;
-  border: 2px solid rgba(255,200,0,0.35);
-  animation: trophy-ring 2s ease-in-out infinite;
+  border: 2px solid rgba(255,200,0,0.32);
+  animation: trophy-ring 2.8s ease-in-out infinite;
 }
-@keyframes trophy-ring { 0%,100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.12); opacity: 0.9; } }
+@keyframes trophy-ring { 0%,100% { transform: scale(1); opacity: 0.55; } 50% { transform: scale(1.1); opacity: 0.85; } }
 .gm-trophy__icon { font-size: 44px; position: relative; z-index: 1; }
-.gm-trophy--end .gm-trophy__ring { border-color: rgba(80,120,255,0.25); animation: none; }
+.gm-trophy--end .gm-trophy__ring { border-color: rgba(80,120,255,0.22); animation: none; }
 
-.gm-title { font-family: 'Anton', sans-serif; font-size: 30px; color: #e0eaff; text-align: center; letter-spacing: 1px; }
+.gm-title { font-family: 'Anton', sans-serif; font-size: 30px; color: #e0eaff; text-align: center; letter-spacing: 1px; text-wrap: balance; }
 .gm-modal--win .gm-title { background: linear-gradient(130deg, #ffe566, #ffb800, #ff8800); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
 .gm-subtitle { font-size: 12px; color: #4a68a8; text-align: center; }
 
 .gm-progress { width: 100%; max-width: 280px; }
-.gm-progress__bar { height: 4px; background: linear-gradient(90deg, #4a7fff, #2af598); border-radius: 4px; transition: width 0.8s ease; }
+.gm-progress__bar { height: 4px; background: linear-gradient(90deg, #4a7fff, #2af598); border-radius: 4px; transition: width 0.9s cubic-bezier(.16,1,.3,1); }
 .gm-progress__label { display: block; text-align: right; font-size: 9px; color: #3a5080; margin-top: 3px; font-family: 'Courier New', monospace; }
 
 /* ── Winners list ── */
@@ -218,8 +224,25 @@ const hiddenChips   = computed(() => Math.max(0, uniqueDrawn.value.length - CHIP
   display: flex; align-items: center; gap: 10px;
   padding: 10px 14px; border-radius: 12px;
   background: rgba(255,255,255,0.03); border: 1px solid rgba(80,120,255,0.1);
+  animation: gmWinnerIn .4s cubic-bezier(.16,1,.3,1) both;
+  animation-delay: var(--wd, 0ms);
 }
-.gm-winner-card--me { background: rgba(42,245,152,0.06); border-color: rgba(42,245,152,0.25); }
+@keyframes gmWinnerIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+.gm-winner-card--me {
+  background: rgba(42,245,152,0.07); border-color: rgba(42,245,152,0.3);
+  box-shadow: 0 0 0 1px rgba(42,245,152,0.08);
+  animation: gmWinnerIn .4s cubic-bezier(.16,1,.3,1) both, gmMeGlow 2.4s ease-in-out .4s infinite;
+}
+@keyframes gmMeGlow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(42,245,152,0.08); }
+  50%      { box-shadow: 0 0 16px rgba(42,245,152,0.18), 0 0 0 1px rgba(42,245,152,0.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gm-winner-card, .gm-winner-card--me { animation: none; }
+}
 .gm-winner-card__rank { font-size: 11px; font-weight: 700; color: #4a68a8; width: 24px; flex-shrink: 0; }
 .gm-winner-card__info { flex: 1; min-width: 0; }
 .gm-winner-card__name { font-size: 13px; font-weight: 700; color: #c8d8ff; display: flex; align-items: center; gap: 6px; }
@@ -302,9 +325,9 @@ const hiddenChips   = computed(() => Math.max(0, uniqueDrawn.value.length - CHIP
   transition: all 0.2s ease; border: 1px solid; text-decoration: none;
 }
 .gm-btn--primary { background: rgba(100,140,255,0.1); border-color: rgba(100,140,255,0.25); color: #7c9dff; }
-.gm-btn--primary:hover { background: rgba(100,140,255,0.2); color: #b0c8ff; }
+.gm-btn--primary:hover { background: rgba(100,140,255,0.18); color: #b0c8ff; }
 .gm-btn--secondary { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.09); color: #4a6aaa; }
-.gm-btn--secondary:hover { background: rgba(255,255,255,0.07); color: #7c9dff; }
+.gm-btn--secondary:hover { background: rgba(255,255,255,0.06); color: #7c9dff; }
 
 /* ── Confetti — position: absolute para quedar dentro del modal (overflow: hidden) ── */
 .gm-confetti {

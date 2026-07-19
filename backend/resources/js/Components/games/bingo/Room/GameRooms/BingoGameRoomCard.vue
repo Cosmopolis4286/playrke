@@ -134,7 +134,7 @@ function handleClick(event: MouseEvent) {
       <!-- ── Body ── -->
       <div class="rc__body">
 
-        <!-- Subtítulo: variante · rondas, discreto, una sola línea de metadata -->
+        <!-- Metadata: variante · rondas · fecha, una sola línea compacta -->
         <div class="rc__meta">
           <span v-tooltip="variantLabel" class="rc__meta-item">{{ variantBalls }}B</span>
           <span class="rc__meta-dot" />
@@ -146,16 +146,12 @@ function handleClick(event: MouseEvent) {
           >
             <i class="fas fa-rotate" />{{ roundsCount }} Ronda{{ roundsCount !== 1 ? 's' : '' }}
           </span>
-        </div>
-
-        <!-- Fecha y hora de inicio — siempre visible si está configurada -->
-        <div
-          v-if="startLabel"
-          v-tooltip="'Fecha y hora programada de inicio del sorteo'"
-          class="rc__start-time"
-        >
-          <i class="far fa-calendar-alt" />
-          <span>{{ startLabel }}</span>
+          <template v-if="startLabel">
+            <span class="rc__meta-dot" />
+            <span v-tooltip="'Fecha y hora programada de inicio del sorteo'" class="rc__meta-item">
+              <i class="far fa-calendar-alt" />{{ startLabel }}
+            </span>
+          </template>
         </div>
 
         <RoomCardPrizeProgress
@@ -211,45 +207,46 @@ function handleClick(event: MouseEvent) {
 ══════════════════════════════════ */
 .rc {
   --accent:   #2af598;
-  --glow-clr: rgba(42,245,152,.1);
+  --glow-clr: rgba(42,245,152,.08);
   --d: 0ms;
 
   position: relative;
   width: 100%;
   max-width: 208px;
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
   cursor: pointer;
   background: linear-gradient(165deg, #0c1230 0%, #060a18 65%);
-  border: 1px solid rgba(255,255,255,.08);
-  box-shadow: 0 4px 22px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.05) inset;
-  transition: transform .22s cubic-bezier(.22,.68,0,1.2),
-              box-shadow .22s ease, border-color .22s ease;
-  animation: rcIn .36s ease both;
+  border: 1px solid rgba(255,255,255,.07);
+  box-shadow: 0 4px 22px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.04) inset;
+  transition: transform .32s cubic-bezier(.16,1,.3,1),
+              box-shadow .32s cubic-bezier(.16,1,.3,1),
+              border-color .32s ease;
+  animation: rcIn .5s cubic-bezier(.16,1,.3,1) both;
   animation-delay: var(--d);
 }
 @keyframes rcIn {
-  from { opacity: 0; transform: translateY(6px) scale(.99); }
+  from { opacity: 0; transform: translateY(10px) scale(.98); }
   to   { opacity: 1; transform: none; }
 }
 
-.rc--live { --accent: #ff4d6d; --glow-clr: rgba(255,77,109,.1); }
+.rc--live { --accent: #ff4d6d; --glow-clr: rgba(255,77,109,.08); }
 
 .rc--active:hover {
-  transform: translateY(-4px) scale(1.006);
-  border-color: rgba(42,245,152,.2);
-  box-shadow: 0 14px 40px rgba(0,0,0,.6),
-              0 0 0 1px rgba(42,245,152,.16),
-              0 0 22px rgba(42,245,152,.08);
+  transform: translateY(-5px);
+  border-color: rgba(42,245,152,.18);
+  box-shadow: 0 18px 44px rgba(0,0,0,.55),
+              0 0 0 1px rgba(42,245,152,.14),
+              0 0 26px rgba(42,245,152,.07);
 }
 .rc--live:hover {
-  transform: translateY(-3px) scale(1.004);
-  border-color: rgba(255,77,109,.2);
-  box-shadow: 0 12px 36px rgba(0,0,0,.6), 0 0 0 1px rgba(255,77,109,.16);
+  transform: translateY(-4px);
+  border-color: rgba(255,77,109,.18);
+  box-shadow: 0 16px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(255,77,109,.14);
 }
 .rc--off {
-  opacity: .2; cursor: default;
-  filter: saturate(.08) brightness(.6);
+  opacity: .22; cursor: default;
+  filter: saturate(.08) brightness(.62);
   pointer-events: none;
 }
 
@@ -258,25 +255,25 @@ function handleClick(event: MouseEvent) {
   outline-offset: 2px;
 }
 
-/* glow de fondo — respiración sutil, refuerza la sensación de "vivo" */
+/* glow de fondo — respiración muy sutil, refuerza la sensación de "vivo" sin distraer */
 .rc__glow {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background: radial-gradient(ellipse 90% 70% at 5% 115%, var(--glow-clr), transparent 60%);
-  animation: glowBreathe 5s ease-in-out infinite;
+  animation: glowBreathe 7s ease-in-out infinite;
 }
 @keyframes glowBreathe {
-  0%, 100% { opacity: .7; }
+  0%, 100% { opacity: .75; }
   50%      { opacity: 1; }
 }
 
-/* shimmer en hover */
+/* shimmer en hover — más lento y discreto, efecto "satinado" en vez de destello */
 .rc__shimmer {
   position: absolute; inset: 0; z-index: 1; pointer-events: none;
-  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.025) 50%, transparent 70%);
+  background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.02) 50%, transparent 65%);
   transform: translateX(-110%);
 }
 .rc--active:hover .rc__shimmer,
-.rc--live:hover   .rc__shimmer { animation: shimmer .48s ease forwards; }
+.rc--live:hover   .rc__shimmer { animation: shimmer .7s cubic-bezier(.16,1,.3,1) forwards; }
 @keyframes shimmer { to { transform: translateX(110%); } }
 
 /* inner */
@@ -289,12 +286,12 @@ function handleClick(event: MouseEvent) {
    aquí porque :hover se aplica sobre .rc, que no es visible dentro del scope
    de esos componentes hijos. */
 .rc--active:hover :deep(.rc__img),
-.rc--live:hover   :deep(.rc__img) { transform: scale(1.56); }
+.rc--live:hover   :deep(.rc__img) { transform: scale(1.5); }
 
 .rc--active:hover :deep(.rc__stat),
 .rc--live:hover   :deep(.rc__stat) {
-  background: rgba(255,255,255,.06);
-  border-color: rgba(255,255,255,.11);
+  background: rgba(255,255,255,.055);
+  border-color: rgba(255,255,255,.1);
 }
 
 /* ══════════════════════════════════
@@ -302,19 +299,19 @@ function handleClick(event: MouseEvent) {
 ══════════════════════════════════ */
 .rc__body {
   flex: 1; min-width: 0;
-  padding: 12px 14px 13px;
+  padding: 10px 14px 12px;
   display: flex; flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
-/* ── Metadata: subtítulo discreto ── */
+/* ── Metadata: variante · rondas · fecha, una fila compacta y flexible ── */
 .rc__meta {
-  display: flex; align-items: center; justify-content: center; gap: 7px;
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  flex-shrink: 0; flex-wrap: wrap; row-gap: 2px;
 }
 .rc__meta-item {
   display: inline-flex; align-items: center; gap: 4px;
-  font-size: 10px; font-weight: 700; letter-spacing: .3px;
+  font-size: 9.5px; font-weight: 600; letter-spacing: .25px;
   color: #6a86ac;
   white-space: nowrap;
 }
@@ -323,15 +320,6 @@ function handleClick(event: MouseEvent) {
   width: 3px; height: 3px; border-radius: 50%;
   background: #34486a; flex-shrink: 0;
 }
-
-/* ── Fecha / hora de inicio ── */
-.rc__start-time {
-  display: flex; align-items: center; justify-content: center; gap: 5px;
-  font-size: 10.5px; font-weight: 700; letter-spacing: .2px;
-  color: #7a9ac0;
-  flex-shrink: 0;
-}
-.rc__start-time i { font-size: 9px; color: #4a6a90; }
 
 /* UX-02: etiqueta "Cerrada" para salas rc--off */
 .rc__closed-label {
@@ -351,11 +339,11 @@ function handleClick(event: MouseEvent) {
   position: absolute; z-index: 10; pointer-events: none;
   width: 10px; height: 10px; margin: -5px 0 0 -5px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,.5) 0%, transparent 70%);
-  animation: rippleExpand .5s ease-out forwards;
+  background: radial-gradient(circle, rgba(255,255,255,.45) 0%, transparent 70%);
+  animation: rippleExpand .6s cubic-bezier(.16,1,.3,1) forwards;
 }
 @keyframes rippleExpand {
-  from { transform: scale(1);  opacity: .8; }
-  to   { transform: scale(22); opacity: 0; }
+  from { transform: scale(1);  opacity: .7; }
+  to   { transform: scale(24); opacity: 0; }
 }
 </style>

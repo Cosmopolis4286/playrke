@@ -73,7 +73,7 @@ defineProps<{
 /* ── Footer: precio + stats ── */
 .rc__footer {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 6px;
-  padding-top: 9px;
+  padding-top: 7px;
   border-top: 1px solid rgba(255,255,255,.08);
   flex-shrink: 0;
 }
@@ -106,10 +106,10 @@ defineProps<{
   display: inline-flex; align-items: center; justify-content: center;
   width: 18px; height: 18px; border-radius: 50%;
   margin-left: -6px;
-  font-size: 8px; font-weight: 800; color: #cfe0f5;
+  font-size: 8px; font-weight: 700; color: #cfe0f5;
   background: linear-gradient(145deg, #2a4068 0%, #16233f 100%);
   border: 1.5px solid #0c1230;
-  box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  box-shadow: 0 1px 3px rgba(0,0,0,.35);
 }
 .rc__avatar:first-child { margin-left: 0; }
 .rc__avatar--more {
@@ -130,7 +130,7 @@ defineProps<{
   background: rgba(255,255,255,.05);
   border: 1px solid rgba(255,255,255,.09);
   white-space: nowrap;
-  transition: border-color .2s, background .2s;
+  transition: border-color .25s ease, background .25s ease;
 }
 .rc__stat i { font-size: 8.5px; color: #3a5878; }
 
