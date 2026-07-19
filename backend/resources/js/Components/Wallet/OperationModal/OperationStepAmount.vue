@@ -19,10 +19,19 @@ const emit = defineEmits<{
   (e: 'clear-quick-amount'): void
 }>()
 
-const quickAmounts = [10, 25, 50, 100, 200, 500]
+const quickAmounts = [100, 250, 500, 1000, 2500, 5000]
 
 function onAmountInput(e: Event) {
-  emit('update:amount', (e.target as HTMLInputElement).value)
+  const input = e.target as HTMLInputElement
+  const value = input.value
+
+  const match = value.match(/^-?\d*(\.\d{0,2})?/)
+  const truncated = match ? match[0] : value
+  if (truncated !== value) {
+    input.value = truncated
+  }
+
+  emit('update:amount', truncated)
   emit('clear-quick-amount')
 }
 
