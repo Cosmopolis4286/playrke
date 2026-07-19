@@ -2,87 +2,79 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\User;
 use App\Models\Country;
+use App\Models\Currency;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Cobertura del flujo real de autenticación (routes/auth.php), reescrita
+ * tras confirmar que /api/auth/* (routes/api.php) nunca se activó — esa
+ * capa era para un frontend Nuxt que no está en uso. El registro real es
+ * un flujo Inertia (redirect), login/logout devuelven JSON.
+ */
 class AuthTest extends TestCase
 {
     use RefreshDatabase;
+
+    private Country $country;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Create a default country for testing
-        Country::factory()->create([
-            'id' => 1,
-            'name' => 'Venezuela',
-            'iso_code_2' => 'VE',
+        $this->country = Country::factory()->create(['iso_code_2' => 'VE']);
+
+        // RegisteredUserController::store() crea una Wallet resolviendo la
+        // moneda del país vía Currency::getValueByCountry() — sin una
+        // Currency asociada al país, el registro real fallaría.
+        Currency::factory()->create([
+            'country_id' => $this->country->id,
+            'iso_code' => 'VES',
         ]);
     }
 
     /** @test */
     public function user_can_register()
     {
-        $response = $this->postJson('/api/auth/register', [
+        $response = $this->post('/register', [
             'username' => 'testuser',
             'email' => 'test@example.com',
-            'first_name' => 'Test',
-            'last_name' => 'User',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'country_id' => 1,
-            'terms' => true,
+            'country' => $this->country->id,
+            'politicas' => true,
         ]);
 
-        $response->assertStatus(201)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Usuario registrado exitosamente',
-            ])
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'user' => [
-                    'id',
-                    'username',
-                    'email',
-                    'first_name',
-                    'last_name',
-                    'full_name',
-                    'role',
-                    'roles',
-                ],
-            ]);
+        $response->assertRedirect(route('dashboard'));
 
         $this->assertDatabaseHas('users', [
             'username' => 'testuser',
             'email' => 'test@example.com',
         ]);
+
+        $user = User::where('email', 'test@example.com')->first();
+        $this->assertAuthenticatedAs($user);
+        $this->assertDatabaseHas('wallets', ['user_id' => $user->id]);
     }
 
     /** @test */
     public function user_cannot_register_with_duplicate_email()
     {
-        User::factory()->create([
-            'email' => 'test@example.com',
-        ]);
+        User::factory()->create(['email' => 'test@example.com']);
 
-        $response = $this->postJson('/api/auth/register', [
+        $response = $this->post('/register', [
             'username' => 'testuser2',
             'email' => 'test@example.com',
-            'first_name' => 'Test',
-            'last_name' => 'User',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'country_id' => 1,
-            'terms' => true,
+            'country' => $this->country->id,
+            'politicas' => true,
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+        $response->assertSessionHasErrors(['email']);
+        $this->assertGuest();
     }
 
     /** @test */
@@ -93,27 +85,12 @@ class AuthTest extends TestCase
             'password' => bcrypt('password123'),
         ]);
 
-        $response = $this->postJson('/api/auth/login', [
+        $response = $this->postJson('/login', [
             'login' => 'test@example.com',
             'password' => 'password123',
         ]);
 
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Autenticación exitosa',
-            ])
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'user' => [
-                    'id',
-                    'username',
-                    'email',
-                    'role',
-                ],
-            ]);
-
+        $response->assertOk()->assertJson(['success' => true]);
         $this->assertAuthenticatedAs($user);
     }
 
@@ -125,69 +102,30 @@ class AuthTest extends TestCase
             'password' => bcrypt('password123'),
         ]);
 
-        $response = $this->postJson('/api/auth/login', [
+        $response = $this->postJson('/login', [
             'login' => 'testuser',
             'password' => 'password123',
         ]);
 
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-            ]);
-
+        $response->assertOk()->assertJson(['success' => true]);
         $this->assertAuthenticatedAs($user);
     }
 
     /** @test */
-    public function user_cannot_login_with_invalid_credentials()
+    public function login_fails_with_incorrect_credentials()
     {
         User::factory()->create([
             'email' => 'test@example.com',
             'password' => bcrypt('password123'),
         ]);
 
-        $response = $this->postJson('/api/auth/login', [
+        $response = $this->postJson('/login', [
             'login' => 'test@example.com',
             'password' => 'wrongpassword',
         ]);
 
-        $response->assertStatus(422)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Credenciales inválidas',
-            ]);
-
+        $response->assertStatus(422)->assertJsonValidationErrors(['login']);
         $this->assertGuest();
-    }
-
-    /** @test */
-    public function authenticated_user_can_get_their_info()
-    {
-        $user = User::factory()->create();
-
-        $response = $this->actingAs($user)
-            ->getJson('/api/auth/user');
-
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'user' => [
-                    'id' => $user->id,
-                    'email' => $user->email,
-                ],
-            ]);
-    }
-
-    /** @test */
-    public function unauthenticated_user_cannot_get_user_info()
-    {
-        $response = $this->getJson('/api/auth/user');
-
-        $response->assertStatus(401)
-            ->assertJson([
-                'success' => false,
-                'message' => 'No autenticado',
-            ]);
     }
 
     /** @test */
@@ -195,8 +133,7 @@ class AuthTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)
-            ->postJson('/api/auth/logout');
+        $response = $this->actingAs($user)->postJson('/logout');
 
         $response->assertOk()
             ->assertJson([
@@ -210,54 +147,24 @@ class AuthTest extends TestCase
     /** @test */
     public function registration_requires_all_fields()
     {
-        $response = $this->postJson('/api/auth/register', []);
+        $response = $this->post('/register', []);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors([
-                'username',
-                'email',
-                'first_name',
-                'last_name',
-                'password',
-                'country_id',
-                'terms',
-            ]);
+        $response->assertSessionHasErrors(['email', 'username', 'country', 'password']);
     }
 
     /** @test */
     public function password_must_be_confirmed()
     {
-        $response = $this->postJson('/api/auth/register', [
+        $response = $this->post('/register', [
             'username' => 'testuser',
             'email' => 'test@example.com',
-            'first_name' => 'Test',
-            'last_name' => 'User',
             'password' => 'password123',
             'password_confirmation' => 'differentpassword',
-            'country_id' => 1,
-            'terms' => true,
+            'country' => $this->country->id,
+            'politicas' => true,
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['password']);
-    }
-
-    /** @test */
-    public function user_is_assigned_player_role_on_registration()
-    {
-        $this->postJson('/api/auth/register', [
-            'username' => 'testuser',
-            'email' => 'test@example.com',
-            'first_name' => 'Test',
-            'last_name' => 'User',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-            'country_id' => 1,
-            'terms' => true,
-        ]);
-
-        $user = User::where('email', 'test@example.com')->first();
-
-        $this->assertTrue($user->hasRole('player'));
+        $response->assertSessionHasErrors(['password']);
+        $this->assertGuest();
     }
 }

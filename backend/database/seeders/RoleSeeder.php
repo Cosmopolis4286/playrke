@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models;
+use App\Models\Role;
 use BradieTilley\Snowflake\Snowflake;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role as SpatieRole;
 
 class RoleSeeder extends Seeder
 {
@@ -42,24 +41,26 @@ class RoleSeeder extends Seeder
             $role['guard_name'] = $role['type'] === 'api' ? 'api' : 'web';
         }
 
-        // Creamos o actualizamos cada rol en la base de datos
-        // La tabla 'roles' incluye todos los campos (Spatie + custom)
+        // Creamos o actualizamos cada rol en la base de datos.
+        // Usa App\Models\Role (no Spatie\Permission\Models\Role): mismo
+        // registro/tabla, pero App\Models\Role es el modelo real que consume
+        // el resto del sistema (User::roles(), RoleUserRepository, etc.) y
+        // tiene el cast id => string vía SnowflakeId.
         foreach ($roles as $role) {
-            $existingRole = SpatieRole::where('name', $role['prefix'])
+            $existingRole = Role::where('name', $role['prefix'])
                 ->where('guard_name', $role['guard_name'])
                 ->first();
 
             if (!$existingRole) {
-                // Crear nuevo rol con Snowflake ID
-                $spatieRole = new SpatieRole();
-                $spatieRole->id = $snowflake->id();
-                $spatieRole->name = $role['prefix'];           // player, admin, etc
-                $spatieRole->guard_name = $role['guard_name']; // web o api
-                $spatieRole->prefix = $role['prefix'];
-                $spatieRole->type = $role['type'];
-                $spatieRole->description = $role['description'];
-                $spatieRole->status = $role['status'];
-                $spatieRole->save();
+                $newRole = new Role();
+                $newRole->id = (string) $snowflake->id();
+                $newRole->name = $role['prefix'];           // player, admin, etc
+                $newRole->guard_name = $role['guard_name']; // web o api
+                $newRole->prefix = $role['prefix'];
+                $newRole->type = $role['type'];
+                $newRole->description = $role['description'];
+                $newRole->status = $role['status'];
+                $newRole->save();
             }
         }
 

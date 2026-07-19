@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Contracts\CurrencyRepositoryInterface;
 use App\Contracts\SettingRepositoryInterface;
 use App\Events\Admin\UserRegistered as UserRegisteredBroadcast;
 use App\Http\Controllers\Controller;
-use App\Models\Currency;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Repositories\CountryRepository;
@@ -27,7 +27,8 @@ class RegisteredUserController extends Controller
      * Inyecta el repositorio en el constructor
      */
     public function __construct(
-        protected SettingRepositoryInterface $settings
+        protected SettingRepositoryInterface $settings,
+        protected CurrencyRepositoryInterface $currencies,
     ) {}
 
     /**
@@ -87,7 +88,7 @@ class RegisteredUserController extends Controller
             ]);
 
             // Obtener el valor de la moneda para el país del usuario
-            $currency = Currency::getValueByCountry($user->country, 'id');
+            $currency = $this->currencies->getValueByCountry($user->country, 'id');
 
             // Crear un nuevo Wallet para el usuario
             Wallet::create([

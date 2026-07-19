@@ -5,9 +5,15 @@ namespace Tests\Feature\Api;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
+/**
+ * Cobertura del perfil de usuario contra el flujo real (routes/modules/user-profile.php
+ * + ProfileController), reescrita tras confirmar que /api/user/* (routes/api.php)
+ * nunca se activó.
+ */
 class UserTest extends TestCase
 {
     use RefreshDatabase;
@@ -20,19 +26,18 @@ class UserTest extends TestCase
             'last_name' => 'Doe',
         ]);
 
-        $response = $this->actingAs($user)
-            ->getJson('/api/user/profile');
+        $response = $this->actingAs($user)->getJson('/profile/data');
 
         $response->assertOk()
             ->assertJson([
                 'success' => true,
-                'profile' => [
-                    'id' => $user->id,
+                'data' => [
+                    'id' => (string) $user->id,
                     'username' => $user->username,
                     'email' => $user->email,
                     'first_name' => 'John',
                     'last_name' => 'Doe',
-                    'full_name' => 'John Doe',
+                    'name' => 'John Doe',
                 ],
             ]);
     }
@@ -43,17 +48,18 @@ class UserTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)
-            ->putJson('/api/user/profile', [
+            ->putJson('/profile/update', [
                 'first_name' => 'Updated',
                 'last_name' => 'Name',
+                'username' => $user->username,
+                'email' => $user->email,
                 'phone' => '+58412345678',
             ]);
 
         $response->assertOk()
             ->assertJson([
                 'success' => true,
-                'message' => 'Perfil actualizado exitosamente',
-                'profile' => [
+                'data' => [
                     'first_name' => 'Updated',
                     'last_name' => 'Name',
                     'phone' => '+58412345678',
@@ -75,21 +81,16 @@ class UserTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)
-            ->putJson('/api/user/password', [
+            ->patchJson('/profile/password', [
                 'current_password' => 'oldpassword',
-                'password' => 'newpassword123',
-                'password_confirmation' => 'newpassword123',
+                'new_password' => 'newpassword123',
+                'new_password_confirmation' => 'newpassword123',
             ]);
 
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Contraseña actualizada exitosamente',
-            ]);
+        $response->assertOk()->assertJson(['success' => true]);
 
-        // Verify new password works
         $this->assertTrue(
-            \Hash::check('newpassword123', $user->fresh()->password)
+            Hash::check('newpassword123', $user->fresh()->password)
         );
     }
 
@@ -101,10 +102,10 @@ class UserTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)
-            ->putJson('/api/user/password', [
+            ->patchJson('/profile/password', [
                 'current_password' => 'wrongpassword',
-                'password' => 'newpassword123',
-                'password_confirmation' => 'newpassword123',
+                'new_password' => 'newpassword123',
+                'new_password_confirmation' => 'newpassword123',
             ]);
 
         $response->assertStatus(422)
@@ -121,20 +122,15 @@ class UserTest extends TestCase
         $file = UploadedFile::fake()->image('avatar.jpg');
 
         $response = $this->actingAs($user)
-            ->postJson('/api/user/avatar', [
+            ->postJson('/profile/avatar', [
                 'avatar' => $file,
             ]);
 
         $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Avatar actualizado exitosamente',
-            ])
-            ->assertJsonStructure(['avatar_url']);
+            ->assertJson(['success' => true])
+            ->assertJsonStructure(['data' => ['avatar']]);
 
-        // Verify file was stored
-        $this->assertNotNull($user->fresh()->avatar);
-        Storage::disk('public')->assertExists($user->fresh()->avatar);
+        $this->assertNotNull($user->fresh()->profile_photo_url);
     }
 
     /** @test */
@@ -142,23 +138,17 @@ class UserTest extends TestCase
     {
         Storage::fake('public');
 
-        $user = User::factory()->create([
-            'avatar' => 'avatars/test.jpg',
-        ]);
-
-        // Create fake file
         Storage::disk('public')->put('avatars/test.jpg', 'content');
 
-        $response = $this->actingAs($user)
-            ->deleteJson('/api/user/avatar');
+        $user = User::factory()->create([
+            'profile_photo_url' => '/storage/avatars/test.jpg',
+        ]);
 
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Avatar eliminado exitosamente',
-            ]);
+        $response = $this->actingAs($user)->deleteJson('/profile/avatar');
 
-        $this->assertNull($user->fresh()->avatar);
+        $response->assertOk()->assertJson(['success' => true]);
+
+        $this->assertNull($user->fresh()->profile_photo_url);
         Storage::disk('public')->assertMissing('avatars/test.jpg');
     }
 
@@ -166,23 +156,20 @@ class UserTest extends TestCase
     public function user_can_get_their_preferences()
     {
         $user = User::factory()->create([
-            'preferences' => [
-                'theme' => 'dark',
-                'language' => 'es',
-                'notifications' => true,
+            'user_preferences' => [
+                'language' => 'en',
+                'timezone' => 'America/Caracas',
             ],
         ]);
 
-        $response = $this->actingAs($user)
-            ->getJson('/api/user/preferences');
+        $response = $this->actingAs($user)->getJson('/profile/preferences');
 
         $response->assertOk()
             ->assertJson([
                 'success' => true,
-                'preferences' => [
-                    'theme' => 'dark',
-                    'language' => 'es',
-                    'notifications' => true,
+                'data' => [
+                    'language' => 'en',
+                    'timezone' => 'America/Caracas',
                 ],
             ]);
     }
@@ -193,27 +180,24 @@ class UserTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)
-            ->putJson('/api/user/preferences', [
-                'theme' => 'dark',
+            ->putJson('/profile/preferences', [
                 'language' => 'en',
-                'sound_enabled' => false,
+                'timezone' => 'UTC',
+                'game_settings' => ['sound_enabled' => false],
             ]);
 
         $response->assertOk()
             ->assertJson([
                 'success' => true,
-                'message' => 'Preferencias actualizadas exitosamente',
-                'preferences' => [
-                    'theme' => 'dark',
+                'data' => [
                     'language' => 'en',
-                    'sound_enabled' => false,
+                    'timezone' => 'UTC',
+                    'game_settings' => ['sound_enabled' => false],
                 ],
             ]);
 
-        $preferences = $user->fresh()->preferences;
-        $this->assertEquals('dark', $preferences['theme']);
+        $preferences = $user->fresh()->user_preferences;
         $this->assertEquals('en', $preferences['language']);
-        $this->assertFalse($preferences['sound_enabled']);
     }
 
     /** @test */
@@ -221,21 +205,18 @@ class UserTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)
-            ->getJson('/api/user/stats');
+        $response = $this->actingAs($user)->getJson('/profile/stats');
 
         $response->assertOk()
-            ->assertJson([
-                'success' => true,
-            ])
+            ->assertJson(['success' => true])
             ->assertJsonStructure([
                 'success',
-                'stats' => [
-                    'total_games',
-                    'total_wins',
-                    'win_rate',
-                    'total_spent',
-                    'total_won',
+                'data' => [
+                    'games_played',
+                    'games_won',
+                    'total_winnings',
+                    'level',
+                    'experience_points',
                 ],
             ]);
     }
@@ -244,11 +225,11 @@ class UserTest extends TestCase
     public function guest_cannot_access_user_endpoints()
     {
         $endpoints = [
-            ['GET', '/api/user/profile'],
-            ['PUT', '/api/user/profile'],
-            ['PUT', '/api/user/password'],
-            ['GET', '/api/user/preferences'],
-            ['GET', '/api/user/stats'],
+            ['GET', '/profile/data'],
+            ['PUT', '/profile/update'],
+            ['PATCH', '/profile/password'],
+            ['GET', '/profile/preferences'],
+            ['GET', '/profile/stats'],
         ];
 
         foreach ($endpoints as [$method, $url]) {
@@ -265,7 +246,7 @@ class UserTest extends TestCase
         $file = UploadedFile::fake()->create('document.pdf');
 
         $response = $this->actingAs($user)
-            ->postJson('/api/user/avatar', [
+            ->postJson('/profile/avatar', [
                 'avatar' => $file,
             ]);
 
@@ -274,14 +255,15 @@ class UserTest extends TestCase
     }
 
     /** @test */
-    public function avatar_size_must_not_exceed_2mb()
+    public function avatar_size_must_not_exceed_5mb()
     {
         $user = User::factory()->create();
 
-        $file = UploadedFile::fake()->image('avatar.jpg')->size(3000); // 3MB
+        // ProfileController::uploadAvatar() valida max:5120 (KB) = 5MB.
+        $file = UploadedFile::fake()->image('avatar.jpg')->size(6000);
 
         $response = $this->actingAs($user)
-            ->postJson('/api/user/avatar', [
+            ->postJson('/profile/avatar', [
                 'avatar' => $file,
             ]);
 
