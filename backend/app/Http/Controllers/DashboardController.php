@@ -24,7 +24,9 @@ class DashboardController extends Controller
      */
     public function index(): Response
     {
-        $rolePrefix = Auth::user()?->roles?->first()?->prefix ?? 'user';
+        // Role::prefix se persiste siempre en mayúsculas (ver Role::setPrefixAttribute),
+        // se normaliza aquí a minúsculas para poder mapearlo a la carpeta de vistas.
+        $rolePrefix = strtolower(Auth::user()?->roles?->first()?->prefix ?? 'user');
 
         return $this->handleServiceInertia(
             function () use ($rolePrefix) {
