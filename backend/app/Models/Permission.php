@@ -6,11 +6,15 @@ use App\Traits\SnowflakeId;
 use Spatie\Permission\Models\Permission as SpatiePermission;
 
 /**
- * Extiende el modelo de Spatie agregando solo SnowflakeId.
+ * Extiende el modelo de Spatie agregando SnowflakeId + is_system.
  * El trait aporta: keyType=string, incrementing=false, getCasts() con id=>string,
  * y generación automática del ID en el evento creating.
  */
 class Permission extends SpatiePermission
 {
     use SnowflakeId;
+
+    protected $casts = [
+        'is_system' => 'boolean',
+    ];
 }

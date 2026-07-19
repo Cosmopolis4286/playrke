@@ -48,12 +48,17 @@ final class PermissionContextService
         }
 
         return $roles->map(function ($role) {
-            $color = match ($role->name) {
+            // role->name se guarda con Str::title() (ej. "Superadmin", "Customer"
+            // — ver Role::normalizeName()), así que el match debe comparar en
+            // minúsculas o nunca coincide con ningún caso, cayendo siempre a
+            // 'secondary' sin importar el rol real.
+            $color = match (strtolower($role->name)) {
                 'superadmin' => 'danger',
                 'admin'      => 'warning',
                 'commerce'   => 'info',
                 'seller'     => 'success',
                 'treasurer'  => 'primary',
+                'customer'   => 'pink',
                 default      => 'secondary',
             };
             return '<span class="badge badge-' . $color . '">' . e($role->name) . '</span>';
