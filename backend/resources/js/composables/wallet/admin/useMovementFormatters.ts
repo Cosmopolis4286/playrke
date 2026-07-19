@@ -39,17 +39,6 @@ export function adminName(u: MovementAdmin | null): string {
   return [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email
 }
 
-export function formatAmount(mov: Movement): string {
-  const dp  = mov.currency?.decimal_places ?? 2
-  const sym = mov.currency?.symbol ?? ''
-  const val = new Intl.NumberFormat('es-VE', {
-    minimumFractionDigits: dp,
-    maximumFractionDigits: dp,
-  }).format(mov.amount)
-  const sign = ['DEPOSIT', 'PRIZE'].includes(mov.type) ? '+' : '-'
-  return `${sign}${sym} ${val}`
-}
-
 export function formatDate(iso: string): string {
   return new Intl.DateTimeFormat('es-VE', {
     day: '2-digit', month: 'short', year: 'numeric',
@@ -76,6 +65,30 @@ export function useMovementFormatters(movementTypes: Ref<MovementType[]> | Movem
     }
     return map
   })
+
+  // is_credit resuelto desde el catálogo real (no una lista hardcodeada) para
+  // que cualquier tipo nuevo (ej. BONUS_PRIZE) muestre el signo correcto sin
+  // tener que tocar este archivo. Fallback a débito (signo '-') si el tipo no
+  // está en catálogo — más seguro que asumir crédito por defecto.
+  const isCreditByCode = computed<Record<string, boolean>>(() => {
+    const types = Array.isArray(movementTypes) ? movementTypes : movementTypes.value
+    const map: Record<string, boolean> = {}
+    for (const type of types) {
+      map[type.code] = type.is_credit
+    }
+    return map
+  })
+
+  function formatAmount(mov: Movement): string {
+    const dp  = mov.currency?.decimal_places ?? 2
+    const sym = mov.currency?.symbol ?? ''
+    const val = new Intl.NumberFormat('es-VE', {
+      minimumFractionDigits: dp,
+      maximumFractionDigits: dp,
+    }).format(mov.amount)
+    const sign = isCreditByCode.value[mov.type] ? '+' : '-'
+    return `${sign}${sym} ${val}`
+  }
 
   return {
     typeConfig,

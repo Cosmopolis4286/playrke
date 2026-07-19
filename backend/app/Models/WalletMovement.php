@@ -41,6 +41,7 @@ class WalletMovement extends Model
     public const TYPE_WITHDRAWAL     = 'WITHDRAWAL';
     public const TYPE_PURCHASE       = 'PURCHASE';
     public const TYPE_PRIZE          = 'PRIZE';
+    public const TYPE_BONUS_PRIZE    = 'BONUS_PRIZE';
     public const TYPE_REFUND         = 'REFUND';
     public const TYPE_TRIVIA_ENTRY   = 'TRIVIA_ENTRY';
     public const TYPE_RKE_COMMISSION = 'RKE_COMMISSION';
@@ -65,6 +66,7 @@ class WalletMovement extends Model
         self::TYPE_WITHDRAWAL     => 'Retiro',
         self::TYPE_PURCHASE       => 'Compra de cartón',
         self::TYPE_PRIZE          => 'Premio ganado',
+        self::TYPE_BONUS_PRIZE    => 'Premio bono (no retirable)',
         self::TYPE_REFUND         => 'Reembolso',
         self::TYPE_TRIVIA_ENTRY   => 'Entrada Trivia',
         self::TYPE_RKE_COMMISSION => 'Comisión RKE',

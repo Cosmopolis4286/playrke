@@ -977,7 +977,7 @@ final class BingoCardGenerateService
         $totalAmount = round($basePrice * $regularCount + $customTotal, 4);
 
         // Obtener billetera activa del jugador con saldo
-        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['id', 'currency_id', 'balance']);
+        $activeWallets = $this->walletRepository->getActiveWalletsByUser((string)$userId, ['id', 'currency_id', 'balance', 'bonus_balance']);
 
         if ($activeWallets->isEmpty()) {
             throw new DomainException('El jugador no tiene billeteras activas configuradas');
@@ -985,10 +985,13 @@ final class BingoCardGenerateService
 
         $playerWallet = $activeWallets->first();
         $currencyId = $playerWallet->currency_id;
-        $currentBalance = (float) $playerWallet->balance;
 
-        // Verificar que tenga saldo suficiente
-        if ($currentBalance < $totalAmount) {
+        // Verificación optimista (fail-fast antes de generar cartones); la
+        // verificación autoritativa ocurre dentro de recordCardPurchase() bajo
+        // lockForUpdate(). Se considera bono + saldo real, ya que la compra
+        // consume primero el bono.
+        if (! $playerWallet->hasSufficientPlayableBalance($totalAmount)) {
+            $currentBalance = (float) $playerWallet->getPlayableBalance();
             throw new DomainException('Saldo insuficiente en la billetera. Saldo actual: ' . $currentBalance . ', Monto requerido: ' . $totalAmount);
         }
 
@@ -1020,9 +1023,23 @@ final class BingoCardGenerateService
         // Si recordCardPurchase falla, generateInTransaction se revierte y el jugador
         // no queda con cartones sin pago.
         $description = "Compra de {$numCtns} cartón(es) — Sala {$room->uuid_code}";
-        DB::transaction(function () use ($arrCtn, $playerWallet, $totalAmount, $description) {
+        DB::transaction(function () use ($arrCtn, $playerWallet, $totalAmount, $description, $roomId, $userId) {
             $this->cardGenerationService->generateInTransaction($arrCtn);
-            $this->walletService->recordCardPurchase($playerWallet->id, $totalAmount, $description);
+            $purchase = $this->walletService->recordCardPurchase($playerWallet->id, $totalAmount, $description);
+
+            // Propagar el desglose bono/real al lote recién creado para poder
+            // reembolsar proporcionalmente si la sala se cancela (ver
+            // WalletService::recordRefund() y BingoCardLotRefundJob). Solo un
+            // lote se crea por llamada (createCtnsLot() en generateCards()),
+            // así que el más reciente para esta sala+usuario dentro de esta
+            // misma transacción es inequívocamente el que se acaba de generar.
+            if ($purchase['bonus_spent'] > 0) {
+                \App\Domains\Games\Bingo\Models\Card\BingoCardLot::where('room_id', $roomId)
+                    ->where('user_id', $userId)
+                    ->latest('created_at')
+                    ->first()
+                    ?->update(['bonus_amount' => $purchase['bonus_spent']]);
+            }
         });
 
         // Emitir evento de actualización de sala via WebSocket (fuera de la transacción)

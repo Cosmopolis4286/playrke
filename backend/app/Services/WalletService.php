@@ -354,28 +354,42 @@ final class WalletService
         $result = DB::transaction(function () use ($wallet, $amount, $description, &$movementId) {
             $walletId = (string) $wallet->id;
 
-            if (! $wallet->hasSufficientBalance($amount)) {
+            // La wallet llega SIN lock desde el controller/caller (resuelta vía
+            // findOwnedWalletByCurrency()/findActiveWallet()). A diferencia del
+            // decrementBalance() ciego de antes, consumeBonusFirst() necesita
+            // leer bonus_balance/balance para decidir el split, así que requiere
+            // lockForUpdate() explícito para no correr esa lectura sin proteger.
+            $locked = Wallet::lockForUpdate()->findOrFail($walletId);
+
+            if (! $locked->hasSufficientPlayableBalance($amount)) {
                 throw new \DomainException('Saldo insuficiente para unirte a esta sala.');
             }
 
-            $balanceBefore = (float) $wallet->balance;
+            $balanceBefore      = (float) $locked->balance;
+            $bonusBalanceBefore = (float) $locked->bonus_balance;
 
-            $this->walletRepository->decrementBalance($walletId, $amount);
-            $wallet->refresh();
+            $split = $this->walletRepository->consumeBonusFirst($walletId, $amount);
+            $locked->refresh();
 
             $movement = $this->movementRepository->record([
                 'wallet_id'      => $walletId,
-                'user_id'        => (string) $wallet->user_id,
+                'user_id'        => (string) $locked->user_id,
                 'type'           => WalletMovement::TYPE_TRIVIA_ENTRY,
                 'status'         => WalletMovement::STATUS_COMPLETED,
                 'amount'         => $amount,
                 'balance_before' => $balanceBefore,
-                'balance_after'  => (float) $wallet->balance,
+                'balance_after'  => (float) $locked->balance,
                 'description'    => $description,
+                'metadata'       => [
+                    'bonus_amount'         => $split['bonus_spent'],
+                    'balance_amount'       => $split['balance_spent'],
+                    'bonus_balance_before' => $bonusBalanceBefore,
+                    'bonus_balance_after'  => (float) $locked->bonus_balance,
+                ],
             ]);
             $movementId = (string) $movement->id;
 
-            return $wallet;
+            return $locked;
         });
 
         $this->broadcastWalletUpdated($result, WalletMovement::TYPE_TRIVIA_ENTRY, $amount, $movementId);
@@ -394,6 +408,11 @@ final class WalletService
      *   nuevo — necesario para juegos cuyo registro de premio vive en una BD
      *   distinta a wallet_movements (ej. Trivia en pgsql_trivia), donde no hay
      *   transacción conjunta ni lockForUpdate que prevenga doble pago en un retry.
+     * @param bool        $withdrawable    true (default) acredita a balance retirable
+     *   con type=PRIZE, igual que siempre. false acredita a bonus_balance (no
+     *   retirable, solo usable dentro de la app) con type=BONUS_PRIZE. La
+     *   decisión de negocio de cuándo un premio es bono queda fuera de este
+     *   método — es un punto de extensión para el caller (ver GamePrizeService).
      */
     public function recordPrize(
         Wallet $wallet,
@@ -402,6 +421,7 @@ final class WalletService
         string $description = 'Premio ganado',
         string $prizeType = WalletMovement::PRIZE_TYPE_DIGITAL,
         ?string $idempotencyKey = null,
+        bool $withdrawable = true,
     ): WalletMovement {
         if ($idempotencyKey !== null) {
             $existing = WalletMovement::where('idempotency_key', $idempotencyKey)->first();
@@ -411,24 +431,36 @@ final class WalletService
         }
 
         try {
-            $movement = DB::transaction(function () use ($wallet, $amount, $description, $gameId, $prizeType, $idempotencyKey) {
-                $walletId      = (string) $wallet->id;
-                $balanceBefore = (float) $wallet->balance;
+            $movement = DB::transaction(function () use ($wallet, $amount, $description, $gameId, $prizeType, $idempotencyKey, $withdrawable) {
+                $walletId           = (string) $wallet->id;
+                $balanceBefore      = (float) $wallet->balance;
+                $bonusBalanceBefore = (float) $wallet->bonus_balance;
 
-                $this->walletRepository->incrementBalance($walletId, $amount);
+                $metadata = ['game_id' => $gameId, 'prize_type' => $prizeType, 'withdrawable' => $withdrawable];
+
+                if ($withdrawable) {
+                    $this->walletRepository->incrementBalance($walletId, $amount);
+                } else {
+                    $this->walletRepository->incrementBonusBalance($walletId, $amount);
+                }
                 $wallet->refresh();
+
+                if (! $withdrawable) {
+                    $metadata['bonus_balance_before'] = $bonusBalanceBefore;
+                    $metadata['bonus_balance_after']  = (float) $wallet->bonus_balance;
+                }
 
                 return $this->movementRepository->record([
                     'wallet_id'        => $walletId,
                     'user_id'          => (string) $wallet->user_id,
-                    'type'             => WalletMovement::TYPE_PRIZE,
+                    'type'             => $withdrawable ? WalletMovement::TYPE_PRIZE : WalletMovement::TYPE_BONUS_PRIZE,
                     'status'           => WalletMovement::STATUS_COMPLETED,
                     'amount'           => $amount,
                     'balance_before'   => $balanceBefore,
                     'balance_after'    => (float) $wallet->balance,
                     'description'      => $description,
                     'idempotency_key'  => $idempotencyKey,
-                    'metadata'         => ['game_id' => $gameId, 'prize_type' => $prizeType],
+                    'metadata'         => $metadata,
                 ]);
             });
         } catch (\Illuminate\Database\QueryException $e) {
@@ -455,20 +487,31 @@ final class WalletService
         return $movement;
     }
 
-    public function recordCardPurchase(string $walletId, float $amount, string $description = 'Compra de cartones'): Wallet
+    /**
+     * Registra la compra de cartones, consumiendo bonus_balance antes que
+     * balance real. Devuelve el desglose de cuánto salió de cada columna para
+     * que el caller (ej. BingoCardGenerateService) pueda propagarlo al lote de
+     * cartones — necesario para reembolsar proporcionalmente si la sala se
+     * cancela (ver recordRefund()).
+     *
+     * @return array{wallet: Wallet, bonus_spent: float, balance_spent: float}
+     */
+    public function recordCardPurchase(string $walletId, float $amount, string $description = 'Compra de cartones'): array
     {
         $movementId = null;
+        $split      = ['bonus_spent' => 0.0, 'balance_spent' => 0.0];
 
-        $wallet = DB::transaction(function () use ($walletId, $amount, $description, &$movementId) {
+        $wallet = DB::transaction(function () use ($walletId, $amount, $description, &$movementId, &$split) {
             $wallet = $this->findOwnedWallet($walletId);
 
-            if (! $wallet->hasSufficientBalance($amount)) {
+            if (! $wallet->hasSufficientPlayableBalance($amount)) {
                 throw new \DomainException('Saldo insuficiente para realizar la compra de cartones.');
             }
 
-            $balanceBefore = (float) $wallet->balance;
+            $balanceBefore      = (float) $wallet->balance;
+            $bonusBalanceBefore = (float) $wallet->bonus_balance;
 
-            $this->walletRepository->decrementBalance($walletId, $amount);
+            $split = $this->walletRepository->consumeBonusFirst($walletId, $amount);
             $wallet->refresh();
 
             $movement = $this->movementRepository->record([
@@ -480,6 +523,12 @@ final class WalletService
                 'balance_before' => $balanceBefore,
                 'balance_after'  => (float) $wallet->balance,
                 'description'    => $description,
+                'metadata'       => [
+                    'bonus_amount'         => $split['bonus_spent'],
+                    'balance_amount'       => $split['balance_spent'],
+                    'bonus_balance_before' => $bonusBalanceBefore,
+                    'bonus_balance_after'  => (float) $wallet->bonus_balance,
+                ],
             ]);
             $movementId = (string) $movement->id;
 
@@ -489,24 +538,40 @@ final class WalletService
         // Broadcast FUERA de la transacción: garantiza que el commit ya ocurrió
         $this->broadcastWalletUpdated($wallet, WalletMovement::TYPE_PURCHASE, $amount, $movementId);
 
-        return $wallet;
+        return ['wallet' => $wallet, 'bonus_spent' => $split['bonus_spent'], 'balance_spent' => $split['balance_spent']];
     }
 
     /**
      * Reembolsa un monto a la wallet de un usuario por cancelación de sala u otro motivo.
      * Registra el movimiento como TYPE_REFUND, separándolo de premios en reportes.
+     *
+     * @param float $bonusPortion Cuánto de $amount vino originalmente de
+     *   bonus_balance en el gasto que se está reembolsando (ver metadata.bonus_amount
+     *   del movimiento de gasto original, ej. PURCHASE/TRIVIA_ENTRY). Se devuelve
+     *   proporcionalmente a bonus_balance en vez de balance real — de lo contrario
+     *   cancelar una sala convertiría bono en saldo retirable.
      */
     public function recordRefund(
         Wallet $wallet,
         float $amount,
         string $gameId,
         string $description = 'Reembolso',
+        float $bonusPortion = 0.0,
     ): WalletMovement {
-        $movement = DB::transaction(function () use ($wallet, $amount, $gameId, $description) {
-            $walletId      = (string) $wallet->id;
-            $balanceBefore = (float) $wallet->balance;
+        $movement = DB::transaction(function () use ($wallet, $amount, $gameId, $description, $bonusPortion) {
+            $walletId           = (string) $wallet->id;
+            $balanceBefore      = (float) $wallet->balance;
+            $bonusBalanceBefore = (float) $wallet->bonus_balance;
 
-            $this->walletRepository->incrementBalance($walletId, $amount);
+            $bonusPortion   = min($bonusPortion, $amount);
+            $balancePortion = round($amount - $bonusPortion, 2);
+
+            if ($bonusPortion > 0) {
+                $this->walletRepository->incrementBonusBalance($walletId, $bonusPortion);
+            }
+            if ($balancePortion > 0) {
+                $this->walletRepository->incrementBalance($walletId, $balancePortion);
+            }
             $wallet->refresh();
 
             return $this->movementRepository->record([
@@ -518,7 +583,13 @@ final class WalletService
                 'balance_before' => $balanceBefore,
                 'balance_after'  => (float) $wallet->balance,
                 'description'    => $description,
-                'metadata'       => ['game_id' => $gameId],
+                'metadata'       => [
+                    'game_id'              => $gameId,
+                    'bonus_amount'         => $bonusPortion,
+                    'balance_amount'       => $balancePortion,
+                    'bonus_balance_before' => $bonusBalanceBefore,
+                    'bonus_balance_after'  => (float) $wallet->bonus_balance,
+                ],
             ]);
         });
 

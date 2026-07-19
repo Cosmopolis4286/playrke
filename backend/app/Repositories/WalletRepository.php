@@ -191,6 +191,58 @@ class WalletRepository extends BaseRepository implements WalletRepositoryInterfa
     }
 
     /**
+     * Incrementa el saldo bono (no retirable) de una wallet
+     */
+    public function incrementBonusBalance(string $walletId, float $amount): bool
+    {
+        return $this->model->where('id', $walletId)
+            ->increment('bonus_balance', $amount) > 0;
+    }
+
+    /**
+     * Decrementa el saldo bono (no retirable) de una wallet
+     */
+    public function decrementBonusBalance(string $walletId, float $amount): bool
+    {
+        return $this->model->where('id', $walletId)
+            ->decrement('bonus_balance', $amount) > 0;
+    }
+
+    /**
+     * Consume hasta $amount de la wallet priorizando bonus_balance sobre
+     * balance. El lockForUpdate() sobre la fila impide que otra transacción
+     * concurrente lea o escriba esta wallet antes del commit, cerrando la
+     * ventana entre "leo cuánto bono hay" y "lo resto" (mismo patrón que
+     * findOwnedWallet() en WalletService).
+     *
+     * @return array{bonus_spent: float, balance_spent: float}
+     * @throws \DomainException si bonus_balance + balance < $amount
+     */
+    public function consumeBonusFirst(string $walletId, float $amount): array
+    {
+        $wallet = $this->model->where('id', $walletId)->lockForUpdate()->firstOrFail();
+
+        $bonusAvailable   = (float) $wallet->bonus_balance;
+        $balanceAvailable = (float) $wallet->balance;
+
+        if (($bonusAvailable + $balanceAvailable) < $amount) {
+            throw new \DomainException('Saldo insuficiente (bono + real) para esta operación.');
+        }
+
+        $bonusSpent   = min($bonusAvailable, $amount);
+        $balanceSpent = round($amount - $bonusSpent, 2);
+
+        if ($bonusSpent > 0) {
+            $this->model->where('id', $walletId)->decrement('bonus_balance', $bonusSpent);
+        }
+        if ($balanceSpent > 0) {
+            $this->model->where('id', $walletId)->decrement('balance', $balanceSpent);
+        }
+
+        return ['bonus_spent' => $bonusSpent, 'balance_spent' => $balanceSpent];
+    }
+
+    /**
      * Cambia el estado de una wallet
      */
     public function changeWalletStatus(string $walletId, string $newStatus): bool

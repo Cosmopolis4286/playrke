@@ -86,10 +86,11 @@ class RetryFailedBingoRefundsCommand extends Command
                         }
 
                         $walletService->recordRefund(
-                            wallet:      $wallet,
-                            amount:      (float) $failure->amount,
-                            gameId:      (string) $failure->room_id,
-                            description: "Reembolso Bingo (reintento) — Sala cancelada #{$failure->room_id}",
+                            wallet:       $wallet,
+                            amount:       (float) $failure->amount,
+                            gameId:       (string) $failure->room_id,
+                            description:  "Reembolso Bingo (reintento) — Sala cancelada #{$failure->room_id}",
+                            bonusPortion: (float) $lot->bonus_amount,
                         );
 
                         $lot->update(['status' => 'REFUNDED']);

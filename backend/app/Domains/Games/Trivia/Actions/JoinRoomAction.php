@@ -232,7 +232,7 @@ class JoinRoomAction
             throw new RuntimeException("No tienes una billetera en la moneda requerida para esta sala ({$symbols}).");
         }
 
-        if (! $chargeWallet->hasSufficientBalance($chargeAmount)) {
+        if (! $chargeWallet->hasSufficientPlayableBalance($chargeAmount)) {
             $symbol = $chargeWallet->currency?->symbol ?? $chargeCurrencyId;
             throw new RuntimeException("Saldo insuficiente. Se requieren {$symbol} {$chargeAmount}.");
         }
@@ -265,7 +265,7 @@ class JoinRoomAction
         $exchangeRate = $this->getPlayerExchangeRate((string) $wallet->currency_id);
         $chargeAmount = round($baseFeeUsd * $exchangeRate, 2);
 
-        if (! $wallet->hasSufficientBalance($chargeAmount)) {
+        if (! $wallet->hasSufficientPlayableBalance($chargeAmount)) {
             $symbol = $wallet->currency?->symbol ?? '';
             throw new RuntimeException("Saldo insuficiente. Se requieren {$symbol} {$chargeAmount}.");
         }

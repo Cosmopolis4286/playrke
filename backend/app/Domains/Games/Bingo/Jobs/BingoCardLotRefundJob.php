@@ -81,10 +81,11 @@ final class BingoCardLotRefundJob implements ShouldQueue
                 }
 
                 $walletService->recordRefund(
-                    wallet:      $wallet,
-                    amount:      $amount,
-                    gameId:      (string) $room->id,
-                    description: "Reembolso Bingo — Sala cancelada #{$room->id}",
+                    wallet:       $wallet,
+                    amount:       $amount,
+                    gameId:       (string) $room->id,
+                    description:  "Reembolso Bingo — Sala cancelada #{$room->id}",
+                    bonusPortion: (float) $lot->bonus_amount,
                 );
 
                 $lot->update(['status' => 'REFUNDED']);

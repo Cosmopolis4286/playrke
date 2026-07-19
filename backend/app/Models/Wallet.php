@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Currency;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -21,7 +22,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $id ID único de la wallet
  * @property string $user_id ID del usuario propietario
  * @property string $currency_id ID de la moneda
- * @property float $balance Balance de la wallet
+ * @property float $balance Balance retirable de la wallet
+ * @property float $bonus_balance Saldo no retirable (bono), solo usable dentro de la app
  * @property string $status Estado de la wallet
  * @property \Carbon\Carbon $created_at Fecha de creación
  * @property \Carbon\Carbon $updated_at Fecha de actualización
@@ -31,7 +33,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Wallet extends Model
 {
-    use \App\Traits\SnowflakeId;
+    use \App\Traits\SnowflakeId, HasFactory;
 
     /**
      * Nombre de la tabla en la base de datos
@@ -69,6 +71,7 @@ class Wallet extends Model
         'user_id',
         'currency_id',
         'balance',
+        'bonus_balance',
         'status',
     ];
 
@@ -77,6 +80,7 @@ class Wallet extends Model
      */
     protected $casts = [
         'balance' => 'float',
+        'bonus_balance' => 'float',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -142,7 +146,9 @@ class Wallet extends Model
     }
 
     /**
-     * Verificar si la wallet tiene balance suficiente
+     * Verificar si la wallet tiene saldo RETIRABLE suficiente (columna balance
+     * únicamente). Usado solo para validar retiros — nunca usar para validar
+     * gasto dentro de la app (usar hasSufficientPlayableBalance()).
      *
      * @param float $amount Cantidad a verificar
      * @return bool
@@ -150,6 +156,24 @@ class Wallet extends Model
     public function hasSufficientBalance(float $amount): bool
     {
         return $this->balance >= $amount;
+    }
+
+    /**
+     * Saldo total disponible para gastar dentro de la app (bono + retirable).
+     * Nunca usar este valor para validar retiros.
+     */
+    public function getPlayableBalance(): float
+    {
+        return (float) $this->balance + (float) $this->bonus_balance;
+    }
+
+    /**
+     * Verifica si la wallet tiene saldo suficiente para gastar dentro de la
+     * app (entradas de juego, compra de cartones), combinando bono + retirable.
+     */
+    public function hasSufficientPlayableBalance(float $amount): bool
+    {
+        return $this->getPlayableBalance() >= $amount;
     }
 
     /**

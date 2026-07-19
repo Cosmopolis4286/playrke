@@ -134,6 +134,36 @@ interface WalletRepositoryInterface extends BaseRepositoryInterface
     public function decrementBalance(string $walletId, float $amount): bool;
 
     /**
+     * Incrementa el saldo bono (no retirable) de una wallet
+     *
+     * @param string $walletId ID de la wallet
+     * @param float $amount Cantidad a incrementar
+     * @return bool True si se incrementó correctamente
+     */
+    public function incrementBonusBalance(string $walletId, float $amount): bool;
+
+    /**
+     * Decrementa el saldo bono (no retirable) de una wallet
+     *
+     * @param string $walletId ID de la wallet
+     * @param float $amount Cantidad a decrementar
+     * @return bool True si se decrementó correctamente
+     */
+    public function decrementBonusBalance(string $walletId, float $amount): bool;
+
+    /**
+     * Consume hasta $amount de la wallet priorizando bonus_balance sobre
+     * balance. Debe llamarse siempre dentro de una transacción DB — toma su
+     * propio lockForUpdate() sobre la fila para leer el split de forma segura.
+     *
+     * @param string $walletId ID de la wallet
+     * @param float $amount Monto total a consumir (bono + real)
+     * @return array{bonus_spent: float, balance_spent: float}
+     * @throws \DomainException si bonus_balance + balance < $amount
+     */
+    public function consumeBonusFirst(string $walletId, float $amount): array;
+
+    /**
      * Cambia el estado de una wallet
      *
      * @param string $walletId ID de la wallet
