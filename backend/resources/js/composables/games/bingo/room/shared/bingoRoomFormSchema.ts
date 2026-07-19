@@ -273,8 +273,8 @@ export function validateBingoRoomForm(
             if (!r.success) e.customCardPricePct = r.error.issues[0].message
         } else if (data.customCardMode === 'every_x') {
             const everyX = Number(data.customCardEveryX)
-            if (!data.customCardEveryX || !Number.isInteger(everyX) || everyX < 2 || everyX > 100) {
-                e.customCardEveryX = 'Debe ser un entero entre 2 y 100.'
+            if (!data.customCardEveryX || !Number.isInteger(everyX) || everyX < 2 || everyX > 10) {
+                e.customCardEveryX = 'Debe ser un entero entre 2 y 10.'
             }
         }
     }

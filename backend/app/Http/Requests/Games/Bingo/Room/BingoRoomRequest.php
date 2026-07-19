@@ -86,7 +86,7 @@ class BingoRoomRequest extends BaseRequest
             'allowCustomCard'             => ['boolean'],
             'customCardMode'              => ['required_if:allowCustomCard,true', 'nullable', 'in:paid,every_x,free'],
             'customCardPricePct'          => ['required_if:customCardMode,paid', 'nullable', 'numeric', 'min:1', 'max:10'],
-            'customCardEveryX'            => ['required_if:customCardMode,every_x', 'nullable', 'integer', 'min:2', 'max:100'],
+            'customCardEveryX'            => ['required_if:customCardMode,every_x', 'nullable', 'integer', 'min:2', 'max:10'],
             'allowSpecialCard'            => ['boolean'],
             'maxSpecialCards'             => ['nullable', 'integer', 'min:1', 'max:5'],
 
@@ -318,7 +318,7 @@ class BingoRoomRequest extends BaseRequest
             'customCardPricePct.required_if'  => 'El % del precio del cartón personalizado es obligatorio.',
             'customCardEveryX.required_if'    => 'La cantidad de cartones para el cartón gratuito es obligatoria.',
             'customCardEveryX.min'            => 'Debe ser cada 2 cartones o más.',
-            'customCardEveryX.max'            => 'No puede ser cada más de 100 cartones.',
+            'customCardEveryX.max'            => 'No puede ser cada más de 10 cartones.',
         ];
     }
 }
