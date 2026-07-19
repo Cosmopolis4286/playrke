@@ -1,5 +1,5 @@
 import '@/css/app.css'
-import { createApp, h, type DefineComponent } from 'vue'
+import { createApp, defineComponent, h, type DefineComponent } from 'vue'
 import { createInertiaApp } from '@inertiajs/vue3'
 import { createHead } from '@vueuse/head'
 import VueImaskPlugin from './plugins/vue-imask-plugin'
@@ -24,21 +24,22 @@ createInertiaApp({
             // al de disco, o un data-page obsoleto cacheado por el navegador tras
             // un deploy). Inertia monta el fallback con las props que el server
             // preparó para el componente ORIGINAL (name), que no incluyen
-            // status/message/url — Error.vue las exige, así que hay que
-            // sobreescribir su schema de props con valores por defecto, o Vue
-            // lanza "Missing required prop: status" y la página queda en blanco.
+            // status/message/url — Error.vue las exige, así que se envuelve en
+            // un componente propio que le inyecta esos defaults, o Vue lanza
+            // "Missing required prop: status" y la página queda en blanco.
             console.error(`[Inertia] Componente "${name}" no encontrado en el bundle. Mostrando fallback de error.`)
             const errorPage = pages['/resources/js/Pages/Errors/Error.vue']
             if (!errorPage) throw new Error('[Inertia] Falta Pages/Errors/Error.vue')
-            const ErrorComponent = (await errorPage()).default as Record<string, unknown>
-            return {
-                ...ErrorComponent,
-                props: {
-                    status: { type: Number, default: 404 },
-                    message: { type: String, default: `No se pudo cargar la página solicitada (${name}).` },
-                    url: { type: String, default: null },
-                },
-            }
+            const ErrorComponent = (await errorPage()).default
+            return defineComponent({
+                name: 'InertiaMissingComponentFallback',
+                render: () =>
+                    h(ErrorComponent, {
+                        status: 404,
+                        message: `No se pudo cargar la página solicitada (${name}).`,
+                        url: null,
+                    }),
+            })
         }
 
         const module = await pageImport()

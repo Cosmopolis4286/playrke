@@ -64,6 +64,20 @@
       title: 'Registrar Datos Bancarios'
     }
   }
+
+  // El compilador de plantillas de Vue no propaga el narrowing de un type
+  // guard entre v-if y los bindings del mismo elemento — se resuelven aquí
+  // como funciones que devuelven '' cuando el status no es de tipo link, en
+  // vez de castear el tipo dentro del template.
+  function statusUrl(row: Row): string {
+    const status = statusMap[row.status]
+    return status?.isLink ? status.getUrl(row as unknown as ExchangeRate) : ''
+  }
+
+  function statusTitle(row: Row): string {
+    const status = statusMap[row.status]
+    return status?.isLink ? status.title : ''
+  }
 </script>
 
 <template>
@@ -99,9 +113,9 @@
       <template v-if="statusMap[row.status]">
         <a
           v-if="statusMap[row.status].isLink"
-          :href="(statusMap[row.status] as { getUrl: Function }).getUrl(row)"
+          :href="statusUrl(row)"
           :class="['badge', statusMap[row.status].class]"
-          :title="(statusMap[row.status] as { title: string }).title"
+          :title="statusTitle(row)"
         >
           {{ statusMap[row.status].text }}
         </a>
