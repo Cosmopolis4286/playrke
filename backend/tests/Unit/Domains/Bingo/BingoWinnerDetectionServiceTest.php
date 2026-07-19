@@ -51,7 +51,10 @@ class BingoWinnerDetectionServiceTest extends TestCase
 
         $status = GameStatus::firstOrCreate(['code' => 'ACTIVE'], ['label' => 'Activa']);
         $roomType = RoomType::firstOrCreate(['code' => 'PUBLIC'], ['label' => 'Pública']);
-        $gameMode = GameMode::firstOrCreate(['code' => 'STANDARD'], ['label' => 'Estándar']);
+        // GameMode::$fillable no incluye 'code' (deuda preexistente del modelo,
+        // ajena a Anti-Cheat) — forceCreate() evita el filtro de mass-assignment.
+        $gameMode = GameMode::where('code', 'STANDARD')->first()
+            ?? GameMode::forceCreate(['code' => 'STANDARD', 'label' => 'Estándar']);
         $prizePoolType = PrizePoolType::firstOrCreate(['code' => 'STANDARD'], ['label' => 'Estándar', 'is_accumulative' => false]);
         $currency = Currency::firstOrCreate(['iso_code' => 'USD'], ['name' => 'Dollar', 'type' => 'FIAT']);
 
