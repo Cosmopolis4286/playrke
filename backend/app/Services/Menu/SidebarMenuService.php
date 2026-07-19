@@ -299,7 +299,7 @@ class SidebarMenuService
         $userRoles       = $user->getRoleNames()->toArray();
         $userPermissions = $user->hasRole('superadmin')
             ? null // superadmin no necesita verificar permisos
-            : $user->getAllPermissions()->pluck('name')->toArray();
+            : $user->getAllPermissionNames();
 
         return collect($this->menuStructure)
             ->map(function ($item) use ($userRoles, $userPermissions) {

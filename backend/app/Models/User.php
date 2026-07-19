@@ -34,7 +34,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use Notifiable, HasRoles;
+    use Notifiable;
+    use HasRoles {
+        HasRoles::hasPermissionTo as protected spatieHasPermissionTo;
+    }
     use SnowflakeId;
     use SoftDeletes;
     use Auditable;
@@ -146,13 +149,20 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
-     * Roles del usuario
+     * Roles del usuario.
      *
-     * @return BelongsToMany<\Spatie\Permission\Models\Role>
+     * Usa App\Models\Role (no Spatie\Permission\Models\Role): mismo registro,
+     * pero App\Models\Role tiene el cast id => string via SnowflakeId. Usar el
+     * modelo de Spatie aquí hidrataba el id con el cast por defecto de Eloquent
+     * (int), truncando/perdiendo precisión del Snowflake y rompiendo cualquier
+     * comparación estricta de id contra roles cargados por otra relación
+     * (ej. Permission::roles(), que sí usa App\Models\Role).
+     *
+     * @return BelongsToMany<Role>
      */
     public function roles(): BelongsToMany
     {
-        return $this->belongsToMany(\Spatie\Permission\Models\Role::class, 'role_user')->withTimestamps();
+        return $this->belongsToMany(Role::class, 'role_user')->withTimestamps();
     }
 
     /**
@@ -396,6 +406,13 @@ class User extends Authenticatable implements MustVerifyEmail
      * - string: 'admin'
      * - string con coma: 'admin,commerce'
      * - array: ['admin', 'commerce']
+     * - Role|iterable<Role>: instancia(s) de App\Models\Role — necesario porque
+     *   Spatie\Permission\Traits\HasPermissions::hasPermissionViaRole() llama
+     *   internamente $this->hasRole($permission->roles), pasando una Collection
+     *   de objetos Role (no strings). Sin este caso, hasPermissionTo()/
+     *   hasAnyPermission()/getAllPermissions() del trait HasRoles fallan
+     *   silenciosamente para todo permiso heredado por rol, porque devuelven
+     *   false en vez de lanzar un error.
      *
      * Fuente de verdad única para roles: reemplaza intencionalmente el
      * hasRole() del trait HasRoles (Spatie), que consulta model_has_roles
@@ -403,17 +420,37 @@ class User extends Authenticatable implements MustVerifyEmail
      * pasar por este método o por App\Services\Auth\RoleAuthorizationService,
      * nunca reimplementar la comparación de prefijos por su cuenta.
      *
-     * @param string|array $role Rol o roles a buscar.
+     * @param string|array|\App\Models\Role|iterable $role Rol o roles a buscar.
+     * @param string|null $guard Ignorado — este sistema no distingue roles por guard.
+     *   Aceptado solo por compatibilidad de firma con Spatie\Permission\Traits\HasRoles::hasRole().
      * @return bool
      */
-    public function hasRole(string|array $role): bool
+    public function hasRole($role, ?string $guard = null): bool
     {
-        // Si viene como "admin,commerce"
-        if (is_string($role) && str_contains($role, ',')) {
-            $role = array_map('trim', explode(',', $role));
+        // Instancia única de Role: comparar directo por id.
+        if ($role instanceof Role) {
+            return $this->roles->contains('id', $role->id);
         }
 
-        // Si es array, verificar si tiene alguno
+        // Iterable de objetos Role (Collection, array de Role, etc.) — caso usado
+        // internamente por Spatie al resolver permisos vía rol
+        // (HasPermissions::hasPermissionViaRole() llama $this->hasRole($permission->roles)).
+        // is_array() también es is_iterable(), así que este chequeo debe filtrar
+        // por el tipo de los elementos: solo objetos Role, nunca strings.
+        if (is_iterable($role) && !is_string($role)) {
+            $items = collect($role);
+            if ($items->isNotEmpty() && $items->every(fn ($r) => $r instanceof Role)) {
+                $roleIds = $items->pluck('id')->all();
+                return $this->roles->contains(fn ($r) => in_array($r->id, $roleIds, true));
+            }
+        }
+
+        // "admin,commerce" → tratar como array de nombres/prefijos
+        if (is_string($role) && str_contains($role, ',')) {
+            return $this->hasRole(array_map('trim', explode(',', $role)));
+        }
+
+        // Array de nombres/prefijos: ['admin', 'commerce']
         if (is_array($role)) {
             $roleLower = array_map('strtolower', $role);
             return $this->roles->contains(function ($r) use ($roleLower) {
@@ -664,13 +701,18 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Obtener todos los permisos del usuario como array de nombres
+     * Obtener todos los permisos del usuario como array de nombres: heredados
+     * por rol (Spatie, vía roles()/role_has_permissions) + específicos del
+     * usuario (specific_permissions). Fuente única para menús/gates que
+     * necesiten la lista completa en vez de verificar un permiso puntual.
      *
-     * @return array
+     * @return array<int, string>
      */
     public function getAllPermissionNames(): array
     {
-        return $this->getAllPermissions()->pluck('name')->toArray();
+        $viaRoles = $this->getAllPermissions()->pluck('name')->all();
+
+        return array_values(array_unique(array_merge($viaRoles, $this->specific_permissions ?? [])));
     }
 
     /**
@@ -682,6 +724,30 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasSpecificPermission(string $permission): bool
     {
         return in_array($permission, $this->specific_permissions ?? []);
+    }
+
+    /**
+     * Determina si el usuario puede ejercer el permiso indicado, considerando
+     * tanto los permisos heredados por rol (Spatie\Permission\Traits\HasPermissions,
+     * ya operativo gracias al fix de roles()/hasRole() de más arriba) como los
+     * permisos específicos otorgados directamente al usuario (specific_permissions,
+     * usado por ej. para activar juegos concretos en un Commerce/Seller/Customer).
+     *
+     * Sobrescribe hasPermissionTo() del trait HasPermissions (Spatie) — de él
+     * dependen hasAnyPermission(), hasAllPermissions(), checkPermissionTo() y,
+     * por extensión, el helper can()/Gate::allows() de Laravel. Sobrescribir
+     * aquí en el nivel más bajo evita reimplementar cada método por separado.
+     *
+     * @param string|int|\Spatie\Permission\Contracts\Permission|\BackedEnum $permission
+     * @param string|null $guardName
+     */
+    public function hasPermissionTo($permission, $guardName = null): bool
+    {
+        if (is_string($permission) && $this->hasSpecificPermission($permission)) {
+            return true;
+        }
+
+        return $this->spatieHasPermissionTo($permission, $guardName);
     }
 
     /**
