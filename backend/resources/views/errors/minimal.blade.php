@@ -47,11 +47,13 @@
                 margin: 0;
                 padding: 0;
                 background: var(--ds-bg);
+                max-width: 100%;
             }
 
             body {
                 font-family: 'Poppins', ui-sans-serif, system-ui, -apple-system, sans-serif;
                 min-height: 100vh;
+                width: 100%;
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -74,19 +76,36 @@
                 z-index: 1;
                 width: 100%;
                 max-width: 460px;
+                min-width: 0;
                 text-align: center;
                 background: var(--ds-surface);
                 border: 1px solid var(--ds-border);
                 border-radius: 24px;
-                padding: 3rem 2rem 2.5rem;
+                padding: 2.5rem 1.5rem 2rem;
                 box-shadow: var(--ds-card-shadow);
+                backdrop-filter: blur(6px);
+            }
+
+            @media (min-width: 480px) {
+                .error-card {
+                    padding: 3rem 2rem 2.5rem;
+                    border-radius: 28px;
+                }
             }
 
             .error-ball-wrapper {
                 position: relative;
-                width: 140px;
-                height: 140px;
-                margin: 0 auto 1.75rem;
+                width: 112px;
+                height: 112px;
+                margin: 0 auto 1.5rem;
+            }
+
+            @media (min-width: 480px) {
+                .error-ball-wrapper {
+                    width: 140px;
+                    height: 140px;
+                    margin: 0 auto 1.75rem;
+                }
             }
 
             .error-ball {
@@ -107,26 +126,42 @@
 
             .error-ball__code {
                 font-weight: 800;
-                font-size: 2.75rem;
+                font-size: 2.1rem;
                 line-height: 1;
                 color: #fff;
                 text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
             }
 
+            @media (min-width: 480px) {
+                .error-ball__code {
+                    font-size: 2.75rem;
+                }
+            }
+
             .error-ball__emoji {
                 position: absolute;
-                top: -6px;
-                right: -6px;
-                font-size: 1.85rem;
+                top: -4px;
+                right: -4px;
+                font-size: 1.5rem;
                 background: var(--ds-surface-2);
                 border: 1px solid var(--ds-border-2);
                 border-radius: 50%;
-                width: 48px;
-                height: 48px;
+                width: 40px;
+                height: 40px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            }
+
+            @media (min-width: 480px) {
+                .error-ball__emoji {
+                    top: -6px;
+                    right: -6px;
+                    font-size: 1.85rem;
+                    width: 48px;
+                    height: 48px;
+                }
             }
 
             @keyframes error-ball-float {
@@ -136,16 +171,31 @@
 
             .error-title {
                 font-weight: 700;
-                font-size: 1.5rem;
+                font-size: 1.25rem;
                 color: var(--ds-text);
                 margin: 0 0 0.5rem;
+                word-break: break-word;
+            }
+
+            @media (min-width: 480px) {
+                .error-title {
+                    font-size: 1.5rem;
+                }
             }
 
             .error-description {
-                font-size: 0.95rem;
+                font-size: 0.9rem;
                 line-height: 1.5;
                 color: var(--ds-text-2);
-                margin: 0 0 1.75rem;
+                margin: 0 0 1.5rem;
+                overflow-wrap: break-word;
+            }
+
+            @media (min-width: 480px) {
+                .error-description {
+                    font-size: 0.95rem;
+                    margin-bottom: 1.75rem;
+                }
             }
 
             .error-actions {
@@ -167,17 +217,31 @@
                 justify-content: center;
                 gap: 0.5rem;
                 flex: 1;
-                padding: 0.7rem 1.25rem;
+                min-width: 0;
+                padding: 0.7rem 1.1rem;
                 border-radius: 12px;
                 font-weight: 600;
-                font-size: 0.95rem;
+                font-size: 0.9rem;
                 text-decoration: none;
                 cursor: pointer;
                 border: 1px solid transparent;
+                white-space: nowrap;
                 transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
             }
 
+            @media (min-width: 480px) {
+                .error-btn {
+                    padding: 0.7rem 1.25rem;
+                    font-size: 0.95rem;
+                }
+            }
+
             .error-btn:hover { transform: translateY(-2px); }
+
+            .error-btn:focus-visible {
+                outline: 2px solid var(--bc0-light);
+                outline-offset: 2px;
+            }
 
             .error-btn--primary {
                 background: linear-gradient(135deg, var(--bc0-solid), var(--bc1-solid));
@@ -199,12 +263,12 @@
     <body>
         <div class="error-page__glow"></div>
 
-        <div class="error-card">
+        <div class="error-card" role="alert" aria-live="polite">
             <div class="error-ball-wrapper">
                 <div class="error-ball" style="--ball-solid: var(--@yield('accent', 'bc0')-solid); --ball-light: var(--@yield('accent', 'bc0')-light); --ball-dark: var(--@yield('accent', 'bc0')-dark); --ball-glow: var(--@yield('accent', 'bc0')-glow);">
                     <span class="error-ball__code">@yield('code')</span>
                 </div>
-                <span class="error-ball__emoji">@yield('emoji', '🎲')</span>
+                <span class="error-ball__emoji" aria-hidden="true">@yield('emoji', '🎲')</span>
             </div>
 
             <h1 class="error-title">@yield('title')</h1>

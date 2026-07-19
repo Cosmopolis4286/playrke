@@ -7,13 +7,14 @@
 
 <template>
   <div :class="errorLayoutClass">
-    <div class="min-h-screen flex items-center justify-center px-6">
-      <div class="max-w-md w-full text-center">
+    <div class="min-h-screen flex items-center justify-center px-4 sm:px-6 overflow-x-hidden">
+      <div class="max-w-md w-full min-w-0 text-center" role="alert" aria-live="polite">
         <!-- Icono de error -->
-        <div class="mb-8">
+        <div class="mb-6 sm:mb-8">
           <Icon
             :name="errorIcon"
             :class="errorIconClass"
+            aria-hidden="true"
           />
         </div>
 
@@ -32,12 +33,12 @@
         </p>
 
         <!-- Botones de acción -->
-        <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+        <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-6 sm:mt-8">
           <button
             @click="handleError"
             :class="primaryButtonClass"
           >
-            <Icon name="lucide:refresh-cw" class="w-4 h-4 mr-2" />
+            <Icon name="lucide:refresh-cw" class="w-4 h-4 mr-2 shrink-0" aria-hidden="true" />
             Intentar Nuevamente
           </button>
 
@@ -45,24 +46,24 @@
             @click="goHome"
             :class="secondaryButtonClass"
           >
-            <Icon name="lucide:home" class="w-4 h-4 mr-2" />
+            <Icon name="lucide:home" class="w-4 h-4 mr-2 shrink-0" aria-hidden="true" />
             Ir al Inicio
           </button>
         </div>
 
         <!-- Información de debugging (solo en desarrollo) -->
-        <div v-if="isDevelopment" class="mt-8 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-left">
+        <div v-if="isDevelopment" class="mt-8 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-left min-w-0">
           <details class="text-sm">
             <summary class="cursor-pointer font-medium text-red-800 dark:text-red-200 mb-2">
               Información de Debug
             </summary>
-            <div class="text-red-700 dark:text-red-300 space-y-2">
-              <p><strong>URL:</strong> {{ error.url || 'N/A' }}</p>
-              <p><strong>Status:</strong> {{ error.statusCode }}</p>
-              <p><strong>Message:</strong> {{ error.statusMessage }}</p>
-              <div v-if="error.stack">
+            <div class="text-red-700 dark:text-red-300 space-y-2 min-w-0">
+              <p class="break-words"><strong>URL:</strong> {{ error.url || 'N/A' }}</p>
+              <p class="break-words"><strong>Status:</strong> {{ error.statusCode }}</p>
+              <p class="break-words"><strong>Message:</strong> {{ error.statusMessage }}</p>
+              <div v-if="error.stack" class="min-w-0">
                 <p><strong>Stack:</strong></p>
-                <pre class="text-xs bg-red-100 dark:bg-red-800 p-2 rounded overflow-auto">{{ error.stack }}</pre>
+                <pre class="text-xs bg-red-100 dark:bg-red-800 p-2 rounded overflow-auto whitespace-pre-wrap break-words max-h-64">{{ error.stack }}</pre>
               </div>
             </div>
           </details>
@@ -104,28 +105,28 @@ const errorLayoutClass = computed(() => {
 })
 
 const errorIconClass = computed(() => {
-  const baseClass = 'w-24 h-24 mx-auto'
+  const baseClass = 'w-16 h-16 sm:w-24 sm:h-24 mx-auto'
   return context.value === 'admin'
     ? `${baseClass} text-red-500`
     : `${baseClass} text-red-400`
 })
 
 const errorTitleClass = computed(() => {
-  const baseClass = 'text-8xl font-bold mb-4'
+  const baseClass = 'text-6xl sm:text-8xl font-bold mb-4 break-words'
   return context.value === 'admin'
     ? `${baseClass} text-slate-900 dark:text-white`
     : `${baseClass} text-white font-gaming`
 })
 
 const errorSubtitleClass = computed(() => {
-  const baseClass = 'text-2xl font-semibold mb-4'
+  const baseClass = 'text-xl sm:text-2xl font-semibold mb-4 break-words'
   return context.value === 'admin'
     ? `${baseClass} text-slate-800 dark:text-slate-200`
     : `${baseClass} text-white font-gaming`
 })
 
 const errorDescriptionClass = computed(() => {
-  const baseClass = 'text-lg mb-8'
+  const baseClass = 'text-base sm:text-lg mb-8 break-words'
   return context.value === 'admin'
     ? `${baseClass} text-slate-600 dark:text-slate-400`
     : `${baseClass} text-slate-300`
