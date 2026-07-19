@@ -8,6 +8,7 @@
    */
 
   import { computed, ref } from 'vue'
+  import { usePage } from '@inertiajs/vue3'
 
   // ==========================================================================
   // Componentes
@@ -15,6 +16,7 @@
 
   import TableWithFilterBridge from '@js/Components/Common/Table/TableWithFilterBridge.vue'
   import WalletLoadModal from '@js/Components/Common/Modal/WalletLoadModal.vue'
+  import UserPermissionsModal from '@js/Components/Common/Modal/UserPermissionsModal.vue'
 
   // ==========================================================================
   // Composables
@@ -95,6 +97,28 @@
     // No cerrar el modal para que el usuario vea el balance actualizado
     // closeWalletModal()
     fetchUsers() // Refrescar la lista de usuarios
+  }
+
+  // Estado del modal de permisos específicos por usuario (solo superadmin)
+  const page = usePage()
+  const isSuperadmin = computed(() =>
+    (page.props.auth as any)?.user?.userRoles?.some((r: any) => r.role?.prefix === 'superadmin') ?? false
+  )
+
+  const showPermissionsModal = ref(false)
+  const permissionsUserId = ref<string | number>('')
+  const permissionsUserName = ref('')
+
+  function openPermissionsModal(userId: string | number, userName: string) {
+    permissionsUserId.value = userId
+    permissionsUserName.value = userName
+    showPermissionsModal.value = true
+  }
+
+  function closePermissionsModal() {
+    showPermissionsModal.value = false
+    permissionsUserId.value = ''
+    permissionsUserName.value = ''
   }
 
   async function refreshUserBalance() {
@@ -235,6 +259,22 @@
           }
         }
       }
+    },
+    {
+      icon: 'fas fa-user-shield',
+      class: 'btn-info text-white',
+      title: 'Permisos específicos',
+      // Backend ya protege con UserPolicy::managePermissions (role:superadmin) —
+      // ocultar el botón para otros roles evita un 403 innecesario en la UI.
+      show: (ids: string[]) => ids.length === 1 && isSuperadmin.value,
+      onClick: (ids: string[]) => {
+        if (ids.length === 1) {
+          const user = users.value.find(u => u.id === ids[0])
+          if (user) {
+            openPermissionsModal(user.id, user.full_name || user.username)
+          }
+        }
+      }
     }
   ]
 
@@ -266,5 +306,14 @@
     :user-currency-symbol="selectedUserCurrency?.symbol"
     @close="closeWalletModal"
     @success="onWalletLoadSuccess"
+  />
+
+  <!-- Modal para permisos específicos por usuario (solo superadmin) -->
+  <UserPermissionsModal
+    :show="showPermissionsModal"
+    :user-id="permissionsUserId"
+    :user-name="permissionsUserName"
+    @close="closePermissionsModal"
+    @success="closePermissionsModal"
   />
 </template>
