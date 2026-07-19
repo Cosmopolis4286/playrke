@@ -2,7 +2,8 @@
 import { computed } from 'vue'
 import type { BingoGameRoom } from '@js/types/games/bingo/room/game-rooms/bingo-game-room'
 import type { RoomCountdown } from '@js/composables/games/bingo/room/game-rooms/useGameRoomCountdown'
-import { formatCountdown, isLive, GAME_MODE_LABELS, ROOM_TYPE_LABELS } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
+import { formatCountdown, isLive } from '@js/modules/games/bingo/room/game-rooms/gameRoomUtils'
+import { getBingoVariantDef } from '@js/modules/games/bingo/utils/bingoVariants'
 
 const props = defineProps<{
   room: BingoGameRoom
@@ -45,6 +46,18 @@ const startLabel = computed(() => {
   return `${fecha} · ${hora}`
 })
 
+const gameVariant  = computed(() => props.room.config?.game_variant ?? 'BINGO_75')
+const variantBalls = computed(() => getBingoVariantDef(gameVariant.value).totalChips)
+const roundsCount   = computed(() => props.room.rounds_count ?? 1)
+
+// Código corto de sala — solo los últimos 6 caracteres, suficiente para identificar/soporte
+// sin exponer el UUID completo como ruido visual en el banner.
+const shortRoomCode = computed(() => {
+  const code = props.room.uuid_code
+  if (!code) return null
+  return code.length > 6 ? code.slice(-6).toUpperCase() : code.toUpperCase()
+})
+
 // ── Progreso de cartones mínimos para iniciar (realtime, igual que la card/lobby) ──
 const minCardsToStart = computed(() => props.room.config?.min_cards_to_start ?? null)
 const totalCards      = computed(() => props.room.total_cards ?? 0)
@@ -60,6 +73,17 @@ const cardsProgressPct = computed(() => {
 
 const cardsProgressReady = computed(() =>
   minCardsToStart.value != null && totalCards.value >= minCardsToStart.value
+)
+
+// Feedback de urgencia: countdown corriendo (<2 min) y aún no se alcanza el mínimo de cartones —
+// riesgo real de que el sorteo no inicie a tiempo, información que ayuda a decidir comprar ya.
+const isCloseToStart = computed(() => {
+  if (!props.countdown || props.countdown.expired) return false
+  const { days, hours, minutes } = props.countdown.time
+  return days === 0 && hours === 0 && minutes < 2
+})
+const showUrgencyHint = computed(() =>
+  isCloseToStart.value && showCardsProgress.value && !cardsProgressReady.value
 )
 </script>
 
@@ -82,46 +106,49 @@ const cardsProgressReady = computed(() =>
             <img :src="bingoRoomImg" alt="sala" class="rim-banner__img" />
             <div class="rim-banner__overlay" />
             <div class="rim-banner__sparkle" />
+            <div class="rim-banner__accent" />
+
+            <!-- Código corto de sala — discreto, solo para identificar/soporte -->
+            <span v-if="shortRoomCode" class="rim-room-code">
+              <i class="fas fa-hashtag" />{{ shortRoomCode }}
+            </span>
 
             <!-- Cerrar -->
             <button class="rim-close" aria-label="Cerrar" @click="emit('close')">
               <i class="fas fa-times" />
             </button>
 
-            <!-- Timer — solo, centrado, sin compartir fila con la fecha -->
+            <!-- Timer — único elemento centrado sobre la imagen; verde tipo "ACTIVA" mientras
+                 corre (igual lenguaje que el badge de estado de la card), rojo si ya está en vivo -->
             <div id="rim-title" class="rim-timer-row">
               <span class="rim-timer" :class="{ 'rim-timer--live': isLive(countdown) }">
                 <template v-if="isLive(countdown)">
-                  <span class="rim-dot" /> EN VIVO
+                  EN VIVO
                 </template>
                 <template v-else>
                   <i class="fas fa-clock" /> {{ formatCountdown(countdown) }}
                 </template>
               </span>
             </div>
-
-            <!-- Chips tipo/modo/rondas/variante + fecha — más resalto, acento por categoría -->
-            <div class="rim-banner__foot">
-              <span class="rim-chip rim-chip--violet">
-                <i class="fas fa-lock" /> {{ ROOM_TYPE_LABELS[room.room_type ?? ''] ?? room.room_type }}
-              </span>
-              <span class="rim-chip rim-chip--violet">
-                <i class="fas fa-signal" /> {{ GAME_MODE_LABELS[room.game_mode ?? ''] ?? room.game_mode ?? 'Online' }}
-              </span>
-              <span v-if="room.rounds_count" class="rim-chip rim-chip--blue">
-                <i class="fas fa-layer-group" /> {{ room.rounds_count }} {{ room.rounds_count === 1 ? 'Ronda' : 'Rondas' }}
-              </span>
-              <span v-if="room.config?.game_variant" class="rim-chip rim-chip--blue">
-                <i class="fas fa-dice" /> {{ room.config.game_variant.replace('_', ' ') }}
-              </span>
-              <span v-if="startLabel" class="rim-chip rim-chip--date">
-                <i class="fas fa-calendar-alt" /> {{ startLabel }}
-              </span>
-            </div>
           </div>
 
           <!-- ── Cuerpo ── -->
           <div class="rim-body">
+
+            <!-- Metadata: bolas · rondas · fecha — misma línea visual que la card de salas -->
+            <div class="rim-meta-row rim-reveal" style="--rd: 20ms">
+              <span class="rim-meta-item">{{ variantBalls }}B</span>
+              <span class="rim-meta-dot" />
+              <span class="rim-meta-item">
+                <i class="fas fa-rotate" /> {{ roundsCount }} Ronda{{ roundsCount !== 1 ? 's' : '' }}
+              </span>
+              <template v-if="startLabel">
+                <span class="rim-meta-dot" />
+                <span class="rim-meta-item">
+                  <i class="far fa-calendar-alt" /> {{ startLabel }}
+                </span>
+              </template>
+            </div>
 
             <!-- Premio — bloque hero con anillo orbital ambiental -->
             <div class="rim-prize rim-reveal" style="--rd: 60ms">
@@ -174,6 +201,18 @@ const cardsProgressReady = computed(() =>
               </div>
             </div>
 
+            <!-- Feedback de urgencia: el sorteo está por comenzar y aún falta cupo mínimo -->
+            <div v-if="showUrgencyHint" class="rim-hint rim-hint--urgent rim-reveal" style="--rd: 195ms">
+              <i class="fas fa-triangle-exclamation" />
+              Quedan menos de 2 min. Compra ahora para asegurar que la sala inicie.
+            </div>
+
+            <!-- Feedback informativo: por qué no se puede entrar al lobby todavía -->
+            <div v-else-if="!isLobbyAllowed" class="rim-hint rim-reveal" style="--rd: 195ms">
+              <i class="fas fa-circle-info" />
+              Esta sala ya no admite compras ni acceso al lobby.
+            </div>
+
             <!-- Acciones -->
             <div class="rim-actions rim-reveal" style="--rd: 220ms">
               <button
@@ -222,18 +261,24 @@ const cardsProgressReady = computed(() =>
 .rim-card {
   width: 100%; max-width: 360px;
   background: linear-gradient(160deg, #0c1430 0%, #080e24 100%);
-  border: 1px solid rgba(100,140,255,.2);
   border-radius: 22px; overflow: hidden;
   position: relative;
-  animation: rimCardPulse 4s ease-in-out infinite;
+  animation: rimCardPulse 3.2s ease-in-out infinite;
 }
-/* Pulso ambiental del contenedor completo — sombra externa que respira, refuerza que el modal está "vivo" */
+/* Pulso ambiental del contenedor completo — borde + halo externo que respira con claridad,
+   refuerza que el modal está "vivo" incluso después de que terminan las animaciones de entrada. */
 @keyframes rimCardPulse {
-  0%, 100% { box-shadow: 0 24px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(80,120,255,.06) inset, 0 0 0 0 rgba(123,79,255,0); }
-  50%      { box-shadow: 0 24px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(80,120,255,.06) inset, 0 0 32px 2px rgba(123,79,255,.16); }
+  0%, 100% {
+    border: 1px solid rgba(100,140,255,.2);
+    box-shadow: 0 24px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(80,120,255,.06) inset, 0 0 0 0 rgba(123,79,255,0);
+  }
+  50% {
+    border: 1px solid rgba(123,79,255,.45);
+    box-shadow: 0 24px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(80,120,255,.06) inset, 0 0 38px 4px rgba(123,79,255,.28);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rim-card { animation: none; box-shadow: 0 24px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(80,120,255,.06) inset; }
+  .rim-card { animation: none; border: 1px solid rgba(100,140,255,.2); box-shadow: 0 24px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(80,120,255,.06) inset; }
 }
 
 /* glow superior — respiración ambiental lenta, sin competir con los chips */
@@ -251,8 +296,33 @@ const cardsProgressReady = computed(() =>
 
 /* ── Banner ── */
 .rim-banner {
-  position: relative; height: 128px; overflow: hidden;
+  position: relative; height: 90px; overflow: hidden;
 }
+/* acento inferior — línea cósmica animada, mismo lenguaje que .rc__side-accent de la card */
+.rim-banner__accent {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px; z-index: 2;
+  background: linear-gradient(90deg, transparent 0%, #7b4fff 20%, #2af598 50%, #009efd 80%, transparent 100%);
+  background-size: 220% 100%;
+  opacity: .8;
+  animation: rimScanLine 4.5s linear infinite;
+}
+@keyframes rimScanLine {
+  0%   { background-position: 0% 0; }
+  100% { background-position: -220% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rim-banner__accent { animation: none; background-position: 0 0; }
+}
+
+/* Código corto de sala — discreto, esquina superior izquierda, simétrico al botón cerrar */
+.rim-room-code {
+  position: absolute; top: 11px; left: 12px; z-index: 10;
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 8.5px; font-weight: 600; letter-spacing: .4px;
+  color: rgba(255,255,255,.4);
+  text-shadow: 0 1px 3px rgba(0,0,0,.6);
+}
+.rim-room-code i { font-size: 7px; opacity: .7; }
 .rim-banner__img {
   width: 100%; height: 100%; object-fit: cover; display: block;
   opacity: .55;
@@ -293,79 +363,64 @@ const cardsProgressReady = computed(() =>
 }
 .rim-close:hover { background: rgba(255,255,255,.15); transform: rotate(90deg); }
 
-/* Timer + fecha — fila centrada, sin apilar en absolute separados */
+/* Timer — arriba, entre el código de sala y el botón cerrar, no flotando al fondo */
 .rim-timer-row {
-  position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%);
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
-  width: 100%; padding: 0 12px;
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  width: 100%; padding: 0 44px;
+  display: flex; justify-content: center;
 }
+/* Timer corriendo — mismo lenguaje verde que .rc__status-badge--ok de la card */
 .rim-timer {
-  background: rgba(6,12,36,.85); border: 1px solid rgba(100,140,255,.28);
-  backdrop-filter: blur(6px); color: #c8d8ff;
+  background: rgba(8,28,18,.82); border: 1px solid rgba(42,245,152,.4);
+  backdrop-filter: blur(6px); color: #2af598;
   border-radius: 30px; padding: 4px 14px;
   font-family: 'Anton', sans-serif; font-size: 14px; letter-spacing: 1.2px;
-  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(0,0,0,.35);
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(42,245,152,.12);
+  animation: rimTimerGlow 2.6s ease-in-out infinite;
 }
-.rim-timer i { font-size: 10px; opacity: .65; }
-.rim-timer--live { border-color: rgba(255,60,60,.45); color: #ff7070; animation: rimLivePulse 2.4s ease-in-out infinite; }
-@keyframes rimLivePulse { 0%,100%{box-shadow:0 4px 14px rgba(0,0,0,.35)} 50%{box-shadow:0 4px 14px rgba(0,0,0,.35), 0 0 0 5px rgba(255,60,60,.12)} }
+@keyframes rimTimerGlow {
+  0%, 100% { box-shadow: 0 4px 14px rgba(0,0,0,.35), 0 0 16px rgba(42,245,152,.12); }
+  50%      { box-shadow: 0 4px 14px rgba(0,0,0,.35), 0 0 22px rgba(42,245,152,.28); }
+}
+.rim-timer i { font-size: 10px; opacity: .8; }
 
-.rim-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: #ff4d4d; box-shadow: 0 0 5px #ff4d4d; flex-shrink: 0;
-  animation: rimBlink 1.6s ease-in-out infinite;
+/* Timer en vivo — rojo, mismo lenguaje que .rc__status-badge--live de la card */
+.rim-timer--live {
+  background: rgba(28,8,16,.82); border-color: rgba(255,77,109,.45); color: #ff6e8a;
+  animation: rimLivePulse 2.4s ease-in-out infinite;
 }
-@keyframes rimBlink { 0%,100%{opacity:1} 50%{opacity:.35} }
+@keyframes rimLivePulse {
+  0%, 100% { box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+  50%      { box-shadow: 0 4px 14px rgba(0,0,0,.35), 0 0 0 5px rgba(255,77,109,.14); }
+}
 
-/* Chips pie del banner — más presencia: relleno sólido + acento por categoría */
-.rim-banner__foot {
-  position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
-  display: flex; flex-wrap: wrap; gap: 6px; padding: 9px 12px;
-}
-.rim-chip {
-  padding: 4px 11px; border-radius: 20px;
-  font-size: 10.5px; font-weight: 700; letter-spacing: .3px;
-  display: inline-flex; align-items: center; gap: 5px;
-  white-space: nowrap;
-  backdrop-filter: blur(4px);
-  box-shadow: 0 2px 8px rgba(0,0,0,.3);
-  animation: rimChipIn .4s cubic-bezier(.16,1,.3,1) both;
-  transition: transform .2s ease, box-shadow .2s ease;
-}
-.rim-chip:hover { transform: translateY(-1px); }
-.rim-chip:nth-child(1) { animation-delay: 80ms; }
-.rim-chip:nth-child(2) { animation-delay: 120ms; }
-.rim-chip:nth-child(3) { animation-delay: 160ms; }
-.rim-chip:nth-child(4) { animation-delay: 200ms; }
-.rim-chip:nth-child(5) { animation-delay: 240ms; }
-@keyframes rimChipIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: none; }
-}
 @media (prefers-reduced-motion: reduce) {
-  .rim-chip { animation: none; }
+  .rim-timer, .rim-timer--live { animation: none; }
 }
-.rim-chip i { font-size: 9.5px; opacity: .85; }
 
-.rim-chip--violet {
-  background: rgba(123,79,255,.22); border: 1px solid rgba(123,79,255,.42);
-  color: #c4aeff;
+/* Metadata: bolas · rondas · fecha — texto discreto con separadores, igual lenguaje
+   visual que .rc__meta en BingoGameRoomCard.vue (consistencia entre card y modal). */
+.rim-meta-row {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  flex-wrap: wrap; row-gap: 3px;
 }
-.rim-chip--blue {
-  background: rgba(0,158,253,.18); border: 1px solid rgba(0,158,253,.4);
-  color: #8ed4ff;
+.rim-meta-item {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .25px;
+  color: #8aa4cc; white-space: nowrap;
 }
-.rim-chip--date {
-  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
-  color: #d8e0f0;
+.rim-meta-item i { font-size: 9px; color: #5578bb; }
+.rim-meta-dot {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: #34486a; flex-shrink: 0;
 }
 
 /* ── Body ── */
 .rim-body {
-  padding: 16px 16px 18px;
+  padding: 14px 16px 16px;
   position: relative; z-index: 1;
-  display: flex; flex-direction: column; gap: 13px;
+  display: flex; flex-direction: column; gap: 11px;
 }
 
 /* Entrada escalonada de las secciones del body — cascada tras el modal/banner */
@@ -381,18 +436,26 @@ const cardsProgressReady = computed(() =>
   .rim-reveal { animation: none; }
 }
 
-/* Premio — bloque hero con anillo orbital ambiental detrás del número */
-.rim-prize { text-align: center; position: relative; }
+/* Premio — bloque hero con sombra dorada de fondo, mismo lenguaje que .rc__prize de la card
+   (elipse ancha cubriendo todo el bloque, no un aro circular pequeño). */
+.rim-prize {
+  text-align: center; position: relative;
+  padding: 8px 10px 10px;
+  border-radius: 14px;
+  background: radial-gradient(ellipse 95% 100% at 50% 0%, rgba(255,180,0,.1), transparent 75%);
+}
 .rim-prize__aura {
-  position: absolute; left: 50%; top: 50%; z-index: 0; pointer-events: none;
-  width: 130px; height: 130px; margin: -65px 0 0 -65px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,180,0,.14) 0%, transparent 68%);
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 95% 100% at 50% 0%, rgba(255,180,0,.08), transparent 75%);
   animation: rimAuraBreathe 3.4s ease-in-out infinite;
 }
 @keyframes rimAuraBreathe {
-  0%, 100% { opacity: .7; transform: scale(1); }
-  50%      { opacity: 1;  transform: scale(1.08); }
+  0%, 100% { opacity: .7; }
+  50%      { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rim-prize__aura { animation: none; }
 }
 .rim-prize__lbl {
   position: relative; z-index: 1;
@@ -417,12 +480,20 @@ const cardsProgressReady = computed(() =>
   font-family: 'Anton', sans-serif; font-size: 42px; line-height: 1;
   background: linear-gradient(135deg, #ffe566, #ffab00);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  filter: drop-shadow(0 2px 14px rgba(255,180,0,.35));
-  animation: rimPrizeIn .55s cubic-bezier(.16,1,.3,1) .1s both;
+  display: inline-block;
+  animation: rimPrizeIn .55s cubic-bezier(.16,1,.3,1) .1s both, rimPrizeGlow 2.8s ease-in-out .65s infinite;
 }
 @keyframes rimPrizeIn {
   from { opacity: 0; transform: scale(.85); }
   to   { opacity: 1; transform: scale(1); }
+}
+/* Brillo dorado pulsante — refuerza la sensación de "premio especial", mismo tono que el aura */
+@keyframes rimPrizeGlow {
+  0%, 100% { filter: drop-shadow(0 2px 12px rgba(255,180,0,.32)); }
+  50%      { filter: drop-shadow(0 2px 20px rgba(255,180,0,.6)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rim-prize__num { animation: none; filter: drop-shadow(0 2px 14px rgba(255,180,0,.35)); }
 }
 .rim-prize__sym { font-size: 15px; font-weight: 800; color: #ffd060; -webkit-text-fill-color: #ffd060; }
 
@@ -491,6 +562,29 @@ const cardsProgressReady = computed(() =>
 }
 .rim-stat--mine .rim-stat__val { color: #7be8b8; }
 .rim-stat--mine .rim-stat__lbl { color: #4a9a78; }
+
+/* Feedback contextual — urgencia (ámbar) o informativo (neutro) según el estado de la sala */
+.rim-hint {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; border-radius: 11px;
+  font-size: 10.5px; font-weight: 600; line-height: 1.35;
+  background: rgba(255,255,255,.03); border: 1px solid rgba(100,140,255,.12);
+  color: #7c96c4;
+}
+.rim-hint i { font-size: 12px; color: #5578bb; flex-shrink: 0; }
+.rim-hint--urgent {
+  background: rgba(255,176,32,.08); border-color: rgba(255,176,32,.3);
+  color: #ffcb7a;
+  animation: rimHintUrgent 1.8s ease-in-out infinite;
+}
+.rim-hint--urgent i { color: #ffb020; }
+@keyframes rimHintUrgent {
+  0%, 100% { border-color: rgba(255,176,32,.3); }
+  50%      { border-color: rgba(255,176,32,.55); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rim-hint--urgent { animation: none; }
+}
 
 /* Acciones */
 .rim-actions { display: flex; gap: 8px; }
