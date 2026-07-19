@@ -2588,6 +2588,15 @@ pre code {
   margin-left: 0;
 }
 
+/* Utilidades de gap (Bootstrap 5) sobre el grid de Bootstrap 4 vendorizado.
+   Solo row-gap (separación entre líneas al hacer wrap): cada .col-* ya tiene
+   width fijo en % + padding fijo de 15px para el gutter horizontal — sumarle
+   column-gap desborda ese cálculo y empuja columnas a la fila siguiente
+   (ej. 4 col-xl-3 al 25% + gap ya no caben en el 100% del .row). */
+.g-2 { row-gap: 0.5rem; }
+.g-3 { row-gap: 1rem; }
+.g-4 { row-gap: 1.5rem; }
+
 .no-gutters>.col,
 .no-gutters>[class*=col-] {
   padding-right: 0;
