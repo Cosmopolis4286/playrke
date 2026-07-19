@@ -383,21 +383,21 @@ class Role extends Model implements RoleContract
     /**
      * Normalizar un nombre de rol.
      *
+     * El nombre técnico del rol (name) se guarda en minúsculas: es la clave
+     * que usan Spatie Permission, los seeders, el middleware `role:` y
+     * SidebarMenuService::exclude_roles para comparar. El label legible para
+     * el usuario se resuelve aparte (ver getUserRoleDisplay() y
+     * formatRoleName() en el frontend), nunca a partir de este campo.
+     *
      * @param string $name Nombre a normalizar
      * @return string Nombre normalizado
      */
     public static function normalizeName(string $name): string
     {
-        // Limpiar espacios extra
         $normalized = trim($name);
-
-        // Convertir a título
-        $normalized = Str::title($normalized);
-
-        // Reemplazar múltiples espacios con uno solo
         $normalized = preg_replace('/\s+/', ' ', $normalized);
 
-        return $normalized;
+        return Str::lower($normalized);
     }
 
     /**

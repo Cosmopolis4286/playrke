@@ -40,6 +40,7 @@ class RoleSeeder extends Seeder
             // ------------------------------
             $role['guard_name'] = $role['type'] === 'api' ? 'api' : 'web';
         }
+        unset($role); // evita que la referencia del foreach anterior corrompa el último elemento al reusar $role abajo
 
         // Creamos o actualizamos cada rol en la base de datos.
         // Usa App\Models\Role (no Spatie\Permission\Models\Role): mismo
