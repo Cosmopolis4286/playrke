@@ -81,40 +81,41 @@ const cardsProgressReady = computed(() =>
           <div class="rim-banner">
             <img :src="bingoRoomImg" alt="sala" class="rim-banner__img" />
             <div class="rim-banner__overlay" />
+            <div class="rim-banner__sparkle" />
 
             <!-- Cerrar -->
             <button class="rim-close" aria-label="Cerrar" @click="emit('close')">
               <i class="fas fa-times" />
             </button>
 
-            <!-- Timer centrado -->
-            <div id="rim-title" class="rim-timer" :class="{ 'rim-timer--live': isLive(countdown) }">
-              <template v-if="isLive(countdown)">
-                <span class="rim-dot" /> EN VIVO
-              </template>
-              <template v-else>
-                <i class="fas fa-clock" /> {{ formatCountdown(countdown) }}
-              </template>
+            <!-- Timer — solo, centrado, sin compartir fila con la fecha -->
+            <div id="rim-title" class="rim-timer-row">
+              <span class="rim-timer" :class="{ 'rim-timer--live': isLive(countdown) }">
+                <template v-if="isLive(countdown)">
+                  <span class="rim-dot" /> EN VIVO
+                </template>
+                <template v-else>
+                  <i class="fas fa-clock" /> {{ formatCountdown(countdown) }}
+                </template>
+              </span>
             </div>
 
-            <!-- Fecha/hora programada -->
-            <div v-if="startLabel" class="rim-start-time">
-              <i class="fas fa-calendar-alt" /> {{ startLabel }}
-            </div>
-
-            <!-- Chips tipo/modo abajo -->
+            <!-- Chips tipo/modo/rondas/variante + fecha — más resalto, acento por categoría -->
             <div class="rim-banner__foot">
-              <span class="rim-chip rim-chip--type">
-                {{ ROOM_TYPE_LABELS[room.room_type ?? ''] ?? room.room_type }}
+              <span class="rim-chip rim-chip--violet">
+                <i class="fas fa-lock" /> {{ ROOM_TYPE_LABELS[room.room_type ?? ''] ?? room.room_type }}
               </span>
-              <span class="rim-chip rim-chip--mode">
-                {{ GAME_MODE_LABELS[room.game_mode ?? ''] ?? room.game_mode ?? 'Online' }}
+              <span class="rim-chip rim-chip--violet">
+                <i class="fas fa-signal" /> {{ GAME_MODE_LABELS[room.game_mode ?? ''] ?? room.game_mode ?? 'Online' }}
               </span>
-              <span v-if="room.rounds_count" class="rim-chip rim-chip--rounds">
+              <span v-if="room.rounds_count" class="rim-chip rim-chip--blue">
                 <i class="fas fa-layer-group" /> {{ room.rounds_count }} {{ room.rounds_count === 1 ? 'Ronda' : 'Rondas' }}
               </span>
-              <span v-if="room.config?.game_variant" class="rim-chip rim-chip--variant">
+              <span v-if="room.config?.game_variant" class="rim-chip rim-chip--blue">
                 <i class="fas fa-dice" /> {{ room.config.game_variant.replace('_', ' ') }}
+              </span>
+              <span v-if="startLabel" class="rim-chip rim-chip--date">
+                <i class="fas fa-calendar-alt" /> {{ startLabel }}
               </span>
             </div>
           </div>
@@ -122,25 +123,24 @@ const cardsProgressReady = computed(() =>
           <!-- ── Cuerpo ── -->
           <div class="rim-body">
 
-            <!-- Premio -->
-            <div class="rim-prize">
-              <span v-if="myCtns > 0" class="rim-my-ctns" title="Tus cartones en esta sala">
-                <i class="fas fa-ticket-alt" /> {{ myCtns }} {{ myCtns === 1 ? 'cartón' : 'cartones' }}
-              </span>
-              <span class="rim-prize__lbl">Premio acumulado</span>
+            <!-- Premio — bloque hero con anillo orbital ambiental -->
+            <div class="rim-prize rim-reveal" style="--rd: 60ms">
+              <div class="rim-prize__aura" />
+              <span class="rim-prize__lbl"><i class="fas fa-trophy" />Premio acumulado</span>
               <div class="rim-prize__val">
                 <span class="rim-prize__num">{{ prize }}</span>
                 <span class="rim-prize__sym">{{ currencySym }}</span>
               </div>
               <span v-if="myCtns > 0" class="rim-participating">
-                <i class="fas fa-check-circle" /> Ya estás participando en esta sala
+                <i class="fas fa-check-circle" /> Participas con {{ myCtns }} {{ myCtns === 1 ? 'cartón' : 'cartones' }}
               </span>
             </div>
 
             <!-- Progreso de cartones mínimos para iniciar (realtime) -->
             <div
               v-if="showCardsProgress"
-              class="rim-cards-progress"
+              class="rim-cards-progress rim-reveal"
+              style="--rd: 120ms"
               :class="{ 'rim-cards-progress--ready': cardsProgressReady }"
             >
               <div class="rim-cards-progress__top">
@@ -156,12 +156,12 @@ const cardsProgressReady = computed(() =>
             </div>
 
             <!-- Stats row -->
-            <div class="rim-stats">
+            <div class="rim-stats rim-reveal" style="--rd: 170ms">
               <div class="rim-stat">
                 <span class="rim-stat__val">{{ room.total_players }}</span>
                 <span class="rim-stat__lbl">Jugadores</span>
               </div>
-              <div class="rim-stat">
+              <div class="rim-stat" :class="{ 'rim-stat--mine': myCtns > 0 }">
                 <span class="rim-stat__val">{{ myCtns }}</span>
                 <span class="rim-stat__lbl">Mis cartones</span>
               </div>
@@ -175,7 +175,7 @@ const cardsProgressReady = computed(() =>
             </div>
 
             <!-- Acciones -->
-            <div class="rim-actions">
+            <div class="rim-actions rim-reveal" style="--rd: 220ms">
               <button
                 class="rim-btn rim-btn--lobby"
                 :disabled="!isLobbyAllowed || redirecting"
@@ -222,30 +222,65 @@ const cardsProgressReady = computed(() =>
 .rim-card {
   width: 100%; max-width: 360px;
   background: linear-gradient(160deg, #0c1430 0%, #080e24 100%);
-  border: 1px solid rgba(100,140,255,.22);
-  border-radius: 20px; overflow: hidden;
-  box-shadow: 0 24px 64px rgba(0,0,0,.85), 0 0 0 1px rgba(80,120,255,.08) inset;
+  border: 1px solid rgba(100,140,255,.2);
+  border-radius: 22px; overflow: hidden;
   position: relative;
+  animation: rimCardPulse 4s ease-in-out infinite;
 }
-/* glow superior */
+/* Pulso ambiental del contenedor completo — sombra externa que respira, refuerza que el modal está "vivo" */
+@keyframes rimCardPulse {
+  0%, 100% { box-shadow: 0 24px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(80,120,255,.06) inset, 0 0 0 0 rgba(123,79,255,0); }
+  50%      { box-shadow: 0 24px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(80,120,255,.06) inset, 0 0 32px 2px rgba(123,79,255,.16); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rim-card { animation: none; box-shadow: 0 24px 64px rgba(0,0,0,.8), 0 0 0 1px rgba(80,120,255,.06) inset; }
+}
+
+/* glow superior — respiración ambiental lenta, sin competir con los chips */
 .rim-card::before {
   content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 160px;
-  background: radial-gradient(ellipse 80% 55% at 50% 0%, rgba(123,79,255,.28), transparent 70%);
+  position: absolute; top: 0; left: 0; right: 0; height: 120px;
+  background: radial-gradient(ellipse 80% 55% at 50% 0%, rgba(123,79,255,.18), transparent 70%);
   pointer-events: none; z-index: 0;
+  animation: rimGlowBreathe 6s ease-in-out infinite;
+}
+@keyframes rimGlowBreathe { 0%,100% { opacity: .8; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .rim-card::before { animation: none; }
 }
 
 /* ── Banner ── */
 .rim-banner {
-  position: relative; height: 140px; overflow: hidden;
+  position: relative; height: 128px; overflow: hidden;
 }
 .rim-banner__img {
   width: 100%; height: 100%; object-fit: cover; display: block;
+  opacity: .55;
+  animation: rimImgDrift 12s ease-in-out infinite alternate;
+}
+@keyframes rimImgDrift {
+  from { transform: scale(1.04) translateY(0); }
+  to   { transform: scale(1.12) translateY(-3%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rim-banner__img { animation: none; }
 }
 .rim-banner__overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(4,8,26,.4) 0%, rgba(4,8,26,.88) 100%);
+  background: linear-gradient(180deg, rgba(4,8,26,.45) 0%, rgba(4,8,26,.9) 100%);
 }
+/* motas doradas ambientales — refuerzan la sensación de "premio especial" sin saturar */
+.rim-banner__sparkle {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 15% 25%, rgba(255,214,96,.8), transparent 100%),
+    radial-gradient(1px 1px at 38% 55%, rgba(255,255,255,.6), transparent 100%),
+    radial-gradient(1.5px 1.5px at 62% 20%, rgba(200,185,255,.65), transparent 100%),
+    radial-gradient(1px 1px at 82% 48%, rgba(255,214,96,.7), transparent 100%),
+    radial-gradient(1.5px 1.5px at 92% 70%, rgba(255,255,255,.55), transparent 100%);
+  animation: rimSparkle 5s ease-in-out infinite;
+}
+@keyframes rimSparkle { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
 
 /* Cerrar */
 .rim-close {
@@ -258,95 +293,138 @@ const cardsProgressReady = computed(() =>
 }
 .rim-close:hover { background: rgba(255,255,255,.15); transform: rotate(90deg); }
 
-/* Timer */
+/* Timer + fecha — fila centrada, sin apilar en absolute separados */
+.rim-timer-row {
+  position: absolute; bottom: 34px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  width: 100%; padding: 0 12px;
+}
 .rim-timer {
-  position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
-  background: rgba(6,12,36,.88); border: 1px solid rgba(100,140,255,.3);
+  background: rgba(6,12,36,.85); border: 1px solid rgba(100,140,255,.28);
   backdrop-filter: blur(6px); color: #c8d8ff;
   border-radius: 30px; padding: 4px 14px;
-  font-family: 'Anton', sans-serif; font-size: 15px; letter-spacing: 1.5px;
+  font-family: 'Anton', sans-serif; font-size: 14px; letter-spacing: 1.2px;
   display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0,0,0,.35);
 }
-.rim-timer i { font-size: 11px; opacity: .65; }
-.rim-timer--live { border-color: rgba(255,60,60,.5); color: #ff7070; animation: rimLivePulse 1.8s infinite; }
-@keyframes rimLivePulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,60,60,0)} 50%{box-shadow:0 0 0 5px rgba(255,60,60,.15)} }
+.rim-timer i { font-size: 10px; opacity: .65; }
+.rim-timer--live { border-color: rgba(255,60,60,.45); color: #ff7070; animation: rimLivePulse 2.4s ease-in-out infinite; }
+@keyframes rimLivePulse { 0%,100%{box-shadow:0 4px 14px rgba(0,0,0,.35)} 50%{box-shadow:0 4px 14px rgba(0,0,0,.35), 0 0 0 5px rgba(255,60,60,.12)} }
 
 .rim-dot {
-  width: 7px; height: 7px; border-radius: 50%;
+  width: 6px; height: 6px; border-radius: 50%;
   background: #ff4d4d; box-shadow: 0 0 5px #ff4d4d; flex-shrink: 0;
-  animation: rimBlink 1s infinite;
+  animation: rimBlink 1.6s ease-in-out infinite;
 }
-@keyframes rimBlink { 0%,100%{opacity:1} 50%{opacity:.2} }
+@keyframes rimBlink { 0%,100%{opacity:1} 50%{opacity:.35} }
 
-/* Fecha/hora programada */
-.rim-start-time {
-  position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%);
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 10px; font-weight: 700; letter-spacing: .4px;
-  color: rgba(200,216,255,.75); white-space: nowrap;
-  text-shadow: 0 1px 4px rgba(0,0,0,.7);
-}
-.rim-start-time i { font-size: 9px; opacity: .7; }
-
-/* Chips pie del banner */
+/* Chips pie del banner — más presencia: relleno sólido + acento por categoría */
 .rim-banner__foot {
   position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
-  display: flex; flex-wrap: wrap; gap: 6px; padding: 7px 12px;
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 9px 12px;
 }
 .rim-chip {
-  padding: 2px 9px; border-radius: 20px;
-  font-size: 10px; font-weight: 700; letter-spacing: .3px;
-  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 11px; border-radius: 20px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: .3px;
+  display: inline-flex; align-items: center; gap: 5px;
   white-space: nowrap;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  animation: rimChipIn .4s cubic-bezier(.16,1,.3,1) both;
+  transition: transform .2s ease, box-shadow .2s ease;
 }
-.rim-chip--type   { background: rgba(123,79,255,.2);  border: 1px solid rgba(123,79,255,.38);  color: #b490ff; }
-.rim-chip--mode   { background: rgba(0,158,253,.15);  border: 1px solid rgba(0,158,253,.32);   color: #7cd4ff; }
-.rim-chip--rounds { background: rgba(42,245,152,.14); border: 1px solid rgba(42,245,152,.32);  color: #7be8b8; }
-.rim-chip--rounds i { font-size: 9px; opacity: .85; }
-.rim-chip--variant { background: rgba(255,180,0,.13);  border: 1px solid rgba(255,180,0,.3);   color: #ffd060; }
-.rim-chip--variant i { font-size: 9px; opacity: .85; }
+.rim-chip:hover { transform: translateY(-1px); }
+.rim-chip:nth-child(1) { animation-delay: 80ms; }
+.rim-chip:nth-child(2) { animation-delay: 120ms; }
+.rim-chip:nth-child(3) { animation-delay: 160ms; }
+.rim-chip:nth-child(4) { animation-delay: 200ms; }
+.rim-chip:nth-child(5) { animation-delay: 240ms; }
+@keyframes rimChipIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rim-chip { animation: none; }
+}
+.rim-chip i { font-size: 9.5px; opacity: .85; }
+
+.rim-chip--violet {
+  background: rgba(123,79,255,.22); border: 1px solid rgba(123,79,255,.42);
+  color: #c4aeff;
+}
+.rim-chip--blue {
+  background: rgba(0,158,253,.18); border: 1px solid rgba(0,158,253,.4);
+  color: #8ed4ff;
+}
+.rim-chip--date {
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+  color: #d8e0f0;
+}
 
 /* ── Body ── */
 .rim-body {
-  padding: 14px 16px 16px;
+  padding: 16px 16px 18px;
   position: relative; z-index: 1;
-  display: flex; flex-direction: column; gap: 12px;
+  display: flex; flex-direction: column; gap: 13px;
 }
 
-/* Premio */
+/* Entrada escalonada de las secciones del body — cascada tras el modal/banner */
+.rim-reveal {
+  animation: rimReveal .5s cubic-bezier(.16,1,.3,1) both;
+  animation-delay: var(--rd, 0ms);
+}
+@keyframes rimReveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rim-reveal { animation: none; }
+}
+
+/* Premio — bloque hero con anillo orbital ambiental detrás del número */
 .rim-prize { text-align: center; position: relative; }
+.rim-prize__aura {
+  position: absolute; left: 50%; top: 50%; z-index: 0; pointer-events: none;
+  width: 130px; height: 130px; margin: -65px 0 0 -65px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,180,0,.14) 0%, transparent 68%);
+  animation: rimAuraBreathe 3.4s ease-in-out infinite;
+}
+@keyframes rimAuraBreathe {
+  0%, 100% { opacity: .7; transform: scale(1); }
+  50%      { opacity: 1;  transform: scale(1.08); }
+}
 .rim-prize__lbl {
-  font-size: 9px; color: #5578bb;
-  text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 3px;
+  position: relative; z-index: 1;
+  font-size: 9px; color: #6a8ac4; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  display: inline-flex; align-items: center; gap: 5px; margin-bottom: 4px;
 }
-/* Badge de cartones propios — esquina superior derecha del bloque de premio */
-.rim-my-ctns {
-  position: absolute; right: 0; top: -2px;
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px; border-radius: 20px;
-  font-size: 10px; font-weight: 800; letter-spacing: .3px;
-  background: rgba(42,245,152,.14); border: 1px solid rgba(42,245,152,.34);
-  color: #7be8b8; white-space: nowrap;
-}
-.rim-my-ctns i { font-size: 9px; opacity: .85; }
+.rim-prize__lbl i { font-size: 9px; color: #c8a028; filter: drop-shadow(0 0 3px rgba(200,160,40,.4)); }
 
 .rim-participating {
+  position: relative; z-index: 1;
   display: inline-flex; align-items: center; gap: 5px;
-  margin-top: 6px; padding: 3px 11px; border-radius: 20px;
+  margin-top: 7px; padding: 3px 11px; border-radius: 20px;
   font-size: 10px; font-weight: 700; letter-spacing: .3px;
   background: rgba(42,245,152,.1); border: 1px solid rgba(42,245,152,.26);
   color: #7be8b8;
 }
 .rim-participating i { font-size: 10px; color: #2af598; }
 
-.rim-prize__val { display: flex; align-items: baseline; justify-content: center; gap: 6px; }
+.rim-prize__val { position: relative; z-index: 1; display: flex; align-items: baseline; justify-content: center; gap: 6px; }
 .rim-prize__num {
-  font-family: 'Anton', sans-serif; font-size: 38px; line-height: 1;
+  font-family: 'Anton', sans-serif; font-size: 42px; line-height: 1;
   background: linear-gradient(135deg, #ffe566, #ffab00);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  filter: drop-shadow(0 3px 10px rgba(255,180,0,.4));
+  filter: drop-shadow(0 2px 14px rgba(255,180,0,.35));
+  animation: rimPrizeIn .55s cubic-bezier(.16,1,.3,1) .1s both;
 }
-.rim-prize__sym { font-size: 14px; font-weight: 800; color: #ffd060; -webkit-text-fill-color: #ffd060; }
+@keyframes rimPrizeIn {
+  from { opacity: 0; transform: scale(.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.rim-prize__sym { font-size: 15px; font-weight: 800; color: #ffd060; -webkit-text-fill-color: #ffd060; }
 
 /* Progreso de cartones mínimos (realtime) */
 .rim-cards-progress {
@@ -385,11 +463,11 @@ const cardsProgressReady = computed(() =>
 .rim-cards-progress--ready .rim-cards-progress__label { color: #2af598; }
 .rim-cards-progress--ready .rim-cards-progress__fill {
   background: linear-gradient(90deg, #2af598 0%, #00ffd0 100%);
-  animation: rimCpReadyPulse 1.6s ease-in-out infinite;
+  animation: rimCpReadyPulse 2.2s ease-in-out infinite;
 }
 @keyframes rimCpReadyPulse {
-  0%,100% { box-shadow: 0 0 8px rgba(42,245,152,.5); }
-  50%     { box-shadow: 0 0 16px rgba(42,245,152,.85); }
+  0%,100% { box-shadow: 0 0 8px rgba(42,245,152,.45); }
+  50%     { box-shadow: 0 0 14px rgba(42,245,152,.7); }
 }
 
 /* Stats */
@@ -398,6 +476,7 @@ const cardsProgressReady = computed(() =>
   flex: 1;
   background: rgba(255,255,255,.04); border: 1px solid rgba(100,140,255,.1);
   border-radius: 11px; padding: 9px 6px; text-align: center;
+  transition: background .25s ease, border-color .25s ease;
 }
 .rim-stat__val {
   font-family: 'Anton', sans-serif; font-size: 18px; color: #dce8ff;
@@ -406,33 +485,51 @@ const cardsProgressReady = computed(() =>
 .rim-stat__val small { font-family: inherit; font-size: 9px; color: #4a6090; }
 .rim-stat__lbl { font-size: 8px; color: #3d5280; text-transform: uppercase; letter-spacing: .6px; }
 
+/* Stat "mis cartones" destacado cuando el jugador ya participa */
+.rim-stat--mine {
+  background: rgba(42,245,152,.08); border-color: rgba(42,245,152,.28);
+}
+.rim-stat--mine .rim-stat__val { color: #7be8b8; }
+.rim-stat--mine .rim-stat__lbl { color: #4a9a78; }
+
 /* Acciones */
 .rim-actions { display: flex; gap: 8px; }
 .rim-btn {
   flex: 1; padding: 12px 8px; border: none; border-radius: 12px;
   font-size: 12px; font-weight: 800; letter-spacing: .9px; text-transform: uppercase;
   cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;
-  transition: filter .2s, transform .15s, box-shadow .2s;
+  transition: filter .25s ease, transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s ease;
   position: relative; overflow: hidden;
 }
 .rim-btn::after {
   content: ''; position: absolute; top: 0; left: -80%; width: 50%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent);
-  transform: skewX(-18deg); transition: left .45s ease;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+  transform: skewX(-18deg); transition: left .55s cubic-bezier(.16,1,.3,1);
 }
 .rim-btn:hover::after { left: 130%; }
 
 .rim-btn--lobby {
   background: linear-gradient(90deg, #7b4fff 0%, #009efd 100%);
-  color: #fff; box-shadow: 0 4px 18px rgba(123,79,255,.38);
+  color: #fff; box-shadow: 0 4px 18px rgba(123,79,255,.32);
 }
-.rim-btn--lobby:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.rim-btn--lobby:hover { filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 8px 26px rgba(123,79,255,.4); }
+.rim-btn--lobby:active { transform: translateY(0); }
 
+/* Botón de compra — CTA principal del modal: respiración ambiental sutil para atraer la mirada */
 .rim-btn--buy {
   background: linear-gradient(90deg, #2af598 0%, #009efd 100%);
   color: #031a10; box-shadow: 0 4px 18px rgba(42,245,152,.28);
+  animation: rimBuyBreathe 2.6s ease-in-out infinite;
 }
-.rim-btn--buy:hover { filter: brightness(1.08); transform: translateY(-1px); }
+@keyframes rimBuyBreathe {
+  0%, 100% { box-shadow: 0 4px 18px rgba(42,245,152,.28); }
+  50%      { box-shadow: 0 4px 24px rgba(42,245,152,.48); }
+}
+.rim-btn--buy:hover { filter: brightness(1.06); transform: translateY(-2px); animation-play-state: paused; box-shadow: 0 8px 28px rgba(42,245,152,.5); }
+.rim-btn--buy:active { transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .rim-btn--buy { animation: none; }
+}
 
 /* UX-01: botón lobby deshabilitado */
 .rim-btn--disabled {
@@ -480,6 +577,7 @@ const cardsProgressReady = computed(() =>
 .rim-overlay-enter-from, .rim-overlay-leave-to { opacity: 0; }
 
 /* Transición modal */
-.rim-fade-enter-active, .rim-fade-leave-active { transition: opacity .2s ease, transform .2s ease; }
-.rim-fade-enter-from, .rim-fade-leave-to { opacity: 0; transform: scale(.96) translateY(6px); }
+.rim-fade-enter-active { transition: opacity .3s ease, transform .35s cubic-bezier(.16,1,.3,1); }
+.rim-fade-leave-active { transition: opacity .2s ease, transform .2s ease; }
+.rim-fade-enter-from, .rim-fade-leave-to { opacity: 0; transform: scale(.96) translateY(8px); }
 </style>
