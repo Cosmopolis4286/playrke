@@ -4,7 +4,6 @@ namespace Tests\Feature\Api;
 
 use App\Domains\Games\Bingo\Models\Card\BingoCard;
 use App\Domains\Games\Bingo\Models\Room\BingoRoom;
-use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
 use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
 use App\Models\Country;
 use App\Models\Currency;
@@ -104,8 +103,25 @@ class BingoTest extends TestCase
 
     private function seedRolesAndPermissions(): void
     {
-        Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
-        Role::firstOrCreate(['name' => 'player', 'guard_name' => 'web']);
+        // roles.id es Snowflake (no autoincrement) y roles.prefix es NOT NULL/unique
+        // -- Spatie\Role no conoce el trait SnowflakeId, por lo que hay que asignar
+        // ambos campos a mano (mismo patrón que RoleSeeder::run()).
+        foreach (['superadmin', 'player'] as $name) {
+            if (!Role::where('name', $name)->where('guard_name', 'web')->exists()) {
+                // Role::create() no acepta 'id' (Spatie\Role guarda su propia PK en el
+                // constructor: $this->guarded[] = $this->primaryKey;) -- hay que asignarlo
+                // después de instanciar, igual que RoleSeeder::run().
+                $role = new Role([
+                    'name' => $name,
+                    'guard_name' => 'web',
+                    'prefix' => $name,
+                    'type' => 'web',
+                ]);
+                $role->id = $this->nextId();
+                $role->save();
+            }
+        }
+
         Permission::firstOrCreate(['name' => 'games.bingo', 'guard_name' => 'web']);
         Permission::firstOrCreate(['name' => 'games.manage', 'guard_name' => 'web']);
     }
@@ -215,11 +231,15 @@ class BingoTest extends TestCase
 
     private function makeCard(BingoRoom $room, BingoRoomUser $roomUser, User $user): BingoCard
     {
+        // card_lot_id es FK NOT NULL a bingo_card_lots -- con FOREIGN_KEY_CHECKS=0
+        // (activo en setUp) no se requiere una fila real, igual que el resto de
+        // los FKs sintéticos usados en makeRoom().
         return BingoCard::create([
             'id' => BingoCard::generateSnowflakeId(),
             'room_id' => $room->id,
             'creator_user_id' => $user->id,
             'room_user_id' => $roomUser->id,
+            'card_lot_id' => $this->nextId(),
             'currency_id' => $this->currency->id,
             'serial_number' => 'BINGO-' . strtoupper(substr((string) \Illuminate\Support\Str::uuid(), 0, 8)),
             'card_numbers' => json_encode(['B' => [1, 2, 3, 4, 5]]),
@@ -243,15 +263,17 @@ class BingoTest extends TestCase
         $response = $this->actingAs($admin)
             ->getJson('/bingo-rooms/summary-data');
 
+        // handleServiceJson() esparce el array del servicio junto a 'success' --
+        // summaryData() devuelve ['rooms' => ['columns','rows'], 'pagination' => [...]]
+        // a nivel raíz, no anidado bajo 'data'.
         $response->assertOk()
             ->assertJsonStructure([
-                'data' => [
-                    'rooms' => ['columns', 'rows'],
-                    'pagination' => ['total', 'per_page', 'current_page', 'last_page'],
-                ],
+                'success',
+                'rooms' => ['columns', 'rows'],
+                'pagination' => ['total', 'per_page', 'current_page', 'last_page'],
             ]);
 
-        $this->assertEquals(3, $response->json('data.rooms.pagination.total') ?? $response->json('data.pagination.total'));
+        $this->assertEquals(3, $response->json('pagination.total'));
     }
 
     /** @test */
@@ -266,7 +288,7 @@ class BingoTest extends TestCase
 
         $response->assertOk();
 
-        $pagination = $response->json('data.pagination');
+        $pagination = $response->json('pagination');
         $this->assertEquals(1, $pagination['total']);
     }
 
@@ -277,10 +299,11 @@ class BingoTest extends TestCase
         $room = $this->makeRoom();
 
         $response = $this->actingAs($admin)
-            ->getJson("/bingo-rooms/{$room->id}/show");
+            ->getJson("/bingo-rooms/{$room->hashed_id}/show");
 
+        // BingoRoomResource expone 'id' como hashed_id, no el snowflake crudo.
         $response->assertOk()
-            ->assertJsonPath('data.id', (string) $room->id);
+            ->assertJsonPath('data.id', $room->hashed_id);
     }
 
     // ─── Compra de cartones (player) ───────────────────────────────────────────
@@ -293,7 +316,7 @@ class BingoTest extends TestCase
         $wallet = $this->makeWallet($player, 100);
 
         $response = $this->actingAs($player)
-            ->postJson("/bingo/game-rooms/{$room->id}/player-buy", [
+            ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", [
                 'num_ctns' => 2,
             ]);
 
@@ -312,7 +335,7 @@ class BingoTest extends TestCase
         $this->makeWallet($player, 50);
 
         $response = $this->actingAs($player)
-            ->postJson("/bingo/game-rooms/{$room->id}/player-buy", [
+            ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", [
                 'num_ctns' => 1,
             ]);
 
@@ -328,14 +351,14 @@ class BingoTest extends TestCase
         $this->makeWallet($player, 1000);
 
         $response = $this->actingAs($player)
-            ->postJson("/bingo/game-rooms/{$room->id}/player-buy", [
+            ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", [
                 'num_ctns' => 0,
             ]);
 
         $response->assertStatus(422)->assertJsonValidationErrors(['num_ctns']);
 
         $response = $this->actingAs($player)
-            ->postJson("/bingo/game-rooms/{$room->id}/player-buy", [
+            ->postJson("/bingo/game-rooms/{$room->hashed_id}/player-buy", [
                 'num_ctns' => 41,
             ]);
 
@@ -356,7 +379,7 @@ class BingoTest extends TestCase
         }
 
         $response = $this->actingAs($player)
-            ->getJson("/bingo/{$room->id}/user-cards");
+            ->getJson("/bingo/{$room->hashed_id}/user-cards");
 
         $response->assertOk()
             ->assertJson(['success' => true])
@@ -373,7 +396,7 @@ class BingoTest extends TestCase
         $this->makeRoomUser($room, $player, 1);
 
         $response = $this->actingAs($player)
-            ->getJson("/bingo/{$room->id}/draw-state");
+            ->getJson("/bingo/{$room->hashed_id}/draw-state");
 
         $response->assertOk()
             ->assertJsonStructure(['drawnNumbers']);
@@ -387,7 +410,7 @@ class BingoTest extends TestCase
         // El jugador NO compró cartones en esta sala -> BingoRoomPolicy::viewGame deniega.
 
         $response = $this->actingAs($player)
-            ->getJson("/bingo/{$room->id}/draw-state");
+            ->getJson("/bingo/{$room->hashed_id}/draw-state");
 
         $response->assertStatus(403);
     }
@@ -402,7 +425,7 @@ class BingoTest extends TestCase
         $this->makeRoomUser($room, $player, 1);
 
         $response = $this->actingAs($player)
-            ->postJson("/bingo/{$room->id}/check-bingo");
+            ->postJson("/bingo/{$room->hashed_id}/check-bingo");
 
         $response->assertOk()
             ->assertJsonStructure(['success', 'hasBingo']);
@@ -449,7 +472,7 @@ class BingoTest extends TestCase
         // de permisos hace el redirect explícito cuando no hay usuario.
         $this->assertContains($response->getStatusCode(), [302, 401]);
 
-        $response = $this->get("/bingo-rooms/{$room->id}/show");
+        $response = $this->get("/bingo-rooms/{$room->hashed_id}/show");
         $this->assertContains($response->getStatusCode(), [302, 401]);
     }
 
@@ -459,8 +482,8 @@ class BingoTest extends TestCase
         $room = $this->makeRoom();
 
         $endpoints = [
-            ['GET', "/bingo/{$room->id}/draw-state"],
-            ['POST', "/bingo/game-rooms/{$room->id}/player-buy"],
+            ['GET', "/bingo/{$room->hashed_id}/draw-state"],
+            ['POST', "/bingo/game-rooms/{$room->hashed_id}/player-buy"],
             ['GET', '/bingo/my-games'],
         ];
 
