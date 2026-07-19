@@ -401,7 +401,7 @@
             (isRead  ? ' read' : '');
         if (notifId) li.setAttribute('data-notification-id', notifId);
         li.innerHTML = url
-            ? '<a href="' + url + '" class="d-flex align-items-start px-3 py-2 text-decoration-none text-dark" style="gap:10px">' + inner + '</a>'
+            ? '<a href="' + url + '" class="d-flex align-items-start px-3 py-2 text-decoration-none notif-entry-link" style="gap:10px">' + inner + '</a>'
             : '<div class="d-flex align-items-start px-3 py-2" style="gap:10px">' + inner + '</div>';
 
         $list.insertBefore(li, $list.firstChild);
@@ -441,10 +441,10 @@
         var li = buildListItem(
             r.meta,
             '<div class="d-flex align-items-start justify-content-between" style="gap:8px">' +
-                '<p class="mb-0 font-weight-semibold" style="font-size:12px;line-height:1.4">' + (notification.title || r.meta.label) + '</p>' +
+                '<p class="mb-0 font-weight-semibold notif-entry-title" style="font-size:12px;line-height:1.4">' + (notification.title || r.meta.label) + '</p>' +
                 amountChip +
             '</div>' +
-            '<p class="mb-0 text-muted" style="font-size:11px">' + notification.message + '</p>',
+            '<p class="mb-0 notif-entry-message" style="font-size:11px">' + notification.message + '</p>',
             notification.created_at,
             url,
             notification.id,

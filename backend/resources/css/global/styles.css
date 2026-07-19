@@ -997,6 +997,10 @@ button.nb-icon-btn {
 }
 .nb-notif-empty i { font-size: 28px; color: #34d399; }
 
+.notif-entry-link { color: inherit; }
+.notif-entry-title { color: var(--ds-text); }
+.notif-entry-message { color: var(--ds-text-2); }
+
 /* ── Navbar: botón usuario ───────────────────────────────── */
 .nb-user-btn {
   display: flex;
@@ -1549,7 +1553,7 @@ button.nb-icon-btn {
   transition: background .15s;
   border-left: 3px solid transparent;
 }
-.notif-entry:hover > div { background: #f8f9fc; }
+.notif-entry:hover > div { background: var(--ds-surface-2); }
 .notif-entry.read { opacity: .65; border-left: 3px solid #34d399 !important; }
 
 /* Alerta para admin/tesorero: depósito o retiro pendiente por revisar */
