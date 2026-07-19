@@ -14,7 +14,7 @@ abstract class BingoBasePolicy extends BaseRolePolicy
 {
     protected function requiredRole(): string|array
     {
-        return ['superadmin', 'admin', 'commerce', 'customer'];
+        return ['superadmin', 'admin', 'commerce', 'customer', 'subsidiary'];
     }
 
     protected function forbiddenStatuses(): array

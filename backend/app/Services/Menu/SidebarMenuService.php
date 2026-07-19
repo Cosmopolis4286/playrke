@@ -88,7 +88,7 @@ class SidebarMenuService
                     'title'         => 'Mis Partidas',
                     'route'         => 'bingo.my-games',
                     'permission'    => null,
-                    'exclude_roles' => ['seller', 'commerce', 'customer'],
+                    'exclude_roles' => ['seller', 'commerce', 'subsidiary', 'customer'],
                 ],
                 'bingo_cards_sold' => [
                     'title' => 'Cartones',
@@ -189,8 +189,7 @@ class SidebarMenuService
                 'permissions' => [
                     'title' => 'Permisos',
                     'route' => 'permissions.index',
-                    'permission' => 'superadmin.access',
-                    'exclude_roles' => ['!superadmin'],
+                    'permission' => 'superadmin.access', // ya restringe a superadmin, exclude_roles no es necesario aquí
                 ],
                 'all_users' => [
                     'title' => 'Listado',

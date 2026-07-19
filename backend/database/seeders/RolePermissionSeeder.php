@@ -14,6 +14,7 @@ class RolePermissionSeeder extends Seeder
         $superadmin = Role::where('name', 'superadmin')->where('guard_name', 'web')->first();
         $admin = Role::where('name', 'admin')->where('guard_name', 'web')->first();
         $commerce = Role::where('name', 'commerce')->where('guard_name', 'web')->first();
+        $subsidiary = Role::where('name', 'subsidiary')->where('guard_name', 'web')->first();
         $seller = Role::where('name', 'seller')->where('guard_name', 'web')->first();
         $treasurer = Role::where('name', 'treasurer')->where('guard_name', 'web')->first();
         $provider = Role::where('name', 'provider')->where('guard_name', 'api')->first();
@@ -80,6 +81,26 @@ class RolePermissionSeeder extends Seeder
             ];
             $commerce->givePermissionTo($commercePermissions);
             $this->command->info('✅ Permisos asignados a Commerce');
+        }
+
+        // Subsidiary: Sucursal de un comercio — mismos permisos que Commerce
+        if ($subsidiary) {
+            $subsidiaryPermissions = [
+                'sellers.view', 'sellers.create', 'sellers.edit', 'sellers.delete',
+                'customers.view', 'customers.create', 'customers.edit',
+                'games.bingo', // Acceso a juegos de bingo
+                'games.bingo.winners', 'games.bingo.sales_report', // Ganadores y reporte de ventas de bingo
+                'reports.view', 'reports.generate', 'reports.gaming',
+                // Opciones independientes
+                'directory.view', 'directory.search',
+                'prizes.view', 'prizes.create', 'prizes.edit',
+                // Trivia - Solo ver partidas y leaderboard (no jugar - es un rol de gestión)
+                'games.trivia.view',
+                'games.trivia.games.view',
+                'games.trivia.leaderboard.view',
+            ];
+            $subsidiary->givePermissionTo($subsidiaryPermissions);
+            $this->command->info('✅ Permisos asignados a Subsidiary');
         }
 
         // Seller: Gestión de ventas
