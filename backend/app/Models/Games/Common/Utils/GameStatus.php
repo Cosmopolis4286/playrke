@@ -79,6 +79,27 @@ class GameStatus extends Model
     }
 
     /**
+     * Invalida la cache de codesMap()/codeToId(). Necesario tras sembrar o
+     * modificar estados fuera del flujo normal de la app (seeders, tests con
+     * DatabaseTransactions) — la cache de aplicación no se revierte junto con
+     * una transacción SQL, así que un ID cacheado en una corrida anterior
+     * puede sobrevivir a que la fila real ya no exista (o exista con otro id).
+     */
+    public static function forgetCache(): void
+    {
+        try {
+            Cache::tags(['game_status'])->flush();
+        } catch (\BadMethodCallException) {
+            // Driver sin soporte de tags (file/database/array, mismo fallback que
+            // codesMap()): la clave del fallback depende de $codes ordenados, así
+            // que no hay forma de invalidar selectivamente sin conocer de antemano
+            // cada combinación de códigos usada. Se limpia todo el store — aceptable
+            // porque este método solo se llama en seeders/tests, no en request path.
+            Cache::flush();
+        }
+    }
+
+    /**
      * Scope para buscar por ID del estado de juego.
      *
      * @param \Illuminate\Database\Eloquent\Builder<static> $query

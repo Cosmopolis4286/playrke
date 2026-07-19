@@ -98,6 +98,16 @@ class BingoTest extends TestCase
 
     private function seedGameStatuses(): void
     {
+        // GameStatus::codeToId() cachea el mapa code->id 60s (Cache::tags),
+        // pero este test usa DatabaseTransactions: la transacción SQL se
+        // revierte al terminar cada test, mientras la cache de aplicación
+        // NO se revierte con ella. Sin este forgetCache(), un ID cacheado por
+        // un test anterior en la misma corrida puede apuntar a una fila que
+        // ya no existe en la transacción actual (o que fue recreada con otro
+        // Snowflake id), causando que los filtros por status no encuentren
+        // nada (0 resultados esperando 1).
+        GameStatus::forgetCache();
+
         $statuses = ['ACTIVE', 'INACTIVE', 'DELETED', 'CLOSED', 'IN_PROGRESS', 'FINISHED', 'REFUND', 'OFFLINE'];
         foreach ($statuses as $code) {
             if (!GameStatus::where('code', $code)->exists()) {
@@ -204,9 +214,14 @@ class BingoTest extends TestCase
             'creator_user_id' => $this->user->id,
             'game_mode_id' => $this->nextId(),
             'in_live' => 'N',
-            'date' => now()->toDateString(),
+            // unix_date en el futuro (no "ahora"): BingoRoomService::summaryData()
+            // llama CheckExpiredBingoRoomsService::handle() en cada listado, que
+            // mueve a INACTIVE/IN_PROGRESS cualquier sala ACTIVE cuyo unix_date ya
+            // sea <= now(). Con "ahora" exacto, la sala podía expirar entre su
+            // creación y el request del test, dejándola fuera del filtro ?status=ACTIVE.
+            'date' => now()->addDay()->toDateString(),
             'time' => now()->format('H:i:s'),
-            'unix_date' => now()->timestamp,
+            'unix_date' => now()->addDay()->timestamp,
             'use_base_usd' => 1,
             'card_price_usd' => 10.00,
             'allowed_currencies' => json_encode([$this->currency->id]),
@@ -329,8 +344,11 @@ class BingoTest extends TestCase
             ]);
 
         // 2 cartones * 10.00 USD (card_price_usd) = 20.00 debitados de la wallet.
-        $response->assertOk()
-            ->assertJsonPath('wallet_balance', 80.0);
+        // assertEquals (no assertJsonPath) porque PHP serializa floats "redondos"
+        // sin decimales por defecto (json_encode(80.0) === "80", no "80.0") --
+        // assertJsonPath compara tipo estricto y fallaría contra el int decodificado.
+        $response->assertOk();
+        $this->assertEquals(80.0, (float) $response->json('wallet_balance'));
         $this->assertEquals(80.0, (float) $wallet->fresh()->balance);
         $this->assertEquals(2, BingoCard::where('room_id', $room->id)->where('creator_user_id', $player->id)->count());
     }
