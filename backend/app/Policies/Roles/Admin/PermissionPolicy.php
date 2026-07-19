@@ -5,6 +5,7 @@ namespace App\Policies\Roles\Admin;
 use App\Models\Permission;
 use App\Models\User;
 use App\Policies\Roles\BaseRolePolicy;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Policy de autorización para la gestión de Permisos.
@@ -26,13 +27,30 @@ class PermissionPolicy extends BaseRolePolicy
         return 'superadmin';
     }
 
-    public function update(User $user, Permission $permission): bool
+    /**
+     * @param Permission $model Tipado como Model (no Permission) para mantener
+     *   la firma compatible con BaseRolePolicy::update() — PHP no permite
+     *   estrechar el tipo de un parámetro en un override.
+     */
+    public function update(User $user, Model $model): bool
     {
-        return $this->hasAccess($user) && ! $permission->is_system;
+        return $this->hasAccess($user) && ! $model->is_system;
     }
 
-    public function delete(User $user, Permission $permission): bool
+    public function delete(User $user, Model $model): bool
     {
-        return $this->hasAccess($user) && ! $permission->is_system;
+        return $this->hasAccess($user) && ! $model->is_system;
+    }
+
+    /**
+     * Asignar/revocar permisos a un rol opera sobre un lote de IDs, no sobre
+     * una instancia única de Permission — no hay un Model natural que pasarle
+     * a update()/delete(). Aquí solo se exige el rol base (superadmin); la
+     * protección de permisos is_system individuales dentro del lote queda
+     * fuera de este gate a propósito (ver discusión en PermissionController).
+     */
+    public function manageAssignments(User $user): bool
+    {
+        return $this->hasAccess($user);
     }
 }

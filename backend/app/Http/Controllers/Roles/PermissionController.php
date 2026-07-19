@@ -3,17 +3,21 @@
 namespace App\Http\Controllers\Roles;
 
 use App\Http\Controllers\Controller;
+use App\Models\Permission;
 use App\Services\Roles\Admin\PermissionService;
 use App\Services\Roles\Admin\PermissionContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
  * Controlador de administración de Permisos.
  *
- * Solo accesible por SuperAdmin para gestionar permisos del sistema.
+ * Protegido por middleware `role:superadmin` en la ruta (role_protected_routes())
+ * y además por PermissionPolicy — capa de defensa independiente, consistente
+ * con el resto de policies del proyecto (WalletMovementPolicy, GamePolicy).
  */
 final class PermissionController extends Controller
 {
@@ -27,8 +31,10 @@ final class PermissionController extends Controller
      */
     public function index(): Response
     {
+        $this->authorize('viewAny', Permission::class);
+
         $context = $this->contextService->permissionContext();
-        
+
         return Inertia::render('Roles/Admin/Permission/Index', [
             'permissions' => [
                 'rows' => $context->permissions['rows'] ?? [],
@@ -43,6 +49,8 @@ final class PermissionController extends Controller
      */
     public function fetchList(): JsonResponse
     {
+        $this->authorize('viewAny', Permission::class);
+
         return response()->json([
             'permissions' => [
                 'rows' => $this->service->getAllForMatrix(),
@@ -72,12 +80,18 @@ final class PermissionController extends Controller
      */
     public function assignPermissions(Request $request, string $roleId): JsonResponse
     {
+        $this->authorize('manageAssignments', Permission::class);
+
         $request->validate([
             'permission_ids' => 'required|array',
             'permission_ids.*' => 'string',
         ]);
 
-        $this->service->assignPermissionsToRole($roleId, $request->permission_ids);
+        try {
+            $this->service->assignPermissionsToRole($roleId, $request->permission_ids);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json(['message' => 'Rol no encontrado.'], 404);
+        }
 
         return response()->json([
             'message' => 'Permisos asignados correctamente',
@@ -89,12 +103,18 @@ final class PermissionController extends Controller
      */
     public function revokePermissions(Request $request, string $roleId): JsonResponse
     {
+        $this->authorize('manageAssignments', Permission::class);
+
         $request->validate([
             'permission_ids' => 'required|array',
             'permission_ids.*' => 'string',
         ]);
 
-        $this->service->revokePermissionsFromRole($roleId, $request->permission_ids);
+        try {
+            $this->service->revokePermissionsFromRole($roleId, $request->permission_ids);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json(['message' => 'Rol no encontrado.'], 404);
+        }
 
         return response()->json([
             'message' => 'Permisos revocados correctamente',
@@ -106,6 +126,8 @@ final class PermissionController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', Permission::class);
+
         $request->validate([
             'name' => 'required|string|max:255|unique:permissions,name',
             'guard_name' => 'string|max:255',
@@ -125,17 +147,20 @@ final class PermissionController extends Controller
      */
     public function update(Request $request, string $permissionId): JsonResponse
     {
+        $permission = Permission::findOrFail($permissionId);
+        $this->authorize('update', $permission);
+
         $request->validate([
             'name' => 'required|string|max:255|unique:permissions,name,' . $permissionId,
             'guard_name' => 'string|max:255',
             'description' => 'nullable|string|max:500',
         ]);
 
-        $permission = $this->service->updatePermission($permissionId, $request->all());
+        $updated = $this->service->updatePermission($permissionId, $request->all());
 
         return response()->json([
             'message' => 'Permiso actualizado correctamente',
-            'permission' => $permission,
+            'permission' => $updated,
         ]);
     }
 
@@ -144,6 +169,9 @@ final class PermissionController extends Controller
      */
     public function delete(string $permissionId): JsonResponse
     {
+        $permission = Permission::findOrFail($permissionId);
+        $this->authorize('delete', $permission);
+
         $this->service->deletePermission($permissionId);
 
         return response()->json([
@@ -156,6 +184,8 @@ final class PermissionController extends Controller
      */
     public function getRolesWithPermissions(): JsonResponse
     {
+        $this->authorize('viewAny', Permission::class);
+
         $roles = $this->service->getRolesWithPermissions();
 
         return response()->json([

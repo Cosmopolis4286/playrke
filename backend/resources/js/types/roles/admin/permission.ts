@@ -3,6 +3,8 @@ export interface Permission {
   name: string
   guard_name: string
   description?: string
+  /** true = permiso estructural del sistema (roles.*, superadmin.access, system.*) — no editable ni eliminable. */
+  is_system: boolean
   status: boolean
   created_at?: string
   updated_at?: string
