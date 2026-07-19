@@ -2,381 +2,471 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\User;
-use App\Models\BingoRoom;
-use App\Models\BingoCtns;
-use App\Models\BingoDraw;
-use App\Models\Wallet;
+use App\Domains\Games\Bingo\Models\Card\BingoCard;
+use App\Domains\Games\Bingo\Models\Room\BingoRoom;
+use App\Domains\Games\Bingo\Models\Room\BingoRoomConfig;
+use App\Domains\Games\Bingo\Models\Room\User\BingoRoomUser;
+use App\Models\Country;
 use App\Models\Currency;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\Games\Common\Utils\GameStatus;
+use App\Models\User;
+use App\Models\Wallet;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
+/**
+ * Cobertura HTTP del dominio Bingo real.
+ *
+ * Reescrito por completo: el archivo original probaba un API REST inexistente
+ * (`/api/bingo/*`, modelo `App\Models\BingoCtns`, columna `bingo_rooms.status`
+ * como string libre, `card_price` directo en la sala). Esa superficie nunca
+ * llegó a activarse — `routes/api.php` está 100% comentado — y el dominio real
+ * vive en `routes/modules/games/bingo.php`, cargado desde `web.php` (sin
+ * prefijo /api), con controladores Inertia + JSON puntual, protegidos por
+ * `auth` + `multiPermission` + policies (`BingoRoomPolicy`), no simple `auth`.
+ *
+ * Mapeo de los 16 casos originales -> arquitectura real:
+ * - Listar salas / filtrar por status  -> bingo-rooms.index (Inertia, admin) +
+ *   summary-data (JSON, filtros server-side) usando status_id real (FK a game_status).
+ * - Detalle de sala                    -> bingo-rooms.show (JSON, admin).
+ * - Comprar cartones                   -> bingo-game-rooms.player-buy
+ *   (BingoCardGenerateService::playerBuyFromGameRooms), rol 'player' + wallet.
+ * - Ver cartones propios               -> bingo.user-cards (requiere pertenecer a la sala).
+ * - Ver sorteo actual / números cantados -> bingo.draw-state (requiere pertenecer a la sala).
+ * - Verificar ganador                  -> bingo.check-bingo (por sala+usuario, no por cartón).
+ * - Historial                          -> bingo.my-games (Inertia) — ya no es JSON con `success`.
+ * - Cantidad de compra 1-10            -> ahora es 1-40 (BingoRoomPlayerBuyRequest::rules()).
+ * - Bloquear invitados                 -> redirect a login (302), no 401 JSON (rutas web, no API).
+ *
+ * Funcionalidad removida del dominio (documentada en el reporte, no aquí):
+ * - No existe verificación de ganador POR CARTÓN individual; check-bingo evalúa
+ *   todos los cartones del usuario autenticado en la sala.
+ * - No existe "insufficient balance" como código 422 específico; el servicio
+ *   lanza DomainException con mensaje libre, mapeado por handleServiceJson.
+ */
 class BingoTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
-    protected $user;
-    protected $currency;
+    protected User $user;
+    protected Currency $currency;
+    protected Country $country;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->user = User::factory()->create();
-        $this->currency = Currency::factory()->create(['code' => 'USD']);
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+        $this->seedGameStatuses();
+        $this->seedRolesAndPermissions();
+
+        $this->currency = Currency::firstOrCreate(
+            ['iso_code' => 'USD'],
+            ['symbol' => '$', 'name' => 'US Dollar', 'type' => 'FIAT', 'decimal_places' => 2, 'status' => 'ACTIVE']
+        );
+
+        $this->country = Country::firstOrCreate(
+            ['iso_code_2' => 'TC'],
+            ['name' => 'Test Country', 'iso_code_3' => 'TCO', 'status' => 'ACTIVE']
+        );
+
+        $this->user = User::factory()->create(['country_id' => $this->country->id]);
     }
 
-    /** @test */
-    public function user_can_get_list_of_rooms()
+    protected function tearDown(): void
     {
-        BingoRoom::factory()->count(3)->create([
-            'currency_id' => $this->currency->id,
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->getJson('/api/bingo/rooms');
-
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-            ])
-            ->assertJsonStructure([
-                'success',
-                'rooms',
-                'pagination' => [
-                    'current_page',
-                    'last_page',
-                    'per_page',
-                    'total',
-                ],
-            ])
-            ->assertJsonCount(3, 'rooms');
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        parent::tearDown();
     }
 
-    /** @test */
-    public function user_can_filter_rooms_by_status()
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    private static int $idCounter = 0;
+
+    private function nextId(): string
     {
-        BingoRoom::factory()->create([
-            'status' => 'active',
-            'currency_id' => $this->currency->id,
-        ]);
-        BingoRoom::factory()->create([
-            'status' => 'waiting',
-            'currency_id' => $this->currency->id,
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->getJson('/api/bingo/rooms?status=active');
-
-        $response->assertOk()
-            ->assertJsonCount(1, 'rooms');
+        return (string) (200000000000000000 + (++self::$idCounter));
     }
 
-    /** @test */
-    public function user_can_get_single_room_details()
+    private function seedGameStatuses(): void
     {
-        $room = BingoRoom::factory()->create([
-            'name' => 'Test Room',
-            'currency_id' => $this->currency->id,
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->getJson("/api/bingo/rooms/{$room->id}");
-
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'room' => [
-                    'id' => $room->id,
-                    'name' => 'Test Room',
-                ],
-            ]);
+        $statuses = ['ACTIVE', 'INACTIVE', 'DELETED', 'CLOSED', 'IN_PROGRESS', 'FINISHED', 'REFUND', 'OFFLINE'];
+        foreach ($statuses as $code) {
+            if (!GameStatus::where('code', $code)->exists()) {
+                GameStatus::create(['code' => $code, 'label' => $code]);
+            }
+        }
     }
 
-    /** @test */
-    public function user_can_purchase_bingo_cards()
+    private function seedRolesAndPermissions(): void
     {
-        $room = BingoRoom::factory()->create([
-            'card_price' => 10,
-            'currency_id' => $this->currency->id,
-        ]);
-
-        // Create wallet with sufficient balance
-        $wallet = Wallet::factory()->create([
-            'user_id' => $this->user->id,
-            'currency_id' => $this->currency->id,
-            'balance' => 100,
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->postJson("/api/bingo/rooms/{$room->id}/purchase", [
-                'quantity' => 2,
-            ]);
-
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'message' => 'Cartones comprados exitosamente',
-                'total_cost' => 20,
-            ])
-            ->assertJsonStructure([
-                'cards' => [
-                    '*' => ['id', 'numbers']
-                ],
-                'new_balance',
-            ]);
-
-        // Verify wallet was debited
-        $this->assertEquals(80, $wallet->fresh()->balance);
-
-        // Verify cards were created
-        $this->assertCount(2, BingoCtns::where('user_id', $this->user->id)->get());
+        Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'player', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'games.bingo', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => 'games.manage', 'guard_name' => 'web']);
     }
 
-    /** @test */
-    public function user_cannot_purchase_cards_with_insufficient_balance()
+    private function makeAdmin(): User
     {
-        $room = BingoRoom::factory()->create([
-            'card_price' => 100,
-            'currency_id' => $this->currency->id,
-        ]);
+        $admin = User::factory()->create(['country_id' => $this->country->id]);
+        $admin->assignRole('superadmin');
 
-        Wallet::factory()->create([
-            'user_id' => $this->user->id,
-            'currency_id' => $this->currency->id,
-            'balance' => 50,
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->postJson("/api/bingo/rooms/{$room->id}/purchase", [
-                'quantity' => 1,
-            ]);
-
-        $response->assertStatus(422)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Saldo insuficiente',
-            ]);
+        return $admin;
     }
 
-    /** @test */
-    public function user_can_get_their_cards_for_a_room()
+    private function makePlayer(): User
     {
-        $room = BingoRoom::factory()->create([
-            'currency_id' => $this->currency->id,
-        ]);
+        $player = User::factory()->create(['country_id' => $this->country->id]);
+        $player->assignRole('player');
+        $player->givePermissionTo('games.bingo');
 
-        // Create some cards for the user
-        BingoCtns::factory()->count(3)->create([
+        return $player;
+    }
+
+    private function makeWallet(User $user, float $balance = 1000): Wallet
+    {
+        return Wallet::factory()->create([
+            'user_id' => $user->id,
+            'currency_id' => $this->currency->id,
+            'balance' => $balance,
+            'bonus_balance' => 0,
+            'status' => 'ACTIVE',
+        ]);
+    }
+
+    /**
+     * Crea una sala de bingo + su config directamente vía DB (bypasea el boot
+     * de SnowflakeId, igual que GenerateBingoRoomsCommandTest). Los FKs a
+     * room_types/game_modes/prize_pool_types usan IDs sintéticos: con
+     * FOREIGN_KEY_CHECKS=0 no requieren fila real, igual que en el resto de
+     * la suite de Bingo ya migrada.
+     */
+    private function makeRoom(array $roomOverrides = [], array $configOverrides = []): BingoRoom
+    {
+        $roomId = $this->nextId();
+        $statusCode = $roomOverrides['status_code'] ?? 'ACTIVE';
+        unset($roomOverrides['status_code']);
+
+        $roomDefaults = [
+            'id' => $roomId,
+            'uuid_code' => (string) \Illuminate\Support\Str::uuid(),
+            'status_id' => GameStatus::codeToId($statusCode),
+            'creator_user_id' => $this->user->id,
+            'paid_prizes' => 'N',
+            'prize_pool' => 0,
+            'full_house_prize' => 0,
+            'serial_prize' => 0,
+            'rke_commission' => 5,
+            'room_commission' => 10,
+            'seller_commission' => 0,
+            'total_players' => 0,
+            'total_cards' => 0,
+            'total_sales' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        DB::table('bingo_rooms')->insert(array_merge($roomDefaults, $roomOverrides));
+
+        $configDefaults = [
+            'id' => $this->nextId(),
+            'room_id' => $roomId,
+            'template_id' => null,
+            'parent_automatic_id' => null,
+            'is_scheduled' => 'N',
+            'from_house' => 'N',
+            'room_type_id' => $this->nextId(),
+            'creator_user_id' => $this->user->id,
+            'game_mode_id' => $this->nextId(),
+            'in_live' => 'N',
+            'date' => now()->toDateString(),
+            'time' => now()->format('H:i:s'),
+            'unix_date' => now()->timestamp,
+            'use_base_usd' => 1,
+            'card_price_usd' => 10.00,
+            'allowed_currencies' => json_encode([$this->currency->id]),
+            'prize_pool_type_id' => $this->nextId(),
+            'rounds' => '1',
+            'use_serials' => 0,
+            'status' => 'ACTIVE',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        DB::table('bingo_rooms_config')->insert(array_merge($configDefaults, $configOverrides));
+
+        return BingoRoom::find($roomId);
+    }
+
+    private function makeRoomUser(BingoRoom $room, User $user, int $cardsPurchased = 1): BingoRoomUser
+    {
+        return BingoRoomUser::create([
             'room_id' => $room->id,
-            'user_id' => $this->user->id,
+            'user_id' => $user->id,
+            'role' => BingoRoomUser::ROLE_PLAYER,
+            'cards_purchased' => $cardsPurchased,
+            'winner' => 'N',
         ]);
-
-        $response = $this->actingAs($this->user)
-            ->getJson("/api/bingo/rooms/{$room->id}/cards");
-
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-            ])
-            ->assertJsonCount(3, 'cards');
     }
 
-    /** @test */
-    public function user_can_get_current_draw()
+    private function makeCard(BingoRoom $room, BingoRoomUser $roomUser, User $user): BingoCard
     {
-        $room = BingoRoom::factory()->create([
-            'currency_id' => $this->currency->id,
-        ]);
-
-        $draw = BingoDraw::factory()->create([
+        return BingoCard::create([
+            'id' => BingoCard::generateSnowflakeId(),
             'room_id' => $room->id,
-            'status' => 'active',
-            'current_number' => 42,
+            'creator_user_id' => $user->id,
+            'room_user_id' => $roomUser->id,
+            'currency_id' => $this->currency->id,
+            'serial_number' => 'BINGO-' . strtoupper(substr((string) \Illuminate\Support\Str::uuid(), 0, 8)),
+            'card_numbers' => json_encode(['B' => [1, 2, 3, 4, 5]]),
+            'card_hash' => hash('sha256', uniqid('', true)),
+            'status' => BingoCard::STATUS_ACTIVE,
+            'is_validated' => false,
+            'is_custom_card' => false,
         ]);
+    }
 
-        $response = $this->actingAs($this->user)
-            ->getJson("/api/bingo/rooms/{$room->id}/draw");
+    // ─── Listado de salas (admin) ──────────────────────────────────────────────
+
+    /** @test */
+    public function admin_can_get_list_of_rooms()
+    {
+        $admin = $this->makeAdmin();
+        $this->makeRoom();
+        $this->makeRoom();
+        $this->makeRoom();
+
+        $response = $this->actingAs($admin)
+            ->getJson('/bingo-rooms/summary-data');
 
         $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'draw' => [
-                    'id' => $draw->id,
-                    'current_number' => 42,
-                    'status' => 'active',
+            ->assertJsonStructure([
+                'data' => [
+                    'rooms' => ['columns', 'rows'],
+                    'pagination' => ['total', 'per_page', 'current_page', 'last_page'],
                 ],
             ]);
+
+        $this->assertEquals(3, $response->json('data.rooms.pagination.total') ?? $response->json('data.pagination.total'));
     }
 
     /** @test */
-    public function returns_404_when_no_active_draw()
+    public function admin_can_filter_rooms_by_status()
     {
-        $room = BingoRoom::factory()->create([
-            'currency_id' => $this->currency->id,
-        ]);
+        $admin = $this->makeAdmin();
+        $this->makeRoom(['status_code' => 'ACTIVE']);
+        $this->makeRoom(['status_code' => 'FINISHED']);
 
-        $response = $this->actingAs($this->user)
-            ->getJson("/api/bingo/rooms/{$room->id}/draw");
+        $response = $this->actingAs($admin)
+            ->getJson('/bingo-rooms/summary-data?status=' . GameStatus::codeToId('ACTIVE'));
 
-        $response->assertStatus(404)
-            ->assertJson([
-                'success' => false,
-                'message' => 'No hay sorteo activo',
-            ]);
+        $response->assertOk();
+
+        $pagination = $response->json('data.pagination');
+        $this->assertEquals(1, $pagination['total']);
     }
 
     /** @test */
-    public function user_can_get_called_numbers()
+    public function admin_can_get_single_room_details()
     {
-        $draw = BingoDraw::factory()->create([
-            'called_numbers' => json_encode([1, 5, 12, 23, 42]),
-            'current_number' => 42,
-        ]);
+        $admin = $this->makeAdmin();
+        $room = $this->makeRoom();
 
-        $response = $this->actingAs($this->user)
-            ->getJson("/api/bingo/draw/{$draw->id}/numbers");
+        $response = $this->actingAs($admin)
+            ->getJson("/bingo-rooms/{$room->id}/show");
 
         $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'called_numbers' => [1, 5, 12, 23, 42],
-                'current_number' => 42,
+            ->assertJsonPath('data.id', (string) $room->id);
+    }
+
+    // ─── Compra de cartones (player) ───────────────────────────────────────────
+
+    /** @test */
+    public function player_can_purchase_bingo_cards()
+    {
+        $player = $this->makePlayer();
+        $room = $this->makeRoom();
+        $wallet = $this->makeWallet($player, 100);
+
+        $response = $this->actingAs($player)
+            ->postJson("/bingo/game-rooms/{$room->id}/player-buy", [
+                'num_ctns' => 2,
             ]);
+
+        $response->assertOk();
+
+        // 2 cartones * 10.00 USD (card_price_usd) = 20.00 debitados de la wallet.
+        $this->assertEquals(80.0, (float) $wallet->fresh()->balance);
+        $this->assertEquals(2, BingoCard::where('room_id', $room->id)->where('creator_user_id', $player->id)->count());
     }
 
     /** @test */
-    public function user_can_check_if_card_is_winner()
+    public function player_cannot_purchase_cards_with_insufficient_balance()
     {
-        $card = BingoCtns::factory()->create([
-            'user_id' => $this->user->id,
-        ]);
+        $player = $this->makePlayer();
+        $room = $this->makeRoom([], ['card_price_usd' => 100.00]);
+        $this->makeWallet($player, 50);
 
-        $response = $this->actingAs($this->user)
-            ->postJson("/api/bingo/cards/{$card->id}/check-winner");
+        $response = $this->actingAs($player)
+            ->postJson("/bingo/game-rooms/{$room->id}/player-buy", [
+                'num_ctns' => 1,
+            ]);
+
+        $response->assertStatus(422);
+        $this->assertStringContainsString('Saldo insuficiente', $response->json('message') ?? '');
+    }
+
+    /** @test */
+    public function purchase_quantity_must_be_between_1_and_40()
+    {
+        $player = $this->makePlayer();
+        $room = $this->makeRoom();
+        $this->makeWallet($player, 1000);
+
+        $response = $this->actingAs($player)
+            ->postJson("/bingo/game-rooms/{$room->id}/player-buy", [
+                'num_ctns' => 0,
+            ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['num_ctns']);
+
+        $response = $this->actingAs($player)
+            ->postJson("/bingo/game-rooms/{$room->id}/player-buy", [
+                'num_ctns' => 41,
+            ]);
+
+        $response->assertStatus(422)->assertJsonValidationErrors(['num_ctns']);
+    }
+
+    // ─── Cartones propios ───────────────────────────────────────────────────────
+
+    /** @test */
+    public function player_can_get_their_cards_for_a_room()
+    {
+        $player = $this->makePlayer();
+        $room = $this->makeRoom();
+        $roomUser = $this->makeRoomUser($room, $player, 3);
+
+        for ($i = 0; $i < 3; $i++) {
+            $this->makeCard($room, $roomUser, $player);
+        }
+
+        $response = $this->actingAs($player)
+            ->getJson("/bingo/{$room->id}/user-cards");
 
         $response->assertOk()
-            ->assertJson([
-                'success' => true,
-            ])
-            ->assertJsonStructure(['is_winner']);
+            ->assertJson(['success' => true])
+            ->assertJsonCount(3, 'data');
     }
 
-    /** @test */
-    public function user_cannot_check_winner_for_other_users_card()
-    {
-        $otherUser = User::factory()->create();
-
-        $card = BingoCtns::factory()->create([
-            'user_id' => $otherUser->id,
-        ]);
-
-        $response = $this->actingAs($this->user)
-            ->postJson("/api/bingo/cards/{$card->id}/check-winner");
-
-        $response->assertStatus(403)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Este cartón no te pertenece',
-            ]);
-    }
+    // ─── Sorteo / números cantados ──────────────────────────────────────────────
 
     /** @test */
-    public function user_can_get_winners_for_a_room()
+    public function player_with_cards_can_get_current_draw_state()
     {
-        $room = BingoRoom::factory()->create([
-            'currency_id' => $this->currency->id,
-        ]);
+        $player = $this->makePlayer();
+        $room = $this->makeRoom();
+        $this->makeRoomUser($room, $player, 1);
 
-        $response = $this->actingAs($this->user)
-            ->getJson("/api/bingo/rooms/{$room->id}/winners");
+        $response = $this->actingAs($player)
+            ->getJson("/bingo/{$room->id}/draw-state");
 
         $response->assertOk()
-            ->assertJson([
-                'success' => true,
-            ])
-            ->assertJsonStructure(['winners']);
+            ->assertJsonStructure(['drawnNumbers']);
     }
 
     /** @test */
-    public function user_can_get_their_game_history()
+    public function player_without_cards_cannot_access_draw_state()
     {
-        // Create some play history
-        \App\Models\PlayHistory::factory()->count(5)->create([
-            'user_id' => $this->user->id,
-        ]);
+        $player = $this->makePlayer();
+        $room = $this->makeRoom();
+        // El jugador NO compró cartones en esta sala -> BingoRoomPolicy::viewGame deniega.
 
-        $response = $this->actingAs($this->user)
-            ->getJson('/api/bingo/history');
+        $response = $this->actingAs($player)
+            ->getJson("/bingo/{$room->id}/draw-state");
+
+        $response->assertStatus(403);
+    }
+
+    // ─── Verificar ganador (por sala, no por cartón) ───────────────────────────
+
+    /** @test */
+    public function player_can_check_bingo_for_their_room()
+    {
+        $player = $this->makePlayer();
+        $room = $this->makeRoom();
+        $this->makeRoomUser($room, $player, 1);
+
+        $response = $this->actingAs($player)
+            ->postJson("/bingo/{$room->id}/check-bingo");
 
         $response->assertOk()
-            ->assertJson([
-                'success' => true,
-            ])
-            ->assertJsonStructure([
-                'history',
-                'pagination',
-            ]);
+            ->assertJsonStructure(['success', 'hasBingo']);
     }
 
+    // ─── Historial de partidas ──────────────────────────────────────────────────
+
     /** @test */
-    public function user_can_filter_history_by_date_range()
+    public function player_can_get_their_game_history()
     {
-        $response = $this->actingAs($this->user)
-            ->getJson('/api/bingo/history?from=2025-01-01&to=2025-12-31');
+        $player = $this->makePlayer();
+        $room = $this->makeRoom();
+        $this->makeRoomUser($room, $player, 2);
+
+        $response = $this->actingAs($player)->get('/bingo/my-games');
 
         $response->assertOk();
     }
 
     /** @test */
-    public function quantity_must_be_between_1_and_10()
+    public function player_can_filter_history_by_search_term()
     {
-        $room = BingoRoom::factory()->create([
-            'currency_id' => $this->currency->id,
-        ]);
+        $player = $this->makePlayer();
+        $room = $this->makeRoom();
+        $this->makeRoomUser($room, $player, 1);
 
-        Wallet::factory()->create([
-            'user_id' => $this->user->id,
-            'currency_id' => $this->currency->id,
-            'balance' => 1000,
-        ]);
+        $response = $this->actingAs($player)
+            ->get('/bingo/my-games?search=' . $room->uuid_code);
 
-        // Test 0 cards
-        $response = $this->actingAs($this->user)
-            ->postJson("/api/bingo/rooms/{$room->id}/purchase", [
-                'quantity' => 0,
-            ]);
+        $response->assertOk();
+    }
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['quantity']);
+    // ─── Acceso de invitados ────────────────────────────────────────────────────
 
-        // Test 11 cards
-        $response = $this->actingAs($this->user)
-            ->postJson("/api/bingo/rooms/{$room->id}/purchase", [
-                'quantity' => 11,
-            ]);
+    /** @test */
+    public function guest_is_redirected_when_accessing_bingo_room_management()
+    {
+        $room = $this->makeRoom();
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['quantity']);
+        $response = $this->getJson('/bingo-rooms/summary-data');
+        // Ruta web protegida por 'auth': sin sesión, MultiPermissionMiddleware
+        // redirige a login (o el guard 'auth' lo hace antes). Con headers JSON
+        // Laravel normalmente devolvería 401, pero aquí el propio middleware
+        // de permisos hace el redirect explícito cuando no hay usuario.
+        $this->assertContains($response->getStatusCode(), [302, 401]);
+
+        $response = $this->get("/bingo-rooms/{$room->id}/show");
+        $this->assertContains($response->getStatusCode(), [302, 401]);
     }
 
     /** @test */
-    public function guest_cannot_access_bingo_endpoints()
+    public function guest_is_redirected_when_accessing_bingo_game_endpoints()
     {
-        $room = BingoRoom::factory()->create([
-            'currency_id' => $this->currency->id,
-        ]);
+        $room = $this->makeRoom();
 
         $endpoints = [
-            ['GET', '/api/bingo/rooms'],
-            ['GET', "/api/bingo/rooms/{$room->id}"],
-            ['POST', "/api/bingo/rooms/{$room->id}/purchase"],
-            ['GET', '/api/bingo/history'],
+            ['GET', "/bingo/{$room->id}/draw-state"],
+            ['POST', "/bingo/game-rooms/{$room->id}/player-buy"],
+            ['GET', '/bingo/my-games'],
         ];
 
         foreach ($endpoints as [$method, $url]) {
             $response = $this->json($method, $url);
-            $response->assertStatus(401);
+            $this->assertContains($response->getStatusCode(), [302, 401], "Endpoint {$method} {$url} debería bloquear a invitados.");
         }
     }
 }
