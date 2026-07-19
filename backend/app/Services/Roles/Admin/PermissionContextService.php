@@ -25,6 +25,7 @@ final class PermissionContextService
             'name'        => $permission->name,
             'guard_name'  => $permission->guard_name,
             'description' => $permission->description,
+            'is_system'   => (bool) $permission->is_system,
             'roles_badge' => $this->generateRolesBadge($permission->roles),
             'status_badge'=> $this->statusBadge(true),
             'created_at'  => $permission->created_at?->format('Y-m-d H:i:s'),
