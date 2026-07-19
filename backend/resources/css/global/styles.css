@@ -140,8 +140,11 @@
   text-shadow: none !important;
 }
 
-/* Checks/radios/switches: fondo del cuadro sin marcar, sigue el tema */
-.custom-control-label::before {
+/* Checks/radios/switches: fondo del cuadro sin marcar, sigue el tema.
+   No aplica a :checked — Bootstrap ya pinta ese estado en azul (#3490dc)
+   sin !important; forzarlo aquí también lo habría anulado, dejando el
+   control "activado" visualmente igual al "desactivado". */
+.custom-control-input:not(:checked)~.custom-control-label::before {
   background-color: var(--ds-surface) !important;
   border-color: var(--ds-border-2) !important;
 }
@@ -172,26 +175,44 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   CONTENEDOR DE PÁGINA — wrapper estándar para el contenido de
-   toda vista Inertia dentro del shell admin (fuera de Pages/Games/**,
-   que maneja su propio layout full-height). Da el padding lateral y
-   el ancho máximo centrado que ya tenía el Dashboard; antes vivía
-   duplicado como CSS scoped en cada Dashboard/Index.vue.
+   CONTENEDOR DE PÁGINA — margen/padding estándar para el contenido
+   de TODA página Inertia, aplicado globalmente sobre #app (el punto
+   de montaje común a cada Pages/*.vue) para que ninguna página nueva
+   pueda quedar fuera del patrón por olvido. Se excluyen las páginas
+   de juego (.game-rooms-page/.lby-page/.ig-page), que necesitan su
+   propio layout full-bleed sin padding ni límite de ancho.
 ══════════════════════════════════════════════════════════════ */
-.ds-page {
-  width: 100%;
-  min-height: 100%;
-  overflow-x: hidden;
+#slot-wrapper > #app {
   padding: 1.25rem 1rem;
   box-sizing: border-box;
 }
-
-.ds-inner {
+#slot-wrapper > #app > :first-child {
   max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+}
+#slot-wrapper > #app:has(> .game-rooms-page),
+#slot-wrapper > #app:has(> .lby-page),
+#slot-wrapper > #app:has(> .ig-page) {
+  padding: 0;
+}
+#slot-wrapper > #app:has(> .game-rooms-page) > :first-child,
+#slot-wrapper > #app:has(> .lby-page) > :first-child,
+#slot-wrapper > #app:has(> .ig-page) > :first-child {
+  max-width: none;
+  margin: 0;
+}
+
+/* Compat: los Dashboard/Index.vue (uno por rol) siguen envolviendo su
+   contenido en .ds-page/.ds-inner explícitamente, desde antes de
+   centralizar esto en #app. Neutralizados aquí para no duplicar el
+   padding/max-width que #app ya aplica por sí solo. */
+.ds-page {
+  padding: 0;
+}
+.ds-inner {
+  max-width: none;
+  margin: 0;
 }
 
 html, body {
@@ -702,12 +723,16 @@ footer.main-footer {
 [data-theme="light"] #content-scrollable {
   scrollbar-color: #7b4fff rgba(0,0,0,.08);
 }
-/* Páginas de juego full-height: como sus padres (#app, #slot-wrapper) son flex
-   column con flex:1, las páginas necesitan también flex:1 para llenar el alto. */
+/* Páginas full-height: como sus padres (#app, #slot-wrapper) son flex
+   column con flex:1, las páginas necesitan también flex:1 para llenar el alto.
+   Sin esto, un min-height:100vh en la página hija se suma al alto ya heredado
+   de #content-scrollable y desborda el viewport (scroll vertical doble). */
 .ig-page,
 .lby-page,
-.game-rooms-page {
+.game-rooms-page,
+.error-page {
   flex: 1 1 0% !important;
+  min-height: 0 !important;
   min-width: 0;
   overflow-x: hidden;
 }
@@ -1537,33 +1562,77 @@ aside.main-sidebar {
   height: 100vh !important;
 }
 
+/* Carril y pulgar del scroll del sidebar — tema oscuro (default).
+   AdminLTE inicializa OverlayScrollbars sobre .sidebar (ver adminlte.js,
+   fixLayoutHeight: "if body.layout-fixed → $(SIDEBAR).overlayScrollbars(...)")
+   con className:'os-theme-light' HARDCODEADO. Esto sustituye el scrollbar nativo
+   por los elementos .os-scrollbar/.os-scrollbar-handle de la librería — por eso
+   ::-webkit-scrollbar / scrollbar-color (CSS nativo) no tenían ningún efecto acá.
+   El thumb del tema os-theme-light es blanco semitransparente (rgba(255,255,255,.4),
+   ver OverlayScrollbars.css) — invisible sobre el fondo claro #f0f2fa del sidebar
+   en [data-theme="light"]. Se sobreescriben sus clases reales, scopeadas al sidebar. */
 aside.main-sidebar .sidebar {
   flex: 1;
   height: auto !important;
   overflow-y: auto;
+  --sb-thumb: rgba(168, 130, 255, 0.55);
+  --sb-thumb-hover: rgba(196, 165, 255, 0.85);
+  --sb-track: rgba(255, 255, 255, 0.06);
+}
+
+/* Tema claro: thumb blanco de os-theme-light se pierde contra #f0f2fa —
+   se usa el mismo acento índigo que el resto del sidebar claro (hover/active). */
+[data-theme="light"] aside.main-sidebar .sidebar {
+  --sb-thumb: rgba(99, 102, 241, 0.45);
+  --sb-thumb-hover: rgba(79, 82, 221, 0.7);
+  --sb-track: rgba(0, 0, 0, 0.05);
+}
+
+aside.main-sidebar .sidebar > .os-scrollbar-vertical {
+  width: 7px !important;
+  bottom: 0;
+}
+
+aside.main-sidebar .sidebar > .os-scrollbar > .os-scrollbar-track {
+  background: var(--sb-track) !important;
+  border-radius: 999px !important;
+}
+
+aside.main-sidebar .sidebar > .os-scrollbar > .os-scrollbar-track > .os-scrollbar-handle {
+  background: var(--sb-thumb) !important;
+  border-radius: 999px !important;
+  transition: background-color 0.15s ease;
+}
+
+aside.main-sidebar .sidebar > .os-scrollbar:hover > .os-scrollbar-track > .os-scrollbar-handle,
+aside.main-sidebar .sidebar > .os-scrollbar > .os-scrollbar-track > .os-scrollbar-handle.active {
+  background: var(--sb-thumb-hover) !important;
+}
+
+/* Fallback: si OverlayScrollbars no llegó a inicializar (plugin no cargado,
+   fallo de red, etc.), .sidebar sigue teniendo overflow-y:auto nativo — se
+   estiliza también el scrollbar nativo para no dejarlo sin estilo en ese caso. */
+aside.main-sidebar .sidebar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(168, 130, 255, 0.45) transparent;
+  scrollbar-color: var(--sb-thumb) var(--sb-track);
 }
 
 aside.main-sidebar .sidebar::-webkit-scrollbar {
-  width: 6px;
+  width: 7px;
 }
 
 aside.main-sidebar .sidebar::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--sb-track);
+  border-radius: 999px;
 }
 
 aside.main-sidebar .sidebar::-webkit-scrollbar-thumb {
-  background: rgba(168, 130, 255, 0.45);
+  background: var(--sb-thumb);
   border-radius: 999px;
 }
 
 aside.main-sidebar .sidebar::-webkit-scrollbar-thumb:hover {
-  background: rgba(190, 155, 255, 0.7);
-}
-
-aside.main-sidebar .sidebar::-webkit-scrollbar-button {
-  display: none;
+  background: var(--sb-thumb-hover);
 }
 
 /* ── Separación entre el logo y el menú de navegación: solo el acento de color, sin hr gris ni espacio extra ── */

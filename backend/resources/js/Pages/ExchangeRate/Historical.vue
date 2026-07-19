@@ -46,9 +46,7 @@
 </script>
 
 <template>
-  <div class="ds-page">
-    <div class="ds-inner">
-    <div class="card">
+  <div class="card">
     <CardHeader :title="title" subtitle="Registro histórico de variaciones" />
 
     <div class="card-body">
@@ -93,8 +91,6 @@
         :filtered-count="exchangeRates.length"
         :total-count="exchangeRates.length"
       />
-    </div>
-    </div>
     </div>
   </div>
 </template>

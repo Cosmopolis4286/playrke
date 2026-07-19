@@ -188,22 +188,18 @@
 </script>
 
 <template>
-  <div class="ds-page">
-    <div class="ds-inner">
-      <TableWithFilterBridge
-        tableId="customer-table"
-        title="Clientes"
-        :columns="props.customers.columns"
-        :rows="customers"
-        :filters="filters"
-        search-placeholder="Buscar por nombre, email, teléfono..."
-        showCreateButton
-        showEditButton
-        showDeleteButton
-        :extra-buttons="extraButtons"
-      />
-    </div>
-  </div>
+  <TableWithFilterBridge
+    tableId="customer-table"
+    title="Clientes"
+    :columns="props.customers.columns"
+    :rows="customers"
+    :filters="filters"
+    search-placeholder="Buscar por nombre, email, teléfono..."
+    showCreateButton
+    showEditButton
+    showDeleteButton
+    :extra-buttons="extraButtons"
+  />
 
   <Modal
     v-model="showModalForm"

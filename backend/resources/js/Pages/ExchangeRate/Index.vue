@@ -209,9 +209,7 @@
 
 </script>
 <template>
-  <div class="ds-page">
-    <div class="ds-inner">
-    <div class="card">
+  <div class="card">
     <CardHeader title="Tasas de Cambio" subtitle="Valores en base a Un Dólar (1 USD)" />
 
     <div class="card-body">
@@ -310,8 +308,6 @@
         :total-count="exchangeRates.length"
         :selected-count="selectedIds.length"
       />
-    </div>
-    </div>
     </div>
   </div>
 

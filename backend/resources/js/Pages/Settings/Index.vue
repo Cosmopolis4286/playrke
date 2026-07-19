@@ -104,10 +104,8 @@
 </script>
 
 <template>
-  <div class="ds-page">
-    <div class="ds-inner">
-    <TableWithFilterBridge
-      table-id="settings-table"
+  <TableWithFilterBridge
+    table-id="settings-table"
     title="Configuración del Sistema"
     subtitle="Gestión de parámetros de configuración"
     :columns="columns"
@@ -126,14 +124,12 @@
     </template>
 
     <!-- Estado -->
-      <template #cell-status="{ row }">
-        <span :class="['badge', row.status === 'ACTIVE' ? 'badge-success' : 'badge-secondary']">
-          {{ row.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}
-        </span>
-      </template>
-    </TableWithFilterBridge>
-    </div>
-  </div>
+    <template #cell-status="{ row }">
+      <span :class="['badge', row.status === 'ACTIVE' ? 'badge-success' : 'badge-secondary']">
+        {{ row.status === 'ACTIVE' ? 'Activo' : 'Inactivo' }}
+      </span>
+    </template>
+  </TableWithFilterBridge>
 
   <Modal
     v-model="showModalForm"

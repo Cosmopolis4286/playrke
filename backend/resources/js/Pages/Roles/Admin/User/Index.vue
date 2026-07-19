@@ -244,21 +244,17 @@
 </script>
 
 <template>
-  <div class="ds-page">
-    <div class="ds-inner">
-      <TableWithFilterBridge
-        tableId="user-table"
-        title="Usuarios"
-        :columns="props.users.columns"
-        :rows="users"
-        :filters="filters"
-        search-placeholder="Buscar por nombre, username, email..."
-        showCreateButton
-        showDeleteButton
-        :extra-buttons="extraButtons"
-      />
-    </div>
-  </div>
+  <TableWithFilterBridge
+    tableId="user-table"
+    title="Usuarios"
+    :columns="props.users.columns"
+    :rows="users"
+    :filters="filters"
+    search-placeholder="Buscar por nombre, username, email..."
+    showCreateButton
+    showDeleteButton
+    :extra-buttons="extraButtons"
+  />
 
   <!-- Modal para carga de saldo -->
   <WalletLoadModal

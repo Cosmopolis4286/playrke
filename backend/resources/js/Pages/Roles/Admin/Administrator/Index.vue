@@ -82,7 +82,7 @@
 
     <section class="content">
       <div class="container-fluid">
-        <AdministratorTable 
+        <AdministratorTable
           :admins="props.admins"
         />
       </div>

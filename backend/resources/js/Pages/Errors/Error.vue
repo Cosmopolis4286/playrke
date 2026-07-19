@@ -133,6 +133,12 @@ const goBack = () => {
 <style scoped>
 .error-page {
     position: relative;
+    /* min-height:100vh, cuando el padre ya tiene su propia altura fija (layout
+       autenticado: #content-scrollable dentro de #app-wrapper con vh-100), suma
+       a esa altura heredada y desborda el viewport, forzando scroll doble. En el
+       layout autenticado, styles.css aplica flex:1/min-height:0 a esta clase
+       (mismo patrón que .game-rooms-page/.lby-page) para que llene el espacio
+       disponible en vez de sumarle 100vh extra. */
     min-height: 100vh;
     width: 100%;
     display: flex;

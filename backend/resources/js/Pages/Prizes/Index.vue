@@ -150,22 +150,18 @@
 </script>
 
 <template>
-  <div class="ds-page">
-    <div class="ds-inner">
-      <TableWithFilterBridge
-        tableId="prizes-table"
-        title="Premios"
-        :columns="props.prizes.columns"
-        :rows="prizes"
-        :filters="filters"
-        search-placeholder="Buscar por nombre, código..."
-        showCreateButton
-        showEditButton
-        showDeleteButton
-        :extra-buttons="extraButtons"
-      />
-    </div>
-  </div>
+  <TableWithFilterBridge
+    tableId="prizes-table"
+    title="Premios"
+    :columns="props.prizes.columns"
+    :rows="prizes"
+    :filters="filters"
+    search-placeholder="Buscar por nombre, código..."
+    showCreateButton
+    showEditButton
+    showDeleteButton
+    :extra-buttons="extraButtons"
+  />
 
   <Modal
     v-model="showModalForm"

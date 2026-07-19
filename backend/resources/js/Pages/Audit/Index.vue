@@ -137,9 +137,7 @@
 </script>
 
 <template>
-  <div class="ds-page">
-    <div class="ds-inner">
-    <div class="card">
+  <div class="card">
     <CardHeader title="Auditoría" subtitle="Registro de actividad del sistema" />
 
     <div class="card-body">
@@ -255,8 +253,6 @@
         </nav>
       </div>
 
-    </div>
-    </div>
     </div>
   </div>
 
