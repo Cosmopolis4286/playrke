@@ -1023,9 +1023,11 @@ final class BingoCardGenerateService
         // Si recordCardPurchase falla, generateInTransaction se revierte y el jugador
         // no queda con cartones sin pago.
         $description = "Compra de {$numCtns} cartón(es) — Sala {$room->uuid_code}";
-        DB::transaction(function () use ($arrCtn, $playerWallet, $totalAmount, $description, $roomId, $userId) {
+        $newBalance = null;
+        DB::transaction(function () use ($arrCtn, $playerWallet, $totalAmount, $description, $roomId, $userId, &$newBalance) {
             $this->cardGenerationService->generateInTransaction($arrCtn);
             $purchase = $this->walletService->recordCardPurchase($playerWallet->id, $totalAmount, $description);
+            $newBalance = (float) $purchase['wallet']->getPlayableBalance();
 
             // Propagar el desglose bono/real al lote recién creado para poder
             // reembolsar proporcionalmente si la sala se cancela (ver
@@ -1064,7 +1066,7 @@ final class BingoCardGenerateService
             'prize_pool'     => $fresh?->prize_pool ?? $room->prize_pool,
             'currency'       => $priceInfo['currency_symbol'],
             'exchange_rate'  => $priceInfo['exchange_rate'],
-            'wallet_balance' => $currentBalance - $totalAmount,
+            'wallet_balance' => $newBalance,
         ];
     }
 
