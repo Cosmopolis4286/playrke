@@ -182,21 +182,17 @@ async function handleUpload() {
     const body = new FormData()
     body.append('avatar', selectedFile.value)
     try {
-        const res  = await fetch('/profile/avatar', {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': csrf(), 'X-Requested-With': 'XMLHttpRequest' },
-            body,
-        })
-        const data = await res.json()
+        await getCsrfCookie()
+        const { data } = await backendClient.post('/profile/avatar', body)
         if (data.success) {
             showToast('Avatar actualizado', 'success')
             emit('avatar-updated', data.data.avatar)
             emit('close')
         } else {
-            showToast('Error al subir el avatar', 'error')
+            showToast(data.message ?? 'Error al subir el avatar', 'error')
         }
-    } catch {
-        showToast('Error de conexión', 'error')
+    } catch (err: any) {
+        showToast(err?.response?.data?.message ?? 'Error de conexión', 'error')
     } finally {
         uploading.value = false
     }
@@ -204,25 +200,22 @@ async function handleUpload() {
 
 // ── Delete ─────────────────────────────────────────────────────────────────
 async function handleDelete() {
-    if (!confirm('¿Eliminar tu avatar actual?')) return
     deleting.value = true
     try {
-        const res  = await fetch('/profile/avatar', {
-            method: 'DELETE',
-            headers: { 'X-CSRF-TOKEN': csrf(), 'X-Requested-With': 'XMLHttpRequest' },
-        })
-        const data = await res.json()
+        await getCsrfCookie()
+        const { data } = await backendClient.delete('/profile/avatar')
         if (data.success) {
             showToast('Avatar eliminado', 'success')
             emit('avatar-updated', null)
             emit('close')
         } else {
-            showToast('Error al eliminar el avatar', 'error')
+            showToast(data.message ?? 'Error al eliminar el avatar', 'error')
         }
-    } catch {
-        showToast('Error de conexión', 'error')
+    } catch (err: any) {
+        showToast(err?.response?.data?.message ?? 'Error de conexión', 'error')
     } finally {
         deleting.value = false
+        confirmingDelete.value = false
     }
 }
 </script>
@@ -362,6 +355,7 @@ async function handleDelete() {
     flex-wrap: wrap;
 }
 .actions-right { display: flex; gap: 8px; margin-left: auto; }
+.confirm-text { font-size: 0.8rem; font-weight: 600; color: var(--ds-text-2); }
 
 .action-btn {
     display: inline-flex;
