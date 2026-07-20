@@ -72,6 +72,7 @@ export function useProfile(
     const sessions      = ref<ProfileSession[]>([])
     const sessionsLoading = ref(false)
     const errorMsg      = ref<string | null>(null)
+    const savingPrefsKey = ref<string | null>(null)
 
     // ── Profile form ───────────────────────────────────────────────────────
     const profileForm = ref({
@@ -174,6 +175,8 @@ export function useProfile(
     }
 
     async function savePreferences(patch: Partial<ProfilePreferences>) {
+        const key = Object.keys(patch)[0] ?? null
+        savingPrefsKey.value = key
         try {
             await getCsrfCookie()
             const { data } = await backendClient.put('/profile/preferences', patch)
@@ -185,6 +188,8 @@ export function useProfile(
             }
         } catch {
             showToast('Error al guardar preferencias', 'error')
+        } finally {
+            savingPrefsKey.value = null
         }
     }
 
@@ -277,7 +282,7 @@ export function useProfile(
     return {
         user, editMode, activeTab, showPassword, showAvatar, showKycModal,
         profileForm, prefsForm, kycState, sessions, sessionsLoading, errorMsg,
-        saving,
+        saving, savingPrefsKey,
         selectedCountryName, isBirthDateEditable, kycLevelLabel,
         toggleEdit, cancelEdit, saveProfile, savePreferences,
         onAvatarUpdated, onPasswordChanged, onKycUpdated,
