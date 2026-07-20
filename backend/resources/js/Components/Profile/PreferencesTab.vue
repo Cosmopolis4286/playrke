@@ -242,10 +242,10 @@ defineEmits<{ save: [patch: Record<string, any>] }>()
 .prefs-card {
     display: flex;
     flex-direction: column;
-    border: 1px solid #eaecf0;
+    border: 1px solid var(--ds-border);
     border-radius: 14px;
     overflow: hidden;
-    background: #fff;
+    background: var(--ds-surface);
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
     transition: box-shadow 0.2s;
 }
@@ -259,13 +259,13 @@ defineEmits<{ save: [patch: Record<string, any>] }>()
     align-items: center;
     gap: 10px;
     padding: 0.9rem 1.1rem;
-    background: #fafbff;
-    border-bottom: 1px solid #eaecf0;
+    background: var(--ds-surface-2);
+    border-bottom: 1px solid var(--ds-border);
 }
 .prefs-card-title {
     font-size: 0.82rem;
     font-weight: 700;
-    color: #2d3a52;
+    color: var(--ds-text);
     letter-spacing: 0.01em;
 }
 
@@ -297,8 +297,8 @@ defineEmits<{ save: [patch: Record<string, any>] }>()
 /* ── Card footer ── */
 .prefs-card-footer {
     padding: 0.75rem 1.1rem;
-    border-top: 1px solid #f0f2f7;
-    background: #fafbff;
+    border-top: 1px solid var(--ds-border);
+    background: var(--ds-surface-2);
 }
 
 /* ── Save button ── */
@@ -328,7 +328,7 @@ defineEmits<{ save: [patch: Record<string, any>] }>()
     display: block;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #4a5568;
+    color: var(--ds-text-2);
     margin-bottom: 5px;
 }
 .field-select-wrap {
@@ -337,11 +337,11 @@ defineEmits<{ save: [patch: Record<string, any>] }>()
 .field-select {
     width: 100%;
     padding: 0.45rem 2rem 0.45rem 0.75rem;
-    border: 1px solid #d1d9e6;
+    border: 1px solid var(--ds-border-2);
     border-radius: 8px;
     font-size: 0.85rem;
-    color: #2d3a52;
-    background: #fff;
+    color: var(--ds-text);
+    background: var(--ds-surface);
     appearance: none;
     -webkit-appearance: none;
     cursor: pointer;
@@ -358,7 +358,7 @@ defineEmits<{ save: [patch: Record<string, any>] }>()
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.65rem;
-    color: #8892a4;
+    color: var(--ds-text-muted);
     pointer-events: none;
 }
 
@@ -369,14 +369,14 @@ defineEmits<{ save: [patch: Record<string, any>] }>()
     justify-content: space-between;
     gap: 10px;
     padding: 10px 0;
-    border-bottom: 1px solid #f0f2f7;
+    border-bottom: 1px solid var(--ds-border);
     cursor: pointer;
     user-select: none;
     transition: background 0.1s;
     border-radius: 6px;
 }
 .toggle-row:last-child { border-bottom: none; }
-.toggle-row:hover { background: #f8f9fc; padding-left: 4px; padding-right: 4px; }
+.toggle-row:hover { background: var(--ds-surface-2); padding-left: 4px; padding-right: 4px; }
 
 .toggle-left {
     display: flex;
@@ -412,12 +412,12 @@ defineEmits<{ save: [patch: Record<string, any>] }>()
 .toggle-label {
     font-size: 0.8rem;
     font-weight: 600;
-    color: #2d3a52;
+    color: var(--ds-text);
     line-height: 1.2;
 }
 .toggle-hint {
     font-size: 0.7rem;
-    color: #8892a4;
+    color: var(--ds-text-muted);
     line-height: 1.3;
 }
 
@@ -426,7 +426,7 @@ defineEmits<{ save: [patch: Record<string, any>] }>()
     width: 38px;
     height: 21px;
     border-radius: 21px;
-    background: #d1d9e6;
+    background: var(--ds-border-2);
     position: relative;
     flex-shrink: 0;
     transition: background 0.22s ease;

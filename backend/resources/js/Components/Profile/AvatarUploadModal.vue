@@ -267,7 +267,7 @@ async function handleDelete() {
 .avatar-status {
     margin-top: 8px;
     font-size: 0.75rem;
-    color: #64748b;
+    color: var(--ds-text-2);
     max-width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -277,19 +277,19 @@ async function handleDelete() {
 
 /* ── Dropzone ── */
 .dropzone {
-    border: 2px dashed #d1d9e6;
+    border: 2px dashed var(--ds-border-2);
     border-radius: 12px;
     padding: 1.5rem 1rem;
     text-align: center;
     cursor: pointer;
     transition: border-color 0.2s, background 0.2s;
-    background: #fafbff;
+    background: var(--ds-surface-2);
     margin-bottom: 0.75rem;
 }
 .dropzone:hover,
 .dropzone--over {
     border-color: #667eea;
-    background: #f0f2ff;
+    background: rgba(102,126,234,0.08);
 }
 .dropzone--error {
     border-color: #ef4444;
@@ -304,7 +304,7 @@ async function handleDelete() {
 }
 .dropzone-text {
     font-size: 0.82rem;
-    color: #4a5568;
+    color: var(--ds-text-2);
     margin: 0 0 4px;
 }
 .dropzone-link {
@@ -314,7 +314,7 @@ async function handleDelete() {
 }
 .dropzone-hint {
     font-size: 0.72rem;
-    color: #94a3b8;
+    color: var(--ds-text-muted);
     margin: 0;
 }
 
@@ -342,8 +342,8 @@ async function handleDelete() {
     gap: 8px;
     font-size: 0.75rem;
 }
-.file-info-key { color: #64748b; font-weight: 600; }
-.file-info-val { color: #2d3a52; word-break: break-all; text-align: right; }
+.file-info-key { color: var(--ds-text-2); font-weight: 600; }
+.file-info-val { color: var(--ds-text); word-break: break-all; text-align: right; }
 
 /* ── Actions ── */
 .modal-actions {
@@ -370,10 +370,10 @@ async function handleDelete() {
 }
 .action-btn--ghost {
     background: transparent;
-    color: #64748b;
-    border: 1.5px solid #d1d9e6;
+    color: var(--ds-text-2);
+    border: 1.5px solid var(--ds-border-2);
 }
-.action-btn--ghost:hover { background: #f1f5f9; }
+.action-btn--ghost:hover { background: var(--ds-surface-2); }
 .action-btn--primary {
     background: linear-gradient(135deg, #667eea, #764ba2);
     color: #fff;

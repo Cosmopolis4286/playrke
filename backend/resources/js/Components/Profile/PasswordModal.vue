@@ -205,7 +205,7 @@ function handleSubmit() {
     display: block;
     font-size: 0.78rem;
     font-weight: 600;
-    color: #4a5568;
+    color: var(--ds-text-2);
     margin-bottom: 5px;
 }
 
@@ -218,17 +218,17 @@ function handleSubmit() {
 .field-input {
     width: 100%;
     padding: 0.5rem 2.5rem 0.5rem 0.85rem;
-    border: 1.5px solid #d1d9e6;
+    border: 1.5px solid var(--ds-border-2);
     border-radius: 10px;
     font-size: 0.875rem;
-    color: #2d3a52;
-    background: #f9fafc;
+    color: var(--ds-text);
+    background: var(--ds-surface-2);
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 .field-input:focus {
     border-color: #667eea;
-    background: #fff;
+    background: var(--ds-surface);
     box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
 }
 .field-input--error { border-color: #ef4444; }
@@ -241,7 +241,7 @@ function handleSubmit() {
     right: 10px;
     background: none;
     border: none;
-    color: #94a3b8;
+    color: var(--ds-text-muted);
     cursor: pointer;
     padding: 0;
     font-size: 0.8rem;
@@ -266,7 +266,7 @@ function handleSubmit() {
 .strength-bar {
     flex: 1;
     height: 4px;
-    background: #e9ecef;
+    background: var(--ds-border);
     border-radius: 4px;
     overflow: hidden;
 }
@@ -292,8 +292,8 @@ function handleSubmit() {
 
 /* ── Requirements ── */
 .requirements {
-    background: #f8f9fc;
-    border: 1px solid #eaecf0;
+    background: var(--ds-surface-2);
+    border: 1px solid var(--ds-border);
     border-radius: 10px;
     padding: 0.75rem 0.9rem;
     margin-bottom: 1.25rem;
@@ -301,7 +301,7 @@ function handleSubmit() {
 .requirements-title {
     font-size: 0.72rem;
     font-weight: 700;
-    color: #64748b;
+    color: var(--ds-text-2);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 0.5rem;
@@ -322,7 +322,7 @@ function handleSubmit() {
     transition: color 0.2s;
 }
 .req-item--ok  { color: #10b981; }
-.req-item--no  { color: #94a3b8; }
+.req-item--no  { color: var(--ds-text-muted); }
 .req-icon { font-size: 0.65rem; }
 
 /* ── Actions ── */
@@ -346,10 +346,10 @@ function handleSubmit() {
 }
 .action-btn--ghost {
     background: transparent;
-    color: #64748b;
-    border: 1.5px solid #d1d9e6;
+    color: var(--ds-text-2);
+    border: 1.5px solid var(--ds-border-2);
 }
-.action-btn--ghost:hover { background: #f1f5f9; }
+.action-btn--ghost:hover { background: var(--ds-surface-2); }
 .action-btn--primary {
     background: linear-gradient(135deg, #667eea, #764ba2);
     color: #fff;
