@@ -18,7 +18,7 @@ class RolePermissionSeeder extends Seeder
         $seller = Role::where('name', 'seller')->where('guard_name', 'web')->first();
         $treasurer = Role::where('name', 'treasurer')->where('guard_name', 'web')->first();
         $provider = Role::where('name', 'provider')->where('guard_name', 'api')->first();
-        $customer = Role::where('name', 'customer')->where('guard_name', 'api')->first();
+        $customer = Role::where('name', 'customer')->where('guard_name', 'web')->first();
         $player = Role::where('name', 'player')->where('guard_name', 'web')->first();
 
         // SuperAdmin: Todos los permisos (solo web guard)
