@@ -214,11 +214,20 @@ class ProfileController extends Controller
             'game_settings' => ['nullable', 'array'],
         ]);
 
-        $user  = $this->authUser();
-        $prefs = array_merge($user->user_preferences ?? [], $request->only([
-            'language', 'timezone', 'notifications', 'privacy', 'game_settings',
-        ]));
+        $user    = $this->authUser();
+        $current = $user->user_preferences ?? [];
+        $patch   = $request->only(['language', 'timezone', 'notifications', 'privacy', 'game_settings']);
 
+        // Merge por-clave: los sub-objetos (notifications/privacy/game_settings) se
+        // fusionan a un nivel de profundidad en vez de reemplazarse por completo,
+        // para que un patch parcial de un sub-objeto no borre el resto de sus claves.
+        foreach (['notifications', 'privacy', 'game_settings'] as $key) {
+            if (isset($patch[$key]) && is_array($patch[$key])) {
+                $patch[$key] = array_merge($current[$key] ?? [], $patch[$key]);
+            }
+        }
+
+        $prefs = array_merge($current, $patch);
         $user->update(['user_preferences' => $prefs]);
 
         return response()->json(['success' => true, 'message' => 'Preferencias guardadas.', 'data' => $prefs]);

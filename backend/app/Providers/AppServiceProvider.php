@@ -106,6 +106,22 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($key);
         });
 
+        // Rate-limit: cambio de contraseña — 5 intentos por minuto por usuario.
+        // Mitiga fuerza bruta sobre "current_password" desde una sesión ya autenticada.
+        RateLimiter::for('profile-change-password', function (Request $request) {
+            return Limit::perMinute(5)->by($request->user()?->id ?? $request->ip());
+        });
+
+        // Rate-limit: actualización de perfil (incluye cambio de email) — 10 por minuto por usuario.
+        RateLimiter::for('profile-update', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());
+        });
+
+        // Rate-limit: subida/eliminación de avatar — 10 por minuto por usuario.
+        RateLimiter::for('profile-avatar', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?? $request->ip());
+        });
+
         // -------------------------------------------
         // Forzar HTTPS en producción
         // -------------------------------------------

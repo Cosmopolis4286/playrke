@@ -12,10 +12,10 @@ Route::middleware(['auth', 'web'])->prefix('profile')->group(function () {
 
     // ── API JSON ───────────────────────────────────────────────────────────
     Route::get('/data',            [ProfileController::class, 'getProfileData'])   ->name('profile.api.data');
-    Route::put('/update',          [ProfileController::class, 'updateProfile'])    ->name('profile.api.update');
-    Route::patch('/password',      [ProfileController::class, 'changePassword'])   ->name('profile.changePassword');
-    Route::post('/avatar',         [ProfileController::class, 'uploadAvatar'])     ->name('profile.api.upload-avatar');
-    Route::delete('/avatar',       [ProfileController::class, 'deleteAvatar'])     ->name('profile.api.delete-avatar');
+    Route::put('/update',          [ProfileController::class, 'updateProfile'])    ->name('profile.api.update')->middleware('throttle:profile-update');
+    Route::patch('/password',      [ProfileController::class, 'changePassword'])   ->name('profile.changePassword')->middleware('throttle:profile-change-password');
+    Route::post('/avatar',         [ProfileController::class, 'uploadAvatar'])     ->name('profile.api.upload-avatar')->middleware('throttle:profile-avatar');
+    Route::delete('/avatar',       [ProfileController::class, 'deleteAvatar'])     ->name('profile.api.delete-avatar')->middleware('throttle:profile-avatar');
     Route::get('/preferences',     [ProfileController::class, 'getPreferences'])   ->name('profile.api.preferences');
     Route::put('/preferences',     [ProfileController::class, 'updatePreferences'])->name('profile.api.update-preferences');
     Route::get('/stats',           [ProfileController::class, 'getStats'])         ->name('profile.api.stats');
