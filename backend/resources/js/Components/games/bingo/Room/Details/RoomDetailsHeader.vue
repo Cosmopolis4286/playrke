@@ -22,7 +22,7 @@ defineProps<{
 <style scoped>
 .details-header {
   padding: 0.5rem 0.5rem 0.75rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--ds-border);
 }
 
 .badge {
@@ -42,6 +42,5 @@ defineProps<{
 .badge-dark      { background-color: #343a40; color: white; }
 .badge-light     { background-color: #f8f9fa; color: #212529; border: 1px solid #dee2e6; }
 
-.text-muted { color: #6c757d !important; }
 .gap-2 { gap: 0.5rem; }
 </style>
