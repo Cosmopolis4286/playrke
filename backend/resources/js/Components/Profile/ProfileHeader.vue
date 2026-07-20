@@ -134,6 +134,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ProfileUser } from '@js/composables/useProfile'
+import { getRoleMeta } from '@js/composables/useRoleMeta'
 
 const props = defineProps<{
     user: ProfileUser
@@ -157,20 +158,7 @@ const quickStats = computed(() => [
 ])
 
 // ── Rol principal ──────────────────────────────────────────────
-const ROLE_META: Record<string, { key: string; label: string; icon: string }> = {
-    superadmin:  { key: 'superadmin', label: 'Super Admin',   icon: 'fas fa-crown' },
-    admin:       { key: 'admin',      label: 'Administrador', icon: 'fas fa-shield-alt' },
-    treasurer:   { key: 'treasurer',  label: 'Tesorero',      icon: 'fas fa-dollar-sign' },
-    seller:      { key: 'seller',     label: 'Vendedor',      icon: 'fas fa-tags' },
-    customer:    { key: 'customer',   label: 'Asesor',        icon: 'fas fa-headset' },
-    player:      { key: 'player',     label: 'Jugador',       icon: 'fas fa-gamepad' },
-    vip_player:  { key: 'vip',        label: 'VIP',           icon: 'fas fa-star' },
-}
-
-const primaryRole = computed(() => {
-    const name = props.user.roles?.[0]?.name ?? 'player'
-    return ROLE_META[name] ?? { key: 'player', label: name, icon: 'fas fa-user' }
-})
+const primaryRole = computed(() => getRoleMeta(props.user.roles?.[0]?.name))
 
 const primaryRoleKey   = computed(() => primaryRole.value.key)
 const primaryRoleLabel = computed(() => primaryRole.value.label)
